@@ -49,19 +49,26 @@ FLOW_BIAS_ALPHA = 0.1
 #: lesson, repeated in ``freq_control.FrequencyMap``: an EWMA seeded from one
 #: outlier distorts its own estimate for dozens of folds afterwards.
 FLOW_BIAS_MIN_SAMPLES = 5
-#: How far from the curve the bias may travel, in kelvin, either way.
+#: How far BELOW the curve the bias may travel, in kelvin.
 #:
-#: 15 K is wide enough to contain every offset that is a real installation
-#: property and narrow enough that nothing past it can be one. A weather curve
-#: moves through 5-15 K over a heating season, an installer's parallel shift is
-#: a few K, and a fixed-setpoint plant running 45 C against a curve asking 35 C
-#: is 10 K out. Past 15 K the residual is no longer a curve offset: it is a
-#: probe in the wrong pipe, a sensor reading degF that no unit table caught, or
-#: a return probe filled into the supply slot -- and the clamp is what keeps
-#: such a reading from walking the bias somewhere no lift should ever be
-#: applied from. The clamp bounds the ESTIMATE, not the sample: a stream of
-#: 40 K residuals pins the bias at the clamp rather than running away with it.
+#: A plant running under the model's curve is one whose emitters need less
+#: than the model thinks; past 15 K under it the supply would be colder than
+#: the room it heats, which is a probe in the wrong pipe rather than a curve.
+#: The clamp bounds the ESTIMATE, not the sample.
 FLOW_BIAS_CLAMP_K = 15.0
+#: The hottest supply a direct heat-pump plant runs at, degC, and therefore
+#: how far ABOVE the curve the bias may travel: up to this supply, measured
+#: against the curve of the sample it was learned from (D2-s2-02).
+#:
+#: The upper bound used to be the same 15 K, argued against a curve asking
+#: 35 C. The model's own curve (``curve_supply_temp``, an emitter UA backed
+#: out of the nameplate at a 15 K design spread) asks 22-28 C of the default
+#: houses, so a plant at 40/45/50 C sat 17-27 K above it, pinned the bias at
+#: the clamp and was priced at a supply it never ran: COP overstated up to
+#: 37 %. Sized against the supply itself, the bound holds every real plant,
+#: and the readings no plant produces -- degF adopted raw, a flue or DHW
+#: probe in the supply slot -- are refused as samples instead of absorbed.
+FLOW_SUPPLY_MAX_C = 75.0
 
 
 def read_water_temps(reader: Any) -> tuple[float | None, float | None]:
@@ -125,9 +132,10 @@ class FlowCurveBias:
     predicate. They are deliberately NOT persisted -- see :meth:`as_dict`.
     """
 
-    #: Measured supply minus curve supply, kelvin, clamped to
-    #: +/-:data:`FLOW_BIAS_CLAMP_K`. Positive means the plant runs HOTTER than
-    #: the model's curve asks for, which costs COP.
+    #: Measured supply minus curve supply, kelvin, from
+    #: -:data:`FLOW_BIAS_CLAMP_K` up to :data:`FLOW_SUPPLY_MAX_C` less the
+    #: curve. Positive means the plant runs HOTTER than the model's curve
+    #: asks for, which costs COP.
     bias_k: float = 0.0
     #: How many residuals have been folded. Zero is the inert state.
     samples: int = 0
@@ -166,6 +174,8 @@ class FlowCurveBias:
         """Fold one (measured, curve) pair into the bias."""
         if not np.isfinite(measured_supply) or not np.isfinite(curve_supply):
             return
+        if measured_supply > FLOW_SUPPLY_MAX_C:
+            return
         residual = float(measured_supply) - float(curve_supply)
         if self.samples < FLOW_BIAS_MIN_SAMPLES:
             blended = (self.bias_k * self.samples + residual) / (
@@ -176,7 +186,11 @@ class FlowCurveBias:
                 1.0 - FLOW_BIAS_ALPHA
             ) * self.bias_k + FLOW_BIAS_ALPHA * residual
         self.bias_k = float(
-            np.clip(blended, -FLOW_BIAS_CLAMP_K, FLOW_BIAS_CLAMP_K)
+            np.clip(
+                blended,
+                -FLOW_BIAS_CLAMP_K,
+                max(FLOW_SUPPLY_MAX_C - float(curve_supply), 0.0),
+            )
         )
         self.samples += 1
 
@@ -216,9 +230,10 @@ class FlowCurveBias:
             return learner
         # Re-clamped on load rather than trusted: a store written by a build
         # with a wider clamp, or simply corrupt, must not reintroduce a bias
-        # this version would never have learned.
+        # this version would never have learned. No heating curve asks for
+        # water below 0 degC, so none learns a bias past the supply ceiling.
         learner.bias_k = float(
-            np.clip(bias, -FLOW_BIAS_CLAMP_K, FLOW_BIAS_CLAMP_K)
+            np.clip(bias, -FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C)
         )
         learner.samples = samples
         return learner

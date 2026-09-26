@@ -246,14 +246,25 @@ DEFAULT_STALENESS_SCALE: Final = 1.0
 STALENESS_SCALE_MIN: Final = 0.5
 STALENESS_SCALE_MAX: Final = 10.0
 
-# Per-input age limits in minutes. A room temperature may reasonably be minutes
-# old; an outdoor forecast, hours. These are deliberately generous multiples of
+# Per-input age limits in minutes. These are deliberately generous multiples of
 # a normal reporting interval so that a healthy sensor never trips them.
+#
+# The temperature of a slow store -- a room, a floor, a tank -- has no normal
+# reporting interval when its probe reports on change (D1-s5-51): a battery
+# Zigbee or BLE thermometer in a stable room sends nothing for hours and Home
+# Assistant writes nothing, so its age measures how still the room is, not
+# whether the probe is alive. At 60 min the integration published Indoor
+# Temperature unavailable through every calm evening and night (field gaps of
+# 4 h 15 min between reports of a healthy probe) and froze the learners on
+# their best data. Six hours clears that gap with margin; the cost is that a
+# probe which dies silently feeds the learners up to six hours of flatline
+# before they freeze, where 60 min allowed one.
+QUIET_STORE_MAX_AGE_MINUTES: Final = 360.0
 INPUT_MAX_AGE_MINUTES: Final = {
-    CONF_INDOOR_TEMP_ENTITY: 60.0,
+    CONF_INDOOR_TEMP_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
     CONF_OUTDOOR_TEMP_ENTITY: 180.0,
-    CONF_DHW_TEMP_ENTITY: 60.0,
-    CONF_FLOOR_RETURN_TEMP_ENTITY: 60.0,
+    CONF_DHW_TEMP_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
+    CONF_FLOOR_RETURN_TEMP_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
     CONF_SOLAR_RADIATION_ENTITY: 90.0,
     CONF_POWER_ENTITY: 30.0,
     CONF_ENERGY_ENTITY: 180.0,
@@ -1399,12 +1410,12 @@ SERVICE_SET_AWAY: Final = "set_away"
 
 # The buffer tank key is defined after the staleness table above, so its age
 # limit is registered here rather than inline.
-INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = QUIET_STORE_MAX_AGE_MINUTES
 INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
 # Matches the indoor sensor: it is the same kind of measurement, read on the
 # same cycle. A key missing from this table gets no age limit at all, which
 # silently disables the staleness watchdog for it.
-INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = QUIET_STORE_MAX_AGE_MINUTES
 # A stale valve target would have the model believe the house is being held
 # somewhere it is not, and plan charging around it.
 INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
@@ -1481,4 +1492,39 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY] = 30.0
 # precisely because outdoor air does not move fast.
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
+
+# Physical windows, degC, for every temperature key ``InputReader.read``
+# serves (D1-s5-52). A DS18B20 reports -127 for a lost bus and 85 for a
+# power-on reset; both are finite numbers in the right unit, and without a
+# window they reached the published sensors, the learners and the solve's
+# initial state as measurements. Each window holds every reading its medium
+# can physically produce and nothing else, so it refuses fault codes rather
+# than judging the plant: 85 inside a tank's window is a hot tank, and stays
+# one. A key absent here has no window (humidity, power, energy, price).
+ROOM_AIR_RANGE_C: Final = (-30.0, 60.0)
+OUTDOOR_AIR_RANGE_C: Final = (-70.0, 70.0)
+# Water at the pressure a heating circuit or a store runs at: relief valves
+# open below 100, and a glycol circuit may run a little under zero.
+WATER_RANGE_C: Final = (-20.0, 100.0)
+# A floor circuit: screed limits its water to about 55 C, so the reset code
+# 85 is a fault there, where in a tank it is a hot tank.
+FLOOR_WATER_RANGE_C: Final = (-20.0, 60.0)
+# A flue probe (the external-heat slot read as a number) runs far above any
+# water; only the fault codes below zero are refused there.
+FLUE_RANGE_C: Final = (-70.0, 1000.0)
+INPUT_PLAUSIBLE_RANGE_C: Final = {
+    CONF_INDOOR_TEMP_ENTITY: ROOM_AIR_RANGE_C,
+    CONF_LOWER_FLOOR_TEMP_ENTITY: ROOM_AIR_RANGE_C,
+    CONF_OUTDOOR_TEMP_ENTITY: OUTDOOR_AIR_RANGE_C,
+    CONF_DHW_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_FLOOR_RETURN_TEMP_ENTITY: FLOOR_WATER_RANGE_C,
+    CONF_BUFFER_TANK_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_MIXING_VALVE_TARGET_ENTITY: WATER_RANGE_C,
+    CONF_VALVE_OUTLET_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_WOOD_TANK_TOP_ENTITY: WATER_RANGE_C,
+    CONF_WOOD_TANK_BOTTOM_ENTITY: WATER_RANGE_C,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_EXTERNAL_HEAT_ENTITY: FLUE_RANGE_C,
+}
 

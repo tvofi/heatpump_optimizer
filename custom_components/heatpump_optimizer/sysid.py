@@ -67,6 +67,15 @@ DEFAULT_MAX_EXCURSION_C = 0.8
 #: typical_slab, settled 600 h, peaked 0.8001 K against 0.7999 K predicted.
 TWO_ZONE_SIZING_HEADROOM_C = 0.05
 
+#: How far under the allowance every step is sized, for the room sensor's
+#: noise (D2-s4-02). The sizer's peak and ``_over_excursion``'s abort were the
+#: same bound, so a step sized to the edge left a noiseless peak at it and
+#: any reading noise past it: 0.01 degC white noise aborted 11 of 16 light_new
+#: nights before a fit ran. 0.15 K is three standard deviations of the
+#: 0.05 degC noise the fit is built to tolerate; the abort bound itself is
+#: the comfort promise and does not move.
+SIZING_NOISE_HEADROOM_C = 0.15
+
 
 def _predict_step_excursion(
     baseline: float,
@@ -1196,8 +1205,6 @@ class SystemIdentification:
         q_max = max_power_kw * cop
         # 0.01 kW thermal: the C=8 UA=0.35 kW/K needle is ~0.05 kW wide.
         # Binary search: each trial is a two-state rollout, not a closed form.
-        lo = 0.0
-        hi = q_max
         best: float | None = None
         plant = (
             _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
@@ -1205,37 +1212,48 @@ class SystemIdentification:
             else ThermalModel(self._two_zone_plant)
         )
 
-        bound = cfg.max_excursion_c - (
+        full = cfg.max_excursion_c - (
             0.0 if self._two_zone_plant is None else TWO_ZONE_SIZING_HEADROOM_C
         )
 
-        def fits(q: float) -> bool:
+        def fits(q: float, bound: float) -> bool:
             peak, final = _predict_step_excursion_plant(
                 ua, capacity, gains, baseline, outdoor_temp, q,
                 cfg.step_hours, cfg.relax_hours, model=plant,
             )
             return peak <= bound and final <= bound
 
-        if fits(q_max):
-            return max_power_kw
-        for _restart in range(2):
-            while hi - lo > 0.01:
-                q = (lo + hi) / 2.0
-                if fits(q):
-                    best = q / cop
-                    lo = q
-                else:
-                    hi = q
+        # The noise headroom first. Where the fitting band closes under it --
+        # a slab house, whose relax phase cools past a tighter bound at any
+        # step small enough to peak under it -- the full bound, as before:
+        # an experiment with no margin beats no experiment.
+        for bound in (full - SIZING_NOISE_HEADROOM_C, full):
+            if fits(q_max, bound):
+                return max_power_kw
+            lo, hi = 0.0, q_max
+            for _restart in range(2):
+                while hi - lo > 0.01:
+                    q = (lo + hi) / 2.0
+                    if fits(q, bound):
+                        best = q / cop
+                        lo = q
+                    else:
+                        hi = q
+                if best is not None:
+                    break
+                # #1524: the fitting steps are a BAND around the hold power
+                # (too little heat cools the room past the bound too), so a
+                # bisection that stepped under the band read "too cold" as
+                # "too big". The restart bisects up from the largest fitting
+                # point of a grid.
+                grid = [
+                    q for q in np.linspace(0.0, q_max, 33)[1:] if fits(q, bound)
+                ]
+                if not grid:
+                    break
+                lo, hi, best = grid[-1], grid[-1] + q_max / 32.0, grid[-1] / cop
             if best is not None:
                 break
-            # #1524: the fitting steps are a BAND around the hold power (too
-            # little heat cools the room past the bound too), so a bisection
-            # that stepped under the band read "too cold" as "too big". The
-            # restart bisects up from the largest fitting point of a grid.
-            grid = [q for q in np.linspace(0.0, q_max, 33)[1:] if fits(q)]
-            if not grid:
-                break
-            lo, hi, best = grid[-1], grid[-1] + q_max / 32.0, grid[-1] / cop
         if best is not None:
             one_peak, _ = _predict_step_excursion(
                 baseline,
