@@ -1918,6 +1918,94 @@ def _issue_delete():
     assert [issue[1] for issue in hass.issues] == ["j"]
 
 
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "the update interval it was constructed with is read back",
+    cite="helpers/update_coordinator.py -- `self.update_interval = update_interval` "
+    "through the property that stores `_update_interval_seconds`",
+)
+def _coordinator_update_interval():
+    import asyncio
+    import logging
+    from datetime import timedelta
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        read = []
+        for interval in (timedelta(seconds=30), timedelta(minutes=15), None):
+            coordinator = DataUpdateCoordinator(
+                _refresh_hass(),
+                logging.getLogger("contract"),
+                name="contract",
+                update_interval=interval,
+                config_entry=_first_refresh_entry(),
+            )
+            read.append(coordinator.update_interval)
+        return read
+
+    assert asyncio.run(main()) == [timedelta(seconds=30), timedelta(minutes=15), None]
+
+
+# -- helpers.storage ---------------------------------------------------------
+# The documents upstream's decoder refuses, and how it reads the one it keeps.
+# Upstream decodes a store file with ``homeassistant.util.json.json_loads``,
+# which is ``orjson.loads``; values measured with orjson 3.11.9. A bare NaN or
+# Infinity token, and any number that overflows a double, is a decode error;
+# an integer past the u64 range (or below the i64 range) that still fits a
+# double decodes as a float.
+STORE_DECODE_CASES = (
+    ("NaN", '{"a": 1.5, "b": NaN}', None),
+    ("Infinity", '{"a": 1.5, "b": Infinity}', None),
+    ("-Infinity", '{"a": 1.5, "b": -Infinity}', None),
+    ("1e400", '{"a": 1.5, "b": 1e400}', None),
+    ("a 401-digit integer", '{"a": 1.5, "b": 1' + "0" * 400 + "}", None),
+    ("2**64", '{"a": 1.5, "b": 18446744073709551616}', {"a": 1.5, "b": 1.8446744073709552e19}),
+    ("-2**63 - 1", '{"a": -9223372036854775809}', {"a": -9.223372036854776e18}),
+    ("2**64 - 1", '{"a": 18446744073709551615}', {"a": 18446744073709551615}),
+    ("a healthy document", '{"a": 1.5, "b": 2.0}', {"a": 1.5, "b": 2.0}),
+)
+
+
+@contract(
+    "homeassistant.helpers.storage.Store",
+    "a document the decoder refuses is moved aside and loads as None; the "
+    "rest decode as orjson reads them",
+    cite="helpers/storage.py -- _async_load_data: on a JSONDecodeError the file "
+    "is renamed `.corrupt.<isotime>` and None returned; util/json.py -- "
+    "`json_loads = orjson.loads`",
+    expect="stub",
+)
+def _store_decode():
+    import asyncio
+
+    from homeassistant.helpers import storage
+
+    async def load(text):
+        storage._DISK["contract_decode"] = text
+        try:
+            return await storage.Store(None, 1, "contract_decode").async_load()
+        finally:
+            gone = "contract_decode" not in storage._DISK
+            storage._DISK.pop("contract_decode", None)
+            got_gone.append(gone)
+
+    def typed(doc):
+        # 2**64 as an int compares equal to it as a float, so the type is
+        # part of what is compared.
+        return None if doc is None else {k: (v, type(v)) for k, v in doc.items()}
+
+    got_gone: list = []
+    got = [asyncio.run(load(text)) for _name, text, _want in STORE_DECODE_CASES]
+    want = [want for _name, _text, want in STORE_DECODE_CASES]
+    wrong = [
+        name for (name, _t, w), g in zip(STORE_DECODE_CASES, got) if typed(g) != typed(w)
+    ]
+    assert not wrong, wrong
+    # Moved aside: a refused document is gone from the store, a kept one stays.
+    assert got_gone == [w is None for w in want]
+
+
 # -- util.dt -----------------------------------------------------------------
 
 @contract(
@@ -1941,12 +2029,17 @@ def _dt_utcnow():
     cite="util/dt.py -- `return dt.datetime.now(time_zone or DEFAULT_TIME_ZONE)`",
 )
 def _dt_now():
+    from datetime import timezone
+
     from homeassistant.util import dt as dt_util
 
     got = dt_util.now()
-    if dt_util.DEFAULT_TIME_ZONE is not None:
-        assert got.tzinfo is not None
-        assert got.utcoffset() == dt_util.DEFAULT_TIME_ZONE.utcoffset(got.replace(tzinfo=None))
+    # Aware whatever the zone: upstream's DEFAULT_TIME_ZONE is UTC until an
+    # instance configures one, so there is no naive case to skip (round-9
+    # D1-s1-52: the old guard made this contract vacuous on the stub).
+    zone = dt_util.DEFAULT_TIME_ZONE or timezone.utc
+    assert got.tzinfo is not None
+    assert got.utcoffset() == zone.utcoffset(got.replace(tzinfo=None))
 
 
 @contract(
@@ -2360,6 +2453,36 @@ def _p_source_reconfigure():
     from homeassistant.config_entries import SOURCE_RECONFIGURE
 
     return str(SOURCE_RECONFIGURE)
+
+
+@probe("helpers.storage: how a stored document decodes", rel="equal")
+def _p_store_decode():
+    # The fidelity half of the stub-only Store decode contract, executed
+    # against upstream: the real provider reads each case through the decoder
+    # its Store uses (a decode error is the None _async_load_data returns),
+    # the stub through its Store, and --compare wants the same answers.
+    import asyncio
+
+    if provider_name() == "real":
+        from homeassistant.util.json import json_loads
+
+        def load(text):
+            try:
+                return json_loads(text)
+            except ValueError:  # orjson.JSONDecodeError is one
+                return None
+
+    else:
+        from homeassistant.helpers import storage
+
+        def load(text):
+            storage._DISK["probe_decode"] = text
+            try:
+                return asyncio.run(storage.Store(None, 1, "probe_decode").async_load())
+            finally:
+                storage._DISK.pop("probe_decode", None)
+
+    return {name: repr(load(text)) for name, text, _want in STORE_DECODE_CASES}
 
 
 @probe("components.diagnostics.REDACTED", rel="equal")
