@@ -103,7 +103,7 @@ against a document that is CORRECT.
                                          #1588's pump_arbiter.py added to
                                          architecture.md's module map)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=23  (was 21; 22 until #1588's
+    RESULT ha_module_level_importers=24  (was 21; 22 until #1588's
                                          pump_arbiter.py imports
                                          homeassistant.helpers.event at
                                          module level; #1299's defrost
@@ -111,7 +111,9 @@ against a document that is CORRECT.
                                          homeassistant.util.dt at module
                                          level, and architecture.md moved
                                          with the census in the same
-                                         commit)
+                                         commit; 24 since round 9's F3.1:
+                                         away.py reads a typed return time
+                                         in homeassistant.util.dt's zone)
 
 INSTRUMENTED SYMBOLS (driven, not read):
     heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}
