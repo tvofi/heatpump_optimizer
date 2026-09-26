@@ -168,14 +168,20 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         if self.coordinator.data:
             action = self.coordinator.data.get("current_action", {})
             power_norm = action.get("power_normalized", 0)
-            mode = self.coordinator.data.get("mode", MODE_AUTO)
 
-            if mode == MODE_OFF:
-                return HVACAction.OFF
-            # The machine, not only the space band: a step below the band's
-            # first rung and a DHW-only step both run the pump (#1499).
+            # The running action first, not the mode alone: a boost overlay
+            # (boost.overlay) sets heat_pump_on/power_normalized on the action
+            # without touching self._mode, so a boost during optimizer mode
+            # "off" used to report hvac_action=OFF while the pump ran (#1683
+            # class P2, D8-s2-02). Checked against the live mode
+            # (self.coordinator.mode), not the payload's copy
+            # (self.coordinator.data["mode"]), which only catches up once the
+            # refresh a mode change asks for has run its solve and used to
+            # disagree with hvac_mode above during that window (D8-s2-03).
             if power_norm > 0.1 or action.get("heat_pump_on"):
                 return HVACAction.HEATING
+            if self.coordinator.mode == MODE_OFF:
+                return HVACAction.OFF
             return HVACAction.IDLE
         return None
 

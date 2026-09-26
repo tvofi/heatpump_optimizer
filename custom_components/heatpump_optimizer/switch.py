@@ -76,10 +76,17 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
+        """Return extra state attributes.
+
+        ``mode`` reads the live ``coordinator.mode``, the same source
+        ``is_on`` above reads, not the published payload's copy: the payload
+        only catches up once the refresh a mode change asks for has run its
+        solve, so the switch's own state and its ``mode`` attribute used to
+        disagree for that window (D8-s2-03).
+        """
         if self.coordinator.data:
             return {
-                "mode": self.coordinator.data.get("mode"),
+                "mode": self.coordinator.mode,
                 "optimization_status": self.coordinator.data.get("optimization_status"),
             }
         return {}
