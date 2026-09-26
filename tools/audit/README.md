@@ -40,11 +40,14 @@ without reading the finding, so it has to carry everything:
   `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, all `"1"`.
   A threaded BLAS inflates `time.process_time()` by the thread factor and the
   ratio does not cancel unless both sides are pinned alike. Print the factor.
-- It writes only under its own directory or a temp directory; it sets a
-  private `HPO_PLANDATA` (under the temp root, `tests/plan_view.py` refuses
-  anything else) before invoking any Node harness; if it uses `env_drift.py`
-  it reads the shared warmed cache in `~/.cache/heatpump_optimizer/` and takes
-  a private `DRIFT_CACHE_DIR` only when it modifies `env_drift.py` itself.
+- It writes only under its own directory or a temp root derived from
+  `$TMPDIR` (`mktemp -d`, `tempfile.mkdtemp`), a `pip download -d` or
+  `--target` included: a literal seat path breaks the judge's re-run in
+  another sandbox, and the cwd is the repository (round 8 judge notes 2, 9).
+  It sets a private `HPO_PLANDATA` under that root before any Node harness;
+  if it uses `env_drift.py` it reads the shared warmed cache in
+  `~/.cache/heatpump_optimizer/` and takes a private `DRIFT_CACHE_DIR` only
+  when it modifies `env_drift.py` itself.
 - It prints one `RESULT <name>=<value> <unit>` line per number, plus
   `RESULT thread_factor=<process_cpu/thread_cpu>`, `RESULT load1=<1-min load>`
   and `RESULT swapins=<count>` at the end of the measurement, the
@@ -67,6 +70,9 @@ without reading the finding, so it has to carry everything:
 - It hooks a named production symbol (`instrumented_symbol` in the finding)
   and moves under a named `perturbation`: a config change or a one-line
   production edit under which the number must change in a stated direction.
+  Perturb in memory (`mock.patch.object`, an attribute swap); an on-disk edit
+  goes in a worktree of its own, never a tree another run imports from — the
+  gate lease serialises `stress.py` alone, not an import (round 8 judge note 3).
   A RESULT computed from constants — `2·n+1` from the bounds shape,
   without hooking `simulate_step` — is voided by the judge.
 
@@ -125,33 +131,23 @@ moves.
 ## Running the gate on the audit box
 
 Run the gate the way CI runs it — drift mode against the merge base; the
-strict comparison does not reproduce on this box. Take the lock only when
-`tests/closure.py select` reports `MODE: FULL` or names `tests/stress.py`,
-and take it with `tests/gate_lock.py` — never `mkdir` and a shell pid.
-`tests/README.md` ("The gate lock on a shared box") is the reference for the
-lease, the flock and what may be stolen without forensics.
+strict comparison does not reproduce on this box. The lease is
+`.claude/rules/gate-scoping.md`'s: `run.sh` takes it around each `stress.py`
+run, so a scoped run needs none taken by hand.
 
 ```
-BASE=$(git merge-base origin/main HEAD)
-python3 tests/gate_lock.py take --label <your-label>
-HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$BASE \
+GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) \
   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
   ./tests/run.sh
-python3 tests/gate_lock.py renew --label <your-label>   # between commands
-python3 tests/gate_lock.py release --label <your-label>
 ```
 
-### `stress.py` always takes the lock, even run on its own
+### `stress.py` run on its own takes no lease
 
-The rule above — take the lock only when the selection is `MODE: FULL` or names
-`tests/stress.py` — reads easily as "no lock when I run a script by hand". Wrong
-for exactly one script; following it cost a whole measurement: on 2026-09-03
-three `stress.py` processes ran concurrently at load 6.5, one recording the
-budget table that is the gate's entire reference. The lock holder had the lock
-and still did not have the box.
+Only `run.sh` leases it. On 2026-09-03 three `stress.py` processes ran
+concurrently at load 6.5, one recording the budget table that is the gate's
+entire reference. Wrap a direct run:
+`python3 tests/gate_lock.py auto-lease --label <your-label> -- python3 tests/stress.py`.
 
-- **Taking the lock is required for `stress.py`**, whether you run it through
-  `run.sh` or on its own.
 - **The lock records intent; it enforces nothing.** It cannot stop a script
   someone runs directly. Before any timing run, confirm exclusivity by
   process, not by ownership:
@@ -200,8 +196,8 @@ passing the model explicitly per call.
 ## Resource rules on the audit box
 
 8-core Apple M1, 8 GB, numpy on OpenBLAS; what counts during a fan-out is
-`COMMON.md`'s. One local full gate at a time, through `tests/gate_lock.py`;
-`stress.py` alone is not alone across worktrees.
+`COMMON.md`'s. One local full gate at a time: the lease serialises only its
+`stress.py` runs, and is one per box across worktrees.
 
 **Fan-out concurrency is a judgement, not a measured capacity.** At most
 three compute-heavy finders share a box (each cloud container is its own
