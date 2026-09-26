@@ -154,6 +154,7 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
         coord.hass,
         BOOST_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_boost",
+        lead=timedelta(hours=BOOST_HOURS),
     )
 
 

@@ -362,6 +362,7 @@ def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:
         coord.hass,
         AWAY_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_away",
+        lead=None,  # a user-set return time: no system bound governs it
     )
 
 
