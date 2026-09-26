@@ -50,6 +50,12 @@ Deliverable: /mnt/project-files/audit-r9/FIX-PLAN.md (+ mirror handoff/round9/FI
 7. Capacity: seats per lane vs ~10 cloud containers; expected wall clock per lane (stated as inferred).
 Then: report "fix plan ready" to tvofi with the link, update this RESUME, and start the first lane.
 
+PHASE F SHAPE (tvofi said "Yes" at 12:11Z, cmsg_01EL5jLi4rokGBbkaevYXSJVSQ288mahmHUnYKUjf3MofT, to the coordinator's proposal cmsg_01EL5jLi4rokGBbkaevYXSJVS6q1sqJAnt3TrptZyrByXy). FIX-PLAN.md must build this in:
+- The Mac's fix orchestrator keeps PR authoring (hpo-author), approvals, merges (one at a time, --match-head-commit) and the stamp.
+- One cloud fixer thread per parallel fix group writes code plus the PR body to handoff/<topic>. Parallel groups must have disjoint file sets, taken from the sweep; a conflict graph decides what runs together.
+- The cloud helpers (Cloud compute helper, Cloud reviewer 2) keep fix reviews and heavy tests, never the same PR. Add a third reviewer if reviews queue.
+- FIX-PLAN.md lists one fixer brief per group (handoff/round9/fix/F<n>.md and /mnt/project-files/audit-r9/fix/), so the coordinator starts one thread per group. Every brief carries the standing rules, including no heavy D3 re-runs.
+
 ## Mandate
 tvofi mandate 3 (msg cmsg_01EL5jLi4rokGBbkaevYXSJVTfeni8YJN5HdH97LdRCudt) expires 2026-09-26T09:35Z:
 until then the Mac seat may approve code-owned/policy files as tvofi (needs a cloud reviewer's
