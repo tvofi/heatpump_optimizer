@@ -5149,14 +5149,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._optimization_running = False
             self.async_update_listeners()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
-        """Set the operation mode."""
+        """Set the operation mode, once a startup load has landed (R6)."""
+        await self._accuracy_store.async_wait_for_read()
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
             # The plan stops being what runs, so its unmatured promises
             # (T5 #16) are void: scoring them against a room now driven by
             # fixed-rule comfort/boost/off would charge the model with
-            # errors it never made. The tank's promises are void for the
-            # same reason: comfort/boost/off charge it on their own rules.
+            # errors it never made. The tank's promises are void likewise.
             self._accuracy.lead_pending.clear()
             self._dhw_accuracy.lead_pending.clear()
         _LOGGER.info("Operation mode set to: %s", mode)

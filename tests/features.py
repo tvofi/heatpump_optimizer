@@ -20651,6 +20651,20 @@ R.check(
 )
 
 
+async def _fr_plan() -> None:
+    _fr_coord._current_action = {"mode": "plan", "price": 0.123}
+
+
+# ... and only a fixed-rule one: the plan's action keeps the price it planned.
+_fr_coord.async_run_optimization = _fr_plan
+_asyncio.run(_fr_coord._async_update_data())
+R.check(
+    "the plan's action keeps its own price, not the current one",
+    _fr_coord._current_action.get("price") == 0.123 != _fr_coord._get_current_price(),
+    f"{_fr_coord._current_action.get('price')} vs current {_fr_coord._get_current_price()}",
+)
+
+
 # #1546: both refresh wrappers turn an unexpected error into an UpdateFailed
 # that carries its translation, so the frontend can render it in the user's
 # language; tests/doc_claims.py pins the key's strings.json entry.
@@ -33782,6 +33796,53 @@ R.check(
     "a mode change survives a restart with no completed cycle, and one whose refresh fails",
     _t1_mp_seen == [("off", "off"), ("economy", "economy")],
     f"(set, restored) {_t1_mp_seen} -- the restored mode must be the one set",
+)
+
+# The mode setter's save writes the whole accuracy store from memory, so a tap
+# during startup, while the store's spawned load is still reading, must not
+# write the fresh defaults over what that read returns: the learner's 7 stored
+# overrides became 0. The read is held open here; Home Assistant starts the
+# spawned load eagerly, so by the time any setter can run it is in flight.
+from homeassistant.helpers import storage as _t1_ms_storage  # noqa: E402
+
+
+async def _t1_ms_case(entry_id):
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=entry_id)
+    first = HeatPumpOptimizerCoordinator(FakeHass(), entry)
+    await first._async_load_accuracy()
+    first._comfort_learner.overrides = 7
+    first._mode = "economy"
+    await first._async_save_accuracy()
+    boot = HeatPumpOptimizerCoordinator(FakeHass(), entry)  # the restart
+    gate, read = _asyncio.Event(), _t1_ms_storage.Store.async_load
+
+    async def _held_read(store):
+        await gate.wait()
+        return await read(store)
+
+    _t1_ms_storage.Store.async_load = _held_read
+    try:
+        load = _asyncio.create_task(boot._async_load_accuracy())
+        await _asyncio.sleep(0)
+        tap = _asyncio.create_task(boot.async_set_mode("off", refresh=False))
+        await _asyncio.sleep(0.01)
+        gate.set()
+        await tap
+        await load
+    finally:
+        _t1_ms_storage.Store.async_load = read
+    after = HeatPumpOptimizerCoordinator(FakeHass(), entry)
+    await after._async_load_accuracy()
+    return (boot._mode, boot._comfort_learner.overrides,
+            after._mode, after._comfort_learner.overrides)
+
+
+_t1_ms_seen = _asyncio.run(_t1_ms_case("t1_ms"))
+R.check(
+    "a mode set while the accuracy load is in flight keeps the stored state",
+    _t1_ms_seen == ("off", 7, "off", 7),
+    f"(live mode, live overrides, restored mode, restored overrides) {_t1_ms_seen}"
+    " -- stored before the restart: economy, 7 overrides",
 )
 
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
