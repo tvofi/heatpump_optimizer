@@ -1,0 +1,208 @@
+{
+ "box": "G4-V2",
+ "lens": 2,
+ "votes": {
+  "D5": [
+   {
+    "id": "D5-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 5,
+    "metric_definition": "en.json labels (data + menu_options) of the steps the real ConfigFlow visits before async_step_temperature that configuration.md's '## Initial setup' section never names (parentheticals stripped); plus tokenless_first_screen=1 vs the section's '(**required**)' token; entities constructed = 75 under 3 configs vs the doc's 74",
+    "method": "tools/audit/round9/D5/verify-v2/v2_setup.py drives user(price_source=entity, no token) -> user_sensors -> finish_setup and counts the 6 platforms' async_setup_entry output under 3 configs; the finder's setup_section.py and entity_counts.py re-ran exactly (4; 75/1)",
+    "attacks": "Config dependence of the entity count: 75 under all 3 configs (not a config artefact). Does the section defer to setup.md: 0 mentions of quick/finish/price source/setup.md. Token 'required' is true only for the default tibber source; the flow accepts entity prices tokenless (1). Perturb finish_setup->temperature: 5 -> 2. Numbers are counts; load1 1.39, thread_factor 1.000",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 16,
+    "metric_definition": "Over 8 quick-setup answer sets (buffer=yes, wood buffer=yes, both probes; two_zone x dhw x wood_furnace), (set, promise) pairs where the entry created by the real ConfigFlow end to end gives ThermalParameters.from_config with buffer_is_store False or two_tank_modelled False",
+    "method": "tools/audit/round9/D5/verify-v2/v2_quick_setup.py: full flow user->user_sensors->finish_setup->quick_setup->device_prefill(declined)->finish_now->setup_overview submit->create_entry data->from_config; the finder's quick_setup_promise.py re-ran exactly (2, 0 under perturb)",
+    "attacks": "Does device prefill set mixing_valve_mode: no write in modbus_prefill/device_prefill. Perturb derive+=mixing_valve_mode=manual: buffer promise broken 8 -> 0, two-tank still broken 6/8 because it also needs two_zone and wood_furnace, so setup.md's wood-probe statement is wrong beyond what the finding claims. Reachable in real HA via the config flow. Count; load1 1.67, thread_factor 1.000",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1.0,
+    "metric_definition": "Share of the last 20 release tags merged into the baseline whose shipped card CARD_VERSION equals the tag version (real release history, git show)",
+    "method": "tools/audit/round9/D5/verify-v2/v2_card_version.py 20; the finder's card_version_doc.py re-ran exactly (1.00, 0.00 under perturb)",
+    "attacks": "Historical truth: 5.4.x cards shipped through v6.2.x-v6.3.12, so the paragraph is stale, not always wrong; every tag from v6.3.13 is equal. Perturb (compare with the previous tag's version): 0.00. Advice still works because release-notes card version == integration version, so hygiene/low. Ratio; load1 2.31",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 9,
+    "metric_definition": "Source lines of README + 7 user docs that marked@15's GFM lexer puts in the wrong block: pipe rows inside a paragraph plus non-pipe prose inside a table token",
+    "method": "tools/audit/round9/D5/verify-v2/v2_md_tables.mjs (a second, independent GFM implementation); the finder's md_tables.mjs (markdown-it) re-ran exactly (9)",
+    "attacks": "Renderer artefact: two independent GFM lexers give the identical 9 lines (configuration.md:185-187 orphaned, 633-638 swallowed). Perturb (move the interposed paragraph below the rows, blank line after the table): 0. Content is still readable, so low. Count; load1 2.00",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Doc field names (Two-zone table Setting column, per-floor split, plus label-shaped *italic* spans in configuration.md and how-it-works.md) matching no field label anywhere in en.json config+options (parentheticals and trailing 'sensor' stripped); 9 flagged, 4 confirmed by grep to be selector option values or third-party entity names, 5 genuine",
+    "method": "tools/audit/round9/D5/verify-v2/v2_field_labels.py; the finder's field_labels.py re-ran exactly (5, 4 under perturb)",
+    "attacks": "Broader rule to test over-selectivity: extra hits ('Flow temperature' x2, 'Read from a sensor', 'HP Setting mode') are selector options (en.json selector.*) or a Modbus entity name, not field labels, so the genuine set is the finder's 5. Perturb (relabel radiator_power_fraction): 9 -> 8. Count; load1 2.27",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-06",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Keys of the module-level SERVICE_SCHEMA_* voluptuous objects (entry_id aside) named in backticks nowhere in README + 7 user docs; plus the simulate_plan table count vs the paragraph list vs the schema",
+    "method": "tools/audit/round9/D5/verify-v2/v2_service_fields.py reads schema objects directly (not the FakeServices registration); the finder's service_fields.py re-ran exactly (5, 0 under perturb)",
+    "attacks": "services.yaml describes all 5 (HA Developer Tools shows them), so discoverability is mitigated and low is right. Table 16 / paragraph 11 / schema 16 confirmed. SET_AWAY wrapped in vol.All was skipped by my unwrapping (60 keys vs finder's 62); count unaffected. Perturb (doc names the 5): 0. Count; load1 2.19",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 12,
+    "metric_definition": "Distinct _name identifiers in card comments (acorn onComment) occurring in no non-comment acorn token of the card (identifiers, properties, string/template contents) nor as a word in production Python; 17 mentions, 7 with an underscore-less successor",
+    "method": "tools/audit/round9/D5/verify-v2/v2_card_comments.mjs (acorn tokenizer, no TS parser, no live-member reflection); the finder's card_comment_names.mjs re-ran exactly (12/17, 5 under perturb)",
+    "attacks": "Read the 5 no-successor comments (lines 2936, 5899, 8756, 10126, 11533): all describe current behaviour by a vanished name; none marked as history. Perturb (rename the 7 to their successors): 5 names / 6 mentions. Count; load1 1.55",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 3,
+    "metric_definition": "Comment numbers differing from the value the production symbol delivers at shipped defaults (3). Stricter: numbers no admissible config can produce (2): derate floor 0.55 != 0.5, and 5-min interval below selector min 10; 15 min is admissible though not the default 30",
+    "method": "tools/audit/round9/D5/verify-v2/v2_comment_numbers.py: DefrostDerate.observe x2000 at ratio 0.01 (floor 0.5500); update_interval kwarg captured from the coordinator's super().__init__ (the stub drops it): 30 min; optimization_interval NumberSelector in both flows 10-120 step 5; the finder's comment_numbers.py re-ran exactly (3)",
+    "attacks": "Example vs claim: 'every 15 minutes' is an admissible setting, so only 2 are impossible; the finding stands either way. Perturb (DERATE_MIN 0.5, default 15, selector min 5): both counts 0. Count; load1 0.60",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 46,
+    "metric_definition": "dhw_inlet_temp selector settings (2-25 C, step 0.5, 47) at which the cold end recovered from ThermalParameters.dhw_draw_power (setpoint - P/(lph*Cp), greywater 0) differs from DHW_COLD_WATER_TEMP by >0.05 K",
+    "method": "tools/audit/round9/D5/verify-v2/v2_comment_numbers.py (C4); the finder's comment_numbers.py re-ran exactly (46 of 47)",
+    "attacks": "Grid inflation: the default 10.0 matches, and most installs sit there. But all 3 production callers of dhw_coil_draw_reduction pass inlet_temp=dhw_inlet_reference/inlet, so the constant is only an unused default argument and the comment's coupling rationale is structurally false. Perturb (inlet_reference forced to the constant): 0. Count; load1 0.60",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D6": [
+   {
+    "id": "D6-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "Distinct HeatPumpActionSensor.native_value strings from driving the real producers (get_current_action on empty result and pre-horizon clock; _run_system_identification commanding heat) not backticked in README's Heat Pump Action row",
+    "method": "tools/audit/round9/D6/verify-v2/v2_measure.py --only=F1; finder claims.py re-run = 2",
+    "attacks": "perturb-f1 (idle->off) 2->1; neither value backticked in any user docs/*.md; both reachable in real HA (empty plan / sysid button); severity low earned",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 4,
+    "metric_definition": "Fields named by an unambiguous noun phrase in README's 'not all on one page' paragraph whose _OPTION_FIELDS step label differs from the named page (9 checked)",
+    "method": "v2_measure.py --only=F2; finder re-run = 3 (mine adds upper_floor_area_ratio under 'two-zone split')",
+    "attacks": "null: power limits, buffer volume, window area, SHGC match; perturb-f2 (orientation to building_preset) 4->3; README table at :798 contradicts the paragraph",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 6,
+    "metric_definition": "Entities with registry default off on the entry the REAL config flow creates via Finish setup now, absent from README's disabled list and rows (7) less DHW Boost, which README prose covers",
+    "method": "v2_measure.py --only=F3 drives user->user_sensors->finish_setup->finish_now->setup_overview; 26 disabled total",
+    "attacks": "null (Continue path) 19 disabled, 0 unlisted; path is README's own documented option, not a synthetic entry; finder re-run = 6",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 47,
+    "metric_definition": "Largest whole hour k after apply at which the override from real services.handle_apply_manual_plan(space_slots=[], expires_at=now+48h) still pins step 0 of a plan anchored at now+k",
+    "method": "v2_measure.py --only=F4 (hours); finder re-run = 4.0 h beyond 20 within one horizon",
+    "attacks": "null (expires_at omitted) 19 h; build_override rejects only a past expiry; strings.json's 'shorter than the 24-hour horizon' also false; configuration.md :993 correct; user-invoked, so low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1,
+    "metric_definition": "Entities added by the six platforms' real async_setup_entry for a flow-created entry minus the integer in configuration.md 'All N entities appear'",
+    "method": "v2_measure.py --only=F5 on the Continue-path and Finish-now entries (75 each); finder re-run = 1",
+    "attacks": "no documented path yields 74; README :417 and architecture.md :37 say 75",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1,
+    "metric_definition": "Flow results returned after submitting weather_sensitivity and before create_entry on the real Continue path (plus 3 real step_ids absent from the configuration.md flowchart)",
+    "method": "v2_measure.py --only=F6; trail user,user_sensors,finish_setup,temperature,building,building_describe,building_extras,dhw,weather_sensitivity,setup_overview,create; finder re-run = 0 creates, 11 steps",
+    "attacks": "absent steps are user_sensors, finish_setup and setup_overview (2 if node A's '+optional sensors' counts); flowchart numbering also off",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 0.6,
+    "metric_definition": "Max CurveLearner bias drop between any two instants 168 h apart, record_day once per day at a random 00:00-00:40, margin 1.0 K, 120 days, max over 20 seeds",
+    "method": "v2_measure.py --only=F7; finder re-run = 0.600",
+    "attacks": "null MAX_DOWN_PER_WEEK=0.3 gives 0.458; long-run mean 0.480 K/week holds, only the windowed reading fails, but _step_down's own comment states the per-7-day invariant; comfort miss resets bias, so low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 4,
+    "metric_definition": "len(candidates) at each optimizer._multi_start_minimize call over 3 stress.build_case winter cells (single-zone no-DHW, single-zone DHW, two-zone DHW)",
+    "method": "v2_measure.py --only=F8: [4], [4], [4,1]; L-BFGS-B runs 8, 8, 10; finder re-run = 4 / 8",
+    "attacks": "3 cells, not 1: no first solve gets 2; the 1 is the warm co-optimization pass; production adds a previous-plan candidate (read); the doubling-runtime rationale is stale",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Keys of the schema handed to hass.services.async_register('simulate_plan') absent from the backticked names in the configuration.md **`simulate_plan`** paragraph",
+    "method": "v2_measure.py --only=F9 with a capturing fake registry; finder re-run = 5",
+    "attacks": "perturb-f9 (wood keys dropped) 5->0; the finder's recorded perturbation targets other services and its observed_value 5 equals the value, so the finding's own number does not move under it (method defect for the judge; the phenomenon stands)",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ]
+ }
+}
