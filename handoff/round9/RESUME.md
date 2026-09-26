@@ -118,6 +118,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T16:08Z: R2's 13:45Z run had died at startup (empty log); it restarted 16:00Z under 'timeout 3600', too short for this shard (R1 needed 73 min). Told it to relaunch with nohup and no outer timeout. The judge is blocked only on rows-2.
 
+- 2026-09-26T16:12Z: the judge runs shard 2/2 itself on 3.14: the 8 solver/timing rows by hand, the other 15 via judge_batch label judge-r9-j2. R2 told to stop and push nothing. D0-s2-02 verifies at low.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
