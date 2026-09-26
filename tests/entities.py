@@ -22293,6 +22293,14 @@ def _prw_restored(run: str) -> "list[str]":
     return out
 
 
+def _prw_pulls(run: str) -> bool:
+    """A step that pulls, rebases or merges can leave the pull request's copy
+    of a restored program in the tree (a stopped rebase, a popped autostash),
+    so a later step runs its own copy from outside the tree."""
+    return any(re.search(r"\bgit\b.*\s(?:pull|rebase|merge)(?:\s|$)", ln)
+               for ln in _prw_live(run).replace("\\\n", " ").splitlines())
+
+
 def _prw_defects(texts: "dict[str, str]") -> "list[str]":
     out = []
     for name, text in sorted(texts.items()):
@@ -22311,6 +22319,7 @@ def _prw_defects(texts: "dict[str, str]") -> "list[str]":
                 continue
             where = f"{name}:{jid}"
             restored: "list[str]" = []
+            pulled = False
             for s in job.get("steps") or []:
                 if str(s.get("uses", "")).startswith("actions/checkout@"):
                     if (s.get("with") or {}).get("persist-credentials") is not False:
@@ -22320,7 +22329,10 @@ def _prw_defects(texts: "dict[str, str]") -> "list[str]":
                 for x in sorted(_prw_executed(run) - own):
                     if not any(_prw_fnmatch.fnmatch(x, p) for p in restored):
                         out.append(f"{where} runs {x} unrestored")
+                    elif pulled:
+                        out.append(f"{where} runs {x} from the working tree after a pull")
                 restored += own
+                pulled = pulled or _prw_pulls(run)
                 for ln in _prw_live(run).splitlines():
                     if re.search(r"(?:^|[\s|;&(])python3?\s", ln) and not re.search(
                             r"(?:^|[\s|;&(])python3?\s+-I\s", ln):
@@ -22347,6 +22359,16 @@ R.check(
                       "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
+_PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
+    '"$RUNNER_TEMP/pinned/closure.py" autofix-report', "tests/closure.py autofix-report")})
+    if d.endswith("from the working tree after a pull"))
+R.check(
+    "and a report run from the working tree after the push step's pull is refused "
+    "on each of the three autofix jobs, though the program was restored (null control)",
+    [d.split(" ", 1)[0] for d in _PRW_PULLED] == [
+        "tests.yml:claims-autofix", "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
+    f"refused: {_PRW_PULLED}",
+)
 R.check(
     "and an indented `import a, b` names both modules (null control: the "
     "finder's reader missed mutation_table this way)",
@@ -22357,10 +22379,10 @@ R.check(
 # fifteen seconds after a push, and nothing re-ran it when a red it could not
 # yet see finished later (typing, fast, mutation). pr-contract-rerun.yml is
 # that trigger: when a run of any workflow that reports at a pull request's
-# head concludes `failure`, it asks GitHub to re-run the newest `pr-contract`
+# head concludes red, it asks GitHub to re-run the newest `pr-contract`
 # run at the same head if that run started before the red finished. Its
 # properties are budget-raise-gate-rerun.yml's (above) with two changes: it
-# fires on a FAILED run, and it watches every workflow that runs on a pull
+# fires on a RED run, and it watches every workflow that runs on a pull
 # request but the contract itself -- a watched list that misses one is the
 # gap again, so the list is derived here from the workflow files.
 _PR_WORKFLOW_NAMES = sorted(
@@ -22393,7 +22415,8 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
             "actions": "write", "contents": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
     cond = str(job.get("if", ""))
-    if cond.strip() != "github.event.workflow_run.conclusion == 'failure'":
+    if cond.strip() != ("contains(fromJSON('[\"failure\",\"timed_out\",\"cancelled\"]'), "
+                        "github.event.workflow_run.conclusion)"):
         out.append(f"if: {cond!r}")
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
@@ -22414,7 +22437,7 @@ _CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
 _CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
 R.check(
     "a red that lands after pr-contract ran re-runs it: the follower watches every "
-    "pull-request workflow but the contract, fires on a failed run only, holds "
+    "pull-request workflow but the contract, fires on a red run only, holds "
     "`actions: write` and runs the default branch's program (D13-s1-03)",
     _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
     f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",

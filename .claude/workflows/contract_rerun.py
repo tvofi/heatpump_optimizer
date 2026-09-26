@@ -10,7 +10,7 @@ red reached review as a blocked verdict instead of a refused body.
 
 WHAT IT DOES. `.github/workflows/pr-contract-rerun.yml` runs this on
 `workflow_run` when a run of any workflow that reports at a pull request's head
-concludes `failure`. It reads that run, lists `pr-contract.yml`'s
+concludes red (`failure`, `timed_out`, or `cancelled` at the current head). It reads that run, lists `pr-contract.yml`'s
 `pull_request` runs at the same head, and asks GitHub to re-run the NEWEST one
 if that run's latest attempt STARTED before the red run finished -- the only
 case in which its red list can have missed it. A re-run re-grades from nothing
@@ -29,6 +29,12 @@ import sys
 
 CONTRACT_WORKFLOW = ".github/workflows/pr-contract.yml"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
+# A run can hold a failed job whatever it concluded: a job past its
+# timeout-minutes concludes the run `timed_out`, and a run cancelled by hand
+# after a job failed concludes `cancelled`. A cancelled run counts only while
+# its head is still the pull request's: concurrency cancels every superseded
+# push, and the new push runs the contract itself.
+RED_CONCLUSIONS = ("failure", "timed_out", "cancelled")
 
 
 def stale_contract(trigger: dict, runs: list[dict]) -> tuple[str, int | None, str]:
@@ -43,8 +49,12 @@ def stale_contract(trigger: dict, runs: list[dict]) -> tuple[str, int | None, st
     head = str(trigger.get("head_sha") or "")
     if trigger.get("path") == CONTRACT_WORKFLOW:
         return "none", None, "the completed run is the contract itself"
-    if trigger.get("conclusion") != "failure":
-        return "none", None, f"the completed run concluded {trigger.get('conclusion')!r}; no new red"
+    concl = trigger.get("conclusion")
+    if concl == "cancelled" and head not in {
+            str((pr.get("head") or {}).get("sha")) for pr in trigger.get("pull_requests") or []}:
+        return "none", None, "a cancelled run at a superseded head; the new push re-runs the contract"
+    if concl not in RED_CONCLUSIONS:
+        return "none", None, f"the completed run concluded {concl!r}; no new red"
     same = [r for r in runs
             if r.get("path") == CONTRACT_WORKFLOW and r.get("event") == "pull_request"
             and r.get("head_sha") == head]
@@ -128,7 +138,17 @@ def self_test() -> int:
                               pc(4)])[:2], ("rerun", 4))
     check("a green run is no new red", stale_contract({**T0, "conclusion": "success"}, [pc(3)])[:2],
           ("none", None))
-    check("a cancelled run is no new red", stale_contract({**T0, "conclusion": "cancelled"}, [pc(3)])[:2],
+    check("a timed-out run re-runs the contract (the mutation lane's limit)",
+          stale_contract({**T0, "conclusion": "timed_out"}, [pc(3)])[:2], ("rerun", 3))
+    check("a cancelled run at a superseded head is no new red",
+          stale_contract({**T0, "conclusion": "cancelled",
+                          "pull_requests": [{"head": {"sha": OLD}}]}, [pc(3)])[:2], ("none", None))
+    check("a cancelled run with no pull request named is no new red",
+          stale_contract({**T0, "conclusion": "cancelled"}, [pc(3)])[:2], ("none", None))
+    check("a cancelled run still at the pull request's head re-runs the contract",
+          stale_contract({**T0, "conclusion": "cancelled",
+                          "pull_requests": [{"head": {"sha": H}}]}, [pc(3)])[:2], ("rerun", 3))
+    check("a skipped run is no new red", stale_contract({**T0, "conclusion": "skipped"}, [pc(3)])[:2],
           ("none", None))
     check("the contract's own completion re-runs nothing (no loop)",
           stale_contract({**T0, "path": CONTRACT_WORKFLOW}, [pc(3)])[:2], ("none", None))

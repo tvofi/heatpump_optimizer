@@ -4,9 +4,10 @@
 # that does not answer them, but it runs seconds after a push and the checks
 # it must list finish minutes later; nothing re-ran it when they did. This
 # workflow does that one thing: when a run of any workflow that reports at a
-# pull request's head concludes `failure`, it asks GitHub to re-run the newest
-# `pr-contract` run at the same head if that run started before the red
-# finished. The re-run reads the body and the check runs live, so this job
+# pull request's head concludes red (`failure`, `timed_out`, or `cancelled`
+# while still at the head, which contract_rerun.py decides), it asks GitHub
+# to re-run the newest `pr-contract` run at the same head if that run started
+# before the red finished. The re-run reads the body and the check runs live, so this job
 # writes no verdict of its own.
 #
 # WHY ITS OWN FILE. `pr-contract.yml` lists `edited` and holds one unguarded
@@ -35,7 +36,7 @@ permissions: {}
 
 jobs:
   rerun-stale-contract:
-    if: github.event.workflow_run.conclusion == 'failure'
+    if: contains(fromJSON('["failure","timed_out","cancelled"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # `actions: write` is the re-run; `contents: read` is the checkout of the
