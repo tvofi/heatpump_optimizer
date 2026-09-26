@@ -110,6 +110,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:45Z: Phase D sweep brief template at /mnt/project-files/audit-r9/sweep/SWEEP-TEMPLATE.md (sonnet). To instantiate into S1..S4 from JUDGE.json's class list, packed by finding count, a class never split.
 
+- 2026-09-26T15:02Z: R1 done @bc32eba8 (rows-1: 23 rows, 73 min; 3 yes / 20 by-hand; D2-s4-01 void; D4-s1-05 rc=1 all arms; D0-s2-02 perturb timeout; runner-1 says Python 3.11.15 — interpreter to check). Relayed to judge. R2 pending.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
