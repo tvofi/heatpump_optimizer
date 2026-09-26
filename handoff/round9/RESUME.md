@@ -98,6 +98,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:20Z: tvofi (13:41Z, cmsg_01EL5jLi4rokGBbkaevYXSJV4Qsf9nvFHH6miHbNgdzjG5): minimise heavy D3 re-runs; for significant findings only a sanity check. Judge told: D3 medium+ gets one in-memory mutant check against the production symbol; low D3 rests on the evidence. Applies to Phase D sweeps and fixers too.
 
+- 2026-09-26T14:25Z: judge milestone 2: JUDGE-INPUT.json (148, all) @8c2577f + RUNNER-NOTES.md. Orchestrator derived batch A /mnt/project-files/audit-r9/judge/JUDGE-INPUT-A.json (55: 41 contested, 10 flagged, 4 D9 timing). R1/R2 briefs updated (batch A, outputs to /mnt/project-files/audit-r9/judge/rows-{1,2}, untracked-file trap); coordinator asked to start both on haiku.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
