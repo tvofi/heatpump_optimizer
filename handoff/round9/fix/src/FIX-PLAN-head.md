@@ -1,7 +1,11 @@
 # Round 9 fix plan (step E2)
 
 Final plan for tvofi, 2026-09-26. Drafted by the E2 fix-plan designer seat (strongest model) and
-finished once the seven Phase D sweeps (S1–S7) had landed; section 9 lists what the sweeps changed. It
+finished once the seven Phase D sweeps (S1–S7) had landed; section 9 lists what the sweeps changed. The
+fourteen round-9 RCA seats then reported, and section 10 lists what their results changed (the RCA fold,
+2026-09-26; tvofi's asks from them are collected in `TVOFI-ASKS.md` beside this file). Sections 11
+and 12 carry tvofi's 19:05Z rules: every seat resumable from git after a crash, and every role routed to
+the cheapest feasible model. It
 is built from the judge's final class list (CLASSES-DRAFT.json at `bad458a3`, verdicts at `2f97b0a`), DEDUP.md, JUDGE.md/json,
 RESUME.md ("PHASE F SHAPE", "FIX-PLAN CARRY-INS", "PR COUNT TARGET", "MODEL ROUTING", "NO HEAVY D3 RE-RUNS")
 PLAN.md sections 7 and 8, and the sweep outputs `S1.json`–`S7.json` with their `SWEEP.md` files. Main at plan time: `db878b29` (after #1643). Baseline of every finding:
@@ -17,15 +21,16 @@ Companion files, all generated from one data file so they cannot disagree:
 ## 1. The numbers
 
 - **{n_prs} PRs in 11 lanes**, covering all 145 surviving findings (148 canonical less 3 refuted; the 7 merged
-  ids travel with their canonical) and all {n_inst} sweep-confirmed instances beyond them (section 9).
-  One over tvofi's 15–40 range; the reason is the next bullet but one.
+  ids travel with their canonical), all {n_inst} counted instances beyond them (the sweeps' and the RCA
+  fold's, sections 9 and 10) and {n_latent} latent seams an RCA placed. tvofi (17:44Z): the PR count does
+  not matter; the reasons for each PR are below.
 - **Why not fewer.** `fixer.md` caps a PR at five findings and about 400 production lines, and PLAN
   §8.2 keeps that cap; a sweep instance counts toward it like a finding. So 145 findings need at least
   29 PRs. The rest come from three constraints: lanes own disjoint files, so a PR packs findings from
   one lane's files only and a lane's last PR is often part-full; {n_tvofi} PRs need tvofi and are kept apart so
   nothing else waits on them; and one PR (F6.3) is a class barrier alone, because P9's barrier lives in
   `tests/card_browser.mjs`, which is code-owned.
-- **Why 41 and not 40.** S7 raised "persisted future instant trusted without bound" from 2 to 7, so it
+- **Why 41 at the sweeps (superseded by the next bullet).** S7 raised "persisted future instant trusted without bound" from 2 to 7, so it
   owes an RCA seat and a barrier. Four of its five new instances are in `coordinator.py`, which only F1
   owns, and the instruction is that a class's sweep instances travel with its barrier PR where the lane
   allows. No F1 PR has more than two free slots, and one of the two
@@ -33,12 +38,20 @@ Companion files, all generated from one data file so they cannot disagree:
   instances and the barrier are a new PR, **F1.9** (the old F1.9 is now F1.10). Keeping 40 would mean
   merging two unrelated card PRs (F6.2 with F6.4), which delays the keyboard fix and the #1643 mutant pins
   behind F1.8 for no gain; I did not.
+- **Why {n_prs} after the RCA fold.** Four PRs were added, each forced by the five-item cap or by
+  owner-gating: **F2.5** (the recompute RCA found the class's largest member, `peak_cost_batch`, and a
+  closure the sweep mis-disposed, while F2.2 is at five); **F6.1b** (the P9 RCA's grid found four
+  instances, while F6.1 is at five); **F1.11** (the old F1.10 would carry the P2, P3 and P6 barriers
+  together, several hundred test lines, so P2 and P6 moved to their own PR); **F11.5** (the RCA seats
+  drafted policy changes and landed none; the approved drafts need a PR, and it is tvofi-gated, so it is
+  last in its lane and nothing waits on it). F1.9 stayed, shrunk: the future-instant barrier moved to
+  F3.1, and F1.9 keeps the one seam no bound fixes plus the regression tests.
 - **Why not more.** Classes are merged into one PR wherever they share a file set and fit the cap; a
-  class over the cap (P2 with 27, I5 with 19, I1 with 11, P1 with 11) is split into instance PRs by
-  subsystem with its barrier in the last one (PLAN §8.2). The other four sweep instances fit PRs that
-  already held their class: P1's two ride the P1 barrier PR F1.6 (borrowing `comfort_learning.py`), P9's
-  joins F6.1, the recompute class's joins F2.2, and the future-instant class's pump-arbiter seam joins
-  F3.2; each of those PRs is now exactly at five.
+  class over the cap (P2 with 27, I5 with 19, I1 with 11, P1 with 9) is split into instance PRs by
+  subsystem with its barrier in the last one (PLAN §8.2). Instances fill PRs that already held their
+  class where a slot is free: F1.6 (P1's two latent seams), F6.1 (one P9 instance), F2.2 (RC-sw1),
+  F3.2 (FI-sw5's test), F4.2 (the new P5 instance, after D2-s4-02 moved to F4.1) and F1.9 (the
+  future-instant tests); each is at five or under.
 
 ## 2. How the PRs were clustered
 
@@ -47,7 +60,9 @@ own PRs.
 
 1. **Class first.** A class that fits one PR is one PR with its barrier (P5 in F4.2; the CPU-gate
    class in F10.2; the restart class in F1.4). A class whose instances sit in several lanes takes its
-   barrier in a PR that waits on all of them (I5 in F10.4, P11 in F10.3, I3 in F11.3, I4 in F11.4).
+   barrier in a PR that waits on all of them (I5 in F10.4, I3 in F11.3, I4 in F11.4), unless its RCA
+   measured the barrier's check not to read the later instances: P11's lands in F10.1 and the
+   future-instant boundary in F3.1 (section 10), and the generator lists each such residual.
 2. **Then file set.** The package has hub files that many classes touch: `coordinator.py`,
    `optimizer.py`, `config_flow.py` with the three translation files, the card, `sensor.py`. A class
    like P2 spans all of them, so one class PR would collide with every other lane. Instead **each file
@@ -60,7 +75,9 @@ own PRs.
    same file; it reports none. So, as declared, no two open branches ever edit one file, which is the property the
    disjointness rule protects, and conflicts are left only in the shared ledgers PLAN §9.4 already
    handles (`tests/features.py`, `tests/entities.py` by class-named sorted blocks; `closures.json` and
-   `structure_budgets.json` re-recorded once at the hand-off; delivery rows one file per PR).
+   `structure_budgets.json` re-recorded once at the hand-off; delivery rows one file per PR). The RCA fold
+   adds two: `tools/audit/bugclasses.json`, where each barrier PR edits only its own class's entry, and the
+   mutation ledger's `killed_by` rows.
 4. **Then skill.** Lanes F5 (config flow and translated text), F8 (docs) and F9 (test pins) run on
    sonnet; everything else on the strongest model (tvofi 12:21Z).
 
@@ -71,13 +88,16 @@ DEDUP's other "fix together" notes are honoured too (D1-s2-51/D1-s2-91 in F1.3; 
 F2.3; D5-s1-01/D6-s2-01/D6-s2-02 in F8.1; D5-s1-05/D6-s1-02 in F8.2; the plausibility trio D1-s5-52 →
 D1-s2-02, D1-s1-03 share F4.1's window and land in F1.6).
 
-**Three findings are split across two PRs**, because their seams sit in two lanes' files; each closes
+**Five findings are split across two PRs**, because their seams sit in two lanes' files; each closes
 when its last PR merges, and the first PR's body says "leaves #N open":
 
 - D14-s4-01 (high, P7): its `get_current_action` seam in F2.1 (first, and short), everything else plus
   the DST tracer barrier in F1.1, which waits on F2.1.
 - D5-s1-02: the quick-setup text in `en.json`/`sv.json` (an L2 extra seam) in F5.1, `docs/setup.md` in F8.3.
 - D6-s2-03: the figure in `strings.json` (an L2 extra seam) in F5.1, the docs in F8.3.
+- D14-s4-02 (P11 RCA): the stub half (freeze normalisation, `utcnow` under an aware freeze) in F10.1, with
+  the P11 barrier; the replay half in F1.1, which waits on F10.1.
+- D6-s2-05 (I5 RCA): the `simulate_plan` field list in F8.1; the two service seams the I5 RCA found in F8.3.
 
 ## 3. Phase F shape (tvofi "Yes", 12:11Z)
 
@@ -92,28 +112,26 @@ when its last PR merges, and the first PR's body says "leaves #N open":
   never the session that wrote the fix and never both reviewers on one PR. **Add a third reviewer when
   more than two hand-offs are waiting** — with ten lanes starting together that is likely within the
   first few hours.
-- **RCA seats**: {n_rca}, one per `rca: true` class (the fifteenth, for the future-instant class, is new at Phase D), each on the strongest model in its own thread, started
-  beside the PR named in section 5 (not inside it). They name each barrier's form; the fixer of the PR
-  that lands the barrier builds it.
-- **Startable at once (wave 1):** {wave1} — ten
-  threads, one per lane, which fills the ~10 cloud containers. F1's thread starts with F1.1 as soon as
-  F2.1 merges (F2.1 is deliberately small), so the eleventh thread is not needed until then.
+- **RCA seats**: {n_rca}, one per `rca: true` class; fourteen ran before fixing (tvofi, 17:44Z) and
+  have reported, and the fifteenth (the restart class) is RC2's, merged. Each named its barrier's form
+  and left a prototype branch; the fixer of the PR that lands the barrier cherry-picks it (section 5).
+- **Startable at once (wave 1):** {wave1} — nine
+  threads, one per lane; F9's first PR now waits on F3.1 (F3.1 borrows `tests/finite_boundary.py`), and
+  F1's thread starts with F1.1 once F2.1, F3.1 and F10.1 merge.
 
 ## 4. What needs tvofi, and why (answerable in one pass)
 
-**Owner-gated PRs ({n_tvofi})** — each is its own PR so nothing else waits on it:
+**Owner-gated PRs ({n_tvofi})** — each is its own PR so nothing else waits on it (generated from the
+plan data; the old F1.10 is no longer gated: no barrier needs `tests/harness.py` after the RCA fold):
 
 | PR | why tvofi |
 |---|---|
-| F1.10 | `tests/harness.py` is code-owned (D14-s1-02 moves the boost test double's persist patch there); last PR of F1, holds nothing. |
-| F6.3 | `tests/card_browser.mjs` is code-owned (the P9 class barrier). |
-| F7.3 | **Ruling first:** D8-s2-01's fix overturns tvofi's recorded A3(e) decision (climate unavailable without an indoor thermometer). If tvofi keeps A3(e), no PR: the finding is dispositioned refused. |
-| F10.2 | `tests/stress.py` is code-owned; new `stress_budgets.json` entries go through `budget-raise-gate`. |
-| F10.3 | `env_drift.py`, `stress.py`, `mutation_table.py`, `closure.py`, `derive_closures.sh` are code-owned; `mutation_budgets.json` may rise as the inventory widens. Lands the I1 and P11 barriers. |
-| F10.4 | D7-s1-01 prices coordinator state reached through module-level helpers; an honest re-record likely **raises** coordinator structure budgets — asked before the push (CLAUDE.md rule 2). Also lands the I5 barrier. |
-| F11.2 | Workflows, `CODEOWNERS`, `budget_raise_gate.py`, `docs/decisions/` are code-owned. **Two decisions first:** D11-s1-01 is a ruleset setting only tvofi can change (dismiss stale reviews on push, or require last-push approval); D11-s1-04 (with merged D11-s2-03) is tvofi's choice between a distinct delegated identity and a refusal in `budget_raise_gate.py`. |
-| F11.3 | Policy: `CLAUDE.md` (D11-s2-04), `.claude/rules/ratchet-budgets.md` and `policy_budgets.json` units (D11-s2-01), `fix-review.md` and `web-fix-wave.js` (D13-s1-02, where tvofi also decides whether a merges-only verdict carry is worth building: the judge measured it saves a few rounds, not most). Also lands the I3 barrier. |
-| F11.4 | `.claude/workflows/audit-find.js` is code-owned (D14-s2-03, and the I4 barrier); the round's last PR; optionally folds the owed round-9 driver fixes, which touch the same file. |
+{tvofi_rows}
+
+**The RCA asks.** Every "needs tvofi" item from the fourteen RCA write-ups, with the plan's standing
+rulings (D8-s2-01/A3(e), D11-s1-01, D11-s1-04, D13-s1-02), is collected in `TVOFI-ASKS.md`, grouped as
+policy edits to approve, budget raises, and product or scope choices with the RCA's recommended
+default, one line each.
 
 **Other asks that may arrive during the wave:**
 - Any budget raise a fixer hits (most likely in F1, whose coordinator class sits at zero headroom on several
@@ -125,13 +143,21 @@ when its last PR merges, and the first PR's body says "leaves #N open":
 
 ## 5. RCA seats ({n_rca}, all on the strongest model)
 
-| class | N judge | N final | starts beside | barrier lands in | barrier proposal (the sweep's; the seat names the form) |
-|---|---|---|---|---|---|
+All fourteen reported (write-ups under `/mnt/project-files/audit-r9/rca/<slug>/RCA.md`; the restart
+class is RC2's). Each row names the prototype the barrier PR cherry-picks, whether its files are
+code-owned or policy, and its line estimate.
+
+| class | N judge | N sweep | N final | process state | barrier lands in | prototype | code-owned / policy | lines |
+|---|---|---|---|---|---|---|---|---|
 {rca_rows}
 
-N final is judged findings plus sweep-confirmed instances (PLAN §7). Each barrier PR comes after every
-PR holding an instance of its class; the generator refuses the plan otherwise. A seat that finds no
-barrier within "The bound" asks tvofi rather than recording a refusal.
+N final is judged findings plus counted instances (PLAN §7). Each barrier PR comes after every PR
+holding an instance of its class, except the residual instances its RCA measured the barrier not to
+read; the generator refuses the plan otherwise and prints the residuals.
+
+**Barrier forms, as the seats chose them:**
+
+{rca_forms}
 
 ## 6. Carry-ins from RESUME, placed
 
@@ -146,10 +172,11 @@ barrier within "The bound" asks tvofi rather than recording a refusal.
 | Judge/verifier notes carried to the fixer: D2-s2-01's missed coordinator seams (F1.7); D2-s2-03's baseline_end sibling (F2.3); refuted D0-s1-01's two-zone deep-anchor asymmetry as hygiene for the P4 fixer (F2.4); D8-s2-03's finder fix would reintroduce D8-s2-02 (F7.1); G1-V2's `boost.restore` naive-until observation (F3.1); every weakened or narrowed claim (in the finding's fix notes) | as listed |
 | L2 extra seams for existing findings (en.json → D5-s1-02; strings.json and README → D6-s2-03; README → D8-s3-03; climate.py → D8-s1-03; config_flow `async_step_dhw` → D12-s1-02; the card's datetime-local handler → D1-s3-01; the price-unit fields → D4-s2-02) | F5.1, F8.3, F7.2, F2.4, F1.2, F3.1, F1.8 respectively |
 | Owed round-9 driver fixes (Prepare rounds interpolation, earlier-rounds strip, env_drift warm step, Chromium path, the batch patch's defer and judge-flag arguments) and `tools/audit/README.md` naming `scopes.json`/`check_scopes.py` | optional fold into **F11.4**, tvofi's call |
+| The RCA seats' carries ({n_carries}, `finding-propagation.md`), each delivered into its destination's roster brief and lane brief | section 10 |
 
 ## 7. Findings I could not place
 
-None. Every one of the 145 survivors and every one of the {n_inst} sweep instances maps to a PR (tables below). Five may end without a code change,
+None. Every one of the 145 survivors, every one of the {n_inst} counted instances and the {n_latent} latent seams maps to a PR (tables below). FI-sw3 (F1.9) ends in tvofi's decision rather than a bound. Five findings may end without a code change,
 by design: D8-s2-01 (tvofi's A3(e) ruling), D11-s1-01 (a ruleset setting tvofi changes; the PR records it),
 D11-s1-04 (tvofi's identity decision), D13-s1-02 (tvofi decides whether to build the carry), and D0-s2-02
 (a recorded refusal is a legitimate outcome).
@@ -158,12 +185,12 @@ D11-s1-04 (tvofi's identity decision), D13-s1-02 (tvofi decides whether to build
 
 - **One merge at a time**, in the proposed queue below, which respects every `after` edge. When two PRs
   are ready together, the one on the longer remaining chain goes first: **F1 is the critical path**
-  (ten PRs, the coordinator), then F2.
+  (eleven PRs, the coordinator), then F2.
 - **Critical path (inferred, not measured):** {chain}, {chain_len} PRs deep (the longest chain of
   `after` edges, derived by the generator). The high findings all sit in the first waves: D14-s4-01
   (F2.1, F1.1), D1-s3-01 (F3.1), D1-s5-52 (F4.1), D8-s2-02 (F7.1), D12-s1-01 (F1.2), D2-s3-01 (F1.3).
 - **Stamps.** The plan's standing rule holds: no new branch is cut between a fixture-mover's merge and
-  its stamp. PRs marked fixture (drift plausible): F1.3, F1.7, F2.1, F2.3, F2.4, F10.1. If one of them
+  its stamp. PRs marked fixture (drift plausible): F1.3, F1.7, F1.10, F2.1, F2.3, F2.4, F2.5, F10.1. If one of them
   merges with claimed drift, the orchestrator stamps before the next branch is cut; otherwise, proposed
   stamp points are (a) after the high-severity set above has merged, (b) after F1.6 (P1 barrier), and
   (c) after {last_pr}, the last PR.
@@ -178,8 +205,9 @@ plus the instances below, and every seam each sweep returned is listed, with its
 lane brief of each lane holding the class.
 
 - **P1** (S3): 9 → 11. Two new `ComfortLearner.from_dict` leaves (P1-sw1, P1-sw2), carried by F1.6
-  with the P1 barrier.
+  with the P1 barrier. *Superseded (section 10): not store-reachable, N back to 9.*
 - **P9** (S5): 4 → 5. The new instance is the chart's SVG axis number/unit label overlap (P9-sw1, F6.1).
+  *Superseded (section 10): P9-sw1 is a box-metric artefact; N is 8 with the RCA's four.*
   The keyboard route is **not** a counted instance: S5 ran with the keyboard cells off and records it as
   exposure, so it is a check for F6.2 (below), not an instance.
 - **avoidable interpreter-bound recomputation** (S5): 4 → 5. `cycling_penalty_batch` (RC-sw1, F2.2); the
@@ -187,8 +215,9 @@ lane brief of each lane holding the class.
 - **persisted future instant trusted without bound** (S7): 2 → 7, now `rca: true` with its own RCA seat
   and barrier. The five instances: four in `coordinator.py` (fuse-advisor cooldown, heavy-snow damping,
   `_detect_outage`, and the lower-confidence immersion recency) in the new F1.9 with the barrier;
-  `pump_arbiter.py`'s `hold()` echo grace in F3.2.
-- **P5** (S5): stays 3. `async_update_thermal_params` writing two gated parameters with no gate is a
+  `pump_arbiter.py`'s `hold()` echo grace in F3.2. *Superseded (section 10): the barrier is in F3.1,
+  N is 8 with the legionella seam.*
+- **P5** (S5): stays 3 (*section 10: 4 after the RCA*). `async_update_thermal_params` writing two gated parameters with no gate is a
   lead, not an instance: S5 disposed it not applicable, since there is no gate to key wrong.
 - Every other class kept its N; a few PRs gained a borrow to reach a seam their finding already owned
   (F1.8 borrows `price_model.py` for P8's money-code seam).
@@ -200,6 +229,7 @@ moved to a PR that waits on all its class's instance PRs:
 - I5: F8.3 → **F10.4** (instances in F2.1, F2.3, F6.2, F1.10 and F11.3 as well as F8); F10.4 now waits on F11.3,
   and F8.3 no longer borrows `tests/doc_claims.py`.
 - P11: F10.1 → **F10.3** (instances in F1.1, F1.7 and F8.3); F10.3 now waits on F1.7 and edits `tests/ha_contract.py`.
+  *Superseded (section 10): back to F10.1; its check reads none of those three.*
 - I1: F10.3 stays, and now waits on F9.2 (the last I1 pin PR).
 - I3: F11.2 → **F11.3** (D11-s2-01 is an I3 instance in F11.3, and the barrier's shape lives in its files).
 - I4: F11.4 stays, and now waits on F10.4 (D7-s3-02, the dead_methods census), so F11.4 is the round's last PR.
@@ -214,5 +244,105 @@ Leads placed as instructions, not instances:
 Ledger notes (not RCA triggers this round; no PR unless a finding already covers them):
 
 {ledger_notes}
+
+## 10. The RCA fold (2026-09-26)
+
+tvofi (17:44Z) asked for the RCA seats before fixing, with any cost-effective countermeasure folded
+into this plan. All fourteen reported; every barrier's prototype branch was read back with
+`git ls-remote`. The orchestrator's rulings on their plan folds are applied as follows.
+
+**PR set** ({n_prs}): new F2.5, F6.1b, F1.11 and F11.5 (section 1); F1.9 shrunk; D2-s4-02 moved from
+F4.2 to F4.1.
+
+**Barrier moves.**
+- **Future instant → F3.1** (was F1.9). The store-load boundary is the fix for F3.1's own class
+  findings and closes FI-sw1, FI-sw2, FI-sw4, FI-sw5 and the legionella seam in one place. F3.1 borrows
+  `store.py` and two lines of `coordinator.py` from F1 and `tests/finite_boundary.py` from F9; F1.1 and
+  F9.1 now wait on F3.1, so every F1 and F9 PR follows it. F1.9 keeps the FI-sw3 decision and the
+  regression tests, after F3.1; F3.2 keeps FI-sw5's test.
+- **The `store.py` order.** P1's barrier (the magnitude drop, F1.6) and the instant bound (F3.1) touch
+  the same sanitising walk. Lane ownership stays (F1 owns `store.py`; F3.1 borrows it), and the edge
+  orders them: F3.1 first, and F1.6 (after F3.3, after F3.2, after F3.1) extends the same predicate.
+  F1.4, which also edits `store.py`, follows F3.1 through F1.1.
+- **P11 → F10.1** (was F10.3). F10.3 drops P11, `tests/ha_contract.py` and its edges on F1.7 and F8.3;
+  F1.1 gains an edge on F10.1; F1.7 borrows `tests/ha_contract.py` for its own contract.
+- **Solve cost.** F2.5 carries `peak_cost_batch` (RC-rca1) and the terminal twin (RC-rca2), after
+  F2.2 and F3.3; F10.2 now waits on F2.5.
+- **P2 and P6 → F1.11**, **P3 → F1.10**. Neither is tvofi-gated: the P6 RCA showed the boost test hook
+  can be dropped without `tests/harness.py`, and no other barrier needs it.
+- **I5** is split: the `doc_claims.py` arms in F10.4, the `policy_lint.mjs` quoted-line pass in F11.3.
+- **P9**: F6.3 after F6.1b (through F6.2); the grid's browser cost is scoped to card-surface diffs
+  through the scoped gate, `main` forced full (orchestrator's ruling).
+
+**N changes** (issue drafts and `INDEX.json` follow): P1 11 → 9 (P1-sw1, P1-sw2 not store-reachable);
+P5 3 → 4 (the half slab mass); P9 5 → 8 (P9-sw1 out; three new and one candidate in); the recompute
+class 5 → 7 (`peak_cost_batch`, the terminal closure); the future-instant class 7 → 8 (legionella).
+Latent seams (P1-rca1, P1-rca2) fill F1.6's freed slots and are not counted.
+
+**Carries** ({n_carries}), delivered into each destination's roster brief (`carry`) and lane brief:
+
+| to PR | from RCA | carry |
+|---|---|---|
+{carry_rows}
+
+## 11. Resumability (tvofi, 2026-09-26 19:05Z)
+
+tvofi: *"Make sure that the plan can always be resumed either by local or cloud threads and that any work
+lost in threads, seats and subagents is minimal should this session crash."* The plan meets it with three
+records, each on a remote branch or the shared project files, so no crash loses more than the last step.
+
+1. **The seat's branch.** Every seat (fixer, reviewer, RCA, runner, subagent) commits and pushes to its
+   remote handoff branch at each step boundary — failing test written, fix green, body drafted — and at
+   least every ~30 minutes of work; it never holds unpushed work across a long run (a gate or stress run,
+   a subagent), and reads `git ls-remote` back after each push. Fixer: `handoff/<lane topic>-<k>` (the
+   roster's `resume.branch`). Reviewer: the same with `-review`. A runner or subagent pushes its output,
+   or hands it to the seat that pushes, before it reports.
+2. **The resume note.** On that branch, `handoff/round9/fix/resume/<PR-id>.md` (a review:
+   `<PR-id>-review.md`): last completed step, next step, `branch@commit`, merge base, open questions,
+   what is waiting on whom. Updated in the same commit as every push. For in-flight state it outranks the
+   roster, which the orchestrator (or a sonnet record seat) brings up to date at each hand-off and merge.
+3. **The run log.** One dated line per milestone (branch cut, failing test, green, body drafted, hand-off,
+   verdict, merge) in `/mnt/project-files/audit-r9/RESUME.md`, and the same line in its mirror,
+   `handoff/round9/RESUME.md` on `handoff/audit-r9-plan` (fetch, append, commit, push; re-fetch and
+   re-append on a non-fast-forward; never force). The Mac cannot read `/mnt/project-files`, so the mirror
+   is what makes the Mac able to resume from git alone; a Mac seat writes the mirror only and the
+   orchestrator copies its lines into the `/mnt` log at its next pass.
+
+**Picking up any PR.** The roster entry `R9-<PR-id>` in `.claude/workflows/wave-r9-groups.json` (on
+`handoff/audit-r9-fixplan`) carries a concrete `resume` object: `branch`, `commit`, `last_step`,
+`next_step`, `note_file`, `review_branch`, `plan` (the lane brief section and this file), `log`, and two
+pickup recipes:
+
+- **Cloud seat** (`pickup_cloud`): `git fetch origin <branch>`; if it exists, `git worktree add --detach
+  $S/<lane topic>/wt FETCH_HEAD`, read the note, check its commit against the fetched head (if the branch
+  is ahead, trust the branch and its log), `git merge origin/main` if main moved and re-run `fixer.md`
+  steps 2-8, then continue at the note's next step. If the branch does not exist, cut from origin/main and
+  start at `fixer.md` step 1. Plan and briefs from `handoff/audit-r9-fixplan`; the log from `/mnt`.
+- **Mac seat** (`pickup_local`): the same git commands from the Mac checkout, with the plan, briefs and
+  roster from `handoff/audit-r9-fixplan` and the log from `handoff/audit-r9-plan`'s mirror; nothing it
+  needs lives only under `/mnt`.
+
+A crashed seat is restarted from its branch and resume note, never from scratch. A crashed orchestrator is
+restarted from the mirror log, the roster and `git ls-remote 'refs/heads/handoff/r9-*'`, which together
+name every branch in flight and its last pushed step. This plan itself follows the rule: its generator
+sources are committed beside it (`handoff/round9/fix/src/`), and each rebuild is pushed.
+
+## 12. Model routing (tvofi, 2026-09-26 19:05Z)
+
+tvofi: *"Work that is feasible for sonnet and haiku should be routed as such."* Each role goes to the
+cheapest model that can do it; the roster's per-PR `model` object (`fixer`, `fixer_why`, `reviewer`,
+`rca`, `runner`, `record`) and each lane brief name them, and `gen.py` refuses a strongest-model fixer
+without a reason, or a barrier PR routed below the strongest model.
+
+| role | model |
+|---|---|
+{role_rows}
+
+Fixers per PR ({n_sonnet} sonnet, {n_opus} strongest; no fixer is haiku, because every fix owes a
+failing test and a mutation proof that need judgement):
+
+| PR | fixer | why |
+|---|---|---|
+{model_rows}
 
 ---

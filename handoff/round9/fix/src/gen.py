@@ -12,7 +12,7 @@ and that no two PRs that could be open at once edit the same file.
 import json, os, re, sys, collections
 sys.path.insert(0, os.path.dirname(__file__))
 from data import (LANES, PRS, CLASS_SHORT, SWEEP_OF, S7, RCA, EXEMPT, EV, CC, SWEEP_COMMIT,
-                  SWEEP_LABEL, SWEEP_DIR, INSTANCES, LEADS, LEDGER_NOTES)
+                  SWEEP_LABEL, SWEEP_DIR, INSTANCES, LEADS, LEDGER_NOTES, N_RCA, CARRIES, ROUTING, ROLE_MODELS)
 
 OUT = sys.argv[1]
 CLASSES = json.load(open("/mnt/project-files/audit-r9/judge/CLASSES-DRAFT.json"))
@@ -50,11 +50,22 @@ missing_sw = sorted(set(JUDGE_N) - set(SW))
 assert not missing_sw, f"classes no sweep covered: {missing_sw}"
 INST_BY_CLASS = collections.defaultdict(list)
 for i in INSTANCES:
+    i.setdefault("kind", "instance")
+    assert i["kind"] in ("instance", "latent"), i["id"]
     INST_BY_CLASS[i["cls"]].append(i)
+def counted(cid):
+    return [i for i in INST_BY_CLASS[cid] if i["kind"] == "instance"]
+for cid in N_RCA:
+    assert cid in SW and cid in RCA, cid
 for cid, w in SW.items():
-    # N final = judged findings + sweep-confirmed instances beyond them (PLAN section 7)
-    assert w["N"] == JUDGE_N[cid] + len(INST_BY_CLASS[cid]), (cid, w["N"], JUDGE_N[cid], len(INST_BY_CLASS[cid]))
-    want_rca = w["N"] >= 3 or cid == "N-restart"
+    # N final = judged findings + counted instances beyond them (PLAN section 7). The sweep's N
+    # stands unless an RCA seat changed it (N_RCA, with its reason); either way it must equal the
+    # judged count plus the instances this plan places.
+    w["N_sweep"] = w["N"]
+    if cid in N_RCA:
+        w["N"] = N_RCA[cid][1]
+    assert w["N"] == JUDGE_N[cid] + len(counted(cid)), (cid, w["N"], JUDGE_N[cid], len(counted(cid)))
+    want_rca = w["N_sweep"] >= 3 or cid == "N-restart"
     assert w["rca"] == want_rca, (cid, w["rca"], w["N"])
     assert (cid in RCA) == w["rca"], f"{cid}: rca {w['rca']} but RCA seat {'present' if cid in RCA else 'absent'}"
 for fid, f in FIND.items():
@@ -71,7 +82,18 @@ for p in PRS:
 for i in INSTANCES:
     PR[i["pr"]]["instances"].append(i)
     f = i["file"]
-    assert f in PR[i["pr"]]["edit"] or f in PR[i["pr"]]["borrows"], (i["id"], i["pr"], f)
+    # the seam's file is edited by the PR that closes it: `pr`, or `closed_by` where the barrier
+    # closes the seam by construction and `pr` carries only its regression test
+    fixer_pr = PR[i.get("closed_by") or i["pr"]]
+    assert f in fixer_pr["edit"] or f in fixer_pr["borrows"], (i["id"], fixer_pr["id"], f)
+    if i.get("closed_by"):
+        assert i["closed_by"] in PR, i["id"]
+for p in PRS:
+    p.setdefault("carry", [])
+for dest, cid, text in CARRIES:
+    assert dest in PR, dest
+    assert cid in RCA, cid
+    PR[dest]["carry"].append(f"RCA carry-in ({cid}, 2026-09-26): {text}")
 for title, pid, text in LEADS:
     assert pid in PR, pid
     PR[pid]["notes"].append(f"{title}: {text}")
@@ -165,16 +187,31 @@ for i, a in enumerate(ids):
         if common:
             errors.append(f"{a} and {b} can be open together and share {sorted(common)}")
 
-# every rca class's barrier PR must come after every PR holding one of its instances
+# every rca class's barrier PR must come after every PR holding one of its instances, except the
+# residual ones its RCA seat measured the barrier's check not to read (printed below), and with an
+# instance another PR closes counted at the PR that closes it
+known_ids = set(FIND) | {i["id"] for i in INSTANCES}
+residual_report = []
 for cid, r in RCA.items():
+    for x in r.get("residual", []):
+        if x not in known_ids:
+            errors.append(f"{cid}: residual {x} names no finding or instance")
     holders = set()
     for fid, f in FIND.items():
-        if f["cls"] == cid:
+        if f["cls"] == cid and fid not in r.get("residual", []):
             holders |= {w[0] for w in placed[fid]}
-    holders |= {i["pr"] for i in INST_BY_CLASS[cid]}
+    holders |= {i.get("closed_by") or i["pr"] for i in INST_BY_CLASS[cid] if i["id"] not in r.get("residual", [])}
     for h in holders - {r["barrier"]}:
         if h not in anc[r["barrier"]]:
             errors.append(f"{cid}: barrier PR {r['barrier']} is not after instance PR {h}")
+    for x in r.get("residual", []):
+        where = [w[0] for w in placed.get(x, [])] or [i["pr"] for i in INSTANCES if i["id"] == x]
+        before = all(w == r["barrier"] or w in anc[r["barrier"]] for w in where)
+        residual_report.append(f"{cid}: {x} in {', '.join(where)} ({'before' if before else 'after or beside'} barrier {r['barrier']})")
+    # a closed_by instance's test PR must follow the PR that closes it
+    for i in INST_BY_CLASS[cid]:
+        if i.get("closed_by") and i["closed_by"] not in anc[i["pr"]]:
+            errors.append(f"{i['id']}: test PR {i['pr']} is not after closing PR {i['closed_by']}")
 
 # ---------------------------------------------------------------- derived
 def classes_of(p):
@@ -208,9 +245,9 @@ HARNESS_RE = re.compile(r"tools/audit/round9/[A-Za-z0-9_./-]+\.(?:py|mjs)")
 def harnesses(fid):
     return sorted(set(HARNESS_RE.findall(FIND[fid]["seam_rule"])))
 
-FIXTURE = {"F1.3", "F2.1", "F2.3", "F2.4", "F10.1", "F1.7"}
+FIXTURE = {"F1.3", "F2.1", "F2.3", "F2.4", "F10.1", "F1.7", "F1.10", "F2.5"}
 BLOCKED = {"F7.3": "tvofi ruling on the A3(e) decision", "F11.2": "tvofi decisions on D11-s1-01 (ruleset setting) and D11-s1-04 (delegated identity)",
-           "F11.3": "tvofi approval (policy)"}
+           "F11.3": "tvofi approval (policy)", "F11.5": "tvofi approval of each RCA policy draft (TVOFI-ASKS group a)"}
 EFFORT_LOW = {"F8.1", "F8.2", "F8.3", "F5.1", "F9.1", "F9.2", "F6.3"}
 
 STANDING_SHORT = (
@@ -222,13 +259,16 @@ STANDING_SHORT = (
     "Harnesses are at evidence commit {ev}: run them from that export, before and after, and cite the path with its sha1 (fixer.md step 3). "
     "Every figure is re-derived at your own merge base. Run python3 tests/structure.py before every hand-off; a budget raise is tvofi's, asked before the push (CLAUDE.md rule 2). "
     "Tests go in a class-named block in sorted position in tests/features.py or tests/entities.py, never at end of file; install both merge drivers before the first commit; re-record closures and budgets once, at the hand-off. "
+    "Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary (failing test written, fix green, body drafted) and at least every 30 minutes of work, never holding unpushed work across a long run; with every push update the resume note named in this entry's resume field (last completed step, next step, branch at commit, open questions); at each milestone append one dated line to the round-9 resume log and its git mirror, as the resume field says. A crashed seat is restarted from its branch and note, not from scratch. "
     "Touch the claim files only to claim measured drift. No VERSION, manifest version or notes-heading edits. Part of #201."
 )
 
 def json_brief(p):
     L = LANES[p["lane"]]
     parts = []
-    parts.append(f"Round-9 fix PR {p['id']} ({L['name']} lane), model {L['model'] if p['id'] not in MODEL_OVERRIDE else MODEL_OVERRIDE[p['id']]}.")
+    parts.append(f"Round-9 fix PR {p['id']} ({L['name']} lane). Models: fixer {model_of(p['id'])} ({why_of(p['id'])}); reviewer opus in another session; "
+                 + ("RCA and judge opus; " if barriers_of(p['id']) or rca_beside(p['id']) else "")
+                 + "runner work (scoped-gate and stress re-runs, closure and budget re-records, report rendering) goes to a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md line, delivery row) may go to sonnet.")
     if p["findings"]:
         fs = []
         for fid, part in p["findings"]:
@@ -240,8 +280,12 @@ def json_brief(p):
             fs.append(s)
         parts.append("Findings: " + "; ".join(fs) + ".")
     bs = barriers_of(p["id"])
-    if bs:
-        parts.append("Class barrier landing here: " + ", ".join(bs) + " (the RCA seat names its form; it is demonstrated failing on each round-9 instance re-introduced and passing on the fixed tree, and it does not fire on a healthy tree).")
+    for c in bs:
+        r = RCA[c]
+        parts.append(f"Class barrier landing here: {c} (RCA seat reported, process state {r['state']}). Form: {r['form']}. "
+                     f"Prototype {r['proto']}; cherry-pick {r['pick']}. Lines: {r['lines']}. Ownership: {r['owned']}. "
+                     + (f"Residual, which this barrier's check does not read (its RCA's measurement): {', '.join(r['residual'])}. " if r.get('residual') else "")
+                     + "Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, and silent on a healthy tree, as the RCA's own runs did; set the class's entry in tools/audit/bugclasses.json (detector, barrier, status) in this PR.")
     parts.extend(p["notes"])
     for c in p.get("carry", []):
         parts.append(c)
@@ -251,22 +295,56 @@ def json_brief(p):
     if hs:
         parts.append(f"Finder harnesses (evidence commit {EV}): " + ", ".join(hs) + ".")
     if p["instances"]:
-        parts.append("Sweep-confirmed instances in this PR (each sweep probe is the failing test): " + "; ".join(
-            f"{i['id']} ({i['cls']}, {i['file'].replace(CC, '')}): {i['seam']}, {i['what']}; probe {i['probe']} at {SW[i['cls']]['commit']}" for i in p["instances"]) + ".")
+        def _probe(i):
+            return f"probe {i['probe']} at {SW[i['cls']]['commit']}" if i["src"] != "RCA" else f"failing test: {i['probe']}"
+        def _tag(i):
+            t = [i["cls"], i["file"].replace(CC, ""), "found by " + i["src"]]
+            if i["kind"] == "latent": t.append("latent seam, fills a slot, not counted in N")
+            if i.get("closed_by"): t.append("closed by " + i["closed_by"] + "; this PR adds its regression test")
+            return ", ".join(t)
+        parts.append("Instances in this PR beyond its findings: " + "; ".join(
+            f"{i['id']} ({_tag(i)}): {i['seam']}, {i['what']}; {_probe(i)}" for i in p["instances"]) + ".")
     sw = []
     for c in classes_of(p):
         w = SW[c]
         en = "no enumerator script (dispositioned by hand in the class's SWEEP.md)" if w["enum"].endswith("SWEEP.md") else f"enumerator {w['enum']}"
-        sw.append(f"{c}: N {w['N']} (judge {JUDGE_N[c]}), rca {'yes' if w['rca'] else 'no'}, sweep {w['thread']} at {w['commit']}, {en}, seams {seam_counts(c)}, all listed in {w['json']}")
+        nn = f"N {w['N']} (judge {JUDGE_N[c]}" + (f", sweep {w['N_sweep']}, RCA fold {w['N']}" if c in N_RCA else "") + ")"
+        sw.append(f"{c}: {nn}, rca {'yes' if w['rca'] else 'no'}, sweep {w['thread']} at {w['commit']}, {en}, seams {seam_counts(c)}, all listed in {w['json']}")
     parts.append("Class sweeps (Phase D, final): " + "; ".join(sw) + ". The enumerator is the fixer.md step-8 rule: run it at the merge base and the head and put every seam it returns in Figures against its disposition (closed here, already guarded, or a distinct finding or instance by id). An instance seam of these classes that this PR's findings do not own belongs to the PR the plan names for it.")
     if p["tvofi"]:
         parts.append("Needs tvofi: " + p["tvofi"] + ".")
     parts.append(STANDING_SHORT.format(topic=LANES[p["lane"]]["topic"] + "-" + p["id"].split(".")[1], ev=EV))
     return " ".join(parts)
 
-MODEL_OVERRIDE = {"F5.2": "sonnet", "F6.4": "sonnet", "F9.1": "sonnet", "F9.2": "sonnet", "F8.1": "sonnet", "F8.2": "sonnet", "F8.3": "sonnet", "F5.1": "sonnet"}
 def model_of(pid):
-    return MODEL_OVERRIDE.get(pid, LANES[PR[pid]["lane"]]["model"])
+    return ROUTING[pid][0]
+def why_of(pid):
+    m, w = ROUTING[pid]
+    if w: return w
+    return {"F5": "translated text and config UX, small and mechanical", "F6": "card layout, text and keyboard fixes, small and mechanical",
+            "F7": "small entity-attribute fixes", "F8": "documentation lane", "F9": "test-pin lane",
+            "F11": "non-code-owned parsers with the finder's harness as oracle"}[PR[pid]["lane"]]
+for _p in PRS:
+    if ROUTING[_p["id"]][0] == "opus" and not ROUTING[_p["id"]][1]:
+        errors.append(f"{_p['id']}: routed to the strongest model without a reason")
+    if barriers_of(_p["id"]) and ROUTING[_p["id"]][0] != "opus":
+        errors.append(f"{_p['id']}: carries a class barrier but is not routed to the strongest model")
+def branch_of(pid):
+    return f"handoff/{LANES[PR[pid]['lane']]['topic']}-{pid.split('.')[1]}"
+def resume_of(pid):
+    b = branch_of(pid); ln = PR[pid]["lane"]
+    return collections.OrderedDict([
+        ("stage", "not-started"),
+        ("branch", b), ("commit", None), ("last_step", None),
+        ("next_step", "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test"),
+        ("note_file", f"handoff/round9/fix/resume/{pid}.md on {b}"),
+        ("review_branch", b + "-review"), ("review_note_file", f"handoff/round9/fix/resume/{pid}-review.md on {b}-review"),
+        ("plan", f"handoff/audit-r9-fixplan: handoff/round9/fix/{ln}.md section {pid}, handoff/round9/FIX-PLAN.md sections 11 and 12, this roster"),
+        ("log", "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)"),
+        ("pickup_cloud", f"git fetch origin {b}; if it exists, git worktree add --detach $S/{LANES[ln]['topic']}/wt FETCH_HEAD, read the note file, check its commit equals the fetched head (if the branch is ahead, trust the branch and its log), git merge origin/main if main moved and re-run fixer.md steps 2-8, then continue at next_step; if it does not exist, cut a worktree from origin/main and start at fixer.md step 1"),
+        ("pickup_local", f"the same commands from the Mac checkout, reading the plan and the log from git alone (handoff/audit-r9-fixplan and handoff/audit-r9-plan); a Mac seat appends its milestone lines to the mirror only, and the orchestrator copies them into the /mnt log at its next pass"),
+        ("note", "Final at E2 with the Phase D sweeps, the round-9 RCA results and tvofi's resumability and model-routing rules folded in (2026-09-26). The seat's resume note on its branch outranks this entry for in-flight state; the orchestrator (or a sonnet record seat) updates stage, commit, last_step and next_step here at each hand-off and merge. issues[] is filled when Phase E files the class issues."),
+    ])
 
 # ---------------------------------------------------------------- roster
 groups = []
@@ -282,23 +360,26 @@ for p in PRS:
     g["wave"] = depth[p["id"]]
     g["fixerModel"] = model_of(p["id"])
     g["reviewerModel"] = "opus"
+    g["model"] = collections.OrderedDict([("fixer", model_of(p["id"])), ("fixer_why", why_of(p["id"])), ("reviewer", "opus"),
+                  ("rca", "opus" if (barriers_of(p["id"]) or rca_beside(p["id"])) else None), ("runner", "haiku"), ("record", "sonnet")])
     g["effort"] = "medium" if p["id"] in EFFORT_LOW else "high"
     g["fixture"] = p["id"] in FIXTURE
     g["owner_gate"] = p["tvofi"]
     g["rca"] = rca_beside(p["id"])
     g["barrier"] = barriers_of(p["id"])
+    g["barrier_prototype"] = [RCA[c]["proto"] for c in barriers_of(p["id"])]
     g["blocked_on"] = BLOCKED.get(p["id"])
     g["after"] = ["R9-" + d for d in p["after"]]
-    g["resume"] = {"stage": "not-started", "branch": f"handoff/{LANES[p['lane']]['topic']}-{p['id'].split('.')[1]}",
-                   "note": "Final at E2 with the Phase D sweeps folded in. issues[] is filled when Phase E files the class issues."}
+    g["resume"] = resume_of(p["id"])
     g["brief"] = json_brief(p)
     groups.append(g)
 
 roster = collections.OrderedDict()
 roster["_comment"] = [
-    f"Round-9 fix wave: 145 surviving findings in 46 classes (judge 2f97b0a, CLASSES-DRAFT.json at bad458a3) plus {len(INSTANCES)} sweep-confirmed instances (Phase D, S1-S7), clustered into {len(PRS)} PRs in 11 lanes.",
+    f"Round-9 fix wave: 145 surviving findings in 46 classes (judge 2f97b0a, CLASSES-DRAFT.json at bad458a3) plus {sum(1 for i in INSTANCES if i['kind'] == 'instance')} counted instances beyond them (Phase D sweeps S1-S7 and the RCA fold) and {sum(1 for i in INSTANCES if i['kind'] == 'latent')} latent seams, clustered into {len(PRS)} PRs in 11 lanes.",
     "One entry per PR. `lane` is the cloud fixer thread that owns the PR's files; lanes own disjoint file sets, and a PR that must edit another lane's file lists it under Borrowed in its brief and carries an `after` edge on that lane's last PR on it.",
     "`wave` is the dependency depth (1 = startable now). `owner_gate` names why tvofi must approve; those PRs are kept apart so nothing else waits on them.",
+    "`model` routes each role (tvofi 19:05Z): the fixer to the cheapest feasible model with the reason when it is the strongest, reviews and RCA to opus, runners to haiku, record upkeep to sonnet. `resume` names the branch, the resume note on it, and how a cloud or a Mac seat picks the PR up (FIX-PLAN.md sections 11 and 12).",
     "`issues` is empty until Phase E files the class issues. `sweep_instances` names the Phase D instances each PR carries beyond its findings (FIX-PLAN.md's instance table). Plan: handoff/round9/FIX-PLAN.md.",
 ]
 roster["fork"] = "db878b29"
@@ -341,18 +422,20 @@ for fid in sorted(FIND, key=lambda x: (x.split("-")[0][0], int(re.sub(r'\D', '',
     m = f" (merged: {', '.join(f['merged'])})" if f["merged"] else ""
     T.append(f"| {fid}{m} | {f['severity']} | {f['cls']} | {where} | {ftitle(fid)} |")
 
-T.append("\n## Sweep-confirmed instances beyond the judged findings (Phase D)\n")
-T.append("Line numbers are at baseline `1936d5ca`; each probe is under its sweep's commit. N final = judged findings + these.\n")
-T.append("| instance | class | sweep | PR | seam | what fails | probe |")
-T.append("|---|---|---|---|---|---|---|")
+T.append("\n## Instances beyond the judged findings (Phase D sweeps and the RCA fold)\n")
+T.append("Line numbers are at baseline `1936d5ca`. A sweep instance's probe is under its sweep's commit; an RCA instance's failing test is its RCA prototype or evidence. N final = judged findings + the rows of kind `instance`; a `latent` seam fills a PR slot and is not counted. `closed by` names the PR whose change closes the seam when the row's PR carries only its regression test.\n")
+T.append("| instance | class | found by | kind | PR | closed by | seam | what fails | failing test |")
+T.append("|---|---|---|---|---|---|---|---|---|")
 for i in INSTANCES:
     w = SW[i["cls"]]
-    T.append(f"| {i['id']} | {i['cls']} | {w['thread']} @ `{w['commit']}` | {i['pr']} | {i['file'].replace(CC, '')}: {i['seam']} | {i['what']} | `{i['probe']}` |")
+    src = f"{w['thread']} @ `{w['commit']}`" if i["src"] != "RCA" else f"RCA ({RCA[i['cls']]['slug']})"
+    T.append(f"| {i['id']} | {i['cls']} | {src} | {i['kind']} | {i['pr']} | {i.get('closed_by') or '-'} | {i['file'].replace(CC, '')}: {i['seam']} | {i['what']} | {i['probe']} |")
+T.append("\nRe-dispositioned at the RCA fold, no longer instances: **P1-sw1** and **P1-sw2** (not store-reachable; defence-in-depth, P1 RCA) and **P9-sw1** (a box-metric artefact, 0 px shared ink, P9 RCA).")
 
 T.append("\n## Class to PR\n")
 T.append("Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`), every one listed in the lane brief of each lane that holds the class.\n")
-T.append("| class | N judge | N final | rca | sweep | seams | PRs | barrier PR |")
-T.append("|---|---|---|---|---|---|---|---|")
+T.append("| class | N judge | N sweep | N final | rca | sweep | seams | PRs | barrier PR |")
+T.append("|---|---|---|---|---|---|---|---|---|")
 bycls = collections.OrderedDict()
 for c in CLASSES["classes"]:
     cid = c["id"] or CLASS_SHORT[c["name"]]
@@ -364,13 +447,13 @@ for c in CLASSES["classes"]:
         if i["pr"] not in prs: prs.append(i["pr"])
     bycls[cid] = (c, prs)
     w = SW[cid]
-    T.append(f"| {cid} | {c['n']} | {w['N']} | {'yes' if w['rca'] else 'no'}{' (barriered)' if c['barriered'] else ''} | {w['thread']} @ `{w['commit']}` | {seam_counts(cid)} | {', '.join(prs)} | {RCA[cid]['barrier'] if cid in RCA else '- (N below 3, not barriered)'} |")
+    T.append(f"| {cid} | {c['n']} | {w['N_sweep']} | {w['N']} | {'yes' if w['rca'] else 'no'}{' (barriered)' if c['barriered'] else ''} | {w['thread']} @ `{w['commit']}` | {seam_counts(cid)} | {', '.join(prs)} | {RCA[cid]['barrier'] if cid in RCA else '- (N below 3, not barriered)'} |")
 
 T.append("\n## Owned files and borrow edges\n")
-T.append("| lane | name | thread model | owns |")
+T.append("| lane | name | fixer models (per PR) | owns |")
 T.append("|---|---|---|---|")
 for ln, L in LANES.items():
-    T.append(f"| {ln} | {L['name']} | {L['model']} | {', '.join(x.replace(CC, '') for x in L['owns'])} |")
+    T.append(f"| {ln} | {L['name']} | {', '.join(i + ' ' + model_of(i) for i in LANE_ORDER[ln])} | {', '.join(x.replace(CC, '') for x in L['owns'])} |")
 
 TABLES = "\n".join(T) + "\n"
 
@@ -380,9 +463,8 @@ for ln, L in LANES.items():
     lines = []
     ids_ = LANE_ORDER[ln]
     lines.append(f"# Round 9 fixer brief {ln}: {L['name']}\n")
-    lines.append(f"Model for this thread: **{L['model']}** ({'the strongest available model' if L['model']=='opus' else 'sonnet'}). "
-                 + ("Per-PR overrides: " + ", ".join(f"{i} {model_of(i)}" for i in ids_ if model_of(i) != L['model']) + ". " if any(model_of(i) != L['model'] for i in ids_) else "")
-                 + "Reviews run on the strongest model in a different cloud session (never this one).\n")
+    lines.append("Models, per role (FIX-PLAN.md section 12): the fixer per PR as listed below, the cheapest feasible (" + ", ".join(f"{i} {model_of(i)}" for i in ids_)
+                 + "); reviews, judging and RCA on the strongest model (opus) in a different session, never this one; runner work (scoped-gate and stress re-runs, closure and budget re-records, rebuilds, report rendering, digests) on a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md lines, delivery rows) may go to sonnet.\n")
     lines.append(f"Handoff branches: `handoff/{L['topic']}-<k>` for PR {ln}.<k>, cut from origin/main. Scratch: `$S/{L['topic']}/` with your worktree under it (absolute paths).\n")
     lines.append("## Files this lane owns\n")
     lines.append("Only this lane's PRs edit these, except where another lane's PR lists one under Borrows; the `after` edges in the roster order that PR against yours so the two are never open together. Before opening a PR, check that no borrower of its files is open.\n")
@@ -394,13 +476,24 @@ for ln, L in LANES.items():
         p = PR[pid]
         lines.append(f"### {pid}: {p['title']}\n")
         lines.append(f"- Wave (dependency depth): {depth[pid]}. After: {', '.join(p['after']) or 'nothing; start now'}.")
-        lines.append(f"- Model: {model_of(pid)}. Effort: {'medium' if pid in EFFORT_LOW else 'high'}. Golden drift plausible: {'yes, claim what you measure' if pid in FIXTURE else 'not expected'}.")
+        lines.append(f"- Fixer model: **{model_of(pid)}** ({why_of(pid)}). Reviewer opus; runner haiku; record sonnet" + ("; RCA opus" if (rca_beside(pid) or barriers_of(pid)) else "") + ".")
+        lines.append(f"- Resume: branch `{branch_of(pid)}`, note `handoff/round9/fix/resume/{pid}.md` on it (review: `{branch_of(pid)}-review`, note `{pid}-review.md`); the roster's `resume` field for R9-{pid} gives the cloud and Mac pickup commands.")
+        lines.append(f"- Effort: {'medium' if pid in EFFORT_LOW else 'high'}. Golden drift plausible: {'yes, claim what you measure' if pid in FIXTURE else 'not expected'}.")
         lines.append(f"- Needs tvofi: {'**yes** - ' + p['tvofi'] if p['tvofi'] else 'no'}.")
         if BLOCKED.get(pid):
             lines.append(f"- Blocked on: {BLOCKED[pid]}.")
         rb = rca_beside(pid); br = barriers_of(pid)
         if rb: lines.append(f"- RCA seat(s) starting beside this PR (strongest model, separate thread): {', '.join(rb)}.")
-        if br: lines.append(f"- Class barrier landing in this PR: {', '.join(br)}. Its form comes from that class's RCA seat; demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, silent on a healthy tree.")
+        for c in br:
+            r = RCA[c]
+            lines.append(f"- **Class barrier landing in this PR: {c}** (RCA write-up `/mnt/project-files/audit-r9/rca/{r['slug']}/RCA.md`; process state {r['state']}).")
+            lines.append(f"  - Form: {r['form']}.")
+            lines.append(f"  - Prototype: `{r['proto']}`; cherry-pick {r['pick']}.")
+            lines.append(f"  - Lines: {r['lines']}.")
+            lines.append(f"  - Code-owned or policy: {r['owned']}.")
+            if r.get("residual"):
+                lines.append(f"  - Residual (the barrier's check does not read these; measured by the RCA): {', '.join(r['residual'])}.")
+            lines.append("  - Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, silent on a healthy tree; set the class's entry in `tools/audit/bugclasses.json` (detector, barrier, status) here.")
         lines.append(f"- Edits: {', '.join('`'+x+'`' for x in p['edit'])}.")
         if p["borrows"]:
             lines.append(f"- Borrows: {', '.join('`'+f+'` from '+l for f, l in p['borrows'].items())}.")
@@ -415,9 +508,13 @@ for ln, L in LANES.items():
         elif not p["instances"]:
             lines.append("- Findings: none; this PR is a class barrier.")
         if p["instances"]:
-            lines.append("- Sweep-confirmed instances (Phase D; the probe is your failing test):")
+            lines.append("- Instances beyond the findings (a sweep probe, or the RCA's prototype or evidence, is your failing test):")
             for i in p["instances"]:
-                lines.append(f"  - **{i['id']}**, class {i['cls']}, `{i['file']}`: {i['seam']}. {i['what'][0].upper() + i['what'][1:]}. Probe: `{i['probe']}` at `{SW[i['cls']]['commit']}`.")
+                extra = []
+                if i["kind"] == "latent": extra.append("latent seam: fills a slot, not counted in N")
+                if i.get("closed_by"): extra.append(f"closed by {i['closed_by']}; this PR adds its regression test")
+                ft = f"Probe: `{i['probe']}` at `{SW[i['cls']]['commit']}`." if i["src"] != "RCA" else f"Failing test: {i['probe']}."
+                lines.append(f"  - **{i['id']}** (found by {i['src']}{'; ' + '; '.join(extra) if extra else ''}), class {i['cls']}, `{i['file']}`: {i['seam']}. {i['what'][0].upper() + i['what'][1:]}. {ft}")
         if p.get("carry"):
             lines.append("- Carry-ins:")
             for c in p["carry"]:
@@ -427,7 +524,7 @@ for ln, L in LANES.items():
             lines.append(f"  - {n}")
         cs = classes_of(p) or barriers_of(pid)
         lines.append("- Class sweeps (final; the seam lists are at the end of this brief): " + "; ".join(
-            f"{c} N {SW[c]['N']} (judge {JUDGE_N[c]}), rca {'yes' if SW[c]['rca'] else 'no'}, {SW[c]['thread']} @ `{SW[c]['commit']}`, enumerator `{SW[c]['enum']}`" for c in cs) + ".")
+            f"{c} N {SW[c]['N']} (judge {JUDGE_N[c]}, sweep {SW[c]['N_sweep']}), rca {'yes' if SW[c]['rca'] else 'no'}, {SW[c]['thread']} @ `{SW[c]['commit']}`, enumerator `{SW[c]['enum']}`" for c in cs) + ".")
         lines.append("")
     lane_classes = []
     for pid in ids_:
@@ -437,10 +534,12 @@ for ln, L in LANES.items():
     lines.append("Each class's enumerator is your `fixer.md` step-8 rule. Run it from an export of the sweep commit at your merge base and your head; every seam it returns goes in `## Figures` against its disposition. The lists below are the sweep's own, at baseline `1936d5ca` (line numbers are baseline lines). A seam marked `instance` belongs to the finding or instance its note names, and that one's PR closes it, which may be in another lane.\n")
     for c in lane_classes:
         w = SW[c]
-        lines.append(f"### {c}: N {w['N']} (judge {JUDGE_N[c]}), rca {'yes' if w['rca'] else 'no'}\n")
+        lines.append(f"### {c}: N {w['N']} (judge {JUDGE_N[c]}, sweep {w['N_sweep']}), rca {'yes' if w['rca'] else 'no'}\n")
+        if c in N_RCA:
+            lines.append(f"- N changed at the RCA fold, {w['N_sweep']} to {w['N']}: {N_RCA[c][0]}.")
         lines.append(f"- Sweep {w['thread']}, commit `{w['commit']}` (branch `handoff/audit-r9-sweep-{w['thread'].lower()}`): `{w['dir']}/`, its `SWEEP.md`, and `{w['json']}`. Enumerator: `{w['enum']}`. Gate seconds the sweep measured: {w['gate'] if w['gate'] is not None else 'not measured'}.")
         if c in RCA:
-            lines.append(f"- RCA seat beside {RCA[c]['beside']}; barrier lands in {RCA[c]['barrier']}.")
+            lines.append(f"- RCA seat beside {RCA[c]['beside']} (reported; `/mnt/project-files/audit-r9/rca/{RCA[c]['slug']}/RCA.md`); barrier lands in {RCA[c]['barrier']}, prototype `{RCA[c]['proto']}`.")
         lines.append(f"- Barrier proposal (the sweep's; the RCA seat decides the form): {w['barrier']}")
         lines.append(f"- Seams ({seam_counts(c)}):")
         for sm in w["seams"]:
@@ -457,6 +556,8 @@ for ln, L in LANES.items():
 print(f"PRs {len(PRS)}; lanes {len(LANES)}; placed {len(placed)}/145; tvofi PRs {sum(1 for p in PRS if p['tvofi'])}; max depth {max(depth.values())}")
 print("wave counts", collections.Counter(depth.values()))
 print("topo order", " ".join(order))
+print("residual (barrier's check does not read these):")
+for x in residual_report: print("  ", x)
 if errors:
     print("ERRORS:")
     for e in errors: print(" ", e)
@@ -485,9 +586,14 @@ def longest_chain():
     return max(best.values(), key=lambda x: x[0])
 chain_len, chain = longest_chain()
 rca_rows = "\n".join(
-    f"| {k} | {JUDGE_N[k]} | {SW[k]['N']} | {r['beside']} | {r['barrier']} | {r['note']} |" for k, r in RCA.items())
+    f"| {k} | {JUDGE_N[k]} | {SW[k]['N_sweep']} | {SW[k]['N']} | {r['state']} | {r['barrier']} | `{r['proto']}` | {r['owned']} | {r['lines']} |" for k, r in RCA.items())
+rca_forms = "\n".join(
+    f"- **{k}** -> {r['barrier']}: {r['form']}." + (f" Residual: {', '.join(r['residual'])}." if r.get('residual') else "") for k, r in RCA.items())
+carry_rows = "\n".join(f"| {d} | {c} | {t} |" for d, c, t in CARRIES)
 fill = dict(
-    n_prs=len(PRS), n_inst=len(INSTANCES), n_rca=len(RCA), n_tvofi=sum(1 for p in PRS if p["tvofi"]),
+    n_prs=len(PRS), n_inst=sum(1 for i in INSTANCES if i["kind"] == "instance"), n_latent=sum(1 for i in INSTANCES if i["kind"] == "latent"),
+    n_rca=len(RCA), n_tvofi=sum(1 for p in PRS if p["tvofi"]), rca_forms=rca_forms, carry_rows=carry_rows, n_carries=len(CARRIES),
+    tvofi_rows="\n".join(f"| {p['id']} | {p['tvofi']}{' **Blocked on:** ' + BLOCKED[p['id']] + '.' if p['id'] in BLOCKED else ''} |" for p in PRS if p["tvofi"]),
     n_borrow=sum(1 for p in PRS if p["borrows"]), rca_rows=rca_rows,
     tvofi_list=", ".join(p["id"] for p in PRS if p["tvofi"]),
     chain=" -> ".join(chain), chain_len=chain_len, max_depth=max(depth.values()),
@@ -495,6 +601,9 @@ fill = dict(
     leads="\n".join(f"- **{t}** -> {pid}: {x}" for t, pid, x in LEADS),
     wave1=", ".join(p["id"] for p in PRS if depth[p["id"]] == 1),
     last_pr=mo[-1]["id"],
+    role_rows="\n".join(f"| {r} | {m} |" for r, m in ROLE_MODELS),
+    model_rows="\n".join(f"| {p['id']} | {model_of(p['id'])} | {why_of(p['id'])} |" for p in mo),
+    n_sonnet=sum(1 for p in PRS if model_of(p['id']) == "sonnet"), n_opus=sum(1 for p in PRS if model_of(p['id']) == "opus"),
 )
 head = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "FIX-PLAN-head.md")).read()
 for k, v in fill.items():
