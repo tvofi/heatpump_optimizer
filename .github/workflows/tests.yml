@@ -1416,6 +1416,23 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py
+          git reset -q -- tests/closure.py
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1430,16 +1447,15 @@ jobs:
       - name: Merge UNDER-SCOPED recordings
         id: autofix
         env:
-          PYTHONPATH: tests/hastub
           EVENT_NAME: ${{ github.event_name }}
           CLOSURES_RESULT: ${{ needs.closures.result }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
         run: |
           export SUBJECT=$(git log -1 --pretty=%s)
-          python - <<'PY'
+          python3 -I - <<'PY'
           import os, sys
-          sys.path.insert(0, "tests")
+          sys.path.append("tests")
           import closure
           allowed = closure.autofix_allowed(
               event_name=os.environ["EVENT_NAME"],
@@ -1466,7 +1482,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tests/closures.json
@@ -1475,8 +1497,9 @@ jobs:
             exit 0
           }
           git commit -m "ci: re-record closures"
-          git pull --rebase origin "$HEAD_REF" || true
-          git push
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
           if [ "$USED_PAT" = "true" ]; then
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
@@ -1561,12 +1584,12 @@ jobs:
           }
           printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
           inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
-            | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
             echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
             exit 0
           }
           curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
-            | python3 -c 'import sys,json
+            | python3 -I -c 'import sys,json
           t = json.load(sys.stdin)["token"]
           open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
             echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
@@ -1584,7 +1607,7 @@ jobs:
           sha_held() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               if r["head_sha"] == sys.argv[1]:
                   print(r["id"])' "$PUSH_SHA"
@@ -1600,7 +1623,7 @@ jobs:
           held_ids() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               print(r["id"], r["name"])'
           }
@@ -1635,10 +1658,8 @@ jobs:
       # the push would let this step's own exit throw the repair away.
       - name: Report whether the repair happened
         if: always()
-        env:
-          PYTHONPATH: tests/hastub
         run: |
-          python tests/closure.py autofix-report --job closures-autofix \
+          python3 -I tests/closure.py autofix-report --job closures-autofix \
             --status "${{ steps.autofix.outputs.status }}"
 
   # Same-repo PR only. fast fails INHERITED CLAIMS when a branch copies
@@ -1662,6 +1683,23 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py tests/env_drift.py
+          git reset -q -- tests/closure.py tests/env_drift.py
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1670,7 +1708,6 @@ jobs:
       - name: Drop inherited claim lists
         id: autofix
         env:
-          PYTHONPATH: tests/hastub
           EVENT_NAME: ${{ github.event_name }}
           FAST_RESULT: ${{ needs.fast.result }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
@@ -1678,9 +1715,9 @@ jobs:
         run: |
           git fetch --no-tags origin main
           export SUBJECT=$(git log -1 --pretty=%s)
-          python - <<'PY'
+          python3 -I - <<'PY'
           import os, sys
-          sys.path.insert(0, "tests")
+          sys.path.append("tests")
           import closure
           import env_drift
           allowed = closure.autofix_allowed(
@@ -1709,7 +1746,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
@@ -1718,8 +1761,9 @@ jobs:
             exit 0
           }
           git commit -m "ci: drop inherited claims"
-          git pull --rebase origin "$HEAD_REF" || true
-          git push
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
           if [ "$USED_PAT" = "true" ]; then
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
@@ -1794,12 +1838,12 @@ jobs:
           }
           printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
           inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
-            | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
             echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
             exit 0
           }
           curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
-            | python3 -c 'import sys,json
+            | python3 -I -c 'import sys,json
           t = json.load(sys.stdin)["token"]
           open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
             echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
@@ -1817,7 +1861,7 @@ jobs:
           sha_held() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               if r["head_sha"] == sys.argv[1]:
                   print(r["id"])' "$PUSH_SHA"
@@ -1833,7 +1877,7 @@ jobs:
           held_ids() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               print(r["id"], r["name"])'
           }
@@ -1867,10 +1911,8 @@ jobs:
       # and so a status added later cannot fall through to green.
       - name: Report whether the repair happened
         if: always()
-        env:
-          PYTHONPATH: tests/hastub
         run: |
-          python tests/closure.py autofix-report --job claims-autofix \
+          python3 -I tests/closure.py autofix-report --job claims-autofix \
             --status "${{ steps.autofix.outputs.status }}"
 
   # The ledger half of the mutation ratchet. `mutation` refuses a diff that
@@ -1897,6 +1939,23 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py tests/mutation_table.py
+          git reset -q -- tests/closure.py tests/mutation_table.py
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1915,7 +1974,6 @@ jobs:
       - name: Take the pinned ledger
         id: autofix
         env:
-          PYTHONPATH: tests/hastub
           EVENT_NAME: ${{ github.event_name }}
           MUTATION_RESULT: ${{ needs.mutation.result }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
@@ -1923,9 +1981,9 @@ jobs:
           PINS: ${{ runner.temp }}/mutation-pins
         run: |
           export SUBJECT=$(git log -1 --pretty=%s)
-          python - <<'PY'
+          python3 -I - <<'PY'
           import os, sys
-          sys.path.insert(0, "tests")
+          sys.path.append("tests")
           import closure
           allowed = closure.autofix_allowed(
               event_name=os.environ["EVENT_NAME"],
@@ -1955,7 +2013,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tests/mutation_budgets.json tests/mutation_ledger/
@@ -1964,8 +2028,9 @@ jobs:
             exit 0
           }
           git commit -m "ci: pin killed mutants"
-          git pull --rebase origin "$HEAD_REF" || true
-          git push
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
           if [ "$USED_PAT" = "true" ]; then
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
@@ -2040,12 +2105,12 @@ jobs:
           }
           printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
           inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
-            | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
             echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
             exit 0
           }
           curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
-            | python3 -c 'import sys,json
+            | python3 -I -c 'import sys,json
           t = json.load(sys.stdin)["token"]
           open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
             echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
@@ -2063,7 +2128,7 @@ jobs:
           sha_held() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               if r["head_sha"] == sys.argv[1]:
                   print(r["id"])' "$PUSH_SHA"
@@ -2079,7 +2144,7 @@ jobs:
           held_ids() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
-              | python3 -c 'import sys,json
+              | python3 -I -c 'import sys,json
           for r in json.load(sys.stdin).get("workflow_runs", []):
               print(r["id"], r["name"])'
           }
@@ -2111,8 +2176,6 @@ jobs:
       # a measurement that was owed and did not happen reddens this job.
       - name: Report whether the repair happened
         if: always()
-        env:
-          PYTHONPATH: tests/hastub
         run: |
-          python tests/closure.py autofix-report --job mutation-autofix \
+          python3 -I tests/closure.py autofix-report --job mutation-autofix \
             --status "${{ steps.autofix.outputs.status }}"

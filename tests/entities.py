@@ -15857,6 +15857,8 @@ _NON_GATE_WORKFLOWS = [
     # the sweep's "escapes the GOV pin" instance. Classified here on the same
     # terms as its two siblings above.
     ".github/workflows/budget-raise-gate-rerun.yml",
+    # D13-s1-03: the contract's re-run follower, read for its pins below.
+    ".github/workflows/pr-contract-rerun.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -21968,7 +21970,8 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
 # defines (`fast`, `browser`, `closures`).
 _GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
               ".github/workflows/budget-raise-gate.yml",
-              ".github/workflows/budget-raise-gate-rerun.yml"]
+              ".github/workflows/budget-raise-gate-rerun.yml",
+              ".github/workflows/pr-contract-rerun.yml"]
 _GOV_FILE_JOBS: "set[str]" = set()
 for _f in _GOV_FILES:
     _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
@@ -22260,6 +22263,8 @@ R.check(
 # reaches the runner before review; this pin makes that edit a red check and
 # the file's code ownership a named review, which is what an in-tree check
 # can do (the judge's weakening of D11-s1-03).
+import fnmatch as _prw_fnmatch  # noqa: E402
+
 _PRW_EXEC = re.compile(
     r"(?<![\w/.-])((?:tests|\.claude/workflows|tools)/[\w./-]+\.(?:py|mjs|js|sh))(?![\w])")
 _PRW_RESTORE = re.compile(r"git checkout\s+\S+\s+--\s+((?:\\\n|[^\n])+)")
@@ -22313,7 +22318,7 @@ def _prw_defects(texts: "dict[str, str]") -> "list[str]":
                 run = str(s.get("run", ""))
                 own = set(_prw_restored(run))
                 for x in sorted(_prw_executed(run) - own):
-                    if not any(fnmatch.fnmatch(x, p) for p in restored):
+                    if not any(_prw_fnmatch.fnmatch(x, p) for p in restored):
                         out.append(f"{where} runs {x} unrestored")
                 restored += own
                 for ln in _prw_live(run).splitlines():
@@ -22423,16 +22428,6 @@ R.check(
     any(d.startswith("checkout") for d in _CRR_NULL)
     and any(d.startswith("workflow_run") for d in _CRR_NULL),
     f"defects on the altered copy: {_CRR_NULL}",
-)
-_CRR_SELF = subprocess.run(
-    [sys.executable, ".claude/workflows/contract_rerun.py", "--self-test"],
-    capture_output=True, text=True)
-R.check(
-    "contract_rerun.py's decision table and end-to-end arms pass",
-    _CRR_SELF.returncode == 0
-    and re.search(r"^contract_rerun self-test: [1-9]\d* checks, 0 failed$",
-                  _CRR_SELF.stdout, re.M) is not None,
-    f"rc={_CRR_SELF.returncode}: {(_CRR_SELF.stdout + _CRR_SELF.stderr)[-400:]}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string

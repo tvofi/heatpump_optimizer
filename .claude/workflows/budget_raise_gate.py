@@ -37,7 +37,8 @@ WHAT IT DOES WITH ONE. No raise: exit 0, and the API is never asked. A raise:
 exit 0 only when the owner's latest decisive review (APPROVED,
 CHANGES_REQUESTED or DISMISSED; a COMMENTED review decides nothing) is APPROVED
 and was submitted on this exact head SHA, by the login AND numeric id AND
-account type pinned below. Anything else, a failed API read included, is exit 1.
+account type pinned below, and does not say in its own body that an agent gave
+it (AGENT_DECLARED below). Anything else, a failed API read included, is exit 1.
 
 WHAT IT DOES NOT SEE. A ledger disposition (`survivor_triage`, `killed_by`)
 is a per-site record, not a cap, and is `free` here: an `equivalent` verdict
@@ -60,6 +61,7 @@ import fnmatch
 import json
 import math
 import os
+import re
 import shutil
 import tempfile
 import subprocess
@@ -71,6 +73,18 @@ import sys
 OWNER_LOGIN = "tvofi"
 OWNER_ID = 70032254
 OWNER_TYPE = "User"
+# D11-s1-04 (card C17, tvofi's refusal rather than a delegated identity): a
+# seat driving the owner's own credentials posts a review GitHub records as the
+# owner's, so login, id and type cannot separate the two -- only the body can,
+# where the seat declares itself ("The orchestrator gives it under tvofi's
+# explicit mandate") and where every agent-posted GitHub review carries the
+# Claude Code footer. Such a review is not the owner's and is dropped before the
+# decisive one is chosen, so it neither approves nor supersedes. The residual,
+# stated rather than hidden: an agent that declares nothing is not separable
+# from the owner on GitHub's record, which no in-tree check can change.
+AGENT_DECLARED = re.compile(
+    r"orchestrator|\bseats?\b|\bmandate\b|\b(?:on|under) tvofi's|on behalf of|delegat"
+    r"|claude\.ai/code|generated (?:by|with) \[?claude", re.I)
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 SUFFIX = "_budgets.json"
 
@@ -240,14 +254,19 @@ def file_raises(path: str, old_text: str | None, new_text: str | None,
 
 def approval(reviews: list[dict], head: str) -> tuple[bool, str]:
     """(approved, why): the owner's latest decisive review is an APPROVED one
-    submitted on `head`."""
-    mine = [r for r in reviews
-            if (r.get("user") or {}).get("login") == OWNER_LOGIN
-            and (r.get("user") or {}).get("id") == OWNER_ID
-            and (r.get("user") or {}).get("type") == OWNER_TYPE]
+    submitted on `head`. A review under the owner's account whose body says an
+    agent gave it is not the owner's (AGENT_DECLARED)."""
+    own = [r for r in reviews
+           if (r.get("user") or {}).get("login") == OWNER_LOGIN
+           and (r.get("user") or {}).get("id") == OWNER_ID
+           and (r.get("user") or {}).get("type") == OWNER_TYPE]
+    mine = [r for r in own if not AGENT_DECLARED.search(r.get("body") or "")]
     decisive = [r for r in mine if r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")]
     if not decisive:
-        return False, f"no decisive review by {OWNER_LOGIN} (id {OWNER_ID}) on this pull request"
+        agent = len(own) - len(mine)
+        return False, (f"no decisive review by {OWNER_LOGIN} (id {OWNER_ID}) on this pull request"
+                       + (f"; {agent} under that account declare an agent gave them, and an "
+                          "agent-driven approval is not the owner's" if agent else ""))
     last = decisive[-1]
     if last.get("state") != "APPROVED":
         return False, f"{OWNER_LOGIN}'s latest decisive review is {last.get('state')}"

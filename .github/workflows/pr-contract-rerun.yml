@@ -1,0 +1,68 @@
+# Re-runs `pr-contract` when a red it could not yet see lands (D13-s1-03).
+#
+# `pr-contract` lists the failing check runs at the head and refuses a body
+# that does not answer them, but it runs seconds after a push and the checks
+# it must list finish minutes later; nothing re-ran it when they did. This
+# workflow does that one thing: when a run of any workflow that reports at a
+# pull request's head concludes `failure`, it asks GitHub to re-run the newest
+# `pr-contract` run at the same head if that run started before the red
+# finished. The re-run reads the body and the check runs live, so this job
+# writes no verdict of its own.
+#
+# WHY ITS OWN FILE. `pr-contract.yml` lists `edited` and holds one unguarded
+# job, which `tests/entities.py` pins (#1514); a second job there would write
+# a check run on every body edit. `workflow_run` runs THIS file from the
+# default branch, never the pull request's copy, and its runs attach to the
+# default branch's commit, so nothing here can be re-reported as a required
+# context. The watched list is every workflow that runs on a pull request but
+# the contract itself, and `tests/entities.py` derives it from the workflow
+# files: a workflow it misses is the gap again.
+#
+# NO PULL REQUEST CODE RUNS. The checkout is the default branch's own commit,
+# the program is restored from it and run under `python3 -I`; the only value
+# taken from the triggering run is its id (an integer), and through the API its
+# head SHA. `head_branch` and every other string the pull request controls
+# stay out of the job. The pattern is budget-raise-gate-rerun.yml's.
+
+name: PR contract re-run
+
+on:
+  workflow_run:
+    workflows: ["Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  rerun-stale-contract:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # `actions: write` is the re-run; `contents: read` is the checkout of the
+    # default branch's own copy of the program. Nothing else.
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Restore the program from the default branch's commit
+        env:
+          PINNED: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.py'
+          test -f .claude/workflows/contract_rerun.py
+
+      - name: Re-run the contract a later red made stale
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 -I .claude/workflows/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"
