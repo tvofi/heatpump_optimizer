@@ -55,6 +55,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:12Z: G3-V3 complete @7802f77f. Judge notes: D9-s1-71 weaken to low (share 0.058 vs 0.094; seam misses ~8 call sites); D9-s2-71 topology_layout pinned no_valve in all 51 plants, class proposed 'new: sweep coverage gap'. Complete: G1-V1, G2-V1, G2-V2, G2-V3, G3-V1, G3-V3, G4-V1, G4-V2 (8/12).
 
+- 2026-09-26T13:14Z: tvofi chose 'Normalise, re-admit' (card, 13:02Z). G1-V2 catchup @b56908c9: D3-s3-01..05 all verify; suite-blindness rests on recorded prescreen (not re-run). G1-V2 leads still running.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
