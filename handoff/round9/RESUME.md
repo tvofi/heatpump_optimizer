@@ -120,6 +120,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T16:12Z: the judge runs shard 2/2 itself on 3.14: the 8 solver/timing rows by hand, the other 15 via judge_batch label judge-r9-j2. R2 told to stop and push nothing. D0-s2-02 verifies at low.
 
+- 2026-09-26T16:55Z: tvofi (16:50Z, cmsg_01EL5jLi4rokGBbkaevYXSJVQgitsLyHHEdFxZNHfU9aZ2) asked to fan out the class sweeps. Plan: start the sweep threads from the judge's draft classes now (CLASSES-DRAFT.json requested), not after the final verdicts. Threads S1..Sn on sonnet, packed by finding count, a class never split, more than 4 if the class count warrants.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
