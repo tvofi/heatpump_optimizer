@@ -7,6 +7,9 @@ Mirror: branch handoff/audit-r9-plan, handoff/round9/RESUME.md (when /mnt/projec
 updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d, session cse_01WgT4h2uvK9kbxQbWc5MJis)
 
+## NO HEAVY D3 RE-RUNS (tvofi 2026-09-26T11:37Z, cmsg_01EL5jLi4rokGBbkaevYXSJVAcgmVbDja4PyMPNFq1iWdx)
+No phase re-runs the heavy D3 scripts (mutation pre-screens, mutant pools, the full-gate quiet-window confirmer): not verifiers, not the judge, not class sweeps, not fixers. Reuse the evidence the D3 seats produced. Pass this rule in every later brief. Consequence: the driver's D3 quiet window is SKIPPED; D3 findings are registered on the seats' own pre-screen evidence, marked "quiet window not run (tvofi rule)", and the judge decides on that evidence.
+
 ## BATCHED INTAKE (tvofi 2026-09-26T11:25Z, cmsg_01EL5jLi4rokGBbkaevYXSJV4UhugKT9souwD18jygSeVk)
 tvofi: continue with intake, the leads seat and Phases B-F on the current findings; the last three seats catch up later.
 - BATCH 1 = every seat except D3-s2 (B2), D3-s3 (B3), D7-s1 (B6). In so far: B1, B4, B5, B7, B8, B9, B10 full; B6 partial @2aa31392 (D2-s4, D12-s1, D1-s4, D8-s1 = 10f/13l); B2 and B3 were asked at 11:30Z to push their finished seats with missing=[D3-s2]/[D3-s3].
@@ -14,6 +17,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 - Driver: local copy = origin/main audit-find.js + r9-prepare-patch.sh + r9-batch-patch.sh (handoff/round9/). The batch patch adds args.defer (intake does not wait for those seats), args.judge_flags (written into the register for the judge), and strips earlier rounds in the leads seat's export. Add it to the owed driver-fix PR.
 - B2 FIRST PUSH 11:27Z @23b928f9 missing=[D3-s2]: D0-s2 2f/3l, D5-s2 3f/2l, D6-s2 5f/4l, D10-s2 1f/2l. B3 FIRST PUSH 11:27Z @53485c2d missing=[D3-s3]: D0-s3 0f/5l, D11-s1 4f/3l (2 HIGH), D11-s2 4f/4l, D13-s1 3f/3l (2 HIGH). All verified.
 - 11:40Z BATCH-1 INTAKE LAUNCHED: Workflow run wf_9ba1c25f-9e5 (task wfebfal2y), checkout /home/claude/heatpump_optimizer detached at 1936d5ca. Output branch handoff/audit-r9-register. If this session dies: resume with Workflow({scriptPath: <scratchpad>/audit-find-r9.js, resumeFromRunId: "wf_9ba1c25f-9e5"}) in the same session, else relaunch with the args above (the script = origin/main audit-find.js + both patches).
+- 11:45Z RUN wf_9ba1c25f-9e5 STOPPED (TaskStop) as the quiet agent started: (a) tvofi's no-heavy-D3 rule; (b) its gatherer returned pointers, not reports (a classifier stopped it from returning the content), so findings/leads were empty. No quiet worktree was made; gate lock free. DO NOT resume that run.
+- BATCH-1 INTAKE NOW MANUAL: handoff/round9/intake/intake1.py (a port of audit-find.js 263-353's mechanical half) reads the box branches -> scratchpad/intake/{reports,accepted,rejected,leads_by_owner,ledger_round9,report_paths,provisional}.json. Result: 39/42 seats, 120 accepted (17 high/56 medium/47 low), 0 rejected, 109 leads across 28 owners, 0 provisional. Next: leads seat (Agent, driver's leads prompt, export stripped), then intake register agent (driver's intake prompt, no quiet window) -> handoff/audit-r9-register.
 - Batch-1 run: Workflow scriptPath scratchpad/audit-find-r9.js, args {round:9, baseline:1936d5ca..., repo:/home/claude/heatpump_optimizer, rotation, scopes (origin/main), from:"intake", defer:["D3-s2","D3-s3","D7-s1"], judge_flags}.
 
 ## RESTART FROM COLD (standing rule, tvofi 2026-09-26T10:19Z: keep this doc current after every milestone)
