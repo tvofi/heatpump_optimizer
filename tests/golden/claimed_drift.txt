@@ -713,3 +713,17 @@
 # #1588 (DHW arbiter): this branch's own diff claims the config_flow
 # fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
 # flows' schema; no values move.
+
+# R9-F2.1 (D2-s2-81, the two-zone floor price): each zone of a two-zone house
+# now pays the single-zone _COMFORT_FLOOR_L1 per kelvin under min_temp; the
+# quadratic undershoot stays averaged. Every two-zone fixture's objective
+# changes, so its plan moves. Thirteen two-zone scenarios moved against the
+# merge base in one environment; ten are may-drift names, these three are
+# claimed. Direction, same environment (summed degree-steps under min_temp over
+# both zones; predicted_cost): valve_storage_flat_prices 0 -> 0, 89.70 -> 89.86;
+# valve_storage_low_target 0 -> 0, 59.02 -> 62.08; valve_storage_small_tank
+# 1.315 -> 1.291, 54.24 -> 52.56. Every other fixture is byte-identical, so
+# the PV margin and the power fraction move none.
+valve_storage_flat_prices  # R9-F2.1 two-zone linear floor price per zone
+valve_storage_low_target  # R9-F2.1 two-zone linear floor price per zone
+valve_storage_small_tank  # R9-F2.1 two-zone linear floor price per zone
