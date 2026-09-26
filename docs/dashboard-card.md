@@ -239,14 +239,22 @@ returns to the window the card was configured for.
 
 Panning **back** through now is different: that is the recorded past, not the
 plan's, and the card does scroll back into it — up to 48 hours. Left of the
-"now" marker you see what actually happened: the measured indoor and outdoor
-temperatures, the spot price and the solar irradiance ride the same series
-their forecasts occupy right of it, and the pump's own commanded power draws
-as the **Actioned power** series: a band along the base of the plot for
-the hours the pump was executing heating, drawn from the action sensor's
-own state history (the mode is the state, so every install has it), with
-the commanded power in kW above it where the action sensor publishes
-`power_kw` — an overlay, never a prerequisite. Hovering the past names the
+"now" marker you see what actually happened, drawn to look like the plan: the
+measured indoor, lower-floor, outdoor and tank temperatures, the spot price and
+the solar irradiance ride the same series their forecasts occupy right of it,
+on the plan's own 15-minute steps, in the same style and on the same axes. A
+recorded value holds until the sensor next changes, so a stable stretch is a
+continuous line rather than a gap; the line breaks only where a sensor was
+unavailable for at least a whole step. The heating slots draw from the action
+sensor's `power_kw`, each step the average of what was commanded across it:
+on the hot-water series while the pump was in hot-water mode, on the
+space-heating series in every other heating mode. The Hot water and Heating
+lanes show the runs the pump actually made there, drawn like the plan's own
+slots, and while the view reaches into the past the axes also span the plan's
+live window, so the past is read on the same scales as the plan beside it. The **Actioned power** series is a band along the base of the plot
+for the hours the pump was executing heating, drawn from the action sensor's
+own state history (the mode is the state, so every install has it) — the
+power bars are an overlay, never a prerequisite. Hovering the past names the
 mode the pump was in. The
 history is fetched from Home Assistant's recorder lazily, one 12-hour window
 per stretch you pan into, so a quick glance back costs one small request

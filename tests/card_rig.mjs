@@ -308,6 +308,10 @@ export const HISTORY_IDS = {
   price: "sensor.heat_pump_optimizer_cost_current_electricity_price",
   solar: SOLAR_ID,
   action: "sensor.heat_pump_optimizer_heat_pump_action",
+  // The two optional probes (#1335: enabled only once configured): the
+  // tank thermometer and the lower floor's. Recorded like the indoor one.
+  tank: "sensor.heat_pump_optimizer_dhw_temperature",
+  lower: "sensor.heat_pump_optimizer_lower_floor_temperature",
 };
 
 /** Deterministic recorded actuals for the 48 h ending at `endMs`.
@@ -385,6 +389,8 @@ export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {
     [HISTORY_IDS.price]: [],
     [HISTORY_IDS.solar]: [],
     [HISTORY_IDS.action]: [],
+    [HISTORY_IDS.tank]: [],
+    [HISTORY_IDS.lower]: [],
   };
   let t = endMs - spanMs;
   let phase = 0;
@@ -404,6 +410,11 @@ export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {
     if (recording) {
       entries[HISTORY_IDS.indoor].push({ t, stamp, state: room.toFixed(1) });
       entries[HISTORY_IDS.outdoor].push({ t, stamp, state: out.toFixed(1) });
+      entries[HISTORY_IDS.lower].push({ t, stamp, state: (room - 0.8).toFixed(1) });
+    }
+    if (phase % 3 === 0) {
+      entries[HISTORY_IDS.tank].push({
+        t, stamp, state: (50 + 4 * Math.sin(phase / 11)).toFixed(1) });
     }
     if (phase % 2 === 0) {
       price = Math.max(0.05, price + Math.sin(phase / 5) * 0.07);
@@ -445,9 +456,16 @@ export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {
  * same guard the stat-entity derivation uses. Fixtures that only want the
  * plan sensors skip this; fixtures that drive the history pan need it.
  */
-export function withActuals(states, { prefix = "heat_pump_optimizer" } = {}) {
+export function withActuals(states, { prefix = "heat_pump_optimizer", probes = false } = {}) {
+  const temp = { device_class: "temperature", unit_of_measurement: "°C" };
   return {
     ...states,
+    // The optional tank and lower-floor probes, off unless asked for: most
+    // installs configure neither, and then neither sensor is in hass.states.
+    ...(probes ? {
+      [`sensor.${prefix}_dhw_temperature`]: { state: "49.5", attributes: temp },
+      [`sensor.${prefix}_lower_floor_temperature`]: { state: "20.4", attributes: temp },
+    } : {}),
     // The attributes below are the ones a real install publishes
     // (sensor.py's device_class/state_class/options declarations) and the
     // ones the card's suffix-scan fallback validates against: a foreign
