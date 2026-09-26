@@ -47,6 +47,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 - 12:55Z CATCH-UP COMPLETE on the find side: B3 final @53c2fcc5, D3-s3 5f (4 medium, 1 low, all I1)/2l. All 42 seats in. Evidence @c71187a2 has D3/s3 and verify/G1-catchup.json, sent to G1 V1-V3 as unit "catchup". Catch-up leads seat LC (sonnet, background Agent) runs 6 leads (D3-s2 2, D3-s3 2, and 2 earlier deferred to D3-s3) -> handoff/audit-r9-leads-lc, intake/leads_result_LC.json. Register seat (sonnet) is writing handoff/audit-r9-register for batch 1 + leads + D3-s2; D3-s3 rows follow as an append.
 - Batch-1 run: Workflow scriptPath scratchpad/audit-find-r9.js, args {round:9, baseline:1936d5ca..., repo:/home/claude/heatpump_optimizer, rotation, scopes (origin/main), from:"intake", defer:["D3-s2","D3-s3","D7-s1"], judge_flags}.
 
+- 2026-09-26T13:05Z: pre-dedup done (intake/predup.json, .md in /mnt/project-files/audit-r9/intake/): 6 clusters over 154 findings (high: D11-s1-04+D11-s2-03, D5-s1-06+D6-s2-05; medium: D8-s1-03+D12-s2-01, D12-s1-01+D12-s1-02; low checks: D1-s5-01+D1-s5-51, D8-s2-02+D8-s2-03), 1 judge conflict (D6-s1 non-finding vs D6-s2-03). Goes to the Phase C judge. 20 format-rejected findings: normalising on the recommended option (sonnet seat, register branch), tvofi card pending.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
