@@ -571,14 +571,14 @@ writes, at every 15-minute plan step:
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
   temperature, when a warm house needs no space heat. A stale plan, the
-  comfort, boost and off modes, a boost switch, a system-identification
+  comfort and boost modes, a boost switch, a system-identification
   experiment and unloading the integration all get the fallback row.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
-  active** off first: the fallback row is written once, and then nothing is
-  written over your settings until you turn it back on. Readings in the first
+  active** off first: from then on nothing is written to the pump, not even
+  the fallback row, until you turn it back on. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
 - **A write the pump does not hold is retried.** If the value written back

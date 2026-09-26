@@ -46615,9 +46615,8 @@ _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_run(_pa_man, 6)
 R.check(
-    "switching the optimizer off writes the baseline once, then nothing over a person's setting",
-    _pa_man_base == [("select", "select_option", "Heating + DHW"), ("number", "set_value", 35.0)]
-    and _pa_man.writes() == [],
+    "switching the optimizer off writes nothing, not even the baseline, and nothing over a person's setting",
+    _pa_man_base == [] and _pa_man.writes() == [],
     f"{_pa_man_base=} {_pa_man.writes()=}",
 )
 
@@ -46800,9 +46799,22 @@ _pa_run(_pa_user, 3)
 _pa_user._mode = _PA_AUTO
 _pa_run(_pa_user, 30)
 R.check(
-    "switching the optimizer off restores Heating + DHW, and what a person sets while it is off is theirs",
-    _pa_restored == "Heating + DHW" and _pa_user.set_modes == [],
+    "switching the optimizer off leaves the pump as it was, and what a person sets while it is off is theirs",
+    _pa_restored == "DHW (Hot Water)" and _pa_user.set_modes == [],
     f"{_pa_restored=} {_pa_user.set_modes=}",
+)
+_pa_offun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_offun)
+_pa_offun._mode = _PA_OFF
+_pa_aio.run(_pa.release(_pa_offun))
+_pa_onun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_onun)
+_pa_aio.run(_pa.release(_pa_onun))
+R.check(
+    "unloading with the optimizer off writes nothing; null control: with it on, the baseline",
+    _pa_offun.writes() == []
+    and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
+    f"{_pa_offun.writes()} / {_pa_onun.writes()}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)

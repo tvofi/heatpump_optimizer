@@ -48,7 +48,7 @@ it writes is recorded. A reading that differs from the record after
 :data:`ECHO_GRACE_S` -- a person, an automation or the pump's own reset --
 is written again at once: while "Optimizer active" is on the optimizer is
 the pump's one writer, and turning it off is how a person takes the pump
-back (the baseline row is written once, then nothing). A value the pump
+back, and nothing is written from then on. A value the pump
 still does not hold after that rewrite raises a warning repair and is sent
 again every :data:`RETRY_MINUTES`; the first reading that holds it clears
 the repair. Readings inside the grace prove nothing either way: the fork
@@ -76,7 +76,8 @@ house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
 missing plan, a fixed-rule mode, an experiment, a boost and the end of the
-lease all get the baseline row above. Unloading writes the baseline too.
+lease all get the baseline row above, and so does unloading while the
+optimizer is on. Turning it off writes nothing.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -575,8 +576,8 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
 
 async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
     if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
-        if held.written and mode == DUTY_CONTROL:
-            await _command(coord, desired(coord, None, now), now)
+        # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
+        # pump is the person's the moment the optimizer lets go of it.
         if held.written or held.retry:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
@@ -608,7 +609,7 @@ async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
-    if held.written and duty_mode(coord._config) == DUTY_CONTROL:
+    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:
         await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
 
 
