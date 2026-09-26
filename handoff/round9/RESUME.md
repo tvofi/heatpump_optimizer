@@ -14,6 +14,13 @@ Two steps:
 (2) The JUDGE's dedup step (judge.md step 1, PLAN section 6.1). It proves or refutes each candidate merge with a number, using the canonical finding's perturbation on the other's harness, and runs its own search for anything the pre-dedup missed. Only then come verdicts, sweeps and filing.
 Findings killed at panel (for example D1-s2-01, 3 refutes) are excluded before dedup.
 
+## PR COUNT TARGET FOR THE FIX PLAN (tvofi, 2026-09-26T13:04Z, msg cmsg_01EL5jLi4rokGBbkaevYXSJV4qw2Rrd2ireutFEX9tZwT6)
+"When you construct the fixing plan, make sure to cluster the issues efficiently. Ideally, I would like the issues to be solved with 15-40 PRs, if reasonable."
+E2 FIX-PLAN.md clusters issues into 15–40 PRs. Clustering keys: same class (one PR per class where the barrier eliminates the class), then same file set / module, then same fixer skill. Split only where files collide with another group or a PR would need tvofi (policy, budget raise, code-owned) while the rest does not — keep tvofi-gated changes in their own PRs so they don't hold up the rest. FIX-PLAN states the PR count and the mapping issue→PR; if it falls outside 15–40, say why.
+
+- 2026-09-26T13:20Z: Phase C briefs written: /mnt/project-files/audit-r9/judge/J.md (strongest), R1.md, R2.md (haiku). Waiting for G1-V2, G1-V3, G3-V2 leads units, then PANEL.json + NOTES.md, then send to coordinator.
+
+
 ## MODEL ROUTING (tvofi 2026-09-26T12:21Z, cmsg_01EL5jLi4rokGBbkaevYXSJVDC1kJ5S9ThJsYejnAXbvVc)
 Run a task on sonnet or haiku wherever that is enough, throughout the project.
 - haiku: mechanical re-runs, the judge's runner threads (judge_batch.py), gathering and digests, report rendering from JSON, simple lookups and relays.
