@@ -66,6 +66,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:16Z: G4-V3 complete @8da0652c (D11 3/5 weakens; D11-s1-04+D11-s2-03 one phenomenon, I3; D11 GitHub-API harnesses not re-run; D6-s2-05 use D6/verify-v3/s2_05_own_perturb.py; D7-s1-02 to low). Complete 9/12; open: G1-V2 leads, G1-V3 leads, G3-V2 leads.
 
+- 2026-09-26T13:22Z: G1-V3 complete @95cbe2bf. Judge notes: D1-s2-52 raise to high (5/5 stores lost, real restart race); D1-s5-52 raise to high (-127.0 published as available), same mechanism as D1-s1-03 and D1-s2-02 (no plausibility bound) -> dedup candidate; D1-s2-51/52, D1-s5-52 to P2. Complete 10/12; open: G1-V2 leads, G3-V2 leads.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
