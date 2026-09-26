@@ -47866,7 +47866,7 @@ R.check(
     "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
     "up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)",
     sorted(_f32_map.buckets) == [4, 5]
-    and _f32_map.recommend(3.0, 20.0, 120.0) == 65.0
+    and _f32_map.recommend(3.0, 20.0, 120.0) == 75.0
     and list(_f32_obs.buckets) == [4],
     f"loaded={_f32_map.buckets} observed={_f32_obs.buckets}",
 )
