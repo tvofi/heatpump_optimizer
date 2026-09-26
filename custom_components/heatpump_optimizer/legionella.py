@@ -119,12 +119,12 @@ class LegionellaGuard:
         try:
             stored = await self.store.async_load()
             raw = (stored or {}).get("last_cycle")
-            parsed = stored_instant(raw)
+            parsed = stored_instant(raw, dt_util.DEFAULT_TIME_ZONE)
             # A cycle that ran but fell short is remembered separately, so a
             # restart cannot turn a failed attempt back into an overdue timer
             # that pins a boost on every plan.
             attempt_raw = (stored or {}).get("last_attempt")
-            attempt = stored_instant(attempt_raw)
+            attempt = stored_instant(attempt_raw, dt_util.DEFAULT_TIME_ZONE)
             self._load_switch_record(stored or {})
             if attempt is not None:
                 self.attempt = attempt

@@ -47584,14 +47584,30 @@ R.check(
     f"{_si_bias}",
 )
 
-# D1-s3-01: the typed return time is the user's wall clock; boost, the arbiter
-# and legionella load a naive stored stamp aware.
+# D1-s3-01: the typed return time is the user's wall clock, and boost, the
+# arbiter and legionella read a naive stored stamp in the same zone: Home
+# Assistant's, whose clock reads it back. Driven under a configured zone, as
+# Home Assistant always runs; the stub's default clock is naive.
+_SI_STHLM = _SiZone("Europe/Stockholm")
 _si_zone0 = dt_util.DEFAULT_TIME_ZONE
-dt_util.DEFAULT_TIME_ZONE = _SiZone("Europe/Stockholm")
+dt_util.DEFAULT_TIME_ZONE = _SI_STHLM
 try:
     _si_ret = away_mode._parse_return_time("2026-10-05T08:00")
+    _si_until = boost_mod._parse_until(_SI_NAIVE)
+    _si_c = _t2_coord()
+    _si_key = f"heatpump_optimizer_{_si_c.entry.entry_id}_pump_duty"
+    _si_storage._DISK[_si_key] = _si_json.dumps({"written": {"mode": ["heat", _SI_NAIVE]}})
+    _si_pa.state_for(_si_c).loaded = False
+    _si_aio.run(_si_pa._load(_si_c))
+    _si_written = _si_pa.state_for(_si_c).written.get("mode")
+    _si_storage._DISK[_si_c._legionella.store._key] = _si_json.dumps(
+        {"last_cycle": _SI_NAIVE, "last_attempt": _SI_NAIVE}
+    )
+    _si_aio.run(_si_c._legionella.async_load())
 finally:
     dt_util.DEFAULT_TIME_ZONE = _si_zone0
+    _si_storage._DISK.clear()
+_SI_LOCAL = datetime(2026, 6, 1, 12, tzinfo=_SI_STHLM)
 R.check(
     "a tz-less set_away return_time is read in the user's zone and expires "
     "against an aware clock without raising (D1-s3-01)",
@@ -47599,29 +47615,19 @@ R.check(
     and _si_raises(lambda: away_mode.expire_override(True, _si_ret, _SI_NOW)) is None,
     f"{_si_ret!r}",
 )
-_si_c = _t2_coord()
-_si_entry = _si_c.entry.entry_id
-_si_storage._DISK[f"heatpump_optimizer_{_si_entry}_pump_duty"] = _si_json.dumps(
-    {"written": {"mode": ["heat", _SI_NAIVE]}}
-)
-_si_pa.state_for(_si_c).loaded = False
-_si_aio.run(_si_pa._load(_si_c))
-_si_written = _si_pa.state_for(_si_c).written.get("mode")
-_si_storage._DISK[_si_c._legionella.store._key] = _si_json.dumps(
-    {"last_cycle": _SI_NAIVE, "last_attempt": _SI_NAIVE}
-)
-_si_aio.run(_si_c._legionella.async_load())
 R.check(
-    "boost, the pump-duty arbiter and legionella load a naive stored stamp aware "
-    "(D1-s3-01)",
-    boost_mod._parse_until(_SI_NAIVE) == datetime(2026, 6, 1, 12, tzinfo=UTC)
-    and _si_written is not None and _si_written[1].tzinfo is not None
+    "boost, the pump-duty arbiter and legionella read a naive stored stamp in "
+    "Home Assistant's zone, aware (D1-s3-01)",
+    _si_until == _SI_LOCAL and _si_until.tzinfo is not None
+    and _si_written is not None and _si_written[1] == _SI_LOCAL
+    and _si_written[1].tzinfo is not None
+    and _si_c._legionella.last_cycle == _SI_LOCAL
     and _si_c._legionella.last_cycle.tzinfo is not None
-    and _si_c._legionella.attempt is not None
+    and _si_c._legionella.attempt == _SI_LOCAL
     and _si_c._legionella.attempt.tzinfo is not None,
-    f"arbiter={_si_written!r} legionella={_si_c._legionella.last_cycle!r}",
+    f"boost={_si_until!r} arbiter={_si_written!r} "
+    f"legionella={_si_c._legionella.last_cycle!r}",
 )
-_si_storage._DISK.clear()
 
 # D1-s3-05: the two-hour maximum is a duration. A clock stepped back J hours
 # after a boost was set holds it two hours from the corrected now, not 2 + J.

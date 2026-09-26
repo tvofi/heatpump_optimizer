@@ -627,7 +627,7 @@ async def _load(coord: Any) -> None:
         _clear(coord, ISSUE_MANUAL)
     for slot, pair in (raw.get("written") or {}).items():
         try:
-            at = stored_instant(pair[1])
+            at = stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
         except (TypeError, KeyError, IndexError):
             continue
         if at is not None:

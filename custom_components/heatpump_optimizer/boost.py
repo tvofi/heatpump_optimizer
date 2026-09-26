@@ -166,7 +166,7 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
 
 
 def _parse_until(raw: Any) -> datetime | None:
-    return stored_instant(raw)
+    return stored_instant(raw, dt_util.DEFAULT_TIME_ZONE)
 
 
 async def persist(coord: _BoostCoord) -> None:
