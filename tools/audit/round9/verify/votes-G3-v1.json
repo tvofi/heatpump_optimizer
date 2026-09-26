@@ -342,6 +342,135 @@
     "seam_rule_enumerates": null
    }
   ],
+  "D9": [
+   {
+    "id": "D9-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "0.3361 share of optimize() thread CPU (two_zone_dhw_winter), load1 2.06, thread_factor 1.001",
+    "metric_definition": "thread CPU inside HeatPumpOptimizer._comfort_terms_batch / thread CPU of optimize(), per stress.build_case cell, clean pass with no parity check in the window",
+    "method": "Re-ran comfort_rowloop.py (no flag) and with --vectorize, all 8 cells including the flat null cell. Own harness verify-v1/comfort_parity.py compares production against an independently written axis=1 twin bitwise over 5 horizons x 3 batch sizes x 4 memory layouts x 2 zone modes, under AVX-512, AVX2-only and baseline-only numpy dispatch, and times production against the twin per call.",
+    "attacks": [
+     "contention -> share is a same-thread ratio; thread_factor 1.001, 0 concurrent stress runs; within +-0.03",
+     "perturbation --vectorize -> 0.3361 to 0.0406, plan sha e55e6b6677dbfdc9 unchanged, 0 mismatched values on all 8 cells",
+     "null control, flat prices -> 0.3383, so the share is structural",
+     "leave-one-out over 7 cells -> min 0.1412, max 0.3398, mean with the max dropped 0.2636",
+     "claim wording -> 'every two-zone cell ~0.32' is not true of two_zone_dhw_summer (0.1839)",
+     "bit parity, own harness -> 0 mismatches on C-order, offset and 8-byte-shifted batches at n=47/96/97/192/288 under all three dispatch levels; 3659 mismatches on Fortran-order batches, so the fix must keep the batch C-contiguous or lose parity",
+     "own cost ratio -> production/twin 14.23x (two-zone), 15.11x (single-zone) per call, load1 4.00, thread_factor 1.0000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "0.1476 share of optimize() thread CPU (two_zone_dhw_winter), load1 3.21, thread_factor 1.002",
+    "metric_definition": "thread CPU inside the objective callable passed to _multi_start_minimize / thread CPU of optimize(), per stress.build_case cell, parity checks off",
+    "method": "Re-ran scalar_objective.py --no-parity, --fused --no-parity, and --fused with parity on, across all 7 cells.",
+    "attacks": [
+     "contention -> ratio metric, thread_factor 1.002; within +-0.02",
+     "perturbation --fused -> 0.1476 to 0.0055; two-zone winter solve 3668 to 3140 ms thread CPU (provisional); plan sha identical 7/7",
+     "parity arm --fused -> 0 fused_row0_mismatches, 0 parity mismatches on the cells read",
+     "null control, flat prices -> 0.1524",
+     "leave-one-out over 6 cells -> min 0.0879, max 0.19, mean with the max dropped 0.1487",
+     "per-call ratio -> scalar call 18.0-25.9x one batched row"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "2.15x reference_solve (74.1 ms, median over 5 seeds of the worst step() call, 15-min cadence), load1 5.78, thread_factor 1.0",
+    "metric_definition": "thread CPU of the most expensive SystemIdentification.step() call in one armed experiment, median over 5 seeds, over reference_solve CPU",
+    "method": "Re-ran sysid_loop.py at --cadence-min 15, 30 and 5, and with --no-fit. Checked in coordinator.py that step() is called synchronously on the event loop.",
+    "attacks": [
+     "contention -> 2.15x against the finder's 2.46x, inside +-25%; reference_solve ratio used, load1 5.78 so provisional",
+     "perturbation --no-fit -> 0.23 ms (0.01x)",
+     "cadence -> 30 min 28.2 ms (0.92x), 5 min 202 ms (5.74x); cost rises with sample count",
+     "experiment realism -> every seed reached phase done with completed=True, reason ok",
+     "real Home Assistant reach -> async_run_optimization (coordinator.py:4773) calls _run_system_identification synchronously (:5079), which calls self._sysid.step (:10512); no executor in between",
+     "severity -> DEFAULT_SYSID_ENABLED=False (const.py:578), min_days_between_runs=30; low is earned"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "7758 simulate_dhw_step calls under _apply_dhw_min_run (single_zone_dhw_winter, 24 h), exact; share 0.2418 at load1 6.83, thread_factor 1.02",
+    "metric_definition": "ThermalModel.simulate_dhw_step calls made while _apply_dhw_min_run is on the stack, per optimize() call of a stress.build_case cell",
+    "method": "Re-ran dhw_min_run.py with no flag, --early-exit and --hours 48, all 6 cells.",
+    "attacks": [
+     "counts -> 7758, 52 weak slots, 42 refused: exact match",
+     "perturbation --early-exit -> 7758 to 4780 calls; plan sha f84a5fb7240e8b43 unchanged; 6/6 cells unchanged",
+     "--hours 48 -> 25313 calls (3.26x)",
+     "null control, flat prices -> 7954 calls, 44/52 refused; plan sha unchanged under early exit",
+     "leave-one-out on the share over 5 cells -> min 0.0128, max 0.2418, mean with the max dropped 0.1056",
+     "claim wording -> '0.17-0.23 on four single-zone cells' holds on three (winter 0.24, winter_extreme 0.23, summer 0.16); shoulder is 0.0198",
+     "at 48 h the share falls (single-zone winter 0.037) even though the calls grow 3.26x"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "384 ThermalModel.simulate_step calls on the loop thread per read of every entity (exact); advisor_share_of_loop 0.3209, load1 6.77, thread_factor 1.0005",
+    "metric_definition": "ThermalModel.simulate_step calls on the loop thread, outside executor jobs, during one read of every published entity on the replayed real cycle",
+    "method": "Re-ran loop_work.py with no flag, with --advisor-steps 1, and with every advisor candidate configured through --options. Read sensor.py:_sensor_advisor_attribute.",
+    "attacks": [
+     "counts -> 384 steps per read, 2 advisor calls per read, 3 entity writes per cycle: exact",
+     "perturbation --advisor-steps 1 -> 8 steps per read, share 0.0908",
+     "null control, all candidates configured -> 0 steps, share 0.0012",
+     "real Home Assistant reach -> rank_sensor_advisor is called unmemoised from extra_state_attributes (sensor.py:111), which every async_write_ha_state evaluates",
+     "severity -> 2.28 ms per read x 3 writes per 30-min cycle on this box; low is earned"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "loop x2 offenders = 0 (paired own harness: injected/uninjected 1.1488, budget headroom 1.54x), load1 4.17, thread_factor 1.0005",
+    "metric_definition": "offenders from tests/replay.py:cost_offenders when only the cycle's loop-thread CPU (update minus executor jobs, plus one entity read) is doubled",
+    "method": "Re-ran m2_loop_blind.py (no flag) and with --scale 4. Own harness verify-v1/loop_blind_paired.py takes the uninjected and injected ratios from ONE replay (same reference solves, same cycles), with arms scale 1, scale 4, scale 0 and --whole.",
+    "attacks": [
+     "finder harness re-run at load1 5.36 -> loop2x.offenders=1 (loop_over_none 1.478), not 0; the same run's cpu arm read 1.97x and 2.69x of none across two runs, where an exact 2x was injected; each arm runs in its own interpreter at a different moment, so the cross-arm ratio is contention noise, not evidence against the finding",
+     "paired own harness, scale 1 -> 1.1488x, 0 offenders; loop share 0.1486",
+     "perturbation, paired scale 4 -> 1.608x, 1 offender (4.295 over 3.576); finder harness --scale 4 -> 1 offender",
+     "null control, paired scale 0 -> 1.0001x, 0 offenders",
+     "positive control, paired --whole -> 1.988x, 1 offender",
+     "stress reach -> stress_cycle_functions=0 of 139: exact",
+     "instrument note: the finder's per-arm-interpreter design is itself contention-fragile; a fix review should re-take its number paired or on a quiet box"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "0 stress.py rules tripped with the victim (winter/2z/dhw) at 1.986x solve CPU, evals_x=sim_x=1; load1 1.03, thread_factor 1.0000, under gate lease",
+    "metric_definition": "number of tests/stress.py rules, evaluated with the gate's own functions over its 51-scenario sweep, that trip when one scenario's non-kernel solve work is scaled up",
+    "method": "Re-ran m2_nonkernel_2x.py under gate_lock auto-lease: arms plain, nonkernel2x_one@2.19 and nonkernel2x_one@4 (victim winter/2z/dhw); then plain, plain2, twice_one and solvecpu2x_set.",
+    "attacks": [
+     "perturbation @4 -> 1 rule tripped (per-scenario; victim 3.57x over budget 2.78x); every count and kernel channel 0",
+     "null control plain2 -> 0 tripped, sweep ratio 0.983 of plain",
+     "positive control twice_one -> 2 tripped (evals and simulate at 2.000x), victim 2.61x",
+     "leave-one-out, solvecpu2x_set, 6 victims -> 0 tripped; cpu_x 1.38-2.60, with 4 victims at 2.12-2.60 still untripped; min with the lowest dropped 1.48 (heavy_old/winter 1.48 and typical_slab/winter 1.38 fell short of 2x through sweep-to-sweep noise, kernel_x 0.86/0.74)",
+     "wording -> the SCENARIO_WORK_FACTOR comment (tests/stress.py:382-419) speaks of a count-channel 2x ('seen on both channels'); calling the finding a contradiction of it overreads the comment, but the missing non-kernel CPU channel is real"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
   "leads": [
    {
     "id": "D2-s1-51",
