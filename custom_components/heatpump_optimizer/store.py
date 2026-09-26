@@ -36,35 +36,49 @@ from homeassistant.helpers.storage import Store
 _StorePayload = TypeVar("_StorePayload", bound=Mapping[str, Any] | Sequence[Any])
 
 
-def _sanitize(value: Any) -> Any:
-    """Recursively scrub non-finite numeric leaves to ``None``.
+#: No writer stores a number this large (an epoch in ms is 1.8e12), so one that
+#: is -- ``2**64``, ``1e300``, a key of that size -- is a corrupt leaf, and is
+#: quarantined here exactly as a non-finite one is (round-9 class P1).
+ABSURD = 1e15
 
-    A leaf is poisoned when it is a ``float`` that is not finite, or a ``str``
-    that coerces to one (``"NaN"``, ``"Infinity"``, ``"-Infinity"`` …): those
-    are the spellings ``float()`` turns into a non-finite number without
-    raising, which is exactly what the loaders' coercion guards cannot see.
-    Anything else — including a finite-but-large float such as ``1e308``, and a
-    non-numeric string the loader will refuse on its own — passes through
-    untouched, so the boundary refuses only what is non-finite and never
-    rewrites a healthy payload.
+
+def _poisoned(value: Any) -> bool:
+    """A leaf no writer produces: non-finite, or of magnitude ``ABSURD`` or more.
+
+    A ``str`` counts by what ``float()`` makes of it (``"NaN"``, ``"Infinity"``,
+    ``"1e300"`` …): those are the spellings a loader's coercion turns into a
+    poisoned number without raising, which its ``(TypeError, ValueError)``
+    guard cannot see. ``bool`` is an ``int`` to Python and never poisoned.
     """
     if isinstance(value, bool):
-        return value
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
+        return False
     if isinstance(value, str):
         try:
-            parsed = float(value)
+            value = float(value)
         except (TypeError, ValueError, OverflowError):
-            return value
-        return value if math.isfinite(parsed) else None
+            return False
+    if isinstance(value, int):
+        return abs(value) >= ABSURD
+    if isinstance(value, float):
+        return not math.isfinite(value) or abs(value) >= ABSURD
+    return False
+
+
+def _sanitize(value: Any) -> Any:
+    """Recursively scrub poisoned numeric leaves (``_poisoned``) to ``None``.
+
+    A dict entry whose key is poisoned is dropped. Anything else -- a finite
+    number below ``ABSURD``, a non-numeric string the loader will refuse on its
+    own -- passes through untouched, so the boundary never rewrites a healthy
+    payload.
+    """
     if isinstance(value, dict):
-        return {key: _sanitize(child) for key, child in value.items()}
+        return {k: _sanitize(v) for k, v in value.items() if not _poisoned(k)}
     if isinstance(value, list):
         return [_sanitize(child) for child in value]
     if isinstance(value, tuple):
         return tuple(_sanitize(child) for child in value)
-    return value
+    return None if _poisoned(value) else value
 
 
 class QuarantiningStore(Store[_StorePayload]):

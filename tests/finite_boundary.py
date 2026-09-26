@@ -31,8 +31,8 @@ the **real** loader, and nothing non-finite may be reachable from
 
 Null controls: the healthy payload through the same loaders reaches nothing
 non-finite (the count is a property of the corrupt input, not of the load
-path), and a finite-but-large leaf (``1e308``) is *not* scrubbed — the boundary
-refuses only what is non-finite.
+path), and a finite leaf below ``store.ABSURD`` is *not* scrubbed — the boundary
+refuses only what is non-finite or of a magnitude no writer produces.
 
 Run (from the repository root):
     PYTHONPATH=tests/hastub python3 tests/finite_boundary.py
@@ -146,11 +146,20 @@ for _name, _bad in _SANITIZE_CASES.items():
         f"scrubbed={_scrubbed!r}",
     )
 
-_kept = _sanitize({"rate": 0.3, "big": 1e308, "label": "abc", "zero": 0.0, "flag": True, "n": 7})
+_kept = _sanitize({"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
+                   "3": 1.0, "-2": 2.0})
 R.check(
     "a finite payload round-trips unchanged (no over-refusal)",
-    _kept == {"rate": 0.3, "big": 1e308, "label": "abc", "zero": 0.0, "flag": True, "n": 7},
+    _kept == {"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
+              "3": 1.0, "-2": 2.0},
     f"kept={_kept!r}",
+)
+_absurd = _sanitize({"f": 1e300, "i": 2 ** 64, "j": 10 ** 400, "s": "1e300", "1000000000000000": 1.0,
+                     "k": [-1e15]})
+R.check(
+    "the boundary quarantines an absurd magnitude as it does a non-finite (class P1)",
+    _absurd == {"f": None, "i": None, "j": None, "s": None, "k": [None]},
+    f"scrubbed={_absurd!r}",
 )
 
 
@@ -500,6 +509,394 @@ def _no_rewrap_check() -> None:
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Arm 4 -- the class sweep (round 9, class P1): every leaf kind, every store
+# populated, every live object scanned
+# ---------------------------------------------------------------------------
+#
+# Arm 2 holds one sub-property closed: nothing NON-FINITE reaches live state.
+# The class is wider -- "a non-finite OR MALFORMED value crosses a persisted-
+# store boundary with no guard" -- and at 1936d5ca Arm 2 was green over eleven
+# instances of it, because (measured by the round-9 P1 RCA seat): it
+# substituted numeric leaves only; its seeding left the snapshot ring, the
+# frequency map, the capacity envelope, boost, away and the manual plan with
+# no leaf to substitute; and it read only ``_thermal_params`` and the publish
+# dict, so a wrong type, a naive instant or an absurd magnitude installed on
+# any other learner was invisible. This arm measures the class property:
+#
+#   * seeding: every store written by its real saver after its sections are
+#     populated, at an AWARE clock (Home Assistant's ``dt_util.now()`` is
+#     always aware; the hastub's default is naive);
+#   * substitution: every leaf AND every container, by kind -- numbers get
+#     the non-finite, wrong-type and magnitude spellings; strings holding an
+#     aware instant get the same instant naive; every int-like dict key gets
+#     an absurd one;
+#   * oracle, after the real loaders and the real consumers (publish, the
+#     snapshot restore path): no raise; and over EVERY object the
+#     coordinator owns (its attributes, and the per-coordinator registries
+#     the package keeps at module level) nothing new that is non-finite,
+#     naive, of absurd magnitude, or text/container where the healthy load
+#     held a number.
+#
+# Its limits, stated so nobody reads more into a zero: a finite value inside
+# the representable range but outside a field's physical domain (duty 1.5,
+# a decile of 12) is not refused -- the magnitude oracle refuses only what
+# no writer can produce (>= 1e15); and a loader that discards more than the
+# corrupt leaf (a whole grid for one bad cell) is data loss, not a crash or
+# a poison, and is not measured here.
+
+from homeassistant.util import dt as _dt_util  # noqa: E402
+
+_A4_NOW = _dt.datetime(2026, 1, 15, 12, 0, 0, tzinfo=_dt.timezone(_dt.timedelta(hours=1)))
+_A4_ABSURD = 1e15
+_A4_NUM = [float("nan"), float("inf"), "NaN", 1e309, None, "garbage", "12,5", [], {},
+           1e300, -1e300, 2 ** 64]
+_A4_STR = [None, 7, 1.5, "garbage", [], {}]
+_A4_BOOL = ["false", None, "garbage"]
+_A4_NONE = ["garbage", 1.5, "NaN", [], {}]
+_A4_DICT = [None, "x", 3.0, []]
+_A4_LIST = [None, "x", 3.0, {}]
+
+
+def _a4_instant(value):
+    """The aware datetime an ISO date-time string holds, else None."""
+    if not isinstance(value, str) or len(value) < 16 or value[10:11] != "T":
+        return None
+    try:
+        return _dt.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _a4_subs(value) -> list:
+    if isinstance(value, bool):
+        return _A4_BOOL
+    if isinstance(value, (int, float)):
+        return _A4_NUM
+    if isinstance(value, str):
+        inst = _a4_instant(value)
+        naive = [inst.replace(tzinfo=None).isoformat()] if inst and inst.tzinfo else []
+        return _A4_STR + naive
+    if value is None:
+        return _A4_NONE
+    if isinstance(value, dict):
+        return _A4_DICT
+    if isinstance(value, list):
+        return _A4_LIST
+    return []
+
+
+def _a4_seams(obj, path=()):
+    """(path, value) for every leaf and non-root container; ("key", path, k)
+    for every int-like dict key. Scalar lists are sampled first and last."""
+    out = []
+    if isinstance(obj, dict):
+        if path:
+            out.append((path, obj))
+        for k, v in obj.items():
+            if isinstance(k, str) and k.lstrip("-").isdigit():
+                out.append((("<key>",) + path + (k,), None))
+            out.extend(_a4_seams(v, path + (k,)))
+    elif isinstance(obj, list):
+        if path:
+            out.append((path, obj))
+        idx = range(len(obj))
+        if len(obj) > 2 and all(not isinstance(x, (dict, list)) for x in obj):
+            idx = [0, len(obj) - 1]
+        for i in idx:
+            out.extend(_a4_seams(obj[i], path + (i,)))
+    else:
+        out.append((path, obj))
+    return out
+
+
+def _a4_mutants(healthy):
+    for path, value in _a4_seams(healthy):
+        if path[:1] == ("<key>",):
+            mutant = json.loads(json.dumps(healthy))
+            cur = mutant
+            for step in path[1:-1]:
+                cur = cur[step]
+            cur[str(10 ** 15)] = cur.pop(path[-1])
+            yield path, "key->1e15", mutant
+            continue
+        for sub in _a4_subs(value):
+            mutant = json.loads(json.dumps(healthy))
+            try:
+                _set_path(mutant, path, sub)
+            except (KeyError, IndexError, TypeError):
+                continue
+            yield path, sub, mutant
+
+
+def _a4_seed() -> dict[str, dict]:
+    """Every store, every section populated, written by its real saver."""
+    import importlib
+    _storage._DISK.clear()
+    _storage.SAVE_COUNTS.clear()
+    coord = _build_coord()
+    t0 = _A4_NOW - _dt.timedelta(days=1)
+    run = asyncio.run
+    coord._ledger.add(t0, "savings_baseline", kwh=2.0, sek=3.0)
+    coord._ledger.observe_meta_mean(t0, "spot_price", 1.25)
+    coord._dhw_learner.draw_stats.reservoirs["morning"] = [1.5, 2.5]
+    tariff = coord._capacity_tariff()
+    for hour, kw in ((6, 9.0), (7, 8.0), (30, 7.0), (31, 3.0)):
+        coord._peak_tracker.observe(
+            _dt.datetime(2026, 1, 1, tzinfo=_A4_NOW.tzinfo) + _dt.timedelta(hours=hour), kw, tariff
+        )
+    coord._freq_map.observe(50.0, 2.0, 20.0, 100.0)
+    coord._capacity_envelope[-1] = [6.0, 3]
+    coord._defrost.observe_duty(0.0, 85.0, 0.1, 1)
+    coord._curve_learner._last_step_at = t0.isoformat()
+    coord._comfort_learner.last_update = t0
+    coord._legionella.last_cycle = t0
+    coord._legionella.attempt = t0
+    coord._legionella.attempt_peak = 2.0
+    from heatpump_optimizer.accuracy import AccuracySample
+    for tracker in (coord._accuracy, coord._dhw_accuracy):
+        tracker.record(AccuracySample(
+            when=t0, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
+            actual_temp=21.2, predicted_cost=0.5, actual_cost=0.6, outdoor_temp=-2.0,
+            humidity=80.0, cop_residual=0.1,
+        ))
+    coord._immersion_events.append(t0.isoformat())
+    coord._fuse_advisor = {"month": "2026-01", "current_fuse_a": 25, "candidate_fuse_a": 20,
+                           "candidate_kw": 13.8, "feasible": True, "comfort_shortfall_c": 0.0,
+                           "worst_margin_kw": 2.5, "cost_delta_sek_month": -30.0}
+    coord._fuse_advisor_at = t0
+    coord._snapshot_ring.take(t0, coord._learner_snapshot_payloads(), coord._accuracy.summary(), True)
+    for name in sorted(dir(coord)):
+        if name.startswith("_async_save_"):
+            try:
+                run(getattr(coord, name)())
+            except TypeError:
+                continue  # a saver that needs arguments is not a store flush
+    run(coord._dhw_learner.async_save_profile())
+    run(coord._dhw_learner.async_save_draws())
+    run(coord._legionella.async_save())
+    boost = importlib.import_module("heatpump_optimizer.boost")
+    boost.held_for(coord).set("dhw", True, _A4_NOW)
+    run(boost.persist(coord))
+    away = importlib.import_module("heatpump_optimizer.away")
+    coord._away_state.override_active = True
+    coord._away_state.override_return_iso = (_A4_NOW + _dt.timedelta(hours=20)).isoformat()
+    run(away.persist_override(coord))
+    arbiter = importlib.import_module("heatpump_optimizer.pump_arbiter")
+    arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
+    run(arbiter._persist(coord))
+    disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
+    _storage._DISK.clear()
+    return disk
+
+
+def _a4_owned(coord) -> list[tuple[str, object]]:
+    """Everything the coordinator owns: its attributes, and each value a
+    package module keeps for it in a module-level mapping keyed by it."""
+    out = [(f"coord.{k}", v) for k, v in vars(coord).items()
+           if k not in ("hass", "entry", "_ctx", "_listeners", "logger", "config_entry",
+                        "_snapshot_ring")]
+    # The ring holds snapshots as opaque payloads by design (restored only
+    # through the loaders the restore consumer below drives, and scanned there).
+    ring = getattr(coord, "_snapshot_ring", None)
+    if ring is not None:
+        out += [(f"ring.{k}", v) for k, v in vars(ring).items() if k != "snapshots"]
+    for name, module in list(sys.modules.items()):
+        if not name.startswith("heatpump_optimizer."):
+            continue
+        for gname, gval in list(vars(module).items()):
+            if hasattr(gval, "get") and hasattr(gval, "keys") and not isinstance(gval, type):
+                try:
+                    held = gval.get(coord)
+                except TypeError:
+                    continue
+                if held is not None:
+                    out.append((f"{name.rsplit('.', 1)[-1]}.{gname}", held))
+    return out
+
+
+def _a4_walk(obj, label, found, seen, depth=0):
+    if depth > 7 or id(obj) in seen:
+        return
+    seen.add(id(obj))
+    if isinstance(obj, bool) or obj is None or isinstance(obj, bytes):
+        return
+    if isinstance(obj, (int, float, np.integer, np.floating)):
+        x = float(obj) if not isinstance(obj, int) else obj
+        if isinstance(x, float) and not math.isfinite(x):
+            found.add(("nonfinite", label))
+        elif abs(x) >= _A4_ABSURD:
+            found.add(("magnitude", label))
+        found.add(("number", label))
+        return
+    if isinstance(obj, _dt.datetime):
+        if obj.tzinfo is None:
+            found.add(("naive", label))
+        return
+    if isinstance(obj, str):
+        inst = _a4_instant(obj)
+        if inst is not None and inst.tzinfo is None:
+            found.add(("naive", label))
+        found.add(("text", label))
+        return
+    if isinstance(obj, np.ndarray):
+        if obj.dtype.kind in "fiu" and obj.size:
+            arr = obj.astype(float)
+            if not np.all(np.isfinite(arr)):
+                found.add(("nonfinite", label))
+            elif np.any(np.abs(arr) >= _A4_ABSURD):
+                found.add(("magnitude", label))
+        return
+    if isinstance(obj, dict):
+        for k, v in list(obj.items())[:200]:
+            if isinstance(k, (int, np.integer)) and not isinstance(k, bool) and abs(int(k)) >= _A4_ABSURD:
+                found.add(("magnitude", f"{label}<key>"))
+            _a4_walk(v, f"{label}[{k}]", found, seen, depth + 1)
+        return
+    if isinstance(obj, (list, tuple)) or type(obj).__name__ == "deque":
+        items = list(obj)
+        found.add(("container", label))
+        for i, v in enumerate(items[:200]):
+            _a4_walk(v, f"{label}[{i}]", found, seen, depth + 1)
+        return
+    if callable(obj) and not hasattr(obj, "__dict__"):
+        return
+    if not (type(obj).__module__ or "").startswith("heatpump_optimizer"):
+        return
+    if dataclasses.is_dataclass(obj):
+        items = [(f.name, getattr(obj, f.name, None)) for f in dataclasses.fields(obj)]
+    else:
+        items = list(getattr(obj, "__dict__", {}).items())
+    for k, v in items[:300]:
+        if not k.startswith("__"):
+            _a4_walk(v, f"{label}.{k}", found, seen, depth + 1)
+
+
+def _a4_scan(coord, published) -> set:
+    found: set = set()
+    seen = {id(coord.hass), id(coord.entry)}
+    for label, value in _a4_owned(coord):
+        _a4_walk(value, label, found, seen)
+    _a4_walk(published, "data", found, set())
+    return found
+
+
+def _a4_verdict(healthy: set, mutant: set) -> set:
+    """The oracle: what the mutant load installed that the healthy one did not."""
+    bad = {(k, l) for (k, l) in mutant - healthy if k in ("nonfinite", "naive", "magnitude")}
+    numbers = {l for (k, l) in healthy if k == "number"}
+    bad |= {("type", l) for (k, l) in mutant if k in ("text", "container") and l in numbers}
+    # peak_threshold_kw publishes +inf for "no ceiling yet" (a documented sentinel).
+    return {(k, l) for (k, l) in bad if l != "data[peak_threshold_kw]"}
+
+
+_A4_PLANT = {("number", "p.n"), ("number", "p.t"), ("naive", "p.d"), ("magnitude", "p.m"),
+             ("nonfinite", "p.f"), ("text", "p.t")}
+R.check(
+    "the class oracle flags a planted naive, magnitude, non-finite and number-turned-text "
+    "label, and nothing on the healthy set (its own control)",
+    {k for k, _l in _a4_verdict({("number", "p.n"), ("number", "p.t")}, _A4_PLANT)}
+    == {"naive", "magnitude", "nonfinite", "type"}
+    and not _a4_verdict(_A4_PLANT, _A4_PLANT - {("text", "p.t")}),
+    "the verdict under the class arm returned the wrong kinds",
+)
+
+
+def _a4_load(key: str, payload: dict) -> tuple[list[str], set]:
+    _storage._DISK.clear()
+    _storage.SAVE_COUNTS.clear()
+    _storage._DISK[key] = json.dumps(payload)
+    coord = _build_coord()
+    coord.entry.runtime_data = coord
+    loader = LOADERS[key.replace(const.DOMAIN + "_" + ENTRY_ID + "_", "")]
+    escapes: list[str] = []
+    try:
+        asyncio.run(loader(coord))
+    except Exception as exc:  # noqa: BLE001 -- the escape is the measurement
+        escapes.append(f"loader:{type(exc).__name__}")
+    # Snapshot restore reads the ring the snapshot loader filled; for every
+    # other store it is a no-op, so it runs for all of them (derived, not wired).
+    if key.endswith("_snapshots"):
+        asyncio.run(LOADERS["thermal_learning"](coord))
+    published = None
+    for cname, call in (
+        ("best_restore", lambda: coord._snapshot_ring.best_restore()),
+        ("restore_service", lambda: asyncio.run(coord.async_restore_learned_snapshot())),
+        ("publish", coord._build_data_dict),
+    ):
+        try:
+            result = call()
+            if cname == "publish":
+                published = result
+        except Exception as exc:  # noqa: BLE001
+            escapes.append(f"{cname}:{type(exc).__name__}")
+    _storage._DISK.clear()
+    return escapes, _a4_scan(coord, published)
+
+
+def _class_arm() -> None:
+    import time
+    t_start = time.monotonic()
+    _dt_util.freeze(_A4_NOW)
+    try:
+        disk = _a4_seed()
+        empty = sorted(
+            f"{k.replace(const.DOMAIN + '_' + ENTRY_ID + '_', '')}:{'/'.join(map(str, p))}"
+            for k, v in disk.items() for p, c in _a4_seams(v)
+            if p[:1] != ("<key>",) and isinstance(c, (dict, list)) and not c
+        )
+        seams: dict[str, set] = {}
+        mutants = 0
+        null_bad: list[str] = [
+            f"{k}: the boundary rewrote a healthy payload"
+            for k, v in disk.items() if _sanitize(v) != v
+        ]
+        for key in sorted(disk):
+            store = key.replace(const.DOMAIN + "_" + ENTRY_ID + "_", "")
+            esc0, healthy = _a4_load(key, disk[key])
+            if esc0 or _a4_verdict(healthy, healthy):
+                null_bad.append(f"{store}: {esc0}")
+            naive0 = {l for (k, l) in healthy if k in ("naive", "magnitude", "nonfinite")}
+            if naive0 - {"data[peak_threshold_kw]"}:
+                null_bad.append(f"{store}: healthy load holds {sorted(naive0)[:3]}")
+            for path, sub, mutant in _a4_mutants(disk[key]):
+                mutants += 1
+                esc, found = _a4_load(key, mutant)
+                why = sorted(set(esc) | {k for (k, _l) in _a4_verdict(healthy, found)})
+                if why:
+                    pstr = "/".join("#" if isinstance(p, int) else str(p) for p in path)
+                    seams.setdefault(f"{store}:{pstr} {','.join(why)}", set()).add(
+                        sub if isinstance(sub, str) else json.dumps(sub) if not (
+                            isinstance(sub, float) and not math.isfinite(sub)) else repr(sub))
+    finally:
+        _dt_util.freeze(None)
+    for seam, subs in sorted(seams.items()):
+        print(f"  SEAM {seam} subs={sorted(map(str, subs))[:6]}")
+    print(f"RESULT class_mutants={mutants} count")
+    print(f"RESULT class_seams={len(seams)} count")
+    print(f"RESULT class_unseeded_sections={len(empty)} count")
+    for section in empty:
+        print(f"  UNSEEDED {section}")
+    print(f"RESULT class_arm_seconds={time.monotonic() - t_start:.1f}")
+    R.check(
+        "the class sweep drove every seeded store (it cannot go green by skipping)",
+        mutants > 0 and len(disk) == len(LOADERS),
+        f"mutants={mutants} stores={len(disk)} loaders={len(LOADERS)}",
+    )
+    R.check(
+        "the healthy populated stores load clean through every loader and consumer (null control)",
+        not null_bad,
+        f"{null_bad}",
+    )
+    R.check(
+        "no single-leaf malformation of a store raises, or installs a non-finite, naive, "
+        "absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)",
+        not seams,
+        f"seams={len(seams)}",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -666,6 +1063,7 @@ def _main() -> int:
     print(f"RESULT refresh_escape_total={refresh_escape} count")
     _publish_arm()
     _no_rewrap_check()
+    _class_arm()
     return R.close("FINITE BOUNDARY CHECKS")
 
 
