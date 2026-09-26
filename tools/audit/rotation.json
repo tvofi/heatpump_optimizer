@@ -1,6 +1,6 @@
 {
-  "_rule": "One entry per tools/audit/briefs/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> deep|spot|none), unfinished ([{step, what}]) and yield (step -> judge-surviving findings). audit-find.js dispatches from it and writes each round's entry; .claude/workflows/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on.",
-  "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty and round 9 dispatches on step order alone.",
+  "_rule": "One entry per tools/audit/briefs/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> deep|spot|none), unfinished ([{step, what}]), returned (seat key -> findings accepted at intake), leads ({raised, converted}) and yield (step -> judge-surviving findings). audit-find.js writes each round's entry (from round 9 its seats come from tools/audit/scopes.json, not from this ledger); .claude/workflows/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on.",
+  "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty. Round 9 dispatches from tools/audit/scopes.json, not from this ledger.",
   "D0": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7"],
     "rounds": {}

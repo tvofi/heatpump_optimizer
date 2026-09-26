@@ -531,6 +531,10 @@ INERT_EXCEPT = (
     # script opens is a dependency, not inert, whatever prefix it lives under.
     # An edit to the verdict grammar now selects tests/entities.py.
     ".claude/workflows/web-fix-wave.js",
+    # Round 9's batch re-runner for the judge (PLAN R3): tests/entities.py
+    # imports it and runs fixture harnesses through it, so a change to it
+    # selects that script -- the web-fix-wave.js route, one line.
+    "tools/audit/judge_batch.py",
     # #1514: tests/entities.py maps each context in the recorded required set
     # to the job that produces it, and refuses one a body edit can re-report as
     # skipped. The fixture is the list the ruleset reads, so it is a
