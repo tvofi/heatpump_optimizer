@@ -1,9 +1,68 @@
-# Round 9: what needs tvofi (after the RCA fold, 2026-09-26)
+# Round 9: tvofi's decisions on the fix-plan asks (2026-09-26)
 
-Every item below is one line, answerable in one word. The drafts are in each RCA write-up
-(`/mnt/project-files/audit-r9/rca/<slug>/RCA.md`, also on `handoff/r9-rca-<slug>`), and the PR it
-lands in is named. Where an RCA recommends a default it is marked **default**; silence on an item in
-group (c) means the default. Nothing here blocks a PR outside the one named.
+## DECISIONS
+
+tvofi answered all 35 asks on decision cards at 19:16Z (message
+`cmsg_01EL5jLi4rokGBbkaevYXSJV6CQVMDN96YfVMTcN5QGSx2`: "answer all cards, then file the issues and start
+fixing"; the superseded card `cmsg_01EL5jLi4rokGBbkaevYXSJVJ2dpNicWumFP91ncYqNNqz` is ignored). Each row is
+the card's answer as recorded in `CARDS.json`, the orchestrator's recommendation it answered, and where
+the plan applies it (`FIX-PLAN.md` section 13; the roster and lane briefs carry each into its PR).
+Where the answer differs from the recommendation, it is applied as given: A9, C1, C5, C6, C9, C10, C16, C18, D2.
+
+| item | tvofi's answer | recommended | differs | applied in | card |
+|---|---|---|---|---|---|
+| A1 | Approve | Approve | no | F11.5 (fixer.md step 8) | `cmsg_01EL5jLi4rokGBbkaevYXSJV4ikQ1SRT574DCLeCBLAmDT` |
+| A2 | F11.5 | F11.5 | no | F11.5 carries A1 | `cmsg_01EL5jLi4rokGBbkaevYXSJVTwq4eyvmahmTXVayR65x92` |
+| A3 | Approve | Approve | no | F11.5 (fixer.md step 15) | `cmsg_01EL5jLi4rokGBbkaevYXSJVXYTmHYSyg1bFHaRnwqzXng` |
+| A4 | Approve | Approve | no | F11.5 (D1.md step 2) | `cmsg_01EL5jLi4rokGBbkaevYXSJVUpJv89y6CKjM9kNbUCZCng` |
+| A5 | Approve | Approve | no | F11.5 (fixer.md, #775) | `cmsg_01EL5jLi4rokGBbkaevYXSJVYAs7RfxLW6dcoscqMFEDBM` |
+| A6 | Approve | Approve | no | F11.5 (root-cause.md section 2) | `cmsg_01EL5jLi4rokGBbkaevYXSJVVL6WPZ5kb4DrAgQVR3yDE5` |
+| A7 | Approve | Approve | no | F11.5 (fixer.md step 8) | `cmsg_01EL5jLi4rokGBbkaevYXSJV2H1MQrFCSVrzTP4xTZsHBf` |
+| A8 | Approve | Approve | no | F11.5 (tests/README.md) | `cmsg_01EL5jLi4rokGBbkaevYXSJVT82cWLF6677T3YAMkJc1bf` |
+| A9 | Approve (overrode Skip) | Skip | **yes** | F11.5 (defect-root-cause.md), clause aligned to C10's derived set | `cmsg_01EL5jLi4rokGBbkaevYXSJVXsijNLpDQVpFp96zQzv296` |
+| B1 | Allow | Allow | no | F10.2 | `cmsg_01EL5jLi4rokGBbkaevYXSJVP4Wc9sVcBrwWv2ng6E7bcm` |
+| B2 | Allow | Allow | no | F10.2, rows only for the cheaper members C9 picks | `cmsg_01EL5jLi4rokGBbkaevYXSJV5abXUwm9tYDVSmcBoHPgTi` |
+| B3 | Allow | Allow | no | F11.3 | `cmsg_01EL5jLi4rokGBbkaevYXSJV1YFogEjbTZzHLuEQznLmJE` |
+| B4 | Allow | Allow | no | F11.5 | `cmsg_01EL5jLi4rokGBbkaevYXSJVVywdYaqLosWchfKhTdcQW7` |
+| B5 | Allow | Allow | no | F10.4 | `cmsg_01EL5jLi4rokGBbkaevYXSJVG53fL5E9FGCjNZdQki6xnJ` |
+| C1 | Domain table (overrode Per seam): new declared-domain barrier PR | Per seam (yes) | **yes** | new F9.3: P1 declared-domain barrier, strongest model, after F1.6; covers D1-s3-06, D1-s4-01, D1-s5-02, D1-s4-03; F3.2, F3.3 and F1.6 briefs carry it | `cmsg_01EL5jLi4rokGBbkaevYXSJVVXhePMyoUc3pPdRop8HcF7` |
+| C2 | Per pair | Per pair | no | F1.10 (P3 arm b), unchanged | `cmsg_01EL5jLi4rokGBbkaevYXSJV9WKhBboD8wpb6K86j9saqS` |
+| C3 | Per PR | Per PR | no | F1.11 (P6 arm S in the per-PR gate) | `cmsg_01EL5jLi4rokGBbkaevYXSJVV42AX1wSBrgthYQtcuYAZq` |
+| C4 | Per case | Accept (per case) | no | F8.3 (D6-s1-81 per-instance contract); F1.7 unchanged | `cmsg_01EL5jLi4rokGBbkaevYXSJVRPPjq98RiLL6A1Wx3ufepJ` |
+| C5 | Build (overrode Not now): nightly mutation-kill ledger writer, new identity under 0011 | Not now | **yes** | new F10.5: nightly kill-ledger writer, tvofi-gated; the writer App and credential are a Mac/tvofi action | `cmsg_01EL5jLi4rokGBbkaevYXSJVKz4c3Uv4wxAESnyYKwn8zS` |
+| C6 | Commission (overrode No): comparison-bound mutation operator, own PR | No | **yes** | new F10.6: comparison-bound operator, cost measured before it is enabled | `cmsg_01EL5jLi4rokGBbkaevYXSJVA5vdGfkcvpCAdPKYbqzHmg` |
+| C7 | Not now | Not now | no | F10.3 records the multi-line residual | `cmsg_01EL5jLi4rokGBbkaevYXSJV2qWadk7uqGzKVpn9xs2jcf` |
+| C8 | Subset | Subset | no | F10.2 | `cmsg_01EL5jLi4rokGBbkaevYXSJVWjJo2HYWnqvxhiNQrUwMJh` |
+| C9 | Cheaper (overrode Sample): sample cheaper valve-axis members; B2 rows only for those | Sample | **yes** | F10.2 samples cheaper valve-axis members and records the residual blind spot | `cmsg_01EL5jLi4rokGBbkaevYXSJV2T2vQzRzHFqyJynUj9xTn4` |
+| C10 | Derive (overrode Registration): derive governance-check set from CHECKS/CODEOWNERS/stamp rules | Accept (registration) | **yes** | F11.3 derives the check set from CHECKS, codeowners_gap.py and stamp rule 4 | `cmsg_01EL5jLi4rokGBbkaevYXSJVRgFei78G7gFRS46fC8Wv8y` |
+| C11 | Accept | Accept | no | F11.4 records the residual as accepted | `cmsg_01EL5jLi4rokGBbkaevYXSJV8FhCX1di3H5eDemLXSwSNK` |
+| C12 | Extend checks | Option 3 (extend) | no | F10.4 (I5 arms) | `cmsg_01EL5jLi4rokGBbkaevYXSJVPFww7Bwv5xKH96BASQ7ebh` |
+| C13 | Outage | Outage | no | F1.9 (FI-sw3 treated as an outage) | `cmsg_01EL5jLi4rokGBbkaevYXSJVHS9Tz1wcyspjWJhosPggfJ` |
+| C14 | Fold in | Fold in | no | F11.4 carries the driver fixes | `cmsg_01EL5jLi4rokGBbkaevYXSJV6ZxrK3iKgGM7KGGKpZRhYo` |
+| C15 | Keep (A3(e) stands; D8-s2-01 refused; F7.3 dropped) | Keep | no | D8-s2-01 refused against A3(e); F7.3 dropped; #1689 closed as not planned | `cmsg_01EL5jLi4rokGBbkaevYXSJVAkqktP4mjxo5JEYMQUD7Uu` |
+| C16 | Leave | Change | **yes** | D11-s1-01 refused by tvofi, recorded in #1648; F11.2 drops the decision-0008 edit; no policy edit | `cmsg_01EL5jLi4rokGBbkaevYXSJVJwW4gJaJ8i35S9yrhrH3dc` |
+| C17 | Refusal | Refusal | no | F11.2 (budget_raise_gate.py) | `cmsg_01EL5jLi4rokGBbkaevYXSJVMMwonNSMUDhJ2Hzc5tPcXt` |
+| C18 | Build | No | **yes** | new F11.6: diff-equivalence verdict carry (D13-s1-02), split from F11.3 | `cmsg_01EL5jLi4rokGBbkaevYXSJVDxWrZvQCUnNr94c4mrQd4B` |
+| D1 | Card diffs only | Keep | no | F6.3, unchanged | `cmsg_01EL5jLi4rokGBbkaevYXSJVDqUyXgpZpHQ1Gc9caHysYe` |
+| D2 | Enlarge F6.1 | Keep F6.1b | **yes** | F6.1b merged into F6.1, over the five-item cap by recorded exception | `cmsg_01EL5jLi4rokGBbkaevYXSJVVeftpSQbxtudLTGkdZE6Ds` |
+| D3 | Ungated | Keep (ungated) | no | F1.10, F1.11 ungated, unchanged | `cmsg_01EL5jLi4rokGBbkaevYXSJV7gLYYDp953i9jWVUP2TM4x` |
+
+Counts: (a) 9, (b) 5, (c) 18, (d) 3; 35 answered, 0 open; 9 differ from the recommendation.
+
+**Correction to the ask as put.** C15's parenthetical read "climate stays available without an indoor
+thermometer". A3(e) is the opposite: the `tests/entities.py` A3(e) pin keeps the climate entity
+unavailable with no thermometer, which is what D8-s2-01 reports. "Keep" keeps the tree's behaviour and
+refuses D8-s2-01; nothing in the tree changes.
+
+**What the answers leave to a person.** F10.5's writer identity (decision 0011) needs its App created,
+installed and its credential stored: a Mac/tvofi action, not a fixer's. Every allowed budget raise
+(B1-B5) and every approved policy draft (A1-A9) still merges only on tvofi's approving review at the PR's
+head (budget-raise-gate, decision 0013; code ownership).
+
+## The asks as put (2026-09-26, before the answers)
+
+The drafts are in each RCA write-up (`/mnt/project-files/audit-r9/rca/<slug>/RCA.md`, also on
+`handoff/r9-rca-<slug>`).
 
 ## (a) Policy edits: approve the draft? (all land in F11.5, one commit each, only once approved)
 
@@ -55,26 +114,3 @@ No budget raise is needed by P1, P2, P3, P5, P6, P9, P11, I1, I4 or I5.
 3. **D3 (P6)** F1.10 (P3 barrier) and F1.11 (P2 and P6 barriers) are not owner-gated: neither touches a code-owned or policy file (the P2 policy draft is A1, in F11.5). OK?
 
 Counts: (a) 9, (b) 5, (c) 18, (d) 3; 35 in all.
-
-## Orchestrator's recommendation for every item (reply "all recommended" to take them all)
-
-- **(a)** Approve A1–A8. Skip A9 (optional; its RCA says no policy is needed).
-- **(b)** Allow B1–B5, each at its measured value on the canonical runner.
-- **(c)**
-  - C1 yes; C2 per-pair; C3 per PR.
-  - C4 accept, since the refactor would move every SEK golden fixture for three instances.
-  - C5 not now: the per-site ratchet already stops the stock growing, and the drain needs an identity change and about 91 nights.
-  - C6 no, because its cost is unmeasured.
-  - C7 no for now.
-  - C8 subset.
-  - C9 sample, since the RCA shows it passes the cost test.
-  - C10 accept.
-  - C11 accept.
-  - C12 option 3, about 60 test lines.
-  - C13 outage, following #775's rule.
-  - C14 yes.
-  - C15 keep A3(e).
-  - C16 change to dismiss stale approvals on push, as decision 0008 records.
-  - C17 refusal, which is cheaper than a new identity.
-  - C18 no, since the judge weakened the saving.
-- **(d)** Keep D1–D3.

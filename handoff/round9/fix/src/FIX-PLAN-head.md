@@ -5,7 +5,8 @@ finished once the seven Phase D sweeps (S1–S7) had landed; section 9 lists wha
 fourteen round-9 RCA seats then reported, and section 10 lists what their results changed (the RCA fold,
 2026-09-26; tvofi's asks from them are collected in `TVOFI-ASKS.md` beside this file). Sections 11
 and 12 carry tvofi's 19:05Z rules: every seat resumable from git after a crash, and every role routed to
-the cheapest feasible model. It
+the cheapest feasible model. Section 13 applies tvofi's answers to all 35 asks (19:16Z), recorded card
+by card in `TVOFI-ASKS.md`'s DECISIONS section, and lists wave 1. It
 is built from the judge's final class list (CLASSES-DRAFT.json at `bad458a3`, verdicts at `2f97b0a`), DEDUP.md, JUDGE.md/json,
 RESUME.md ("PHASE F SHAPE", "FIX-PLAN CARRY-INS", "PR COUNT TARGET", "MODEL ROUTING", "NO HEAVY D3 RE-RUNS")
 PLAN.md sections 7 and 8, and the sweep outputs `S1.json`–`S7.json` with their `SWEEP.md` files. Main at plan time: `db878b29` (after #1643). Baseline of every finding:
@@ -38,7 +39,7 @@ Companion files, all generated from one data file so they cannot disagree:
   instances and the barrier are a new PR, **F1.9** (the old F1.9 is now F1.10). Keeping 40 would mean
   merging two unrelated card PRs (F6.2 with F6.4), which delays the keyboard fix and the #1643 mutant pins
   behind F1.8 for no gain; I did not.
-- **Why {n_prs} after the RCA fold.** Four PRs were added, each forced by the five-item cap or by
+- **Why 45 after the RCA fold (superseded by the next bullet).** Four PRs were added, each forced by the five-item cap or by
   owner-gating: **F2.5** (the recompute RCA found the class's largest member, `peak_cost_batch`, and a
   closure the sweep mis-disposed, while F2.2 is at five); **F6.1b** (the P9 RCA's grid found four
   instances, while F6.1 is at five); **F1.11** (the old F1.10 would carry the P2, P3 and P6 barriers
@@ -46,10 +47,15 @@ Companion files, all generated from one data file so they cannot disagree:
   drafted policy changes and landed none; the approved drafts need a PR, and it is tvofi-gated, so it is
   last in its lane and nothing waits on it). F1.9 stayed, shrunk: the future-instant barrier moved to
   F3.1, and F1.9 keeps the one seam no bound fixes plus the regression tests.
+- **Why {n_prs} after tvofi's answers (section 13).** Two PRs left and four arrived: F6.1b merged back
+  into F6.1 (card D2, over the cap by recorded exception) and F7.3 dropped with D8-s2-01 refused (card
+  C15); F9.3 (the P1 declared-domain barrier, card C1), F10.5 (the nightly kill-ledger writer, C5),
+  F10.6 (the comparison-bound mutation operator, C6) and F11.6 (the verdict carry, C18, split from F11.3
+  for the 400-line bound) are new.
 - **Why not more.** Classes are merged into one PR wherever they share a file set and fit the cap; a
   class over the cap (P2 with 27, I5 with 19, I1 with 11, P1 with 9) is split into instance PRs by
   subsystem with its barrier in the last one (PLAN §8.2). Instances fill PRs that already held their
-  class where a slot is free: F1.6 (P1's two latent seams), F6.1 (one P9 instance), F2.2 (RC-sw1),
+  class where a slot is free: F1.6 (P1's two latent seams), F6.1 (all four P9 instances, over the cap by tvofi's D2 exception), F2.2 (RC-sw1),
   F3.2 (FI-sw5's test), F4.2 (the new P5 instance, after D2-s4-02 moved to F4.1) and F1.9 (the
   future-instant tests); each is at five or under.
 
@@ -89,7 +95,7 @@ F2.3; D5-s1-01/D6-s2-01/D6-s2-02 in F8.1; D5-s1-05/D6-s1-02 in F8.2; the plausib
 D1-s2-02, D1-s1-03 share F4.1's window and land in F1.6).
 
 **Five findings are split across two PRs**, because their seams sit in two lanes' files; each closes
-when its last PR merges, and the first PR's body says "leaves #N open":
+when its last PR merges, and the first PR's body says which finding it leaves open (its class issue is `Part of #N` there):
 
 - D14-s4-01 (high, P7): its `get_current_action` seam in F2.1 (first, and short), everything else plus
   the DST tracer barrier in F1.1, which waits on F2.1.
@@ -115,9 +121,8 @@ when its last PR merges, and the first PR's body says "leaves #N open":
 - **RCA seats**: {n_rca}, one per `rca: true` class; fourteen ran before fixing (tvofi, 17:44Z) and
   have reported, and the fifteenth (the restart class) is RC2's, merged. Each named its barrier's form
   and left a prototype branch; the fixer of the PR that lands the barrier cherry-picks it (section 5).
-- **Startable at once (wave 1):** {wave1} — nine
-  threads, one per lane; F9's first PR now waits on F3.1 (F3.1 borrows `tests/finite_boundary.py`), and
-  F1's thread starts with F1.1 once F2.1, F3.1 and F10.1 merge.
+- **Startable at once (wave 1):** {wave1}: {n_wave1} threads, one per lane (the PRs with no `after`
+  edge unmet; the table and `WAVE1.json` are in section 13).
 
 ## 4. What needs tvofi, and why (answerable in one pass)
 
@@ -128,10 +133,14 @@ plan data; the old F1.10 is no longer gated: no barrier needs `tests/harness.py`
 |---|---|
 {tvofi_rows}
 
-**The RCA asks.** Every "needs tvofi" item from the fourteen RCA write-ups, with the plan's standing
-rulings (D8-s2-01/A3(e), D11-s1-01, D11-s1-04, D13-s1-02), is collected in `TVOFI-ASKS.md`, grouped as
-policy edits to approve, budget raises, and product or scope choices with the RCA's recommended
-default, one line each.
+**The RCA asks are answered.** tvofi answered all 35 at 19:16Z; `TVOFI-ASKS.md`'s DECISIONS section
+records each card's answer, whether it differs from the recommendation, and where it is applied
+(section 13). What the owner-gated PRs above still need is tvofi's approving review at their heads,
+which code ownership and budget-raise-gate require anyway, and, for {n_blocked} of them, an action:
+
+| PR | blocked on |
+|---|---|
+{blocked_rows}
 
 **Other asks that may arrive during the wave:**
 - Any budget raise a fixer hits (most likely in F1, whose coordinator class sits at zero headroom on several
@@ -176,10 +185,14 @@ read; the generator refuses the plan otherwise and prints the residuals.
 
 ## 7. Findings I could not place
 
-None. Every one of the 145 survivors, every one of the {n_inst} counted instances and the {n_latent} latent seams maps to a PR (tables below). FI-sw3 (F1.9) ends in tvofi's decision rather than a bound. Five findings may end without a code change,
-by design: D8-s2-01 (tvofi's A3(e) ruling), D11-s1-01 (a ruleset setting tvofi changes; the PR records it),
-D11-s1-04 (tvofi's identity decision), D13-s1-02 (tvofi decides whether to build the carry), and D0-s2-02
-(a recorded refusal is a legitimate outcome).
+None. Every one of the 145 survivors is placed in a PR or refused by tvofi, and every one of the {n_inst} counted instances and the {n_latent} latent seams maps to a PR (tables below). FI-sw3 (F1.9) ends in tvofi's decision (card C13: treated as an outage). Refused by tvofi, with no PR:
+
+| finding | class | disposition |
+|---|---|---|
+{refused_rows}
+
+D11-s1-04 ends in a refusal in `budget_raise_gate.py` (card C17, F11.2), D13-s1-02 is built (card C18,
+F11.6), and D0-s2-02 may still end as a recorded refusal priced in money and CPU (F2.4).
 
 ## 8. Merge order, stamps and throughput
 
@@ -251,7 +264,7 @@ tvofi (17:44Z) asked for the RCA seats before fixing, with any cost-effective co
 into this plan. All fourteen reported; every barrier's prototype branch was read back with
 `git ls-remote`. The orchestrator's rulings on their plan folds are applied as follows.
 
-**PR set** ({n_prs}): new F2.5, F6.1b, F1.11 and F11.5 (section 1); F1.9 shrunk; D2-s4-02 moved from
+**PR set** (45 at the fold; section 13 has the current set): new F2.5, F6.1b, F1.11 and F11.5 (section 1; F6.1b merged back into F6.1 at section 13); F1.9 shrunk; D2-s4-02 moved from
 F4.2 to F4.1.
 
 **Barrier moves.**
@@ -271,7 +284,7 @@ F4.2 to F4.1.
 - **P2 and P6 → F1.11**, **P3 → F1.10**. Neither is tvofi-gated: the P6 RCA showed the boost test hook
   can be dropped without `tests/harness.py`, and no other barrier needs it.
 - **I5** is split: the `doc_claims.py` arms in F10.4, the `policy_lint.mjs` quoted-line pass in F11.3.
-- **P9**: F6.3 after F6.1b (through F6.2); the grid's browser cost is scoped to card-surface diffs
+- **P9**: F6.3 after F6.1 (through F6.2); the grid's browser cost is scoped to card-surface diffs
   through the scoped gate, `main` forced full (orchestrator's ruling).
 
 **N changes** (issue drafts and `INDEX.json` follow): P1 11 → 9 (P1-sw1, P1-sw2 not store-reachable);
@@ -344,5 +357,47 @@ failing test and a mutation proof that need judgement):
 | PR | fixer | why |
 |---|---|---|
 {model_rows}
+
+## 13. tvofi's answers (2026-09-26 19:16Z) and wave 1
+
+tvofi answered every card (message `cmsg_01EL5jLi4rokGBbkaevYXSJV6CQVMDN96YfVMTcN5QGSx2`);
+`TVOFI-ASKS.md`'s DECISIONS section records each answer with its card. Where an answer differs from the
+orchestrator's recommendation it is applied as given:
+
+- **A1-A9 approved**, A9 included: all nine drafts land in F11.5 (A2: A1 rides F11.5). **B1-B5 allowed**,
+  each at its measured value; B2's valve rows cover only the cheaper members C9 picks. Every raise still
+  merges only on tvofi's approving review at its head (budget-raise-gate).
+- **C1, domain table** → new **F9.3**, the P1 declared-domain barrier (strongest model), after F1.6; it
+  covers D1-s3-06, D1-s4-01, D1-s5-02 and D1-s4-03 and the fields rca/p1 names, on the design basis of
+  rca/p1/RCA.md's residual section. F1.6's cap was full, so it is its own PR.
+- **C5, build** → new **F10.5**, the nightly mutation-kill ledger writer, in the gate/infra lane and
+  gated on tvofi; its new writer identity (decision 0011) is a Mac/tvofi setup action, not a fixer's.
+- **C6, commission** → new **F10.6**, the comparison-bound mutation operator, its cost measured first.
+- **C9, cheaper** → F10.2 samples cheaper valve-axis members, and records the residual blind spot (a
+  regression only a throttling valve's winter two-zone path exercises).
+- **C10, derive** → F11.3's field-coverage barrier derives the governance-check set from `CHECKS`,
+  `codeowners_gap.py` and stamp rule 4.
+- **C15, keep** → A3(e) stands, D8-s2-01 is refused against it, F7.3 is dropped. **C16, leave** →
+  D11-s1-01 is refused by tvofi; no policy edit. **C17, refusal** → `budget_raise_gate.py` in F11.2.
+- **C18, build** → new **F11.6**, the diff-equivalence verdict carry (D13-s1-02), split from F11.3.
+- **D2, enlarge F6.1** → F6.1b merged back; F6.1 is over `fixer.md`'s five-item cap by tvofi's explicit
+  choice, recorded in its brief and accepted by `gen.py` only through its exception list:
+
+| PR | cap exception |
+|---|---|
+{cap_rows}
+
+- C2, C3, C4, C7, C8, C11, C12, C13, C14, D1 and D3 are as recommended (C13: outage decides F1.9).
+
+**Owner-gated PRs** ({n_tvofi}): {tvofi_list}.
+
+**Wave 1** ({n_wave1} PRs, one per lane, none with an unmet `after` edge; also
+`/mnt/project-files/audit-r9/fix/WAVE1.json` and `handoff/round9/WAVE1.json`):
+
+| PR | lane | fixer | branch | brief | tvofi |
+|---|---|---|---|---|---|
+{wave1_rows}
+
+Lanes with no PR in wave 1: {wave1_absent}.
 
 ---
