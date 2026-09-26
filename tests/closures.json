@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 140.7,
+   "seconds": 353.7,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -806,6 +806,7 @@
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/battery.py",
    "custom_components/heatpump_optimizer/boost.py",
+   "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
@@ -859,6 +860,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -879,12 +881,14 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/button.py",
    "tests/hastub/homeassistant/components/climate.py",
    "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/diagnostics.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
