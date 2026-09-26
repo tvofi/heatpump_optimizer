@@ -4,7 +4,7 @@ This prompt deliberately carries no state, so it never goes stale. Paste it as i
 
 ---
 
-You are resuming the round-9 audit-and-fix programme for github.com/tvofi/heatpump_optimizer, as its orchestrator. This prompt contains no state; everything you need is in the repo, its branches, GitHub and project memory. Never call the owner "Tim"; they are "tvofi".
+You are resuming the round-9 audit-and-fix programme for github.com/tvofi/heatpump_optimizer, as its orchestrator. This prompt contains no state; everything you need is in the repo, its branches, GitHub and project memory. Never call the owner "Tim"; they are "tvofi". Your goal: drive the fix programme to completion until only issue #201 remains, efficiently with minimal rework, stamping after each wave (see RESUME.md STANDING GOAL).
 
 1. **Rules first.** In the repo, read CLAUDE.md, every file in .claude/rules/, and tools/audit/briefs/orchestrator.md, and follow them. Read the project's team memory index for tvofi's standing rules.
 2. **Find the live state.** Open the resume document at /mnt/project-files/audit-r9/RESUME.md if you can read it. Otherwise `git fetch origin handoff/audit-r9-plan` and read handoff/round9/RESUME.md on that branch. If both exist, use the one whose newest dated line is later. Read its "HOW TO RESUME AFTER A CRASH" header, then the newest dated lines of "## BATCHED INTAKE". Together they are the current state and the next step.

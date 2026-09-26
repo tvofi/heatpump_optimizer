@@ -1,5 +1,11 @@
 # Round 9 — resume document
 
+## STANDING GOAL (tvofi 2026-09-26T19:56Z, cmsg_01EL5jLi4rokGBbkaevYXSJV5e7dweSaGdT71cUJyexT41)
+"Make sure to stamp regularly throughout the fixing programme. Drive the programme to completion until only issue #201 remains. You are tasked with ensuring this is performed efficiently and smoothly with minimal rework"
+- Stamp checkpoint after each wave's merges land (clean main, Tests passed, delivery rows for every merged PR; stamp runs on the Mac via stamp.py --push --push-key).
+- Dispatch the next wave as soon as its `after` edges are met; never wait idle.
+- Minimal rework: one merge at a time, merge main into a branch only when it is next, fixers re-check against newly merged PRs before handoff.
+
 ## HOW TO RESUME AFTER A CRASH (tvofi 2026-09-26T19:05Z and 19:44Z)
 Everything lives in git; /mnt/project-files is only a working copy.
 - Plan, briefs, roster, TVOFI decisions: branch handoff/audit-r9-fixplan (handoff/round9/FIX-PLAN.md, handoff/round9/fix/F*.md, .claude/workflows/wave-r9-groups.json, handoff/round9/TVOFI-ASKS.md).
