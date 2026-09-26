@@ -1,0 +1,56 @@
+CELL one|dhw|winter_typical|winter_cold: obj 69.202994 -> 69.202994 drop=0.0000 (0.0000%) energy 30.75 -> 30.75 SEK floor 0.2324 -> 0.2324 step0 1.200 -> 1.200 ncand [4] -> [4] minDHW 42.762145617733026 -> 42.762145617733026
+CELL one|dhw|winter_typical|winter_mild: obj 29.433177 -> 29.433177 drop=0.0000 (0.0000%) energy 23.86 -> 23.86 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.139573067615196 -> 42.139573067615196
+CELL one|dhw|winter_typical|summer_warm: obj 6440.281188 -> 6440.281188 drop=0.0000 (0.0000%) energy 4.66 -> 4.66 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.19091965504669 -> 42.19091965504669
+CELL one|dhw|winter_typical|summer_cool: obj 8.663704 -> 8.663704 drop=0.0000 (0.0000%) energy 7.03 -> 7.03 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 43.077612980041415 -> 43.077612980041415
+CELL one|dhw|winter_typical|shoulder: obj 12.411571 -> 12.411571 drop=0.0000 (0.0000%) energy 10.48 -> 10.48 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.38811636827919 -> 42.38811636827919
+CELL one|dhw|winter_extreme|winter_cold: obj 96.119815 -> 96.119815 drop=0.0000 (0.0000%) energy 54.54 -> 54.54 SEK floor 0.0000 -> 0.0000 step0 1.200 -> 1.200 ncand [4] -> [4] minDHW 42.03996723646899 -> 42.03996723646899
+CELL one|dhw|winter_extreme|winter_mild: obj 44.174386 -> 44.174386 drop=0.0000 (0.0000%) energy 37.52 -> 37.52 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.58277047465287 -> 42.58277047465287
+CELL one|dhw|winter_extreme|summer_warm: obj 6444.472937 -> 6444.472937 drop=0.0000 (0.0000%) energy 8.85 -> 8.85 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.19091965504669 -> 42.19091965504669
+CELL one|dhw|winter_extreme|summer_cool: obj 14.298608 -> 14.298608 drop=0.0000 (0.0000%) energy 12.48 -> 12.48 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 43.077612980041415 -> 43.077612980041415
+CELL one|dhw|winter_extreme|shoulder: obj 19.828687 -> 19.828687 drop=0.0000 (0.0000%) energy 18.21 -> 18.21 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.38811636827919 -> 42.38811636827919
+CELL one|dhw|winter_narrow|winter_cold: obj 114.239159 -> 114.239159 drop=0.0000 (0.0000%) energy 81.58 -> 81.58 SEK floor 0.0000 -> 0.0000 step0 1.200 -> 1.200 ncand [4, 1] -> [4, 1] minDHW 42.03996723646899 -> 42.03996723646899
+CELL one|dhw|winter_narrow|winter_mild: obj 52.610102 -> 52.610102 drop=0.0000 (0.0000%) energy 38.81 -> 38.81 SEK floor 0.0000 -> 0.0000 step0 0.413 -> 0.413 ncand [4] -> [4] minDHW 42.40266814114032 -> 42.40266814114032
+CELL one|dhw|winter_narrow|summer_warm: obj 6441.064446 -> 6441.064446 drop=0.0000 (0.0000%) energy 5.44 -> 5.44 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.19091965504669 -> 42.19091965504669
+CELL one|dhw|winter_narrow|summer_cool: obj 11.562032 -> 11.562032 drop=0.0000 (0.0000%) energy 9.20 -> 9.20 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 43.077612980041415 -> 43.077612980041415
+CELL one|dhw|winter_narrow|shoulder: obj 18.407949 -> 18.407949 drop=0.0000 (0.0000%) energy 14.11 -> 14.11 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.38811636827919 -> 42.38811636827919
+CELL one|dhw|winter_moderate|winter_cold: obj 84.737777 -> 84.737777 drop=0.0000 (0.0000%) energy 47.92 -> 47.92 SEK floor 0.0000 -> 0.0000 step0 1.200 -> 1.200 ncand [4] -> [4] minDHW 42.03996723646899 -> 42.03996723646899
+CELL one|dhw|winter_moderate|winter_mild: obj 38.220592 -> 38.220592 drop=0.0000 (0.0000%) energy 29.90 -> 29.90 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.58277047465287 -> 42.58277047465287
+CELL one|dhw|winter_moderate|summer_warm: obj 6440.130478 -> 6440.130478 drop=0.0000 (0.0000%) energy 4.51 -> 4.51 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.19091965504669 -> 42.19091965504669
+CELL one|dhw|winter_moderate|summer_cool: obj 9.260633 -> 9.260633 drop=0.0000 (0.0000%) energy 7.31 -> 7.31 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 43.077612980041415 -> 43.077612980041415
+CELL one|dhw|winter_moderate|shoulder: obj 14.267947 -> 14.267947 drop=0.0000 (0.0000%) energy 10.79 -> 10.79 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [4] minDHW 42.38811636827919 -> 42.38811636827919
+CELL two|dhw|winter_typical|winter_cold: obj 87.195736 -> 87.195736 drop=0.0000 (0.0000%) energy 67.79 -> 67.79 SEK floor 1.3384 -> 1.3384 step0 1.200 -> 1.200 ncand [4] -> [5] minDHW 42.762145617733026 -> 42.762145617733026
+CELL two|dhw|winter_typical|winter_mild: obj 35.786280 -> 35.786280 drop=0.0000 (0.0000%) energy 25.83 -> 25.83 SEK floor 0.5071 -> 0.5071 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.139573067615196 -> 42.139573067615196
+CELL two|dhw|winter_typical|summer_warm: obj 10602.628570 -> 10602.628570 drop=0.0000 (0.0000%) energy 4.66 -> 4.66 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.19091965504669 -> 42.19091965504669
+CELL two|dhw|winter_typical|summer_cool: obj 9.148908 -> 9.148908 drop=0.0000 (0.0000%) energy 7.48 -> 7.48 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 43.077612980041415 -> 43.077612980041415
+CELL two|dhw|winter_typical|shoulder: obj 14.024690 -> 14.024690 drop=0.0000 (0.0000%) energy 11.75 -> 11.75 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.38811636827919 -> 42.38811636827919
+CELL two|dhw|winter_extreme|winter_cold: obj 129.340129 -> 129.283828 drop=0.0563 (0.0435%) energy 112.69 -> 112.83 SEK floor 0.0440 -> 0.0043 step0 1.200 -> 1.200 ncand [4] -> [5] minDHW 42.03996723646899 -> 42.03996723646899
+CELL two|dhw|winter_extreme|winter_mild: obj 52.007501 -> 52.007501 drop=0.0000 (0.0000%) energy 41.60 -> 41.60 SEK floor 0.0000 -> 0.0000 step0 0.329 -> 0.329 ncand [4] -> [5] minDHW 42.58277047465287 -> 42.58277047465287
+CELL two|dhw|winter_extreme|summer_warm: obj 10606.820319 -> 10606.820319 drop=0.0000 (0.0000%) energy 8.85 -> 8.85 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.19091965504669 -> 42.19091965504669
+CELL two|dhw|winter_extreme|summer_cool: obj 15.027101 -> 15.027101 drop=0.0000 (0.0000%) energy 12.89 -> 12.89 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 43.077612980041415 -> 43.077612980041415
+CELL two|dhw|winter_extreme|shoulder: obj 22.216591 -> 22.216591 drop=0.0000 (0.0000%) energy 19.42 -> 19.42 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.38811636827919 -> 42.38811636827919
+CELL two|dhw|winter_narrow|winter_cold: obj 135.443194 -> 135.103629 drop=0.3396 (0.2507%) energy 122.26 -> 121.98 SEK floor 0.0000 -> 0.0000 step0 1.197 -> 1.200 ncand [4] -> [5] minDHW 42.03996723646899 -> 42.03996723646899
+CELL two|dhw|winter_narrow|winter_mild: obj 58.215499 -> 58.136299 drop=0.0792 (0.1360%) energy 45.60 -> 47.32 SEK floor 0.0000 -> 0.0000 step0 0.003 -> 0.000 ncand [4] -> [5] minDHW 42.40266814114032 -> 42.40266814114032
+CELL two|dhw|winter_narrow|summer_warm: obj 10603.411828 -> 10603.411828 drop=0.0000 (0.0000%) energy 5.44 -> 5.44 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.19091965504669 -> 42.19091965504669
+CELL two|dhw|winter_narrow|summer_cool: obj 12.455163 -> 12.455163 drop=0.0000 (0.0000%) energy 10.00 -> 10.00 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 43.077612980041415 -> 43.077612980041415
+CELL two|dhw|winter_narrow|shoulder: obj 21.431641 -> 21.431641 drop=0.0000 (0.0000%) energy 16.24 -> 16.24 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.38811636827919 -> 42.38811636827919
+CELL two|dhw|winter_moderate|winter_cold: obj 105.000856 -> 105.000856 drop=0.0000 (0.0000%) energy 89.34 -> 89.34 SEK floor 0.0000 -> 0.0000 step0 1.200 -> 1.200 ncand [4] -> [5] minDHW 42.03996723646899 -> 42.03996723646899
+CELL two|dhw|winter_moderate|winter_mild: obj 44.257952 -> 44.257952 drop=0.0000 (0.0000%) energy 34.93 -> 34.93 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.58277047465287 -> 42.58277047465287
+CELL two|dhw|winter_moderate|summer_warm: obj 10602.477860 -> 10602.477860 drop=0.0000 (0.0000%) energy 4.51 -> 4.51 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.19091965504669 -> 42.19091965504669
+CELL two|dhw|winter_moderate|summer_cool: obj 9.943249 -> 9.943243 drop=0.0000 (0.0001%) energy 7.88 -> 7.88 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 43.077612980041415 -> 43.077612980041415
+CELL two|dhw|winter_moderate|shoulder: obj 16.626529 -> 16.626529 drop=0.0000 (0.0000%) energy 13.27 -> 13.27 SEK floor 0.0000 -> 0.0000 step0 0.000 -> 0.000 ncand [4] -> [5] minDHW 42.38811636827919 -> 42.38811636827919
+RESULT cells=40 count
+RESULT cells_improved_over_0.01pct=3 count
+RESULT drop_rel_max=0.2507 %
+RESULT drop_rel_min=0.0000 %
+RESULT drop_rel_mean=0.0108 %
+RESULT drop_rel_mean_drop_best=0.0046 %
+RESULT drop_obj_sum=0.4751 objective-units
+RESULT energy_sek_drop_sum=-1.5765 SEK
+RESULT cells_feasibility_worse=0 count
+RESULT thread_factor=1.270
+RESULT load1=2.93
+RESULT swapins=0
+
+real	2m49.718s
+user	5m19.762s
+sys	0m1.224s

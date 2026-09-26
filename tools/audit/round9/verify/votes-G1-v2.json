@@ -247,6 +247,54 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D0": [
+   {
+    "id": "D0-s1-01",
+    "vote": "refute",
+    "severity": "low",
+    "value": "step1 reproduced 0.2507 % exactly; V2 seam arm b020 max 0.2507 % / mean 0.0215 % (LOO 0.0095 %) vs placebo b025 max 0.2842 %, i020 0.2482 %, b015 0.2165 % (6 cells vs 3); flat-null b020 max 0.2342 %, mean 0.0468 % (> winter mean); finder's own arm energy_sek_drop_sum -1.5765 SEK",
+    "metric_definition": "per two-zone DHW-on cell, (f_prod - f_arm)/|f_prod| on the captured objective at the DHW path's cold-start _multi_start_minimize call, f_arm = real seam re-run with production candidates + one extra seed (0.20x baseline energy, or placebo 0.20x init_base / 0.15x / 0.25x baseline); seam value equals shipped objective_value on 25/25 cells",
+    "method": "step1: seeds_ab.py --perturb deep_anchor_dhw --jobs 2 (load1 2.93); step2: verify-v2/v2_dhw_anchor.py [--flat] --jobs 2 (load1 3.39/3.26), baseline energy from the same optimize() call, reproduction arm 0.0000 % on 25/25",
+    "attacks": "contention n/a (objective values); grid artefact: one cell carries it (LOO 0.0046 % step1); null control FAILS: flat b020 max 0.2342 % ~ winter 0.2507 %, flat mean 0.0468 % > winter 0.0215 %; placebo FAILS: any extra seed of similar energy gives equal drops on other cells (b025 0.2842 %) -> seed-count/basin effect, not the missing anchor; money: energy bill rises 1.58 SEK summed in finder's arm; reachable (default DHW path) and the code asymmetry at optimizer.py:3463-3482 vs 3994-4016 is real but is consistency/hygiene",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D0-s2-01",
+    "vote": "refute",
+    "severity": "low",
+    "value": "step1 reproduced 0.6507 % (48 h) and 0.0000 % under ftol_tight; V2 scipy-own-FD polish 0.6507 % at 48 h (mechanism holds), but shipped_n_steps=96 (48 h unreachable); 24 h grid 48 cells: shoulder max 0.8523 % (the claimed #1293 cell), next 0.2701 % = 0.0078 units with energy rising 1.683->1.780 SEK; summer_typical max 0.0027 %, flat max 0.0070 %",
+    "metric_definition": "(f_prod - f_scipy)/|f_prod| at the first seam call's x, f_scipy = scipy L-BFGS-B with scipy's own 2-point FD gradient (jac=None), ftol 1e-10, gtol 1e-8, same captured objective/bounds/args; plus production _lbfgsb_restart iterated to its fixed point",
+    "method": "step1: polish.py --horizon 48 single cell +/- --perturb ftol_tight, and the 24 h repro step (load1 2.45); step2: verify-v2/v2_stoprule.py --horizon 48 (finder cell + flat) and --horizon 24 over shoulder,summer_typical,flat x 4 weathers x topology x DHW (48 cells, load1 3.03)",
+    "attacks": "contention n/a; grid: finder LOO 0.0005 %, single cell; null holds at 48 h (0.0231 %); reachability FAILS for the headline: OptimizationConfig.from_mapping reads no horizon (n_steps=96, coordinator.py:1980 is the only construction); at 24 h the only cells >0.1 % are the recorded _CERT_CLAIMS cell one|shoulder|winter_cold (#1293 refused on money) and one|nodhw|shoulder|summer_cool (0.0078 units, bill rises); iterated production restart recovers 0.0000 % at 48 h (in-loop restart mechanism verified). Alternative if the judge counts the mechanism: weaken to hygiene",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D0-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 shoulder max 1.2012 %, mean 0.3927 %, LOO 0.3388 %; flat max 0.3247 %, mean 0.0918 %. V2 random-seed family: shoulder max 2.3355 % (0.1338 units), mean 0.3181 %, LOO 0.1836 %; flat mean 0.0901 %; paired excess mean 0.2280 pp, LOO 0.1152 pp, 5/16 cells > 0.1 pp; excluding the claimed stop-rule cell and the max, 0.065 pp over 14",
+    "metric_definition": "(f_prod - f_rand)/|f_prod| at the first seam call, f_rand = real seam re-run with production candidates + 12 seeded uniform-random starts (energy scale k/12), comfort floor violation no worse than production + 0.01; paired excess = shoulder gap - matched flat gap per (topology, DHW, weather)",
+    "method": "step1: race.py --cells shoulder|flat --weather winter_cold,winter_mild,summer_cool,shoulder --first-only (load1 2.89/2.68); step2: verify-v2/v2_random_seeds.py --jobs 2 (load1 3.40)",
+    "attacks": "contention n/a; grid: survives LOO in both families; null: flat gaps nonzero (~0.09 % mean both families) but shoulder exceeds them paired; finder's add_emax_ladder perturbation is circular, but an independent random-seed family reproduces the gap and the 8.5 kWh basin; money small (<=0.134 units on a 5.7-unit day), low earned; reachable at 24 h; overlaps the #1294 refused-ladder class in _CERT_CLAIMS (judge's call)",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D3": [
+   {
+    "id": "D3-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 0,
+    "metric_definition": "differential_inputs = number of distinct inlet readings (value, unit) the tree's tests feed to coordinator._dhw_inlet_c on which mutant C0043 (coordinator.py:1371 `-5.0 <= value` -> `-5.0 < value`) returns a different value than baseline; 0 means no assertion over those inputs can kill it (finder's: killed_by = closure scripts failing under the mutant, recorded 0/15)",
+    "method": "Step 1: re-ran behaviour.py C0043 -> behaviour_delta=1, --null -> 0 (load1 2.20, tf 1.000), matching the finder; prescreen.py not re-run per tvofi's no-heavy-D3 rule, killed_by=0/15 cited from the seat's prescreen_C0043.log (null 0, C0023 counter control 1). Step 2: own harness tools/audit/round9/D3/verify-v2/inlet_census.py: static AST census of features.py inlet readings (7 inputs: 10C stale, 12.0, unknown, 10C, 10 no-unit, 40C, 50F) plus config_flow_steps.py (0 inlet states fed) -> differential_inputs=0; positive control (+ -5.0C, 23F) = 2; null = 0; flip points on a 0.01C grid -10..40 = 1 (only -5.0). load1 4.08, tf 1.000. Step 4 mutation: coordinator.py:1371 `-5.0 <= value` -> `-5.0 < value` (seat's recorded C0043), a production file.",
+    "attacks": "1 contention: counts, immune. 2 gate mode: finder used env_drift --all; all 5 coord goldens carry dhw_inlet_temperature 10.0 (seasonal default) and no live inlet entity, so --all is blind; quiet-window full gate not run (seat Unfinished + standing rule), but stress/edge/backtest contain no inlet token and only features.py references _dhw_inlet_c, so no full-gate input reaches the bound (grep-inferred, not executed). 3 grid artefact: n/a (single mutant). 4 null control: present and re-run at 0. 5 real HA: single call site coordinator.py:2571 via CONF_DHW_INLET_ENTITY with a live sensor state; exactly -5.0C/23F is reachable but physically implausible, and the mutant only degrades it to the seasonal fallback. 6 severity: one-point behaviour change to the configured fallback; low (hygiene) earned, no weaken. Context: the project mutation ledger kills BOOLOP/GUARD_OFF/RETURN_DEL on this function but has no comparison-bound operator and no survivor_triage entry; the census has no 35.0 reading either, so the symmetric upper-bound mutant is equally undistinguished (deduced, not run).",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }

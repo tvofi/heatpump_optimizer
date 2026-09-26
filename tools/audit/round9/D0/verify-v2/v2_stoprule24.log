@@ -1,0 +1,71 @@
+RESULT shipped_n_steps=96 count (horizon_hours=24.0)
+CELL one|nodhw|shoulder|winter_cold|h24           f 48.76359 -> scipyFD 48.34798 (+0.8523%) prod-restart x1 48.76359 (+0.0000%) shipped=48.76359 kWh 59.34->61.23 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|dhw|shoulder|winter_cold|h24             f 54.79011 -> scipyFD 54.79011 (+0.0000%) prod-restart x1 54.79011 (+0.0000%) shipped=54.74656 kWh 60.19->60.19 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'ABNORMAL: ': 2}
+CELL two|nodhw|shoulder|winter_cold|h24           f 58.95520 -> scipyFD 58.95438 (+0.0014%) prod-restart x1 58.95520 (+0.0000%) shipped=58.95520 kWh 75.59->75.59 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|shoulder|winter_cold|h24             f 65.32019 -> scipyFD 65.31850 (+0.0026%) prod-restart x2 65.31850 (+0.0026%) shipped=65.16120 kWh 75.32->75.34 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|nodhw|shoulder|winter_mild|h24           f 17.99962 -> scipyFD 17.99284 (+0.0377%) prod-restart x1 17.99962 (+0.0000%) shipped=17.99962 kWh 30.28->30.51 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|dhw|shoulder|winter_mild|h24             f 21.81296 -> scipyFD 21.81296 (+0.0000%) prod-restart x1 21.81296 (+0.0000%) shipped=21.81296 kWh 29.57->29.57 stops={'ABNORMAL: ': 4, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 4}
+CELL two|nodhw|shoulder|winter_mild|h24           f 23.28653 -> scipyFD 23.28653 (+0.0000%) prod-restart x1 23.28653 (+0.0000%) shipped=23.28653 kWh 31.44->31.44 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 9, 'ABNORMAL: ': 1}
+CELL two|dhw|shoulder|winter_mild|h24             f 27.04858 -> scipyFD 27.04858 (+0.0000%) prod-restart x1 27.04858 (+0.0000%) shipped=27.04858 kWh 31.49->31.49 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'ABNORMAL: ': 2}
+CELL one|nodhw|shoulder|summer_cool|h24           f 2.89954 -> scipyFD 2.89171 (+0.2701%) prod-restart x1 2.89954 (+0.0000%) shipped=2.89954 kWh 3.28->3.39 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|dhw|shoulder|summer_cool|h24             f 6.14294 -> scipyFD 6.14279 (+0.0024%) prod-restart x1 6.14294 (+0.0000%) shipped=6.14294 kWh 3.50->3.50 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL two|nodhw|shoulder|summer_cool|h24           f 3.33893 -> scipyFD 3.33893 (+0.0000%) prod-restart x1 3.33893 (+0.0000%) shipped=3.33893 kWh 4.03->4.03 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 5}
+CELL two|dhw|shoulder|summer_cool|h24             f 6.56032 -> scipyFD 6.56032 (+0.0000%) prod-restart x1 6.56032 (+0.0000%) shipped=6.56032 kWh 4.24->4.24 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|nodhw|shoulder|shoulder|h24              f 5.72955 -> scipyFD 5.72955 (+0.0000%) prod-restart x1 5.72955 (+0.0000%) shipped=5.72955 kWh 7.25->7.25 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|dhw|shoulder|shoulder|h24                f 9.14101 -> scipyFD 9.14101 (+0.0000%) prod-restart x1 9.14101 (+0.0000%) shipped=9.14101 kWh 8.36->8.36 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'ABNORMAL: ': 2}
+CELL two|nodhw|shoulder|shoulder|h24              f 6.88408 -> scipyFD 6.88408 (+0.0000%) prod-restart x1 6.88408 (+0.0000%) shipped=6.88408 kWh 10.62->10.62 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 9, 'ABNORMAL: ': 1}
+CELL two|dhw|shoulder|shoulder|h24                f 10.36120 -> scipyFD 10.36120 (+0.0000%) prod-restart x1 10.36120 (+0.0000%) shipped=10.36120 kWh 10.50->10.50 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 3}
+CELL one|nodhw|summer_typical|winter_cold|h24     f 19.51079 -> scipyFD 19.51079 (+0.0000%) prod-restart x1 19.51079 (+0.0000%) shipped=19.51079 kWh 55.57->55.57 stops={'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 6, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 2}
+CELL one|dhw|summer_typical|winter_cold|h24       f 22.30773 -> scipyFD 22.30773 (+0.0000%) prod-restart x1 22.30773 (+0.0000%) shipped=22.30773 kWh 54.47->54.47 stops={'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 6, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 2}
+CELL two|nodhw|summer_typical|winter_cold|h24     f 24.97376 -> scipyFD 24.97376 (+0.0000%) prod-restart x1 24.97376 (+0.0000%) shipped=24.97376 kWh 66.75->66.75 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|summer_typical|winter_cold|h24       f 28.11521 -> scipyFD 28.11521 (+0.0000%) prod-restart x1 28.11521 (+0.0000%) shipped=28.11521 kWh 66.98->66.98 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|nodhw|summer_typical|winter_mild|h24     f 7.55490 -> scipyFD 7.55490 (+0.0000%) prod-restart x1 7.55490 (+0.0000%) shipped=7.55490 kWh 30.37->30.37 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 3}
+CELL one|dhw|summer_typical|winter_mild|h24       f 9.47563 -> scipyFD 9.47563 (+0.0000%) prod-restart x1 9.47563 (+0.0000%) shipped=9.47563 kWh 30.33->30.33 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL two|nodhw|summer_typical|winter_mild|h24     f 8.67069 -> scipyFD 8.67061 (+0.0008%) prod-restart x1 8.67069 (+0.0000%) shipped=8.67069 kWh 32.29->32.29 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|summer_typical|winter_mild|h24       f 10.61638 -> scipyFD 10.61632 (+0.0006%) prod-restart x1 10.61638 (+0.0000%) shipped=10.61638 kWh 32.13->32.13 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|nodhw|summer_typical|summer_cool|h24     f 1.66258 -> scipyFD 1.66258 (+0.0000%) prod-restart x1 1.66258 (+0.0000%) shipped=1.66258 kWh 2.38->2.38 stops={'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 2, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6}
+CELL one|dhw|summer_typical|summer_cool|h24       f 3.41041 -> scipyFD 3.41041 (+0.0000%) prod-restart x1 3.41041 (+0.0000%) shipped=3.41041 kWh 2.27->2.27 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 2}
+CELL two|nodhw|summer_typical|summer_cool|h24     f 1.72275 -> scipyFD 1.72270 (+0.0027%) prod-restart x1 1.72275 (+0.0000%) shipped=1.72275 kWh 3.02->3.01 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|summer_typical|summer_cool|h24       f 3.46781 -> scipyFD 3.46780 (+0.0003%) prod-restart x1 3.46781 (+0.0000%) shipped=3.46781 kWh 3.00->3.00 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|nodhw|summer_typical|shoulder|h24        f 2.69847 -> scipyFD 2.69847 (+0.0000%) prod-restart x1 2.69847 (+0.0000%) shipped=2.69847 kWh 6.00->6.00 stops={'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 4, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 4}
+CELL one|dhw|summer_typical|shoulder|h24          f 4.54891 -> scipyFD 4.54891 (+0.0000%) prod-restart x1 4.54891 (+0.0000%) shipped=4.54891 kWh 5.90->5.90 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 4, 'CONVERGENCE: NORM OF PROJECTED GRADIENT ': 4}
+CELL two|nodhw|summer_typical|shoulder|h24        f 3.29489 -> scipyFD 3.29483 (+0.0016%) prod-restart x1 3.29489 (+0.0000%) shipped=3.29489 kWh 8.36->8.36 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|summer_typical|shoulder|h24          f 5.13712 -> scipyFD 5.13711 (+0.0003%) prod-restart x1 5.13712 (+0.0000%) shipped=5.13712 kWh 8.35->8.35 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|nodhw|flat|winter_cold|h24               f 82.46331 -> scipyFD 82.46325 (+0.0001%) prod-restart x1 82.46331 (+0.0000%) shipped=82.46331 kWh 57.49->57.49 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|dhw|flat|winter_cold|h24                 f 91.07140 -> scipyFD 91.07140 (+0.0000%) prod-restart x1 91.07140 (+0.0000%) shipped=91.07140 kWh 56.35->56.35 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL two|nodhw|flat|winter_cold|h24               f 99.67118 -> scipyFD 99.66719 (+0.0040%) prod-restart x1 99.67118 (+0.0000%) shipped=99.67118 kWh 75.54->75.55 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 10}
+CELL two|dhw|flat|winter_cold|h24                 f 107.88661 -> scipyFD 107.88657 (+0.0000%) prod-restart x1 107.88661 (+0.0000%) shipped=107.88661 kWh 75.41->75.41 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+CELL one|nodhw|flat|winter_mild|h24               f 37.48691 -> scipyFD 37.48691 (+0.0000%) prod-restart x1 37.48691 (+0.0000%) shipped=37.48691 kWh 23.69->23.69 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|dhw|flat|winter_mild|h24                 f 43.08642 -> scipyFD 43.08642 (+0.0000%) prod-restart x1 43.08642 (+0.0000%) shipped=43.08642 kWh 23.24->23.24 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 3}
+CELL two|nodhw|flat|winter_mild|h24               f 41.47330 -> scipyFD 41.47330 (+0.0000%) prod-restart x1 41.47330 (+0.0000%) shipped=41.47330 kWh 29.27->29.27 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 3}
+CELL two|dhw|flat|winter_mild|h24                 f 47.05412 -> scipyFD 47.05084 (+0.0070%) prod-restart x1 47.05412 (+0.0000%) shipped=47.05412 kWh 29.48->29.52 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'ABNORMAL: ': 2}
+CELL one|nodhw|flat|summer_cool|h24               f 4.44968 -> scipyFD 4.44968 (+0.0000%) prod-restart x1 4.44968 (+0.0000%) shipped=4.44968 kWh 2.25->2.25 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 3}
+CELL one|dhw|flat|summer_cool|h24                 f 9.08851 -> scipyFD 9.08851 (+0.0000%) prod-restart x1 9.08851 (+0.0000%) shipped=9.08851 kWh 2.17->2.17 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 4, 'ABNORMAL: ': 4}
+CELL two|nodhw|flat|summer_cool|h24               f 5.18866 -> scipyFD 5.18866 (+0.0000%) prod-restart x1 5.18866 (+0.0000%) shipped=5.18866 kWh 2.36->2.36 stops={'ABNORMAL: ': 3, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7}
+CELL two|dhw|flat|summer_cool|h24                 f 9.83996 -> scipyFD 9.83996 (+0.0000%) prod-restart x1 9.83996 (+0.0000%) shipped=9.83996 kWh 2.49->2.49 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 7, 'ABNORMAL: ': 1}
+CELL one|nodhw|flat|shoulder|h24                  f 9.61392 -> scipyFD 9.61392 (+0.0000%) prod-restart x1 9.61392 (+0.0000%) shipped=9.61392 kWh 5.70->5.70 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5, 'ABNORMAL: ': 3}
+CELL one|dhw|flat|shoulder|h24                    f 14.69765 -> scipyFD 14.69765 (+0.0000%) prod-restart x1 14.69765 (+0.0000%) shipped=14.69765 kWh 5.78->5.78 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 6, 'ABNORMAL: ': 2}
+CELL two|nodhw|flat|shoulder|h24                  f 12.22780 -> scipyFD 12.22780 (+0.0000%) prod-restart x1 12.22780 (+0.0000%) shipped=12.22780 kWh 7.28->7.28 stops={'ABNORMAL: ': 5, 'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 5}
+CELL two|dhw|flat|shoulder|h24                    f 17.36577 -> scipyFD 17.36576 (+0.0001%) prod-restart x1 17.36577 (+0.0000%) shipped=17.36577 kWh 7.85->7.85 stops={'CONVERGENCE: RELATIVE REDUCTION OF F <= ': 8}
+RESULT shoulder_resid_max=0.8523 %
+RESULT shoulder_resid_mean=0.0729 %
+RESULT shoulder_resid_mean_drop_best=0.0209 %
+RESULT shoulder_iterrestart_max=0.0026 %
+RESULT shoulder_cells_over_0.1pct=2 of 16 count
+RESULT summer_typical_resid_max=0.0027 %
+RESULT summer_typical_resid_mean=0.0004 %
+RESULT summer_typical_resid_mean_drop_best=0.0002 %
+RESULT summer_typical_iterrestart_max=0.0000 %
+RESULT summer_typical_cells_over_0.1pct=0 of 16 count
+RESULT flat_resid_max=0.0070 %
+RESULT flat_resid_mean=0.0007 %
+RESULT flat_resid_mean_drop_best=0.0003 %
+RESULT flat_iterrestart_max=0.0000 %
+RESULT flat_cells_over_0.1pct=0 of 16 count
+RESULT thread_factor=1.459
+RESULT load1=3.03
+RESULT swapins=0
+
+real	3m22.389s
+user	5m54.336s
+sys	0m0.473s

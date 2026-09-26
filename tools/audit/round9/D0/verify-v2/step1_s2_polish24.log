@@ -1,0 +1,12 @@
+CELL one|nodhw|shoulder|winter_cold|h24             f  48.76359 ->  48.34798 gap +0.8523% (+0.4156) viol 0.0000->0.0000 step0 3.18->4.77 energySEK 37.872->39.384 prod_nit 37
+CELL one|nodhw|shoulder|summer_cool|h24             f   2.89954 ->   2.89171 gap +0.2701% (+0.0078) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 1.683->1.780 prod_nit 64
+RESULT shoulder_cells=2 count
+RESULT shoulder_gap_max=0.8523 %
+RESULT shoulder_gap_min=0.2701 %
+RESULT shoulder_gap_mean=0.5612 %
+RESULT shoulder_gap_abs_max=0.4156 SEK
+RESULT shoulder_cells_over_0p1pct=2 count
+RESULT thread_factor=1.000
+RESULT load1=2.42
+RESULT swapins=0
+DONE

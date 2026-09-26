@@ -1,0 +1,29 @@
+CELL two|dhw|winter_typical|winter_cold|FLAT: f_seam=107.886615 shipped=107.886615 ncand=4 Ebase=91.07 Einit=42.75 repro=+0.0000% b020=+0.0000% i020=+0.0000% b015=+0.0000% b025=+0.0000%
+CELL two|dhw|winter_typical|winter_mild|FLAT: f_seam=47.054120 shipped=47.054120 ncand=4 Ebase=38.11 Einit=58.75 repro=+0.0000% b020=+0.0000% i020=+0.0302% b015=+0.0000% b025=+0.0172%
+CELL two|dhw|winter_typical|summer_warm|FLAT: f_seam=10602.099799 shipped=10602.099799 ncand=4 Ebase=0.20 Einit=30.65 repro=+0.0000% b020=+0.0000% i020=+0.0000% b015=+0.0000% b025=+0.0000%
+CELL two|dhw|winter_typical|summer_cool|FLAT: f_seam=9.839961 shipped=9.839961 ncand=4 Ebase=5.00 Einit=47.15 repro=+0.0000% b020=+0.0000% i020=+0.0000% b015=+0.0000% b025=+0.0000%
+CELL two|dhw|winter_typical|shoulder|FLAT: f_seam=17.365774 shipped=17.365774 ncand=4 Ebase=11.56 Einit=37.30 repro=+0.0000% b020=+0.2342% i020=+0.2179% b015=+0.0000% b025=+0.0000%
+RESULT repro_max=0.0000 %
+RESULT repro_mean=0.0000 %
+RESULT repro_mean_drop_best=0.0000 %
+RESULT repro_cells_over_0.01pct=0 count
+RESULT b020_max=0.2342 %
+RESULT b020_mean=0.0468 %
+RESULT b020_mean_drop_best=0.0000 %
+RESULT b020_cells_over_0.01pct=1 count
+RESULT i020_max=0.2179 %
+RESULT i020_mean=0.0496 %
+RESULT i020_mean_drop_best=0.0075 %
+RESULT i020_cells_over_0.01pct=2 count
+RESULT b015_max=0.0000 %
+RESULT b015_mean=0.0000 %
+RESULT b015_mean_drop_best=0.0000 %
+RESULT b015_cells_over_0.01pct=0 count
+RESULT b025_max=0.0172 %
+RESULT b025_mean=0.0034 %
+RESULT b025_mean_drop_best=0.0000 %
+RESULT b025_cells_over_0.01pct=1 count
+RESULT thread_factor=1.808
+RESULT load1=3.26
+RESULT swapins=0
+DONE
