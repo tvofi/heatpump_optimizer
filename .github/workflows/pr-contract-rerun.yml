@@ -51,7 +51,7 @@ jobs:
 
       - name: Restore the program from the default branch's commit
         env:
-          PINNED: ${{ github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
           set -euo pipefail
           git checkout "$PINNED" -- \
