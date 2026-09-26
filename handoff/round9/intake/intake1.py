@@ -2,7 +2,7 @@
 # because the Workflow gatherer could not carry the reports (classifier stop). Reads the box branches directly.
 import json, re, subprocess, collections, sys
 R='/home/claude/heatpump_optimizer'; OUT=sys.argv[1]
-DEFER=['D3-s2','D3-s3','D7-s1']
+DEFER=['D3-s2','D3-s3']
 g=lambda *a: subprocess.check_output(['git','-C',R,*a],text=True)
 reports={}; srcs={}
 for b in [f'B{i}' for i in range(1,11)]:
