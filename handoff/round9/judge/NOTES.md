@@ -30,3 +30,10 @@ Round-9 exposure flags for the judge (orchestrator, 2026-09-26).
 - 2026-09-26T13:47Z: G1-V3 lc @3b449903: both verify medium; D1-s2-91 -> P2, same phenomenon as D1-s2-51 (dedup candidate for the judge); D3-s1-91 I1, seam rule partial. Waiting only on G1-V2 (leads + lc).
 - 2026-09-26T13:50Z: register complete @089d3470: 156 accepted from 42 seats, 0 rejected; LC leads rows added. Only the CORPUS_EXCLUDED fix remains before the register can become a PR (Mac).
 - 2026-09-26T13:52Z: G1-V2 lc @2be2c155: both verify medium (D3-s1-91 :8112 now executed too). Only G1-V2 leads (12 findings) outstanding.
+
+## G1-V2 leads (final votes, 2026-09-26T13:24Z, @16ef80b6)
+- D3-s2-01 weaken medium->low: through QuarantiningStore only M31 (flow_lift.py:210 negative stored count) stays reachable, 1 of 4 sites.
+- D1-s2-52 verify, but on real HA 2026.2.3 Store the loss is 2/30 race cells (needs semaphore contention); the finder's 5/5 rests on a 0.2 s stub delay. CONFLICT: G1-V3 asked to raise it to high on 5/5 of a real restart race. The judge settles the severity.
+- D1-s2-51: the arbiter half is verified on real stored state (4/4); the quiet-period half is unreachable from real state in 11 rig variants and rests on the finder's injection.
+- D1-s1-51, D1-s1-52 and D1-s2-71 on real HA: 7/9, 4/8 and 6/18 divergent.
+- Side observation (not a registered finding): under the real HA clock, boost.restore raises TypeError on a naive stored 'until'. Same family as D3-s1-91 (naive vs aware). Judge: fold it into D3-s1-91's class for the Phase D sweep; do not register it as a new finding.

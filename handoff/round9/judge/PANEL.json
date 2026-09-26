@@ -1,7 +1,7 @@
 {
  "heads": {
   "G1-V1": "9e0a60f1",
-  "G1-V2": "2be2c155",
+  "G1-V2": "16ef80b6",
   "G1-V3": "3b449903",
   "G2-V1": "654d6f71",
   "G2-V2": "5f33f62f",
@@ -4383,7 +4383,7 @@
   },
   "D3-s2-01": {
    "panel": "split",
-   "n_votes": 2,
+   "n_votes": 3,
    "votes": {
     "V1": {
      "id": "D3-s2-01",
@@ -4393,6 +4393,19 @@
      "metric_definition": "Count of isfinite guards in the eight modules' persisted-state parsers whose GUARD_OFF mutant survives every measured closure driver, cross-checked by witness.py's in-domain-vs-corrupt-payload divergence count",
      "method": "Confirmed all four production lines live at 96b89163 match storeguards.json/pool.json 'old' text; ran witness.py M31 S05 S17 S18 (wall 0.654s, thread_factor=1.000, load1=0.47), reproducing every RESULT exactly against REPORT.md and the finding's evidence/perturbation fields; no prescreen/mutant-pool/full-gate rerun and quiet window not run (tvofi rule)",
      "attacks": "contention: clean (thread_factor 1.000, load1 0.47); gate mode: recorded env_drift --all in the 17-driver run (not re-run); grid artefact: n/a; null control: present (comment-only optimizer.py edit lives on all 17 drivers, three runs); real-HA reachability: yes, from_dict is the real Store-restore path at coordinator startup, not a FakeHass-only path; severity: medium earned (needs a corrupted store; crash or free-priced hour / inf billed peak)",
+     "class": null,
+     "seam_rule_enumerates": null,
+     "group": "G1",
+     "unit": "leads"
+    },
+    "V2": {
+     "id": "D3-s2-01",
+     "vote": "weaken",
+     "severity": "low",
+     "value": "step1 re-run (witness.py, recorded evidence): M31 6/6 corrupt payloads restore non-inert, S05 1/3, S17 12/288 and S18 3/288 guessed steps priced 0.0 under the mutant, in-domain 0 each (load1 0.90, thread_factor 1.000); recorded prescreen rows: S05/S17/S18 (results_store.jsonl) and M31 (results.jsonl) SURVIVED every driver incl. env_drift (0 killed of 17/15/15/17). Own differential: suite census 0 diverging suite payloads for all four (S04/S08 positive controls diverge 1/4 and 2/4; 10 literal suite payloads, 2 unresolved); through the production QuarantiningStore boundary the recorded mutants diverge S34(M31) 2/9, S05 0/8, S17 0/10, S18 0/10 (direct feed: 7/9, 6/8, 4/10, 2/10) (load1 0.21, thread_factor 1.000). Reachable-divergent sites: 1 of 4",
+     "metric_definition": "Per recorded mutant, payloads on which production and mutant parser restores differ (as_dict, NaN-aware): (A) every literal payload tests/features.py and tests/finite_boundary.py feed the parser; (B) my grid fed directly vs as QuarantiningStore.async_load returns it after a store round trip, the boundary every production store caller loads through.",
+     "method": "Voted on D3-s2's recorded evidence (no pre-screen, no pool, no gate run). Step 1: re-ran tools/audit/round9/D3/s2/witness.py M31 S05 S17 S18 and read results_store.jsonl/results.jsonl rows. Step 2: tools/audit/round9/D3/verify-v2/leads_store_guard_reach.py applies each recorded mutant in memory via D3-s2's mutload.pair and runs an AST census of the suite's payloads plus a store-boundary reach grid. Step 4 (recorded mutants): flow_lift.py:210 `if not np.isfinite(bias) or samples < 0:` -> `if False:` (M31=S34); tariff.py:402 `if not math.isfinite(tracker._window_factor):` -> `if False:` (S05); price_model.py:324 and :349 `if not np.all(np.isfinite(parsed)):` -> `if False:` (S17, S18); all production files, so the gap is not a test measuring itself.",
+     "attacks": "Contention: counts. Gate mode: the recorded survivals include env_drift.py --all, so not a default-mode artefact. Reach (step 3, real HA): every production caller of these parsers reads through a QuarantiningStore (coordinator.py _async_load_thermal_learning -> FlowCurveBias, _async_load_price_model -> PriceShapeModel, _async_load_accuracy -> PeakTracker), whose _sanitize turns non-finite floats and strings that float() makes non-finite into None; through that boundary S05, S17 and S18 diverge on 0 payloads, so by D3-s2's own M4 rule (no divergence over the reachable domain = equivalent) they are equivalent on the store path. Residual path: a snapshot rollback (coordinator.py restore via SnapshotRing.take's unsanitised json round trip) can hand PriceShapeModel/FlowCurveBias a non-finite value only if the live learner already holds one, a second defect; PeakTracker is not in snapshots. M31 stays a gap: a stored negative 'samples' is finite, passes the store, and restores a non-inert learner (2/9 through the store; the witness's samples=-1 fold raises ZeroDivisionError). Null control: --null (orig vs orig) 0 everywhere; positive controls S04/S08 diverge on suite payloads as their recorded kills require. Severity: one reachable site on a corruption-only input: low, not medium.",
      "class": null,
      "seam_rule_enumerates": null,
      "group": "G1",
@@ -4417,8 +4430,8 @@
    }
   },
   "D3-s2-02": {
-   "panel": "split",
-   "n_votes": 2,
+   "panel": "unanimous",
+   "n_votes": 3,
    "votes": {
     "V1": {
      "id": "D3-s2-02",
@@ -4428,6 +4441,19 @@
      "metric_definition": "Guessed steps (of 96) with sigma > 0 from extend_price_series after a learned PriceShapeModel round-trips through as_dict/from_dict",
      "method": "Confirmed price_model.py:368 live at 96b89163 matches storeguards.json S19 'old' text; ran witness.py S19 (wall 0.344s, thread_factor=1.000, load1=0.59), reproducing 96/96->0/96 and 10/10 in-domain divergence exactly; no prescreen/mutant-pool/full-gate rerun and quiet window not run (tvofi rule)",
      "attacks": "contention: clean; gate mode: recorded all 15 drivers green including env_drift --all (not re-run); grid artefact: n/a; null control: the existing features.py:41446 check only feeds a corrupt 'x' payload against a fresh all-zero model, which the mutant also satisfies, shown directly by the round-trip result; real-HA reachability: yes, same Store-restore path; severity: low earned (price_risk_lambda defaults to 0.0, opt-in; other effect is a diagnostic silently resetting)",
+     "class": null,
+     "seam_rule_enumerates": null,
+     "group": "G1",
+     "unit": "leads"
+    },
+    "V2": {
+     "id": "D3-s2-02",
+     "vote": "verify",
+     "severity": "low",
+     "value": "step1 re-run (witness.py S19): restart round trip non-zero sigma steps 96/96 orig -> 0/96 mutant, in-domain divergence 10/10, non-finite sigma 0/576 both (load1 0.90, thread_factor 1.000); recorded prescreen row S19 SURVIVED all 15 drivers incl. env_drift. Own differential: suite census 0 of 1 suite residual_var payloads diverge under the mutant; through the production QuarantiningStore boundary 2/10 grid payloads diverge (direct 3/10), including an ordinary learned variance (load1 0.21, thread_factor 1.000)",
+     "metric_definition": "For recorded mutant S19 (price_model.py:368), payloads on which production and mutant PriceShapeModel.from_dict restores differ: (A) literal suite payloads in tests/features.py and tests/finite_boundary.py; (B) my grid fed directly and through QuarantiningStore.async_load after a store round trip.",
+     "method": "Voted on D3-s2's recorded evidence (no pre-screen, no pool, no gate run). Step 1: re-ran tools/audit/round9/D3/s2/witness.py S19 and read the results_store.jsonl row. Step 2: tools/audit/round9/D3/verify-v2/leads_store_guard_reach.py (same differential as D3-s2-01). Step 4 (recorded mutant): custom_components/heatpump_optimizer/price_model.py:368 `[max(0.0, float(v)) for v in s] for s in var` -> `[(0.0) for v in s] for s in var` (S19), a production file.",
+     "attacks": "Contention: counts. Gate mode: recorded survival includes env_drift.py --all. Reach: unlike D3-s2-01's three price/tariff guards, this divergence survives the store boundary on ordinary data (a learned positive variance, 0.03, restores as 0.0), so it is reached on every restart of a learned model, not only on corruption. Suite: the only suite residual_var payload (tests/features.py:41442, a corrupt 'x' row) restores identically under the mutant (0 of 1), which is the mechanism the finding names: no positive-control round trip. Null control: --null 0. Severity: sigma resets to zero after a restart until relearned, a bounded effect on risk-aware pricing, and the finding is a test gap: low earned.",
      "class": null,
      "seam_rule_enumerates": null,
      "group": "G1",
@@ -8057,15 +8083,12 @@
  },
  "counts": {
   "disputed": 3,
-  "split": 41,
-  "unanimous": 111,
+  "split": 40,
+  "unanimous": 112,
   "killed": 1
  },
- "incomplete": [
-  "D3-s2-01",
-  "D3-s2-02"
- ],
- "note": "Tallied 2026-09-26T13:55Z with panel.py (audit-verify.js PANEL rules). D3-s2-01 and D3-s2-02 still await G1-V2's vote; each has 2 verifies already, so neither can be killed. Re-run panel.py when G1-V2's leads push lands; the judge reads the new votes then.",
+ "incomplete": [],
+ "note": "Final tally 2026-09-26T14:02Z with panel.py (audit-verify.js PANEL rules); all 12 votes files complete.",
  "killed": [
   "D1-s2-01"
  ],

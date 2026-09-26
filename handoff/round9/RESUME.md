@@ -88,6 +88,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:59Z: judge thread 'Round 9 judge' started: session_01PbyVXfvgbi28Q7tt2Uki8q, thread cmsg_01EL5jLi4rokGBbkaevYXSJV8dareMw8K1nN6rdzfVsYtk. R1/R2 held at coordinator until JUDGE-INPUT.json is pushed.
 
+- 2026-09-26T14:03Z: all 12 verifier boxes complete (G1-V2 @16ef80b6). PANEL final: 112 unanimous, 40 split, 3 disputed, 1 killed. NOTES.md extended (D1-s2-52 severity conflict, boost.restore naive-until side observation -> D3-s1-91 class sweep). Judge notified.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
