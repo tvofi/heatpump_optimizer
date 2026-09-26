@@ -1,0 +1,652 @@
+{
+ "box": "G2-V1",
+ "lens": 1,
+ "votes": {
+  "D4": [
+   {
+    "id": "D4-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "contrast_instances=90 (72 cells of 144); 12 under status_text_token",
+    "metric_definition": "contrast_instances: visible enabled text runs with composited fg/bg ratio below 4.5:1 (3:1 large), summed over the 144 targeted cells",
+    "method": "HPO_PLANDATA=<mktemp>/plandata.json python tests/plan_view.py; node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states <12 canonical states> [--perturb status_text_token] (driver tools/audit/round9/D4/verify-v1/run_s1.sh); independent WCAG luminance calc of HA tokens in python",
+    "attacks": [
+     "perturbation status_text_token: 90 -> 12 (down, as stated); the 12 left are white-on-error confirm buttons, a second seam the property names",
+     "cross-arm specificity: menu_clamp/picker_wrap/now_temp_below each leave contrast at 90",
+     "independent ratio calc: #ffa600/#fff 1.96, #43a047/#fff 3.30, #db4437/#fff 4.29, #fff/#db4437 4.29, #db4437/#1c1c1c 3.97 — match the finder; success 5.16 and warning 8.69 on dark pass, as stated",
+     "leave-one-out by site (13 distinct): largest group span.delta.dearer 36 of 90; dropped -> 54; per-site ratio range 1.96–4.29, every site below 4.5; token-determined so not a grid artefact",
+     "null: expanded_plan,plan_inline arm contrast_instances=0",
+     "reach: HA default tokens (#43a047/#db4437/#ffa600) are HA frontend globals; card fallbacks differ but are unused in HA",
+     "load1 3.7–4.7, thread_factor 1.00, counts contention-immune"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "popup_out_cells=6, max_popup_viewport_out_px=9.7 px; 0 and 0 under menu_clamp",
+    "metric_definition": "popup_out_cells: cells where a visible .slot-menu/.tooltip box extends >0.5 px beyond the viewport or its .chartwrap horizontally",
+    "method": "sweep.mjs canonical targeted run, baseline and --perturb menu_clamp",
+    "attacks": [
+     "perturbation menu_clamp: 6 -> 0 (to_zero, as stated)",
+     "cross-arms leave popup_out_cells=6",
+     "null: draft_dirty_menu_open (mid-chart) and every 1280 cell 0; expanded_plan/plan_inline 0",
+     "cell list: all 6 are sv-SE (375 x 2 themes x 2 states chartOut 18.2/44.2, viewportOut 9.7 only for dhw; 768 dhw chartOut 9.3); the claim's English 64 px squeeze is not counted by this metric",
+     "method: the 97% opening point is harness-chosen but a real tap/right-click near the right edge reaches the same unclamped openMenu line",
+     "load1 4.75, thread_factor 1.00"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s1-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "option_indistinct_pairs=8 (8 cells: 375 box=190 px, 768 box=322 px, widest option 377 px); 0 under picker_wrap",
+    "metric_definition": "option_indistinct_pairs: pairs of options in a visible <select> whose full texts differ but whose measureText-fitted visible prefix is identical",
+    "method": "sweep.mjs canonical targeted run, baseline and --perturb picker_wrap",
+    "attacks": [
+     "perturbation picker_wrap: 8 -> 0 (to_zero); option_cut 16 -> 0",
+     "cross-arms leave 8",
+     "null: the 4 1280-px picker cells show 0",
+     "method: prefix is measureText-fitted, not screenshot-read; Chromium listbox does not wrap options — native select rendering in HA's own dialog would be the same Chromium",
+     "reach: needs two entities sharing a friendly name, a plausible but not universal condition; medium holds",
+     "load1 5.61, thread_factor 1.00"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s1-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "pipes=12, pipes_click=12, pipes_keyboard=0, boxes=18, boxes_keyboard=0; pipes_keyboard=12 under --perturb kbd",
+    "metric_definition": "pipes_keyboard: pipes whose edge leaves LayoutEditor.edit.edges after Tab-reach and Enter/Delete/Space",
+    "method": "node tools/audit/round9/D4/s1/layout_kbd.mjs [--perturb kbd] with private HPO_PLANDATA",
+    "attacks": [
+     "perturbation kbd: 0 -> 12 (up, as stated); boxes_keyboard stays 0 (the perturbation touches pipes only)",
+     "null control: pipes_click=12, the action exists by mouse",
+     "grep: no keydown listener on the layout canvas (card keydown listeners at 8043/8051/8407/9582/9598/9750/11132 are other widgets)",
+     "workaround exists outside the card: the apply_topology service (card calls it at ~9517/10554) is keyboard-callable from Developer tools — supports medium, not high",
+     "load1 2.59–3.20, thread_factor 1.00"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s1-05",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "now_marker_collisions=24 (all 24 x_live_default* cells, 13.8x8.6 px en / 7.8x8.6 px sv); 0 under now_temp_below; null 0",
+    "metric_definition": "now_marker_collisions: (text.now-label, text.now-temp) pairs intersecting >3 px in both axes over the 144 targeted cells",
+    "method": "sweep.mjs canonical targeted run, baseline and --perturb now_temp_below; null arm --states expanded_plan,plan_inline; inspected evidence_now_collision_375.png",
+    "attacks": [
+     "perturbation now_temp_below: 24 -> 0 (to_zero); overlap_instances 160 -> 136",
+     "null: expanded_plan,plan_inline without measured sensor -> 0 of 24 cells",
+     "cross-arms leave 24",
+     "reach: withActuals publishes sensor.*_indoor_temperature_optimizer, which a real install publishes, so default-view reach is real",
+     "severity: the overlap is the word 'now' over 'now'; the reading '21.1 °C' stays legible in the finder's own crop; no value is wrong or hidden. Cosmetic label collision -> medium, consistent with the unit's other visual defects (s1-02/03 at medium)",
+     "load1 5.35, thread_factor 1.00"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "unlabelled_fields_en=3, _sv=3, untranslated_errors_en=1, _sv=1; all 0 under --perturb; options twin 0",
+    "metric_definition": "rendered device_prefill field keys lacking config.step.device_prefill.data label, plus returned error keys lacking config.error text, per language",
+    "method": "python tools/audit/round9/D4/s2/prefill_config_strings.py [--perturb]; prefill_after_save.py [--perturb]; own tools/audit/round9/D4/verify-v1/static_xcheck.py",
+    "attacks": [
+     "perturbation: 3/1 -> 0/0 in en and sv (to_zero)",
+     "null: options_twin_unlabelled=0, options_twin_untranslated_errors=0",
+     "after_save: after_save_rendered=1, config_distinct_destinations=1, leaks_into_entry=1 -> 0/0/0 under its perturb; options null 2",
+     "own whole-file enumeration: 11 options.step.modbus_prefill.data keys absent from config.step.device_prefill.data (compressor_freq_sensor, dhw_min_temperature, dhw_legionella_temperature, + 8 more incl. page controls); prefill_device_unreadable absent from config.error in strings.json/en/sv — the finder's 3 is the rendered subset for one device, the universe is larger",
+     "reach: HA frontend shows the raw key for an untranslated field/error",
+     "load1 0.56, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "foreign_currency_units=1 of money_fields=4 (EUR); 0 under --perturb; 0 at --currency SEK; static_fixed_currency_texts=2",
+    "metric_definition": "rendered options-flow NumberSelectors whose unit names a currency other than resolve_currency(hass), hass currency EUR",
+    "method": "python tools/audit/round9/D4/s2/currency_units.py [--perturb|--currency SEK]; static_xcheck.py literal_currency_units",
+    "attacks": [
+     "perturbation: 1 -> 0 (to_zero)",
+     "null --currency SEK: 0",
+     "static: config_flow.py:1645 _number(0, 10000, 10, 'SEK/m³') is the only literal-currency _number (literal_currency_units=1 -> 0 under my perturb); services.yaml:358 unit SEK/m³",
+     "load1 1.45–1.48, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "escaped_error_texts_reached=4, garbled_chars_en=1, garbled_chars_sv=9, escaped_texts_all_files=6; all 0 under --perturb",
+    "metric_definition": "error texts the flows return for the DHW min/setpoint pair whose json.loads string matches \\\\u[0-9a-fA-F]{4}, per flow and language",
+    "method": "python tools/audit/round9/D4/s2/escaped_text.py [--perturb]; static_xcheck.py escaped_leaves; grep of raw files",
+    "attacks": [
+     "perturbation: 4/1/9/6 -> 0",
+     "null: escaped_other_error_texts=0",
+     "own enumeration over every leaf of strings.json, en.json, sv.json: escaped_leaves=6 (strings:362,1457; en:362,1457; sv:360,1455) -> 0 under decode",
+     "reach: rendering by ICU MessageFormat is the finder's stated inference (no HA frontend); json.loads output verified",
+     "load1 1.48, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-04",
+    "vote": "verify",
+    "severity": "high",
+    "value": "two_zone_expert_defaults=1, two_zone_describe_defaults=0; expert 0 under --perturb",
+    "metric_definition": "two_zone_enabled (0/1) of the entry created when every expert-path page is submitted as pre-filled, read through ThermalParameters.from_config",
+    "method": "python tools/audit/round9/D4/s2/zones_default.py [--perturb]; read config_flow.py:2729-2770 and thermal_model.py:995-1020",
+    "attacks": [
+     "perturbation: 1 -> 0 (to_zero)",
+     "null: describe path 0",
+     "static: async_step_zones stores user_input wholesale; fields are vol.Optional(default=DEFAULT_*); from_config 'auto' enables two-zone on presence of any of 4 zone keys; strings.json:116 says 'Leave defaults if you don't need the two-zone model'",
+     "reach: real HA posts schema defaults and voluptuous refills Optional defaults even when cleared, so not stub-only",
+     "severity: silently wrong thermal model for a single-zone house (plan/comfort); high earned",
+     "load1 1.48, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "off_grid_defaults=8, off_grid_derived=4, off_grid_slider_fields=0 (box=50, slider=42); 0/0 under --perturb",
+    "metric_definition": "distinct rendered NumberSelector fields whose rendered value Chromium's <input type=number min max step> reports stepMismatch",
+    "method": "NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python tools/audit/round9/D4/s2/step_grid.py [--perturb]",
+    "attacks": [
+     "perturbation step 'any' for box fields: 8/4 -> 0/0",
+     "null: slider fields 0",
+     "per-field spinner results reproduced (slab_thermal_mass 5 -> 5.1, upper_floor_heat_loss 0.08 -> 0.081, window_area 10 -> 10.01)",
+     "reach caveat stays: HA box-mode selector forwarding min/step to a native input is inferred, not measured; low reflects it",
+     "load1 1.65, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-06",
+    "vote": "verify",
+    "severity": "low",
+    "value": "derived_fields_rendered=10, unwarned_derived_fields_en=6, _sv=6, warned 4; unwarned 0 under --perturb; --disarmed warned 0",
+    "metric_definition": "DERIVED_THERMAL_KEYS fields rendered on an options page whose placeholder-substituted description lacks PRESET_WARNING[lang], preset armed",
+    "method": "python tools/audit/round9/D4/s2/preset_warning.py [--perturb|--disarmed]",
+    "attacks": [
+     "perturbation: 6 -> 0 per language (warned 4 -> 10)",
+     "null --disarmed: warned_derived_fields=0 both languages (unwarned 10)",
+     "load1 1.44–1.48, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-07",
+    "vote": "verify",
+    "severity": "low",
+    "value": "repeated_completed_options=1, menu_identical_after_quick=1; 0/0 under --perturb; null_repeated_options=0",
+    "metric_definition": "options on the menu reached after the quick path that re-offer the completed quick_setup path",
+    "method": "python tools/audit/round9/D4/s2/quick_menu.py [--perturb]",
+    "attacks": [
+     "perturbation: 1/1 -> 0/0",
+     "null: first menu re-offers nothing (0)",
+     "load1 1.44, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-08",
+    "vote": "verify",
+    "severity": "low",
+    "value": "services_registered=12, services_without_icon=12; 0 under --perturb; entity_keys_without_icon=0",
+    "metric_definition": "registered domain services with no icons.json services.<name> entry",
+    "method": "python tools/audit/round9/D4/s2/service_icons.py [--perturb]; static_xcheck.py services_without_icon over services.yaml",
+    "attacks": [
+     "perturbation: 12 -> 0",
+     "null: entity icons 0 missing",
+     "own enumeration via services.yaml top-level keys: 12 of 12 without icon; 12 async_register calls in services.py",
+     "load1 1.44, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-09",
+    "vote": "verify",
+    "severity": "low",
+    "value": "bare_unit_help_texts_en=8, _sv=8; 0 under --perturb; selector_units_degC=31, bareC=0",
+    "metric_definition": "rendered fields whose data_description matches (\\d) C\\b or \\bm2\\b, per language",
+    "method": "python tools/audit/round9/D4/s2/unit_typography.py [--perturb]; static_xcheck.py bare_unit_leaves",
+    "attacks": [
+     "perturbation: 8 -> 0 per language",
+     "null: selector_units_bareC=0",
+     "own whole-file enumeration: 9 data_description leaves per language (the finder's 8 rendered + one leaf on a page its walk does not render); -> 0 under my perturb",
+     "load1 1.49, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D8": [
+   {
+    "id": "D8-s1-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "95 wrong quarter instants of 96 (finder's harness); own: 1425 of 1440 minutes wrong",
+    "metric_definition": "Of 1440 minutes of 2026-01-15 (Europe/Stockholm), minutes where coordinator._current_spot_price() differs from the price entry whose [start, next start) covers now, with a 15-min list whose quarters are priced differently.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/price15.py [--hourly|--fix|--cycle]; PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/verify-v1/own.py [--fix-price]",
+    "attacks": [
+     "re-run: wrong_quarters=95, worst 0.3000, --cycle cycle_sensor_minus_plan=0.0800 (matches finder); load1 0.56, thread_factor 1.000",
+     "perturbation --fix: 95 -> 0 (to_zero, as stated); own --fix-price: 1425 -> 0",
+     "null control --hourly: 0; own null arms hourly 0 of 1440, flat 15-min list 0 of 1440",
+     "leave-one-out: not a grid aggregate (one day, one topology)",
+     "reachability: price_model.py:577 queries Tibber priceInfo(resolution: QUARTER_HOURLY), so 15-min lists reach the coordinator in real HA, not only via the stub",
+     "severity: the 0.30 worst error comes from the harness's synthetic intra-hour ramp; the count holds whenever quarters differ. _get_current_price also feeds settlement (finder's own statement, not measured here), which could lift the consequence to wrong money; left for V3/judge"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "dhw_periods_vs_slots=92 of 92 DHW cycles (full matrix); +dhw subset 12 -> 0 under perturbation; own: 3 of 4 synthetic schedules",
+    "metric_definition": "Synthetic 96-step DHW schedules with 2 runs of k consecutive active steps (k=1..4): count where DHWScheduleSensor's leading integer differs from len(coordinator._plan_slots(...)).",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/matrix.py (30m47s wall, load1 1.35 at end); matrix.py --only +dhw [--perturb-dhw-runs]; own.py",
+    "attacks": [
+     "re-run full matrix: dhw_periods_vs_slots=92 (matches); thread_factor 1.000",
+     "perturbation --perturb-dhw-runs on --only +dhw: 12 -> 0 (to_zero)",
+     "null control (own): run length 1 gives sensor 2 = slots 2, i.e. agreement where every slot is one step; runs of 2/3/4 give 4/6/8 vs 2",
+     "leave-one-out: 46 cells x 2 each, min=max=2, drop one cell -> 90 (matches finder)",
+     "horizon attack: the perturbation reads the same dhw_schedule and reaches 0, so the gap is the step-vs-run count, not a horizon difference"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "power_while_off_min1_0=4 steps (all in coord_all_features), worst 0.41 kW; full matrix power_while_off=2 of 180 cycles; own: 9 of 10 synthetic powers",
+    "metric_definition": "Space powers 0.05..0.50 kW at heat_pump_min_power 1.0 (on-threshold 0.5), through optimizer.get_current_action with no heat_pump_on_schedule and _build_data_dict: count where Recommended Power > 0.05 kW while Heat Pump Action == 'off'.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/minpower.py [--perturb]; full s1/matrix.py; own.py [--gate-power]",
+    "attacks": [
+     "re-run: 4 at min 1.0, 0 at 0.2/0.6/1.5 (matches); load1 3.62, thread_factor 1.000",
+     "perturbation --perturb: 4 -> 0; own --gate-power: 9 -> 0",
+     "null control min_power 0.2 arm: 0 (matches)",
+     "leave-one-out: range 0..4 per cell, drop max cell -> 0: the whole aggregate rests on one cell of five and one min_power arm of four; the full matrix adds 2 real cycles, both on coord_all_features (+valve, +grid_fee)",
+     "own synthetic shows the mechanism is general (commanded_power_kw never reads heat_pump_on), and exposes a boundary: at power exactly = on-threshold (0.5) heat_pump_on uses '>' while space_on uses '>=', so the step is 'off' with 0.5 kW published",
+     "severity low stands: published value is cosmetic while the pump is off; whether the plan's cost books the sub-threshold kW is D0/D2's, not measured"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s2-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "climate_unavailable_with_payload=5 of 10 cells, climate_attrs_hidden=112; own: available=0 without indoor entity, 1 with it",
+    "metric_definition": "HeatPumpOptimizerClimate.available after one real _update_current_state and _build_data_dict with last_update_success True: config without indoor_temp_entity vs with it.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py [--perturb-available]; own.py",
+    "attacks": [
+     "re-run: 5 and 112 (matches); load1 4.95, thread_factor 1.000",
+     "perturbation --perturb-available: climate_unavailable_with_payload and climate_attrs_hidden both 0 (lines vanish from nonzero RESULTs)",
+     "null control: the 5 thermometer cells read 0 in the harness; own with-indoor arm available=1",
+     "leave-one-out: all 5 no-thermometer cells unavailable, 5 thermometer cells available; per-cell binary, drop any cell -> 4",
+     "reachability: config_flow.py:1264 vol.Optional(CONF_INDOOR_TEMP_ENTITY), so the no-thermometer install is shippable",
+     "severity attack: workarounds exist for the lost control: Optimizer Active switch and the set_mode service for mode, the options-flow target_temperature field (config_flow.py:1566) for the setpoint. COMMON defines 'a defect with a workaround' as medium. The gate is also the recorded A3(e) decision pinned at tests/entities.py:3344-3383, so the fix is an owner decision"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s2-02",
+    "vote": "verify",
+    "severity": "high",
+    "value": "hvac_action_vs_plan=14 arms (7 in available-climate cells); own: 2 of 2 channels at mode off, 0 of 2 at mode auto",
+    "metric_definition": "boost.overlay applied per channel to an off action, live and payload mode off vs auto: count where the action has heat_pump_on True and climate.hvac_action is OFF or IDLE.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py [--perturb-hvac-action]; own.py",
+    "attacks": [
+     "re-run: 14 (matches); per-step oracle hvac_action_steps_vs_plan=0 of 96",
+     "perturbation --perturb-hvac-action: 14 -> 0",
+     "null control: mode-auto arms 0 in the harness (no DETAIL line); own auto arm 0 of 2",
+     "method attack: 7 of the 14 arms are no-thermometer cells, where climate.available is False (D8-s2-01), so real HA publishes 'unavailable' there and not hvac_action=off; the published count is 7 (5 space + 2 DHW arms in thermometer cells). Phenomenon unaffected",
+     "reachability: coordinator.py:4650-4651 calls boost.apply then _apply_action in every mode incl. off, and boost.overlay sets heat_pump_on True (boost.py:110-125, with a #1499 comment that a false action must not be published); the pump runs while the thermostat publishes off"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "mode_split_after_action=2 state writes; own: 2 of 2 (climate hvac_mode off / hvac_action heating; switch is_on False / attr mode auto)",
+    "metric_definition": "With coord._mode set to off and payload mode still auto (the state publish_then_refresh writes before the solve): count of entity writes where the live-mode field disagrees with the payload-mode field.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py [--perturb-live-mode]; own.py",
+    "attacks": [
+     "re-run: 2 (matches); load1 3.66 on the perturbation run, thread_factor 1.000",
+     "perturbation --perturb-live-mode: 2 -> 0",
+     "null control (own): before the live mode changes, both entities agree (split arises only once coord._mode moves)",
+     "leave-one-out: 2 writes, one per entity; either alone is a split",
+     "duration: the 30-70 s window is the text of entity.py:147 (publish_then_refresh docstring), not measured by the finder or by me; the state is transient and self-healing after the refresh, so medium not high"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "families_split_unexplained name_en=2, name_sv=2, entity_id=1; --perturb -> 1, 1; own: Diagnose Last Interval sits 35 (en) / 40 (sv) positions from Prediction Accuracy in the 74-name sort",
+    "metric_definition": "Positions apart of the diagnose button and Prediction Accuracy in the casefolded sort of all 74 entity names read from translations/en.json and sv.json.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py [--perturb]; own.py",
+    "attacks": [
+     "re-run: 2/2/1 (matches); load1 3.17, thread_factor 1.000",
+     "perturbation --perturb: name_en 2 -> 1, name_sv 2 -> 1 (down, as stated)",
+     "null control: ecl110, tariff, learning, card_headline runs=1 in all three orderings (matches)",
+     "leave-one-out: 8 families; drop accuracy or energy_meters -> 1 each; no single family carries both",
+     "reachability: DiagnoseIntervalButton has entity_category None, so on the HA device page it sits under Controls and Prediction Accuracy under Sensors; the split is visible in the name-sorted Settings > Entities table, not on the device page. Severity low/hygiene stands"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "concept_mismatch=1; --perturb -> 0; own: sv 'Sensorlucka i valutan' vs en 'Sensor-Gap Advisor' (translations/*.json:1872-1873)",
+    "metric_definition": "Direct read of entity.sensor.sensor_gap_advisor.name in translations/en.json and sv.json.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py [--perturb]; own.py; grep of strings.json/en.json/sv.json",
+    "attacks": [
+     "re-run: concept_mismatch=1, key_set_differences=0, names_checked=74 (matches)",
+     "perturbation --perturb: 1 -> 0 (to_zero)",
+     "null control: concept_mismatch_other_tokens=0 over 74 names (matches)",
+     "leave-one-out: single entity, n/a"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D8-s3-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "duplicate_enabled_pairs=1 (indoor_temperature_optimizer == upper_floor_temperature); --perturb -> 0 while duplicate_pairs_any_default stays 1; own: both classes enabled by default, same _reading_key",
+    "metric_definition": "Class attributes: UpperFloorTempSensor and IndoorTempSensor _attr_entity_registry_enabled_default and _reading_key.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py [--perturb]; own.py",
+    "attacks": [
+     "re-run: 1 (matches), topologies=5; load1 3.24, thread_factor 1.000",
+     "perturbation --perturb: 1 -> 0 (to_zero)",
+     "null control: duplicate_pairs_any_default=1 under --perturb (matches), so the move is the registry default",
+     "leave-one-out: 5 topologies, 1 in each, drop one -> 1",
+     "decision attack: UpperFloorTempSensor's docstring (sensor.py:920-942) records keeping the entity and names the duplicate; that decision covers removal, not the enabled default, and the proposed fix (disabled on new installs) orphans nothing"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D10": [
+   {
+    "id": "D10-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "dup_accepted=3/5 arms, stale_refused=3/5 (finder: 3, 3); save-and-close seam: dup_accepted_close_path=2/2",
+    "metric_definition": "Arms in which a fresh HeatPumpOptimizerConfigFlow that submits the entry's current effective identity answers is not aborted as already_configured.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/unique_id_drift.py [--fix]; one-line on-disk edit to async_step_reauth_confirm (unique_id=entry_identity(...)) then the finder harness again, then reverted with git checkout; own harness tools/audit/round9/D10/verify-v1/uid_close_path.py [--fix]",
+    "attacks": [
+     "finder --fix: dup 3->0, stale 3->0, direction to_zero confirmed",
+     "production-seam perturbation, on disk in the reauth step only: dup 3->2 and stale 3->2; only the reauth arm flips, so the count is keyed on the production write and not the stub wrapper",
+     "null control: control_none and reconfigure are 0 at baseline and under --fix",
+     "leave-one-out over the 5 binary arms: dropping any one positive arm gives 2; per-arm range 0-1",
+     "unmeasured seam: the options after_save=close path (_save -> async_create_entry) gives 2/2 dup at baseline and 0 with a re-stamp; control_close is 0. The finder's --fix wraps async_update_entry and so would miss this seam; the seam_rule grep lists async_create_entry and does enumerate it",
+     "real-HA reach: the stub's _abort_if_unique_id_configured looks up entry.unique_id through async_entry_for_domain_unique_id, which matches upstream's comparison against current entries' unique_id, so the stale id reaches real HA",
+     "severity: dup_accepted means two entries actuate one pump, which needs a deliberate re-add; stale_refused refuses only the original answers, which are revoked or superseded, so it has near-zero consequence; medium holds on dup_accepted",
+     "contention: the metric is a count; load1 0.35-1.65, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D10-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "silent_presses=2/3 arms (finder: 2); own: press_returned_ok=2, fully_silent=1 (stale_prices)",
+    "metric_definition": "Input arms in which handle_run_optimization raises HomeAssistantError on a coordinator state while ForceOptimizationButton.async_press on the same state returns without an exception.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/press_vs_service.py [--fix]; own harness tools/audit/round9/D10/verify-v1/press_signal.py [--fresh]",
+    "attacks": [
+     "finder --fix: 2->0; prices_ok stays 0",
+     "own perturbation --fresh (current prices in the stale arm, input only): press_returned_ok 2->1 and fully_silent 1->0, in the stated direction",
+     "null control: prices_ok is 0 in all runs",
+     "leave-one-out: dropping stale_prices gives 1, dropping feed_down gives 1",
+     "signal check: the feed_down press leaves last_update_success=False, so entities go unavailable, a visible signal; the stale_prices press creates 0 repair issues and leaves last_update_success=True, a fully silent not-run",
+     "real HA not modelled: upstream async_request_refresh is debounced (cooldown), so a second press inside the cooldown returns before any refresh, another silent path the stub cannot show; not measured",
+     "counts; load1 1.45-4.70, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D10-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "auth_as_transient=3/3 auth arms, transient_ok=2/2 (finder: 3, 2); own: 5 revoked-token POSTs in 6 steady cycles, reauth_started=1, auth_class=0",
+    "metric_definition": "Auth-refusal arms (HTTP 401/403) in which the exception escaping async_setup_entry or _fetch_tibber_prices is not ConfigEntryAuthFailed.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/auth_failed.py [--fix]; own harness tools/audit/round9/D10/verify-v1/auth_polls.py --status 401|403|500|200; grep ConfigEntryAuthFailed over custom_components/ and tests/hastub (0 hits)",
+    "attacks": [
+     "finder --fix: 3->0; transient_ok stays 2",
+     "own perturbation --status 200 or 500: reauth_started 1->0 and revoked_posts 5->0; 403 equals 401 (5, 1)",
+     "null control: the finder's 500 and conn_error arms are transient (2/2); own 500 arm reauth_started=0",
+     "leave-one-out: dropping any auth arm gives 2",
+     "0 ConfigEntryAuthFailed in production or the stub (grep), so the stub-gap part of the claim holds",
+     "consequence: the reauth flow is still started once, so the user is prompted; the cost is continued polling with a revoked token (upstream's auth arm stops scheduling) and setup retries instead of a reauth-required state; low is earned",
+     "counts; load1 1.45-4.76, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D10-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "untranslated presets 2/4 in strings, en and sv, uniconed 2 (finder: 2); own: uncovered=2 in each of strings.json, icons.json, translations/en.json and translations/sv.json; 0 preset_mode leaf keys under any key in any file",
+    "metric_definition": "Count of the climate entity's preset_modes that are neither HA-standard presets nor present in entity.climate.<translation_key>.state_attributes.preset_mode.state of translations/en.json.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py [--perturb translate|eco]; own harness tools/audit/round9/D10/verify-v1/preset_tables.py [--perturb en_only]",
+    "attacks": [
+     "finder perturbations: translate 2->0 and eco 2->1, directions confirmed",
+     "own perturbation en_only: uncovered_tr_en 2->0 while the other three files stay 2; the count is per file",
+     "null control: the standard presets comfort and boost need no table and count 0",
+     "leave-one-out over 4 files: range 2-2, and dropping any file gives 2",
+     "own key-agnostic scan finds no preset_mode table under any translation key, so the finding is not a wrong-key artefact",
+     "severity: the entity publishes a correct raw token ('economy', 'auto'), and the consequence is an untranslated label and a default icon for 2 of 4 presets in the more-info dialog; no wrong value, money or comfort; a translated optimization_mode sensor state 'economy' exists; the quality_scale.yaml 'entity-translations: done' / 'icon-translations: done' claims are a docs-claim matter; low, not medium",
+     "counts; load1 1.48-4.35, thread_factor 1.000"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D12": [
+   {
+    "id": "D12-s1-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "A (probe omitted): 23/24 solves mismatch >1 K, 1 distinct solver-initial dhw value, 6.25 window-h below min, 1.64 kWh; B (probe mapped): 0, 23 distinct, 0.0 h, 3.89 kWh; flat: A 23 / 6.5 h, B 0 / 0.0 h; grid 5 cells 6.25..6.75 h, drop-best mean 6.500 h; load1 5.24, thread_factor 1.000",
+    "metric_definition": "Count of hourly solves whose _solve_snapshot state.dhw_temperature differs >1 K from the model-truth tank advanced by simulate_dhw_step with each plan's executed first hour (the finder's definition; own arms use the same key).",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --hours 24 | --hours 24 --flat | --grid; tools/audit/round9/D12/verify-v1/dhw_default.py (in-memory ThermalState.dhw_temperature default 55->45 over the finder's run_arm; plus truth tank started at 55). grep of writers: coordinator.py:5435 is the only assignment to _current_state.dhw_temperature.",
+    "attacks": [
+     "severity is conditional: high holds where the plan's DHW is actuated; where the pump's own thermostat heats the tank the consequence is a wrong plan and cost, which is medium; reach is V3's lens",
+     "perturbation (finder's, arm B probe mapped): 23 -> 0 mismatches, 6.25 -> 0.0 h. Moves to zero as stated.",
+     "own one-line production perturbation (default 55 -> 45 in memory): executed DHW 1.64 -> 16.0 kWh, window-h 6.25 -> 0.0, truth min 31.64 -> 49.73 C. The solver's DHW plan follows the constant, which confirms the mechanism.",
+     "start-offset control (truth tank starts at the 55 C default rather than the harness's 50 C): 21/24 mismatches, 5.75 h. The finding does not rest on the baked-in initial 5 K offset.",
+     "null control flat prices: A 23 / 6.5 h, B 0 / 0.0 h. Not a price artefact.",
+     "leave-one-out, 5 grid cells: 6.25..6.75 h, 6.500 h with the most favourable cell dropped.",
+     "method: the truth tank is the integration's own model, advanced only by the plan's DHW. Real consequence (cold tank) needs the plan's DHW to be the only heating, i.e. actuated through the mode slot. Otherwise the pump's own DHW thermostat keeps the real tank warm and the defect is a wrong plan.",
+     "slab half: A 5/24 mismatches at time-varying prices and 0/24 at flat prices, so it is weaker than the DHW half.",
+     "contention: counts under a frozen clock, load1 3.3-5.2; contention-immune."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s1-02",
+    "vote": "verify",
+    "severity": "high",
+    "value": "options_pages_inventing_dhw_plan=2 (hot_water 9 steps 3.16 kWh, hot_water_tank 9 steps 3.16 kWh; control_no_save 0/0); --fallback-dhw: 0; undo by clearing the field: 2/2 pages stay dhw_enabled; load1 4.55, thread_factor 1.000",
+    "metric_definition": "Count of option pages whose untouched submit over a no-DHW entry leads to a published plan with any dhw_power_schedule step > 0 after setup plus one coordinator cycle (the finder's definition); own: dhw_enabled derived from the stored config after a second save with the DHW field cleared.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/phantom_dhw.py [--fallback-dhw]; tools/audit/round9/D12/s1/flow_pages.py [--no-omit]; tools/audit/round9/D12/verify-v1/phantom_undo.py",
+    "attacks": [
+     "perturbation --fallback-dhw: 2 -> 0 (the wizard_dhw_step seam stays at 9 steps / 3.16 kWh; that seam is D12-s3-01's).",
+     "null control: no page submitted gives 0 steps, 0 kWh.",
+     "workaround check (phantom_undo.py): after the untouched save, re-saving the same page with the DHW field omitted leaves dhw_windows / dhw_tank_volume stored and dhw_enabled True on 2/2 pages. The options flow never writes dhw_enabled (grep: CONF_DHW_ENABLED appears in config_flow.py only in comments). No in-UI undo was found, so high is earned.",
+     "design attack: config_flow.py:2095-2101 records storing the DHW pair as deliberate ('presence-inferred'), and the finder's perturbation would remove the only way to switch on a probe-less tank at default values. The fix must add an explicit answer, as the finder's fix scope says; the fallback alone is not the fix.",
+     "seam-rule instrument: flow_pages.py --no-omit (its declared perturbation, 'count up') prints pages_inventing_plant=2, the same as the baseline. On this tree the 19 other pages' 'invents nothing' result is therefore not attributable to _omit_unstored_defaults, and the seam_rule's own perturbation is void.",
+     "overlap with D12-s3-01: the same presence rule (_dhw_enabled_from_config) through the wizard dhw step (phantom_dhw wizard_dhw_step=9). This is noted for the judge, not deduplicated.",
+     "leave-one-out: not an aggregate over a grid (2 pages); n/a."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "onoff_failing_cells=4 (LOO 3) of 9; modulating 0 (max 0.014); shoulder withheld_frac 0.671 (8.30/12.38 kWh); e2e turn_off with planned heat onoff 30, modulating 0; shoulder min room 20.64 planned vs 19.89 actuated, 17.23 K*h below plan, 0.00 below min; own net_ratio (ON steps at 6 kW) 0.485 on shoulder, <0.9 in 1/9 cells; load1 4.03, thread_factor 1.000",
+    "metric_definition": "withheld_frac = planned space+DHW kWh in steps whose production heat_pump_on_schedule is False / plan total kWh; a cell fails above 0.10 (finder's). Own: net_ratio = sum(on steps)*max_electrical_power*dt / planned kWh.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s2/onoff_switch.py [--perturb | --min 1.0]; tools/audit/round9/D12/verify-v1/onoff_delivered.py [--min 1.0]",
+    "attacks": [
+     "perturbation --perturb (0.1 kW threshold): failing cells 4 -> 0, e2e 30 -> 0, shoulder K*h below plan 17.23 -> 0.00. --min 1.0: 4 -> 0, e2e 30 -> 0. Moves down as stated.",
+     "null control, modulating arm: 0/9 cells, e2e 0.",
+     "leave-one-out: 3 cells fail with the worst dropped; mean 0.136 -> 0.069.",
+     "one-sided metric: withheld_frac and the consequence arm (sp*on) count only switched-off planned heat, not the over-delivery of an on/off pump switched ON at 6 kW on steps planned at 3-6 kW. With ON steps at max power, net_ratio is 0.957 / 1.008 / 0.928 on three of the four 'failing' cells and 0.485 on shoulder; range 0.485..1.652, and 1/9 cells deliver <90% of the plan. The 4/9 headline therefore overstates net under-delivery. Shoulder (mild weather, the trickle regime) is a real net 51% shortfall.",
+     "consequence bounded: 0 K*h below min_temperature open-loop, and the hourly re-plan starts from the measured room. This supports medium, not higher.",
+     "reach: hastub FakeServices for the e2e calls; the switch path itself is not stub-specific. V3's lens."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "input_select: misrouted 5, ticks_mode_wrong 9, repair 1; sensor: 5/9/1; select (null): 0/0/0; failing_mode_domains=2; --perturb: input_select 0/0/0, sensor 0/9/0, failing 1; load1 3.77, thread_factor 1.000",
+    "metric_definition": "misrouted_mode_writes = mode-slot service calls from pump_arbiter.apply whose service domain differs from the target entity's domain, over 9 ticks 7 min apart, with HA entity-service routing modelled (finder's).",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s2/mode_domain.py [--perturb]; code read: pump_arbiter.py:456-461 hard-codes 'select','select_option'; topology.py:100 _MODE = ('select','sensor','input_select'); coordinator.py:1783 _on_off_service routes the switch slot by domain (#1526).",
+    "attacks": [
+     "perturbation --perturb (route by the target's domain): input_select 5 -> 0 calls, 9 -> 0 ticks, repair 1 -> 0. The sensor cell keeps 9 wrong ticks as the header predicts (the read-only half).",
+     "null control, select slot: 0 / 0 / 0.",
+     "leave-one-out: 3 domain cells, not a grid aggregate; the count is per cell.",
+     "reach: the harness models HA routing itself (select.select_option acts only on select.*). In real HA a mismatched entity service call resolves no entity and does not raise, so the write is recorded as made and the repair follows. The same routing class was accepted for #1526. Real-HA confirmation is V3's lens.",
+     "contention: counts; immune."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "onoff_full_power_mislabelled=149 (LOO 118, 7/9 cells, range 0..31); modulating 0; onoff power_normalized min -60.0; --min 5.0: 0 and min -5.0; own: 149 full-power steps map to setpoint == min_temp in _power_to_setpoints on the onoff arm, 0 on the modulating arm; load1 4.03, thread_factor 1.000",
+    "metric_definition": "full_power_mislabelled = plan steps with planned space power >= 0.99*max_electrical_power whose published HeatPumpActionSensor state is not 'boost', summed over 9 golden cells (finder's). Own: full-power steps whose _power_to_setpoints output equals min_temp.",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s2/onoff_label.py [--min 5.0]; tools/audit/round9/D12/verify-v1/onoff_delivered.py [--min 1.0] (setpoint seam)",
+    "attacks": [
+     "perturbation --min 5.0: 149 -> 0, power_normalized min -60 -> -5.0. Moves down as stated.",
+     "null control, modulating arm: 0 mislabelled. Its power_normalized minimum is -0.2 over 585 steps, the same formula on every install (the finder's lead).",
+     "leave-one-out: 118 with the worst cell (flat_prices, 31) dropped; 7/9 cells non-zero.",
+     "same divisor, further seams: the seam_rule grep lists optimizer.py:2189, :6898, :6931, :7037. Executed: _power_to_setpoints maps all 149 full-power on/off steps to min_temp (0 on modulating, 0 under --min 1.0). _power_to_displace_schedule has the same form. If an on/off pump is driven through a setpoint or displace path, the consequence goes beyond a label to actuation. Which control path an on/off install uses is V3's reach question; I keep medium.",
+     "contention: counts; immune."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s3-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "paths=6, invented_paths=2 (dhw 2, two_zone 1); --answers no and --answers shipped: same; --perturb explicit_presence: 0; thermal path plan 26.36 vs 21.32 kWh, predicted_cost 19.831 vs 11.421 (finder: 26.45/22.24, 19.289/11.796); load1 4.86, thread_factor 1.000",
+    "metric_definition": "Initial-flow completion paths (DFS over menus, forms untouched, quick-setup plant answers 'no') whose entry's first _async_update_data publishes dhw_enabled with a dhw_plan tank trajectory, or two_zone_enabled, with no affirming answer (finder's).",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s3/flow_paths.py [--answers no | --answers shipped | --perturb explicit_presence]",
+    "attacks": [
+     "perturbation --perturb explicit_presence: 2 -> 0.",
+     "null control: the 4 quick-setup paths through the same dhw/zones pages invent 0 (explicit flags win).",
+     "harness contract defect: the header's 'Expected (--answers no): paths=5, invented_paths=3 (exact)' does not match the executed 6 / 2 or the finding record (6 / 2). The header is stale; the finding's value reproduces.",
+     "secondary numbers: thermal-path kWh and cost differ from the record by 0.09 / 0.92 kWh and 0.54 / 0.38 cost units; the headline count is exact. The source of the drift was not isolated.",
+     "consequence attack: on both invented-DHW paths the first cycle plans 0.00 kWh DHW ('tank modelled over 96 steps'), so the first-cycle cost gap on the thermal path comes mostly from the invented second zone. The DHW half's cost shows up in later cycles (compare D12-s1-02: 3.16 kWh at +10 h).",
+     "overlap with D12-s1-02 (same _dhw_enabled_from_config rule; the wizard dhw seam is counted in both). Noted for the judge.",
+     "leave-one-out: a count over 6 enumerated paths, not a grid; n/a."
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "leads": [
+   {
+    "id": "D8-s3-61",
+    "vote": "verify",
+    "severity": "low",
+    "value": "valve_value_but_default_off=5 of 5; valve_unknown_available_no_valve=5 of 5",
+    "metric_definition": "topologies (of 5 golden coordinator scenarios) with mixing_valve_mode=manual where ValveTargetRecommendationSensor.native_value is not None and entity_registry_enabled_default is False",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only D (and --perturb valve); grep -n '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py binary_sensor.py; read ValveTargetRecommendationSensor source at sensor.py:2106-2146",
+    "attacks": [
+     "perturbation: entity_registry_enabled_default wired to mixing_valve.is_throttling(mode) in memory -> valve_value_but_default_off 5->0 exactly as finder's observed_value=0, direction to_zero confirmed",
+     "null control: not required (count claim, not cost/gain) -- the no_valve arm serves as the built-in contrast, unknown_available stays 5/5 unperturbed",
+     "leave-one-out: all 5 topologies independently show the same defect (drop any one cell -> 4/4 still positive)",
+     "contention: exact count, contention-immune (load1 1.77-1.95, thread_factor 1.000)",
+     "reachability: static class attribute and base HeatPumpOptimizerSensorBase.available confirmed by source read, not stub-only",
+     "severity: low matches consequence (diagnostic entity discoverability, not wrong money/comfort)"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D4-s2-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "en_identical_total=41 (flow_page_lines_identical_to_en=22 of 23, slot_labels_identical_to_en=16 of 16, advisor_labels_identical_to_en=3 of 3); null_narrative_lines_identical_to_en=0 of 1",
+    "metric_definition": "published setup strings (rendered setup_overview lines, setup_topology slot labels, sensor_advisor labels) byte-identical between an en and sv install",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py (and --perturb)",
+    "attacks": [
+     "perturbation: topology.describe_setup/render_text_summary/rank_sensor_advisor wrapped to pass sv literals through a translation stand-in -> en_identical_total 41->0 exactly as finder's observed_value=0, direction to_zero confirmed",
+     "null control: narrative.render on the same sensors gave 0 of 1 identical, matching the finder's null exactly",
+     "leave-one-out: not a >=5-cell grid (single house config, three fixed seams); n/a",
+     "contention: exact count, contention-immune (load1 1.74, thread_factor 1.000)",
+     "reachability: real production path (config_flow._setup_overview_form, topology module), no stub-only behaviour",
+     "severity: medium matches consequence (user-visible untranslated UI, not wrong money/comfort/data)"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D12-s3-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "blocked_verdicts=8, blocked_currencies=4 of 12 (HUF,ISK,JPY,KRW); null_blocked=0 of 4",
+    "metric_definition": "seam verdicts refusing or capping a 0.05 EUR/kWh fee expressed in each of 12 currencies at the stated exchange-rate table (rules refusal, fixed selector max, repair raised)",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py (plain, --perturb, --fee 0.03); grep -n 'IMPLAUSIBLE_FEE_SEK_PER_KWH\\|_number(0, 5, 0.01' custom_components/heatpump_optimizer/*.py",
+    "attacks": [
+     "perturbation: IMPLAUSIBLE_FEE_SEK_PER_KWH 10->1e6 in memory -> blocked_verdicts 8->4, matching finder's observed_value=4 and direction down; seams a/c drop to 0, seam b (fixed selector max, independent of the constant) stays 4",
+     "null control: SEK/EUR/NOK/DKK gave 0 of 4 blocked, matching the finder",
+     "leave-one-out: dropping HUF or KRW (3 of 8 verdicts each) leaves blocked_verdicts=5, blocked_currencies=3",
+     "fee sensitivity: --fee 0.03 gives blocked_verdicts=6, blocked_currencies=2 (HUF,KRW); not an artefact of the 0.05 EUR choice",
+     "contention: exact count, contention-immune (load1 1.68-1.70, thread_factor 1.000)",
+     "reachability: grid_fee.py:70 IMPLAUSIBLE_FEE_SEK_PER_KWH=10.0 and config_flow.py:1720 selector max=5 are production constants",
+     "severity: medium (blocks entering an ordinary fee in 4 currencies; manual-conversion workaround; no data loss)"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ]
+ }
+}
