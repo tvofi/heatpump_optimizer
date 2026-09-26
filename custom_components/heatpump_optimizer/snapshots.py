@@ -192,6 +192,8 @@ class SnapshotRing:
                     )
                 continue
             bias = accuracy.get("temperature_bias")
+            if bias is not None and not isinstance(bias, (int, float)):
+                continue
             if bias is not None and (
                 not np.isfinite(bias) or abs(float(bias)) > BIAS_BAND_C
             ):
@@ -226,6 +228,11 @@ class SnapshotRing:
                     "the rest of the ring was kept",
                     dropped,
                 )
+            from .store import stored_instant
+            for snap in clean:
+                taken = stored_instant(snap.get("taken_at"))
+                if taken is not None:
+                    snap["taken_at"] = taken.isoformat()
             ring.snapshots = clean[-RING_SIZE:]
         try:
             ring._bias_days = max(0, int(data.get("bias_days", 0)))

@@ -158,14 +158,8 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
 
 
 def _parse_until(raw: Any) -> datetime | None:
-    if isinstance(raw, datetime):
-        return raw
-    if not raw:
-        return None
-    try:
-        return datetime.fromisoformat(str(raw).strip())
-    except ValueError:
-        return None
+    from .store import stored_instant
+    return stored_instant(raw)
 
 
 async def persist(coord: _BoostCoord) -> None:

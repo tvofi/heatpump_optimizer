@@ -162,5 +162,7 @@ class CurveLearner:
         except (TypeError, ValueError, OverflowError):
             learner.resets = 0
         learner._last_day = str(data.get("last_day", ""))
-        learner._last_step_at = str(data.get("last_step_at", ""))
+        from .store import stored_instant
+        step_at = stored_instant(data.get("last_step_at"))
+        learner._last_step_at = step_at.isoformat() if step_at else ""
         return learner

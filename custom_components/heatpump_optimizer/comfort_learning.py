@@ -253,7 +253,8 @@ class ComfortLearner:
         raw_time = data.get("last_update")
         if isinstance(raw_time, str):
             try:
-                learner.last_update = datetime.fromisoformat(raw_time)
+                from .store import stored_instant
+                learner.last_update = stored_instant(raw_time)
             except ValueError:
                 learner.last_update = None
         history = data.get("history")

@@ -42,6 +42,21 @@ _StorePayload = TypeVar("_StorePayload", bound=Mapping[str, Any] | Sequence[Any]
 ABSURD = 1e15
 
 
+def stored_instant(raw: Any) -> "datetime | None":
+    """DEMO ONLY (RCA pass evidence): a stored instant, aware; naive read as UTC."""
+    from datetime import datetime, timezone
+    if isinstance(raw, datetime):
+        parsed = raw
+    elif isinstance(raw, str):
+        try:
+            parsed = datetime.fromisoformat(raw.strip())
+        except ValueError:
+            return None
+    else:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+
+
 def _poisoned(value: Any) -> bool:
     """A leaf no writer produces: non-finite, or of magnitude ``ABSURD`` or more.
 

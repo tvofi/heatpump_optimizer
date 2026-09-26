@@ -74,9 +74,9 @@ class AccuracySample:
         raw = data.get("t")
         if not raw:
             return None
-        try:
-            when = datetime.fromisoformat(str(raw))
-        except ValueError:
+        from .store import stored_instant
+        when = stored_instant(str(raw))
+        if when is None:
             return None
 
         def num(key: str) -> float | None:

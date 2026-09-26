@@ -2942,7 +2942,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     continue
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
-            self._immersion_events = [str(e) for e in raw_events[-20:]]
+            from .store import stored_instant
+            self._immersion_events = [
+                i.isoformat() for i in map(stored_instant, raw_events[-20:]) if i
+            ]
         try:
             self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
         except (TypeError, ValueError, OverflowError):
@@ -8683,6 +8686,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
         ctx = getattr(self, "_ctx", self)
+        if not isinstance(learners, dict):
+            return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
             for setter, key in (

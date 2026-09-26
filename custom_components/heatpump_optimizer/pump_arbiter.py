@@ -624,11 +624,15 @@ async def _load(coord: Any) -> None:
         return
     if raw.get("manual"):
         _clear(coord, ISSUE_MANUAL)
-    for slot, pair in (raw.get("written") or {}).items():
-        try:
-            held.written[slot] = (pair[0], datetime.fromisoformat(pair[1]))
-        except (TypeError, ValueError, IndexError):
+    from .store import stored_instant
+    written = raw.get("written")
+    for slot, pair in (written.items() if isinstance(written, dict) else ()):
+        if not isinstance(pair, list) or len(pair) != 2:
             continue
+        value, at = pair[0], stored_instant(pair[1])
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or at is None:
+            continue
+        held.written[slot] = (float(value), at)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:
