@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.0
+# claims-for: 6.7.1
 #
-# v6.7.0: v6.6.12 bug fixes, mutation-ledger rows, FIFO gate lease, round-9 audit shape. The stamp empties the list; the
+# v6.7.1: round-9 audit baseline: find/verify drivers, pinned local checks, bug-5 remainder. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
