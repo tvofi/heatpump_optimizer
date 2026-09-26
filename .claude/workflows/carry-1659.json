@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for round 9's stage covering #1659, from F4.1.",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job). The round-9 roster",
+    "(.claude/workflows/wave-r9-groups.json) lives on the plan branch, not in this tree,",
+    "so this file is the in-tree destination; where the two disagree, the newer one is right."
+  ],
+  "issue": 1659,
+  "stage": "round 9 group R9-F1.6 (#1647, #1659): the coordinator findings D1-s2-02, D1-s1-03 and D14-s1-01",
+  "carries": [
+    {
+      "from": "the pull request that lands round 9's F4.1 (roster group R9-F4.1: part of #1644, fixes #1684 and #1673) -- one state-stamp owner, a plausibility window on temperature inputs, the quiet-store staleness horizon, the flow-lift supply ceiling and the sysid sizing headroom",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. The finders' sentinel harness fed DS18B20 fault codes (-127 and 85) through `InputReader.read` on 12 key/value cells; at F4.1's merge base 12 of 12 read as healthy values, at its head 2 of 12 do: 85 on DHW and on the buffer tank, which stay legal because a tank can be at 85 degC. A plausible 21.3 degC reads as healthy on every key in both trees (null control).",
+      "remeasure": "Do not trust these counts: they are measured at F4.1's head. Read `INPUT_PLAUSIBLE_RANGE_C` in custom_components/heatpump_optimizer/const.py and `plausible_c` in custom_components/heatpump_optimizer/inputs.py, then re-run tests/features.py and read its `R9 P2` section.",
+      "brief": "The plausibility window is `const.INPUT_PLAUSIBLE_RANGE_C`, read only through `inputs.plausible_c(key, value_c)`; a reading outside it becomes the input problem `implausible`, which counts in `missing_keys` and freezes the learners. Use that function and do not add a second range table. The window refuses sensor fault codes, not plant states: 85 degC stays legal in the DHW and buffer tanks."
+    }
+  ]
+}

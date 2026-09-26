@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for round 9's stage covering #1655, from F4.1.",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job). The round-9 roster",
+    "(.claude/workflows/wave-r9-groups.json) lives on the plan branch, not in this tree,",
+    "so this file is the in-tree destination; where the two disagree, the newer one is right."
+  ],
+  "issue": 1655,
+  "stage": "round 9 group R9-F4.2 (#1655, #1672): the sysid adoption and abort findings D2-s4-01, D2-s4-81, D14-s3-03 and D7-s2-01 in custom_components/heatpump_optimizer/sysid.py",
+  "carries": [
+    {
+      "from": "the pull request that lands round 9's F4.1 (roster group R9-F4.1: part of #1644, fixes #1684 and #1673) -- one state-stamp owner, a plausibility window on temperature inputs, the quiet-store staleness horizon, the flow-lift supply ceiling and the sysid sizing headroom",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. At F4.1's merge base the step sizer's peak target and `_over_excursion`'s abort were the same bound, so the finders' sizer harness (294 noisy experiment nights) aborted 100 of 294; with the step sized `SIZING_NOISE_HEADROOM_C` = 0.15 K under the bound it aborts 5 of 294. The headroom sweep 0 / 0.05 / 0.10 / 0.15 / 0.20 K gave 100 / 46 / 14 / 5 / 2 aborts, so the count moves with the perturbation. On two-zone light_new and typical_slab the band of fitting steps closes under the tighter bound, and the sizer falls back to the full bound; without that fallback both nights size no step at all ('no step fits within the comfort bound').",
+      "remeasure": "Do not trust these counts: they are measured at F4.1's head, and a later stage is judged against its own merge base. Read `SIZING_NOISE_HEADROOM_C` and the `for bound in (full - SIZING_NOISE_HEADROOM_C, full)` loop in `SystemIdentification._size_step_power` in custom_components/heatpump_optimizer/sysid.py, then re-run tests/features.py and read its `R9 P2` section and the #1524 two-zone checks.",
+      "brief": "Measure every adoption rate, abort count and peak excursion at a merge base that includes F4.1: the step is now sized 0.15 K under `max_excursion_c` (less the two-zone headroom), with a fallback to the full bound when no step fits under the tighter one. A figure taken before F4.1 counts aborts that the headroom now prevents. Do not remove the fallback: two-zone light_new and typical_slab size no step without it."
+    }
+  ]
+}
