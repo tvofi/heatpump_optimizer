@@ -18,7 +18,7 @@ Class P3's RCA seat is the round-9 P3 RCA (`/mnt/project-files/audit-r9/rca/p3/R
 
 ## Head
 
-Code head 3ddb2eb486aa733ec3e81df5c6aed6d1d77206a3, cut from 6169b74c5049a8ef8382ac8d31d3d174813371d7 (origin/main, v6.7.2), which is also its merge base. The handoff commit stacked on it carries only this body, its evidence and the resume note.
+Code head 4169b6e8095b27095e9ff2a548b2dac62276f0b2, cut from 6169b74c5049a8ef8382ac8d31d3d174813371d7 (origin/main, v6.7.2), which is also its merge base. The handoff commits stacked on it carry only this body, its evidence and the resume note. The code was reviewed at 3ddb2eb4; 4169b6e8 adds only the `tests/stress_budgets.json` floor entry below.
 
 ## Mutation proof
 
@@ -88,7 +88,7 @@ All runs: CPython 3.14.0rc2, 4-core Linux cloud container, OMP/OpenBLAS pinned t
   - `mutate.py` applies M1–M6 to a copy of the head tree and runs it; its log is `ev/mutants.log`.
   - `dir.py` produces the golden degree-step and cost table: `ev/dir_base.json`, `ev/dir_fullprice.json`, `ev/dir_head.json`.
   - Every harness log above is `ev/<finding>_{base,base314,head,final}.log`.
-- Gate, scope derived per `fixer.md` step 5 on the head less the handoff files: `MODE: SCOPED -- 22 script(s) run, 4 scoped out`. Every scope.run entry was run except `tests/stress.py`, which is left to CI. `GOLDEN_MODE=drift` against the merge base, on a full-history clone, Python 3.14:
+- Gate, scope derived per `fixer.md` step 5 on the head less the handoff files: `MODE: SCOPED -- 22 script(s) run, 4 scoped out`. Every scope.run entry was run; `tests/stress.py` was first left to CI, went red there (see Red checks), and was then run here at 4169b6e8: `ALL 87 STRESS CHECKS PASSED`, solver work 36 of 51 judged, 15 re-planned (log `ev/stress_4169b6e8.log`). `GOLDEN_MODE=drift` against the merge base, on a full-history clone, Python 3.14:
   - rc 0: backtest (25), config_flow_steps (454), deployment_shape, doc_claims (30), edge, entities (1958), features (3388), finite_boundary (41), golden, guard_pins (7), manual_plan (85), optimality (84), plan_view, card.mjs, card_drift.mjs (40 states), solar_alignment, structure, typing_ruler (11), validate, wood_advisor (7).
   - `env_drift.py --all 6169b74c` (via golden.py): `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE`; the 3 claimed scenarios moved as claimed and 10 may-drift scenarios moved, plan only.
   - entities.py first read 3 failures on a shallow clone (HANDOVER `updated-for` ancestry, which it says a shallow clone cannot answer). After `git fetch --unshallow` it reads `ALL 1958 ENTITY CHECKS PASSED`.
@@ -119,7 +119,10 @@ All runs: CPython 3.14.0rc2, 4-core Linux cloud container, OMP/OpenBLAS pinned t
 
 ## Red checks
 
-none: the branch has not run CI.
+- `fast (3.14)` on #1694 at 3ddb2eb4: `tests/stress.py` failed 1 of 87, "the solver-work check still covers most of the sweep" (36 of 51 judged, override floor 38).
+  - Cause: no coverage was lost. The 15 unjudged scenarios are all two-zone, and they are re-planned because the objective itself changed. They are flat/2z/dhw, flat/2z/space, winter/2z/dhw, winter/2z/space, winter/cycle, winter/pv, winter/pv+cycle, winter/tariff, winter/tariff+cycle, winter/tariff+pv, winter/tariff+pv+cycle, winter_extreme/2z/{dhw,space} and winter_mild/2z/{dhw,space}. 6169b74c with only the two per-zone floor-price hunks (D2-s2-81) reproduces all 15 of this head's objectives exactly: `capture_work_rows` on that tree, script and output in `tools/audit/handoff/r9-f2-solver-1/`. Reproduced locally at 36/51, the same count CI read.
+  - Fix, per tvofi's mandate in the round-9 project thread (2026-09-26T21:59Z, "If coverage was NOT lost, you have my mandate to lower the floor"): the committed `coverage_floor_override` in `tests/stress_budgets.json` goes 38 → 36, with the reason in its `cites`. The #387 literal 40 in `tests/stress.py` is untouched. The entry is a budget-file change and is owed tvofi's approving review.
+  - Cheaper detector: running `tests/stress.py` locally, which this seat scoped out to CI (fixer.md step 5 allows that). Its standing cost is about 26 minutes of wall time on this 4-vCPU box, baseline solve included. The golden gate had already shown the same population moving: 10 may-drift two-zone scenarios. No new check: the detector exists; skipping it was this seat's choice.
 
 ## Forward-carry
 

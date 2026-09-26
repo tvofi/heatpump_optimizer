@@ -1,0 +1,16 @@
+# attr_floor_only.py on 6169b74c + attr_floor_only.patch (the two D2-s2-81 penalty hunks only), py3.14
+flat/2z/dhw 107.61275367480118
+flat/2z/space 99.82884399424812
+winter/2z/dhw 88.22644889713827
+winter/2z/space 77.78977117451333
+winter/cycle 89.95146964420813
+winter/pv 88.22644889713827
+winter/pv+cycle 89.95146964420813
+winter/tariff 153.24201089064906
+winter/tariff+cycle 155.46908587022236
+winter/tariff+pv 153.24201089064906
+winter/tariff+pv+cycle 155.46908587022236
+winter_extreme/2z/dhw 129.0493672564462
+winter_extreme/2z/space 111.8946765684768
+winter_mild/2z/dhw 35.663397465381045
+winter_mild/2z/space 29.868358029863465

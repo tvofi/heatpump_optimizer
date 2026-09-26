@@ -1,0 +1,25 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 33dcaee6..07f24c35 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1822,8 +1822,7 @@ class HeatPumpOptimizer:
+                 + np.sum(overshoot_u ** 2) * 5.0
+                 + np.sum(undershoot_l ** 2) * 10.0
+                 + np.sum(overshoot_l ** 2) * 5.0
+-                + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+-            )
++            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+ 
+             comfort_dev_u = upper_t - comfort_targets
+             comfort_dev_l = lower_t - comfort_targets
+@@ -1900,9 +1899,7 @@ class HeatPumpOptimizer:
+                     + np.sum(overshoot_u ** 2) * 5.0
+                     + np.sum(undershoot_l ** 2) * 10.0
+                     + np.sum(overshoot_l ** 2) * 5.0
+-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
+-                    * _COMFORT_FLOOR_L1
+-                )
++                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+ 
+                 comfort_dev_u = upper_t - comfort_targets
+                 comfort_dev_l = lower_t - comfort_targets
