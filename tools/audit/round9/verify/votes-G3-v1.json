@@ -341,6 +341,91 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "leads": [
+   {
+    "id": "D2-s1-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "off_total_cold=14 of 14 (bit-exact rerun); perturbation ->0 of 14 (bit-exact)",
+    "metric_definition": "Candidates of the DHW setpoint sweep whose cost_per_day differs by more than 5% from the sweep priced at the forecast's current outdoor temperature.",
+    "method": "Re-ran tools/audit/round9/D2/leads/dhw_sweep_outdoor.py plain and --forecast; PYTHONPATH=tests/hastub /home/claude/venv314/bin/python.",
+    "attacks": [
+     "contention: count metric, load1 0.14-0.21, contention-immune -> no effect",
+     "null control (F+5, forecast==default): off=0 of 7, reproduced exactly -> passes",
+     "reachability: drives real coordinator._dhw_setpoint_sweep via production _update_current_state, not a stub-only path -> reachable in real HA",
+     "aggregate/grid artefact: not an aggregate, per-candidate exact count -> n/a"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s1-71",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "saved_share_mean 0.0467 (run1, load1=0.72) and 0.0775 (run2, load1=1.67); null-arm mean 0.0094, range -0.1281..+0.0732 (load1=0.76); call counts per solve bit-exact across all 3 runs vs claim",
+    "metric_definition": "1 - (thread CPU of golden.capture with the three helpers memoised per ThermalParameters instance / plain), interleaved x2 per cell.",
+    "method": "Re-ran tools/audit/round9/D9/leads/l3_dhw_helpers.py plain twice and --null once; thread_factor=1.000 all 3 runs.",
+    "attacks": [
+     "contention: CPU-ratio metric, quoted with load1/thread_factor each run as required; ratio is meant to cancel contention but two plain reruns disagree by ~1.7x (0.047 vs 0.078 mean) and one null-arm cell hit -0.128, overlapping the claimed low end (0.0022-0.1272) -> effect direction holds, magnitude not pinned on this box",
+     "null control: ran and reproduces roughly the claimed ~0-band shape but with wider noise (my -0.128..+0.073 vs finder's -0.030..+0.050); on this box the null noise partly overlaps the memo-arm's small-savings cells -> weakens confidence in the precise mean=0.094, not in the phenomenon",
+     "grid artefact/leave-one-out: reproduced drop-best means 0.0266 and 0.0239 on my two runs, both positive -> effect survives dropping the best cell, so not a single-cell artefact",
+     "reachability: driven through HeatPumpOptimizer.optimize via golden.capture, real production code path, not FakeHass-executor-dependent -> reachable",
+     "call-count evidence (contention-immune, independent of timing noise): dhw_tank_heat_loss_coefficient/dhw_inlet_reference/effective_dhw_draw_pattern counts matched the finder's ranges exactly on every rerun -> the mechanism (recompute-per-step of a solve-constant value) is solid regardless of the CPU number"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s2-71",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stress_sweep_valve_cases=0 of 51 (bit-exact, count, contention-immune); step_equivalents perturbation smart_write 9,426,048->4,852,896 (bit-exact match to finding's own reproduction table); CPU ratio valve/control 138.2-291.8 vs 71.6-83.3 (load1=1.06) -> 107.7-136.8 vs 92.7-107.9 (load1=1.39, perturbed run)",
+    "metric_definition": "Stress sweep cases whose built ThermalParameters throttle; per golden valve plant, optimize() thread CPU / reference_solve with vs without the valve.",
+    "method": "Re-ran tools/audit/round9/D9/leads/l3_valve_solve.py plain and --perturb novalve; thread_factor=1.000 both runs.",
+    "attacks": [
+     "contention: the headline count (0 of 51) is exact and contention-immune -> unaffected; CPU ratios provisional, quoted with load1 (1.06 plain, 1.39 perturbed) and thread_factor (1.000 both) as required",
+     "gate mode: this is a stress.py sweep-coverage gap, not a golden --all vs default-5 mismatch -> attack does not apply",
+     "grid artefact: control cells' step_equivalents are exactly identical across both runs (winter_two_zone_no_dhw 4,219,488; shoulder_two_zone 3,507,029, both bit-exact, both arms) -> the count metric is not noise, and the valve-cell drop under the perturbation is real, not a grid re-aggregation artefact",
+     "null control: the two no-valve control cells' step_equivalents and CPU ratios are the null arm here (unchanged deterministic counts, ratio drift 1.2-1.3x is timing noise only) -> distinguishes valve-specific effect from ambient CPU ratio noise, though it also shows the CPU-ratio lower bound (1.15-1.22x on valve_storage/upper_direct_slab/wood_two_tank) sits inside that same ~1.2-1.3x noise band; smart_write's 2.71x clears it by a wide margin",
+     "reachability: drives real HeatPumpOptimizer.optimize via golden.capture and the production mixing_valve module -> reachable; the coverage gap itself is in tests/stress.py, correctly filed as an instrument/gate blind spot, not a D3 test-gap mutation claim"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s2-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "two_zone_floor_deg_steps_sum=2.4672 (bit-exact rerun); leave-one-out drop_most_favourable=0.1048 (bit-exact); perturbation ->0.8573 (finding: 0.8574, delta 0.0001, within stated exact-on-one-BLAS-build tolerance)",
+    "metric_definition": "sum over steps and zones of max(0, min_temp - T_zone) of the shipped two-zone trajectories, over 6 price profiles x DHW on/off at winter_cold, 24h.",
+    "method": "Re-ran tools/audit/round9/D2/leads/l4_zone_floor.py plain and --perturb; PYTHONPATH=tests/hastub /home/claude/venv314/bin/python; count-type metric, thread_factor=1.000.",
+    "attacks": [
+     "contention: count/degree-steps metric explicitly contention-immune per finder's own contention_note; load1 1.74/1.86 quoted, no effect seen (bit-exact reproduction under different load)",
+     "null control: single_zone_floor_deg_steps_sum=0.1471 and two_zone_flat_sum=0.0000 both reproduced bit-exact -> the breach is two-zone-specific and price-bought, confirmed",
+     "grid artefact: leave-one-out over 12 cells reproduced bit-exact (min 0, max 1.3144, drop-best 0.1048) -> not a single-cell artefact",
+     "reachability: instrumented via HeatPumpOptimizer.optimize's shipped trajectories through _comfort_terms/_comfort_terms_batch, pure production math -> reachable in real HA"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s4-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "null_refused=19 of 80, null_admitted=37, null_aborted=24, unarmed=0 (all bit-exact rerun); perturbation (bar ln1.10->ln1.20) -> null_refused=2 (bit-exact match to finding's observed_value=2)",
+    "metric_definition": "preset cells whose exact-plant, noise-free sysid experiment completes and adoption_decision refuses (80 = 4 structures x 5 eras x 2 emitters x 2 pump sizes).",
+    "method": "Re-ran tools/audit/round9/D2/leads/l4_sysid_null_refusal.py plain and --perturb; PYTHONPATH=tests/hastub /home/claude/venv314/bin/python; count metric, ~2.5s runtime, thread_factor=1.000.",
+    "attacks": [
+     "contention: pure count metric, exact tolerance, load1 1.70-1.79 quoted, no drift observed",
+     "null control: null_admitted=37 of 80 reproduced bit-exact -> the same drive can admit, confirming the gate genuinely discriminates rather than always refusing",
+     "grid artefact: refusals spread across 3 of 4 structure types (timber_crawlspace 8, timber_slab 4, concrete_slab 5, masonry 2 in my rerun, bit-exact) -> not concentrated in one structure/cell; leave-one-out (19-1=18) matches finding's recorded drop_most_favourable=18",
+     "reachability: drives SystemIdentification.arm/step/_finish and adoption_decision, production sysid code, no HA-stub dependency -> reachable",
+     "severity: 43 of 80 (19 refused + 24 aborted) failing to adopt an exact noise-free fit on declared plants is a real usability defect across most preset topologies -> medium is earned, not inflated"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
