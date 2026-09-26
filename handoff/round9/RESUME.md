@@ -90,6 +90,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:03Z: all 12 verifier boxes complete (G1-V2 @16ef80b6). PANEL final: 112 unanimous, 40 split, 3 disputed, 1 killed. NOTES.md extended (D1-s2-52 severity conflict, boost.restore naive-until side observation -> D3-s1-91 class sweep). Judge notified.
 
+- 2026-09-26T14:08Z: judge milestone 1, dedup @cf6a047 (handoff/audit-r9-judge, tools/audit/round9/judge/DEDUP.md): 7 merges -> 148 canonical. Merges: D8-s1-01->D2-s3-01; D4-s2-04+D12-s1-02->D12-s3-01; D6-s1-04->D1-s2-54; D5-s1-06->D6-s2-05; D11-s2-03->D11-s1-04; D4-s2-02->D14-s2-02. Fix-together siblings (not merged): D8-s1-03/D12-s2-01 (fix D12-s2-01 first), D12-s1-01/02, D1-s5-01/51, D8-s2-02/03 -> carry to FIX-PLAN. Next: JUDGE-INPUT.json (140 scripted, 8 D3 by-hand), then start R1/R2.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
