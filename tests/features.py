@@ -26649,9 +26649,10 @@ R.check(
     "an unknown history is not evidence of an overdue cycle",
     not _lg_issues(_lg_unknown),
 )
-# #1532 (R8-D3-s2-01): a last cycle stamped in the FUTURE -- a clock stepped
-# back, an NTP correction, a stamp restored from a backup -- is 0 h ago, not a
-# negative age. Deleting hours_since's clamp moved a 2 h-future reading to
+# #1532 (R8-D3-s2-01): a last cycle stamped in the FUTURE by a clock that
+# stepped back while the process ran is 0 h ago, not a negative age. A stored
+# stamp ahead of the clock never reaches here: the store boundary bounds it on
+# load (#1660), and its true age is unknowable, not 0 (#775). Deleting hours_since's clamp moved a 2 h-future reading to
 # -2.0 h, and the countdown past the interval, with every check green. The
 # 2 h-past reading is the null control: the clamp bites only below zero.
 _lg_skew = _lg_coord()

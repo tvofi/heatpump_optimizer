@@ -92,7 +92,7 @@
         "files": {"type": "array", "items": {"type": "string"}},
         "expected_golden_drift": {"type": "array", "items": {"type": "string"}},
         "stop_rule_class": {"enum": ["bug", "hygiene"]},
-        "class_guess": {"enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "I1", "I2", "I3", "I4", "I5", "P11", "new"], "description": "The finder's guess at the bug class: an id in tools/audit/bugclasses.json, or new. The verifier's V3 lens confirms or corrects it; the judge assigns the class. The enum is exactly that file's ids plus new (check-wave-script.mjs holds the two equal), so a class the judge adds lands in both in one pull request"}
+        "class_guess": {"enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "I1", "I2", "I3", "I4", "I5", "P11", "N-future-instant", "new"], "description": "The finder's guess at the bug class: an id in tools/audit/bugclasses.json, or new. The verifier's V3 lens confirms or corrects it; the judge assigns the class. The enum is exactly that file's ids plus new (check-wave-script.mjs holds the two equal), so a class the judge adds lands in both in one pull request"}
       },
       "allOf": [
         {

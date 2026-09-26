@@ -37,9 +37,11 @@ def stored_instant(
     Every consumer diffs a loaded instant against an aware ``now``, so a naive
     one raised ``TypeError`` on every cycle until something rewrote the leaf
     (round 9, D1-s1-01, D1-s3-01). A naive instant is read in ``naive_zone``:
-    UTC for a stamp this integration wrote, the user's own zone for a time the
-    user typed. Anything that does not parse is ``None``. The zone is all this
-    decides; how far ahead a stored instant may lie is the store boundary's.
+    Home Assistant's configured zone where the loader can see it (the clock
+    that reads the value back is in that zone, and a typed time is the user's
+    wall clock), UTC in a pure loader that cannot (``Cusum``'s legacy rule).
+    Anything that does not parse is ``None``. The zone is all this decides;
+    how far ahead a stored instant may lie is the store boundary's.
     """
     if isinstance(raw, datetime):
         when = raw
