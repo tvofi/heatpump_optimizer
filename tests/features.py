@@ -48582,6 +48582,260 @@ R.check(
 )
 
 
+# -- R9-F2.1: the solver's published action and its two priced floors ---------
+# Round 9, fix F2.1 (#1665 P7, #1654 P3, #1666 N-sign-floor). Each arm drives
+# the production symbol and reads the value it returns.
+from zoneinfo import ZoneInfo as _f21_Zone  # noqa: E402
+
+from heatpump_optimizer import optimizer as _f21_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _f21_Opt,
+    OptimizationConfig as _f21_Cfg,
+    OptimizationResult as _f21_Res,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _f21_Model,
+    ThermalParameters as _f21_Params,
+)
+
+_f21_zone = _f21_Zone("Europe/Stockholm")
+
+
+def _f21_result(stamps, power, heat_pump_on=None):
+    n = len(stamps)
+    return _f21_Res(
+        power_schedule=list(power),
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=list(stamps),
+        prices=[0.1 * (k + 1) for k in range(n)],
+        predicted_cost=0.0,
+        baseline_cost=0.0,
+        predicted_savings=0.0,
+        savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n,
+        status="ok",
+        heat_pump_on_schedule=list(heat_pump_on or []),
+    )
+
+
+# D14-s4-01 (P7), the optimizer seam: Home Assistant hands every instant in
+# one ZoneInfo, and CPython subtracts and compares two datetimes that share a
+# tzinfo as naive wall clock. A plan straddling the spring transition read its
+# 15-minute step as 75 minutes, and the autumn fold's repeated hour matched the
+# wrong step. Stamps are UTC instants shown in the zone, as dt_util.as_local
+# gives them. Null arm: the same shapes on an ordinary Sunday.
+_f21_opt = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg())
+
+
+def _f21_local(y, mo, d, h, mi):
+    return datetime(y, mo, d, h, mi, tzinfo=timezone.utc).astimezone(_f21_zone)
+
+
+for _f21_day, _f21_label in (((2026, 3, 29), "spring"), ((2026, 3, 22), "null")):
+    _f21_t0 = _f21_local(*_f21_day, 0, 45)  # 01:45 CET, the step before 02:00
+    _f21_stamps = [_f21_t0 + timedelta(minutes=15) * 0]
+    for _k in range(1, 4):
+        _f21_stamps.append(
+            (_f21_t0.astimezone(timezone.utc) + timedelta(minutes=15 * _k))
+            .astimezone(_f21_zone)
+        )
+    _f21_r = _f21_result(_f21_stamps, [2.0, 3.0, 4.0, 5.0])
+    _f21_early = (
+        _f21_t0.astimezone(timezone.utc) - timedelta(minutes=30)
+    ).astimezone(_f21_zone)
+    _f21_act = _f21_opt.get_current_action(_f21_r, _f21_early)
+    R.check(
+        f"R9-F2.1 P7 ({_f21_label}): a clock 30 min before a 15-min plan is "
+        "beyond one step, so the action idles",
+        _f21_act == _f21_opt._idle_action(),
+        f"got mode {_f21_act['mode']}, power {_f21_act['power']}",
+    )
+
+for _f21_day, _f21_label in (((2026, 10, 25), "autumn"), ((2026, 10, 18), "null")):
+    _f21_u0 = datetime(*_f21_day, 0, 0, tzinfo=timezone.utc)
+    _f21_stamps = [
+        (_f21_u0 + timedelta(minutes=15 * _k)).astimezone(_f21_zone)
+        for _k in range(8)
+    ]
+    _f21_r = _f21_result(_f21_stamps, [1.0 + 0.5 * _k for _k in range(8)])
+    _f21_now = (_f21_u0 + timedelta(minutes=50)).astimezone(_f21_zone)
+    _f21_act = _f21_opt.get_current_action(_f21_r, _f21_now)
+    R.check(
+        f"R9-F2.1 P7 ({_f21_label}): the step covering now is the one whose "
+        "instant precedes it, not the one whose wall clock does",
+        _f21_act["power"] == 2.5 and abs(_f21_act["price"] - 0.4) < 1e-9,
+        f"got power {_f21_act['power']}, price {_f21_act['price']} "
+        "(want step 3: power 2.5, price 0.4)",
+    )
+
+# D12-s2-03 (P3): a fixed-speed pump (min == max) has no modulation band.
+# The 0.1 kW floor on the band made a full-power step read 0 and an idle one
+# -60, so the sensor published 'eco' at full power. One helper now owns the
+# fraction for all four sites that normalise planned power, clipped to [0, 1];
+# a full-power step is the top of the band at every one of them. The
+# modulating house is the null arm: its figures are unchanged.
+_f21_onoff = _f21_Opt(
+    _f21_Model(_f21_Params(min_electrical_power=6.0, max_electrical_power=6.0)),
+    _f21_Cfg(),
+)
+_f21_u0 = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+_f21_stamps = [_f21_u0 + timedelta(minutes=15 * _k) for _k in range(3)]
+_f21_r = _f21_result(_f21_stamps, [6.0, 0.0, 3.0], [True, False, True])
+_f21_full = _f21_onoff.get_current_action(_f21_r, _f21_stamps[0])
+_f21_off = _f21_onoff.get_current_action(_f21_r, _f21_stamps[1])
+_f21_half = _f21_onoff.get_current_action(_f21_r, _f21_stamps[2])
+R.check(
+    "R9-F2.1 P3: an on/off pump at full power publishes 'boost' at 1.0, and "
+    "off publishes 0.0 -- never outside [0, 1]",
+    _f21_full["mode"] == "boost"
+    and _f21_full["power_normalized"] == 1.0
+    and _f21_off["power_normalized"] == 0.0
+    and 0.0 <= _f21_half["power_normalized"] <= 1.0,
+    f"full {_f21_full['mode']} {_f21_full['power_normalized']}, off "
+    f"{_f21_off['power_normalized']}, half {_f21_half['power_normalized']}",
+)
+_f21_mod = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg())
+_f21_lo_kw = _f21_mod.model.params.min_electrical_power
+_f21_hi_kw = _f21_mod.model.params.max_electrical_power
+_f21_r = _f21_result(
+    _f21_stamps,
+    [_f21_lo_kw, _f21_hi_kw, 0.5 * (_f21_lo_kw + _f21_hi_kw)],
+    [True, True, True],
+)
+_f21_norms = [
+    _f21_mod.get_current_action(_f21_r, _t)["power_normalized"]
+    for _t in _f21_stamps
+]
+R.check(
+    "R9-F2.1 P3 (null arm): a modulating pump's fraction inside its band is "
+    "unchanged",
+    _f21_norms == [0.0, 1.0, 0.5],
+    f"{_f21_norms}",
+)
+_f21_r = _f21_result(_f21_stamps, [0.0, _f21_hi_kw + 1.0, 0.0], [False, True, False])
+_f21_norms = [
+    _f21_mod.get_current_action(_f21_r, _t)["power_normalized"]
+    for _t in _f21_stamps[:2]
+]
+R.check(
+    "R9-F2.1 P3: a modulating pump's published fraction is clipped to [0, 1] "
+    "outside its band",
+    _f21_norms == [0.0, 1.0],
+    f"{_f21_norms}",
+)
+_f21_cfg = _f21_onoff.config
+_f21_sp = _f21_onoff._power_to_setpoints(
+    np.array([6.0, 0.0]), np.array([21.0, 21.0]), np.array([0.0, 0.0])
+)
+_f21_disp = _f21_onoff._power_to_displace_schedule(
+    np.array([6.0] * 40), np.array([5.0] * 40)
+)
+_f21_onoff_two = _f21_Opt(
+    _f21_Model(_f21_Params(
+        min_electrical_power=6.0, max_electrical_power=6.0,
+        two_zone_enabled=True,
+    )),
+    _f21_Cfg(),
+)
+_f21_up, _f21_lo = _f21_onoff_two._zone_setpoints(np.array([6.0, 0.0]))
+_f21_pp = _f21_onoff.model.params
+R.check(
+    "R9-F2.1 P3: every site that normalises planned power puts an on/off "
+    "pump's full-power step at the top of its range and off at the bottom",
+    _f21_sp == [_f21_cfg.max_temp, _f21_cfg.min_temp]
+    and _f21_up == [_f21_cfg.max_temp, _f21_cfg.min_temp]
+    and _f21_disp[-1] == _f21_pp.ecl110_displace_max,
+    f"setpoints {_f21_sp}, upper {_f21_up}, displace tail {_f21_disp[-1]} "
+    f"against {_f21_pp.ecl110_displace_max}",
+)
+
+# D2-s2-81 (P3): averaging the two zones' penalties also halved each zone's
+# price for a kelvin under min_temp, the quadratic and the _COMFORT_FLOOR_L1
+# term, so the solver bought each zone's floor back at half the single-zone
+# price. Each zone's undershoot is now priced as a single-zone room's; the
+# overshoot stays averaged. Arm: one zone d under the floor, the other at the
+# target, against the single-zone room d under -- in the scalar and the batch
+# twin. Null arm: the overshoot keeps the averaged (half) price.
+def _f21_penalties(two_zone, under, over=0.0):
+    opt = _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
+    n = 4
+    lo_b = np.full(n, 20.0)
+    hi_b = np.full(n, 23.0)
+    tgt = np.full(n, 21.5)
+    band = np.full(n, 1.5)
+    hit = np.full(n + 1, 20.0 - under + over + (3.0 if over else 0.0))
+    ok = np.full(n + 1, 21.5)
+    room, upper, lower = (hit, hit, ok) if two_zone else (hit, ok, ok)
+    scalar = opt._comfort_terms(room, upper, lower, tgt, lo_b, hi_b, band)[0]
+    batch = opt._comfort_terms_batch(
+        room[None, :], upper[None, :], lower[None, :], tgt, lo_b, hi_b, band
+    )[0][0]
+    return scalar, batch
+
+
+for _f21_d in (0.05, 0.5):
+    _f21_s1, _f21_b1 = _f21_penalties(False, _f21_d)
+    _f21_s2, _f21_b2 = _f21_penalties(True, _f21_d)
+    R.check(
+        f"R9-F2.1 P3: one zone {_f21_d} K under min_temp costs what a "
+        "single-zone room that far under does, in both twins",
+        _f21_s1 > 0
+        and abs(_f21_s2 - _f21_s1) < 1e-12
+        and abs(_f21_b2 - _f21_b1) < 1e-12,
+        f"single {_f21_s1:.6f}/{_f21_b1:.6f}, two-zone {_f21_s2:.6f}/{_f21_b2:.6f}",
+    )
+_f21_o1 = _f21_penalties(False, 0.0, over=0.4)[0]
+_f21_o2 = _f21_penalties(True, 0.0, over=0.4)[0]
+R.check(
+    "R9-F2.1 P3 (null arm): one zone over max_temp still costs half the "
+    "single-zone overshoot -- only the floor's price changed",
+    _f21_o1 > 0 and abs(_f21_o2 - 0.5 * _f21_o1) < 1e-12,
+    f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
+)
+
+# D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the
+# import price sits below the export price (a negative-price hour, or a high
+# export compensation) a surplus-covered kWh was charged at the import price
+# instead of the export compensation it forgoes. Both PV pricing seams must
+# equal the identity export*min(P, s) + import*max(P - s, 0) for any sign of
+# the margin. Null arm: an ordinary import > export step, unchanged.
+_f21_pv = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg(pv_export_price=0.3))
+_f21_pv._pv_surplus = np.array([4.0, 4.0, 4.0])
+_f21_imp = np.array([-0.5, 0.1, 1.5])  # negative, below export, ordinary
+_f21_draw = 3.0
+
+
+def _f21_identity(imp, exp_, p, s):
+    return exp_ * min(p, s) + imp * max(p - s, 0.0)
+
+
+_f21_cost_fn = _f21_pv._energy_cost_fn(_f21_imp, 1.0)
+_f21_bad = []
+for _k, _imp in enumerate(_f21_imp):
+    _one = np.zeros(3)
+    _one[_k] = _f21_draw
+    _got = _f21_cost_fn(_one)
+    _want = _f21_identity(float(_imp), 0.3, _f21_draw, 4.0)
+    if abs(_got - _want) > 1e-9:
+        _f21_bad.append((float(_imp), round(_got, 4), round(_want, 4)))
+R.check(
+    "R9-F2.1 N-sign-floor: the objective charges surplus-covered energy at the "
+    "export price whatever the sign of import - export",
+    not _f21_bad,
+    f"(import, cost, identity): {_f21_bad}",
+)
+_f21_blend = pv.blended_block_prices(_f21_imp, np.array([2.0] * 3), 0.3, 4.0)
+_f21_bwant = [0.5 * 0.3 + 0.5 * float(_imp) for _imp in _f21_imp]
+R.check(
+    "R9-F2.1 N-sign-floor: a hot-water block's blended price is the same "
+    "identity at every sign of the margin",
+    all(abs(a - b) < 1e-9 for a, b in zip(_f21_blend, _f21_bwant)),
+    f"{[round(float(v), 4) for v in _f21_blend]} against "
+    f"{[round(v, 4) for v in _f21_bwant]}",
+)
+
+
 # -- #1524: the experiment identifies a TWO-ZONE house ------------------------
 # coordinator._update_current_state feeds the indoor reading to the upper zone,
 # so on a two-zone plant the experiment observes the upper zone while the heat
