@@ -104,6 +104,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:32Z: judge pushed its own batch A @7c7ef32 (46 run / 102 record). Runners stay on the orchestrator's 55-entry JUDGE-INPUT-A.json, a superset except D1-s2-05; R1 runs D1-s2-05 afterwards from JUDGE-INPUT-A2.json -> rows-1b. Judge informed. Record of scope = judge branch's JUDGE-INPUT.json and -B.json.
 
+- 2026-09-26T14:36Z: SETTLED: runners use the judge's JUDGE-INPUT.json @7c7ef32 (46 findings, shards 1/2 and 2/2). The orchestrator's 55- and A2 files are withdrawn (renamed WITHDRAWN-*). R1 restarted 13:45Z; R2 told. Rows go to /mnt/project-files/audit-r9/judge/rows-{1,2} and to handoff/audit-r9-runner-{1,2}.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
