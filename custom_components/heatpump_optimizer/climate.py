@@ -10,6 +10,7 @@ over the heat pump. Users can use this to:
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Any
 
 from homeassistant.components.climate import (
@@ -34,7 +35,7 @@ from .const import (
     DEFAULT_MAX_TEMP,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .entity import HeatPumpOptimizerEntity, commanded_power_kw
+from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,10 +159,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> HVACMode:
-        if self.coordinator.data:
-            mode = self.coordinator.data.get("mode", MODE_AUTO)
-            return MODE_TO_HVAC.get(mode, HVACMode.AUTO)
-        return HVACMode.AUTO
+        # The live mode, not the payload's copy: the payload changes only when
+        # the refresh a mode change asks for has run its solve (v6.6.12).
+        return MODE_TO_HVAC.get(self.coordinator.mode, HVACMode.AUTO)
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -183,10 +183,8 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     def preset_mode(self) -> str | None:
         # "off" is a mode but not a preset, and reporting a preset outside
         # _attr_preset_modes leaves the frontend selector in an invalid state.
-        if self.coordinator.data:
-            mode = self.coordinator.data.get("mode", MODE_AUTO)
-            return mode if mode in self._attr_preset_modes else None
-        return PRESET_AUTO
+        mode = self.coordinator.mode
+        return mode if mode in self._attr_preset_modes else None
 
     def _measured(self, key: str) -> Any:
         """A published temperature, or ``None`` where nothing measured it.
@@ -308,16 +306,24 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         except Exception as err:
             _LOGGER.warning("Failed to publish ECL110 displace command: %s", err)
 
+    async def _async_set_mode(self, mode: str, reason: str) -> None:
+        """Set the mode, show it at once, then refresh and publish displace.
+
+        The displace publish stays after the refresh, where it was: it sends
+        the action the new mode's solve produced.
+        """
+        await self.coordinator.async_set_mode(mode, refresh=False)
+        publish_then_refresh(
+            self, partial(self._async_publish_displace_from_current_action, reason)
+        )
+
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.OFF:
-            await self.coordinator.async_set_mode(MODE_OFF)
-            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+            await self._async_set_mode(MODE_OFF, "manual_hvac_mode")
         elif hvac_mode == HVACMode.AUTO:
-            await self.coordinator.async_set_mode(MODE_AUTO)
-            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+            await self._async_set_mode(MODE_AUTO, "manual_hvac_mode")
         elif hvac_mode == HVACMode.HEAT:
-            await self.coordinator.async_set_mode(MODE_COMFORT)
-            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+            await self._async_set_mode(MODE_COMFORT, "manual_hvac_mode")
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temp = kwargs.get(ATTR_TEMPERATURE)
@@ -346,13 +352,10 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             PRESET_BOOST: MODE_BOOST,
         }
         mode = mode_map.get(preset_mode, MODE_AUTO)
-        await self.coordinator.async_set_mode(mode)
-        await self._async_publish_displace_from_current_action("manual_preset")
+        await self._async_set_mode(mode, "manual_preset")
 
     async def async_turn_on(self) -> None:
-        await self.coordinator.async_set_mode(MODE_AUTO)
-        await self._async_publish_displace_from_current_action("manual_turn_on")
+        await self._async_set_mode(MODE_AUTO, "manual_turn_on")
 
     async def async_turn_off(self) -> None:
-        await self.coordinator.async_set_mode(MODE_OFF)
-        await self._async_publish_displace_from_current_action("manual_turn_off")
+        await self._async_set_mode(MODE_OFF, "manual_turn_off")

@@ -35,6 +35,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from harness import (
+    EagerHass,
     FakeCoordinator,
     FakeEntry,
     FakeHass,
@@ -8443,6 +8444,7 @@ async def _raise_publish(reason=None):
 
 _pub_fails.async_publish_current_action = _raise_publish
 _pub_fails_clim = climate_mod.HeatPumpOptimizerClimate(_pub_fails, clim._entry)
+_pub_fails_clim.hass = EagerHass()  # runs the refresh, then the publish
 try:
     asyncio.run(_pub_fails_clim.async_turn_on())
     _publish_failure_raised = False
@@ -8458,6 +8460,7 @@ R.check(
 # mutation-critical assertion is which coordinator mode landed, not just that
 # the call did not raise.
 _hvac_set_auto = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_hvac_set_auto.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_hvac_set_auto.async_set_hvac_mode(climate_mod.HVACMode.AUTO))
 R.check(
     "setting hvac AUTO reaches the coordinator as mode auto and publishes",
@@ -8466,6 +8469,7 @@ R.check(
     f"mode_calls={_hvac_set_auto.coordinator.mode_calls}, pressed={_hvac_set_auto.coordinator.pressed}",
 )
 _hvac_set_heat = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_hvac_set_heat.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_hvac_set_heat.async_set_hvac_mode(climate_mod.HVACMode.HEAT))
 R.check(
     "setting hvac HEAT reaches the coordinator as mode comfort and publishes",
@@ -8477,6 +8481,7 @@ R.check(
 # async_turn_on / async_turn_off: the HA base-class convenience methods a
 # dashboard's power toggle calls, distinct from async_set_hvac_mode.
 _turn_on_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_turn_on_clim.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_turn_on_clim.async_turn_on())
 R.check(
     "async_turn_on selects auto and publishes",
@@ -8485,6 +8490,7 @@ R.check(
     f"mode_calls={_turn_on_clim.coordinator.mode_calls}",
 )
 _turn_off_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_turn_off_clim.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_turn_off_clim.async_turn_off())
 R.check(
     "async_turn_off selects off and publishes",
@@ -8589,10 +8595,13 @@ R.check(
 )
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
+# Before the first refresh the switch reads the coordinator's live mode, which
+# starts at the real coordinator's default (auto) or the restored mode -- not
+# "off", which only a fake whose default disagreed with production said.
 _no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)
 R.check(
-    "with no coordinator data at all the switch reads off, not crashes",
-    not _no_data_switch.is_on,
+    "with no coordinator data at all the switch reads the live mode, not crashes",
+    _no_data_switch.is_on is True,
 )
 R.check(
     "and its extra attributes degrade to empty rather than raising",
@@ -8609,6 +8618,146 @@ R.check(
     "turning it back off reaches the same setter with the opposite flag",
     away_sw.coordinator.away_calls[-1] == {"active": False, "return_time": None},
     str(away_sw.coordinator.away_calls),
+)
+
+# v6.6.12 (tvofi): switches turned off flipped back on. The payload they read
+# changes only when the refresh the action requests has run its solve (33-73 s
+# in the field log), and Home Assistant's toggle falls back to the published
+# state after about two seconds without a change. Each switch now reads the
+# live state and writes it as soon as the action lands.
+_sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
+_sw_live = {
+    cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
+    for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+}
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+    asyncio.run(_sw_live[_sw_name].async_turn_on())
+for _sw in _sw_live.values():
+    _sw.__dict__.pop("ha_state_writes", None)
+    asyncio.run(_sw.async_turn_off())
+R.check(
+    "every switch turned off shows off at once, while the published payload still says on",
+    all(_sw.coordinator.data == _sw_live_data for _sw in _sw_live.values())
+    and {n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}
+    == {n: [False] for n in _sw_live},
+    str({n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}),
+)
+for _sw in _sw_live.values():
+    _sw.__dict__.pop("ha_state_writes", None)
+    asyncio.run(_sw.async_turn_on())
+R.check(
+    "and every switch turned back on shows on at once",
+    {n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}
+    == {n: [True] for n in _sw_live},
+    str({n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}),
+)
+
+
+# Fix review of #1621: each setter ends in the refresh that runs the solve,
+# and outside the debouncer's 10 s cooldown the refresh awaits the solve
+# inline -- so a state write placed after the setter lands after the solve.
+# The sweep below records, when each action's refresh starts, what the entity
+# had already published: it must have published first, and asked once.
+
+# The class the switches above were one instance of (v6.6.12 root cause):
+# an entity action must publish its own result at once, never wait for the
+# refresh it asks for. Every entity every platform adds is swept, through the
+# platform's real setup, and an action with no row here fails -- so a new
+# action, or a new platform, cannot sit the sweep out. The payload is asserted
+# unchanged after each action, so no pass can come from a refresh.
+_act_future = datetime.now(UTC).replace(microsecond=0) + timedelta(days=2)
+_ACT_ROWS = {
+    "async_turn_on": [((), "is_on", True)],
+    "async_turn_off": [((), "is_on", False)],
+    "async_set_value": [((_act_future,), "native_value", _act_future)],
+    "async_set_hvac_mode": [
+        ((_m,), "hvac_mode", _m)
+        for _m in (climate_mod.HVACMode.OFF, climate_mod.HVACMode.HEAT,
+                   climate_mod.HVACMode.AUTO)
+    ],
+    "async_set_preset_mode": [
+        ((_p,), "preset_mode", _p)
+        for _p in climate_mod.HeatPumpOptimizerClimate._attr_preset_modes
+    ],
+}
+# Climate's power pair reads hvac_mode, not is_on.
+_ACT_CLIMATE = {
+    "async_turn_off": [((), "hvac_mode", climate_mod.HVACMode.OFF)],
+    "async_turn_on": [((), "hvac_mode", climate_mod.HVACMode.AUTO)],
+}
+# Actions with no state of their own to publish, each with its reason.
+_ACT_EXEMPT = {
+    "async_press": "a button has no state",
+    "async_set_temperature": "persisting the option reloads the entry, "
+    "which rebuilds the entity",
+}
+_ACT_NAMES = set(_ACT_ROWS) | set(_ACT_EXEMPT) | {"async_toggle"}
+_act_platforms = {m.__name__.rsplit(".", 1)[-1] for m in (
+    sensor, binary_sensor, button, _climate_platform, _switch_platform, datetime_mod)}
+R.check(
+    "the action sweep reaches every platform the integration forwards",
+    _act_platforms == set(const.PLATFORMS),
+    f"swept={sorted(_act_platforms)} forwarded={sorted(const.PLATFORMS)}",
+)
+_act_lag, _act_unrowed, _act_ran = [], [], 0
+for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform, datetime_mod):
+    for _proto in collect(_module):
+        _cls = type(_proto)
+        _own = {
+            n for k in _cls.__mro__ if k.__module__.startswith("heatpump_optimizer")
+            for n, v in vars(k).items()
+            if callable(v) and (n.startswith("async_set_") or n in _ACT_NAMES)
+        }
+        _rows = {**_ACT_ROWS, **(_ACT_CLIMATE if "climate" in _cls.__module__ else {})}
+        for _name in sorted(_own):
+            if _name in _ACT_EXEMPT:
+                continue
+            if _name not in _rows:
+                _act_unrowed.append(f"{_cls.__name__}.{_name}")
+                continue
+            for _args, _prop, _want in _rows[_name]:
+                _data = {**DATA, "mode": const.MODE_ECONOMY}
+                _ent = collect(_module, coordinator=FakeCoordinator(dict(_data)))
+                _ent = next(e for e in _ent if type(e) is _cls)
+                if _name == "async_turn_off" and "async_turn_on" in _own:
+                    asyncio.run(_ent.async_turn_on())  # off must be a change
+                    _ent.__dict__.pop("ha_state_writes", None)
+                if _name == "async_turn_on" and "async_turn_off" in _own:
+                    asyncio.run(_ent.async_turn_off())  # and so must on
+                    _ent.__dict__.pop("ha_state_writes", None)
+                _ent.hass = EagerHass()
+                _ent.coordinator.refreshes.clear()
+                _ent.coordinator.on_refresh = lambda _e=_ent, _p=_prop: (
+                    bool(getattr(_e, "ha_state_writes", None)),
+                    getattr(_e, _p),
+                    len(_e.coordinator.pressed),
+                )
+                _pressed = len(_ent.coordinator.pressed)
+                asyncio.run(getattr(_ent, _name)(*_args))
+                _act_ran += 1
+                _got = getattr(_ent, _prop)
+                if not (_ent.coordinator.data == _data
+                        and getattr(_ent, "ha_state_writes", None)
+                        and _got == _want
+                        and _ent.coordinator.refreshes == [(True, _want, _pressed)]
+                        and len(_ent.coordinator.pressed)
+                        == _pressed + ("climate" in _cls.__module__)):
+                    _act_lag.append(
+                        f"{_cls.__name__}.{_name}{_args!r}: {_prop}={_got!r} "
+                        f"writes={getattr(_ent, 'ha_state_writes', None)} "
+                        f"refreshes={_ent.coordinator.refreshes}"
+                    )
+R.check(
+    "every entity action has a row or a stated exemption",
+    not _act_unrowed,
+    "; ".join(_act_unrowed),
+)
+R.check(
+    "every entity action publishes its own result at once, while the payload "
+    "still holds the old one, before the one refresh it asks for starts",
+    _act_ran >= 12 and not _act_lag,
+    f"ran={_act_ran}; " + "; ".join(_act_lag),
 )
 
 dt_entities = collect(datetime_mod)
@@ -11819,6 +11968,12 @@ asyncio.run(ha_setup_entry(integration, _reg_hass, _reg_entry))
 R.check(
     "an entry's setup hands its coordinator to the entry as runtime_data",
     isinstance(getattr(_reg_entry, "runtime_data", None), HeatPumpOptimizerCoordinator),
+)
+R.check(
+    "an entry's setup defers the first solve to one entry background task, "
+    "which Home Assistant cancels at unload",
+    _reg_entry.background_tasks == ["heatpump_optimizer_first_solve"],
+    str(_reg_entry.background_tasks),
 )
 R.check(
     "an entry's setup registers nothing and replaces no handler",
@@ -24832,24 +24987,25 @@ R.check(
     f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)!r} -- an unargued equivalence "
     "claim is the one shape that could quietly relax the fraction",
 )
-# The recorded table itself: both D3-07 equivalents marked, each with a
-# reason; the validator holds over the whole real table; and every mark
-# names a mutant THIS tree still generates -- same line, same operator,
-# same text -- so the pins are checked against the tree, not each other.
-_MUT_D3_07 = (  # the two marks' ledger anchors: resolve()'s guard, and setup's
+# The recorded table itself: the D3-07 equivalent marked, with a reason;
+# the validator holds over the whole real table; and every mark names a
+# mutant THIS tree still generates -- same line, same operator, same text --
+# so the pins are checked against the tree, not each other. D3-07's second
+# equivalent, setup's `task is not None and hasattr(task, "cancel")`, left
+# the tree with the first solve's hass-task fallback (#1621), so its mark
+# went with it and the staleness check below would refuse it.
+_MUT_D3_07 = (  # the mark's ledger anchor: resolve()'s guard
     "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF "
     "f7c55656",
-    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP "
-    "47200394",
 )
 R.check(
-    "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
+    "the recorded triage marks the D3-07 equivalent, verdict and reason (#1217)",
     all(_MUT_TRIAGE.get(k, {}).get("verdict") == "equivalent"
         and str(_MUT_TRIAGE.get(k, {}).get("reason", "")).strip()
         for k in _MUT_D3_07),
-    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) and "
-    "the async_create_task return as indistinguishable both ways, and a "
-    "survivor table that does not say so charges the suite for them",
+    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) as "
+    "indistinguishable both ways, and a survivor table that does not say so "
+    "charges the suite for it",
 )
 _MUT_TRIAGE_STALE = []
 _MUT_TRIAGE_SITES: dict[str, dict] = {}

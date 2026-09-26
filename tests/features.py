@@ -33718,6 +33718,29 @@ R.check(
     "-- away_mode.OMIT is the sentinel that distinguishes 'unchanged' from None",
 )
 
+# #1621: the switches publish before the solve and ask for the refresh off
+# the action, so each setter skips its own under refresh=False -- and every
+# other caller, which passes nothing, still gets it.
+_t1_rf = _t1_coord()
+_t1_rf_seen = {}
+for _t1_rf_name, _t1_rf_call in (
+    ("mode", lambda r: _t1_rf.async_set_mode("off", **r)),
+    ("away", lambda r: _t1_rf.async_set_away(True, **r)),
+    ("boost", lambda r: boost_mod.set_channel(_t1_rf, "dhw", True, **r)),
+):
+    for _t1_rf_kw in ({"refresh": False}, {}):
+        _t1_rf_before = _t1_rf.refresh_requests
+        _asyncio.run(_t1_rf_call(_t1_rf_kw))
+        _t1_rf_seen[(_t1_rf_name, bool(_t1_rf_kw))] = (
+            _t1_rf.refresh_requests - _t1_rf_before
+        )
+R.check(
+    "each setter skips its refresh under refresh=False and requests one by default",
+    _t1_rf_seen
+    == {(n, k): 0 if k else 1 for n in ("mode", "away", "boost") for k in (True, False)},
+    str(_t1_rf_seen),
+)
+
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
 _t1_acc_raise = _t1_coord()
 
@@ -42016,6 +42039,12 @@ class _G8DtCoord:
         self.data = data
         self.away_calls = []
         self.hass = FakeHass({})
+        # The live override the real coordinator holds, which the payload's
+        # key copies at each refresh; the entity reads this one (v6.6.12).
+        self._away_state = type("_G8Away", (), {})()
+        self._away_state.override_return_iso = (data or {}).get(
+            "away_override_return_time"
+        )
 
     async def async_set_away(self, **kw):
         self.away_calls.append(kw)
@@ -42036,6 +42065,7 @@ class _G8DtEntry:
 def _g8_dt(data):
     ent = object.__new__(_g8_dtmod.AwayReturnDateTime)
     ent.coordinator = _G8DtCoord(data)
+    ent._entry = FakeEntry()  # schedules the refresh off the action (#1621)
     return ent
 
 
@@ -42053,14 +42083,14 @@ R.check(
     and _g8_dt_junk.native_value is None,
     f"stored -> {_g8_dt_set.native_value!r}; no coordinator data -> "
     f"{_g8_dt_none.native_value!r}; no key -> {_g8_dt_blank.native_value!r}; "
-    f"'unknown' -> {_g8_dt_junk.native_value!r}. The `or {{}}` on the "
-    "coordinator's data is what keeps this readable during the first refresh, "
-    "when `data` is still None and every entity is being asked for its value",
+    f"'unknown' -> {_g8_dt_junk.native_value!r}. The value is the live "
+    "override, so it reads during the first refresh too, when `data` is still "
+    "None and every entity is being asked for its value",
 )
 R.check(
     "and setting it goes to the away service rather than to the entity's own state",
     _g8_dt_write.coordinator.away_calls
-    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC)}],
+    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC), "refresh": False}],
     f"{_g8_dt_write.coordinator.away_calls!r} -- the entity holds no state of "
     "its own: the override lives on the coordinator and is persisted there, "
     "so a setter that stored locally would show the new time and plan the old",

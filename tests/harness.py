@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
@@ -124,6 +125,21 @@ class FakeBus:
 
     def listeners_for(self, event_type) -> list:
         return [fn for kind, fn in self.listeners if kind == event_type]
+
+
+class EagerHass:
+    """A hass whose ``async_create_task`` starts the coroutine as upstream's
+    eager background task does (``eager_start=True``): it runs up to its
+    first suspension before the call returns. The fakes it drives never
+    suspend, so it completes there; one that suspends is refused."""
+
+    def async_create_task(self, coro):
+        try:
+            coro.send(None)
+        except StopIteration:
+            return None
+        coro.close()
+        raise AssertionError("a background task suspended under EagerHass")
 
 
 class FakeHass:
@@ -315,7 +331,19 @@ class FakeCoordinator:
         # configured, in the spec grammar (a weekly one here, so a test can
         # tell it from the flat `dhw_windows` the plan carries).
         self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
+        # The live mode and away override the real coordinator holds, which
+        # change at once on a set call; ``data`` changes only on a refresh.
+        # With no payload the mode is the real coordinator's own default.
+        self.mode = (data or {}).get("mode", "auto")
+        self._away_state = SimpleNamespace(
+            override_active=bool((data or {}).get("away_override_active")),
+            override_return_iso=(data or {}).get("away_override_return_time"),
+        )
         self.mode_calls: list[str] = []
+        # One entry per refresh requested: what ``on_refresh`` returned when
+        # it was asked for (a test sets it to read what had been published).
+        self.refreshes: list = []
+        self.on_refresh = None
         self.away_calls: list[dict] = []
         self.boost_calls: list[dict] = []
         # The month figures the accumulators publish (#4): None until a test
@@ -329,11 +357,27 @@ class FakeCoordinator:
         """The real coordinator reads this from the monthly ledger."""
         return self._month_totals.get(line)
 
-    async def async_set_mode(self, mode):
-        self.mode_calls.append(mode)
+    async def async_request_refresh(self):
+        """The real one runs the solve inline on a first call (the debouncer
+        awaits it outside its cooldown): 30 to 70 s on a Pi."""
+        self.refreshes.append(self.on_refresh() if self.on_refresh else None)
 
-    async def async_set_away(self, active=None, return_time=None):
+    async def async_set_mode(self, mode, *, refresh=True):
+        self.mode_calls.append(mode)
+        self.mode = mode
+        if refresh:
+            await self.async_request_refresh()
+
+    async def async_set_away(self, active=None, return_time=None, *, refresh=True):
         self.away_calls.append({"active": active, "return_time": return_time})
+        if active is not None:
+            self._away_state.override_active = bool(active)
+        if active is False:
+            self._away_state.override_return_iso = None
+        elif return_time is not None:
+            self._away_state.override_return_iso = return_time.isoformat()
+        if refresh:
+            await self.async_request_refresh()
 
     async def async_set_boost(self, channel, active):
         self.boost_calls.append({"channel": channel, "active": active})
@@ -388,12 +432,28 @@ class FakeEntry:
         # have gone through that path rather than ``async_setup_entry`` alone.
         self.state = ConfigEntryState.NOT_LOADED
         self._on_unload = []
+        # The names of the background tasks handed to the entry, in order.
+        self.background_tasks: list[str] = []
 
     def add_update_listener(self, listener):
         return lambda: None
 
     def async_on_unload(self, func):
         self._on_unload.append(func)
+
+    def async_create_background_task(self, hass, target, name, eager_start=True):
+        """Upstream hands the task to ``hass`` (eagerly started) and cancels
+        it at unload; this hands it to the fake hass's ``async_create_task``,
+        closes it where there is none, and cancels a real task at unload."""
+        self.background_tasks.append(name)
+        create = getattr(hass, "async_create_task", None)
+        if create is None:
+            target.close()
+            return None
+        task = create(target)
+        if task is not None and hasattr(task, "cancel"):
+            self.async_on_unload(lambda: task.cancel() and None)
+        return task
 
 
 async def ha_setup_component(integration, hass, domain: str | None = None) -> bool:
