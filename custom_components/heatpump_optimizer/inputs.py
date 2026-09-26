@@ -629,12 +629,11 @@ class InputReader:
 
     def _age_gate(self, reading: InputReading, state: Any) -> None:
         """Record the reading's age and flag it stale when over the limit."""
-        signed = state_age(state, self._utcnow())
-        # `signed is None` is fresh only when there is no comparable stamp
-        # (untimestamped stubs). A future stamp is the #775 fail-open.
-        future = signed is not None and signed < timedelta(0)
-        age = None if signed is None or future else signed.total_seconds() / 60.0
+        age = self._age_minutes(state)
         reading.age_minutes = age
+        # `age is None` is fresh only when there is no comparable stamp
+        # (untimestamped stubs). A future stamp is the #775 fail-open.
+        future = age is None and state_age(state, self._utcnow()) is not None
         limit = reading.max_age_minutes
         if self.enabled and limit is not None and future:
             reading.problem = "stale"
