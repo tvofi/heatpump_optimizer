@@ -151,6 +151,16 @@
     "barrier": null,
     "status": "open"
   },
+  "N-future-instant": {
+    "kind": "production",
+    "mechanism": "A persisted instant stamped by a clock that ran ahead is trusted verbatim on load, so every now-minus-stamp window it opens holds for the clock's whole error",
+    "rounds": [9],
+    "instances": ["R9 D1-s1-04", "R9 D1-s3-05", "R9 FI-sw1", "R9 FI-sw2", "R9 FI-sw3", "R9 FI-sw4", "R9 FI-sw5", "R9 FI-rca1"],
+    "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
+    "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660)",
+    "status": "barriered"
+  },
   "P11": {
     "kind": "production",
     "mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
