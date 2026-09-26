@@ -609,7 +609,10 @@ def _main() -> int:
     for label, days in shapes.items():
         mutant = json.loads(json.dumps(acc_healthy))
         peaks = mutant["peaks"]
-        peaks["peaks"] = list(peaks["peaks"]) + [float("nan")]
+        # A string, not float("nan"): json.dumps writes the float as a bare
+        # NaN token, which Home Assistant's orjson Store (and the stub, since
+        # round-9 D1-s1-51) refuses whole, so the loader would see no store.
+        peaks["peaks"] = list(peaks["peaks"]) + ["NaN"]
         if days is None:
             peaks.pop("peak_days", None)
         else:
