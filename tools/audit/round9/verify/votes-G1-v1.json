@@ -248,6 +248,41 @@
     "seam_rule_enumerates": null
    }
   ],
+  "D0": [
+   {
+    "id": "D0-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "0.2507 % drop_rel_max over 40 DHW-on cells (two|dhw|winter_narrow|winter_cold 135.443194 -> 135.103629); flat paired cells 0.0000 %; dhw-off 40/40 0.0000 %; sham duplicate-seed arm 0.0000 %",
+    "metric_definition": "(shipped objective_value - shipped objective_value with the 0.20x baseline-energy anchor appended to _solve_space's cold-start candidates) / |shipped|, per cell",
+    "method": "Re-ran seeds_ab.py --perturb deep_anchor_dhw --jobs 2 (load1 2.35), then --flat (load1 3.01) and --dhw off (load1 2.93). Seam grep of optimizer.py confirmed the 0.20x anchor only in _optimize_space_only (4008-4010), not _solve_space (3468-3484). Own harness tools/audit/round9/D0/verify-v1/anchor_sham.py (load1 1.67) with a sham extra-seed arm",
+    "attacks": "Contention: none (objective values). Grid: only 3/40 cells move; leave-one-out max 0.1360 %, mean 0.0046 %; as aggregates the max barely clears the flat-grid max 0.2342 %, but that is on a different (shoulder-weather) cell and the paired null is 0. Attribution: appending a copy of production's own first candidate gives 0.0000 % and a 0.50x anchor 0.0000 %, while 0.20x gives 0.2507/0.1360/0.0435 %, so the gain is the deep seed, not the candidate count. The on-disk production perturbation equals arm B by construction (to_zero, tautological, not re-executed on disk).",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D0-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "0.6507 % at 48 h (55.32744 -> 54.96744), 0.0000 % under ftol_tight; flat null max 0.0231 %; at the shipped 24 h horizon max 0.8523 % on one|nodhw|shoulder|winter_cold (already the #1293-claimed cell), flat 0.0070 %",
+    "metric_definition": "(f_prod - f_polish)/|f_prod| on the first seam call; f_polish = production _scoped_minimize from the shipped x at ftol 1e-12, gtol 1e-10",
+    "method": "Re-ran polish.py on the headline cell and --perturb ftol_tight (load1 2.63), the full 48 h grid plus ftol_tight grid (load1 3.48/2.31), the seam-rule 24 h grid over 64 cells (load1 2.4-2.5), and ftol_tight on the 24 h shoulder cells",
+    "attacks": "Perturbation moves to 0 as stated; null reproduces. Grid: 1 of 32 48 h cells is over 0.1 %, the next is 0.0417 %, and leave-one-out summer_typical mean is 0.0005 %. Reach: production horizon is fixed at 24 h (OptimizationConfig.horizon_hours=24.0, optimizer.py:1195; from_mapping never sets it), so the 48 h headline is off the shipped path. At 24 h the residue is real (0.8523 % and 0.2701 %, both closed by ftol_tight), but the largest cell is already a recorded claim in tests/optimality.py _CERT_CLAIMS['one|shoulder|winter_cold'], the tighter stop rule refused on money (#1293). Only the 24 h summer_cool cell (0.27 %, 0.0078 units) is new. The sub-seat proposed 'info'; the box records 'low', the lowest severity on COMMON.md's scale, as a re-observation of a recorded refusal.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D0-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "1.2012 % max (mean 0.3927 %, 8/16 cells over 0.1 %) on 16 shoulder cells; flat null max 0.3247 %, mean 0.0918 %; add_emax_ladder mean 0.0503 %; paired shoulder-minus-flat excess max 1.1661 pp, mean 0.3009 pp",
+    "metric_definition": "(f_prod - min(f_ladder, f_ladder_polish))/|f_prod| on the first seam call, ladder = recorded candidates + 13 bang-bang seeds at fractions of the bounds' max energy",
+    "method": "Re-ran race.py --first-only on the finding's 16-cell grid (weather winter_cold,winter_mild,summer_cool,shoulder) for shoulder (load1 2.30) and flat (load1 2.17), then --perturb add_emax_ladder on the shoulder cells (load1 1.7-2.0). The full 80-cell default race.py --horizon 24 was not run (named subset only). Paired excess and leave-one-out computed from the rows files",
+    "attacks": "Null: the gain survives a cell-by-cell flat pairing (7/16 cells over 0.1 pp excess). Leave-one-out: dropping the top cell leaves mean 0.3388 %; dropping the top 4 leaves 0.1432 %, still above the flat mean 0.0918 %, concentrated in single-zone summer_cool and shoulder weather. Perturbation: the number moves down (15/16 cells at or under 0.0021 %; the remaining 0.8007 % cell is polish residue, D0-s2-01). Magnitude is small in absolute terms (at most 0.107 objective units per day on the ladder cells). The same missed-basin class is already recorded as claims refused on cost (#1294) in tests/optimality.py; these shoulder-price cells are new, uncertified cells of that class.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
   "D3": [
    {
     "id": "D3-s1-01",
