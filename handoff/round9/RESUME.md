@@ -467,3 +467,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27T11:58Z F4.2 review round 1: new code head 5b523977 (on 6e31dfc2) + body b6ffef01 on handoff/r9-f4-inputs-sysid-2b. mypy 3->0 on sysid.py, ledger pin b076c4ac->392f0a49 (killed by features), eae8acbf removed (site gone), frontier header 4->6. features 3439, harness_headers 91, structure pass. 12 new unpinned sites left to --pin-killed / CI autofix.
 - 2026-09-27T12:10Z F11.6: review round-2 fix pushed. code head 02f5f81f on handoff/r9-f11-governance-6-v4 (ci: guard + ancestor pin; 146/146, 13/13 mutants, 7/22 carried); transport 9445141b holds note + body.
 - 2026-09-27T12:01Z MERGED F8.2 #1703 (tvofi confirmed). Next: stamp v6.7.6. F1.1 is the main gate.
+- 2026-09-27T12:01Z STAMPED v6.7.6 at 36d3c27a. #1718 F4.2 at code 5b523977 (branch -2b) after its review round. #1720 F11.6 at code 02f5f81f (branch -v4, with the ci: guard). Both are queued with reviewer 2.

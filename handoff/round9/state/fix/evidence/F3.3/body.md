@@ -15,7 +15,7 @@ Stored fields bound here and the domain each update path enforces (for F9.3's ta
 
 ## Head
 
-Code head `585db36e8bb15b9081a0fa6d834d42ffcdee2ac4` on `handoff/r9-f3-stores-3`. Every figure below was measured on that tree or on `f9f12383`, which differs from it only by the carry file (`.claude/workflows/carry-1647.json`). Merge base `92bce7c4` (`origin/main` when the branch was cut, 2026-09-27T09:50Z). The resume note and this body ride in a transport commit stacked above the code head and are not part of the pull request.
+Code head `6ea9e6b4c3f70bdc3775468c692d9e6c976821a5` on `handoff/r9-f3-stores-3-v2`: the reviewed code head `585db36e` plus two commits answering the fix review of #1717 (PR head `184ca64d`), a direct price-loader check (`4da36f66`) and the 21 mutation-ledger pins (`6ea9e6b4`). No production line changed. Figures below were measured on `585db36e` or on `f9f12383`, which differs from it only by the carry file, except where a line names `6ea9e6b4`. Merge base `92bce7c4` (`origin/main` when the branch was cut, 2026-09-27T09:50Z). The resume note and this body ride in a transport commit stacked above the code head and are not part of the pull request.
 
 ## Mutation proof
 
@@ -32,7 +32,9 @@ Each mutant edits one fix predicate in the tree at the code head, runs this PR's
 - M10 to M13 `OverflowError` removed from `_raw_value`, `_entries_by_day`, `apply_price_adjustments` and `_parse_block`, one at a time: the D1-s5-03 check, each alone.
 - M14 `_parse_block` back to `min(gaps)`: the D1-s5-04 check.
 
-Runner and output: `$EV/mut.py`, `$EV/mutants.txt`, `$EV/quick.sh`, where `EV=/mnt/project-files/audit-r9/fix/evidence/F3.3`. `mutation_table.py --pin-killed` was not run; CI's autofix pins killed unpinned mutants (`ci-autofix.md`).
+- M15 `_stored_rows`' `return None` after its warning deleted, and M16 `_stored_counts`' shape guard to `if False:` (the two survivors the fix review found under `mutation_table.py --pin-killed`, because every other check drives its payload through the store's scrub): the direct price-loader check, each alone.
+
+Runner and output: `$EV/mut.py`, `$EV/mutants_v2.txt` (15 of 15 killed at `6ea9e6b4`), `$EV/quick.sh`, where `EV=/mnt/project-files/audit-r9/fix/evidence/F3.3`. `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope changed --base 92bce7c4 --pin-killed --jobs 4` at `4da36f66` (`$EV/pin.log`): `PIN KILLED: 21 pinned, 0 left unpinned`; its null control `defrost.py:88 NULL_COMMENT` survived every driver. The pins are commit `6ea9e6b4`.
 
 ## Null control
 
@@ -52,7 +54,8 @@ Harnesses from evidence commit `79aa98ec`, run from an export (`$EXPORT/tools/au
 - `python3 tests/structure.py` at the code head: `STRUCTURE RATCHET PASSED`, with no budget moved or re-recorded. The first draft of the price loader breached `classes_over_300` (12 > 11, `PriceShapeModel` 314 lines) and `functions_cc_over_25` (9 > 8, its `from_dict` at cc 44); the two module helpers pay both.
 - Scope: `python3 tests/closure.py select --diff 92bce7c4 --workdir "$D"`: `MODE: SCOPED -- 23 script(s) run, 3 scoped out`.
 - Scoped gate `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=92bce7c4 ./tests/run.sh` at `f9f12383` (`$EV/gate.log`): `25 TEST SCRIPT(S) PASSED; 3 SCOPED OUT AND NOT RUN`, rc 0, `tests/stress.py` included; among them `tests/features.py` `ALL 3458 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 1975 ENTITY CHECKS PASSED`, `tests/finite_boundary.py` `ALL 51 FINITE BOUNDARY CHECKS PASSED`. The golden drift check passed with no claim, and both claim files are byte-identical to main.
-- `tools/audit/prepr.sh` at the code head (`$EV/prepr_try.txt`): `clean  no refusal`.
+- At `6ea9e6b4`: `tests/features.py` `ALL 3459 FEATURE CHECKS PASSED` (the section now `ALL 7 F33 PASSED`), `tests/entities.py` `ALL 1975 ENTITY CHECKS PASSED`, `tests/structure.py` `STRUCTURE RATCHET PASSED`, scope unchanged at `MODE: SCOPED -- 23 script(s) run, 3 scoped out`.
+- `tools/audit/prepr.sh` at `585db36e` (`$EV/prepr_try.txt`): `clean  no refusal`.
 - `node .claude/workflows/brief_lint.mjs .claude/workflows/carry-1647.json`: `TOTAL: 0 error(s) across 1 file(s)`.
 
 Class enumerators (`fixer.md` step 8), each run from an export of its sweep commit placed at the tree's own path, at the merge base and at `f9f12383` (`$EV/P1_*.txt`, `$EV/P2_*.txt`, `$EV/S6_*.txt`, `$EV/seamrules_*.txt`):
