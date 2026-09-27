@@ -49131,6 +49131,126 @@ R.check(
     f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
 )
 
+# The full-price floor made the two-zone landscape steeper where a descent
+# crosses the floor, and on the backtest's 750 L storage house (winter_typical
+# prices) the multi-start stopped lost a basin: its own objective scored a
+# plan it could reach from the half-price floor 0.83 lower than the one it
+# shipped, and storage stopped paying (tests/backtest.py, red on main at
+# 058e89f1). Arm: the plan the solver ships is no worse, on its own objective,
+# than the same solve seeded with the half-price floor's plan. Null arm: a
+# single-zone house, whose floor never changed.
+from profiles import house as _f21_house, prices as _f21_prices  # noqa: E402
+from profiles import weather as _f21_weather  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _f21_State  # noqa: E402
+
+
+def _f21_storage_solve(two_zone, seed=None, l1=None):
+    cfg = _f21_house(
+        two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
+        buffer_max_temperature=70.0, mixing_valve_mode="manual",
+    )
+    params = _f21_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _f21_Opt(_f21_Model(params), _f21_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+    ))
+    if seed is not None:
+        opt._prev_shipped_plan = np.asarray(seed, dtype=float)
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _f21_weather("winter_cold", t0)
+    state = _f21_State(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=25.0, outdoor_temperature=float(out[0]),
+    )
+    saved = _f21_optmod._COMFORT_FLOOR_L1
+    if l1 is not None:
+        _f21_optmod._COMFORT_FLOOR_L1 = l1
+    try:
+        res = opt.optimize(
+            state, _f21_prices("winter_typical", t0), out, wind, rain, sun, t0
+        )
+    finally:
+        _f21_optmod._COMFORT_FLOOR_L1 = saved
+    return np.asarray(res.power_schedule), float(res.objective_value), opt
+
+
+for _f21_tz in (True, False):
+    _f21_half, _, _ = _f21_storage_solve(
+        _f21_tz, l1=0.5 * _f21_optmod._COMFORT_FLOOR_L1
+    )
+    _, _f21_j_plain, _f21_solved = _f21_storage_solve(_f21_tz)
+    _, _f21_j_seeded, _ = _f21_storage_solve(_f21_tz, seed=_f21_half)
+    if _f21_tz:
+        _f21_two_zone_opt = _f21_solved
+    R.check(
+        "R9-F2.1 P3" + ("" if _f21_tz else " (null arm, single-zone)")
+        + ": the shipped storage plan is no worse on its own objective than "
+        "the half-price floor's plan refined under it",
+        _f21_j_plain <= _f21_j_seeded + 0.1,
+        f"shipped {_f21_j_plain:.4f}, seeded with the half-price plan "
+        f"{_f21_j_seeded:.4f}",
+    )
+_f21_probe = (
+    np.full(5, 19.9), np.full(5, 19.9), np.full(5, 21.5), np.full(4, 21.5),
+    np.full(4, 20.0), np.full(4, 23.0), np.full(4, 1.5),
+)
+_f21_after = _f21_two_zone_opt._comfort_terms(*_f21_probe)[0]
+_f21_fresh = _f21_Opt(
+    _f21_two_zone_opt.model, _f21_two_zone_opt.config
+)._comfort_terms(*_f21_probe)[0]
+R.check(
+    "R9-F2.1 P3: the continuation leaves each zone's floor at the full linear "
+    "price once the solve returns",
+    _f21_after == _f21_fresh,
+    f"after a two-zone solve {_f21_after:.6f}, a fresh optimizer {_f21_fresh:.6f}",
+)
+
+# The continuation moves the plain first start, not a caller's extra start,
+# and under the budget the multi-start hands it: #234's two-zone solve, with
+# both solvers stubbed so only the hand-off is read.
+_f21_budgets, _f21_moved = [], []
+
+
+def _f21_ms(objective, starts, bounds, *a, move_starts, **kw):
+    _f21_moved.extend(move_starts([np.asarray(s, dtype=float) for s in starts], 7))
+    return _Min234(np.asarray(starts[0], dtype=float))
+
+
+def _f21_min(fun, x0, **kw):
+    _f21_budgets.append(kw["options"]["maxiter"])
+    return _Min234(np.full(np.shape(x0), -1.0))
+
+
+_f21_real = (_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize)
+_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_ms, _f21_min
+try:
+    _opt234._optimize_space_only(_h234)
+    _f21_budgets_two, _f21_budgets[:] = list(_f21_budgets), []
+    _opt234.model.params.two_zone_enabled = False
+    _opt234._optimize_space_only(_h234)
+finally:
+    _opt234.model.params.two_zone_enabled = True
+    _f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_real
+R.check(
+    "R9-F2.1 P3: the continuation refines the first plain start, after the "
+    "extra starts, within the multi-start's own iteration budget",
+    _f21_budgets_two == [7] and len(_f21_moved) >= 4
+    and np.allclose(_f21_moved[0], _clipped234)
+    and np.allclose(_f21_moved[1], _bang234)
+    and np.all(_f21_moved[2] == -1.0) and not np.all(_f21_moved[3] == -1.0),
+    f"budgets {_f21_budgets_two}; moved "
+    f"{[bool(np.all(c == -1.0)) for c in _f21_moved]}",
+)
+R.check(
+    "R9-F2.1 P3 (null arm, single-zone): a single-zone solve runs no "
+    "continuation -- its floor price never changed",
+    _f21_budgets == [],
+    f"continuation budgets on the single-zone solve: {_f21_budgets}",
+)
+
 # D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the
 # import price sits below the export price (a negative-price hour, or a high
 # export compensation) a surplus-covered kWh was charged at the import price

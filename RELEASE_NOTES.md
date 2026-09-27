@@ -1,5 +1,22 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.3
+
+hotfix: when the optimizer controls the heat pump's mode and set-point, it no longer writes an indoor temperature (25 °C) to a set-point that is configured as a flow temperature, which badly underheated the house. Also in this release, most of round-9 wave 1: climate and switch modes no longer read a stale mode, stored timestamps are bounded and time-zone-aware, the solver's sign floor on the price margin is fixed (and the storage basin it had lost is restored), config text and card fixes, docs that match the setup wizard, and governance and test-stub fidelity work.
+
+- #1690 — fix the climate hvac_action and switch mode reading a stale or overlay-blind mode (P2, D8-s2-02/03)
+- #1691 — fix: a stored instant loads aware or not at all, never beyond the clock plus its store's lead (round-9 F3.1)
+- #1693 — tests: the HA stub is faithful where production depends on it (round-9 F10.1, P11)
+- #1694 — fix: the solver's sign floor on the price margin (round-9 F2.1)
+- #1696 — docs: initial setup matches the current wizard; simulate_plan lists its wood fields (round-9 F8.1)
+- #1697 — governance: parsers and enumerators (round-9 F11.1)
+- #1698 — fix(config-text): escaped characters, service icons, bare units and a mistranslation (round-9 F5.1)
+- #1699 — fix(card): dashboard card layout, colour and hit-target fixes (round-9 F6.1)
+- #1701 — governance: round-9 F11.2 (part of #1648)
+- #1702 — tests: pin five I1 guards in finite_boundary (round-9 F9.1)
+- #1705 — fix: never write an indoor temperature to a set-point configured as flow temperature (hotfix)
+- #1711 — fix: restore the solver basin that made storage pay (round-9 F2.1 follow-up)
+
 ## v6.7.2
 
 the card's plan history now looks like the plan: past prices (under either price sensor id), 15-minute steps, the plan's own scales and lanes, and no breaks from one-minute sensor blips. Button presses now return before the solve, so a restart no longer cancels a queued reset. The typing toolchain lock also moves to cryptography 50.0.1 for three Dependabot advisories.
