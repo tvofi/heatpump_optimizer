@@ -49019,6 +49019,7 @@ import sys as _f22_sys  # noqa: E402
 
 from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
+    _DHW_MIN_RUN_CHUNK as _F22_CHUNK,
     cycling_penalty as _f22_cyc,
     cycling_penalty_batch as _f22_cyc_batch,
 )
@@ -49227,6 +49228,79 @@ R.check(
     _f22_refused and _f22_mr_steps <= _f22_early_bound,
     f"steps {_f22_mr_steps} against the early-exit bound {_f22_early_bound} "
     f"({len(_f22_refused)} refused, {len(_f22_accepted)} accepted)",
+)
+
+
+# ...and every accept/refuse decision is still the whole suffix's. The
+# reference is the pre-chunking check: extend the candidate to the horizon,
+# then compare every step against max(ceiling, base). The scenarios step the
+# per-step ceiling down after a boost window, so a chunk that reads the
+# ceiling one step out of line decides differently (review of #1710, m4),
+# and the recorded first-breach offsets must include both sides of the first
+# chunk boundary.
+_F22MrCls = type(_mr_opt)
+_f22_breach_offsets: list[int] = []
+
+
+def _f22_whole_suffix_fits(
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+):
+    self.model.extend_dhw_temps(
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+    )
+    limit = np.maximum(ceiling[: candidate.size], base)
+    bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]
+    if bad.size:
+        _f22_breach_offsets.append(int(bad[0]) + 1)
+    return bad.size == 0
+
+
+def _f22_mr_scenario(seed, n=96):
+    rng = np.random.default_rng(seed)
+    cap = np.full(n, 50.0 + rng.integers(0, 4))
+    w0, wl = int(rng.integers(4, n - 30)), int(rng.integers(4, 24))
+    cap[w0:w0 + wl] = 60.0 + rng.integers(0, 3)
+    plan = np.zeros(n)
+    plan[w0:w0 + wl] = rng.uniform(0.0, 3.0, wl) * (rng.random(wl) < 0.6)
+    weak = rng.choice(n, int(rng.integers(8, 30)), replace=False)
+    plan[weak] = rng.uniform(0.02, 0.55, weak.size)
+    draws = np.zeros(n)
+    d0 = int(rng.integers(0, n - 8))
+    draws[d0:d0 + int(rng.integers(2, 12))] = rng.uniform(0.5, 3.0)
+    return plan, float(rng.uniform(40, 52)), rng.uniform(-10, 10, n), draws, cap
+
+
+def _f22_mr_decide(fits, sc):
+    plan, t0, outdoor, draws, cap = sc
+    saved = _F22MrCls._dhw_raise_fits
+    _F22MrCls._dhw_raise_fits = fits
+    try:
+        return _mr_opt._apply_dhw_min_run(
+            plan=plan.copy(), initial_temp=t0, outdoor_temps=outdoor,
+            draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
+            min_run_power=_MR_MIN, max_temp=cap,
+        )
+    finally:
+        _F22MrCls._dhw_raise_fits = saved
+
+
+_f22_mr_moved = []
+for _f22_seed in range(120):
+    _f22_sc = _f22_mr_scenario(_f22_seed)
+    _f22_ref = _f22_mr_decide(_f22_whole_suffix_fits, _f22_sc)
+    if _f22_mr_decide(_F22MrCls._dhw_raise_fits, _f22_sc).tobytes() != _f22_ref.tobytes():
+        _f22_mr_moved.append(_f22_seed)
+R.check(
+    "R9-F2.2 D9-s1-04: every min-run accept/refuse decision is the whole "
+    "suffix's, on stepped ceilings and breaches on both sides of a chunk "
+    "boundary",
+    not _f22_mr_moved
+    and _F22_CHUNK in _f22_breach_offsets
+    and _F22_CHUNK + 1 in _f22_breach_offsets,
+    f"seeds that moved {_f22_mr_moved[:6]} of {len(_f22_mr_moved)}; "
+    f"first breaches at the boundary: "
+    f"{_f22_breach_offsets.count(_F22_CHUNK)} at +8, "
+    f"{_f22_breach_offsets.count(_F22_CHUNK + 1)} at +9",
 )
 
 
