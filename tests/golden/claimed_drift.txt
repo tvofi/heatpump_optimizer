@@ -58,6 +58,16 @@
 #
 # v6.7.7: hotfix: Governance reads an unreadable ruleset field as unreadable. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+
+# R9 F1.2 (D12-s3-01, round 9): this branch claims exactly one fixture.
+# The wizard's dhw and zones pages ask presence -- a dhw_enabled boolean and
+# a transient two_zone question -- so the flow-walk capture gains their
+# rendered form fields and the explicit dhw_enabled=False an untouched
+# wizard now stores. Structure only: the fixture is float-free, and no
+# solver input moved on any other scenario (the open-loop DHW/slab seed of
+# D12-s1-01 changes no fixture capture; every other fixture byte-identical
+# to 2d71759e in this environment).
+config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
 #
 
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch

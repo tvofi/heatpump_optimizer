@@ -146,6 +146,12 @@
     "required": "Optional",
     "selector": "NumberSelector"
    },
+   "dhw_enabled": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
    "dhw_idle_min_temperature": {
     "config": {
      "max": "55",
@@ -862,6 +868,12 @@
     "default": "0.7",
     "required": "Optional",
     "selector": "NumberSelector"
+   },
+   "two_zone": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
    },
    "upper_floor_area_ratio": {
     "config": {

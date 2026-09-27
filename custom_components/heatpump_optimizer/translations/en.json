@@ -125,7 +125,8 @@
           "buffer_tank_volume": "Buffer tank size",
           "window_area": "Window area facing the sun",
           "solar_orientation_factor": "Solar orientation factor",
-          "solar_heat_gain_coefficient": "How much sunlight the windows let through"
+          "solar_heat_gain_coefficient": "How much sunlight the windows let through",
+          "two_zone": "The house has two zones (two floors heated separately)"
         },
         "data_description": {
           "upper_floor_thermal_mass": "Two-zone systems only. Heat stored per degree in the radiator-heated upper floor. Usually much lower than the slab, so this zone reacts faster.",
@@ -138,7 +139,8 @@
           "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
           "window_area": "Square metres of glazing that gets direct sun. Used to predict free solar heating.",
           "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day.",
-          "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days."
+          "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days.",
+          "two_zone": "On: the two-zone model runs and the zone fields below apply. Off: the house is modelled as one zone whatever the fields below say."
         }
       },
       "dhw": {
@@ -155,7 +157,8 @@
           "dhw_legionella_enabled": "Run an anti-legionella cycle",
           "dhw_legionella_interval_days": "Anti-legionella interval",
           "dhw_idle_min_temperature": "Let the tank cool to",
-          "dhw_legionella_temperature": "Anti-legionella temperature"
+          "dhw_legionella_temperature": "Anti-legionella temperature",
+          "dhw_enabled": "The house has a hot water tank"
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
@@ -168,7 +171,8 @@
           "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 °C in a 20 °C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
           "dhw_legionella_temperature": "60 °C is the usual recommendation.",
-          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
+          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline.",
+          "dhw_enabled": "On: hot water is planned and the tank charged. Leave off unless the heat pump really heats a tank — the other fields only apply when this is on."
         }
       },
       "weather_sensitivity": {

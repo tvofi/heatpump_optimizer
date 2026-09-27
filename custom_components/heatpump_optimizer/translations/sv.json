@@ -125,7 +125,8 @@
           "buffer_tank_volume": "Ackumulatortankens volym",
           "window_area": "Fönsteryta mot solen",
           "solar_orientation_factor": "Solorientering (1.0=full söder)",
-          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in"
+          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in",
+          "two_zone": "Huset har två zoner (två våningar som värms separat)"
         },
         "data_description": {
           "upper_floor_thermal_mass": "Endast tvåzonssystem. Värme som lagras per grad i det radiatorvärmda övre planet. Oftast mycket lägre än plattan, så zonen reagerar snabbare.",
@@ -138,7 +139,8 @@
           "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
           "window_area": "Kvadratmeter glas som får direkt sol. Används för att förutse gratis solvärme.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen.",
-          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar."
+          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar.",
+          "two_zone": "På: tvåzonsmodellen används och zonfälten nedan gäller. Av: huset modelleras som en zon oavsett fälten nedan."
         }
       },
       "dhw": {
@@ -155,7 +157,8 @@
           "dhw_legionella_enabled": "Kör legionellaskydd",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "dhw_idle_min_temperature": "Låt beredaren svalna till",
-          "dhw_legionella_temperature": "Legionellatemperatur"
+          "dhw_legionella_temperature": "Legionellatemperatur",
+          "dhw_enabled": "Huset har en varmvattenberedare"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -168,7 +171,8 @@
           "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 °C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 °C är den vanliga rekommendationen.",
-          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
+          "dhw_enabled": "På: varmvatten planeras och beredaren laddas. Lämna av om värmepumpen inte真的värmer en beredare — övriga fält gäller bara när denna är på."
         }
       },
       "weather_sensitivity": {
