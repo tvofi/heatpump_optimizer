@@ -3162,9 +3162,12 @@ R.check(
     f"configured: {_FLOW_THERMOMETERS}",
 )
 R.check(
-    "and turns hot water on anyway, with the 200 L tank the page pre-fills",
-    _FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME) == 200.0,
-    f'{_FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME)!r}',
+    "and stores the 200 L tank the page pre-fills, with hot water OFF: an "
+    "untouched wizard answers the presence question no (R9 D12-s3-01)",
+    _FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME) == 200.0
+    and _FLOW_CONFIG.get(const.CONF_DHW_ENABLED) is False,
+    f'volume={_FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME)!r} '
+    f'dhw_enabled={_FLOW_CONFIG.get(const.CONF_DHW_ENABLED)!r}',
 )
 
 #: A forecast the plan can be solved on, well below the 5.0 °C the outdoor
@@ -3486,17 +3489,20 @@ for _cls in (sensor.ThermalBatterySensor, sensor.ThermalBatteryEnergySensor):
 # A 35 L buffer with no valve is not a store (`buffer_is_store` is False), so
 # it is out of the view entirely (issue #1404) -- it is not merely "modelled",
 # it is absent. The remaining stores are named modelled, not dropped.
+# dhw_tank left the modelled set with R9 D12-s3-01: the untouched wizard's
+# explicit dhw_enabled=False wins over the pre-filled tank keys it stores.
 R.check(
     "the view names every store it only modelled, rather than dropping them",
     set((_d801_blind_data.get("battery") or {}).get("modelled_components") or [])
-    == {"house", "slab", "dhw_tank"}
+    == {"house", "slab"}
     and not (_d801_blind_data.get("battery") or {}).get("measured_components"),
     str(_d801_blind_data.get("battery", {}).get("modelled_components")),
 )
 R.check(
     "and the reported charge drops the non-store buffer from its denominator",
-    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 88.4,
-    "a 35 L tank with no valve is not a store, so it no longer pads the SOC",
+    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 88.0,
+    "a 35 L tank with no valve is not a store, so it no longer pads the SOC; "
+    "the tank is out of the denominator too (R9 D12-s3-01)",
 )
 R.check(
     "the energy sensor carries the same disclosure in its own attributes",
@@ -3646,8 +3652,9 @@ R.check(
 R.check(
     "with the stores it only modelled named rather than dropped",
     set((_d801_indoor_only.get("battery") or {}).get("modelled_components") or [])
-    == {"slab", "dhw_tank"},
-    str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
+    == {"slab"},
+    "the tank is modelled only where an answer affirmed it (R9 D12-s3-01): "
+    + str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
 # --- hot water that is not configured is not a zero -------------------------

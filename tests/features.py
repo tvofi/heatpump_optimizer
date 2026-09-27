@@ -575,6 +575,563 @@ for _r9f41_key in _r9f41_quiet:
         f"dead {_r9f41_dead.problem}",
     )
 
+
+# --- R9 P2 (#1644): presence answers, not key presence ----------------------
+R.section("R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)")
+
+# D14-s2-01: three seams beside their canonical predicate decided the
+# two-zone and wood-furnace facts from a proxy key. Each check below pins the
+# canonical predicate's verdict at a boundary cell the proxy got wrong
+# (mode ignored, one key of four watched, a present-but-0.0 value dropped, a
+# different inferred-key set) against the cell where proxy and predicate
+# agree -- the null controls.
+import asyncio as _r9f12_aio  # noqa: E402
+from harness import FakeEntry as _r9f12_entry  # noqa: E402
+from homeassistant.util import dt as _r9f12_dt  # noqa: E402
+import heatpump_optimizer as _r9f12_integ  # noqa: E402
+from heatpump_optimizer import (  # noqa: E402
+    config_flow as _r9f12_flow,
+    const as _r9f12_const,
+    modbus_prefill as _r9f12_prefill,
+    quick_setup as _r9f12_quick,
+    topology as _r9f12_topo,
+    wood_fuel as _r9f12_wood,
+)
+from heatpump_optimizer.thermal_model import ThermalParameters as _r9f12_tp  # noqa: E402
+
+_r9f12_zone_keys = {
+    _r9f12_const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+    _r9f12_const.CONF_LOWER_FLOOR_THERMAL_MASS: 3.0,
+    _r9f12_const.CONF_INTER_ZONE_TRANSFER: 0.1,
+    _r9f12_const.CONF_RADIATOR_POWER_FRACTION: 0.5,
+}
+R.check(
+    "D14-s2-01: the questionnaire derives single-zone physics for "
+    "two_zone_mode=off however many zone keys survive",
+    _r9f12_flow._derive_preset({}, {
+        **_r9f12_zone_keys,
+        _r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_OFF,
+    }) == _r9f12_flow._derive_preset({}, {
+        _r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_OFF,
+    }),
+    "the preset re-derives two-zone from upper-floor mass beside the "
+    "canonical rule",
+)
+R.check(
+    "D14-s2-01: two_zone_mode=on derives two-zone physics with no zone key stored",
+    _r9f12_flow._derive_preset({}, {
+        _r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_ON,
+        _r9f12_const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+    }) == _r9f12_flow._derive_preset({}, {
+        _r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_ON,
+    }),
+    "an explicit on with no keys fell back to the mass-presence proxy",
+)
+R.check(
+    "D14-s2-01: an upper mass of 0.0 is presence, like any value (auto mode)",
+    _r9f12_flow._derive_preset({}, {
+        _r9f12_const.CONF_UPPER_FLOOR_THERMAL_MASS: 0.0,
+    }) == _r9f12_flow._derive_preset({}, {
+        _r9f12_const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+    }),
+    "bool(0.0) dropped a key the canonical rule counts as present",
+)
+
+# The pre-fill seam: CONF_MIXING_VALVE_WRITE_TARGET_KIND was offered iff
+# bool(upper_floor_thermal_mass), so a flow write target the building page's
+# own save refuses was suggested (or a legitimate one missed).
+_r9f12_snap = {
+    "r4109": ("sensor.p_gchv_r4109", "0", 1.0),  # water temperature control
+    "unit_capacity": ("sensor.p_unit_capacity", "8.0", 1.0),
+}
+for _r9f12_label, _r9f12_cell in (
+    (
+        "mode off with zone keys",
+        {**_r9f12_zone_keys,
+         _r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_OFF},
+    ),
+    (
+        "mode on, no keys",
+        {_r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_ON},
+    ),
+    ("auto, upper mass 0.0", {_r9f12_const.CONF_UPPER_FLOOR_THERMAL_MASS: 0.0}),
+    ("auto, nothing (null control)", {}),
+):
+    _r9f12_suggested = (
+        _r9f12_const.CONF_MIXING_VALVE_WRITE_TARGET_KIND
+        in _r9f12_prefill.infer(_r9f12_snap, _r9f12_cell)
+    )
+    _r9f12_canonical = _r9f12_tp.from_config(dict(_r9f12_cell)).two_zone_enabled
+    R.check(
+        f"D14-s2-01: the pre-fill offers a flow write target exactly when the "
+        f"canonical rule says two-zone ({_r9f12_label})",
+        _r9f12_suggested == _r9f12_canonical,
+        f"suggested={_r9f12_suggested} canonical={_r9f12_canonical}",
+    )
+
+# The picture seam: describe_setup's wood tank came from a different
+# inferred-key set than wood_furnace_on (valve outlet added, the wood coil
+# dropped), so the diagram drew a tank the model does not run and hid one it
+# does.
+for _r9f12_label, _r9f12_cell in (
+    ("flag on", {_r9f12_const.CONF_WOOD_FURNACE_ENABLED: True}),
+    (
+        "flag off, probes stored",
+        {
+            _r9f12_const.CONF_WOOD_FURNACE_ENABLED: False,
+            _r9f12_const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.t",
+            _r9f12_const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.b",
+        },
+    ),
+    (
+        "no flag, valve outlet alone",
+        {_r9f12_const.CONF_VALVE_OUTLET_TEMP_ENTITY: "sensor.v"},
+    ),
+    (
+        "no flag, wood coil alone",
+        {_r9f12_const.CONF_DHW_WOOD_COIL_ENABLED: True},
+    ),
+    (
+        "no flag, top probe alone",
+        {_r9f12_const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.t"},
+    ),
+    ("no flag, nothing (null control)", {}),
+):
+    R.check(
+        f"D14-s2-01: the setup picture's wood tank is the canonical "
+        f"predicate's ({_r9f12_label})",
+        _r9f12_topo.describe_setup(dict(_r9f12_cell))["wood"]["present"]
+        == _r9f12_wood.wood_furnace_on(_r9f12_cell),
+        "picture=%r canonical=%r" % (
+            _r9f12_topo.describe_setup(dict(_r9f12_cell))["wood"]["present"],
+            _r9f12_wood.wood_furnace_on(_r9f12_cell),
+        ),
+    )
+
+# D12-s3-01: the full wizard's dhw and zones pages offered only defaulted
+# optional fields, so an untouched submit stored tank volume and zone keys,
+# and the presence rules read them as "configured". The fix writes the
+# explicit flags from a question on the page, the way quick_setup derives
+# them; an untouched page now answers "no".
+class _r9f12_OK:
+    """The Tibber verify call, answered offline."""
+
+    class _Resp:
+        status = 200
+
+        async def json(self):
+            return {"data": {"viewer": {"name": "Home"}}}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    def post(self, *a, **k):
+        return self._Resp()
+
+
+_r9f12_required = {
+    "name": "Heat Pump Optimizer",
+    _r9f12_const.CONF_TIBBER_TOKEN: "tok",
+    _r9f12_const.CONF_WEATHER_ENTITY: "weather.home",
+}
+
+
+def _r9f12_untouched(schema):
+    """What an untouched browser posts: the suggested value, else the default."""
+    answers = {}
+    for key in schema.schema if schema else ():
+        name = str(key)
+        desc = getattr(key, "description", None) or {}
+        if isinstance(desc, dict) and "suggested_value" in desc:
+            answers[name] = desc["suggested_value"]
+            continue
+        try:
+            default = key.default()
+        except Exception:  # noqa: BLE001
+            default = None
+        if default is not None and type(default).__name__ != "Undefined":
+            answers[name] = default
+    return answers
+
+
+async def _r9f12_walk(choices, form_overrides):
+    """Drive the initial flow to create_entry, menus by ``choices`` then the
+    first option; every form is submitted untouched, bar ``form_overrides``."""
+    flow = _r9f12_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = FakeHass()
+    result = await flow.async_step_user(None)
+    mi = 0
+    trail = []
+    for _ in range(40):
+        if result.get("type") == "create_entry":
+            return dict(result["data"]), trail
+        if result.get("type") == "menu":
+            options = list(result["menu_options"])
+            step = choices[mi] if mi < len(choices) else options[0]
+            if (
+                result["step_id"] == "finish_setup"
+                and "quick_setup" in trail
+                and step == "quick_setup"
+            ):
+                # quick_setup declines the pre-fill back to finish_setup; a
+                # second visit to that menu finishes.
+                step = "finish_now"
+            mi += 1
+            trail.append(step)
+            result = await getattr(flow, f"async_step_{step}")(None)
+            continue
+        step = result["step_id"]
+        trail.append(step)
+        if step == "user":
+            answers = dict(_r9f12_required)
+        else:
+            answers = _r9f12_untouched(result.get("data_schema"))
+        answers.update(form_overrides.get(step) or {})
+        result = await getattr(flow, f"async_step_{step}")(answers)
+    raise RuntimeError(f"flow did not finish: {trail}")
+
+
+_r9f12_session = _r9f12_flow.async_get_clientsession
+_r9f12_flow.async_get_clientsession = lambda hass, verify_ssl=True: _r9f12_OK()
+try:
+    _r9f12_expert, _r9f12_trail = _r9f12_aio.run(
+        _r9f12_walk(["temperature", "thermal"], {})
+    )
+    _r9f12_expert_tp = _r9f12_tp.from_config(_r9f12_expert)
+    R.check(
+        "D12-s3-01: an untouched expert wizard creates a single-zone, "
+        "no-hot-water plant",
+        _r9f12_expert_tp.two_zone_enabled is False
+        and _r9f12_expert_tp.dhw_enabled is False,
+        f"two_zone={_r9f12_expert_tp.two_zone_enabled} "
+        f"dhw={_r9f12_expert_tp.dhw_enabled} on {' > '.join(_r9f12_trail)}",
+    )
+    R.check(
+        "D12-s3-01: the wizard writes the explicit presence flags "
+        "(two_zone_mode off, dhw_enabled off)",
+        _r9f12_expert.get(_r9f12_const.CONF_TWO_ZONE_MODE)
+        == _r9f12_const.TWO_ZONE_MODE_OFF
+        and _r9f12_expert.get(_r9f12_const.CONF_DHW_ENABLED) is False,
+        "two_zone_mode=%r dhw_enabled=%r" % (
+            _r9f12_expert.get(_r9f12_const.CONF_TWO_ZONE_MODE),
+            _r9f12_expert.get(_r9f12_const.CONF_DHW_ENABLED),
+        ),
+    )
+    _r9f12_quick_data, _ = _r9f12_aio.run(
+        _r9f12_walk(
+            ["quick_setup"],
+            {
+                "quick_setup": {
+                    _r9f12_quick.FIELD_DHW_TANK: True,
+                    _r9f12_quick.FIELD_TWO_ZONE: False,
+                }
+            },
+        )
+    )
+    R.check(
+        "D12-s3-01: a quick-setup 'yes, hot water' still plans hot water "
+        "(null control)",
+        _r9f12_tp.from_config(_r9f12_quick_data).dhw_enabled is True
+        and _r9f12_quick_data.get(_r9f12_const.CONF_DHW_ENABLED) is True,
+        "dhw_enabled=%r" % _r9f12_quick_data.get(_r9f12_const.CONF_DHW_ENABLED),
+    )
+    _r9f12_yes, _ = _r9f12_aio.run(
+        _r9f12_walk(
+            ["temperature", "thermal"],
+            {
+                "zones": {_r9f12_quick.FIELD_TWO_ZONE: True},
+                "dhw": {_r9f12_const.CONF_DHW_ENABLED: True},
+            },
+        )
+    )
+    R.check(
+        "D12-s3-01: the wizard's own yes answers turn both plants on",
+        _r9f12_tp.from_config(_r9f12_yes).two_zone_enabled is True
+        and _r9f12_tp.from_config(_r9f12_yes).dhw_enabled is True,
+        "two_zone=%s dhw=%s" % (
+            _r9f12_tp.from_config(_r9f12_yes).two_zone_enabled,
+            _r9f12_tp.from_config(_r9f12_yes).dhw_enabled,
+        ),
+    )
+
+    def _r9f12_suggested(step, data):
+        flow = _r9f12_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        flow._data = dict(data)
+        form = _r9f12_aio.run(getattr(flow, f"async_step_{step}")(None))
+        return {
+            str(marker): (getattr(marker, "description", None) or {}).get(
+                "suggested_value"
+            )
+            for marker in (form.get("data_schema").schema or {})
+        }
+
+    _r9f12_dhw_sugg = _r9f12_suggested(
+        "dhw", {_r9f12_const.CONF_DHW_ENABLED: True}
+    )
+    R.check(
+        "D12-s3-01: the hot-water page asks presence and suggests a stored "
+        "yes back",
+        _r9f12_dhw_sugg.get(_r9f12_const.CONF_DHW_ENABLED) is True,
+        "suggested=%r" % _r9f12_dhw_sugg.get(_r9f12_const.CONF_DHW_ENABLED),
+    )
+    _r9f12_zones_sugg = _r9f12_suggested(
+        "zones", {_r9f12_const.CONF_TWO_ZONE_MODE: _r9f12_const.TWO_ZONE_MODE_ON}
+    )
+    R.check(
+        "D12-s3-01: the zones page asks the zone question and suggests a "
+        "stored on back",
+        _r9f12_zones_sugg.get(_r9f12_quick.FIELD_TWO_ZONE) is True,
+        "suggested=%r"
+        % _r9f12_zones_sugg.get(_r9f12_quick.FIELD_TWO_ZONE),
+    )
+
+    # The merged finding's options half (D12-s1-02): an untouched Hot water
+    # or Hot water tank page over an entry with no hot water at all stored
+    # the presence-inferred pair and planned a tank the entry never had.
+    # The presence question now lives on the wizard; here the pair's own
+    # default post is dropped over a no-DHW entry, kept when deliberate.
+    _r9f12_phantom = _r9f12_flow._omit_unstored_defaults(
+        {
+            _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+            _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+            _r9f12_const.CONF_DHW_SETPOINT: 52.0,
+        },
+        {},
+    )
+    R.check(
+        "D12-s3-01: an untouched options page stores no DHW presence over a "
+        "no-hot-water entry",
+        _r9f12_phantom == {_r9f12_const.CONF_DHW_SETPOINT: 52.0},
+        f"stored={sorted(_r9f12_phantom)}",
+    )
+    R.check(
+        "D12-s3-01: an edited windows spec is a deliberate answer and stays "
+        "(null control)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: "06:00-09:00"}, {}
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: "06:00-09:00"},
+        "an edited spec over a no-DHW entry must not be dropped",
+    )
+    R.check(
+        "D12-s3-01: a hot-water entry keeps an untouched pair post, as before "
+        "(null control)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+            {_r9f12_const.CONF_DHW_WINDOWS: "07:00-08:00"},
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+        "a stored key is always kept",
+    )
+    R.check(
+        "D12-s3-01: an entry that affirmed hot water keeps an untouched pair "
+        "post without the pair stored (the guard's affirmed arm)",
+        _r9f12_flow._omit_unstored_defaults(
+            {
+                _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+                _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+            },
+            {_r9f12_const.CONF_DHW_ENABLED: True},
+        )
+        == {
+            _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+            _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+        },
+        "the explicit flag is the affirmation; its pair is not dropped",
+    )
+    R.check(
+        "D12-s3-01: and so does an entry whose hot water is presence-inferred "
+        "(volume stored, windows never)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+            {_r9f12_const.CONF_DHW_TANK_VOLUME: 180.0},
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+        "a hot-water entry by presence keeps an untouched post too",
+    )
+finally:
+    _r9f12_flow.async_get_clientsession = _r9f12_session
+
+# --- R9 P6 (#1651): the unprobed plant state advances from the plan ----------
+R.section("R9 P6: the unprobed plant state advances from the plan (D12-s1-01)")
+
+# D12-s1-01: with the tank probe omitted (the default install), every solve
+# started from the 55 degC ThermalState default, and the slab from a one-time
+# room+1 K seed; neither was ever advanced between cycles. The fix seeds both
+# from the previous plan's own trajectory at the elapsed step (hourly cycles,
+# 15-minute steps: index 4). The mapped arms are the controls: a probe wins
+# over open-loop propagation, at both ends of the fix.
+_r9f12_seed_start = datetime(2026, 3, 2, 6, 0, tzinfo=UTC)
+_r9f12_seed_cfg = {
+    "price_source": "entity",
+    "price_entity": "sensor.prices",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_tank_volume": 200.0,
+    "dhw_setpoint": 55.0,
+    "dhw_daily_consumption": 150.0,
+    "dhw_min_temperature": 45.0,
+    "dhw_windows": "06:00-08:30, 17:00-22:00",
+}
+
+
+def _r9f12_seed_prices(hass, now):
+    now = now.replace(minute=0, second=0, microsecond=0)
+    hass.states.set(
+        "sensor.prices",
+        FakeState(
+            "0.5",
+            attributes={
+                "raw_today": [
+                    {
+                        "start": (now + timedelta(hours=h)).isoformat(),
+                        "value": round(0.5 + 0.1 * (h % 4), 3),
+                    }
+                    for h in range(48)
+                ]
+            },
+        ),
+    )
+
+
+def _r9f12_cycles(mapped):
+    """Four hourly closed-loop cycles; returns the solver's seeds and plans."""
+    cfg = dict(_r9f12_seed_cfg)
+    if mapped:
+        cfg["dhw_temp_entity"] = "sensor.tank"
+        cfg["floor_return_temp_entity"] = "sensor.floor"
+    _r9f12_dt.freeze(_r9f12_seed_start)
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.0", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0", unit="°C"))
+    if mapped:
+        hass.states.set("sensor.tank", FakeState("48.0", unit="°C"))
+        hass.states.set("sensor.floor", FakeState("27.0", unit="°C"))
+    _r9f12_seed_prices(hass, _r9f12_seed_start)
+    entry = _r9f12_entry(data=cfg, entry_id=f"r9f12_seed_{mapped}")
+    _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+    coord = entry.runtime_data
+    seen = []
+    real_snap = coord._solve_snapshot
+
+    def _r9f12_snap():
+        state, optimizer = real_snap()
+        seen.append((state.dhw_temperature, state.slab_temperature))
+        return state, optimizer
+
+    coord._solve_snapshot = _r9f12_snap
+    try:
+        plans = []
+        for hour in range(4):
+            _r9f12_dt.freeze(_r9f12_seed_start + timedelta(hours=hour))
+            _r9f12_seed_prices(hass, _r9f12_seed_start + timedelta(hours=hour))
+            _r9f12_aio.run(coord.async_refresh())
+            plans.append(coord._optimization_result)
+    finally:
+        coord._solve_snapshot = real_snap
+        _r9f12_dt.freeze(None)
+    return seen, plans
+
+
+_r9f12_seen, _r9f12_plans = _r9f12_cycles(False)
+R.check(
+    "D12-s1-01: with no tank probe the solver's DHW seed follows the previous "
+    "plan, not the 55 degC default",
+    len(_r9f12_seen) == 4
+    and len({round(s[0], 2) for s in _r9f12_seen}) > 1
+    and all(
+        abs(
+            _r9f12_seen[i][0]
+            - float(list(_r9f12_plans[i - 1].dhw_temp_trajectory)[4])
+        )
+        <= 1.0
+        for i in range(1, len(_r9f12_seen))
+    ),
+    "dhw seeds=%r prev-plan+1h=%r"
+    % (
+        [round(s[0], 2) for s in _r9f12_seen],
+        [
+            round(float(list(_r9f12_plans[i - 1].dhw_temp_trajectory)[4]), 2)
+            for i in range(1, len(_r9f12_seen))
+        ],
+    ),
+)
+R.check(
+    "D12-s1-01: and the slab seed follows the previous plan, not the one-time "
+    "room+1 K seed",
+    len(_r9f12_seen) == 4
+    and len({round(s[1], 2) for s in _r9f12_seen}) > 1
+    and all(
+        abs(
+            _r9f12_seen[i][1]
+            - float(list(_r9f12_plans[i - 1].slab_temp_trajectory)[4])
+        )
+        <= 1.0
+        for i in range(1, len(_r9f12_seen))
+    ),
+    "slab seeds=%r prev-plan+1h=%r"
+    % (
+        [round(s[1], 2) for s in _r9f12_seen],
+        [
+            round(float(list(_r9f12_plans[i - 1].slab_temp_trajectory)[4]), 2)
+            for i in range(1, len(_r9f12_seen))
+        ],
+    ),
+)
+_r9f12_mseen, _r9f12_mplans = _r9f12_cycles(True)
+R.check(
+    "D12-s1-01: a mapped tank probe still wins the seed (null control)",
+    [round(s[0], 2) for s in _r9f12_mseen] == [48.0] * len(_r9f12_mseen),
+    "dhw seeds=%r" % [round(s[0], 2) for s in _r9f12_mseen],
+)
+R.check(
+    "D12-s1-01: a mapped floor-return probe still drives the slab seed "
+    "(null control)",
+    all(abs(s[1] - 28.0) <= 1.5 for s in _r9f12_mseen),
+    "slab seeds=%r" % [round(s[1], 2) for s in _r9f12_mseen],
+)
+
+# The seed helper's own early-window tolerance, pinned at both ends (the
+# mutation lane's GUARD_OFF site on its ternary): a plan that starts within
+# one step of now answers its first step; one that starts further ahead says
+# nothing, so the never-advanced default is left alone rather than replaced
+# by a plan that has not started.
+from types import SimpleNamespace as _r9f12_ns  # noqa: E402
+from heatpump_optimizer import coordinator as _r9f12_coord  # noqa: E402
+
+def _r9f12_plan_result(first, values):
+    return _r9f12_ns(
+        dhw_temp_trajectory=list(values),
+        timestamps=[
+            first + timedelta(minutes=15 * i) for i in range(len(values))
+        ],
+    )
+
+R.check(
+    "D12-s1-01: a plan starting within one step of now seeds its first step",
+    _r9f12_coord._open_loop_plan_value(
+        _r9f12_plan_result(NOW + timedelta(seconds=600), [41.0, 42.0, 43.0]),
+        "dhw_temp_trajectory",
+        NOW,
+    )
+    == 41.0,
+)
+R.check(
+    "D12-s1-01: a plan starting more than a step after now seeds nothing",
+    _r9f12_coord._open_loop_plan_value(
+        _r9f12_plan_result(NOW + timedelta(minutes=30), [41.0, 42.0]),
+        "dhw_temp_trajectory",
+        NOW,
+    )
+    is None,
+    "the 55 degC default must not be replaced by a plan that has not started",
+)
+
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
 R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
 

@@ -5617,12 +5617,23 @@ async def untouched_option_pages_do_not_reload():
     reloads = await _walk_untouched(minimal, {})
     # The only reload left is a page that posts a key whose absence the
     # integration does NOT run as its default (the DHW pair switches hot-water
-    # planning on): that save changes behaviour, so it must reload.
+    # planning on): that save changes behaviour, so it must reload. R9
+    # D12-s1-02 (merged into D12-s3-01) drops the DHW presence pair's default
+    # post over an entry with no hot water at all, so on this no-DHW base
+    # those pages post nothing behaviour-changing either.
+    no_dhw = (
+        const.CONF_DHW_ENABLED not in minimal
+        and not config_flow._dhw_enabled_from_config(minimal)
+    )
     expected = [
         page.step for page in config_flow._OPTION_PAGES
         if any(
             row.key in config_flow._ABSENT_IS_NOT_DEFAULT and row.key not in minimal
             and config_flow._absent_fallback(row) is not config_flow._STORED
+            and not (
+                no_dhw
+                and row.key in config_flow._DHW_PRESENCE_PAIR_DEFAULTS
+            )
             for row in config_flow._page_rows(page.step, minimal)
         )
     ]
@@ -5870,9 +5881,11 @@ async def options_modbus_prefill():
 
     # D12-01: the pre-fill save path must carry the same two-zone rule as the
     # building page. A GCHV pump under water control (register 4109 == 0)
-    # offers a flow write target, and this page's save never passes through the
-    # guarded building page, so a two_zone_mode=off install with the zone keys
-    # present must be refused here rather than saved and silently no-op'd.
+    # offered a flow write target whatever the house, and this page's save
+    # never passes through the guarded building page — R9 D14-s2-01 moved the
+    # OFFER itself onto the canonical rule, so a two_zone_mode=off install
+    # with the zone keys present is not offered a target its own save would
+    # refuse; an explicit post of it still is, below.
     water = {"sensor.hp_gchv_r4109": FakeState("0")}
     off_opts = {
         const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
@@ -5883,11 +5896,25 @@ async def options_modbus_prefill():
     preview = await submit(flow, step, {prefix_key: "hp"})
     check(
         f"opt_{step}", "happy",
-        "a water-controlled pump offers the flow target even on two_zone_mode=off (D12-01)",
-        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(preview)
-        and suggested_value(preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
-        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        "a water-controlled pump offers the flow target only when the "
+        "canonical rule says two-zone, so two_zone_mode=off is not offered it "
+        "(D12-01, R9 D14-s2-01)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in rendered_keys(preview),
         f"{rendered_keys(preview)}",
+    )
+    on_preview_flow, _on_entry, _ = _g7_flow(water, options={
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
+    })
+    on_preview = await submit(on_preview_flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy",
+        "and a two_zone_mode=on install is offered it (the offer's null control)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(on_preview)
+        and suggested_value(on_preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"{rendered_keys(on_preview)}",
     )
     refused = await submit(flow, step, {
         const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,

@@ -58,6 +58,13 @@
 #
 # v6.7.8: Round-9 fixes: coordinator clock seams, stores, inputs and sysid, solver coupled stability (2.3x faster plant step), and the verdict-carry rule. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+
+# R9 F1.2 (D12-s3-01, round 9; re-claimed by hand at the 6.7.8 absorb): this
+# branch claims exactly one fixture. The wizard's dhw and zones pages ask
+# presence -- a dhw_enabled boolean and a transient two_zone question -- so
+# the flow-walk capture gains their rendered form fields and the explicit
+# dhw_enabled=False an untouched wizard now stores. Structure only: the
+# fixture is float-free, and no solver input moved on any other scenario.
 #
 
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
@@ -183,6 +190,7 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
 
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

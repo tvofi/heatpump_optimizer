@@ -29,6 +29,7 @@ import numpy as np
 
 from . import mixing_valve
 from .tariff import metering_windows
+from .wood_fuel import wood_furnace_on
 from .const import (
     CONF_TOPOLOGY_POSITIONS,
     TOPOLOGY_NO_VALVE,
@@ -39,11 +40,8 @@ from .const import (
     topology_layout_valid,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
-    CONF_DHW_WOOD_COIL_ENABLED,
     CONF_ENERGY_ENTITY,
-    CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
-    CONF_WOOD_FURNACE_ENABLED,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
@@ -373,19 +371,6 @@ def layout_edges(
     return edges
 
 
-def _wood_tank_shown(config: dict[str, Any]) -> bool:
-    """Wood tank on the picture: explicit flag, else the leftover-entity trio."""
-    if CONF_WOOD_FURNACE_ENABLED in config:
-        return bool(config[CONF_WOOD_FURNACE_ENABLED])
-    return bool(
-        config.get(CONF_EXTERNAL_HEAT_ENABLED)
-        or config.get(CONF_WOOD_TANK_TOP_ENTITY)
-        or config.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
-        or config.get(CONF_VALVE_OUTLET_TEMP_ENTITY)
-        or config.get(CONF_EXTERNAL_HEAT_ENTITY)
-    )
-
-
 def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     """The configured system as one structured description.
 
@@ -397,10 +382,11 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     p = ThermalParameters.from_config(config)
     valve = mixing_valve.is_throttling(p.mixing_valve_mode)
     # Whether the wood tank is simulated as its own store, or folded into the
-    # heat-pump tank. Read from the model, never re-derived here, so a picture
-    # cannot claim physics the model does not run (issue #40).
+    # heat-pump tank. Both read from the model, never re-derived here, so a
+    # picture cannot claim physics the model does not run (issue #40) — the
+    # furnace verdict is the canonical predicate's (R9 D14-s2-01).
     two_tank = p.two_tank_modelled
-    wood = _wood_tank_shown(config)
+    wood = wood_furnace_on(config)
     present = {
         "outdoor": True,
         "upper_zone": True,
