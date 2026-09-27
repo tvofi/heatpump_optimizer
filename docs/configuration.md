@@ -551,7 +551,7 @@ writes, at every 15-minute plan step:
 |---|---|---|---|
 | Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the space gate (below) |
 | Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the heating value |
-| Both | *Heating + DHW* | the same | the heating value |
+| Both | split: *DHW (Hot Water)* for the step's hot-water share of its 15 minutes, then *Heating* (see below) | as in those two rows | as in those two rows |
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
@@ -591,6 +591,13 @@ writes, at every 15-minute plan step:
   minimum (never below 25 °C) on hot-water-only steps, and the DHW set-point
   (*HP DHW normal setpoint*, register 404) to its minimum (never below 30 °C)
   on space-only steps.
+- **A step the plan gives both duties is split**, so the optimizer rather
+  than the pump's two thermostats decides which runs: hot water first, for
+  the step's hot-water power over its total power, times 15 minutes, then
+  heating for the rest. A share under 5 minutes goes to the other duty for
+  the whole step. On a pump with no single-duty mode, each part is *Heating
+  + DHW* with the other duty's set-point lowered to its gate. A boost or a
+  disinfection cycle keeps *Heating + DHW* for the whole step.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
