@@ -314,9 +314,10 @@ print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
 # derivation the file used at 0.99 against 2.6% -- every measured healthy
 # gap clears it with more than 2x headroom, and the failure construction
 # is unchanged: loosen production's ftol toward the arm and the two
-# solves converge past it (measured red at 2.03% for a both-sites 1e-3
-# loosening and 2.31% for the round-4 single-site 1e-3 class on
-# CI-class kernels).
+# solves converge past it -- measured red on the CI-class kernel at 0.00%
+# for a both-sites 1e-2 loosening, 2.29% for the round-4 single-site 1e-3
+# class (direct mutation runs), and 2.03% for both-sites 1e-3 (the
+# harness's 63.65 arm against the 64.97).
 R.check("the production stop rule (ftol) buys a materially better plan",
         _v7l <= 1e-6 and _c70 <= _c7l * 0.975,
         f"ftol 1e-6 {_c70:.2f} vs loosened 1e-2 both sites {_c7l:.2f} "
