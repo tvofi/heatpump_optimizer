@@ -24,6 +24,14 @@ M = [
     ("I1-immersion-guard", C + "coordinator.py", "            if when.tzinfo is None and now.tzinfo is not None:", "            if False:", DST),
     ("I1-M02-open-meteo", C + "open_meteo.py", "        if parsed.tzinfo is None:", "        if False:", OM),
     ("N-target", C + "coordinator.py", "        return float({**self.entry.data, **self.entry.options}.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP))", '        return float(getattr(self, "_ctx", self)._opt_config.target_temp)', F11),
+    ("R-as_utc-naive", C + "accuracy.py", "    if value.tzinfo is None:\n        return value.replace", "    if False:\n        return value.replace", DST),
+    ("R-as_utc-aware", C + "accuracy.py", "    return value.astimezone(timezone.utc)\n", "    return value.replace(tzinfo=timezone.utc)\n", DST),
+    ("R-utc_shift-wall", C + "accuracy.py", "    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)", "    return when + delta", DST),
+    ("R-outage-recovery", C + "coordinator.py", "self._outage_recovery_until = utc_shift(now, timedelta(", "self._outage_recovery_until = now + (timedelta(", DST),
+    ("R-outage-dhw", C + "coordinator.py", "self._outage_dhw_until = utc_shift(now, timedelta(", "self._outage_dhw_until = now + (timedelta(", DST),
+    ("R-replay-forecast-walk", "tests/replay.py", "t = dt_util.as_utc(now) + timedelta(hours=h)", "t = now + timedelta(hours=h)", DST),
+    ("R-replay-price-walk", "tests/replay.py", "            t = dt_util.as_utc(day0)\n", "            t = day0\n", DST),
+    ("R-replay-price-label", "tests/replay.py", '"starts_at": dt_util.as_local(t).isoformat()', '"starts_at": t.isoformat()', DST),
     ("CONTROL-unmutated", None, None, None, None),
 ]
 only = sys.argv[3:]

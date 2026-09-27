@@ -475,3 +475,21 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27 review round (#1721 blocked at 43517c5f): code head 39bc45fe on handoff/r9-f11-hotfix-ruleset-absent-v2. Skip limited to bypass_actors; env-matrix row accepts exactly that line. Under the Actions view: policy_lint 0 errors, env-matrix 16/16. prepr clean. Next: the Mac rebuilds #1721 from 39bc45fe.
 - 2026-09-27T13:06Z #1721 (F11.3 governance hotfix) has verdict MERGE at 2044829e and is merging. Its review carry (env-matrix 'nothing skipped' pin driven by a non-token skip line; UNCHECKED pinned to bypass_actors) goes to F11.4, the next unstarted F11 PR; roster regen is running. #1722 F1.1 is open at e748d389, with the compute helper reviewing it after #1721. #1718 F4.2 is blocked on 5 surviving mutants and back with its fixer.
 - 2026-09-27T13:15Z Roster b3496305 on handoff/audit-r9-fixplan: F11.4 carries the #1721 pins, and the stale F2.3/F2.5 outputs were refreshed. gen OK, brief_lint 0.
+- 2026-09-27T13:20Z F4.2 review round 3: code head 879c49ae (on 3afc8ff8) + body 9f24b111 on handoff/r9-f4-inputs-sysid-2d. pin-killed: 8 pinned, 0 alive; 3 triage entries (1 equivalent, 2 gap); 2 new features checks.
+- 2026-09-27T14:05Z F1.1 re-handed off after #1722 review: code head 1668198a on handoff/r9-f1-1-jbqcyd-v2 (transport above it); helper, outage-window and replay-walk pins added, 21/21 mutants killed; target_temperature solver readers declared in the body.
+- 2026-09-27T14:00Z STATE (tvofi asked for it):
+  - MERGED #1721 (governance hotfix) at 8b61aed3. STAMPED v6.7.7 at tag cdbc2584. Main is green.
+  - #1720 F11.6 @bf2723bc: waiting on tvofi's re-approval.
+  - #1717 F3.3: verdict MERGE @0c6242a1.
+  - #1718 F4.2: verdict MERGE @7fe356f6.
+  - #1722 F1.1: verdict MERGE @f13b5523. F1.2 (opus) starts on its merge.
+  - F2.3: in progress. F2.5 starts after #1717 and F2.3 merge.
+  - Roster: b3496305.
+  Branch heads (last commit):
+  - F2.3: handoff/r9-f2-solver-3 @546aa968, 13:38Z. Its resume branch is stale at 11:08Z.
+  - F1.1: -v2 @fa253419, resume @fe41d757, both 13:33Z.
+  - F4.2: -2d @9f24b111, 13:20Z.
+  - F3.3: -v2 @984f0f1c, 12:00Z.
+  - F11.6: -v4 @9445141b, 11:59Z.
+  - The last three are idle on a verdict or an approval, which is expected.
+  Reviewers and the Mac push no handoff branches, so they cannot be checked from the remote.
