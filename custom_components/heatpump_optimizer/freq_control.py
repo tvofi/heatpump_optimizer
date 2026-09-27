@@ -44,6 +44,10 @@ FREQ_DECILES = 10
 #: Weeks-scale EWMA once a bucket is seeded; plain mean before that.
 FREQ_EWMA_ALPHA = 0.1
 FREQ_MIN_SAMPLES = 5
+#: The most electrical kW per Hz a bucket may hold: a 20 kW compressor at
+#: 20 Hz. A reading above it is a wiring or unit problem, and a stored ratio
+#: above it a phantom bucket that answers every target at the range's floor.
+FREQ_MAX_KW_PER_HZ = 1.0
 #: Reported vs commanded divergence that counts as a strike, Hz.
 FREQ_DIVERGENCE_HZ = 5.0
 #: Consecutive strikes before control stands down to observe.
@@ -138,6 +142,8 @@ class FrequencyMap:
             return
         decile = int(np.clip((hz - hz_min) / span * FREQ_DECILES, 0, FREQ_DECILES - 1))
         ratio = float(kw) / float(hz)
+        if ratio > FREQ_MAX_KW_PER_HZ:
+            return
         entry = self.buckets.setdefault(decile, [ratio, 0])
         count = int(entry[1])
         if count < FREQ_MIN_SAMPLES:
@@ -236,6 +242,11 @@ class FrequencyMap:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "FrequencyMap":
+        """The stored map, keeping only what ``observe`` can fold (D1-s3-06).
+
+        A decile index in ``[0, FREQ_DECILES)``, a ratio in
+        ``(0, FREQ_MAX_KW_PER_HZ]`` and a count of zero or more.
+        """
         fmap = cls()
         if not isinstance(data, dict):
             return fmap
@@ -245,12 +256,14 @@ class FrequencyMap:
                 count = int(entry[1])
             except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                 continue
-            if not np.isfinite(ratio) or ratio <= 0 or count < 0:
+            if not np.isfinite(ratio) or not 0 < ratio <= FREQ_MAX_KW_PER_HZ or count < 0:
                 continue
             try:
-                fmap.buckets[int(key)] = [ratio, count]
+                decile = int(key)
             except (TypeError, ValueError, OverflowError):
                 continue
+            if 0 <= decile < FREQ_DECILES:
+                fmap.buckets[decile] = [ratio, count]
         return fmap
 
 

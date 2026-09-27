@@ -158,7 +158,7 @@
     "instances": ["R9 D1-s1-04", "R9 D1-s3-05", "R9 FI-sw1", "R9 FI-sw2", "R9 FI-sw3", "R9 FI-sw4", "R9 FI-sw5", "R9 FI-rca1"],
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
     "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
-    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660)",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Not reached: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stays masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, and it waits on tvofi's rule in F1.9",
     "status": "barriered"
   },
   "P11": {

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.3
+# claims-for: 6.7.4
 #
-# v6.7.3: hotfix: no indoor temperature written to a flow set-point; round-9 wave 1. The stamp empties the list; the
+# v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -629,4 +629,23 @@
 # behaviour changes; editor_schema, the only state this branch's diff
 # leaves unclaimed, renders the config editor's schema and no card
 # stylesheet or "now" marker.
+#
+# fix/r9-f6-card-2 (D4-s1-04, D5-s2-01): F6.1's 39 claims above are already on
+# origin/main, so re-declaring them against the same merge base claims nothing
+# this diff moves and is dropped (STALE CLAIM). This diff's only production
+# change is the setup-diagram's new keyboard route: `.setup-box` and
+# `.setup-pipe` gain `tabindex`/`role`/`aria-label` while the layout editor is
+# in editing mode. Only the two fixtures that render the setup diagram with
+# `editing: true` (dragging a box, and the tidy/no-drag baseline) show any
+# difference. D5-s2-01 (stale `` `_name` `` code-comment references) is a
+# comment-only change and moves no rendered state.
+#
+# P9-f61a was tried here too (a measured clearance for `valueAxis`'s unit
+# title against its topmost tick, in place of the constant offset) and
+# reverted: the fix review's run of the finder's own RCA grid (4f3b9d4f) shows
+# the title/tick collision this was meant to fix does not reproduce at this
+# merge base, and the tried fix instead clipped the title off the top of the
+# svg on 388 of the grid's cells. Not fixed in this PR; see the PR body.
+layout_editing_dragged  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
+layout_editing_tidy  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
 

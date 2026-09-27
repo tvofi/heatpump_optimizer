@@ -162,6 +162,7 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
         BOOST_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_boost",
         lead=_MAX_LEAD,
+        naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _parse_until's zone
     )
 
 

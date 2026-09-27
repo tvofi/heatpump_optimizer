@@ -94,6 +94,14 @@ export function makeDomStub(domRef) {
     }
     setAttribute(k,v){ this[k]=v; }
     getAttribute(k){ return this[k]; }
+    // Real DOM ancestry, not just "is a descendant of the tree": the layout
+    // editor's refresh() asks whether the focused element sits inside the
+    // canvas it is about to blow away (F6.2, P9-f61b's review).
+    contains(node){
+      let n = node;
+      while (n) { if (n === this) return true; n = n.parentNode; }
+      return false;
+    }
     addEventListener(t,f){ (this._listeners[t] ||= []).push(f); }
     removeEventListener(){}
     // No bubbling: the card and its editor only ever listen on the element the
@@ -124,18 +132,49 @@ export function makeDomStub(domRef) {
     getBoundingClientRect(){ return {width:900,height:400,left:0,top:0}; }
     // Focus is tracked, not simulated: the card restores focus after
     // render-destroying keyboard actions, and the assertion is simply "who
-    // received the last .focus() call".
-    focus(){ domRef.document.activeElement = this; }
+    // received the last .focus() call". Real shadow roots track their own
+    // `activeElement` independently of the top-level document (the layout
+    // editor's refresh() reads `this.host.shadowRoot.activeElement`, not
+    // `document.activeElement`, to find what it is about to blow away), so
+    // this walks up to the nearest one and sets that too.
+    focus(){
+      domRef.document.activeElement = this;
+      let n = this.parentNode;
+      while (n) {
+        if (n.tagName === "SHADOW-ROOT") { n.activeElement = this; break; }
+        n = n.parentNode;
+      }
+    }
     // ...and gives it up again. The card takes focus off a setup row that a
     // pointer gesture left holding it (item F), which is only observable if
     // the stub models letting go as well as taking hold.
-    blur(){ const d = domRef.document;
-      if (d.activeElement === this) d.activeElement = d.body; }
+    blur(){
+      const d = domRef.document;
+      if (d.activeElement === this) d.activeElement = d.body;
+      let n = this.parentNode;
+      while (n) {
+        if (n.tagName === "SHADOW-ROOT") {
+          if (n.activeElement === this) n.activeElement = null;
+          break;
+        }
+        n = n.parentNode;
+      }
+    }
   }
 
-  // Selector support: a tag name, a class, an attribute, or a tag+attribute
-  // pair, which covers everything the card actually queries for.
+  // Selector support: a tag name, a class, an attribute, a tag+attribute
+  // pair, or a class+attribute pair (the layout editor's refresh() re-finds
+  // a focused box/pipe by `.setup-box[data-place="..."]`, F6.2), which
+  // covers everything the card actually queries for.
   function matches(node, sel) {
+    const classAttr = sel.match(/^\.([\w-]+)\[([\w-]+)(?:="([^"]*)")?\]$/);
+    if (classAttr) {
+      const [, cls, name, value] = classAttr;
+      if (!node.classList.contains(cls)) return false;
+      const actual = node.getAttribute(name);
+      if (actual === undefined || actual === null) return false;
+      return value === undefined || String(actual) === value;
+    }
     const attr = sel.match(/^([\w-]*)\[([\w-]+)(?:="([^"]*)")?\]$/);
     if (attr) {
       const [, tag, name, value] = attr;
