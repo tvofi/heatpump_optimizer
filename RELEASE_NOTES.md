@@ -1,5 +1,11 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.7
+
+hotfix: the Governance check reads a ruleset field the Actions token cannot see as unreadable, not as a change, so main's Governance run goes green again.
+
+- #1721 — fix(governance): a ruleset field the Actions token cannot read is unreadable, not changed (F11.3 hotfix)
+
 ## v6.7.6
 
 hotfix follow-up: heating and hot-water duty are split within a planned step, so a boost no longer drags hot water into a heating slot. Also round-9 F11.3 (the policy text and the governance barrier) and F8.2 (documentation fixes).

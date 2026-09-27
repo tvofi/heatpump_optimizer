@@ -170,7 +170,8 @@ const RULESET = {
     const { code, out } = await run('node', [path.join(tmp, 'probe.mjs')], { env })
     fs.rmSync(tmp, { recursive: true, force: true })
     if (code !== 0) return `error:probe exit ${code}: ${out.trim().split('\n').pop()}`
-    const r = JSON.parse(out)
+    // The comparator's skip lines print ahead of the probe's JSON, the last line.
+    const r = JSON.parse(out.trim().split('\n').pop())
     if (!r.live) return `skip:${r.why}`
     return r.drift ? 'red' : 'green'
   },
