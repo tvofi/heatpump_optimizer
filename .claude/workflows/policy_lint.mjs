@@ -4630,6 +4630,22 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: a bypass actor present live and absent from the record produced ${added.found.length} finding(s) naming it; a widened bypass would read as unchanged`)
     return 1
   }
+  // A recorded field the live read omits whole (`bypass_actors` for a token
+  // without admin) is a printed skip, never a finding; a field the read
+  // carried but emptied still fires.
+  pins += 2
+  const RSB = { ...RS, bypass_actors: [{ actor_id: null, actor_type: 'DeployKey', bypass_mode: 'always' }] }
+  const rsbFixture = JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RSB } })
+  const unread = driveRC(withObj(RS), rsbFixture, [])
+  if (unread.found.length || !unread.said.some((l) => /^\s*skip\s+required-contexts\b/.test(l) && l.includes('`bypass_actors`') && l.includes('UNCHECKED'))) {
+    console.log(`\nFIXTURE VACUOUS: a recorded field the live read omits produced ${unread.found.length} finding(s) and ${unread.said.length} skip line(s); it must be a printed skip and no finding, or every Actions run goes red`)
+    return 1
+  }
+  const emptied = driveRC(withObj({ ...RSB, bypass_actors: [] }), rsbFixture, [])
+  if (!emptied.found.length || !emptied.found.every((f) => f.message.includes('bypass_actors'))) {
+    console.log(`\nFIXTURE VACUOUS: a bypass list the live read carried but emptied produced ${emptied.found.length} finding(s); the skip must cover an omitted field only`)
+    return 1
+  }
   const RS2 = { ...RS, rules: [...RS.rules, { type: 'deletion', name: 'a' }] }
   const rs2Fixture = JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RS2 } })
   const nested = driveRC(withObj({ ...RS2, rules: [RS2.rules[0], { type: 'deletion', name: 'b' }] }), rs2Fixture, [])

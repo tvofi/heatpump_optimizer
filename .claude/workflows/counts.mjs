@@ -394,10 +394,17 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
   }
   for (const [id, obj] of Object.entries(liveObjs)) {
     if (!recObjs || !recObjs[id]) continue
+    // A recorded top-level field the live read does not carry at all is
+    // UNREADABLE, not removed: GitHub omits `bypass_actors` for a token without
+    // admin, which is every Actions GITHUB_TOKEN. Skipped, said out loud; an
+    // absence inside a field the read did carry still fires.
+    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && !RULESET_VOLATILE.includes(k))
+    for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`)
+    const under = (k) => unread.some((u) => k === u || k.startsWith(u + '.') || k.startsWith(u + '['))
     const want = rulesetLeaves(recObjs[id])
     const got = rulesetLeaves(obj)
     for (const k of new Set([...Object.keys(want), ...Object.keys(got)])) {
-      if (want[k] === got[k]) continue
+      if (want[k] === got[k] || under(k)) continue
       out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: `ruleset ${id} field \`${k}\` is ${got[k] ?? '(absent)'} live, ${want[k] ?? '(absent)'} recorded. The boundary changed or the record is wrong: re-record ${fixtureRel} by hand and re-read every assertion site against it.` })
     }
   }
