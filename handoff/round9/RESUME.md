@@ -456,3 +456,5 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
   - Flow hotfix (merged #1705): handoff/flow-setpoint-hotfix-07sk6l @4adb3630.
   - Roster: handoff/audit-r9-fixplan @b4596a38.
   - Release: v6.7.5 @c700b71c.
+- 2026-09-27T11:08Z F2.3: code head 157e6a23 on handoff/r9-f2-solver-3 (claim + sysid header answered; gate green bar stress.py running); resume note on handoff/r9-f2-solver-3-resume. Next: mutation table, finder re-runs, body.
+- 2026-09-27T11:12Z EDGE SWAP: F2.3 no longer waits on F2.5. F2.5 now waits on F2.3 (plus F2.2 and F3.3); both edit optimizer.py. F2.3 (code 157e6a23) hands off and merges freely. Cause: the orchestrator's 09:09Z note dropped the edge. Roster regen is running.
