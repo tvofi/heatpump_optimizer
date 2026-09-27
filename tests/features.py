@@ -30744,7 +30744,9 @@ def _g2_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 
@@ -30912,7 +30914,9 @@ def _mr_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 

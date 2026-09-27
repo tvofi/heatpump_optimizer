@@ -628,6 +628,21 @@ class ThermalParameters:
         """Thermal mass of DHW tank in kWh/°C."""
         return self.dhw_tank_volume * WATER_SPECIFIC_HEAT
 
+    #: Memos for the three DHW helpers the tank step reads every step, keyed
+    #: on each one's own inputs like `_buffer_ua_cache`: a DHW solve asked for
+    #: them ~15-45 k times per solve to recompute constants (R9 D9-s1-71), and
+    #: a key rather than a per-solve flag keeps the learner's and the
+    #: coordinator's in-place writes visible on the next read.
+    _dhw_ua_cache: tuple[tuple[Any, Any], float] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _dhw_inlet_cache: tuple[tuple[Any, Any], float] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _dhw_pattern_cache: tuple[tuple[Any, ...], list[float]] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
     @property
     def dhw_tank_heat_loss_coefficient(self) -> float:
         """Standby loss of the DHW tank in kW/°C.
@@ -642,10 +657,16 @@ class ThermalParameters:
         it is exactly what a temperature sensor measures when nobody is
         drawing water.
         """
+        key = (self.dhw_cooling_rate, self.dhw_tank_volume)
+        cached = self._dhw_ua_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
         rate = float(
             np.clip(self.dhw_cooling_rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
         )
-        return rate * self.dhw_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+        value = rate * self.dhw_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+        self._dhw_ua_cache = (key, value)
+        return value
 
     @property
     def dhw_inlet_reference(self) -> float:
@@ -655,10 +676,17 @@ class ThermalParameters:
         when present; otherwise the configured annual mean, whose default is
         the 10.0 the model always assumed.
         """
+        key = (self.dhw_inlet_current, self.dhw_inlet_temp)
+        cached = self._dhw_inlet_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
         current = self.dhw_inlet_current
         if isinstance(current, (int, float)) and np.isfinite(current):
-            return float(current)
-        return float(self.dhw_inlet_temp)
+            value = float(current)
+        else:
+            value = float(self.dhw_inlet_temp)
+        self._dhw_inlet_cache = (key, value)
+        return value
 
     def seasonal_inlet_temp(self, day_of_year: int) -> float:
         """The inlet model: annual mean minus a cosine dipping in late winter.
@@ -752,6 +780,19 @@ class ThermalParameters:
         learned pattern is masked by the window coverage of each hour and then
         re-scaled so the 24-hour sum stays at 24 (average multiplier 1.0).
         """
+        key = (
+            tuple(self.dhw_hourly_draw_pattern),
+            self.dhw_schedule_enabled,
+            tuple(self.dhw_windows or ()),
+        )
+        cached = self._dhw_pattern_cache
+        if cached is None or cached[0] != key:
+            cached = (key, self._windowed_draw_pattern())
+            self._dhw_pattern_cache = cached
+        return list(cached[1])
+
+    def _windowed_draw_pattern(self) -> list[float]:
+        """``effective_dhw_draw_pattern`` computed afresh."""
         base = list(self.dhw_hourly_draw_pattern)
         if len(base) != 24:
             base = DHW_HOURLY_DRAW_PATTERN.copy()
