@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from .accuracy import utc_elapsed_seconds
 from .const import (
     EXTERNAL_HEAT_FORECAST_MAX_HOURS,
     WATER_SPECIFIC_HEAT,
@@ -203,7 +204,7 @@ class ExternalHeatDetector:
         sample = (now, float(value))
         if previous is None:
             return None, sample
-        dt_h = (now - previous[0]).total_seconds() / 3600.0
+        dt_h = utc_elapsed_seconds(now, previous[0]) / 3600.0
         cfg = self.config
         if dt_h < cfg.min_sample_hours or dt_h > cfg.max_sample_hours:
             return None, sample

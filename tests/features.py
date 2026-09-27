@@ -24006,10 +24006,11 @@ R.check(
 # The one wire from the G2 learner to G3's price: the per-cycle parameter
 # build pushes the LEARNED bias and the comfort target into the model. Every
 # other G3 check sets the parameter by hand, so only this one sees the wire.
-_g3_wire = _t2_coord()
+# The target is the configured one (the entry's, D1-s3-04), never a solve's
+# setback, so it is set where a user's write lands.
+_g3_wire = _t2_coord(target_temperature=22.5)  # off the 21.0 field default
 _g3_wire._thermal_params.flow_curve_cop = True
 _g3_wire._flow_bias.observe(40.0, 34.0)  # one sample: bias exactly 6.0 K
-_g3_wire._opt_config.target_temp = 22.5  # off the 21.0 field default
 _g3_wire._prepare_dhw_inputs(dt_util.now())
 R.check(
     "the parameter build pushes the learned bias and the comfort target into the priced flow",
