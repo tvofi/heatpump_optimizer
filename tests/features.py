@@ -505,6 +505,31 @@ R.check(
     _r9f41_cold == flow_lift.FLOW_SUPPLY_MAX_C,
     f"priced {_r9f41_cold}",
 )
+# The fix review's three survivors (#1704), each pinned by its own mutant.
+_r9f41_at80 = flow_lift.FlowCurveBias()
+_r9f41_at80.observe(80.0, 25.0)
+R.check(
+    "D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is "
+    "refused as a sample",
+    flow_lift.FLOW_SUPPLY_MAX_C == 75.0 and _r9f41_at80.samples == 0,
+    f"ceiling {flow_lift.FLOW_SUPPLY_MAX_C}, samples {_r9f41_at80.samples}",
+)
+_r9f41_steep = flow_lift.FlowCurveBias.from_dict({"bias_k": 10.0, "samples": 9})
+_r9f41_steep.observe(75.0, 80.0)
+_r9f41_steeper = flow_lift.FlowCurveBias()
+_r9f41_steeper.observe(70.0, 100.0)
+R.check(
+    "D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not "
+    "negative: a positive bias lands at 0 and the cold clamp still holds",
+    _r9f41_steep.bias_k == 0.0
+    and _r9f41_steeper.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"80 C curve {_r9f41_steep.bias_k}, 100 C curve {_r9f41_steeper.bias_k}",
+)
+R.check(
+    "D2-s2-02: a non-finite outdoor temperature prices no curve flow at all",
+    ThermalModel(_r9f41_p).curve_flow_temp(float("nan")) is None,
+    f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
+)
 
 # --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
 R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")
