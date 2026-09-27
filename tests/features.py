@@ -49210,6 +49210,304 @@ R.check(
 )
 
 
+# -- R9-F2.2: N-solve-recompute -- interpreter-bound recomputation in the solve --
+# Round 9, fix F2.2 (Part of #1653). Each arm drives the production symbol. The
+# cost pins count what the finding's cost metric counts -- calls made while the
+# solve runs -- and the parity pins hold the bitwise contract the batched
+# objective owes the scalar one (fixer.md step 15), at the production width, on
+# a C-order and a Fortran-order batch (G3-V1).
+import sys as _f22_sys  # noqa: E402
+
+from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    cycling_penalty as _f22_cyc,
+    cycling_penalty_batch as _f22_cyc_batch,
+)
+
+
+def _f22_calls(fn, *a):
+    """Every Python and C call made while ``fn(*a)`` runs, and its result."""
+    count = [0]
+
+    def prof(_frame, event, _arg):
+        if event in ("call", "c_call"):
+            count[0] += 1
+
+    _f22_sys.setprofile(prof)
+    try:
+        out = fn(*a)
+    finally:
+        _f22_sys.setprofile(None)
+    return count[0], out
+
+
+def _f22_comfort_opt(two_zone):
+    return _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
+
+
+def _f22_comfort_args(rows, n, seed):
+    rng = np.random.default_rng(seed)
+    # Temperatures straddling both bounds, so every term is live on every row.
+    trajs = [rng.uniform(17.0, 26.0, size=(rows, n + 1)) for _ in range(3)]
+    lo_b = np.full(n, 20.0)
+    hi_b = np.full(n, 23.0)
+    tgt = rng.uniform(20.5, 22.5, size=n)
+    band = np.full(n, 1.5)
+    return trajs, (tgt, lo_b, hi_b, band)
+
+
+# D9-s1-01 and RC-sw1: the batched twins' work must not grow with the row
+# count. The per-row loop made it B times the scalar body's calls; a batch of
+# 97 rows (one gradient at the production width) against one of 2 separates
+# the two shapes by ~48x. Null control: the scalar twins, whose calls do not
+# depend on a row count at all, are the unit the per-row loop repeated.
+_f22_cost = {}
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_rows in (2, 97):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(_f22_rows, 96, 7)
+        _f22_cost[("comfort", _f22_two, _f22_rows)] = _f22_calls(
+            _f22_opt._comfort_terms_batch, _f22_r, _f22_u, _f22_l, *_f22_rest
+        )[0]
+for _f22_rows in (2, 97):
+    _f22_pm = np.random.default_rng(3).uniform(0.0, 6.0, size=(_f22_rows, 96))
+    _f22_cost[("cycling", None, _f22_rows)] = _f22_calls(
+        _f22_cyc_batch, _f22_pm, 2.0, 6.0
+    )[0]
+_f22_growth = {
+    k[:2]: (_f22_cost[k[:2] + (97,)], _f22_cost[k[:2] + (2,)])
+    for k in _f22_cost if k[2] == 2
+}
+R.check(
+    "R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty "
+    "make the same calls for 97 rows as for 2 (no per-row interpreter loop)",
+    all(big == small for big, small in _f22_growth.values()),
+    f"(97-row calls, 2-row calls) per twin: {_f22_growth}",
+)
+
+# The parity grid: every row of each twin is its scalar on that row, byte for
+# byte, at widths on each side of the pairwise-summation block edges (8, 128)
+# and at the production width 96, on C- and Fortran-order batches. Rows that
+# sit wholly inside the band make the undershoot/overshoot sums all-zero, the
+# case where a sign of zero could differ.
+_f22_bad = []
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(9, _f22_n, _f22_n)
+        _f22_r[0] = _f22_u[0] = _f22_l[0] = 21.5
+        for _f22_order in ("C", "F"):
+            _f22_rr, _f22_uu, _f22_ll = (
+                np.asarray(a, order=_f22_order) for a in (_f22_r, _f22_u, _f22_l)
+            )
+            _f22_pb, _f22_cb = _f22_opt._comfort_terms_batch(
+                _f22_rr, _f22_uu, _f22_ll, *_f22_rest
+            )
+            for _f22_b in range(_f22_rr.shape[0]):
+                _f22_ps, _f22_cs = _f22_opt._comfort_terms(
+                    np.array(_f22_rr[_f22_b]), np.array(_f22_uu[_f22_b]),
+                    np.array(_f22_ll[_f22_b]), *_f22_rest,
+                )
+                if (np.float64(_f22_pb[_f22_b]).tobytes()
+                        != np.float64(_f22_ps).tobytes()
+                        or np.float64(_f22_cb[_f22_b]).tobytes()
+                        != np.float64(_f22_cs).tobytes()):
+                    _f22_bad.append(("comfort", _f22_two, _f22_n, _f22_order, _f22_b))
+    for _f22_n in (1, 2, 5, 8, 9, 96, 97, 129, 192):
+        _f22_pm = np.random.default_rng(_f22_n).uniform(0.0, 6.0, size=(9, _f22_n))
+        _f22_pm[0] = 3.0
+        for _f22_order in ("C", "F"):
+            _f22_pmo = np.asarray(_f22_pm, order=_f22_order)
+            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, 6.0)
+            for _f22_b in range(_f22_pmo.shape[0]):
+                if (np.float64(_f22_got[_f22_b]).tobytes()
+                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, 6.0)).tobytes()):
+                    _f22_bad.append(("cycling", _f22_n, _f22_order, _f22_b))
+R.check(
+    "R9-F2.2: every batched comfort and cycling row is its scalar twin byte "
+    "for byte, C- and Fortran-order, widths 1 to 192 including the production 96",
+    not _f22_bad,
+    f"first divergences: {_f22_bad[:4]}",
+)
+# The scalar twins' own value is unchanged by the fix: each is the sum numpy
+# gives a fresh 1-D array, which is what they returned before (null control
+# for the rows above agreeing only with each other).
+_f22_ref_bad = []
+for _f22_n in (1, 7, 8, 96, 129, 192):
+    _f22_x = np.random.default_rng(_f22_n + 1).uniform(0.0, 6.0, size=_f22_n)
+    _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
+    if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
+        _f22_ref_bad.append(_f22_n)
+R.check(
+    "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
+    "swings, to the byte",
+    not _f22_ref_bad,
+    f"widths that moved: {_f22_ref_bad}",
+)
+
+
+# D9-s1-02: with a batched objective served, L-BFGS-B takes f(x) from the same
+# batch as the gradient, so the scalar objective is never evaluated inside a
+# minimize run (it still scores the candidates and judges each restart). The
+# plan must not move: on uniform bounds the batched jac is scipy's own
+# estimate to the bit, so the fused solve must land on the point the scalar
+# path (no batch at all) reaches. The toy batch evaluates each row through the
+# scalar objective, which keeps the rows bitwise by construction.
+def _f22_obj(x, *_a):
+    d = np.asarray(x, dtype=float) - np.linspace(-1.0, 1.5, np.size(x))
+    return float(np.sum(d * d * (1.0 + 0.3 * np.abs(d))))
+
+
+def _f22_batch(mat, *_a):
+    return np.array([_f22_obj(np.array(row)) for row in mat])
+
+
+def _f22_solve(batch):
+    state = {"depth": 0, "inside": 0}
+    real_min = _grad_optmod._scoped_minimize
+
+    def tracking(*a, **k):
+        state["depth"] += 1
+        try:
+            return real_min(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def counted(x, *a):
+        if state["depth"]:
+            state["inside"] += 1
+        return _f22_obj(x, *a)
+
+    _grad_optmod._scoped_minimize = tracking
+    try:
+        res = _grad_optmod._multi_start_minimize(
+            counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
+            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real_min
+    return res, state["inside"]
+
+
+_f22_fused, _f22_fused_inside = _f22_solve(_f22_batch)
+_f22_plain, _f22_plain_inside = _f22_solve(None)
+R.check(
+    "R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective "
+    "inside L-BFGS-B",
+    _f22_fused_inside == 0 and _f22_plain_inside > 0,
+    f"scalar calls inside minimize: batched {_f22_fused_inside}, "
+    f"unbatched (null arm) {_f22_plain_inside}",
+)
+R.check(
+    "R9-F2.2 D9-s1-02: the fused solve lands on the scalar path's point, byte "
+    "for byte",
+    _f22_fused.x.tobytes() == _f22_plain.x.tobytes(),
+    f"max |dx| {float(np.max(np.abs(_f22_fused.x - _f22_plain.x))):.3e}",
+)
+
+
+# D9-s1-04: a refused weak slot is refused at its first breach. The fixture's
+# early raises are refused because the tank starts on its ceiling, so each
+# breaches at once; checking the whole suffix anyway cost n - slot steps per
+# refusal. Bound: the two opening simulations, the suffix for each accepted
+# slot, and for each refused slot one chunk of check plus its suffix refresh.
+_f22_mr_out, _, _f22_mr_steps = _mr_run(_mr_plan, _mr_outdoor, _mr_draws)
+_f22_refused = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] == 0.0]
+_f22_accepted = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] != 0.0]
+_f22_early_bound = (
+    2 * (96 + 1)
+    + sum(96 - p for p in _f22_accepted)
+    + sum(8 + (96 - p) for p in _f22_refused)
+)
+R.check(
+    "R9-F2.2 D9-s1-04: a refused weak slot stops simulating at its first "
+    "breach rather than checking the whole suffix",
+    _f22_refused and _f22_mr_steps <= _f22_early_bound,
+    f"steps {_f22_mr_steps} against the early-exit bound {_f22_early_bound} "
+    f"({len(_f22_refused)} refused, {len(_f22_accepted)} accepted)",
+)
+
+
+# D9-s1-71: the constant DHW parameter helpers are computed once per value of
+# their inputs, not once per step. Instrument: the numpy calls and the window
+# overlaps each helper's body makes, counted through the module's own names,
+# over 50 reads. Each read after an input changes must equal a fresh object's,
+# so the memo can never serve a stale value.
+class _F22NpCount:
+    def __init__(self):
+        self.n = {"clip": 0, "isfinite": 0}
+
+    def __getattr__(self, name):
+        return getattr(np, name)
+
+    def clip(self, *a, **k):
+        self.n["clip"] += 1
+        return np.clip(*a, **k)
+
+    def isfinite(self, *a, **k):
+        self.n["isfinite"] += 1
+        return np.isfinite(*a, **k)
+
+
+_f22_p = _f21_Params()
+_f22_p.dhw_schedule_enabled = True
+_f22_p.dhw_windows = _f22_tm.parse_windows("06:00-08:00,18:00-21:00")
+_f22_p.dhw_inlet_current = 8.5
+_f22_count = _F22NpCount()
+_f22_overlaps = [0]
+_f22_real_np, _f22_real_overlap = _f22_tm.np, _f22_tm.overlap_fraction
+
+
+def _f22_overlap(*a, **k):
+    _f22_overlaps[0] += 1
+    return _f22_real_overlap(*a, **k)
+
+
+_f22_tm.np, _f22_tm.overlap_fraction = _f22_count, _f22_overlap
+try:
+    for _ in range(50):
+        _f22_ua = _f22_p.dhw_tank_heat_loss_coefficient
+        _f22_inlet = _f22_p.dhw_inlet_reference
+        _f22_pat = _f22_p.effective_dhw_draw_pattern()
+finally:
+    _f22_tm.np, _f22_tm.overlap_fraction = _f22_real_np, _f22_real_overlap
+R.check(
+    "R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the "
+    "windowed draw pattern compute each once",
+    _f22_count.n == {"clip": 1, "isfinite": 1} and _f22_overlaps[0] == 24,
+    f"numpy calls {_f22_count.n}, window overlaps {_f22_overlaps[0]} "
+    f"(one computation is 1, 1 and 24)",
+)
+_f22_pat.append(99.0)
+_f22_stale = []
+for _f22_field, _f22_val in (
+    ("dhw_cooling_rate", 2.5), ("dhw_tank_volume", 300.0),
+    ("dhw_inlet_current", 11.0), ("dhw_inlet_current", float("nan")),
+    ("dhw_inlet_temp", 7.0), ("dhw_hourly_draw_pattern", [2.0] * 12 + [0.0] * 12),
+    ("dhw_windows", _f22_tm.parse_windows("05:00-07:00")),
+    ("dhw_schedule_enabled", False),
+):
+    setattr(_f22_p, _f22_field, _f22_val)
+    _f22_fresh = _f21_Params()
+    for _f22_f2 in (
+        "dhw_cooling_rate", "dhw_tank_volume", "dhw_inlet_current",
+        "dhw_inlet_temp", "dhw_hourly_draw_pattern", "dhw_windows",
+        "dhw_schedule_enabled",
+    ):
+        setattr(_f22_fresh, _f22_f2, getattr(_f22_p, _f22_f2))
+    for _f22_attr in ("dhw_tank_heat_loss_coefficient", "dhw_inlet_reference"):
+        if getattr(_f22_p, _f22_attr) != getattr(_f22_fresh, _f22_attr):
+            _f22_stale.append((_f22_field, _f22_attr))
+    if _f22_p.effective_dhw_draw_pattern() != _f22_fresh.effective_dhw_draw_pattern():
+        _f22_stale.append((_f22_field, "effective_dhw_draw_pattern"))
+R.check(
+    "R9-F2.2 D9-s1-71: every input change reaches the next read, and a caller "
+    "mutating the returned pattern cannot reach the memo",
+    not _f22_stale,
+    f"(changed input, stale helper): {_f22_stale}",
+)
+
+
 # -- #1524: the experiment identifies a TWO-ZONE house ------------------------
 # coordinator._update_current_state feeds the indoor reading to the upper zone,
 # so on a two-zone plant the experiment observes the upper zone while the heat
