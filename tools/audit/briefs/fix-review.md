@@ -30,11 +30,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured.
-8. **A quoted number you cannot re-derive is not verified — say so.** #373's
-   census got three counts under three rules; a later judge built sixteen
-   definitions and found the residual non-zero at the merge base and zero at
-   head under all of them, so the conclusion held despite every headline
-   number in the bodies disagreeing. Re-derive
+8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding.**
@@ -93,6 +89,11 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
     instead is yours to offer and is never owed — a violation the reviewer
     absorbs silently costs the seat that committed it nothing, which is how it recurs.
+
+    **A `merge` verdict carries** (#1667) to a head that
+    `tools/audit/app_approve.sh --carry <measured> <head>` reports carried;
+    that move owes no re-review and is not `head-moved`: post at the SHA you
+    measured. Any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run

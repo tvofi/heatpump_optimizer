@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Deque
 
 import numpy as np
@@ -103,6 +103,37 @@ class AccuracySample:
         )
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Home Assistant's ``as_utc`` rule: naive is UTC, aware is converted."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
+    """Seconds between two stamps as instants (round-9 D14-s4-01, P7).
+
+    Two aware stamps that share Home Assistant's one ZoneInfo object subtract
+    as wall clock in CPython, an hour off across a DST transition; converting
+    both to UTC first measures the instants. A naive pair keeps its wall
+    difference, which is what the identity-zone test clock means by it.
+    """
+    return (_as_utc(newer) - _as_utc(older)).total_seconds()
+
+
+def utc_shift(when: datetime, delta: timedelta) -> datetime:
+    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
+
+    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
+    lands 3 h later. Adding in UTC and converting back keeps the label a real
+    instant (the same walk ``_utc_step_starts`` makes); a naive stamp keeps
+    the plain addition.
+    """
+    if when.tzinfo is None:
+        return when + delta
+    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+
+
 #: Lead-time buckets, hours (T5 #16). The margin a plan needs against its
 #: own uncertainty grows with how far ahead the promise was made; these
 #: are the distances at which that growth is measured.
@@ -179,7 +210,7 @@ class AccuracyTracker:
         for target_time, lead, predicted in self.lead_pending:
             if not np.isfinite(predicted):
                 continue
-            age_h = (now - target_time).total_seconds() / 3600.0
+            age_h = utc_elapsed_seconds(now, target_time) / 3600.0
             if age_h < 0.0:
                 keep.append((target_time, lead, predicted))
                 continue
