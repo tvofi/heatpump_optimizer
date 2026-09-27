@@ -429,6 +429,306 @@ R.check(
 
 
 # ===========================================================================
+# Round 9, F4.1: class-named blocks, sorted by class
+# ===========================================================================
+from dataclasses import replace as _r9f41_replace  # noqa: E402
+import ast as _r9f41_ast  # noqa: E402
+import re as _r9f41_re  # noqa: E402
+
+from heatpump_optimizer import const as _r9f41_const  # noqa: E402
+from heatpump_optimizer import sysid as _r9f41_sysid  # noqa: E402
+
+# --- R9 N-clamp-range (#1673): the flow-lift bias reaches the real supply ----
+R.section("R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)")
+
+# The model's own curve asks 22-28 C of a default house, so a plant at 50 C
+# sits 20-odd K above it; the priced supply must be able to get there.
+_r9f41_p = ThermalParameters(flow_curve_cop=True)
+_r9f41_curve = flow_lift.curve_supply_temp(
+    ThermalModel(_r9f41_p), -5.0, _r9f41_p.flow_curve_indoor_target
+)
+_r9f41_bias = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_bias.observe(50.0, _r9f41_curve)
+_r9f41_priced = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_bias.bias_k)
+).curve_flow_temp(-5.0)
+R.check(
+    "D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, "
+    "not pinned 15 K over the curve",
+    _r9f41_curve is not None
+    and _r9f41_priced is not None
+    and abs(_r9f41_priced - 50.0) < 1e-9,
+    f"curve {_r9f41_curve}, bias {_r9f41_bias.bias_k}, priced {_r9f41_priced}",
+)
+_r9f41_under = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_under.observe(_r9f41_curve - 40.0, _r9f41_curve)
+R.check(
+    "D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve",
+    _r9f41_under.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_r9f41_under.bias_k}",
+)
+_r9f41_hot = flow_lift.FlowCurveBias()
+_r9f41_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 47.0, 25.0)
+R.check(
+    "D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused "
+    "as a sample, not absorbed",
+    _r9f41_hot.samples == 0 and _r9f41_hot.bias_k == 0.0,
+    f"samples {_r9f41_hot.samples}, bias {_r9f41_hot.bias_k}",
+)
+_r9f41_ceiling = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_ceiling.observe(flow_lift.FLOW_SUPPLY_MAX_C, 25.0)
+R.check(
+    "D2-s2-02: a plant at the supply ceiling is learned all the way up",
+    abs(_r9f41_ceiling.bias_k - (flow_lift.FLOW_SUPPLY_MAX_C - 25.0)) < 1e-9,
+    f"bias {_r9f41_ceiling.bias_k}",
+)
+_r9f41_loaded = flow_lift.FlowCurveBias.from_dict({"bias_k": 25.0, "samples": 9})
+_r9f41_wild = flow_lift.FlowCurveBias.from_dict({"bias_k": 500.0, "samples": 9})
+R.check(
+    "D2-s2-02: a stored bias this version learns loads as stored; a wild one "
+    "is re-clamped to the supply ceiling",
+    _r9f41_loaded.bias_k == 25.0
+    and _r9f41_wild.bias_k == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"loaded {_r9f41_loaded.bias_k}, wild {_r9f41_wild.bias_k}",
+)
+# A restored or mild-day bias meets a colder day's curve: the priced supply is
+# held to the ceiling however the sum lands (D2-s2-02 fix review).
+_r9f41_cold = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_wild.bias_k)
+).curve_flow_temp(-20.0)
+R.check(
+    "D2-s2-02: a restored bias at the ceiling prices no supply past "
+    "FLOW_SUPPLY_MAX_C on the coldest curve",
+    _r9f41_cold == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"priced {_r9f41_cold}",
+)
+# The fix review's three survivors (#1704), each pinned by its own mutant.
+_r9f41_at80 = flow_lift.FlowCurveBias()
+_r9f41_at80.observe(80.0, 25.0)
+R.check(
+    "D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is "
+    "refused as a sample",
+    flow_lift.FLOW_SUPPLY_MAX_C == 75.0 and _r9f41_at80.samples == 0,
+    f"ceiling {flow_lift.FLOW_SUPPLY_MAX_C}, samples {_r9f41_at80.samples}",
+)
+_r9f41_steep = flow_lift.FlowCurveBias.from_dict({"bias_k": 10.0, "samples": 9})
+_r9f41_steep.observe(75.0, 80.0)
+_r9f41_steeper = flow_lift.FlowCurveBias()
+_r9f41_steeper.observe(70.0, 100.0)
+R.check(
+    "D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not "
+    "negative: a positive bias lands at 0 and the cold clamp still holds",
+    _r9f41_steep.bias_k == 0.0
+    and _r9f41_steeper.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"80 C curve {_r9f41_steep.bias_k}, 100 C curve {_r9f41_steeper.bias_k}",
+)
+R.check(
+    "D2-s2-02: a non-finite outdoor temperature prices no curve flow at all",
+    ThermalModel(_r9f41_p).curve_flow_temp(float("nan")) is None,
+    f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
+)
+
+# --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
+R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")
+
+# The slow stores, each read through the one limit. A report-on-change probe
+# in a calm room sent nothing for 4 h 15 min in the field (the finding's own
+# evidence); the watchdog must still trip once the limit passes.
+_r9f41_quiet = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "floor_return_temp_entity",
+    "buffer_tank_temp_entity",
+    "dhw_temp_entity",
+)
+for _r9f41_key in _r9f41_quiet:
+    _r9f41_limit = inputs_mod.max_age_for(_r9f41_key)
+    _r9f41_calm = InputReader(
+        FakeHass({"sensor.x": FakeState("21.3", last_updated=minutes_ago(255, NOW))}),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    _r9f41_dead = InputReader(
+        FakeHass(
+            {
+                "sensor.x": FakeState(
+                    "21.3",
+                    last_updated=minutes_ago(
+                        _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES + 1, NOW
+                    ),
+                )
+            }
+        ),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    R.check(
+        f"D1-s5-51: {_r9f41_key} silent 255 min reads ok; past the quiet-store "
+        "limit it is stale",
+        _r9f41_limit == _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES
+        and _r9f41_calm.ok
+        and _r9f41_dead.stale,
+        f"limit {_r9f41_limit}, calm {_r9f41_calm.problem}, "
+        f"dead {_r9f41_dead.problem}",
+    )
+
+# --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
+R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
+
+# D1-s5-01: age_of against the reader, on the same State at the same instant.
+# A live sensor re-reporting an unchanged value (last_reported recent,
+# last_updated old) and a stamp ahead of the clock were the two divergences.
+_r9f41_cells = []
+for _r9f41_rep, _r9f41_upd in (
+    (5, 5), (5, 480), (30, 900), (-5, -5), (-60, 30), (400, 400),
+):
+    _r9f41_state = FakeState(
+        "72.0",
+        last_updated=minutes_ago(_r9f41_upd, NOW),
+        last_reported=minutes_ago(_r9f41_rep, NOW),
+    )
+    _r9f41_age = inputs_mod.age_of(_r9f41_state, NOW)
+    _r9f41_reader_age = InputReader(FakeHass({}), {}, now=lambda: NOW)._age_minutes(
+        _r9f41_state
+    )
+    _r9f41_cells.append(
+        (
+            _r9f41_rep,
+            _r9f41_upd,
+            None if _r9f41_age is None else _r9f41_age.total_seconds() / 60.0,
+            _r9f41_reader_age,
+        )
+    )
+R.check(
+    "D1-s5-01: age_of reads the reader's stamp precedence and refuses a future "
+    "stamp, in every cell",
+    all(
+        (a is None and b is None)
+        or (a is not None and b is not None and abs(a - b) < 1e-9)
+        for _, _, a, b in _r9f41_cells
+    )
+    and _r9f41_cells[1][2] == 5.0
+    and _r9f41_cells[3][2] is None,
+    f"(reported, updated, age_of, reader): {_r9f41_cells}",
+)
+
+# One owner of the stamp chain (the P2 RCA's `state_stamp`): no other function
+# in inputs.py names a stamp attribute, so the three copies cannot diverge.
+_r9f41_tree = _r9f41_ast.parse(open(inputs_mod.__file__, encoding="utf-8").read())
+_r9f41_stamp_sites = sorted(
+    {
+        _r9f41_fn.name
+        for _r9f41_fn in _r9f41_ast.walk(_r9f41_tree)
+        if isinstance(_r9f41_fn, (_r9f41_ast.FunctionDef, _r9f41_ast.AsyncFunctionDef))
+        for _r9f41_node in _r9f41_ast.walk(_r9f41_fn)
+        if (
+            isinstance(_r9f41_node, _r9f41_ast.Constant)
+            and _r9f41_node.value in ("last_reported", "last_updated", "last_changed")
+        )
+        or (
+            isinstance(_r9f41_node, _r9f41_ast.Attribute)
+            and _r9f41_node.attr in ("last_reported", "last_updated", "last_changed")
+        )
+    }
+)
+R.check(
+    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp",
+    _r9f41_stamp_sites == ["state_stamp"],
+    f"functions reading a stamp: {_r9f41_stamp_sites}",
+)
+
+# D1-s5-52: every temperature key the reader serves refuses the DS18B20 fault
+# codes it cannot physically read, and passes an ordinary reading. The keys
+# are enumerated from const, by the finding's seam rule's name pattern.
+_r9f41_temp_keys = sorted(
+    getattr(_r9f41_const, _r9f41_name)
+    for _r9f41_name in dir(_r9f41_const)
+    if _r9f41_re.fullmatch(r"CONF_\w*TEMP\w*_ENTITY", _r9f41_name)
+)
+R.check(
+    "D1-s5-52: every CONF_*TEMP*_ENTITY key has a plausibility window",
+    bool(_r9f41_temp_keys)
+    and all(k in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C for k in _r9f41_temp_keys),
+    f"without one: "
+    f"{[k for k in _r9f41_temp_keys if k not in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C]}",
+)
+# Over the enumerated keys as well as the table's, so an empty table cannot
+# pass the sentinel checks below by walking nothing.
+_r9f41_all_keys = sorted(
+    set(_r9f41_temp_keys) | set(_r9f41_const.INPUT_PLAUSIBLE_RANGE_C)
+)
+_r9f41_sentinel = {}
+for _r9f41_key in _r9f41_all_keys:
+    for _r9f41_raw in ("-127", "85", "21.3"):
+        _r9f41_read = InputReader(
+            FakeHass({"sensor.x": FakeState(_r9f41_raw, last_updated=minutes_ago(1, NOW))}),
+            {_r9f41_key: "sensor.x"},
+            now=lambda: NOW,
+        ).read(_r9f41_key)
+        _r9f41_sentinel[(_r9f41_key, _r9f41_raw)] = (
+            _r9f41_read.problem,
+            _r9f41_read.value,
+        )
+_r9f41_room_like = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "outdoor_temp_entity",
+    "floor_return_temp_entity",
+)
+R.check(
+    "D1-s5-52: -127 degC is refused as implausible on every temperature key, "
+    "with no value left to read",
+    all(_r9f41_sentinel[(k, "-127")] == ("implausible", None) for k in _r9f41_all_keys),
+    f"{ {k: v for (k, raw), v in _r9f41_sentinel.items() if raw == '-127'} }",
+)
+R.check(
+    "D1-s5-52: 85 degC is refused in a room, outdoors and in a floor circuit",
+    all(_r9f41_sentinel[(k, "85")][0] == "implausible" for k in _r9f41_room_like),
+    f"{ {k: _r9f41_sentinel[(k, '85')] for k in _r9f41_room_like} }",
+)
+R.check(
+    "D1-s5-52: an ordinary 21.3 degC passes on every key (the null control)",
+    all(_r9f41_sentinel[(k, "21.3")] == (None, 21.3) for k in _r9f41_all_keys),
+)
+_r9f41_health = InputReader(
+    FakeHass({"sensor.x": FakeState("-127", last_updated=minutes_ago(1, NOW))}),
+    {"indoor_temp_entity": "sensor.x"},
+    now=lambda: NOW,
+)
+_r9f41_health.read("indoor_temp_entity")
+R.check(
+    "D1-s5-52: an implausible reading is a missing input with words for it",
+    _r9f41_health.health.missing_keys == ["indoor_temp_entity"]
+    and _r9f41_health.health.problem_messages()
+    == ["sensor.x: outside its plausible range"],
+    f"{_r9f41_health.health.missing_keys} {_r9f41_health.health.problem_messages()}",
+)
+
+# D2-s4-02: the step is sized under the abort bound by the noise headroom, on
+# the heavy default house (#779's own cell), and still uses the rest of it.
+_r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
+_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
+    0.20, 8.0, 0.3, 21.0, 2.0, (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
+)
+_r9f41_bound = (
+    _r9f41_sid.config.max_excursion_c - _r9f41_sysid.SIZING_NOISE_HEADROOM_C
+)
+R.check(
+    "D2-s4-02: the sized step's noiseless peak leaves the noise headroom under "
+    "the abort bound, and uses the allowance below it",
+    _r9f41_el is not None
+    and _r9f41_bound - 0.05 <= _r9f41_peak <= _r9f41_bound
+    and _r9f41_final <= _r9f41_bound,
+    f"Pel={_r9f41_el} peak={_r9f41_peak:.4f} final={_r9f41_final:.4f} "
+    f"bound={_r9f41_bound}",
+)
+
+
+# ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
 R.section("Non-numeric inputs (v5.3.0)")
@@ -23397,18 +23697,25 @@ R.check(
     f"{_fl_one.as_dict()}",
 )
 
+# D2-s2-02 (round 9) moved the hot side's bound from 15 K over the curve to
+# the supply ceiling: a plant at 50 C sits 20-odd K over the model's own curve,
+# so "past 15 K is a probe in the wrong pipe" refused real plants. What a
+# wrong pipe or a degF read produces is a supply past the ceiling.
 _fl_hot = flow_lift.FlowCurveBias()
 _fl_hot_worst = 0.0
 for _ in range(200):
-    _fl_hot.observe(75.0, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 60.0, 30.0)
     _fl_hot_worst = max(_fl_hot_worst, abs(_fl_hot.bias_k))
 R.check(
-    "a stream of large one-sided residuals pins at the clamp, it does not run away",
-    _fl_hot.bias_k == flow_lift.FLOW_BIAS_CLAMP_K
-    and _fl_hot_worst == flow_lift.FLOW_BIAS_CLAMP_K,
-    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples of +45 K, worst "
-    f"{_fl_hot_worst} — 45 K past the curve is a probe in the wrong pipe, "
-    "not an installer offset",
+    "a stream of large one-sided residuals pins at the supply ceiling, it does "
+    "not run away",
+    _fl_hot.bias_k == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot_worst == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot.samples == 200,
+    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples at the ceiling "
+    f"and 200 past it, worst {_fl_hot_worst} — past the ceiling is a probe "
+    "in the wrong pipe, not a plant",
 )
 _fl_cold = flow_lift.FlowCurveBias()
 for _ in range(200):
@@ -23708,7 +24015,7 @@ R.check(
     and flow_lift.FlowCurveBias.from_dict(
         {"bias_k": 900.0, "samples": 3}
     ).bias_k
-    == flow_lift.FLOW_BIAS_CLAMP_K,
+    == flow_lift.FLOW_SUPPLY_MAX_C,
     "a store written by a build with a wider clamp must not reintroduce a "
     "bias this build would never have learned",
 )
@@ -44431,6 +44738,19 @@ R.check(
     f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
 )
 
+# Optimizer off writes nothing (tvofi, 2026-09-26): the last plan's legionella
+# action stays current after the switch to off, and must not start a boost.
+_g5_c = _g5_control()
+_g5_c._mode = _MODE_OFF
+for _ in range(3):
+    _g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "with the optimizer off a legionella action still current never turns "
+    "the disinfection switch on (null control above: on, it does)",
+    _g5_writes(_g5_c) == [] and _g5_state(_g5_c) == "off",
+    f"writes={_g5_writes(_g5_c)}",
+)
+
 # The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
@@ -47443,6 +47763,17 @@ _pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rheat._thermal_model = _pa_real
 _pa_rheat._current_state.outdoor_temperature = 5.0
 _pa_run(_pa_rheat, 1)
+_pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
+_pa_rboth._thermal_model = _pa_real
+_pa_rboth._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rboth, 1)
+R.check(
+    "on the real curve a heating-plus-hot-water step writes Heating + DHW and the heating flow",
+    ("select", "select_option", "Heating + DHW") in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
+    f"{_pa_rboth.writes()}",
+)
 _pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rbase._thermal_model = _pa_real
 _pa_rbase._current_state.outdoor_temperature = 5.0
@@ -48673,6 +49004,65 @@ R.check(
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
+# Off writes nothing (tvofi, 2026-09-26): with Optimizer active off the
+# optimizer switched a Tuya pump a person had turned on back off every
+# update, because the MODE_OFF action carries heat_pump_on False. Every
+# coordinator writer, driven with the optimizer off, must issue no call;
+# the same drive with it on is the null control. The disinfection switch
+# (it only releases what it turned on) and the DHW repair (a person's
+# confirm) are the two writes this leaves, by design.
+async def _p6_off_ecl(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/displace/set"})
+    coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+    await coord.async_publish_current_action(reason="p6")
+    await coord._async_peak_guard_transition()
+    return coord.hass.services.calls
+
+
+async def _p6_off_pumps(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
+    await coord._async_drive_pumps()
+    return coord.hass.services.calls
+
+
+_P6_OFF_WRITERS = {
+    "switch.p6_off_supply": _p6_switch,
+    "input_number.p6_off_valve": _p6_valve,
+    "number.p6_off_freq": _p6_freq,
+    "switch.p6_off_vvc": _p6_off_pumps,
+    "mqtt.ecl110": _p6_off_ecl,
+}
+
+
+def _p6_off_calls(driver, eid, off):
+    real = Coord.__init__
+
+    def init(self, *a, **k):
+        real(self, *a, **k)
+        if off:
+            self._mode = hp_const.MODE_OFF
+
+    Coord.__init__ = init
+    try:
+        return _p6_aio.run(driver(eid))
+    finally:
+        Coord.__init__ = real
+
+
+_p6_off = {e: _p6_off_calls(d, e, True) for e, d in _P6_OFF_WRITERS.items()}
+_p6_on = {e: _p6_off_calls(d, e, False) for e, d in _P6_OFF_WRITERS.items()}
+R.check(
+    "null control: with the optimizer on, every writer issues a call",
+    all(_p6_on.values()),
+    f"silent: {[e for e, c in _p6_on.items() if not c]}",
+)
+R.check(
+    "with the optimizer off, no writer issues any call: switch, ECL110, valve, "
+    "frequency, circulation pump",
+    not any(_p6_off.values()),
+    f"{ {e: c for e, c in _p6_off.items() if c} }",
+)
+
 # ===========================================================================
 # R8-P3: one COP law and one humidity at the DHW seams (#1520, #1530)
 # ===========================================================================
@@ -49271,6 +49661,126 @@ R.check(
     "single-zone overshoot -- only the floor's linear price changed",
     _f21_o1 > 0 and abs(_f21_o2 - 0.5 * _f21_o1) < 1e-12,
     f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
+)
+
+# The full-price floor made the two-zone landscape steeper where a descent
+# crosses the floor, and on the backtest's 750 L storage house (winter_typical
+# prices) the multi-start stopped lost a basin: its own objective scored a
+# plan it could reach from the half-price floor 0.83 lower than the one it
+# shipped, and storage stopped paying (tests/backtest.py, red on main at
+# 058e89f1). Arm: the plan the solver ships is no worse, on its own objective,
+# than the same solve seeded with the half-price floor's plan. Null arm: a
+# single-zone house, whose floor never changed.
+from profiles import house as _f21_house, prices as _f21_prices  # noqa: E402
+from profiles import weather as _f21_weather  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _f21_State  # noqa: E402
+
+
+def _f21_storage_solve(two_zone, seed=None, l1=None):
+    cfg = _f21_house(
+        two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
+        buffer_max_temperature=70.0, mixing_valve_mode="manual",
+    )
+    params = _f21_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _f21_Opt(_f21_Model(params), _f21_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+    ))
+    if seed is not None:
+        opt._prev_shipped_plan = np.asarray(seed, dtype=float)
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _f21_weather("winter_cold", t0)
+    state = _f21_State(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=25.0, outdoor_temperature=float(out[0]),
+    )
+    saved = _f21_optmod._COMFORT_FLOOR_L1
+    if l1 is not None:
+        _f21_optmod._COMFORT_FLOOR_L1 = l1
+    try:
+        res = opt.optimize(
+            state, _f21_prices("winter_typical", t0), out, wind, rain, sun, t0
+        )
+    finally:
+        _f21_optmod._COMFORT_FLOOR_L1 = saved
+    return np.asarray(res.power_schedule), float(res.objective_value), opt
+
+
+for _f21_tz in (True, False):
+    _f21_half, _, _ = _f21_storage_solve(
+        _f21_tz, l1=0.5 * _f21_optmod._COMFORT_FLOOR_L1
+    )
+    _, _f21_j_plain, _f21_solved = _f21_storage_solve(_f21_tz)
+    _, _f21_j_seeded, _ = _f21_storage_solve(_f21_tz, seed=_f21_half)
+    if _f21_tz:
+        _f21_two_zone_opt = _f21_solved
+    R.check(
+        "R9-F2.1 P3" + ("" if _f21_tz else " (null arm, single-zone)")
+        + ": the shipped storage plan is no worse on its own objective than "
+        "the half-price floor's plan refined under it",
+        _f21_j_plain <= _f21_j_seeded + 0.1,
+        f"shipped {_f21_j_plain:.4f}, seeded with the half-price plan "
+        f"{_f21_j_seeded:.4f}",
+    )
+_f21_probe = (
+    np.full(5, 19.9), np.full(5, 19.9), np.full(5, 21.5), np.full(4, 21.5),
+    np.full(4, 20.0), np.full(4, 23.0), np.full(4, 1.5),
+)
+_f21_after = _f21_two_zone_opt._comfort_terms(*_f21_probe)[0]
+_f21_fresh = _f21_Opt(
+    _f21_two_zone_opt.model, _f21_two_zone_opt.config
+)._comfort_terms(*_f21_probe)[0]
+R.check(
+    "R9-F2.1 P3: the continuation leaves each zone's floor at the full linear "
+    "price once the solve returns",
+    _f21_after == _f21_fresh,
+    f"after a two-zone solve {_f21_after:.6f}, a fresh optimizer {_f21_fresh:.6f}",
+)
+
+# The continuation moves the plain first start, not a caller's extra start,
+# and under the budget the multi-start hands it: #234's two-zone solve, with
+# both solvers stubbed so only the hand-off is read.
+_f21_budgets, _f21_moved = [], []
+
+
+def _f21_ms(objective, starts, bounds, *a, move_starts, **kw):
+    _f21_moved.extend(move_starts([np.asarray(s, dtype=float) for s in starts], 7))
+    return _Min234(np.asarray(starts[0], dtype=float))
+
+
+def _f21_min(fun, x0, **kw):
+    _f21_budgets.append(kw["options"]["maxiter"])
+    return _Min234(np.full(np.shape(x0), -1.0))
+
+
+_f21_real = (_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize)
+_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_ms, _f21_min
+try:
+    _opt234._optimize_space_only(_h234)
+    _f21_budgets_two, _f21_budgets[:] = list(_f21_budgets), []
+    _opt234.model.params.two_zone_enabled = False
+    _opt234._optimize_space_only(_h234)
+finally:
+    _opt234.model.params.two_zone_enabled = True
+    _f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_real
+R.check(
+    "R9-F2.1 P3: the continuation refines the first plain start, after the "
+    "extra starts, within the multi-start's own iteration budget",
+    _f21_budgets_two == [7] and len(_f21_moved) >= 4
+    and np.allclose(_f21_moved[0], _clipped234)
+    and np.allclose(_f21_moved[1], _bang234)
+    and np.all(_f21_moved[2] == -1.0) and not np.all(_f21_moved[3] == -1.0),
+    f"budgets {_f21_budgets_two}; moved "
+    f"{[bool(np.all(c == -1.0)) for c in _f21_moved]}",
+)
+R.check(
+    "R9-F2.1 P3 (null arm, single-zone): a single-zone solve runs no "
+    "continuation -- its floor price never changed",
+    _f21_budgets == [],
+    f"continuation budgets on the single-zone solve: {_f21_budgets}",
 )
 
 # D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the

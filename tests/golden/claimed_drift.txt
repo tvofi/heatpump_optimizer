@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.2
+# claims-for: 6.7.4
 #
-# v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
+# v6.7.4: hotfix: optimizer off means no writes to the heat pump. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -183,6 +183,7 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -724,3 +725,11 @@
 # valve_storage_low_target 0 -> 0, 59.02 -> 62.08; valve_storage_small_tank
 # 1.315 -> 1.291, 54.24 -> 52.56. Every other fixture is byte-identical, so
 # the PV margin and the power fraction move none.
+
+# R9-F2.1 follow-up (main red on tests/backtest.py after #1694): a two-zone
+# solve refines its first start at the half floor price before the true solve.
+# The objective is unchanged; each claimed fixture ships a plan with a LOWER
+# true objective than main's, in the same environment: valve_storage_flat_prices
+# 127.2155 -> 127.1950, valve_storage_small_tank 80.4944 -> 79.9648. The three
+# claims inherited from #1694 are dropped (env_drift --drop-inherited); of them,
+# valve_storage_low_target does not move here.
