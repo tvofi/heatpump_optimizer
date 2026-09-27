@@ -4052,33 +4052,37 @@ class HeatPumpOptimizer:
                     dt,
                 )
             )
-        if self.model.params.two_zone_enabled:
-            # Continuation for the first start (R9-F2.1). Each zone pays the
-            # full linear floor price, and a descent that crosses the floor
-            # from the smooth guess can bend away from a basin the half price
-            # reaches: the backtest's 750 L storage house shipped a plan its
-            # own objective scores 0.83 worse. So the guess is refined at the
-            # half price first; what ships is still decided by the true
-            # objective below, against every other start.
-            # One plain L-BFGS-B run inside the multi-start's own budget: it
-            # moves a start, it is not one.
-            def move_starts(cands, maxiter, first=len(h.extra_starts or ())):
-                self._floor_l1_scale = 0.5
-                try:
-                    cands[first] = np.asarray(_scoped_minimize(
-                        objective, cands[first], method="L-BFGS-B",
-                        bounds=bounds,
-                        jac=(lambda x: _batch_fd_gradient(
-                            objective_batch, (), x, float(objective(x)),
-                            1e-4, bounds,
-                        )) if _bounds_supported_by_batch(bounds) else None,
-                        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
-                    ).x, dtype=float)
-                finally:
-                    self._floor_l1_scale = 1.0
+        def move_starts(
+            cands: list[np.ndarray], maxiter: int
+        ) -> list[np.ndarray]:
+            """Continuation for a two-zone solve's first start (R9-F2.1).
+
+            Each zone pays the full linear floor price, and a descent that
+            crosses the floor from the smooth guess can bend away from a
+            basin the half price reaches: the backtest's 750 L storage house
+            shipped a plan its own objective scores 0.83 worse. So the guess
+            is refined at the half price first; what ships is still decided
+            by the true objective, against every other start. One plain
+            L-BFGS-B run inside the multi-start's own budget: it moves a
+            start, it is not one.
+            """
+            if not self.model.params.two_zone_enabled:
                 return cands
-        else:
-            move_starts = lambda cands, maxiter: cands  # noqa: E731
+            first = len(h.extra_starts or ())
+            self._floor_l1_scale = 0.5
+            try:
+                cands[first] = np.asarray(_scoped_minimize(
+                    objective, cands[first], method="L-BFGS-B", bounds=bounds,
+                    jac=(lambda x: _batch_fd_gradient(
+                        objective_batch, (), x, float(objective(x)), 1e-4,
+                        bounds,
+                    )) if _bounds_supported_by_batch(bounds) else None,
+                    options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                ).x, dtype=float)
+            finally:
+                self._floor_l1_scale = 1.0
+            return cands
+
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
