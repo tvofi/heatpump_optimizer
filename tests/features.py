@@ -50019,9 +50019,11 @@ from heatpump_optimizer.optimizer import HeatPumpOptimizer as _F23Opt  # noqa: E
 # D2-s1-01: every configuration below is accepted by the config flow's own
 # ranges. The first two are the finder's named single-zone points; the third
 # the two-zone grid point with the finder's worst per-substep radius (1.3958
-# at the merge base); the fourth a throttled valve regulating off a hot 750 L
-# tank, whose upper-zone row carries the radiator conductance (0.9 kW/K of
-# loss and coupling alone judged fine; with the circuit it is 1.37). The
+# at the merge base); the last two a throttled valve regulating off a hot
+# 750 L tank, where only the emitter conductance takes a row past 1: the
+# radiators' in the upper zone's (loss and coupling 0.8 kW/K against a
+# 0.25 kWh/K zone, 1.27 with the circuit), the floor's in the slab's (0.1
+# against 0.1 kWh/K, 0.8 with the circuit). The
 # property is the maximum principle a passive RC network obeys: a zero-input
 # day from stores at 21 (slab 25, tank 30 or 60) against a 0 degC outdoor
 # stays inside [0, hottest store], and the production step's own sub-step
@@ -50043,10 +50045,14 @@ _F23_EULER_CASES = (
         "upper_floor_heat_loss": 1.0, "lower_floor_heat_loss": 1.0,
         "slab_thermal_mass": 0.843, "slab_heat_transfer": 5.0,
         "inter_zone_transfer": 0.01, "two_zone_mode": "on"}),
-    ("two-zone valved Cu=0.25", {
-        "upper_floor_thermal_mass": 0.25, "upper_floor_heat_loss": 0.6,
-        "inter_zone_transfer": 0.3, "two_zone_mode": "on",
-        "mixing_valve_mode": "manual", "buffer_tank_volume": 750.0}),
+    ("two-zone valved, radiator row", {
+        "upper_floor_thermal_mass": 0.25, "upper_floor_heat_loss": 0.3,
+        "two_zone_mode": "on", "mixing_valve_mode": "manual",
+        "buffer_tank_volume": 750.0}),
+    ("two-zone valved, floor row", {
+        "slab_thermal_mass": 0.1, "slab_heat_transfer": 0.1,
+        "two_zone_mode": "on", "mixing_valve_mode": "manual",
+        "buffer_tank_volume": 750.0}),
 )
 _F23_STORES = ("upper_floor_temperature", "lower_floor_temperature",
                "slab_temperature", "buffer_tank_temperature")
