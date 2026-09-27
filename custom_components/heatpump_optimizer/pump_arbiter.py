@@ -75,9 +75,11 @@ read the pump before the record agrees (v6.6.12).
 house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
-missing plan, a fixed-rule mode, an experiment, a boost and the end of the
-lease all get the baseline row above, and so does unloading while the
-optimizer is on. Turning it off writes nothing.
+missing plan, comfort, an experiment and the end of the lease all get
+the baseline row above, and so does unloading while the optimizer is on.
+A boost adds its duty to the plan step's (Boost Space Heating alone is
+space only, DHW boost alone hot water only), and the global boost mode is
+both (:func:`_planned_duty`). Turning it off writes nothing.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -127,6 +129,7 @@ from .const import (
     DEFAULT_SPACE_SETPOINT_UNIT,
     DOMAIN,
     MODE_AUTO,
+    MODE_BOOST,
     MODE_ECONOMY,
     MODE_OFF,
     PUMP_DUTY_MODES,
@@ -202,6 +205,8 @@ class ArbiterState:
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
+#: The mode slot's writable domains; its third, ``sensor``, is read-only.
+_MODE_DOMAINS = frozenset(("select", "input_select"))
 
 
 def _entities(config: Any) -> dict[str, Any]:
@@ -388,17 +393,32 @@ setpoint_check.dhw_gated = dhw_gated
 
 
 def _planned_duty(coord: Any, now: datetime) -> str | None:
-    """The duty to serve now, or ``None`` for the baseline."""
-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():
+    """The duty to serve now, or ``None`` for the baseline.
+
+    A boost adds its duty to the plan's step, not the baseline (tvofi,
+    2026-09-27): Heating + DHW would hand the other duty to the pump's own
+    thermostat for the boost's two hours, and when that duty runs is the
+    plan's. So Boost Space Heating is heating only, DHW boost hot water
+    only (leased like any), and ``both`` where the step or the other boost
+    wants the other duty too. The global boost mode plans no hot water, so
+    it is ``both``: the heating flow, not the baseline's hold.
+    """
+    if coord._mode == MODE_BOOST:
+        return "both"
+    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
         return None
     if (coord._current_action or {}).get("mode") == "system_identification":
         return None
-    if boost.held_for(coord).until:
-        return None
-    result = getattr(coord, "_optimization_result", None)
-    if result is None:
-        return None
-    return step_duty(result, now, _on_kw(coord))
+    held = boost.held_for(coord)
+    result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
+    duty = None if result is None else step_duty(result, now, _on_kw(coord))
+    space = held.active(boost.CHANNEL_SPACE, now)
+    dhw = held.active(boost.CHANNEL_DHW, now)
+    if not (space or dhw):
+        return duty
+    space = space or duty in ("space", "both")
+    dhw = dhw or duty in ("dhw", "both")
+    return "both" if space and dhw else "space" if space else "dhw"
 
 
 def _on_kw(coord: Any) -> float:
@@ -499,10 +519,13 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         return
     if slot in held.retry and now < held.retry[slot]:
         return
+    domain = entity.split(".", 1)[0]
+    if slot == "mode" and domain not in _MODE_DOMAINS:
+        return  # a read-only mode slot is read, never written (D12-s2-02)
     try:
         if slot == "mode":
             await coord.hass.services.async_call(
-                "select",
+                domain,
                 "select_option",
                 {"entity_id": entity, "option": _option_for(state, value)},
                 blocking=True,
@@ -571,6 +594,8 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
         return
     async with held.lock:
         await _load(coord)
+        if getattr(coord, "_entry_released", False):
+            return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
         await _arbitrate(coord, held, mode, now)
 
@@ -641,7 +666,10 @@ def _listen(coord: Any) -> None:
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(
-        coord.hass, _STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_pump_duty"
+        coord.hass,
+        _STORE_VERSION,
+        f"{DOMAIN}_{coord.entry.entry_id}_pump_duty",
+        naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _load's zone
     )
 
 
@@ -671,13 +699,25 @@ async def _load(coord: Any) -> None:
         return
     if raw.get("manual"):
         _clear(coord, ISSUE_MANUAL)
-    for slot, pair in (raw.get("written") or {}).items():
+    written = raw.get("written")
+    for slot, pair in written.items() if isinstance(written, dict) else ():
         try:
-            at = stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
+            value, at = pair[0], stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
         except (TypeError, KeyError, IndexError):
             continue
-        if at is not None:
-            held.written[slot] = (pair[0], at)
+        if at is not None and _writable(slot, value):
+            held.written[slot] = (value, at)
+
+
+def _writable(slot: str, value: Any) -> bool:
+    """Whether ``value`` is one the arbiter could have written to ``slot``.
+
+    A restored record is compared and rewritten on every pass, so one of any
+    other shape raised there on every cycle (D1-s3-03).
+    """
+    if slot == "mode":
+        return isinstance(value, str) and value in _OWN_MODES
+    return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

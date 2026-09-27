@@ -31087,7 +31087,9 @@ def _g2_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 
@@ -31255,7 +31257,9 @@ def _mr_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 
@@ -47108,20 +47112,72 @@ R.check(
 _pa_sysid = _PaCoord(_PA_TUYA)
 _pa_sysid._current_action = {"mode": "system_identification"}
 _pa_run(_pa_sysid, 1)
-_pa_boosted = _PaCoord(_PA_TUYA)
-boost_mod.held_for(_pa_boosted).until["dhw"] = _PA_T0 + timedelta(hours=2)
-_pa_run(_pa_boosted, 1)
 _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment, a boost and a missing plan each get the baseline, not hot water only",
+    "an experiment and a missing plan each get the baseline, not hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
-        for c in (_pa_sysid, _pa_boosted, _pa_noplan)
+        for c in (_pa_sysid, _pa_noplan)
     ),
-    f"{_pa_sysid.writes()} / {_pa_boosted.writes()} / {_pa_noplan.writes()}",
+    f"{_pa_sysid.writes()} / {_pa_noplan.writes()}",
+)
+# A boost adds its duty to the plan step's, not the baseline (tvofi,
+# 2026-09-27): Heating + DHW would hand the other duty to the pump's own
+# thermostat for two hours, and when that runs is the plan's. Heating + DHW
+# is the fallback on a pump that offers no single-duty mode, and the duty on
+# a step the plan (or the other boost) gives the other duty as well.
+_pa_sb = {}
+for _pa_sb_name, _pa_sb_opts, _pa_sb_duties, _pa_sb_on in (
+    ("tuya", _PA_TUYA, "--", ("space",)), ("modbus", _PA_MODBUS, "--", ("space",)),
+    ("dhwstep", _PA_TUYA, "dd", ("space",)), ("dhwboost", _PA_TUYA, "--", ("space", "dhw")),
+    ("dhwonly", _PA_TUYA, "--", ("dhw",)), ("dhwonspace", _PA_TUYA, "ss", ("dhw",)),
+):
+    _pa_sb[_pa_sb_name] = _PaCoord(_pa_sb_opts, duties=_pa_sb_duties)
+    for _pa_sb_ch in _pa_sb_on:
+        boost_mod.held_for(_pa_sb[_pa_sb_name]).set(_pa_sb_ch, True, _PA_T0)
+    _pa_run(_pa_sb[_pa_sb_name], 1)
+_pa_sb_off = _PaCoord(_PA_TUYA, duties="--")
+_pa_sb_off._mode = _PA_OFF
+boost_mod.held_for(_pa_sb_off).set("space", True, _PA_T0)
+_pa_run(_pa_sb_off, 1)
+_pa_sb_stale = _PaCoord(_PA_TUYA, duties="dd")
+_pa_sb_stale.stale = True
+boost_mod.held_for(_pa_sb_stale).set("space", True, _PA_T0)
+_pa_run(_pa_sb_stale, 1)
+_pa_sb_old = _PaCoord(_PA_TUYA, duties="--")
+boost_mod.held_for(_pa_sb_old).until["space"] = _PA_T0
+_pa_run(_pa_sb_old, 1)
+_pa_gb = {}
+for _pa_gb_mode in ("boost", "comfort"):
+    _pa_gb[_pa_gb_mode] = _PaCoord(_PA_TUYA, duties="--")
+    _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
+    _pa_run(_pa_gb[_pa_gb_mode], 1)
+R.check(
+    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
+    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
+    f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
+)
+R.check(
+    "a boost writes its own single duty where the pump offers it, Heating + DHW "
+    "where it does not or the other duty is due too, and nothing while off",
+    ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
+    and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwboost"].writes()
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_sb["dhwonly"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwonspace"].writes()
+    and ("select", "select_option", "Heating") in _pa_sb_stale.writes()
+    and ("select", "select_option", "Heating") not in _pa_sb_old.writes()
+    and _pa_sb_off.writes() == [],
+    f"{ {k: c.writes() for k, c in _pa_sb.items()} } / {_pa_sb_stale.writes()} "
+    f"/ {_pa_sb_old.writes()} / {_pa_sb_off.writes()}",
 )
 _pa_small = _PaCoord(_PA_TUYA, duties="xx")
 _pa_run(_pa_small, 1)
@@ -47532,7 +47588,7 @@ R.check(
 )
 
 # A step observed while the coordinator is not driving a plan (manual mode,
-# a stale plan, system ID, an active boost) has no planned duty at all --
+# a stale plan, system ID) has no planned duty at all --
 # distinct from "unknown", which is an observed step the plan DID cover.
 _pa_baseline = _PaCoord(_PA_TUYA, duties="s", duty="observe")
 _pa_baseline._current_state.dhw_temperature = 45.0
@@ -48117,6 +48173,231 @@ R.check(
     "(D1-s3-05); unstepped it still runs the full two",
     _si_live == {0: 2.0, 1: 2.0, 24: 2.0},
     f"hours left after the step: {_si_live}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)")
+# Round 9 F3.2 (#1644 P2, #1647 P1, #1660 N-future-instant). What the arbiter
+# restores is a record it could have written; an apply queued before an
+# unload arms and writes nothing; the mode is written through the target's
+# own domain; the frequency map loads only the domain its update path folds;
+# and the store bounds a naive stamp in the zone its loader reads it in.
+from heatpump_optimizer import freq_control as _f32_fc  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore as _F32Store  # noqa: E402
+
+_F32_T0 = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+
+
+def _f32_load(coord, written):
+    """``written`` stored as the arbiter's record, then its real loader."""
+    _si_storage._DISK[f"heatpump_optimizer_{coord.entry.entry_id}_pump_duty"] = (
+        _si_json.dumps({"written": written}))
+    _si_pa.state_for(coord).loaded = False
+    try:
+        _si_aio.run(_si_pa._load(coord))
+    finally:
+        _si_storage._DISK.clear()
+    return _si_pa.state_for(coord).written
+
+
+# D1-s3-02: an apply queued by a state change before the unload runs after
+# it. It must neither re-arm the tick and the state listener nor write.
+# Under an aware clock, as Home Assistant's: release() stamps its baseline
+# write with the clock, and the stub's default one is naive (D1-s1-52).
+_f32_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("released", "null"):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_c._entry_released = False
+        _pa_run(_f32_c, 1)
+        _f32_c._entry_released = _f32_arm == "released"
+        _pa_aio.run(_pa.release(_f32_c))
+        _f32_c.hass.services.calls.clear()
+        _pa_run(_f32_c, 16)
+        _f32_live[_f32_arm] = (len(_pa.state_for(_f32_c).unsubs), len(_f32_c.writes()))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued before the unload arms no listener and writes nothing "
+    "after it (D1-s3-02); a live coordinator re-arms both (null control)",
+    _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
+    f"{_f32_live}",
+)
+
+# D1-s3-03: a record of any other shape is not restored, and the next pass
+# neither raises nor keeps it; an honest record still loads.
+_f32_iso = "2026-06-01T11:59:00+00:00"
+_f32_bad = {
+    "written-list": [["heat", _f32_iso]],
+    "setpoint-str": {"dhw_setpoint": ["53", _f32_iso]},
+    "setpoint-list": {"space_setpoint": [[34.0], _f32_iso]},
+    "setpoint-bool": {"dhw_setpoint": [True, _f32_iso]},
+    "mode-dict": {"mode": [{"v": "heat"}, _f32_iso]},
+    "mode-list": {"mode": [["heat"], _f32_iso]},
+    "slot-unknown": {"boiler": [48.0, _f32_iso]},
+    "pair-dict": {"mode": {"0": "heat", "1": _f32_iso}},
+}
+_f32_raised = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_name, _f32_rec in _f32_bad.items():
+        _f32_c = _PaCoord(_PA_TUYA)
+        try:
+            _f32_kept = dict(_f32_load(_f32_c, _f32_rec))
+            _pa_run(_f32_c, 1)
+            _pa_run(_f32_c, 2)
+            _f32_raised[_f32_name] = _f32_kept or None
+        except Exception as _f32_err:  # noqa: BLE001
+            _f32_raised[_f32_name] = type(_f32_err).__name__
+    _f32_ok = dict(_f32_load(_PaCoord(_PA_TUYA), {
+        "mode": ["heat", _f32_iso], "dhw_setpoint": [48.0, _f32_iso],
+        "space_setpoint": [34, _f32_iso]}))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "the arbiter restores only a record it could have written: no malformed "
+    "record loads or raises on the next pass (D1-s3-03)",
+    not any(_f32_raised.values()),
+    f"{_f32_raised}",
+)
+R.check(
+    "an honest arbiter record still loads, every slot (null control)",
+    sorted(_f32_ok) == ["dhw_setpoint", "mode", "space_setpoint"]
+    and _f32_ok["dhw_setpoint"][0] == 48.0,
+    f"{_f32_ok}",
+)
+
+# FI-sw5: a write instant stored ahead of the clock (N-future-instant) is
+# bounded by the store at load, so hold()'s write-echo grace is not held
+# open by it: a differing reading past the grace is rewritten.
+_f32_grace = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_arm, _f32_at in (("ahead", _F32_T0 + timedelta(days=400)),
+                              ("null", _F32_T0)):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_load(_f32_c, {"dhw_setpoint": [48.0, _f32_at.isoformat()]})
+        _pa.hold(_f32_c, _F32_T0 + timedelta(seconds=30 if _f32_arm == "ahead" else 10))
+        _f32_grace[_f32_arm] = "dhw_setpoint" in _pa.state_for(_f32_c).written
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a write instant stored ahead of the clock is bounded, so the echo grace "
+    "closes on time (FI-sw5); an honest one inside the grace still holds (null control)",
+    _f32_grace == {"ahead": False, "null": True},
+    f"record kept after a differing reading: {_f32_grace}",
+)
+
+# D12-s2-02: the mode slot accepts select, input_select and sensor. The
+# write goes through the target's own domain; a sensor is read, never written.
+_f32_route = {}
+for _f32_dom in ("select", "input_select", "sensor"):
+    _f32_c = _PaCoord(_PA_TUYA)
+    _f32_ent = f"{_f32_dom}.pump_mode"
+    _f32_c._config["heat_pump_mode_entity"] = _f32_ent
+    _f32_c.hass.states._states[_f32_ent] = FakeState(
+        "Heating + DHW", attributes={"options": list(_PA_TUYA)})
+    _pa_run(_f32_c, 1)
+    _f32_route[_f32_dom] = sorted(
+        {(d, s) for d, s, data in _f32_c.hass.services.calls
+         if (data or {}).get("entity_id") == _f32_ent})
+R.check(
+    "the arbiter writes the mode through the target's own domain, and never "
+    "writes a read-only sensor slot (D12-s2-02)",
+    _f32_route == {"select": [("select", "select_option")],
+                   "input_select": [("input_select", "select_option")],
+                   "sensor": []},
+    f"{_f32_route}",
+)
+
+# The store bounds a naive instant in the zone its loader reads it in: Home
+# Assistant's, for the arbiter, legionella and boost. Read as UTC, a zone
+# west of Greenwich let a naive future stamp through by its offset, and one
+# east of it pulled an honest stamp back by its offset (a boost with an hour
+# left came back ended).
+_f32_zone = {}
+_f32_zone0 = dt_util.DEFAULT_TIME_ZONE
+for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
+    _f32_z = _SiZone(_f32_tz)
+    _f32_now = datetime(2026, 6, 1, 12, 0, tzinfo=_f32_z)
+    dt_util.DEFAULT_TIME_ZONE = _f32_z
+    dt_util.freeze(_f32_now)
+    try:
+        _f32_c = _t2_coord()
+        _f32_w = _f32_load(_f32_c, {
+            "mode": ["heat", "2026-06-01T11:00:00"],
+            "dhw_setpoint": [48.0, "2026-06-01T18:00:00"]})
+        _si_storage._DISK[_f32_c._legionella.store._key] = _si_json.dumps(
+            {"last_cycle": "2026-06-01T11:00:00", "last_attempt": "2026-06-01T18:00:00"})
+        _si_aio.run(_f32_c._legionella.async_load())
+        _si_storage._DISK[f"heatpump_optimizer_{_f32_c.entry.entry_id}_boost"] = (
+            _si_json.dumps({"space": {"until": "2026-06-01T13:00:00"},
+                            "dhw": {"until": "2026-06-01T18:00:00"}}))
+        _si_aio.run(boost_mod.restore(_f32_c))
+        _f32_b = boost_mod.held_for(_f32_c).until
+        _f32_zone[_f32_tz] = (
+            _f32_w["mode"][1] == _f32_now - timedelta(hours=1)
+            and _f32_w["dhw_setpoint"][1] == _f32_now
+            and _f32_c._legionella.last_cycle == _f32_now - timedelta(hours=1)
+            and _f32_c._legionella.attempt == _f32_now
+            and _f32_b.get("space") == _f32_now + timedelta(hours=1)
+            and _f32_b.get("dhw") == _f32_now + timedelta(hours=boost_mod.BOOST_HOURS),
+            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat(),
+            {k: v.isoformat() for k, v in _f32_b.items()})
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = _f32_zone0
+        dt_util.freeze(None)
+        _si_storage._DISK.clear()
+R.check(
+    "the store bounds a naive stored instant in its loader's zone: an honest "
+    "one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles",
+    all(v[0] for v in _f32_zone.values()) and len(_f32_zone) == 2,
+    f"{_f32_zone}",
+)
+
+# The bound's target is now plus the store's lead, exactly: an instant
+# beyond it lands on it, not merely somewhere at or before it.
+_f32_lead = timedelta(hours=2)
+_F32Key = "heatpump_optimizer_f32_lead"
+_si_storage._DISK[_F32Key] = _si_json.dumps({
+    "aware": (_F32_T0 + timedelta(days=400)).astimezone(_SiZone("Europe/Stockholm")).isoformat(),
+    "naive": (_F32_T0 + timedelta(days=400)).replace(tzinfo=None).isoformat(),
+    "inside": (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat()})
+dt_util.freeze(_F32_T0)
+try:
+    _f32_got = _si_aio.run(_F32Store(FakeHass({}), 1, _F32Key, lead=_f32_lead).async_load())
+finally:
+    dt_util.freeze(None)
+    _si_storage._DISK.clear()
+R.check(
+    "an instant beyond the store's lead is bounded to exactly now plus the "
+    "lead, aware or naive, and one inside it is kept",
+    datetime.fromisoformat(_f32_got["aware"]) == _F32_T0 + _f32_lead
+    and datetime.fromisoformat(_f32_got["aware"]).utcoffset() == timedelta(hours=2)
+    and _f32_got["naive"] == (_F32_T0 + _f32_lead).replace(tzinfo=None).isoformat()
+    and _f32_got["inside"] == (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat(),
+    f"{_f32_got}",
+)
+
+# D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile
+# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ (1.5
+# kW/Hz: a 60 kW draw at 40 Hz) -- does not load, and observe() does not fold
+# one, so no phantom bucket pins recommend() at the range's floor.
+_f32_map = _f32_fc.FrequencyMap.from_dict({
+    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [1.5, 50],
+    "4": [0.04, 50], "5": [_f32_fc.FREQ_MAX_KW_PER_HZ, 50],
+})
+_f32_obs = _f32_fc.FrequencyMap()
+_f32_obs.observe(40.0, 60.0, 20.0, 120.0)
+_f32_obs.observe(60.0, 2.4, 20.0, 120.0)
+R.check(
+    "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
+    "up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)",
+    sorted(_f32_map.buckets) == [4, 5]
+    and _f32_map.recommend(3.0, 20.0, 120.0) == 75.0
+    and list(_f32_obs.buckets) == [4],
+    f"loaded={_f32_map.buckets} observed={_f32_obs.buckets}",
 )
 
 # ---------------------------------------------------------------------------
@@ -49643,6 +49924,408 @@ R.check(
     all(abs(a - b) < 1e-9 for a, b in zip(_f21_blend, _f21_bwant)),
     f"{[round(float(v), 4) for v in _f21_blend]} against "
     f"{[round(v, 4) for v in _f21_bwant]}",
+)
+
+
+# -- R9-F2.2: N-solve-recompute -- interpreter-bound recomputation in the solve --
+# Round 9, fix F2.2 (Part of #1653). Each arm drives the production symbol. The
+# cost pins count what the finding's cost metric counts -- calls made while the
+# solve runs -- and the parity pins hold the bitwise contract the batched
+# objective owes the scalar one (fixer.md step 15), at the production width, on
+# a C-order and a Fortran-order batch (G3-V1).
+import sys as _f22_sys  # noqa: E402
+
+from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    _DHW_MIN_RUN_CHUNK as _F22_CHUNK,
+    cycling_penalty as _f22_cyc,
+    cycling_penalty_batch as _f22_cyc_batch,
+)
+
+
+def _f22_calls(fn, *a):
+    """Every Python and C call made while ``fn(*a)`` runs, and its result."""
+    count = [0]
+
+    def prof(_frame, event, _arg):
+        if event in ("call", "c_call"):
+            count[0] += 1
+
+    _f22_sys.setprofile(prof)
+    try:
+        out = fn(*a)
+    finally:
+        _f22_sys.setprofile(None)
+    return count[0], out
+
+
+def _f22_comfort_opt(two_zone):
+    return _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
+
+
+def _f22_comfort_args(rows, n, seed):
+    rng = np.random.default_rng(seed)
+    # Temperatures straddling both bounds, so every term is live on every row.
+    trajs = [rng.uniform(17.0, 26.0, size=(rows, n + 1)) for _ in range(3)]
+    lo_b = np.full(n, 20.0)
+    hi_b = np.full(n, 23.0)
+    tgt = rng.uniform(20.5, 22.5, size=n)
+    band = np.full(n, 1.5)
+    return trajs, (tgt, lo_b, hi_b, band)
+
+
+# D9-s1-01 and RC-sw1: the batched twins' work must not grow with the row
+# count. The per-row loop made it B times the scalar body's calls; a batch of
+# 97 rows (one gradient at the production width) against one of 2 separates
+# the two shapes by ~48x. Null control: the scalar twins, whose calls do not
+# depend on a row count at all, are the unit the per-row loop repeated.
+_f22_cost = {}
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_rows in (2, 97):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(_f22_rows, 96, 7)
+        _f22_cost[("comfort", _f22_two, _f22_rows)] = _f22_calls(
+            _f22_opt._comfort_terms_batch, _f22_r, _f22_u, _f22_l, *_f22_rest
+        )[0]
+for _f22_rows in (2, 97):
+    _f22_pm = np.random.default_rng(3).uniform(0.0, 6.0, size=(_f22_rows, 96))
+    _f22_cost[("cycling", None, _f22_rows)] = _f22_calls(
+        _f22_cyc_batch, _f22_pm, 2.0, 6.0
+    )[0]
+_f22_growth = {
+    k[:2]: (_f22_cost[k[:2] + (97,)], _f22_cost[k[:2] + (2,)])
+    for k in _f22_cost if k[2] == 2
+}
+R.check(
+    "R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty "
+    "make the same calls for 97 rows as for 2 (no per-row interpreter loop)",
+    all(big == small for big, small in _f22_growth.values()),
+    f"(97-row calls, 2-row calls) per twin: {_f22_growth}",
+)
+
+# The parity grid: every row of each twin is its scalar on that row, byte for
+# byte, at widths on each side of the pairwise-summation block edges (8, 128)
+# and at the production width 96, on C- and Fortran-order batches. Rows that
+# sit wholly inside the band make the undershoot/overshoot sums all-zero, the
+# case where a sign of zero could differ.
+_f22_bad = []
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(9, _f22_n, _f22_n)
+        _f22_r[0] = _f22_u[0] = _f22_l[0] = 21.5
+        for _f22_order in ("C", "F"):
+            _f22_rr, _f22_uu, _f22_ll = (
+                np.asarray(a, order=_f22_order) for a in (_f22_r, _f22_u, _f22_l)
+            )
+            _f22_pb, _f22_cb = _f22_opt._comfort_terms_batch(
+                _f22_rr, _f22_uu, _f22_ll, *_f22_rest
+            )
+            for _f22_b in range(_f22_rr.shape[0]):
+                _f22_ps, _f22_cs = _f22_opt._comfort_terms(
+                    np.array(_f22_rr[_f22_b]), np.array(_f22_uu[_f22_b]),
+                    np.array(_f22_ll[_f22_b]), *_f22_rest,
+                )
+                if (np.float64(_f22_pb[_f22_b]).tobytes()
+                        != np.float64(_f22_ps).tobytes()
+                        or np.float64(_f22_cb[_f22_b]).tobytes()
+                        != np.float64(_f22_cs).tobytes()):
+                    _f22_bad.append(("comfort", _f22_two, _f22_n, _f22_order, _f22_b))
+    for _f22_n in (1, 2, 5, 8, 9, 96, 97, 129, 192):
+        _f22_pm = np.random.default_rng(_f22_n).uniform(0.0, 6.0, size=(9, _f22_n))
+        _f22_pm[0] = 3.0
+        for _f22_order in ("C", "F"):
+            _f22_pmo = np.asarray(_f22_pm, order=_f22_order)
+            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, 6.0)
+            for _f22_b in range(_f22_pmo.shape[0]):
+                if (np.float64(_f22_got[_f22_b]).tobytes()
+                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, 6.0)).tobytes()):
+                    _f22_bad.append(("cycling", _f22_n, _f22_order, _f22_b))
+R.check(
+    "R9-F2.2: every batched comfort and cycling row is its scalar twin byte "
+    "for byte, C- and Fortran-order, widths 1 to 192 including the production 96",
+    not _f22_bad,
+    f"first divergences: {_f22_bad[:4]}",
+)
+# The scalar twins' own value is unchanged by the fix: each is the sum numpy
+# gives a fresh 1-D array, which is what they returned before (null control
+# for the rows above agreeing only with each other).
+# Twenty-five schedules per width, because one reordered addition changes the
+# last bit of only some sums.
+_f22_ref_bad = []
+for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+    for _f22_seed in range(25):
+        _f22_x = np.random.default_rng((_f22_n, _f22_seed)).uniform(0.0, 6.0, size=_f22_n)
+        _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
+        if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
+            _f22_ref_bad.append((_f22_n, _f22_seed))
+R.check(
+    "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
+    "swings, to the byte",
+    not _f22_ref_bad,
+    f"(width, seed) that moved: {_f22_ref_bad[:6]} of {len(_f22_ref_bad)}",
+)
+
+
+# D9-s1-02: with a batched objective served, L-BFGS-B takes f(x) from the same
+# batch as the gradient, so the scalar objective is never evaluated inside a
+# minimize run (it still scores the candidates and judges each restart). The
+# plan must not move: on uniform bounds the batched jac is scipy's own
+# estimate to the bit, so the fused solve must land on the point the scalar
+# path (no batch at all) reaches. The toy batch evaluates each row through the
+# scalar objective, which keeps the rows bitwise by construction.
+def _f22_obj(x, *_a):
+    d = np.asarray(x, dtype=float) - np.linspace(-1.0, 1.5, np.size(x))
+    return float(np.sum(d * d * (1.0 + 0.3 * np.abs(d))))
+
+
+def _f22_batch(mat, *_a):
+    return np.array([_f22_obj(np.array(row)) for row in mat])
+
+
+def _f22_solve(batch):
+    state = {"depth": 0, "inside": 0}
+    real_min = _grad_optmod._scoped_minimize
+
+    def tracking(*a, **k):
+        state["depth"] += 1
+        try:
+            return real_min(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def counted(x, *a):
+        if state["depth"]:
+            state["inside"] += 1
+        return _f22_obj(x, *a)
+
+    _grad_optmod._scoped_minimize = tracking
+    try:
+        res = _grad_optmod._multi_start_minimize(
+            counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
+            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real_min
+    return res, state["inside"]
+
+
+_f22_fused, _f22_fused_inside = _f22_solve(_f22_batch)
+_f22_plain, _f22_plain_inside = _f22_solve(None)
+R.check(
+    "R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective "
+    "inside L-BFGS-B",
+    _f22_fused_inside == 0 and _f22_plain_inside > 0,
+    f"scalar calls inside minimize: batched {_f22_fused_inside}, "
+    f"unbatched (null arm) {_f22_plain_inside}",
+)
+R.check(
+    "R9-F2.2 D9-s1-02: the fused solve lands on the scalar path's point, byte "
+    "for byte",
+    _f22_fused.x.tobytes() == _f22_plain.x.tobytes(),
+    f"max |dx| {float(np.max(np.abs(_f22_fused.x - _f22_plain.x))):.3e}",
+)
+
+
+# D9-s1-04: a refused weak slot is refused at its first breach. The fixture's
+# early raises are refused because the tank starts on its ceiling, so each
+# breaches at once; checking the whole suffix anyway cost n - slot steps per
+# refusal. Bound: the two opening simulations, the suffix for each accepted
+# slot, and for each refused slot one chunk of check plus its suffix refresh.
+_f22_mr_out, _, _f22_mr_steps = _mr_run(_mr_plan, _mr_outdoor, _mr_draws)
+_f22_refused = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] == 0.0]
+_f22_accepted = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] != 0.0]
+_f22_early_bound = (
+    2 * (96 + 1)
+    + sum(96 - p for p in _f22_accepted)
+    + sum(8 + (96 - p) for p in _f22_refused)
+)
+R.check(
+    "R9-F2.2 D9-s1-04: a refused weak slot stops simulating at its first "
+    "breach rather than checking the whole suffix",
+    _f22_refused and _f22_mr_steps <= _f22_early_bound,
+    f"steps {_f22_mr_steps} against the early-exit bound {_f22_early_bound} "
+    f"({len(_f22_refused)} refused, {len(_f22_accepted)} accepted)",
+)
+
+
+# ...and every accept/refuse decision is still the whole suffix's. The
+# reference is the pre-chunking check: extend the candidate to the horizon,
+# then compare every step against max(ceiling, base). The scenarios step the
+# per-step ceiling down after a boost window, so a chunk that reads the
+# ceiling one step out of line decides differently (review of #1710, m4),
+# and the recorded first-breach offsets must include both sides of the first
+# chunk boundary.
+_F22MrCls = type(_mr_opt)
+_f22_breach_offsets: list[int] = []
+
+
+def _f22_whole_suffix_fits(
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+):
+    self.model.extend_dhw_temps(
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+    )
+    limit = np.maximum(ceiling[: candidate.size], base)
+    bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]
+    if bad.size:
+        _f22_breach_offsets.append(int(bad[0]) + 1)
+    return bad.size == 0
+
+
+def _f22_mr_scenario(seed, n=96):
+    rng = np.random.default_rng(seed)
+    cap = np.full(n, 50.0 + rng.integers(0, 4))
+    w0, wl = int(rng.integers(4, n - 30)), int(rng.integers(4, 24))
+    cap[w0:w0 + wl] = 60.0 + rng.integers(0, 3)
+    plan = np.zeros(n)
+    plan[w0:w0 + wl] = rng.uniform(0.0, 3.0, wl) * (rng.random(wl) < 0.6)
+    weak = rng.choice(n, int(rng.integers(8, 30)), replace=False)
+    plan[weak] = rng.uniform(0.02, 0.55, weak.size)
+    draws = np.zeros(n)
+    d0 = int(rng.integers(0, n - 8))
+    draws[d0:d0 + int(rng.integers(2, 12))] = rng.uniform(0.5, 3.0)
+    return plan, float(rng.uniform(40, 52)), rng.uniform(-10, 10, n), draws, cap
+
+
+def _f22_mr_decide(fits, sc):
+    plan, t0, outdoor, draws, cap = sc
+    saved = _F22MrCls._dhw_raise_fits
+    _F22MrCls._dhw_raise_fits = fits
+    try:
+        return _mr_opt._apply_dhw_min_run(
+            plan=plan.copy(), initial_temp=t0, outdoor_temps=outdoor,
+            draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
+            min_run_power=_MR_MIN, max_temp=cap,
+        )
+    finally:
+        _F22MrCls._dhw_raise_fits = saved
+
+
+_f22_mr_moved = []
+for _f22_seed in range(120):
+    _f22_sc = _f22_mr_scenario(_f22_seed)
+    _f22_ref = _f22_mr_decide(_f22_whole_suffix_fits, _f22_sc)
+    if _f22_mr_decide(_F22MrCls._dhw_raise_fits, _f22_sc).tobytes() != _f22_ref.tobytes():
+        _f22_mr_moved.append(_f22_seed)
+R.check(
+    "R9-F2.2 D9-s1-04: every min-run accept/refuse decision is the whole "
+    "suffix's, on stepped ceilings and breaches on both sides of a chunk "
+    "boundary",
+    not _f22_mr_moved
+    and _F22_CHUNK in _f22_breach_offsets
+    and _F22_CHUNK + 1 in _f22_breach_offsets,
+    f"seeds that moved {_f22_mr_moved[:6]} of {len(_f22_mr_moved)}; "
+    f"first breaches at the boundary: "
+    f"{_f22_breach_offsets.count(_F22_CHUNK)} at +8, "
+    f"{_f22_breach_offsets.count(_F22_CHUNK + 1)} at +9",
+)
+
+
+# D9-s1-71: the constant DHW parameter helpers are computed once per value of
+# their inputs, not once per step. Instrument: the numpy calls and the window
+# overlaps each helper's body makes, counted through the module's own names,
+# over 50 reads. Each read after an input changes must equal a fresh object's,
+# so the memo can never serve a stale value.
+class _F22NpCount:
+    def __init__(self):
+        self.n = {"clip": 0, "isfinite": 0}
+
+    def __getattr__(self, name):
+        return getattr(np, name)
+
+    def clip(self, *a, **k):
+        self.n["clip"] += 1
+        return np.clip(*a, **k)
+
+    def isfinite(self, *a, **k):
+        self.n["isfinite"] += 1
+        return np.isfinite(*a, **k)
+
+
+_f22_p = _f21_Params()
+_f22_p.dhw_schedule_enabled = True
+_f22_p.dhw_windows = _f22_tm.parse_windows("06:00-08:00,18:00-21:00")
+_f22_p.dhw_inlet_current = 8.5
+_f22_count = _F22NpCount()
+_f22_overlaps = [0]
+_f22_real_np, _f22_real_overlap = _f22_tm.np, _f22_tm.overlap_fraction
+
+
+def _f22_overlap(*a, **k):
+    _f22_overlaps[0] += 1
+    return _f22_real_overlap(*a, **k)
+
+
+_f22_tm.np, _f22_tm.overlap_fraction = _f22_count, _f22_overlap
+try:
+    for _ in range(50):
+        _f22_ua = _f22_p.dhw_tank_heat_loss_coefficient
+        _f22_inlet = _f22_p.dhw_inlet_reference
+        _f22_pat = _f22_p.effective_dhw_draw_pattern()
+finally:
+    _f22_tm.np, _f22_tm.overlap_fraction = _f22_real_np, _f22_real_overlap
+R.check(
+    "R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the "
+    "windowed draw pattern compute each once",
+    _f22_count.n == {"clip": 1, "isfinite": 1} and _f22_overlaps[0] == 24,
+    f"numpy calls {_f22_count.n}, window overlaps {_f22_overlaps[0]} "
+    f"(one computation is 1, 1 and 24)",
+)
+_f22_pat.append(99.0)
+_f22_stale = []
+for _f22_field, _f22_val in (
+    ("dhw_cooling_rate", 2.5), ("dhw_tank_volume", 300.0),
+    ("dhw_inlet_current", 11.0), ("dhw_inlet_current", float("nan")),
+    ("dhw_inlet_temp", 7.0), ("dhw_hourly_draw_pattern", [2.0] * 12 + [0.0] * 12),
+    ("dhw_windows", _f22_tm.parse_windows("05:00-07:00")),
+    ("dhw_schedule_enabled", False),
+):
+    setattr(_f22_p, _f22_field, _f22_val)
+    _f22_fresh = _f21_Params()
+    for _f22_f2 in (
+        "dhw_cooling_rate", "dhw_tank_volume", "dhw_inlet_current",
+        "dhw_inlet_temp", "dhw_hourly_draw_pattern", "dhw_windows",
+        "dhw_schedule_enabled",
+    ):
+        setattr(_f22_fresh, _f22_f2, getattr(_f22_p, _f22_f2))
+    for _f22_attr in ("dhw_tank_heat_loss_coefficient", "dhw_inlet_reference"):
+        if getattr(_f22_p, _f22_attr) != getattr(_f22_fresh, _f22_attr):
+            _f22_stale.append((_f22_field, _f22_attr))
+    if _f22_p.effective_dhw_draw_pattern() != _f22_fresh.effective_dhw_draw_pattern():
+        _f22_stale.append((_f22_field, "effective_dhw_draw_pattern"))
+R.check(
+    "R9-F2.2 D9-s1-71: every input change reaches the next read, and a caller "
+    "mutating the returned pattern cannot reach the memo",
+    not _f22_stale,
+    f"(changed input, stale helper): {_f22_stale}",
+)
+
+
+# The windowed pattern's two fallbacks, now in the memo's compute helper: a
+# learned pattern that is not 24 hours long is replaced by the default before
+# masking (the 24-hour sum is then rescaled to 24), and a pattern the windows
+# mask to nothing is returned as it is rather than divided by zero.
+def _f22_windowed(pattern):
+    params = _f21_Params()
+    params.dhw_schedule_enabled = True
+    params.dhw_windows = _f22_tm.parse_windows("05:00-09:00")
+    params.dhw_hourly_draw_pattern = pattern
+    try:
+        return params.effective_dhw_draw_pattern()
+    except ZeroDivisionError as err:
+        return f"raised {err!r}"
+
+
+_f22_short = _f22_windowed([1.0] * 12)
+_f22_zero = _f22_windowed([0.0] * 24)
+R.check(
+    "R9-F2.2 D9-s1-71: a pattern that is not 24 hours long falls back to the "
+    "default, and one the windows mask to nothing comes back unscaled",
+    isinstance(_f22_short, list) and len(_f22_short) == 24
+    and abs(sum(_f22_short) - 24.0) < 1e-9
+    and _f22_zero == [0.0] * 24,
+    f"short pattern -> {_f22_short!r:.80}; all-zero pattern -> {_f22_zero!r:.80}",
 )
 
 

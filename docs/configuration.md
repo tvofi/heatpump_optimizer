@@ -594,9 +594,13 @@ writes, at every 15-minute plan step:
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
-  temperature, when a warm house needs no space heat. A stale plan, the
-  comfort and boost modes, a boost switch, a system-identification
-  experiment and unloading the integration all get the fallback row.
+  temperature, when a warm house needs no space heat. A stale plan, comfort
+  mode, a system-identification experiment and unloading the integration
+  all get the fallback row. A boost switch adds its own duty to the plan's
+  step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
+  writes *DHW (Hot Water)*, and a step that also wants the other duty
+  writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
+  heating flow set-point (55 °C) rather than the fallback's.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —

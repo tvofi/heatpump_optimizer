@@ -13689,6 +13689,62 @@ R.check(
     "detail is a measurement, not an explanation owed only by a failure",
 )
 
+def _nightly_a4_escapes(exc: BaseException) -> tuple[bool, list]:
+    """`_async_check_a4` with `exc` in flight and a failing recovery refresh.
+
+    The broken-price refresh raises a BaseException the inner handler does not
+    catch (a cancelled task, Ctrl-C), and the recovery refresh in the
+    `finally` then raises too. Returns whether `exc` left the coroutine, and
+    the recorded `a4:recovered` verdict. No container: the price switch and
+    the record read are the two seams the lane itself stubs.
+    """
+    calls = []
+
+    class _Coordinator:
+        last_update_success = False
+
+        async def async_refresh(self):
+            calls.append(1)
+            if len(calls) == 1:
+                raise exc
+            raise RuntimeError("recovery refresh failed")
+
+    class _Hass:
+        async def async_block_till_done(self):
+            return None
+
+    checks = _nightly.Checks()
+    entry = _types.SimpleNamespace(runtime_data=_Coordinator(), entry_id="e")
+    saved = _nightly.break_price_source, _nightly._a4_records
+    _nightly.break_price_source = lambda broken: None
+    _nightly._a4_records = lambda hass, entry: []
+    _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
+    try:
+        asyncio.run(_nightly._async_check_a4(checks, _Hass(), entry))
+        escaped = False
+    except type(exc):
+        escaped = True
+    finally:
+        sys.stdout = _saved_stdout
+        _nightly.break_price_source, _nightly._a4_records = saved
+    return escaped, checks.results.get("a4:recovered", [None])
+
+
+# D7-s3-51: a `return` inside the A4 `finally` discarded whatever was still in
+# flight from its `try` (PEP 765; a SyntaxWarning from CPython 3.14), so a
+# cancelled nightly run carried on as if A4 had merely failed. The recovery
+# verdict is still recorded before the exception leaves.
+for _a4_exc in (asyncio.CancelledError(), KeyboardInterrupt()):
+    _a4_escaped, _a4_recovered = _nightly_a4_escapes(_a4_exc)
+    R.check(
+        f"the nightly A4 check lets an in-flight {type(_a4_exc).__name__} "
+        "propagate past a failed recovery",
+        _a4_escaped and _a4_recovered[0] is False,
+        f"escaped={_a4_escaped} a4:recovered={_a4_recovered[0]!r}: "
+        "tests/nightly_ha.py _async_check_a4 must not return inside finally",
+    )
+
+
 # The pin is a ratchet and BOTH directions fail. Growth is a new defect; decay
 # is a pin outliving the defect it was written for.
 _nightly_new, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_IMPORT)
