@@ -1,0 +1,15 @@
+arm: baseline; N=300 seed=9
+-- price_model: {'control_invalid': 0, 'ok': 101, 'logged_quarantined': 199}
+-- peak_tracker: {'control_invalid': 0, 'ok': 294, 'logged_quarantined': 6}
+RESULT price_model_silent_invalid=0 mutants (of 300)
+RESULT price_model_next_still_invalid=0 mutants
+RESULT price_model_crash=0 mutants
+RESULT price_model_control_invalid=0 payloads (of 1)
+RESULT peak_tracker_silent_invalid=0 mutants (of 300)
+RESULT peak_tracker_next_still_invalid=0 mutants
+RESULT peak_tracker_crash=0 mutants
+RESULT peak_tracker_control_invalid=0 payloads (of 1)
+RESULT thread_factor=1.000
+RESULT load1=3.21
+RESULT swapins=0
+rc=0

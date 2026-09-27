@@ -1,7 +1,7 @@
   ok       body path              not directly in a shared root
   ok       merge-base             9c6b923f2614936aad89e1408dabca8ddd721322
   ok       gate mode              MODE: SCOPED
-  ok       policy_lint             FIXTURE ok: 93 error(s) hold 207 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 210 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
   ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, sunsetMarkerLine]
   ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
   ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
@@ -40,14 +40,6 @@
   ok       preflight              
   ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/5af5148a-4261-5c1b-8ff2-7fa0f2830fe9/scratchpad/f113/body.md
   ok       figures                FIGURES: 1 resolved, 4 not verified, 0 refused
-  WARN     push order             HEAD is 5 commit(s) ahead of origin/claude/project-thread-e2ctf6 -- A PUSH MUST FOLLOW THIS BODY EDIT
+  skip     push order             no origin/f113-v2 yet; the push creates it, so pass /tmp/claude-0/-home-claude/5af5148a-4261-5c1b-8ff2-7fa0f2830fe9/scratchpad/f113/body.md to --body-file after it
 
-  !!! HEAD is 5 commit(s) ahead of origin/claude/project-thread-e2ctf6, so `pr-contract` -- which reads
-  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
-  !!! fires before the push, the `edited` run setting it fires included.
-  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
-  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
-  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
-  !!! If setting the body is your LAST action, the refusal stays on your head.
-
-PRE-PR: 9dfe6a7863d265ad18731e49b4da8aa484d5f9eb 00000000000000000000
+PRE-PR: 33a990a69d45f40d6d5d8157c52976067e19b362 00000000000000000000

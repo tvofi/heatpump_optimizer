@@ -1,0 +1,45 @@
+## D1-s4-01
+478:        duty = _grid_of("duty", float)
+479:        duty_counts = _grid_of("duty_counts", int)
+483:            events = _grid_of("duty_events", int)
+499:        factors = _grid_of("factors", float)
+509:        counts = _grid_of("counts", int)
+## D1-s4-03
+220:    migrated: bool = False
+439:        of 1.0; the instance is marked ``migrated`` so the upgrade is visible.
+489:            instance.migrated = isinstance(data.get("factors"), list)
+490:            if instance.migrated:
+## D1-s5-02
+custom_components/heatpump_optimizer/accuracy.py:73:    def from_dict(cls, data: dict[str, Any]) -> "AccuracySample | None":
+custom_components/heatpump_optimizer/accuracy.py:359:    def from_dict(cls, data: dict[str, Any] | None) -> "AccuracyTracker":
+custom_components/heatpump_optimizer/comfort_learning.py:213:    def from_dict(
+custom_components/heatpump_optimizer/curve_learning.py:143:    def from_dict(cls, data: dict[str, Any] | None) -> "CurveLearner":
+custom_components/heatpump_optimizer/defrost.py:434:    def from_dict(cls, data: dict[str, Any] | None) -> "DefrostDerate":
+custom_components/heatpump_optimizer/dhw_draws.py:116:    def from_dict(cls, data: dict[str, Any] | None) -> "DrawStats":
+custom_components/heatpump_optimizer/dhw_learning.py:234:    def apply_payload(self, profile: dict[str, Any]) -> None:
+custom_components/heatpump_optimizer/flow_lift.py:214:    def from_dict(cls, data: dict[str, Any] | None) -> "FlowCurveBias":
+custom_components/heatpump_optimizer/freq_control.py:244:    def from_dict(cls, data: dict[str, Any] | None) -> "FrequencyMap":
+custom_components/heatpump_optimizer/ledger.py:266:    def from_dict(cls, data: dict[str, Any] | None) -> "MonthlyLedger":
+custom_components/heatpump_optimizer/manual_plan.py:225:    def from_dict(cls, data: dict[str, Any]) -> "ManualOverride":
+custom_components/heatpump_optimizer/price_model.py:310:    def from_dict(cls, data: dict[str, Any] | None) -> "PriceShapeModel":
+custom_components/heatpump_optimizer/snapshots.py:222:    def from_dict(cls, data: dict[str, Any] | None) -> "SnapshotRing":
+custom_components/heatpump_optimizer/tariff.py:378:    def from_dict(cls, data: dict[str, Any] | None) -> "PeakTracker":
+custom_components/heatpump_optimizer/tariff.py:437:def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
+custom_components/heatpump_optimizer/wear.py:101:    def from_dict(cls, data: dict[str, Any] | None) -> "StartCounter":
+## D1-s5-03
+custom_components/heatpump_optimizer/price_model.py:488:            value = float(total)
+custom_components/heatpump_optimizer/price_model.py-489-        except (TypeError, ValueError):
+custom_components/heatpump_optimizer/price_model.py-490-            continue
+custom_components/heatpump_optimizer/price_model.py-491-        if not np.isfinite(value):
+--
+custom_components/heatpump_optimizer/price_model.py:662:        value = float(raw)
+custom_components/heatpump_optimizer/price_model.py-663-    except (TypeError, ValueError):
+custom_components/heatpump_optimizer/price_model.py-664-        return None
+custom_components/heatpump_optimizer/price_model.py-665-    if not np.isfinite(value):
+--
+custom_components/heatpump_optimizer/open_meteo.py:196:            value = float(raw_v)
+custom_components/heatpump_optimizer/open_meteo.py-197-        except (TypeError, ValueError):
+custom_components/heatpump_optimizer/open_meteo.py-198-            continue
+custom_components/heatpump_optimizer/open_meteo.py-199-        # R5-D1-06 (#1297): NaN fails both range comparisons (`nan < 0` and
+## D1-s5-04
+231:    resolution = timedelta(seconds=min(gaps))
