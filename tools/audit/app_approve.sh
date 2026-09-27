@@ -55,8 +55,10 @@
 #   - the head is still <sha> when re-read after minting, just before the POST.
 #
 # THE CARRY (#1667, D13-s1-02). A verdict at V carries to a later head H only
-# when (1) V is an ancestor of H; (2) every first-parent commit V..H is a merge
-# whose other parents are all on main, or a single-parent `ci:` commit; and
+# when (1) V is an ancestor of H; (2) every first-parent commit V..H is a
+# two-parent merge of a main commit whose tree is git's automatic merge of its
+# parents (`merge-tree`, outside the driver files below), or a single-parent
+# `ci:` commit; and
 # (3) the branch's own diff against its merge base with main is byte-identical
 # at V and at H, read with two relaxations measured over round 9's window
 # (the literal byte rule carried 0 of its 22 re-verification rounds): each
@@ -110,31 +112,35 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps subj p mv mh
+  local v=$1 h=$2 main=$3 c ps subj p mv mh t x
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  # Read at main, never at a head: a branch that gave a file a driver would
+  # otherwise take it out of the comparisons itself.
+  x=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
+  mapfile -t x <<<"$x"
+  [ -n "${x[0]}" ] || x=()
   while IFS=$'\t' read -r c ps subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
-      shift
-      for p in "$@"; do
-        git merge-base --is-ancestor "$p" "$main" || { echo "$c merges $p, which is not on $main"; return 1; }
-      done
+      [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
+      git merge-base --is-ancestor "$2" "$main" || { echo "$c merges $2, which is not on $main"; return 1; }
+      # A hand-resolved merge can move the branch's change to another place
+      # with the same context, which the header-free comparison below cannot
+      # see: the merge must be git's own automatic result.
+      t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
+      git diff --quiet "$t" "$c" -- . "${x[@]}" \
+        || { echo "$c is not the automatic merge of its parents"; return 1; }
     elif [[ $subj != ci:* ]]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
     fi
   done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
-  local x d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
+  local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
-  # Read at main, never at a head: a branch that gave a file a driver would
-  # otherwise take it out of the comparison itself.
-  x=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
-  mapfile -t x <<<"$x"
-  [ -n "${x[0]}" ] || x=()
   norm() { "${d[@]}" "$1" "$2" -- . "${x[@]}" | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
-  echo "only merges from $main or ci: commits, and the branch's own diff is byte-identical"
+  echo "only automatic merges from $main or ci: commits, and the branch's own diff compares equal"
 }
 
 cleanup() {
@@ -815,11 +821,31 @@ carried() { ( cd "$W/clone" && bash "$SELF" --carry "$V" "$1" origin/main ) > "$
 carried "$H_MERGE"; st $? 0 "CARRY: a merge from main that leaves the branch's own diff byte-identical"
 carried "$H_CIEMPTY"; st $? 0 "CARRY: a ci: commit that changes nothing"
 carried "$H_EVIL"; st $? 1 "NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)"
-st "$(grep -c "own diff differs" "$W/carry.out")" 1 "refused by the byte comparison, the guard, not by the commit shape"
+st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge"
 carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own"
 carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass"
 carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
+st "$(grep -c "own diff differs" "$W/carry.out")" 1 "refused by the byte comparison, not by the commit shape"
+# The relocation (fix review of 97df6851): a hand resolution moves the
+# branch's change from charge() to discharge(), whose three lines of context
+# are the same, and the header-free comparison alone reads the two as equal.
+( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
+  body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
+  printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
+  git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"
+  git rev-parse HEAD > ../reloc.v
+  git checkout -q main; sed -i.bak '1i\
+# header
+' f.py; rm f.py.bak; git commit -qam m1
+  git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit main >/dev/null
+  git show main:f.py > f.py; sed -i.bak '15s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
+  git commit -q --amend -a --no-edit; git rev-parse HEAD > ../reloc.h
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a hand resolution that moves the branch's change to another function with the same context"
+st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
 carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
+g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
+carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
 carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
 carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
 carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
