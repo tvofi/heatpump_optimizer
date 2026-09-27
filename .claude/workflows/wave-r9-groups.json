@@ -1164,11 +1164,11 @@
     "R9-F3.2"
    ],
    "resume": {
-    "stage": "merge",
+    "stage": "done",
     "branch": "handoff/r9-f3-stores-3",
-    "commit": "256afc697456528e218a472734105654e6650867",
-    "last_step": "verdict MERGE carried at 256afc69 (main-merge-only move)",
-    "next_step": "re-merge onto current main (2d71759e), re-verify, then merge #1717",
+    "commit": "49fc8bbed4be507ac57b8450f8daf0e32268d2f8",
+    "last_step": "MERGED as #1717 at 49fc8bbe; #1680 closed",
+    "next_step": "none; #1644 and #1647 stayed open as Part-of",
     "note_file": "handoff/round9/fix/resume/F3.3.md on handoff/r9-f3-stores-3",
     "review_branch": "handoff/r9-f3-stores-3-review",
     "review_note_file": "handoff/round9/fix/resume/F3.3-review.md on handoff/r9-f3-stores-3-review",
@@ -1290,11 +1290,11 @@
     "R9-F4.1"
    ],
    "resume": {
-    "stage": "merge",
+    "stage": "done",
     "branch": "handoff/r9-f4-inputs-sysid-2",
-    "commit": "7fe356f6bb273bcba2f1b563f854c10e2f796b17",
-    "last_step": "verdict MERGE at 7fe356f6",
-    "next_step": "queued for its main re-merge and merge (#1718)",
+    "commit": "fab176199f8ff94a169eb085dd6681b34fdb65c4",
+    "last_step": "MERGED as #1718 at fab17619; #1672 closed; #1655 deliberately stays open -- its free-heat half is carried to the F1 lane and closes on the last F1 PR that holds it",
+    "next_step": "none; #1672 closed",
     "note_file": "handoff/round9/fix/resume/F4.2.md on handoff/r9-f4-inputs-sysid-2",
     "review_branch": "handoff/r9-f4-inputs-sysid-2-review",
     "review_note_file": "handoff/round9/fix/resume/F4.2-review.md on handoff/r9-f4-inputs-sysid-2-review",
