@@ -4074,8 +4074,6 @@ class HeatPumpOptimizer:
                         )) if _bounds_supported_by_batch(bounds) else None,
                         options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
                     ).x, dtype=float)
-                except Exception:  # pragma: no cover - keep the plain guess
-                    pass
                 finally:
                     self._floor_l1_scale = 1.0
                 return cands
