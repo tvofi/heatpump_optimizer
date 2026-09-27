@@ -46821,6 +46821,18 @@ _pa_sp_mb = _pa_split(1.5, 2.0, options=_PA_MODBUS)
 _pa_sp_boost = _PaCoord(_PA_TUYA, duties="b")
 boost_mod.held_for(_pa_sp_boost).set("space", True, _PA_T0)
 _pa_run(_pa_sp_boost, 1)
+_pa_sp_dis = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_sp_dis, 1)
+_pa_sp_comf = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_comf._mode = "comfort"
+_pa_run(_pa_sp_comf, 1)
+R.check(
+    "a disinfection hold keeps a both step on Heating + DHW, and so does comfort",
+    ("select", "select_option", "Heating + DHW") in _pa_sp_dis.writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_comf.writes(),
+    f"{_pa_sp_dis.writes()} / {_pa_sp_comf.writes()}",
+)
 R.check(
     "a both step writes DHW only for its hot-water share of the 15 minutes, then heating only",
     _pa_sp_even == [["DHW (Hot Water)"], ["Heating"], []],
