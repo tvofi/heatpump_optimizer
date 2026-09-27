@@ -44,7 +44,7 @@ import math
 import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable, Iterable, NamedTuple
 
 import numpy as np
 from scipy.optimize import linprog, minimize
@@ -1753,7 +1753,7 @@ def _terminal_row_cost(
     cop_end: float,
     cop_buffer: float,
     stores: tuple[tuple[float, str, float, float], ...],
-) -> tuple[Callable[[Any], float], tuple[tuple[float, str, float], ...]]:
+) -> tuple[Callable[[Iterable[float]], float], tuple[tuple[float, str, float], ...]]:
     """The terminal cost of ONE plan, from its end-of-horizon temperatures.
 
     Returns the shared per-plan accumulation and the per-store term
@@ -1781,7 +1781,7 @@ def _terminal_row_cost(
     )
     is_buffer = tuple(name == "buffer" for _, name, _ in terms)
 
-    def row_cost(term_values: Any) -> float:
+    def row_cost(term_values: Iterable[float]) -> float:
         # The buffer's deficit converts at its own (flow-derated) COP;
         # everything else at the plain curve. Split only when the two
         # actually differ, so every unthrottled configuration keeps the
@@ -2193,7 +2193,7 @@ class HeatPumpOptimizer:
 
     @staticmethod
     def _terminal_cost_batch(
-        row_cost: Callable[[Any], float],
+        row_cost: Callable[[Iterable[float]], float],
         term_spec: tuple[tuple[float, str, float], ...],
     ) -> Callable[[dict[str, np.ndarray]], np.ndarray]:
         """The terminal-cost closure's batch twin, per row of a batch (#948).
