@@ -1227,6 +1227,49 @@ def may_drift_error(
     return None
 
 
+def may_drift_coverage_error(
+    may_drift: dict[str, str], claims: dict[str, list[str]],
+    declared: str | None, version: str,
+) -> str | None:
+    """Why an allowed name is neither may-drift nor claimed for ``version``.
+
+    The R8-P3 ruling (option (a), under tvofi's "go with the recommended
+    alternative" mandate, fix-wave thread 2026-09-24T20:51Z): a name may leave
+    the may-drift list only while THIS release claims it, because a name
+    cannot be both and a may-drift entry cannot excuse a judged key. A claim
+    for another VERSION expires with the stamp, so it covers nothing. That is
+    exactly the state a stamp leaves when it deletes a branch's claim without
+    restoring the may-drift entry the branch suspended for it: v6.7.8 deleted
+    R9-F2.3's wood_coil claim and left the entry suspended, whose note
+    promised a restore "verbatim, when the stamp empties the list" -- a
+    promise no instrument read, and main went red on it. This check is that
+    instrument, and ``--claims-only`` runs it on the post-stamp tree, which
+    is the path the stamp's own self-check execs before anything is pushed.
+
+    Public on purpose: tests/entities.py pins it, and pins the call sites.
+    """
+    covered = set(may_drift) | (set(claims) if declared == version else set())
+    uncovered = sorted(set(MAY_DRIFT_ALLOWED) - covered)
+    if not uncovered:
+        return None
+    return (
+        "MAY-DRIFT UNCOVERED: {file} claims-for {declared} while this tree "
+        "is VERSION {version}, and {uncovered} is in the may-drift "
+        "category's allowed names but is neither a may-drift entry nor a "
+        "claim for THIS release. A stamp that emptied the claim list owes "
+        "every suspended may-drift entry back, verbatim; a branch that "
+        "suspends an entry for its own claim must carry that claim, for "
+        "this VERSION, or restore the entry. The R8-P3 ruling scoping the "
+        "category is enforced here because --claims-only is the check the "
+        "stamp's self-check runs on the post-stamp tree, before the push."
+    ).format(
+        file=CLAIM_FILE,
+        declared=declared or "(no stamp)",
+        version=version or "(no VERSION file)",
+        uncovered=", ".join(uncovered),
+    )
+
+
 def claim_version_error(repo: str) -> str | None:
     """Why the claim file is not stamped for this tree — None when it is.
 
@@ -2251,6 +2294,11 @@ def main() -> int:
         if scope_problem:
             print(scope_problem)
             return 1
+        coverage_problem = may_drift_coverage_error(
+            may_drift, claims, _declared, _repo_version(repo))
+        if coverage_problem:
+            print(coverage_problem)
+            return 1
         err = check_claims_hygiene(repo, ref)
         if err:
             print(err)
@@ -2278,6 +2326,14 @@ def main() -> int:
     scope_problem = may_drift_error(may_drift, claims)
     if scope_problem:
         print(scope_problem)
+        return 1
+    # The same coverage rule --claims-only enforces, on the same tree: a
+    # capture that would pass it changes nothing, and one that would not is
+    # refused before the slowest steps run.
+    coverage_problem = may_drift_coverage_error(
+        may_drift, claims, _declared, _repo_version(repo))
+    if coverage_problem:
+        print(coverage_problem)
         return 1
 
     # A ref that resolves to HEAD makes the whole gate vacuous, so say so
