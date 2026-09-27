@@ -927,6 +927,32 @@ try:
         == {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
         "a stored key is always kept",
     )
+    R.check(
+        "D12-s3-01: an entry that affirmed hot water keeps an untouched pair "
+        "post without the pair stored (the guard's affirmed arm)",
+        _r9f12_flow._omit_unstored_defaults(
+            {
+                _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+                _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+            },
+            {_r9f12_const.CONF_DHW_ENABLED: True},
+        )
+        == {
+            _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+            _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+        },
+        "the explicit flag is the affirmation; its pair is not dropped",
+    )
+    R.check(
+        "D12-s3-01: and so does an entry whose hot water is presence-inferred "
+        "(volume stored, windows never)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+            {_r9f12_const.CONF_DHW_TANK_VOLUME: 180.0},
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+        "a hot-water entry by presence keeps an untouched post too",
+    )
 finally:
     _r9f12_flow.async_get_clientsession = _r9f12_session
 
@@ -1068,6 +1094,42 @@ R.check(
     "(null control)",
     all(abs(s[1] - 28.0) <= 1.5 for s in _r9f12_mseen),
     "slab seeds=%r" % [round(s[1], 2) for s in _r9f12_mseen],
+)
+
+# The seed helper's own early-window tolerance, pinned at both ends (the
+# mutation lane's GUARD_OFF site on its ternary): a plan that starts within
+# one step of now answers its first step; one that starts further ahead says
+# nothing, so the never-advanced default is left alone rather than replaced
+# by a plan that has not started.
+from types import SimpleNamespace as _r9f12_ns  # noqa: E402
+from heatpump_optimizer import coordinator as _r9f12_coord  # noqa: E402
+
+def _r9f12_plan_result(first, values):
+    return _r9f12_ns(
+        dhw_temp_trajectory=list(values),
+        timestamps=[
+            first + timedelta(minutes=15 * i) for i in range(len(values))
+        ],
+    )
+
+R.check(
+    "D12-s1-01: a plan starting within one step of now seeds its first step",
+    _r9f12_coord._open_loop_plan_value(
+        _r9f12_plan_result(NOW + timedelta(seconds=600), [41.0, 42.0, 43.0]),
+        "dhw_temp_trajectory",
+        NOW,
+    )
+    == 41.0,
+)
+R.check(
+    "D12-s1-01: a plan starting more than a step after now seeds nothing",
+    _r9f12_coord._open_loop_plan_value(
+        _r9f12_plan_result(NOW + timedelta(minutes=30), [41.0, 42.0]),
+        "dhw_temp_trajectory",
+        NOW,
+    )
+    is None,
+    "the 55 degC default must not be replaced by a plan that has not started",
 )
 
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
