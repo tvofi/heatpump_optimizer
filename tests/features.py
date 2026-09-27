@@ -48292,6 +48292,65 @@ R.check(
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
+# Off writes nothing (tvofi, 2026-09-26): with Optimizer active off the
+# optimizer switched a Tuya pump a person had turned on back off every
+# update, because the MODE_OFF action carries heat_pump_on False. Every
+# coordinator writer, driven with the optimizer off, must issue no call;
+# the same drive with it on is the null control. The disinfection switch
+# (it only releases what it turned on) and the DHW repair (a person's
+# confirm) are the two writes this leaves, by design.
+async def _p6_off_ecl(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/displace/set"})
+    coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+    await coord.async_publish_current_action(reason="p6")
+    await coord._async_peak_guard_transition()
+    return coord.hass.services.calls
+
+
+async def _p6_off_pumps(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
+    await coord._async_drive_pumps()
+    return coord.hass.services.calls
+
+
+_P6_OFF_WRITERS = {
+    "switch.p6_off_supply": _p6_switch,
+    "input_number.p6_off_valve": _p6_valve,
+    "number.p6_off_freq": _p6_freq,
+    "switch.p6_off_vvc": _p6_off_pumps,
+    "mqtt.ecl110": _p6_off_ecl,
+}
+
+
+def _p6_off_calls(driver, eid, off):
+    real = Coord.__init__
+
+    def init(self, *a, **k):
+        real(self, *a, **k)
+        if off:
+            self._mode = hp_const.MODE_OFF
+
+    Coord.__init__ = init
+    try:
+        return _p6_aio.run(driver(eid))
+    finally:
+        Coord.__init__ = real
+
+
+_p6_off = {e: _p6_off_calls(d, e, True) for e, d in _P6_OFF_WRITERS.items()}
+_p6_on = {e: _p6_off_calls(d, e, False) for e, d in _P6_OFF_WRITERS.items()}
+R.check(
+    "null control: with the optimizer on, every writer issues a call",
+    all(_p6_on.values()),
+    f"silent: {[e for e, c in _p6_on.items() if not c]}",
+)
+R.check(
+    "with the optimizer off, no writer issues any call: switch, ECL110, valve, "
+    "frequency, circulation pump",
+    not any(_p6_off.values()),
+    f"{ {e: c for e, c in _p6_off.items() if c} }",
+)
+
 # ===========================================================================
 # R8-P3: one COP law and one humidity at the DHW seams (#1520, #1530)
 # ===========================================================================

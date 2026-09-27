@@ -2759,7 +2759,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         vvc_entity = ctx._config.get(CONF_VVC_PUMP_ENTITY)
         space_entity = _space_pump_to_drive(self)
-        if not vvc_entity and not space_entity:
+        if self._mode == MODE_OFF or (not vvc_entity and not space_entity):
             return
         now = dt_util.now()
         params = ctx._thermal_params
@@ -6569,7 +6569,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
         """Publish MQTT command for the currently selected optimizer action."""
-        if not self._current_action:
+        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
             displace_value=float(self._current_action.get("displace_value", 0.0)),
@@ -6588,7 +6588,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
-        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE:
+        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF:
             return
         entity_id = ctx._config.get(CONF_MIXING_VALVE_WRITE_ENTITY)
         if not entity_id:
@@ -6674,7 +6674,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
         await pump_arbiter.apply(self)
-        if not self._current_action:
+        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
             # The action was cut from a plan whose horizon has slid out from
@@ -7869,7 +7869,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         discretionary-suppression gate external heat uses, at the next
         solve — no solve happens here.
         """
-        if not self._current_action:
+        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             self.async_update_listeners()
             return
         if self._peak_guard.suppressing:
@@ -10269,7 +10269,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         map with no evidence writes NOTHING: None is never a frequency.
         """
         entity_id = getattr(self, "_ctx", self)._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL:
+        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
             return
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
