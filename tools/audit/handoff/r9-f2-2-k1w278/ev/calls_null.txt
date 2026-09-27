@@ -1,0 +1,9 @@
+
+=== Stress and economics ===
+  shoulder/1z/dhw                calls 2201686/2201686 = 1.0000x  evals 554/554  simulate 2585045/2585045  objective_identical=True
+  summer/1z/space                calls 128716/128716 = 1.0000x  evals 34/34  simulate 158208/158208  objective_identical=True
+  winter/1z/dhw                  calls 655696/655696 = 1.0000x  evals 52/52  simulate 253656/253656  objective_identical=True
+  winter/2z/space                calls 4907383/4907383 = 1.0000x  evals 960/960  simulate 4470720/4470720  objective_identical=True
+  winter/tariff                  calls 9836959/9836959 = 1.0000x  evals 942/942  simulate 4392684/4392684  objective_identical=True
+RESULT objective_identical=5 of 5
+RESULT scenarios=5 covered=5 replanned=0 calls_over=0 wall_s=24.9

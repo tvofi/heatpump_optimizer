@@ -1,0 +1,20 @@
+env_drift rc=1
+config_flow_steps rc=0
+deployment_shape rc=0
+doc_claims rc=0
+validate rc=0
+edge rc=0
+entities rc=0
+finite_boundary rc=0
+guard_pins rc=0
+manual_plan rc=0
+solar_alignment rc=0
+structure rc=0
+typing_ruler rc=0
+wood_advisor rc=0
+backtest rc=0
+optimality rc=0
+plan_view rc=0
+card rc=0
+card_drift rc=0
+done

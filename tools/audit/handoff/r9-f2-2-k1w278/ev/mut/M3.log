@@ -1,0 +1,5 @@
+M3 rc=1 ['4 of 3403 FEATURE CHECKS FAILED']
+  FAIL the pinned solve runs on the batched jac, not scipy's scalar finite differences: two-zone DHW-pinned bounds  [batched gradients=4, nfev=1350, njev=30; the scalar path spends n+1=49 function evaluations per gradient]
+  FAIL the pinned solve runs on the batched jac, not scipy's scalar finite differences: single-zone DHW-pinned bounds shoulder  [batched gradients=2, nfev=990, njev=22; the scalar path spends n+1=49 function evaluations per gradient]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective inside L-BFGS-B  [scalar calls inside minimize: batched 221, unbatched (null arm) 299]

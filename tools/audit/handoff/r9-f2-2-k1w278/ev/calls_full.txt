@@ -1,0 +1,55 @@
+
+=== Stress and economics ===
+  flat/1z/dhw                    calls 1202382/2096437 = 0.5735x  evals 452/452  simulate 2115184/2117132  objective_identical=True
+  flat/1z/space                  calls 1207180/2107020 = 0.5729x  evals 590/590  simulate 2748672/2747808  objective_identical=True
+  flat/2z/dhw                    calls 2572182/4960597 = 0.5185x  evals 878/878  simulate 4098640/4100588  objective_identical=True
+  flat/2z/space                  calls 3270386/6408166 = 0.5103x  evals 1256/1256  simulate 5849568/5848992  objective_identical=True
+  heavy_old/shoulder             calls 1867675/3259345 = 0.5730x  evals 798/798  simulate 3725882/3726546  objective_identical=True
+  heavy_old/winter               calls 1387178/2444424 = 0.5675x  evals 580/580  simulate 2708724/2710224  objective_identical=True
+  light_new/shoulder             calls 719069/1234334 = 0.5826x  evals 280/280  simulate 1309308/1309301  objective_identical=True
+  light_new/winter               calls 1282387/2255779 = 0.5685x  evals 504/504  simulate 2356438/2358552  objective_identical=True
+  shoulder/1z/dhw                calls 1245246/2201686 = 0.5656x  evals 554/554  simulate 2584668/2585045  objective_identical=True
+  shoulder/1z/space              calls 923751/1606329 = 0.5751x  evals 446/446  simulate 2078016/2077344  objective_identical=True
+  shoulder/2z/dhw                calls 2106450/4075001 = 0.5169x  evals 752/752  simulate 3506844/3507029  objective_identical=True
+  shoulder/2z/space              calls 2218485/4301259 = 0.5158x  evals 838/838  simulate 3903456/3902688  objective_identical=True
+  shoulder/cycle                 calls 3732623/7619957 = 0.4898x  evals 1384/1384  simulate 6449724/6449717  objective_identical=True
+  shoulder/pv                    calls 3328001/6432518 = 0.5174x  evals 1198/1198  simulate 5584241/5584619  objective_identical=True
+  shoulder/pv+cycle              calls 5309380/10796615 = 0.4918x  evals 1956/1956  simulate 9113681/9114059  objective_identical=True
+  shoulder/tariff                calls 6937639/10497690 = 0.6609x  evals 1372/1372  simulate 6393372/6394133  objective_identical=True
+  shoulder/tariff+cycle          calls 18849622/28498298 = 0.6614x  evals 3462/3462  simulate 16125276/16125461  objective_identical=True
+  shoulder/tariff+pv             calls 10764537/16488135 = 0.6529x  evals 2224/2224  simulate 10360721/10361675  objective_identical=True
+  shoulder/tariff+pv+cycle       calls 16304418/24448118 = 0.6669x  evals 2914/2914  simulate 13574129/13574507  objective_identical=True
+  summer/1z/dhw                  calls 262443/467181 = 0.5618x  evals 56/56  simulate 265667/266912  objective_identical=True
+  summer/1z/dhw/fuse-cap         calls 279183/487720 = 0.5724x  evals 56/56  simulate 266088/267333  objective_identical=True
+  summer/1z/space                calls 93487/128716 = 0.7263x  evals 34/34  simulate 158880/158208  objective_identical=True
+  summer/2z/dhw                  calls 227891/398146 = 0.5724x  evals 24/24  simulate 116675/117920  objective_identical=True
+  summer/2z/dhw/pin-off          calls 229066/399321 = 0.5736x  evals 24/24  simulate 116675/117920  objective_identical=True
+  summer/2z/space                calls 125865/177672 = 0.7084x  evals 30/30  simulate 140544/139968  objective_identical=True
+  summer_negative/1z/dhw         calls 281447/502418 = 0.5602x  evals 56/56  simulate 266478/267994  objective_identical=True
+  summer_negative/1z/space       calls 93487/128716 = 0.7263x  evals 34/34  simulate 158880/158208  objective_identical=True
+  summer_negative/2z/dhw         calls 246895/433383 = 0.5697x  evals 24/24  simulate 117486/119002  objective_identical=True
+  summer_negative/2z/space       calls 125865/177672 = 0.7084x  evals 30/30  simulate 140544/139968  objective_identical=True
+  typical_slab/shoulder          calls 2054565/3647131 = 0.5633x  evals 962/962  simulate 4484700/4484885  objective_identical=True
+  typical_slab/winter            calls 380580/662755 = 0.5742x  evals 54/54  simulate 260374/262968  objective_identical=True
+  winter/1z/dhw                  calls 376651/655696 = 0.5744x  evals 52/52  simulate 251062/253656  objective_identical=True
+  winter/1z/space                calls 117886/173641 = 0.6789x  evals 44/44  simulate 205632/205152  objective_identical=True
+  winter/1z/space/pin-off        calls 119061/174816 = 0.6811x  evals 44/44  simulate 205632/205152  objective_identical=True
+  winter/2z/dhw                  calls 2138011/4178644 = 0.5117x  evals 728/728  simulate 3398518/3401496  objective_identical=True
+  winter/2z/space                calls 2506826/4907383 = 0.5108x  evals 960/960  simulate 4471104/4470720  objective_identical=True
+  winter/cycle                   calls 3890075/7939964 = 0.4899x  evals 1402/1402  simulate 6537526/6539928  objective_identical=True
+  winter/pv                      calls 2138010/4178643 = 0.5117x  evals 728/728  simulate 3398518/3401496  objective_identical=True
+  winter/pv+cycle                calls 3890074/7939963 = 0.4899x  evals 1402/1402  simulate 6537526/6539928  objective_identical=True
+  winter/tariff                  calls 7353131/9836959 = 0.7475x  evals 942/942  simulate 4391483/4392684  objective_identical=True
+  winter/tariff+cycle            calls 7539100/10390777 = 0.7256x  evals 998/998  simulate 4652411/4653324  objective_identical=True
+  winter/tariff+pv               calls 7353130/9836958 = 0.7475x  evals 942/942  simulate 4391483/4392684  objective_identical=True
+  winter/tariff+pv+cycle         calls 7539099/10390776 = 0.7256x  evals 998/998  simulate 4652411/4653324  objective_identical=True
+  winter_extreme/1z/dhw          calls 396237/662408 = 0.5982x  evals 50/50  simulate 242652/244738  objective_identical=True
+  winter_extreme/1z/space        calls 149135/229930 = 0.6486x  evals 60/60  simulate 280128/279648  objective_identical=True
+  winter_extreme/2z/dhw          calls 2841271/5474466 = 0.5190x  evals 980/980  simulate 4573692/4575394  objective_identical=True
+  winter_extreme/2z/space        calls 3101176/6031646 = 0.5142x  evals 1180/1180  simulate 5496288/5495328  objective_identical=True
+  winter_mild/1z/dhw             calls 1547134/2752909 = 0.5620x  evals 622/622  simulate 2904930/2906886  objective_identical=True
+  winter_mild/1z/space           calls 1296469/2300950 = 0.5634x  evals 610/610  simulate 2841312/2840928  objective_identical=True
+  winter_mild/2z/dhw             calls 2774747/5418727 = 0.5121x  evals 940/940  simulate 4382145/4383075  objective_identical=True
+  winter_mild/2z/space           calls 2590220/5015415 = 0.5165x  evals 910/910  simulate 4238880/4237920  objective_identical=True
+RESULT objective_identical=51 of 51
+RESULT scenarios=51 covered=51 replanned=0 calls_over=0 wall_s=294.1

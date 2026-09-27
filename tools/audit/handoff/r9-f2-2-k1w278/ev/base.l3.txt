@@ -1,0 +1,14 @@
+cell winter_single_dhw      calls/solve={'dhw_tank_heat_loss_coefficient': 11090, 'dhw_inlet_reference': 33205, 'effective_dhw_draw_pattern': 98} plain_cpu=0.52s memo_cpu=0.44s ratio=0.8411 saved=0.1589 plan_identical=True
+cell winter_two_zone_dhw    calls/solve={'dhw_tank_heat_loss_coefficient': 11090, 'dhw_inlet_reference': 33205, 'effective_dhw_draw_pattern': 98} plain_cpu=6.19s memo_cpu=5.92s ratio=0.9566 saved=0.0434 plan_identical=True
+cell summer_dhw_only        calls/solve={'dhw_tank_heat_loss_coefficient': 3989, 'dhw_inlet_reference': 11930, 'effective_dhw_draw_pattern': 97} plain_cpu=0.40s memo_cpu=0.37s ratio=0.9217 saved=0.0783 plan_identical=True
+cell dhw_cold_tank          calls/solve={'dhw_tank_heat_loss_coefficient': 10316, 'dhw_inlet_reference': 30879, 'effective_dhw_draw_pattern': 98} plain_cpu=2.68s memo_cpu=2.68s ratio=0.9995 saved=0.0005 plan_identical=True
+cell dhw_learned_windows    calls/solve={'dhw_tank_heat_loss_coefficient': 10426, 'dhw_inlet_reference': 31213, 'effective_dhw_draw_pattern': 100} plain_cpu=0.50s memo_cpu=0.42s ratio=0.8323 saved=0.1677 plan_identical=True
+RESULT saved_share_min=0.0005 ratio
+RESULT saved_share_max=0.1677 ratio
+RESULT saved_share_mean=0.0898 ratio
+RESULT saved_share_mean_drop_best=0.0703 ratio
+RESULT plans_identical=5 of 5 count
+RESULT null_arm=0
+RESULT thread_factor=1.000
+RESULT load1=0.81
+RESULT swapins=0

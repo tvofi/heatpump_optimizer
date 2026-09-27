@@ -1,0 +1,3 @@
+M6 rc=1 ['2 of 3403 FEATURE CHECKS FAILED']
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the windowed draw pattern compute each once  [numpy calls {'clip': 1, 'isfinite': 50}, window overlaps 24 (one computation is 1, 1 and 24)]
