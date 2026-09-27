@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for R9-F2.2 (Part of #1653, N-solve-recompute) into",
+    "the next stage holding the class, R9-F2.5 (peak_cost_batch's row loop",
+    "and the terminal-cost closure). Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1653,
+  "stage": "R9-F2.5, the round-9 PR vectorising tariff.peak_cost_batch's per-row loop and the per-row loop in the closure _terminal_cost_batch returns (N-solve-recompute, after R9-F2.2)",
+  "carries": [
+    {
+      "from": "R9-F2.2 (handoff/r9-f2-2-k1w278): the solve's interpreter-bound recomputation -- D9-s1-01, D9-s1-02, D9-s1-04, D9-s1-71 and RC-sw1",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control. F2.2 added optimizer._row_sums, which performs numpy's pairwise-summation order (eight interleaved partials, fixed combine tree, halving above 128) as elementwise column additions across a [B, n] batch. tests/features.py's R9-F2.2 block pins every batched comfort and cycling row equal to its scalar twin byte for byte on C- and Fortran-order batches at widths 1 to 192 including 96, and the scalar cycling penalty equal to numpy's own 1-D sum on 25 schedules per width. The perturbations that void it, run in a copy of F2.2's head through tests/features.py: _row_sums replaced by np.sum(rows, axis=1) fails the row-parity pin on a Fortran-order batch at width 8 (G3-V1's shape); the combine tree flattened into a running sum fails the numpy-sum pin at width 129. On all 51 stress scenarios the fixed tree's objectives equal the merge base's exactly (RCA prototype production-call capture, head against base, both in fresh interpreters).",
+      "remeasure": "The equality with numpy's 1-D sum is measured on one box (x86_64, numpy 2.4.6, CPython 3.14); the scalar-batch agreement holds by construction because the scalar twins call _row_sums on a one-row batch. Before relying on it, run the R9-F2.2 block of tests/features.py at your merge base; if the numpy-sum pin is red on your environment, the scalar values moved there, and golden drift under GOLDEN_MODE=drift against your merge base is the arbiter.",
+      "brief": "A sum no longer forces the per-row shape. The brief's clause that where parity forbids vectorising the result is a recorded partial rested on every reduction being per row; `_row_sums` in custom_components/heatpump_optimizer/optimizer.py reduces a whole batch in numpy's own order using elementwise additions only, which is what fixer.md step 15 permits. Route the scalar twin through the batch twin on a one-row batch, as `_comfort_terms` and `cycling_penalty` now do, so scalar and batch agree by construction rather than by a measurement on one box, and keep the Fortran-order and production-width rows on the parity grid. A top-k, a max or a bisection inside `peak_cost_batch` is a different question: only its sums are covered here. Separately, the sweep enumerator (tools/audit/round9/D14/sweep/avoidable-interpreter-bound-recomputation/enumerate.py at 51a2e98a86) reports `_row_sums`' own column-block loops as three python_loop instances, and it cannot see a memo keyed on its inputs (it recognises only a cache decorator), so after F2.2 it still lists dhw_tank_heat_loss_coefficient, dhw_inlet_reference and the other ThermalParameters properties as instances. Disposition those rows from F2.2's body rather than re-fixing them: the column loop runs n/8 times per call whatever the row count (the R9-F2.2 97-rows-against-2 call pin), and the three DHW helpers are memoised."
+    }
+  ]
+}
