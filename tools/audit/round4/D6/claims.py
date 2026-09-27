@@ -67,7 +67,7 @@ against a document that is CORRECT.
                                          #1495's mold-floor breach warning
                                          margin, a NumberSelector Default row
                                          on the Comfort and temperatures table)
-    RESULT config_ranges_compared=90     (76 until #937's rows landed; 86
+    RESULT config_ranges_compared=91     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
                                          until its frequency half documented
