@@ -1,0 +1,10 @@
+rc 0
+  3671 unpinned site(s) of 3968 candidate sites, 3670 at the ratchet base 6ff749d6c1d61a311308c2373fb47ae1d9ff4198; the ledger agrees with the deterministic inventory
+PIN KILLED -- 1 new unpinned site(s) against 6ff749d6c1d61a311308c2373fb47ae1d9ff4198 to drive
+  pinned   custom_components/heatpump_optimizer/optimizer.py:4069 GUARD_OFF -- killed by tests/features.py
+PIN KILLED: 1 pinned, 0 left unpinned
+ M tests/features.py
+?? tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._optimize_space_only.move_starts.GUARD_OFF.2f06ebfa.json
+?? tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._optimize_space_only.move_starts.RETURN_DEL.61286074.json
+
+[exited with code 0]

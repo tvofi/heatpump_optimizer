@@ -1,0 +1,122 @@
+
+=== Optimality floor ===
+
+-- two_zone=False
+ optimizer : cost   23.28  room 17.06-20.91  viol 0.000
+  ok   optimizer plan meets the comfort floor
+  ok   space base (two_zone=False): one finite schedule entry per horizon step
+  ok   space base (two_zone=False): every step inside the model's own power bounds
+  ok   space base (two_zone=False): the plan holds the comfort floor
+ greedy    : cost   23.28  room 17.06-20.91  viol 0.000
+  ok   greedy same-energy challenger does not rout the optimizer
+ random    : 0/300 comfort-safe perturbations cheaper; best   23.28
+  ok   no perturbation finds a materially cheaper comfort-safe plan
+  ok   the batched-FD jac reproduces scipy's own gradient path exactly
+  ok   space no-batch control (two_zone=False): one finite schedule entry per horizon step
+  ok   space no-batch control (two_zone=False): every step inside the model's own power bounds
+  ok   space no-batch control (two_zone=False): the plan holds the comfort floor
+
+-- two_zone=True
+ optimizer : cost   58.85  room 17.69-21.48  viol 0.000
+  ok   optimizer plan meets the comfort floor
+  ok   space base (two_zone=True): one finite schedule entry per horizon step
+  ok   space base (two_zone=True): every step inside the model's own power bounds
+  ok   space base (two_zone=True): the plan holds the comfort floor
+ greedy    : cost   57.35  room 17.25-21.57  viol 0.000
+  ok   greedy same-energy challenger does not rout the optimizer
+ random    : 2/300 comfort-safe perturbations cheaper; best   57.77
+  ok   no perturbation finds a materially cheaper comfort-safe plan
+ starved  : cost   64.92  viol 0.000
+  ok   the production iteration budget buys a materially better plan
+  ok   space starved-budget arm (two_zone=True): one finite schedule entry per horizon step
+  ok   space starved-budget arm (two_zone=True): every step inside the model's own power bounds
+  ok   space starved-budget arm (two_zone=True): the plan holds the comfort floor
+  ok   the batched-FD jac reproduces scipy's own gradient path exactly
+  ok   space no-batch control (two_zone=True): one finite schedule entry per horizon step
+  ok   space no-batch control (two_zone=True): every step inside the model's own power bounds
+  ok   space no-batch control (two_zone=True): the plan holds the comfort floor
+
+-- batched-FD jac on DHW-enabled solves (D9-01)
+  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)
+  ok   DHW base (two_zone=False): one finite schedule entry per horizon step
+  ok   DHW base (two_zone=False): every step inside the model's own power bounds
+  ok   DHW base (two_zone=False): the plan holds the comfort floor
+  ok   DHW base (two_zone=False): one finite DHW entry per horizon step
+  ok   DHW base (two_zone=False): every DHW step inside the model's own power bounds
+  ok   DHW no-batch control (two_zone=False): one finite schedule entry per horizon step
+  ok   DHW no-batch control (two_zone=False): every step inside the model's own power bounds
+  ok   DHW no-batch control (two_zone=False): the plan holds the comfort floor
+  ok   DHW no-batch control (two_zone=False): one finite DHW entry per horizon step
+  ok   DHW no-batch control (two_zone=False): every DHW step inside the model's own power bounds
+  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)
+  ok   DHW base (two_zone=True): one finite schedule entry per horizon step
+  ok   DHW base (two_zone=True): every step inside the model's own power bounds
+  ok   DHW base (two_zone=True): the plan holds the comfort floor
+  ok   DHW base (two_zone=True): one finite DHW entry per horizon step
+  ok   DHW base (two_zone=True): every DHW step inside the model's own power bounds
+  ok   DHW no-batch control (two_zone=True): one finite schedule entry per horizon step
+  ok   DHW no-batch control (two_zone=True): every step inside the model's own power bounds
+  ok   DHW no-batch control (two_zone=True): the plan holds the comfort floor
+  ok   DHW no-batch control (two_zone=True): one finite DHW entry per horizon step
+  ok   DHW no-batch control (two_zone=True): every DHW step inside the model's own power bounds
+
+-- stop rule (ftol) on a DHW-enabled two-zone solve (#921)
+  ok   stop-rule production arm: one finite schedule entry per horizon step
+  ok   stop-rule production arm: every step inside the model's own power bounds
+  ok   stop-rule production arm: the plan holds the comfort floor
+  ok   stop-rule production arm: one finite DHW entry per horizon step
+  ok   stop-rule production arm: every DHW step inside the model's own power bounds
+  ok   stop-rule loosened arm: one finite schedule entry per horizon step
+  ok   stop-rule loosened arm: every step inside the model's own power bounds
+  ok   stop-rule loosened arm: the plan holds the comfort floor
+  ok   stop-rule loosened arm: one finite DHW entry per horizon step
+  ok   stop-rule loosened arm: every DHW step inside the model's own power bounds
+ stop-prod : cost   61.24  viol 0.000
+ stop-rule: cost   63.48  viol 0.000
+  ok   the production stop rule (ftol) buys a materially better plan
+
+-- solution quality on a zero-range bound (D9-01)
+  ok   zero-range pinned plan: one finite schedule entry per horizon step
+  ok   zero-range pinned plan: every step inside the model's own power bounds
+  ok   zero-range pinned plan: the plan holds the comfort floor
+ pinned    : cost   23.28  room 17.06-20.91  viol 0.000
+  ok   a pinned plan still meets the comfort floor
+  ok   the forced-off pin is honoured, or reported as safety-released
+  ok   no step is reported released that was never pinned
+ greedy    : cost   23.28  viol 0.000
+  ok   greedy does not rout the plan built with a fixed variable
+ cold candidates per seam call: [4]
+ warm candidates per seam call: [5]
+  ok   the handed-in plan is one extra candidate and the rest are unchanged (#1295)
+ warm      : obj  12.4126
+ no-warm   : obj  12.4126
+  ok   the handed-in plan is never beaten by the solve that hands it back (#1295)
+ width-null: obj 0.305809 vs fresh 0.305809
+  ok   a previous plan of the wrong width is dropped, not clipped (#1295 null)
+
+-- solve certificate over the energy-diverse cell grid (#1409)
+  ok   one|winter_typical|winter_cold: every candidate is refined (refined == candidates)
+ cert one|winter_typical|winter_cold obj 60.104278  re-polish +0.0000%  ladder +0.0000%  claimed=False
+  ok   one|winter_typical|winter_cold: no unclaimed gap above the bar (re-polish + ladder)
+  ok   one|winter_typical|winter_cold: a recorded claim still has a gap (not stale)
+  ok   two|winter_typical|winter_cold: every candidate is refined (refined == candidates)
+ cert two|winter_typical|winter_cold obj 77.789859  re-polish +0.0000%  ladder +0.0000%  claimed=False
+  ok   two|winter_typical|winter_cold: no unclaimed gap above the bar (re-polish + ladder)
+  ok   two|winter_typical|winter_cold: a recorded claim still has a gap (not stale)
+  ok   one|summer_negative|shoulder: every candidate is refined (refined == candidates)
+ cert one|summer_negative|shoulder obj  0.305809  re-polish +0.0057%  ladder +11.0850%  claimed=True
+  ok   one|summer_negative|shoulder: no unclaimed gap above the bar (re-polish + ladder)
+  ok   one|summer_negative|shoulder: a recorded claim still has a gap (not stale)
+  ok   one|shoulder|winter_cold: every candidate is refined (refined == candidates)
+ cert one|shoulder|winter_cold     obj 48.763590  re-polish +0.8761%  ladder +0.4950%  claimed=True
+  ok   one|shoulder|winter_cold: no unclaimed gap above the bar (re-polish + ladder)
+  ok   one|shoulder|winter_cold: a recorded claim still has a gap (not stale)
+  ok   one|winter_narrow|shoulder: every candidate is refined (refined == candidates)
+ cert one|winter_narrow|shoulder   obj 11.551985  re-polish +0.0000%  ladder +0.5229%  claimed=True
+  ok   one|winter_narrow|shoulder: no unclaimed gap above the bar (re-polish + ladder)
+  ok   one|winter_narrow|shoulder: a recorded claim still has a gap (not stale)
+  ok   the grid holds both a clean (null) and a claimed (gapped) cell
+ cert warm: cold 4->4 refined; warm 5->5 refined
+  ok   the warm start adds one candidate and refines it (refined == candidates)
+
+ALL 84 OPTIMALITY CHECKS PASSED
