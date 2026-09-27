@@ -863,6 +863,8 @@ carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
 g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
 carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
 carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
+( cd "$W/clone" && bash "$SELF" --carry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)"
 carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
 carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
 ( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
