@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry destination for the later N-future-instant stages of round 9 (#1660; roster groups R9-F1.9 and R9-F3.2, whose roster is not in this tree).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by .claude/workflows/brief_lint.mjs."
+  ],
+  "issue": 1660,
+  "stage": "round-9 fix PRs F1.9 (regression tests for the instances the store boundary closes, and the FI-sw3 decision) and F3.2 (the pump-duty arbiter, which adds FI-sw5's echo-grace test)",
+  "carries": [
+    {
+      "from": "the round-9 pull request F3.1 (stored instants; branch handoff/r9-f3-stores-1), which lands the N-future-instant store boundary and the stored-instant rule drift.stored_instant at the F3 lane's loaders",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. The RCA's real-loader reproduction (repro_loaders.py, stamps 400 days ahead) reads at the base and at F3.1's head: boost active at day 30 True then False, echo grace open True then False, heavy-snow damping True then False, immersion margin 2.0 then 0.0, fuse cooldown True then False, legionella due in 168.0 h then -552.0 h (overdue, as the honest arm is); the outage flag after a real 6 h cut stays False at both, the residual no bound closes; a legitimate one-hour boost stays active at both. The boost in-process step (a clock stepped back after a boost was set), which the boundary never sees, is closed separately in BoostState.expire: boost_unbounded.py jump1/6/24 read 3/8/26 h at the base and 2/2/2 h at the head, jump0 2 h at both.",
+      "remeasure": "Do not trust these figures: they are at F3.1's head. Re-run the RCA's repro_loaders.py and boost_unbounded.py from the repository root at your merge base with PYTHONPATH=tests/hastub, and confirm each skewed arm against its null arm.",
+      "brief": "The store boundary (`QuarantiningStore` lead) closes FI-sw1, FI-sw2, FI-sw4, FI-sw5 and the legionella seam at load, so their regression tests drive the real store, not a parse. It does not see an in-process clock step: F3.1 closed that half for boost alone, in `BoostState.expire`, and no other expiry's in-process step is closed. FI-sw3 is untouched and still owes its decision. F3.2: `pump_arbiter._load` now parses each written instant with `drift.stored_instant` in Home Assistant's zone and skips an unparseable one; keep that call when reworking the loader."
+    }
+  ]
+}

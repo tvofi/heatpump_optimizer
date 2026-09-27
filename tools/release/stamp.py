@@ -339,6 +339,33 @@ def blind_merges(window: list[tuple[str, int, str]]) -> list[tuple[str, str]]:
             if parents >= 2 and pr_from_subject(subject) is None]
 
 
+def unattributed_direct_pushes(window: list[tuple[str, int, str]]) -> list[tuple[str, str]]:
+    """(sha, subject) for a single-parent commit on main's first-parent line
+    that names no pull request and is not the stamp's own commit.
+
+    D11-s1-02. `blind_merges` below only looks at commits with two or more
+    parents -- a merge by git's own account -- so a commit pushed straight to
+    main with one parent, over the DeployKey bypass rather than through a
+    pull request, never reaches it. `enumeration_went_blind` only fires when
+    the WHOLE window is unattributable, so the same direct push mixed in
+    beside ordinary merges leaves `prs` non-empty and stays silent there too.
+    Between the two, this shape was reported by no enumerator (weakened:
+    capability, no incident -- measured by injecting one push, not found in
+    this window).
+
+    Deliberately NOT folded into `rule4_problem`'s refusal: rule 4's own
+    fixture below relies on a single-parent, unattributed commit from before
+    decision 0010's merge-commit history being tolerated without a sha
+    citation ("an issue number is never demanded of the notes"), and wiring
+    this in would re-demand exactly that citation. It stands as its own
+    enumerator so the shape has a check at all; a seat deciding to gate a
+    release on it is a separate, owner-facing change.
+    """
+    return [(sha, subject) for sha, parents, subject in window
+            if parents == 1 and not STAMP_SUBJECT_RE.match(subject)
+            and pr_from_subject(subject) is None]
+
+
 def enumeration_went_blind(window: list[tuple[str, int, str]],
                            prs: set[str], blind: list[tuple[str, str]]) -> bool:
     """True when the window holds commits and the rule attributed nothing.
@@ -611,6 +638,29 @@ def self_test() -> int:
           (rule4_problem([("aaa1111", 1, "landed the pins")], "anything", "v6.5.0", "6.5.1") or ""))
     check("rule 4: an empty window passes, as it did before",
           rule4_problem([], "anything", "v6.5.0", "6.5.1") is None)
+
+    # D11-s1-02. A standalone enumerator, deliberately NOT wired into
+    # `rule4_problem`'s refusal: `_w` above already relies on a single-parent
+    # commit that names no PR (`ccc3333`, a pre-decision-0010 squash-era
+    # relic) passing without being cited by sha, and folding this into rule 4
+    # would re-demand exactly the citation "an issue number is never
+    # demanded" refuses. It exists so the shape has a check at all -- a
+    # capability gap, per the judge's weakened(medium) verdict, not an
+    # incident this repository's history carries.
+    direct_push_window = [("aaa1111", 2, "Merge pull request #1052 from tvofi/a"),
+                          ("ddd4444", 1, "hotfix: bypassed review over the deploy key")]
+    check("direct push: a single-parent commit beside a real merge is named",
+          unattributed_direct_pushes(direct_push_window) == [
+              ("ddd4444", "hotfix: bypassed review over the deploy key")])
+    check("direct push: the merge beside it is not",
+          ("aaa1111", "Merge pull request #1052 from tvofi/a")
+          not in unattributed_direct_pushes(direct_push_window))
+    check("direct push: the stamp's own commit is never named",
+          unattributed_direct_pushes(stamp_only) == [])
+    check("direct push: a squash commit citing its own PR is not named",
+          unattributed_direct_pushes([("bbb2222", 1, "fix: a thing (#8)")]) == [])
+    check("direct push: an empty window names nothing",
+          unattributed_direct_pushes([]) == [])
 
     # Where the window comes from. Every pure piece above is correct while the
     # caller still hand-rolls its own `git log` without the flag -- which is

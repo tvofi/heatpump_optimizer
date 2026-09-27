@@ -47,6 +47,8 @@ worse than none:
   public names of every module the stub touches so it is at least visible.
 * **Anything needing a running ``hass``** -- the issue registry, the store,
   entity registration. Contracts here construct nothing bigger than an object.
+  The store's decode is the exception: the probe ``_p_store_decode`` reads
+  upstream's decoder, so ``--compare`` measures the stub's against it.
 * **Timing.** The real half is nightly and needs Docker, so a contract that is
   wrong about upstream is caught within a day, not on the pull request.
 """
@@ -605,8 +607,9 @@ INVENTORY: dict[str, Entry] = {
         "an honest in-memory round trip -- keyed by storage key across "
         "instances so a simulated restart loads what an earlier one saved, and "
         "serialised eagerly so a payload the real Store could not write raises "
-        "here too. Upstream's delayed write, migration and atomic replace are "
-        "not modelled",
+        "here too; a load decodes with orjson's number rules and moves a "
+        "refused document aside, loading None. Upstream's delayed write, "
+        "migration and atomic replace are not modelled",
         absent=("async_delay_save", "_async_migrate_func"),
     ),
     # -- helpers.translation ------------------------------------------------
@@ -671,9 +674,17 @@ INVENTORY: dict[str, Entry] = {
         "recorded against the identity as_local below",
         issue="#577",
     ),
-    "homeassistant.util.dt.freeze": H("a test-facing clock pin with no upstream counterpart"),
-    "homeassistant.util.dt.now": F(
-        "returns an aware datetime in DEFAULT_TIME_ZONE when one is configured"
+    "homeassistant.util.dt.freeze": H(
+        "a test-facing clock pin with no upstream counterpart; the clocks "
+        "normalise what it pins, and HOOKS re-runs their contracts under it"
+    ),
+    "homeassistant.util.dt.now": D(
+        "aware in DEFAULT_TIME_ZONE when one is configured, and a frozen value "
+        "is normalised into it; naive when none is, where upstream is aware in "
+        "UTC (round-9 D1-s1-52). Split from F10.1: the aware default reaches "
+        "production's handling of naive stored stamps (D1-s3-01) and the "
+        "features.py fixtures that seed them",
+        issue="#1649",
     ),
     "homeassistant.util.dt.utcnow": F("returns an aware datetime in UTC, as upstream"),
     "homeassistant.util.dt.parse_datetime": F(
@@ -710,6 +721,69 @@ UNMODELLED = {
     "homeassistant.helpers.entity_component": (
         "the per-domain entity component. nightly_ha.py reaches it through the "
         "real package to resolve an entity object; no lane here needs one."
+    ),
+}
+
+
+# Parameters a stub accepts and never reads, by inventory key (P11). A stub
+# that takes an argument and drops it answers every caller as if the argument
+# had not been passed -- the shape that let `update_interval` vanish with every
+# contract green (round-9 D1-s2-71). Each drop is declared here, and a declared
+# drop the stub has started reading fails too, as ``absent`` does.
+DROPPED: dict[str, tuple] = {
+    "homeassistant.components.mqtt.async_publish": ("a", "k"),
+    "homeassistant.components.mqtt.async_subscribe": ("a", "k"),
+    "homeassistant.config_entries.ConfigFlow": ("raise_on_progress", "reload_on_update"),
+    "homeassistant.helpers.aiohttp_client.async_get_clientsession": ("hass", "verify_ssl"),
+    "homeassistant.helpers.config_validation.config_entry_only_config_schema": ("domain",),
+    "homeassistant.helpers.entity_registry.async_entries_for_device": ("include_disabled_entities",),
+    "homeassistant.helpers.event.async_track_time_interval": ("a", "k"),
+    "homeassistant.helpers.storage.Store": ("hass", "version", "kwargs"),
+    "homeassistant.helpers.translation.async_get_translations": (
+        "hass", "language", "category", "integrations",
+    ),
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator": ("_ignored",),
+    "homeassistant.helpers.update_coordinator.CoordinatorEntity": ("context",),
+    "homeassistant.loader.async_get_integration": ("a", "k"),
+}
+
+# Test-facing hooks that change what a FAITHFUL symbol returns (P11). Every
+# expect="both" contract of a fed symbol is re-run with the hook in each state
+# the suite puts it in: a hook upstream does not have must not make the symbol
+# return a value upstream never returns. round-9 D14-s4-02: the replay lane
+# froze a fixed-offset clock where Home Assistant hands out its ZoneInfo.
+def _freeze_at(value):
+    def enter():
+        from homeassistant.util import dt as dt_util
+
+        dt_util.freeze(value)
+
+    return enter
+
+
+def _thaw():
+    from homeassistant.util import dt as dt_util
+
+    dt_util.freeze(None)
+
+
+def _hook_states():
+    from datetime import datetime, timedelta, timezone
+
+    return [
+        ("frozen naive", _freeze_at(datetime(2026, 7, 1, 12)), _thaw),
+        (
+            "frozen at a fixed offset",
+            _freeze_at(datetime(2026, 7, 1, 12, tzinfo=timezone(timedelta(hours=1)))),
+            _thaw,
+        ),
+    ]
+
+
+HOOKS = {
+    "homeassistant.util.dt.freeze": (
+        ("homeassistant.util.dt.now", "homeassistant.util.dt.utcnow"),
+        _hook_states,
     ),
 }
 
@@ -1855,6 +1929,94 @@ def _issue_delete():
     assert [issue[1] for issue in hass.issues] == ["j"]
 
 
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "the update interval it was constructed with is read back",
+    cite="helpers/update_coordinator.py -- `self.update_interval = update_interval` "
+    "through the property that stores `_update_interval_seconds`",
+)
+def _coordinator_update_interval():
+    import asyncio
+    import logging
+    from datetime import timedelta
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        read = []
+        for interval in (timedelta(seconds=30), timedelta(minutes=15), None):
+            coordinator = DataUpdateCoordinator(
+                _refresh_hass(),
+                logging.getLogger("contract"),
+                name="contract",
+                update_interval=interval,
+                config_entry=_first_refresh_entry(),
+            )
+            read.append(coordinator.update_interval)
+        return read
+
+    assert asyncio.run(main()) == [timedelta(seconds=30), timedelta(minutes=15), None]
+
+
+# -- helpers.storage ---------------------------------------------------------
+# The documents upstream's decoder refuses, and how it reads the one it keeps.
+# Upstream decodes a store file with ``homeassistant.util.json.json_loads``,
+# which is ``orjson.loads``; values measured with orjson 3.11.9. A bare NaN or
+# Infinity token, and any number that overflows a double, is a decode error;
+# an integer past the u64 range (or below the i64 range) that still fits a
+# double decodes as a float.
+STORE_DECODE_CASES = (
+    ("NaN", '{"a": 1.5, "b": NaN}', None),
+    ("Infinity", '{"a": 1.5, "b": Infinity}', None),
+    ("-Infinity", '{"a": 1.5, "b": -Infinity}', None),
+    ("1e400", '{"a": 1.5, "b": 1e400}', None),
+    ("a 401-digit integer", '{"a": 1.5, "b": 1' + "0" * 400 + "}", None),
+    ("2**64", '{"a": 1.5, "b": 18446744073709551616}', {"a": 1.5, "b": 1.8446744073709552e19}),
+    ("-2**63 - 1", '{"a": -9223372036854775809}', {"a": -9.223372036854776e18}),
+    ("2**64 - 1", '{"a": 18446744073709551615}', {"a": 18446744073709551615}),
+    ("a healthy document", '{"a": 1.5, "b": 2.0}', {"a": 1.5, "b": 2.0}),
+)
+
+
+@contract(
+    "homeassistant.helpers.storage.Store",
+    "a document the decoder refuses is moved aside and loads as None; the "
+    "rest decode as orjson reads them",
+    cite="helpers/storage.py -- _async_load_data: on a JSONDecodeError the file "
+    "is renamed `.corrupt.<isotime>` and None returned; util/json.py -- "
+    "`json_loads = orjson.loads`",
+    expect="stub",
+)
+def _store_decode():
+    import asyncio
+
+    from homeassistant.helpers import storage
+
+    async def load(text):
+        storage._DISK["contract_decode"] = text
+        try:
+            return await storage.Store(None, 1, "contract_decode").async_load()
+        finally:
+            gone = "contract_decode" not in storage._DISK
+            storage._DISK.pop("contract_decode", None)
+            got_gone.append(gone)
+
+    def typed(doc):
+        # 2**64 as an int compares equal to it as a float, so the type is
+        # part of what is compared.
+        return None if doc is None else {k: (v, type(v)) for k, v in doc.items()}
+
+    got_gone: list = []
+    got = [asyncio.run(load(text)) for _name, text, _want in STORE_DECODE_CASES]
+    want = [want for _name, _text, want in STORE_DECODE_CASES]
+    wrong = [
+        name for (name, _t, w), g in zip(STORE_DECODE_CASES, got) if typed(g) != typed(w)
+    ]
+    assert not wrong, wrong
+    # Moved aside: a refused document is gone from the store, a kept one stays.
+    assert got_gone == [w is None for w in want]
+
+
 # -- util.dt -----------------------------------------------------------------
 
 @contract(
@@ -1878,12 +2040,39 @@ def _dt_utcnow():
     cite="util/dt.py -- `return dt.datetime.now(time_zone or DEFAULT_TIME_ZONE)`",
 )
 def _dt_now():
+    from zoneinfo import ZoneInfo
+
     from homeassistant.util import dt as dt_util
 
-    got = dt_util.now()
-    if dt_util.DEFAULT_TIME_ZONE is not None:
-        assert got.tzinfo is not None
-        assert got.utcoffset() == dt_util.DEFAULT_TIME_ZONE.utcoffset(got.replace(tzinfo=None))
+    # The zone is set here rather than read from the run, so the statement
+    # holds on every provider: the old form asserted only `if` a zone was
+    # configured, and the stub configures none, so it asserted nothing
+    # (round-9 D1-s1-52). Both providers read DEFAULT_TIME_ZONE at call time.
+    saved = dt_util.DEFAULT_TIME_ZONE
+    zone = ZoneInfo("Europe/Stockholm")
+    dt_util.DEFAULT_TIME_ZONE = zone
+    try:
+        got = dt_util.now()
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = saved
+    assert got.tzinfo is zone
+    assert got.utcoffset() == zone.utcoffset(got.replace(tzinfo=None))
+
+
+@contract(
+    "homeassistant.util.dt.now",
+    "returns an aware datetime when no zone has been configured",
+    cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level, "
+    "read by now()",
+    expect="real",
+)
+def _dt_now_default_aware():
+    import os
+
+    from homeassistant.util import dt as dt_util
+
+    assert os.environ.get("HASTUB_TZ") is None, "HASTUB_TZ is set: not the default case"
+    assert dt_util.now().tzinfo is not None
 
 
 @contract(
@@ -2299,6 +2488,36 @@ def _p_source_reconfigure():
     return str(SOURCE_RECONFIGURE)
 
 
+@probe("helpers.storage: how a stored document decodes", rel="equal")
+def _p_store_decode():
+    # The fidelity half of the stub-only Store decode contract, executed
+    # against upstream: the real provider reads each case through the decoder
+    # its Store uses (a decode error is the None _async_load_data returns),
+    # the stub through its Store, and --compare wants the same answers.
+    import asyncio
+
+    if provider_name() == "real":
+        from homeassistant.util.json import json_loads
+
+        def load(text):
+            try:
+                return json_loads(text)
+            except ValueError:  # orjson.JSONDecodeError is one
+                return None
+
+    else:
+        from homeassistant.helpers import storage
+
+        def load(text):
+            storage._DISK["probe_decode"] = text
+            try:
+                return asyncio.run(storage.Store(None, 1, "probe_decode").async_load())
+            finally:
+                storage._DISK.pop("probe_decode", None)
+
+    return {name: repr(load(text)) for name, text, _want in STORE_DECODE_CASES}
+
+
 @probe("components.diagnostics.REDACTED", rel="equal")
 def _p_redacted():
     from homeassistant.components.diagnostics import REDACTED
@@ -2402,6 +2621,63 @@ def provider_name() -> str:
     return "real" if hasattr(const, "__version__") else "stub"
 
 
+def _assert_lines(fn) -> set[int]:
+    import inspect
+    import textwrap
+
+    lines, first = inspect.getsourcelines(fn)
+    tree = ast.parse(textwrap.dedent("".join(lines)))
+    return {n.lineno + first - 1 for n in ast.walk(tree) if isinstance(n, ast.Assert)}
+
+
+def _run_one(fn) -> tuple[bool, str]:
+    """Run one contract; a pass that reached none of its asserts is a failure.
+
+    A contract whose assertions sit behind a condition the provider does not
+    meet passes by asserting nothing (P11): round-9 D1-s1-52's ``now`` contract
+    asserted only when a zone was configured, and the stub configures none.
+    """
+    wanted, reached = _assert_lines(fn), set()
+    filename = fn.__code__.co_filename
+
+    def tracer(frame, event, _arg):
+        if frame.f_code.co_filename != filename:
+            return None
+        if event == "line" and frame.f_lineno in wanted:
+            reached.add(frame.f_lineno)
+        return tracer
+
+    previous = sys.gettrace()
+    sys.settrace(tracer)
+    try:
+        fn()
+    except Exception as err:  # noqa: BLE001 - any failure is a failure
+        return False, f"{type(err).__name__}: {err}"
+    finally:
+        sys.settrace(previous)
+    if wanted and not reached:
+        return False, f"vacuous: reached none of its {len(wanted)} assertions"
+    return True, ""
+
+
+def _run_hooked(report: Report) -> None:
+    report.section("contracts re-run under the stub's own test hooks")
+    ran = 0
+    for hook, (fed, states) in HOOKS.items():
+        for state, enter, leave in states():
+            for symbol, name, _cite, expect, fn in CONTRACTS:
+                if symbol not in fed or expect != "both":
+                    continue
+                enter()
+                try:
+                    passed, detail = _run_one(fn)
+                finally:
+                    leave()
+                ran += 1
+                report.check(f"{symbol.split('homeassistant.')[-1]}: {name}  ({state})", passed, detail)
+    report.check("the hook re-runs ran", ran > 0, "no contract of a fed symbol was found")
+
+
 def _run_contracts(report: Report, provider: str) -> None:
     version = upstream_version()
     newer = provider == "real" and version is not None and version != UPSTREAM
@@ -2411,11 +2687,7 @@ def _run_contracts(report: Report, provider: str) -> None:
     )
     for symbol, name, _cite, expect, fn in CONTRACTS:
         label = f"{symbol.split('homeassistant.')[-1]}: {name}"
-        try:
-            fn()
-            passed, detail = True, ""
-        except Exception as err:  # noqa: BLE001 - any failure is a failure
-            passed, detail = False, f"{type(err).__name__}: {err}"
+        passed, detail = _run_one(fn)
         if expect == "stub":
             # Pins the stub's own behaviour where upstream's equivalent needs a
             # running hass. Nothing to say against the real provider, and
@@ -2560,6 +2832,51 @@ def _check_inventory(report: Report) -> None:
     )
     unissued = sorted(k for k, e in INVENTORY.items() if e.disposition == DIVERGENT and not e.issue)
     report.check("every DIVERGENT symbol names the issue tracking it", not unissued, f"{unissued}")
+
+
+def stub_dropped() -> dict[str, set[str]]:
+    """Parameters each stub function accepts and never reads, by inventory key."""
+    root = stub_root()
+    found: dict[str, set[str]] = {}
+    for path in sorted(root.rglob("*.py")):
+        rel = path.relative_to(root.parent).with_suffix("")
+        parts = [p for p in rel.parts if p != "__init__"]
+        tree = ast.parse(path.read_text())
+        owners = [(n.name, n) for n in tree.body if isinstance(n, ast.ClassDef)]
+        owners += [(None, tree)]
+        for owner, scope in owners:
+            nodes = ast.walk(scope) if owner else tree.body
+            for fn in nodes:
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                a = fn.args
+                params = [x.arg for x in a.posonlyargs + a.args + a.kwonlyargs]
+                params += [x.arg for x in (a.vararg, a.kwarg) if x]
+                read = {n.id for st in fn.body for n in ast.walk(st) if isinstance(n, ast.Name)}
+                unread = {x for x in params if x not in ("self", "cls") and x not in read}
+                if unread:
+                    key = ".".join(parts + [owner or fn.name])
+                    found.setdefault(key, set()).update(unread)
+    return found
+
+
+def _check_dropped(report: Report) -> None:
+    report.section("parameters the stub accepts and drops")
+    measured = stub_dropped()
+    undeclared = sorted(
+        f"{k}({x})" for k, xs in measured.items() for x in xs if x not in DROPPED.get(k, ())
+    )
+    report.check(
+        "every parameter the stub drops is declared",
+        not undeclared,
+        f"{undeclared}: a caller passing it is answered as if it had not. "
+        "Model it, or declare the drop in DROPPED",
+    )
+    stale = sorted(
+        f"{k}({x})" for k, xs in DROPPED.items() for x in xs if x not in measured.get(k, set())
+    )
+    report.check("every declared drop is still dropped", not stale, f"{stale}")
+    report.check("the drop scan read the stub", bool(measured), "no stub function scanned")
 
 
 def _check_declared_absences(report: Report) -> None:
@@ -2872,6 +3189,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.contracts_only and provider == "stub":
         _check_inventory(report)
         _check_declared_absences(report)
+        _check_dropped(report)
+        _run_hooked(report)
         _print_inventory()
     elif not args.contracts_only:
         report.check(

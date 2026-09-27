@@ -590,12 +590,23 @@ if [ "${1:-}" = "--self-test" ]; then
   # `empty` and `broken` matter most: a settings file with no hooks, and one
   # that does not parse, both read exactly like a working one to anybody who
   # only looks at whether the file is there.
-  for f in missing empty unreadable broken self-test-fails; do
+  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type; do
     node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
     st $? 1 "a settings file whose hook is $f is refused"
   done
   node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1
   st $? 0 "this repository's own three wired hooks pass (null control)"
+
+  # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
+  # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
+  # and read as MATCHER BLIND on a group that in fact fires on every edit
+  # (Cloud reviewer 2, PR #1692). Each fixture below is otherwise a complete,
+  # correctly-wired settings file, so a regression here shows up as this
+  # loop's REFUSE, not as the bad-matcher.json loop's silence.
+  for f in star-matcher no-matcher empty-matcher; do
+    node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
+    st $? 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+  done
 
   # The push-order verdict, one fixture per branch shape. Named in a list rather
   # than globbed, for the same reason the two loops above are: a glob that
@@ -1076,6 +1087,13 @@ if [ "$PIN_TOUCHED" -eq 0 ]; then
 else
   say skip "brief_lint" "no pinned path changed, so CI's briefs job reads this head's copy"
 fi
+
+# --- 3f2. the contract re-run's decision, from its own fixtures (D13-s1-03).
+# `pr-contract-rerun.yml` runs the default branch's copy; its self-test is
+# offline and under a second, so the local path is the self-test.
+python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1
+step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
+rm -f /tmp/prepr-crr.$$
 
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
