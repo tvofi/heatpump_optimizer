@@ -1041,6 +1041,34 @@ R.check(
     f"margin {_margin!r}",
 )
 
+# ``utc_elapsed_seconds`` reads a naive stamp as UTC, as Home Assistant's
+# ``as_utc`` does. Under a UTC process zone ``astimezone`` does that anyway,
+# so only a non-UTC process zone shows whether the naive-is-UTC line decides.
+import os as _os  # noqa: E402
+import time as _time  # noqa: E402
+
+from heatpump_optimizer.accuracy import utc_elapsed_seconds  # noqa: E402
+
+_saved_tz = _os.environ.get("TZ")
+_os.environ["TZ"] = "Europe/Stockholm"
+_time.tzset()
+try:
+    _zone_took = _time.localtime(1787270400).tm_gmtoff == 7200  # 2026-08-21
+    _naive_gap = utc_elapsed_seconds(
+        datetime(2026, 8, 26, 12, 0, tzinfo=UTC), datetime(2026, 8, 26, 12, 0)
+    )
+finally:
+    if _saved_tz is None:
+        _os.environ.pop("TZ", None)
+    else:
+        _os.environ["TZ"] = _saved_tz
+    _time.tzset()
+R.check(
+    "a naive stamp is UTC to utc_elapsed_seconds under a non-UTC process zone",
+    _zone_took and _naive_gap == 0.0,
+    f"zone took {_zone_took}, gap {_naive_gap} s",
+)
+
 R.section("the DST tracer over replayed transition days (round-9 P7 barrier)")
 
 # The class barrier for P7 (#1665): the committed replay day, shifted onto
