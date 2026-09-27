@@ -44431,6 +44431,19 @@ R.check(
     f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
 )
 
+# Optimizer off writes nothing (tvofi, 2026-09-26): the last plan's legionella
+# action stays current after the switch to off, and must not start a boost.
+_g5_c = _g5_control()
+_g5_c._mode = _MODE_OFF
+for _ in range(3):
+    _g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "with the optimizer off a legionella action still current never turns "
+    "the disinfection switch on (null control above: on, it does)",
+    _g5_writes(_g5_c) == [] and _g5_state(_g5_c) == "off",
+    f"writes={_g5_writes(_g5_c)}",
+)
+
 # The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
