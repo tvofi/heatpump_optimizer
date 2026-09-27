@@ -35117,6 +35117,7 @@ from heatpump_optimizer import switch as _rc2_switch  # noqa: E402
 import re as _rc2_re  # noqa: E402
 from operator import attrgetter as _rc2_attrgetter  # noqa: E402
 from datetime import datetime as _rc2_datetime, timedelta as _rc2_td  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError as _rc2_hae  # noqa: E402
 from homeassistant.util import dt as _rc2_dt_util  # noqa: E402
 
 _RC2_ACTIONS = ("async_turn_on", "async_turn_off", "async_press",
@@ -35245,6 +35246,12 @@ async def _rc2_row(n, cls, action, args, before, after):
         returned = True
     except TimeoutError:
         returned = False
+    except _rc2_hae:
+        # F1.3 (#1644, D10-s1-02): the optimize-now press completes by
+        # raising the same refusal the action raises; a synchronous refusal
+        # is a returned action, and the hang the row exists to catch is not
+        # it. The press still must not await the never-completing refresh.
+        returned = True
     for task in _asyncio.all_tasks() - {_asyncio.current_task()}:
         task.cancel()  # the restart: pending refreshes die unfinished
     fresh = cls(await _rc2_boot(entry), entry)
@@ -38993,23 +39000,40 @@ R.check(
 
 
 # -- the three service entry points, and what each one costs ---------------
+def _t4_count_solve_work(coord):
+    """Count the solve's first act, so a dropped request is a count of 0."""
+    coord._t4_solve_work = 0
+    real = coord._forecast_arrays
+
+    def _counted(now):
+        coord._t4_solve_work += 1
+        return real(now)
+
+    coord._forecast_arrays = _counted
+
+
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
+_t4_count_solve_work(_t4_force_busy)
 _t4_force_busy._optimization_running = True
 _t4_drive(_t4_force_busy, "async_force_optimization")
 _t4_force_idle = _t4_coord()
 _t4_count_refresh(_t4_force_idle)
+_t4_count_solve_work(_t4_force_idle)
 _t4_force_idle._optimization_running = False
 _t4_drive(_t4_force_idle, "async_force_optimization")
 R.check(
     "forcing an optimization while one runs is dropped, not queued",
-    _t4_force_busy._t4_refreshes == 0
-    and _t4_force_idle._t4_refreshes == 1
+    _t4_force_busy._t4_solve_work == 0
+    and _t4_force_idle._t4_solve_work >= 1
     and _t4_force_busy._t4_escaped is None,
-    f"running -> {_t4_force_busy._t4_refreshes} refreshes, idle -> "
-    f"{_t4_force_idle._t4_refreshes} -- the solve runs in a process pool, so "
-    "a queued second request is a second pool job for a plan the first is "
-    "already computing",
+    f"running -> {_t4_force_busy._t4_solve_work} solve attempts, idle -> "
+    f"{_t4_force_idle._t4_solve_work} -- the solve runs in a process pool, "
+    "so a queued second request is a second pool job for a plan the first "
+    "is already computing. F1.3 (#1644): the refresh that used to close "
+    "the idle arm moved to the button's press; the method's contract is "
+    "the solve reason alone, so the count here is the solve's own first "
+    "act",
 )
 
 # The option is EDITED after construction, which is the only way to see the

@@ -4698,10 +4698,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             # Close the loop: pair the previous interval's prediction with what
             # actually happened, accumulate energy, and train the derate.
-            self._record_accuracy()
-            self._track_realised_peak()
-            await self._async_save_accuracy()
-            await self._async_save_energy_totals()
+            # #1644 (D1-s2-91): each step owns its own failure -- a raise in
+            # any of them (a FlowCurveBias.observe fault included) used to
+            # fail the whole update and skip every step after it.
+            try:
+                self._record_accuracy()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.error("Accuracy pairing failed: %s", err, exc_info=True)
+            try:
+                self._track_realised_peak()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.error("Realised-peak tracking failed: %s", err)
+            try:
+                await self._async_save_accuracy()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Accuracy save skipped: %s", err)
+            try:
+                await self._async_save_energy_totals()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Energy-total save skipped: %s", err)
 
             # T4a #42: the learners' insurance — weekly snapshot, daily
             # bias check, and the rollback when drift proves itself on
@@ -5089,6 +5104,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
 
+            # #1644 (D1-s4-02): the optimizer's own guard turns a solver
+            # blow-up into a returned plan whose status says "failed (...)".
+            # Publishing it counted the cycle a success and zeroed the
+            # failure counter; the failure branch below must see it instead.
+            if str(result.status).startswith("failed"):
+                raise RuntimeError(
+                    f"solver returned a failed plan: {result.status}"
+                )
+
             self._record_manual_release(result)
 
             self._optimization_result = result
@@ -5123,7 +5147,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Price tile skipped: %s", err)
 
-            self._record_quiet_comfort_period()
+            # #1644 (D1-s2-51): the quiet-period learner is the solve's own
+            # best-effort tail -- a raise here used to read as a failed
+            # solve after the plan it cost had already been published.
+            try:
+                self._record_quiet_comfort_period()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Quiet comfort learning skipped: %s", err)
 
             # smart_write: command the valve's controller to the target the
             # plan was just built against. After the solve rather than before,
@@ -6348,24 +6378,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._current_spot_price() + self._current_grid_fee(dt_util.now())
 
     def _current_spot_price(self) -> float:
-        """The current spot price alone, exactly as Tibber bills it."""
+        """The current spot price alone, exactly as Tibber bills it.
+
+        An entry covers ``[start, next start)``, the same coverage
+        ``_known_prices_for`` reads off this list (#1644, D2-s3-01): a
+        one-hour span here read a quarter up to 45 minutes stale under
+        15-minute entries, and the settlement, the comfort learner and the
+        published current price all share this reader.
+        """
         if not self._prices:
             return 0.0
-
         now = dt_util.now()
-        for price_entry in self._prices:
-            starts_at = price_entry.get("starts_at", "")
-            if starts_at:
-                try:
-                    ts = datetime.fromisoformat(starts_at)
-                    if ts.tzinfo is None:
-                        ts = ts.replace(tzinfo=timezone.utc)
-                    if ts <= now < ts + timedelta(hours=1):
-                        return _raw_value(price_entry) or 0.0
-                except (ValueError, TypeError):
-                    continue
-
-        return _raw_value(self._prices[0]) or 0.0
+        entries: list[tuple[datetime, float | None]] = []
+        for entry in self._prices:
+            ts = _comparable_ts(entry.get("starts_at"), now)
+            if ts is not None:
+                entries.append((ts, _raw_value(entry)))
+        if not entries:
+            # No timestamps at all: the positional assumption, as on the grid.
+            return _raw_value(self._prices[0]) or 0.0
+        entries.sort(key=lambda item: item[0])
+        starts = [ts for ts, _ in entries]
+        idx = bisect_right(starts, now) - 1
+        if idx < 0:
+            return _raw_value(self._prices[0]) or 0.0
+        return entries[idx][1] or 0.0
 
     # ------------------------------------------------------------------
     # The grid-fee layer (v4.0.0 T1, #1)
@@ -6703,7 +6740,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
-        await pump_arbiter.apply(self)
+        # #1644 (D1-s2-51): best-effort like the frequency and pump steps
+        # beside it -- an arbiter raise used to fail the whole cycle, which
+        # skipped the actuation that was still possible, the accuracy
+        # pipeline and every save after it.
+        try:
+            await pump_arbiter.apply(self)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.error("Pump arbiter apply failed: %s", err, exc_info=True)
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -10643,12 +10687,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def optimization_running(self) -> bool:
         return self._optimization_running
 
-    async def async_force_optimization(self) -> None:
-        """Run the optimization now, ignoring the schedule."""
-        if self._optimization_running:
-            _LOGGER.debug("Optimization already running; ignoring the request")
-            return
-        await self.async_request_refresh()
+    async def async_force_optimization(self) -> str | None:
+        """Run the optimization now, reporting why it did not run.
+
+        The press awaits this to answer a tap with the same refusal the
+        ``run_optimization`` action raises (#1644, D10-s1-02); ``None``
+        means the solve ran -- or one was already in flight, the same
+        answer the action accepts.
+        """
+        return await self.async_run_optimization()
 
     async def async_simulate(
         self, overrides: dict[str, Any]

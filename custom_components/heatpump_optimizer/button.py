@@ -21,17 +21,23 @@ import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, off_the_action
 
 _LOGGER = logging.getLogger(__name__)
 
-# Every press lands on the coordinator, which commands one heat pump; two
-# presses racing is two commands to one machine, so actions on this platform
-# run one at a time (parallel-updates, Silver).
-PARALLEL_UPDATES = 1
+# The coordinator is the serialization point, not this semaphore: the solve
+# guards itself on ``_optimization_running`` and every other press's setter
+# is a single write. The optimize-now press must await its solve to answer
+# the tap (#1644, D10-s1-02), and under a held slot that wait queues the
+# other buttons' presses behind it -- the v6.6.12 bug-5 shape, where a
+# restart cancelled a queued reset before its setter ran. Declared 0
+# (parallel-updates, Silver): no press ever queues behind another.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -85,9 +91,37 @@ class ForceOptimizationButton(_OptimizerButtonBase):
         return bool(super().available and not self.coordinator.optimization_running)
 
     async def async_press(self) -> None:
-        """Force an optimization run."""
+        """Force an optimization run, raising when it did not run.
+
+        The press answers a tap with the same refusal the
+        ``run_optimization`` action raises (#1644, D10-s1-02): reporting
+        success behind a dead price feed is the silent failure the action
+        was fixed out of (#294). The solve is awaited here -- the platform
+        takes no parallel-updates slot, so nothing queues behind it -- and
+        the fetch-and-actuate cycle still runs off the press, as before
+        (#1641).
+        """
         _LOGGER.info("Optimization run requested from the dashboard")
-        off_the_action(self, self.coordinator.async_force_optimization())
+        reason = await self.coordinator.async_force_optimization()
+        off_the_action(self, self.coordinator.async_request_refresh())
+        if reason == "no_prices":
+            # The action's own wording, on the action's own translation
+            # keys: services.py owns them and this is its sibling surface.
+            raise HomeAssistantError(
+                f"The optimization did not run for {self._entry.entry_id}: "
+                "fewer than four electricity price steps were available",
+                translation_domain=DOMAIN,
+                translation_key="run_optimization_no_prices",
+                translation_placeholders={"entry_ids": self._entry.entry_id},
+            )
+        if reason is not None:
+            raise HomeAssistantError(
+                f"The optimization did not run for {self._entry.entry_id}: "
+                "the solve failed; the error is in the integration's log",
+                translation_domain=DOMAIN,
+                translation_key="run_optimization_solve_failed",
+                translation_placeholders={"entry_ids": self._entry.entry_id},
+            )
 
 
 class SystemIdentificationButton(_OptimizerButtonBase):
