@@ -10,17 +10,15 @@ Last rewritten 2026-09-27T14:02Z. The full chronology is in RESUME-v670-log-*.md
 - Drafts at handoff: open each fix as a draft as soon as it is handed off; merge only on a "Fix review: merge" verdict and green CI.
 - Code-owned or policy/budget PRs need tvofi's approving review at the final head.
 
-## State at 14:02Z
-- Released: v6.7.3 to v6.7.7 (v6.7.7 = the Governance hotfix #1721; main is green on Tests and Governance).
-- Merged today after v6.7.5: #1715, #1719, #1703, #1721.
-- Queue (bg jobs):
-  1. #1717 F3.3: re-merged with main; merging on green (job b51y7hqi3).
-  2. #1722 F1.1 (verdict f13b5523, critical path) and then #1718 F4.2 (verdict 7fe356f6): chain job b851ya2jh re-merges main into each and merges it, after #1717.
-  3. #1720 F11.6: at bf2723bc (main merged); waits for tvofi's re-approval at bf2723bc, then auto-merges (job biq7ceqmm).
-- If the jobs died: rerun remerge_main.sh then merge_pr.sh per PR. The verdicts are in reverdict/evidence-<sha8>; the bodies are in v6612/<topic>-body.md.
-- Next stamp v6.7.8 after the queue drains.
-- C5: hpo-ledger App id 5094721; secrets HPO_LEDGER_APP_ID and HPO_LEDGER_PRIVATE_KEY set; main-protect bypass set to hpo-ledger.
-- Ruleset 23698884 (main-protect-checks) bypass must be DeployKey only (tvofi added and removed the admin role at 13:12Z for #1721).
+## State at 15:10Z (session restarted; this seat is now the sole coordinator)
+- tvofi (2026-09-27, in session): there are NO cloud sessions anymore. This Mac seat coordinates ALL work: fixers and reviewers run as local subagents (opus for adversarial fix/review, sonnet for specified work with an oracle, haiku for mechanical), per the roster's per-PR model fields. The Mac itself keeps merging, stamping, verdict processing and coordination. PR creation is delegated to fixer seats too.
+- MERGED #1720 F11.6 at 2d012406 (closes #1667) at 14:5xZ — merged FIRST to lock tvofi's re-approval at bf2723bc before any main move dismissed it.
+- #1722 F1.1: re-merged to 7a9e1c0f (main 2d012406); verdict relabelled (reverdict/evidence-7a9e1c0f); hpo-approver approved; merge job running in bg (CI was 5 checks in progress). On merge: #1665 #1683 close → dispatch F1.2 fixer (opus, roster R9-F1.2, branch handoff/r9-f1-coordinator-2).
+- F2.3 HANDED OFF (code head ef071c1a, branch handoff/r9-f2-solver-3 @81fbc185; Fixes #1671): sonnet seat opening its draft PR (claimnotes refusal on claimed_drift.txt resolved by hand: keep the wood_coil claim, claims-for to 6.7.7). Then an opus review seat. Merges after #1718.
+- Queue after #1722: #1717 F3.3 (verdict @0c6242a1, head was pre-re-merged to 256afc69 → remerge main again, relabel, merge), then #1718 F4.2 @7fe356f6 (verdict matches; remerge, merge — closes #1672), then F2.3's PR on its verdict.
+- F2.5 (opus) dispatches when #1717 AND F2.3's PR have merged (roster after: F2.2✓ F3.3 F2.3).
+- Stamp v6.7.8 after the queue drains (rows ride the branches).
+- bg jobs die with the session — rerun remerge_main.sh then merge_pr.sh per PR; verdict evidence in reverdict/evidence-<sha8>.
 
 ## Tools (/private/tmp/audit-7/orchestrator/)
 - handoff_push.sh <topic> <code-sha> "<title>" [merge-main]
@@ -246,3 +244,4 @@ All four merge before the round-9 baseline is cut.
 - #1720 is at bf2723bc (main v6.7.7 merged); it needs tvofi's re-approval at bf2723bc.
 - #1718 verdict: merge at 7fe356f6. Queue after #1717 and #1720: re-merge main, then merge (issue 1672).
 - #1722 verdict: merge at f13b5523 (critical path, unlocks F1.2). Chain: after #1717, then #1722, then #1718 (each re-merged). #1720 merges independently on tvofi's approval.
+- The resume note and scripts are pushed to origin handoff/mac-merge-seat-resume (d25bbe35). Re-push that branch after each state change.
