@@ -736,11 +736,16 @@
 # valve_storage_low_target does not move here.
 
 # R9-F2.3 (#1671, D2-s2-03): this branch claims wood_coil and nothing else. It
-# is the one fixture with a DHW coil in the wood tank, and the baseline
-# thermostat house now owns the same coil and draws the plan does, so the coil
-# debits the baseline's wood store as it debits the plan's. Direction, measured
-# base 9c6b923f vs branch in one environment (OpenBLAS Haswell, 1 thread): net
-# of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
-# 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
-# cannot excuse and a name cannot be both, so the entry is suspended above.
-wood_coil # R9-F2.3 (#1671): the baseline house owns the plan's coil; baseline_cost up
+# is the one fixture with a DHW coil in the wood tank, and the thermostat
+# reference now owns the same coil and draws the plan does, so the coil
+# drains the reference's wood tank as it drains the plan's (reference wood end
+# 20.79 degC without the coil, 19.39 with it). Direction, measured base
+# 9c6b923f vs branch in one environment (OpenBLAS Haswell, 1 thread,
+# golden.capture): baseline_cost FALLS 157.190147 -> 156.407745; per the fix
+# review's probe the reference spends more early (steps 26-27) and less late
+# (steps 74-85). deferred_energy_cost moves 26.368664 -> 27.234755 and
+# predicted_cost 40.356399 -> 38.938116, so predicted_savings falls 90.465084
+# -> 90.234874 and savings_percentage rises 57.55137 -> 57.692075.
+# baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry cannot
+# excuse and a name cannot be both, so the entry is suspended above.
+wood_coil # R9-F2.3 (#1671): the reference owns the plan's coil; baseline_cost down
