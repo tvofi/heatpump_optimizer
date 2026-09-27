@@ -418,3 +418,10 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27T09:08Z (coordinator session_01EJznfXB89EacqaXtAfgt41) MERGED F4.1 #1704 at 0c9c4000; WAVE 1 COMPLETE. Stamped v6.7.4 (tag 800d7aab, #1708 only). F4.2 fixer started, thread cmsg_01EL5jLi4rokGBbkaevYXSJVUN91VAAwG7tZzFvEtkaNsW. F2.2 is now #1713 (MERGE verdict). Mac queue: boost hotfix, #1703, #1713, #1707, #1709, then stamp v6.7.5 (it carries #1704).
 - 2026-09-27T09:12Z tvofi available: gated work pulled forward. Start now: F11.3 (opus, policy, review first) and F9.2 (sonnet). F11.6 follows F11.3. The other gated PRs (F10.2-6, F11.4-5, F6.3) are chain-blocked. tvofi was asked to set up the F10.5 ledger-writer App identity now.
 - 2026-09-27T09:11Z Started F11.3 (opus, thread cmsg_01EL5jLi4rokGBbkaevYXSJV2p2HqHTyVEx8L86d2yVuxB) and F9.2 (thread cmsg_01EL5jLi4rokGBbkaevYXSJVT5uHJzYKSYyewNjRYyNR86). C5 setup passed to tvofi.
+- 2026-09-27T09:14Z MERGED F2.2 #1713 at 9c6b923f. Started F2.3 (opus, thread cmsg_01EL5jLi4rokGBbkaevYXSJV5E42y3wNmseHvHJySpdjEz). C5 is NOT done: the Mac classifier blocked it, and tvofi has manual steps.
+  PIN FOR THE F10.5 BRIEF (add it when the brief starts):
+  - App hpo-ledger, Contents read/write, this repo only.
+  - Actions secrets HPO_LEDGER_APP_ID and HPO_LEDGER_PRIVATE_KEY.
+  - Mac files ~/.zcode/hpo-ledger.appid and ~/.zcode/hpo-ledger.pem.
+  - The workflow step fails soft until the secret exists.
+  - The main-protect bypass stays tvofi's action.
