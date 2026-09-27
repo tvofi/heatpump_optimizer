@@ -47441,6 +47441,17 @@ _pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rheat._thermal_model = _pa_real
 _pa_rheat._current_state.outdoor_temperature = 5.0
 _pa_run(_pa_rheat, 1)
+_pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
+_pa_rboth._thermal_model = _pa_real
+_pa_rboth._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rboth, 1)
+R.check(
+    "on the real curve a heating-plus-hot-water step writes Heating + DHW and the heating flow",
+    ("select", "select_option", "Heating + DHW") in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
+    f"{_pa_rboth.writes()}",
+)
 _pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rbase._thermal_model = _pa_real
 _pa_rbase._current_state.outdoor_temperature = 5.0
