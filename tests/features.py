@@ -47862,14 +47862,15 @@ R.check(
 )
 
 # D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile
-# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ -- does
-# not load, so no phantom bucket pins recommend() at the range's floor.
+# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ (1.5
+# kW/Hz: a 60 kW draw at 40 Hz) -- does not load, and observe() does not fold
+# one, so no phantom bucket pins recommend() at the range's floor.
 _f32_map = _f32_fc.FrequencyMap.from_dict({
-    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [50.0, 50],
+    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [1.5, 50],
     "4": [0.04, 50], "5": [_f32_fc.FREQ_MAX_KW_PER_HZ, 50],
 })
 _f32_obs = _f32_fc.FrequencyMap()
-_f32_obs.observe(2.0, 6.0, 1.0, 120.0)
+_f32_obs.observe(40.0, 60.0, 20.0, 120.0)
 _f32_obs.observe(60.0, 2.4, 20.0, 120.0)
 R.check(
     "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
