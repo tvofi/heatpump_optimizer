@@ -1741,6 +1741,11 @@ def _terminal_row_cost(
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
+    #: The two-zone floor's linear price, as a fraction of its own: 1.0, but
+    #: 0.5 for the continuation ``_optimize_space_only`` runs on its first
+    #: start -- see there.
+    _floor_l1_scale = 1.0
+
     def __init__(
         self,
         thermal_model: ThermalModel,
@@ -1851,7 +1856,9 @@ class HeatPumpOptimizer:
                 + np.sum(overshoot_u ** 2) * 5.0
                 + np.sum(undershoot_l ** 2) * 10.0
                 + np.sum(overshoot_l ** 2) * 5.0
-            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * (
+                _COMFORT_FLOOR_L1 * self._floor_l1_scale
+            )
 
             comfort_dev_u = upper_t - comfort_targets
             comfort_dev_l = lower_t - comfort_targets
@@ -1928,7 +1935,9 @@ class HeatPumpOptimizer:
                     + np.sum(overshoot_u ** 2) * 5.0
                     + np.sum(undershoot_l ** 2) * 10.0
                     + np.sum(overshoot_l ** 2) * 5.0
-                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * (
+                    _COMFORT_FLOOR_L1 * self._floor_l1_scale
+                )
 
                 comfort_dev_u = upper_t - comfort_targets
                 comfort_dev_l = lower_t - comfort_targets
@@ -4037,6 +4046,24 @@ class HeatPumpOptimizer:
                     dt,
                 )
             )
+        if self.model.params.two_zone_enabled:
+            # Continuation for the first start (R9-F2.1). Each zone pays the
+            # full linear floor price, and a descent that crosses the floor
+            # from the smooth guess can bend away from a basin the half price
+            # reaches: the backtest's 750 L storage house shipped a plan its
+            # own objective scores 0.83 worse. So the guess is refined at the
+            # half price first; what ships is still decided by the true
+            # objective below, against every other start.
+            self._floor_l1_scale = 0.5
+            try:
+                starts[0] = np.asarray(_multi_start_minimize(
+                    objective, [starts[0]], bounds, maxiter=200,
+                    batch_objective=objective_batch,
+                ).x, dtype=float)
+            except Exception:  # pragma: no cover - keep the plain guess
+                pass
+            finally:
+                self._floor_l1_scale = 1.0
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
