@@ -38,6 +38,7 @@
 //
 //   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|registry]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
+//   node .claude/workflows/field_coverage.mjs --self-test
 //
 // exit 0: no BLIND, no DEAD, no refusal. exit 1 otherwise. exit 2: usage.
 
@@ -333,8 +334,49 @@ function registryRun(report) {
   for (const k of Object.keys(DECLARED)) if (!set.includes(k)) report.dead.push(`registry: DECLARED \`${k}\` is no longer in the derived set`)
 }
 
+// --self-test: each verdict this program can return, driven on a synthetic
+// registration and a doctored DECLARED, so that emptying a refusal is seen.
+async function selfTest() {
+  const bad = []
+  const t = (name, ok) => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad.push(name) }
+  const fresh = () => ({ read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 })
+  // A check that reads `a` and not `b`: `b` is BLIND, and IGNORE on it clears it.
+  const reg = (ignore, verdict) => ({ name: 'probe', check: 'probe', artifact: 'probe', load: () => ({ a: 1, b: 'x' }), ignore,
+    verdict: verdict || (async (o) => (o.a === 1 ? 'green' : 'red')) })
+  let r = fresh(); await jsonRun(reg({}), r)
+  t('a field the check never reads is BLIND', r.blind.length === 1 && /`b`/.test(r.blind[0]) && r.read.length === 1)
+  r = fresh(); await jsonRun(reg({ b: 'why' }), r)
+  t('an IGNORE with a reason clears it', !r.blind.length && r.ignored.length === 1)
+  r = fresh(); await jsonRun(reg({ c: 'why' }), r)
+  t('an IGNORE matching no field is DEAD', r.dead.length === 1)
+  r = fresh(); await jsonRun(reg({}, async () => 'red'), r)
+  t('an input red before any perturbation is REFUSED', r.refused.length === 1 && !r.read.length)
+  r = fresh(); await jsonRun(reg({}, async (o) => (o.a === 1 && o.b === 'x' ? 'green' : 'skip:down')), r)
+  t('a skip on a perturbation is REFUSED, never a detection', r.refused.length === 2 && !r.read.length)
+  r = fresh(); await jsonRun({ ...reg({}), load: () => { throw new Error('down') } }, r)
+  t('a load failure is REFUSED', r.refused.length === 1)
+  r = fresh(); await jsonRun({ ...reg({}), skipOnLoad: true, load: () => { throw new Error('down') } }, r)
+  t('the ruleset arm\'s load failure is a printed skip, not a refusal', !r.refused.length && !r.read.length)
+  const saved = { ...DECLARED }
+  try {
+    delete DECLARED['check budgets']
+    DECLARED['check no-such-check'] = { none: 'probe' }
+    DECLARED['stamp rule 4'] = { arm: 'no-such-arm' }
+    r = fresh(); registryRun(r)
+    t('a derived check DECLARED lacks is REFUSED as unregistered', r.refused.some((x) => /`check budgets` is unregistered/.test(x)))
+    t('a DECLARED key the set does not yield is DEAD', r.dead.some((x) => /no-such-check/.test(x)))
+    t('a DECLARED arm that does not exist is REFUSED', r.refused.some((x) => /no-such-arm/.test(x)))
+  } finally {
+    for (const k of Object.keys(DECLARED)) delete DECLARED[k]
+    Object.assign(DECLARED, saved)
+  }
+  console.log(bad.length ? `FIELD COVERAGE SELF-TEST: ${bad.length} FAILED` : 'FIELD COVERAGE SELF-TEST ok')
+  process.exit(bad.length ? 1 : 0)
+}
+
 async function main() {
   const argv = process.argv.slice(2)
+  if (argv[0] === '--self-test') return selfTest()
   let only = null
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') only = argv[++i]

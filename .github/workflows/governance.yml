@@ -238,6 +238,12 @@ jobs:
       - name: Show the fragment check refusing its own perturbation
         run: node .claude/workflows/fragments_sync.mjs --self-test
 
+      # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
+      # synthetic registration, offline: `policy-docs` runs the base's copy,
+      # which cannot answer for a change to this one.
+      - name: Show field coverage refusing each shape it exists to refuse
+        run: node .claude/workflows/field_coverage.mjs --self-test
+
       # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
       # well-formed comment object (#541 comment 5625671141). The countermeasure
       # is a program seats call instead of a bit seats remember, and its own

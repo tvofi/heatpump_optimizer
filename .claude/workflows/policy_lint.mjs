@@ -4463,6 +4463,13 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: the budget check compared a malformed cap as within budget: ${capSilent.join(', ')}. A cap that is not a whole, finite, non-negative number is an unlimited raise unless it is refused.`)
     return 1
   }
+  // The token table itself: deleting it must fire, or the per-file size cap
+  // (D11-s2-01) goes by deleting one key.
+  pins += 1
+  if (!checkBudgets(policyFiles(), { ...hugeBudget, files_tokens: undefined }).some((f) => f.where === '(per-file token caps)')) {
+    console.log('\nFIXTURE VACUOUS: a budget with no files_tokens table produced no finding, so every file\'s size cap can be deleted at once in silence')
+    return 1
+  }
 
   // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
   // against nothing, which made "give it a cap" a way out of the corpus. False
