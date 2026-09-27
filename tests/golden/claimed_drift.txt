@@ -188,7 +188,8 @@
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R9-F2.3 suspends wood_coil's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
@@ -733,3 +734,13 @@
 # 127.2155 -> 127.1950, valve_storage_small_tank 80.4944 -> 79.9648. The three
 # claims inherited from #1694 are dropped (env_drift --drop-inherited); of them,
 # valve_storage_low_target does not move here.
+
+# R9-F2.3 (#1671, D2-s2-03): this branch claims wood_coil and nothing else. It
+# is the one fixture with a DHW coil in the wood tank, and the baseline
+# thermostat house now owns the same coil and draws the plan does, so the coil
+# debits the baseline's wood store as it debits the plan's. Direction, measured
+# base 9c6b923f vs branch in one environment (OpenBLAS Haswell, 1 thread): net
+# of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
+# 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
+# cannot excuse and a name cannot be both, so the entry is suspended above.
+wood_coil # R9-F2.3 (#1671): the baseline house owns the plan's coil; baseline_cost up
