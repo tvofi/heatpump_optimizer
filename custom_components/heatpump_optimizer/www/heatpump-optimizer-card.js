@@ -6314,23 +6314,13 @@ function valueAxis(
   // dialog's 15 units, which already did this before the boost -- the
   // ascender ran off the top of the chart.
   //
-  // P9-f61a: that offset (5.2 units at FONT_BASE) was a constant chosen at
-  // one font size with no headroom check, not a measured gap -- so at
-  // FONT_BASE=10 the title's own descender always ran into the topmost
-  // tick's ascender (a shared-ink collision on every axis, e.g. "60"/"°C"),
-  // the same "placed by a constant offset, not by the sibling's measured
-  // box" shape as D4-s1-05. `topTickY` is where that tick actually renders
-  // (niceAxis can extend the tick past the data range, so this can differ
-  // from `plotT`); one full line height (ascent + descent, `size`) below it
-  // clears the collision at any font size, not just the one this was tuned
-  // for.
-  const topTickY = axis.ticks.length
-    ? Math.min(...axis.ticks.map((t) => scaleY(t, axisName)))
-    : plotT;
-  const uy = Math.max(
-    size * 0.8,
-    Math.min(plotT - 5.2 * (size / FONT_BASE), topTickY - size)
-  );
+  // P9-f61a (2026-09-26): a fix was tried here (clearing the topmost tick's
+  // own measured position by a full line height) and reverted -- the
+  // finder's own RCA grid (4f3b9d4f) shows this offset does not collide with
+  // any tick at this merge base, and the tried fix instead clipped the title
+  // off the top of the svg on 388 of the grid's cells. See F6.2's PR body
+  // Forward-carry for the disposition.
+  const uy = Math.max(size * 0.8, plotT - 5.2 * (size / FONT_BASE));
   const ta = titleAnchor || anchor;
   const ux = ta === "end" ? x - 5 : x + 5;
   out.push(

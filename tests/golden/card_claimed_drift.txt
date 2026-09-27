@@ -630,61 +630,22 @@
 # leaves unclaimed, renders the config editor's schema and no card
 # stylesheet or "now" marker.
 #
-# fix/r9-f6-card-2 (D4-s1-04, D5-s2-01, P9-f61a): F6.1's 39 claims above are
-# already on origin/main, so re-declaring them against the same merge base
-# claims nothing this diff moves and is dropped (STALE CLAIM). This diff has
-# two production changes:
-#  (1) the setup-diagram's new keyboard route: `.setup-box` and `.setup-pipe`
-#      gain `tabindex`/`role`/`aria-label` while the layout editor is in
-#      editing mode. Only the two fixtures that render the setup diagram with
-#      `editing: true` (dragging a box, and the tidy/no-drag baseline) show
-#      any difference from it.
-#  (2) P9-f61a: `valueAxis`'s unit title (the axis's "°C"/"kW"/"W/m²"/
-#      currency label) used to sit a constant offset above the plot frame
-#      with no measured clearance against the topmost tick label sharing its
-#      column, so the title's descender ran into the tick's ascender on every
-#      chart (a shared-ink collision, e.g. "60"/"°C") -- now it clears the
-#      tick that actually renders closest to the top by one full line height.
-#      Every fixture that draws a chart with at least one value axis moves by
-#      this alone; a fixture with no chart (no_plan, no_plan_expanded,
-#      editor_schema) does not.
-# D5-s2-01 (stale `` `_name` `` code-comment references) is a comment-only
-# change and moves no rendered state.
+# fix/r9-f6-card-2 (D4-s1-04, D5-s2-01): F6.1's 39 claims above are already on
+# origin/main, so re-declaring them against the same merge base claims nothing
+# this diff moves and is dropped (STALE CLAIM). This diff's only production
+# change is the setup-diagram's new keyboard route: `.setup-box` and
+# `.setup-pipe` gain `tabindex`/`role`/`aria-label` while the layout editor is
+# in editing mode. Only the two fixtures that render the setup diagram with
+# `editing: true` (dragging a box, and the tidy/no-drag baseline) show any
+# difference. D5-s2-01 (stale `` `_name` `` code-comment references) is a
+# comment-only change and moves no rendered state.
+#
+# P9-f61a was tried here too (a measured clearance for `valueAxis`'s unit
+# title against its topmost tick, in place of the constant offset) and
+# reverted: the fix review's run of the finder's own RCA grid (4f3b9d4f) shows
+# the title/tick collision this was meant to fix does not reproduce at this
+# merge base, and the tried fix instead clipped the title off the top of the
+# svg on 388 of the grid's cells. Not fixed in this PR; see the PR body.
 layout_editing_dragged  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
 layout_editing_tidy  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
-plan_inline  # P9-f61a axis-title clearance
-plan_inline_sv  # P9-f61a axis-title clearance
-plan_short_window  # P9-f61a axis-title clearance
-custom_title_currency  # P9-f61a axis-title clearance
-hidden_series  # P9-f61a axis-title clearance
-score_open  # P9-f61a axis-title clearance
-expanded_plan  # P9-f61a axis-title clearance
-what_if_off  # P9-f61a axis-title clearance
-expanded_zoomed  # P9-f61a axis-title clearance
-draft_dirty_menu_open  # P9-f61a axis-title clearance
-draft_mid_drag  # P9-f61a axis-title clearance
-whatif_edited  # P9-f61a axis-title clearance
-whatif_weekly  # P9-f61a axis-title clearance
-override_active  # P9-f61a axis-title clearance
-shared_steps  # P9-f61a axis-title clearance
-shared_steps_hover  # P9-f61a axis-title clearance
-tooltip_hover  # P9-f61a axis-title clearance
-coarse_pointer  # P9-f61a axis-title clearance
-reduced_motion  # P9-f61a axis-title clearance
-setup_single_buffer  # P9-f61a axis-title clearance
-setup_two_tank  # P9-f61a axis-title clearance
-setup_coil  # P9-f61a axis-title clearance
-advisor_page  # P9-f61a axis-title clearance
-picker_open_filtered  # P9-f61a axis-title clearance
-wood_alert  # P9-f61a axis-title clearance
-wood_lane  # P9-f61a axis-title clearance
-wood_whatif  # P9-f61a axis-title clearance
-away_toggle  # P9-f61a axis-title clearance
-away_return  # P9-f61a axis-title clearance
-away_status  # P9-f61a axis-title clearance
-history_panned  # P9-f61a axis-title clearance
-history_deep_panned  # P9-f61a axis-title clearance
-history_no_power  # P9-f61a axis-title clearance
-history_unavailable  # P9-f61a axis-title clearance
-history_pending  # P9-f61a axis-title clearance
 

@@ -3246,13 +3246,21 @@ check("the hand-scheduled reason has a label",
 
   // D4-s1-04: the layout editor has no keyboard route -- removing a pipe,
   // drawing a pipe and moving a box are all pointer-only. Every check here
-  // drives LayoutEditor.onKeyDown directly, the way a real keydown on a
-  // focused box or pipe would.
+  // drives the route through `canvas.dispatchEvent`, the same
+  // `canvas.addEventListener("keydown", this.onKeyDown)` wiring a real
+  // keydown on a focused box or pipe would use -- calling `onKeyDown`
+  // directly (as this block did before the fix review) pins none of that
+  // wiring: with the listener never attached, these checks would still pass.
   {
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    const canvas = c.shadowRoot.querySelector(".setup-canvas");
+
     const keyOn = (target, key) => {
       let prevented = false;
-      c.layoutEditor.onKeyDown({
-        target, key, preventDefault() { prevented = true; },
+      canvas.dispatchEvent({
+        type: "keydown", key, target,
+        preventDefault() { prevented = true; },
         stopPropagation() {},
       });
       return prevented;
@@ -3261,9 +3269,6 @@ check("the hand-scheduled reason has a label",
       dataset: { place }, classList: { contains: (c) => c === "setup-box" },
     });
     const pipeEl = (edge) => ({ dataset: { edge } });
-
-    const c = mkEditor();
-    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
 
     // Removing a pipe: Enter and Delete on a focused pipe both do what a
     // click on it already does.
@@ -3300,13 +3305,29 @@ check("the hand-scheduled reason has a label",
 
     // Drawing a pipe: Enter arms the box as the connection's source, Enter
     // on a different box completes it -- the keyboard twin of dragging a
-    // port onto another box.
+    // port onto another box. Arming also swaps the armed box's aria-label
+    // to name the pending connection, the review's fourth pin: nothing
+    // before this checked the label actually changes.
     const before2 = edgesOf(c);
     keyOn(boxEl("outdoor"), "Enter");
     check("Enter on a box arms it as a pending keyboard connection",
       c.layoutEditor.edit.kbConnectFrom === "outdoor" &&
       edgesOf(c).join() === before2.join(),
       "arming must not draw anything by itself");
+    // `LayoutEditor.boxes` is the drag-positions array (place/x/y/w/h/col),
+    // not the render-time box list with titles, so the exact interpolated
+    // label isn't available here -- checking the template's own static
+    // suffix (everything after "{label}") is enough to pin the switch
+    // without hard-coding which box carries which title.
+    const moveSuffix = fn("L")("setup.box_move_aria")
+      .slice(fn("L")("setup.box_move_aria").indexOf("{label}") + 7);
+    const connectSuffix = fn("L")("setup.box_connect_from_aria")
+      .slice(fn("L")("setup.box_connect_from_aria").indexOf("{label}") + 7);
+    const outdoorAria = (pageHtml(c).match(
+      /data-place="outdoor"[^>]*aria-label="([^"]*)"/) || [])[1] || "";
+    check("the armed box's aria-label switches to the connecting state",
+      outdoorAria.endsWith(connectSuffix) && !outdoorAria.endsWith(moveSuffix),
+      `aria-label="${outdoorAria}"`);
     keyOn(boxEl("lower_zone"), "Enter");
     check("Enter on a second box completes the connection",
       edgesOf(c).includes("outdoor>lower_zone") &&
@@ -3314,11 +3335,16 @@ check("the hand-scheduled reason has a label",
       `edges drawn: ${edgesOf(c).join(", ")}`);
 
     // Arming the same box twice cancels, the keyboard's answer to releasing
-    // a drag over empty space.
+    // a drag over empty space -- and must not fall through to `addEdge`,
+    // which does not itself refuse a self-loop (`[p, p]`).
+    const before2b = edgesOf(c);
     keyOn(boxEl("mixing_valve"), "Enter");
     keyOn(boxEl("mixing_valve"), "Enter");
     check("pressing Enter on the armed box again cancels the connection",
-      c.layoutEditor.edit.kbConnectFrom === null);
+      c.layoutEditor.edit.kbConnectFrom === null &&
+      edgesOf(c).join() === before2b.join() &&
+      !edgesOf(c).includes("mixing_valve>mixing_valve"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
 
     // Escape cancels an armed connection without touching the drawing.
     const before3 = edgesOf(c);
@@ -3328,9 +3354,6 @@ check("the hand-scheduled reason has a label",
       c.layoutEditor.edit.kbConnectFrom === null &&
       edgesOf(c).join() === before3.join());
 
-    // Focus is preserved across the redraw a move or a connect causes --
-    // the drag's own listeners survive the same `refresh()`, and the
-    // keyboard route must not drop the ring it just earned.
     const root = c.shadowRoot;
     const focusable = root.querySelector('[data-place="heat_pump"]');
     check("the layout editor draws its boxes as focusable while editing",
@@ -3346,6 +3369,23 @@ check("the hand-scheduled reason has a label",
         'class="setup-pipe[^"]*" data-edge="mixing_valve>upper_zone"' +
         '\\s+tabindex="0" role="button" aria-label="[^"]*"'
       ).test(pageHtml(c)));
+
+    // Focus is preserved across the redraw a move or a connect causes -- the
+    // drag's own listeners survive the same `refresh()`, and the keyboard
+    // route must not drop the ring it just earned. Driven for real (`.focus()`
+    // on the actual queried element, re-querying after the redraw), the
+    // review's third pin: asserting only that the box still moved, as this
+    // block did before, never exercises `refresh()`'s refocus at all.
+    const before4 = root.querySelector('[data-place="lower_zone"]');
+    before4.focus();
+    check("the box to be moved holds focus before the redraw",
+      root.activeElement === before4);
+    keyOn(before4, "ArrowRight");
+    const after4 = root.querySelector('[data-place="lower_zone"]');
+    check("and the redrawn box (a new element after refresh()'s innerHTML swap) holds it after",
+      after4 !== before4 && root.activeElement === after4,
+      `activeElement is ${root.activeElement === after4 ? "the redrawn box" :
+        root.activeElement === before4 ? "the stale, destroyed box" : "something else"}`);
   }
 
   {
@@ -9437,36 +9477,6 @@ check("without an indoor reading the corner now label is absent",
       yNow !== yTemp && yNow !== yEst && yTemp !== yEst,
       `now=${yNow} temp=${yTemp} est=${yEst}`);
   }
-}
-
-// --- P9-f61a (found by F6.1 while fixing D4-s1-05): the value-axis unit --
-// title used to sit `plotT - 5.2 * (size / FONT_BASE)` above the plot frame,
-// a constant tuned at one font size with no measured clearance against the
-// topmost tick label it shares a column with -- so at FONT_BASE=10 the
-// title's descender always ran into the tick's ascender ("60"/"°C",
-// "6"/"kW", "400"/"W/m²"), on every chart, not just an edge case. The fix
-// measures the actual gap to the tick that renders closest to the top
-// (`topTickY`, which niceAxis can push past the plot frame) and keeps at
-// least one full line height (`size`) clear of it, the same "measured, not
-// constant" shape as D4-s1-05's fix for the now-label row.
-{
-  const valueAxis = fn("valueAxis");
-  const size = 12;
-  const plotT = 40;
-  const scaleY = (v) => plotT + (60 - v) * 2; // tick 60 renders at plotT itself
-  const html = valueAxis(
-    { ticks: [0, 20, 40, 60] }, 50, plotT, 300, 260, "left", 0,
-    scaleY, "temp", "°C", size
-  );
-  const tickY = +(html.match(/<text[^>]*font-size="12"[^>]*>60<\/text>/) &&
-    html.match(/y="([\d.]+)"[^>]*font-size="12"[^>]*>60</)[1]);
-  const titleY = +(html.match(/y="([\d.]+)"[^>]*font-size="12"[^>]*>°C</) || [])[1];
-  check("the axis unit title and its topmost tick both render",
-    !Number.isNaN(tickY) && !Number.isNaN(titleY),
-    `tick=${tickY} title=${titleY}`);
-  check("the axis unit title clears the topmost tick by at least one line (P9-f61a)",
-    tickY - titleY >= size,
-    `tick=${tickY} title=${titleY} gap=${tickY - titleY} need>=${size}`);
 }
 
 // --- D4-s1-01 / P9-rca1: status text/button colours clear 4.5:1 on the ----
