@@ -549,15 +549,28 @@ writes, at every 15-minute plan step:
 
 | Plan step | Operating mode | Heat pump DHW set-point | Space-heating set-point |
 |---|---|---|---|
-| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the suitable value, or the space gate (below) |
-| Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the suitable value |
-| Both | *Heating + DHW* | the same | the suitable value |
-| Neither (idle) | left as it is | the same | the suitable value |
-| Every fallback | *Heating + DHW* | the same | the suitable value |
+| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the space gate (below) |
+| Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the heating value |
+| Both | *Heating + DHW* | the same | the heating value |
+| Neither (idle) | left as it is | the same | the space gate |
+| Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **The suitable space value** is the plan's own: the weather-curve supply
-  temperature for a *Flow temperature* entity, the step's planned room
-  temperature for an *Indoor temperature* one — clamped to the entity's range.
+- **For a *Flow temperature* entity** the heating value is 55 °C, or the
+  entity's maximum if that is lower. The pump's own water thermostat then
+  never cuts a planned heating step short, and the optimizer decides when
+  the house is heated. The supply only gets as hot as your radiators or
+  floor can take the pump's output, so in mild weather it stays well below
+  55 °C. The space gate is the entity's minimum, never below 25 °C. The hold
+  value, for when the plan is not in charge, is 35 °C (the flow the pump's
+  rated COP assumes), or the model's weather curve where that is higher.
+  The model's weather curve is a pricing curve, not a set-point: written
+  as one, it held the pump at 25 °C and underheated the house.
+- **For an *Indoor temperature* entity** each of the three is the step's
+  planned room temperature, clamped to the entity's range (5 °C as the gate
+  where the mode offers no hot-water-only option). An entity whose own
+  minimum is above the planned room temperature cannot be an indoor
+  set-point, so it is not written at all and a warning is logged: set its
+  unit to *Flow temperature*.
 - **Space heating steps are heating only.** The cheapest hours to heat the
   house need not be the ones that keep the tank ready for its next hot water
   window, so the pump's own tank thermostat is kept out of them. The
@@ -582,14 +595,14 @@ writes, at every 15-minute plan step:
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
   temperature, when a warm house needs no space heat. A stale plan, the
-  comfort, boost and off modes, a boost switch, a system-identification
+  comfort and boost modes, a boost switch, a system-identification
   experiment and unloading the integration all get the fallback row.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
-  active** off first: the fallback row is written once, and then nothing is
-  written over your settings until you turn it back on. Readings in the first
+  active** off first: from then on nothing is written to the pump, not even
+  the fallback row, until you turn it back on. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
 - **A write the pump does not hold is retried.** If the value written back

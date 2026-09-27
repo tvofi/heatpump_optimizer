@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.2
+# claims-for: 6.7.4
 #
-# v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
+# v6.7.4: hotfix: optimizer off means no writes to the heat pump. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -629,43 +629,4 @@
 # behaviour changes; editor_schema, the only state this branch's diff
 # leaves unclaimed, renders the config editor's schema and no card
 # stylesheet or "now" marker.
-no_plan  # now-label row move
-no_plan_expanded  # now-label row move
-plan_inline  # now-label row move
-plan_inline_sv  # now-label row move
-plan_short_window  # now-label row move
-custom_title_currency  # now-label row move
-hidden_series  # now-label row move
-score_open  # now-label row move
-expanded_plan  # now-label row move
-what_if_off  # now-label row move
-expanded_zoomed  # now-label row move
-draft_dirty_menu_open  # now-label row move + slot-menu clamp
-draft_mid_drag  # now-label row move
-whatif_edited  # now-label row move + wi-result colour
-whatif_weekly  # now-label row move + wi-result colour
-override_active  # now-label row move
-shared_steps  # now-label row move
-shared_steps_hover  # now-label row move
-tooltip_hover  # now-label row move
-coarse_pointer  # now-label row move
-reduced_motion  # now-label row move
-setup_single_buffer  # picker option id-first label
-setup_two_tank  # picker option id-first label
-setup_coil  # picker option id-first label
-advisor_page  # now-label row move
-layout_editing_dragged  # now-label row move
-layout_editing_tidy  # now-label row move
-picker_open_filtered  # picker option id-first label + slot-menu clamp
-wood_alert  # now-label row move
-wood_lane  # now-label row move
-wood_whatif  # now-label row move + wi-result colour
-away_toggle  # now-label row move
-away_return  # now-label row move
-away_status  # now-label row move
-history_unavailable  # now-label row move
-history_pending  # now-label row move
-history_panned  # now-temp row move
-history_deep_panned  # now-temp row move
-history_no_power  # now-temp row move
 

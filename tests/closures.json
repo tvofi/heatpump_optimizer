@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 106.8,
+   "seconds": 87.8,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -460,6 +460,7 @@
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
+   ".github/workflows/pr-contract-rerun.yml",
    ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",

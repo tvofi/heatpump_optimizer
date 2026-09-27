@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target GUARD_OFF 6a108721",
+  "killed_by": "tests/features.py",
+  "old": "    if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cbb8a2712fef67b4719309fa01396706e66148bc: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:release GUARD_OFF 4638906a",
+  "killed_by": "tests/features.py",
+  "old": "    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cbb8a2712fef67b4719309fa01396706e66148bc: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

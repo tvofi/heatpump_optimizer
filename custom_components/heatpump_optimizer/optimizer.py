@@ -328,7 +328,7 @@ def _batch_fd_gradient(
     batch_objective: Callable[..., Any],
     args: tuple[Any, ...],
     x0: np.ndarray,
-    f0: float,
+    f0: float | None,
     eps: float,
     bounds: list[tuple[float, float]],
 ) -> np.ndarray:
@@ -359,7 +359,24 @@ def _batch_fd_gradient(
     at status 2, nit 0. Free variables are untouched: their entries are
     still bit-for-bit scipy's, asserted per variable by
     ``tests/features.py::_grad_parity``.
+
+    ``f0=None`` puts ``x0`` itself at the head of the batch as row 0 and
+    differences against that row, so a caller that needs ``f(x0)`` as well
+    reads it from the same batch instead of the scalar objective
+    (``_fused_value_and_gradient``, R9 D9-s1-02).
     """
+    h, free = _fd_steps(x0, eps, bounds)
+    lead = 1 if f0 is None else 0
+    f = batch_objective(_fd_rows(x0, h, lead), *args)
+    if f0 is None:
+        f0 = float(f[0])
+    return _fd_divide(f[lead:], f0, x0, h, free)
+
+
+def _fd_steps(
+    x0: np.ndarray, eps: float, bounds: list[tuple[float, float]],
+) -> tuple[np.ndarray, np.ndarray]:
+    """scipy's 2-point steps for ``x0`` under ``bounds``, and which are free."""
     n = x0.size
     lb = np.array([b[0] for b in bounds], dtype=float)
     ub = np.array([b[1] for b in bounds], dtype=float)
@@ -387,17 +404,59 @@ def _batch_fd_gradient(
     h[forward] = upper_dist[forward]
     backward = (upper_dist < lower_dist) & ~fitting
     h[backward] = -lower_dist[backward]
-    perturbed = np.tile(x0, (n, 1))
-    perturbed[np.arange(n), np.arange(n)] = x0 + h
-    f = batch_objective(perturbed, *args)
+    return h, free
+
+
+def _fd_rows(x0: np.ndarray, h: np.ndarray, lead: int) -> np.ndarray:
+    """``lead`` copies of ``x0``, then ``x0`` with each variable stepped by ``h``."""
+    n = x0.size
+    rows = np.tile(x0, (lead + n, 1))
+    rows[lead + np.arange(n), np.arange(n)] = x0 + h
+    return rows
+
+
+def _fd_divide(
+    f: np.ndarray, f0: float, x0: np.ndarray, h: np.ndarray, free: np.ndarray,
+) -> np.ndarray:
+    """The divided differences of the stepped rows' values against ``f0``."""
     dx = (x0 + h) - x0
     # ``where=free`` leaves the fixed entries at the 0.0 they start as and
     # never performs their division, so no 0/0 is computed and no invalid-
     # value warning is raised. On an all-free bound set this is elementwise
     # the same IEEE division as before, bit for bit.
-    grad = np.zeros(n, dtype=float)
+    grad = np.zeros(x0.size, dtype=float)
     np.divide(f - f0, dx, out=grad, where=free)
     return grad
+
+
+def _fused_value_and_gradient(
+    batch_objective: Callable[..., Any],
+    bounds: list[tuple[float, float]],
+    fd_eps: float,
+) -> Callable[..., tuple[float, np.ndarray]]:
+    """An L-BFGS-B ``fun`` for ``jac=True``: ``f(x)`` and its gradient, one batch.
+
+    L-BFGS-B asks for the value and the gradient at every point it visits.
+    Taking the value from the scalar objective cost ~19-26x a batched row,
+    9-19 % of the solve (R9 D9-s1-02); here it is one extra row, ``x``
+    itself, at the head of the gradient's batch. The batched rows are
+    bitwise the scalar objective (the batched simulation's contract, #97),
+    so the value, the gradient and the iterate path are the ones the scalar
+    value produced.
+    """
+    def value_and_gradient(x: np.ndarray, *a: Any) -> tuple[float, np.ndarray]:
+        _gil_yield()
+        values: list[float] = []
+
+        def centred(rows: np.ndarray, *b: Any) -> Any:
+            out = batch_objective(rows, *b)
+            values.append(float(out[0]))
+            return out
+
+        grad = _batch_fd_gradient(centred, a, x, None, fd_eps, bounds)
+        return values[-1], grad
+
+    return value_and_gradient
 
 
 def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
@@ -450,6 +509,12 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     return True
 
 
+#: Steps the DHW min-run repair extends a raised slot by before it checks the
+#: tank against its ceiling again (``_dhw_raise_fits``): two hours at the
+#: 15-minute step, so a refusal stops within that of its first breach.
+_DHW_MIN_RUN_CHUNK = 8
+
+
 #: Adopt the restart only when it beats the prior by a real relative drop.
 #: L-BFGS-B's own ``ftol`` is 1e-6. Keeping every ``score < prior`` tick
 #: re-planned 15 of 51 stress scenarios and left the work check under its
@@ -483,16 +548,13 @@ def _lbfgsb_restart(
 ) -> Any:
     """Restart L-BFGS-B from its own returned point. No new seed (#826)."""
     _time_mod.sleep(0.002)
-    jac = None
+    fun: Callable[..., Any] = objective
+    jac: bool | None = None
     if batch_objective is not None and _bounds_supported_by_batch(bounds):
-        def jac(x: np.ndarray, *a: Any) -> np.ndarray:
-            return _batch_fd_gradient(
-                batch_objective, a, x,
-                float(objective(x, *a)), fd_eps, bounds,
-            )
+        fun, jac = _fused_value_and_gradient(batch_objective, bounds, fd_eps), True
     try:
         polished = _scoped_minimize(
-            objective,
+            fun,
             np.asarray(best.x, dtype=float),
             args=args,
             jac=jac,
@@ -535,6 +597,9 @@ def _multi_start_minimize(
     maxiter: int = 300,
     batch_objective: Callable[..., Any] | None = None,
     fd_eps: float = 1e-4,
+    move_starts: Callable[[list[np.ndarray], int], list[np.ndarray]] = (
+        lambda candidates, maxiter: candidates
+    ),
 ) -> Any:
     """Run L-BFGS-B from several starting points and keep the best result.
 
@@ -551,12 +616,14 @@ def _multi_start_minimize(
     see the note beside the seed constants above). Scoring only ranks the
     candidates; the cross-candidate minimum below is what ships.
 
-    The one-entry memo (#288) shares scipy's last ``fun(x)`` with the batched
-    jac's ``f0`` at the same ``x``. The judge measured that identity at 1.000
-    over 103 of 103 ``_batch_fd_gradient`` calls, so the second evaluation is
-    waste, not a different point. ``args`` is fixed for this call, so the key
-    is ``x`` alone.
+    The one-entry memo (#288) holds the last scalar value computed at an
+    ``x``, so scoring a point scipy last evaluated re-evaluates nothing on
+    the unbatched path. ``args`` is fixed for this call, so the key is ``x``
+    alone.
     """
+    # A caller's continuation moves its starts under this call's own
+    # iteration budget, so a cut budget reaches it too (R9-F2.1).
+    candidates = move_starts(list(candidates), maxiter)
     _raw_objective = objective
     _memo_key = None
     _memo_val = None
@@ -595,7 +662,8 @@ def _multi_start_minimize(
             # breathing. No effect on any numerical result.
             _time_mod.sleep(0.002)
         try:
-            jac = None
+            fun: Callable[..., Any] = memoized
+            jac: bool | None = None
             # The batched jac (#97, widened by D9-01) serves NON-UNIFORM
             # bounds, which is where the cost actually is: DHW is on by
             # default, and any DHW block or per-step power cap pins the space
@@ -626,14 +694,12 @@ def _multi_start_minimize(
                 # reproduces scipy's own 2-point estimate to the bit --
                 # same eps, same bounds rule -- so on bounds with no fixed
                 # variable the iterate path, and therefore the plan, does
-                # not move.
-                def jac(x: np.ndarray, *a: Any) -> np.ndarray:
-                    return _batch_fd_gradient(
-                        batch_objective, a, x,
-                        float(memoized(x, *a)), fd_eps, bounds,
-                    )
+                # not move. The value rides in the same batch (R9
+                # D9-s1-02), so L-BFGS-B makes no scalar evaluation.
+                fun = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
+                jac = True
             res = _scoped_minimize(
-                memoized,
+                fun,
                 guess,
                 args=args,
                 jac=jac,
@@ -762,6 +828,31 @@ def _savings_percentage(savings: float, baseline_cost: float) -> float:
 # ---------------------------------------------------------------------------
 
 
+# Below this a pump's modulation band is too narrow to grade a step by: a
+# fixed-speed pump (min == max power) is either off or at its one power.
+_MIN_MODULATION_BAND_KW = 0.1
+
+
+def _power_fraction(power: float, params: ThermalParameters) -> float:
+    """Where a planned power sits in the pump's modulation band, in [0, 1].
+
+    The one normalisation the setpoint, displace and action sites share. Four
+    inline copies floored a zero band at 0.1 kW, which on a fixed-speed pump
+    read a full-power step as 0 and an idle one as -60, and the published one
+    did not clip (R9 D12-s2-03). With no band to grade, a step is graded
+    against the pump's one running power instead.
+    """
+    p_min = params.min_electrical_power
+    p_max = params.max_electrical_power
+    if p_max - p_min >= _MIN_MODULATION_BAND_KW:
+        low, band = p_min, p_max - p_min
+    elif p_max > 0:
+        low, band = 0.0, p_max
+    else:
+        return 0.0
+    return float(min(1.0, max(0.0, (power - low) / band)))
+
+
 def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
     """Number of off→on transitions in a schedule.
 
@@ -778,6 +869,51 @@ def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
     return starts
 
 
+#: numpy's pairwise-summation block: a reduction longer than this is split in
+#: two (at a multiple of 8) and each half summed on its own.
+_PAIRWISE_BLOCK = 128
+
+
+def _row_sums(rows: np.ndarray) -> np.ndarray:
+    """``np.sum`` of each row of a [B, n] array, one pass for the whole batch.
+
+    numpy sums a fresh 1-D array pairwise: under ``_PAIRWISE_BLOCK`` elements
+    as eight interleaved partial sums combined in a fixed tree, above it by
+    halving. This runs exactly that order of additions, but each addition is
+    one elementwise ``+`` across the batch's column, so row ``b`` is the
+    scalar ``np.sum`` of ``rows[b]`` to the bit while the interpreter works
+    once per column block rather than once per row. Only elementwise ufuncs
+    touch the values, and they are exact IEEE operations on every numpy
+    backend, whatever the memory order or alignment of ``rows`` -- which is
+    what ``fixer.md`` step 15 asks of a batch: elementwise end to end. The
+    scalar twins call this on a one-row batch, so their agreement with the
+    batch is by construction, not by measurement (R9 D9-s1-01, RC-sw1).
+    """
+    n = rows.shape[1]
+    if n > _PAIRWISE_BLOCK:
+        half = n // 2
+        half -= half % 8
+        halves: np.ndarray = _row_sums(rows[:, :half]) + _row_sums(rows[:, half:])
+        return halves
+    if n < 8:
+        total = np.full(rows.shape[0], -0.0)
+        for j in range(n):
+            total = total + rows[:, j]
+        summed: np.ndarray = 0.0 + total
+        return summed
+    partial = rows[:, :8].copy()
+    stop = n - n % 8
+    for j in range(8, stop, 8):
+        partial += rows[:, j:j + 8]
+    total = (
+        (partial[:, 0] + partial[:, 1]) + (partial[:, 2] + partial[:, 3])
+    ) + ((partial[:, 4] + partial[:, 5]) + (partial[:, 6] + partial[:, 7]))
+    for j in range(stop, n):
+        total = total + rows[:, j]
+    result: np.ndarray = 0.0 + total
+    return result
+
+
 def cycling_penalty(
     power: np.ndarray, cost_per_cycle: float, p_max: float
 ) -> float:
@@ -786,12 +922,11 @@ def cycling_penalty(
     ``sum |ΔP|`` over the schedule counts total power swing. One complete
     start-stop cycle at full power contributes ``2·p_max``, so dividing by that
     expresses the L1 term in units of whole cycles and makes ``cost_per_cycle``
-    mean what its name says.
+    mean what its name says. The one-row case of ``cycling_penalty_batch``.
     """
-    if cost_per_cycle <= 0 or p_max <= 0 or len(power) < 2:
-        return 0.0
-    swing = float(np.sum(np.abs(np.diff(np.asarray(power, dtype=float)))))
-    return cost_per_cycle * swing / (2.0 * p_max)
+    return float(cycling_penalty_batch(
+        np.asarray(power, dtype=float)[None, :], cost_per_cycle, p_max
+    )[0])
 
 
 def cycling_penalty_batch(
@@ -799,27 +934,14 @@ def cycling_penalty_batch(
 ) -> np.ndarray:
     """``cycling_penalty`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The batched objective used to call the scalar penalty once per row; the
-    per-row re-entry -- not the arithmetic -- is the recomputation round 4
-    (D9-05) counted. Each row here runs the SCALAR expression verbatim on
-    its own row: ``np.diff``/``np.abs`` allocate fresh per-row arrays and
-    ``np.sum`` reduces them, exactly as ``cycling_penalty`` does on a 1-D
-    schedule. That is what makes a row bit-for-bit the scalar penalty on
-    every numpy backend, not by measurement on one: a reduction over a row
-    VIEW of a batched array is NOT the same code path as one over a fresh
-    array -- the view can carry an alignment or stride numpy's pairwise
-    loop treats differently, and on CI's x86_64 that ulp was enough to
-    re-plan 19 of 51 stress scenarios while every arm64 check stayed
-    green. See ``_comfort_terms_batch`` for the rule in full.
+    The swings are elementwise and ``_row_sums`` reduces them in numpy's own
+    order, so each row is the scalar penalty bit for bit on every backend
+    without a per-row interpreter loop (RC-sw1).
     """
     shape = np.shape(power_matrix)
     if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:
         return np.zeros(shape[0])
-    swing = np.empty(shape[0])
-    for b in range(shape[0]):
-        swing[b] = float(
-            np.sum(np.abs(np.diff(np.asarray(power_matrix[b], dtype=float))))
-        )
+    swing = _row_sums(np.abs(np.diff(np.asarray(power_matrix, dtype=float), axis=1)))
     return cost_per_cycle * swing / (2.0 * p_max)
 
 
@@ -1084,9 +1206,7 @@ class OptimizationResult:
     # The planned buffer-tank temperature, one entry per step boundary. Empty
     # without a mixing valve, where the tank is a hydraulic separator and its
     # temperature is not a decision. It is the only view anyone -- a sensor, the
-    # card, a test -- has of whether the plan intends to store anything: the
-    # model stashes the series on itself for the terminal-cost term and nothing
-    # else could reach it.
+    # card, a test -- has of whether the plan intends to store anything.
     buffer_temp_trajectory: list[float] = field(default_factory=list)
     # The valve target the plan wants at each step, fully resolved. Non-empty
     # only in smart_write mode when a hold schedule beat the fixed target on
@@ -1718,6 +1838,11 @@ def _terminal_row_cost(
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
+    #: The two-zone floor's linear price, as a fraction of its own: 1.0, but
+    #: 0.5 for the continuation ``_optimize_space_only`` runs on its first
+    #: start -- see there.
+    _floor_l1_scale = 1.0
+
     def __init__(
         self,
         thermal_model: ThermalModel,
@@ -1793,10 +1918,16 @@ class HeatPumpOptimizer:
         is the price of breaching the user's bounds, the second is a mild
         preference for sitting near the target inside them.
 
-        Two-zone penalties are *averaged* over the zones rather than summed.
-        Summing made a two-zone house behave as if ``comfort_weight`` were set
-        twice as high as configured, so it hugged the setpoint and gave up most
-        of the available savings.
+        Two-zone overshoot and pull are *averaged* over the zones rather than
+        summed. Summing made a two-zone house behave as if ``comfort_weight``
+        were set twice as high as configured, so it hugged the setpoint and gave
+        up most of the available savings. The floor's linear price is not
+        averaged: each zone's kelvin under ``min_temp`` pays the full
+        ``_COMFORT_FLOOR_L1``, as a single-zone room's does. Averaged, it paid
+        half, and the solver bought the breach back where prices paid for it
+        (R9 D2-s2-81). The quadratic undershoot stays averaged: priced in full
+        too, it left more of the stock two-zone plans under the floor than the
+        linear term alone, measured on the goldens.
 
         **The pull is deliberately weak.** The user states a *band*, and the
         band is what the plan owes them; the target is a preference inside it.
@@ -1806,49 +1937,13 @@ class HeatPumpOptimizer:
         approaching the floor. Nobody asked for that trade, and
         ``comfort_weight`` is the knob for anyone who wants it back.
         """
-        weight = self.config.comfort_weight
-
-        if self.model.params.two_zone_enabled:
-            upper_t = upper_temps[1:]
-            lower_t = lower_temps[1:]
-
-            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
-            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
-            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
-            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
-
-            penalty = 0.5 * weight * (
-                np.sum(undershoot_u ** 2) * 10.0
-                + np.sum(overshoot_u ** 2) * 5.0
-                + np.sum(undershoot_l ** 2) * 10.0
-                + np.sum(overshoot_l ** 2) * 5.0
-                + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
-            )
-
-            comfort_dev_u = upper_t - comfort_targets
-            comfort_dev_l = lower_t - comfort_targets
-            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
-                np.sum((comfort_dev_u / comfort_band) ** 2)
-                + np.sum((comfort_dev_l / comfort_band) ** 2)
-            )
-            return penalty, comfort_cost
-
-        room_t = room_temps[1:]
-        undershoot = np.maximum(0, temp_min_bounds - room_t)
-        overshoot = np.maximum(0, room_t - temp_max_bounds)
-
-        penalty = weight * (
-            np.sum(undershoot ** 2) * 10.0
-            + np.sum(overshoot ** 2) * 5.0
-            + np.sum(undershoot) * _COMFORT_FLOOR_L1
+        penalty, comfort_cost = self._comfort_terms_batch(
+            np.asarray(room_temps, dtype=float)[None, :],
+            np.asarray(upper_temps, dtype=float)[None, :],
+            np.asarray(lower_temps, dtype=float)[None, :],
+            comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
         )
-        deviation = room_t - comfort_targets
-        comfort_cost = (
-            _COMFORT_PULL_SINGLE_ZONE
-            * weight
-            * np.sum((deviation / comfort_band) ** 2)
-        )
-        return penalty, comfort_cost
+        return float(penalty[0]), float(comfort_cost[0])
 
     def _comfort_terms_batch(
         self,
@@ -1860,74 +1955,59 @@ class HeatPumpOptimizer:
         temp_max_bounds: np.ndarray,
         comfort_band: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """``_comfort_terms`` for a [B, n+1] trajectory batch, per row (#948).
+        """``_comfort_terms`` for a [B, n+1] trajectory batch, one entry per row.
 
-        The per-row helper was entered 97.02 times per gradient evaluation
-        and cost a third of the solve's wall (round 4, D9-05), 0.86x the
-        entire batched simulation it decorates. The re-entry -- not the
-        arithmetic -- is the recomputation: each row here runs the scalar
-        twin's expressions verbatim on its own trajectories, so every
-        ``np.sum`` reduces a freshly allocated per-row array exactly as the
-        scalar twin reduces one. That is what makes a row bit-for-bit
-        ``_comfort_terms`` on that row on EVERY numpy backend, not by
-        measurement on one: a reduction over a row VIEW of a batched array
-        is not the same code path as one over a fresh array -- the view can
-        carry an alignment or stride numpy's pairwise loop treats
-        differently, and on CI's x86_64 such an ulp re-planned 19 of 51
-        stress scenarios while every arm64 check stayed green. The
-        per-element work (``np.maximum``, the squares) allocates those
-        fresh arrays as a by-product, so nothing is copied for its own
-        sake. See ``_comfort_terms`` for what the two terms mean and why
-        the pull is deliberately weak.
+        Every per-element operation is elementwise across the batch and every
+        sum is ``_row_sums``, so a row is the one-row call ``_comfort_terms``
+        makes, bit for bit, on every numpy backend and in either memory
+        order. The per-row loop this replaced (#948) held the same contract
+        by re-running the scalar body B times, which cost 13-32 % of a solve
+        (R9 D9-s1-01). See ``_comfort_terms`` for what the two terms mean and
+        why the pull is deliberately weak.
         """
         weight = self.config.comfort_weight
-        n_rows = room_temps.shape[0]
-        penalty = np.empty(n_rows)
-        comfort_cost = np.empty(n_rows)
 
         if self.model.params.two_zone_enabled:
-            for b in range(n_rows):
-                upper_t = upper_temps[b][1:]
-                lower_t = lower_temps[b][1:]
+            upper_t = upper_temps[:, 1:]
+            lower_t = lower_temps[:, 1:]
 
-                undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
-                overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
-                undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
-                overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
-                penalty[b] = 0.5 * weight * (
-                    np.sum(undershoot_u ** 2) * 10.0
-                    + np.sum(overshoot_u ** 2) * 5.0
-                    + np.sum(undershoot_l ** 2) * 10.0
-                    + np.sum(overshoot_l ** 2) * 5.0
-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
-                    * _COMFORT_FLOOR_L1
-                )
+            penalty = 0.5 * weight * (
+                _row_sums(undershoot_u ** 2) * 10.0
+                + _row_sums(overshoot_u ** 2) * 5.0
+                + _row_sums(undershoot_l ** 2) * 10.0
+                + _row_sums(overshoot_l ** 2) * 5.0
+            ) + weight * (
+                _row_sums(undershoot_u) + _row_sums(undershoot_l)
+            ) * (_COMFORT_FLOOR_L1 * self._floor_l1_scale)
 
-                comfort_dev_u = upper_t - comfort_targets
-                comfort_dev_l = lower_t - comfort_targets
-                comfort_cost[b] = _COMFORT_PULL_TWO_ZONE * weight * (
-                    np.sum((comfort_dev_u / comfort_band) ** 2)
-                    + np.sum((comfort_dev_l / comfort_band) ** 2)
-                )
+            comfort_dev_u = upper_t - comfort_targets
+            comfort_dev_l = lower_t - comfort_targets
+            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
+                _row_sums((comfort_dev_u / comfort_band) ** 2)
+                + _row_sums((comfort_dev_l / comfort_band) ** 2)
+            )
             return penalty, comfort_cost
 
-        for b in range(n_rows):
-            room_t = room_temps[b][1:]
-            undershoot = np.maximum(0, temp_min_bounds - room_t)
-            overshoot = np.maximum(0, room_t - temp_max_bounds)
+        room_t = room_temps[:, 1:]
+        undershoot = np.maximum(0, temp_min_bounds - room_t)
+        overshoot = np.maximum(0, room_t - temp_max_bounds)
 
-            penalty[b] = weight * (
-                np.sum(undershoot ** 2) * 10.0
-                + np.sum(overshoot ** 2) * 5.0
-                + np.sum(undershoot) * _COMFORT_FLOOR_L1
-            )
-            deviation = room_t - comfort_targets
-            comfort_cost[b] = (
-                _COMFORT_PULL_SINGLE_ZONE
-                * weight
-                * np.sum((deviation / comfort_band) ** 2)
-            )
+        penalty = weight * (
+            _row_sums(undershoot ** 2) * 10.0
+            + _row_sums(overshoot ** 2) * 5.0
+            + _row_sums(undershoot) * _COMFORT_FLOOR_L1
+        )
+        deviation = room_t - comfort_targets
+        comfort_cost = (
+            _COMFORT_PULL_SINGLE_ZONE
+            * weight
+            * _row_sums((deviation / comfort_band) ** 2)
+        )
         return penalty, comfort_cost
 
     def _cost_terms_batch(
@@ -2179,14 +2259,12 @@ class HeatPumpOptimizer:
         if not self.model.params.two_zone_enabled:
             return [], []
 
-        p_min = self.model.params.min_electrical_power
-        p_max = self.model.params.max_electrical_power
         span = self.config.max_temp - self.config.min_temp
 
         upper: list[float] = []
         lower: list[float] = []
         for value in power:
-            p_norm = np.clip((value - p_min) / max(p_max - p_min, 0.1), 0, 1)
+            p_norm = _power_fraction(value, self.model.params)
             upper.append(round(float(self.config.min_temp + p_norm * span), 1))
             lower.append(
                 round(float(self.config.min_temp + p_norm * (span + 1.0)), 1)
@@ -3097,8 +3175,9 @@ class HeatPumpOptimizer:
         plan -- in production ``coordinator._warm_seeded``, which rebuilds this
         optimizer every solve and so is the only seat that can carry the plan
         across an MPC cycle. L-BFGS-B is then restarted from that point, a lead
-        no structural seed reproduces: the same problem one step later, already
-        comfort-feasible by construction. It is a *candidate*, not a warm start
+        no structural seed reproduces. It is the previous plan on its own
+        clock: the caller hands it at offset 0, not shifted by the steps
+        elapsed since it was made. It is a *candidate*, not a warm start
         that bypasses the multi-start -- ``_multi_start_minimize`` scores it
         against every structural seed and keeps the cheapest, so a stale or
         wrong-shaped plan can lose, never win.
@@ -4012,13 +4091,44 @@ class HeatPumpOptimizer:
                     dt,
                 )
             )
+        def move_starts(
+            cands: list[np.ndarray], maxiter: int
+        ) -> list[np.ndarray]:
+            """Continuation for a two-zone solve's first start (R9-F2.1).
+
+            Each zone pays the full linear floor price, and a descent that
+            crosses the floor from the smooth guess can bend away from a
+            basin the half price reaches: the backtest's 750 L storage house
+            shipped a plan its own objective scores 0.83 worse. So the guess
+            is refined at the half price first; what ships is still decided
+            by the true objective, against every other start. One plain
+            L-BFGS-B run inside the multi-start's own budget: it moves a
+            start, it is not one.
+            """
+            if not self.model.params.two_zone_enabled:
+                return cands
+            first = len(h.extra_starts or ())
+            self._floor_l1_scale = 0.5
+            try:
+                cands[first] = np.asarray(_scoped_minimize(
+                    objective, cands[first], method="L-BFGS-B", bounds=bounds,
+                    jac=(lambda x: _batch_fd_gradient(
+                        objective_batch, (), x, float(objective(x)), 1e-4,
+                        bounds,
+                    )) if _bounds_supported_by_batch(bounds) else None,
+                    options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                ).x, dtype=float)
+            finally:
+                self._floor_l1_scale = 1.0
+            return cands
+
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
         try:
             result = _multi_start_minimize(
                 objective, starts, bounds, maxiter=200,
-                batch_objective=objective_batch,
+                batch_objective=objective_batch, move_starts=move_starts,
             )
             optimal_power = result.x
             status = _solver_status(result, objective, initial_power)
@@ -5726,15 +5836,10 @@ class HeatPumpOptimizer:
             # replay's; only the skipped prefix work differs.
             plan[slot] = run_power
             candidate = base.copy()
-            self.model.extend_dhw_temps(
-                candidate, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
-                    humidity=humidity,
-            )
-            limit = np.maximum(
-                ceiling[slot + 1: candidate.size],
-                base[slot + 1: candidate.size],
-            )
-            if bool(np.all(candidate[slot + 1:] <= limit + 1e-9)):
+            if self._dhw_raise_fits(
+                candidate, base, ceiling, slot, plan, outdoor_temps,
+                draw_rates, dt, humidity,
+            ):
                 base = candidate
             else:
                 plan[slot] = 0.0
@@ -5748,6 +5853,41 @@ class HeatPumpOptimizer:
                 )
         repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
         return repaired
+
+    def _dhw_raise_fits(
+        self,
+        candidate: np.ndarray,
+        base: np.ndarray,
+        ceiling: np.ndarray,
+        slot: int,
+        plan: np.ndarray,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+        humidity: np.ndarray | None,
+    ) -> bool:
+        """Extend ``candidate`` from ``slot`` and say whether it stays in bounds.
+
+        The extension runs ``_DHW_MIN_RUN_CHUNK`` steps at a time and stops at
+        the first chunk with a step above ``max(ceiling, base)``: a raise that
+        breaches at once used to be simulated to the horizon anyway, 12-23 %
+        of a single-zone DHW solve (R9 D9-s1-04). The same step function runs
+        on the same values in the same order, so every decision is the whole
+        suffix's; a refused candidate is discarded, never read past its stop.
+        """
+        size = plan.size
+        pos = slot
+        while pos < size:
+            end = pos + _DHW_MIN_RUN_CHUNK
+            self.model.extend_dhw_temps(
+                candidate, pos, plan[:end], outdoor_temps, draw_rates,
+                dt_hours=dt, humidity=humidity,
+            )
+            limit = np.maximum(ceiling[pos + 1: end + 1], base[pos + 1: end + 1])
+            if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):
+                return False
+            pos = end
+        return True
 
     def _plan_dhw_cheapest_first(
         self,
@@ -6887,16 +7027,8 @@ class HeatPumpOptimizer:
     ) -> list[float]:
         """Convert power schedule to equivalent temperature setpoints."""
         setpoints: list[float] = []
-        p_range = (
-            self.model.params.max_electrical_power
-            - self.model.params.min_electrical_power
-        )
-
         for power, _room_t in zip(power_schedule, room_temps):
-            p_norm = (
-                power - self.model.params.min_electrical_power
-            ) / max(p_range, 0.1)
-            p_norm = np.clip(p_norm, 0, 1)
+            p_norm = _power_fraction(power, self.model.params)
             displacement = p_norm * (self.config.max_temp - self.config.min_temp)
             setpoint = self.config.min_temp + displacement
             setpoints.append(round(float(setpoint), 1))
@@ -6911,8 +7043,6 @@ class HeatPumpOptimizer:
     ) -> list[float]:
         """Map optimized power to ECL110 displace values with PID-aware smoothing."""
         p = self.model.params
-        p_min = p.min_electrical_power
-        p_max = p.max_electrical_power
         d_min = p.ecl110_displace_min
         d_max = p.ecl110_displace_max
 
@@ -6928,8 +7058,7 @@ class HeatPumpOptimizer:
 
         raw_displace: list[float] = []
         for i, power in enumerate(power_schedule):
-            p_norm = (power - p_min) / max(p_max - p_min, 0.1)
-            p_norm = float(np.clip(p_norm, 0.0, 1.0))
+            p_norm = _power_fraction(power, p)
             displace = d_min + p_norm * (d_max - d_min)
 
             if i < int(max(1, 8 / self.config.dt_hours)):
@@ -6990,24 +7119,27 @@ class HeatPumpOptimizer:
         if not result.timestamps:
             return self._idle_action()
 
-        if current_time < result.timestamps[0]:
+        # Instants, not wall clocks (R9 D14-s4-01): Home Assistant hands every
+        # datetime in one ZoneInfo, and CPython subtracts and compares two that
+        # share a tzinfo as naive wall time, so across a DST transition a
+        # 15-minute step read as 75 and the autumn fold matched the wrong step.
+        now_s = current_time.timestamp()
+        starts = [ts.timestamp() for ts in result.timestamps]
+        if now_s < starts[0]:
             # A pre-horizon clock (NTP step back, restored stale plan) would
             # fall through the loop below to the LAST step — the 24h-ahead
             # slot where terminal-value charging lives. Clamp to step 0 only
             # while the gap is within one step length; beyond that the plan
             # says nothing about now, so idle like the empty-plan branch.
-            if len(result.timestamps) > 1:
-                step = result.timestamps[1] - result.timestamps[0]
-            else:
-                step = timedelta(minutes=15)
-            if result.timestamps[0] - current_time > step:
+            step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0
+            if starts[0] - now_s > step_s:
                 return self._idle_action()
             i = 0
         else:
             # Find the current time step
-            for i, ts in enumerate(result.timestamps):
-                if i + 1 < len(result.timestamps):
-                    if ts <= current_time < result.timestamps[i + 1]:
+            for i, start_s in enumerate(starts):
+                if i + 1 < len(starts):
+                    if start_s <= now_s < starts[i + 1]:
                         break
                 else:
                     i = len(result.timestamps) - 1
@@ -7028,13 +7160,7 @@ class HeatPumpOptimizer:
             else power > on_threshold
         )
 
-        p_range = (
-            self.model.params.max_electrical_power
-            - self.model.params.min_electrical_power
-        )
-        p_norm = (
-            power - self.model.params.min_electrical_power
-        ) / max(p_range, 0.1)
+        p_norm = _power_fraction(power, self.model.params)
 
         # The band is the SPACE circuit's, but "off" means the pump is off
         # (#1499): a space step below the band's first rung still runs, and

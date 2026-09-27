@@ -84,6 +84,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        # This job holds `security-events: write`; nothing it runs needs git
+        # credentials, so none is left on disk (D11-s1-03's pin).
+        with:
+          persist-credentials: false
 
       # build-mode is left at its default: none of the three languages above
       # is compiled, so no build step runs between init and analyze.
