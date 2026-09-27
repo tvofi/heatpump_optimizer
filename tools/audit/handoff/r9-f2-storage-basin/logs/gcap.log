@@ -1,0 +1,3 @@
+-f2-fix2 valve_storage_flat_prices objective [127.195] cpu_s 7.7
+-f2-fix2 valve_storage_small_tank objective [79.9648] cpu_s 43.1
+-f2-fix2 valve_upper_direct_slab objective [100.3468] cpu_s 6.5
