@@ -44431,6 +44431,19 @@ R.check(
     f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
 )
 
+# Optimizer off writes nothing (tvofi, 2026-09-26): the last plan's legionella
+# action stays current after the switch to off, and must not start a boost.
+_g5_c = _g5_control()
+_g5_c._mode = _MODE_OFF
+for _ in range(3):
+    _g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "with the optimizer off a legionella action still current never turns "
+    "the disinfection switch on (null control above: on, it does)",
+    _g5_writes(_g5_c) == [] and _g5_state(_g5_c) == "off",
+    f"writes={_g5_writes(_g5_c)}",
+)
+
 # The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
@@ -47443,6 +47456,17 @@ _pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rheat._thermal_model = _pa_real
 _pa_rheat._current_state.outdoor_temperature = 5.0
 _pa_run(_pa_rheat, 1)
+_pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
+_pa_rboth._thermal_model = _pa_real
+_pa_rboth._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rboth, 1)
+R.check(
+    "on the real curve a heating-plus-hot-water step writes Heating + DHW and the heating flow",
+    ("select", "select_option", "Heating + DHW") in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
+    f"{_pa_rboth.writes()}",
+)
 _pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rbase._thermal_model = _pa_real
 _pa_rbase._current_state.outdoor_temperature = 5.0
@@ -48446,6 +48470,65 @@ R.check(
     and any(r.startswith("number.p6_heat_pump_switch_entity") for r in _p6_bad_ref)
     and any(r.startswith("switch.p6_mixing_valve_write_entity") for r in _p6_bad_ref),
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
+)
+
+# Off writes nothing (tvofi, 2026-09-26): with Optimizer active off the
+# optimizer switched a Tuya pump a person had turned on back off every
+# update, because the MODE_OFF action carries heat_pump_on False. Every
+# coordinator writer, driven with the optimizer off, must issue no call;
+# the same drive with it on is the null control. The disinfection switch
+# (it only releases what it turned on) and the DHW repair (a person's
+# confirm) are the two writes this leaves, by design.
+async def _p6_off_ecl(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/displace/set"})
+    coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+    await coord.async_publish_current_action(reason="p6")
+    await coord._async_peak_guard_transition()
+    return coord.hass.services.calls
+
+
+async def _p6_off_pumps(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
+    await coord._async_drive_pumps()
+    return coord.hass.services.calls
+
+
+_P6_OFF_WRITERS = {
+    "switch.p6_off_supply": _p6_switch,
+    "input_number.p6_off_valve": _p6_valve,
+    "number.p6_off_freq": _p6_freq,
+    "switch.p6_off_vvc": _p6_off_pumps,
+    "mqtt.ecl110": _p6_off_ecl,
+}
+
+
+def _p6_off_calls(driver, eid, off):
+    real = Coord.__init__
+
+    def init(self, *a, **k):
+        real(self, *a, **k)
+        if off:
+            self._mode = hp_const.MODE_OFF
+
+    Coord.__init__ = init
+    try:
+        return _p6_aio.run(driver(eid))
+    finally:
+        Coord.__init__ = real
+
+
+_p6_off = {e: _p6_off_calls(d, e, True) for e, d in _P6_OFF_WRITERS.items()}
+_p6_on = {e: _p6_off_calls(d, e, False) for e, d in _P6_OFF_WRITERS.items()}
+R.check(
+    "null control: with the optimizer on, every writer issues a call",
+    all(_p6_on.values()),
+    f"silent: {[e for e, c in _p6_on.items() if not c]}",
+)
+R.check(
+    "with the optimizer off, no writer issues any call: switch, ECL110, valve, "
+    "frequency, circulation pump",
+    not any(_p6_off.values()),
+    f"{ {e: c for e, c in _p6_off.items() if c} }",
 )
 
 # ===========================================================================
