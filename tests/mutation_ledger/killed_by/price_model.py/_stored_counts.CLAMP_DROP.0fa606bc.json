@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_stored_counts CLAMP_DROP 0fa606bc",
+  "killed_by": "tests/features.py",
+  "old": "        return [max(0, int(v)) for v in raw]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: CLAMP_DROP (`return [(0) for v in raw]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

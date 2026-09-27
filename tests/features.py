@@ -1286,6 +1286,42 @@ R.check(
 
 
 # ===========================================================================
+# Round 9, F4.2: class-named blocks, sorted by class
+# ===========================================================================
+# The sysid blocks (N-fit-integrator, P5) extend the #1524 runner, whose block
+# they read; they sit beside it. This one reads only the input reader.
+
+# --- R9 N-staleness (carry-1655): a set-point is not a probe -----------------
+R.section("R9 N-staleness: the mixing-valve target is a set-point (carry-1655)")
+
+# Home Assistant stamps a set-point only when someone changes it, so a valve
+# target left alone for 90 min, and for a day, is still the target.
+_r9f42_key = "mixing_valve_target_entity"
+_r9f42_reads = {
+    _r9f42_age: InputReader(
+        FakeHass({"number.valve": FakeState("22.5", last_updated=minutes_ago(_r9f42_age, NOW))}),
+        {_r9f42_key: "number.valve"},
+        now=lambda: NOW,
+    ).read(_r9f42_key)
+    for _r9f42_age in (90, 24 * 60)
+}
+_r9f42_dead = InputReader(
+    FakeHass({"number.valve": FakeState("unavailable", last_updated=minutes_ago(5, NOW))}),
+    {_r9f42_key: "number.valve"},
+    now=lambda: NOW,
+).read(_r9f42_key)
+R.check(
+    "carry-1655: a valve target unchanged for 90 min and for a day reads as "
+    "the target; an unavailable valve is still refused",
+    all(r.ok and r.value == 22.5 for r in _r9f42_reads.values())
+    and inputs_mod.max_age_for(_r9f42_key) is None
+    and not _r9f42_dead.ok,
+    f"{ {a: (r.problem, r.value) for a, r in _r9f42_reads.items()} }, "
+    f"limit {inputs_mod.max_age_for(_r9f42_key)}, dead {_r9f42_dead.problem}",
+)
+
+
+# ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
 R.section("Non-numeric inputs (v5.3.0)")
@@ -6463,6 +6499,9 @@ _D102_LEARNED = {
         "factors": [[0.80, 0.90]] * 6,
         "counts": [[4, 5]] * 6,
         "duty": [[0.10, 0.20]] * 6,
+        # Written with its duty since v5.3.0: a duty grid without its counts
+        # is a corrupt store, which loads with a warning (D1-s4-03).
+        "duty_counts": [[3, 2]] * 6,
     },
     "peaks": {"month": "2026-09", "peaks": [7.4, 6.8, 5.9]},
     "mode": "economy",
@@ -11178,8 +11217,8 @@ _wf_seen: list = []
 _wf_reads: list = []
 
 
-def _wf_spy(self, h, space_power=None):
-    out = _wf_real(self, h, space_power)
+def _wf_spy(self, h, space_power=None, dhw_power=None):
+    out = _wf_real(self, h, space_power, dhw_power)
     _wf_seen.append((space_power is not None, out))
     return out
 
@@ -38056,13 +38095,14 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
         if not sid.active:
             break
         elec = hold_thermal / _RIDGE_COP if override is None else float(override)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt_h,
-            external_heat_kw=elec * _RIDGE_COP,
-        )
+        for _ in range(15):  # R9 N-fit-integrator: the house is continuous
+            state = model.simulate_step(
+                state,
+                electrical_power=0.0,
+                outdoor_temp=outdoor,
+                dt_hours=dt_h / 15,
+                external_heat_kw=elec * _RIDGE_COP,
+            )
         tick += 1
         when += timedelta(
             hours=(2.5 if (gap_tick is not None and tick == gap_tick) else dt_h)
@@ -38586,9 +38626,18 @@ R.check(
     "check's: tools/audit/round5/D7/seat-a/sysid_step_bias.py, RESULT "
     "gap_settle_bias_heavy_old, at both ends of this fix",
 )
-_gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
-    _gap_plant, 0.0, _RIDGE_SEED0
-)
+# R9 D2-s4-81: light_new's own noise-free night cannot pass the adoption bar,
+# so production now stops it before the step, by name; that is a refusal of
+# the PLANT, which this null control exists to hold apart. It is bypassed here
+# so the fit itself is what the control reads.
+_gap_null_unadoptable = SystemIdentification._unadoptable
+SystemIdentification._unadoptable = lambda self, *a: None
+try:
+    _gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
+        _gap_plant, 0.0, _RIDGE_SEED0
+    )
+finally:
+    SystemIdentification._unadoptable = _gap_null_unadoptable
 _gap_null_bias = (
     (_gap_null_res.heat_loss_kw_per_c - _gap_null_ua) / _gap_null_ua
     if _gap_null_res.completed and _gap_null_res.heat_loss_kw_per_c
@@ -48969,6 +49018,268 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("P1/P2/N-min-gap — the defrost, price-shape and peak stores and the feed parsers (D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04)")
+# Round 9 F3.3 (#1644 P2, #1647 P1, #1680 N-min-gap). A learner store loads
+# into the domain its own update path writes, cell by cell, through the store
+# boundary's scrub (QuarantiningStore turns a non-finite leaf into None before
+# any loader sees it, so these payloads are driven through that scrub); one
+# unreadable row of a price or irradiance feed drops that row, not the feed;
+# and one off-grid stamp does not set Open-Meteo's resolution.
+import logging as _f33_logging  # noqa: E402
+
+from heatpump_optimizer import defrost as _f33_df  # noqa: E402
+from heatpump_optimizer import open_meteo as _f33_om  # noqa: E402
+from heatpump_optimizer import price_model as _f33_pm  # noqa: E402
+from heatpump_optimizer import store as _f33_store  # noqa: E402
+from heatpump_optimizer import tariff as _f33_tf  # noqa: E402
+
+
+class _F33Warnings(_f33_logging.Handler):
+    def __init__(self):
+        super().__init__(_f33_logging.WARNING)
+        self.n = 0
+
+    def emit(self, record):
+        self.n += 1
+
+
+_f33_log = _F33Warnings()
+_f33_logging.getLogger("custom_components.heatpump_optimizer").addHandler(_f33_log)
+_f33_logging.getLogger("heatpump_optimizer").addHandler(_f33_log)
+
+
+def _f33_stored(payload):
+    """``payload`` as a loader receives it from a QuarantiningStore."""
+    return _f33_store._sanitize(_si_json.loads(_si_json.dumps(payload)))
+
+
+def _f33_load(loader, payload):
+    """(loaded object, WARNINGs it logged) for ``payload`` through the store."""
+    _f33_log.n = 0
+    got = loader(_f33_stored(payload))
+    return got, _f33_log.n
+
+
+_F33_NT = len(_f33_df.TEMP_EDGES) - 1
+_F33_NH = len(_f33_df.HUMIDITY_EDGES) - 1
+
+
+def _f33_defrost(**over):
+    grid = lambda v: [[v] * _F33_NH for _ in range(_F33_NT)]  # noqa: E731
+    payload = {"version": 2, "factors": grid(0.9), "counts": grid(15),
+               "duty": grid(0.05), "duty_counts": grid(20), "duty_events": grid(3)}
+    for key, cells in over.items():
+        for (t, h), value in cells.items():
+            payload[key][t][h] = value
+    return payload
+
+
+# D1-s4-01: a duty cell observe_duty cannot write (finite and out of [0, 1],
+# or non-finite and scrubbed to None) restarts its own bucket unmeasured; the
+# other buckets keep their duty and counts. The healthy store loads exactly.
+_f33_bad = {(0, 0): 1e300, (1, 1): -0.5, (2, 1): "nan"}
+_f33_d, _f33_dw = _f33_load(_f33_df.DefrostDerate.from_dict, _f33_defrost(duty=_f33_bad))
+_f33_h, _f33_hw = _f33_load(_f33_df.DefrostDerate.from_dict, _f33_defrost())
+_f33_kept = [
+    (t, h) for t in range(_F33_NT) for h in range(_F33_NH)
+    if _f33_d.duty[t][h] == 0.05 and _f33_d.duty_counts[t][h] == 20
+]
+R.check(
+    "a stored defrost duty outside [0, 1] restarts only its own bucket "
+    "unmeasured, with a warning; a healthy store loads as written (D1-s4-01)",
+    all(_f33_d.duty[t][h] == 0.0 and _f33_d.duty_counts[t][h] == 0 for t, h in _f33_bad)
+    and len(_f33_kept) == _F33_NT * _F33_NH - len(_f33_bad)
+    and _f33_dw == 1
+    and _f33_h.as_dict() == _f33_defrost() and _f33_hw == 0,
+    f"duty={_f33_d.duty} counts={_f33_d.duty_counts} warnings={_f33_dw}/{_f33_hw}",
+)
+
+# D1-s4-03: one unreadable duty_counts cell in a v2 store costs that bucket,
+# not the eleven measured ones beside it, and is not called a v5.3.0 upgrade;
+# a v1 store (no measured half) still is.
+_f33_one, _ = _f33_load(
+    _f33_df.DefrostDerate.from_dict, _f33_defrost(duty_counts={(3, 0): "abc"})
+)
+_f33_whole, _f33_wholew = _f33_load(
+    _f33_df.DefrostDerate.from_dict, dict(_f33_defrost(), duty_counts="x")
+)
+_f33_v1 = {k: v for k, v in _f33_defrost().items() if k in ("factors", "counts")}
+_f33_up, _ = _f33_load(_f33_df.DefrostDerate.from_dict, _f33_v1)
+R.check(
+    "one unreadable cell in a v2 defrost store costs one bucket, and neither "
+    "it nor a wholly unreadable measured half is labelled migrated; a v1 "
+    "store is (D1-s4-03)",
+    not _f33_one.migrated
+    and sum(c == 20 for row in _f33_one.duty_counts for c in row) == _F33_NT * _F33_NH - 1
+    and not _f33_whole.migrated and _f33_wholew == 1
+    and _f33_up.migrated,
+    f"migrated={_f33_one.migrated}/{_f33_whole.migrated}/{_f33_up.migrated} "
+    f"counts={_f33_one.duty_counts}",
+)
+
+# D1-s5-02, price shape: bins observe_day cannot write (zero, negative, 1e300)
+# are put through its own clip and renormalisation, a variance above
+# RESIDUAL_VAR_MAX restarts at zero and a negative day count at zero; the
+# guessed tail then stays positive and bounded. A learned model round-trips.
+_f33_rng = np.random.default_rng(3)
+_f33_pmh = PriceShapeModel()
+for _f33_i in range(10):
+    _f33_day = datetime(2026, 1, 5, tzinfo=UTC) + timedelta(days=_f33_i)
+    _f33_hours = list(1.0 + 0.8 * _f33_rng.random(24))
+    _f33_pmh.observe_day(_f33_day, _f33_hours)
+    _f33_pmh.observe_day_quarters(
+        _f33_day, [p * f for p in _f33_hours for f in (0.9, 1.0, 1.0, 1.1)]
+    )
+_f33_good = _f33_pmh.as_dict()
+_f33_corrupt = _si_json.loads(_si_json.dumps(_f33_good))
+_f33_corrupt["shapes"][0][3] = 0
+_f33_corrupt["shapes"][0][7] = -2.0
+_f33_corrupt["shapes"][1][9] = 1e300
+_f33_corrupt["quarter_factors"][0][40] = 1e300
+_f33_corrupt["residual_var"][0][10] = 1e300
+_f33_corrupt["days"] = [-3, 7]
+_f33_corrupt["quarter_days"] = [7, -2]
+_f33_pmc, _f33_pmw = _f33_load(PriceShapeModel.from_dict, _f33_corrupt)
+_f33_counts = (list(_f33_pmc.days), list(_f33_pmc.quarter_days))
+_f33_pmr, _f33_pmrw = _f33_load(PriceShapeModel.from_dict, _f33_good)
+_f33_starts = [datetime(2026, 1, 21, tzinfo=UTC) + timedelta(hours=i) for i in range(72)]
+_f33_tail = []
+for _f33_m in (_f33_pmc,):
+    _f33_m.days = [7, 7]  # full trust, so the corrupt bins would reach the tail
+    _f33_px, _f33_mask, _f33_sig = extend_price_series([1.0] * 12, 72, _f33_starts, _f33_m)
+    _f33_tail = list(_f33_px[~_f33_mask])
+R.check(
+    "a stored price shape, quarter factor or variance outside what the "
+    "learner writes is brought back into its domain; a learned model loads "
+    "as written (D1-s5-02)",
+    min(_f33_tail) > 0.0 and max(_f33_tail) < 20.0
+    and max(max(s) for s in _f33_pmc.residual_var) <= _f33_pm.RESIDUAL_VAR_MAX
+    and _f33_counts == ([0, 7], [7, 0]) and _f33_pmw == 4
+    and _f33_pmr.as_dict() == _f33_good and _f33_pmrw == 0,
+    f"tail {min(_f33_tail):.3g}..{max(_f33_tail):.3g} days={_f33_counts} "
+    f"warnings={_f33_pmw}/{_f33_pmrw}",
+)
+
+# The loader itself, not only behind the store's scrub: a non-finite bin in
+# any spelling restarts its profile flat (#922's zero-priced hour), and a day
+# count that is not a two-list is not iterated into one (F3.3 fix review).
+_f33_raw = _si_json.loads(_si_json.dumps(_f33_good))
+_f33_raw["shapes"][0][3] = "nan"
+_f33_raw["days"] = "12"
+_f33_raw["quarter_days"] = {"a": 1, "b": 2}
+_f33_direct = PriceShapeModel.from_dict(_f33_raw)
+R.check(
+    "the price loader called directly restarts shapes holding a 'nan' bin "
+    "flat and keeps day counts that are not a two-list at zero (D1-s5-02)",
+    _f33_direct.shapes == [[1.0] * 24, [1.0] * 24]
+    and _f33_direct.days == [0, 0] and _f33_direct.quarter_days == [0, 0],
+    f"shape0[3]={_f33_direct.shapes[0][3]} days={_f33_direct.days} "
+    f"quarter_days={_f33_direct.quarter_days}",
+)
+
+# D1-s5-02, peaks: a negative stored peak is dropped like a non-finite one,
+# and an open window the tracker could not have written restarts empty, so
+# no threshold or billed peak goes negative. A real tracker round-trips.
+_f33_tariff = CapacityTariff(enabled=True, price_per_kw=50.0)
+_f33_pt = PeakTracker()
+for _f33_q in range(4 * 30):
+    _f33_pt.observe(
+        datetime(2026, 1, 3, tzinfo=UTC) + timedelta(minutes=15 * _f33_q),
+        2.0 + (_f33_q % 7) * 0.5, _f33_tariff,
+    )
+_f33_ptgood = _f33_pt.as_dict()
+_f33_neg = dict(_f33_ptgood, peaks=[-50.0] + _f33_ptgood["peaks"][1:])
+_f33_win = dict(_f33_ptgood, window_sum=-400.0, window_factor=5.0)
+_f33_ptn, _ = _f33_load(PeakTracker.from_dict, _f33_neg)
+_f33_ptw, _f33_ptww = _f33_load(PeakTracker.from_dict, _f33_win)
+_f33_ptr, _f33_ptrw = _f33_load(PeakTracker.from_dict, _f33_ptgood)
+_f33_ptw.observe(datetime(2026, 1, 6, 12, tzinfo=UTC), 3.0, _f33_tariff)
+R.check(
+    "a negative stored peak is dropped and an out-of-domain open window "
+    "restarts empty; a real tracker loads as written (D1-s5-02)",
+    min(_f33_ptn.peaks) >= 0.0 and len(_f33_ptn.peaks) == len(_f33_ptgood["peaks"]) - 1
+    and _f33_ptw.threshold_kw(_f33_tariff) >= 0.0
+    and _f33_ptw.billed_peak_kw(_f33_tariff) >= 0.0
+    and _f33_ptww == 1
+    and _f33_ptr.as_dict() == _f33_ptgood and _f33_ptrw == 0,
+    f"peaks={_f33_ptn.peaks} threshold={_f33_ptw.threshold_kw(_f33_tariff)} "
+    f"billed={_f33_ptw.billed_peak_kw(_f33_tariff)} warnings={_f33_ptww}/{_f33_ptrw}",
+)
+
+# D1-s5-03: a JSON integer too large for a double drops its own row from the
+# price entity, the Tibber payload, the adjustments and the Open-Meteo block,
+# as every other unreadable value already did.
+_F33_HUGE = 10 ** 400
+_f33_rows = [
+    {"start": f"2026-01-15T{h:02d}:00:00+01:00", "value": 0.5 + 0.02 * h} for h in range(24)
+] + [{"start": "2026-01-16T00:00:00+01:00", "value": _F33_HUGE}]
+def _f33_count(fn):
+    """Rows ``fn`` delivers, or the name of what it raised: a raise is the
+    whole payload lost, the defect this pins."""
+    try:
+        got = fn()
+    except Exception as err:  # noqa: BLE001
+        return type(err).__name__
+    return len(got) if isinstance(got, list) else got
+
+
+_f33_t0 = datetime(2026, 3, 10, tzinfo=UTC)
+_f33_block = {
+    "time": [(_f33_t0 + timedelta(hours=i)).strftime("%Y-%m-%dT%H:%M") for i in range(73)],
+    _f33_om._VARIABLE: [100.0] * 72 + [_F33_HUGE],
+}
+_f33_got = {
+    "entity": _f33_count(lambda: _f33_pm.prices_from_entity_attributes(
+        {"raw_today": _f33_rows, "unit_of_measurement": "SEK/kWh"}
+    )),
+    "tibber": _f33_count(lambda: _f33_pm.prices_from_tibber_payload({"data": {"viewer": {"homes": [
+        {"currentSubscription": {"priceInfo": {"today": [
+            {"total": r["value"], "startsAt": r["start"]} for r in _f33_rows
+        ]}}}
+    ]}}})),
+    "learned days": _f33_count(lambda: list(_f33_pm.hourly_from_entries(
+        [{"startsAt": r["start"], "total": r["value"]} for r in _f33_rows[:24]]
+        + [{"startsAt": "2026-01-15T05:15:00+01:00", "total": _F33_HUGE}]
+    ))),
+    "adjusted": _f33_count(lambda: _f33_pm.apply_price_adjustments(
+        [{"total": 0.5}, {"total": _F33_HUGE}], 1.25, 0.1
+    )),
+    "irradiance": _f33_count(
+        lambda: list(_f33_om._parse_block(_f33_block, _f33_om._VARIABLE).times)
+    ),
+}
+R.check(
+    "a huge JSON integer drops its own price or irradiance row, not the "
+    "whole payload (D1-s5-03)",
+    _f33_got == {
+        "entity": 24, "tibber": 24, "learned days": 1, "adjusted": 1, "irradiance": 72,
+    },
+    f"{_f33_got}",
+)
+
+# D1-s5-04: the resolution is the dominant gap. One stray off-grid stamp
+# leaves it at the grid's hour; a missing sample still does not double it
+# (the smallest-gap rule's own reason, kept).
+_f33_res = {}
+for _f33_name, _f33_extra, _f33_drop in (
+    ("stray_1min", 1, None), ("stray_30min", 30, None), ("missing", None, 30),
+):
+    _f33_ts = [_f33_t0 + timedelta(hours=i) for i in range(72) if i != _f33_drop]
+    if _f33_extra is not None:
+        _f33_ts = sorted(_f33_ts + [_f33_t0 + timedelta(hours=30, minutes=_f33_extra)])
+    _f33_res[_f33_name] = _f33_om._parse_block(
+        {"time": [t.strftime("%Y-%m-%dT%H:%M") for t in _f33_ts],
+         _f33_om._VARIABLE: [100.0] * len(_f33_ts)},
+        _f33_om._VARIABLE,
+    ).resolution
+R.check(
+    "one off-grid stamp does not shrink Open-Meteo's inferred resolution, "
+    "and one missing sample does not double it (D1-s5-04)",
+    set(_f33_res.values()) == {timedelta(hours=1)},
+    f"{_f33_res}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)")
 # #1523: the active experiment is a heat-loss learner that never consulted
 # ``_learning_frozen``, so it recorded -- and adopted -- nights the house
@@ -50970,6 +51281,385 @@ R.check(
 )
 
 
+# -- R9-F2.3: the plant model's coupled Euler guard, coil debit and inlet ------
+# Round 9, fix F2.3 (#1671 N-euler-coupled; #1644 P2; #1645 I5). Each arm
+# drives the production symbol and reads the value it returns.
+import importlib.util as _f23_ilu  # noqa: E402
+
+from heatpump_optimizer import const as _f23_const  # noqa: E402
+from heatpump_optimizer import mixing_valve as _f23_mv  # noqa: E402
+from heatpump_optimizer import thermal_model as _f23_tm  # noqa: E402
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _F23Opt  # noqa: E402
+
+# D2-s1-01: every configuration below is accepted by the config flow's own
+# ranges. The first two are the finder's named single-zone points; the third
+# the two-zone grid point with the finder's worst per-substep radius (1.3958
+# at the merge base); the last two a throttled valve regulating off a hot
+# 750 L tank, where only the emitter conductance takes a row past 1: the
+# radiators' in the upper zone's (loss and coupling 0.8 kW/K against a
+# 0.25 kWh/K zone, 1.27 with the circuit), the floor's in the slab's (0.1
+# against 0.1 kWh/K, 0.8 with the circuit). The
+# property is the maximum principle a passive RC network obeys: a zero-input
+# day from stores at 21 (slab 25, tank 30 or 60) against a 0 degC outdoor
+# stays inside [0, hottest store], and the production step's own sub-step
+# matrix -- finite differences of the step at the production h -- has no
+# negative entry and a spectral radius at or under 1. (Not a row sum: a
+# regulating valve draws the tank at the curve, so the tank's row leans on
+# the zones with no diagonal to match, and sums past 1 while stable.)
+_F23_EULER_CASES = (
+    ("single-zone C=0.5 k=5", {
+        "house_thermal_mass": 0.5, "house_heat_loss_coefficient": 0.2,
+        "slab_thermal_mass": 0.5, "slab_heat_transfer": 5.0,
+        "two_zone_mode": "off"}),
+    ("single-zone C=1.0 k=5", {
+        "house_thermal_mass": 1.0, "house_heat_loss_coefficient": 0.2,
+        "slab_thermal_mass": 1.0, "slab_heat_transfer": 5.0,
+        "two_zone_mode": "off"}),
+    ("two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5", {
+        "upper_floor_thermal_mass": 0.25, "lower_floor_thermal_mass": 1.55,
+        "upper_floor_heat_loss": 1.0, "lower_floor_heat_loss": 1.0,
+        "slab_thermal_mass": 0.843, "slab_heat_transfer": 5.0,
+        "inter_zone_transfer": 0.01, "two_zone_mode": "on"}),
+    ("two-zone valved, radiator row", {
+        "upper_floor_thermal_mass": 0.25, "upper_floor_heat_loss": 0.3,
+        "two_zone_mode": "on", "mixing_valve_mode": "manual",
+        "buffer_tank_volume": 750.0}),
+    ("two-zone valved, floor row", {
+        "slab_thermal_mass": 0.1, "slab_heat_transfer": 0.1,
+        "two_zone_mode": "on", "mixing_valve_mode": "manual",
+        "buffer_tank_volume": 750.0}),
+)
+_F23_STORES = ("upper_floor_temperature", "lower_floor_temperature",
+               "slab_temperature", "buffer_tank_temperature")
+
+
+def _f23_model(cfg):
+    p = ThermalParameters.from_config(cfg)
+    p.internal_gains = 0.0
+    p.internal_gains_profile = None
+    return ThermalModel(p)
+
+
+def _f23_start(m):
+    return ThermalState(
+        room_temperature=21.0, slab_temperature=25.0,
+        upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+        buffer_tank_temperature=(
+            60.0 if _f23_mv.is_throttling(m.params.mixing_valve_mode) else 30.0
+        ),
+        outdoor_temperature=0.0,
+    )
+
+
+def _f23_step_matrix(m, n_sub=None):
+    """The production sub-step's Jacobian over the stores it integrates."""
+    p = m.params
+    h = 0.25 / (n_sub or m._stability_substeps(0.0, 0.0, 0.25))
+    if p.two_zone_enabled:
+        fields = _F23_STORES if _f23_mv.is_throttling(p.mixing_valve_mode) \
+            else _F23_STORES[:3]
+
+        def step(s):
+            return m._simulate_step_two_zone(s, 0.0, 0.0, 0.0, 0.0, 0.0, h, 0.0)
+    else:
+        fields = ("room_temperature", "slab_temperature")
+
+        def step(s):
+            return m._simulate_step_single(s, 0.0, 0.0, 0.0, 0.0, 0.0, h, 0.0)
+    f0 = step(_f23_start(m))
+    eps = 1e-4
+    jac = np.zeros((len(fields), len(fields)))
+    for j, fj in enumerate(fields):
+        s = _f23_start(m)
+        setattr(s, fj, getattr(s, fj) + eps)
+        f1 = step(s)
+        for i, fi in enumerate(fields):
+            jac[i, j] = (getattr(f1, fi) - getattr(f0, fi)) / eps
+    return jac
+
+
+for _f23_label, _f23_cfg in _F23_EULER_CASES:
+    _f23_m = _f23_model(_f23_cfg)
+    _f23_s0 = _f23_start(_f23_m)
+    _f23_r = _f23_m.simulate_trajectory(
+        _f23_s0, np.zeros(96), np.zeros(96), dt_hours=0.25)
+    _f23_all = np.concatenate([np.asarray(a, dtype=float) for a in _f23_r[:5]])
+    _f23_exc = (
+        float(max(np.max(_f23_all) - _f23_s0.buffer_tank_temperature,
+                  -np.min(_f23_all), 0.0))
+        if np.all(np.isfinite(_f23_all)) else float("inf")
+    )
+    R.check(
+        f"R9-F2.3 D2-s1-01 ({_f23_label}): a zero-input day stays inside the "
+        "passive envelope [T_out, hottest store]",
+        _f23_exc <= 1e-9,
+        f"left the envelope by {_f23_exc:.4g} K at "
+        f"n_sub={_f23_m._stability_substeps(0.0, 0.0, 0.25)}",
+    )
+    _f23_j = _f23_step_matrix(_f23_m)
+    _f23_rho = float(np.max(np.abs(np.linalg.eigvals(_f23_j))))
+    R.check(
+        f"R9-F2.3 D2-s1-01 ({_f23_label}): the sub-step matrix is monotone -- "
+        "no negative entry -- with spectral radius at or under 1",
+        float(np.min(_f23_j)) >= -1e-6 and _f23_rho <= 1.0 + 1e-6,
+        f"min entry {float(np.min(_f23_j)):.4f}, spectral radius "
+        f"{_f23_rho:.4f}",
+    )
+# Null arm: the shipped defaults, single and two-zone, still never subdivide.
+R.check(
+    "R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1",
+    ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25) == 1
+    and ThermalModel(ThermalParameters(two_zone_enabled=True))
+    ._stability_substeps(0.0, 0.0, 0.25) == 1
+    and _f23_model({"two_zone_mode": "on", "mixing_valve_mode": "manual",
+                    "buffer_tank_volume": 750.0})
+    ._stability_substeps(0.0, 0.0, 0.25) == 1,
+)
+# The count reads the step's own clamps: a design delta-T under 1 K, a COP
+# under 1 and an empty buffer are integrated as 1 K, 1 and 0.04 kWh/K, so the
+# count is the tightest monotone one there too (one sub-step fewer has a
+# negative entry), and an empty buffer is counted, not divided by.
+_F23_V = {"upper_floor_thermal_mass": 0.25, "upper_floor_heat_loss": 0.3,
+          "two_zone_mode": "on", "mixing_valve_mode": "manual",
+          "buffer_tank_volume": 750.0}
+for _f23_label, _f23_cfg, _f23_set, _f23_tight in (
+    ("design delta-T 0.5 K", _F23_V, {"emitter_design_delta_t": 0.5}, True),
+    ("COP 0.5, delta-T 0.5 K", _F23_V,
+     {"emitter_design_delta_t": 0.5, "cop_nominal": 0.5}, True),
+    ("empty buffer", {"two_zone_mode": "on", "mixing_valve_mode": "manual",
+                      "buffer_tank_volume": 0.0}, {}, False),
+):
+    _f23_m = _f23_model(_f23_cfg)
+    for _f23_k, _f23_v in _f23_set.items():
+        setattr(_f23_m.params, _f23_k, _f23_v)
+    try:
+        _f23_n = _f23_m._stability_substeps(0.0, 0.0, 0.25)
+        _f23_j = _f23_step_matrix(_f23_m)
+        _f23_jm = _f23_step_matrix(_f23_m, _f23_n - 1) if _f23_tight else None
+        _f23_err = ""
+    except (ArithmeticError, ValueError) as _f23_e:
+        _f23_n, _f23_j, _f23_jm, _f23_err = 0, None, None, repr(_f23_e)
+    R.check(
+        f"R9-F2.3 D2-s1-01 ({_f23_label}): the count is the step's own "
+        "stiffness -- monotone at n_sub"
+        + (", and one sub-step fewer is not" if _f23_tight else ""),
+        _f23_j is not None and float(np.min(_f23_j)) >= -1e-6
+        and float(np.max(np.abs(np.linalg.eigvals(_f23_j)))) <= 1.0 + 1e-6
+        and (not _f23_tight or (_f23_n > 1 and float(np.min(_f23_jm)) < -1e-6)),
+        _f23_err or f"n_sub={_f23_n}, min entry {float(np.min(_f23_j)):.4f}"
+        + (f", at n_sub-1 {float(np.min(_f23_jm)):.4f}" if _f23_tight else ""),
+    )
+
+# D2-s1-02: across the coil, the heat the wood tank loses equals the heat the
+# DHW tank is spared, at every DHW tank temperature -- the finder's metric,
+# C_w*(wood_off - wood_on) - [C_dhw*(dhw_on - dhw_off) - booked floor
+# injection], from two production runs identical but for the coil. Below the
+# 40 degC mixed-use temperature the step debits only the scaled draw, which is
+# where the residual lived (0.405991 kWh per step at the merge base).
+_f23_coil_base = dict(
+    two_zone_enabled=True, mixing_valve_mode=_f23_mv.MODE_MANUAL,
+    buffer_tank_volume=200.0, wood_tank_configured=True, wood_tank_volume=500.0,
+    dhw_enabled=True, dhw_tank_volume=200.0, dhw_setpoint=55.0,
+)
+_f23_on = ThermalModel(ThermalParameters(**_f23_coil_base, dhw_wood_coil_enabled=True))
+_f23_off = ThermalModel(ThermalParameters(**_f23_coil_base, dhw_wood_coil_enabled=False))
+
+
+def _f23_coil_residual(dhw0, wood0):
+    out = []
+    for m in (_f23_on, _f23_off):
+        s = ThermalState(
+            room_temperature=21.0, slab_temperature=24.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, dhw_temperature=dhw0,
+            wood_tank_temperature=wood0,
+        )
+        r = m.simulate_trajectory_with_dhw(
+            s, np.zeros(1), np.zeros(1), np.zeros(1), start_hour=7.0,
+            dt_hours=0.25, dhw_draw_rates=np.full(1, 2.0))
+        out.append((r[4][-1], r[6][-1], m._step_dhw_floor_injected * 0.25))
+    (d_on, w_on, f_on), (d_off, w_off, f_off) = out
+    c_w = _f23_on.params.wood_tank_thermal_mass
+    c_d = _f23_on.params.dhw_tank_thermal_mass
+    wood_out = c_w * (w_off - w_on)
+    return wood_out - (c_d * (d_on - d_off) - (f_on - f_off)), wood_out
+
+
+_f23_cells = [(d, w, *_f23_coil_residual(d, w))
+              for d in (12.0, 20.0, 30.0, 35.0, 39.0, 45.0, 55.0)
+              for w in (30.0, 70.0, 90.0)]
+_f23_worst = max(_f23_cells, key=lambda c: abs(c[2]))
+R.check(
+    "R9-F2.3 D2-s1-02: the coil takes from the wood tank exactly the heat it "
+    "spares the DHW tank, below the mixed-use temperature as above it",
+    abs(_f23_worst[2]) <= 1e-9,
+    f"residual {_f23_worst[2]:.6f} kWh at dhw0={_f23_worst[0]} "
+    f"wood0={_f23_worst[1]}",
+)
+R.check(
+    "R9-F2.3 D2-s1-02 (control): the coil genuinely draws on the wood tank in "
+    "every cell, so the identity above is not an empty zero",
+    all(c[3] > 1e-6 for c in _f23_cells),
+    f"coil heat per cell {[round(c[3], 6) for c in _f23_cells]}",
+)
+_f23_scale = getattr(_f23_tm, "dhw_draw_scale", None)
+R.check(
+    "R9-F2.3 D2-s1-02: the tank debit, the coil's wood debit and the planner's "
+    "capacity clamp read one draw-scale rule",
+    _f23_scale is not None
+    and _f23_scale(30.0, 10.0) == 20.0 / 30.0
+    and _f23_scale(40.0, 10.0) == 1.0
+    and _f23_scale(5.0, 10.0) == 0.0,
+)
+_f23_mix = _f23_tm.DHW_MIXED_USE_TEMP
+try:
+    _f23_edge = [_f23_scale(_f23_mix + 5.0, _f23_mix),
+                 _f23_scale(_f23_mix, _f23_mix),
+                 _f23_scale(_f23_mix + 5.0, _f23_mix + 2.0)]
+except (ArithmeticError, TypeError) as _f23_e:
+    _f23_edge = [repr(_f23_e)]
+R.check(
+    "R9-F2.3 D2-s1-02: an inlet at or above the mixed-use temperature scales "
+    "the draw to 1 above it and 0 at it, never past [0, 1]",
+    _f23_edge == [1.0, 0.0, 1.0],
+    f"got {_f23_edge}",
+)
+_f23_nowood = ThermalState(room_temperature=21.0, slab_temperature=21.0,
+                           dhw_temperature=45.0, outdoor_temperature=0.0)
+try:
+    _f23_nw = (ThermalModel(ThermalParameters()).apply_dhw_coil(
+        _f23_nowood, 1.5, 45.0, 0.25), _f23_nowood.wood_tank_temperature)
+except (ArithmeticError, TypeError) as _f23_e:
+    _f23_nw = (repr(_f23_e), None)
+R.check(
+    "R9-F2.3 D2-s1-02: with no wood tank the coil passes the draw through "
+    "untouched",
+    _f23_nw == (1.5, None),
+    f"got {_f23_nw}",
+)
+
+# D2-s2-03: the hot-water path settles up the end state its own published
+# trajectory ends on -- the coil's wood debit included -- and its thermostat
+# reference owns the same coil. The golden wood_coil scenario, solved once,
+# with the settle-up's two ends read where they are consumed.
+from golden import make as _f23_make, START as _F23_START  # noqa: E402
+from golden import SCENARIOS as _F23_SCENARIOS  # noqa: E402
+
+_f23_spec = dict(_F23_SCENARIOS["wood_coil"])
+_f23_built = _f23_make(**_f23_spec)
+_f23_opt = _f23_built["optimizer"]
+_f23_seen: dict = {}
+_f23_real_def = _F23Opt._deferred_energy_cost
+_f23_real_base = _F23Opt._compute_baseline_power
+
+
+def _f23_def(self, baseline_end, optimized_end, *a, **k):
+    _f23_seen["ends"] = (baseline_end, optimized_end)
+    return _f23_real_def(self, baseline_end, optimized_end, *a, **k)
+
+
+def _f23_base(self, *a, **k):
+    _f23_seen["base_call"] = (a, dict(k))
+    return _f23_real_base(self, *a, **k)
+
+
+_F23Opt._deferred_energy_cost = _f23_def
+_F23Opt._compute_baseline_power = _f23_base
+try:
+    _f23_res = _f23_opt.optimize(
+        _f23_built["state"], _f23_built["prices"], _f23_built["outdoor"],
+        _f23_built["wind"], _f23_built["rain"], _f23_built["solar"],
+        _F23_START, external_heat_kw=np.zeros(len(_f23_built["prices"])),
+    )
+finally:
+    _F23Opt._deferred_energy_cost = _f23_real_def
+    _F23Opt._compute_baseline_power = _f23_real_base
+_f23_bend, _f23_oend = _f23_seen["ends"]
+_f23_pub = {
+    "wood_tank_temperature": _f23_res.wood_temp_trajectory,
+    "buffer_tank_temperature": _f23_res.buffer_temp_trajectory,
+    "upper_floor_temperature": _f23_res.upper_temp_trajectory,
+    "lower_floor_temperature": _f23_res.lower_temp_trajectory,
+    "slab_temperature": _f23_res.slab_temp_trajectory,
+    "dhw_temperature": _f23_res.dhw_temp_trajectory,
+}
+_f23_gaps = {
+    k: abs(float(getattr(_f23_oend, k)) - float(v[-1]))
+    for k, v in _f23_pub.items()
+}
+R.check(
+    "R9-F2.3 D2-s2-03: the hot-water settle-up's plan end is the published "
+    "trajectory's last state, store for store",
+    _f23_opt.model.params.dhw_coil_active and max(_f23_gaps.values()) <= 1e-9,
+    f"end gaps (K): {({k: round(v, 6) for k, v in _f23_gaps.items()})}",
+)
+# The reference's no-coil twin: the same call, the coil's draws withheld.
+_f23_ba, _f23_bk = _f23_seen["base_call"]
+_f23_bk_full = dict(_f23_bk)
+_f23_bk.pop("coil_draws", None)
+_, _f23_bend_nocoil = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk)
+R.check(
+    "R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than "
+    "its no-coil twin -- it owns the coil the plan owns",
+    float(_f23_bend.wood_tank_temperature)
+    < float(_f23_bend_nocoil.wood_tank_temperature) - 1e-6,
+    f"reference wood end {float(_f23_bend.wood_tank_temperature):.6f} vs "
+    f"no-coil {float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
+)
+# ... and only while the coil is on: switched off, the draws change nothing.
+_f23_opt.model.params.dhw_wood_coil_enabled = False
+try:
+    _, _f23_bend_off = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk_full)
+finally:
+    _f23_opt.model.params.dhw_wood_coil_enabled = True
+R.check(
+    "R9-F2.3 D2-s2-03: with the coil switched off, the reference's draws "
+    "leave its wood tank as its no-coil twin's",
+    np.any(np.asarray(_f23_bk_full.get("coil_draws", [])) > 0)
+    and float(_f23_bend_off.wood_tank_temperature)
+    == float(_f23_bend_nocoil.wood_tank_temperature),
+    f"off {float(_f23_bend_off.wood_tank_temperature):.6f} vs no-coil "
+    f"{float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
+)
+
+# D7-s1-71 / D5-s2-03: the cold-water inlet default is defined once. The
+# finder's rule, in memory: move const.DEFAULT_DHW_INLET_TEMP, load a fresh
+# copy of thermal_model.py against it, and read what each site delivers; a
+# site holding its own 10.0 stays behind. The retired constant's comment
+# claimed a coupling the draw does not have, so it is gone rather than kept.
+_f23_moved = 12.5
+_f23_saved = _f23_const.DEFAULT_DHW_INLET_TEMP
+_f23_const.DEFAULT_DHW_INLET_TEMP = _f23_moved
+try:
+    _f23_spec_tm = _f23_ilu.spec_from_file_location(
+        "heatpump_optimizer._f23_thermal_model", _f23_tm.__file__)
+    _f23_fresh = _f23_ilu.module_from_spec(_f23_spec_tm)
+    sys.modules[_f23_spec_tm.name] = _f23_fresh
+    _f23_spec_tm.loader.exec_module(_f23_fresh)
+    _f23_sites = {
+        "ThermalParameters()": _f23_fresh.ThermalParameters().dhw_inlet_temp,
+        "ThermalParameters.from_config({})":
+            _f23_fresh.ThermalParameters.from_config({}).dhw_inlet_temp,
+        "dhw_coil_draw_reduction's inlet default": inspect.signature(
+            _f23_fresh.dhw_coil_draw_reduction
+        ).parameters["inlet_temp"].default,
+    }
+finally:
+    _f23_const.DEFAULT_DHW_INLET_TEMP = _f23_saved
+    sys.modules.pop("heatpump_optimizer._f23_thermal_model", None)
+R.check(
+    "R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default "
+    "follows DEFAULT_DHW_INLET_TEMP when it moves",
+    all(v == _f23_moved for v in _f23_sites.values()),
+    f"{_f23_sites}",
+)
+R.check(
+    "R9-F2.3 D5-s2-03: no second cold-water constant claims to be the draw "
+    "model's cold end",
+    not hasattr(_f23_const, "DHW_COLD_WATER_TEMP"),
+)
+
+
 # -- #1524: the experiment identifies a TWO-ZONE house ------------------------
 # coordinator._update_current_state feeds the indoor reading to the upper zone,
 # so on a two-zone plant the experiment observes the upper zone while the heat
@@ -50987,12 +51677,19 @@ from dataclasses import replace as _z1524_replace  # noqa: E402
 
 
 def _z1524_run(
-    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0
+    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0,
+    true_gains=0.0, true_slab_mass=1.0, true_slab_transfer=1.0, drift=0.0,
+    cadence=0.25,
 ):
     """One experiment night on the declared preset; (decision, peak, fit reason).
 
     ``true_ua`` and ``true_mass`` scale the PLANT's heat loss and zone masses
-    away from the declared house, which the experiment still arms on.
+    away from the declared house, which the experiment still arms on. R9-P5:
+    ``true_gains`` adds free heat (kW) the declaration does not carry,
+    ``true_slab_*`` scale the slab the experiment is told about, and ``drift``
+    ramps the room reading (K/h) while the house does not move. The plant is
+    a continuous house (R9 N-fit-integrator): one-minute steps between
+    readings taken every ``cadence`` hours, never the fit's own Euler map.
     """
     cfg = _grad_house(two_zone=two_zone, dhw=False)
     cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
@@ -51011,6 +51708,9 @@ def _z1524_run(
             room_thermal_mass=declared.room_thermal_mass * true_mass,
             upper_floor_thermal_mass=declared.upper_floor_thermal_mass * true_mass,
             lower_floor_thermal_mass=declared.lower_floor_thermal_mass * true_mass,
+            internal_gains=declared.internal_gains + true_gains,
+            slab_thermal_mass=declared.slab_thermal_mass * true_slab_mass,
+            slab_heat_transfer=declared.slab_heat_transfer * true_slab_transfer,
         )
     )
     cop = plant.compute_cop(0.0)
@@ -51019,7 +51719,9 @@ def _z1524_run(
         if two_zone
         else declared.heat_loss_coefficient
     )
-    hold = max(base_ua * true_ua * 21.0 - declared.internal_gains, 0.1) / cop
+    hold = max(
+        base_ua * true_ua * 21.0 - declared.internal_gains - true_gains, 0.1
+    ) / cop
     st = ThermalState(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, slab_temperature=25.0,
@@ -51032,8 +51734,11 @@ def _z1524_run(
     )
     sid.arm(_z1524_night, plant=declared)
     when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
+    stepped = False  # whether the pump was ever driven above the hold power
     while sid.active:
-        reading = st.upper_floor_temperature
+        reading = st.upper_floor_temperature + drift * (
+            (when - _z1524_night).total_seconds() / 3600.0
+        )
         peak = max(peak, abs(reading - base))
         override = sid.step(
             now=when, room_temp=reading, outdoor_temp=0.0, price=0.1,
@@ -51048,8 +51753,13 @@ def _z1524_run(
             house_slab_transfer=declared.slab_heat_transfer,
         )
         el = hold if override is None else float(override)
-        st = plant.simulate_step(st, electrical_power=el, outdoor_temp=0.0)
-        when += timedelta(hours=0.25)
+        stepped = stepped or el > hold + 1e-9
+        for _ in range(round(cadence * 60)):
+            st = plant.simulate_step(
+                st, electrical_power=el, outdoor_temp=0.0, dt_hours=1.0 / 60
+            )
+        when += timedelta(hours=cadence)
+    _z1524_run.stepped = stepped
     decision = _SysIdModule.adoption_decision(sid.result, declared, sid.config)
     return decision, peak, sid.result.reason
 
@@ -51188,6 +51898,224 @@ R.check(
     "as the unvalved two-zone arm",
     _z1524_mis["manual"] >= _z1524_mis[True] > 0,
     f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
+)
+
+# -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
+# D7-s2-01: the candidate was rolled one explicit-Euler step per sample, so on a
+# noise-free, parameter-exact continuous house read every 30 min the fit was
+# 12-25 % low or refused, and adopted on 0 of 3 presets. The rollout now
+# sub-steps at SYSID_ROLLOUT_STEP_HOURS whatever the cadence. The 2 % bound is
+# this check's design choice: the 5-min step measured under 1.2 % on the
+# finder's harness, a fifth of the 10 % adoption bar. Typical_slab's fit is
+# as close, but the told slab pair's term (R9-P5 below) refuses it by name.
+_r9fi_fits, _r9fi_adopted = [], 0
+for _r9fi_name in _b942:
+    _r9fi_d, _, _r9fi_why = _z1524_run(_r9fi_name, False, cadence=0.5)
+    _r9fi_adopted += int(_r9fi_d.admit)
+    if _r9fi_d.admit:
+        _r9fi_fits.append((_r9fi_name, _r9fi_d.scale))
+R.check(
+    "R9 N-fit-integrator (D7-s2-01): on a noise-free continuous house read every "
+    "30 min, every adopted fit is within 2 % of the plant's heat loss, and at "
+    "least one preset adopts",
+    _r9fi_adopted >= 1 and all(abs(sc - 1.0) <= 0.02 for _, sc in _r9fi_fits),
+    f"adopted {_r9fi_adopted} of {len(_b942)}: {_r9fi_fits}",
+)
+
+# -- R9-P5 (#1655): the gate refuses the bias it exists to refuse -------------
+# Class P5 (a sysid adoption gate keyed on a quantity other than the bias it
+# gates) recurred in every audit round. The mismatch arms above perturb what the
+# fit ESTIMATES (UA, zone mass); the round-9 instances live in what it is TOLD:
+# free heat the declaration lacks, and the slab it is handed. The gate now
+# widens by how far one declared width of each told quantity moves the answer,
+# so the property is asserted against the plant's truth, not the interval. The
+# enumerator arm keeps both sides complete: every declared quantity
+# SystemIdentification.step is handed (its house_* keywords) is either fitted
+# or names the sysid width the gate prices it with, and has a runner axis; a
+# new one without both is refused. Liveness is the #1524 null-control check above (the unperturbed
+# nights still adopt), so the sweep cannot go green by refusing everything.
+#
+# A design choice this check encodes: free heat is swept to the edge of the
+# band its prior asserts (1.96 x SLAB_INTERCEPT_PRIOR_SD_KW), not beyond. One
+# night cannot separate unmodelled free heat from heat loss: a fit with the
+# prior loosened to 1e6 kW lands where the ridged one does, to within the
+# 5-min rollout's own error, and the separating signal is ~1.6e-4 K rms on a
+# 1-min rollout, far under a room sensor's noise. Free heat past the band is
+# a wrong PRIOR, whose fix is the learned free-heat profile in coordinator.py:
+# carried to F1 in .claude/workflows/carry-1655.json with the +0.4/+0.8 kW
+# nights as its failing test.
+import inspect as _r9p5_inspect  # noqa: E402
+
+_r9p5_band = round(
+    _SysIdModule._Z_975 * _SysIdModule.SLAB_INTERCEPT_PRIOR_SD_KW, 3
+)
+_R9P5_AXES = {
+    "house_ua": ("true_ua", (1.15,)),
+    "house_capacity": ("true_mass", (1.5,)),
+    "house_gains": ("true_gains", (-_r9p5_band, _r9p5_band)),
+    "house_slab_mass": ("true_slab_mass", (0.5, 2.0)),
+    "house_slab_transfer": ("true_slab_transfer", (0.5, 2.0)),
+}
+_R9P5_MEASURED = {"drift": (0.1,)}  # a reading bias, not a declared quantity
+# The fit estimates UA and the zone mass (they only seed it); the rest it is
+# told, and each names the width the adoption interval prices it with.
+_R9P5_ROLES = {
+    "house_ua": None,
+    "house_capacity": None,
+    "house_gains": "SLAB_INTERCEPT_PRIOR_SD_KW",
+    "house_slab_mass": "SLAB_PAIR_PRIOR_LOG_SD",
+    "house_slab_transfer": "SLAB_PAIR_PRIOR_LOG_SD",
+}
+_r9p5_told = {
+    k for k in _r9p5_inspect.signature(
+        _SysIdModule.SystemIdentification.step
+    ).parameters
+    if k.startswith("house_")
+}
+_r9p5_kw = set(_r9p5_inspect.signature(_z1524_run).parameters)
+R.check(
+    "R9-P5: every declared quantity the experiment is handed has a role in "
+    "the adoption gate and a bias axis in the adoption sweep",
+    _r9p5_told == set(_R9P5_AXES) == set(_R9P5_ROLES)
+    and all(
+        getattr(_SysIdModule, w, 0.0) > 0.0 for w in _R9P5_ROLES.values() if w
+    )
+    and {a for a, _ in _R9P5_AXES.values()} | set(_R9P5_MEASURED) <= _r9p5_kw
+    and all(m for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]),
+    f"handed {sorted(_r9p5_told)}, axes {sorted(_R9P5_AXES)}, widths "
+    f"{ {w: getattr(_SysIdModule, w, None) for w in _R9P5_ROLES.values() if w} }",
+)
+_r9p5_over, _r9p5_nights = [], 0
+for _r9p5_zone in (False, True):
+    for _r9p5_name in _b942:
+        for _r9p5_axis, _r9p5_mags in [
+            *_R9P5_AXES.values(), *_R9P5_MEASURED.items()
+        ]:
+            for _r9p5_mag in _r9p5_mags:
+                _r9p5_d, _, _ = _z1524_run(
+                    _r9p5_name, _r9p5_zone, **{_r9p5_axis: _r9p5_mag}
+                )
+                _r9p5_nights += 1
+                _r9p5_ua = _r9p5_mag if _r9p5_axis == "true_ua" else 1.0
+                if _r9p5_d.admit and abs(_r9p5_d.scale / _r9p5_ua - 1.0) > _z1524_bar:
+                    _r9p5_over.append(
+                        f"{_r9p5_name} two_zone={_r9p5_zone} {_r9p5_axis}="
+                        f"{_r9p5_mag}: scale {_r9p5_d.scale:.4f}"
+                    )
+R.check(
+    "R9-P5: a night whose plant differs from the declaration in what the fit "
+    "is told either adopts within the bar of the plant's own heat loss or is "
+    "refused",
+    not _r9p5_over
+    and _r9p5_nights == 2 * len(_b942) * sum(
+        len(m) for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]
+    ),
+    f"{_r9p5_nights} nights; " + "; ".join(_r9p5_over),
+)
+# D2-s4-81: a night the gate must refuse on the declared plant itself is not
+# stepped. On the unperturbed plant (the fit's best case) every night either
+# adopts or is stopped before the step by the noise-free prediction, by name,
+# and a night stopped that way never drives the pump above its hold power.
+_r9p5_late, _r9p5_stopped, _r9p5_stepped = [], 0, []
+for _r9p5_zone, _r9p5_valve in ((False, None), (True, None), (True, "manual")):
+    for _r9p5_name in _b942:
+        _r9p5_d, _r9p5_peak, _ = _z1524_run(
+            _r9p5_name, _r9p5_zone, valve=_r9p5_valve
+        )
+        if "noise-free night" in _r9p5_d.reason:
+            _r9p5_stopped += 1
+            if _z1524_run.stepped:
+                _r9p5_stepped.append(f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}")
+        if not _r9p5_d.admit and "noise-free night" not in _r9p5_d.reason:
+            _r9p5_late.append(
+                f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}: "
+                f"'{_r9p5_d.reason}' after {_r9p5_peak:.3f} K"
+            )
+R.check(
+    "R9-P5 (D2-s4-81): on the declared plant every night adopts or is refused "
+    "before its step, by the noise-free prediction",
+    not _r9p5_late,
+    "; ".join(_r9p5_late),
+)
+R.check(
+    "R9-P5 (D2-s4-81): a night the noise-free prediction stops never drives "
+    "the pump above its hold power, and at least one night is stopped",
+    _r9p5_stopped > 0 and not _r9p5_stepped,
+    f"stopped {_r9p5_stopped}; stepped anyway: {_r9p5_stepped}",
+)
+# The told slab-pair width (SLAB_PAIR_PRIOR_LOG_SD) is a liveness choice as
+# much as a safety one: the sweep above refuses a width too NARROW to price the
+# slab the fit is told about; this pins the other side. On the older derived
+# single-zone presets (four structures x pre-1960 and 1960-1980, floor
+# emitters, 3.5 kW), each night on its own declared plant, a continuous house
+# read every 15 min, adopts on 7 of 8 at the measured width 0.10, 4 at 0.15 and
+# 2 at 0.20; at least 6 must adopt, each within the bar of the plant.
+def _r9p5_derived_night(structure, era):
+    cfg = _grad_house(two_zone=False, dhw=False)
+    derived = presets.derive(presets.BuildingPreset(
+        structure=structure, era=era, heated_area_m2=120,
+        lower_emitter=presets.EMITTER_FLOOR,
+    ))
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    decl = ThermalParameters.from_config(cfg)
+    decl.two_zone_enabled = False
+    model = ThermalModel(ThermalParameters.from_config(cfg))
+    model.params.two_zone_enabled = False
+    ua = float(decl.heat_loss_coefficient * decl.house_heat_loss_scale)
+    sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
+        enabled=True, min_days_between_runs=0.0,
+        gains_prior_kw=float(decl.internal_gains),
+    ))
+    if not sid.arm(_z1524_night, plant=decl):
+        return None, ua
+    hold = max(ua * 21.0 - float(decl.internal_gains), 0.0)
+    st = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + hold / max(float(decl.slab_heat_transfer), 1e-9),
+        outdoor_temperature=0.0,
+    )
+    when = _z1524_night
+    for _ in range(32):
+        override = sid.step(
+            now=when, room_temp=st.room_temperature, outdoor_temp=0.0, price=0.1,
+            price_horizon=np.full(48, 1.0), learner_samples=0, max_power_kw=3.5,
+            cop=3.0, plan_power_kw=hold / 3.0, house_ua=ua,
+            house_capacity=float(decl.room_thermal_mass),
+            house_gains=float(decl.internal_gains),
+            house_slab_mass=float(decl.slab_thermal_mass),
+            house_slab_transfer=float(decl.slab_heat_transfer),
+        )
+        if not sid.active:
+            break
+        el = hold / 3.0 if override is None else float(override)
+        for _ in range(15):
+            st = model.simulate_step(
+                st, electrical_power=0.0, outdoor_temp=0.0, dt_hours=1.0 / 60,
+                external_heat_kw=el * 3.0,
+            )
+        when += timedelta(hours=0.25)
+    return _SysIdModule.adoption_decision(sid.result, decl, sid.config), ua
+
+
+_r9p5_live = []
+for _r9p5_struct in (
+    presets.STRUCTURE_TIMBER_CRAWLSPACE, presets.STRUCTURE_TIMBER_SLAB,
+    presets.STRUCTURE_CONCRETE_SLAB, presets.STRUCTURE_MASONRY,
+):
+    for _r9p5_era in (presets.ERA_PRE_1960, presets.ERA_1960_1980):
+        _r9p5_dd, _ = _r9p5_derived_night(_r9p5_struct, _r9p5_era)
+        _r9p5_live.append((
+            f"{_r9p5_struct}|{_r9p5_era}",
+            _r9p5_dd is not None and _r9p5_dd.admit,
+            _r9p5_dd is not None and abs(_r9p5_dd.scale - 1.0) <= _z1524_bar,
+        ))
+R.check(
+    "R9-P5: the told slab-pair width keeps the older derived presets live -- "
+    "at least 6 of 8 declared nights adopt, each within the bar of the plant",
+    sum(a for _, a, _ in _r9p5_live) >= 6
+    and all(w for _, a, w in _r9p5_live if a),
+    [(n, a) for n, a, _ in _r9p5_live],
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

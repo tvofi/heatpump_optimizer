@@ -27,6 +27,7 @@ savings for nothing.
 """
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -36,6 +37,8 @@ import numpy as np
 
 from .accuracy import HISTORY_LENGTH
 from .dhw_schedule import Window, hour_in_windows
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _window_slot(when: datetime, window_minutes: int) -> datetime:
@@ -419,6 +422,30 @@ class PeakTracker:
             # already does for unparseable values.
             tracker._window_wsum = 0.0
             tracker._window_weight = 0.0
+        if (
+            min(
+                tracker._window_sum,
+                tracker._window_samples,
+                tracker._window_wsum,
+                tracker._window_weight,
+            )
+            < 0
+            or not 0.0 <= tracker._window_factor <= 1.0
+        ):
+            # observe() folds only non-negative samples and positive spans,
+            # and sample_factor is in [0, 1]: a window outside that domain
+            # closes into a negative or inflated peak, so it restarts empty
+            # (D1-s5-02). The next sample reopens it at the tariff's factor.
+            _LOGGER.warning(
+                "Persisted capacity-tariff window is outside what the tracker "
+                "writes; restarting that window empty"
+            )
+            tracker._window_key = ""
+            tracker._window_sum = 0.0
+            tracker._window_samples = 0
+            tracker._window_factor = 1.0
+            tracker._window_wsum = 0.0
+            tracker._window_weight = 0.0
         return tracker
 
 
@@ -435,7 +462,8 @@ def _one_per_day(ranked: list[tuple[float, str]]) -> list[tuple[float, str]]:
 
 
 def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
-    """A persisted peak list and its day labels, descending, finite only.
+    """A persisted peak list and its day labels, descending, finite and
+    non-negative only.
 
     R5-D1-05 (#1296): a non-finite peak survives ``float()`` and poisons the
     billed-peak average and ``threshold_kw`` (an inf peak disarms the
@@ -455,7 +483,9 @@ def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
             value = float(p)
         except OverflowError:  # a huge JSON int
             continue
-        if not math.isfinite(value):
+        # observe() never folds a negative sample and a window counts at a
+        # factor in [0, 1], so no recorded peak is negative (D1-s5-02).
+        if not math.isfinite(value) or value < 0.0:
             continue
         day = labels[index] if index < len(labels) else ""
         ranked.append((value, day if isinstance(day, str) else ""))

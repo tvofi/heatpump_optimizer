@@ -62,15 +62,25 @@ sigma=0.05 half-widths sit past the bar on the refused draws, and the one
 comfort-bound abort is a protocol-path draw with no solver in it; the
 sigma=0.02 cell is deliberately NOT pinned -- its refusals land on the
 gate itself and its p95 touches the bar, so its counts are printed as
-context, never asserted):
+context, never asserted). R9 F4.2 (#1718) moved
+interval_refused_heavy_s005 4 -> 6 at main alone: the adoption interval now
+prices the declared slab pair (sysid.SLAB_PAIR_PRIOR_LOG_SD), which widens
+sigma=0.05 heavy draws past the bar. R9-F2.3 (#1671) moved the two sigma=0.05
+refusal counts further on top of it: the x100 slab plants are stiff, and the
+coupled Euler row rule now sub-steps the plant simulate_step rolls more finely
+than the per-store 1.5 rule did. Re-derived at this tree, with both landed:
+interval_refused_typical_s005 14 -> 15 and interval_refused_heavy_s005
+6 -> 7 (4 at base 9c6b923f before either). The refusals only grew: every
+fitted draw at sigma=0.05 is still within the 10 % bar, and the one typical
+draw base 9c6b923f fitted (+11.9 %, past it) is now refused:
     RESULT gatepass_plants=2
     RESULT draws_per_cell=16
     RESULT fitted_typical_s001=16
     RESULT within10_typical_s001=16
     RESULT fitted_heavy_s001=16
     RESULT within10_heavy_s001=16
-    RESULT interval_refused_typical_s005=14
-    RESULT interval_refused_heavy_s005=4
+    RESULT interval_refused_typical_s005=15
+    RESULT interval_refused_heavy_s005=7
     RESULT shipped_presets_armed=3
     RESULT shipped_presets_gate_named=0
     RESULT unridged_fitted_typical_s001=0

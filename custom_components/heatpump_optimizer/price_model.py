@@ -86,6 +86,67 @@ QUARTER_FACTOR_MAX = 4.0
 # squared normalised residuals. Slightly faster than the shape: how wrong the
 # prior has been lately is more useful than a long memory of old regimes.
 VAR_ALPHA = 0.15
+# The largest variance observe_day can write: a normalised price and the
+# shape's prediction both lie in the shape's cone (every bin positive, the
+# largest at most SHAPE_MAX / SHAPE_MIN times the smallest), so no residual
+# exceeds that ratio.
+RESIDUAL_VAR_MAX = (SHAPE_MAX / SHAPE_MIN) ** 2
+
+
+def _stored_rows(raw: Any, width: int, what: str) -> list[list[float]] | None:
+    """Two stored profiles of ``width`` finite bins, or ``None``.
+
+    ``None`` quietly for an absent or misshapen field, which an older store
+    legitimately has, and with a warning for a non-finite or unreadable bin:
+    a nan bin prices its hour at max(0.0, nan) == 0.0 (#922).
+    """
+    if not (
+        isinstance(raw, list)
+        and len(raw) == 2
+        and all(isinstance(s, list) and len(s) == width for s in raw)
+    ):
+        return None
+    try:
+        parsed = [[float(v) for v in s] for s in raw]
+    except (TypeError, ValueError, OverflowError):
+        parsed = None
+    if parsed is None or not np.all(np.isfinite(parsed)):
+        _LOGGER.warning("Persisted %s has a non-finite or unreadable bin; restarting it", what)
+        return None
+    return parsed
+
+
+def _stored_counts(raw: Any) -> list[int] | None:
+    """Two stored day counts, floored at zero as observing leaves them."""
+    if not (isinstance(raw, list) and len(raw) == 2):
+        return None
+    try:
+        return [max(0, int(v)) for v in raw]
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _in_domain(values: list[float], lo: float, hi: float, what: str) -> list[float]:
+    """A stored profile as its update path could have written it (D1-s5-02).
+
+    ``observe_day`` and ``observe_day_quarters`` clip each observation to
+    [lo, hi], fold it by EWMA and renormalise to mean 1.0. Each step keeps the
+    profile in one cone: every bin positive, the largest at most ``hi / lo``
+    times the smallest. A profile outside it is not learned evidence, so it is
+    put through the same clip and renormalisation, and says so.
+    """
+    low, high = min(values), max(values)
+    if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):
+        return values
+    _LOGGER.warning(
+        "Persisted %s hold a bin outside what the learner writes; clipped to "
+        "[%s, %s] and renormalised",
+        what,
+        lo,
+        hi,
+    )
+    clipped = np.clip(np.asarray(values, dtype=float), lo, hi)
+    return [float(v) for v in clipped / float(np.mean(clipped))]
 
 
 def _profile_index(when: datetime) -> int:
@@ -311,64 +372,35 @@ class PriceShapeModel:
         model = cls()
         if not isinstance(data, dict):
             return model
-        shapes = data.get("shapes")
-        days = data.get("days")
-        if (
-            isinstance(shapes, list)
-            and len(shapes) == 2
-            and all(isinstance(s, list) and len(s) == HOURS_PER_DAY for s in shapes)
-        ):
-            try:
-                parsed = [[float(v) for v in s] for s in shapes]
-                # A nan bin prices that hour at max(0.0, nan) == 0.0 (#922).
-                if not np.all(np.isfinite(parsed)):
-                    raise ValueError("non-finite bin")
-                model.shapes = parsed
-            except (TypeError, ValueError, OverflowError):
-                _LOGGER.warning("Persisted price shape has a non-finite or unreadable bin; restarting flat")
-        if isinstance(days, list) and len(days) == 2:
-            try:
-                model.days = [int(v) for v in days]
-            except (TypeError, ValueError, OverflowError):
-                pass
         # Additive fields (#19, #34): absent from a pre-v4 store, and their
         # defaults mean "no effect", so an old payload loads into exactly the
-        # behaviour it had.
-        quarters = data.get("quarter_factors")
-        if (
-            isinstance(quarters, list)
-            and len(quarters) == 2
-            and all(
-                isinstance(s, list) and len(s) == QUARTERS_PER_DAY
-                for s in quarters
-            )
-        ):
-            try:
-                parsed = [[float(v) for v in s] for s in quarters]
-                # Same gate as the shapes above (#922).
-                if not np.all(np.isfinite(parsed)):
-                    raise ValueError("non-finite factor")
-                model.quarter_factors = parsed
-            except (TypeError, ValueError, OverflowError):
-                _LOGGER.warning("Persisted quarter factors are non-finite or unreadable; restarting flat")
-        qdays = data.get("quarter_days")
-        if isinstance(qdays, list) and len(qdays) == 2:
-            try:
-                model.quarter_days = [int(v) for v in qdays]
-            except (TypeError, ValueError, OverflowError):
-                pass
-        var = data.get("residual_var")
-        if (
-            isinstance(var, list)
-            and len(var) == 2
-            and all(isinstance(s, list) and len(s) == HOURS_PER_DAY for s in var)
-        ):
-            try:
-                model.residual_var = [
-                    [max(0.0, float(v)) for v in s] for s in var
+        # behaviour it had. Each is brought into the domain its own update
+        # path writes (D1-s5-02).
+        shapes = _stored_rows(data.get("shapes"), HOURS_PER_DAY, "price shape")
+        if shapes is not None:
+            model.shapes = [_in_domain(s, SHAPE_MIN, SHAPE_MAX, "price shape") for s in shapes]
+        quarters = _stored_rows(data.get("quarter_factors"), QUARTERS_PER_DAY, "quarter factors")
+        if quarters is not None:
+            model.quarter_factors = [
+                [
+                    f
+                    for h in range(0, QUARTERS_PER_DAY, QUARTERS_PER_HOUR)
+                    for f in _in_domain(
+                        s[h : h + QUARTERS_PER_HOUR],
+                        QUARTER_FACTOR_MIN,
+                        QUARTER_FACTOR_MAX,
+                        "quarter factors",
+                    )
                 ]
-            except (TypeError, ValueError, OverflowError):
-                pass
+                for s in quarters
+            ]
+        var = _stored_rows(data.get("residual_var"), HOURS_PER_DAY, "price variance")
+        if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:
+            model.residual_var = [[max(0.0, v) for v in s] for s in var]
+        elif var is not None:
+            _LOGGER.warning("Persisted price variance exceeds what the learner writes; restarting at zero")
+        model.days = _stored_counts(data.get("days")) or model.days
+        model.quarter_days = _stored_counts(data.get("quarter_days")) or model.quarter_days
         return model
 
     def summary(self) -> dict[str, Any]:
@@ -486,7 +518,7 @@ def _entries_by_day(entries: list[dict[str, Any]]) -> dict[str, dict[int, dict[i
         try:
             when = datetime.fromisoformat(str(starts_at))
             value = float(total)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             continue
         if not np.isfinite(value):
             continue
@@ -660,7 +692,7 @@ def _raw_value(item: dict[str, Any]) -> float | None:
         return None
     try:
         value = float(raw)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     if not np.isfinite(value):
         return None
@@ -676,7 +708,7 @@ def apply_price_adjustments(
     for entry in entries:
         try:
             total = float(entry.get("total", 0.0)) * factor + extra
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             continue
         if not np.isfinite(total):
             continue
