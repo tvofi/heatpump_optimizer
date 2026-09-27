@@ -1995,11 +1995,11 @@
     "R9-F3.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "handed-off-for-review",
     "branch": "handoff/r9-f9-test-pins-1",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "69791169",
+    "last_step": "handed off for review; review cleared the code, caught a body error (D3-s1-91/D3-s3-01 belong to F1.1, D7-s1-02 belongs to F10.3, none are open seams); resume note corrected, no new code head",
+    "next_step": "Mac corrects the PR body directly; not code-owned, no tvofi review required",
     "note_file": "handoff/round9/fix/resume/F9.1.md on handoff/r9-f9-test-pins-1",
     "review_branch": "handoff/r9-f9-test-pins-1-review",
     "review_note_file": "handoff/round9/fix/resume/F9.1-review.md on handoff/r9-f9-test-pins-1-review",

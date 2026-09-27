@@ -1,0 +1,24 @@
+arm=default clock=naive n=200 seed=9
+  pump_duty: healthy=[None, None, None] first_cycle_fail=8 loader_raise=26 repeat_by_op={'type_swap_str': 4, 'wrap_list': 3, 'wrap_dict': 1} errors={'TypeError': 8}
+    loader_raise_by_op={'str_for_dict:AttributeError': 17, 'type_swap_num:AttributeError': 2, 'bool:AttributeError': 2, 'wrap_list:AttributeError': 1, 'type_swap_str:AttributeError': 1, 'huge:AttributeError': 3}
+RESULT pump_duty_loader_raise=26 count_of_200
+RESULT pump_duty_healthy_repeat=0 count
+RESULT pump_duty_repeat_fail=8 count_of_200
+  boost: healthy=[None, None, None] first_cycle_fail=0 loader_raise=0 repeat_by_op={} errors={}
+    loader_raise_by_op={}
+RESULT boost_loader_raise=0 count_of_200
+RESULT boost_healthy_repeat=0 count
+RESULT boost_repeat_fail=0 count_of_200
+  away: healthy=[None, None, None] first_cycle_fail=0 loader_raise=0 repeat_by_op={} errors={}
+    loader_raise_by_op={}
+RESULT away_loader_raise=0 count_of_200
+RESULT away_healthy_repeat=0 count
+RESULT away_repeat_fail=0 count_of_200
+  legionella: healthy=[None, None, None] first_cycle_fail=0 loader_raise=0 repeat_by_op={} errors={}
+    loader_raise_by_op={}
+RESULT legionella_loader_raise=0 count_of_200
+RESULT legionella_healthy_repeat=0 count
+RESULT legionella_repeat_fail=0 count_of_200
+RESULT thread_factor=1.000
+RESULT load1=0.30
+RESULT swapins=0
