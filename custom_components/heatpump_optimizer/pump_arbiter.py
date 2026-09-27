@@ -75,9 +75,11 @@ read the pump before the record agrees (v6.6.12).
 house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
-missing plan, a fixed-rule mode, an experiment, a boost and the end of the
-lease all get the baseline row above, and so does unloading while the
-optimizer is on. Turning it off writes nothing.
+missing plan, a fixed-rule mode, an experiment, a DHW boost and the end of
+the lease all get the baseline row above, and so does unloading while the
+optimizer is on. Boost Space Heating is the space-only row, or both on a
+step with hot water planned (:func:`_planned_duty`). Turning it off writes
+nothing.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -388,17 +390,25 @@ setpoint_check.dhw_gated = dhw_gated
 
 
 def _planned_duty(coord: Any, now: datetime) -> str | None:
-    """The duty to serve now, or ``None`` for the baseline."""
-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():
+    """The duty to serve now, or ``None`` for the baseline.
+
+    Boost Space Heating is a space duty, not the baseline (tvofi,
+    2026-09-27): Heating + DHW would hand the tank to the pump's own
+    thermostat for the boost's two hours, and when hot water is made is the
+    plan's. It is ``both`` on a step the plan, or a DHW boost, gives hot
+    water as well. A DHW boost alone keeps the baseline.
+    """
+    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
         return None
     if (coord._current_action or {}).get("mode") == "system_identification":
         return None
-    if boost.held_for(coord).until:
-        return None
-    result = getattr(coord, "_optimization_result", None)
-    if result is None:
-        return None
-    return step_duty(result, now, _on_kw(coord))
+    held = boost.held_for(coord)
+    result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
+    duty = None if result is None else step_duty(result, now, _on_kw(coord))
+    if held.active(boost.CHANNEL_SPACE, now):
+        dhw = held.active(boost.CHANNEL_DHW, now) or duty in ("dhw", "both")
+        return "both" if dhw else "space"
+    return None if held.active(boost.CHANNEL_DHW, now) else duty
 
 
 def _on_kw(coord: Any) -> float:
