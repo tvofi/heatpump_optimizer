@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.curve_flow_temp GUARD_OFF d25ec780",
+  "killed_by": "tests/features.py",
+  "old": "        if curve is None:",
+  "reason": "R9 F4.1 fix review round 2 (#1704): the mutant applied in a copy of the tree at 30f610f6 plus this commit's pins, and the class-named block of tests/features.py (header through `R9 P2`) run beside an unmutated copy, which passes: GUARD_OFF raises TypeError (None + float) at `D2-s2-02: a non-finite outdoor temperature prices no curve flow at all`, an uncaught exception on a red run."
+}
