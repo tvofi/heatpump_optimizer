@@ -212,6 +212,8 @@ class ArbiterState:
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
+#: The mode slot's writable domains; its third, ``sensor``, is read-only.
+_MODE_DOMAINS = frozenset(("select", "input_select"))
 
 
 def _entities(config: Any) -> dict[str, Any]:
@@ -524,10 +526,13 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         return
     if slot in held.retry and now < held.retry[slot]:
         return
+    domain = entity.split(".", 1)[0]
+    if slot == "mode" and domain not in _MODE_DOMAINS:
+        return  # a read-only mode slot is read, never written (D12-s2-02)
     try:
         if slot == "mode":
             await coord.hass.services.async_call(
-                "select",
+                domain,
                 "select_option",
                 {"entity_id": entity, "option": _option_for(state, value)},
                 blocking=True,
@@ -596,6 +601,8 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
         return
     async with held.lock:
         await _load(coord)
+        if getattr(coord, "_entry_released", False):
+            return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
         await _arbitrate(coord, held, mode, now)
 
@@ -688,7 +695,10 @@ def _listen(coord: Any) -> None:
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(
-        coord.hass, _STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_pump_duty"
+        coord.hass,
+        _STORE_VERSION,
+        f"{DOMAIN}_{coord.entry.entry_id}_pump_duty",
+        naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _load's zone
     )
 
 
@@ -718,13 +728,25 @@ async def _load(coord: Any) -> None:
         return
     if raw.get("manual"):
         _clear(coord, ISSUE_MANUAL)
-    for slot, pair in (raw.get("written") or {}).items():
+    written = raw.get("written")
+    for slot, pair in written.items() if isinstance(written, dict) else ():
         try:
-            at = stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
+            value, at = pair[0], stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
         except (TypeError, KeyError, IndexError):
             continue
-        if at is not None:
-            held.written[slot] = (pair[0], at)
+        if at is not None and _writable(slot, value):
+            held.written[slot] = (value, at)
+
+
+def _writable(slot: str, value: Any) -> bool:
+    """Whether ``value`` is one the arbiter could have written to ``slot``.
+
+    A restored record is compared and rewritten on every pass, so one of any
+    other shape raised there on every cycle (D1-s3-03).
+    """
+    if slot == "mode":
+        return isinstance(value, str) and value in _OWN_MODES
+    return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

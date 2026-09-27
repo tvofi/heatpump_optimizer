@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/freq_control.py:FrequencyMap.from_dict GUARD_OFF 352b7f03",
+  "killed_by": "tests/features.py",
+  "old": "            if 0 <= decile < FREQ_DECILES:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7428d87af49bf0f1d827feedc7f1a4a953b179ff: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
