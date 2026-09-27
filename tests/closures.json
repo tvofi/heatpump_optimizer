@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 106.8,
+   "seconds": 87.8,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.2,
+   "seconds": 2.5,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -456,6 +456,7 @@
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
+   ".github/workflows/pr-contract-rerun.yml",
    ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
@@ -2096,17 +2097,26 @@
    "tests/doc_claims.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
    "tests/hastub/homeassistant/data_entry_flow.py",
+   "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
+   "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/event.py",
+   "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/selector.py",
+   "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
