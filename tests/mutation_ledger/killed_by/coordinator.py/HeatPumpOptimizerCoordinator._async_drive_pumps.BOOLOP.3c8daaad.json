@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps BOOLOP 3c8daaad",
+  "killed_by": "tests/features.py",
+  "old": "        if self._mode == MODE_OFF or (not vvc_entity and not space_entity):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e2521decae02e9bb27e6a8237790d8ca98adca62: BOOLOP (`if self._mode == MODE_OFF or (not vvc_entity or not space_entity):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
