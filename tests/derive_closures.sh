@@ -111,6 +111,11 @@ p1=$!
   # this run" however complete the committed table is -- the same trap
   # config_flow_steps.py documents below.
   rec tests/doc_claims.py
+  # #1674 (class N-markdown), in run.sh's lane order right after doc_claims.py:
+  # a selectable script the lanes never recorded fails the closures job on
+  # main with "NO recording this run" however complete the committed table is
+  # -- the same trap doc_claims.py documents above.
+  rec tests/md_tables.mjs
   rec tests/wood_advisor.py
   # The config-flow driver (#194), in lane order next to entities.py: a
   # selectable script the lanes never recorded reads as "no closure" and
