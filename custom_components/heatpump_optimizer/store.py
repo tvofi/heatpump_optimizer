@@ -28,7 +28,7 @@ import asyncio
 import logging
 import math
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any, TypeVar, cast
 
 from homeassistant.helpers.storage import Store
@@ -72,7 +72,9 @@ def _sanitize(value: Any) -> Any:
     return value
 
 
-def _bound_instants(value: Any, bound: datetime, where: str) -> Any:
+def _bound_instants(
+    value: Any, bound: datetime, where: str, naive_zone: tzinfo | None = timezone.utc
+) -> Any:
     """Bound every stored instant to ``bound``: none may lie beyond it.
 
     A stored instant was stamped by the clock that ran when it was written. A
@@ -82,31 +84,31 @@ def _bound_instants(value: Any, bound: datetime, where: str) -> Any:
     period, a disinfection timer, one sibling at a time (round 9). Bounded
     here, once, so no loader and no later parse of the string decides it.
     A leaf is an instant when it is a date *and* a time; a date-only day key
-    is not one. A naive leaf is read as UTC, the bound's zone. Only a leaf
-    beyond the bound is rewritten, so a healthy payload comes back unchanged.
+    is not one. A naive leaf is read in ``naive_zone``, the zone its loader
+    reads it in, and bounded as a naive wall time there (``None``: the naive
+    clock's own wall time). Only a leaf beyond the bound is rewritten, so a
+    healthy payload comes back unchanged.
     """
     if isinstance(value, str) and len(value) >= 16 and value[10:11] in ("T", " "):
         try:
             when = datetime.fromisoformat(value)
         except ValueError:
             return value
-        if when.tzinfo is None:
-            if when <= bound.replace(tzinfo=None):
-                return value
-            clamped = bound.replace(tzinfo=None)
-        elif when <= bound:
+        naive = when.tzinfo is None
+        when = when.replace(tzinfo=naive_zone or bound.tzinfo) if naive else when
+        if when <= bound:
             return value
-        else:
-            clamped = bound.astimezone(when.tzinfo)
+        clamped = bound.astimezone(when.tzinfo)
+        clamped = clamped.replace(tzinfo=None) if naive else clamped
         _LOGGER.warning(
             "%s: stored instant %s is ahead of the clock; bounded to %s",
             where, value, clamped,
         )
         return clamped.isoformat()
     if isinstance(value, dict):
-        return {key: _bound_instants(child, bound, where) for key, child in value.items()}
+        return {k: _bound_instants(v, bound, where, naive_zone) for k, v in value.items()}
     if isinstance(value, list):
-        return [_bound_instants(child, bound, where) for child in value]
+        return [_bound_instants(child, bound, where, naive_zone) for child in value]
     return value
 
 
@@ -124,16 +126,24 @@ class QuarantiningStore(Store[_StorePayload]):
     _reading: asyncio.Future[None] | None = None
 
     def __init__(
-        self, *args: Any, lead: timedelta | None = timedelta(0), **kwargs: Any
+        self,
+        *args: Any,
+        lead: timedelta | None = timedelta(0),
+        naive_zone: tzinfo | None = timezone.utc,
+        **kwargs: Any,
     ) -> None:
         """``lead``: how far ahead of the clock a stored instant may lie.
 
         Zero for a store of things that happened; the longest legitimate lead
         for one holding expiries (a boost's maximum); ``None`` only for a
-        store of user-set instants no system bound governs.
+        store of user-set instants no system bound governs. ``naive_zone``:
+        the zone the store's loader reads a naive instant in, the one it
+        passes ``drift.stored_instant`` -- Home Assistant's where the loader
+        reads it so, or the bound is off by the zone's offset either way.
         """
         super().__init__(*args, **kwargs)
         self._lead = lead
+        self._naive_zone = naive_zone
 
     async def async_load(self) -> _StorePayload | None:
         self._reading = reading = asyncio.get_running_loop().create_future()
@@ -142,7 +152,7 @@ class QuarantiningStore(Store[_StorePayload]):
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
-                data = _bound_instants(data, bound, where)
+                data = _bound_instants(data, bound, where, self._naive_zone)
             return cast(_StorePayload | None, data)
         finally:
             reading.set_result(None)
