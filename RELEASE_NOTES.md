@@ -1,5 +1,15 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.8
+
+round-9 fixes: the coordinator's DST wall-clock seams and replay clock, store fixes, input and system-identification fixes, the solver's coupled-stability and coil-debit fixes (with a 2.3x faster plant-model step), and a fix review's merge verdict now carries across a main-only re-merge, cutting re-review rework.
+
+- #1717 — fix: stores (round-9 F3.3)
+- #1723 — fix: solver and plant model (round-9 F2.3)
+- #1718 — fix: inputs and system identification (round-9 F4.2)
+- #1720 — governance: a fix-review verdict carries across a main-only head move (round-9 F11.6)
+- #1722 — fix: DST wall-clock seams, the replay clock, naive-stamp guards and the mid-solve thermostat target (round-9 F1.1)
+
 ## v6.7.7
 
 hotfix: the Governance check reads a ruleset field the Actions token cannot see as unreadable, not as a change, so main's Governance run goes green again.

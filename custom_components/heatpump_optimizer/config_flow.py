@@ -384,6 +384,9 @@ from .const import (
     CONF_TWO_ZONE_MODE,
     TWO_ZONE_MODES,
     TWO_ZONE_MODE_AUTO,
+    TWO_ZONE_MODE_ON,
+    TWO_ZONE_MODE_OFF,
+    CONF_DHW_ENABLED,
     CONF_BUILDING_PRESET_ENABLED,
     CONF_BUILDING_STRUCTURE,
     CONF_BUILDING_ERA,
@@ -406,7 +409,7 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters
+from .thermal_model import ThermalParameters, _dhw_enabled_from_config
 from .currency import resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -1107,10 +1110,12 @@ def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
 def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
     """Turn questionnaire answers into thermal-parameter starting values.
 
-    ``two_zone`` follows the same presence rule the rest of the integration
-    uses — a fresh setup has no zone keys, so the questionnaire derives a
-    single-zone model and never writes the keys whose presence would flip
-    two-zone on.
+    ``two_zone`` is the canonical predicate's verdict on the configuration in
+    force (R9 D14-s2-01) — the same rule ``ThermalParameters.from_config``
+    applies — never a proxy read of one zone key, which ignored the mode
+    override, the other presence keys and a present-but-0.0 value. A fresh
+    setup has no zone keys, so the questionnaire derives a single-zone model
+    and never writes the keys whose presence would flip two-zone on.
     """
     preset = presets.BuildingPreset(
         structure=answers.get(CONF_BUILDING_STRUCTURE, ""),
@@ -1122,7 +1127,7 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
         upper_area_ratio=float(
             current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
         ),
-        two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),
+        two_zone=ThermalParameters.from_config(current).two_zone_enabled,
     )
     derived = presets.derive(preset)
     # The derived response time is informational; it is not a thermal
@@ -2095,13 +2100,14 @@ def _omit_unstored_computed(
 #: Registry keys whose form default is NOT interchangeable with the key being
 #: absent, so an unstored one is written even when it equals that default.
 #: The DHW pair is presence-inferred (either key switches hot-water planning
-#: on); the wood trio publishes ``None`` while absent. The credential pair
-#: could not be shown equivalent, and the initial flow always stores both.
-#: ``tests/config_flow_steps.py`` derives this whole set and fails when it
-#: moves.
+#: on); the wood trio and the wood-valve probe publish ``None`` while absent;
+#: the credential pair could not be shown equivalent, and the initial flow
+#: always stores both. ``tests/config_flow_steps.py`` derives this whole set
+#: and fails when it moves.
 _ABSENT_IS_NOT_DEFAULT: Final = frozenset({
     CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
     CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
     CONF_TIBBER_TOKEN, CONF_WEATHER_ENTITY,
 })
 
@@ -2129,6 +2135,16 @@ _ABSENT_FALLBACKS: Final[dict[str, Any]] = {
 }
 
 
+#: The DHW presence pair's form defaults (R9 D12-s1-02, merged into D12-s3-01).
+#: Either key's mere presence configures hot water, so an untouched page post
+#: of these defaults over an entry with no hot water at all is dropped below
+#: rather than stored as presence.
+_DHW_PRESENCE_PAIR_DEFAULTS: Final = {
+    CONF_DHW_WINDOWS: DEFAULT_DHW_WINDOWS,
+    CONF_DHW_TANK_VOLUME: DEFAULT_DHW_TANK_VOLUME,
+}
+
+
 def _omit_unstored_defaults(
     user_input: dict[str, Any], current: dict[str, Any]
 ) -> dict[str, Any]:
@@ -2140,14 +2156,34 @@ def _omit_unstored_defaults(
     to write every such key and turn an unchanged configuration into an
     options change -- and, through ``async_update_options``, a reload.
     Dropped only for ``_ABSENT_FALLBACKS``; a stored key is always kept.
+
+    The DHW presence pair is additionally dropped at its own defaults over an
+    entry with no hot water at all (no explicit ``dhw_enabled`` and nothing
+    the canonical presence rule sees): the pair is presence-inferred, and an
+    untouched submit of the Hot water or Hot water tank page used to plan a
+    tank the entry never had. A stored key is kept, and a value that differs
+    from the default is a deliberate answer, so a hot-water entry — and an
+    edited page — behave exactly as before.
     """
-    return {
-        key: value
-        for key, value in user_input.items()
-        if key in current
-        or key not in _ABSENT_FALLBACKS
-        or not _same_setting(_ABSENT_FALLBACKS[key], value)
-    }
+    no_dhw_entry = (
+        CONF_DHW_ENABLED not in current and not _dhw_enabled_from_config(current)
+    )
+    cleaned: dict[str, Any] = {}
+    for key, value in user_input.items():
+        if (
+            no_dhw_entry
+            and key not in current
+            and key in _DHW_PRESENCE_PAIR_DEFAULTS
+            and _same_setting(_DHW_PRESENCE_PAIR_DEFAULTS[key], value)
+        ):
+            continue
+        if (
+            key in current
+            or key not in _ABSENT_FALLBACKS
+            or not _same_setting(_ABSENT_FALLBACKS[key], value)
+        ):
+            cleaned[key] = value
+    return cleaned
 
 
 def _same_setting(stored: Any, posted: Any) -> bool:
@@ -2729,15 +2765,40 @@ class HeatPumpOptimizerConfigFlow(
     async def async_step_zones(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle two-zone and solar configuration (optional step)."""
+        """Handle two-zone and solar configuration (optional step).
+
+        The page asks whether the house HAS two zones and stores the explicit
+        ``two_zone_mode`` answer (R9 D12-s3-01): the zone fields below are
+        vol.Optional-with-default, so an untouched submit posts them, and key
+        presence alone used to flip the model to two-zone — the trap
+        ``quick_setup.derive`` documents. An untouched page answers "no".
+        """
         if user_input is not None:
-            self._data.update(user_input)
+            answers = {
+                key: value
+                for key, value in user_input.items()
+                if key != quick_setup.FIELD_TWO_ZONE
+            }
+            if quick_setup.FIELD_TWO_ZONE in user_input:
+                answers[CONF_TWO_ZONE_MODE] = (
+                    TWO_ZONE_MODE_ON
+                    if user_input[quick_setup.FIELD_TWO_ZONE]
+                    else TWO_ZONE_MODE_OFF
+                )
+            self._data.update(answers)
             return await self.async_step_dhw()
 
+        mode = self._data.get(CONF_TWO_ZONE_MODE, TWO_ZONE_MODE_AUTO)
         return self.async_show_form(
             step_id="zones",
             data_schema=vol.Schema(
                 {
+                    vol.Optional(
+                        quick_setup.FIELD_TWO_ZONE,
+                        description={
+                            "suggested_value": mode == TWO_ZONE_MODE_ON
+                        },
+                    ): selector.BooleanSelector(),
                     vol.Optional(
                         CONF_UPPER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
@@ -2788,7 +2849,15 @@ class HeatPumpOptimizerConfigFlow(
     async def async_step_dhw(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle DHW (Domestic Hot Water) configuration step."""
+        """Handle DHW (Domestic Hot Water) configuration step.
+
+        The page asks whether the house HAS hot water and stores the explicit
+        ``dhw_enabled`` answer (R9 D12-s3-01): every other field is defaulted
+        and optional, so an untouched submit stores tank volume and windows,
+        whose presence alone used to configure the tank. An untouched page
+        answers "no"; a quick-setup "yes" earlier on the path is suggested
+        back rather than flipped off.
+        """
         errors: dict[str, str] = {}
         if user_input is not None:
             window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
@@ -2822,6 +2891,14 @@ class HeatPumpOptimizerConfigFlow(
             description_placeholders=_WINDOW_PLACEHOLDERS,
             data_schema=vol.Schema(
                 {
+                    vol.Optional(
+                        CONF_DHW_ENABLED,
+                        description={
+                            "suggested_value": bool(
+                                self._data.get(CONF_DHW_ENABLED, False)
+                            )
+                        },
+                    ): selector.BooleanSelector(),
                     vol.Optional(
                         CONF_DHW_TANK_VOLUME,
                         default=DEFAULT_DHW_TANK_VOLUME,

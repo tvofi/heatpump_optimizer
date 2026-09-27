@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import atexit
 import asyncio
+import bisect
 import copy
 import functools
 import hashlib
@@ -1250,6 +1251,36 @@ def _warm_seeded(
             result.power_schedule, dtype=float
         ).copy()
     return optimizer
+
+
+def _open_loop_plan_value(
+    result: OptimizationResult | None, trajectory_attr: str, now: datetime
+) -> float | None:
+    """The previous plan's own prediction for ``now``, or ``None``.
+
+    Open-loop propagation (R9 D12-s1-01): a plant-state field whose probe is
+    omitted must not reach the solver as a never-advanced constant, so the
+    cycle seeds it from the previous plan's ``trajectory_attr`` at the step
+    covering ``now``. Instants, not wall clocks — the step search is the one
+    ``get_current_action`` uses, so a DST transition cannot shift it (R9
+    D14-s4-01). No plan, no trajectory or a plan that starts more than a step
+    after ``now`` says nothing, and a probe reading always wins over this.
+    """
+    if result is None:
+        return None
+    trajectory = getattr(result, trajectory_attr, None) or []
+    timestamps = result.timestamps or []
+    if not trajectory or not timestamps:
+        return None
+    now_s = now.timestamp()
+    starts = [ts.timestamp() for ts in timestamps]
+    if now_s < starts[0]:
+        return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
+    # The step covering ``now``; the subtraction clamps a ``now`` at or past
+    # the plan's end to its last step, as ``get_current_action`` does. The
+    # loop this replaced needed an unreachable tail return — the mutation
+    # lane's RETURN_DEL site and mypy's missing-return — to say the same.
+    return float(trajectory[bisect.bisect_right(starts, now_s) - 1])
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
@@ -5359,28 +5390,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     ctx._current_state, floor_temp
                 )
 
-        # The lower zone's room temperature, best source first.
-        #
-        # A real thermometer beats every estimate and is the only source that
-        # carries information about the lower zone at all. There used to be a
-        # second-best branch here: the floor-return reading plus 0.5 K. That was
-        # a *water* temperature standing in for an air temperature -- typically
-        # 3-9 K too warm -- and because the slab is derived from the same sensor
-        # as `return + 1.0`, the slab-to-room difference it produced was pinned
-        # at a constant 0.5 K whatever the sensor read. So the main heat path
-        # into the lower zone was both wrong and unresponsive, the error was
-        # judged against the same comfort bounds as the upper floor, and the
-        # number was published and plotted as a house temperature: an underfloor
-        # return of 27.5 C in a cold snap drew a "house" trace at 28.0 C while
-        # the upper zone sat at 22.1 C, which reads as the optimizer cooking the
-        # house to a temperature nothing ever planned.
-        #
-        # The floor return keeps the job it is a genuine proxy for -- driving
-        # the slab estimate through `update_slab_from_return_temp` above. With
-        # no lower-floor thermometer the honest stand-in is the room
-        # temperature, which is what the last-resort seed further down has
-        # always used; a repair issue says so rather than letting a wrong
-        # number pass for a measurement.
+        # The lower zone's room temperature, best source first. A real
+        # thermometer is the only source that carries information about the
+        # lower zone at all. There used to be a second-best branch here, the
+        # floor-return reading plus 0.5 K: a *water* temperature standing in
+        # for an air temperature (typically 3-9 K too warm) whose slab-to-room
+        # difference was pinned at a constant 0.5 K — a wrong, unresponsive
+        # main heat path judged against the upper floor's comfort bounds and
+        # published as a house temperature (a 27.5 C return drew a "house"
+        # trace at 28.0 C beside a 22.1 C upper zone: the optimizer cooking
+        # the house to a temperature nothing planned). The floor return keeps
+        # the job it is a genuine proxy for, driving the slab estimate above;
+        # with no lower-floor thermometer the honest stand-in is the room
+        # temperature, the last-resort seed further down, and a repair issue
+        # says so rather than letting a wrong number pass for a measurement.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             ctx._current_state.lower_floor_temperature = lower_floor.value
@@ -5391,10 +5414,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._audit_lower_floor_sensor()
         self._audit_comfort_band()
 
-        # A smart valve's target, when the integration can see it. Knowing
-        # where the valve regulates to is what tells the model whether it is
-        # throttling -- and therefore whether surplus heat can reach the tank
-        # at all -- so charging cannot be planned without it.
+        # A smart valve's target, when the integration can see it: where the
+        # valve regulates to is what tells the model whether it is throttling
+        # — and so whether surplus heat can reach the tank at all.
         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
         if valve_target.ok and (valve_value := valve_target.value) is not None:
             ctx._thermal_params.mixing_valve_target = float(valve_value)
@@ -5411,9 +5433,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
-        # Solar radiation: a local pyranometer measures this house, so it wins
-        # over any remote estimate. Open-Meteo fills in when no sensor is
-        # configured or the sensor is not reporting.
+        # Solar radiation: a local pyranometer measures this house, so it
+        # wins over any remote estimate; Open-Meteo fills in when no sensor
+        # is configured or the sensor is not reporting.
         solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
         solar_from_sensor = False
         if solar.ok and (solar_value := solar.value) is not None:
@@ -5427,24 +5449,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._solar_radiation = observed
                 ctx._current_state.solar_radiation = observed
 
-        # DHW temperature sensor
+        # DHW temperature sensor. Without an ok reading the tank is seeded
+        # from the previous plan's own trajectory (open-loop propagation,
+        # R9 D12-s1-01); the 55 °C dataclass default reached every solve
+        # otherwise, so every plan believed the tank was just charged.
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         if dhw.ok:
             self._dhw_temperature = dhw.value
             ctx._current_state.dhw_temperature = self._dhw_temperature
+        elif (
+            seed := _open_loop_plan_value(
+                self._optimization_result, "dhw_temp_trajectory", dt_util.now()
+            )
+        ) is not None:
+            ctx._current_state.dhw_temperature = seed
 
         # Buffer tank temperature sensor (optional; enables cooling learning)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         if buffer_reading.ok:
             ctx._current_state.buffer_tank_temperature = buffer_reading.value
 
-        # Wood tank temperature (issue #40): seeds the two-tank model each
-        # cycle through the same stale-aware reader — the model never
-        # extrapolates yesterday's fire, it re-reads the physical tank.
-        # Staleness maps to absence, and absence means the step falls back
-        # to the single-tank abstraction (free heat routed into the HP
-        # tank) rather than planning against a stalled hot probe or
-        # dropping the heat. Logged once per transition.
+        # Wood tank temperature (issue #40): re-read from the physical tank
+        # each cycle through the same stale-aware reader — the model never
+        # extrapolates yesterday's fire. Staleness maps to absence, which
+        # falls back to the single-tank abstraction (free heat into the HP
+        # tank) rather than a stalled hot probe; logged per transition.
         if ctx._thermal_params.two_tank_modelled:
             wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
             wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
@@ -5468,19 +5497,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # simulates a tank the parameters no longer model.
             ctx._current_state.wood_tank_temperature = None
 
-        # The pump's own supply and return water (#1067; the reader's own
-        # rules are in ``flow_lift.read_water_temps``). Written every cycle
+        # The pump's own supply and return water (#1067; the reader's rules
+        # are in ``flow_lift.read_water_temps``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
-        # not given, and "there is a fresh supply reading" is the gate the
-        # flow-bias fold is taken on.
+        # not given, and a fresh supply reading gates the flow-bias fold.
         self._flow_bias.observe_temps(*read_water_temps(reader))
 
-        # The four heat-pump signals (v5.3.0). Read through the same reader
+        # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
         # their entity id and problem — a mode entity nobody can read is
-        # *visible* in the diagnostics, it just does not act. Read before the
-        # health snapshot is published because every learner below consults
-        # ``_learning_frozen``, which now consults these.
+        # *visible* in the diagnostics, it just does not act — and read
+        # before the health snapshot, because every learner below consults
+        # ``_learning_frozen``, which consults these.
         _mode_now = dt_util.now()
         _last_good_age = (
             # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
@@ -5513,9 +5541,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # to be current before anything calls compute_cop.
         ctx._thermal_params.ambient_humidity = self._current_humidity()
 
-        # Detect an external heat source before the learners run: while one is
-        # active every thermal observation is contaminated, and the learners
-        # need to know that rather than quietly absorbing it.
+        # Detect external heat before the learners run: while one is active,
+        # every thermal observation is contaminated, and they must know.
         self._update_external_heat_detection()
 
         # #2 (gated): the curve learner's daily comfort evidence. Moved here,
@@ -5575,19 +5602,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             self._ecl110_current_displace = ctx._current_state.ecl110_displace_command
 
-        # Last resort: seed the slab, and the lower zone if nothing better has
-        # been read, from the room temperature.
-        #
-        # This used to be guarded on the floor-return *entity* being unset while
-        # the branch above is guarded on the *reading* being good. A sensor that
-        # was configured but stale or unavailable satisfied neither, so both
-        # values silently held whatever they were last set to, with nothing
-        # marking them as unfreshened. Guarding both on the reading closes that
-        # gap. The seed still happens once per process, because nothing else
-        # advances these fields between cycles -- but it now happens for a
-        # broken sensor as well as for an absent one.
+        # Last resort: seed the slab, and the lower zone if nothing better
+        # has been read, from the room temperature. Both guards are on the
+        # READING, not the entity being set: a stale sensor takes the same
+        # path as an absent one. The slab seed runs only until a first plan
+        # exists — its trajectory then advances the slab (open-loop
+        # propagation, R9 D12-s1-01); the room+1 K seed used to freeze forever.
         if not floor_return.ok:
-            if not hasattr(self, "_slab_temp_initialized"):
+            if (
+                seed := _open_loop_plan_value(
+                    self._optimization_result,
+                    "slab_temp_trajectory",
+                    dt_util.now(),
+                )
+            ) is not None:
+                ctx._current_state.slab_temperature = seed
+                self._slab_temp_initialized = True
+            elif not hasattr(self, "_slab_temp_initialized"):
                 ctx._current_state.slab_temperature = (
                     ctx._current_state.room_temperature + 1.0
                 )
