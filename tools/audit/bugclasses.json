@@ -126,10 +126,10 @@
     "mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
     "rounds": [2, 3, 4, 5, 6, 7],
     "instances": ["R2 D10-03", "R3 D11-01", "R3 D11-02", "R3 D11-03", "R3 D11-05", "R4 D11-01", "R4 D11-02", "R4 D11-03", "R4 D11-04", "R4 D11-05", "R4 D11-07", "R5 D11-01", "R5 D11-02", "R6 D11-01", "R6 D11-02", "R7 D11-01", "R7 D11-02", "R7 D13-04"],
-    "detector": null,
+    "detector": "node .claude/workflows/field_coverage.mjs",
     "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
-    "barrier": null,
-    "status": "open"
+    "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03.",
+    "status": "barriered"
   },
   "I4": {
     "kind": "instrument",

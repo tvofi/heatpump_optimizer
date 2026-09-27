@@ -50,10 +50,10 @@ by re-measuring against fewer files.
 
 The five aggregate caps — `always_loaded_tokens`, `corpus_tokens` and the three
 `roles` caps — are compared against the cap **plus `_band`**, which
-`--budgets` prints beside each of them. The per-file caps below it get no band
-and are compared exactly: those are a per-document ratchet a seat pays one
-document at a time, and a band there would buy silent growth in every capped
-file at once.
+`--budgets` prints beside each of them. The per-file caps below it, in lines
+(`files`) and in tokens (`files_tokens`: a line cap alone let prose grow at a
+constant line count), get no band and are compared exactly: a per-document
+ratchet paid one file at a time, where a band would buy growth in every file.
 
 It is there because step 3 below was obeyed. Recording an aggregate at exactly
 the measured value leaves the next pull request refused by the previous seat's

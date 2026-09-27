@@ -1432,7 +1432,40 @@ function checkCitations(rel, text) {
       message: `symbol \`${inner}\`: not found in the tracked tree, and no tag SHA is cited in this file`,
     })
   }
+  // Quoted output lines (I5, round 9): a backticked `TAG: text` span claims a
+  // tool prints that line. The symbol pass above skips every span holding a
+  // space, so a misquoted mode line passed it; it is resolved here against the
+  // tracked sources, a `<placeholder>` or a number standing for an interpolation.
+  for (const b of backticked) {
+    const inner = b.slice(1, -1)
+    if (!QUOTED_LINE_RE.test(inner) || seen.has(inner)) continue
+    seen.add(inner)
+    if (printedPattern(inner).test(printerSource())) continue
+    out.push({
+      severity: 'error',
+      check: 'citations',
+      where: rel,
+      message: `quoted line \`${inner}\`: no tracked tool prints it -- quote the line the tool prints, placeholders as <name>`,
+    })
+  }
   return out
+}
+
+const QUOTED_LINE_RE = /^[A-Z][A-Z-]+(?: [A-Z-]+)*: \S/
+let _printerSource = null
+function printerSource() {
+  if (_printerSource == null) {
+    const policy = new Set(policyFiles())
+    _printerSource = git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor'])
+      .split('\n').filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/'))
+      .map((f) => read(f) ?? '').join('\n')
+  }
+  return _printerSource
+}
+function printedPattern(span) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(span.split(/(<[^>]+>|\d+)/).filter(Boolean).map((part) =>
+    /^(<[^>]+>|\d+)$/.test(part) ? '(?:\\{[^}]*\\}|\\$\\{[^}]*\\}|%\\w|\\S+?)' : part.split(' ').map(esc).join('\\s+')).join(''))
 }
 
 // ---------------------------------------------------------------------------
@@ -1546,6 +1579,8 @@ function checkBudgets(files, budget) {
   // numbers it is made of, so nobody reads a stale-looking cap as the refusal.
   const capPhrase = (cap) => (band ? `${ceiling(cap)} (the recorded ${cap} plus the working band of ${band})` : `${cap}`)
   const rows = sizes(files)
+  const tokenCaps = b.files_tokens !== null && typeof b.files_tokens === 'object' && !Array.isArray(b.files_tokens) ? b.files_tokens : null
+  if (tokenCaps == null) out.push({ severity: 'error', check: 'budgets', where: '(per-file token caps)', message: `files_tokens in ${BUDGET_FILE} is ${JSON.stringify(b.files_tokens)}: with no table, no file's size is compared, only its line count.` })
   for (const r of rows) {
     const cap = b.files[r.file]
     if (cap == null) {
@@ -1564,6 +1599,22 @@ function checkBudgets(files, budget) {
         check: 'budgets',
         where: r.file,
         message: `${r.lines} lines exceeds its cap of ${cap}. Cut, or state the case for a higher cap in the pull request body.`,
+      })
+    }
+    // The size beside the line count (D11-s2-01, class I3). A line cap alone
+    // let a file grow in prose at a constant line count -- 600 bytes joined
+    // onto an existing line stayed green in all 7 files the finder grew.
+    // Compared exactly, like the line cap, and in the unit the aggregates use.
+    if (tokenCaps == null) continue
+    const tcap = tokenCaps[r.file]
+    if (tcap === undefined) {
+      out.push({ severity: 'error', check: 'budgets', where: r.file, message: `no token cap recorded in ${BUDGET_FILE}'s files_tokens. A capped file carries both caps, or its prose can grow at a constant line count.` })
+    } else if (!refused(r.file, `files_tokens["${r.file}"]`, tcap) && Math.round(r.bytes / 4) > tcap) {
+      out.push({
+        severity: 'error',
+        check: 'budgets',
+        where: r.file,
+        message: `about ${Math.round(r.bytes / 4)} tokens across its lines exceeds its cap of ${tcap} tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.`,
       })
     }
   }
@@ -3291,10 +3342,11 @@ function printFindings(findings) {
 // substring that must appear at least once.
 const REQUIRED_ROT = {
   citations: {
-    count: 4,
+    count: 5,
     must: [
       'not in the tree',                 // a path that does not resolve
       'runs past',                       // path:line beyond the file's length
+      'no tracked tool prints it',       // a quoted output line (I5)
     ],
   },
   counts: { count: 13, must: ['for the cap on'] },  // two literal counts, one stated cap per regex shape, one per glue word, the number-first form, and one in the loop fixture
@@ -3311,10 +3363,11 @@ const REQUIRED_ROT = {
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
   budgets: {
-    count: 2,
+    count: 3,
     must: [
       'no line cap recorded',            // an unclassified policy file
-      'exceeds its cap',                 // the one-sided ratchet itself
+      'lines exceeds its cap',           // the one-sided ratchet itself
+      'tokens across its lines',         // the per-file size cap beside it (D11-s2-01)
     ],
   },
   'pr-body': {
@@ -4246,15 +4299,17 @@ function assertAcceptance(derived) {
   // and therefore witnessless, which is how all four came to be independently
   // deletable in silence. An impossible budget gives each one a witness; a
   // generous one proves none of them fires on a corpus that is fine.
-  const capClasses = ['file', 'floor', 'corpus', 'role']
+  const capClasses = ['file', 'filetokens', 'floor', 'corpus', 'role']
   const tinyBudget = {
     files: Object.fromEntries(policyFiles().map((f) => [f, 0])),
+    files_tokens: Object.fromEntries(policyFiles().map((f) => [f, 0])),
     always_loaded_tokens: 0,
     corpus_tokens: 0,
     roles: { probe: { opens: ['CLAUDE.md'], cap: 0 } },
   }
   const hugeBudget = {
     files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])),
+    files_tokens: Object.fromEntries(policyFiles().map((f) => [f, 1e9])),
     always_loaded_tokens: 1e9,
     corpus_tokens: 1e9,
     roles: { probe: { opens: ['CLAUDE.md'], cap: 1e9 } },
@@ -4262,7 +4317,8 @@ function assertAcceptance(derived) {
   const classOf = (f) =>
     f.where === '(always-loaded set)' ? 'floor'
       : f.where === '(whole corpus)' ? 'corpus'
-        : f.where.startsWith('(role ') ? 'role' : 'file'
+        : f.where.startsWith('(role ') ? 'role'
+          : f.where === '(per-file token caps)' || /files_tokens/.test(f.message) ? 'filetokens' : 'file'
   const tinyHits = new Set(checkBudgets(policyFiles(), tinyBudget).map(classOf))
   pins += capClasses.length + 1
   for (const cls of capClasses) {
@@ -4299,9 +4355,12 @@ function assertAcceptance(derived) {
   const atMeasured = measuredFrom(checkBudgets(policyFiles(), tinyBudget))
   const scaled = (delta) => {
     const files = {}
+    const files_tokens = {}
     for (const f of policyFiles()) files[f] = (atMeasured[`file|${f}`] ?? 0) + delta
+    for (const f of policyFiles()) files_tokens[f] = (atMeasured[`filetokens|${f}`] ?? 0) + delta
     return {
       files,
+      files_tokens,
       always_loaded_tokens: (atMeasured['floor|(always-loaded set)'] ?? 0) + delta,
       corpus_tokens: (atMeasured['corpus|(whole corpus)'] ?? 0) + delta,
       roles: { probe: { opens: ['CLAUDE.md'], cap: (atMeasured['role|(role probe)'] ?? 0) + delta } },
@@ -4370,6 +4429,7 @@ function assertAcceptance(derived) {
   const CAP_BAD = { nan: NaN, infinity: Infinity, 'minus-infinity': -Infinity, null: null, absent: undefined, string: '1000000000', word: 'nan', exponent: '1e12', padded: ' 1e12', hex: '0x1000000', 'one-element-array': [1e12], bool: true, negative: -1, fraction: 0.5, unsafe: 1e300, object: {}, array: [] }
   const capSlots = {
     file: (bgt, v) => { bgt.files[policyFiles()[0]] = v },
+    filetokens: (bgt, v) => { bgt.files_tokens[policyFiles()[0]] = v },
     floor: (bgt, v) => { bgt.always_loaded_tokens = v },
     corpus: (bgt, v) => { bgt.corpus_tokens = v },
     role: (bgt, v) => { bgt.roles.probe.cap = v },
@@ -4378,7 +4438,7 @@ function assertAcceptance(derived) {
   const capSilent = []
   for (const [cls, set] of Object.entries(capSlots)) {
     for (const [name, v] of Object.entries(CAP_BAD)) {
-      const bgt = { ...hugeBudget, files: { ...hugeBudget.files }, roles: { probe: { ...hugeBudget.roles.probe } } }
+      const bgt = { ...hugeBudget, files: { ...hugeBudget.files }, files_tokens: { ...hugeBudget.files_tokens }, roles: { probe: { ...hugeBudget.roles.probe } } }
       set(bgt, v)
       if (v === undefined && cls !== 'file') delete bgt[cls === 'floor' ? 'always_loaded_tokens' : cls === 'corpus' ? 'corpus_tokens' : 'roles']
       const found = checkBudgets(policyFiles(), bgt).filter((f) => classOf(f) === cls)
@@ -4533,6 +4593,29 @@ function assertAcceptance(derived) {
   const idAbsent = driveRC(RC_THREE, JSON.stringify({ contexts: RC_THREE.contexts }), [])
   if (idAbsent.found.length !== 1 || !idAbsent.found[0].message.includes('ruleset `1`')) {
     console.log('\nFIXTURE VACUOUS: a fixture naming no rulesets did not fire; deleting the key would make a ruleset move invisible again')
+    return 1
+  }
+  // Every other ruleset FIELD (D11-s1-01, class I3): a parameter that moves
+  // while the names and ids stay put is reported by its leaf, a field GitHub
+  // rewrites (RULESET_VOLATILE) is not, and objects fetched against a fixture
+  // recording none fire -- the absent-record shape `rulesets` already pins.
+  pins += 3
+  const RS = { id: 1, name: 'n', rules: [{ type: 'pull_request', parameters: { dismiss_stale_reviews_on_push: false } }] }
+  const withObj = (o) => ({ ...RC_THREE, objects: { 1: o } })
+  const rsFixture = JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RS } })
+  const param = driveRC(withObj({ ...RS, rules: [{ type: 'pull_request', parameters: { dismiss_stale_reviews_on_push: true } }] }), rsFixture, [])
+  if (param.found.length !== 1 || !param.found[0].message.includes('dismiss_stale_reviews_on_push')) {
+    console.log(`\nFIXTURE VACUOUS: a ruleset parameter that moved with the context names and ids unchanged produced ${param.found.length} finding(s) naming it, 1 required; the review boundary could change with this check green`)
+    return 1
+  }
+  const volatile = driveRC(withObj({ ...RS, name: 'renamed', updated_at: 'now' }), rsFixture, [])
+  if (volatile.found.length) {
+    console.log(`\nFIXTURE OVER-FIRES: a RULESET_VOLATILE field GitHub rewrites produced ${volatile.found.length} finding(s)`)
+    return 1
+  }
+  const noObjects = driveRC(withObj(RS), rcFixture(RC_THREE.contexts), [])
+  if (noObjects.found.length !== 1 || !noObjects.found[0].message.includes('ruleset_objects')) {
+    console.log('\nFIXTURE VACUOUS: ruleset objects fetched against a fixture recording none did not fire; deleting the record would blind every field again')
     return 1
   }
   // Silent on equality (over-fire control) and SKIPPING on a dead fetch, line
@@ -5861,12 +5944,13 @@ function cmdNormalizeKeys() {
 function cmdBudgets(files) {
   const b = policyBudgets()
   const rows = sizes(files)
-  console.log('file'.padEnd(46), 'lines', 'cap', ' ~tokens', 'always')
+  console.log('file'.padEnd(46), 'lines', 'cap', ' ~tokens', ' cap', 'always')
   let alwaysTokens = 0
   for (const r of rows.sort((a, c) => c.lines - a.lines)) {
     const cap = b && b.files[r.file] != null ? String(b.files[r.file]) : '-'
+    const tcap = b && b.files_tokens && b.files_tokens[r.file] != null ? String(b.files_tokens[r.file]) : '-'
     if (r.always) alwaysTokens += Math.round(r.bytes / 4)
-    console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), r.always ? '  yes' : '')
+    console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), tcap.padStart(5), r.always ? '  yes' : '')
   }
   // The band is printed on every aggregate row, not once in a footer. A seat
   // reads one line to decide whether it is refused, and a cap that now sits
@@ -6375,6 +6459,10 @@ function main() {
 export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit }
 
 export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
+
+// For field_coverage.mjs's budgets arm (class I3), which drives the real
+// per-file comparison on a perturbed file rather than a temp copy of this module.
+export { checkBudgets, sizes, policyBudgets, CHECKS }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()

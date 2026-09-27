@@ -171,6 +171,30 @@ jobs:
       - name: Refuse a hook that is missing, unwired, or fails its own self-test
         run: node .claude/workflows/policy_lint.mjs --hooks
 
+      # Field coverage (class I3, round 9): every field of a governance check's
+      # input is read by that check or ignored with a reason, and every check
+      # the derived set names is registered. Scoped: on a pull request or a push
+      # it runs only when one of its inputs changed, since each arm is a
+      # function of those files and the ruleset's key set, and it always runs on
+      # the schedule and a dispatch. It runs only once the base carries it, so
+      # it is always the base's pinned copy, and after `--hooks`, because its
+      # hooks arm drives that check again.
+      - name: Refuse a governance check input field no check reads
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+            echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows/policy_lint.mjs .claude/workflows/counts.mjs .claude/workflows/field_coverage.mjs .claude/workflows/policy_budgets.json .claude/workflows/fixtures/required-contexts.json .github/workflows tools/release/stamp.py tools/audit/round6/D11/fix/codeowners_gap.py; then
+            echo "field coverage: no input changed since $SINCE; skipped"
+          else
+            node .claude/workflows/field_coverage.mjs
+          fi
+
   # THE INSTRUMENTS' OWN SELF-TESTS, run from the pull request's copies
   # (decision 0013). They were steps of `policy-docs` and `pr-contract`, ahead
   # of the restore; a step running the pull request's code can write
