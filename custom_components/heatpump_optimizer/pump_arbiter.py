@@ -17,7 +17,8 @@ hot water only DHW only, if offered configured       suitable, or
                                                      the space gate
 space only     Heating, if offered  configured, or   suitable
                                     the DHW gate
-both           Heating + DHW        configured       suitable
+both           DHW only, then       configured       suitable
+               Heating (split)
 idle           unchanged            configured       suitable
 baseline       Heating + DHW        configured       suitable
 =============  ==================  ================  ===============
@@ -33,7 +34,10 @@ ones that keep the tank ready for its next hot-water window, so the pump's
 own tank thermostat must not spend them. A disinfection cycle the
 integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
 into Heating + DHW, so the planned anti-legionella run can make hot water.
-*Idle* writes no mode: see :func:`desired`.
+*Idle* writes no mode: see :func:`desired`. A both step is split by
+:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+then Heating, each through its own row above; a share under
+:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -168,6 +172,9 @@ ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
+#: The shortest single-duty share of a both step; a shorter share goes to
+#: the other duty for the whole step (valve travel and compressor cycling).
+SPLIT_MIN_MINUTES = 5.0
 TANK_RISE_C = 0.5
 LOG_STEPS = 96
 _STORE_VERSION = 1
@@ -616,7 +623,29 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
     if mode != DUTY_CONTROL or _pump_off(coord):
         return
     hold(coord, now)
-    await _command(coord, desired(coord, duty, now), now)
+    await _command(coord, desired(coord, _share(coord, duty, now), now), now)
+
+
+def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
+    """On a planned both step, hot water first for its share, then heating.
+
+    Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
+    2026-09-27). The share is the step's hot-water power over its total.
+    A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
+    """
+    held = boost.held_for(coord)
+    if (duty != "both" or coord._mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
+            or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
+        return duty
+    result = coord._optimization_result
+    i = bisect.bisect_right(result.timestamps, now) - 1
+    space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
+    dhw_min = 15.0 * dhw / (space + dhw)
+    if dhw_min < SPLIT_MIN_MINUTES:
+        return "space"
+    if 15.0 - dhw_min < SPLIT_MIN_MINUTES:
+        return "dhw"
+    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
 
 
 def _pump_off(coord: Any) -> bool:
