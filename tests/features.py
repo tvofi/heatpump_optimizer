@@ -51402,10 +51402,15 @@ for _f25_tag, _f25_batch in (
     ("plateau", np.full((2, _f25_n), 7.0)),
 ):
     for _f25_b in (2, 97):
+        # Both arms must hold their branch shape at every size: tiled
+        # separated rows stay separated, so the count difference cannot be
+        # a row wandering onto the bisection (one random row hitting the
+        # smooth arm would add the bisection's ~400 batch calls and read
+        # as growth).
         _f25_mat = (
             _f25_batch if _f25_b == 2
             else (
-                _f25_rng.uniform(0.0, 9.0, size=(97, _f25_n))
+                np.tile(_f25_batch, (49, 1))[:97]
                 if _f25_tag == "separated" else np.full((97, _f25_n), 7.0)
             )
         )
@@ -51553,8 +51558,10 @@ for _f25_valve, _f25_kw in (
     _f25_real_builder = _f21_optmod._terminal_row_cost
 
     def _f25_cap_builder(refill, cop_end, cop_buffer, stores):
+        built = _f25_real_builder(refill, cop_end, cop_buffer, stores)
         _f25_cap["args"] = (refill, cop_end, cop_buffer, stores)
-        return _f25_real_builder(refill, cop_end, cop_buffer, stores)
+        _f25_cap["spec"] = built[1]
+        return built
 
     _f21_optmod._terminal_row_cost = _f25_cap_builder
     try:
@@ -51564,21 +51571,20 @@ for _f25_valve, _f25_kw in (
     finally:
         _f21_optmod._terminal_row_cost = _f25_real_builder
     _f25_counts = {"rows": 0, "dict_rows": 0}
-    _f25_wrapped = _f25_count_dict_rows(
-        _f25_real_builder(*_f25_cap["args"]), _f25_counts
-    )
+    _f25_row_cost, _f25_spec = _f25_real_builder(*_f25_cap["args"])
+    _f25_wrapped = _f25_count_dict_rows(_f25_row_cost, _f25_counts)
     _f25_term[_f25_valve] = (
-        _f25_cost, _f25_cbatch, _f25_wrapped, _f25_counts
+        _f25_cost, _f25_cbatch, _f25_wrapped, _f25_counts, _f25_cap["spec"]
     )
 _f25_traj = {
     _f25_name: _f25_rng.uniform(5.0, 32.0, size=(97, 5))
     for _f25_name in ("room", "slab", "upper", "lower", "buffer")
 }
 _f25_dict_pairs = {}
-for _f25_v, (_c, _cb, _wrapped, _counts) in _f25_term.items():
+for _f25_v, (_c, _cb, _wrapped, _counts, _spec) in _f25_term.items():
     # Rebuild the twin around the wrapped row function, exactly as the
     # builder itself does, then price the same 97-row batch.
-    _f25_wbatch = _f21_Opt._terminal_cost_batch(_wrapped)
+    _f25_wbatch = _f21_Opt._terminal_cost_batch(_wrapped, _spec)
     _f25_wbatch(_f25_traj)
     _f25_dict_pairs[_f25_v] = (_counts["dict_rows"], _counts["rows"])
 R.check(
@@ -51596,7 +51602,7 @@ R.check(
 # round 7. On this box's 3.11 the grid agrees either way; the 3.14 lane is
 # the detector, as _m948t's comment says of the same class one level up.
 _f25_tbad = []
-for _f25_v, (_f25_cost, _f25_cbatch, _w, _n) in _f25_term.items():
+for _f25_v, (_f25_cost, _f25_cbatch, _w, _n, _s) in _f25_term.items():
     _f25_got = _f25_cbatch(_f25_traj)
     for _f25_r in range(_f25_traj["room"].shape[0]):
         _f25_one = _f25_cost(

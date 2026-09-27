@@ -83,6 +83,7 @@ from .const import (
     DHW_QUANTILE_MIN_EVENTS,
     WOOD_TANK_MAX_TEMP,
 )
+from .batchmath import row_sums
 from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -871,47 +872,6 @@ def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
 
 #: numpy's pairwise-summation block: a reduction longer than this is split in
 #: two (at a multiple of 8) and each half summed on its own.
-_PAIRWISE_BLOCK = 128
-
-
-def _row_sums(rows: np.ndarray) -> np.ndarray:
-    """``np.sum`` of each row of a [B, n] array, one pass for the whole batch.
-
-    numpy sums a fresh 1-D array pairwise: under ``_PAIRWISE_BLOCK`` elements
-    as eight interleaved partial sums combined in a fixed tree, above it by
-    halving. This runs exactly that order of additions, but each addition is
-    one elementwise ``+`` across the batch's column, so row ``b`` is the
-    scalar ``np.sum`` of ``rows[b]`` to the bit while the interpreter works
-    once per column block rather than once per row. Only elementwise ufuncs
-    touch the values, and they are exact IEEE operations on every numpy
-    backend, whatever the memory order or alignment of ``rows`` -- which is
-    what ``fixer.md`` step 15 asks of a batch: elementwise end to end. The
-    scalar twins call this on a one-row batch, so their agreement with the
-    batch is by construction, not by measurement (R9 D9-s1-01, RC-sw1).
-    """
-    n = rows.shape[1]
-    if n > _PAIRWISE_BLOCK:
-        half = n // 2
-        half -= half % 8
-        halves: np.ndarray = _row_sums(rows[:, :half]) + _row_sums(rows[:, half:])
-        return halves
-    if n < 8:
-        total = np.full(rows.shape[0], -0.0)
-        for j in range(n):
-            total = total + rows[:, j]
-        summed: np.ndarray = 0.0 + total
-        return summed
-    partial = rows[:, :8].copy()
-    stop = n - n % 8
-    for j in range(8, stop, 8):
-        partial += rows[:, j:j + 8]
-    total = (
-        (partial[:, 0] + partial[:, 1]) + (partial[:, 2] + partial[:, 3])
-    ) + ((partial[:, 4] + partial[:, 5]) + (partial[:, 6] + partial[:, 7]))
-    for j in range(stop, n):
-        total = total + rows[:, j]
-    result: np.ndarray = 0.0 + total
-    return result
 
 
 def cycling_penalty(
@@ -934,14 +894,14 @@ def cycling_penalty_batch(
 ) -> np.ndarray:
     """``cycling_penalty`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The swings are elementwise and ``_row_sums`` reduces them in numpy's own
+    The swings are elementwise and ``row_sums`` reduces them in numpy's own
     order, so each row is the scalar penalty bit for bit on every backend
     without a per-row interpreter loop (RC-sw1).
     """
     shape = np.shape(power_matrix)
     if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:
         return np.zeros(shape[0])
-    swing = _row_sums(np.abs(np.diff(np.asarray(power_matrix, dtype=float), axis=1)))
+    swing = row_sums(np.abs(np.diff(np.asarray(power_matrix, dtype=float), axis=1)))
     return cost_per_cycle * swing / (2.0 * p_max)
 
 
@@ -1793,20 +1753,35 @@ def _terminal_row_cost(
     cop_end: float,
     cop_buffer: float,
     stores: tuple[tuple[float, str, float, float], ...],
-) -> Callable[[dict[str, float]], float]:
+) -> tuple[Callable[[Any], float], tuple[tuple[float, str, float], ...]]:
     """The terminal cost of ONE plan, from its end-of-horizon temperatures.
 
-    This is the scalar closure's body, extracted so the scalar closure and
-    ``_terminal_cost_batch`` can run the SAME function per plan (#948):
-    sharing it is what keeps the objective and the batched objective it
-    serves from differing by a single floating-point operation -- including
-    builtin ``sum``'s compensated (Neumaier) summation on CPython 3.12+,
-    which no vectorized accumulation reproduces and which is exactly the
-    ulp that diverged this branch's jac races on CI's 3.14 runner while
-    every 3.11 seat stayed green (3.11's ``sum`` is plain accumulation).
+    Returns the shared per-plan accumulation and the per-store term
+    specification (``mass * survival`` folded, with the store's name and
+    cap) the caller builds that plan's terms from. The terms are exact IEEE
+    arithmetic -- ``coef * max(0.0, cap - end)``, two multiplies and a
+    subtraction -- so the scalar closure may build them in Python and the
+    batch twin elementwise across its rows with the same bits. The
+    ACCUMULATION is the shared function, run once per plan by both twins
+    (#948): sharing it is what keeps the objective and the batched
+    objective it serves from differing by a single floating-point
+    operation -- including builtin ``sum``'s compensated (Neumaier)
+    summation on CPython 3.12+, which no vectorized accumulation
+    reproduces and which is exactly the ulp that diverged this branch's
+    jac races on CI's 3.14 runner while every 3.11 seat stayed green
+    (3.11's ``sum`` is plain accumulation). The terms moving out of the
+    per-plan function is R9 F2.5 (RC-rca2): the per-row loop this replaces
+    built a name-keyed dict and walked the stores in Python per row, which
+    the round-9 recompute RCA measured at 2-3 % of every solve and the S5
+    sweep could not see because it keyed the loop to this builder, which
+    runs once.
     """
+    terms = tuple(
+        (mass * survival, name, cap) for mass, name, cap, survival in stores
+    )
+    is_buffer = tuple(name == "buffer" for _, name, _ in terms)
 
-    def row_cost(ends: dict[str, float]) -> float:
+    def row_cost(term_values: Any) -> float:
         # The buffer's deficit converts at its own (flow-derated) COP;
         # everything else at the plain curve. Split only when the two
         # actually differ, so every unthrottled configuration keeps the
@@ -1815,24 +1790,19 @@ def _terminal_row_cost(
         if cop_buffer != cop_end:
             deficit = 0.0
             buffer_deficit = 0.0
-            for mass, name, cap, survival in stores:
-                if name == "buffer":
-                    buffer_deficit += (
-                        mass * survival * max(0.0, cap - ends[name])
-                    )
+            for buffered, term in zip(is_buffer, term_values):
+                if buffered:
+                    buffer_deficit += term
                 else:
-                    deficit += mass * survival * max(0.0, cap - ends[name])
+                    deficit += term
             return refill_price * (
                 deficit / max(cop_end, 1e-6)
                 + buffer_deficit / max(cop_buffer, 1e-6)
             )
-        deficit = sum(
-            mass * survival * max(0.0, cap - ends[name])
-            for mass, name, cap, survival in stores
-        )
+        deficit = sum(term_values)
         return refill_price * deficit / max(cop_end, 1e-6)
 
-    return row_cost
+    return row_cost, terms
 
 
 class HeatPumpOptimizer:
@@ -1958,7 +1928,7 @@ class HeatPumpOptimizer:
         """``_comfort_terms`` for a [B, n+1] trajectory batch, one entry per row.
 
         Every per-element operation is elementwise across the batch and every
-        sum is ``_row_sums``, so a row is the one-row call ``_comfort_terms``
+        sum is ``row_sums`` (batchmath), so a row is the one-row call ``_comfort_terms``
         makes, bit for bit, on every numpy backend and in either memory
         order. The per-row loop this replaced (#948) held the same contract
         by re-running the scalar body B times, which cost 13-32 % of a solve
@@ -1977,19 +1947,19 @@ class HeatPumpOptimizer:
             overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
             penalty = 0.5 * weight * (
-                _row_sums(undershoot_u ** 2) * 10.0
-                + _row_sums(overshoot_u ** 2) * 5.0
-                + _row_sums(undershoot_l ** 2) * 10.0
-                + _row_sums(overshoot_l ** 2) * 5.0
+                row_sums(undershoot_u ** 2) * 10.0
+                + row_sums(overshoot_u ** 2) * 5.0
+                + row_sums(undershoot_l ** 2) * 10.0
+                + row_sums(overshoot_l ** 2) * 5.0
             ) + weight * (
-                _row_sums(undershoot_u) + _row_sums(undershoot_l)
+                row_sums(undershoot_u) + row_sums(undershoot_l)
             ) * (_COMFORT_FLOOR_L1 * self._floor_l1_scale)
 
             comfort_dev_u = upper_t - comfort_targets
             comfort_dev_l = lower_t - comfort_targets
             comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
-                _row_sums((comfort_dev_u / comfort_band) ** 2)
-                + _row_sums((comfort_dev_l / comfort_band) ** 2)
+                row_sums((comfort_dev_u / comfort_band) ** 2)
+                + row_sums((comfort_dev_l / comfort_band) ** 2)
             )
             return penalty, comfort_cost
 
@@ -1998,15 +1968,15 @@ class HeatPumpOptimizer:
         overshoot = np.maximum(0, room_t - temp_max_bounds)
 
         penalty = weight * (
-            _row_sums(undershoot ** 2) * 10.0
-            + _row_sums(overshoot ** 2) * 5.0
-            + _row_sums(undershoot) * _COMFORT_FLOOR_L1
+            row_sums(undershoot ** 2) * 10.0
+            + row_sums(overshoot ** 2) * 5.0
+            + row_sums(undershoot) * _COMFORT_FLOOR_L1
         )
         deviation = room_t - comfort_targets
         comfort_cost = (
             _COMFORT_PULL_SINGLE_ZONE
             * weight
-            * _row_sums((deviation / comfort_band) ** 2)
+            * row_sums((deviation / comfort_band) ** 2)
         )
         return penalty, comfort_cost
 
@@ -2102,18 +2072,19 @@ class HeatPumpOptimizer:
         really borrowed heat.
 
         Returns the scalar closure and, beside it, its batch twin (#948):
-        both run ONE shared per-row function — the scalar closure's own
-        body — so neither the per-store constants, nor their order, nor a
-        single floating-point operation can drift between the objective
-        and the batched objective it serves. The per-row construction is
-        not a style choice: the store accumulation is a REDUCTION whose
-        scalar form is Python's builtin ``sum``, which on CPython 3.12+
-        is Neumaier-compensated — a different float, by design, from the
-        plain left-to-right accumulation a vectorized twin would compute,
-        on exactly the ulp the solver's iterate path amplifies (round 7
-        of this branch: the race diverged on CI's 3.14 runner and on no
-        3.11 seat, because 3.11's ``sum`` is plain accumulation). See
-        ``_terminal_cost_batch`` for the twin's side of that contract.
+        both run ONE shared per-plan function — the accumulation at the
+        heart of the scalar closure — so neither the per-store constants,
+        nor their order, nor a single floating-point operation can drift
+        between the objective and the batched objective it serves. The
+        per-plan construction is not a style choice: the store
+        accumulation is a REDUCTION whose scalar form is Python's builtin
+        ``sum``, which on CPython 3.12+ is Neumaier-compensated — a
+        different float, by design, from the plain left-to-right
+        accumulation a vectorized twin would compute, on exactly the ulp
+        the solver's iterate path amplifies (round 7 of this branch: the
+        race diverged on CI's 3.14 runner and on no 3.11 seat, because
+        3.11's ``sum`` is plain accumulation). See ``_terminal_row_cost``
+        and ``_terminal_cost_batch`` for the two sides of that contract.
 
         The shortfall is priced against the same reference the savings
         settle-up uses — the 25th-percentile price and the mean-outdoor COP,
@@ -2185,7 +2156,7 @@ class HeatPumpOptimizer:
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
 
-        row_cost = _terminal_row_cost(
+        row_cost, term_spec = _terminal_row_cost(
             refill_price, cop_end, cop_buffer, stores
         )
 
@@ -2209,30 +2180,49 @@ class HeatPumpOptimizer:
                     float(buffer_temps[-1]) if buffer_temps is not None else 0.0
                 ),
             }
-            return row_cost(ends)
+            # The store terms in store order: the same two multiplies and
+            # one subtraction per store the batch twin computes
+            # elementwise, so both twins feed the shared accumulation the
+            # same floats to the bit (see _terminal_row_cost).
+            return row_cost([
+                coef * max(0.0, cap - ends[name])
+                for coef, name, cap in term_spec
+            ])
 
-        return cost, self._terminal_cost_batch(row_cost)
+        return cost, self._terminal_cost_batch(row_cost, term_spec)
 
     @staticmethod
     def _terminal_cost_batch(
-        row_cost: Callable[[dict[str, float]], float],
+        row_cost: Callable[[Any], float],
+        term_spec: tuple[tuple[float, str, float], ...],
     ) -> Callable[[dict[str, np.ndarray]], np.ndarray]:
         """The terminal-cost closure's batch twin, per row of a batch (#948).
 
-        ``row_cost`` IS the scalar closure's body — the one function both
-        twins run, per row — so the twin cannot diverge from the scalar
-        closure by configuration or by arithmetic. The per-row loop is the
-        contract, not a leftover: the store accumulation's scalar form is
-        Python's builtin ``sum``, Neumaier-compensated on CPython 3.12+,
-        and a vectorized accumulation computed plain left-to-right adds —
-        the twin this method had before #948 round 7 — differed from it by
-        1-2 ulp on CI's 3.14 runner at interior iterates (every other term
+        ``row_cost`` IS the scalar closure's accumulation — the one
+        function both twins run, per row — so the twin cannot diverge from
+        the scalar closure by configuration or by arithmetic. The per-row
+        loop that remains is the contract, not a leftover: the store
+        accumulation's scalar form is Python's builtin ``sum``,
+        Neumaier-compensated on CPython 3.12+, and a vectorized
+        accumulation computed plain left-to-right adds — the twin this
+        method had before #948 round 7 — differed from it by 1-2 ulp on
+        CI's 3.14 runner at interior iterates (every other term
         bit-identical, trajectories bit-identical), which was enough to
-        re-plan the solve from step 35 on. That is the ``fixer.md`` step-15
-        rule applied one level up: a reduction whose scalar form is a
-        Python builtin is not elementwise end to end, however few terms it
-        has. The cost is B dict builds and at most four float terms per
-        row — noise against the batched simulation the rows ride on.
+        re-plan the solve from step 35 on. That is the ``fixer.md``
+        step-15 rule applied one level up: a reduction whose scalar form
+        is a Python builtin is not elementwise end to end, however few
+        terms it has — parity forbids removing this loop, and R9 F2.5
+        (RC-rca2) does not: what it removes is the per-row Python around
+        the sum. The store terms are computed elementwise over the whole
+        batch (exact IEEE arithmetic, the same bits the scalar closure's
+        list comprehension produces — see ``_terminal_row_cost``) and
+        converted with one ``tolist``, instead of a name-keyed ends dict
+        and a per-store walk in Python per row; the round-9 recompute RCA
+        measured that loop at 2-3 % of every solve. What remains per row
+        is the builtin sum over at most four floats — the recorded
+        partial, priced in the F2.5 pull request. ``np.where(d > 0.0, d,
+        0.0)`` is Python's ``max(0.0, d)`` exactly, NaN included (the
+        comparison is False, so 0.0 wins, as it does in ``max``).
         ``simulate_trajectory_batch`` always fills ``buffer``, so the
         scalar closure's ``buffer_temps=None`` arm has no counterpart
         here.
@@ -2240,12 +2230,16 @@ class HeatPumpOptimizer:
 
         def cost_batch(traj: dict[str, np.ndarray]) -> np.ndarray:
             n_rows = traj["room"].shape[0]
+            terms = np.stack([
+                coef * np.where(
+                    (d := cap - traj[name][:, -1]) > 0.0, d, 0.0
+                )
+                for coef, name, cap in term_spec
+            ], axis=1)
+            rows = terms.tolist()
             out = np.empty(n_rows)
             for b in range(n_rows):
-                out[b] = row_cost({
-                    name: float(traj[name][b, -1])
-                    for name in ("room", "slab", "upper", "lower", "buffer")
-                })
+                out[b] = row_cost(rows[b])
             return out
         return cost_batch
 
