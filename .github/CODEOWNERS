@@ -58,6 +58,7 @@
 # Its program stays owned though pinned: a forged exact tally line passes its
 # self-test, and only ownership stops that (#1583 review, the tally-forgery gap).
 /.claude/workflows/budget_raise_gate.py   @tvofi
+/.claude/workflows/contract_rerun.py      @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset

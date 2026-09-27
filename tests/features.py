@@ -1925,17 +1925,18 @@ R.check("surplus is net of the rest of the house", list(surplus) == [0.0, 2.0, 5
 # The piecewise cost of a draw (surplus-covered energy at the export price,
 # the rest at the import price) is charged INLINE by the optimizer's
 # `_energy_cost_fn` -- the old `pv.piecewise_cost` delegation target was
-# dead and is gone (#226). The import margin's zero floor -- an export
-# price above the import price can never pay the house to consume -- is
-# pinned on the live `pv.import_margin` here; the objective checks below
-# pin the draw-side piecewise cases on the live inline.
+# dead and is gone (#226). The import margin is signed: an export price
+# above the import price makes a self-consumed kWh cost more than an imported
+# one, and flooring it at zero broke the piecewise identity there (R9
+# D2-s3-02; the R9-F2.1 block pins both seams on it). The objective checks
+# below pin the draw-side piecewise cases on the live inline.
 _pw_prices = np.array([1.5, 1.5, 1.5])
 _pw_surplus = np.array([0.0, 2.0, 5.0])
 _pw_margin = pv.import_margin(_pw_prices, 0.3)
 R.check(
-    "the import margin floors at zero, never paying the house to consume",
+    "the import margin is import minus export, signed",
     list(_pw_margin) == [1.2, 1.2, 1.2]
-    and list(pv.import_margin(np.array([0.2]), 0.9)) == [0.0],
+    and abs(float(pv.import_margin(np.array([0.2]), 0.9)[0]) + 0.7) < 1e-12,
 )
 _blend = pv.blended_block_prices(_pw_prices, _pw_surplus, 0.3, 4.0)
 R.check(
@@ -46542,22 +46543,22 @@ R.check(
 _pa_tuya = _PaCoord(_PA_TUYA)
 _pa_run(_pa_tuya, 1)
 R.check(
-    "a hot-water-only step writes DHW only, the configured hot-water set-point and the curve supply",
+    "a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate",
     _pa_tuya.writes() == [
         ("select", "select_option", "DHW (Hot Water)"),
         ("number", "set_value", 48.0),
-        ("number", "set_value", 34.0),
+        ("number", "set_value", 25.0),
     ],
     f"{_pa_tuya.writes()}",
 )
 _pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
 _pa_tuya.device("number.dhw_set", "48")
-_pa_tuya.device("number.water_set", "34")
+_pa_tuya.device("number.water_set", "25")
 _pa_tuya.hass.services.calls.clear()
 _pa_run(_pa_tuya, 31)
 R.check(
-    "the space step at the next boundary writes heating only, and nothing else",
-    _pa_tuya.writes() == [("select", "select_option", "Heating")],
+    "the space step at the next boundary writes heating only and the heating flow, and nothing else",
+    _pa_tuya.writes() == [("select", "select_option", "Heating"), ("number", "set_value", 55.0)],
     f"{_pa_tuya.writes()}",
 )
 
@@ -46575,7 +46576,7 @@ R.check(
 _pa_man = _PaCoord(_PA_TUYA)
 _pa_run(_pa_man, 0)
 _pa_man.device("number.dhw_set", "48")
-_pa_man.device("number.water_set", "34")
+_pa_man.device("number.water_set", "25")
 _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
@@ -46616,8 +46617,8 @@ _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_run(_pa_man, 6)
 R.check(
-    "switching the optimizer off writes the baseline once, then nothing over a person's setting",
-    _pa_man_base == [("select", "select_option", "Heating + DHW")] and _pa_man.writes() == [],
+    "switching the optimizer off writes nothing, not even the baseline, and nothing over a person's setting",
+    _pa_man_base == [] and _pa_man.writes() == [],
     f"{_pa_man_base=} {_pa_man.writes()=}",
 )
 
@@ -46626,14 +46627,14 @@ _pa_lease = _PaCoord(_PA_TUYA, duties="d" * 12)
 _pa_run(_pa_lease, 0)
 _pa_lease.device("select.pump_mode", "DHW (Hot Water)")
 _pa_lease.device("number.dhw_set", "48")
-_pa_lease.device("number.water_set", "34")
+_pa_lease.device("number.water_set", "25")
 _pa_run(_pa_lease, 89)
 _pa_before = list(_pa_lease.writes())
 _pa_run(_pa_lease, 91)
 R.check(
     "a hot-water-only stretch is released to Heating + DHW past the 90-minute lease",
     ("select", "select_option", "Heating + DHW") not in _pa_before
-    and _pa_lease.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    and _pa_lease.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_lease.writes()}",
 )
 _pa_cold = _PaCoord(_PA_TUYA, duties="d" * 12)
@@ -46641,11 +46642,11 @@ _pa_cold._current_state.outdoor_temperature = -15.0
 _pa_run(_pa_cold, 0)
 _pa_cold.device("select.pump_mode", "DHW (Hot Water)")
 _pa_cold.device("number.dhw_set", "48")
-_pa_cold.device("number.water_set", "34")
+_pa_cold.device("number.water_set", "25")
 _pa_run(_pa_cold, 31)
 R.check(
     "below the cold rail the lease is 30 minutes",
-    _pa_cold.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
 )
 _pa_stale = _PaCoord(_PA_TUYA)
@@ -46731,11 +46732,11 @@ R.check(
     f"{_pa_room.writes()} / {_pa_noset.writes()}",
 )
 _pa_hot = _PaCoord(_PA_TUYA, duties="ss")
-_pa_hot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_hot.hass.states.get("number.water_set").attributes = {"min": 25, "max": 50}
 _pa_run(_pa_hot, 1)
 R.check(
-    "a curve supply above the entity's maximum is clamped to it",
-    ("number", "set_value", 63.0) in _pa_hot.writes(),
+    "a heating flow above the entity's maximum is clamped to it",
+    ("number", "set_value", 50.0) in _pa_hot.writes(),
     f"{_pa_hot.writes()}",
 )
 _pa_sysid = _PaCoord(_PA_TUYA)
@@ -46787,7 +46788,7 @@ _pa_sp.device("number.water_set", "40")
 _pa_run(_pa_sp, 2)
 R.check(
     "a changed space set-point is written back too",
-    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 34.0)],
+    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 25.0)],
     f"{_pa_sp.set_modes=} {_pa_sp.writes()=}",
 )
 _pa_user = _PaCoord(_PA_TUYA)
@@ -46800,9 +46801,22 @@ _pa_run(_pa_user, 3)
 _pa_user._mode = _PA_AUTO
 _pa_run(_pa_user, 30)
 R.check(
-    "switching the optimizer off restores Heating + DHW, and what a person sets while it is off is theirs",
-    _pa_restored == "Heating + DHW" and _pa_user.set_modes == [],
+    "switching the optimizer off leaves the pump as it was, and what a person sets while it is off is theirs",
+    _pa_restored == "DHW (Hot Water)" and _pa_user.set_modes == [],
     f"{_pa_restored=} {_pa_user.set_modes=}",
+)
+_pa_offun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_offun)
+_pa_offun._mode = _PA_OFF
+_pa_aio.run(_pa.release(_pa_offun))
+_pa_onun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_onun)
+_pa_aio.run(_pa.release(_pa_onun))
+R.check(
+    "unloading with the optimizer off writes nothing; null control: with it on, the baseline",
+    _pa_offun.writes() == []
+    and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
+    f"{_pa_offun.writes()} / {_pa_onun.writes()}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
@@ -46871,8 +46885,8 @@ _pa_idle = _PaCoord(_PA_TUYA, duties="s--")
 _pa_settled(_pa_idle, 1)
 _pa_run(_pa_idle, 16)
 R.check(
-    "an idle step writes no mode: the pump keeps the duty it just finished",
-    _pa_idle.writes() == [] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
+    "an idle step writes no mode, and a flow set-point drops to the gate",
+    _pa_idle.writes() == [("number", "set_value", 25.0)] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
     f"{_pa_idle.writes()}",
 )
 _pa_idle_d = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
@@ -46882,7 +46896,7 @@ _pa_settled(_pa_idle_d, 89)
 _pa_run(_pa_idle_d, 91)
 R.check(
     "below the plan's room temperature the hot-water-only lease keeps counting across idle steps",
-    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW")],
+    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW"), ("number", "set_value", 35.0)],
     f"{_pa_idle_d.writes()}",
 )
 
@@ -47011,7 +47025,7 @@ _pa_echo = _PaCoord(_PA_TUYA)
 _pa_run(_pa_echo, 0)
 _pa_echo.device("select.pump_mode", "DHW (Hot Water)")
 _pa_echo.device("number.dhw_set", "48")
-_pa_echo.device("number.water_set", "34")
+_pa_echo.device("number.water_set", "25")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=5)))
 _pa_echo.device("number.water_set", "53")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=60)))
@@ -47056,7 +47070,7 @@ _pa_run(_pa_pw, 3)
 R.check(
     "a set-point the pump resets while switched off is not a manual change, and is written again once it is on",
     _pa_pw.set_modes == [] and _pa_pw_off == []
-    and _pa_pw.writes() == [("number", "set_value", 34.0)],
+    and _pa_pw.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
 )
 _pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
@@ -47067,7 +47081,7 @@ _pa_pwn.device("number.water_set", "25")
 _pa_run(_pa_pwn, 2)
 R.check(
     "null control: the same reading with the pump on throughout is written back at once",
-    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 34.0)],
+    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pwn.set_modes=} {_pa_pwn.writes()=}",
 )
 _pa_ro = _PaCoord(_PA_TUYA)
@@ -47349,7 +47363,7 @@ R.check(
     f"{_pa.state_for(_pa_keep_again).written=}",
 )
 _pa_keep_again.device("select.pump_mode", "DHW (Hot Water)")
-_pa_keep_again.device("number.water_set", "34")
+_pa_keep_again.device("number.water_set", "25")
 _pa_keep_again.device("number.dhw_set", "55")
 _pa_run(_pa_keep_again, 2)
 R.check(
@@ -47416,8 +47430,80 @@ R.check(
     f"{_pa_tol.set_modes=}",
 )
 
+# A flow set-point on the model's own curve (tvofi, 2026-09-26): with the
+# real ThermalModel, not a stub, that curve is 22-26 degC and a pump told to
+# hold it barely heats. Every stub above hands the arbiter 34.2 degC.
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _PaTM, ThermalParameters as _PaTP,
+)
+
+_pa_real = _PaTM(_PaTP())
+_pa_real.params.min_electrical_power = 0.4
+_pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rheat._thermal_model = _pa_real
+_pa_rheat._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rheat, 1)
+_pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rbase._thermal_model = _pa_real
+_pa_rbase._current_state.outdoor_temperature = 5.0
+_pa_rbase.stale = True
+_pa_run(_pa_rbase, 1)
+R.check(
+    "null control: the model's real curve at 5 degC outdoors is below the 25 degC flow floor",
+    _pa_real.curve_flow_temp(5.0) < _pa.FLOW_GATE_C,
+    f"{_pa_real.curve_flow_temp(5.0)=}",
+)
+R.check(
+    "on the real curve a space-heating step writes the heating flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rheat.writes()
+    and _pa.FLOW_HEAT_C >= 45.0,
+    f"{_pa_rheat.writes()}",
+)
+R.check(
+    "on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HOLD_C) in _pa_rbase.writes()
+    and _pa.FLOW_HOLD_C == 35.0,
+    f"{_pa_rbase.writes()}",
+)
+_pa_rcold = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rcold._thermal_model.curve_flow_temp = lambda _o: 41.0
+_pa_rcold.stale = True
+_pa_run(_pa_rcold, 1)
+R.check(
+    "the baseline follows the curve where it is above 35 degC",
+    ("number", "set_value", 41.0) in _pa_rcold.writes(),
+    f"{_pa_rcold.writes()}",
+)
+_pa_rhot = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rhot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_rhot.stale = True
+_pa_run(_pa_rhot, 1)
+R.check(
+    "the baseline never holds above the heating flow, however hot the curve",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rhot.writes(),
+    f"{_pa_rhot.writes()}",
+)
+_pa_mbflow = _PaCoord(_PA_MODBUS, duties="d")
+_pa_mbflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
+_pa_run(_pa_mbflow, 1)
+R.check(
+    "with no DHW-only mode a flow gate stays at 25 degC where the entity accepts 10",
+    ("number", "set_value", 25.0) in _pa_mbflow.writes()
+    and ("number", "set_value", 10.0) not in _pa_mbflow.writes(),
+    f"{_pa_mbflow.writes()}",
+)
+_pa_mism = _PaCoord(_PA_TUYA, duties="ss", flow=False)
+_pa_run(_pa_mism, 1)
+_pa_mism_d = _PaCoord(_PA_MODBUS, duties="d", flow=False)
+_pa_run(_pa_mism_d, 1)
+R.check(
+    "an indoor-declared entity that cannot hold the room target (min 25) is not written",
+    [w for w in _pa_mism.writes() + _pa_mism_d.writes() if w[2] not in (48.0, "Heating", "Heat + DHW")] == [],
+    f"{_pa_mism.writes()} / {_pa_mism_d.writes()}",
+)
+
 # The gate floors: an entity whose own minimum is below them.
-_pa_lowflow = _PaCoord(_PA_TUYA, duties="s")
+_pa_lowflow = _PaCoord(_PA_TUYA, duties="d")
 _pa_lowflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
 _pa_lowflow._thermal_model.curve_flow_temp = lambda _o: 20.0
 _pa_run(_pa_lowflow, 1)
@@ -48959,6 +49045,273 @@ R.check(
         ("g", "(unread)"), ("unread", "(unread)"),
     ]),
     f"{_p3_probe_found}",
+)
+
+
+# -- R9-F2.1: the solver's published action and its two priced floors ---------
+# Round 9, fix F2.1 (#1665 P7, #1654 P3, #1666 N-sign-floor). Each arm drives
+# the production symbol and reads the value it returns.
+from zoneinfo import ZoneInfo as _f21_Zone  # noqa: E402
+
+from heatpump_optimizer import optimizer as _f21_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _f21_Opt,
+    OptimizationConfig as _f21_Cfg,
+    OptimizationResult as _f21_Res,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _f21_Model,
+    ThermalParameters as _f21_Params,
+)
+
+_f21_zone = _f21_Zone("Europe/Stockholm")
+
+
+def _f21_result(stamps, power, heat_pump_on=None):
+    n = len(stamps)
+    return _f21_Res(
+        power_schedule=list(power),
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=list(stamps),
+        prices=[0.1 * (k + 1) for k in range(n)],
+        predicted_cost=0.0,
+        baseline_cost=0.0,
+        predicted_savings=0.0,
+        savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n,
+        status="ok",
+        heat_pump_on_schedule=list(heat_pump_on or []),
+    )
+
+
+# D14-s4-01 (P7), the optimizer seam: Home Assistant hands every instant in
+# one ZoneInfo, and CPython subtracts and compares two datetimes that share a
+# tzinfo as naive wall clock. A plan straddling the spring transition read its
+# 15-minute step as 75 minutes, and the autumn fold's repeated hour matched the
+# wrong step. Stamps are UTC instants shown in the zone, as dt_util.as_local
+# gives them. Null arm: the same shapes on an ordinary Sunday.
+_f21_opt = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg())
+
+
+def _f21_local(y, mo, d, h, mi):
+    return datetime(y, mo, d, h, mi, tzinfo=timezone.utc).astimezone(_f21_zone)
+
+
+for _f21_day, _f21_label in (((2026, 3, 29), "spring"), ((2026, 3, 22), "null")):
+    _f21_t0 = _f21_local(*_f21_day, 0, 45)  # 01:45 CET, the step before 02:00
+    _f21_stamps = [_f21_t0 + timedelta(minutes=15) * 0]
+    for _k in range(1, 4):
+        _f21_stamps.append(
+            (_f21_t0.astimezone(timezone.utc) + timedelta(minutes=15 * _k))
+            .astimezone(_f21_zone)
+        )
+    _f21_r = _f21_result(_f21_stamps, [2.0, 3.0, 4.0, 5.0])
+    _f21_early = (
+        _f21_t0.astimezone(timezone.utc) - timedelta(minutes=30)
+    ).astimezone(_f21_zone)
+    _f21_act = _f21_opt.get_current_action(_f21_r, _f21_early)
+    R.check(
+        f"R9-F2.1 P7 ({_f21_label}): a clock 30 min before a 15-min plan is "
+        "beyond one step, so the action idles",
+        _f21_act == _f21_opt._idle_action(),
+        f"got mode {_f21_act['mode']}, power {_f21_act['power']}",
+    )
+
+for _f21_day, _f21_label in (((2026, 10, 25), "autumn"), ((2026, 10, 18), "null")):
+    _f21_u0 = datetime(*_f21_day, 0, 0, tzinfo=timezone.utc)
+    _f21_stamps = [
+        (_f21_u0 + timedelta(minutes=15 * _k)).astimezone(_f21_zone)
+        for _k in range(8)
+    ]
+    _f21_r = _f21_result(_f21_stamps, [1.0 + 0.5 * _k for _k in range(8)])
+    _f21_now = (_f21_u0 + timedelta(minutes=50)).astimezone(_f21_zone)
+    _f21_act = _f21_opt.get_current_action(_f21_r, _f21_now)
+    R.check(
+        f"R9-F2.1 P7 ({_f21_label}): the step covering now is the one whose "
+        "instant precedes it, not the one whose wall clock does",
+        _f21_act["power"] == 2.5 and abs(_f21_act["price"] - 0.4) < 1e-9,
+        f"got power {_f21_act['power']}, price {_f21_act['price']} "
+        "(want step 3: power 2.5, price 0.4)",
+    )
+
+# D12-s2-03 (P3): a fixed-speed pump (min == max) has no modulation band.
+# The 0.1 kW floor on the band made a full-power step read 0 and an idle one
+# -60, so the sensor published 'eco' at full power. One helper now owns the
+# fraction for all four sites that normalise planned power, clipped to [0, 1];
+# a full-power step is the top of the band at every one of them. The
+# modulating house is the null arm: its figures are unchanged.
+_f21_onoff = _f21_Opt(
+    _f21_Model(_f21_Params(min_electrical_power=6.0, max_electrical_power=6.0)),
+    _f21_Cfg(),
+)
+_f21_u0 = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+_f21_stamps = [_f21_u0 + timedelta(minutes=15 * _k) for _k in range(3)]
+_f21_r = _f21_result(_f21_stamps, [6.0, 0.0, 3.0], [True, False, True])
+_f21_full = _f21_onoff.get_current_action(_f21_r, _f21_stamps[0])
+_f21_off = _f21_onoff.get_current_action(_f21_r, _f21_stamps[1])
+_f21_half = _f21_onoff.get_current_action(_f21_r, _f21_stamps[2])
+R.check(
+    "R9-F2.1 P3: an on/off pump at full power publishes 'boost' at 1.0, and "
+    "off publishes 0.0 -- never outside [0, 1]",
+    _f21_full["mode"] == "boost"
+    and _f21_full["power_normalized"] == 1.0
+    and _f21_off["power_normalized"] == 0.0
+    and 0.0 <= _f21_half["power_normalized"] <= 1.0,
+    f"full {_f21_full['mode']} {_f21_full['power_normalized']}, off "
+    f"{_f21_off['power_normalized']}, half {_f21_half['power_normalized']}",
+)
+_f21_mod = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg())
+_f21_lo_kw = _f21_mod.model.params.min_electrical_power
+_f21_hi_kw = _f21_mod.model.params.max_electrical_power
+_f21_r = _f21_result(
+    _f21_stamps,
+    [_f21_lo_kw, _f21_hi_kw, 0.5 * (_f21_lo_kw + _f21_hi_kw)],
+    [True, True, True],
+)
+_f21_norms = [
+    _f21_mod.get_current_action(_f21_r, _t)["power_normalized"]
+    for _t in _f21_stamps
+]
+R.check(
+    "R9-F2.1 P3 (null arm): a modulating pump's fraction inside its band is "
+    "unchanged",
+    _f21_norms == [0.0, 1.0, 0.5],
+    f"{_f21_norms}",
+)
+_f21_r = _f21_result(_f21_stamps, [0.0, _f21_hi_kw + 1.0, 0.0], [False, True, False])
+_f21_norms = [
+    _f21_mod.get_current_action(_f21_r, _t)["power_normalized"]
+    for _t in _f21_stamps[:2]
+]
+R.check(
+    "R9-F2.1 P3: a modulating pump's published fraction is clipped to [0, 1] "
+    "outside its band",
+    _f21_norms == [0.0, 1.0],
+    f"{_f21_norms}",
+)
+_f21_cfg = _f21_onoff.config
+_f21_sp = _f21_onoff._power_to_setpoints(
+    np.array([6.0, 0.0]), np.array([21.0, 21.0]), np.array([0.0, 0.0])
+)
+_f21_disp = _f21_onoff._power_to_displace_schedule(
+    np.array([6.0] * 40), np.array([5.0] * 40)
+)
+_f21_onoff_two = _f21_Opt(
+    _f21_Model(_f21_Params(
+        min_electrical_power=6.0, max_electrical_power=6.0,
+        two_zone_enabled=True,
+    )),
+    _f21_Cfg(),
+)
+_f21_up, _f21_lo = _f21_onoff_two._zone_setpoints(np.array([6.0, 0.0]))
+_f21_pp = _f21_onoff.model.params
+R.check(
+    "R9-F2.1 P3: every site that normalises planned power puts an on/off "
+    "pump's full-power step at the top of its range and off at the bottom",
+    _f21_sp == [_f21_cfg.max_temp, _f21_cfg.min_temp]
+    and _f21_up == [_f21_cfg.max_temp, _f21_cfg.min_temp]
+    and _f21_disp[-1] == _f21_pp.ecl110_displace_max,
+    f"setpoints {_f21_sp}, upper {_f21_up}, displace tail {_f21_disp[-1]} "
+    f"against {_f21_pp.ecl110_displace_max}",
+)
+
+# D2-s2-81 (P3): averaging the two zones' penalties also halved each zone's
+# _COMFORT_FLOOR_L1 price for a kelvin under min_temp, so the solver bought each
+# zone's floor back at half the single-zone price. Each zone's linear floor
+# price is now a single-zone room's. Arm: one zone d under the floor, the other
+# at the target, against the single-zone room d under -- the slope at the
+# floor, in the scalar and the batch twin. Null arms: the quadratic part and
+# the overshoot keep the averaged (half) price.
+def _f21_penalties(two_zone, under, over=0.0):
+    opt = _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
+    n = 4
+    lo_b = np.full(n, 20.0)
+    hi_b = np.full(n, 23.0)
+    tgt = np.full(n, 21.5)
+    band = np.full(n, 1.5)
+    hit = np.full(n + 1, 20.0 - under + (3.0 + over if over else 0.0))
+    ok = np.full(n + 1, 21.5)
+    room, upper, lower = (hit, hit, ok) if two_zone else (hit, ok, ok)
+    scalar = opt._comfort_terms(room, upper, lower, tgt, lo_b, hi_b, band)[0]
+    batch = opt._comfort_terms_batch(
+        room[None, :], upper[None, :], lower[None, :], tgt, lo_b, hi_b, band
+    )[0][0]
+    return scalar, batch
+
+
+_f21_h = 1e-7
+for _f21_twin in (0, 1):
+    _f21_slope = {
+        _z: _f21_penalties(_z, _f21_h)[_f21_twin] / _f21_h for _z in (False, True)
+    }
+    R.check(
+        f"R9-F2.1 P3: one zone-kelvin under min_temp is priced at the "
+        f"single-zone room's linear floor price ({('scalar', 'batch')[_f21_twin]})",
+        _f21_slope[False] > 0
+        and abs(_f21_slope[True] / _f21_slope[False] - 1.0) < 1e-4,
+        f"slope two-zone {_f21_slope[True]:.6f}, single-zone {_f21_slope[False]:.6f}",
+    )
+_f21_d = 0.25
+_f21_curv = {
+    _z: _f21_penalties(_z, 2 * _f21_d)[0] - 2 * _f21_penalties(_z, _f21_d)[0]
+    for _z in (False, True)
+}
+R.check(
+    "R9-F2.1 P3 (null arm): the quadratic undershoot stays averaged over the "
+    "zones -- half the single-zone curvature",
+    _f21_curv[False] > 0
+    and abs(_f21_curv[True] / _f21_curv[False] - 0.5) < 1e-9,
+    f"curvature two-zone {_f21_curv[True]:.6f}, single-zone {_f21_curv[False]:.6f}",
+)
+_f21_o1 = _f21_penalties(False, 0.0, over=0.4)[0]
+_f21_o2 = _f21_penalties(True, 0.0, over=0.4)[0]
+R.check(
+    "R9-F2.1 P3 (null arm): one zone over max_temp still costs half the "
+    "single-zone overshoot -- only the floor's linear price changed",
+    _f21_o1 > 0 and abs(_f21_o2 - 0.5 * _f21_o1) < 1e-12,
+    f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
+)
+
+# D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the
+# import price sits below the export price (a negative-price hour, or a high
+# export compensation) a surplus-covered kWh was charged at the import price
+# instead of the export compensation it forgoes. Both PV pricing seams must
+# equal the identity export*min(P, s) + import*max(P - s, 0) for any sign of
+# the margin. Null arm: an ordinary import > export step, unchanged.
+_f21_pv = _f21_Opt(_f21_Model(_f21_Params()), _f21_Cfg(pv_export_price=0.3))
+_f21_pv._pv_surplus = np.array([4.0, 4.0, 4.0])
+_f21_imp = np.array([-0.5, 0.1, 1.5])  # negative, below export, ordinary
+_f21_draw = 3.0
+
+
+def _f21_identity(imp, exp_, p, s):
+    return exp_ * min(p, s) + imp * max(p - s, 0.0)
+
+
+_f21_cost_fn = _f21_pv._energy_cost_fn(_f21_imp, 1.0)
+_f21_bad = []
+for _k, _imp in enumerate(_f21_imp):
+    _one = np.zeros(3)
+    _one[_k] = _f21_draw
+    _got = _f21_cost_fn(_one)
+    _want = _f21_identity(float(_imp), 0.3, _f21_draw, 4.0)
+    if abs(_got - _want) > 1e-9:
+        _f21_bad.append((float(_imp), round(_got, 4), round(_want, 4)))
+R.check(
+    "R9-F2.1 N-sign-floor: the objective charges surplus-covered energy at the "
+    "export price whatever the sign of import - export",
+    not _f21_bad,
+    f"(import, cost, identity): {_f21_bad}",
+)
+_f21_blend = pv.blended_block_prices(_f21_imp, np.array([2.0] * 3), 0.3, 4.0)
+_f21_bwant = [0.5 * 0.3 + 0.5 * float(_imp) for _imp in _f21_imp]
+R.check(
+    "R9-F2.1 N-sign-floor: a hot-water block's blended price is the same "
+    "identity at every sign of the margin",
+    all(abs(a - b) < 1e-9 for a, b in zip(_f21_blend, _f21_bwant)),
+    f"{[round(float(v), 4) for v in _f21_blend]} against "
+    f"{[round(v, 4) for v in _f21_bwant]}",
 )
 
 
