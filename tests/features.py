@@ -47066,20 +47066,128 @@ R.check(
 _pa_sysid = _PaCoord(_PA_TUYA)
 _pa_sysid._current_action = {"mode": "system_identification"}
 _pa_run(_pa_sysid, 1)
-_pa_boosted = _PaCoord(_PA_TUYA)
-boost_mod.held_for(_pa_boosted).until["dhw"] = _PA_T0 + timedelta(hours=2)
-_pa_run(_pa_boosted, 1)
 _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment, a boost and a missing plan each get the baseline, not hot water only",
+    "an experiment and a missing plan each get the baseline, not hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
-        for c in (_pa_sysid, _pa_boosted, _pa_noplan)
+        for c in (_pa_sysid, _pa_noplan)
     ),
-    f"{_pa_sysid.writes()} / {_pa_boosted.writes()} / {_pa_noplan.writes()}",
+    f"{_pa_sysid.writes()} / {_pa_noplan.writes()}",
+)
+# A boost adds its duty to the plan step's, not the baseline (tvofi,
+# 2026-09-27): Heating + DHW would hand the other duty to the pump's own
+# thermostat for two hours, and when that runs is the plan's. Heating + DHW
+# is the fallback on a pump that offers no single-duty mode, and the duty on
+# a step the plan (or the other boost) gives the other duty as well.
+_pa_sb = {}
+for _pa_sb_name, _pa_sb_opts, _pa_sb_duties, _pa_sb_on in (
+    ("tuya", _PA_TUYA, "--", ("space",)), ("modbus", _PA_MODBUS, "--", ("space",)),
+    ("dhwstep", _PA_TUYA, "dd", ("space",)), ("dhwboost", _PA_TUYA, "--", ("space", "dhw")),
+    ("dhwonly", _PA_TUYA, "--", ("dhw",)), ("dhwonspace", _PA_TUYA, "ss", ("dhw",)),
+):
+    _pa_sb[_pa_sb_name] = _PaCoord(_pa_sb_opts, duties=_pa_sb_duties)
+    for _pa_sb_ch in _pa_sb_on:
+        boost_mod.held_for(_pa_sb[_pa_sb_name]).set(_pa_sb_ch, True, _PA_T0)
+    _pa_run(_pa_sb[_pa_sb_name], 1)
+_pa_sb_off = _PaCoord(_PA_TUYA, duties="--")
+_pa_sb_off._mode = _PA_OFF
+boost_mod.held_for(_pa_sb_off).set("space", True, _PA_T0)
+_pa_run(_pa_sb_off, 1)
+_pa_sb_stale = _PaCoord(_PA_TUYA, duties="dd")
+_pa_sb_stale.stale = True
+boost_mod.held_for(_pa_sb_stale).set("space", True, _PA_T0)
+_pa_run(_pa_sb_stale, 1)
+_pa_sb_old = _PaCoord(_PA_TUYA, duties="--")
+boost_mod.held_for(_pa_sb_old).until["space"] = _PA_T0
+_pa_run(_pa_sb_old, 1)
+# A step the plan gives both duties is split, not handed to the pump's own
+# thermostats (tvofi, 2026-09-27): hot water first for its share of the
+# 15 minutes, then heating; a share under SPLIT_MIN_MINUTES goes to the
+# other duty for the whole step.
+def _pa_split(space_kw, dhw_kw, options=_PA_TUYA, minutes=(1, 10, 14)):
+    coord = _PaCoord(options, duties="b")
+    coord._optimization_result = _PaNS(
+        timestamps=[_PA_T0], power_schedule=[space_kw],
+        dhw_power_schedule=[dhw_kw], optimal_setpoints=[21.0],
+    )
+    modes = []
+    for minute in minutes:
+        coord.hass.services.calls.clear()
+        _pa_run(coord, minute)
+        modes.append([w[2] for w in coord.writes() if w[0] == "select"])
+        written = [w[2] for w in coord.writes() if w[0] == "select"]
+        if written:
+            coord.device("select.pump_mode", written[-1])
+    return modes
+
+
+_pa_sp_even = _pa_split(1.5, 2.0)
+_pa_sp_small = _pa_split(2.0, 0.5)
+_pa_sp_big = _pa_split(0.3, 2.0)
+_pa_sp_mb = _pa_split(1.5, 2.0, options=_PA_MODBUS)
+_pa_sp_boost = _PaCoord(_PA_TUYA, duties="b")
+boost_mod.held_for(_pa_sp_boost).set("space", True, _PA_T0)
+_pa_run(_pa_sp_boost, 1)
+_pa_sp_dis = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_sp_dis, 1)
+_pa_sp_comf = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_comf._mode = "comfort"
+_pa_run(_pa_sp_comf, 1)
+R.check(
+    "a disinfection hold keeps a both step on Heating + DHW, and so does comfort",
+    ("select", "select_option", "Heating + DHW") in _pa_sp_dis.writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_comf.writes(),
+    f"{_pa_sp_dis.writes()} / {_pa_sp_comf.writes()}",
+)
+R.check(
+    "a both step writes DHW only for its hot-water share of the 15 minutes, then heating only",
+    _pa_sp_even == [["DHW (Hot Water)"], ["Heating"], []],
+    f"{_pa_sp_even}",
+)
+R.check(
+    "a share under the minimum sub-slot goes to the other duty for the whole step",
+    _pa_sp_small == [["Heating"], [], []] and _pa_sp_big == [["DHW (Hot Water)"], [], []],
+    f"{_pa_sp_small} / {_pa_sp_big}",
+)
+R.check(
+    "with no single-duty mode (Modbus) a both step keeps Heat + DHW; a boost's both step is not split",
+    _pa_sp_mb[0] == ["Heat + DHW"]
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_boost.writes(),
+    f"{_pa_sp_mb} / {_pa_sp_boost.writes()}",
+)
+_pa_gb = {}
+for _pa_gb_mode in ("boost", "comfort"):
+    _pa_gb[_pa_gb_mode] = _PaCoord(_PA_TUYA, duties="--")
+    _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
+    _pa_run(_pa_gb[_pa_gb_mode], 1)
+R.check(
+    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
+    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
+    f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
+)
+R.check(
+    "a boost writes its own single duty where the pump offers it, Heating + DHW "
+    "where it does not or the other duty is due too, and nothing while off",
+    ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
+    and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwboost"].writes()
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_sb["dhwonly"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwonspace"].writes()
+    and ("select", "select_option", "Heating") in _pa_sb_stale.writes()
+    and ("select", "select_option", "Heating") not in _pa_sb_old.writes()
+    and _pa_sb_off.writes() == [],
+    f"{ {k: c.writes() for k, c in _pa_sb.items()} } / {_pa_sb_stale.writes()} "
+    f"/ {_pa_sb_old.writes()} / {_pa_sb_off.writes()}",
 )
 _pa_small = _PaCoord(_PA_TUYA, duties="xx")
 _pa_run(_pa_small, 1)
@@ -47490,7 +47598,7 @@ R.check(
 )
 
 # A step observed while the coordinator is not driving a plan (manual mode,
-# a stale plan, system ID, an active boost) has no planned duty at all --
+# a stale plan, system ID) has no planned duty at all --
 # distinct from "unknown", which is an observed step the plan DID cover.
 _pa_baseline = _PaCoord(_PA_TUYA, duties="s", duty="observe")
 _pa_baseline._current_state.dhw_temperature = 45.0
@@ -47770,10 +47878,10 @@ _pa_run(_pa_rheat, 1)
 _pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
 _pa_rboth._thermal_model = _pa_real
 _pa_rboth._current_state.outdoor_temperature = 5.0
-_pa_run(_pa_rboth, 1)
+_pa_run(_pa_rboth, 10)
 R.check(
-    "on the real curve a heating-plus-hot-water step writes Heating + DHW and the heating flow",
-    ("select", "select_option", "Heating + DHW") in _pa_rboth.writes()
+    "on the real curve a heating-plus-hot-water step's heating share writes Heating and the heating flow",
+    ("select", "select_option", "Heating") in _pa_rboth.writes()
     and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
     and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
     f"{_pa_rboth.writes()}",
@@ -48075,6 +48183,231 @@ R.check(
     "(D1-s3-05); unstepped it still runs the full two",
     _si_live == {0: 2.0, 1: 2.0, 24: 2.0},
     f"hours left after the step: {_si_live}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)")
+# Round 9 F3.2 (#1644 P2, #1647 P1, #1660 N-future-instant). What the arbiter
+# restores is a record it could have written; an apply queued before an
+# unload arms and writes nothing; the mode is written through the target's
+# own domain; the frequency map loads only the domain its update path folds;
+# and the store bounds a naive stamp in the zone its loader reads it in.
+from heatpump_optimizer import freq_control as _f32_fc  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore as _F32Store  # noqa: E402
+
+_F32_T0 = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+
+
+def _f32_load(coord, written):
+    """``written`` stored as the arbiter's record, then its real loader."""
+    _si_storage._DISK[f"heatpump_optimizer_{coord.entry.entry_id}_pump_duty"] = (
+        _si_json.dumps({"written": written}))
+    _si_pa.state_for(coord).loaded = False
+    try:
+        _si_aio.run(_si_pa._load(coord))
+    finally:
+        _si_storage._DISK.clear()
+    return _si_pa.state_for(coord).written
+
+
+# D1-s3-02: an apply queued by a state change before the unload runs after
+# it. It must neither re-arm the tick and the state listener nor write.
+# Under an aware clock, as Home Assistant's: release() stamps its baseline
+# write with the clock, and the stub's default one is naive (D1-s1-52).
+_f32_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("released", "null"):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_c._entry_released = False
+        _pa_run(_f32_c, 1)
+        _f32_c._entry_released = _f32_arm == "released"
+        _pa_aio.run(_pa.release(_f32_c))
+        _f32_c.hass.services.calls.clear()
+        _pa_run(_f32_c, 16)
+        _f32_live[_f32_arm] = (len(_pa.state_for(_f32_c).unsubs), len(_f32_c.writes()))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued before the unload arms no listener and writes nothing "
+    "after it (D1-s3-02); a live coordinator re-arms both (null control)",
+    _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
+    f"{_f32_live}",
+)
+
+# D1-s3-03: a record of any other shape is not restored, and the next pass
+# neither raises nor keeps it; an honest record still loads.
+_f32_iso = "2026-06-01T11:59:00+00:00"
+_f32_bad = {
+    "written-list": [["heat", _f32_iso]],
+    "setpoint-str": {"dhw_setpoint": ["53", _f32_iso]},
+    "setpoint-list": {"space_setpoint": [[34.0], _f32_iso]},
+    "setpoint-bool": {"dhw_setpoint": [True, _f32_iso]},
+    "mode-dict": {"mode": [{"v": "heat"}, _f32_iso]},
+    "mode-list": {"mode": [["heat"], _f32_iso]},
+    "slot-unknown": {"boiler": [48.0, _f32_iso]},
+    "pair-dict": {"mode": {"0": "heat", "1": _f32_iso}},
+}
+_f32_raised = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_name, _f32_rec in _f32_bad.items():
+        _f32_c = _PaCoord(_PA_TUYA)
+        try:
+            _f32_kept = dict(_f32_load(_f32_c, _f32_rec))
+            _pa_run(_f32_c, 1)
+            _pa_run(_f32_c, 2)
+            _f32_raised[_f32_name] = _f32_kept or None
+        except Exception as _f32_err:  # noqa: BLE001
+            _f32_raised[_f32_name] = type(_f32_err).__name__
+    _f32_ok = dict(_f32_load(_PaCoord(_PA_TUYA), {
+        "mode": ["heat", _f32_iso], "dhw_setpoint": [48.0, _f32_iso],
+        "space_setpoint": [34, _f32_iso]}))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "the arbiter restores only a record it could have written: no malformed "
+    "record loads or raises on the next pass (D1-s3-03)",
+    not any(_f32_raised.values()),
+    f"{_f32_raised}",
+)
+R.check(
+    "an honest arbiter record still loads, every slot (null control)",
+    sorted(_f32_ok) == ["dhw_setpoint", "mode", "space_setpoint"]
+    and _f32_ok["dhw_setpoint"][0] == 48.0,
+    f"{_f32_ok}",
+)
+
+# FI-sw5: a write instant stored ahead of the clock (N-future-instant) is
+# bounded by the store at load, so hold()'s write-echo grace is not held
+# open by it: a differing reading past the grace is rewritten.
+_f32_grace = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_arm, _f32_at in (("ahead", _F32_T0 + timedelta(days=400)),
+                              ("null", _F32_T0)):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_load(_f32_c, {"dhw_setpoint": [48.0, _f32_at.isoformat()]})
+        _pa.hold(_f32_c, _F32_T0 + timedelta(seconds=30 if _f32_arm == "ahead" else 10))
+        _f32_grace[_f32_arm] = "dhw_setpoint" in _pa.state_for(_f32_c).written
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a write instant stored ahead of the clock is bounded, so the echo grace "
+    "closes on time (FI-sw5); an honest one inside the grace still holds (null control)",
+    _f32_grace == {"ahead": False, "null": True},
+    f"record kept after a differing reading: {_f32_grace}",
+)
+
+# D12-s2-02: the mode slot accepts select, input_select and sensor. The
+# write goes through the target's own domain; a sensor is read, never written.
+_f32_route = {}
+for _f32_dom in ("select", "input_select", "sensor"):
+    _f32_c = _PaCoord(_PA_TUYA)
+    _f32_ent = f"{_f32_dom}.pump_mode"
+    _f32_c._config["heat_pump_mode_entity"] = _f32_ent
+    _f32_c.hass.states._states[_f32_ent] = FakeState(
+        "Heating + DHW", attributes={"options": list(_PA_TUYA)})
+    _pa_run(_f32_c, 1)
+    _f32_route[_f32_dom] = sorted(
+        {(d, s) for d, s, data in _f32_c.hass.services.calls
+         if (data or {}).get("entity_id") == _f32_ent})
+R.check(
+    "the arbiter writes the mode through the target's own domain, and never "
+    "writes a read-only sensor slot (D12-s2-02)",
+    _f32_route == {"select": [("select", "select_option")],
+                   "input_select": [("input_select", "select_option")],
+                   "sensor": []},
+    f"{_f32_route}",
+)
+
+# The store bounds a naive instant in the zone its loader reads it in: Home
+# Assistant's, for the arbiter, legionella and boost. Read as UTC, a zone
+# west of Greenwich let a naive future stamp through by its offset, and one
+# east of it pulled an honest stamp back by its offset (a boost with an hour
+# left came back ended).
+_f32_zone = {}
+_f32_zone0 = dt_util.DEFAULT_TIME_ZONE
+for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
+    _f32_z = _SiZone(_f32_tz)
+    _f32_now = datetime(2026, 6, 1, 12, 0, tzinfo=_f32_z)
+    dt_util.DEFAULT_TIME_ZONE = _f32_z
+    dt_util.freeze(_f32_now)
+    try:
+        _f32_c = _t2_coord()
+        _f32_w = _f32_load(_f32_c, {
+            "mode": ["heat", "2026-06-01T11:00:00"],
+            "dhw_setpoint": [48.0, "2026-06-01T18:00:00"]})
+        _si_storage._DISK[_f32_c._legionella.store._key] = _si_json.dumps(
+            {"last_cycle": "2026-06-01T11:00:00", "last_attempt": "2026-06-01T18:00:00"})
+        _si_aio.run(_f32_c._legionella.async_load())
+        _si_storage._DISK[f"heatpump_optimizer_{_f32_c.entry.entry_id}_boost"] = (
+            _si_json.dumps({"space": {"until": "2026-06-01T13:00:00"},
+                            "dhw": {"until": "2026-06-01T18:00:00"}}))
+        _si_aio.run(boost_mod.restore(_f32_c))
+        _f32_b = boost_mod.held_for(_f32_c).until
+        _f32_zone[_f32_tz] = (
+            _f32_w["mode"][1] == _f32_now - timedelta(hours=1)
+            and _f32_w["dhw_setpoint"][1] == _f32_now
+            and _f32_c._legionella.last_cycle == _f32_now - timedelta(hours=1)
+            and _f32_c._legionella.attempt == _f32_now
+            and _f32_b.get("space") == _f32_now + timedelta(hours=1)
+            and _f32_b.get("dhw") == _f32_now + timedelta(hours=boost_mod.BOOST_HOURS),
+            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat(),
+            {k: v.isoformat() for k, v in _f32_b.items()})
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = _f32_zone0
+        dt_util.freeze(None)
+        _si_storage._DISK.clear()
+R.check(
+    "the store bounds a naive stored instant in its loader's zone: an honest "
+    "one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles",
+    all(v[0] for v in _f32_zone.values()) and len(_f32_zone) == 2,
+    f"{_f32_zone}",
+)
+
+# The bound's target is now plus the store's lead, exactly: an instant
+# beyond it lands on it, not merely somewhere at or before it.
+_f32_lead = timedelta(hours=2)
+_F32Key = "heatpump_optimizer_f32_lead"
+_si_storage._DISK[_F32Key] = _si_json.dumps({
+    "aware": (_F32_T0 + timedelta(days=400)).astimezone(_SiZone("Europe/Stockholm")).isoformat(),
+    "naive": (_F32_T0 + timedelta(days=400)).replace(tzinfo=None).isoformat(),
+    "inside": (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat()})
+dt_util.freeze(_F32_T0)
+try:
+    _f32_got = _si_aio.run(_F32Store(FakeHass({}), 1, _F32Key, lead=_f32_lead).async_load())
+finally:
+    dt_util.freeze(None)
+    _si_storage._DISK.clear()
+R.check(
+    "an instant beyond the store's lead is bounded to exactly now plus the "
+    "lead, aware or naive, and one inside it is kept",
+    datetime.fromisoformat(_f32_got["aware"]) == _F32_T0 + _f32_lead
+    and datetime.fromisoformat(_f32_got["aware"]).utcoffset() == timedelta(hours=2)
+    and _f32_got["naive"] == (_F32_T0 + _f32_lead).replace(tzinfo=None).isoformat()
+    and _f32_got["inside"] == (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat(),
+    f"{_f32_got}",
+)
+
+# D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile
+# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ (1.5
+# kW/Hz: a 60 kW draw at 40 Hz) -- does not load, and observe() does not fold
+# one, so no phantom bucket pins recommend() at the range's floor.
+_f32_map = _f32_fc.FrequencyMap.from_dict({
+    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [1.5, 50],
+    "4": [0.04, 50], "5": [_f32_fc.FREQ_MAX_KW_PER_HZ, 50],
+})
+_f32_obs = _f32_fc.FrequencyMap()
+_f32_obs.observe(40.0, 60.0, 20.0, 120.0)
+_f32_obs.observe(60.0, 2.4, 20.0, 120.0)
+R.check(
+    "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
+    "up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)",
+    sorted(_f32_map.buckets) == [4, 5]
+    and _f32_map.recommend(3.0, 20.0, 120.0) == 75.0
+    and list(_f32_obs.buckets) == [4],
+    f"loaded={_f32_map.buckets} observed={_f32_obs.buckets}",
 )
 
 # ---------------------------------------------------------------------------

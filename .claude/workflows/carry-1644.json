@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry destination for the P2 class barrier stage of round 9 (#1644; roster group R9-F1.11, whose roster is not in this tree).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by .claude/workflows/brief_lint.mjs."
+  ],
+  "issue": 1644,
+  "stage": "round-9 fix PR F1.11: the P2 class barrier (the canonical-predicate registry and its lint)",
+  "carries": [
+    {
+      "from": "the round-9 pull request F3.2 (the pump-duty arbiter and the frequency map; branch handoff/r9-f3-stores-2-bmwr8c), which also makes the store bound a naive stored instant in its loader's zone",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. The finder's harness mode_domain.py reads input_select misrouted_mode_writes 5 and repair_raised 1, sensor misrouted_mode_writes 5 and repair_raised 1, at F3.2's merge base, and 0 and 0 for both at its head; the select cell (the null control) is 0 at both. Restoring the literal 'select' service domain in pump_arbiter._write turns the features.py check 'the arbiter writes the mode through the target's own domain' red.",
+      "remeasure": "Do not trust these figures: they are at F3.2's head. Re-run the D12-s2-02 harness from the round-9 evidence export at your merge base.",
+      "brief": "F1.11's registry names the entity-domain-from-target rule for entity writes: its arbiter member is now `pump_arbiter._write`, which takes the service domain from the target entity id and writes the mode slot only in `_MODE_DOMAINS` (select, input_select), refusing a read-only sensor slot; its siblings are the coordinator's and repairs' on/off writes, which already route by the target's domain. A new entity write that hard-codes a service domain is the sibling read the lint exists to catch."
+    }
+  ]
+}

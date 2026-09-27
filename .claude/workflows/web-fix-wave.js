@@ -335,7 +335,7 @@ THEN, PER GROUP, ask origin rather than the roster:
 
 Compare each against the roster's own resume field and report a mismatch when:
   - resume.stage is 'done' but the PR is not merged, or there is no PR at all
-  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head does not count -- that is the whole reason this check exists)
+  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/audit/app_approve.sh --carry <verdict sha> <head> reports it carried, #1667 -- that is the whole reason this check exists)
   - resume.stage is 'review' but the PR is closed or merged, or its head SHA differs from resume.head_sha
   - resume.stage is 'fix' but the branch tip differs from resume.pushed_sha, or a PR is already open for it
   - a group has NO resume field but a branch or an open PR already exists for it -- that is work the roster does not know about, and starting a fixer would duplicate or clobber it

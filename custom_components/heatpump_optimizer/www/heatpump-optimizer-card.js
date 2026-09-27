@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "6.7.4";
+const CARD_VERSION = "6.7.7";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -25,7 +25,7 @@ const ACCENT_READABLE = "#026aa8";
 // OWN background, which is #fff when the card is light and #1c1c1c when it
 // is dark. No single literal clears WCAG AA's 4.5:1 against both (the
 // light-safe literals below measure 3.68-3.76:1 on #1c1c1c), so the two
-// sets are chosen independently and picked in JS by `_isDarkMode()` --
+// sets are chosen independently and picked in JS by `cardStyleBlock(darkMode)` --
 // never by a `prefers-color-scheme` media query, which reads the OS's
 // setting rather than HA's: `hass.themes.darkMode` is a profile switch a
 // user can set opposite their OS (HA dark on a light OS or the reverse),
@@ -52,7 +52,7 @@ const WARNING_READABLE_DARK = "#ad7e1f"; // 4.69:1 on #1c1c1c
 // 4.5:1 (the dark card binds; 0.538 on light).
 const SV_MAG_ALPHA = 0.16;
 
-// The de-duplication key `_extraFields` files a confidence band's two
+// The de-duplication key `BAND_TRACE_KEY` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
 // so it can never collide with a series field name.
 const BAND_TRACE_KEY = Symbol("band");
@@ -379,6 +379,13 @@ const STRINGS = {
     "setup.verdict_missing_edges": "Missing: {edges}.",
     "setup.saved_reloading": "Saved {label}. Reloading…",
     "setup.svg_aria": "Configured system",
+    "setup.pipe_remove_aria": "{label} — press Enter or Delete to remove this connection",
+    "setup.box_move_aria":
+      "{label} — arrow keys move this box, Enter starts a connection to " +
+      "another box",
+    "setup.box_connect_from_aria":
+      "{label} — connecting; press Enter on another box to connect it, " +
+      "Escape to cancel",
 
     // place labels (layout editor rejection lines)
     "places.heat_pump": "Heat pump",
@@ -832,6 +839,14 @@ const STRINGS = {
     "setup.verdict_missing_edges": "Saknas: {edges}.",
     "setup.saved_reloading": "Sparade {label}. Laddar om…",
     "setup.svg_aria": "Konfigurerad anläggning",
+    "setup.pipe_remove_aria":
+      "{label} — tryck Enter eller Delete för att ta bort anslutningen",
+    "setup.box_move_aria":
+      "{label} — piltangenterna flyttar den här rutan, Enter börjar en " +
+      "anslutning till en annan ruta",
+    "setup.box_connect_from_aria":
+      "{label} — ansluter; tryck Enter på en annan ruta för att ansluta, " +
+      "Escape avbryter",
 
     "places.heat_pump": "Värmepump",
     "places.buffer_tank": "Ackumulatortank",
@@ -1065,7 +1080,7 @@ const SERIES_DEFS = [
     key: "price",
     labelKey: "series.price",
     axis: "price",
-    // The rendered unit is dynamic (`_seriesUnit`): the currency comes from
+    // The rendered unit is dynamic (`seriesUnit()`): the currency comes from
     // the card config, the plan sensor or Home Assistant. This is only the
     // fallback shape.
     unit: "SEK/kWh",
@@ -1137,7 +1152,7 @@ const SERIES_DEFS = [
     // one chip, dropped by the same duplicate rule when it has no width.
     extra: ["dhw_temp_lo", "dhw_temp_hi"],
     // Both edges answer to the BAND's name, never to the tank curve's.
-    // Without this `_lineLabel` falls back to `def.labelKey` and any
+    // Without this `lineLabel()` falls back to `def.labelKey` and any
     // consumer that names a trace calls a dashed error edge "DHW tank
     // temperature" — a second, wrong absolute temperature. It matters
     // beyond this file's own legend: a legend that draws one chip per
@@ -2757,6 +2772,18 @@ function setupSvgHtml(topo, ctx) {
       `L ${r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}`;
     return `${dots}<path class="setup-flow" d="${flow}" />`;
   };
+  // A pipe is a removable connection only while the editor is open --
+  // `removeEdge` (LayoutEditor.onClick/onKeyDown) is a no-op otherwise, so a
+  // focus stop that does nothing outside editing would be a keyboard trap
+  // with no purpose. D4-s1-04: this is the pipe half of the layout editor's
+  // keyboard route -- Enter, Space and Delete all mirror the click that
+  // already removes a pipe.
+  const pipeKb = editing
+    ? (edge) =>
+        ` tabindex="0" role="button" aria-label="${esc(
+          L("setup.pipe_remove_aria", { label: edgeLabel(edge) })
+        )}"`
+    : () => "";
   const line = (a, b, edge, cls) => {
     if (!a || !b) return "";
     const extra = cls || "";
@@ -2773,7 +2800,7 @@ function setupSvgHtml(topo, ctx) {
       // ink with it -- so the pipe into the valve keeps its dots but
       // drops the chevron (pipeDeco's `invalid` path is exactly that).
       const noFlow = invalid || b.place === "mixing_valve";
-      return `<path class="setup-pipe${extra}" data-edge="${edge}"
+      return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
         d="M ${x} ${yTop}
         L ${x} ${yBot}" />` +
         pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, noFlow);
@@ -2782,7 +2809,7 @@ function setupSvgHtml(topo, ctx) {
       ? over.from(a)
       : { x: anchor(a).x - KIND(a).inset.r, y: anchor(a).y };
     const t = { x: to(b).x + KIND(b).inset.l, y: to(b).y };
-    return `<path class="setup-pipe${extra}" data-edge="${edge}"
+    return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
       d="M ${f.x} ${f.y}
       C ${f.x + 40} ${f.y},
         ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
@@ -2993,7 +3020,20 @@ function setupSvgHtml(topo, ctx) {
     // The place id rides on the box only while editing: outside the editor
     // nothing reads it, and a drawing that is byte-identical to the one
     // before this feature is the cheapest possible proof it changed nothing.
-    const at = editing ? ` data-place="${esc(b.place || "")}"` : "";
+    // D4-s1-04: the box is also the pointer drag's keyboard twin here --
+    // focusable, with an aria-label that names the two things a keydown on
+    // it can do (LayoutEditor.onKeyDown moves it or starts/finishes a
+    // connection), and a second label while this box is the pending end of
+    // a keyboard-drawn connection so a screen-reader user is told, not left
+    // to infer it from silence.
+    const at = editing
+      ? ` data-place="${esc(b.place || "")}" tabindex="0" role="button"` +
+        ` aria-label="${esc(
+          ctx.edit && ctx.edit.kbConnectFrom === b.place
+            ? L("setup.box_connect_from_aria", { label: b.title })
+            : L("setup.box_move_aria", { label: b.title })
+        )}"`
+      : "";
     // The visible silhouette, painted right after the invisible carrier
     // rect. Everything here is inert (`pointer-events: none`), so the hit
     // rects, pipe clicks and drags behave exactly as before; the per-kind
@@ -3022,7 +3062,7 @@ function setupSvgHtml(topo, ctx) {
     // The DHW pre-heating helix on the wood tank's upper-right wall: two
     // overlapping loops whose stubs pierce the straight wall below the
     // dome. Part of the tank's own markup so it moves with the box during
-    // drags and survives `_refreshLayout`'s innerHTML rebuild.
+    // drags and survives `refresh()`'s innerHTML rebuild.
     if (b.place === "wood_tank" && coilDrawn) {
       // A row-less tank (h = 32, two-tank mode with the caption re-homed)
       // only has straight wall from y+9 to y+23, so the two-loop coil's
@@ -4110,7 +4150,7 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
         : (def.extraLabels || {})[field] || def.labelKey;
       // A hole BREAKS the trace into a new segment rather than being
       // skipped over. One field can therefore own several lines; every
-      // consumer reaches them through `_fieldPoints`, and the per-field
+      // consumer reaches them through `fieldPoints()`, and the per-field
       // identity (`field`, `primary`, `labelKey`) is carried on each.
       let seg = [];
       const flush = () => {
@@ -4119,7 +4159,7 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
             field,
             points: seg,
             primary,
-            // Named per line, not per series: `_lineLabel` resolves the
+            // Named per line, not per series: `lineLabel()` resolves the
             // dictionary key so the tooltip and the legend cannot disagree
             // about what a trace is called.
             labelKey,
@@ -4214,7 +4254,7 @@ function extraFields(s) {
  *
  * Only the expected-error band has one: "Upper floor" explains itself, a
  * dashed pair hugging the tank curve does not. Keyed off the series
- * definition beside `_lineLabel`, so anywhere a trace can be named the
+ * definition beside `lineLabel()`, so anywhere a trace can be named the
  * explanation can be asked for too.
  */
 function lineNote(def, line) {
@@ -4662,7 +4702,7 @@ class PlanSource {
    *
    * They also share a device with the plan sensors, which means they share
    * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
-   * (config first, then plan_kind discovery — `_resolveEntity` already owns
+   * (config first, then plan_kind discovery — `resolveEntity()` already owns
    * that) is both cheap and scoped to this card's config entry; a global
    * scan could bind the headline to another entry's — or a foreign
    * integration's — sensors. The scan survives only as a fallback for
@@ -4706,7 +4746,7 @@ class PlanSource {
     const count = this.sensorCount(states);
     if (this.statMissAt[suffix] === count) return null;
     // Sorted iteration makes a tie deterministic, the same choice
-    // `_resolveEntity` makes.
+    // `resolveEntity()` makes.
     for (const cand of candidates) {
       for (const id of Object.keys(states).sort()) {
         if (!id.startsWith("sensor.") || !id.endsWith(cand)) continue;
@@ -5931,7 +5971,7 @@ function renderChart(frame, opts) {
       );
     }
     // D4-03: this used to sit at `plotB - 5`, directly on top of the
-    // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
+    // lane-row labels drawn near the bottom of the plot (`laneGroupInner()`),
     // garbling both. Anchored just under the top margin instead, on its own
     // row (P9-rca3): the claim that it "lives at a different x .. whenever
     // both happen to be visible together" was false -- the RCA grid found
@@ -6087,7 +6127,7 @@ function renderChart(frame, opts) {
   // right for a pure picture but wrong the moment the lanes put focusable
   // slots inside it — those need "group" so they stay in the tree. The
   // editable chart also takes tabindex="-1": it is the last-resort home
-  // for restored focus (`_restoreSlotFocus`), and an svg without a
+  // for restored focus (`restoreFocus()`), and an svg without a
   // tabindex refuses programmatic focus.
   const svg = `<svg viewBox="0 0 ${VIEW_W} ${Number(viewH.toFixed(2))}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
       editing ? "group" : "img"
@@ -6273,6 +6313,13 @@ function valueAxis(
   // unit belongs, but at a boosted compact font (D4-01) -- and at the
   // dialog's 15 units, which already did this before the boost -- the
   // ascender ran off the top of the chart.
+  //
+  // P9-f61a (2026-09-26): a fix was tried here (clearing the topmost tick's
+  // own measured position by a full line height) and reverted -- the
+  // finder's own RCA grid (4f3b9d4f) shows this offset does not collide with
+  // any tick at this merge base, and the tried fix instead clipped the title
+  // off the top of the svg on 388 of the grid's cells. See F6.2's PR body
+  // Forward-carry for the disposition.
   const uy = Math.max(size * 0.8, plotT - 5.2 * (size / FONT_BASE));
   const ta = titleAnchor || anchor;
   const ux = ta === "end" ? x - 5 : x + 5;
@@ -6817,7 +6864,7 @@ class Legend {
       // with the primary field absent but the extras present, a solid
       // "House temperature" chip was emitted for a line nothing drew.
       //
-      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
+      // v5.2.0 enumerates them with `extraFields()`, not `lines`: a hole now
       // splits one field into several drawn paths, and a confidence band's
       // two edges are one envelope with one name. Listing `lines` here would
       // print "Lower floor, Lower floor, Lower floor" — saying a thing three
@@ -8974,9 +9021,9 @@ class WhatIfPanel {
    *
    * Normalised to what the editor's own validator accepts, which is what an
    * `<input type="time">` can hold. The SAVE path never needed this -- it
-   * calls `_onSlotEdit` first, which re-reads the window rows out of the DOM
-   * -- but the slider path does not touch the DOM at all: `_onWhatIfInput`
-   * writes one number into this memoised draft and `_runWhatIf` validates
+   * calls `onSlotEdit()` first, which re-reads the window rows out of the DOM
+   * -- but the slider path does not touch the DOM at all: `onInput()`
+   * writes one number into this memoised draft and `run()` validates
    * the draft. A household whose hot water is guaranteed until midnight
    * therefore could not price a single change; every simulate was refused by
    * the card, blaming the schedule the integration had just published.
@@ -10027,6 +10074,11 @@ const LAYOUT_COL_X = [16, 260, 504];
 const LAYOUT_COL_TOP = 16;
 const LAYOUT_COL_GAP = 14;
 const LAYOUT_PIPE_SAMPLES = 24;
+// The distance one arrow-key press moves a box (viewBox units). Small
+// enough that a run of presses still reads as nudging, large enough that
+// crossing the diagram does not take dozens of them; the same order of
+// magnitude as `layoutCost`'s own column gap.
+const LAYOUT_KB_STEP = 8;
 const LAYOUT_ANCHOR_OVERRIDES = {
   "wood_tank>dhw_tank": {
     from: (bb) => ({
@@ -10266,6 +10318,7 @@ class LayoutEditor {
     this.onMove = this.onMove.bind(this);
     this.onUp = this.onUp.bind(this);
     this.onClick = this.onClick.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
   }
 
   /** True while the layout editor is open. */
@@ -10361,7 +10414,7 @@ class LayoutEditor {
 
   /** Wire the editor's controls and the diagram's pointer gestures.
    *
-   * The buttons take listeners directly because `_refreshLayout` never
+   * The buttons take listeners directly because `refresh()` never
    * rebuilds them; only the canvas's contents are replaced mid-edit, and its
    * listeners live on the wrapper, which survives.
    */
@@ -10404,6 +10457,11 @@ class LayoutEditor {
     canvas.addEventListener("pointerup", this.onUp);
     canvas.addEventListener("pointerleave", this.onUp);
     canvas.addEventListener("click", this.onClick);
+    // The keyboard twin of onDown/onMove/onUp/onClick above. It lives on the
+    // wrapper for the same reason those do: `refresh()` replaces the
+    // canvas's contents on every edit, and a listener on an element that
+    // gets thrown away would go with it.
+    canvas.addEventListener("keydown", this.onKeyDown);
   }
 
   /** Open the editor on the published layout, or close it, discarding. */
@@ -10442,6 +10500,9 @@ class LayoutEditor {
         // the button. A snapshot cannot be swapped underneath them.
         baseline: snapshot(),
         drag: null,
+        // The keyboard twin of `drag`: the place Enter armed while wiring a
+        // connection with no pointer, or null when nothing is armed.
+        kbConnectFrom: null,
         match: null,
         invalid: [],
         verdict: "",
@@ -10564,9 +10625,28 @@ class LayoutEditor {
     const topo = this.host.plan.attrRaw("setup_topology", null);
     const canvas = root.querySelector(".setup-canvas");
     if (canvas && topo && Array.isArray(topo.slots)) {
+      // A keyboard move or connect redraws the canvas the same way a drag's
+      // pointermove does, and `canvas.innerHTML =` below throws away
+      // whichever element the focus ring was on -- silently dropping the
+      // keyboard user back at the top of the page after every arrow key.
+      // Re-find the same box or pipe by its data attribute (its element is
+      // gone, but the place or edge name it stood for is not) and refocus
+      // it once the new markup is in.
+      const active = root.activeElement;
+      const focusedPlace =
+        active && canvas.contains(active) ? (active.dataset || {}).place : null;
+      const focusedEdge =
+        active && canvas.contains(active) ? (active.dataset || {}).edge : null;
       const drawn = this.host.setup.svg(topo, { editing: this.editing(), edit: this.edit });
       this.boxes = drawn.boxes;
       canvas.innerHTML = drawn.html;
+      if (focusedPlace || focusedEdge) {
+        const selector = focusedPlace
+          ? `.setup-box[data-place="${focusedPlace}"]`
+          : `.setup-pipe[data-edge="${focusedEdge}"]`;
+        const again = canvas.querySelector(selector);
+        if (again && typeof again.focus === "function") again.focus();
+      }
     }
     const ed = this.edit;
     const verdict = root.querySelector(".layout-verdict");
@@ -10704,6 +10784,81 @@ class LayoutEditor {
     this.removeEdge(data.edge);
   }
 
+  /** The keyboard route onto onDown/onMove/onUp/onClick above (D4-s1-04):
+   * a focused pipe is removed the same way a click removes it, and a
+   * focused box is moved with the arrow keys and connected with Enter --
+   * the two gestures a pointer drag does in one motion, split into two
+   * keystrokes because a keyboard has no drag.
+   *
+   * A connection is: focus the source box, press Enter (arms it, `pending`
+   * true below), Tab to another box, press Enter again (connects the two).
+   * Enter on the armed box a second time, or Escape, disarms it without
+   * connecting anything.
+   */
+  onKeyDown(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    const target = ev.target;
+    const data = (target && target.dataset) || {};
+    if (data.edge) {
+      if (ev.key !== "Enter" && ev.key !== " " &&
+          ev.key !== "Delete" && ev.key !== "Backspace") {
+        return;
+      }
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      this.removeEdge(data.edge);
+      return;
+    }
+    if (!data.place || !target.classList ||
+        !target.classList.contains("setup-box")) {
+      return;
+    }
+    const place = data.place;
+    if (ev.key === "Escape") {
+      if (!ed.kbConnectFrom) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      ed.kbConnectFrom = null;
+      this.refresh();
+      return;
+    }
+    if (ev.key === "Enter" || ev.key === " ") {
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      const pending = ed.kbConnectFrom;
+      if (!pending) {
+        ed.kbConnectFrom = place;
+      } else if (pending === place) {
+        // Arming the same box again is how a keyboard user cancels: there
+        // is no second gesture, unlike a drag, that a release over empty
+        // space already gives for free.
+        ed.kbConnectFrom = null;
+      } else {
+        ed.kbConnectFrom = null;
+        this.addEdge(pending, place);
+        this.evaluate();
+      }
+      this.refresh();
+      return;
+    }
+    const dx = ev.key === "ArrowLeft" ? -LAYOUT_KB_STEP
+      : ev.key === "ArrowRight" ? LAYOUT_KB_STEP : 0;
+    const dy = ev.key === "ArrowUp" ? -LAYOUT_KB_STEP
+      : ev.key === "ArrowDown" ? LAYOUT_KB_STEP : 0;
+    if (!dx && !dy) return;
+    const box = (this.boxes || []).find((b) => b.place === place);
+    if (!box) return;
+    if (ev.preventDefault) ev.preventDefault();
+    stop(ev);
+    // Cosmetic only, same as a drag's onMove: an arrow key never changes
+    // which edges are drawn, so it can't change which layout the drawing
+    // matches (`evaluate()` reads edges, not positions).
+    ed.positions[place] = [box.x + dx, box.y + dy];
+    ed.dirty = true;
+    this.refresh();
+  }
+
   addEdge(from, to) {
     const ed = this.edit;
     if (!ed) return;
@@ -10751,6 +10906,7 @@ class LayoutEditor {
     // position the restore had already taken back.
     ed.drag = null;
     ed.suppressClick = false;
+    ed.kbConnectFrom = null;
     ed.dirty = false;
     this.evaluate();
     // The in-place redraw, not `_render`: a full rebuild would replace the
@@ -11776,7 +11932,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       windowMin: plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
       windowsSpec,
     });
-    // `_applyView` narrows the default window to whatever the user has
+    // `view.apply()` narrows the default window to whatever the user has
     // panned or zoomed to, and is a no-op until they touch a control -- so
     // the untouched card renders exactly as before. Filtering then happens
     // against the visible window, which is what keeps the value axis scaled

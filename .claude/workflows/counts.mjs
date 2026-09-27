@@ -235,8 +235,10 @@ export function liveRequiredContexts() {
     // next such change visible, whether or not anything compares it yet.
     const viaRulesets = new Set()
     const shapes = []
+    const objects = {}
     for (const id of ids) {
       const rs = JSON.parse(execFileSync('gh', ['api', `${base}/rulesets/${id}`], { encoding: 'utf8' }))
+      objects[id] = rs
       shapes.push({ id, rules: (rs.rules || []).map((r) => r.type),
                     bypass: (rs.bypass_actors || []).map((a) => a.bypass_mode) })
       for (const rule of rs.rules || []) {
@@ -251,7 +253,7 @@ export function liveRequiredContexts() {
       return null
     }
     _liveRequiredContextsWhy = ''
-    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y), shapes }
+    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y), shapes, objects }
   } catch (e) {
     _liveRequiredContextsWhy = `the fixture or the API failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
     return null
@@ -296,6 +298,38 @@ export function checkRequiredContexts(rel, text, live) {
       }
     }
   })
+  return out
+}
+
+// Every field of a ruleset object is compared with its recorded copy, except
+// these, which GitHub rewrites with no change to the boundary (class I3, round
+// 9: D11-s1-01's `dismiss_stale_reviews_on_push` moved with this check green,
+// because it compared context names and ids and nothing else). ONE definition:
+// field_coverage.mjs imports it as the ruleset arm's IGNORE list.
+// The fields GitHub omits from a ruleset read by a token without admin, which
+// is every Actions GITHUB_TOKEN. Only these may be absent and skipped; any
+// other recorded field missing from the live read is a removal and fires.
+export const RULESET_TOKEN_HIDDEN = ['bypass_actors']
+// The one skip line that omission prints; env-matrix's "nothing skipped" row
+// accepts exactly this shape and no other skip.
+export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ field `(bypass_actors)` is absent from the live read \(this token cannot see it\); it is UNCHECKED this run, not confirmed$/
+export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
+// A ruleset object as `path -> JSON value` leaves. Arrays are sorted by their
+// members' JSON first, so an order GitHub does not guarantee is not a drift.
+export function rulesetLeaves(o) {
+  const out = {}
+  const walk = (v, p) => {
+    if (Array.isArray(v)) {
+      const xs = v.map((x) => JSON.stringify(x)).sort().map((x) => JSON.parse(x))
+      if (!xs.length) out[p] = '[]'
+      xs.forEach((x, i) => walk(x, `${p}[${i}]`))
+    } else if (v && typeof v === 'object') {
+      const ks = Object.keys(v).filter((k) => !(p === '' && RULESET_VOLATILE.includes(k)))
+      if (!ks.length) out[p] = '{}'
+      for (const k of ks) walk(v[k], p ? `${p}.${k}` : k)
+    } else out[p] = JSON.stringify(v)
+  }
+  walk(o, '')
   return out
 }
 
@@ -356,6 +390,29 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
       where: fixtureRel,
       message: `\`${id}\` is recorded in \`rulesets\` as carrying the required contexts, but the live boundary does not draw them from it. Re-record ${fixtureRel} from the API and re-read every assertion site against the new ruleset.`,
     })
+  }
+  // Every other field of each ruleset the reader fetched, by leaf. A reader
+  // that fetched objects against a fixture recording none FIRES, for the
+  // reason an absent `rulesets` list does.
+  const liveObjs = (live && live.objects) || {}
+  const recObjs = fixture.ruleset_objects || null
+  if (Object.keys(liveObjs).length && !recObjs) {
+    out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: 'records no `ruleset_objects`, so no ruleset field beyond the context names and ids is compared. Record each ruleset object from the API.' })
+  }
+  for (const [id, obj] of Object.entries(liveObjs)) {
+    if (!recObjs || !recObjs[id]) continue
+    // A RULESET_TOKEN_HIDDEN field the live read does not carry at all is
+    // UNREADABLE, not removed. Skipped, said out loud; `[]`, `null`, any other
+    // missing field and an absence inside a field the read carried all fire.
+    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && RULESET_TOKEN_HIDDEN.includes(k))
+    for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`)
+    const under = (k) => unread.some((u) => k === u || k.startsWith(u + '.') || k.startsWith(u + '['))
+    const want = rulesetLeaves(recObjs[id])
+    const got = rulesetLeaves(obj)
+    for (const k of new Set([...Object.keys(want), ...Object.keys(got)])) {
+      if (want[k] === got[k] || under(k)) continue
+      out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: `ruleset ${id} field \`${k}\` is ${got[k] ?? '(absent)'} live, ${want[k] ?? '(absent)'} recorded. The boundary changed or the record is wrong: re-record ${fixtureRel} by hand and re-read every assertion site against it.` })
+    }
   }
   return out
 }

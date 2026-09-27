@@ -1266,12 +1266,18 @@ async def _async_check_a4(checks: Checks, hass, entry) -> None:
                 checks.check(name, False, f"{type(err).__name__}: {err}")
     finally:
         break_price_source(False)
+        # No return in here: it would discard whatever is still in flight
+        # from the try, a cancellation included (PEP 765, D7-s3-51).
         try:
             await coordinator.async_refresh()
             await hass.async_block_till_done()
-        except Exception as err:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             check_a4_recovered(checks, False, before, [])
-            return
+            recovered = False
+        else:
+            recovered = True
+    if not recovered:
+        return
     check_a4_recovered(
         checks,
         getattr(coordinator, "last_update_success", False),

@@ -82,6 +82,7 @@ class LegionellaGuard:
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_legionella",
+            naive_zone=dt_util.DEFAULT_TIME_ZONE,  # async_load's zone
         )
         # #24: minutes the tank has HELD the disinfection temperature.
         self.hold_minutes: float = 0.0

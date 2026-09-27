@@ -2604,6 +2604,21 @@ check("the hand-scheduled reason has a label",
   const picking = collect(su.shadowRoot).join("\n");
   check("clicking a slot opens a picker for it",
     /class="setup-picker"/.test(picking) && /Lower floor temperature/.test(picking));
+  // --- P9-f61b (found by F6.1): the S5 sweep's 204 pointer-only hits -------
+  // named 6 setup-hit selectors among them. All 6 are the OTHER rows while
+  // one picker is open: `#1522`'s tabindex="-1" is deliberate there (the
+  // picker overlay covers the diagram, so a row left in the Tab order would
+  // send focus down through what it now hides), not a missed keyboard
+  // route -- guarded, not a defect.
+  check("every setup-hit row loses its tab stop while a picker covers the diagram (#1522, P9-f61b)",
+    (picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length ===
+      topo.slots.length,
+    `${(picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length} ` +
+    `of ${topo.slots.length} rows carry tabindex="-1"`);
+  check("and the picker that took their place is itself keyboard-reachable (P9-f61b)",
+    /class="setup-picker"[^>]*tabindex="0"/.test(picking) ||
+      /<select[^>]*class="[^"]*sp-select/.test(picking),
+    "no focusable element found inside the picker markup");
   check("the picker offers entities of the domains the slot accepts",
     /sensor\.livingroom/.test(picking) && /sensor\.tank/.test(picking));
   check("and offers clearing the slot",
@@ -3227,6 +3242,150 @@ check("the hand-scheduled reason has a label",
     check("a click after a drag is not silently eaten",
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  // D4-s1-04: the layout editor has no keyboard route -- removing a pipe,
+  // drawing a pipe and moving a box are all pointer-only. Every check here
+  // drives the route through `canvas.dispatchEvent`, the same
+  // `canvas.addEventListener("keydown", this.onKeyDown)` wiring a real
+  // keydown on a focused box or pipe would use -- calling `onKeyDown`
+  // directly (as this block did before the fix review) pins none of that
+  // wiring: with the listener never attached, these checks would still pass.
+  {
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    const canvas = c.shadowRoot.querySelector(".setup-canvas");
+
+    const keyOn = (target, key) => {
+      let prevented = false;
+      canvas.dispatchEvent({
+        type: "keydown", key, target,
+        preventDefault() { prevented = true; },
+        stopPropagation() {},
+      });
+      return prevented;
+    };
+    const boxEl = (place) => ({
+      dataset: { place }, classList: { contains: (c) => c === "setup-box" },
+    });
+    const pipeEl = (edge) => ({ dataset: { edge } });
+
+    // Removing a pipe: Enter and Delete on a focused pipe both do what a
+    // click on it already does.
+    check("Enter on a focused pipe removes it, like a click would",
+      keyOn(pipeEl("buffer_tank>lower_zone"), "Enter") &&
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("Delete on a focused pipe removes it too",
+      keyOn(pipeEl("buffer_tank>mixing_valve"), "Delete") &&
+      !edgesOf(c).includes("buffer_tank>mixing_valve"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("a key that is not Enter/Space/Delete/Backspace leaves a pipe alone",
+      !keyOn(pipeEl("heat_pump>buffer_tank"), "a") &&
+      edgesOf(c).includes("heat_pump>buffer_tank"));
+
+    // Moving a box: the arrow keys nudge it, cosmetic only -- the edges (and
+    // therefore the matched layout) are untouched, same contract as a drag.
+    const before = c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const box = boxAt(c, "heat_pump");
+    const startX = box.x;
+    const startY = box.y;
+    keyOn(boxEl("heat_pump"), "ArrowRight");
+    keyOn(boxEl("heat_pump"), "ArrowDown");
+    const moved = c.layoutEditor.edit.positions.heat_pump;
+    check("arrow keys move a focused box, cosmetic only",
+      Array.isArray(moved) && moved[0] > startX && moved[1] > startY &&
+      c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
+      `position ${JSON.stringify(moved)}`);
+    check("ArrowLeft/Up move it back the other way",
+      (keyOn(boxEl("heat_pump"), "ArrowLeft"),
+        keyOn(boxEl("heat_pump"), "ArrowUp"),
+        c.layoutEditor.edit.positions.heat_pump[0] < moved[0] &&
+        c.layoutEditor.edit.positions.heat_pump[1] < moved[1]));
+
+    // Drawing a pipe: Enter arms the box as the connection's source, Enter
+    // on a different box completes it -- the keyboard twin of dragging a
+    // port onto another box. Arming also swaps the armed box's aria-label
+    // to name the pending connection, the review's fourth pin: nothing
+    // before this checked the label actually changes.
+    const before2 = edgesOf(c);
+    keyOn(boxEl("outdoor"), "Enter");
+    check("Enter on a box arms it as a pending keyboard connection",
+      c.layoutEditor.edit.kbConnectFrom === "outdoor" &&
+      edgesOf(c).join() === before2.join(),
+      "arming must not draw anything by itself");
+    // `LayoutEditor.boxes` is the drag-positions array (place/x/y/w/h/col),
+    // not the render-time box list with titles, so the exact interpolated
+    // label isn't available here -- checking the template's own static
+    // suffix (everything after "{label}") is enough to pin the switch
+    // without hard-coding which box carries which title.
+    const moveSuffix = fn("L")("setup.box_move_aria")
+      .slice(fn("L")("setup.box_move_aria").indexOf("{label}") + 7);
+    const connectSuffix = fn("L")("setup.box_connect_from_aria")
+      .slice(fn("L")("setup.box_connect_from_aria").indexOf("{label}") + 7);
+    const outdoorAria = (pageHtml(c).match(
+      /data-place="outdoor"[^>]*aria-label="([^"]*)"/) || [])[1] || "";
+    check("the armed box's aria-label switches to the connecting state",
+      outdoorAria.endsWith(connectSuffix) && !outdoorAria.endsWith(moveSuffix),
+      `aria-label="${outdoorAria}"`);
+    keyOn(boxEl("lower_zone"), "Enter");
+    check("Enter on a second box completes the connection",
+      edgesOf(c).includes("outdoor>lower_zone") &&
+      c.layoutEditor.edit.kbConnectFrom === null,
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+
+    // Arming the same box twice cancels, the keyboard's answer to releasing
+    // a drag over empty space -- and must not fall through to `addEdge`,
+    // which does not itself refuse a self-loop (`[p, p]`).
+    const before2b = edgesOf(c);
+    keyOn(boxEl("mixing_valve"), "Enter");
+    keyOn(boxEl("mixing_valve"), "Enter");
+    check("pressing Enter on the armed box again cancels the connection",
+      c.layoutEditor.edit.kbConnectFrom === null &&
+      edgesOf(c).join() === before2b.join() &&
+      !edgesOf(c).includes("mixing_valve>mixing_valve"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+
+    // Escape cancels an armed connection without touching the drawing.
+    const before3 = edgesOf(c);
+    keyOn(boxEl("buffer_tank"), "Enter");
+    keyOn(boxEl("buffer_tank"), "Escape");
+    check("Escape cancels a pending keyboard connection",
+      c.layoutEditor.edit.kbConnectFrom === null &&
+      edgesOf(c).join() === before3.join());
+
+    const root = c.shadowRoot;
+    const focusable = root.querySelector('[data-place="heat_pump"]');
+    check("the layout editor draws its boxes as focusable while editing",
+      !!focusable && focusable.getAttribute("tabindex") === "0" &&
+      focusable.getAttribute("role") === "button",
+      "D4-s1-04's keyboard route needs a stop to land on");
+    // A pipe's `data-edge` value itself contains a literal ">" (the stub's
+    // tag matcher has no notion of quotes, so it cannot be asked for by
+    // querySelector -- the same reason `edgesOf` above reads pipes out of
+    // the raw markup instead), so this reads the raw markup too.
+    check("and its pipes the same way",
+      new RegExp(
+        'class="setup-pipe[^"]*" data-edge="mixing_valve>upper_zone"' +
+        '\\s+tabindex="0" role="button" aria-label="[^"]*"'
+      ).test(pageHtml(c)));
+
+    // Focus is preserved across the redraw a move or a connect causes -- the
+    // drag's own listeners survive the same `refresh()`, and the keyboard
+    // route must not drop the ring it just earned. Driven for real (`.focus()`
+    // on the actual queried element, re-querying after the redraw), the
+    // review's third pin: asserting only that the box still moved, as this
+    // block did before, never exercises `refresh()`'s refocus at all.
+    const before4 = root.querySelector('[data-place="lower_zone"]');
+    before4.focus();
+    check("the box to be moved holds focus before the redraw",
+      root.activeElement === before4);
+    keyOn(before4, "ArrowRight");
+    const after4 = root.querySelector('[data-place="lower_zone"]');
+    check("and the redrawn box (a new element after refresh()'s innerHTML swap) holds it after",
+      after4 !== before4 && root.activeElement === after4,
+      `activeElement is ${root.activeElement === after4 ? "the redrawn box" :
+        root.activeElement === before4 ? "the stale, destroyed box" : "something else"}`);
   }
 
   {
@@ -4504,7 +4663,12 @@ const setupBox = (card, place) =>
     const boxes = card.layoutEditor.boxes || [];
     const boxOf = (place) => boxes.find((b) => b.place === place);
     const re = new RegExp(
-      '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
+      // D4-s1-04: a pipe drawn while the editor is open also carries
+      // tabindex/role/aria-label, the keyboard route onto the same
+      // removeEdge a click already reaches -- optional here since this
+      // helper also parses the non-editing drawing, which carries none.
+      '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"' +
+      '(?:\\s+tabindex="[^"]*"\\s+role="[^"]*"\\s+aria-label="[^"]*")?\\s+' +
       'd="M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)\\s+(C|L)([^"]*)"\\s*/>' +
       '\\s*(?:<circle[^>]*/>\\s*<circle[^>]*/>)?' +
       '\\s*(?:<path class="setup-flow" d="M (-?[\\d.]+) (-?[\\d.]+) ' +
@@ -8647,6 +8811,79 @@ const STOCK_THEMES = {
       .filter((p) => p.t > FROZEN && p.t < b).length;
     check("a stale live-edge chunk is fetched again, filling the seam hole",
       before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+  }
+
+  // ---- carry-in (#1643, F6.2): pin what #1643's own mutation run left
+  // surviving -- ghi's step mean, overlays()'s chunk ordering, the step
+  // mean's denominator, and the exact askedThrough threshold. ------------
+  {
+    const stepValue = fn("stepValue");
+
+    // Irradiance (like power) is a STEP MEAN: the value stepValue returns
+    // is weighted by how long each reading held, not a plain average of
+    // the readings seen. Two samples split 80/20 through the step must
+    // read close to the longer one, which a simple (v0+v1)/2 -- or a
+    // held-at-the-middle read, which is what a non-mean field does --
+    // would both get wrong (50 and 0 respectively, against the true 20).
+    const weighted = stepValue(
+      [{ t: 0, v: 0 }, { t: 80, v: 100 }], 0, 100, true);
+    check("a step mean is duration-weighted, not a plain average of samples",
+      Math.abs(weighted - 20) < 1e-9, `got ${weighted}`);
+
+    // The null-stretch denominator: a hole must not dilute the mean over
+    // the step's full width. Known from 0-50 at 100, a hole (null) from
+    // 50-100 -- the mean of the KNOWN stretch is 100, not 50 (100 * 50 /
+    // 100), which is what dividing by the step width instead of the
+    // known span would read as.
+    const partial = stepValue(
+      [{ t: 0, v: 100 }, { t: 50, v: null }], 0, 100, true);
+    check("a hole shrinks the step mean's denominator, not its numerator",
+      Math.abs(partial - 100) < 1e-9, `got ${partial}`);
+
+    // overlays() iterating `covered`: it is a Set, and this repopulates it
+    // out of numeric order -- exactly what panning further into the past
+    // AFTER an earlier, shallower pan does (the later-fetched chunk is the
+    // OLDER, lower-numbered one). Without `[...covered].sort(...)`, a Set
+    // replays insertion order, and the overlay would emit the newer chunk
+    // before the older one it was inserted after.
+    const { c } = mkCard(realisticHistory(FROZEN));
+    const CHUNK = 12 * HOUR;
+    const older = Math.floor(FROZEN / CHUNK) - 5;
+    const newer = older + 1;
+    c.histSource.covered = new Set();
+    c.histSource.covered.add(newer);
+    c.histSource.covered.add(older);
+    c.histSource.loadedAny = true;
+    c.histSource.version = 1;
+    c.histSource.fetchedThrough = (newer + 1) * CHUNK;
+    c.histSource.log = {
+      ghi: [
+        { t: older * CHUNK, v: 10 },
+        { t: newer * CHUNK, v: 20 },
+      ],
+    };
+    const times = c.histSource.overlays().solar.map((p) => Date.parse(p.t));
+    check("overlays() emits every covered chunk in time order, not insertion order",
+      times.length > 1 && times.every((t, i) => i === 0 || times[i - 1] <= t),
+      times.slice(0, 4).join(","));
+
+    // askedThrough: the exact threshold `ensure` refetches the live-edge
+    // chunk at. A gap just short of one plan step must NOT be read as
+    // stale -- only a gap of a full step or more.
+    const c2 = mkCard(realisticHistory(FROZEN)).c;
+    c2.histSource.ensure(FROZEN - HOUR, FROZEN);
+    await flushHistory();
+    const step = 15 * 60000; // PLAN_STEP_MS
+    const askedBefore = c2.histSource.askedThrough;
+    const chunkIdx = Math.floor((askedBefore - 1) / CHUNK);
+    c2.histSource.ensure(FROZEN - HOUR, askedBefore + step - 1);
+    check("a live-edge gap under one plan step is not read as stale",
+      c2.histSource.chunks.get(chunkIdx) === "loaded",
+      `chunk ${chunkIdx}: ${c2.histSource.chunks.get(chunkIdx)}`);
+    c2.histSource.ensure(FROZEN - HOUR, askedBefore + step);
+    check("a live-edge gap of a full plan step is read as stale and refetched",
+      c2.histSource.chunks.get(chunkIdx) !== "loaded",
+      `chunk ${chunkIdx}: ${c2.histSource.chunks.get(chunkIdx)}`);
   }
 
   // ---- bug 7: the history view against HA's own /history/period answer ----
