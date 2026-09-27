@@ -414,3 +414,5 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
   - F9.1 (merged #1702): handoff/r9-f9-1-qei682 @69791169.
   - Roster: handoff/audit-r9-fixplan @cf5b8910.
   - Mac queue: Tests on dbcca5fd, stamp v6.7.3, #1708, then #1704.
+- 2026-09-27T07:33Z F2.2 -v3 handed off: branch handoff/r9-f2-2-k1w278-v3, code head 286560f11b3138a4d34b20b99a931317ea3cb780 (on main dbcca5fd, _floor_l1_scale kept in the batch twin), body tools/audit/handoff/r9-f2-2-k1w278.md at 2674dc9c. Gate 23/23 incl. mypy/harness_headers/Haswell backtest; mutation table PASSED; prepr clean. Next: Mac updates #1710, re-review.
+- 2026-09-27T09:08Z (coordinator session_01EJznfXB89EacqaXtAfgt41) MERGED F4.1 #1704 at 0c9c4000; WAVE 1 COMPLETE. Stamped v6.7.4 (tag 800d7aab, #1708 only). F4.2 fixer started, thread cmsg_01EL5jLi4rokGBbkaevYXSJVUN91VAAwG7tZzFvEtkaNsW. F2.2 is now #1713 (MERGE verdict). Mac queue: boost hotfix, #1703, #1713, #1707, #1709, then stamp v6.7.5 (it carries #1704).
