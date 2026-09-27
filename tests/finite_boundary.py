@@ -34,6 +34,11 @@ non-finite (the count is a property of the corrupt input, not of the load
 path), and a finite-but-large leaf (``1e308``) is *not* scrubbed — the boundary
 refuses only what is non-finite.
 
+**I1 pins (round 9, F9.1).** Five guards outside the boundary above, each
+correct already and each invisible to every closure script if deleted: a
+direct call of the production symbol, not a store sweep, because I1 is
+mutation-invisibility rather than a boundary defect.
+
 Run (from the repository root):
     PYTHONPATH=tests/hastub python3 tests/finite_boundary.py
 """
@@ -62,7 +67,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components"
 
 import numpy as np  # noqa: E402
 
-from harness import Results, FakeHass, FakeEntry  # noqa: E402
+from harness import Results, FakeHass, FakeEntry, FakeState  # noqa: E402
 from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.store import QuarantiningStore, _sanitize  # noqa: E402
@@ -653,6 +658,80 @@ def _instant_arm(by_name) -> None:
     print(f"RESULT instant_lead_opt_outs={sorted(set(opted_out))}")
 
 
+# ---------------------------------------------------------------------------
+# I1 -- deletable-guard pins (round 9, F9.1): five guards whose deletion no
+# closure script notices. Each is one direct call of the production symbol
+# (not a store-boundary sweep), because I1 is mutation-invisibility, not a
+# boundary defect -- the boundary above is already correct at every one of
+# these sites.
+# ---------------------------------------------------------------------------
+
+def _i1_pins_arm() -> None:
+    from heatpump_optimizer.coordinator import _dhw_inlet_c
+    from heatpump_optimizer.flow_lift import FlowCurveBias
+    from heatpump_optimizer.price_model import PriceShapeModel, HOURS_PER_DAY
+    from heatpump_optimizer.dhw_draws import DrawStats
+    from heatpump_optimizer.ledger import MonthlyLedger
+
+    # D3-s1-01: _dhw_inlet_c's lower plausibility bound is inclusive
+    # (coordinator.py:1371, `-5.0 <= value <= 35.0`). CMP_BOUND C0043 turns it
+    # into `-5.0 < value`, which no closure script notices.
+    now = _dt_util.utcnow()
+    hass = FakeHass({"sensor.inlet": FakeState("-5.0", last_updated=now, unit=None)})
+    R.check(
+        "_dhw_inlet_c keeps the inclusive lower plausibility bound (-5.0 is valid)",
+        _dhw_inlet_c(hass, "sensor.inlet") == -5.0,
+        f"got {_dhw_inlet_c(hass, 'sensor.inlet')!r}",
+    )
+
+    # D3-s2-01 (weakened(low)): FlowCurveBias.from_dict's isfinite guard is
+    # the one store-parser guard QuarantiningStore leaves reachable
+    # (flow_lift.py:210). GUARD_OFF S34 lets a non-finite stored bias survive
+    # into ``bias_k`` instead of restoring to inert.
+    learner = FlowCurveBias.from_dict({"bias_k": float("nan"), "samples": 5})
+    R.check(
+        "FlowCurveBias.from_dict restores to inert on a non-finite stored bias_k",
+        learner.bias_k == 0.0 and learner.samples == 0,
+        f"bias_k={learner.bias_k!r} samples={learner.samples!r}",
+    )
+
+    # D3-s2-02: PriceShapeModel.from_dict's residual_var restore keeps a
+    # legitimate stored variance (price_model.py:368, `max(0.0, float(v))`).
+    # CLAMP_DROP S19 replaces the per-value parse with a literal 0.0, so a
+    # real recorded variance is silently zeroed with the gate green.
+    var = [[2.5] * HOURS_PER_DAY, [1.0] * HOURS_PER_DAY]
+    model = PriceShapeModel.from_dict({"residual_var": var})
+    R.check(
+        "PriceShapeModel.from_dict keeps a legitimate stored residual_var value",
+        model.residual_var[0][0] == 2.5,
+        f"residual_var[0][0]={model.residual_var[0][0]!r}",
+    )
+
+    # D3-s3-02: DrawStats.from_dict's open-occurrence parse keeps a
+    # legitimate stored value (dhw_draws.py:136,
+    # `max(0.0, float(data.get("open_kwh", 0.0)))`). CLAMP_DROP M19 replaces
+    # it with a literal 0.0, zeroing a real open draw with the gate green.
+    draws = DrawStats.from_dict({"open_kwh": 2.5})
+    R.check(
+        "DrawStats.from_dict keeps a legitimate stored open_kwh value",
+        draws._open_kwh == 2.5,
+        f"_open_kwh={draws._open_kwh!r}",
+    )
+
+    # D3-s3-03: MonthlyLedger.add's non-finite guard is the only thing
+    # keeping a NaN amount from ever reaching a month entry (ledger.py:117).
+    # GUARD_OFF M21 (`if False:`) lets it through, creating a month whose
+    # kwh/sek line is NaN, unnoticed by any closure script.
+    ledger = MonthlyLedger()
+    when = _dt.datetime(2026, 1, 15, 12, tzinfo=_dt.timezone.utc)
+    ledger.add(when, "spot", kwh=float("nan"), sek=1.0)
+    R.check(
+        "MonthlyLedger.add drops a non-finite amount before any month is created",
+        not ledger.months,
+        f"months={ledger.months!r}",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -823,6 +902,7 @@ def _main() -> int:
     _instant_arm(by_name)
     _publish_arm()
     _no_rewrap_check()
+    _i1_pins_arm()
     return R.close("FINITE BOUNDARY CHECKS")
 
 
