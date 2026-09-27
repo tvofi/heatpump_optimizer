@@ -67,11 +67,11 @@
     "R9-F7.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-f1-coordinator-1",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "2d71759ee90d6a1f81bbcbbcdb64aa6ef93cb2ad",
+    "last_step": "MERGED as #1722 at 2d71759e; PR head 7a9e1c0f (1668198a + main), verdict carried from f13b5523 (main-merge-only move)",
+    "next_step": "none; #1665 and #1683 closed",
     "note_file": "handoff/round9/fix/resume/F1.1.md on handoff/r9-f1-coordinator-1",
     "review_branch": "handoff/r9-f1-coordinator-1-review",
     "review_note_file": "handoff/round9/fix/resume/F1.1-review.md on handoff/r9-f1-coordinator-1-review",
@@ -124,10 +124,10 @@
     "R9-F1.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fix",
     "branch": "handoff/r9-f1-coordinator-2",
-    "commit": null,
-    "last_step": null,
+    "commit": "2d71759ee90d6a1f81bbcbbcdb64aa6ef93cb2ad",
+    "last_step": "opus fixer seat dispatched from main 2d71759e on handoff/r9-f1-coordinator-2",
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
     "note_file": "handoff/round9/fix/resume/F1.2.md on handoff/r9-f1-coordinator-2",
     "review_branch": "handoff/r9-f1-coordinator-2-review",
@@ -865,11 +865,11 @@
     "R9-F4.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "review",
     "branch": "handoff/r9-f2-solver-3",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "ef071c1a55e70d5774fbe9b1535386f00917e7eb",
+    "last_step": "handed off at code head ef071c1a; claimnotes refusal hand-resolved; draft PR opening",
+    "next_step": "reviewer seat next (opus, handoff/r9-f2-solver-3-review)",
     "note_file": "handoff/round9/fix/resume/F2.3.md on handoff/r9-f2-solver-3",
     "review_branch": "handoff/r9-f2-solver-3-review",
     "review_note_file": "handoff/round9/fix/resume/F2.3-review.md on handoff/r9-f2-solver-3-review",
@@ -1164,11 +1164,11 @@
     "R9-F3.2"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "merge",
     "branch": "handoff/r9-f3-stores-3",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "256afc697456528e218a472734105654e6650867",
+    "last_step": "verdict MERGE carried at 256afc69 (main-merge-only move)",
+    "next_step": "re-merge onto current main (2d71759e), re-verify, then merge #1717",
     "note_file": "handoff/round9/fix/resume/F3.3.md on handoff/r9-f3-stores-3",
     "review_branch": "handoff/r9-f3-stores-3-review",
     "review_note_file": "handoff/round9/fix/resume/F3.3-review.md on handoff/r9-f3-stores-3-review",
@@ -1290,11 +1290,11 @@
     "R9-F4.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "merge",
     "branch": "handoff/r9-f4-inputs-sysid-2",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "7fe356f6bb273bcba2f1b563f854c10e2f796b17",
+    "last_step": "verdict MERGE at 7fe356f6",
+    "next_step": "queued for its main re-merge and merge (#1718)",
     "note_file": "handoff/round9/fix/resume/F4.2.md on handoff/r9-f4-inputs-sysid-2",
     "review_branch": "handoff/r9-f4-inputs-sysid-2-review",
     "review_note_file": "handoff/round9/fix/resume/F4.2-review.md on handoff/r9-f4-inputs-sysid-2-review",
@@ -2750,11 +2750,11 @@
     "R9-F11.3"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-f11-governance-6",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "2d01240646b76e531aea62fbd409282b62366c6b",
+    "last_step": "MERGED as #1720 at 2d012406; tvofi re-approved at bf2723bc and the merge locked it",
+    "next_step": "none; #1667 closed",
     "note_file": "handoff/round9/fix/resume/F11.6.md on handoff/r9-f11-governance-6",
     "review_branch": "handoff/r9-f11-governance-6-review",
     "review_note_file": "handoff/round9/fix/resume/F11.6-review.md on handoff/r9-f11-governance-6-review",
