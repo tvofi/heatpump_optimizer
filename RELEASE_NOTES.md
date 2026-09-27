@@ -1,5 +1,13 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.6
+
+hotfix follow-up: heating and hot-water duty are split within a planned step, so a boost no longer drags hot water into a heating slot. Also round-9 F11.3 (the policy text and the governance barrier) and F8.2 (documentation fixes).
+
+- #1715 — governance: policy text and the governance barrier (round-9 F11.3)
+- #1703 — docs: five I5 documentation fixes and the md_tables pin (round-9 F8.2)
+- #1719 — fix: split heating and hot-water duty within a step (boost hotfix follow-up)
+
 ## v6.7.5
 
 hotfix: pressing Boost space heating now sets a Tuya pump to heat only where the pump offers that mode, with heat+dhw only as the fallback, so the optimizer keeps control of when hot-water and space-heating slots run. Also: round-9 wave 1 closes and wave 2 begins: input and system-identification fixes, store fixes, the solver's F2.2 fixes, a keyboard route for the card's pointer-only editing, and new guard test pins.
