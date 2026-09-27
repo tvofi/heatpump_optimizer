@@ -1,5 +1,11 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.4
+
+hotfix: when the optimizer is switched off, it no longer writes anything to the heat pump.
+
+- #1708 — fix: optimizer off means no writes to the heat pump (hotfix)
+
 ## v6.7.3
 
 hotfix: when the optimizer controls the heat pump's mode and set-point, it no longer writes an indoor temperature (25 °C) to a set-point that is configured as a flow temperature, which badly underheated the house. Also in this release, most of round-9 wave 1: climate and switch modes no longer read a stale mode, stored timestamps are bounded and time-zone-aware, the solver's sign floor on the price margin is fixed (and the storage basin it had lost is restored), config text and card fixes, docs that match the setup wizard, and governance and test-stub fidelity work.

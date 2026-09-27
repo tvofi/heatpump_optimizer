@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.3
+# claims-for: 6.7.4
 #
-# v6.7.3: hotfix: no indoor temperature written to a flow set-point; round-9 wave 1. The stamp empties the list; the
+# v6.7.4: hotfix: optimizer off means no writes to the heat pump. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
