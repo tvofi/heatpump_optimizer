@@ -1088,6 +1088,13 @@ else
   say skip "brief_lint" "no pinned path changed, so CI's briefs job reads this head's copy"
 fi
 
+# --- 3f2. the contract re-run's decision, from its own fixtures (D13-s1-03).
+# `pr-contract-rerun.yml` runs the default branch's copy; its self-test is
+# offline and under a second, so the local path is the self-test.
+python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1
+step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
+rm -f /tmp/prepr-crr.$$
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)
