@@ -1149,6 +1149,26 @@ class ThermalState:
     wood_tank_temperature: float | None = None
 
 
+def _copy_state_with(state: "ThermalState", **changes) -> "ThermalState":
+    """Shallow-copy ``state`` with ``changes`` applied, field-for-field the
+    same result as ``dataclasses.replace(state, **changes)``.
+
+    Equivalent here and only here: ``ThermalState`` has no
+    ``__post_init__`` and no init-only fields, so ``replace`` is exactly a
+    field copy plus overrides. Exists because the stability-subdivided step
+    loops call it millions of times per solve -- the sysid rollout's
+    candidate fits multiply the sub-step count -- and ``replace``'s field
+    iteration was measured at about half the frontier harness's runtime
+    (R9-F2.3, #1723: the harness exceeded CI's per-harness budget at the
+    F4.2+F2.3 tree; before/after numbers are in that pull request's
+    ## Red checks).
+    """
+    new = object.__new__(type(state))
+    new.__dict__.update(state.__dict__)
+    new.__dict__.update(changes)
+    return new
+
+
 # DHW draw pattern: normalized hourly multipliers (24 values, sum=24)
 # Morning peak (6-9), evening peak (17-21), low overnight
 DHW_HOURLY_DRAW_PATTERN: list[float] = [
@@ -2040,17 +2060,36 @@ class ThermalModel:
         external_heat_kw: float = 0.0,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        _cop: float | None = None,
+        _u_eff: float | None = None,
+        _q_solar: float | None = None,
     ) -> ThermalState:
-        """Simulate one step with the original single-zone model."""
+        """Simulate one step with the original single-zone model.
+
+        ``_cop``, ``_u_eff`` and ``_q_solar`` are the per-call constants
+        below, precomputed by :meth:`simulate_step` when it stability-
+        subdivides: every sub-step of one call sees the same outdoor, wind,
+        rain, solar and humidity, so recomputing them per sub-step priced
+        the sysid rollout out of its own harness budget. ``None`` (any
+        direct caller's default) computes them here, unchanged.
+        """
         p = self.params
-        cop = self.compute_cop(outdoor_temp, humidity=humidity)
+        cop = (
+            self.compute_cop(outdoor_temp, humidity=humidity)
+            if _cop is None
+            else _cop
+        )
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix. It is heat, not electricity, so it never touches
         # the COP and costs the plan nothing.
         thermal_power = cop * electrical_power + max(0.0, external_heat_kw)
 
-        u_eff = self.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
+        u_eff = (
+            self.effective_heat_loss_coefficient(
+                p.heat_loss_coefficient, wind_speed, precipitation
+            )
+            if _u_eff is None
+            else _u_eff
         )
         q_slab_to_room = p.slab_heat_transfer * (
             state.slab_temperature - state.room_temperature
@@ -2064,7 +2103,11 @@ class ThermalModel:
             if hour_of_day is not None
             else p.internal_gains
         )
-        q_solar = self.compute_solar_gain(solar_radiation)
+        q_solar = (
+            self.compute_solar_gain(solar_radiation)
+            if _q_solar is None
+            else _q_solar
+        )
 
         dT_room = (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass
         dT_slab = (thermal_power - q_slab_to_room) / p.slab_thermal_mass
@@ -2072,10 +2115,12 @@ class ThermalModel:
         new_room = state.room_temperature + dT_room * dt_hours
         new_slab = state.slab_temperature + dT_slab * dt_hours
 
-        # ``replace`` carries every field not overridden — enumerating them
-        # here silently reset the legionella clock and the external-heat flag
-        # to their defaults on every simulated step.
-        return replace(
+        # ``_copy_state_with`` carries every field not overridden — a field
+        # enumerated here silently reset the legionella clock and the
+        # external-heat flag to their defaults on every simulated step (the
+        # same trap ``dataclasses.replace`` exists to avoid; see its
+        # docstring for the equivalence and why the cheap copy is sound).
+        return _copy_state_with(
             state,
             room_temperature=new_room,
             slab_temperature=new_slab,
@@ -2466,11 +2511,24 @@ class ThermalModel:
                 wind_speed, precipitation, solar_radiation, dt_hours,
                 external_heat_kw, humidity, hour_of_day,
             )
+        # Every sub-step below re-enters with the same outdoor, wind, rain,
+        # solar and humidity, so the three per-call environment constants
+        # are computed once here and handed down (see
+        # ``_simulate_step_single``'s leading parameters). The stability
+        # subdivision multiplies this loop into the hottest path the solver
+        # has; recomputing them per sub-step priced the sysid rollout out
+        # of its own harness budget (#1723).
+        cop = self.compute_cop(outdoor_temp, humidity=humidity)
+        u_eff = self.effective_heat_loss_coefficient(
+            self.params.heat_loss_coefficient, wind_speed, precipitation
+        )
+        q_solar = self.compute_solar_gain(solar_radiation)
         for _ in range(n_sub):
             state = self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
+                _cop=cop, _u_eff=u_eff, _q_solar=q_solar,
             )
         return state
 
