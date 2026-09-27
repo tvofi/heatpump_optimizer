@@ -48078,6 +48078,231 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)")
+# Round 9 F3.2 (#1644 P2, #1647 P1, #1660 N-future-instant). What the arbiter
+# restores is a record it could have written; an apply queued before an
+# unload arms and writes nothing; the mode is written through the target's
+# own domain; the frequency map loads only the domain its update path folds;
+# and the store bounds a naive stamp in the zone its loader reads it in.
+from heatpump_optimizer import freq_control as _f32_fc  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore as _F32Store  # noqa: E402
+
+_F32_T0 = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+
+
+def _f32_load(coord, written):
+    """``written`` stored as the arbiter's record, then its real loader."""
+    _si_storage._DISK[f"heatpump_optimizer_{coord.entry.entry_id}_pump_duty"] = (
+        _si_json.dumps({"written": written}))
+    _si_pa.state_for(coord).loaded = False
+    try:
+        _si_aio.run(_si_pa._load(coord))
+    finally:
+        _si_storage._DISK.clear()
+    return _si_pa.state_for(coord).written
+
+
+# D1-s3-02: an apply queued by a state change before the unload runs after
+# it. It must neither re-arm the tick and the state listener nor write.
+# Under an aware clock, as Home Assistant's: release() stamps its baseline
+# write with the clock, and the stub's default one is naive (D1-s1-52).
+_f32_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("released", "null"):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_c._entry_released = False
+        _pa_run(_f32_c, 1)
+        _f32_c._entry_released = _f32_arm == "released"
+        _pa_aio.run(_pa.release(_f32_c))
+        _f32_c.hass.services.calls.clear()
+        _pa_run(_f32_c, 16)
+        _f32_live[_f32_arm] = (len(_pa.state_for(_f32_c).unsubs), len(_f32_c.writes()))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued before the unload arms no listener and writes nothing "
+    "after it (D1-s3-02); a live coordinator re-arms both (null control)",
+    _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
+    f"{_f32_live}",
+)
+
+# D1-s3-03: a record of any other shape is not restored, and the next pass
+# neither raises nor keeps it; an honest record still loads.
+_f32_iso = "2026-06-01T11:59:00+00:00"
+_f32_bad = {
+    "written-list": [["heat", _f32_iso]],
+    "setpoint-str": {"dhw_setpoint": ["53", _f32_iso]},
+    "setpoint-list": {"space_setpoint": [[34.0], _f32_iso]},
+    "setpoint-bool": {"dhw_setpoint": [True, _f32_iso]},
+    "mode-dict": {"mode": [{"v": "heat"}, _f32_iso]},
+    "mode-list": {"mode": [["heat"], _f32_iso]},
+    "slot-unknown": {"boiler": [48.0, _f32_iso]},
+    "pair-dict": {"mode": {"0": "heat", "1": _f32_iso}},
+}
+_f32_raised = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_name, _f32_rec in _f32_bad.items():
+        _f32_c = _PaCoord(_PA_TUYA)
+        try:
+            _f32_kept = dict(_f32_load(_f32_c, _f32_rec))
+            _pa_run(_f32_c, 1)
+            _pa_run(_f32_c, 2)
+            _f32_raised[_f32_name] = _f32_kept or None
+        except Exception as _f32_err:  # noqa: BLE001
+            _f32_raised[_f32_name] = type(_f32_err).__name__
+    _f32_ok = dict(_f32_load(_PaCoord(_PA_TUYA), {
+        "mode": ["heat", _f32_iso], "dhw_setpoint": [48.0, _f32_iso],
+        "space_setpoint": [34, _f32_iso]}))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "the arbiter restores only a record it could have written: no malformed "
+    "record loads or raises on the next pass (D1-s3-03)",
+    not any(_f32_raised.values()),
+    f"{_f32_raised}",
+)
+R.check(
+    "an honest arbiter record still loads, every slot (null control)",
+    sorted(_f32_ok) == ["dhw_setpoint", "mode", "space_setpoint"]
+    and _f32_ok["dhw_setpoint"][0] == 48.0,
+    f"{_f32_ok}",
+)
+
+# FI-sw5: a write instant stored ahead of the clock (N-future-instant) is
+# bounded by the store at load, so hold()'s write-echo grace is not held
+# open by it: a differing reading past the grace is rewritten.
+_f32_grace = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_arm, _f32_at in (("ahead", _F32_T0 + timedelta(days=400)),
+                              ("null", _F32_T0)):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_load(_f32_c, {"dhw_setpoint": [48.0, _f32_at.isoformat()]})
+        _pa.hold(_f32_c, _F32_T0 + timedelta(seconds=30 if _f32_arm == "ahead" else 10))
+        _f32_grace[_f32_arm] = "dhw_setpoint" in _pa.state_for(_f32_c).written
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a write instant stored ahead of the clock is bounded, so the echo grace "
+    "closes on time (FI-sw5); an honest one inside the grace still holds (null control)",
+    _f32_grace == {"ahead": False, "null": True},
+    f"record kept after a differing reading: {_f32_grace}",
+)
+
+# D12-s2-02: the mode slot accepts select, input_select and sensor. The
+# write goes through the target's own domain; a sensor is read, never written.
+_f32_route = {}
+for _f32_dom in ("select", "input_select", "sensor"):
+    _f32_c = _PaCoord(_PA_TUYA)
+    _f32_ent = f"{_f32_dom}.pump_mode"
+    _f32_c._config["heat_pump_mode_entity"] = _f32_ent
+    _f32_c.hass.states._states[_f32_ent] = FakeState(
+        "Heating + DHW", attributes={"options": list(_PA_TUYA)})
+    _pa_run(_f32_c, 1)
+    _f32_route[_f32_dom] = sorted(
+        {(d, s) for d, s, data in _f32_c.hass.services.calls
+         if (data or {}).get("entity_id") == _f32_ent})
+R.check(
+    "the arbiter writes the mode through the target's own domain, and never "
+    "writes a read-only sensor slot (D12-s2-02)",
+    _f32_route == {"select": [("select", "select_option")],
+                   "input_select": [("input_select", "select_option")],
+                   "sensor": []},
+    f"{_f32_route}",
+)
+
+# The store bounds a naive instant in the zone its loader reads it in: Home
+# Assistant's, for the arbiter, legionella and boost. Read as UTC, a zone
+# west of Greenwich let a naive future stamp through by its offset, and one
+# east of it pulled an honest stamp back by its offset (a boost with an hour
+# left came back ended).
+_f32_zone = {}
+_f32_zone0 = dt_util.DEFAULT_TIME_ZONE
+for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
+    _f32_z = _SiZone(_f32_tz)
+    _f32_now = datetime(2026, 6, 1, 12, 0, tzinfo=_f32_z)
+    dt_util.DEFAULT_TIME_ZONE = _f32_z
+    dt_util.freeze(_f32_now)
+    try:
+        _f32_c = _t2_coord()
+        _f32_w = _f32_load(_f32_c, {
+            "mode": ["heat", "2026-06-01T11:00:00"],
+            "dhw_setpoint": [48.0, "2026-06-01T18:00:00"]})
+        _si_storage._DISK[_f32_c._legionella.store._key] = _si_json.dumps(
+            {"last_cycle": "2026-06-01T11:00:00", "last_attempt": "2026-06-01T18:00:00"})
+        _si_aio.run(_f32_c._legionella.async_load())
+        _si_storage._DISK[f"heatpump_optimizer_{_f32_c.entry.entry_id}_boost"] = (
+            _si_json.dumps({"space": {"until": "2026-06-01T13:00:00"},
+                            "dhw": {"until": "2026-06-01T18:00:00"}}))
+        _si_aio.run(boost_mod.restore(_f32_c))
+        _f32_b = boost_mod.held_for(_f32_c).until
+        _f32_zone[_f32_tz] = (
+            _f32_w["mode"][1] == _f32_now - timedelta(hours=1)
+            and _f32_w["dhw_setpoint"][1] == _f32_now
+            and _f32_c._legionella.last_cycle == _f32_now - timedelta(hours=1)
+            and _f32_c._legionella.attempt == _f32_now
+            and _f32_b.get("space") == _f32_now + timedelta(hours=1)
+            and _f32_b.get("dhw") == _f32_now + timedelta(hours=boost_mod.BOOST_HOURS),
+            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat(),
+            {k: v.isoformat() for k, v in _f32_b.items()})
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = _f32_zone0
+        dt_util.freeze(None)
+        _si_storage._DISK.clear()
+R.check(
+    "the store bounds a naive stored instant in its loader's zone: an honest "
+    "one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles",
+    all(v[0] for v in _f32_zone.values()) and len(_f32_zone) == 2,
+    f"{_f32_zone}",
+)
+
+# The bound's target is now plus the store's lead, exactly: an instant
+# beyond it lands on it, not merely somewhere at or before it.
+_f32_lead = timedelta(hours=2)
+_F32Key = "heatpump_optimizer_f32_lead"
+_si_storage._DISK[_F32Key] = _si_json.dumps({
+    "aware": (_F32_T0 + timedelta(days=400)).astimezone(_SiZone("Europe/Stockholm")).isoformat(),
+    "naive": (_F32_T0 + timedelta(days=400)).replace(tzinfo=None).isoformat(),
+    "inside": (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat()})
+dt_util.freeze(_F32_T0)
+try:
+    _f32_got = _si_aio.run(_F32Store(FakeHass({}), 1, _F32Key, lead=_f32_lead).async_load())
+finally:
+    dt_util.freeze(None)
+    _si_storage._DISK.clear()
+R.check(
+    "an instant beyond the store's lead is bounded to exactly now plus the "
+    "lead, aware or naive, and one inside it is kept",
+    datetime.fromisoformat(_f32_got["aware"]) == _F32_T0 + _f32_lead
+    and datetime.fromisoformat(_f32_got["aware"]).utcoffset() == timedelta(hours=2)
+    and _f32_got["naive"] == (_F32_T0 + _f32_lead).replace(tzinfo=None).isoformat()
+    and _f32_got["inside"] == (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat(),
+    f"{_f32_got}",
+)
+
+# D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile
+# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ (1.5
+# kW/Hz: a 60 kW draw at 40 Hz) -- does not load, and observe() does not fold
+# one, so no phantom bucket pins recommend() at the range's floor.
+_f32_map = _f32_fc.FrequencyMap.from_dict({
+    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [1.5, 50],
+    "4": [0.04, 50], "5": [_f32_fc.FREQ_MAX_KW_PER_HZ, 50],
+})
+_f32_obs = _f32_fc.FrequencyMap()
+_f32_obs.observe(40.0, 60.0, 20.0, 120.0)
+_f32_obs.observe(60.0, 2.4, 20.0, 120.0)
+R.check(
+    "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
+    "up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)",
+    sorted(_f32_map.buckets) == [4, 5]
+    and _f32_map.recommend(3.0, 20.0, 120.0) == 75.0
+    and list(_f32_obs.buckets) == [4],
+    f"loaded={_f32_map.buckets} observed={_f32_obs.buckets}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)")
 # #1523: the active experiment is a heat-loss learner that never consulted
 # ``_learning_frozen``, so it recorded -- and adopted -- nights the house
