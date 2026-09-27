@@ -49125,6 +49125,49 @@ R.check(
     f"after a two-zone solve {_f21_after:.6f}, a fresh optimizer {_f21_fresh:.6f}",
 )
 
+# The continuation moves the plain first start, not a caller's extra start,
+# and under the budget the multi-start hands it: #234's two-zone solve, with
+# both solvers stubbed so only the hand-off is read.
+_f21_budgets, _f21_moved = [], []
+
+
+def _f21_ms(objective, starts, bounds, *a, move_starts, **kw):
+    _f21_moved.extend(move_starts([np.asarray(s, dtype=float) for s in starts], 7))
+    return _Min234(np.asarray(starts[0], dtype=float))
+
+
+def _f21_min(fun, x0, **kw):
+    _f21_budgets.append(kw["options"]["maxiter"])
+    return _Min234(np.full(np.shape(x0), -1.0))
+
+
+_f21_real = (_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize)
+_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_ms, _f21_min
+try:
+    _opt234._optimize_space_only(_h234)
+    _f21_budgets_two, _f21_budgets[:] = list(_f21_budgets), []
+    _opt234.model.params.two_zone_enabled = False
+    _opt234._optimize_space_only(_h234)
+finally:
+    _opt234.model.params.two_zone_enabled = True
+    _f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_real
+R.check(
+    "R9-F2.1 P3: the continuation refines the first plain start, after the "
+    "extra starts, within the multi-start's own iteration budget",
+    _f21_budgets_two == [7] and len(_f21_moved) >= 4
+    and np.allclose(_f21_moved[0], _clipped234)
+    and np.allclose(_f21_moved[1], _bang234)
+    and np.all(_f21_moved[2] == -1.0) and not np.all(_f21_moved[3] == -1.0),
+    f"budgets {_f21_budgets_two}; moved "
+    f"{[bool(np.all(c == -1.0)) for c in _f21_moved]}",
+)
+R.check(
+    "R9-F2.1 P3 (null arm, single-zone): a single-zone solve runs no "
+    "continuation -- its floor price never changed",
+    _f21_budgets == [],
+    f"continuation budgets on the single-zone solve: {_f21_budgets}",
+)
+
 # D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the
 # import price sits below the export price (a negative-price hour, or a high
 # export compensation) a surplus-covered kWh was charged at the import price
