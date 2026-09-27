@@ -36,7 +36,7 @@
 // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
 // So a new check is refused until someone says what it reads.
 //
-//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|registry]
+//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
 //   node .claude/workflows/field_coverage.mjs --self-test
 //
@@ -175,6 +175,33 @@ const RULESET = {
     return r.drift ? 'red' : 'green'
   },
 }
+// The budget-raise gate's owner-approval predicate (carry-1648, from F11.2):
+// the input is one review as GitHub returns it, a healthy owner approval at the
+// head; each field is perturbed and `approval()` must stop approving. The body
+// is perturbed to a declaration the predicate exists to refuse, since any
+// other string is a legitimate owner body.
+const HEAD = 'a'.repeat(40)
+const APPROVALS = {
+  name: 'approvals',
+  check: 'budget_raise_gate.py approval()',
+  artifact: 'an owner approval at the head, in the GitHub review shape',
+  load: () => ({ id: 1, node_id: 'PRR_x', user: { login: 'tvofi', id: 70032254, type: 'User', node_id: 'U_x', site_admin: false },
+    body: '', state: 'APPROVED', html_url: 'https://github.com/x', pull_request_url: 'https://api.github.com/x',
+    author_association: 'OWNER', _links: {}, submitted_at: '2026-09-27T00:00:00Z', commit_id: HEAD }),
+  violate: { body: 'Approved on behalf of tvofi by the orchestrator (mandate)' },
+  ignore: {
+    id: 'the review id orders nothing; the API returns reviews in submission order',
+    node_id: 'an opaque GraphQL id', 'user.node_id': 'an opaque GraphQL id', 'user.site_admin': 'GitHub staff flag, not an identity',
+    html_url: 'a link', pull_request_url: 'a link', _links: 'links', submitted_at: 'order comes from the list, not the stamp',
+    author_association: 'GitHub derives it from user, which is read',
+  },
+  async verdict(obj) {
+    const code = `import json,sys\nsys.path.insert(0,'.claude/workflows')\nimport budget_raise_gate as g\nok,_=g.approval([json.loads(sys.argv[1])],sys.argv[2])\nprint('green' if ok else 'red')`
+    const { code: rc, out } = await run('python3', ['-I', '-c', code, JSON.stringify(obj), HEAD])
+    return rc === 0 ? out.trim() : `error:exit ${rc}: ${out.trim().split('\n').pop()}`
+  },
+}
+
 function ruleFixture() { return JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
 function ruleRepo() { return ruleFixture().branch_endpoint.replace(/^repos\//, '').replace(/\/rules\/branches\/main$/, '') }
 function ruleId() { return ruleFixture().rulesets[0] }
@@ -255,7 +282,14 @@ async function jsonRun(reg, report) {
   for (const g of globs) if (!ls.some((p) => matches(g, pattern(p)))) report.dead.push(`${reg.name}: IGNORE \`${g}\` matches no field of ${reg.artifact}`)
   const todo = ls.filter((p) => !globs.some((g) => matches(g, pattern(p))))
   report.ignored.push(...ls.filter((p) => globs.some((g) => matches(g, pattern(p)))).map((p) => `${reg.name} ${show(p)}`))
-  const results = await Promise.all(todo.map(async (p) => [p, await reg.verdict(perturbed(base, p))]))
+  // A registration may name the value that breaks a field's property where a
+  // sentinel of the right type does not (a review body that declares an agent).
+  const perturb = (p) => {
+    const v = reg.violate && reg.violate[pattern(p)]
+    if (v === undefined) return perturbed(base, p)
+    const o = structuredClone(base); get(o, p.slice(0, -1))[p.at(-1)] = v; return o
+  }
+  const results = await Promise.all(todo.map(async (p) => [p, await reg.verdict(perturb(p))]))
   report.runs += results.length + 1
   for (const [p, v] of results) {
     if (v === 'red') report.read.push(`${reg.name} ${show(p)}`)
@@ -269,7 +303,7 @@ async function jsonRun(reg, report) {
 // Each key is an entry the set yields; its value names the arm that covers the
 // check's input, or `none` with the reason it has no arm here. A reason that
 // names a structured input is a residual on the record, not a claim of cover.
-const ARMS = ['hooks', 'ruleset', 'budgets']
+const ARMS = ['hooks', 'ruleset', 'budgets', 'approvals']
 const PROSE = 'reads policy prose, not a structured input'
 const DECLARED = {
   'check citations': { none: PROSE },
@@ -381,14 +415,15 @@ async function main() {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') only = argv[++i]
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
-    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|registry] [--ruleset-json FILE]`); process.exit(2) }
+    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry] [--ruleset-json FILE]`); process.exit(2) }
   }
-  if (only && !['hooks', 'ruleset', 'budgets', 'registry'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
+  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()
   const report = { read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 }
   if (!only || only === 'hooks') await jsonRun(HOOKS, report)
   if (!only || only === 'ruleset') await jsonRun(RULESET, report)
   if (!only || only === 'budgets') await budgetsRun(report)
+  if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
   if (!only || only === 'registry') registryRun(report)
   for (const x of report.read) console.log(`  read     ${x}`)
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
