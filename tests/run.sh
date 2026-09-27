@@ -111,6 +111,79 @@ case "$JOBS" in (*[!0-9]*|"") JOBS=1 ;; esac
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-gate-XXXXXX")
 trap 'rm -rf "$WORKDIR"' EXIT
 
+# --- environment: whose floats is this suite comparing? (#1725) -----------
+# The solver's floats move with the BLAS's runtime kernel selection -- OpenBLAS
+# DYNAMIC_ARCH picks a kernel class from the host CPU at load -- and a gate
+# check's VERDICT moved with it (#1725: the same tree and wheels read -0.32%
+# on the Nehalem kernel and +3.47% on Sandybridge against a 0.1% bound). A red
+# that coincides with a runner-pool change is attributable in minutes only if
+# the run says which kernel class selected it, so this prints first, on every
+# run of this script, fail-soft: an unreadable field prints unknown and a
+# broken report prints its unavailability, never a red gate.
+env_report=$("$PYTHON" - <<'PY' 2>/dev/null
+import os, platform, subprocess, sys
+
+
+def line(key, value):
+    print(f"  {key:<8} {value}")
+
+
+line("python", f"{platform.python_version()} ({sys.platform})")
+cpu = "unknown"
+try:
+    if sys.platform == "darwin":
+        cpu = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
+                             capture_output=True, text=True,
+                             timeout=10).stdout.strip() or cpu
+    else:
+        with open("/proc/cpuinfo") as fh:
+            for rec in fh:
+                if rec.startswith(("model name", "Hardware")):
+                    cpu = rec.split(":", 1)[1].strip()
+                    break
+except OSError:
+    pass
+line("cpu", cpu)
+core = "unknown"
+try:
+    probe = subprocess.run(
+        [sys.executable, "-c", "import numpy"],
+        env=dict(os.environ, OPENBLAS_VERBOSE="2"),
+        capture_output=True, text=True, timeout=120)
+    for rec in probe.stderr.splitlines():
+        if "Core:" in rec:
+            core = rec.split("Core:", 1)[1].strip()
+            break
+except Exception:
+    pass
+try:
+    # No Core: line means no OpenBLAS (Apple Accelerate, MKL, ...): name the
+    # library numpy's own config names, so the line never reads "unknown"
+    # on a stack the report could have identified.
+    import numpy
+    name = (numpy.__config__.CONFIG or {}).get(
+        "Build Dependencies", {}).get("blas", {}).get("name", "unknown")
+    if core == "unknown":
+        core = f"{name} (no OpenBLAS kernel class)"
+except Exception:
+    pass
+line("blas", core)
+try:
+    import numpy
+    import scipy
+    line("stack", f"numpy {numpy.__version__}, scipy {scipy.__version__}")
+except Exception:
+    line("stack", "unknown")
+PY
+)
+echo
+echo "########## environment ##########"
+if [ -n "$env_report" ]; then
+  printf '%s\n' "$env_report"
+else
+  echo "  (architecture report unavailable)"
+fi
+
 # --- scoping ---------------------------------------------------------------
 # Default full. The scoped path has to be asked for by name, and any doubt
 # inside tests/closure.py comes back as a full run.

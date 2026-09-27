@@ -237,28 +237,40 @@ for _tz in (False, True):
 # measured the asymmetry this closes: the iteration budget challenger 3
 # polices is never binding (0 of 488 observed L-BFGS-B calls reached the
 # cap, worst nit 52 against 200/300), while ftol decides every plan and
-# until now no check in this file saw it -- production ftol loosened
+# until then no check in this file saw it -- production ftol loosened
 # 1000x-10000x (1e-6 -> 1e-3 / 1e-2 in optimizer.py's two options dicts)
 # passed all 14 checks at the round-4 baseline while degrading the plan
-# on the production objective. The arm loosens ftol to 1e-3 on the
-# multi-start's own refinement solves only (the optimizer.py:529 options
-# dict) and leaves the restart's (:407) at 1e-6, so it is exactly the
-# single-site mutation class the round demonstrated -- a both-sites arm
-# would also pass the single-site cut, because the tight restart
-# repairs most of a loosened multi-start on the dhw-off scenario above.
-# Measured on this scenario (winter_typical / winter_cold / two-zone /
-# dhw on, at e069caf): the 1e-3 arm costs 2.6% more energy (61.23 vs
-# 59.69 SEK) and 0.5% more objective; 1e-2 costs 10.2% / 1.6%; 1e-4
-# moves nothing (5e-5 relative). The bound demands 1%, roughly the same
-# ~2.5x headroom over the measured gap challenger 3 keeps, so
-# BLAS-to-BLAS noise cannot trip it. Single-zone is insensitive to ftol
-# on this scenario (identical cost and objective at 1e-4..1e-2) and the
-# dhw-off two-zone cell is non-monotone under loosening (a 1e-2
-# multi-start can land in a different basin the restart then repairs),
-# which is why the check lives here and only here. Like challenger 3,
-# the bound is not a hardcoded objective: if production's ftol is ever
-# loosened toward the arm, the two solves converge and the check fails
-# by construction.
+# on the production objective. Until #1725 the arm loosened ftol to 1e-3
+# on the multi-start's refinement solves only (the optimizer.py:708
+# options dict), restart restored to 1e-6, mirroring that round's
+# single-site mutation exactly. That arm's landing point turned out not
+# to be a function of the check's inputs: measured with
+# tools/audit/harnesses/k1725_blas_kernel_gap.py at fab17619, same tree,
+# same wheels, only the OpenBLAS DYNAMIC_ARCH kernel varying, the arm
+# read 63.47 SEK on Haswell, 63.48 on Sandybridge, 61.09 on Nehalem
+# (the kernel Rosetta actually selects), 60.54 on Apple Accelerate, and
+# 63.47 on CI's own fast lane (mined from green Tests run logs, 7 runs
+# 2026-09-27) -- a 4.6% swing whose SIGN flips against the production
+# arm's robust 61.24-61.28, so the 0.1%-bound verdict was a property of
+# the runner's CPU, not of the tree. The arm now loosens BOTH ftol sites
+# (the refinement at optimizer.py:708 and the restart's polish at :563)
+# 10000x to 1e-2, no restart exemption: a stop rule that loose cannot
+# repair itself, and the arm is the one measured kernel-STABLE -- 64.97
+# SEK bit-identically in every one of those four environments, +5.04%
+# (Accelerate) to +5.74% (Haswell) over production. The trade is scope,
+# stated rather than implied: the round-4 single-site 1e-3 mutation now
+# reads 2.31% on CI-class kernels (red, bound 2.5%) but GREEN on the
+# kernels where that loosening lands a cheaper plan (Nehalem 61.09,
+# Accelerate 60.54; the harness measures its objective better there too)
+# -- on this scenario's priced quantities that loosened plan is not
+# worse, so no comparison can catch it there, and the old shape caught
+# it only by being the mutation itself, which is exactly what made the
+# healthy verdict kernel-chaotic. Single-zone is insensitive to ftol on
+# this scenario and the dhw-off two-zone cell is non-monotone under
+# loosening, which is why the check lives here and only here. Like
+# challenger 3, the bound is not a hardcoded objective: if production's
+# ftol is ever loosened toward the arm, the two solves converge and the
+# check fails by construction.
 R.section("stop rule (ftol) on a DHW-enabled two-zone solve (#921)")
 _o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
 _r7 = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
@@ -267,29 +279,19 @@ _c70, _v70, _, _ = score_plan(_m7, np.asarray(_r7.power_schedule),
 pin_result("stop-rule production arm",_r7,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 _full_scoped_7 = _optm_dhw._scoped_minimize
 _full_ms_7 = _optm_dhw._multi_start_minimize
-_full_restart_7 = _optm_dhw._lbfgsb_restart
 
 
 def _loose_ftol_7(*a, **kw):
     kw = dict(kw)
     _opts = dict(kw.get("options") or {})
-    _opts["ftol"] = 1e-3
+    _opts["ftol"] = 1e-2
     kw["options"] = _opts
     return _full_scoped_7(*a, **kw)
 
 
-def _restart_tight_7(*a, **kw):
-    with _mock_dhw.patch.object(_optm_dhw, "_scoped_minimize",
-                                _full_scoped_7):
-        return _full_restart_7(*a, **kw)
-
-
 def _loose_ms_7(objective, starts, bounds, *a, **kw):
-    with _mock_dhw.patch.object(_optm_dhw, "_lbfgsb_restart",
-                                _restart_tight_7):
-        with _mock_dhw.patch.object(_optm_dhw, "_scoped_minimize",
-                                    _loose_ftol_7):
-            return _full_ms_7(objective, starts, bounds, *a, **kw)
+    with _mock_dhw.patch.object(_optm_dhw, "_scoped_minimize", _loose_ftol_7):
+        return _full_ms_7(objective, starts, bounds, *a, **kw)
 
 
 with _mock_dhw.patch.object(_optm_dhw, "_multi_start_minimize", _loose_ms_7):
@@ -301,23 +303,24 @@ print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
 print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
 # The bound was 1% (0.99) against a 2.6% measured gap until #1207 dropped
 # the restart keep gate 2e-2 -> 2e-5 (owner directive, #1207 comment
-# c1329fe / database id 5750296026, 2026-09-20): the arm's tight restart
-# now ADOPTS the sub-2% repairs it used to discard, so it repairs most of
-# what the loosened multi-start gives up -- the repair this check's own
-# single-site comment predicted. Measured 0.30% on this box at this head
-# (59.71 vs 59.88), the same number the parked a42e961 composition
-# measured; the gap is environment-wide, not box noise -- the parked
-# rounds measured 2.4% on the arm64 dev box and 0.2% on CI's x86_64
-# py3.14 runner for the keep-gate-only sibling of this composition -- so
-# the bound is set at half the SMALLER environment's number, 0.1%, the
-# same derivation the parked tip used when it held both: this box's 0.30%
-# clears it with the same 3x headroom the 1% bound kept over 2.6%, and
-# the failure construction is unchanged: loosen production's ftol toward
-# the arm and the two solves converge past it.
+# c1329fe / database id 5750296026, 2026-09-20): the single-site arm's
+# tight restart then ADOPTED the sub-2% repairs it used to discard, so it
+# repaired most of what the loosened multi-start gave up and the measured
+# gap collapsed to 0.30%, leaving the 0.1% bound inside the arm's own
+# kernel swing (#1725, table above). The both-sites 1e-2 arm's gap is
+# measured, not assumed: +5.74% Haswell, +5.68% Sandybridge and Nehalem,
+# +5.04% Accelerate (k1725_blas_kernel_gap.py at fab17619), so the bound
+# sits at half the smallest environment's number, 2.5%, the same
+# derivation the file used at 0.99 against 2.6% -- every measured healthy
+# gap clears it with more than 2x headroom, and the failure construction
+# is unchanged: loosen production's ftol toward the arm and the two
+# solves converge past it (measured red at 2.03% for a both-sites 1e-3
+# loosening and 2.31% for the round-4 single-site 1e-3 class on
+# CI-class kernels).
 R.check("the production stop rule (ftol) buys a materially better plan",
-        _v7l <= 1e-6 and _c70 <= _c7l * 0.999,
-        f"ftol 1e-6 {_c70:.2f} vs loosened 1e-3 {_c7l:.2f} "
-        f"({100.0*(_c7l-_c70)/_c7l:.2f}% gap, bound 0.1%)")
+        _v7l <= 1e-6 and _c70 <= _c7l * 0.975,
+        f"ftol 1e-6 {_c70:.2f} vs loosened 1e-2 both sites {_c7l:.2f} "
+        f"({100.0*(_c7l-_c70)/_c7l:.2f}% gap, bound 2.5%)")
 
 # Challenger 6: the ZERO-RANGE-BOUND path (#286/#287). Every solve above
 # leaves each variable a strictly positive range. One forced-off manual pin
