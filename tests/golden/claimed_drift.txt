@@ -184,6 +184,9 @@
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
 
+valve_storage_flat_prices  # R9-F2.1 follow-up two-zone half-price continuation start
+valve_storage_small_tank  # R9-F2.1 follow-up two-zone half-price continuation start
+
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -724,3 +727,11 @@
 # valve_storage_low_target 0 -> 0, 59.02 -> 62.08; valve_storage_small_tank
 # 1.315 -> 1.291, 54.24 -> 52.56. Every other fixture is byte-identical, so
 # the PV margin and the power fraction move none.
+
+# R9-F2.1 follow-up (main red on tests/backtest.py after #1694): a two-zone
+# solve refines its first start at the half floor price before the true solve.
+# The objective is unchanged; each claimed fixture ships a plan with a LOWER
+# true objective than main's, in the same environment: valve_storage_flat_prices
+# 127.2155 -> 127.1950, valve_storage_small_tank 80.4944 -> 79.9574. The three
+# claims inherited from #1694 are dropped (env_drift --drop-inherited); of them,
+# valve_storage_low_target does not move here.
