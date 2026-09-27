@@ -2759,7 +2759,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         vvc_entity = ctx._config.get(CONF_VVC_PUMP_ENTITY)
         space_entity = _space_pump_to_drive(self)
-        if self._mode == MODE_OFF or (not vvc_entity and not space_entity):
+        if not vvc_entity and not space_entity:
             return
         now = dt_util.now()
         params = ctx._thermal_params
@@ -2821,7 +2821,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self, entity_id: str, on: bool, reason: str
     ) -> None:
         previous = self._pump_commanded.get(entity_id)
-        if previous is not None and previous == on:
+        if self._mode == MODE_OFF or (previous is not None and previous == on):  # off writes nothing
             return
         service = "turn_on" if on else "turn_off"
         try:
@@ -6569,11 +6569,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
         """Publish MQTT command for the currently selected optimizer action."""
-        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
+        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
-            displace_value=float(self._current_action.get("displace_value", 0.0)),
-            heat_pump_on=bool(self._current_action.get("heat_pump_on", False)),
+            displace_value=float(action.get("displace_value", 0.0)),
+            heat_pump_on=bool(action.get("heat_pump_on", False)),
             reason=reason,
         )
 
@@ -7869,17 +7869,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         discretionary-suppression gate external heat uses, at the next
         solve — no solve happens here.
         """
-        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
+        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             self.async_update_listeners()
             return
         if self._peak_guard.suppressing:
             await self.async_publish_ecl110_command(
                 displace_value=float(
-                    self._current_action.get("displace_value", 0.0)
+                    action.get("displace_value", 0.0)
                 )
                 - PEAK_GUARD_DISPLACE_NUDGE_C,
                 heat_pump_on=bool(
-                    self._current_action.get("heat_pump_on", False)
+                    action.get("heat_pump_on", False)
                 ),
                 reason="peak_guard",
             )
