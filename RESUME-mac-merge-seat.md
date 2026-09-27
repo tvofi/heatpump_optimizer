@@ -20,6 +20,12 @@ Last rewritten 2026-09-27T14:02Z. The full chronology is in RESUME-v670-log-*.md
 - Stamp v6.7.8 after the queue drains (rows ride the branches).
 - bg jobs die with the session — rerun remerge_main.sh then merge_pr.sh per PR; verdict evidence in reverdict/evidence-<sha8>.
 
+## Mac local test environment (STANDING, 2026-09-27 — replaces PREPR_SKIP_CLOSURES's cause)
+- The two Mac-local reds (features.py R9-F2.1 P3, optimality.py ftol) are BLAS kernel summation-order sensitivity; no macOS venv fixes them (every macOS wheel links Accelerate; CI's AVX-512 kernel SIGILLs under Rosetta). Fix: container `hpo-ci` (colima, linux/amd64, CI's exact --require-hashes wheels) + `OPENBLAS_CORETYPE=Sandybridge` — features 3474/3474 and optimality 84/84 PASS at main, zero repo changes.
+- Run: `docker exec -e PYTHONPATH=/repo/tests/hastub -e OPENBLAS_CORETYPE=Sandybridge hpo-ci python tests/<script>.py`. Setup script /Users/timmalmstrom/macfloat-fix/.container-setup.sh (container needs git for structure.py). Wall clock: features ~18 min, optimality ~6 min, env_drift --all ~50 min.
+- The container is Linux, so closures recording can run in-container (gate-scoping.md) — candidate retirement of PREPR_SKIP_CLOSURES=1, per-push until tvofi rules. The Sandybridge pin is load-bearing for optimality (default kernel -0.32%); a tolerance change for unpinned runs is tvofi's.
+- /private/tmp was wiped by the 2026-09-27 session restart (age-based cleanup): tooling restored from this branch; keep this branch authoritative.
+
 ## Tools (/private/tmp/audit-7/orchestrator/)
 - handoff_push.sh <topic> <code-sha> "<title>" [merge-main]
   - env BODYPATH= when the body filename lacks "body"; BRNAME= to update an existing PR from a -vN branch; PREPR_SKIP_CLOSURES=1 when local solver scripts fail (Mac floats); ISSUES= is auto-derived from "Fixes #N".
