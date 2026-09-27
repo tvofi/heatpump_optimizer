@@ -62,7 +62,11 @@ sigma=0.05 half-widths sit past the bar on the refused draws, and the one
 comfort-bound abort is a protocol-path draw with no solver in it; the
 sigma=0.02 cell is deliberately NOT pinned -- its refusals land on the
 gate itself and its p95 touches the bar, so its counts are printed as
-context, never asserted):
+context, never asserted). interval_refused_heavy_s005 reads 6 since R9
+F4.2 (#1718), 4 before: the adoption interval now prices the declared slab
+pair (sysid.SLAB_PAIR_PRIOR_LOG_SD), which widens two sigma=0.05 heavy
+draws past the bar -- measured under CI's kernel (OPENBLAS_CORETYPE=Haswell,
+one thread) at main fdcc9a08 (4) and on the branch merged into it (6):
     RESULT gatepass_plants=2
     RESULT draws_per_cell=16
     RESULT fitted_typical_s001=16
@@ -70,7 +74,7 @@ context, never asserted):
     RESULT fitted_heavy_s001=16
     RESULT within10_heavy_s001=16
     RESULT interval_refused_typical_s005=14
-    RESULT interval_refused_heavy_s005=4
+    RESULT interval_refused_heavy_s005=6
     RESULT shipped_presets_armed=3
     RESULT shipped_presets_gate_named=0
     RESULT unridged_fitted_typical_s001=0

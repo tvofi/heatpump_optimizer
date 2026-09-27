@@ -27,6 +27,7 @@ handled here rather than left to the caller.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Callable
@@ -1038,14 +1039,14 @@ def _slab_ua_told_halfwidth(
     in the same 95 % form.
     """
     up, down = np.exp(SLAB_PAIR_PRIOR_LOG_SD), np.exp(-SLAB_PAIR_PRIOR_LOG_SD)
-    shifts = []
+    shifts: list[float] = []
     for scales in (((up, 1.0), (down, 1.0)), ((1.0, up), (1.0, down))):
         moved = 0.0
         for m, t in scales:
             x, _cost = _lm_solve(_ridged(told_error(m, t), prior_g), np.asarray(x_hat, float))
             moved = max(moved, abs(float(x[0]) - float(x_hat[0])))
         shifts.append(moved)
-    return _Z_975 * float(np.hypot(*shifts))
+    return _Z_975 * math.hypot(*shifts)
 
 
 def slab_ua_adoption_halfwidth(
@@ -1453,9 +1454,9 @@ class SystemIdentification:
                 )
                 return False
             self._step_power = sized
-            why = self._unadoptable(sized * max(cop, 0.1), outdoor_temp)
-            if why:
-                self.abort(why)
+            unadoptable = self._unadoptable(sized * max(cop, 0.1), outdoor_temp)
+            if unadoptable:
+                self.abort(unadoptable)
                 return False
         else:
             self._step_power = max_power_kw * 0.3
