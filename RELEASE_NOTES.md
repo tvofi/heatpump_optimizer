@@ -1,5 +1,16 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.5
+
+hotfix: pressing Boost space heating now sets a Tuya pump to heat only where the pump offers that mode, with heat+dhw only as the fallback, so the optimizer keeps control of when hot-water and space-heating slots run. Also: round-9 wave 1 closes and wave 2 begins: input and system-identification fixes, store fixes, the solver's F2.2 fixes, a keyboard route for the card's pointer-only editing, and new guard test pins.
+
+- #1704 — fix: inputs and system identification (round-9 F4.1)
+- #1707 — fix: stores (round-9 F3.2)
+- #1709 — fix(card): keyboard route for pointer-only editing and card fixes (round-9 F6.2)
+- #1713 — fix: solver (round-9 F2.2)
+- #1714 — tests: round-9 F9.2 test pins (fixes #1678)
+- #1716 — fix: Boost space heating sets heat only where the pump offers it, heat+dhw as fallback (hotfix)
+
 ## v6.7.4
 
 hotfix: when the optimizer is switched off, it no longer writes anything to the heat pump.
