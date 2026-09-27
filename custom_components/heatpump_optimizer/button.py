@@ -102,7 +102,7 @@ class ForceOptimizationButton(_OptimizerButtonBase):
         (#1641).
         """
         _LOGGER.info("Optimization run requested from the dashboard")
-        reason = await self.coordinator.async_force_optimization()
+        reason = await self.coordinator.async_run_optimization()
         off_the_action(self, self.coordinator.async_request_refresh())
         if reason == "no_prices":
             # The action's own wording, on the action's own translation

@@ -866,7 +866,7 @@ def _r9f13_press(reason):
         requested.append(True)
         await _r9f13_aio.Event().wait()
 
-    coord.async_force_optimization = _solve
+    coord.async_run_optimization = _solve
     coord.async_request_refresh = _refresh
     ent = _r9f13_button.ForceOptimizationButton(coord, entry)
     ent.hass = _R9F13Hass()
@@ -39016,14 +39016,15 @@ _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
 _t4_count_solve_work(_t4_force_busy)
 _t4_force_busy._optimization_running = True
-_t4_drive(_t4_force_busy, "async_force_optimization")
+_t4_drive(_t4_force_busy, "async_run_optimization")
 _t4_force_idle = _t4_coord()
 _t4_count_refresh(_t4_force_idle)
 _t4_count_solve_work(_t4_force_idle)
 _t4_force_idle._optimization_running = False
-_t4_drive(_t4_force_idle, "async_force_optimization")
+_t4_drive(_t4_force_idle, "async_run_optimization")
 R.check(
-    "forcing an optimization while one runs is dropped, not queued",
+    "forcing an optimization while one runs is dropped, not queued "
+    "(the solve entry point the press and the service share, F1.3 #1644)",
     _t4_force_busy._t4_solve_work == 0
     and _t4_force_idle._t4_solve_work >= 1
     and _t4_force_busy._t4_escaped is None,

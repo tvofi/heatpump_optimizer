@@ -196,7 +196,6 @@
   "async_arm_system_identification": "core",
   "async_clear_manual_plan": "core",
   "async_diagnose_interval": "core",
-  "async_force_optimization": "core",
   "async_publish_current_action": "views",
   "async_publish_ecl110_command": "views",
   "async_reset_comfort_weight": "learning",
