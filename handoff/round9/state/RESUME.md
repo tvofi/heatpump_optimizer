@@ -493,3 +493,8 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
   - F11.6: -v4 @9445141b, 11:59Z.
   - The last three are idle on a verdict or an approval, which is expected.
   Reviewers and the Mac push no handoff branches, so they cannot be checked from the remote.
+- 2026-09-27T14:02Z F2.3: code head ef071c1a on handoff/r9-f2-solver-3 (6 survivors killed, 16 ledger rows pinned); resume on handoff/r9-f2-solver-3-resume. Next: prepr.sh, body transport commit, hand off.
+- 2026-09-27T14:15Z F2.3 HANDED OFF: code head ef071c1a, transport ef071c1a on handoff/r9-f2-solver-3 (body tools/audit/handoff/r9-f2-solver-3.md). Awaiting review.
+- 2026-09-27T14:15Z F2.3 HANDED OFF: code head ef071c1a, transport 81fbc185 on handoff/r9-f2-solver-3 (body tools/audit/handoff/r9-f2-solver-3.md). Awaiting review.
+- 2026-09-27T15:16Z F2.3 -v2 HANDED OFF: code head 00c41e21 (wood_coil claim restated DOWN per review), transport f6c6d81e on handoff/r9-f2-solver-3-v2.
+- 2026-09-27T15:25Z MERGED F1.1 #1722. Started F1.2 (opus, thread cmsg_01EL5jLi4rokGBbkaevYXSJVWU2kGt7SnkbkDj2E1w6CJb). F2.3 re-review verdict MERGE at 00c41e21 on handoff/r9-f2-solver-3-v2; hand-off to the Mac held until the device reconnects. F2.5 starts once #1717 and F2.3 merge.
