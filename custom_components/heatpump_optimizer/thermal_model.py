@@ -1149,7 +1149,7 @@ class ThermalState:
     wood_tank_temperature: float | None = None
 
 
-def _copy_state_with(state: "ThermalState", **changes) -> "ThermalState":
+def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
     """Shallow-copy ``state`` with ``changes`` applied, field-for-field the
     same result as ``dataclasses.replace(state, **changes)``.
 
