@@ -9,6 +9,7 @@
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { TOKEN_HIDDEN_SKIP_RE } from './counts.mjs'
 
 const SRC = process.argv[2]
 const WORK = process.argv[3]
@@ -100,8 +101,10 @@ else {
   basePins = pinsOf(r.out)
   add('pr / policy_lint rc=0 and every pin earned', r.rc === 0 && basePins !== null,
       `rc=${r.rc} pins=${basePins}`)
-  add('pr / nothing skipped in a full clone', !/^\s*skip\s/m.test(r.out),
-      (r.out.match(/^\s*skip.*$/m) || ['none'])[0].trim())
+  // Except the one skip a job token cannot avoid: GitHub hides the ruleset's
+  // bypass_actors from a non-admin token, and that line says so exactly.
+  const skips = r.out.split('\n').filter((l) => /^\s*skip\s/.test(l) && !TOKEN_HIDDEN_SKIP_RE.test(l))
+  add('pr / nothing skipped in a full clone', !skips.length, (skips[0] || 'none').trim())
   const m = sh('node', ['.claude/workflows/policy_lint_mutants.mjs'], { cwd: pr.dir })
   add('pr / every corpus and record-mode check measured and pinned',
       m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), `rc=${m.rc}`)
