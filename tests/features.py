@@ -48500,6 +48500,23 @@ R.check(
     f"warnings={_f33_pmw}/{_f33_pmrw}",
 )
 
+# The loader itself, not only behind the store's scrub: a non-finite bin in
+# any spelling restarts its profile flat (#922's zero-priced hour), and a day
+# count that is not a two-list is not iterated into one (F3.3 fix review).
+_f33_raw = _si_json.loads(_si_json.dumps(_f33_good))
+_f33_raw["shapes"][0][3] = "nan"
+_f33_raw["days"] = "12"
+_f33_raw["quarter_days"] = {"a": 1, "b": 2}
+_f33_direct = PriceShapeModel.from_dict(_f33_raw)
+R.check(
+    "the price loader called directly restarts shapes holding a 'nan' bin "
+    "flat and keeps day counts that are not a two-list at zero (D1-s5-02)",
+    _f33_direct.shapes == [[1.0] * 24, [1.0] * 24]
+    and _f33_direct.days == [0, 0] and _f33_direct.quarter_days == [0, 0],
+    f"shape0[3]={_f33_direct.shapes[0][3]} days={_f33_direct.days} "
+    f"quarter_days={_f33_direct.quarter_days}",
+)
+
 # D1-s5-02, peaks: a negative stored peak is dropped like a non-finite one,
 # and an open window the tracker could not have written restarts empty, so
 # no threshold or billed peak goes negative. A real tracker round-trips.
