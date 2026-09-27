@@ -532,10 +532,10 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 **The return slot is the pump loop's return, not necessarily the floor's.**
 If the pump feeds your floor loops directly, with no buffer tank and no mixing
 valve in between, the two are the same water and the same sensor may go in both
-this field and *Floor return temperature* on the sensors page. Behind a buffer
+this field and *Floor heating return temperature sensor* on the sensors page. Behind a buffer
 tank or a mixing valve they are **different water**: the pump's return comes
 back from the tank, the floor's from the slab, and they can differ by ten
-degrees or more. *Floor return temperature* is what the optimizer estimates
+degrees or more. *Floor heating return temperature sensor* is what the optimizer estimates
 your slab temperature from, so filling it with the pump's return on such a
 system tells it the slab is far hotter or colder than it is, and it will
 under- or over-heat the lower floor accordingly.
@@ -551,7 +551,7 @@ writes, at every 15-minute plan step:
 |---|---|---|---|
 | Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the space gate (below) |
 | Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the heating value |
-| Both | *Heating + DHW* | the same | the heating value |
+| Both | split: *DHW (Hot Water)* for the step's hot-water share of its 15 minutes, then *Heating* (see below) | as in those two rows | as in those two rows |
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
@@ -591,6 +591,13 @@ writes, at every 15-minute plan step:
   minimum (never below 25 °C) on hot-water-only steps, and the DHW set-point
   (*HP DHW normal setpoint*, register 404) to its minimum (never below 30 °C)
   on space-only steps.
+- **A step the plan gives both duties is split**, so the optimizer rather
+  than the pump's two thermostats decides which runs: hot water first, for
+  the step's hot-water power over its total power, times 15 minutes, then
+  heating for the rest. A share under 5 minutes goes to the other duty for
+  the whole step. On a pump with no single-duty mode, each part is *Heating
+  + DHW* with the other duty's set-point lowered to its gate. A boost or a
+  disinfection cycle keeps *Heating + DHW* for the whole step.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
@@ -727,8 +734,8 @@ warning; every other field keeps its normal limits.
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
 | Upper / lower floor thermal mass | 3.0 / 8.0 kWh/°C | 0.25–60 | Heat stored in each zone. |
 | Upper / lower floor heat loss | 0.08 / 0.07 kW/°C | 0.001–1.0 | Each zone's own loss coefficient. |
-| Inter-zone transfer | see setup | kW/°C | How fast heat moves between the two floors. |
-| Radiator power fraction | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
+| Inter-zone heat transfer (kW/°C) | see setup | kW/°C | How fast heat moves between the two floors. |
+| Share of heat going to radiators | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
 | Upper floor area ratio | see setup | 0.1–0.9 | Used to split solar gain. |
 | Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. |
 

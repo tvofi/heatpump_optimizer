@@ -105,11 +105,14 @@ that:
 Without the premium, hot water displaced 2.6–4.7 kWh of space heating into
 more expensive hours in the validation scenarios.
 
-**Two starting points, not one.** The space solve runs from two candidate
-initial guesses and keeps the better result: that removed most of the
-local-optimum gap in the two-zone model (2.2% cheaper in the validation
-scenarios), while a third start bought a further 0.2% for another full solve —
-not worth doubling the runtime again on the hardware Home Assistant runs on.
+**Several starting points, not one.** A single gradient run can stop at a
+locally optimal schedule that a different starting guess beats — that is what
+the two-zone model showed. So each space solve scores four candidate profiles
+cheaply (a warm start or the naive guess, two price-ranked profiles at
+different total energy, and a flat half-headroom guess), refines every one of
+them with L-BFGS-B, and keeps whichever refinement scores best. That is what
+removed most of the local-optimum gap in the two-zone model; a fifth candidate
+was not worth the extra full solve on the hardware Home Assistant runs on.
 
 ---
 
@@ -670,7 +673,7 @@ to zero for many installs. There are three sources, tried in this order:
 
 1. **A local irradiance sensor**, if configured. A real measurement at the
    actual site beats a model, so this wins outright.
-2. **Open-Meteo**, if *Solar forecast source* is set to it. Pick the location on
+2. **Open-Meteo**, if *Solar irradiance source* is set to it. Pick the location on
    the map in the configurator; no API key or account is needed.
 3. **The weather entity's forecast**, the previous behaviour and still the
    default.

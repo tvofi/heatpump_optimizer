@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.4
+# claims-for: 6.7.6
 #
-# v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
+# v6.7.6: boost follow-up: split heating and hot-water duty within a step; F11.3, F8.2. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -646,6 +646,4 @@
 # the title/tick collision this was meant to fix does not reproduce at this
 # merge base, and the tried fix instead clipped the title off the top of the
 # svg on 388 of the grid's cells. Not fixed in this PR; see the PR body.
-layout_editing_dragged  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
-layout_editing_tidy  # D4-s1-04 keyboard route: tabindex/role/aria-label on setup-box/setup-pipe while editing
 
