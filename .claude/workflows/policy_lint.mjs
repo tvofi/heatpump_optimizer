@@ -4620,6 +4620,28 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE OVER-FIRES: a RULESET_VOLATILE field GitHub rewrites produced ${volatile.found.length} finding(s)`)
     return 1
   }
+  // A leaf only the LIVE object carries (a bypass actor or rule added since the
+  // record) fires by name: the comparison walks both sides' keys, not the
+  // record's alone. A nested field sharing a volatile key's name still counts,
+  // and a reordered array does not.
+  pins += 3
+  const added = driveRC(withObj({ ...RS, bypass_actors: [{ actor_type: 'OrganizationAdmin', bypass_mode: 'always' }] }), rsFixture, [])
+  if (!added.found.length || !added.found.every((f) => f.message.includes('bypass_actors') && f.message.includes('(absent) recorded'))) {
+    console.log(`\nFIXTURE VACUOUS: a bypass actor present live and absent from the record produced ${added.found.length} finding(s) naming it; a widened bypass would read as unchanged`)
+    return 1
+  }
+  const RS2 = { ...RS, rules: [...RS.rules, { type: 'deletion', name: 'a' }] }
+  const rs2Fixture = JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RS2 } })
+  const nested = driveRC(withObj({ ...RS2, rules: [RS2.rules[0], { type: 'deletion', name: 'b' }] }), rs2Fixture, [])
+  if (nested.found.length !== 1 || !nested.found[0].message.includes(".name`")) {
+    console.log(`\nFIXTURE VACUOUS: a nested \`name\` field that moved produced ${nested.found.length} finding(s), 1 required; RULESET_VOLATILE applies at the top level only`)
+    return 1
+  }
+  const reordered = driveRC(withObj({ ...RS2, rules: [...RS2.rules].reverse() }), rs2Fixture, [])
+  if (reordered.found.length) {
+    console.log(`\nFIXTURE OVER-FIRES: a ruleset whose rules only changed order produced ${reordered.found.length} finding(s)`)
+    return 1
+  }
   const noObjects = driveRC(withObj(RS), rcFixture(RC_THREE.contexts), [])
   if (noObjects.found.length !== 1 || !noObjects.found[0].message.includes('ruleset_objects')) {
     console.log('\nFIXTURE VACUOUS: ruleset objects fetched against a fixture recording none did not fire; deleting the record would blind every field again')
