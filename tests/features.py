@@ -47069,20 +47069,72 @@ R.check(
 _pa_sysid = _PaCoord(_PA_TUYA)
 _pa_sysid._current_action = {"mode": "system_identification"}
 _pa_run(_pa_sysid, 1)
-_pa_boosted = _PaCoord(_PA_TUYA)
-boost_mod.held_for(_pa_boosted).until["dhw"] = _PA_T0 + timedelta(hours=2)
-_pa_run(_pa_boosted, 1)
 _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment, a boost and a missing plan each get the baseline, not hot water only",
+    "an experiment and a missing plan each get the baseline, not hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
-        for c in (_pa_sysid, _pa_boosted, _pa_noplan)
+        for c in (_pa_sysid, _pa_noplan)
     ),
-    f"{_pa_sysid.writes()} / {_pa_boosted.writes()} / {_pa_noplan.writes()}",
+    f"{_pa_sysid.writes()} / {_pa_noplan.writes()}",
+)
+# A boost adds its duty to the plan step's, not the baseline (tvofi,
+# 2026-09-27): Heating + DHW would hand the other duty to the pump's own
+# thermostat for two hours, and when that runs is the plan's. Heating + DHW
+# is the fallback on a pump that offers no single-duty mode, and the duty on
+# a step the plan (or the other boost) gives the other duty as well.
+_pa_sb = {}
+for _pa_sb_name, _pa_sb_opts, _pa_sb_duties, _pa_sb_on in (
+    ("tuya", _PA_TUYA, "--", ("space",)), ("modbus", _PA_MODBUS, "--", ("space",)),
+    ("dhwstep", _PA_TUYA, "dd", ("space",)), ("dhwboost", _PA_TUYA, "--", ("space", "dhw")),
+    ("dhwonly", _PA_TUYA, "--", ("dhw",)), ("dhwonspace", _PA_TUYA, "ss", ("dhw",)),
+):
+    _pa_sb[_pa_sb_name] = _PaCoord(_pa_sb_opts, duties=_pa_sb_duties)
+    for _pa_sb_ch in _pa_sb_on:
+        boost_mod.held_for(_pa_sb[_pa_sb_name]).set(_pa_sb_ch, True, _PA_T0)
+    _pa_run(_pa_sb[_pa_sb_name], 1)
+_pa_sb_off = _PaCoord(_PA_TUYA, duties="--")
+_pa_sb_off._mode = _PA_OFF
+boost_mod.held_for(_pa_sb_off).set("space", True, _PA_T0)
+_pa_run(_pa_sb_off, 1)
+_pa_sb_stale = _PaCoord(_PA_TUYA, duties="dd")
+_pa_sb_stale.stale = True
+boost_mod.held_for(_pa_sb_stale).set("space", True, _PA_T0)
+_pa_run(_pa_sb_stale, 1)
+_pa_sb_old = _PaCoord(_PA_TUYA, duties="--")
+boost_mod.held_for(_pa_sb_old).until["space"] = _PA_T0
+_pa_run(_pa_sb_old, 1)
+_pa_gb = {}
+for _pa_gb_mode in ("boost", "comfort"):
+    _pa_gb[_pa_gb_mode] = _PaCoord(_PA_TUYA, duties="--")
+    _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
+    _pa_run(_pa_gb[_pa_gb_mode], 1)
+R.check(
+    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
+    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
+    f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
+)
+R.check(
+    "a boost writes its own single duty where the pump offers it, Heating + DHW "
+    "where it does not or the other duty is due too, and nothing while off",
+    ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
+    and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwboost"].writes()
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_sb["dhwonly"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwonspace"].writes()
+    and ("select", "select_option", "Heating") in _pa_sb_stale.writes()
+    and ("select", "select_option", "Heating") not in _pa_sb_old.writes()
+    and _pa_sb_off.writes() == [],
+    f"{ {k: c.writes() for k, c in _pa_sb.items()} } / {_pa_sb_stale.writes()} "
+    f"/ {_pa_sb_old.writes()} / {_pa_sb_off.writes()}",
 )
 _pa_small = _PaCoord(_PA_TUYA, duties="xx")
 _pa_run(_pa_small, 1)
@@ -47493,7 +47545,7 @@ R.check(
 )
 
 # A step observed while the coordinator is not driving a plan (manual mode,
-# a stale plan, system ID, an active boost) has no planned duty at all --
+# a stale plan, system ID) has no planned duty at all --
 # distinct from "unknown", which is an observed step the plan DID cover.
 _pa_baseline = _PaCoord(_PA_TUYA, duties="s", duty="observe")
 _pa_baseline._current_state.dhw_temperature = 45.0
