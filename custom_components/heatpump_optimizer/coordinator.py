@@ -2042,6 +2042,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
         ctx = getattr(self, "_ctx", self)
+        def planned() -> dict[str, Any]:  # the plan's action, one read for both observers
+            return self._current_action or {}
         # DHW state
         self._dhw_temperature: float | None = None
         # W5-G9: the usage profile, day-type profiles, draw statistics and
@@ -2053,9 +2055,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             entry.entry_id,
             ctx._thermal_params,
             frozen=self._learning_frozen,
-            heating_active=lambda: bool(
-                self._current_action.get("dhw_heating_active", False)
-            ),
+            heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
             external_heat_active=lambda: bool(
                 getattr(
                     getattr(self, "_ctx", self)._current_state,
@@ -2073,7 +2073,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             entry.entry_id,
             ctx._thermal_params,
             ctx._config,
-            action=lambda: self._current_action or {},
+            action=lambda: {} if self._mode == MODE_OFF else planned(),  # off writes nothing
             disinfect=_disinfection_switch(hass, ctx._config),
             dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
