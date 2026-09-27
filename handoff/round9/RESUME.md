@@ -443,3 +443,16 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27T10:41Z F4.2: tvofi chose 'Carry to F1' on the free-heat card. Handed-off head 6e31dfc2 already builds on it (Part of #1655, carry-1655.json to F1); no change.
 2026-09-27T10:05Z F8.2 review-fix round 2 (cloud fixer): Mac's diagnosis of #1703's continuing red confirmed exactly: tests/md_tables.mjs had a closure recorded in tests/closures.json (v2 round) but was never wired into a tests/run.sh lane or into tests/derive_closures.sh's rec list, so it never ran -- the UNWIRED TEST / TEST NEVER RAN self-checks explain the fast/closures/closures-autofix reds. Fixed both files (run.sh's lane_units, derive_closures.sh's rec list); re-derived via ./tests/derive_closures.sh --single tests/md_tables.mjs, byte-identical to the already-committed closure. Verified end-to-end with a full (unscoped) ./tests/run.sh run: md_tables.mjs actually executes now (0s, clean), neither self-check fires for it. That full run also flagged tests/golden.py (32/56 "changed" in default strict mode) and tests/optimality.py (1/84, -0.00% vs 0.1% margin) -- both confirmed pre-existing/environmental, unrelated to this PR (zero production code touched): golden.py is clean under GOLDEN_MODE=drift (what CI runs) with NO UNCLAIMED DRIFT; optimality.py's one failure reproduces byte-identically on unmodified origin/main in a separate worktree, and persists under OPENBLAS_CORETYPE=Haswell too, confirming it's a pre-existing razor-margin case. New code head 33877937 on branch handoff/r9-f8-docs-2-v3 (supersedes -v2/9eeaae8d and the original -2/91a8fc33; never force-pushed either). This revision touches code-owned tests/run.sh and tests/derive_closures.sh, so tvofi's own review is owed, not ordinary hpo-approver review. prepr.sh clean (000000000000000) at tip e3297671. Body handoff/round9/fix/pr-body/F8.2.md.
 - 2026-09-27T10:52Z STAMPED v6.7.5 at c700b71c. MERGED F11.3 #1715 at 87d780c7 (closes #1648). Started F11.6 (opus, thread cmsg_01EL5jLi4rokGBbkaevYXSJVLjq6csc54WHfYqVPZ5SchX). Duty split #1719 in review. Awaiting verdicts: #1717 F3.3, #1718 F4.2, #1703 F8.2 v3 (code 33877937).
+- 2026-09-27T11:10Z LIVE BRANCH HEADS (checked with ls-remote):
+  - F1.1: handoff/r9-f1-1-jbqcyd @63a75419, resume @42376ca7. UNCHANGED since 07:16Z; nudged.
+  - F2.3: handoff/r9-f2-solver-3 @157e6a23.
+  - F3.3 #1717: handoff/r9-f3-stores-3 @e6f82fb6 (code 585db36e).
+  - F4.2 #1718: handoff/r9-f4-inputs-sysid-2 @0956f7ec.
+  - F8.2 #1703: handoff/r9-f8-docs-2-v3 @e3297671 (code 33877937; PR head 784d2263).
+  - F11.3 (merged #1715): handoff/r9-f11-governance-3-v2 @8df28f7c.
+  - F11.6: NO BRANCH YET (started 10:51Z); nudged.
+  - Duty split #1719: handoff/duty-split-in-step-exh4bc @33509e19.
+  - Boost hotfix (merged #1716): handoff/hotfix-boost-heat-only-exh4bc @96881534.
+  - Flow hotfix (merged #1705): handoff/flow-setpoint-hotfix-07sk6l @4adb3630.
+  - Roster: handoff/audit-r9-fixplan @b4596a38.
+  - Release: v6.7.5 @c700b71c.
