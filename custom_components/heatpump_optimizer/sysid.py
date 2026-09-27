@@ -27,6 +27,7 @@ handled here rather than left to the caller.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Callable
@@ -413,6 +414,10 @@ class SysIdResult:
     #: one-state result, whose ridge is data-scaled. Not serialized, like
     #: ``ua_profile_halfwidth``.
     ua_prior_halfwidth: float | None = None
+    #: 95 % half-width of log UA contributed by the slab pair the fit is
+    #: told (R9-P5): how far one ``SLAB_PAIR_PRIOR_LOG_SD`` of either member
+    #: moves the answer. ``None`` on every one-state result. Not serialized.
+    ua_told_halfwidth: float | None = None
     reason: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -479,6 +484,20 @@ SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
 #: a proxy this bar replaces. A DESIGN constant: it prices the bar, not a
 #: tuning knob.
 UA_ADOPTION_HALFWIDTH_BAR = float(np.log(1.10))
+
+#: One-sigma width, in log units, of the slab pair (C_s, k_s) the declared
+#: plant hands the fit (R9-P5, #1655). The two-state fit TRUSTS the pair,
+#: so a slab that differs from the declaration biases UA the way unmodelled
+#: free heat does -- heavy_old at half its declared slab mass was admitted
+#: 10-12 % low (P5-rca1) -- and no precision term can see it. The gate
+#: therefore widens by how far one width of each told quantity moves log
+#: UA, as it already does for the intercept prior. A DESIGN constant like
+#: SLAB_INTERCEPT_PRIOR_SD_KW, and a trade: one night cannot tell a wrong
+#: slab from a wrong UA, so the width prices how much of the declaration is
+#: trusted. Measured on the 80 derived single-zone presets (continuous
+#: house, noise-free, plant == declaration): 0.10 keeps 28 of the 32 nights
+#: that adopt without the term; 0.15 keeps 10 and 0.25 keeps 3.
+SLAB_PAIR_PRIOR_LOG_SD = 0.1
 
 #: The 95 % critical value for a one-degree-of-freedom profile-likelihood
 #: interval (chi-square), the threshold the interval's cost must stay under.
@@ -582,6 +601,49 @@ def slab_mode_one_state_identifiability(
     )
 
 
+#: The candidate rollout's own integration step, hours, independent of the
+#: sample cadence (R9 D7-s2-01, #1672). One explicit-Euler step per 30-min
+#: sample is a different plant from the continuous house the room sensor
+#: reads: on a noise-free, parameter-exact continuous house it fitted UA
+#: 12-25 % low and adopted on 0 of 3 presets. Measured with the D7-s2-01
+#: harness at 30 / 15 / 5 / 2 / 1 min: the 5-min step leaves the fitted
+#: UA within 1.2 % of a continuous house's, at twice the 30-min cost. A
+#: DESIGN constant: it prices the model class, not a tuning knob.
+SYSID_ROLLOUT_STEP_HOURS = 1.0 / 12.0
+
+
+def _candidate_model(
+    ua: float,
+    room_cap: float,
+    gains: float,
+    slab_mass: float,
+    slab_transfer: float,
+    two_zone: ThermalParameters | None,
+) -> ThermalModel:
+    """The candidate plant :func:`_simulate_slab_path` rolls (see there)."""
+    if two_zone is None:
+        params = ThermalParameters(
+            heat_loss_coefficient=ua,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=room_cap,
+            internal_gains=gains,
+            slab_thermal_mass=slab_mass,
+            slab_heat_transfer=slab_transfer,
+            two_zone_enabled=False,
+            wind_sensitivity=0.0,
+        )
+    else:
+        zones = two_zone.upper_floor_thermal_mass + two_zone.lower_floor_thermal_mass
+        params = replace(
+            two_zone,
+            house_heat_loss_scale=ua / _zone_heat_loss(two_zone),
+            upper_floor_thermal_mass=two_zone.upper_floor_thermal_mass * room_cap / zones,
+            lower_floor_thermal_mass=two_zone.lower_floor_thermal_mass * room_cap / zones,
+            internal_gains=gains,
+        )
+    return ThermalModel(params)
+
+
 def _simulate_slab_path(
     ua: float,
     room_cap: float,
@@ -609,31 +671,13 @@ def _simulate_slab_path(
     their masses to total ``room_cap``, observed through the upper zone the
     coordinator's indoor reading is, with the lower zone hidden.
     """
-    if two_zone is None:
-        params = ThermalParameters(
-            heat_loss_coefficient=ua,
-            house_heat_loss_scale=1.0,
-            room_thermal_mass=room_cap,
-            internal_gains=gains,
-            slab_thermal_mass=slab_mass,
-            slab_heat_transfer=slab_transfer,
-            two_zone_enabled=False,
-            wind_sensitivity=0.0,
-        )
-    else:
-        zones = two_zone.upper_floor_thermal_mass + two_zone.lower_floor_thermal_mass
-        params = replace(
-            two_zone,
-            house_heat_loss_scale=ua / _zone_heat_loss(two_zone),
-            upper_floor_thermal_mass=two_zone.upper_floor_thermal_mass * room_cap / zones,
-            lower_floor_thermal_mass=two_zone.lower_floor_thermal_mass * room_cap / zones,
-            internal_gains=gains,
-        )
-    model = ThermalModel(params)
+    model = _candidate_model(ua, room_cap, gains, slab_mass, slab_transfer, two_zone)
     state = _held_state(model, first_room_c, float(outdoor_c[0]))
     rooms = [state.upper_floor_temperature]
     for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
-        state = _valve_drive(model, state, float(q), float(out), float(dt))
+        n_sub = max(1, int(np.ceil(float(dt) / SYSID_ROLLOUT_STEP_HOURS - 1e-9)))
+        for _ in range(n_sub):
+            state = _valve_drive(model, state, float(q), float(out), float(dt) / n_sub)
         rooms.append(state.upper_floor_temperature)
     return np.asarray(rooms)
 
@@ -816,6 +860,25 @@ def _path_error(
     return error
 
 
+def _told_path_error(
+    series: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    slab_pair: tuple[float, float],
+    two_zone: ThermalParameters | None,
+) -> Callable[[float, float], _PathError]:
+    """:func:`_path_error` with the told slab pair scaled by ``(m, t)`` (R9-P5)."""
+
+    def told(m: float, t: float) -> _PathError:
+        return _path_error(
+            *series, (slab_pair[0] * m, slab_pair[1] * t),
+            None if two_zone is None else replace(
+                two_zone, slab_thermal_mass=two_zone.slab_thermal_mass * m,
+                slab_heat_transfer=two_zone.slab_heat_transfer * t,
+            ),
+        )
+
+    return told
+
+
 def _ridged(error: _PathError, prior_g: float) -> _PathError:
     """The fit's residual: the rollout error plus the D2-01 intercept ridge.
 
@@ -963,8 +1026,33 @@ def _slab_ua_prior_halfwidth(
     )
 
 
+def _slab_ua_told_halfwidth(
+    x_hat: np.ndarray, told_error: Callable[[float, float], _PathError], prior_g: float
+) -> float:
+    """The UA interval the told slab pair contributes (R9-P5, #1655).
+
+    ``told_error(m, t)`` is the rollout error with the declared slab mass
+    scaled by ``m`` and its transfer by ``t``. Each member is moved one
+    ``SLAB_PAIR_PRIOR_LOG_SD`` either way and the fit re-solved from the
+    converged point, exactly as :func:`_slab_ua_prior_halfwidth` moves the
+    intercept prior; the two members' largest shifts combine in quadrature,
+    in the same 95 % form.
+    """
+    up, down = np.exp(SLAB_PAIR_PRIOR_LOG_SD), np.exp(-SLAB_PAIR_PRIOR_LOG_SD)
+    shifts: list[float] = []
+    for scales in (((up, 1.0), (down, 1.0)), ((1.0, up), (1.0, down))):
+        moved = 0.0
+        for m, t in scales:
+            x, _cost = _lm_solve(_ridged(told_error(m, t), prior_g), np.asarray(x_hat, float))
+            moved = max(moved, abs(float(x[0]) - float(x_hat[0])))
+        shifts.append(moved)
+    return _Z_975 * math.hypot(*shifts)
+
+
 def slab_ua_adoption_halfwidth(
-    profile_halfwidth: float | None, prior_halfwidth: float | None
+    profile_halfwidth: float | None,
+    prior_halfwidth: float | None,
+    told_halfwidth: float | None = None,
 ) -> float | None:
     """The single interval the #1410 adoption gate bounds (D7-01).
 
@@ -987,7 +1075,48 @@ def slab_ua_adoption_halfwidth(
         return None
     if prior_halfwidth is None:
         return profile_halfwidth
-    return float(np.hypot(profile_halfwidth, prior_halfwidth))
+    # R9-P5: and the told slab pair's term, in the same quadrature.
+    return float(np.hypot(np.hypot(profile_halfwidth, prior_halfwidth), told_halfwidth or 0.0))
+
+
+def _declared_night_halfwidth(
+    cfg: SysIdConfig,
+    slab_prior: tuple[float, float],
+    slab_pair: tuple[float, float],
+    two_zone: ThermalParameters | None,
+    night: tuple[float, float, float],
+    settle_rows: int,
+    step_kw: float,
+) -> float:
+    """The gate's interval on the declared plant's own noise-free night.
+
+    ``night`` is ``(baseline, outdoor, dt)``. The declared plant is held at
+    its own hold power for the settle rows already recorded, then takes the
+    sized step and relaxes, read at the recorded cadence; the fit's exact
+    point is where the gate's told-quantity terms are read (see
+    :meth:`SystemIdentification._unadoptable`).
+    """
+    baseline, outdoor, dt = night
+    n_step, n_relax = (int(np.ceil(h / dt - 1e-9)) for h in (cfg.step_hours, cfg.relax_hours))
+    (ua0, cr0), g = slab_prior, cfg.gains_prior_kw
+    # The hold is linear in the heat: one rollout step at 0 and at 1 kW.
+    model = _candidate_model(ua0, cr0, g, *slab_pair, two_zone)
+    held = _held_state(model, baseline, outdoor)
+    r0, r1 = (
+        _valve_drive(model, held, q, outdoor, SYSID_ROLLOUT_STEP_HOURS).upper_floor_temperature
+        for q in (0.0, 1.0)
+    )
+    hold = (baseline - r0) / (r1 - r0) if abs(r1 - r0) > 1e-12 else 0.0
+    powers = np.array([hold] * settle_rows + [step_kw] * n_step + [0.0] * n_relax)
+    outdoors, dts = np.full(powers.size + 1, outdoor), np.full(powers.size, dt)
+    rooms = _simulate_slab_path(
+        ua0, cr0, g, *slab_pair, baseline, outdoors[:-1], powers, dts, two_zone
+    )
+    told = _told_path_error((rooms, outdoors, np.append(powers, 0.0), dts), slab_pair, two_zone)
+    x0 = np.array([np.log(max(ua0, 1e-3)), np.log(max(cr0, 1e-2)), g])
+    return float(np.hypot(
+        _slab_ua_prior_halfwidth(x0, told(1.0, 1.0), g), _slab_ua_told_halfwidth(x0, told, g)
+    ))
 
 
 @dataclass(frozen=True)
@@ -1023,7 +1152,8 @@ def adoption_decision(
     if not result.completed:
         return refuse(result.reason)
     hw = slab_ua_adoption_halfwidth(
-        result.ua_profile_halfwidth, result.ua_prior_halfwidth
+        result.ua_profile_halfwidth, result.ua_prior_halfwidth,
+        result.ua_told_halfwidth,
     )
     if hw is None:
         return refuse("the fit placed no interval on the heat-loss coefficient")
@@ -1324,6 +1454,10 @@ class SystemIdentification:
                 )
                 return False
             self._step_power = sized
+            unadoptable = self._unadoptable(sized * max(cop, 0.1), outdoor_temp)
+            if unadoptable:
+                self.abort(unadoptable)
+                return False
         else:
             self._step_power = max_power_kw * 0.3
         _LOGGER.debug(
@@ -1331,6 +1465,38 @@ class SystemIdentification:
             self._step_power,
         )
         return True
+
+    def _unadoptable(self, step_kw: float, outdoor: float) -> str | None:
+        """Why tonight's own noise-free fit could not be adopted, or ``None``.
+
+        R9 D2-s4-81: on a plant exactly equal to the declaration the fit is
+        exact and its profile term vanishes, but the told quantities' terms
+        (the intercept prior, the slab pair) do not, and on many derived
+        presets they alone put the interval past the bar -- nights the gate
+        was always going to refuse, armed and stepped anyway. So before the
+        step is injected, :func:`_declared_night_halfwidth` reads the gate's
+        interval on the declared plant's own noise-free night. ``None`` where
+        no declared plant seeds the fit (the harness-only one-state path).
+        """
+        rows = [s for s in self.samples if s.phase == PHASE_SETTLING]
+        dt = (rows[-1].when - rows[-2].when).total_seconds() / 3600.0 if len(rows) > 1 else 0.25
+        if (
+            self._slab_pair is None or self._slab_prior is None
+            or self._baseline_temp is None or not 1e-3 < dt <= 2.0
+        ):
+            return None
+        hw = _declared_night_halfwidth(
+            self.config, self._slab_prior, self._slab_pair, self._two_zone_plant,
+            (self._baseline_temp, outdoor, dt), len(rows), step_kw,
+        )
+        if hw <= UA_ADOPTION_HALFWIDTH_BAR:
+            return None
+        width = f"+-{np.expm1(hw) * 100:.0f} %" if np.isfinite(hw) else "unbounded"
+        return (
+            f"even a noise-free night on the declared plant places the heat-loss "
+            f"interval at {width}, wider than the +-"
+            f"{np.expm1(UA_ADOPTION_HALFWIDTH_BAR) * 100:.0f} % adoption bar"
+        )
 
     def step(
         self,
@@ -1975,10 +2141,10 @@ class SystemIdentification:
                     "was armed for"
                 ),
             )
-        error = _path_error(
-            rooms, outdoors, powers, dts, (slab_mass, slab_transfer),
-            self._two_zone_plant,
+        told_error = _told_path_error(
+            series, (slab_mass, slab_transfer), self._two_zone_plant
         )
+        error = told_error(1.0, 1.0)
         residual = _ridged(error, self.config.gains_prior_kw)
         prior_g = self.config.gains_prior_kw
 
@@ -2001,7 +2167,9 @@ class SystemIdentification:
                 best_x, best_cost = x, cost
         if best_x is None or not bool(np.all(np.isfinite(best_x))):
             return SysIdResult(completed=False, reason="fit failed")
-        return self._slab_outcome(best_x, rooms, error, slab_mass, slab_transfer)
+        return self._slab_outcome(
+            best_x, rooms, error, slab_mass, slab_transfer, told_error
+        )
 
     def _slab_outcome(
         self,
@@ -2010,6 +2178,7 @@ class SystemIdentification:
         path_error: _PathError,
         slab_mass: float,
         slab_transfer: float,
+        told_error: Callable[[float, float], _PathError],
     ) -> SysIdResult:
         """Guard and package the converged two-state fit (the wave's act 2).
 
@@ -2059,6 +2228,9 @@ class SystemIdentification:
             ),
             ua_profile_halfwidth=profile_halfwidth,
             ua_prior_halfwidth=prior_halfwidth,
+            ua_told_halfwidth=_slab_ua_told_halfwidth(
+                best_x, told_error, self.config.gains_prior_kw
+            ),
             confidence=_slab_confidence(rooms, error),
             reason="ok",
         )

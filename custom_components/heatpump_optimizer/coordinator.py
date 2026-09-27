@@ -341,6 +341,7 @@ from .accuracy import (
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
+    utc_shift,
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
@@ -2492,8 +2493,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     @property
     def target_temperature(self) -> float:
-        """The comfort target the user configured."""
-        return float(getattr(self, "_ctx", self)._opt_config.target_temp)
+        """The user's configured target: never a solve's away setback (D1-s3-04)."""
+        return float({**self.entry.data, **self.entry.options}.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP))
 
     async def async_set_target_temperature(self, temperature: float) -> None:
         """Change the comfort target and persist it across restarts.
@@ -4679,11 +4680,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Snapshot heartbeat skipped: %s", err)
 
-            self._next_optimization = dt_util.now() + timedelta(
+            self._next_optimization = utc_shift(dt_util.now(), timedelta(
                 minutes=ctx._config.get(
                     CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
                 )
-            )
+            ))
 
             return self._build_data_dict()
         except UpdateFailed:
@@ -6202,7 +6203,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             now = dt_util.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         step_offset = int(
-            (now - midnight).total_seconds() / 60 / FORECAST_STEP_MINUTES
+            _utc_age_seconds(now, midnight) / 60 / FORECAST_STEP_MINUTES
         )
 
         priced = self._price_series(n_steps, midnight, step_offset)
@@ -8109,15 +8110,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         if last.tzinfo is None and now.tzinfo is not None:
             last = last.replace(tzinfo=now.tzinfo)
-        gap_minutes = (now - last).total_seconds() / 60.0
+        gap_minutes = _utc_age_seconds(now, last) / 60.0
         if gap_minutes <= OUTAGE_GAP_MINUTES:
             return
-        self._outage_recovery_until = now + timedelta(
+        self._outage_recovery_until = utc_shift(now, timedelta(
             hours=OUTAGE_RECOVERY_HOURS
-        )
-        self._outage_dhw_until = now + timedelta(
+        ))
+        self._outage_dhw_until = utc_shift(now, timedelta(
             minutes=OUTAGE_DHW_DELAY_MINUTES
-        )
+        ))
         _LOGGER.warning(
             "Update gap of %.0f minutes reads as an outage; staggered "
             "recovery active for %.1f h (hot water queued %.0f min behind "
@@ -9200,7 +9201,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
 
         if pending is not None:
-            elapsed = (now - pending["when"]).total_seconds() / 3600.0
+            elapsed = _utc_age_seconds(now, pending["when"]) / 3600.0
             # Only pair up predictions with the interval they were actually
             # about; a restart or a long gap makes the pairing meaningless.
             if 0.05 <= elapsed <= 2.0:
@@ -9400,7 +9401,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             idx = int(round(lead / dt_h))
             if 0 < idx < len(trajectory):
                 self._dhw_accuracy.note_lead_prediction(
-                    solve_time + timedelta(hours=lead),
+                    utc_shift(solve_time, timedelta(hours=lead)),
                     lead,
                     float(trajectory[idx]),
                 )
@@ -9440,7 +9441,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             idx = int(round(lead / dt_h))
             if 0 < idx < len(trajectory):
                 self._accuracy.note_lead_prediction(
-                    solve_time + timedelta(hours=lead),
+                    utc_shift(solve_time, timedelta(hours=lead)),
                     lead,
                     float(trajectory[idx]),
                 )

@@ -63,6 +63,7 @@ estimator's samples are never silently mixed in with the measured ones.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from collections.abc import Callable
 from typing import Any, TypeVar
@@ -462,30 +463,60 @@ class DefrostDerate:
         n_t = len(TEMP_EDGES) - 1
         n_h = len(HUMIDITY_EDGES) - 1
 
-        def _grid_of(key: str, cast: Callable[[Any], _T]) -> list[list[_T]] | None:
+        def _grid_of(
+            key: str, cast: Callable[[Any], _T], ok: Callable[[_T], bool]
+        ) -> list[list[_T | None]] | None:
+            """The grid under ``key`` cell by cell, ``None`` where a cell is
+            not a value its own update path could have written (D1-s4-01,
+            D1-s4-03): one bad cell costs its bucket, never the grid."""
             raw = data.get(key)
-            if (
+            if not (
                 isinstance(raw, list)
                 and len(raw) == n_t
                 and all(isinstance(row, list) and len(row) == n_h for row in raw)
             ):
-                try:
-                    return [[cast(v) for v in row] for row in raw]
-                except (TypeError, ValueError, OverflowError):
-                    return None
-            return None
+                return None
+            grid: list[list[_T | None]] = []
+            for row in raw:
+                cells: list[_T | None] = []
+                for v in row:
+                    try:
+                        value = None if isinstance(v, bool) else cast(v)
+                    except (TypeError, ValueError, OverflowError):
+                        value = None
+                    cells.append(value if value is not None and ok(value) else None)
+                grid.append(cells)
+            return grid
 
-        duty = _grid_of("duty", float)
-        duty_counts = _grid_of("duty_counts", int)
+        def _unit(v: float) -> bool:
+            return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it
+
+        def _count(v: int) -> bool:
+            return v >= 0
+
+        reset = 0
+        duty = _grid_of("duty", float, _unit)
+        duty_counts = _grid_of("duty_counts", int, _count)
+        events = _grid_of("duty_events", int, _count)
         if duty is not None and duty_counts is not None:
-            instance.duty = duty
-            instance.duty_counts = duty_counts
-            events = _grid_of("duty_events", int)
-            if events is not None:
-                instance.duty_events = events
+            for t in range(n_t):
+                for h in range(n_h):
+                    d, n = duty[t][h], duty_counts[t][h]
+                    if d is None or n is None:
+                        # The bucket restarts unmeasured, which _trusted reads
+                        # as no evidence rather than as "no defrost".
+                        reset += 1
+                        continue
+                    instance.duty[t][h] = d
+                    instance.duty_counts[t][h] = n
+                    e = events[t][h] if events is not None else None
+                    instance.duty_events[t][h] = e if e is not None else 0
+        elif any(k in data for k in ("duty", "duty_counts")):
+            # A v2 store whose measured half is unreadable as a whole. It is
+            # not an upgrade, and saying so would misname a corrupt store.
+            reset = n_t * n_h
         else:
-            # v1, or a v2 store whose measured half is unreadable. There is no
-            # measured evidence to keep; the inferred half below still is.
+            # v1: no measured evidence to keep; the inferred half below still is.
             instance.migrated = isinstance(data.get("factors"), list)
             if instance.migrated:
                 _LOGGER.info(
@@ -496,19 +527,29 @@ class DefrostDerate:
                     "bucket as it is counted"
                 )
 
-        factors = _grid_of("factors", float)
+        factors = _grid_of("factors", float, math.isfinite)
+        counts = _grid_of("counts", int, _count)
         if factors is not None:
-            # Re-clamped on load, for BOTH versions: a store written before
-            # DERATE_MAX dropped to 1.0 can carry factors up to 1.05, and
-            # reading them back unchanged would let the old optimistic bound
-            # outlive the fix.
-            instance.factors = [
-                [min(DERATE_MAX, max(DERATE_MIN, v)) for v in row]
-                for row in factors
-            ]
-        counts = _grid_of("counts", int)
-        if counts is not None:
-            instance.counts = counts
+            for t in range(n_t):
+                for h in range(n_h):
+                    f = factors[t][h]
+                    n = counts[t][h] if counts is not None else 0
+                    if f is None or n is None:
+                        reset += 1
+                        continue
+                    # Re-clamped on load, for BOTH versions: a store written
+                    # before DERATE_MAX dropped to 1.0 can carry factors up to
+                    # 1.05, and reading them back unchanged would let the old
+                    # optimistic bound outlive the fix.
+                    instance.factors[t][h] = min(DERATE_MAX, max(DERATE_MIN, f))
+                    instance.counts[t][h] = n
+        if reset:
+            _LOGGER.warning(
+                "Defrost derate: %d stored bucket value(s) were unreadable or "
+                "outside what the learner writes; those buckets restart "
+                "unlearned and the rest are kept",
+                reset,
+            )
         return instance
 
     def summary(self) -> list[dict[str, Any]]:

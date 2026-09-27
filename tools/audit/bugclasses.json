@@ -44,12 +44,12 @@
   "P5": {
     "kind": "production",
     "mechanism": "A sysid/adoption gate keyed on a quantity other than the bias it gates",
-    "rounds": [1, 2, 3, 4, 5, 6, 7],
-    "instances": ["R1 D2-01", "R1 D7-02", "R2 D2-04", "R2 D7-01", "R3 D2-01", "R3 D2-03", "R3 D7-01", "R4 D7-01", "R5 D2-03", "R5 D7-01", "R5 D7-02", "R6 D7-01", "R7 D7-01"],
-    "detector": null,
+    "rounds": [1, 2, 3, 4, 5, 6, 7, 9],
+    "instances": ["R1 D2-01", "R1 D7-02", "R2 D2-04", "R2 D7-01", "R3 D2-01", "R3 D2-03", "R3 D7-01", "R4 D7-01", "R5 D2-03", "R5 D7-01", "R5 D7-02", "R6 D7-01", "R7 D7-01", "R9 D2-s4-01", "R9 D2-s4-81", "R9 D14-s3-03", "R9 P5-rca1"],
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
     "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
-    "barrier": null,
-    "status": "open"
+    "barrier": "The adoption interval prices every told quantity (intercept prior, slab pair) by how far one declared width moves log UA, and the R9-P5 sweep in tests/features.py runs on the PR gate (F4.2, #1655), with the #1524 liveness checks refusing a gate that refuses everything. Not reached: free heat past the prior's own band, which one night cannot separate from heat loss; it needs the learned free-heat prior in coordinator.py (.claude/workflows/carry-1655.json)",
+    "status": "barriered"
   },
   "P6": {
     "kind": "production",
@@ -64,12 +64,12 @@
   "P7": {
     "kind": "production",
     "mechanism": "Naive wall-clock datetime arithmetic across a DST transition",
-    "rounds": [2, 3, 5],
-    "instances": ["R2 D2-03", "R3 D1-03", "R3 D2-02", "R5 D1-08"],
-    "detector": null,
+    "rounds": [2, 3, 5, 9],
+    "instances": ["R2 D2-03", "R3 D1-03", "R3 D2-02", "R5 D1-08", "R9 D14-s4-01"],
+    "detector": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py (its DST tracer section; tests/features.py runs the script)",
     "detector_idea": "Every datetime-difference and grid-construction site across the DST transition days, against a UTC reference",
-    "barrier": null,
-    "status": "open"
+    "barrier": "tests/dst_checks.py's DST tracer on the PR gate (F1.1, #1665): the committed replay day, shifted onto a spring, an autumn and a plain day, runs through replay.run_fixture with Home Assistant's zoned clock traced, and a subtraction of two stamps sharing the zone, or a + timedelta on one, whose result differs from the UTC arithmetic fails the check, keyed on (file, function). Reaches every seam a replayed cycle executes, including operands the static enumerator cannot name (result.timestamps); not reached: a seam no replayed cycle drives, and arithmetic between two datetimes production builds itself from stored text. tariff._window_slot is exempt: a wall-clock tariff label by definition",
+    "status": "barriered"
   },
   "P8": {
     "kind": "production",

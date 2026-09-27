@@ -131,6 +131,30 @@ check(
     hourly.times[0] == datetime(2026, 8, 21, 0, 0, tzinfo=UTC),
 )
 
+# Round-9 D3-s3-01: every gate driver runs with the process zone at UTC,
+# where ``astimezone`` reads a naive stamp as UTC anyway, so deleting the
+# naive-is-UTC line changed nothing the suite measured. Under a non-UTC
+# process zone that deletion reads the stamp as local wall time instead.
+import time as _time  # noqa: E402
+
+_saved_tz = os.environ.get("TZ")
+os.environ["TZ"] = "Europe/Stockholm"
+_time.tzset()
+try:
+    _zone_took = _time.localtime(1787270400).tm_gmtoff == 7200  # 2026-08-21
+    _zoned = om._parse_block(block(0, [0.0, 0.0, 100.0]), "shortwave_radiation")
+finally:
+    if _saved_tz is None:
+        os.environ.pop("TZ", None)
+    else:
+        os.environ["TZ"] = _saved_tz
+    _time.tzset()
+check(
+    "a naive Open-Meteo stamp is UTC under a non-UTC process zone too",
+    _zone_took and _zoned.times[0] == datetime(2026, 8, 21, 0, 0, tzinfo=UTC),
+    f"zone took {_zone_took}, first instant {_zoned.times[0] if _zoned else None}",
+)
+
 quarter = om._parse_block(
     block(6, [10.0, 20.0, 30.0, 40.0], step_minutes=15), "shortwave_radiation"
 )

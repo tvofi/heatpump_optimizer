@@ -1414,9 +1414,13 @@ INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
 # same cycle. A key missing from this table gets no age limit at all, which
 # silently disables the staleness watchdog for it.
 INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = QUIET_STORE_MAX_AGE_MINUTES
-# A stale valve target would have the model believe the house is being held
-# somewhere it is not, and plan charging around it.
-INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
+# The mixing-valve target is deliberately ABSENT (R9 F4.2, carry-1655): it is
+# a set-point, stamped only when a person or an automation changes it, so its
+# age is "how long since someone decided", not "how long since anyone
+# checked" -- the external-heat flag's case below. Under the 60 min limit it
+# carried, a target left alone for an hour read stale and the model fell back
+# to the configured one. A dead valve still fails closed: `unavailable` and
+# `unknown` are refused before any age is read.
 # A stalled hot sensor on the wood side would look like an indefinite free
 # fire, which is the expensive failure direction -- these go stale early.
 INPUT_MAX_AGE_MINUTES[CONF_VALVE_OUTLET_TEMP_ENTITY] = 60.0
