@@ -1,0 +1,20 @@
+# head 9c6b923f2614936aad89e1408dabca8ddd721322; null run rc=0, per-file budgets errors on cells=0, aggregate=0
+CELL CLAUDE.md                                     +150 tok (4.3% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL AGENTS.md                                     +150 tok (81.9% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL .claude/skills/steward/SKILL.md               +150 tok (9.8% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL .claude/rules/claim-files.md                  +150 tok (22.0% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL .claude/rules/gate-scoping.md                 +150 tok (18.9% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL .claude/rules/comment-readback.md             +150 tok (17.0% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+CELL .claude/rules/delivery-status-tracking.md     +150 tok (24.8% of file) joined pf=0 agg=0 | newlines pf=1 | perturbed pf=2
+RESULT cells=7 count
+RESULT null_per_file_errors=0 count
+RESULT joined_unrefused=7 count
+RESULT newline_refused=7 count
+RESULT perturbed_refused=7 count
+RESULT thread_factor=1.000
+RESULT load1=1.87
+RESULT swapins=0
+
+real	2m30.887s
+user	1m27.370s
+sys	2m50.687s

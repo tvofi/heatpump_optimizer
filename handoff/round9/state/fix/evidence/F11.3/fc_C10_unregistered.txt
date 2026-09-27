@@ -1,0 +1,38 @@
+  read     registry check budgets: arm budgets
+  read     registry check required-contexts: arm ruleset
+  read     registry pinned .claude/workflows/counts.mjs: arm ruleset
+  read     registry pinned .claude/workflows/policy_lint.mjs: arm hooks
+  none     check citations: reads policy prose, not a structured input
+  none     check counts: reads policy prose, not a structured input
+  none     check no-gh: reads policy prose, not a structured input
+  none     check orphan-caps: reads the key set of policy_budgets.json files{} against the tree, no field of an entry
+  none     check index: reads policy prose, not a structured input
+  none     check duplicates: reads policy prose, not a structured input
+  none     check pr-body: reads a pull-request body, prose; its head field is pr-contract's (F11.2)
+  none     check named-docs: reads policy prose, not a structured input
+  none     check citation-presence: reads policy prose, not a structured input
+  none     check coverage: reads the tracked file list against POLICY_GLOBS, not a structured input
+  none     check provenance: reads recorded_at of policy_known_bad.json; residual, no arm here
+  none     check row-freeze: reads the plan's delivery table, prose
+  none     check rule-binding: reads rule frontmatter paths: against the tree; residual, no arm here
+  none     check record: reads merge history, not a structured input
+  none     check render: reads policy prose, not a structured input
+  none     check stats: a report; refuses nothing
+  none     check sunset: reads policy prose, not a structured input
+  none     pinned .claude/workflows/brief_lint.mjs: reads the wave rosters and carries; residual, no arm here
+  none     pinned .claude/workflows/check-wave-script.mjs: drives the wave script's branches, code not data
+  none     pinned .claude/workflows/field_coverage.mjs: this program; its input is DECLARED and the arms above
+  none     pinned .claude/workflows/figure_lint.mjs: reads a body's figures, prose
+  none     pinned .claude/workflows/fragments_sync.mjs: byte-compares fragments, no field to skip
+  none     pinned .claude/workflows/policy_lint_envmatrix.mjs: models clone shapes, code not data
+  none     pinned .claude/workflows/render_md.mjs: reads policy prose, not a structured input
+  none     pinned .claude/workflows/rules_sync.mjs: byte-compares generated rules, no field to skip
+  none     pinned .claude/workflows/vendor/markdown-it.min.js: a vendored parser, not a check
+  none     pinned tests/coverage_ratchet.py: reads the coverage budget file; residual, no arm here
+  none     pinned tools/audit/preflight.sh: runs other checks; no input of its own
+  none     pinned tools/audit/prepr.sh: runs other checks over a body; no input of its own
+  none     pinned tools/audit/round6/D11/fix/codeowners_gap.py: reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here
+  none     stamp rule 4: reads commit parents and subjects; residual (D11-s1-02), no arm here
+  REFUSED  registry: `check probe-new` is unregistered: DECLARED names neither an arm for its input nor none
+RESULT read=4 ignored=0 declared_none=31 blind=0 dead=0 refused=1 runs=0 seconds=2.7
+FIELD COVERAGE REFUSED: a field of a governance check's input is read by no check and ignored by no reason
