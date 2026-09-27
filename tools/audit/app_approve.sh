@@ -58,7 +58,7 @@
 # when (1) V is an ancestor of H; (2) every first-parent commit V..H is a
 # two-parent merge of a main commit whose tree is git's automatic merge of its
 # parents (`merge-tree`, outside the driver files below), or a single-parent
-# `ci:` commit; and
+# `ci:` commit that changes only those driver files; and
 # (3) the branch's own diff against its merge base with main is byte-identical
 # at V and at H, read with two relaxations measured over round 9's window
 # (the literal byte rule carried 0 of its 22 re-verification rounds): each
@@ -132,6 +132,12 @@ carry() {
         || { echo "$c is not the automatic merge of its parents"; return 1; }
     elif [[ $subj != ci:* ]]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
+    else
+      # Anyone who can push can write the subject, and the header-free
+      # comparison below cannot see a change moved to other code with the
+      # same context: a `ci:` commit may touch only the driver files.
+      git diff --quiet "$c^" "$c" -- . "${x[@]}" \
+        || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
     fi
   done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
@@ -474,6 +480,7 @@ H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
 g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
 # The next two leave the branch's diff byte-identical, so only the rule's
 # first two conditions can refuse them: a rewrite under a `ci:` subject, and
@@ -825,7 +832,8 @@ st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-re
 carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own"
 carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass"
 carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
-st "$(grep -c "own diff differs" "$W/carry.out")" 1 "refused by the byte comparison, not by the commit shape"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as a ci: commit outside the driver files"
+carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driver file"
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
@@ -843,10 +851,20 @@ st "$(grep -c "own diff differs" "$W/carry.out")" 1 "refused by the byte compari
   bash "$SELF" --carry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a hand resolution that moves the branch's change to another function with the same context"
 st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
+# The same move as a plain `ci:` commit (fix review of 8bcce59d): no merge,
+# so only the ci: guard can refuse it.
+( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
+  git show main~1:f.py > f.py; sed -i.bak '14s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
+  git commit -qam "ci: re-record closures"
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a ci: commit that moves the branch's change to another function with the same context"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the ci: guard"
 carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
 g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
 carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
 carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
+( cd "$W/clone" && bash "$SELF" --carry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)"
 carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
 carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
 ( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
