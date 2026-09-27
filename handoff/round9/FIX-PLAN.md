@@ -457,7 +457,6 @@ failing test and a mutation proof that need judgement):
 | F3.3 | opus | five learner-store and feed-parser findings across four files |
 | F9.2 | sonnet | test-pin lane |
 | F11.3 | opus | a class barrier carrying an RCA prototype (I3) plus policy text |
-| F6.3 | opus | a class barrier carrying an RCA prototype (P9, +572 lines of browser harness) |
 | F1.2 | opus | presence inference and the solve seed change what the solver sees; needs design judgement |
 | F11.6 | opus | a verdict carry decides when a review stops being re-run; a wrong equivalence silently approves a changed tree |
 | F2.5 | opus | vectorising peak_cost_batch and its terminal twin with golden drift |
@@ -474,9 +473,10 @@ failing test and a mutation proof that need judgement):
 | F1.7 | opus | cross-lane coordinator readers, the reauth route and a settlement scale with golden drift |
 | F1.8 | opus | currency and unit seams across eight sites and config-entry identity |
 | F10.1b | opus | the aware-default hastub clock's ripple across 46 tests/features.py statements |
-| F6.4 | sonnet | card layout, text and keyboard fixes, small and mechanical |
 | F10.2 | opus | a class barrier carrying an RCA prototype (solve-recompute and cpu-gate-blind) in code-owned gate scripts |
 | F1.9 | sonnet | regression tests for instances F3.1 closes plus one branch whose rule tvofi has decided (FI-sw3, card C13: outage) |
+| F6.3 | opus | a class barrier carrying an RCA prototype (P9, +572 lines of browser harness) |
+| F6.4 | sonnet | card layout, text and keyboard fixes, small and mechanical |
 | F10.3 | opus | a class barrier carrying an RCA prototype (I1) in code-owned gate scripts |
 | F1.10 | opus | a class barrier carrying an RCA prototype (P3) |
 | F1.11 | opus | a class barrier carrying an RCA prototype (P2 and P6) |
@@ -564,9 +564,9 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F5.1 | F5 | 1 | D4-s2-03, D4-s2-08, D4-s2-09, D8-s3-02, D8-s3-01, D5-s1-02*, D6-s2-03* | N-escape, N-service-icons, I5, N-name-sort | medium | sonnet | - | - | - | - |
 | F5.2 | F5 | 5 | D4-s2-01, D4-s2-05, D4-s2-06, D4-s2-07, D10-s2-01 | P6, N-step-grid, P2, N-menu | medium | sonnet | - | - | - | F5.1, F1.2, F7.1 |
 | F6.1 (cap exception) | F6 | 1 | D4-s1-01, D4-s1-02, D4-s1-03, D4-s1-05, +P9-rca1, +P9-rca2, +P9-rca3, +P9-rca4 | P9 | medium | sonnet | - | P9 | - | - |
-| F6.2 | F6 | 2 | D4-s1-04, D5-s2-01, +P9-f61a, +P9-f61b, +P9-f61c | N-keyboard, I5, P9 | medium | sonnet | - | - | - | F6.1 |
-| F6.3 | F6 | 3 | (class barrier) | - | barrier | opus | **yes** | - | P9 | F6.2 |
-| F6.4 | F6 | 12 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
+| F6.2 | F6 | 2 | D4-s1-04, D5-s2-01, +P9-f61a, +P9-f61b | N-keyboard, I5, P9 | medium | sonnet | - | - | - | F6.1 |
+| F6.3 | F6 | 12 | +P9-f61c | P9 | barrier | opus | **yes** | - | P9 | F6.2, F1.8 |
+| F6.4 | F6 | 13 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
 | F7.1 | F7 | 1 | D8-s2-02, D8-s2-03, D1-s3-04 | P2, N-shared-config | high | sonnet | - | - | - | - |
 | F7.2 | F7 | 7 | D8-s1-02, D8-s3-03, D8-s3-61 | P2, N-dup-entity | low | sonnet | - | - | - | F7.1, F8.3 |
 | F8.1 | F8 | 1 | D5-s1-01, D6-s2-01, D6-s2-02, D5-s1-04, D6-s2-05 | I5, N-markdown | medium | sonnet | - | I5 | - | - |
@@ -620,7 +620,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F5.2 | config_flow.py, strings.json, translations/en.json, translations/sv.json, icons.json, quality_scale.yaml, tests/config_flow_steps.py | climate.py from F7 | - |
 | F6.1 | www/heatpump-optimizer-card.js, tests/card.mjs, tests/card_drift.mjs | - | - |
 | F6.2 | www/heatpump-optimizer-card.js, tests/card.mjs | - | - |
-| F6.3 | tests/card_browser.mjs | - | tests/card_browser.mjs is code-owned |
+| F6.3 | tests/card_browser.mjs, www/heatpump-optimizer-card.js | - | tests/card_browser.mjs is code-owned |
 | F6.4 | www/heatpump-optimizer-card.js | topology.py from F5, config_flow.py from F5, sensor.py from F7, strings.json from F5, translations/en.json from F5, translations/sv.json from F5 | - |
 | F7.1 | climate.py, switch.py | - | - |
 | F7.2 | sensor.py, binary_sensor.py | README.md from F8 | - |
@@ -809,7 +809,7 @@ Line numbers are at baseline `1936d5ca`. A sweep instance's probe is under its s
 | P9-rca4 | P9 | RCA (p9) | instance | F6.1 | - | www/heatpump-optimizer-card.js: the candidate slot tap target (rect.slot-hit, 17.4 by 24.5 px in the shared-steps state at 375 px) | candidate, counted: overlapped 2.3 and 7.3 px by its neighbours' grown targets, so it fails the 2.5.8 spacing exception; the card grows each target against its neighbours' ink, not their grown targets. It needs a fix design: one attempt (half-gap growth) made 53 targets worse | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
 | P9-f61a | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: a new overlapping label found while fixing F6.1's four instances | F6.1 found this while re-measuring the grid on its own fix; not one of the RCA's four, so it lands one PR later, ahead of the F6.3 barrier | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), shared-ink rule |
 | P9-f61b | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: pointer-only hit targets found while fixing F6.1's four instances | found by F6.1 alongside the overlapping label; unlike the S5 keyboard-route lead (LEADS, unverified), these are counted P9 hits | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
-| P9-f61c | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: a deferred tap-target candidate found while fixing F6.1's four instances | a candidate like P9-rca4 that needs a fix design, deferred by F6.1 to this PR | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
+| P9-f61c | P9 | S5 @ `51a2e98a86` | instance | F6.3 | - | www/heatpump-optimizer-card.js: a deferred tap-target candidate found while fixing F6.1's four instances | a candidate like P9-rca4 that needs a fix design, deferred by F6.1 to this PR | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
 | RC-sw1 | N-solve-recompute | S5 @ `51a2e98a86` | instance | F2.2 | - | optimizer.py: cycling_penalty_batch | the same per-row Python loop as D9-s1-01's, in an independent function called once per iterate | tools/audit/round9/D14/sweep/avoidable-interpreter-bound-recomputation/enumerate.py |
 | RC-rca1 | N-solve-recompute | RCA (avoidable-interpreter-bound-recomputation) | instance | F2.5 | - | tariff.py: tariff.peak_cost_batch's per-row loop (metering windows, day peaks, plateau-aware day max and the smooth top-k sum re-entered per row) | 62 percent of a winter two-zone DHW capacity-tariff solve and 47 percent of the gate's dearest scenario; no round-9 finding, sweep, issue or brief named it (S5 scanned optimizer.py and ThermalParameters only) | the recompute RCA's share harness in its evidence folder, and the production-call channel (handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b) |
 | RC-rca2 | N-solve-recompute | RCA (avoidable-interpreter-bound-recomputation) | instance | F2.5 | - | optimizer.py: the per-row loop inside the closure _terminal_cost_batch returns (entered about 382 times per solve) | 2.2 to 3.1 percent of the solve; S5 keyed the loop to the outer builder, which runs once, and disposed it not applicable, a blind spot for every per-row twin #985 built as a closure | the recompute RCA's share harness in its evidence folder |
@@ -836,7 +836,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | P11 | #1649 | F10.1b | 6 | 6 | 6 | yes | S4 @ `b2e3560671` | 6 instance, 2 not applicable | F10.1, F10.1b, F8.3, F1.7, F1.1 | F10.1 |
 | I4 | #1650 | F11.4 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 2 guarded, 8 instance | F10.4, F11.1, F11.4 | F11.4 |
 | P6 | #1651 | F1.11 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 1 guarded, 12 instance | F1.5, F5.2, F1.2, F1.11 | F1.11 |
-| P9 | #1652 | F6.3 | 4 | 5 | 11 | yes | S5 @ `51a2e98a86` | 5 instance, 1 not applicable | F6.1, F6.2 | F6.3 |
+| P9 | #1652 | F6.3 | 4 | 5 | 11 | yes | S5 @ `51a2e98a86` | 5 instance, 1 not applicable | F6.1, F6.2, F6.3 | F6.3 |
 | N-solve-recompute | #1653 | F10.2 | 4 | 5 | 7 | yes | S5 @ `51a2e98a86` | 7 instance, 1 not applicable | F2.2, F2.5 | F10.2 |
 | P3 | #1654 | F1.10 | 3 | 3 | 3 | yes | S5 @ `51a2e98a86` | 1 guarded, 3 instance | F2.1, F1.10 | F1.10 |
 | P5 | #1655 | F4.2 | 3 | 3 | 4 | yes | S5 @ `51a2e98a86` | 3 instance, 1 not applicable | F4.2 | F4.2 |
@@ -915,26 +915,26 @@ Ordered by dependency depth, then severity, then non-owner-gated first. The orch
 18. F3.3 (medium) - Learner stores and feed parsers
 19. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
 20. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
-21. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
-22. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
-23. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
-24. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
-25. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
-26. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
-27. F5.2 (medium) - Setup wizard and options UX
-28. F1.4 (medium) - Restart durability (barriered class) and store bounds
-29. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
-30. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
-31. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
-32. F1.6 (medium) - Plausibility bounds and the P1 load-layer barrier
-33. F2.4 (medium, fixture) - On/off pump threshold at both seams; multi-start seeds
-34. F9.3 (barrier) - P1 declared-domain barrier: stored fields held to their writers' domains
-35. F1.7 (medium, fixture) - Coordinator readers across lanes: loop CPU, auth, settlement scale
-36. F1.8 (medium) - Currency and unit (P8) and entry identity
-37. F10.1b (low) - Aware-default Home Assistant stub clock
-38. F6.4 (medium) - Language-aware setup text; raw-thermometer source for staleness gaps
-39. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
-40. F1.9 (barrier) - Persisted future instants: the outage decision and the coordinator regressions
+21. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
+22. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
+23. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
+24. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
+25. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+26. F5.2 (medium) - Setup wizard and options UX
+27. F1.4 (medium) - Restart durability (barriered class) and store bounds
+28. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
+29. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
+30. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
+31. F1.6 (medium) - Plausibility bounds and the P1 load-layer barrier
+32. F2.4 (medium, fixture) - On/off pump threshold at both seams; multi-start seeds
+33. F9.3 (barrier) - P1 declared-domain barrier: stored fields held to their writers' domains
+34. F1.7 (medium, fixture) - Coordinator readers across lanes: loop CPU, auth, settlement scale
+35. F1.8 (medium) - Currency and unit (P8) and entry identity
+36. F10.1b (low) - Aware-default Home Assistant stub clock
+37. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
+38. F1.9 (barrier) - Persisted future instants: the outage decision and the coordinator regressions
+39. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
+40. F6.4 (medium) - Language-aware setup text; raw-thermometer source for staleness gaps
 41. F10.3 (medium, tvofi) - Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 and P11 barriers
 42. F1.10 (low, fixture) - P3 class barrier: one floor per thermal parameter; comment drift; the fourth on-threshold copy
 43. F1.11 (low) - Class barriers P2 and P6; horizon_hours and the boost test hook
