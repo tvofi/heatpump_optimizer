@@ -49384,6 +49384,33 @@ R.check(
 )
 
 
+# The windowed pattern's two fallbacks, now in the memo's compute helper: a
+# learned pattern that is not 24 hours long is replaced by the default before
+# masking (the 24-hour sum is then rescaled to 24), and a pattern the windows
+# mask to nothing is returned as it is rather than divided by zero.
+def _f22_windowed(pattern):
+    params = _f21_Params()
+    params.dhw_schedule_enabled = True
+    params.dhw_windows = _f22_tm.parse_windows("05:00-09:00")
+    params.dhw_hourly_draw_pattern = pattern
+    try:
+        return params.effective_dhw_draw_pattern()
+    except ZeroDivisionError as err:
+        return f"raised {err!r}"
+
+
+_f22_short = _f22_windowed([1.0] * 12)
+_f22_zero = _f22_windowed([0.0] * 24)
+R.check(
+    "R9-F2.2 D9-s1-71: a pattern that is not 24 hours long falls back to the "
+    "default, and one the windows mask to nothing comes back unscaled",
+    isinstance(_f22_short, list) and len(_f22_short) == 24
+    and abs(sum(_f22_short) - 24.0) < 1e-9
+    and _f22_zero == [0.0] * 24,
+    f"short pattern -> {_f22_short!r:.80}; all-zero pattern -> {_f22_zero!r:.80}",
+)
+
+
 # -- #1524: the experiment identifies a TWO-ZONE house ------------------------
 # coordinator._update_current_state feeds the indoor reading to the upper zone,
 # so on a two-zone plant the experiment observes the upper zone while the heat
