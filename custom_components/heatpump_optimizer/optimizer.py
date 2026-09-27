@@ -898,12 +898,14 @@ def _row_sums(rows: np.ndarray) -> np.ndarray:
     if n > _PAIRWISE_BLOCK:
         half = n // 2
         half -= half % 8
-        return _row_sums(rows[:, :half]) + _row_sums(rows[:, half:])
+        halves: np.ndarray = _row_sums(rows[:, :half]) + _row_sums(rows[:, half:])
+        return halves
     if n < 8:
         total = np.full(rows.shape[0], -0.0)
         for j in range(n):
             total = total + rows[:, j]
-        return 0.0 + total
+        summed: np.ndarray = 0.0 + total
+        return summed
     partial = rows[:, :8].copy()
     stop = n - n % 8
     for j in range(8, stop, 8):
@@ -913,7 +915,8 @@ def _row_sums(rows: np.ndarray) -> np.ndarray:
     ) + ((partial[:, 4] + partial[:, 5]) + (partial[:, 6] + partial[:, 7]))
     for j in range(stop, n):
         total = total + rows[:, j]
-    return 0.0 + total
+    result: np.ndarray = 0.0 + total
+    return result
 
 
 def cycling_penalty(

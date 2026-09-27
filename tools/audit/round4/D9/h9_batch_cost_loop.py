@@ -69,7 +69,8 @@ these lines to the run. The arm-scoped names further down carry a dot
 the checker's RESULT pattern cannot read, so main() also restates the
 winter arm's structural per-gradient facts under plain names):
     RESULT cost_terms_batch_calls_per_gradient=1
-    RESULT batch_rows_per_gradient=96
+    RESULT batch_rows_per_gradient=97     (96 until R9 F2.2 put the point itself
+                                          at the head of each gradient's batch)
     RESULT null_control_batched_calls_per_gradient_delta=0
 Per-gradient ratios, not absolute counts: every gradient evaluation is
 exactly one batched-twin call (jac -> _batch_fd_gradient ->
