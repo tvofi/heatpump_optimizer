@@ -49131,17 +49131,20 @@ R.check(
 # The scalar twins' own value is unchanged by the fix: each is the sum numpy
 # gives a fresh 1-D array, which is what they returned before (null control
 # for the rows above agreeing only with each other).
+# Twenty-five schedules per width, because one reordered addition changes the
+# last bit of only some sums.
 _f22_ref_bad = []
-for _f22_n in (1, 7, 8, 96, 129, 192):
-    _f22_x = np.random.default_rng(_f22_n + 1).uniform(0.0, 6.0, size=_f22_n)
-    _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
-    if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
-        _f22_ref_bad.append(_f22_n)
+for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+    for _f22_seed in range(25):
+        _f22_x = np.random.default_rng((_f22_n, _f22_seed)).uniform(0.0, 6.0, size=_f22_n)
+        _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
+        if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
+            _f22_ref_bad.append((_f22_n, _f22_seed))
 R.check(
     "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
     "swings, to the byte",
     not _f22_ref_bad,
-    f"widths that moved: {_f22_ref_bad}",
+    f"(width, seed) that moved: {_f22_ref_bad[:6]} of {len(_f22_ref_bad)}",
 )
 
 
