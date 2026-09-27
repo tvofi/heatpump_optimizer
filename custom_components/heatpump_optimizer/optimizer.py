@@ -433,7 +433,6 @@ def _fused_value_and_gradient(
     batch_objective: Callable[..., Any],
     bounds: list[tuple[float, float]],
     fd_eps: float,
-    on_value: Callable[[np.ndarray, float], None] | None = None,
 ) -> Callable[..., tuple[float, np.ndarray]]:
     """An L-BFGS-B ``fun`` for ``jac=True``: ``f(x)`` and its gradient, one batch.
 
@@ -443,8 +442,7 @@ def _fused_value_and_gradient(
     itself, at the head of the gradient's batch. The batched rows are
     bitwise the scalar objective (the batched simulation's contract, #97),
     so the value, the gradient and the iterate path are the ones the scalar
-    value produced. ``on_value`` sees each ``(x, f(x))`` pair, which is how
-    the caller's one-entry memo stays current.
+    value produced.
     """
     def value_and_gradient(x: np.ndarray, *a: Any) -> tuple[float, np.ndarray]:
         _gil_yield()
@@ -456,8 +454,6 @@ def _fused_value_and_gradient(
             return out
 
         grad = _batch_fd_gradient(centred, a, x, None, fd_eps, bounds)
-        if on_value is not None:
-            on_value(x, values[-1])
         return values[-1], grad
 
     return value_and_gradient
@@ -620,10 +616,10 @@ def _multi_start_minimize(
     see the note beside the seed constants above). Scoring only ranks the
     candidates; the cross-candidate minimum below is what ships.
 
-    The one-entry memo (#288) holds the last value computed at an ``x``: the
-    scalar objective's on the unbatched path, the fused batch's row 0 on the
-    batched one (R9 D9-s1-02), so scoring a returned point re-evaluates
-    nothing. ``args`` is fixed for this call, so the key is ``x`` alone.
+    The one-entry memo (#288) holds the last scalar value computed at an
+    ``x``, so scoring a point scipy last evaluated re-evaluates nothing on
+    the unbatched path. ``args`` is fixed for this call, so the key is ``x``
+    alone.
     """
     # A caller's continuation moves its starts under this call's own
     # iteration budget, so a cut budget reaches it too (R9-F2.1).
@@ -640,10 +636,6 @@ def _multi_start_minimize(
             _memo_key = key
             _memo_val = float(_raw_objective(x, *a))
         return _memo_val
-
-    def remember(x: np.ndarray, value: float) -> None:
-        nonlocal _memo_key, _memo_val
-        _memo_key, _memo_val = np.asarray(x, dtype=float).tobytes(), value
 
     scored = []
     for guess in candidates:
@@ -703,11 +695,8 @@ def _multi_start_minimize(
                 # same eps, same bounds rule -- so on bounds with no fixed
                 # variable the iterate path, and therefore the plan, does
                 # not move. The value rides in the same batch (R9
-                # D9-s1-02) and refreshes the memo, so scoring the result
-                # below costs no scalar evaluation either.
-                fun = _fused_value_and_gradient(
-                    batch_objective, bounds, fd_eps, remember,
-                )
+                # D9-s1-02), so L-BFGS-B makes no scalar evaluation.
+                fun = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
                 jac = True
             res = _scoped_minimize(
                 fun,
@@ -5889,7 +5878,7 @@ class HeatPumpOptimizer:
         size = plan.size
         pos = slot
         while pos < size:
-            end = min(pos + _DHW_MIN_RUN_CHUNK, size)
+            end = pos + _DHW_MIN_RUN_CHUNK
             self.model.extend_dhw_temps(
                 candidate, pos, plan[:end], outdoor_temps, draw_rates,
                 dt_hours=dt, humidity=humidity,
