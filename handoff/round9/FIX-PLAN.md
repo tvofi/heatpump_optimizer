@@ -454,6 +454,7 @@ failing test and a mutation proof that need judgement):
 | F8.2 | sonnet | documentation lane |
 | F10.1 | opus | a class barrier carrying an RCA prototype (P11) in the Home Assistant stub |
 | F1.1 | opus | DST wall-clock arithmetic across six files plus the gate's clock; a wrong offset passes most pins |
+| F2.3 | opus | plant-model physics with golden drift |
 | F3.3 | opus | five learner-store and feed-parser findings across four files |
 | F9.2 | sonnet | test-pin lane |
 | F11.3 | opus | a class barrier carrying an RCA prototype (I3) plus policy text |
@@ -461,7 +462,6 @@ failing test and a mutation proof that need judgement):
 | F11.6 | opus | a verdict carry decides when a review stops being re-run; a wrong equivalence silently approves a changed tree |
 | F2.5 | opus | vectorising peak_cost_batch and its terminal twin with golden drift |
 | F1.3 | opus | cycle fencing and failure reporting are ordering and concurrency judgements |
-| F2.3 | opus | plant-model physics with golden drift |
 | F5.2 | sonnet | translated text and config UX, small and mechanical |
 | F1.4 | opus | a class barrier carrying an RCA prototype (N-restart) plus restart durability |
 | F8.3 | sonnet | documentation lane |
@@ -553,9 +553,9 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F1.11 | F1 | 14 | D14-s1-02 | P6 | low | opus | - | - | P2, P6 | F1.10, F6.4 |
 | F2.1 | F2 | 1 | D14-s4-01*, D12-s2-03, D2-s2-81, D2-s3-02, D5-s2-51 | P7, P3, N-sign-floor, I5 | high | opus | - | P3 | - | - |
 | F2.2 | F2 | 2 | D9-s1-01, D9-s1-02, D9-s1-04, D9-s1-71, +RC-sw1 | N-solve-recompute | medium | opus | - | N-solve-recompute | - | F2.1 |
-| F2.5 | F2 | 4 | +RC-rca1, +RC-rca2 | N-solve-recompute | barrier | opus | - | - | - | F2.2, F3.3 |
-| F2.3 | F2 | 5 | D2-s1-01, D2-s1-02, D2-s2-03, D7-s1-71, D5-s2-03 | N-euler-coupled, P2, I5 | medium | opus | - | - | - | F2.5, F2.2, F4.1 |
-| F2.4 | F2 | 9 | D12-s2-01, D8-s1-03, D0-s2-02 | P2, P4 | medium | opus | - | - | - | F2.3, F1.6, F7.2, F5.2 |
+| F2.3 | F2 | 3 | D2-s1-01, D2-s1-02, D2-s2-03, D7-s1-71, D5-s2-03 | N-euler-coupled, P2, I5 | medium | opus | - | - | - | F2.2, F4.1 |
+| F2.5 | F2 | 4 | +RC-rca1, +RC-rca2 | N-solve-recompute | barrier | opus | - | - | - | F2.2, F3.3, F2.3 |
+| F2.4 | F2 | 9 | D12-s2-01, D8-s1-03, D0-s2-02 | P2, P4 | medium | opus | - | - | - | F2.5, F2.3, F1.6, F7.2, F5.2 |
 | F3.1 | F3 | 1 | D1-s3-01, D1-s1-01, D1-s1-04, D1-s3-05, D1-s1-02 | P2, P1, N-future-instant | high | opus | - | P2, P1, N-future-instant | N-future-instant | - |
 | F3.2 | F3 | 2 | D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06, +FI-sw5 | P2, P1, N-future-instant | medium | opus | - | - | - | F3.1 |
 | F3.3 | F3 | 3 | D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04 | P1, P2, N-min-gap | medium | opus | - | - | - | F3.2 |
@@ -608,8 +608,8 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F1.11 | coordinator.py | sensor.py from F7, boost.py from F3 | - |
 | F2.1 | optimizer.py, pv.py | - | - |
 | F2.2 | optimizer.py, thermal_model.py | - | - |
-| F2.5 | optimizer.py | tariff.py from F3 | - |
 | F2.3 | thermal_model.py, optimizer.py | const.py from F4 | - |
+| F2.5 | optimizer.py | tariff.py from F3 | - |
 | F2.4 | optimizer.py | pump_arbiter.py from F3, entity.py from F7, sensor.py from F7, climate.py from F7 | - |
 | F3.1 | away.py, boost.py, legionella.py, pump_arbiter.py, snapshots.py, curve_learning.py, comfort_learning.py, drift.py | store.py from F1, coordinator.py from F1, tests/finite_boundary.py from F9 | - |
 | F3.2 | pump_arbiter.py, freq_control.py | - | - |
@@ -880,7 +880,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | lane | name | fixer models (per PR) | owns |
 |---|---|---|---|
 | F1 | Coordinator cycle, state and clock | F1.1 opus, F1.2 opus, F1.3 opus, F1.4 opus, F1.5 opus, F1.6 opus, F1.7 opus, F1.8 opus, F1.9 sonnet, F1.10 opus, F1.11 opus | coordinator.py, services.py, store.py, button.py, manual_plan.py, accuracy.py, external_heat.py, dhw_learning.py, tests/dst_checks.py, tests/open_meteo.py |
-| F2 | Solver and plant model | F2.1 opus, F2.2 opus, F2.5 opus, F2.3 opus, F2.4 opus | optimizer.py, pv.py, thermal_model.py |
+| F2 | Solver and plant model | F2.1 opus, F2.2 opus, F2.3 opus, F2.5 opus, F2.4 opus | optimizer.py, pv.py, thermal_model.py |
 | F3 | Persisted stores and price/weather feeds | F3.1 opus, F3.2 opus, F3.3 opus | snapshots.py, curve_learning.py, comfort_learning.py, pump_arbiter.py, freq_control.py, defrost.py, legionella.py, boost.py, away.py, drift.py, disinfection.py, price_model.py, tariff.py, open_meteo.py, grid_fee.py, dhw_draws.py, ledger.py |
 | F4 | Inputs, constants, sysid and flow-lift | F4.1 opus, F4.2 opus | inputs.py, const.py, sysid.py, flow_lift.py, currency.py |
 | F5 | Config flow and translated text | F5.1 sonnet, F5.2 sonnet | config_flow.py, strings.json, translations/en.json, translations/sv.json, icons.json, quality_scale.yaml, quick_setup.py, modbus_prefill.py, topology.py, tests/config_flow_steps.py |
@@ -912,14 +912,14 @@ Ordered by dependency depth, then severity, then non-owner-gated first. The orch
 15. F8.2 (low) - Labels, pages and solver description
 16. F10.1 (low, fixture) - Home Assistant stub fidelity (P11) and its contracts
 17. F1.1 (high) - DST wall-clock seams and the gate's clock
-18. F3.3 (medium) - Learner stores and feed parsers
-19. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
-20. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
-21. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
-22. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
-23. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
-24. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
-25. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+18. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+19. F3.3 (medium) - Learner stores and feed parsers
+20. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
+21. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
+22. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
+23. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
+24. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
+25. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
 26. F5.2 (medium) - Setup wizard and options UX
 27. F1.4 (medium) - Restart durability (barriered class) and store bounds
 28. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
