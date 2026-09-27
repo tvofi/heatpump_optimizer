@@ -34,6 +34,11 @@ non-finite (the count is a property of the corrupt input, not of the load
 path), and a finite-but-large leaf (``1e308``) is *not* scrubbed — the boundary
 refuses only what is non-finite.
 
+**I1 pins (round 9, F9.1).** Five guards outside the boundary above, each
+correct already and each invisible to every closure script if deleted: a
+direct call of the production symbol, not a store sweep, because I1 is
+mutation-invisibility rather than a boundary defect.
+
 Run (from the repository root):
     PYTHONPATH=tests/hastub python3 tests/finite_boundary.py
 """
@@ -62,10 +67,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components"
 
 import numpy as np  # noqa: E402
 
-from harness import Results, FakeHass, FakeEntry  # noqa: E402
+from harness import Results, FakeHass, FakeEntry, FakeState  # noqa: E402
 from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
-from heatpump_optimizer.store import _sanitize  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore, _sanitize  # noqa: E402
+from homeassistant.util import dt as _dt_util  # noqa: E402
 from homeassistant.helpers import storage as _storage  # noqa: E402
 
 logging.disable(logging.CRITICAL)
@@ -500,6 +506,232 @@ def _no_rewrap_check() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 5 -- the instant bound (round 9, persisted future instant)
+# ---------------------------------------------------------------------------
+
+def _instants(obj, path=()):
+    """Every string leaf that reads as a date AND a time (longer than a date)."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from _instants(v, path + (k,))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from _instants(v, path + (i,))
+    elif isinstance(obj, str) and len(obj) > 10:
+        try:
+            when = _dt.datetime.fromisoformat(obj)
+        except ValueError:
+            return
+        yield path, when
+
+
+def _utc(when):
+    return when if when.tzinfo is not None else when.replace(tzinfo=_dt.timezone.utc)
+
+
+def _with_instants(payload, when):
+    """The payload with every instant leaf, and two probes, set to ``when``."""
+    out = json.loads(json.dumps(payload))
+    for path, _w in list(_instants(out)):
+        _set_path(out, path, when.isoformat())
+    if isinstance(out, dict):
+        out["__instant_probe"] = when.isoformat()
+        out["__instant_probe_aware"] = _utc(when).isoformat()
+    return out
+
+
+#: Stores whose instants no system bound governs (``lead=None``), each with
+#: its reason. An opt-out not listed here, or a listed one that no longer
+#: opts out, fails the arm: an exemption is reviewed, never inferred.
+LEAD_OPT_OUTS = {
+    "away": "the user-set return time; no system maximum exists",
+    "manual_plan": "D1-s2-54 (F1.4) bounds the expiry; set the lead there and drop this",
+}
+
+
+def _instant_arm(by_name) -> None:
+    """No stored instant reaches a loader beyond the clock plus its store's lead.
+
+    Every store, through its real loader: each instant leaf -- and a probe leaf,
+    so a store with none is still driven -- written 400 days ahead of the clock
+    that reads it back. What ``QuarantiningStore.async_load`` hands the loader
+    is recorded, and none of its instants may lie beyond now plus that store's
+    declared lead. A lead of ``None`` is an opt-out, printed. Null controls: an
+    honest payload comes back byte-identical, and so does an instant one minute
+    inside a store's lead, so a lead cannot be dropped to zero unseen.
+    """
+    t0 = _dt.datetime(2026, 6, 1, 12, 0, 0)
+    seen: list = []
+    original = QuarantiningStore.async_load
+
+    async def _recording(self):
+        data = await original(self)
+        seen.append((str(getattr(self, "key", None) or getattr(self, "_key", "")),
+                     getattr(self, "_lead", _dt.timedelta(0)), data))
+        return data
+
+    def _load(name, key, payload):
+        seen.clear()
+        _storage._DISK.clear()
+        _storage._DISK[key] = json.dumps(payload)
+        asyncio.run(LOADERS[name](_build_coord()))
+        _storage._DISK.clear()
+        return [r for r in seen if r[0] == key]
+
+    escaped, opted_out, rewritten, lead_lost, driven, checked = [], [], [], [], 0, 0
+    QuarantiningStore.async_load = _recording
+    _dt_util.freeze(t0)
+    try:
+        for name in LOADERS:
+            if name not in by_name:
+                continue
+            key, healthy = by_name[name]
+            records = _load(name, key, _with_instants(healthy, t0 + _dt.timedelta(days=400)))
+            driven += bool(records)
+            for _key, lead, data in records:
+                if lead is None:
+                    opted_out.append(name)
+                    continue
+                bound = _utc(t0) + lead
+                for path, when in _instants(data):
+                    checked += 1
+                    if _utc(when) > bound:
+                        escaped.append(f"{name}:{'/'.join(map(str, path))}")
+            honest = _with_instants(healthy, t0 - _dt.timedelta(hours=1))
+            for _key, lead, data in _load(name, key, honest):
+                if json.dumps(data, sort_keys=True) != json.dumps(honest, sort_keys=True):
+                    rewritten.append(name)
+                if lead:
+                    inside = _with_instants(healthy, t0 + lead - _dt.timedelta(minutes=1))
+                    for _k, _l, kept in _load(name, key, inside):
+                        if json.dumps(kept, sort_keys=True) != json.dumps(inside, sort_keys=True):
+                            lead_lost.append(name)
+        # What an honest clock wrote, the same clock reads back unchanged: the
+        # real writers of the two stores that hold legitimate futures, at
+        # their longest lead, so a lead dropped to zero cannot go unseen.
+        _storage._DISK.clear()
+        writer = _build_coord()
+        from heatpump_optimizer import accuracy as _acc, boost as _boost
+        _boost.held_for(writer).set("dhw", True, t0)
+        asyncio.run(_boost.persist(writer))
+        _far = max(_acc.LEAD_BUCKETS)
+        writer._accuracy.note_lead_prediction(t0 + _dt.timedelta(hours=_far), _far, 21.0)
+        asyncio.run(writer._async_save_accuracy())
+        written = {n: by_name[n][0] for n in ("boost", "accuracy")}
+        wrote = {n: json.loads(_storage._DISK[k]) for n, k in written.items()}
+        for name, key in written.items():
+            for _k, _l, kept in _load(name, key, wrote[name]):
+                if json.dumps(kept, sort_keys=True) != json.dumps(wrote[name], sort_keys=True):
+                    lead_lost.append(f"{name} (writer round trip)")
+    finally:
+        QuarantiningStore.async_load = original
+        _dt_util.freeze(None)
+    R.check(
+        "no stored instant reaches a loader beyond the clock plus its store's lead",
+        not escaped,
+        f"escaped={escaped[:8]} of {len(escaped)}",
+    )
+    R.check(
+        "the instant sweep drove every loader and checked instants (not vacuous)",
+        driven == len(LOADERS) and checked >= 2 * (driven - len(LEAD_OPT_OUTS)),
+        f"driven={driven} loaders={len(LOADERS)} instants_checked={checked}",
+    )
+    R.check(
+        "every lead opt-out is a listed, reasoned one, and every listed one opts out",
+        set(opted_out) == set(LEAD_OPT_OUTS),
+        f"opted_out={sorted(set(opted_out))} listed={sorted(LEAD_OPT_OUTS)}",
+    )
+    R.check(
+        "an honest payload comes back byte-identical (null control)",
+        not rewritten,
+        f"rewritten={rewritten}",
+    )
+    R.check(
+        "an instant inside its store's lead survives the load (a lead is not lost)",
+        not lead_lost,
+        f"lead_lost={lead_lost}",
+    )
+    print(f"RESULT instant_escaped_total={len(escaped)} count")
+    print(f"RESULT instant_stores_driven={driven} count")
+    print(f"RESULT instant_leaves_checked={checked} count")
+    print(f"RESULT instant_lead_opt_outs={sorted(set(opted_out))}")
+
+
+# ---------------------------------------------------------------------------
+# I1 -- deletable-guard pins (round 9, F9.1): five guards whose deletion no
+# closure script notices. Each is one direct call of the production symbol
+# (not a store-boundary sweep), because I1 is mutation-invisibility, not a
+# boundary defect -- the boundary above is already correct at every one of
+# these sites.
+# ---------------------------------------------------------------------------
+
+def _i1_pins_arm() -> None:
+    from heatpump_optimizer.coordinator import _dhw_inlet_c
+    from heatpump_optimizer.flow_lift import FlowCurveBias
+    from heatpump_optimizer.price_model import PriceShapeModel, HOURS_PER_DAY
+    from heatpump_optimizer.dhw_draws import DrawStats
+    from heatpump_optimizer.ledger import MonthlyLedger
+
+    # D3-s1-01: _dhw_inlet_c's lower plausibility bound is inclusive
+    # (coordinator.py:1371, `-5.0 <= value <= 35.0`). CMP_BOUND C0043 turns it
+    # into `-5.0 < value`, which no closure script notices.
+    now = _dt_util.utcnow()
+    hass = FakeHass({"sensor.inlet": FakeState("-5.0", last_updated=now, unit=None)})
+    R.check(
+        "_dhw_inlet_c keeps the inclusive lower plausibility bound (-5.0 is valid)",
+        _dhw_inlet_c(hass, "sensor.inlet") == -5.0,
+        f"got {_dhw_inlet_c(hass, 'sensor.inlet')!r}",
+    )
+
+    # D3-s2-01 (weakened(low)): FlowCurveBias.from_dict's isfinite guard is
+    # the one store-parser guard QuarantiningStore leaves reachable
+    # (flow_lift.py:210). GUARD_OFF S34 lets a non-finite stored bias survive
+    # into ``bias_k`` instead of restoring to inert.
+    learner = FlowCurveBias.from_dict({"bias_k": float("nan"), "samples": 5})
+    R.check(
+        "FlowCurveBias.from_dict restores to inert on a non-finite stored bias_k",
+        learner.bias_k == 0.0 and learner.samples == 0,
+        f"bias_k={learner.bias_k!r} samples={learner.samples!r}",
+    )
+
+    # D3-s2-02: PriceShapeModel.from_dict's residual_var restore keeps a
+    # legitimate stored variance (price_model.py:368, `max(0.0, float(v))`).
+    # CLAMP_DROP S19 replaces the per-value parse with a literal 0.0, so a
+    # real recorded variance is silently zeroed with the gate green.
+    var = [[2.5] * HOURS_PER_DAY, [1.0] * HOURS_PER_DAY]
+    model = PriceShapeModel.from_dict({"residual_var": var})
+    R.check(
+        "PriceShapeModel.from_dict keeps a legitimate stored residual_var value",
+        model.residual_var[0][0] == 2.5,
+        f"residual_var[0][0]={model.residual_var[0][0]!r}",
+    )
+
+    # D3-s3-02: DrawStats.from_dict's open-occurrence parse keeps a
+    # legitimate stored value (dhw_draws.py:136,
+    # `max(0.0, float(data.get("open_kwh", 0.0)))`). CLAMP_DROP M19 replaces
+    # it with a literal 0.0, zeroing a real open draw with the gate green.
+    draws = DrawStats.from_dict({"open_kwh": 2.5})
+    R.check(
+        "DrawStats.from_dict keeps a legitimate stored open_kwh value",
+        draws._open_kwh == 2.5,
+        f"_open_kwh={draws._open_kwh!r}",
+    )
+
+    # D3-s3-03: MonthlyLedger.add's non-finite guard is the only thing
+    # keeping a NaN amount from ever reaching a month entry (ledger.py:117).
+    # GUARD_OFF M21 (`if False:`) lets it through, creating a month whose
+    # kwh/sek line is NaN, unnoticed by any closure script.
+    ledger = MonthlyLedger()
+    when = _dt.datetime(2026, 1, 15, 12, tzinfo=_dt.timezone.utc)
+    ledger.add(when, "spot", kwh=float("nan"), sek=1.0)
+    R.check(
+        "MonthlyLedger.add drops a non-finite amount before any month is created",
+        not ledger.months,
+        f"months={ledger.months!r}",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -609,7 +841,10 @@ def _main() -> int:
     for label, days in shapes.items():
         mutant = json.loads(json.dumps(acc_healthy))
         peaks = mutant["peaks"]
-        peaks["peaks"] = list(peaks["peaks"]) + [float("nan")]
+        # A string, not float("nan"): json.dumps writes the float as a bare
+        # NaN token, which Home Assistant's orjson Store (and the stub, since
+        # round-9 D1-s1-51) refuses whole, so the loader would see no store.
+        peaks["peaks"] = list(peaks["peaks"]) + ["NaN"]
         if days is None:
             peaks.pop("peak_days", None)
         else:
@@ -664,8 +899,10 @@ def _main() -> int:
     print(f"RESULT loader_escape_total={loader_escape} count")
     print(f"RESULT type_drift_total={type_drift} count")
     print(f"RESULT refresh_escape_total={refresh_escape} count")
+    _instant_arm(by_name)
     _publish_arm()
     _no_rewrap_check()
+    _i1_pins_arm()
     return R.close("FINITE BOUNDARY CHECKS")
 
 

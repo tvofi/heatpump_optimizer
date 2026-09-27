@@ -7654,6 +7654,37 @@ for name, data in files.items():
         ", ".join(sorted(diff)[:6]),
     )
 
+# D4-s2-03 (N-escape): a translation leaf written with two backslashes before
+# a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
+# literal characters "°" in the Python string, not the degree sign the
+# source file intended -- dhw_min_too_close showed '°C' and 9 escaped
+# Swedish letters. A leaf is source text, never something the frontend or
+# this suite writes with an escape itself, so no leaf may contain a literal
+# backslash immediately followed by a 4-hex-digit escape shape.
+_DOUBLE_ESCAPE = re.compile(r"\\u[0-9a-fA-F]{4}")
+
+
+def _escaped_leaves(data, prefix=""):
+    found = []
+    if isinstance(data, dict):
+        for key, value in data.items():
+            found.extend(_escaped_leaves(value, f"{prefix}.{key}" if prefix else key))
+    elif isinstance(data, str):
+        if _DOUBLE_ESCAPE.search(data):
+            found.append(prefix)
+    return found
+
+
+for _lang, _texts in (("strings.json", strings), *(
+    (f"{name}.json", data) for name, data in files.items()
+)):
+    _escaped = _escaped_leaves(_texts)
+    R.check(
+        f"{_lang}: no translation leaf carries a double-escaped \\u sequence",
+        not _escaped,
+        ", ".join(_escaped[:6]),
+    )
+
 # #828: the key-identity check only compares the three files to each
 # other, so a field missing a data_description from all three — which
 # renders with a label and no pointer — passed. reauth_confirm.tibber_token
@@ -8359,12 +8390,13 @@ R.check(
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_OFF,
-         "current_action": {"power": 4.0, "power_normalized": 0.85}}
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                             "heat_pump_on": False}}
     ),
     clim._entry,
 )
 R.check(
-    "hvac_action reports OFF for the off mode even with a nonzero action",
+    "hvac_action reports OFF for the off mode with a zeroed action",
     _hvac_off.hvac_action == climate_mod.HVACAction.OFF,
     str(_hvac_off.hvac_action),
 )
@@ -8374,6 +8406,49 @@ _hvac_none = climate_mod.HeatPumpOptimizerClimate(
 R.check(
     "hvac_action is None with no coordinator data at all",
     _hvac_none.hvac_action is None,
+)
+
+# D8-s2-02/D8-s2-03, class P2 (#1683): boost.overlay() sets heat_pump_on and
+# power_normalized on the action independently of self._mode (boost.py's own
+# docstring: the channels "do not stomp comfort or economy the way selecting
+# the global boost mode does"), so a space boost run while the optimizer mode
+# is "off" used to still report hvac_action=OFF, hiding a running pump from
+# the thermostat card. The running action is now checked before the mode.
+_hvac_boost_over_off = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_OFF,
+         "current_action": {"power": 6.0, "power_normalized": 1.0,
+                             "mode": "boost", "heat_pump_on": True,
+                             "boost_space": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING for a space boost overlay while mode is off (#1683)",
+    _hvac_boost_over_off.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_boost_over_off.hvac_action),
+)
+# hvac_mode (above) reads the live coordinator.mode, which flips at once on a
+# mode change; hvac_action used to gate on coordinator.data["mode"], the
+# payload's copy, which only catches up once the refresh that mode change
+# asked for has run its solve. Constructing the fake with a live mode that
+# disagrees with the stale payload's mode reproduces that window directly:
+# before the fix, this read OFF (the stale payload's mode); after, it follows
+# the live mode like hvac_mode does.
+_hvac_live_vs_stale = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_OFF,
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                             "heat_pump_on": False}},
+        mode=const.MODE_AUTO,
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action follows the live mode, not the stale payload's, while a "
+    "refresh is still in flight (#1683)",
+    _hvac_live_vs_stale.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_live_vs_stale.hvac_action),
 )
 
 # hvac_mode: every mode MODE_TO_HVAC maps, plus the no-data fallback a
@@ -8546,6 +8621,23 @@ asyncio.run(off_switch.async_turn_on())
 R.check(
     "turning on from off selects auto",
     off_switch.coordinator.mode_calls == [const.MODE_AUTO],
+)
+
+# D8-s2-03, class P2 (#1683): ``is_on`` reads the live ``coordinator.mode``,
+# which flips at once on a mode change; the switch's own ``mode`` attribute
+# used to read ``coordinator.data["mode"]``, the payload's copy, which only
+# catches up once the refresh that mode change asked for has run its solve —
+# so the switch's state and its own attribute disagreed for that window.
+# Both now read the live mode.
+_stale_attr_switch = switch_mod.OptimizerEnableSwitch(
+    FakeCoordinator({**DATA, "mode": const.MODE_OFF}, mode=const.MODE_AUTO),
+    ENTRY,
+)
+R.check(
+    "the switch's mode attribute follows the live mode, not the stale "
+    "payload's, while a refresh is still in flight (#1683)",
+    _stale_attr_switch.extra_state_attributes["mode"] == const.MODE_AUTO,
+    str(_stale_attr_switch.extra_state_attributes),
 )
 
 away_sw = next(
@@ -10783,6 +10875,37 @@ R.check(
     "every icons.json entry is the hassfest shape with a valid mdi slug",
     not _icon_shape_errors,
     "; ".join(_icon_shape_errors[:6]),
+)
+
+# Service icons (D4-s2-08, N-service-icons): the 12 registered services had
+# no icons.json["services"] entry at all, so every service in the picker fell
+# back to the domain's generic icon. The registered set is services.yaml's
+# own keys, the same set "#558 D5 service translations" checks against the
+# text catalogues -- so a service added there and forgotten here is caught
+# the same way a service added without a name already is.
+_svc_icons = _icons.get("services")
+_svc_icon_errors = []
+if not isinstance(_svc_icons, dict):
+    _svc_icon_errors.append("icons.json has no services section")
+    _svc_icons = {}
+_svc_icon_diff = set(_svc_icons) ^ set(services)
+if _svc_icon_diff:
+    _svc_icon_errors.append(f"services keys mismatch {sorted(_svc_icon_diff)}")
+for _svc, _spec in sorted(_svc_icons.items()):
+    _where = f"services.{_svc}"
+    if not isinstance(_spec, dict):
+        _svc_icon_errors.append(f"{_where} is not an object")
+        continue
+    _extra = set(_spec) - {"service"}
+    if _extra:
+        _svc_icon_errors.append(f"{_where} has unexpected keys {sorted(_extra)}")
+    _svc_icon = _spec.get("service")
+    if not isinstance(_svc_icon, str) or not _MDI_SLUG.match(_svc_icon):
+        _svc_icon_errors.append(f"{_where}.service is not an mdi slug: {_svc_icon!r}")
+R.check(
+    "every registered service has an icons.json services entry with a valid mdi slug",
+    not _svc_icon_errors,
+    "; ".join(_svc_icon_errors[:6]),
 )
 
 # No entity class pins _attr_icon any more, on any of the four platforms. A
@@ -15727,6 +15850,15 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
+    # D11-s1-72: this file was already in tests/closures.json's recorded
+    # closure for this script (its `workflow_run` trigger reads live from the
+    # default branch, so nothing here forces FULL), but carried no check of
+    # its own and its one job was absent from governance_cost.py's GOV set --
+    # the sweep's "escapes the GOV pin" instance. Classified here on the same
+    # terms as its two siblings above.
+    ".github/workflows/budget-raise-gate-rerun.yml",
+    # D13-s1-03: the contract's re-run follower, read for its pins below.
+    ".github/workflows/pr-contract-rerun.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -21827,18 +21959,35 @@ _GOV_MOD = _load_governance_cost()
 _ALL_JOB_IDS: "set[str]" = set()
 for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     _ALL_JOB_IDS |= _workflow_job_ids(_wf.read_text())
-_GOV_JOBS = _workflow_job_ids(_DS_GOV)
+# D11-s1-72: this used to check only `_GOV_WF` (governance.yml) against GOV,
+# so a governance job added to pr-contract.yml, budget-raise-gate.yml or
+# budget-raise-gate-rerun.yml -- held in its own file for its own trigger, per
+# governance_cost.py's own derivation comment, exactly like `briefs` in
+# tests.yml -- escaped the pin (the sweep's 3-of-3 instance). `briefs` stays
+# out of this union: it is the one governance job the null control below
+# requires to live OUTSIDE its own workflow file, so a set-membership pin over
+# tests.yml itself would fight that control on every other job tests.yml
+# defines (`fast`, `browser`, `closures`).
+_GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
+              ".github/workflows/budget-raise-gate.yml",
+              ".github/workflows/budget-raise-gate-rerun.yml",
+              ".github/workflows/pr-contract-rerun.yml"]
+_GOV_FILE_JOBS: "set[str]" = set()
+for _f in _GOV_FILES:
+    _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
 R.check(
     "the governance-cost GOV set names only jobs the workflow files define, "
-    "and every governance.yml job",
+    "and every job of every governance workflow file",
     _ALL_JOB_IDS
-    and _GOV_JOBS
+    and _GOV_FILE_JOBS
     and _GOV_MOD.GOV <= _ALL_JOB_IDS
-    and _GOV_JOBS <= _GOV_MOD.GOV,
+    and _GOV_FILE_JOBS <= _GOV_MOD.GOV,
     f"GOV={sorted(_GOV_MOD.GOV)}; defined jobs={sorted(_ALL_JOB_IDS)}; "
-    f"governance.yml jobs={sorted(_GOV_JOBS)} -- a GOV member with no job "
-    "measures nothing (the renamed `record-status`), and a governance job "
-    "outside GOV is counted as gate seconds (#1241)",
+    f"governance workflow jobs={sorted(_GOV_FILE_JOBS)} (from {_GOV_FILES}) -- "
+    "a GOV member with no job measures nothing (the renamed `record-status`), "
+    "and a job of one of these files outside GOV is counted as gate seconds "
+    "(#1241; D11-s1-72 widened this from governance.yml alone to every "
+    "governance workflow file after `rerun-stale-verdict` escaped it)",
 )
 R.check(
     "and the split survives: the code gate's own jobs are not governance "
@@ -22097,6 +22246,211 @@ R.check(
     "and the same file checking out the pull request's head is refused (null control)",
     any(d.startswith("checkout") for d in _BRR_NULL),
     f"defects on the re-pointed copy: {_BRR_NULL}",
+)
+# --- D11-s1-03: a job holding a write grant on `pull_request` runs no program
+# the pull request controls, and leaves no token on disk for one to find. The
+# three autofix jobs in tests.yml ran the head's tests/closure.py (and
+# env_drift.py, mutation_table.py) with `contents: write` and the checkout's
+# token persisted in .git/config. The rule, per job reachable on
+# `pull_request` with any `write` grant: every checkout sets
+# `persist-credentials: false`; every repository script a step runs, by path
+# or by `import`, was restored from the base by an earlier step
+# (`git checkout <base> -- <paths>`); and every Python runs under `-I`, so
+# neither `PYTHONPATH`, a `sitecustomize` nor a module shadowing the standard
+# library from the working tree can run the pull request's code instead.
+# RESIDUAL, NOT CLOSED HERE: a same-repo `pull_request` run executes the pull
+# request's own copy of the workflow file, so an edit to this file's jobs
+# reaches the runner before review; this pin makes that edit a red check and
+# the file's code ownership a named review, which is what an in-tree check
+# can do (the judge's weakening of D11-s1-03).
+import fnmatch as _prw_fnmatch  # noqa: E402
+
+_PRW_EXEC = re.compile(
+    r"(?<![\w/.-])((?:tests|\.claude/workflows|tools)/[\w./-]+\.(?:py|mjs|js|sh))(?![\w])")
+_PRW_RESTORE = re.compile(r"git checkout\s+\S+\s+--\s+((?:\\\n|[^\n])+)")
+
+
+def _prw_live(run: str) -> str:
+    return "\n".join(ln for ln in run.splitlines() if not ln.lstrip().startswith("#"))
+
+
+def _prw_executed(run: str) -> "set[str]":
+    live = _prw_live(run)
+    out = {p for p in _PRW_EXEC.findall(live)}
+    for m in re.finditer(r"^\s*(?:import\s+([\w, ]+)|from\s+(\w+)\s+import)", live, re.M):
+        for mod in re.split(r"\s*,\s*", (m.group(1) or m.group(2) or "").strip()):
+            for d in ("tests", ".claude/workflows"):
+                if mod and Path(f"{d}/{mod}.py").is_file():
+                    out.add(f"{d}/{mod}.py")
+    return out
+
+
+def _prw_restored(run: str) -> "list[str]":
+    out: "list[str]" = []
+    for m in _PRW_RESTORE.finditer(_prw_live(run)):
+        out += [p.strip("'\" \\") for p in m.group(1).replace("\\\n", " ").split()
+                if p.strip("'\" \\")]
+    return out
+
+
+def _prw_pulls(run: str) -> bool:
+    """A step that pulls, rebases or merges can leave the pull request's copy
+    of a restored program in the tree (a stopped rebase, a popped autostash),
+    so a later step runs its own copy from outside the tree."""
+    return any(re.search(r"\bgit\b.*\s(?:pull|rebase|merge)(?:\s|$)", ln)
+               for ln in _prw_live(run).replace("\\\n", " ").splitlines())
+
+
+def _prw_defects(texts: "dict[str, str]") -> "list[str]":
+    out = []
+    for name, text in sorted(texts.items()):
+        doc = _yaml.safe_load(text) or {}
+        on = doc.get(True, doc.get("on")) or {}
+        events = set(on) if isinstance(on, (dict, list)) else {on}
+        if "pull_request" not in events:
+            continue
+        for jid, job in (doc.get("jobs") or {}).items():
+            perms = job.get("permissions", doc.get("permissions"))
+            writes = ([k for k, v in perms.items() if v == "write"] if isinstance(perms, dict)
+                      else [perms] if perms and "write" in str(perms) else [])
+            cond = str(job.get("if", ""))
+            if not writes or "github.event_name != 'pull_request'" in cond or (
+                    "github.event_name == '" in cond and "'pull_request'" not in cond):
+                continue
+            where = f"{name}:{jid}"
+            restored: "list[str]" = []
+            pulled = False
+            for s in job.get("steps") or []:
+                if str(s.get("uses", "")).startswith("actions/checkout@"):
+                    if (s.get("with") or {}).get("persist-credentials") is not False:
+                        out.append(f"{where} persists its checkout token")
+                run = str(s.get("run", ""))
+                own = set(_prw_restored(run))
+                for x in sorted(_prw_executed(run) - own):
+                    if not any(_prw_fnmatch.fnmatch(x, p) for p in restored):
+                        out.append(f"{where} runs {x} unrestored")
+                    elif pulled:
+                        out.append(f"{where} runs {x} from the working tree after a pull")
+                restored += own
+                pulled = pulled or _prw_pulls(run)
+                for ln in _prw_live(run).splitlines():
+                    if re.search(r"(?:^|[\s|;&(])python3?\s", ln) and not re.search(
+                            r"(?:^|[\s|;&(])python3?\s+-I\s", ln):
+                        out.append(f"{where} runs Python without -I: {ln.strip()[:60]}")
+    return out
+
+
+_PRW_TEXTS = {p.name: p.read_text() for p in sorted(Path(".github/workflows").glob("*.yml"))}
+_PRW_DEFECTS = _prw_defects(_PRW_TEXTS)
+R.check(
+    "no job holding a write grant on pull_request runs the pull request's own "
+    "program or leaves its token on disk (D11-s1-03)",
+    _PRW_DEFECTS == [],
+    f"defects: {_PRW_DEFECTS}",
+)
+_PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
+    "tests.yml": _PRW_TEXTS["tests.yml"].replace(
+        "persist-credentials: false", "persist-credentials: true").replace(
+        "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
+R.check(
+    "and the same tests.yml with its restores and token hygiene undone is "
+    "refused on each of the three autofix jobs (null control)",
+    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
+                      "tests.yml:mutation-autofix"],
+    f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
+)
+_PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
+    '"$RUNNER_TEMP/pinned/closure.py" autofix-report', "tests/closure.py autofix-report")})
+    if d.endswith("from the working tree after a pull"))
+R.check(
+    "and a report run from the working tree after the push step's pull is refused "
+    "on each of the three autofix jobs, though the program was restored (null control)",
+    [d.split(" ", 1)[0] for d in _PRW_PULLED] == [
+        "tests.yml:claims-autofix", "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
+    f"refused: {_PRW_PULLED}",
+)
+R.check(
+    "and an indented `import a, b` names both modules (null control: the "
+    "finder's reader missed mutation_table this way)",
+    _prw_executed("          import subprocess, mutation_table\n") == {"tests/mutation_table.py"},
+    f"read: {_prw_executed('          import subprocess, mutation_table')}",
+)
+# --- D13-s1-03: `pr-contract` lists the reds at the head when it runs, about
+# fifteen seconds after a push, and nothing re-ran it when a red it could not
+# yet see finished later (typing, fast, mutation). pr-contract-rerun.yml is
+# that trigger: when a run of any workflow that reports at a pull request's
+# head concludes red, it asks GitHub to re-run the newest `pr-contract`
+# run at the same head if that run started before the red finished. Its
+# properties are budget-raise-gate-rerun.yml's (above) with two changes: it
+# fires on a RED run, and it watches every workflow that runs on a pull
+# request but the contract itself -- a watched list that misses one is the
+# gap again, so the list is derived here from the workflow files.
+_PR_WORKFLOW_NAMES = sorted(
+    str((_yaml.safe_load(t) or {}).get("name"))
+    for t in _PRW_TEXTS.values()
+    if {"pull_request", "pull_request_review"} & set(
+        (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(t) or {})))
+
+
+def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("rerun-stale-contract") or {}
+    steps = job.get("steps") or []
+    runs = [str(s.get("run", "")) for s in steps]
+    prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if set(on) != {"workflow_run"}:
+        out.append(f"triggers {sorted(map(str, on))}")
+    wr = on.get("workflow_run") or {}
+    if sorted(wr.get("workflows") or []) != [w for w in watched if w != "PR contract"] \
+            or wr.get("types") != ["completed"]:
+        out.append(f"workflow_run {wr} does not watch {watched} less the contract")
+    if list(jobs) != ["rerun-stale-contract"]:
+        out.append(f"jobs {list(jobs)}")
+    if doc.get("permissions") != {} or job.get("permissions") != {
+            "actions": "write", "contents": "read"}:
+        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    cond = str(job.get("if", ""))
+    if cond.strip() != ("contains(fromJSON('[\"failure\",\"timed_out\",\"cancelled\"]'), "
+                        "github.event.workflow_run.conclusion)"):
+        out.append(f"if: {cond!r}")
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
+            or (co[0].get("with") or {}).get("persist-credentials") is not False:
+        out.append(f"checkout {[s.get('with') for s in co]}")
+    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit",
+                 text.split("\njobs:", 1)[-1]):
+        out.append("a pull-request-controlled string reaches the job")
+    if not prog or not restore or prog[0] < restore[0] or not all(
+            re.search(r"python3 -I \.claude/workflows/contract_rerun\.py --rerun ", runs[i])
+            for i in prog):
+        out.append(f"restore at {restore}, program at {prog}")
+    return out
+
+
+_CRR_PATH = Path(".github/workflows/pr-contract-rerun.yml")
+_CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
+_CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
+R.check(
+    "a red that lands after pr-contract ran re-runs it: the follower watches every "
+    "pull-request workflow but the contract, fires on a red run only, holds "
+    "`actions: write` and runs the default branch's program (D13-s1-03)",
+    _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
+    f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
+)
+_CRR_NULL = _crr_defects(_CRR_TEXT.replace(
+    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"),
+    _PR_WORKFLOW_NAMES + ["A new pull-request workflow"])
+R.check(
+    "and the same file checking out the pull request's head, or missing a "
+    "pull-request workflow, is refused (null control)",
+    any(d.startswith("checkout") for d in _CRR_NULL)
+    and any(d.startswith("workflow_run") for d in _CRR_NULL),
+    f"defects on the altered copy: {_CRR_NULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string

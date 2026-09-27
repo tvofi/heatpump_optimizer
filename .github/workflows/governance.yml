@@ -271,6 +271,15 @@ jobs:
           python3 .claude/workflows/budget_raise_gate.py --self-test | tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
 
+      # The contract's re-run follower (D13-s1-03): which completed run makes
+      # the newest `pr-contract` run stale, and the wait, re-run and refusal
+      # arms over a stubbed API. The tally line must say 0 failed, as above.
+      - name: Show the contract re-run deciding its own fixtures
+        run: |
+          set -o pipefail
+          python3 .claude/workflows/contract_rerun.py --self-test | tee "$RUNNER_TEMP/crr-self-test.txt"
+          grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test

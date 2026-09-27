@@ -133,6 +133,10 @@ class DataUpdateCoordinator:
         self.logger = logger
         self.name = name
         self.config_entry = config_entry
+        # Stored, never scheduled: upstream reads it back through a property
+        # (round-9 D1-s2-71: accepted and dropped, so the cadence was
+        # unreadable). The interval scheduler itself is still absent.
+        self.update_interval = update_interval
         # Upstream's default (:75, :92) is True, and the integration's
         # coordinator constructs with no override, so listeners are fanned
         # out on EVERY successful refresh, not only when data or success

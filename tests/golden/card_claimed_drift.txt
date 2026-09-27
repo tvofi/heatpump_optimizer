@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.1
+# claims-for: 6.7.3
 #
-# v6.7.1: round-9 audit baseline: find/verify drivers, pinned local checks, bug-5 remainder. The stamp empties the list; the
+# v6.7.3: hotfix: no indoor temperature written to a flow set-point; round-9 wave 1. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -40,9 +40,6 @@
 # mode runs left of the editable window. No new chip
 # or series appears: the fixtures' states carry no tank or lower-floor
 # probe, so those two past traces do not render here (card.mjs pins them).
-history_panned  # recorded past on the plan's step grid, drawn in the forecast's style
-history_deep_panned  # recorded past on the plan's step grid, drawn in the forecast's style
-history_no_power  # recorded past on the plan's step grid, drawn in the forecast's style
 
 # Bug 7 (v6612-card-history, the card's history view). Exactly the three
 # states that render recorded rows move; card_drift reports the other 37
@@ -607,3 +604,29 @@ history_no_power  # recorded past on the plan's step grid, drawn in the forecast
 # render the plan figure, and the space-blocked dim/banner moves no state
 # because no fixture this gate drives publishes `space_blocked`.
 #
+
+# F6.1 (D4-s1-01, D4-s1-02, D4-s1-03, D4-s1-05, P9-rca1, P9-rca2, P9-rca3):
+# round-9 dashboard-card layout/colour/hit-target fixes move nearly every
+# rendered state. Three production changes explain every diff:
+#  (1) the "now" label, the corner now-temp reading and the
+#      estimated-prices label each move to their own row
+#      (`plotT + font*{1,2,3}` instead of one shared `plotT + font`), so
+#      any state drawing the "now" marker moves even when neither of the
+#      other two labels renders (D4-s1-05, P9-rca3);
+#  (2) `.whatif` cheaper/dearer/warn text and the armed-clear/save-confirm
+#      buttons switch from the HA-var literal fallbacks (#e0544e/#2fae7a/
+#      #d98e00, which measure 3.79/2.82/2.69:1 on a light card) to
+#      WCAG-AA-safe light-theme literals (ERROR/SUCCESS/WARNING_READABLE),
+#      restoring the originals under `prefers-color-scheme: dark`
+#      (D4-s1-01, P9-rca1);
+#  (3) the setup picker's option labels put the entity id before the
+#      friendly name, not after (D4-s1-03).
+# draft_dirty_menu_open and picker_open_filtered additionally move because
+# the slot-menu's left/top are now clamped to its chart instead of the raw
+# client coordinates (D4-s1-02). history_panned, history_deep_panned and
+# history_no_power move by the now-temp row alone (their fixture publishes
+# a live indoor reading; #1495's corner label). No other production
+# behaviour changes; editor_schema, the only state this branch's diff
+# leaves unclaimed, renders the config editor's schema and no card
+# stylesheet or "now" marker.
+

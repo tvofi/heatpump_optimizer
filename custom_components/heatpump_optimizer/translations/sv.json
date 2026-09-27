@@ -160,14 +160,14 @@
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
           "dhw_windows": "Tider då varmvatten måste finnas, t.ex. 06:00-08:30, 17:00-22:00. Olika dagar kan få olika tider med en dagväljare: 'weekdays 06:00-08:30, weekend 08:00-09:30' eller 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Utan väljare gäller tiderna varje dag.",
-          "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
+          "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 °C räcker för en vanlig dusch.",
           "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
           "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
           "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
           "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
-          "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
+          "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 °C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
-          "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
+          "dhw_legionella_temperature": "60 °C är den vanliga rekommendationen.",
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
         }
       },
@@ -216,7 +216,7 @@
           "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
           "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
           "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
-          "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
+          "solar_radiation_entity": "Valfritt. Solinstrålning i W/m². Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
           "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
@@ -250,7 +250,7 @@
             "data_description": {
               "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
               "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
-              "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis."
+              "solar_radiation_entity": "Valfritt. Solinstrålning i W/m². Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis."
             }
           },
           "plant": {
@@ -309,7 +309,7 @@
         },
         "data_description": {
           "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
-          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På lagrar billig värme och släpper ut den under dyra timmar.",
+          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På registrerar en lagringsstor volym (500 liter; standardvärdet 35 liter modellerar en liten hydraulisk avlastare, som inte kan lagra en natts värme). Optimeraren planerar bara kring den som ett lager när en strypande shuntventil också är inställd, under Inställningar; utan en sådan sätter detta bara tankens storlek i modellen.",
           "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
           "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
           "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan; tvåtanksfysiken aktiveras först när en givare är angiven.",
@@ -357,7 +357,7 @@
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
-      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
+      "dhw_min_too_close": "Ett varmvattenminimum så nära börvärdet lämnar tanken utan arbetsband; håll det minst 5 °C under börvärdet.",
       "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
@@ -694,7 +694,7 @@
             },
             "data_description": {
               "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
-              "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
+              "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 °C räcker för en vanlig dusch.",
               "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
               "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
             }
@@ -709,7 +709,7 @@
             "data_description": {
               "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
               "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
-              "dhw_legionella_temperature": "60 C är den vanliga rekommendationen."
+              "dhw_legionella_temperature": "60 °C är den vanliga rekommendationen."
             }
           }
         }
@@ -1047,7 +1047,7 @@
         },
         "data_description": {
           "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
-          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På lagrar billig värme och släpper ut den under dyra timmar.",
+          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På registrerar en lagringsstor volym (500 liter; standardvärdet 35 liter modellerar en liten hydraulisk avlastare, som inte kan lagra en natts värme). Optimeraren planerar bara kring den som ett lager när en strypande shuntventil också är inställd, under Inställningar; utan en sådan sätter detta bara tankens storlek i modellen.",
           "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
           "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
           "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan; tvåtanksfysiken aktiveras först när en givare är angiven.",
@@ -1102,7 +1102,7 @@
             "data_description": {
               "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
               "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
-              "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis."
+              "solar_radiation_entity": "Valfritt. Solinstrålning i W/m². Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis."
             }
           },
           "meters": {
@@ -1155,7 +1155,7 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av, om inte Styrning av pumpens uppgift står på Styrning. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt, precis som förut.",
-          "pump_duty_mode": "Av (standard) skriver aldrig till pumpen. Observera skriver inget och för en logg över det senaste dygnet, i diagnostiken, över vilken uppgift varje planerat steg bad om och vad pumpen gjorde (från effektentiteten, driftläget och tanktemperaturen). Styr skriver driftläget ovan (bara varmvatten på steg med bara varmvatten, bara värme på steg med bara rumsvärme, Värme + varmvatten när båda planeras eller en desinfektion pågår, oförändrat på vilande steg), varmvattnets börvärdesentitet (varmvattnets börvärde från varmvattensidan) och rumsvärmens börvärdesentitet (framledningen enligt värmekurvan för ett framledningsbörvärde, den planerade rumstemperaturen för ett innebörvärde). Där driftläget saknar ett läge för bara en uppgift, som i GCHV Modbus-paketet, sänks den andra uppgiftens börvärde till sitt minimum i stället. En sträcka med bara varmvatten begränsas till 90 minuter (30 under -10 °C ute), om inte rummet redan har sin planerade temperatur. Medan Optimerare aktiv är på skrivs varje ändring av entiteterna som optimeraren inte gjorde tillbaka direkt; stäng av Optimerare aktiv för att ändra pumpen för hand. Ett värde som pumpen inte behåller ger en varning och skickas igen var femte minut.",
+          "pump_duty_mode": "Av (standard) skriver aldrig till pumpen. Observera skriver inget och för en logg över det senaste dygnet, i diagnostiken, över vilken uppgift varje planerat steg bad om och vad pumpen gjorde (från effektentiteten, driftläget och tanktemperaturen). Styr skriver driftläget ovan (bara varmvatten på steg med bara varmvatten, bara värme på steg med bara rumsvärme, Värme + varmvatten när båda planeras eller en desinfektion pågår, oförändrat på vilande steg), varmvattnets börvärdesentitet (varmvattnets börvärde från varmvattensidan) och rumsvärmens börvärdesentitet (för ett framledningsbörvärde 55 °C eller entitetens maximum på steg som värmer huset, dess minimum på steg som inte gör det, och 35 °C eller värmekurvan när planen inte styr; för ett innebörvärde den planerade rumstemperaturen). Där driftläget saknar ett läge för bara en uppgift, som i GCHV Modbus-paketet, sänks den andra uppgiftens börvärde till sitt minimum i stället. En sträcka med bara varmvatten begränsas till 90 minuter (30 under -10 °C ute), om inte rummet redan har sin planerade temperatur. Medan Optimerare aktiv är på skrivs varje ändring av entiteterna som optimeraren inte gjorde tillbaka direkt; stäng av Optimerare aktiv för att ändra pumpen för hand. Ett värde som pumpen inte behåller ger en varning och skickas igen var femte minut.",
           "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
           "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
@@ -1186,7 +1186,7 @@
               "shower_flow_lpm": "Duschens flöde"
             },
             "data_description": {
-              "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
+              "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 °C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
               "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
               "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
               "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn DHW Mixed Water."
@@ -1330,7 +1330,7 @@
             },
             "data_description": {
               "capacity_curve_enabled": "Märkeffekten är ett laboratorievärde. Detta lär sig hur mycket värme pumpen faktiskt levererat vid varje utetemperatur och planerar inom det, så att en köldknäppsplan slutar lova effekt maskinen aldrig producerat. Det kan bara tygla optimism — minst 60 % av märkeffekten är alltid tillgänglig.",
-              "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma.",
+              "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst sex tiondels grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma.",
               "internal_gains_learning_enabled": "Människor, matlagning och apparater värmer huset i en dygnsrytm som den platta konstanten inte ser. Detta lär en timprofil ur mörkertimmarnas prognosfel, varsamt förankrad i det konfigurerade värdet så att den förblir en förfining, inte en omskrivning.",
               "solar_aperture_learning_enabled": "Fönsterarea och skuggning är konfigurerade gissningar. Detta jämför soltimmarnas prognoser med vad som faktiskt hände och skalar solvinsten därefter, mellan en tredjedel och det dubbla av det konfigurerade värdet."
             }
@@ -1452,7 +1452,7 @@
       "freq_control_needs_number": "Styrning skriver frekvensen via en number-entitet. Välj en, eller behåll läget observera: en frekvenssensor ensam kan bara observeras.",
       "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
       "disinfection_control_needs_entity": "Styra slår på och av pumpens desinfektionsbrytare, så det kräver en sådan. Välj brytaren ovan, eller ställ tillbaka läget på observera.",
-      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
+      "dhw_min_too_close": "Ett varmvattenminimum så nära börvärdet lämnar tanken utan arbetsband; håll det minst 5 °C under börvärdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
       "grid_fee_rules_negative": "En avgiftsregel har en negativ avgift. En överföringsavgift är en kostnad, så varje avgift måste vara noll eller högre – ett minustecken här får planen att behandla de timmarna som subventionerade.",
       "grid_fee_rules_implausible": "En avgiftsregel har en avgift över {fee_bound} {currency}/kWh. Överföringsavgifter ligger på några tiondelar per kWh, så ett så stort värde är nästan alltid öre inskrivet där hela {currency} avsågs – 25 i stället för 0,25.",
@@ -1870,7 +1870,7 @@
         "name": "Rekommenderad effekt"
       },
       "sensor_gap_advisor": {
-        "name": "Sensorlucka i valutan"
+        "name": "Rådgivare för sensorlucka"
       },
       "slab_temperature_estimated": {
         "name": "Golvplattans temperatur (uppskattad)"

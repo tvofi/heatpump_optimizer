@@ -1283,6 +1283,72 @@ const editable = () => {
   }
 }
 
+// D4-s1-02: the slot-menu used to be placed at the raw tap point, unclamped
+// -- opened near the right edge or the bottom of a short chart it spilled
+// past its own chart and past the viewport. `offsetWidth`/`offsetHeight` are
+// absent from the stub (0 before layout in a real browser too), so they are
+// patched onto the prototype for this one measurement, the way the phone-
+// width chart test above patches `getBoundingClientRect`.
+//
+// The patch belongs on `Node.prototype`, not `HTMLElement.prototype`: the
+// stub's `document.createElement` returns `new Node(t)` (card_rig.mjs), so
+// `menu` is a `Node` instance and never sees `HTMLElement`'s. Patching the
+// wrong class left `menu.offsetWidth`/`offsetHeight` `undefined` the whole
+// time, which openMenu's own `|| 180`/`|| 40` silently absorbed -- so this
+// check was validating the CODE'S fallback constants against itself
+// (180/40 in, 180/40 out) rather than a real clamp against a chosen menu
+// size, and could not have told a real clamp apart from one stuck
+// unclamped at the fallback's own numbers.
+{
+  drag.manual.reset();
+  drag._render();
+  const svg = svgOf(drag);
+  const [, hi] = drag.manual.bounds();
+  const realW = Node.prototype.offsetWidth;
+  const realH = Node.prototype.offsetHeight;
+  Node.prototype.offsetWidth = 220;
+  Node.prototype.offsetHeight = 60;
+  try {
+    fire(svg, "contextmenu", evAt(hi - 60000, { dataset: { channel: "space" } }));
+  } finally {
+    Node.prototype.offsetWidth = realW;
+    Node.prototype.offsetHeight = realH;
+  }
+  const menu = drag.shadowRoot.querySelector(".slot-menu");
+  check("right-clicking near the chart's right edge opens a menu", !!menu);
+  // This fixture's own editable-range geometry never taps past x=651 on a
+  // 900-wide stub chart (its "hi" bound falls well short of the plot's own
+  // right edge), so the raw tap position here never actually crossed the
+  // clamp boundary either -- the check below could not have told a real
+  // clamp apart from one that never engaged. Call `openMenu` directly with
+  // an out-of-chart position instead, which forces the clamp regardless of
+  // this fixture's geometry.
+  drag.lanes.closeMenu();
+  const realW2 = Node.prototype.offsetWidth;
+  const realH2 = Node.prototype.offsetHeight;
+  Node.prototype.offsetWidth = 220;
+  Node.prototype.offsetHeight = 60;
+  try {
+    drag.lanes.openMenu("space", hi - 60000, 5000, 5000, svg);
+  } finally {
+    Node.prototype.offsetWidth = realW2;
+    Node.prototype.offsetHeight = realH2;
+  }
+  const farMenu = drag.shadowRoot.querySelector(".slot-menu");
+  check("an out-of-chart tap position still opens a menu (D4-s1-02)", !!farMenu);
+  if (farMenu) {
+    const left = parseFloat(farMenu.style.left);
+    const top = parseFloat(farMenu.style.top);
+    // The stub's chartwrap rect is 900x400 (dom_stub.mjs); a 220x60 menu
+    // clamps to exactly (680, 340), never (5000, 5000) -- so this cannot
+    // pass on an unclamped position the way the same bound could if the
+    // raw tap had merely stayed inside it by coincidence.
+    check("the menu is clamped to its chart's right/bottom edge, not the raw tap point (D4-s1-02)",
+      left === 900 - 220 && top === 400 - 60,
+      `left=${farMenu.style.left} top=${farMenu.style.top}`);
+  }
+}
+
 // The price delta is the point of the exercise: it has to move, and in the
 // right direction, when the arrangement changes.
 {
@@ -5111,17 +5177,83 @@ const setupBox = (card, place) =>
     calls[0][2].entity_id === "sensor.vedpanna_temperatur_temperature_2",
     JSON.stringify(calls));
 
-  // ...and every option carries its entity id, because the two probes this
-  // report is about are indistinguishable without it.
+  // ...and every option carries its entity id (possibly middle-ellipsised),
+  // because the two probes this report is about are indistinguishable
+  // without it. The truncation is collision-aware (`pickerLabelIds`), chosen
+  // across every id THIS render puts on screen together, not per id in
+  // isolation -- a fixed per-id budget alone collapsed two of this
+  // project's own unrelated entities (the space/DHW plan sensors) onto one
+  // displayed string (P9 review, 2026-09-26).
+  const pickerLabelIds = fn("pickerLabelIds");
+  const shownIds = p1.options.filter((o) => o.value).map((o) => o.value);
+  const idLabels = pickerLabelIds(shownIds);
   const twins = p1.options.filter((o) => /vedpanna/.test(o.value));
-  check("every option shows its entity id next to the friendly name",
-    p1.options.filter((o) => o.value).every((o) => o.text.includes(o.value)),
-    p1.options.filter((o) => o.value && !o.text.includes(o.value))
+  check("every option shows its (possibly ellipsised) entity id next to the friendly name",
+    p1.options.filter((o) => o.value).every((o) => o.text.includes(idLabels[o.value])),
+    p1.options.filter((o) => o.value && !o.text.includes(idLabels[o.value]))
       .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
   check("so the two identically-named wood-tank probes are tellable apart",
     twins.length === 2 && twins[0].text !== twins[1].text &&
     twins.every((o) => /Vedpanna temperatur/.test(o.text)),
     twins.map((o) => o.text).join(" | "));
+  // D4-s1-03: the native listbox clips (never ellipsises) an option's
+  // trailing text at a fixed pixel width, and the id used to come LAST --
+  // so the only part two same-named options ever differed by was exactly
+  // the part truncation cut off. The (possibly ellipsised) id leads every
+  // label now, so the head of whatever survives clipping starts with the
+  // one thing guaranteed unique.
+  check("the entity id leads the label, not the (possibly duplicate) friendly name (D4-s1-03)",
+    p1.options.filter((o) => o.value).every((o) => o.text.startsWith(idLabels[o.value])),
+    p1.options.filter((o) => o.value && !o.text.startsWith(idLabels[o.value]))
+      .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
+  // A shared id prefix used to make the id-first fix worse, not better: two
+  // ids sharing a long enough prefix produced IDENTICAL text once both were
+  // cut at the same native clip point (P9 review, 2026-09-26). Simulate that
+  // clip at a conservative narrow-dialog width and confirm every pair of
+  // DIFFERENT ids in the shown list still reads apart at that width.
+  const NATIVE_CLIP_WIDTH = 40;
+  const clipCollisions = [];
+  for (let i = 0; i < p1.options.length; i++) {
+    for (let j = i + 1; j < p1.options.length; j++) {
+      const a = p1.options[i], b = p1.options[j];
+      if (!a.value || !b.value || a.value === b.value) continue;
+      if (a.text.slice(0, NATIVE_CLIP_WIDTH) === b.text.slice(0, NATIVE_CLIP_WIDTH)) {
+        clipCollisions.push(`${a.value} / ${b.value}`);
+      }
+    }
+  }
+  check("distinct entities stay distinct even after the native listbox's own clip (D4-s1-03)",
+    clipCollisions.length === 0,
+    clipCollisions.slice(0, 3).join("; "));
+
+  // A fixed head+tail budget alone (rather than the collision-aware
+  // `pickerLabelIds`) missed exactly this shape: two unrelated ids sharing
+  // a long prefix AND a long suffix, differing only in the word between
+  // them -- the P9 grid's real-browser run caught this project's OWN
+  // default plan sensor ids doing it (2026-09-26), and card.mjs's
+  // string-only pin above did not, because a fixed 30/8 budget's kept head
+  // and tail both land past where "space" and "dhw" part ways.
+  {
+    // Two ids in this project's own default install (the space and DHW
+    // plan sensors) have exactly this shape: a long shared prefix, one
+    // differing word, then a long shared suffix. Mirrored here under
+    // different ids (never DEFAULT_SPACE/DEFAULT_DHW, which carry the
+    // forecast data the whole card renders from and cannot be stubbed to
+    // a bare `{state,attributes:{}}`).
+    const midStates = { ...bigStates,
+      "sensor.heat_pump_optimizer_probe_space_reading": { state: "1", attributes: {
+        unit_of_measurement: "°C" } },
+      "sensor.heat_pump_optimizer_probe_dhw_reading": { state: "1", attributes: {
+        unit_of_measurement: "°C" } } };
+    const midSetup = mkSetup(assignedTopo, midStates);
+    openPicker(midSetup, "wood_tank_top_entity");
+    const p2 = pickerOf(midSetup);
+    const mid = p2.options.filter((o) =>
+      /heat_pump_optimizer_probe_(space|dhw)_reading$/.test(o.value));
+    check("a shared prefix AND suffix around the one differing word still disambiguates (D4-s1-03)",
+      mid.length === 2 && mid[0].text !== mid[1].text,
+      mid.map((o) => o.text).join(" | "));
+  }
 
   // (b) Filtering. The cap is a RENDER bound applied after the filter, so
   //     anything on the install is reachable by typing, and the footnote
@@ -9075,12 +9207,101 @@ check("an unblocked plan shows no DHW-only banner and no dimming",
 const nowStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
 nowStates["sensor.heat_pump_optimizer_indoor_temperature_optimizer"] = {
   state: "16.8", attributes: { device_class: "temperature", unit_of_measurement: "°C" } };
+// Also half-publishes the horizon (D4-s1-05 / P9-rca3, below): the "now"
+// label, the now-temp reading and the estimated-prices label all draw in
+// the same card, which is exactly what put them on one shared row.
+nowStates[DEFAULT_SPACE].attributes.forecast =
+  plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
 const nowCard = build(nowStates);
 const nowDump = collect(nowCard.shadowRoot).join("\n");
 check("a live indoor reading shows the corner now temperature",
   /now 16\.8/.test(nowDump));
 check("without an indoor reading the corner now label is absent",
   !/now-temp/.test(dump));
+
+// --- D4-s1-05 / P9-rca3: the "now" label, the now-temp reading, and the ---
+// estimated-prices label used to share one baseline (`plotT + font`), so
+// the default live view -- whose window opens AT "now" -- printed the "now"
+// label directly over the measured-now reading anchored at the plot's own
+// left edge; a card comment claimed the estimated-prices label "lives at a
+// different x .. whenever both happen to be visible together", which the
+// RCA grid found false at a second x. Each now gets its own row, so no pair
+// can collide regardless of x.
+{
+  const yOf = (re) => { const m = nowDump.match(re); return m ? +m[1] : null; };
+  const yNow = yOf(/<text class="now-label"[^>]*\sy="([\d.]+)"/);
+  const yTemp = yOf(/<text class="now-temp"[^>]*\sy="([\d.]+)"/);
+  const yEst = yOf(/<text class="estimated-label"[^>]*\sy="([\d.]+)"/);
+  check("the 'now' label, the now-temp reading and the estimated-prices label all render",
+    yNow !== null && yTemp !== null && yEst !== null,
+    `now=${yNow} temp=${yTemp} est=${yEst}`);
+  if (yNow !== null && yTemp !== null && yEst !== null) {
+    check("no two of the three top-strip labels share a row (D4-s1-05, P9-rca3)",
+      yNow !== yTemp && yNow !== yEst && yTemp !== yEst,
+      `now=${yNow} temp=${yTemp} est=${yEst}`);
+  }
+}
+
+// --- D4-s1-01 / P9-rca1: status text/button colours clear 4.5:1 on the ----
+// card's own background, in EITHER of HA's two profiles: #fff in the light
+// default theme, #1c1c1c in the dark one. No literal clears 4.5:1 against
+// both at once, so light-mode and dark-mode literals are chosen separately
+// and picked in JS by `hass.themes.darkMode` -- never by a
+// `prefers-color-scheme` media query (the OS setting, which HA's own dark
+// mode can disagree with), and never by deferring to the theme's own
+// `--error-color` etc: HA's stock dark theme sets `--error-color` to
+// #db4437, which is only 3.97:1 on #1c1c1c.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  const white = hex("#ffffff");
+  const cardDark = hex("#1c1c1c");
+  for (const name of ["ERROR_READABLE", "SUCCESS_READABLE", "WARNING_READABLE"]) {
+    const c = hex(fn(name));
+    check(`${name} clears WCAG AA's 4.5:1 on a white card and as white-on-it`,
+      ratio(c, white) >= 4.5, `${fn(name)} measures ${ratio(c, white).toFixed(2)}:1`);
+  }
+  for (const name of ["ERROR_READABLE_DARK", "SUCCESS_READABLE_DARK", "WARNING_READABLE_DARK"]) {
+    const c = hex(fn(name));
+    check(`${name} clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card`,
+      ratio(c, cardDark) >= 4.5, `${fn(name)} measures ${ratio(c, cardDark).toFixed(2)}:1`);
+  }
+  check("no prefers-color-scheme media query is left keying these colours to the OS",
+    !/@media\s*\(\s*prefers-color-scheme/.test(cardSrc));
+  const cardStyleBlockFn = fn("cardStyleBlock");
+  const lightCss = cardStyleBlockFn(false);
+  const darkCss = cardStyleBlockFn(true);
+  check("cardStyleBlock(false) paints .dearer with the light-safe literal",
+    lightCss.includes(`.dearer {\n        color: ${fn("ERROR_READABLE")};`),
+    lightCss.match(/\.dearer \{[\s\S]{0,40}/)[0]);
+  check("cardStyleBlock(true) paints .dearer with the dark-safe literal, not var(--error-color)",
+    darkCss.includes(`.dearer {\n        color: ${fn("ERROR_READABLE_DARK")};`) &&
+    !/\.dearer[\s\S]{0,10}var\(--error-color/.test(darkCss),
+    darkCss.match(/\.dearer \{[\s\S]{0,60}/)[0]);
+
+  // End-to-end: hass.themes.darkMode -- not the OS scheme -- decides which
+  // literal a real render paints, and a toggle re-renders without any other
+  // state changing.
+  const dmCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  dmCard.hass = { states: dmCard._hass.states, themes: { darkMode: true } };
+  const dmDump = collect(dmCard.shadowRoot).join("\n");
+  check("hass.themes.darkMode=true renders the dark-safe .dearer colour end to end",
+    dmDump.includes(`.dearer {\n        color: ${fn("ERROR_READABLE_DARK")};`));
+  dmCard.hass = { states: dmCard._hass.states, themes: { darkMode: false } };
+  const dmDump2 = collect(dmCard.shadowRoot).join("\n");
+  check("toggling hass.themes.darkMode back to false re-renders the light-safe colour",
+    dmDump2.includes(`.dearer {\n        color: ${fn("ERROR_READABLE")};`));
+}
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

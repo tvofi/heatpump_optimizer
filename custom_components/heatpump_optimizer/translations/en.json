@@ -160,14 +160,14 @@
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
           "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
-          "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
+          "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 °C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
           "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
           "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
-          "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 C in a 20 C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
+          "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 °C in a 20 °C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
-          "dhw_legionella_temperature": "60 C is the usual recommendation.",
+          "dhw_legionella_temperature": "60 °C is the usual recommendation.",
           "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
         }
       },
@@ -216,7 +216,7 @@
           "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
           "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
-          "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
+          "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
@@ -250,7 +250,7 @@
             "data_description": {
               "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
               "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
-              "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
+              "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
             }
           },
           "plant": {
@@ -309,7 +309,7 @@
         },
         "data_description": {
           "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
-          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On stores cheap heat and releases it during expensive hours.",
+          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On records a store-sized volume (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). The optimizer only plans around it as a store once a throttling mixing valve is set up too, in Options; without one this only sizes the tank in the model.",
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
           "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
           "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
@@ -359,7 +359,7 @@
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
-      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 °C below the setpoint.",
       "min_above_target": "The minimum temperature is above the target temperature.",
       "max_below_target": "The maximum temperature is below the target temperature.",
       "night_above_day": "The night temperature is above the day temperature.",
@@ -694,7 +694,7 @@
             },
             "data_description": {
               "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
-              "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
+              "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 °C is enough for a normal shower.",
               "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
               "dhw_setpoint_entity": "Optional. The number, helper or climate entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
             }
@@ -709,7 +709,7 @@
             "data_description": {
               "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
               "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline.",
-              "dhw_legionella_temperature": "60 C is the usual recommendation."
+              "dhw_legionella_temperature": "60 °C is the usual recommendation."
             }
           }
         }
@@ -1047,7 +1047,7 @@
         },
         "data_description": {
           "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
-          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On stores cheap heat and releases it during expensive hours.",
+          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On records a store-sized volume (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). The optimizer only plans around it as a store once a throttling mixing valve is set up too, in Options; without one this only sizes the tank in the model.",
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
           "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
           "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
@@ -1102,7 +1102,7 @@
             "data_description": {
               "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
               "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
-              "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
+              "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
             }
           },
           "meters": {
@@ -1155,7 +1155,7 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
-          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (the weather-curve supply for a flow set-point, the planned room temperature for an indoor one). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
+          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, 55 °C or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
@@ -1186,7 +1186,7 @@
               "shower_flow_lpm": "Shower flow rate"
             },
             "data_description": {
-              "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 C in a 20 C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
+              "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 °C in a 20 °C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
               "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
               "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
               "shower_flow_lpm": "Your shower head's flow. Only used to translate the tank's content into shower minutes on the DHW Mixed Water sensor."
@@ -1330,7 +1330,7 @@
             },
             "data_description": {
               "capacity_curve_enabled": "The nameplate maximum is a laboratory number. This learns how much heat the pump has actually delivered at each outdoor temperature and plans within it, so a cold-snap plan stops promising output the machine has never produced. It can only trim optimism — at least 60% of nameplate always stays available.",
-              "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most half a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
+              "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most six tenths of a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
               "internal_gains_learning_enabled": "People, cooking and appliances heat the house on a daily rhythm the flat constant cannot see. This learns a per-hour profile from dark-hour prediction errors, gently tethered to the configured value so it stays a refinement, not a rewrite.",
               "solar_aperture_learning_enabled": "Window area and shading are configured guesses. This compares sunny-hour predictions with what actually happened and scales the solar gain accordingly, between a third and double the configured value."
             }
@@ -1454,7 +1454,7 @@
       "freq_control_needs_number": "Control writes the frequency through a number entity. Choose one, or keep the mode on observe: a frequency sensor alone can only be observed.",
       "silent_mode_window_too_short": "A silent mode time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "disinfection_control_needs_entity": "Control turns the pump's disinfection switch on and off, so it needs one. Pick the switch above, or set the mode back to observe.",
-      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 °C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
       "grid_fee_rules_negative": "A fee rule has a negative rate. A transfer fee is a charge, so every rate must be zero or above — a minus sign here would make the plan treat those hours as subsidised.",
       "grid_fee_rules_implausible": "A fee rule has a rate above {fee_bound} {currency}/kWh. Transfer fees run a few tenths per kWh, so a value this size is almost always öre or cents typed where whole {currency} were meant — 25 instead of 0.25.",
