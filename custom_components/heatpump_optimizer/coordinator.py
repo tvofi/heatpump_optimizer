@@ -1280,8 +1280,10 @@ def _open_loop_plan_value(
             if start_s <= now_s < starts[i + 1]:
                 return float(trajectory[i])
         else:
+            # The loop is exhaustive for a sorted ``starts`` once
+            # ``now_s >= starts[0]``: the last step always returns, so no
+            # unreachable tail return exists for the mutation lane to pin.
             return float(trajectory[i])
-    return None
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
