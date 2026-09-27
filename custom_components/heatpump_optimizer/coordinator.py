@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import atexit
 import asyncio
+import bisect
 import copy
 import functools
 import hashlib
@@ -1275,15 +1276,11 @@ def _open_loop_plan_value(
     starts = [ts.timestamp() for ts in timestamps]
     if now_s < starts[0]:
         return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
-    for i, start_s in enumerate(starts):
-        if i + 1 < len(starts):
-            if start_s <= now_s < starts[i + 1]:
-                return float(trajectory[i])
-        else:
-            # The loop is exhaustive for a sorted ``starts`` once
-            # ``now_s >= starts[0]``: the last step always returns, so no
-            # unreachable tail return exists for the mutation lane to pin.
-            return float(trajectory[i])
+    # The step covering ``now``; the subtraction clamps a ``now`` at or past
+    # the plan's end to its last step, as ``get_current_action`` does. The
+    # loop this replaced needed an unreachable tail return — the mutation
+    # lane's RETURN_DEL site and mypy's missing-return — to say the same.
+    return float(trajectory[bisect.bisect_right(starts, now_s) - 1])
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
