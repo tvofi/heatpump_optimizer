@@ -51,4 +51,4 @@ RESULT recompute_seams=47 count
 RESULT recompute_instances=11 count
 RESULT recompute_guarded=0 count
 RESULT recompute_not_applicable=36 count
-RESULT wall_s=5.45 s provisional
+RESULT wall_s=5.02 s provisional

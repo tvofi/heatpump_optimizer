@@ -15,9 +15,11 @@ record; this directory is).
   its two runs.
 - `run_calls.py`: drives the production-call channel -- the
   `CALLS_PROBE_DRIVER` text of `tests/stress.py` at
-  handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b -- against
-  one tree root. Needs CPython 3.12+ (`sys.monitoring`); the captures in
-  `ev/calls_base.json` and `ev/calls_head.json` ran in the hpo-ci container.
+  handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b, derived
+  from that ref by the script itself (nothing on a seat-local scratch path is
+  load-bearing) -- against one tree root. Needs CPython 3.12+
+  (`sys.monitoring`); the captures in `ev/calls_base.json` and
+  `ev/calls_head.json` ran in the hpo-ci container.
 - `dbg_term.py`: the terminal detector measurement -- on the 97-row grid the
   builtin `sum` differs from plain sequential adds on 3 of 87 rows
   (single-sum arm) and 12 of 97 (four-store terms) on CPython 3.14, and on
