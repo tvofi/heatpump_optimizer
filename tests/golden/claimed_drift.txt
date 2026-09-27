@@ -65,7 +65,6 @@
 # the flow-walk capture gains their rendered form fields and the explicit
 # dhw_enabled=False an untouched wizard now stores. Structure only: the
 # fixture is float-free, and no solver input moved on any other scenario.
-config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
 #
 
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
@@ -191,14 +190,13 @@ config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
 
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per
-#  local optimum (restored by hand at the F1.2 v6.7.8 absorb, per the
-#  suspension note's own instruction: the stamp emptied the list)
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel

@@ -18399,6 +18399,46 @@ R.check(
     "this tree's own claim file passes the scope check",
     _env_drift.may_drift_error(_md_entries, _md_claims) is None,
 )
+# The v6.7.8 hotfix: the coverage ruling above lived only HERE, in
+# _md_uncovered, so nothing that runs before a stamp push enforced it. The
+# stamp deleted R9-F2.3's wood_coil claim without restoring the may-drift
+# entry the branch had suspended for it -- a suspension note promising a
+# restore "verbatim, when the stamp empties the list" is a promise no
+# instrument reads -- and the stamp's own claims self-check stayed green
+# because env_drift --claims-only did not carry the rule. So the rule moved
+# into env_drift.py, where both the gate's every run and the stamp's
+# self-check (exec'd on the post-stamp tree, before anything is pushed)
+# enforce it. These pin the rule there, and the call sites.
+R.check(
+    "env_drift itself refuses an allowed name that is neither may-drift nor "
+    "claimed for this VERSION, and the null control holds",
+    (_env_drift.may_drift_coverage_error(
+        _md_less, {}, "9.9.9", "9.9.9") or ""
+    ).startswith("MAY-DRIFT UNCOVERED")
+    and _env_drift.may_drift_coverage_error(
+        _md_all, {}, "9.9.9", "9.9.9") is None,
+)
+R.check(
+    "env_drift's coverage rule counts only a claim for this VERSION",
+    _env_drift.may_drift_coverage_error(
+        _md_less, {"wood_coil": ["r"]}, "9.9.8", "9.9.9") is not None
+    and _env_drift.may_drift_coverage_error(
+        _md_less, {"wood_coil": ["r"]}, "9.9.9", "9.9.9") is None,
+)
+_md_ed_src = Path("tests/env_drift.py").read_text()
+_md_ed_claims_only = _md_ed_src[
+    _md_ed_src.index('sys.argv[1] == "--claims-only"'):]
+_md_ed_claims_only = _md_ed_claims_only[
+    :_md_ed_claims_only.index("check_claims_hygiene")]
+R.check(
+    "and env_drift runs the coverage rule in both CLI paths, --claims-only "
+    "included -- the path the stamp's self-check execs on the post-stamp tree",
+    "may_drift_coverage_error(" in _md_ed_claims_only
+    and _md_ed_src.count("may_drift_coverage_error(") >= 3,
+    "without the --claims-only call a stamp can delete a claim without "
+    "restoring the may-drift entry suspended for it and push a tree this "
+    "file refuses (v6.7.8, wood_coil)",
+)
 
 # --- may-drift judged-key partition (#254) -----------------------------------
 #
