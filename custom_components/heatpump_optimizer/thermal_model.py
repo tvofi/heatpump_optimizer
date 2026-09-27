@@ -97,7 +97,7 @@ from .const import (
     DEFAULT_ECL110_PID_TIME_CONSTANT,
     DEFAULT_WOOD_TANK_VOLUME,
     DEFAULT_DHW_WOOD_COIL_ENABLED,
-    DHW_COLD_WATER_TEMP,
+    DEFAULT_DHW_INLET_TEMP,
     DHW_WOOD_COIL_EFFECTIVENESS,
     TOPOLOGY_NO_VALVE,
     TOPOLOGY_SINGLE_TANK_VALVE,
@@ -138,15 +138,14 @@ DHW_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
 # steps can keep dividing without per-call guards.
 THERMAL_MASS_FLOOR: float = 0.1
 
-# Explicit Euler diverges once a store's coupling-to-mass ratio u·dt/C
-# passes 2; 1.5 leaves margin without ever triggering for a plausible house
-# (defaults sit near 0.05). Above it, ``simulate_step`` subdivides the step.
-EULER_STABILITY_MAX_RATIO: float = 1.5
-
-# ...but a coupling whose variable cannot cross its own floor only needs to be
-# stable; one that must not OVERSHOOT its asymptote -- because the overshoot
-# crosses a bound that snaps it -- is monotone only while u·dt/C <= 1. The
-# buffer's emitter draw is the second kind (see ``_stability_substeps``).
+# Explicit Euler on the coupled stores is monotone -- every entry of the step
+# matrix non-negative, each row summing to at most 1 -- while every store's
+# total conductance (loss plus every coupling) times dt over its mass stays
+# at or under this. That is the matrix's Gershgorin bound: it keeps the
+# spectral radius at or under 1 and every store inside the envelope of its
+# neighbours, which a per-store ratio of 1.5 did not (R9 D2-s1-01: a coupled
+# pair at 1.5 each reaches 3 and diverges). Defaults sit near 0.05, so above
+# it ``simulate_step`` subdivides only an extreme configuration.
 EULER_MONOTONE_MAX_RATIO: float = 1.0
 
 
@@ -464,9 +463,9 @@ class ThermalParameters:
     dhw_legionella_interval_days: float = DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS
 
     # --- Hot water, v4.0.0 T3 ------------------------------------------
-    # The cold-water inlet (annual mean), previously two hard-coded 10.0 s.
-    # The default IS 10.0 and every existing ready target sits on it.
-    dhw_inlet_temp: float = 10.0  # °C
+    # The cold-water inlet (annual mean): the one default `from_config` and
+    # the options flow also read, so moving it moves every site at once.
+    dhw_inlet_temp: float = DEFAULT_DHW_INLET_TEMP  # °C
     #: Seasonal swing amplitude, °C; 0 keeps the inlet constant year-round.
     dhw_inlet_seasonal_amplitude: float = 0.0
     #: The inlet the coordinator resolved for "now" (live sensor, or the
@@ -1150,6 +1149,26 @@ class ThermalState:
     wood_tank_temperature: float | None = None
 
 
+def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
+    """Shallow-copy ``state`` with ``changes`` applied, field-for-field the
+    same result as ``dataclasses.replace(state, **changes)``.
+
+    Equivalent here and only here: ``ThermalState`` has no
+    ``__post_init__`` and no init-only fields, so ``replace`` is exactly a
+    field copy plus overrides. Exists because the stability-subdivided step
+    loops call it millions of times per solve -- the sysid rollout's
+    candidate fits multiply the sub-step count -- and ``replace``'s field
+    iteration was measured at about half the frontier harness's runtime
+    (R9-F2.3, #1723: the harness exceeded CI's per-harness budget at the
+    F4.2+F2.3 tree; before/after numbers are in that pull request's
+    ## Red checks).
+    """
+    new = object.__new__(type(state))
+    new.__dict__.update(state.__dict__)
+    new.__dict__.update(changes)
+    return new
+
+
 # DHW draw pattern: normalized hourly multipliers (24 values, sum=24)
 # Morning peak (6-9), evening peak (17-21), low overnight
 DHW_HOURLY_DRAW_PATTERN: list[float] = [
@@ -1317,7 +1336,7 @@ def dhw_coil_draw_reduction(
     draw_kw: float,
     wood_temp: float,
     dhw_setpoint: float,
-    inlet_temp: float = DHW_COLD_WATER_TEMP,
+    inlet_temp: float = DEFAULT_DHW_INLET_TEMP,
 ) -> tuple[float, float]:
     """The DHW draw after the wood-tank refill coil, and the coil's heat.
 
@@ -1332,15 +1351,18 @@ def dhw_coil_draw_reduction(
 
     ``inlet_temp`` must be the same reference the draw itself was computed
     from — ``ThermalParameters.dhw_inlet_reference`` at every real call
-    site. Hard-coding ``DHW_COLD_WATER_TEMP`` here while the draw used the
+    site. Hard-coding a fixed 10 °C here while the draw used the
     live/seasonal inlet split a (setpoint − 4 °C)-sized winter draw with
     10 °C-based ratios: the identity still held arithmetically but both
     halves were misallocated between the wood tank and the electric side.
-    The default keeps the annual-mean configuration byte-identical.
+    The default is ``DEFAULT_DHW_INLET_TEMP``, the configured mean's own.
 
     Returns ``(reduced_draw_kw, coil_heat_kw)`` with
     ``reduced + coil == draw`` exactly. Pure and module-level so the
-    savings baseline prices the same coil the simulation runs.
+    savings baseline prices the same coil the simulation runs. Both halves
+    are NOMINAL: a tank below the mixed-use temperature is debited the
+    reduced draw on ``dhw_draw_scale``, so the wood tank gives up the coil
+    heat on that same scale (``ThermalModel.apply_dhw_coil``).
     """
     if draw_kw <= 0.0:
         return draw_kw, 0.0
@@ -1351,6 +1373,20 @@ def dhw_coil_draw_reduction(
     span = max(dhw_setpoint - inlet_temp, 1e-6)
     reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span
     return reduced, draw_kw - reduced
+
+
+def dhw_draw_scale(dhw_temp: float, inlet_temp: float) -> float:
+    """The share of a nominal draw a tank at ``dhw_temp`` actually loses.
+
+    A nominal draw is volume heated from the inlet to the setpoint. At or
+    above ``DHW_MIXED_USE_TEMP`` the tap mixes, so the enthalpy removed stays
+    nominal; below it the tank can only deliver the rise it holds, so the
+    debit scales with ``(T - inlet) / (T_use - inlet)`` (see
+    ``ThermalModel.simulate_dhw_step``). One rule for the tank's debit, the
+    coil's wood debit and the planner's capacity clamp, so none can drift.
+    """
+    span = max(DHW_MIXED_USE_TEMP - inlet_temp, 1e-6)
+    return min(1.0, max(0.0, dhw_temp - inlet_temp) / span)
 
 
 def learner_newton_step(
@@ -1903,11 +1939,7 @@ class ThermalModel:
         q_draw = (
             self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
         )
-        span = max(DHW_MIXED_USE_TEMP - p.dhw_inlet_reference, 1e-6)
-        q_draw = q_draw * min(
-            1.0,
-            max(0.0, dhw_temp - p.dhw_inlet_reference) / span,
-        )
+        q_draw = q_draw * dhw_draw_scale(dhw_temp, p.dhw_inlet_reference)
         self._step_dhw_draw_kw = q_draw
 
         # Standby heat loss to ambient
@@ -2028,17 +2060,36 @@ class ThermalModel:
         external_heat_kw: float = 0.0,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        _cop: float | None = None,
+        _u_eff: float | None = None,
+        _q_solar: float | None = None,
     ) -> ThermalState:
-        """Simulate one step with the original single-zone model."""
+        """Simulate one step with the original single-zone model.
+
+        ``_cop``, ``_u_eff`` and ``_q_solar`` are the per-call constants
+        below, precomputed by :meth:`simulate_step` when it stability-
+        subdivides: every sub-step of one call sees the same outdoor, wind,
+        rain, solar and humidity, so recomputing them per sub-step priced
+        the sysid rollout out of its own harness budget. ``None`` (any
+        direct caller's default) computes them here, unchanged.
+        """
         p = self.params
-        cop = self.compute_cop(outdoor_temp, humidity=humidity)
+        cop = (
+            self.compute_cop(outdoor_temp, humidity=humidity)
+            if _cop is None
+            else _cop
+        )
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix. It is heat, not electricity, so it never touches
         # the COP and costs the plan nothing.
         thermal_power = cop * electrical_power + max(0.0, external_heat_kw)
 
-        u_eff = self.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
+        u_eff = (
+            self.effective_heat_loss_coefficient(
+                p.heat_loss_coefficient, wind_speed, precipitation
+            )
+            if _u_eff is None
+            else _u_eff
         )
         q_slab_to_room = p.slab_heat_transfer * (
             state.slab_temperature - state.room_temperature
@@ -2052,7 +2103,11 @@ class ThermalModel:
             if hour_of_day is not None
             else p.internal_gains
         )
-        q_solar = self.compute_solar_gain(solar_radiation)
+        q_solar = (
+            self.compute_solar_gain(solar_radiation)
+            if _q_solar is None
+            else _q_solar
+        )
 
         dT_room = (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass
         dT_slab = (thermal_power - q_slab_to_room) / p.slab_thermal_mass
@@ -2060,10 +2115,12 @@ class ThermalModel:
         new_room = state.room_temperature + dT_room * dt_hours
         new_slab = state.slab_temperature + dT_slab * dt_hours
 
-        # ``replace`` carries every field not overridden — enumerating them
-        # here silently reset the legionella clock and the external-heat flag
-        # to their defaults on every simulated step.
-        return replace(
+        # ``_copy_state_with`` carries every field not overridden — a field
+        # enumerated here silently reset the legionella clock and the
+        # external-heat flag to their defaults on every simulated step (the
+        # same trap ``dataclasses.replace`` exists to avoid; see its
+        # docstring for the equivalence and why the cheap copy is sound).
+        return _copy_state_with(
             state,
             room_temperature=new_room,
             slab_temperature=new_slab,
@@ -2454,42 +2511,55 @@ class ThermalModel:
                 wind_speed, precipitation, solar_radiation, dt_hours,
                 external_heat_kw, humidity, hour_of_day,
             )
+        # Every sub-step below re-enters with the same outdoor, wind, rain,
+        # solar and humidity, so the three per-call environment constants
+        # are computed once here and handed down (see
+        # ``_simulate_step_single``'s leading parameters). The stability
+        # subdivision multiplies this loop into the hottest path the solver
+        # has; recomputing them per sub-step priced the sysid rollout out
+        # of its own harness budget (#1723).
+        cop = self.compute_cop(outdoor_temp, humidity=humidity)
+        u_eff = self.effective_heat_loss_coefficient(
+            self.params.heat_loss_coefficient, wind_speed, precipitation
+        )
+        q_solar = self.compute_solar_gain(solar_radiation)
         for _ in range(n_sub):
             state = self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
+                _cop=cop, _u_eff=u_eff, _q_solar=q_solar,
             )
         return state
 
     def _stability_substeps(
         self, wind_speed: float, precipitation: float, dt_hours: float
     ) -> int:
-        """Sub-steps needed to keep every store's u·dt/C under its margin.
+        """Sub-steps that keep the coupled Euler step matrix monotone.
 
-        The four boundary-floored masses are judged against
-        ``EULER_STABILITY_MAX_RATIO``: nothing crosses its own floor, so a
-        coupling that overshoots merely oscillates and the bound is enough.
-        The buffer is the exception, and the reason it is judged here rather
-        than exempted is the same reason it used to be exempted incorrectly.
+        Each store's row of the step matrix is ``1 - h*a_ii`` on the diagonal
+        and ``h*c_ij/C_i`` towards every neighbour, where ``a_ii`` is its
+        total conductance -- loss plus every coupling -- over its mass. With
+        ``h*a_ii`` at or under ``EULER_MONOTONE_MAX_RATIO`` every entry is
+        non-negative and every row sums to at most 1: the Gershgorin bound
+        on the coupled matrix, so the spectral radius stays at or under 1
+        and no store leaves the envelope of its neighbours. Judging each
+        store's ratio alone against 1.5 did not: a coupled pair at 1.5 each
+        has an eigenvalue near 3 and diverged (R9 D2-s1-01).
 
-        Where the valve throttles, every step draws ``ua*(t_mix - zone)`` out
-        of the tank -- continuously while the valve is wide open -- with the
-        conductance the step uses for both circuits. That is a decaying
-        coupling, so once ``dt*ua/C_buf`` passes 1 explicit Euler no longer
-        decays toward the zone: it overshoots past it, and an overshoot past
-        the floor is exactly what the discharge bound snaps (T_buf pinned to
-        the coldest zone it feeds, where ``emitter_delivery`` is already zero
-        and the pump's whole output lands in the tank). The tank then rings,
-        and its trough stops being a monotone function of the commanded power
-        -- the shipped 35 L valved config lost 43.47 K on a +1 kW bump and
-        9.05e-2 K on a +1e-3 kW bump. Like the max() in ``emitter_delivery``
-        and the min() on ``t_mix``, the snap is a large-step artifact, so the
-        buffer is judged against ``EULER_MONOTONE_MAX_RATIO``.
-
-        An unvalved buffer is a pass-through (``q = rad_fraction*thermal_power``
-        does not depend on T_buf), so it has no u·dt/C to bound; a small
-        valved separator tank is substepped like any other, not exempted.
+        Where the valve throttles, the emitters are part of that matrix.
+        Each step draws ``ua*(t_mix - zone)`` out of the tank with the
+        conductance both circuits are backed out of the nameplate output at,
+        so the buffer's row carries both circuits and the upper zone and the
+        slab each carry their own (``t_mix`` is the tank while the valve is
+        wide open, the curve while it regulates; either way the zone's row
+        holds the conductance). Past a buffer row of 1 explicit Euler
+        overshoots the zone, and the discharge bound snaps the overshoot
+        (T_buf pinned to the coldest zone it feeds) -- the shipped 35 L
+        valved config lost 43.47 K on a +1 kW bump before the buffer was
+        judged. An unvalved buffer is a pass-through (``q =
+        rad_fraction*thermal_power`` does not depend on T_buf), so it adds
+        nothing to any row.
         """
         p = self.params
         if p.two_zone_enabled:
@@ -2501,11 +2571,28 @@ class ThermalModel:
                 wind_speed * 0.5,
                 precipitation * 0.5,
             )
+            ua_rad = ua_floor = buf_row = 0.0
+            if mixing_valve.is_throttling(p.mixing_valve_mode):
+                # The same conductances and C_buf fallback the throttled
+                # branch of `_simulate_step_two_zone` builds, so the count
+                # matches the stiffness the step actually integrates.
+                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+                design_dt = max(p.emitter_design_delta_t, 1.0)
+                ua_rad = p.radiator_power_fraction * design_power / design_dt
+                ua_floor = (
+                    (1.0 - p.radiator_power_fraction) * design_power / design_dt
+                )
+                c_buf = p.buffer_tank_thermal_mass
+                if c_buf < 1e-6:
+                    c_buf = 0.04  # the step's own fallback
+                buf_row = design_power / design_dt / c_buf
             worst = max(
-                (u_upper + p.inter_zone_transfer) / p.upper_floor_thermal_mass,
+                (u_upper + p.inter_zone_transfer + ua_rad)
+                / p.upper_floor_thermal_mass,
                 (u_lower + p.inter_zone_transfer + p.slab_heat_transfer)
                 / p.lower_floor_thermal_mass,
-                p.slab_heat_transfer / p.slab_thermal_mass,
+                (p.slab_heat_transfer + ua_floor) / p.slab_thermal_mass,
+                buf_row,
             )
         else:
             u_eff = self.effective_heat_loss_coefficient(
@@ -2515,25 +2602,7 @@ class ThermalModel:
                 (u_eff + p.slab_heat_transfer) / p.room_thermal_mass,
                 p.slab_heat_transfer / p.slab_thermal_mass,
             )
-        buf_ratio = 0.0
-        if p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode):
-            # The same numerator and denominator the throttled branch of
-            # `_simulate_step_two_zone` builds: both circuits' conductance is
-            # backed out of the nameplate output at `emitter_design_delta_t`,
-            # and the step's own C_buf fallback is mirrored so the count
-            # matches the stiffness the step actually integrates.
-            ua_buf = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(
-                p.emitter_design_delta_t, 1.0
-            )
-            c_buf = p.buffer_tank_thermal_mass
-            if c_buf < 1e-6:
-                c_buf = 0.04  # the step's own fallback, so the count matches it
-            buf_ratio = ua_buf / c_buf * dt_hours
-        ratio = max(
-            worst * dt_hours / EULER_STABILITY_MAX_RATIO,
-            buf_ratio / EULER_MONOTONE_MAX_RATIO,
-        )
-        return max(1, int(np.ceil(ratio)))
+        return max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))
 
 
     def simulate_trajectory(
@@ -3095,6 +3164,7 @@ class ThermalModel:
         valve_targets: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
         coil_wood_read: np.ndarray | None = None,
+        end_state: list[ThermalState] | None = None,
     ) -> tuple[
         np.ndarray,
         np.ndarray,
@@ -3115,6 +3185,9 @@ class ThermalModel:
                 wood temperature each step's coil reduction reads: after that
                 step's space update, before the coil's drain -- a temperature
                 neither ``wood_temps[i]`` nor ``wood_temps[i + 1]`` is.
+            end_state: Optional list; the trajectory's final state (every
+                store, the coil's wood debit included) is appended to it,
+                so a settle-up reads the end the published arrays end on.
 
         Returns:
             Tuple of (room_temps, slab_temps, upper_temps, lower_temps,
@@ -3190,31 +3263,14 @@ class ThermalModel:
 
             draw_i = float(dhw_draw_rates[i])
             if coil and state.wood_tank_temperature is not None:
-                # Refill water arrives preheated by the wood tank; the coil's
-                # heat leaves that tank in the same step, floored at the
-                # mains temperature it can never cool below. The mains
-                # temperature is the shared inlet reference — the same number
-                # the draw was computed from — so the coil's cold-side base
-                # and the wood tank's floor are one value, not two.
+                # Refill water arrives preheated by the wood tank, debited
+                # from that tank in the same step on the DHW tank's own
+                # draw scale (`apply_dhw_coil`).
                 if coil_wood_read is not None:
                     coil_wood_read[i] = state.wood_tank_temperature
-                draw_i, q_coil = dhw_coil_draw_reduction(
-                    draw_i,
-                    state.wood_tank_temperature,
-                    self.params.dhw_setpoint,
-                    inlet_temp=self.params.dhw_inlet_reference,
+                draw_i = self.apply_dhw_coil(
+                    state, draw_i, state.dhw_temperature, dt_hours
                 )
-                if q_coil > 0.0:
-                    # The capacity is the raw one, not a floor: this decrement
-                    # and the space step above it are one iteration of one
-                    # store's dynamics, and the step already divides by
-                    # `p.wood_tank_thermal_mass` unguarded (D2-01).
-                    state.wood_tank_temperature = max(
-                        self.params.dhw_inlet_reference,
-                        state.wood_tank_temperature
-                        - q_coil * dt_hours
-                        / self.params.wood_tank_thermal_mass,
-                    )
 
             # DHW simulation (runs in parallel with space heating)
             cop_dhw = self.compute_cop_dhw(
@@ -3247,6 +3303,8 @@ class ThermalModel:
 
             current_hour += dt_hours
 
+        if end_state is not None:
+            end_state.append(state)
         return (
             room_temps,
             slab_temps,
@@ -3256,6 +3314,46 @@ class ThermalModel:
             buffer_temps,
             wood_temps,
         )
+
+    def apply_dhw_coil(
+        self,
+        state: ThermalState,
+        draw_kw: float,
+        dhw_temp: float,
+        dt_hours: float,
+    ) -> float:
+        """Run one step of the wood-tank refill coil; return the reduced draw.
+
+        The caller has checked ``dhw_coil_active``; a state with no wood
+        reading passes the draw through untouched.
+        ``dhw_coil_draw_reduction`` splits the nominal draw; the DHW step
+        then debits a tank at ``dhw_temp`` only ``dhw_draw_scale`` of the
+        reduced half, so the coil spares it that same share of the coil
+        half. The wood tank gives up exactly that share -- debiting it the
+        nominal coil heat deleted ``(1 - scale) * coil`` per step below the
+        mixed-use temperature (R9 D2-s1-02). The mains temperature is the
+        shared inlet reference, the number the draw was computed from, so
+        the coil's cold-side base and the wood tank's floor are one value.
+        Mutates ``state.wood_tank_temperature``.
+        """
+        wood = state.wood_tank_temperature
+        if wood is None:
+            return draw_kw
+        p = self.params
+        inlet = p.dhw_inlet_reference
+        draw_kw, q_coil = dhw_coil_draw_reduction(
+            draw_kw, wood, p.dhw_setpoint, inlet_temp=inlet,
+        )
+        if q_coil > 0.0:
+            # The capacity is the raw one, not a floor: this decrement and
+            # the space step before it are one iteration of one store's
+            # dynamics, and the step already divides by
+            # `p.wood_tank_thermal_mass` unguarded (D2-01).
+            q_coil *= dhw_draw_scale(dhw_temp, inlet)
+            state.wood_tank_temperature = max(
+                inlet, wood - q_coil * dt_hours / p.wood_tank_thermal_mass,
+            )
+        return draw_kw
 
     def update_slab_from_return_temp(
         self, state: ThermalState, return_temp: float

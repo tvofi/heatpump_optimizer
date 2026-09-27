@@ -345,10 +345,8 @@ DEFAULT_DHW_WOOD_COIL_ENABLED: Final = False
 # deliver, and the failure directions are not symmetric. Constant, not
 # config, until someone measures a real coil; no learner in v1.
 DHW_WOOD_COIL_EFFECTIVENESS: Final = 0.5
-# The mains temperature the DHW draw model already assumes (thermal_model's
-# dhw_draw_power heats from ~10 °C) — named so the coil math and the draw
-# model cannot quietly disagree about the cold end.
-DHW_COLD_WATER_TEMP: Final = 10.0  # °C
+# The coil's cold end is the draw's own: ``ThermalParameters.dhw_inlet_reference``
+# at every call site, whose default is DEFAULT_DHW_INLET_TEMP below.
 
 # --- Topology layout keys (issue #40) --------------------------------------
 #

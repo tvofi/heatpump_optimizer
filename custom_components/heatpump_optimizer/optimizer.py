@@ -80,7 +80,6 @@ from .const import (
     DEFAULT_PRICE_WEIGHT,
     DEFAULT_TARGET_TEMP,
     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
-    DHW_MIXED_USE_TEMP,
     DHW_QUANTILE_MIN_EVENTS,
     WOOD_TANK_MAX_TEMP,
 )
@@ -91,6 +90,7 @@ from .thermal_model import (
     ThermalParameters,
     ThermalState,
     dhw_coil_draw_reduction,
+    dhw_draw_scale,
     wood_share,
 )
 from .tariff import (
@@ -2425,7 +2425,7 @@ class HeatPumpOptimizer:
             # it, it wanted more power than it could have; its unconstrained
             # demand there is at least the full compressor.
             pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)
-            wood_temps = self._dhw_coil_wood_forecast(h, space_power)
+            wood_temps = self._dhw_coil_wood_forecast(h, space_power, dhw_power)
             coil_replan = False
             if wood_temps is not None:
                 hours = np.asarray(h.step_hours, dtype=float) % 24.0
@@ -4621,11 +4621,14 @@ class HeatPumpOptimizer:
         self,
         h: _Horizon,
         space_power: np.ndarray | None = None,
+        dhw_power: np.ndarray | None = None,
     ) -> np.ndarray | None:
         """Per-step wood temps the DHW coil credit is priced against (#400).
 
-        Read from ``simulate_trajectory_with_dhw`` with no electric DHW, the
-        physics the published plan runs: standby loss, ``wood_share``, the
+        Read from ``simulate_trajectory_with_dhw`` with the DHW plan in hand
+        (none before the first), the physics the published plan runs -- the
+        coil drains the wood tank on the DHW tank's own draw scale, so the
+        tank's plan moves the read (R9 D2-s1-02): standby loss, ``wood_share``, the
         external-heat forecast and the coil's own drain, coupled step by step.
         A re-derived drain beside it drifted both ways (RCA coil-drain, R8-P3).
         Step i is the temperature the coil reads mid-step, not the trajectory's
@@ -4647,7 +4650,11 @@ class HeatPumpOptimizer:
         *_, wood = self.model.simulate_trajectory_with_dhw(
             initial_state=h.initial_state,
             space_power_schedule=power,
-            dhw_power_schedule=np.zeros(n),
+            dhw_power_schedule=(
+                np.zeros(n)
+                if dhw_power is None
+                else np.asarray(dhw_power, dtype=float)[:n]
+            ),
             outdoor_temps=h.outdoor_temps,
             wind_speeds=h.wind_speeds,
             precipitation=h.precipitation,
@@ -5688,7 +5695,6 @@ class HeatPumpOptimizer:
         capacity = max(params.dhw_tank_thermal_mass, 1e-6)
         ua = params.dhw_tank_heat_loss_coefficient
         inlet = params.dhw_inlet_reference
-        span = max(DHW_MIXED_USE_TEMP - inlet, 1e-6)
         temp = float(initial_temp)
 
         for i in range(len(plan)):
@@ -5728,9 +5734,7 @@ class HeatPumpOptimizer:
             # be heated — `allowed` comes out negative and floors at zero,
             # so the hours after a disinfection cycle stay closed to
             # re-heating exactly as before.
-            q_draw = float(draw_rates[i]) * min(
-                1.0, max(0.0, temp - inlet) / span
-            )
+            q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
             q_loss = ua * (temp - DHW_AMBIENT_TEMP)
             headroom_c = float(ceiling[i]) - temp
             allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
@@ -6303,6 +6307,7 @@ class HeatPumpOptimizer:
         )
 
         # Simulate with optimal schedule
+        published_end: list[ThermalState] = []
         (
             room_temps,
             slab_temps,
@@ -6325,16 +6330,18 @@ class HeatPumpOptimizer:
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets,
             humidity=h.humidity,
+            end_state=published_end,
         )
         # The achieved objective, for candidate comparison across valve
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))
 
-        # Baseline cost
+        # Baseline cost; its house owns the plan's refill coil and draws.
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt, comfort_targets,
             external_heat_kw=h.external_heat_kw, humidity=h.humidity,
+            coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             self._baseline_dhw_economics(
@@ -6346,14 +6353,10 @@ class HeatPumpOptimizer:
         # Settle up the heat the optimized plan left unstored at the horizon end.
         # The baseline reference ends with a tank at setpoint, so compare against
         # that rather than against the optimized tank's own starting point.
+        # The plan's end is its published trajectory's last state; a space-only
+        # replay skipped the coil's wood debit (R9 D2-s2-03).
         baseline_end.dhw_temperature = dhw_setpoint
-        optimized_end = self._replay_end_state(
-            initial_state, optimal_space, outdoor_temps, wind_speeds,
-            precipitation, solar_radiation, dt,
-            external_heat_kw=h.external_heat_kw,
-            valve_targets=h.valve_targets, humidity=h.humidity,
-        )
-        optimized_end.dhw_temperature = float(dhw_temps[-1])
+        optimized_end = published_end[0]
         # The tank only has to satisfy the requirement in force at the end of
         # the horizon. Outside a demand window that is the idle minimum, so a
         # cold tank at midnight is not treated as borrowed heat.
@@ -6704,6 +6707,8 @@ class HeatPumpOptimizer:
         comfort_targets: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
+        coil_draws: np.ndarray | None = None,
+        coil_dhw_temp: float = 0.0,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -6726,10 +6731,14 @@ class HeatPumpOptimizer:
 
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
-        horizon.
+        horizon. ``coil_draws`` (the hot-water path's raw draws) runs the
+        wood-tank refill coil on that state each step, from a tank at
+        ``coil_dhw_temp``, as the plan's own trajectory does.
         """
         n_steps = len(outdoor_temps)
         p = self.model.params
+        if not p.dhw_coil_active:
+            coil_draws = None
 
         baseline_power = np.zeros(n_steps)
         state = initial_state
@@ -6814,6 +6823,10 @@ class HeatPumpOptimizer:
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
                 external_heat_kw=ext_i, humidity=hum_i,
             )
+            if coil_draws is not None:
+                self.model.apply_dhw_coil(
+                    state, float(coil_draws[i]), coil_dhw_temp, dt
+                )
 
         return baseline_power, state
 
