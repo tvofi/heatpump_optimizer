@@ -64,12 +64,12 @@
   "P7": {
     "kind": "production",
     "mechanism": "Naive wall-clock datetime arithmetic across a DST transition",
-    "rounds": [2, 3, 5],
-    "instances": ["R2 D2-03", "R3 D1-03", "R3 D2-02", "R5 D1-08"],
-    "detector": null,
+    "rounds": [2, 3, 5, 9],
+    "instances": ["R2 D2-03", "R3 D1-03", "R3 D2-02", "R5 D1-08", "R9 D14-s4-01"],
+    "detector": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py (its DST tracer section; tests/features.py runs the script)",
     "detector_idea": "Every datetime-difference and grid-construction site across the DST transition days, against a UTC reference",
-    "barrier": null,
-    "status": "open"
+    "barrier": "tests/dst_checks.py's DST tracer on the PR gate (F1.1, #1665): the committed replay day, shifted onto a spring, an autumn and a plain day, runs through replay.run_fixture with Home Assistant's zoned clock traced, and a subtraction of two stamps sharing the zone, or a + timedelta on one, whose result differs from the UTC arithmetic fails the check, keyed on (file, function). Reaches every seam a replayed cycle executes, including operands the static enumerator cannot name (result.timestamps); not reached: a seam no replayed cycle drives, and arithmetic between two datetimes production builds itself from stored text. tariff._window_slot is exempt: a wall-clock tariff label by definition",
+    "status": "barriered"
   },
   "P8": {
     "kind": "production",
