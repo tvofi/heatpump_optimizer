@@ -306,6 +306,13 @@ export function checkRequiredContexts(rel, text, live) {
 // 9: D11-s1-01's `dismiss_stale_reviews_on_push` moved with this check green,
 // because it compared context names and ids and nothing else). ONE definition:
 // field_coverage.mjs imports it as the ruleset arm's IGNORE list.
+// The fields GitHub omits from a ruleset read by a token without admin, which
+// is every Actions GITHUB_TOKEN. Only these may be absent and skipped; any
+// other recorded field missing from the live read is a removal and fires.
+export const RULESET_TOKEN_HIDDEN = ['bypass_actors']
+// The one skip line that omission prints; env-matrix's "nothing skipped" row
+// accepts exactly this shape and no other skip.
+export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ field `(bypass_actors)` is absent from the live read \(this token cannot see it\); it is UNCHECKED this run, not confirmed$/
 export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
 // A ruleset object as `path -> JSON value` leaves. Arrays are sorted by their
 // members' JSON first, so an order GitHub does not guarantee is not a drift.
@@ -394,11 +401,10 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
   }
   for (const [id, obj] of Object.entries(liveObjs)) {
     if (!recObjs || !recObjs[id]) continue
-    // A recorded top-level field the live read does not carry at all is
-    // UNREADABLE, not removed: GitHub omits `bypass_actors` for a token without
-    // admin, which is every Actions GITHUB_TOKEN. Skipped, said out loud; an
-    // absence inside a field the read did carry still fires.
-    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && !RULESET_VOLATILE.includes(k))
+    // A RULESET_TOKEN_HIDDEN field the live read does not carry at all is
+    // UNREADABLE, not removed. Skipped, said out loud; `[]`, `null`, any other
+    // missing field and an absence inside a field the read carried all fire.
+    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && RULESET_TOKEN_HIDDEN.includes(k))
     for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`)
     const under = (k) => unread.some((u) => k === u || k.startsWith(u + '.') || k.startsWith(u + '['))
     const want = rulesetLeaves(recObjs[id])
