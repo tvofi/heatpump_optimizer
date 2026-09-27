@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 353.7,
+   "seconds": 274.5,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -806,6 +806,7 @@
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/battery.py",
+   "custom_components/heatpump_optimizer/binary_sensor.py",
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/climate.py",
@@ -882,6 +883,7 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
    "tests/hastub/homeassistant/components/button.py",
    "tests/hastub/homeassistant/components/climate.py",
    "tests/hastub/homeassistant/components/datetime.py",
@@ -912,6 +914,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
+   "tests/replay.py",
+   "tests/replay/synthetic-dhw-only.json",
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
