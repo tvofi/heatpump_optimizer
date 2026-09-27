@@ -1,0 +1,33 @@
+
+=== Stress and economics ===
+============================================================================================
+sysid-estimator frontier: gate-passing cells through the production fit
+ridge width = 0.1; interval bar = 0.09531017980432493
+============================================================================================
+typical_slab  sigma=0.01  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -3.6/+1.5 % tau/true p5/p95 0.959/1.068
+typical_slab  sigma=0.02  fitted 12/16 within10 12  interval-refused  4 aborted  0  UA p5/p95 -5.7/+4.4 % tau/true p5/p95 0.907/1.139
+typical_slab  sigma=0.05  fitted  1/16 within10  0  interval-refused 14 aborted  1  UA p5/p95 +11.9/+11.9 % tau/true p5/p95 0.964/0.964
+heavy_old     sigma=0.01  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -3.0/+0.9 % tau/true p5/p95 0.913/1.100
+heavy_old     sigma=0.02  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -5.9/+2.7 % tau/true p5/p95 0.840/1.132
+heavy_old     sigma=0.05  fitted 12/16 within10 12  interval-refused  4 aborted  0  UA p5/p95 -9.0/+7.4 % tau/true p5/p95 0.834/1.300
+context (NOT pinned): the sigma=0.02 row is the frontier's -8.6/+9.5 cell; its refusals land on the gate itself and its p95 touches the bar, so counts there are printed, never asserted
+shipped preset light_new    : armed=True reason=''
+shipped preset heavy_old    : armed=True reason=''
+shipped preset typical_slab : armed=True reason=''
+unridged control: fitted 0/16 (ridge deleted)
+
+########## RESULT lines ##########
+RESULT gatepass_plants=2 count
+RESULT draws_per_cell=16 count
+RESULT fitted_typical_s001=16 count
+RESULT within10_typical_s001=16 count
+RESULT interval_refused_typical_s005=14 count
+RESULT fitted_heavy_s001=16 count
+RESULT within10_heavy_s001=16 count
+RESULT interval_refused_heavy_s005=4 count
+RESULT shipped_presets_armed=3 count
+RESULT shipped_presets_gate_named=0 count
+RESULT unridged_fitted_typical_s001=0 count
+RESULT thread_factor=1.0 ratio
+RESULT load1=1.87 ratio
+RESULT swapins=0 count

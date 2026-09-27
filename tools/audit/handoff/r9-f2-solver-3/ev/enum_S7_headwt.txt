@@ -1,0 +1,3 @@
+149:EULER_MONOTONE_MAX_RATIO: float = 1.0
+2485:        ``h*a_ii`` at or under ``EULER_MONOTONE_MAX_RATIO`` every entry is
+2547:        return max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))

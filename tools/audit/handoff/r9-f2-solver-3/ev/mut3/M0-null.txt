@@ -1,0 +1,28 @@
+
+=== f23 ===
+  ok   R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, radiator row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, radiator row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, floor row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, floor row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1
+  ok   R9-F2.3 D2-s1-01 (design delta-T 0.5 K): the count is the step's own stiffness -- monotone at n_sub, and one sub-step fewer is not
+  ok   R9-F2.3 D2-s1-01 (COP 0.5, delta-T 0.5 K): the count is the step's own stiffness -- monotone at n_sub, and one sub-step fewer is not
+  ok   R9-F2.3 D2-s1-01 (empty buffer): the count is the step's own stiffness -- monotone at n_sub
+  ok   R9-F2.3 D2-s1-02: the coil takes from the wood tank exactly the heat it spares the DHW tank, below the mixed-use temperature as above it
+  ok   R9-F2.3 D2-s1-02 (control): the coil genuinely draws on the wood tank in every cell, so the identity above is not an empty zero
+  ok   R9-F2.3 D2-s1-02: the tank debit, the coil's wood debit and the planner's capacity clamp read one draw-scale rule
+  ok   R9-F2.3 D2-s1-02: an inlet at or above the mixed-use temperature scales the draw to 1 above it and 0 at it, never past [0, 1]
+  ok   R9-F2.3 D2-s1-02: with no wood tank the coil passes the draw through untouched
+  ok   R9-F2.3 D2-s2-03: the hot-water settle-up's plan end is the published trajectory's last state, store for store
+  ok   R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than its no-coil twin -- it owns the coil the plan owns
+  ok   R9-F2.3 D2-s2-03: with the coil switched off, the reference's draws leave its wood tank as its no-coil twin's
+  ok   R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default follows DEFAULT_DHW_INLET_TEMP when it moves
+  ok   R9-F2.3 D5-s2-03: no second cold-water constant claims to be the draw model's cold end
+
+ALL 24 F23 PASSED

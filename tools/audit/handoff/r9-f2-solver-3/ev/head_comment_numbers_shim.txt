@@ -1,0 +1,28 @@
+ROW probe derate_floor [defrost.py:109 'less than half'] comment=0.5 measured=0.55 MISMATCH
+RESULT derate_floor_mismatch=1 row
+RESULT draw_cold_end_off_constant=46 of 47 inlet settings
+ROW probe draw_cold_end [const.py:337 'draw model already assumes ~10'] comment=0 measured=46 MISMATCH
+RESULT draw_cold_end_mismatch=1 row
+ROW probe valve_write_cadence [const.py:750 'every 15 minutes'] comment=15 measured=30 MISMATCH
+RESULT valve_write_cadence_mismatch=1 row
+ROW probe stale_floor_interval [coordinator.py:640 'short 5-minute update interval'] comment=5 measured=10 MISMATCH
+RESULT stale_floor_interval_mismatch=1 row
+ROW hold history_fortnight_days [accuracy.py:34] comment=14 measured=14 holds
+RESULT history_fortnight_days_mismatch=0 row
+ROW hold vent_three_samples [const.py:905] comment=3 measured=3 holds
+RESULT vent_three_samples_mismatch=0 row
+ROW hold stale_floor_minutes [coordinator.py:639 'floored at 90 minutes'] comment=90 measured=90 holds
+RESULT stale_floor_minutes_mismatch=0 row
+ROW hold snapshot_ring_weeks [snapshots.py:40 'two months of weekly'] comment=8 measured=8 holds
+RESULT snapshot_ring_weeks_mismatch=0 row
+ROW hold curve_step_k [curve_learning.py:47 '3 days x (0.5/7) ~0.2'] comment=0.2 measured=0.2 holds
+RESULT curve_step_k_mismatch=0 row
+RESULT numeric_citation_mismatches=3 rows
+RESULT draw_coupling_claim_mismatches=1 rows
+RESULT comment_number_mismatches=4 rows
+RESULT comment_number_holds_checked=5 rows
+RESULT comment_number_hold_failures=0 rows
+RESULT thread_factor=1.000
+RESULT load1=3.13
+RESULT swapins=0
+# perturb=False

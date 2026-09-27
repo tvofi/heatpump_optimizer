@@ -1,0 +1,8 @@
+custom_components/heatpump_optimizer/config_flow.py:151:    DEFAULT_DHW_INLET_TEMP,
+custom_components/heatpump_optimizer/config_flow.py:1610:    _F("hot_water_tank", CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP, _number(2, 25, 0.5, '°C'), group="inlet"),
+custom_components/heatpump_optimizer/const.py:351:DHW_COLD_WATER_TEMP: Final = 10.0  # °C
+custom_components/heatpump_optimizer/const.py:828:DEFAULT_DHW_INLET_TEMP: Final = 10.0
+custom_components/heatpump_optimizer/thermal_model.py:100:    DHW_COLD_WATER_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:469:    dhw_inlet_temp: float = 10.0  # °C
+custom_components/heatpump_optimizer/thermal_model.py:1320:    inlet_temp: float = DHW_COLD_WATER_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:1335:    site. Hard-coding ``DHW_COLD_WATER_TEMP`` here while the draw used the

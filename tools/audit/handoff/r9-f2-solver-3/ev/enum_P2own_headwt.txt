@@ -1,0 +1,20 @@
+custom_components/heatpump_optimizer/const.py:332:DHW_MIXED_USE_TEMP: Final = 40.0
+custom_components/heatpump_optimizer/optimizer.py:3476:            baseline_draw, _ = dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/optimizer.py:4066:        baseline_power, baseline_end = self._compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:4157:        optimized_end = self._replay_end_state(
+custom_components/heatpump_optimizer/optimizer.py:4681:            out[i], _ = dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/optimizer.py:5730:            q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
+custom_components/heatpump_optimizer/optimizer.py:6333:        baseline_power, baseline_end = self._compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:6692:    def _compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:6820:                self.model.apply_dhw_coil(
+custom_components/heatpump_optimizer/optimizer.py:6989:    def _replay_end_state(
+custom_components/heatpump_optimizer/thermal_model.py:84:    DHW_MIXED_USE_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:1315:def dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/thermal_model.py:1358:def dhw_draw_scale(dhw_temp: float, inlet_temp: float) -> float:
+custom_components/heatpump_optimizer/thermal_model.py:1362:    above ``DHW_MIXED_USE_TEMP`` the tap mixes, so the enthalpy removed stays
+custom_components/heatpump_optimizer/thermal_model.py:1368:    span = max(DHW_MIXED_USE_TEMP - inlet_temp, 1e-6)
+custom_components/heatpump_optimizer/thermal_model.py:1922:        q_draw = q_draw * dhw_draw_scale(dhw_temp, p.dhw_inlet_reference)
+custom_components/heatpump_optimizer/thermal_model.py:3213:                draw_i = self.apply_dhw_coil(
+custom_components/heatpump_optimizer/thermal_model.py:3260:    def apply_dhw_coil(
+custom_components/heatpump_optimizer/thermal_model.py:3286:        draw_kw, q_coil = dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/thermal_model.py:3294:            q_coil *= dhw_draw_scale(dhw_temp, inlet)

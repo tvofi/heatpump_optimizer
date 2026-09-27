@@ -1,0 +1,15 @@
+custom_components/heatpump_optimizer/const.py:332:DHW_MIXED_USE_TEMP: Final = 40.0
+custom_components/heatpump_optimizer/optimizer.py:83:    DHW_MIXED_USE_TEMP,
+custom_components/heatpump_optimizer/optimizer.py:3476:            baseline_draw, _ = dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/optimizer.py:4066:        baseline_power, baseline_end = self._compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:4157:        optimized_end = self._replay_end_state(
+custom_components/heatpump_optimizer/optimizer.py:4681:            out[i], _ = dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/optimizer.py:5691:        span = max(DHW_MIXED_USE_TEMP - inlet, 1e-6)
+custom_components/heatpump_optimizer/optimizer.py:6334:        baseline_power, baseline_end = self._compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:6350:        optimized_end = self._replay_end_state(
+custom_components/heatpump_optimizer/optimizer.py:6696:    def _compute_baseline_power(
+custom_components/heatpump_optimizer/optimizer.py:6983:    def _replay_end_state(
+custom_components/heatpump_optimizer/thermal_model.py:84:    DHW_MIXED_USE_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:1316:def dhw_coil_draw_reduction(
+custom_components/heatpump_optimizer/thermal_model.py:1906:        span = max(DHW_MIXED_USE_TEMP - p.dhw_inlet_reference, 1e-6)
+custom_components/heatpump_optimizer/thermal_model.py:3201:                draw_i, q_coil = dhw_coil_draw_reduction(

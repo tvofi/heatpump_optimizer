@@ -1,0 +1,54 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             9c6b923f2614936aad89e1408dabca8ddd721322
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 91 error(s) hold 199 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  check    claim files            tests/golden/claimed_drift.txt  changed -- intended only if this branch claims drift
+  ok       claims hygiene         claims hygiene: 9c6b923f2614936aad89e1408dabca8ddd721322 ok
+  REFUSE   closures               failed while being recorded: tests/card_drift.mjs (exit 1) -- fix the script first; a re-derive would record the same truncation; left to CI: tests/stress.py
+  ok       closes #1671 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             6:each
+             6:every
+             6:never
+             8:all
+             9:all
+             9:every
+             40:never
+             44:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             18 c
+             363 a
+             405991 k
+             388882 v
+             15 a
+             16 p
+             10 p
+             3631 u
+  check    policy corpus -- 2 file(s) origin/main moved since your merge base and this branch does not touch: the copy every seat here reads is not the current contract. Re-read them, or update the branch.
+             .claude/rules/ratchet-budgets.md
+             CLAUDE.md
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in $S/f23/body.md
+  ok       figures                FIGURES: 2 resolved, 1 not verified, 0 refused
+  WARN     push order             HEAD is 10 commit(s) ahead of origin/claude/project-thread-s4brrm -- A PUSH MUST FOLLOW THIS BODY EDIT
+
+  !!! HEAD is 10 commit(s) ahead of origin/claude/project-thread-s4brrm, so `pr-contract` -- which reads
+  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
+  !!! fires before the push, the `edited` run setting it fires included.
+  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
+  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
+  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
+  !!! If setting the body is your LAST action, the refusal stays on your head.
+
+PRE-PR: ef071c1a55e70d5774fbe9b1535386f00917e7eb 0000000000001000

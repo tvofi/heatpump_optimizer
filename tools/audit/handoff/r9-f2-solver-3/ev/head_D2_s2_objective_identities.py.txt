@@ -1,0 +1,19 @@
+# mismatch valve_storage_smart_write        room    end_state - trajectory_end = +0.062659 K
+# mismatch valve_storage_smart_write        slab    end_state - trajectory_end = +0.053028 K
+# mismatch valve_storage_smart_write        upper   end_state - trajectory_end = +0.132234 K
+# mismatch valve_storage_smart_write        lower   end_state - trajectory_end = -0.006915 K
+# mismatch valve_storage_smart_write        buffer  end_state - trajectory_end = +0.134859 K
+# worst cost scenario ('', 0.0)
+# valve_storage_smart_write: savings with trajectory-end settlement - published = +0.0000 (published savings 80.1631, baseline 144.7653)
+RESULT savings_overstatement_max=-0.0000 currency
+RESULT savings_overstatement_pct_of_baseline=-0.000 pct
+RESULT scenarios=50 count
+RESULT cost_err=0.000e+00 currency
+RESULT savings_err=0.000e+00 currency
+RESULT end_mismatch=5 count
+RESULT end_mismatch_scenarios=1 count
+RESULT end_mismatch_max_abs=0.134859 K
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=3.66
+RESULT swapins=0

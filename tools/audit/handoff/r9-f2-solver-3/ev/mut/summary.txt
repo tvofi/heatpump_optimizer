@@ -1,0 +1,21 @@
+M0-null: rc=0 fails=0
+M1-ratio-1.5: rc=1 fails=6
+      FAIL R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope by 2.843e+35 K at
+      FAIL R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.3000,
+      FAIL R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope by 7.128e+17 K at
+      FAIL R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.3000,
+      FAIL R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope b
+      FAIL R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [mi
+M2-no-ua-rad-row: rc=0 fails=0
+M3-no-ua-floor-row: rc=0 fails=0
+M4-no-buffer-row: rc=0 fails=0
+M5-coil-unscaled: rc=1 fails=1
+      FAIL R9-F2.3 D2-s1-02: the coil takes from the wood tank exactly the heat it spares the DHW tank, below the mixed-use temperature as above it  [residual 0.405
+M6-replayed-end: rc=1 fails=1
+      FAIL R9-F2.3 D2-s2-03: the hot-water settle-up's plan end is the published trajectory's last state, store for store  [end gaps (K): {'wood_tank_temperature': 
+M7-reference-no-coil: rc=1 fails=1
+      FAIL R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than its no-coil twin -- it owns the coil the plan owns  [reference wood end 20.792082 
+M8-inlet-literal: rc=1 fails=1
+      FAIL R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default follows DEFAULT_DHW_INLET_TEMP when it moves  [{'ThermalParameters()': 10.0, 'Thermal
+M9-coil-default-literal: rc=1 fails=1
+      FAIL R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default follows DEFAULT_DHW_INLET_TEMP when it moves  [{'ThermalParameters()': 12.5, 'Thermal
