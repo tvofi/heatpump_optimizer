@@ -4054,11 +4054,16 @@ class HeatPumpOptimizer:
             # own objective scores 0.83 worse. So the guess is refined at the
             # half price first; what ships is still decided by the true
             # objective below, against every other start.
+            # One plain L-BFGS-B run, not a multi-start: it moves a start, it
+            # is not one.
             self._floor_l1_scale = 0.5
             try:
-                starts[0] = np.asarray(_multi_start_minimize(
-                    objective, [starts[0]], bounds, maxiter=200,
-                    batch_objective=objective_batch,
+                starts[0] = np.asarray(_scoped_minimize(
+                    objective, starts[0], method="L-BFGS-B", bounds=bounds,
+                    jac=(lambda x: _batch_fd_gradient(
+                        objective_batch, (), x, float(objective(x)), 1e-4, bounds,
+                    )) if _bounds_supported_by_batch(bounds) else None,
+                    options={"maxiter": 200, "ftol": 1e-6, "eps": 1e-4},
                 ).x, dtype=float)
             except Exception:  # pragma: no cover - keep the plain guess
                 pass
