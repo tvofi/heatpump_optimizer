@@ -1,0 +1,52 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             399ef171e4fa6777a2c0648d1d49ae756e1125b1
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 91 error(s) hold 199 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  check    claim files            tests/golden/claimed_drift.txt  changed -- intended only if this branch claims drift
+  ok       claims hygiene         claims hygiene: 399ef171e4fa6777a2c0648d1d49ae756e1125b1 ok
+  ok       closures               scoped recordings are covered; left to CI: tests/stress.py
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             4:every
+             4:all
+             6:every
+             8:every
+             21:each
+             21:every
+             25:never
+             27:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             56 g
+             128 c
+             15 a
+             1653 s
+             363 a
+             97 r
+             877 c
+             221 s
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/f7cfdf80-f258-5ae1-a24b-c66ab4bf7c29/scratchpad/f22/body.md
+  ok       figures                FIGURES: 2 resolved, 0 not verified, 0 refused
+  WARN     push order             HEAD is 1 commit(s) ahead of origin/handoff/r9-f2-2-k1w278 -- A PUSH MUST FOLLOW THIS BODY EDIT
+
+  !!! HEAD is 1 commit(s) ahead of origin/handoff/r9-f2-2-k1w278, so `pr-contract` -- which reads
+  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
+  !!! fires before the push, the `edited` run setting it fires included.
+  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
+  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
+  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
+  !!! If setting the body is your LAST action, the refusal stays on your head.
+
+PRE-PR: 7aa447f5ec9bcdefd7713a3b6ebc2e9ba8ebcf24 0000000000000000
+rc=0

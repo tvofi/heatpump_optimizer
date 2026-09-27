@@ -1,0 +1,11 @@
+
+=== Guard pins (#805 non-coordinator) ===
+  ok   an idle interval teaches the tank cooling rate
+  ok   a wood-coil install captions the hot-water tank
+  ok   a tz-aware wood slot against naive stamps still places energy
+  ok   a tenfold hour does not remain tenfold in the learned shape
+  ok   a legionella run-up stops once the ordinary floor already covers it
+  ok   a starting guess below a pinned bound is lifted to the bound
+  ok   an unchanged ceiling signature does not re-raise the notice
+
+ALL 7 GUARD PIN CHECKS PASSED

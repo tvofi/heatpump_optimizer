@@ -1,0 +1,12 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  ok   R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty make the same calls for 97 rows as for 2 (no per-row interpreter loop)
+  ok   R9-F2.2: every batched comfort and cycling row is its scalar twin byte for byte, C- and Fortran-order, widths 1 to 192 including the production 96
+  ok   R9-F2.2: the scalar cycling penalty is still numpy's own sum of the swings, to the byte
+  ok   R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective inside L-BFGS-B
+  ok   R9-F2.2 D9-s1-02: the fused solve lands on the scalar path's point, byte for byte
+  ok   R9-F2.2 D9-s1-04: a refused weak slot stops simulating at its first breach rather than checking the whole suffix
+  ok   R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the windowed draw pattern compute each once
+  ok   R9-F2.2 D9-s1-71: every input change reaches the next read, and a caller mutating the returned pattern cannot reach the memo
+ALL 3403 FEATURE CHECKS PASSED

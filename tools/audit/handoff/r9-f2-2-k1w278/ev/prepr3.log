@@ -1,0 +1,43 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             dbcca5fda478a419a959ef40a1704ff4a4ce9c7d
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 91 error(s) hold 199 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  check    claim files            tests/golden/claimed_drift.txt  changed -- intended only if this branch claims drift
+  ok       claims hygiene         claims hygiene: dbcca5fda478a419a959ef40a1704ff4a4ce9c7d ok
+  ok       closures               scoped recordings are covered; left to CI: tests/stress.py
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             4:every
+             4:all
+             6:every
+             8:every
+             12:every
+             24:never
+             32:each
+             32:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             56 g
+             128 c
+             15 a
+             1711 a
+             1653 s
+             97 r
+             23512334 t
+             1711 d
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/f7cfdf80-f258-5ae1-a24b-c66ab4bf7c29/scratchpad/f22v3/body.md
+  ok       figures                FIGURES: 3 resolved, 0 not verified, 0 refused
+  ok       push order             origin/handoff/r9-f2-2-k1w278-v3 is at 286560f1 -- local mirror, unfetched
+
+PRE-PR: 286560f11b3138a4d34b20b99a931317ea3cb780 00000000000000000

@@ -1,0 +1,86 @@
+NOT THIS BRANCH'S LIST: tests/golden/card_claimed_drift.txt is byte-for-byte the list dbcca5fda478a419a959ef40a1704ff4a4ce9c7d already claims (39 state(s)), but this branch's three-dot against dbcca5fda478a419a959ef40a1704ff4a4ce9c7d moves no card source, so it did not write that list. Failing it here leaves one remedy -- empty the file -- and a squash-merge applies that deletion to the baseline (#569, #633). Reported, not judged; rewrite it in a change that moves a claimed state.
+ heatpump-optimizer-card  v6.7.2 
+ heatpump-optimizer-card  v6.7.2 
+card_drift: dbcca5fda478a419a959ef40a1704ff4a4ce9c7d = dbcca5fda478, tree = 286560f11b31, 40 states
+  identical  no_plan
+  identical  no_plan_expanded
+  identical  plan_inline
+  identical  plan_inline_sv
+  identical  plan_short_window
+  identical  custom_title_currency
+  identical  hidden_series
+  identical  score_open
+  identical  expanded_plan
+  identical  what_if_off
+  identical  expanded_zoomed
+  identical  draft_dirty_menu_open
+  identical  draft_mid_drag
+  identical  whatif_edited
+  identical  whatif_weekly
+  identical  override_active
+  identical  shared_steps
+  identical  shared_steps_hover
+  identical  tooltip_hover
+  identical  coarse_pointer
+  identical  reduced_motion
+  identical  setup_single_buffer
+  identical  setup_two_tank
+  identical  setup_coil
+  identical  advisor_page
+  identical  layout_editing_dragged
+  identical  layout_editing_tidy
+  identical  picker_open_filtered
+  identical  wood_alert
+  identical  wood_lane
+  identical  wood_whatif
+  identical  away_toggle
+  identical  away_return
+  identical  away_status
+  identical  editor_schema
+  identical  history_panned
+  identical  history_deep_panned
+  identical  history_no_power
+  identical  history_unavailable
+  identical  history_pending
+  STALE CLAIM no_plan -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM no_plan_expanded -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM plan_inline -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM plan_inline_sv -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM plan_short_window -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM custom_title_currency -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM hidden_series -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM score_open -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM expanded_plan -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM what_if_off -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM expanded_zoomed -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM draft_dirty_menu_open -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM draft_mid_drag -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM whatif_edited -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM whatif_weekly -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM override_active -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM shared_steps -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM shared_steps_hover -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM tooltip_hover -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM coarse_pointer -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM reduced_motion -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM setup_single_buffer -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM setup_two_tank -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM setup_coil -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM advisor_page -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM layout_editing_dragged -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM layout_editing_tidy -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM picker_open_filtered -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM wood_alert -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM wood_lane -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM wood_whatif -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM away_toggle -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM away_return -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM away_status -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM history_unavailable -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM history_pending -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM history_panned -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM history_deep_panned -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  STALE CLAIM history_no_power -- listed in tests/golden/card_claimed_drift.txt but this change does not move it
+  NOT THIS BRANCH'S TO REMOVE: the three-dot against dbcca5fda478a419a959ef40a1704ff4a4ce9c7d touches neither the card source nor a solver fixture, so this branch neither caused these claims to go stale nor can cure them, and deleting them here would carry someone else's line onto the baseline at squash-merge. Reported, not judged; remove them in a change that owns the file.
+
+card_drift: identical in all 40 states

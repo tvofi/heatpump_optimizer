@@ -1,0 +1,17 @@
+
+=== typing ruler, source-only (no toolchain needed) ===
+  ok   every recorded typing count is a finite non-negative integer
+  ok   type_ignores did not grow
+  ok   the typing job's hashed lock installs the recorded pins
+  ok   no mypy configuration exists to suppress error codes from
+  ..   census recorded  [0 errors across 0 codes at d8c47a7b02be]
+  ok   guard 5: a failing pinned run reddens a check here
+  ok   guard 5: a passing pinned run does not
+  ok   guard 5: guard 2 refuses an unpinned interpreter rather than measuring
+  ok   the budget barrier refuses every non-finite or malformed count
+  ok   and both lanes refuse a NaN budget before comparing
+  ok   the lock check refuses a lock that disagrees with the budget
+  ok   guard 5: unset prints how to enable it and fails nothing
+  ..   census NOT checked here (HPO_TYPING_PYTHON unset)  [the mypy census is checked only by CI's `typing` job; point HPO_TYPING_PYTHON at a pinned interpreter to check it before pushing -- `uv venv --python 3.14 .venv-typing && uv pip install --python .venv-typing/bin/python -r <(python3 tests/typing_ruler.py --print-requirements)`]
+
+ALL 11 typing-ruler source checks PASSED

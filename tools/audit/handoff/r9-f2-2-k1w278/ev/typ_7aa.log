@@ -1,0 +1,18 @@
+
+=== typing ruler (mypy 2.3.1, homeassistant-stubs 2026.9.3, stub-free) ===
+  ok   every recorded typing count is a finite non-negative integer
+  ok   interpreter is at least Python 3.14.2
+  ok   mypy is pinned at 2.3.1
+  ok   homeassistant-stubs is pinned at 2026.9.3
+  ..   third-party resolution (chosen by the stubs, recorded not asserted)  [aiohttp==3.14.3, numpy==2.5.3, scipy-stubs==1.18.1.1, threadpoolctl==3.7.0, voluptuous==0.16.0]
+  ok   every third-party requirement is installed
+  ok   mypy exited 0 or 1 (clean, or errors found)
+  ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
+
+########## errors by module (reported, not ratcheted) ##########
+  optimizer.py                        2
+  FAIL errors did not grow  [recorded 0, measured 2 (+2)]
+  FAIL by_code[no-any-return] did not grow  [recorded 0, measured 2 (+2)]
+  ok   type_ignores did not grow
+
+2 of 10 typing-ruler checks FAILED

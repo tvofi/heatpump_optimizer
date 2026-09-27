@@ -1,0 +1,95 @@
+
+=== harness header EXPECTED vs RESULT (#817) ===
+  ok   every harness declaring live-header anywhere in its file is executed
+  ok   tools/audit/round3/D2/dst_window_factors.py exists
+  ok   tools/audit/round3/D2/dst_window_factors.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D2/dst_window_factors.py exits 0
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT default_horizon_hours matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT cells matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT total_mismatched_cells matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT mismatches_autumn_60min_peak_hours matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT null_control_non_dst_day_mismatches matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT no_mask_returns_none matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py exists
+  ok   tools/audit/round3/D2/window_size_sweep.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D2/window_size_sweep.py exits 0
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_15min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_90min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_control_15min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT catalog_window_minutes matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT options_selector_choices matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py exists
+  ok   tools/audit/round3/D5/option_doc_coverage.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D5/option_doc_coverage.py exits 0
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_fields_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_fields_undocumented matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_schema_keys_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT wood_economics_fields_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT wood_economics_doc_lines matches header
+  ok   tools/audit/round4/D10/qs_rules.py exists
+  ok   tools/audit/round4/D10/qs_rules.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D10/qs_rules.py exits 0
+  ok   tools/audit/round4/D10/qs_rules.py RESULT rules_total matches header
+  ok   tools/audit/round4/D10/qs_rules.py RESULT declared_mismatch matches header
+  ok   tools/audit/round4/D6/claims.py exists
+  ok   tools/audit/round4/D6/claims.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D6/claims.py exits 0
+  ok   tools/audit/round4/D6/claims.py RESULT claims_extracted matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_checked matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_true matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_false matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_stale matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_unverifiable matches header
+  ok   tools/audit/round4/D6/claims.py RESULT config_defaults_compared matches header
+  ok   tools/audit/round4/D6/claims.py RESULT config_ranges_compared matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_modules_on_disk matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_map_listed matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_map_missing matches header
+  ok   tools/audit/round4/D6/claims.py RESULT ha_module_level_importers matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py exists
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py exits 0
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT fitted_typical_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT within10_typical_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT fitted_heavy_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT within10_heavy_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_typical_s005 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_heavy_s005 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_armed matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_gate_named matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
+  ok   tools/audit/round4/D9/h2_cycle.py exists
+  ok   tools/audit/round4/D9/h2_cycle.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h2_cycle.py exits 0
+  ok   tools/audit/round4/D9/h2_cycle.py RESULT msm_entries_per_cycle matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py exists
+  ok   tools/audit/round4/D9/h7_memory_gate.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h7_memory_gate.py exits 0
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_recorded matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT memory_top_n matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT memory_budget_factor matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT detection_target matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT min_attrib_rss_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT max_attrib_rss_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_attrib_rss_fails matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT min_traced_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT max_traced_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_traced_fails matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_memory_probed matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_never_memory_probed matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT attrib_leader_label matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT attrib_fail_threshold_mb matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT traced_fail_threshold_mb matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT clean_attrib_rule_fires matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT inject2x_attrib_rule_fires matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py exists
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py exits 0
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT cost_terms_batch_calls_per_gradient matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT batch_rows_per_gradient matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT null_control_batched_calls_per_gradient_delta matches header
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 91 HARNESS HEADER CHECKS PASSED

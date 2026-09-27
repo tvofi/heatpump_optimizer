@@ -1,0 +1,3 @@
+M1 rc=1 ['2 of 3403 FEATURE CHECKS FAILED']
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty make the same calls for 97 rows as for 2 (no per-row interpreter loop)  [(97-row calls, 2-row calls) per twin: {('comfort', False): (877, 22), ('comfort', True): (18, 18), ('cycling', None): (13, 13)}]
