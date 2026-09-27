@@ -19,7 +19,7 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.2
+# claims-for: 6.7.4
 #
 # v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
 # next branch restates its own footprint, claims included.

@@ -535,6 +535,9 @@ def _multi_start_minimize(
     maxiter: int = 300,
     batch_objective: Callable[..., Any] | None = None,
     fd_eps: float = 1e-4,
+    move_starts: Callable[[list[np.ndarray], int], list[np.ndarray]] = (
+        lambda candidates, maxiter: candidates
+    ),
 ) -> Any:
     """Run L-BFGS-B from several starting points and keep the best result.
 
@@ -557,6 +560,9 @@ def _multi_start_minimize(
     waste, not a different point. ``args`` is fixed for this call, so the key
     is ``x`` alone.
     """
+    # A caller's continuation moves its starts under this call's own
+    # iteration budget, so a cut budget reaches it too (R9-F2.1).
+    candidates = move_starts(list(candidates), maxiter)
     _raw_objective = objective
     _memo_key = None
     _memo_val = None
@@ -1741,6 +1747,11 @@ def _terminal_row_cost(
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
+    #: The two-zone floor's linear price, as a fraction of its own: 1.0, but
+    #: 0.5 for the continuation ``_optimize_space_only`` runs on its first
+    #: start -- see there.
+    _floor_l1_scale = 1.0
+
     def __init__(
         self,
         thermal_model: ThermalModel,
@@ -1851,7 +1862,9 @@ class HeatPumpOptimizer:
                 + np.sum(overshoot_u ** 2) * 5.0
                 + np.sum(undershoot_l ** 2) * 10.0
                 + np.sum(overshoot_l ** 2) * 5.0
-            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * (
+                _COMFORT_FLOOR_L1 * self._floor_l1_scale
+            )
 
             comfort_dev_u = upper_t - comfort_targets
             comfort_dev_l = lower_t - comfort_targets
@@ -1928,7 +1941,9 @@ class HeatPumpOptimizer:
                     + np.sum(overshoot_u ** 2) * 5.0
                     + np.sum(undershoot_l ** 2) * 10.0
                     + np.sum(overshoot_l ** 2) * 5.0
-                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * (
+                    _COMFORT_FLOOR_L1 * self._floor_l1_scale
+                )
 
                 comfort_dev_u = upper_t - comfort_targets
                 comfort_dev_l = lower_t - comfort_targets
@@ -4037,13 +4052,44 @@ class HeatPumpOptimizer:
                     dt,
                 )
             )
+        def move_starts(
+            cands: list[np.ndarray], maxiter: int
+        ) -> list[np.ndarray]:
+            """Continuation for a two-zone solve's first start (R9-F2.1).
+
+            Each zone pays the full linear floor price, and a descent that
+            crosses the floor from the smooth guess can bend away from a
+            basin the half price reaches: the backtest's 750 L storage house
+            shipped a plan its own objective scores 0.83 worse. So the guess
+            is refined at the half price first; what ships is still decided
+            by the true objective, against every other start. One plain
+            L-BFGS-B run inside the multi-start's own budget: it moves a
+            start, it is not one.
+            """
+            if not self.model.params.two_zone_enabled:
+                return cands
+            first = len(h.extra_starts or ())
+            self._floor_l1_scale = 0.5
+            try:
+                cands[first] = np.asarray(_scoped_minimize(
+                    objective, cands[first], method="L-BFGS-B", bounds=bounds,
+                    jac=(lambda x: _batch_fd_gradient(
+                        objective_batch, (), x, float(objective(x)), 1e-4,
+                        bounds,
+                    )) if _bounds_supported_by_batch(bounds) else None,
+                    options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                ).x, dtype=float)
+            finally:
+                self._floor_l1_scale = 1.0
+            return cands
+
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
         try:
             result = _multi_start_minimize(
                 objective, starts, bounds, maxiter=200,
-                batch_objective=objective_batch,
+                batch_objective=objective_batch, move_starts=move_starts,
             )
             optimal_power = result.x
             status = _solver_status(result, objective, initial_power)
