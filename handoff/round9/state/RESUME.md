@@ -425,3 +425,5 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
   - Mac files ~/.zcode/hpo-ledger.appid and ~/.zcode/hpo-ledger.pem.
   - The workflow step fails soft until the secret exists.
   - The main-protect bypass stays tvofi's action.
+- 2026-09-27T09:20Z F9.2 handed off for review: handoff/r9-f9-test-pins-2, code head 79eb5c41 (transport e10674db), merge base 9c6b923f; D3-s3-04/05 pinned in guard_pins.py + 2 killed_by rows, D7-s3-51 fixed in nightly_ha.py; scoped gate 3/3 green, ratchet passed; not code-owned. Reviewer: opus.
+- 2026-09-27T09:21Z C5 DONE: tvofi created the hpo-ledger App. The Mac verified the key files, the main-protect bypass and both Actions secrets. The repo install is unverified; F10.5's first nightly run confirms it. F10.5 no longer waits on setup.
