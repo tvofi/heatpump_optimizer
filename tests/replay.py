@@ -711,7 +711,9 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         rows = rec.after(weather_id, now)
         out = []
         for h in range(48):
-            t = now + timedelta(hours=h)
+            # Walked in UTC (round-9 D14-s4-01): ``+`` on a zoned clock adds
+            # wall time, doubling or dropping a forecast hour on a DST day.
+            t = dt_util.as_utc(now) + timedelta(hours=h)
             row = next((r for r in reversed(rows) if r[0] <= t), rows[0] if rows else None)
             if row is None:
                 break
@@ -737,12 +739,14 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
             span = 2 if now.hour >= 13 else 1
             rows = []
-            t = day0
+            # The day's quarters walked in UTC: a wall-clock walk invents the
+            # spring gap's four quarters and folds the autumn hour onto one.
+            t = dt_util.as_utc(day0)
             while t < day0 + timedelta(days=span):
                 row = rec.at(price_series, t) if price_series else None
                 value = _num(row[1]) if row else None
                 if value is not None:
-                    rows.append({"total": value, "starts_at": t.isoformat(),
+                    rows.append({"total": value, "starts_at": dt_util.as_local(t).isoformat(),
                                  "level": "NORMAL"})
                 t += timedelta(minutes=15)
             if not rows:
@@ -763,7 +767,10 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     pub_series: dict[str, list[float | None]] = {}
     inp_series: dict[str, list[float | None]] = {}
     cycles = 0
-    t = start
+    # The cycle clock steps in UTC (round-9 D14-s4-02, G3-V2): a fixture's
+    # stamps read in its zone would otherwise step by wall time and skip the
+    # autumn day's repeated hour.
+    t = dt_util.as_utc(start)
     started = time.monotonic()
     reference_solve()  # scipy's first-call costs, thrown away as stress.py does
     ref_cpu = [reference_solve()[1] for _ in range(3)]
