@@ -402,3 +402,15 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27T02:42Z F2.2 handed off: branch handoff/r9-f2-2-k1w278, code head 7aa447f5ec9bcdefd7713a3b6ebc2e9ba8ebcf24, body tools/audit/handoff/r9-f2-2-k1w278.md at b20de608. prepr.sh clean; 9/9 mutants red; goldens byte-identical; stress.py left to CI. Next: Mac opens draft PR from 7aa447f5, fix review (opus).
 - 2026-09-27T05:50Z F2.2 review round: fixes on handoff/r9-f2-2-k1w278-v2 @f71c1a7a (gatefix patch 4931b93d, m4 decision pin fdb65e91, survivor fixes a74061dc, 30 killed_by ledger rows f71c1a7a). mypy census 9/9, harness_headers 91/91, features 3405/3405, unpinned 3659 vs 3670 base. Waiting on #1711 to merge, then rebuild on new main as -v3 keeping _floor_l1_scale; body + transport commit follow there.
 - 2026-09-27T07:01Z #1711 (F2.1 basin fix) MERGED at dbcca5fd, so main should be green. Queue: Tests, stamp v6.7.3, #1708 optimizer-off hotfix, #1704 F4.1. Merge-ready: #1703 F8.2, #1707 F3.2, #1709 F6.2. F2.2 #1710 rebuilding as -v3; F1.1 running. Also merged: #1705 hotfix, #1701 F11.2, #1702 F9.1, #1693 F10.1.
+- 2026-09-27T07:16Z LIVE BRANCH HEADS (checked via ls-remote), filling gaps in the overnight log:
+  - F2.2 #1710: rebuilt on the new main at handoff/r9-f2-2-k1w278-v3 @286560f1. v2 @f71c1a7a is superseded by v3; resume note on handoff/r9-f2-2-k1w278-resume @afbbab70.
+  - #1711 basin fix (merged at dbcca5fd): source handoff/r9-f2-storage-basin-v2 @ef776d1e.
+  - F4.1 #1704: latest handoff/r9-f4-inputs-sysid-1d @43ce7dfe; -1, -1b and -1c are superseded.
+  - F1.1 (running): handoff/r9-f1-1-jbqcyd @63a75419; resume on handoff/r9-f1-1-jbqcyd-resume @42376ca7.
+  - F3.2 #1707: handoff/r9-f3-stores-2-bmwr8c @032e3743.
+  - F6.2 #1709: handoff/r9-f6-card-2-v2 @5cc2a9b8.
+  - F8.2 #1703: handoff/r9-f8-docs-2-v2 @e7d37d16.
+  - F11.2 (merged #1701): handoff/r9-f11-governance-2-e9ywjb-v2 @4bdbb8f2.
+  - F9.1 (merged #1702): handoff/r9-f9-1-qei682 @69791169.
+  - Roster: handoff/audit-r9-fixplan @cf5b8910.
+  - Mac queue: Tests on dbcca5fd, stamp v6.7.3, #1708, then #1704.
