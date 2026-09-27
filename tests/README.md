@@ -168,7 +168,6 @@ its reason and the size of the closure it was checked against:
       SKIP  tests/stress.py  (closure: 61 files, no changed file is in its measured closure)
 ...
 ########## NOT RUN: scoped out of this gate ##########
-  tests/stress.py          did NOT run -- no changed file is in its measured closure (closure: 61 files)
 ```
 
 This suite already has six known instances of a test that looked like it ran
@@ -277,6 +276,20 @@ is measuring itself. Ask which **operator**: line deletion killed 0 of 8 on
 `validate.py` and `optimality.py`; arithmetic killed 2 of 2 on `optimality.py`.
 Sample arithmetic and off-by-one; delete nothing.
 
+## A knife-edge optimizer comparison must be measured across BLAS kernels
+
+Before a check races two independent solves, measure each arm per kernel and
+key the verdict on what does not move (#1725: the ftol check's loosened arm
+read 60.54-63.48 SEK across four BLAS kernels, same tree and wheels, against
+a 0.1% bound, while the production arm held 61.24-61.28 — the bound was two
+points of a per-kernel distribution). Instrument:
+`tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
+`OPENBLAS_CORETYPE`, the AVX-512 point from CI's green logs. Prefer a
+same-run quantity whose basin choice cancels (`env_drift.py`'s capture-twice,
+the cert grid's C1 re-polish) or an arm measured bit-stable across kernels.
+`run.sh` prints the selected kernel class on every run, so a red coinciding
+with a pool change reads off the log's first block.
+
 ## The two guards
 
 Most of these scripts ask "is the answer good?". Two ask something different,
@@ -343,24 +356,25 @@ Every lane script also runs on its own:
 ```bash
 export PYTHONPATH=tests/hastub
 
-python tests/features.py     # the feature modules, driven directly
-python tests/entities.py     # entities, platforms, options pages, translations
-python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
-python tests/open_meteo.py   # the irradiance client
-python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
-python tests/golden.py       # default drift: env_drift.py --all, the same measurement as below (#934)
-python tests/validate.py     # 22 seasonal scenarios, asserts invariants
-python tests/edge.py         # degenerate inputs and boundary conditions
-python tests/backtest.py     # replay against alternative strategies
-python tests/stress.py       # 51 combinations, 17 edge cases, economics
-python tests/rolling.py      # days of re-planning against a mismatched house
-python tests/optimality.py   # solution-quality floor against cheap challengers
-python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
+# purposes live in each script's own docstring ("What each script is for")
+python tests/features.py
+python tests/entities.py
+python tests/manual_plan.py
+python tests/open_meteo.py
+python tests/solar_alignment.py
+python tests/golden.py       # default drift (#934): env_drift.py --all, as below
+python tests/validate.py
+python tests/edge.py
+python tests/backtest.py
+python tests/stress.py
+python tests/rolling.py
+python tests/optimality.py
+python tests/env_drift.py
 python tests/env_drift.py --fixtures  # are the COMMITTED fixtures current?
-python tests/plan_view.py    # plan sensor payloads, writes HPO_PLANDATA (default /tmp/plandata-<hash>.json)
-node   tests/card.mjs        # renders the dashboard card against that payload
-node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
-node   tests/card_drift.mjs       # the card's markup gate: this tree vs GOLDEN_REF, byte for byte
+python tests/plan_view.py    # writes HPO_PLANDATA (/tmp/plandata-<hash>.json)
+node   tests/card.mjs
+node   tests/setup_qa_render.mjs
+node   tests/card_drift.mjs
 ```
 
 `profiles.py` holds Nord Pool SE3 price curves and Swedish weather profiles for
