@@ -28,6 +28,7 @@ from homeassistant.core import HomeAssistant
 from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
+from .accuracy import utc_elapsed_seconds
 from .const import (
     CONF_DHW_TEMP_ENTITY,
     DHW_COOLING_RATE_MAX,
@@ -344,7 +345,7 @@ class DhwProfileLearner:
         if previous_temp is None or previous_time is None:
             return None
 
-        dt_h = (now - previous_time).total_seconds() / 3600.0
+        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:
             return None
 
