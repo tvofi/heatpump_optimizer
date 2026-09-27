@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.7
+# claims-for: 6.7.8
 #
-# v6.7.7: hotfix: Governance reads an unreadable ruleset field as unreadable. The stamp empties the list; the
+# v6.7.8: Round-9 fixes: coordinator clock seams, stores, inputs and sysid, solver coupled stability (2.3x faster plant step), and the verdict-carry rule. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -743,4 +743,3 @@
 # of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
 # 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
 # cannot excuse and a name cannot be both, so the entry is suspended above.
-wood_coil # R9-F2.3 (#1671): the baseline house owns the plan's coil; baseline_cost up
