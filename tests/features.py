@@ -49720,6 +49720,7 @@ def _z1524_run(
     )
     sid.arm(_z1524_night, plant=declared)
     when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
+    stepped = False  # whether the pump was ever driven above the hold power
     while sid.active:
         reading = st.upper_floor_temperature + drift * (
             (when - _z1524_night).total_seconds() / 3600.0
@@ -49738,11 +49739,13 @@ def _z1524_run(
             house_slab_transfer=declared.slab_heat_transfer,
         )
         el = hold if override is None else float(override)
+        stepped = stepped or el > hold + 1e-9
         for _ in range(round(cadence * 60)):
             st = plant.simulate_step(
                 st, electrical_power=el, outdoor_temp=0.0, dt_hours=1.0 / 60
             )
         when += timedelta(hours=cadence)
+    _z1524_run.stepped = stepped
     decision = _SysIdModule.adoption_decision(sid.result, declared, sid.config)
     return decision, peak, sid.result.reason
 
@@ -49997,13 +50000,18 @@ R.check(
 )
 # D2-s4-81: a night the gate must refuse on the declared plant itself is not
 # stepped. On the unperturbed plant (the fit's best case) every night either
-# adopts or is stopped before the step by the noise-free prediction, by name.
-_r9p5_late = []
+# adopts or is stopped before the step by the noise-free prediction, by name,
+# and a night stopped that way never drives the pump above its hold power.
+_r9p5_late, _r9p5_stopped, _r9p5_stepped = [], 0, []
 for _r9p5_zone, _r9p5_valve in ((False, None), (True, None), (True, "manual")):
     for _r9p5_name in _b942:
         _r9p5_d, _r9p5_peak, _ = _z1524_run(
             _r9p5_name, _r9p5_zone, valve=_r9p5_valve
         )
+        if "noise-free night" in _r9p5_d.reason:
+            _r9p5_stopped += 1
+            if _z1524_run.stepped:
+                _r9p5_stepped.append(f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}")
         if not _r9p5_d.admit and "noise-free night" not in _r9p5_d.reason:
             _r9p5_late.append(
                 f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}: "
@@ -50014,6 +50022,86 @@ R.check(
     "before its step, by the noise-free prediction",
     not _r9p5_late,
     "; ".join(_r9p5_late),
+)
+R.check(
+    "R9-P5 (D2-s4-81): a night the noise-free prediction stops never drives "
+    "the pump above its hold power, and at least one night is stopped",
+    _r9p5_stopped > 0 and not _r9p5_stepped,
+    f"stopped {_r9p5_stopped}; stepped anyway: {_r9p5_stepped}",
+)
+# The told slab-pair width (SLAB_PAIR_PRIOR_LOG_SD) is a liveness choice as
+# much as a safety one: the sweep above refuses a width too NARROW to price the
+# slab the fit is told about; this pins the other side. On the older derived
+# single-zone presets (four structures x pre-1960 and 1960-1980, floor
+# emitters, 3.5 kW), each night on its own declared plant, a continuous house
+# read every 15 min, adopts on 7 of 8 at the measured width 0.10, 4 at 0.15 and
+# 2 at 0.20; at least 6 must adopt, each within the bar of the plant.
+def _r9p5_derived_night(structure, era):
+    cfg = _grad_house(two_zone=False, dhw=False)
+    derived = presets.derive(presets.BuildingPreset(
+        structure=structure, era=era, heated_area_m2=120,
+        lower_emitter=presets.EMITTER_FLOOR,
+    ))
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    decl = ThermalParameters.from_config(cfg)
+    decl.two_zone_enabled = False
+    model = ThermalModel(ThermalParameters.from_config(cfg))
+    model.params.two_zone_enabled = False
+    ua = float(decl.heat_loss_coefficient * decl.house_heat_loss_scale)
+    sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
+        enabled=True, min_days_between_runs=0.0,
+        gains_prior_kw=float(decl.internal_gains),
+    ))
+    if not sid.arm(_z1524_night, plant=decl):
+        return None, ua
+    hold = max(ua * 21.0 - float(decl.internal_gains), 0.0)
+    st = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + hold / max(float(decl.slab_heat_transfer), 1e-9),
+        outdoor_temperature=0.0,
+    )
+    when = _z1524_night
+    for _ in range(32):
+        override = sid.step(
+            now=when, room_temp=st.room_temperature, outdoor_temp=0.0, price=0.1,
+            price_horizon=np.full(48, 1.0), learner_samples=0, max_power_kw=3.5,
+            cop=3.0, plan_power_kw=hold / 3.0, house_ua=ua,
+            house_capacity=float(decl.room_thermal_mass),
+            house_gains=float(decl.internal_gains),
+            house_slab_mass=float(decl.slab_thermal_mass),
+            house_slab_transfer=float(decl.slab_heat_transfer),
+        )
+        if not sid.active:
+            break
+        el = hold / 3.0 if override is None else float(override)
+        for _ in range(15):
+            st = model.simulate_step(
+                st, electrical_power=0.0, outdoor_temp=0.0, dt_hours=1.0 / 60,
+                external_heat_kw=el * 3.0,
+            )
+        when += timedelta(hours=0.25)
+    return _SysIdModule.adoption_decision(sid.result, decl, sid.config), ua
+
+
+_r9p5_live = []
+for _r9p5_struct in (
+    presets.STRUCTURE_TIMBER_CRAWLSPACE, presets.STRUCTURE_TIMBER_SLAB,
+    presets.STRUCTURE_CONCRETE_SLAB, presets.STRUCTURE_MASONRY,
+):
+    for _r9p5_era in (presets.ERA_PRE_1960, presets.ERA_1960_1980):
+        _r9p5_dd, _ = _r9p5_derived_night(_r9p5_struct, _r9p5_era)
+        _r9p5_live.append((
+            f"{_r9p5_struct}|{_r9p5_era}",
+            _r9p5_dd is not None and _r9p5_dd.admit,
+            _r9p5_dd is not None and abs(_r9p5_dd.scale - 1.0) <= _z1524_bar,
+        ))
+R.check(
+    "R9-P5: the told slab-pair width keeps the older derived presets live -- "
+    "at least 6 of 8 declared nights adopt, each within the bar of the plant",
+    sum(a for _, a, _ in _r9p5_live) >= 6
+    and all(w for _, a, w in _r9p5_live if a),
+    [(n, a) for n, a, _ in _r9p5_live],
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
