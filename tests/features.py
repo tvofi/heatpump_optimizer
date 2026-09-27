@@ -50076,10 +50076,10 @@ def _f23_start(m):
     )
 
 
-def _f23_step_matrix(m):
+def _f23_step_matrix(m, n_sub=None):
     """The production sub-step's Jacobian over the stores it integrates."""
     p = m.params
-    h = 0.25 / m._stability_substeps(0.0, 0.0, 0.25)
+    h = 0.25 / (n_sub or m._stability_substeps(0.0, 0.0, 0.25))
     if p.two_zone_enabled:
         fields = _F23_STORES if _f23_mv.is_throttling(p.mixing_valve_mode) \
             else _F23_STORES[:3]
@@ -50140,6 +50140,40 @@ R.check(
                     "buffer_tank_volume": 750.0})
     ._stability_substeps(0.0, 0.0, 0.25) == 1,
 )
+# The count reads the step's own clamps: a design delta-T under 1 K, a COP
+# under 1 and an empty buffer are integrated as 1 K, 1 and 0.04 kWh/K, so the
+# count is the tightest monotone one there too (one sub-step fewer has a
+# negative entry), and an empty buffer is counted, not divided by.
+_F23_V = {"upper_floor_thermal_mass": 0.25, "upper_floor_heat_loss": 0.3,
+          "two_zone_mode": "on", "mixing_valve_mode": "manual",
+          "buffer_tank_volume": 750.0}
+for _f23_label, _f23_cfg, _f23_set, _f23_tight in (
+    ("design delta-T 0.5 K", _F23_V, {"emitter_design_delta_t": 0.5}, True),
+    ("COP 0.5, delta-T 0.5 K", _F23_V,
+     {"emitter_design_delta_t": 0.5, "cop_nominal": 0.5}, True),
+    ("empty buffer", {"two_zone_mode": "on", "mixing_valve_mode": "manual",
+                      "buffer_tank_volume": 0.0}, {}, False),
+):
+    _f23_m = _f23_model(_f23_cfg)
+    for _f23_k, _f23_v in _f23_set.items():
+        setattr(_f23_m.params, _f23_k, _f23_v)
+    try:
+        _f23_n = _f23_m._stability_substeps(0.0, 0.0, 0.25)
+        _f23_j = _f23_step_matrix(_f23_m)
+        _f23_jm = _f23_step_matrix(_f23_m, _f23_n - 1) if _f23_tight else None
+        _f23_err = ""
+    except (ArithmeticError, ValueError) as _f23_e:
+        _f23_n, _f23_j, _f23_jm, _f23_err = 0, None, None, repr(_f23_e)
+    R.check(
+        f"R9-F2.3 D2-s1-01 ({_f23_label}): the count is the step's own "
+        "stiffness -- monotone at n_sub"
+        + (", and one sub-step fewer is not" if _f23_tight else ""),
+        _f23_j is not None and float(np.min(_f23_j)) >= -1e-6
+        and float(np.max(np.abs(np.linalg.eigvals(_f23_j)))) <= 1.0 + 1e-6
+        and (not _f23_tight or (_f23_n > 1 and float(np.min(_f23_jm)) < -1e-6)),
+        _f23_err or f"n_sub={_f23_n}, min entry {float(np.min(_f23_j)):.4f}"
+        + (f", at n_sub-1 {float(np.min(_f23_jm)):.4f}" if _f23_tight else ""),
+    )
 
 # D2-s1-02: across the coil, the heat the wood tank loses equals the heat the
 # DHW tank is spared, at every DHW tank temperature -- the finder's metric,
@@ -50202,6 +50236,32 @@ R.check(
     and _f23_scale(40.0, 10.0) == 1.0
     and _f23_scale(5.0, 10.0) == 0.0,
 )
+_f23_mix = _f23_tm.DHW_MIXED_USE_TEMP
+try:
+    _f23_edge = [_f23_scale(_f23_mix + 5.0, _f23_mix),
+                 _f23_scale(_f23_mix, _f23_mix),
+                 _f23_scale(_f23_mix + 5.0, _f23_mix + 2.0)]
+except (ArithmeticError, TypeError) as _f23_e:
+    _f23_edge = [repr(_f23_e)]
+R.check(
+    "R9-F2.3 D2-s1-02: an inlet at or above the mixed-use temperature scales "
+    "the draw to 1 above it and 0 at it, never past [0, 1]",
+    _f23_edge == [1.0, 0.0, 1.0],
+    f"got {_f23_edge}",
+)
+_f23_nowood = ThermalState(room_temperature=21.0, slab_temperature=21.0,
+                           dhw_temperature=45.0, outdoor_temperature=0.0)
+try:
+    _f23_nw = (ThermalModel(ThermalParameters()).apply_dhw_coil(
+        _f23_nowood, 1.5, 45.0, 0.25), _f23_nowood.wood_tank_temperature)
+except (ArithmeticError, TypeError) as _f23_e:
+    _f23_nw = (repr(_f23_e), None)
+R.check(
+    "R9-F2.3 D2-s1-02: with no wood tank the coil passes the draw through "
+    "untouched",
+    _f23_nw == (1.5, None),
+    f"got {_f23_nw}",
+)
 
 # D2-s2-03: the hot-water path settles up the end state its own published
 # trajectory ends on -- the coil's wood debit included -- and its thermostat
@@ -50260,6 +50320,7 @@ R.check(
 )
 # The reference's no-coil twin: the same call, the coil's draws withheld.
 _f23_ba, _f23_bk = _f23_seen["base_call"]
+_f23_bk_full = dict(_f23_bk)
 _f23_bk.pop("coil_draws", None)
 _, _f23_bend_nocoil = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk)
 R.check(
@@ -50269,6 +50330,21 @@ R.check(
     < float(_f23_bend_nocoil.wood_tank_temperature) - 1e-6,
     f"reference wood end {float(_f23_bend.wood_tank_temperature):.6f} vs "
     f"no-coil {float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
+)
+# ... and only while the coil is on: switched off, the draws change nothing.
+_f23_opt.model.params.dhw_wood_coil_enabled = False
+try:
+    _, _f23_bend_off = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk_full)
+finally:
+    _f23_opt.model.params.dhw_wood_coil_enabled = True
+R.check(
+    "R9-F2.3 D2-s2-03: with the coil switched off, the reference's draws "
+    "leave its wood tank as its no-coil twin's",
+    np.any(np.asarray(_f23_bk_full.get("coil_draws", [])) > 0)
+    and float(_f23_bend_off.wood_tank_temperature)
+    == float(_f23_bend_nocoil.wood_tank_temperature),
+    f"off {float(_f23_bend_off.wood_tank_temperature):.6f} vs no-coil "
+    f"{float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
 )
 
 # D7-s1-71 / D5-s2-03: the cold-water inlet default is defined once. The
