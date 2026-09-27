@@ -865,11 +865,11 @@
     "R9-F4.1"
    ],
    "resume": {
-    "stage": "review",
+    "stage": "done",
     "branch": "handoff/r9-f2-solver-3",
-    "commit": "ef071c1a55e70d5774fbe9b1535386f00917e7eb",
-    "last_step": "handed off at code head ef071c1a; claimnotes refusal hand-resolved; draft PR opening",
-    "next_step": "reviewer seat next (opus, handoff/r9-f2-solver-3-review)",
+    "commit": "2eef524d55376a06a5a807a4f2bf67e9e6d19dc4",
+    "last_step": "MERGED as #1723 at 2eef524d; #1671 closed; round-2 verdict: runtime fix verified float-identical, typing annotation delta",
+    "next_step": "none; #1644 and #1645 stayed open as Part-of",
     "note_file": "handoff/round9/fix/resume/F2.3.md on handoff/r9-f2-solver-3",
     "review_branch": "handoff/r9-f2-solver-3-review",
     "review_note_file": "handoff/round9/fix/resume/F2.3-review.md on handoff/r9-f2-solver-3-review",
@@ -920,10 +920,10 @@
     "R9-F2.3"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fix",
     "branch": "handoff/r9-f2-solver-5",
-    "commit": null,
-    "last_step": null,
+    "commit": "2eef524d55376a06a5a807a4f2bf67e9e6d19dc4",
+    "last_step": "opus fixer seat dispatched 2026-09-27 ~19:2xZ from main 2eef524d on handoff/r9-f2-solver-5",
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
     "note_file": "handoff/round9/fix/resume/F2.5.md on handoff/r9-f2-solver-5",
     "review_branch": "handoff/r9-f2-solver-5-review",
