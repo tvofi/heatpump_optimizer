@@ -950,4 +950,270 @@ R.check(
     "the unknown-length contract survives the normalisation",
 )
 
+# ===========================================================================
+# Round 9 F1.1: the grid after the transition, naive stored stamps, and the
+# DST tracer over replayed transition days
+# ===========================================================================
+R.section("the forecast grid after the transition (round-9 D14-s4-01)")
+
+# The #243 grid checks above solve at 00:07, before either transition, so
+# ``step_offset`` is 0 and the seam that measures it is never exercised.
+# After the transition, ``now - midnight`` read as wall clock is an hour off
+# the true elapsed time (spring 12:07 is 11 h 07 min after a CET midnight),
+# so the grid walked from midnight in UTC starts four quarters off ``now``.
+_post = {}
+for _label, _day in _DST_DAYS:
+    _now = _day.replace(hour=12, minute=7)
+    dt_util.freeze(_now)
+    try:
+        _prices = list(_dst_coord(_day)._forecast_arrays(_now).prices)
+    finally:
+        dt_util.freeze(None)
+    _q0 = _now.replace(minute=0).astimezone(UTC)
+    _want = [
+        _price_for(_q0 + timedelta(minutes=FORECAST_STEP_MINUTES * i))
+        for i in range(len(_prices))
+    ]
+    _post[_label] = sum(1 for g, w in zip(_prices, _want) if g != w)
+R.check(
+    "at noon on every transition day the grid starts at now's own quarter",
+    all(_post[k] == 0 for k in _post if k != "plain") and len(_prices) > 0,
+    f"{_post}",
+)
+R.check(
+    "NULL CONTROL: the plain day's noon grid was always aligned",
+    _post["plain"] == 0,
+    f"{_post['plain']}",
+)
+
+R.section("naive stored stamps under the aware clock (round-9 D3-s1-91)")
+
+# The main suite's identity-zone stub hands out a naive clock, where the
+# tzinfo guards in ``_detect_outage`` and ``_immersion_dhw_margin`` never
+# fire: deleting either left every check green. Here the clock is aware, a
+# naive stored stamp is the user's wall time in the configured zone, and
+# each guard decides the answer.
+_AUG_NOON = datetime(2026, 8, 26, 12, 0, tzinfo=STHLM)
+
+
+def _outage_after(minutes: float):
+    coord = _age_coord({const.CONF_OUTAGE_RECOVERY_ENABLED: True})
+    stamp = (_AUG_NOON - timedelta(minutes=minutes)).replace(tzinfo=None)
+    dt_util.freeze(_AUG_NOON)
+    try:
+        coord._detect_outage(stamp.isoformat())
+        return coord._outage_recovery_until
+    except TypeError as err:
+        return err
+    finally:
+        dt_util.freeze(None)
+
+
+# 60 min past the gap floor as local wall time, but 60 min short of it if
+# the stamp were read as UTC (Stockholm is UTC+2 in August).
+_long = _outage_after(const.OUTAGE_GAP_MINUTES + 60.0)
+_short = _outage_after(10.0)
+R.check(
+    "a naive last tick past the gap floor opens the outage window",
+    isinstance(_long, datetime)
+    and _long.astimezone(UTC)
+    == _AUG_NOON.astimezone(UTC) + timedelta(hours=const.OUTAGE_RECOVERY_HOURS),
+    f"recovery until {_long!r}",
+)
+R.check(
+    "NULL CONTROL: a naive last tick 10 min ago opens nothing",
+    _short is None,
+    f"recovery until {_short!r}",
+)
+
+_ic = _age_coord({const.CONF_IMMERSION_FEEDBACK_ENABLED: True})
+_ic._immersion_events = [
+    (_AUG_NOON - timedelta(days=d)).replace(tzinfo=None).isoformat()
+    for d in (1, 2, 3)
+]
+try:
+    _margin = _ic._immersion_dhw_margin(_AUG_NOON)
+except TypeError as err:
+    _margin = err
+R.check(
+    "three naive immersion events inside 14 days ask for the readiness margin",
+    _margin == 2.0,
+    f"margin {_margin!r}",
+)
+
+R.section("the DST tracer over replayed transition days (round-9 P7 barrier)")
+
+# The class barrier for P7 (#1665): the committed replay day, shifted onto
+# two transition days and a plain one, runs through ``replay.run_fixture``
+# -- the real ``_async_update_data`` and every published entity -- with the
+# clock Home Assistant hands out wrapped so every datetime it returns is
+# traced. A subtraction of two stamps sharing the zone, or a ``+ timedelta``
+# on one, whose result differs from the true (UTC) arithmetic is a wall-clock
+# seam, keyed on (file, function). The static enumerator cannot see a site
+# whose operands it does not name (``result.timestamps``); this reads what
+# production computed. ``tariff._window_slot`` is exempt by definition: it
+# labels a wall-clock tariff window, where the wall reading is the answer.
+# The fixture's stamps are read in the zone (``replay._ts`` patched), the
+# recorder export's own reading, so the lane's step walk is measured too:
+# stepping a zoned clock by wall time drops the autumn day's repeated hour
+# (round-9 D14-s4-02, G3-V2).
+import json  # noqa: E402
+import re  # noqa: E402
+import tempfile  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import replay  # noqa: E402
+
+_PKG = "/custom_components/heatpump_optimizer/"
+_WALL_SEAMS: dict[tuple[str, str], int] = {}
+_QUIET = [0]
+_EXEMPT = {("tariff.py", "_window_slot")}
+
+
+def _seam(err_s: float) -> None:
+    if _QUIET[0] or abs(err_s) < 1e-6:
+        return
+    frame = sys._getframe(2)
+    while frame is not None and frame.f_code.co_filename == __file__:
+        frame = frame.f_back
+    if frame is not None and _PKG in frame.f_code.co_filename.replace("\\", "/"):
+        key = (Path(frame.f_code.co_filename).name, frame.f_code.co_name)
+        _WALL_SEAMS[key] = _WALL_SEAMS.get(key, 0) + 1
+
+
+def _judge_add(a: datetime, delta: timedelta, res: datetime) -> None:
+    if isinstance(a.tzinfo, ZoneInfo):
+        _seam(datetime.timestamp(res) - datetime.timestamp(a) - delta.total_seconds())
+
+
+class _Traced(datetime):
+    """A clock value whose arithmetic reports itself against the UTC truth."""
+
+    def __sub__(self, other):
+        res = datetime.__sub__(self, other)
+        if isinstance(other, datetime) and res is not NotImplemented:
+            if self.tzinfo is other.tzinfo and isinstance(self.tzinfo, ZoneInfo):
+                true = datetime.timestamp(self) - datetime.timestamp(other)
+                _seam(res.total_seconds() - true)
+        elif isinstance(other, timedelta) and res is not NotImplemented:
+            _judge_add(self, -other, res)
+        return res
+
+    def __rsub__(self, other):
+        if not isinstance(other, datetime):
+            return NotImplemented
+        res = datetime.__sub__(other, self)
+        if other.tzinfo is self.tzinfo and isinstance(self.tzinfo, ZoneInfo):
+            true = datetime.timestamp(other) - datetime.timestamp(self)
+            _seam(res.total_seconds() - true)
+        return res
+
+    def __add__(self, other):
+        res = datetime.__add__(self, other)
+        if isinstance(other, timedelta) and res is not NotImplemented:
+            _judge_add(self, other, res)
+        return res
+
+    __radd__ = __add__
+
+    def astimezone(self, tz=None):
+        # ZoneInfo.fromutc adds its offset on the subclass: the conversion
+        # itself, not production arithmetic.
+        _QUIET[0] += 1
+        try:
+            return datetime.astimezone(self, tz)
+        finally:
+            _QUIET[0] -= 1
+
+
+def _traced(value):
+    if isinstance(value, datetime) and not isinstance(value, _Traced):
+        return _Traced(
+            value.year, value.month, value.day, value.hour, value.minute,
+            value.second, value.microsecond, value.tzinfo, fold=value.fold,
+        )
+    return value
+
+
+_ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$")
+
+
+def _shifted(node, delta: timedelta):
+    """The committed day moved by one absolute delta, re-rendered in the zone."""
+    if isinstance(node, str) and _ISO.match(node):
+        moved = datetime.fromisoformat(node) + delta
+        zone = UTC if moved.utcoffset() == timedelta(0) else STHLM
+        return moved.astimezone(zone).isoformat()
+    if isinstance(node, list):
+        return [_shifted(x, delta) for x in node]
+    if isinstance(node, dict):
+        return {k: _shifted(v, delta) for k, v in node.items()}
+    return node
+
+
+_REPLAY_SRC = json.loads(Path("tests/replay/synthetic-dhw-only.json").read_text())
+_REPLAY_DAY0 = datetime.fromisoformat(_REPLAY_SRC["window"]["start"])
+_TRACE_HOURS = 5  # both transitions fall inside 00:00-05:00 true time
+_TRACE_DAYS = (
+    ("spring", datetime(2026, 3, 29, tzinfo=STHLM)),
+    ("autumn", datetime(2026, 10, 25, tzinfo=STHLM)),
+    ("plain", datetime(2026, 10, 18, tzinfo=STHLM)),
+)
+_saved_clock = {
+    n: getattr(dt_util, n)
+    for n in ("now", "utcnow", "as_local", "as_utc", "parse_datetime")
+}
+_saved_ts = replay._ts
+_traced_days: dict[str, tuple[int, int, list]] = {}
+with tempfile.TemporaryDirectory() as _tmp:
+    try:
+        for _n, _f in _saved_clock.items():
+            setattr(dt_util, _n, (lambda f: lambda *a, **k: _traced(f(*a, **k)))(_f))
+        replay._ts = lambda raw: (
+            datetime.fromisoformat(raw).astimezone(STHLM) if raw else None
+        )
+        for _label, _day in _TRACE_DAYS:
+            _fx = _shifted(_REPLAY_SRC, _day.astimezone(UTC) - _REPLAY_DAY0.astimezone(UTC))
+            _end = _day.astimezone(UTC) + timedelta(hours=_TRACE_HOURS)
+            _fx["window"] = {
+                "start": _day.isoformat(),
+                "end": _end.astimezone(STHLM).isoformat(),
+            }
+            _path = Path(_tmp) / f"dst-{_label}.json"
+            _path.write_text(json.dumps(_fx))
+            _before = dict(_WALL_SEAMS)
+            _run = replay.run_fixture(_path, 30)
+            _traced_days[_label] = (
+                _run["cycles"],
+                _run["counts"]["cycle"],
+                sorted(
+                    k for k, v in _WALL_SEAMS.items()
+                    if v != _before.get(k, 0) and k not in _EXEMPT
+                ),
+            )
+    finally:
+        replay._ts = _saved_ts
+        for _n, _f in _saved_clock.items():
+            setattr(dt_util, _n, _f)
+
+_want_cycles = _TRACE_HOURS * 2
+R.check(
+    "the replay lane steps a zoned clock in UTC: every day runs its true cycles",
+    all(v[0] == _want_cycles and v[1] == 0 for v in _traced_days.values()),
+    f"(cycles, cycle failures) per day "
+    f"{ {k: v[:2] for k, v in _traced_days.items()} }, want {_want_cycles}",
+)
+R.check(
+    "no production seam does wall-clock arithmetic across either transition",
+    not _traced_days["spring"][2] and not _traced_days["autumn"][2],
+    f"spring {_traced_days['spring'][2]} autumn {_traced_days['autumn'][2]}",
+)
+R.check(
+    "NULL CONTROL: the plain day reads no seam, and the tracer did run",
+    not _traced_days["plain"][2]
+    and _WALL_SEAMS.get(("tariff.py", "_window_slot"), 0) > 0,
+    f"plain {_traced_days['plain'][2]}, exempt label hits "
+    f"{_WALL_SEAMS.get(('tariff.py', '_window_slot'), 0)}",
+)
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))
