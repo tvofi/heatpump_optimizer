@@ -42,10 +42,10 @@ files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 70 of the 325 script pairs (26 choose 2) sharing 0.80 or more
+recording finds 70 of the 351 script pairs (27 choose 2) sharing 0.80 or more
 of their production-module closure, all 70 among the 276 pairs whose two
-scripts each have a non-empty production closure (``tests/ha_contract.py``
-and ``tests/harness_headers.py`` have none). Fifteen of the pairs sit at
+scripts each have a non-empty production closure (``tests/ha_contract.py``,
+``tests/harness_headers.py`` and ``tests/md_tables.mjs`` have none). Fifteen of the pairs sit at
 exactly 1.00 -- structure.py/typing_ruler.py (65 shared production files),
 doc_claims.py/finite_boundary.py, doc_claims.py/structure.py,
 doc_claims.py/typing_ruler.py, finite_boundary.py/structure.py and

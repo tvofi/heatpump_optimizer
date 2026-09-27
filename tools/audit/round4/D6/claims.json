@@ -272,9 +272,9 @@
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (90 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (91 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "90 compared, mismatches=[]",
+  "result": "91 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.7.5' measured='6.7.5'",
+  "result": "documented='6.7.6' measured='6.7.6'",
   "verdict": "true",
   "truth": ""
  },
