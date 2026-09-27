@@ -409,7 +409,7 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters
+from .thermal_model import ThermalParameters, _dhw_enabled_from_config
 from .currency import resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -2134,6 +2134,16 @@ _ABSENT_FALLBACKS: Final[dict[str, Any]] = {
 }
 
 
+#: The DHW presence pair's form defaults (R9 D12-s1-02, merged into D12-s3-01).
+#: Either key's mere presence configures hot water, so an untouched page post
+#: of these defaults over an entry with no hot water at all is dropped below
+#: rather than stored as presence.
+_DHW_PRESENCE_PAIR_DEFAULTS: Final = {
+    CONF_DHW_WINDOWS: DEFAULT_DHW_WINDOWS,
+    CONF_DHW_TANK_VOLUME: DEFAULT_DHW_TANK_VOLUME,
+}
+
+
 def _omit_unstored_defaults(
     user_input: dict[str, Any], current: dict[str, Any]
 ) -> dict[str, Any]:
@@ -2145,14 +2155,34 @@ def _omit_unstored_defaults(
     to write every such key and turn an unchanged configuration into an
     options change -- and, through ``async_update_options``, a reload.
     Dropped only for ``_ABSENT_FALLBACKS``; a stored key is always kept.
+
+    The DHW presence pair is additionally dropped at its own defaults over an
+    entry with no hot water at all (no explicit ``dhw_enabled`` and nothing
+    the canonical presence rule sees): the pair is presence-inferred, and an
+    untouched submit of the Hot water or Hot water tank page used to plan a
+    tank the entry never had. A stored key is kept, and a value that differs
+    from the default is a deliberate answer, so a hot-water entry — and an
+    edited page — behave exactly as before.
     """
-    return {
-        key: value
-        for key, value in user_input.items()
-        if key in current
-        or key not in _ABSENT_FALLBACKS
-        or not _same_setting(_ABSENT_FALLBACKS[key], value)
-    }
+    no_dhw_entry = (
+        CONF_DHW_ENABLED not in current and not _dhw_enabled_from_config(current)
+    )
+    cleaned: dict[str, Any] = {}
+    for key, value in user_input.items():
+        if (
+            no_dhw_entry
+            and key not in current
+            and key in _DHW_PRESENCE_PAIR_DEFAULTS
+            and _same_setting(_DHW_PRESENCE_PAIR_DEFAULTS[key], value)
+        ):
+            continue
+        if (
+            key in current
+            or key not in _ABSENT_FALLBACKS
+            or not _same_setting(_ABSENT_FALLBACKS[key], value)
+        ):
+            cleaned[key] = value
+    return cleaned
 
 
 def _same_setting(stored: Any, posted: Any) -> bool:

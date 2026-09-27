@@ -888,6 +888,45 @@ try:
         "suggested=%r"
         % _r9f12_zones_sugg.get(_r9f12_quick.FIELD_TWO_ZONE),
     )
+
+    # The merged finding's options half (D12-s1-02): an untouched Hot water
+    # or Hot water tank page over an entry with no hot water at all stored
+    # the presence-inferred pair and planned a tank the entry never had.
+    # The presence question now lives on the wizard; here the pair's own
+    # default post is dropped over a no-DHW entry, kept when deliberate.
+    _r9f12_phantom = _r9f12_flow._omit_unstored_defaults(
+        {
+            _r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS,
+            _r9f12_const.CONF_DHW_TANK_VOLUME: _r9f12_const.DEFAULT_DHW_TANK_VOLUME,
+            _r9f12_const.CONF_DHW_SETPOINT: 52.0,
+        },
+        {},
+    )
+    R.check(
+        "D12-s3-01: an untouched options page stores no DHW presence over a "
+        "no-hot-water entry",
+        _r9f12_phantom == {_r9f12_const.CONF_DHW_SETPOINT: 52.0},
+        f"stored={sorted(_r9f12_phantom)}",
+    )
+    R.check(
+        "D12-s3-01: an edited windows spec is a deliberate answer and stays "
+        "(null control)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: "06:00-09:00"}, {}
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: "06:00-09:00"},
+        "an edited spec over a no-DHW entry must not be dropped",
+    )
+    R.check(
+        "D12-s3-01: a hot-water entry keeps an untouched pair post, as before "
+        "(null control)",
+        _r9f12_flow._omit_unstored_defaults(
+            {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+            {_r9f12_const.CONF_DHW_WINDOWS: "07:00-08:00"},
+        )
+        == {_r9f12_const.CONF_DHW_WINDOWS: _r9f12_const.DEFAULT_DHW_WINDOWS},
+        "a stored key is always kept",
+    )
 finally:
     _r9f12_flow.async_get_clientsession = _r9f12_session
 
