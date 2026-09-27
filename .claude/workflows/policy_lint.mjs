@@ -72,7 +72,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -4628,6 +4628,38 @@ function assertAcceptance(derived) {
   const added = driveRC(withObj({ ...RS, bypass_actors: [{ actor_type: 'OrganizationAdmin', bypass_mode: 'always' }] }), rsFixture, [])
   if (!added.found.length || !added.found.every((f) => f.message.includes('bypass_actors') && f.message.includes('(absent) recorded'))) {
     console.log(`\nFIXTURE VACUOUS: a bypass actor present live and absent from the record produced ${added.found.length} finding(s) naming it; a widened bypass would read as unchanged`)
+    return 1
+  }
+  // A recorded field the live read omits whole (`bypass_actors` for a token
+  // without admin) is a printed skip, never a finding; a field the read
+  // carried but emptied still fires.
+  pins += 1
+  const RSB = { ...RS, bypass_actors: [{ actor_id: null, actor_type: 'DeployKey', bypass_mode: 'always' }] }
+  const rsbFixture = JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RSB } })
+  const unread = driveRC(withObj(RS), rsbFixture, [])
+  if (unread.found.length || !unread.said.some((l) => /^\s*skip\s+required-contexts\b/.test(l) && l.includes('`bypass_actors`') && l.includes('UNCHECKED'))) {
+    console.log(`\nFIXTURE VACUOUS: a recorded field the live read omits produced ${unread.found.length} finding(s) and ${unread.said.length} skip line(s); it must be a printed skip and no finding, or every Actions run goes red`)
+    return 1
+  }
+  pins += 4
+  for (const v of [[], null]) {
+    const emptied = driveRC(withObj({ ...RSB, bypass_actors: v }), rsbFixture, [])
+    if (!emptied.found.length || !emptied.found.every((f) => f.message.includes('bypass_actors'))) {
+      console.log(`\nFIXTURE VACUOUS: a bypass list the live read carried as ${JSON.stringify(v)} produced ${emptied.found.length} finding(s); the skip must cover an omitted field only`)
+      return 1
+    }
+  }
+  // Only RULESET_TOKEN_HIDDEN may be omitted: a live read missing any other
+  // recorded field is a removal, and the one skip line matches env-matrix's
+  // exemption exactly.
+  const RSC = { ...RSB, enforcement: 'active' }
+  const gone = driveRC(withObj(RSB), JSON.stringify({ contexts: RC_THREE.contexts, rulesets: [1], ruleset_objects: { 1: RSC } }), [])
+  if (!gone.found.some((f) => f.message.includes('`enforcement`')) || gone.said.some((l) => l.includes('`enforcement`'))) {
+    console.log(`\nFIXTURE VACUOUS: a recorded enforcement field missing from the live read produced ${gone.found.length} finding(s); only a token-hidden field may be skipped`)
+    return 1
+  }
+  if (!unread.said.some((l) => TOKEN_HIDDEN_SKIP_RE.test(l))) {
+    console.log('\nFIXTURE VACUOUS: the token-hidden skip line no longer matches TOKEN_HIDDEN_SKIP_RE; env-matrix would refuse the line every Actions run prints')
     return 1
   }
   const RS2 = { ...RS, rules: [...RS.rules, { type: 'deletion', name: 'a' }] }
