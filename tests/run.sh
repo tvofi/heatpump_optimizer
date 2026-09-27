@@ -345,6 +345,12 @@ lane_units() {
   # code, fail-closed on a contradiction -- the stale-prose class (D5-01/D6-01/
   # D6-03). Own script so the claim shapes are scanned, not enumerated.
   run "$PYTHON" tests/doc_claims.py
+  # #1674 (class N-markdown): the D5-s1 finder's GFM-table-integrity harness,
+  # promoted into a permanent gate against the same markdown-it 14.1.0 already
+  # vendored for render_md.mjs. Own script, not a doc_claims.py check, so a
+  # misrender is a render-shape defect distinct from doc_claims.py's stale-prose
+  # class above.
+  run node tests/md_tables.mjs
   # #796: default-on sensors must not render Unknown. Own script so the
   # rule is not a fourteenth `_D801_IN_SCOPE` roster entry in entities.py.
   run "$PYTHON" tests/wood_advisor.py

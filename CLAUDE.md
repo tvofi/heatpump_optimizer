@@ -13,7 +13,7 @@ file is.
    runs only the scripts your diff can reach, as measured in
    `tests/closures.json`. A push to `main` forces `full`: if a closure is ever
    wrong, main goes red within one merge instead of never.
-   **`MODE: SCOPED — 0 script(s) run` and `MODE: FULL` both print zero and mean
+   **`MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both print zero and mean
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints none at all, because the
    forced `full` never calls the code that prints it. Commands, the gate lease

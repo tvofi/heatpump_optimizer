@@ -1095,6 +1095,13 @@ python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>
 step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
 rm -f /tmp/prepr-crr.$$
 
+# --- 3f3. field coverage (I3 barrier), which `policy-docs` runs from the base
+# once the base carries it. The whole program: without `gh` its ruleset arm
+# prints its UNCHECKED skip, and the other arms are offline.
+node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1
+step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
+rm -f /tmp/prepr-fc.$$
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)

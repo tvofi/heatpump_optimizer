@@ -47107,6 +47107,62 @@ _pa_run(_pa_sb_stale, 1)
 _pa_sb_old = _PaCoord(_PA_TUYA, duties="--")
 boost_mod.held_for(_pa_sb_old).until["space"] = _PA_T0
 _pa_run(_pa_sb_old, 1)
+# A step the plan gives both duties is split, not handed to the pump's own
+# thermostats (tvofi, 2026-09-27): hot water first for its share of the
+# 15 minutes, then heating; a share under SPLIT_MIN_MINUTES goes to the
+# other duty for the whole step.
+def _pa_split(space_kw, dhw_kw, options=_PA_TUYA, minutes=(1, 10, 14)):
+    coord = _PaCoord(options, duties="b")
+    coord._optimization_result = _PaNS(
+        timestamps=[_PA_T0], power_schedule=[space_kw],
+        dhw_power_schedule=[dhw_kw], optimal_setpoints=[21.0],
+    )
+    modes = []
+    for minute in minutes:
+        coord.hass.services.calls.clear()
+        _pa_run(coord, minute)
+        modes.append([w[2] for w in coord.writes() if w[0] == "select"])
+        written = [w[2] for w in coord.writes() if w[0] == "select"]
+        if written:
+            coord.device("select.pump_mode", written[-1])
+    return modes
+
+
+_pa_sp_even = _pa_split(1.5, 2.0)
+_pa_sp_small = _pa_split(2.0, 0.5)
+_pa_sp_big = _pa_split(0.3, 2.0)
+_pa_sp_mb = _pa_split(1.5, 2.0, options=_PA_MODBUS)
+_pa_sp_boost = _PaCoord(_PA_TUYA, duties="b")
+boost_mod.held_for(_pa_sp_boost).set("space", True, _PA_T0)
+_pa_run(_pa_sp_boost, 1)
+_pa_sp_dis = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_sp_dis, 1)
+_pa_sp_comf = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_comf._mode = "comfort"
+_pa_run(_pa_sp_comf, 1)
+R.check(
+    "a disinfection hold keeps a both step on Heating + DHW, and so does comfort",
+    ("select", "select_option", "Heating + DHW") in _pa_sp_dis.writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_comf.writes(),
+    f"{_pa_sp_dis.writes()} / {_pa_sp_comf.writes()}",
+)
+R.check(
+    "a both step writes DHW only for its hot-water share of the 15 minutes, then heating only",
+    _pa_sp_even == [["DHW (Hot Water)"], ["Heating"], []],
+    f"{_pa_sp_even}",
+)
+R.check(
+    "a share under the minimum sub-slot goes to the other duty for the whole step",
+    _pa_sp_small == [["Heating"], [], []] and _pa_sp_big == [["DHW (Hot Water)"], [], []],
+    f"{_pa_sp_small} / {_pa_sp_big}",
+)
+R.check(
+    "with no single-duty mode (Modbus) a both step keeps Heat + DHW; a boost's both step is not split",
+    _pa_sp_mb[0] == ["Heat + DHW"]
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_boost.writes(),
+    f"{_pa_sp_mb} / {_pa_sp_boost.writes()}",
+)
 _pa_gb = {}
 for _pa_gb_mode in ("boost", "comfort"):
     _pa_gb[_pa_gb_mode] = _PaCoord(_PA_TUYA, duties="--")
@@ -47825,10 +47881,10 @@ _pa_run(_pa_rheat, 1)
 _pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
 _pa_rboth._thermal_model = _pa_real
 _pa_rboth._current_state.outdoor_temperature = 5.0
-_pa_run(_pa_rboth, 1)
+_pa_run(_pa_rboth, 10)
 R.check(
-    "on the real curve a heating-plus-hot-water step writes Heating + DHW and the heating flow",
-    ("select", "select_option", "Heating + DHW") in _pa_rboth.writes()
+    "on the real curve a heating-plus-hot-water step's heating share writes Heating and the heating flow",
+    ("select", "select_option", "Heating") in _pa_rboth.writes()
     and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
     and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
     f"{_pa_rboth.writes()}",
