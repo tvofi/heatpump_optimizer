@@ -126,10 +126,10 @@
     "mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
     "rounds": [2, 3, 4, 5, 6, 7],
     "instances": ["R2 D10-03", "R3 D11-01", "R3 D11-02", "R3 D11-03", "R3 D11-05", "R4 D11-01", "R4 D11-02", "R4 D11-03", "R4 D11-04", "R4 D11-05", "R4 D11-07", "R5 D11-01", "R5 D11-02", "R6 D11-01", "R6 D11-02", "R7 D11-01", "R7 D11-02", "R7 D13-04"],
-    "detector": null,
+    "detector": "node .claude/workflows/field_coverage.mjs",
     "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
-    "barrier": null,
-    "status": "open"
+    "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row, the budget-raise gate's owner review) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03, and the write-grant workflow pin's inputs in tests/entities.py (carry-1648's second entry: that pin is not callable without running the whole script).",
+    "status": "barriered"
   },
   "I4": {
     "kind": "instrument",
@@ -158,7 +158,7 @@
     "instances": ["R9 D1-s1-04", "R9 D1-s3-05", "R9 FI-sw1", "R9 FI-sw2", "R9 FI-sw3", "R9 FI-sw4", "R9 FI-sw5", "R9 FI-rca1"],
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
     "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
-    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660)",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Not reached: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stays masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, and it waits on tvofi's rule in F1.9",
     "status": "barriered"
   },
   "P11": {

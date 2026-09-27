@@ -429,6 +429,306 @@ R.check(
 
 
 # ===========================================================================
+# Round 9, F4.1: class-named blocks, sorted by class
+# ===========================================================================
+from dataclasses import replace as _r9f41_replace  # noqa: E402
+import ast as _r9f41_ast  # noqa: E402
+import re as _r9f41_re  # noqa: E402
+
+from heatpump_optimizer import const as _r9f41_const  # noqa: E402
+from heatpump_optimizer import sysid as _r9f41_sysid  # noqa: E402
+
+# --- R9 N-clamp-range (#1673): the flow-lift bias reaches the real supply ----
+R.section("R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)")
+
+# The model's own curve asks 22-28 C of a default house, so a plant at 50 C
+# sits 20-odd K above it; the priced supply must be able to get there.
+_r9f41_p = ThermalParameters(flow_curve_cop=True)
+_r9f41_curve = flow_lift.curve_supply_temp(
+    ThermalModel(_r9f41_p), -5.0, _r9f41_p.flow_curve_indoor_target
+)
+_r9f41_bias = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_bias.observe(50.0, _r9f41_curve)
+_r9f41_priced = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_bias.bias_k)
+).curve_flow_temp(-5.0)
+R.check(
+    "D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, "
+    "not pinned 15 K over the curve",
+    _r9f41_curve is not None
+    and _r9f41_priced is not None
+    and abs(_r9f41_priced - 50.0) < 1e-9,
+    f"curve {_r9f41_curve}, bias {_r9f41_bias.bias_k}, priced {_r9f41_priced}",
+)
+_r9f41_under = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_under.observe(_r9f41_curve - 40.0, _r9f41_curve)
+R.check(
+    "D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve",
+    _r9f41_under.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_r9f41_under.bias_k}",
+)
+_r9f41_hot = flow_lift.FlowCurveBias()
+_r9f41_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 47.0, 25.0)
+R.check(
+    "D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused "
+    "as a sample, not absorbed",
+    _r9f41_hot.samples == 0 and _r9f41_hot.bias_k == 0.0,
+    f"samples {_r9f41_hot.samples}, bias {_r9f41_hot.bias_k}",
+)
+_r9f41_ceiling = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_ceiling.observe(flow_lift.FLOW_SUPPLY_MAX_C, 25.0)
+R.check(
+    "D2-s2-02: a plant at the supply ceiling is learned all the way up",
+    abs(_r9f41_ceiling.bias_k - (flow_lift.FLOW_SUPPLY_MAX_C - 25.0)) < 1e-9,
+    f"bias {_r9f41_ceiling.bias_k}",
+)
+_r9f41_loaded = flow_lift.FlowCurveBias.from_dict({"bias_k": 25.0, "samples": 9})
+_r9f41_wild = flow_lift.FlowCurveBias.from_dict({"bias_k": 500.0, "samples": 9})
+R.check(
+    "D2-s2-02: a stored bias this version learns loads as stored; a wild one "
+    "is re-clamped to the supply ceiling",
+    _r9f41_loaded.bias_k == 25.0
+    and _r9f41_wild.bias_k == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"loaded {_r9f41_loaded.bias_k}, wild {_r9f41_wild.bias_k}",
+)
+# A restored or mild-day bias meets a colder day's curve: the priced supply is
+# held to the ceiling however the sum lands (D2-s2-02 fix review).
+_r9f41_cold = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_wild.bias_k)
+).curve_flow_temp(-20.0)
+R.check(
+    "D2-s2-02: a restored bias at the ceiling prices no supply past "
+    "FLOW_SUPPLY_MAX_C on the coldest curve",
+    _r9f41_cold == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"priced {_r9f41_cold}",
+)
+# The fix review's three survivors (#1704), each pinned by its own mutant.
+_r9f41_at80 = flow_lift.FlowCurveBias()
+_r9f41_at80.observe(80.0, 25.0)
+R.check(
+    "D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is "
+    "refused as a sample",
+    flow_lift.FLOW_SUPPLY_MAX_C == 75.0 and _r9f41_at80.samples == 0,
+    f"ceiling {flow_lift.FLOW_SUPPLY_MAX_C}, samples {_r9f41_at80.samples}",
+)
+_r9f41_steep = flow_lift.FlowCurveBias.from_dict({"bias_k": 10.0, "samples": 9})
+_r9f41_steep.observe(75.0, 80.0)
+_r9f41_steeper = flow_lift.FlowCurveBias()
+_r9f41_steeper.observe(70.0, 100.0)
+R.check(
+    "D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not "
+    "negative: a positive bias lands at 0 and the cold clamp still holds",
+    _r9f41_steep.bias_k == 0.0
+    and _r9f41_steeper.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"80 C curve {_r9f41_steep.bias_k}, 100 C curve {_r9f41_steeper.bias_k}",
+)
+R.check(
+    "D2-s2-02: a non-finite outdoor temperature prices no curve flow at all",
+    ThermalModel(_r9f41_p).curve_flow_temp(float("nan")) is None,
+    f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
+)
+
+# --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
+R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")
+
+# The slow stores, each read through the one limit. A report-on-change probe
+# in a calm room sent nothing for 4 h 15 min in the field (the finding's own
+# evidence); the watchdog must still trip once the limit passes.
+_r9f41_quiet = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "floor_return_temp_entity",
+    "buffer_tank_temp_entity",
+    "dhw_temp_entity",
+)
+for _r9f41_key in _r9f41_quiet:
+    _r9f41_limit = inputs_mod.max_age_for(_r9f41_key)
+    _r9f41_calm = InputReader(
+        FakeHass({"sensor.x": FakeState("21.3", last_updated=minutes_ago(255, NOW))}),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    _r9f41_dead = InputReader(
+        FakeHass(
+            {
+                "sensor.x": FakeState(
+                    "21.3",
+                    last_updated=minutes_ago(
+                        _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES + 1, NOW
+                    ),
+                )
+            }
+        ),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    R.check(
+        f"D1-s5-51: {_r9f41_key} silent 255 min reads ok; past the quiet-store "
+        "limit it is stale",
+        _r9f41_limit == _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES
+        and _r9f41_calm.ok
+        and _r9f41_dead.stale,
+        f"limit {_r9f41_limit}, calm {_r9f41_calm.problem}, "
+        f"dead {_r9f41_dead.problem}",
+    )
+
+# --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
+R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
+
+# D1-s5-01: age_of against the reader, on the same State at the same instant.
+# A live sensor re-reporting an unchanged value (last_reported recent,
+# last_updated old) and a stamp ahead of the clock were the two divergences.
+_r9f41_cells = []
+for _r9f41_rep, _r9f41_upd in (
+    (5, 5), (5, 480), (30, 900), (-5, -5), (-60, 30), (400, 400),
+):
+    _r9f41_state = FakeState(
+        "72.0",
+        last_updated=minutes_ago(_r9f41_upd, NOW),
+        last_reported=minutes_ago(_r9f41_rep, NOW),
+    )
+    _r9f41_age = inputs_mod.age_of(_r9f41_state, NOW)
+    _r9f41_reader_age = InputReader(FakeHass({}), {}, now=lambda: NOW)._age_minutes(
+        _r9f41_state
+    )
+    _r9f41_cells.append(
+        (
+            _r9f41_rep,
+            _r9f41_upd,
+            None if _r9f41_age is None else _r9f41_age.total_seconds() / 60.0,
+            _r9f41_reader_age,
+        )
+    )
+R.check(
+    "D1-s5-01: age_of reads the reader's stamp precedence and refuses a future "
+    "stamp, in every cell",
+    all(
+        (a is None and b is None)
+        or (a is not None and b is not None and abs(a - b) < 1e-9)
+        for _, _, a, b in _r9f41_cells
+    )
+    and _r9f41_cells[1][2] == 5.0
+    and _r9f41_cells[3][2] is None,
+    f"(reported, updated, age_of, reader): {_r9f41_cells}",
+)
+
+# One owner of the stamp chain (the P2 RCA's `state_stamp`): no other function
+# in inputs.py names a stamp attribute, so the three copies cannot diverge.
+_r9f41_tree = _r9f41_ast.parse(open(inputs_mod.__file__, encoding="utf-8").read())
+_r9f41_stamp_sites = sorted(
+    {
+        _r9f41_fn.name
+        for _r9f41_fn in _r9f41_ast.walk(_r9f41_tree)
+        if isinstance(_r9f41_fn, (_r9f41_ast.FunctionDef, _r9f41_ast.AsyncFunctionDef))
+        for _r9f41_node in _r9f41_ast.walk(_r9f41_fn)
+        if (
+            isinstance(_r9f41_node, _r9f41_ast.Constant)
+            and _r9f41_node.value in ("last_reported", "last_updated", "last_changed")
+        )
+        or (
+            isinstance(_r9f41_node, _r9f41_ast.Attribute)
+            and _r9f41_node.attr in ("last_reported", "last_updated", "last_changed")
+        )
+    }
+)
+R.check(
+    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp",
+    _r9f41_stamp_sites == ["state_stamp"],
+    f"functions reading a stamp: {_r9f41_stamp_sites}",
+)
+
+# D1-s5-52: every temperature key the reader serves refuses the DS18B20 fault
+# codes it cannot physically read, and passes an ordinary reading. The keys
+# are enumerated from const, by the finding's seam rule's name pattern.
+_r9f41_temp_keys = sorted(
+    getattr(_r9f41_const, _r9f41_name)
+    for _r9f41_name in dir(_r9f41_const)
+    if _r9f41_re.fullmatch(r"CONF_\w*TEMP\w*_ENTITY", _r9f41_name)
+)
+R.check(
+    "D1-s5-52: every CONF_*TEMP*_ENTITY key has a plausibility window",
+    bool(_r9f41_temp_keys)
+    and all(k in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C for k in _r9f41_temp_keys),
+    f"without one: "
+    f"{[k for k in _r9f41_temp_keys if k not in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C]}",
+)
+# Over the enumerated keys as well as the table's, so an empty table cannot
+# pass the sentinel checks below by walking nothing.
+_r9f41_all_keys = sorted(
+    set(_r9f41_temp_keys) | set(_r9f41_const.INPUT_PLAUSIBLE_RANGE_C)
+)
+_r9f41_sentinel = {}
+for _r9f41_key in _r9f41_all_keys:
+    for _r9f41_raw in ("-127", "85", "21.3"):
+        _r9f41_read = InputReader(
+            FakeHass({"sensor.x": FakeState(_r9f41_raw, last_updated=minutes_ago(1, NOW))}),
+            {_r9f41_key: "sensor.x"},
+            now=lambda: NOW,
+        ).read(_r9f41_key)
+        _r9f41_sentinel[(_r9f41_key, _r9f41_raw)] = (
+            _r9f41_read.problem,
+            _r9f41_read.value,
+        )
+_r9f41_room_like = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "outdoor_temp_entity",
+    "floor_return_temp_entity",
+)
+R.check(
+    "D1-s5-52: -127 degC is refused as implausible on every temperature key, "
+    "with no value left to read",
+    all(_r9f41_sentinel[(k, "-127")] == ("implausible", None) for k in _r9f41_all_keys),
+    f"{ {k: v for (k, raw), v in _r9f41_sentinel.items() if raw == '-127'} }",
+)
+R.check(
+    "D1-s5-52: 85 degC is refused in a room, outdoors and in a floor circuit",
+    all(_r9f41_sentinel[(k, "85")][0] == "implausible" for k in _r9f41_room_like),
+    f"{ {k: _r9f41_sentinel[(k, '85')] for k in _r9f41_room_like} }",
+)
+R.check(
+    "D1-s5-52: an ordinary 21.3 degC passes on every key (the null control)",
+    all(_r9f41_sentinel[(k, "21.3")] == (None, 21.3) for k in _r9f41_all_keys),
+)
+_r9f41_health = InputReader(
+    FakeHass({"sensor.x": FakeState("-127", last_updated=minutes_ago(1, NOW))}),
+    {"indoor_temp_entity": "sensor.x"},
+    now=lambda: NOW,
+)
+_r9f41_health.read("indoor_temp_entity")
+R.check(
+    "D1-s5-52: an implausible reading is a missing input with words for it",
+    _r9f41_health.health.missing_keys == ["indoor_temp_entity"]
+    and _r9f41_health.health.problem_messages()
+    == ["sensor.x: outside its plausible range"],
+    f"{_r9f41_health.health.missing_keys} {_r9f41_health.health.problem_messages()}",
+)
+
+# D2-s4-02: the step is sized under the abort bound by the noise headroom, on
+# the heavy default house (#779's own cell), and still uses the rest of it.
+_r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
+_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
+    0.20, 8.0, 0.3, 21.0, 2.0, (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
+)
+_r9f41_bound = (
+    _r9f41_sid.config.max_excursion_c - _r9f41_sysid.SIZING_NOISE_HEADROOM_C
+)
+R.check(
+    "D2-s4-02: the sized step's noiseless peak leaves the noise headroom under "
+    "the abort bound, and uses the allowance below it",
+    _r9f41_el is not None
+    and _r9f41_bound - 0.05 <= _r9f41_peak <= _r9f41_bound
+    and _r9f41_final <= _r9f41_bound,
+    f"Pel={_r9f41_el} peak={_r9f41_peak:.4f} final={_r9f41_final:.4f} "
+    f"bound={_r9f41_bound}",
+)
+
+
+# ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
 R.section("Non-numeric inputs (v5.3.0)")
@@ -23397,18 +23697,25 @@ R.check(
     f"{_fl_one.as_dict()}",
 )
 
+# D2-s2-02 (round 9) moved the hot side's bound from 15 K over the curve to
+# the supply ceiling: a plant at 50 C sits 20-odd K over the model's own curve,
+# so "past 15 K is a probe in the wrong pipe" refused real plants. What a
+# wrong pipe or a degF read produces is a supply past the ceiling.
 _fl_hot = flow_lift.FlowCurveBias()
 _fl_hot_worst = 0.0
 for _ in range(200):
-    _fl_hot.observe(75.0, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 60.0, 30.0)
     _fl_hot_worst = max(_fl_hot_worst, abs(_fl_hot.bias_k))
 R.check(
-    "a stream of large one-sided residuals pins at the clamp, it does not run away",
-    _fl_hot.bias_k == flow_lift.FLOW_BIAS_CLAMP_K
-    and _fl_hot_worst == flow_lift.FLOW_BIAS_CLAMP_K,
-    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples of +45 K, worst "
-    f"{_fl_hot_worst} — 45 K past the curve is a probe in the wrong pipe, "
-    "not an installer offset",
+    "a stream of large one-sided residuals pins at the supply ceiling, it does "
+    "not run away",
+    _fl_hot.bias_k == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot_worst == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot.samples == 200,
+    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples at the ceiling "
+    f"and 200 past it, worst {_fl_hot_worst} — past the ceiling is a probe "
+    "in the wrong pipe, not a plant",
 )
 _fl_cold = flow_lift.FlowCurveBias()
 for _ in range(200):
@@ -23708,7 +24015,7 @@ R.check(
     and flow_lift.FlowCurveBias.from_dict(
         {"bias_k": 900.0, "samples": 3}
     ).bias_k
-    == flow_lift.FLOW_BIAS_CLAMP_K,
+    == flow_lift.FLOW_SUPPLY_MAX_C,
     "a store written by a build with a wider clamp must not reintroduce a "
     "bias this build would never have learned",
 )
@@ -30745,7 +31052,9 @@ def _g2_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 
@@ -30913,7 +31222,9 @@ def _mr_extend_via_full_sim(
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
-    temps[:] = new
+    # A prefix schedule (the min-run repair extends in chunks, R9 D9-s1-04)
+    # replays only as far as it runs.
+    temps[: new.size] = new
     return temps
 
 
@@ -44432,6 +44743,19 @@ R.check(
     f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
 )
 
+# Optimizer off writes nothing (tvofi, 2026-09-26): the last plan's legionella
+# action stays current after the switch to off, and must not start a boost.
+_g5_c = _g5_control()
+_g5_c._mode = _MODE_OFF
+for _ in range(3):
+    _g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "with the optimizer off a legionella action still current never turns "
+    "the disinfection switch on (null control above: on, it does)",
+    _g5_writes(_g5_c) == [] and _g5_state(_g5_c) == "off",
+    f"writes={_g5_writes(_g5_c)}",
+)
+
 # The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
@@ -46544,22 +46868,22 @@ R.check(
 _pa_tuya = _PaCoord(_PA_TUYA)
 _pa_run(_pa_tuya, 1)
 R.check(
-    "a hot-water-only step writes DHW only, the configured hot-water set-point and the curve supply",
+    "a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate",
     _pa_tuya.writes() == [
         ("select", "select_option", "DHW (Hot Water)"),
         ("number", "set_value", 48.0),
-        ("number", "set_value", 34.0),
+        ("number", "set_value", 25.0),
     ],
     f"{_pa_tuya.writes()}",
 )
 _pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
 _pa_tuya.device("number.dhw_set", "48")
-_pa_tuya.device("number.water_set", "34")
+_pa_tuya.device("number.water_set", "25")
 _pa_tuya.hass.services.calls.clear()
 _pa_run(_pa_tuya, 31)
 R.check(
-    "the space step at the next boundary writes heating only, and nothing else",
-    _pa_tuya.writes() == [("select", "select_option", "Heating")],
+    "the space step at the next boundary writes heating only and the heating flow, and nothing else",
+    _pa_tuya.writes() == [("select", "select_option", "Heating"), ("number", "set_value", 55.0)],
     f"{_pa_tuya.writes()}",
 )
 
@@ -46577,7 +46901,7 @@ R.check(
 _pa_man = _PaCoord(_PA_TUYA)
 _pa_run(_pa_man, 0)
 _pa_man.device("number.dhw_set", "48")
-_pa_man.device("number.water_set", "34")
+_pa_man.device("number.water_set", "25")
 _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
@@ -46618,8 +46942,8 @@ _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_run(_pa_man, 6)
 R.check(
-    "switching the optimizer off writes the baseline once, then nothing over a person's setting",
-    _pa_man_base == [("select", "select_option", "Heating + DHW")] and _pa_man.writes() == [],
+    "switching the optimizer off writes nothing, not even the baseline, and nothing over a person's setting",
+    _pa_man_base == [] and _pa_man.writes() == [],
     f"{_pa_man_base=} {_pa_man.writes()=}",
 )
 
@@ -46628,14 +46952,14 @@ _pa_lease = _PaCoord(_PA_TUYA, duties="d" * 12)
 _pa_run(_pa_lease, 0)
 _pa_lease.device("select.pump_mode", "DHW (Hot Water)")
 _pa_lease.device("number.dhw_set", "48")
-_pa_lease.device("number.water_set", "34")
+_pa_lease.device("number.water_set", "25")
 _pa_run(_pa_lease, 89)
 _pa_before = list(_pa_lease.writes())
 _pa_run(_pa_lease, 91)
 R.check(
     "a hot-water-only stretch is released to Heating + DHW past the 90-minute lease",
     ("select", "select_option", "Heating + DHW") not in _pa_before
-    and _pa_lease.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    and _pa_lease.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_lease.writes()}",
 )
 _pa_cold = _PaCoord(_PA_TUYA, duties="d" * 12)
@@ -46643,11 +46967,11 @@ _pa_cold._current_state.outdoor_temperature = -15.0
 _pa_run(_pa_cold, 0)
 _pa_cold.device("select.pump_mode", "DHW (Hot Water)")
 _pa_cold.device("number.dhw_set", "48")
-_pa_cold.device("number.water_set", "34")
+_pa_cold.device("number.water_set", "25")
 _pa_run(_pa_cold, 31)
 R.check(
     "below the cold rail the lease is 30 minutes",
-    _pa_cold.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
 )
 _pa_stale = _PaCoord(_PA_TUYA)
@@ -46733,30 +47057,138 @@ R.check(
     f"{_pa_room.writes()} / {_pa_noset.writes()}",
 )
 _pa_hot = _PaCoord(_PA_TUYA, duties="ss")
-_pa_hot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_hot.hass.states.get("number.water_set").attributes = {"min": 25, "max": 50}
 _pa_run(_pa_hot, 1)
 R.check(
-    "a curve supply above the entity's maximum is clamped to it",
-    ("number", "set_value", 63.0) in _pa_hot.writes(),
+    "a heating flow above the entity's maximum is clamped to it",
+    ("number", "set_value", 50.0) in _pa_hot.writes(),
     f"{_pa_hot.writes()}",
 )
 _pa_sysid = _PaCoord(_PA_TUYA)
 _pa_sysid._current_action = {"mode": "system_identification"}
 _pa_run(_pa_sysid, 1)
-_pa_boosted = _PaCoord(_PA_TUYA)
-boost_mod.held_for(_pa_boosted).until["dhw"] = _PA_T0 + timedelta(hours=2)
-_pa_run(_pa_boosted, 1)
 _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment, a boost and a missing plan each get the baseline, not hot water only",
+    "an experiment and a missing plan each get the baseline, not hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
-        for c in (_pa_sysid, _pa_boosted, _pa_noplan)
+        for c in (_pa_sysid, _pa_noplan)
     ),
-    f"{_pa_sysid.writes()} / {_pa_boosted.writes()} / {_pa_noplan.writes()}",
+    f"{_pa_sysid.writes()} / {_pa_noplan.writes()}",
+)
+# A boost adds its duty to the plan step's, not the baseline (tvofi,
+# 2026-09-27): Heating + DHW would hand the other duty to the pump's own
+# thermostat for two hours, and when that runs is the plan's. Heating + DHW
+# is the fallback on a pump that offers no single-duty mode, and the duty on
+# a step the plan (or the other boost) gives the other duty as well.
+_pa_sb = {}
+for _pa_sb_name, _pa_sb_opts, _pa_sb_duties, _pa_sb_on in (
+    ("tuya", _PA_TUYA, "--", ("space",)), ("modbus", _PA_MODBUS, "--", ("space",)),
+    ("dhwstep", _PA_TUYA, "dd", ("space",)), ("dhwboost", _PA_TUYA, "--", ("space", "dhw")),
+    ("dhwonly", _PA_TUYA, "--", ("dhw",)), ("dhwonspace", _PA_TUYA, "ss", ("dhw",)),
+):
+    _pa_sb[_pa_sb_name] = _PaCoord(_pa_sb_opts, duties=_pa_sb_duties)
+    for _pa_sb_ch in _pa_sb_on:
+        boost_mod.held_for(_pa_sb[_pa_sb_name]).set(_pa_sb_ch, True, _PA_T0)
+    _pa_run(_pa_sb[_pa_sb_name], 1)
+_pa_sb_off = _PaCoord(_PA_TUYA, duties="--")
+_pa_sb_off._mode = _PA_OFF
+boost_mod.held_for(_pa_sb_off).set("space", True, _PA_T0)
+_pa_run(_pa_sb_off, 1)
+_pa_sb_stale = _PaCoord(_PA_TUYA, duties="dd")
+_pa_sb_stale.stale = True
+boost_mod.held_for(_pa_sb_stale).set("space", True, _PA_T0)
+_pa_run(_pa_sb_stale, 1)
+_pa_sb_old = _PaCoord(_PA_TUYA, duties="--")
+boost_mod.held_for(_pa_sb_old).until["space"] = _PA_T0
+_pa_run(_pa_sb_old, 1)
+# A step the plan gives both duties is split, not handed to the pump's own
+# thermostats (tvofi, 2026-09-27): hot water first for its share of the
+# 15 minutes, then heating; a share under SPLIT_MIN_MINUTES goes to the
+# other duty for the whole step.
+def _pa_split(space_kw, dhw_kw, options=_PA_TUYA, minutes=(1, 10, 14)):
+    coord = _PaCoord(options, duties="b")
+    coord._optimization_result = _PaNS(
+        timestamps=[_PA_T0], power_schedule=[space_kw],
+        dhw_power_schedule=[dhw_kw], optimal_setpoints=[21.0],
+    )
+    modes = []
+    for minute in minutes:
+        coord.hass.services.calls.clear()
+        _pa_run(coord, minute)
+        modes.append([w[2] for w in coord.writes() if w[0] == "select"])
+        written = [w[2] for w in coord.writes() if w[0] == "select"]
+        if written:
+            coord.device("select.pump_mode", written[-1])
+    return modes
+
+
+_pa_sp_even = _pa_split(1.5, 2.0)
+_pa_sp_small = _pa_split(2.0, 0.5)
+_pa_sp_big = _pa_split(0.3, 2.0)
+_pa_sp_mb = _pa_split(1.5, 2.0, options=_PA_MODBUS)
+_pa_sp_boost = _PaCoord(_PA_TUYA, duties="b")
+boost_mod.held_for(_pa_sp_boost).set("space", True, _PA_T0)
+_pa_run(_pa_sp_boost, 1)
+_pa_sp_dis = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_sp_dis, 1)
+_pa_sp_comf = _PaCoord(_PA_TUYA, duties="b")
+_pa_sp_comf._mode = "comfort"
+_pa_run(_pa_sp_comf, 1)
+R.check(
+    "a disinfection hold keeps a both step on Heating + DHW, and so does comfort",
+    ("select", "select_option", "Heating + DHW") in _pa_sp_dis.writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_comf.writes(),
+    f"{_pa_sp_dis.writes()} / {_pa_sp_comf.writes()}",
+)
+R.check(
+    "a both step writes DHW only for its hot-water share of the 15 minutes, then heating only",
+    _pa_sp_even == [["DHW (Hot Water)"], ["Heating"], []],
+    f"{_pa_sp_even}",
+)
+R.check(
+    "a share under the minimum sub-slot goes to the other duty for the whole step",
+    _pa_sp_small == [["Heating"], [], []] and _pa_sp_big == [["DHW (Hot Water)"], [], []],
+    f"{_pa_sp_small} / {_pa_sp_big}",
+)
+R.check(
+    "with no single-duty mode (Modbus) a both step keeps Heat + DHW; a boost's both step is not split",
+    _pa_sp_mb[0] == ["Heat + DHW"]
+    and ("select", "select_option", "Heating + DHW") in _pa_sp_boost.writes(),
+    f"{_pa_sp_mb} / {_pa_sp_boost.writes()}",
+)
+_pa_gb = {}
+for _pa_gb_mode in ("boost", "comfort"):
+    _pa_gb[_pa_gb_mode] = _PaCoord(_PA_TUYA, duties="--")
+    _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
+    _pa_run(_pa_gb[_pa_gb_mode], 1)
+R.check(
+    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
+    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
+    f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
+)
+R.check(
+    "a boost writes its own single duty where the pump offers it, Heating + DHW "
+    "where it does not or the other duty is due too, and nothing while off",
+    ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
+    and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwboost"].writes()
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_sb["dhwonly"].writes()
+    and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwonspace"].writes()
+    and ("select", "select_option", "Heating") in _pa_sb_stale.writes()
+    and ("select", "select_option", "Heating") not in _pa_sb_old.writes()
+    and _pa_sb_off.writes() == [],
+    f"{ {k: c.writes() for k, c in _pa_sb.items()} } / {_pa_sb_stale.writes()} "
+    f"/ {_pa_sb_old.writes()} / {_pa_sb_off.writes()}",
 )
 _pa_small = _PaCoord(_PA_TUYA, duties="xx")
 _pa_run(_pa_small, 1)
@@ -46789,7 +47221,7 @@ _pa_sp.device("number.water_set", "40")
 _pa_run(_pa_sp, 2)
 R.check(
     "a changed space set-point is written back too",
-    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 34.0)],
+    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 25.0)],
     f"{_pa_sp.set_modes=} {_pa_sp.writes()=}",
 )
 _pa_user = _PaCoord(_PA_TUYA)
@@ -46802,9 +47234,22 @@ _pa_run(_pa_user, 3)
 _pa_user._mode = _PA_AUTO
 _pa_run(_pa_user, 30)
 R.check(
-    "switching the optimizer off restores Heating + DHW, and what a person sets while it is off is theirs",
-    _pa_restored == "Heating + DHW" and _pa_user.set_modes == [],
+    "switching the optimizer off leaves the pump as it was, and what a person sets while it is off is theirs",
+    _pa_restored == "DHW (Hot Water)" and _pa_user.set_modes == [],
     f"{_pa_restored=} {_pa_user.set_modes=}",
+)
+_pa_offun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_offun)
+_pa_offun._mode = _PA_OFF
+_pa_aio.run(_pa.release(_pa_offun))
+_pa_onun = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_onun)
+_pa_aio.run(_pa.release(_pa_onun))
+R.check(
+    "unloading with the optimizer off writes nothing; null control: with it on, the baseline",
+    _pa_offun.writes() == []
+    and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
+    f"{_pa_offun.writes()} / {_pa_onun.writes()}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
@@ -46873,8 +47318,8 @@ _pa_idle = _PaCoord(_PA_TUYA, duties="s--")
 _pa_settled(_pa_idle, 1)
 _pa_run(_pa_idle, 16)
 R.check(
-    "an idle step writes no mode: the pump keeps the duty it just finished",
-    _pa_idle.writes() == [] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
+    "an idle step writes no mode, and a flow set-point drops to the gate",
+    _pa_idle.writes() == [("number", "set_value", 25.0)] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
     f"{_pa_idle.writes()}",
 )
 _pa_idle_d = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
@@ -46884,7 +47329,7 @@ _pa_settled(_pa_idle_d, 89)
 _pa_run(_pa_idle_d, 91)
 R.check(
     "below the plan's room temperature the hot-water-only lease keeps counting across idle steps",
-    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW")],
+    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW"), ("number", "set_value", 35.0)],
     f"{_pa_idle_d.writes()}",
 )
 
@@ -47013,7 +47458,7 @@ _pa_echo = _PaCoord(_PA_TUYA)
 _pa_run(_pa_echo, 0)
 _pa_echo.device("select.pump_mode", "DHW (Hot Water)")
 _pa_echo.device("number.dhw_set", "48")
-_pa_echo.device("number.water_set", "34")
+_pa_echo.device("number.water_set", "25")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=5)))
 _pa_echo.device("number.water_set", "53")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=60)))
@@ -47058,7 +47503,7 @@ _pa_run(_pa_pw, 3)
 R.check(
     "a set-point the pump resets while switched off is not a manual change, and is written again once it is on",
     _pa_pw.set_modes == [] and _pa_pw_off == []
-    and _pa_pw.writes() == [("number", "set_value", 34.0)],
+    and _pa_pw.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
 )
 _pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
@@ -47069,7 +47514,7 @@ _pa_pwn.device("number.water_set", "25")
 _pa_run(_pa_pwn, 2)
 R.check(
     "null control: the same reading with the pump on throughout is written back at once",
-    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 34.0)],
+    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pwn.set_modes=} {_pa_pwn.writes()=}",
 )
 _pa_ro = _PaCoord(_PA_TUYA)
@@ -47154,7 +47599,7 @@ R.check(
 )
 
 # A step observed while the coordinator is not driving a plan (manual mode,
-# a stale plan, system ID, an active boost) has no planned duty at all --
+# a stale plan, system ID) has no planned duty at all --
 # distinct from "unknown", which is an observed step the plan DID cover.
 _pa_baseline = _PaCoord(_PA_TUYA, duties="s", duty="observe")
 _pa_baseline._current_state.dhw_temperature = 45.0
@@ -47351,7 +47796,7 @@ R.check(
     f"{_pa.state_for(_pa_keep_again).written=}",
 )
 _pa_keep_again.device("select.pump_mode", "DHW (Hot Water)")
-_pa_keep_again.device("number.water_set", "34")
+_pa_keep_again.device("number.water_set", "25")
 _pa_keep_again.device("number.dhw_set", "55")
 _pa_run(_pa_keep_again, 2)
 R.check(
@@ -47418,8 +47863,91 @@ R.check(
     f"{_pa_tol.set_modes=}",
 )
 
+# A flow set-point on the model's own curve (tvofi, 2026-09-26): with the
+# real ThermalModel, not a stub, that curve is 22-26 degC and a pump told to
+# hold it barely heats. Every stub above hands the arbiter 34.2 degC.
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _PaTM, ThermalParameters as _PaTP,
+)
+
+_pa_real = _PaTM(_PaTP())
+_pa_real.params.min_electrical_power = 0.4
+_pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rheat._thermal_model = _pa_real
+_pa_rheat._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rheat, 1)
+_pa_rboth = _PaCoord(_PA_TUYA, duties="bb")
+_pa_rboth._thermal_model = _pa_real
+_pa_rboth._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rboth, 10)
+R.check(
+    "on the real curve a heating-plus-hot-water step's heating share writes Heating and the heating flow",
+    ("select", "select_option", "Heating") in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
+    and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
+    f"{_pa_rboth.writes()}",
+)
+_pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rbase._thermal_model = _pa_real
+_pa_rbase._current_state.outdoor_temperature = 5.0
+_pa_rbase.stale = True
+_pa_run(_pa_rbase, 1)
+R.check(
+    "null control: the model's real curve at 5 degC outdoors is below the 25 degC flow floor",
+    _pa_real.curve_flow_temp(5.0) < _pa.FLOW_GATE_C,
+    f"{_pa_real.curve_flow_temp(5.0)=}",
+)
+R.check(
+    "on the real curve a space-heating step writes the heating flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rheat.writes()
+    and _pa.FLOW_HEAT_C >= 45.0,
+    f"{_pa_rheat.writes()}",
+)
+R.check(
+    "on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HOLD_C) in _pa_rbase.writes()
+    and _pa.FLOW_HOLD_C == 35.0,
+    f"{_pa_rbase.writes()}",
+)
+_pa_rcold = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rcold._thermal_model.curve_flow_temp = lambda _o: 41.0
+_pa_rcold.stale = True
+_pa_run(_pa_rcold, 1)
+R.check(
+    "the baseline follows the curve where it is above 35 degC",
+    ("number", "set_value", 41.0) in _pa_rcold.writes(),
+    f"{_pa_rcold.writes()}",
+)
+_pa_rhot = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rhot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_rhot.stale = True
+_pa_run(_pa_rhot, 1)
+R.check(
+    "the baseline never holds above the heating flow, however hot the curve",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rhot.writes(),
+    f"{_pa_rhot.writes()}",
+)
+_pa_mbflow = _PaCoord(_PA_MODBUS, duties="d")
+_pa_mbflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
+_pa_run(_pa_mbflow, 1)
+R.check(
+    "with no DHW-only mode a flow gate stays at 25 degC where the entity accepts 10",
+    ("number", "set_value", 25.0) in _pa_mbflow.writes()
+    and ("number", "set_value", 10.0) not in _pa_mbflow.writes(),
+    f"{_pa_mbflow.writes()}",
+)
+_pa_mism = _PaCoord(_PA_TUYA, duties="ss", flow=False)
+_pa_run(_pa_mism, 1)
+_pa_mism_d = _PaCoord(_PA_MODBUS, duties="d", flow=False)
+_pa_run(_pa_mism_d, 1)
+R.check(
+    "an indoor-declared entity that cannot hold the room target (min 25) is not written",
+    [w for w in _pa_mism.writes() + _pa_mism_d.writes() if w[2] not in (48.0, "Heating", "Heat + DHW")] == [],
+    f"{_pa_mism.writes()} / {_pa_mism_d.writes()}",
+)
+
 # The gate floors: an entity whose own minimum is below them.
-_pa_lowflow = _PaCoord(_PA_TUYA, duties="s")
+_pa_lowflow = _PaCoord(_PA_TUYA, duties="d")
 _pa_lowflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
 _pa_lowflow._thermal_model.curve_flow_temp = lambda _o: 20.0
 _pa_run(_pa_lowflow, 1)
@@ -47656,6 +48184,231 @@ R.check(
     "(D1-s3-05); unstepped it still runs the full two",
     _si_live == {0: 2.0, 1: 2.0, 24: 2.0},
     f"hours left after the step: {_si_live}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)")
+# Round 9 F3.2 (#1644 P2, #1647 P1, #1660 N-future-instant). What the arbiter
+# restores is a record it could have written; an apply queued before an
+# unload arms and writes nothing; the mode is written through the target's
+# own domain; the frequency map loads only the domain its update path folds;
+# and the store bounds a naive stamp in the zone its loader reads it in.
+from heatpump_optimizer import freq_control as _f32_fc  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore as _F32Store  # noqa: E402
+
+_F32_T0 = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+
+
+def _f32_load(coord, written):
+    """``written`` stored as the arbiter's record, then its real loader."""
+    _si_storage._DISK[f"heatpump_optimizer_{coord.entry.entry_id}_pump_duty"] = (
+        _si_json.dumps({"written": written}))
+    _si_pa.state_for(coord).loaded = False
+    try:
+        _si_aio.run(_si_pa._load(coord))
+    finally:
+        _si_storage._DISK.clear()
+    return _si_pa.state_for(coord).written
+
+
+# D1-s3-02: an apply queued by a state change before the unload runs after
+# it. It must neither re-arm the tick and the state listener nor write.
+# Under an aware clock, as Home Assistant's: release() stamps its baseline
+# write with the clock, and the stub's default one is naive (D1-s1-52).
+_f32_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("released", "null"):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_c._entry_released = False
+        _pa_run(_f32_c, 1)
+        _f32_c._entry_released = _f32_arm == "released"
+        _pa_aio.run(_pa.release(_f32_c))
+        _f32_c.hass.services.calls.clear()
+        _pa_run(_f32_c, 16)
+        _f32_live[_f32_arm] = (len(_pa.state_for(_f32_c).unsubs), len(_f32_c.writes()))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued before the unload arms no listener and writes nothing "
+    "after it (D1-s3-02); a live coordinator re-arms both (null control)",
+    _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
+    f"{_f32_live}",
+)
+
+# D1-s3-03: a record of any other shape is not restored, and the next pass
+# neither raises nor keeps it; an honest record still loads.
+_f32_iso = "2026-06-01T11:59:00+00:00"
+_f32_bad = {
+    "written-list": [["heat", _f32_iso]],
+    "setpoint-str": {"dhw_setpoint": ["53", _f32_iso]},
+    "setpoint-list": {"space_setpoint": [[34.0], _f32_iso]},
+    "setpoint-bool": {"dhw_setpoint": [True, _f32_iso]},
+    "mode-dict": {"mode": [{"v": "heat"}, _f32_iso]},
+    "mode-list": {"mode": [["heat"], _f32_iso]},
+    "slot-unknown": {"boiler": [48.0, _f32_iso]},
+    "pair-dict": {"mode": {"0": "heat", "1": _f32_iso}},
+}
+_f32_raised = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_name, _f32_rec in _f32_bad.items():
+        _f32_c = _PaCoord(_PA_TUYA)
+        try:
+            _f32_kept = dict(_f32_load(_f32_c, _f32_rec))
+            _pa_run(_f32_c, 1)
+            _pa_run(_f32_c, 2)
+            _f32_raised[_f32_name] = _f32_kept or None
+        except Exception as _f32_err:  # noqa: BLE001
+            _f32_raised[_f32_name] = type(_f32_err).__name__
+    _f32_ok = dict(_f32_load(_PaCoord(_PA_TUYA), {
+        "mode": ["heat", _f32_iso], "dhw_setpoint": [48.0, _f32_iso],
+        "space_setpoint": [34, _f32_iso]}))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "the arbiter restores only a record it could have written: no malformed "
+    "record loads or raises on the next pass (D1-s3-03)",
+    not any(_f32_raised.values()),
+    f"{_f32_raised}",
+)
+R.check(
+    "an honest arbiter record still loads, every slot (null control)",
+    sorted(_f32_ok) == ["dhw_setpoint", "mode", "space_setpoint"]
+    and _f32_ok["dhw_setpoint"][0] == 48.0,
+    f"{_f32_ok}",
+)
+
+# FI-sw5: a write instant stored ahead of the clock (N-future-instant) is
+# bounded by the store at load, so hold()'s write-echo grace is not held
+# open by it: a differing reading past the grace is rewritten.
+_f32_grace = {}
+dt_util.freeze(_F32_T0)
+try:
+    for _f32_arm, _f32_at in (("ahead", _F32_T0 + timedelta(days=400)),
+                              ("null", _F32_T0)):
+        _f32_c = _PaCoord(_PA_TUYA)
+        _f32_load(_f32_c, {"dhw_setpoint": [48.0, _f32_at.isoformat()]})
+        _pa.hold(_f32_c, _F32_T0 + timedelta(seconds=30 if _f32_arm == "ahead" else 10))
+        _f32_grace[_f32_arm] = "dhw_setpoint" in _pa.state_for(_f32_c).written
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a write instant stored ahead of the clock is bounded, so the echo grace "
+    "closes on time (FI-sw5); an honest one inside the grace still holds (null control)",
+    _f32_grace == {"ahead": False, "null": True},
+    f"record kept after a differing reading: {_f32_grace}",
+)
+
+# D12-s2-02: the mode slot accepts select, input_select and sensor. The
+# write goes through the target's own domain; a sensor is read, never written.
+_f32_route = {}
+for _f32_dom in ("select", "input_select", "sensor"):
+    _f32_c = _PaCoord(_PA_TUYA)
+    _f32_ent = f"{_f32_dom}.pump_mode"
+    _f32_c._config["heat_pump_mode_entity"] = _f32_ent
+    _f32_c.hass.states._states[_f32_ent] = FakeState(
+        "Heating + DHW", attributes={"options": list(_PA_TUYA)})
+    _pa_run(_f32_c, 1)
+    _f32_route[_f32_dom] = sorted(
+        {(d, s) for d, s, data in _f32_c.hass.services.calls
+         if (data or {}).get("entity_id") == _f32_ent})
+R.check(
+    "the arbiter writes the mode through the target's own domain, and never "
+    "writes a read-only sensor slot (D12-s2-02)",
+    _f32_route == {"select": [("select", "select_option")],
+                   "input_select": [("input_select", "select_option")],
+                   "sensor": []},
+    f"{_f32_route}",
+)
+
+# The store bounds a naive instant in the zone its loader reads it in: Home
+# Assistant's, for the arbiter, legionella and boost. Read as UTC, a zone
+# west of Greenwich let a naive future stamp through by its offset, and one
+# east of it pulled an honest stamp back by its offset (a boost with an hour
+# left came back ended).
+_f32_zone = {}
+_f32_zone0 = dt_util.DEFAULT_TIME_ZONE
+for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
+    _f32_z = _SiZone(_f32_tz)
+    _f32_now = datetime(2026, 6, 1, 12, 0, tzinfo=_f32_z)
+    dt_util.DEFAULT_TIME_ZONE = _f32_z
+    dt_util.freeze(_f32_now)
+    try:
+        _f32_c = _t2_coord()
+        _f32_w = _f32_load(_f32_c, {
+            "mode": ["heat", "2026-06-01T11:00:00"],
+            "dhw_setpoint": [48.0, "2026-06-01T18:00:00"]})
+        _si_storage._DISK[_f32_c._legionella.store._key] = _si_json.dumps(
+            {"last_cycle": "2026-06-01T11:00:00", "last_attempt": "2026-06-01T18:00:00"})
+        _si_aio.run(_f32_c._legionella.async_load())
+        _si_storage._DISK[f"heatpump_optimizer_{_f32_c.entry.entry_id}_boost"] = (
+            _si_json.dumps({"space": {"until": "2026-06-01T13:00:00"},
+                            "dhw": {"until": "2026-06-01T18:00:00"}}))
+        _si_aio.run(boost_mod.restore(_f32_c))
+        _f32_b = boost_mod.held_for(_f32_c).until
+        _f32_zone[_f32_tz] = (
+            _f32_w["mode"][1] == _f32_now - timedelta(hours=1)
+            and _f32_w["dhw_setpoint"][1] == _f32_now
+            and _f32_c._legionella.last_cycle == _f32_now - timedelta(hours=1)
+            and _f32_c._legionella.attempt == _f32_now
+            and _f32_b.get("space") == _f32_now + timedelta(hours=1)
+            and _f32_b.get("dhw") == _f32_now + timedelta(hours=boost_mod.BOOST_HOURS),
+            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat(),
+            {k: v.isoformat() for k, v in _f32_b.items()})
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = _f32_zone0
+        dt_util.freeze(None)
+        _si_storage._DISK.clear()
+R.check(
+    "the store bounds a naive stored instant in its loader's zone: an honest "
+    "one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles",
+    all(v[0] for v in _f32_zone.values()) and len(_f32_zone) == 2,
+    f"{_f32_zone}",
+)
+
+# The bound's target is now plus the store's lead, exactly: an instant
+# beyond it lands on it, not merely somewhere at or before it.
+_f32_lead = timedelta(hours=2)
+_F32Key = "heatpump_optimizer_f32_lead"
+_si_storage._DISK[_F32Key] = _si_json.dumps({
+    "aware": (_F32_T0 + timedelta(days=400)).astimezone(_SiZone("Europe/Stockholm")).isoformat(),
+    "naive": (_F32_T0 + timedelta(days=400)).replace(tzinfo=None).isoformat(),
+    "inside": (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat()})
+dt_util.freeze(_F32_T0)
+try:
+    _f32_got = _si_aio.run(_F32Store(FakeHass({}), 1, _F32Key, lead=_f32_lead).async_load())
+finally:
+    dt_util.freeze(None)
+    _si_storage._DISK.clear()
+R.check(
+    "an instant beyond the store's lead is bounded to exactly now plus the "
+    "lead, aware or naive, and one inside it is kept",
+    datetime.fromisoformat(_f32_got["aware"]) == _F32_T0 + _f32_lead
+    and datetime.fromisoformat(_f32_got["aware"]).utcoffset() == timedelta(hours=2)
+    and _f32_got["naive"] == (_F32_T0 + _f32_lead).replace(tzinfo=None).isoformat()
+    and _f32_got["inside"] == (_F32_T0 + _f32_lead - timedelta(minutes=1)).isoformat(),
+    f"{_f32_got}",
+)
+
+# D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile
+# index outside [0, FREQ_DECILES), a ratio above FREQ_MAX_KW_PER_HZ (1.5
+# kW/Hz: a 60 kW draw at 40 Hz) -- does not load, and observe() does not fold
+# one, so no phantom bucket pins recommend() at the range's floor.
+_f32_map = _f32_fc.FrequencyMap.from_dict({
+    "-1": [5.0, 50], "10": [0.04, 50], "3": [1e6, 50], "2": [1.5, 50],
+    "4": [0.04, 50], "5": [_f32_fc.FREQ_MAX_KW_PER_HZ, 50],
+})
+_f32_obs = _f32_fc.FrequencyMap()
+_f32_obs.observe(40.0, 60.0, 20.0, 120.0)
+_f32_obs.observe(60.0, 2.4, 20.0, 120.0)
+R.check(
+    "the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio "
+    "up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)",
+    sorted(_f32_map.buckets) == [4, 5]
+    and _f32_map.recommend(3.0, 20.0, 120.0) == 75.0
+    and list(_f32_obs.buckets) == [4],
+    f"loaded={_f32_map.buckets} observed={_f32_obs.buckets}",
 )
 
 # ---------------------------------------------------------------------------
@@ -48364,6 +49117,65 @@ R.check(
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
+# Off writes nothing (tvofi, 2026-09-26): with Optimizer active off the
+# optimizer switched a Tuya pump a person had turned on back off every
+# update, because the MODE_OFF action carries heat_pump_on False. Every
+# coordinator writer, driven with the optimizer off, must issue no call;
+# the same drive with it on is the null control. The disinfection switch
+# (it only releases what it turned on) and the DHW repair (a person's
+# confirm) are the two writes this leaves, by design.
+async def _p6_off_ecl(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/displace/set"})
+    coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+    await coord.async_publish_current_action(reason="p6")
+    await coord._async_peak_guard_transition()
+    return coord.hass.services.calls
+
+
+async def _p6_off_pumps(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
+    await coord._async_drive_pumps()
+    return coord.hass.services.calls
+
+
+_P6_OFF_WRITERS = {
+    "switch.p6_off_supply": _p6_switch,
+    "input_number.p6_off_valve": _p6_valve,
+    "number.p6_off_freq": _p6_freq,
+    "switch.p6_off_vvc": _p6_off_pumps,
+    "mqtt.ecl110": _p6_off_ecl,
+}
+
+
+def _p6_off_calls(driver, eid, off):
+    real = Coord.__init__
+
+    def init(self, *a, **k):
+        real(self, *a, **k)
+        if off:
+            self._mode = hp_const.MODE_OFF
+
+    Coord.__init__ = init
+    try:
+        return _p6_aio.run(driver(eid))
+    finally:
+        Coord.__init__ = real
+
+
+_p6_off = {e: _p6_off_calls(d, e, True) for e, d in _P6_OFF_WRITERS.items()}
+_p6_on = {e: _p6_off_calls(d, e, False) for e, d in _P6_OFF_WRITERS.items()}
+R.check(
+    "null control: with the optimizer on, every writer issues a call",
+    all(_p6_on.values()),
+    f"silent: {[e for e, c in _p6_on.items() if not c]}",
+)
+R.check(
+    "with the optimizer off, no writer issues any call: switch, ECL110, valve, "
+    "frequency, circulation pump",
+    not any(_p6_off.values()),
+    f"{ {e: c for e, c in _p6_off.items() if c} }",
+)
+
 # ===========================================================================
 # R8-P3: one COP law and one humidity at the DHW seams (#1520, #1530)
 # ===========================================================================
@@ -49037,6 +49849,126 @@ R.check(
     f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
 )
 
+# The full-price floor made the two-zone landscape steeper where a descent
+# crosses the floor, and on the backtest's 750 L storage house (winter_typical
+# prices) the multi-start stopped lost a basin: its own objective scored a
+# plan it could reach from the half-price floor 0.83 lower than the one it
+# shipped, and storage stopped paying (tests/backtest.py, red on main at
+# 058e89f1). Arm: the plan the solver ships is no worse, on its own objective,
+# than the same solve seeded with the half-price floor's plan. Null arm: a
+# single-zone house, whose floor never changed.
+from profiles import house as _f21_house, prices as _f21_prices  # noqa: E402
+from profiles import weather as _f21_weather  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _f21_State  # noqa: E402
+
+
+def _f21_storage_solve(two_zone, seed=None, l1=None):
+    cfg = _f21_house(
+        two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
+        buffer_max_temperature=70.0, mixing_valve_mode="manual",
+    )
+    params = _f21_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _f21_Opt(_f21_Model(params), _f21_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+    ))
+    if seed is not None:
+        opt._prev_shipped_plan = np.asarray(seed, dtype=float)
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _f21_weather("winter_cold", t0)
+    state = _f21_State(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=25.0, outdoor_temperature=float(out[0]),
+    )
+    saved = _f21_optmod._COMFORT_FLOOR_L1
+    if l1 is not None:
+        _f21_optmod._COMFORT_FLOOR_L1 = l1
+    try:
+        res = opt.optimize(
+            state, _f21_prices("winter_typical", t0), out, wind, rain, sun, t0
+        )
+    finally:
+        _f21_optmod._COMFORT_FLOOR_L1 = saved
+    return np.asarray(res.power_schedule), float(res.objective_value), opt
+
+
+for _f21_tz in (True, False):
+    _f21_half, _, _ = _f21_storage_solve(
+        _f21_tz, l1=0.5 * _f21_optmod._COMFORT_FLOOR_L1
+    )
+    _, _f21_j_plain, _f21_solved = _f21_storage_solve(_f21_tz)
+    _, _f21_j_seeded, _ = _f21_storage_solve(_f21_tz, seed=_f21_half)
+    if _f21_tz:
+        _f21_two_zone_opt = _f21_solved
+    R.check(
+        "R9-F2.1 P3" + ("" if _f21_tz else " (null arm, single-zone)")
+        + ": the shipped storage plan is no worse on its own objective than "
+        "the half-price floor's plan refined under it",
+        _f21_j_plain <= _f21_j_seeded + 0.1,
+        f"shipped {_f21_j_plain:.4f}, seeded with the half-price plan "
+        f"{_f21_j_seeded:.4f}",
+    )
+_f21_probe = (
+    np.full(5, 19.9), np.full(5, 19.9), np.full(5, 21.5), np.full(4, 21.5),
+    np.full(4, 20.0), np.full(4, 23.0), np.full(4, 1.5),
+)
+_f21_after = _f21_two_zone_opt._comfort_terms(*_f21_probe)[0]
+_f21_fresh = _f21_Opt(
+    _f21_two_zone_opt.model, _f21_two_zone_opt.config
+)._comfort_terms(*_f21_probe)[0]
+R.check(
+    "R9-F2.1 P3: the continuation leaves each zone's floor at the full linear "
+    "price once the solve returns",
+    _f21_after == _f21_fresh,
+    f"after a two-zone solve {_f21_after:.6f}, a fresh optimizer {_f21_fresh:.6f}",
+)
+
+# The continuation moves the plain first start, not a caller's extra start,
+# and under the budget the multi-start hands it: #234's two-zone solve, with
+# both solvers stubbed so only the hand-off is read.
+_f21_budgets, _f21_moved = [], []
+
+
+def _f21_ms(objective, starts, bounds, *a, move_starts, **kw):
+    _f21_moved.extend(move_starts([np.asarray(s, dtype=float) for s in starts], 7))
+    return _Min234(np.asarray(starts[0], dtype=float))
+
+
+def _f21_min(fun, x0, **kw):
+    _f21_budgets.append(kw["options"]["maxiter"])
+    return _Min234(np.full(np.shape(x0), -1.0))
+
+
+_f21_real = (_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize)
+_f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_ms, _f21_min
+try:
+    _opt234._optimize_space_only(_h234)
+    _f21_budgets_two, _f21_budgets[:] = list(_f21_budgets), []
+    _opt234.model.params.two_zone_enabled = False
+    _opt234._optimize_space_only(_h234)
+finally:
+    _opt234.model.params.two_zone_enabled = True
+    _f21_optmod._multi_start_minimize, _f21_optmod._scoped_minimize = _f21_real
+R.check(
+    "R9-F2.1 P3: the continuation refines the first plain start, after the "
+    "extra starts, within the multi-start's own iteration budget",
+    _f21_budgets_two == [7] and len(_f21_moved) >= 4
+    and np.allclose(_f21_moved[0], _clipped234)
+    and np.allclose(_f21_moved[1], _bang234)
+    and np.all(_f21_moved[2] == -1.0) and not np.all(_f21_moved[3] == -1.0),
+    f"budgets {_f21_budgets_two}; moved "
+    f"{[bool(np.all(c == -1.0)) for c in _f21_moved]}",
+)
+R.check(
+    "R9-F2.1 P3 (null arm, single-zone): a single-zone solve runs no "
+    "continuation -- its floor price never changed",
+    _f21_budgets == [],
+    f"continuation budgets on the single-zone solve: {_f21_budgets}",
+)
+
 # D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the
 # import price sits below the export price (a negative-price hour, or a high
 # export compensation) a surplus-covered kWh was charged at the import price
@@ -49076,6 +50008,408 @@ R.check(
     all(abs(a - b) < 1e-9 for a, b in zip(_f21_blend, _f21_bwant)),
     f"{[round(float(v), 4) for v in _f21_blend]} against "
     f"{[round(v, 4) for v in _f21_bwant]}",
+)
+
+
+# -- R9-F2.2: N-solve-recompute -- interpreter-bound recomputation in the solve --
+# Round 9, fix F2.2 (Part of #1653). Each arm drives the production symbol. The
+# cost pins count what the finding's cost metric counts -- calls made while the
+# solve runs -- and the parity pins hold the bitwise contract the batched
+# objective owes the scalar one (fixer.md step 15), at the production width, on
+# a C-order and a Fortran-order batch (G3-V1).
+import sys as _f22_sys  # noqa: E402
+
+from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    _DHW_MIN_RUN_CHUNK as _F22_CHUNK,
+    cycling_penalty as _f22_cyc,
+    cycling_penalty_batch as _f22_cyc_batch,
+)
+
+
+def _f22_calls(fn, *a):
+    """Every Python and C call made while ``fn(*a)`` runs, and its result."""
+    count = [0]
+
+    def prof(_frame, event, _arg):
+        if event in ("call", "c_call"):
+            count[0] += 1
+
+    _f22_sys.setprofile(prof)
+    try:
+        out = fn(*a)
+    finally:
+        _f22_sys.setprofile(None)
+    return count[0], out
+
+
+def _f22_comfort_opt(two_zone):
+    return _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
+
+
+def _f22_comfort_args(rows, n, seed):
+    rng = np.random.default_rng(seed)
+    # Temperatures straddling both bounds, so every term is live on every row.
+    trajs = [rng.uniform(17.0, 26.0, size=(rows, n + 1)) for _ in range(3)]
+    lo_b = np.full(n, 20.0)
+    hi_b = np.full(n, 23.0)
+    tgt = rng.uniform(20.5, 22.5, size=n)
+    band = np.full(n, 1.5)
+    return trajs, (tgt, lo_b, hi_b, band)
+
+
+# D9-s1-01 and RC-sw1: the batched twins' work must not grow with the row
+# count. The per-row loop made it B times the scalar body's calls; a batch of
+# 97 rows (one gradient at the production width) against one of 2 separates
+# the two shapes by ~48x. Null control: the scalar twins, whose calls do not
+# depend on a row count at all, are the unit the per-row loop repeated.
+_f22_cost = {}
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_rows in (2, 97):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(_f22_rows, 96, 7)
+        _f22_cost[("comfort", _f22_two, _f22_rows)] = _f22_calls(
+            _f22_opt._comfort_terms_batch, _f22_r, _f22_u, _f22_l, *_f22_rest
+        )[0]
+for _f22_rows in (2, 97):
+    _f22_pm = np.random.default_rng(3).uniform(0.0, 6.0, size=(_f22_rows, 96))
+    _f22_cost[("cycling", None, _f22_rows)] = _f22_calls(
+        _f22_cyc_batch, _f22_pm, 2.0, 6.0
+    )[0]
+_f22_growth = {
+    k[:2]: (_f22_cost[k[:2] + (97,)], _f22_cost[k[:2] + (2,)])
+    for k in _f22_cost if k[2] == 2
+}
+R.check(
+    "R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty "
+    "make the same calls for 97 rows as for 2 (no per-row interpreter loop)",
+    all(big == small for big, small in _f22_growth.values()),
+    f"(97-row calls, 2-row calls) per twin: {_f22_growth}",
+)
+
+# The parity grid: every row of each twin is its scalar on that row, byte for
+# byte, at widths on each side of the pairwise-summation block edges (8, 128)
+# and at the production width 96, on C- and Fortran-order batches. Rows that
+# sit wholly inside the band make the undershoot/overshoot sums all-zero, the
+# case where a sign of zero could differ.
+_f22_bad = []
+for _f22_two in (False, True):
+    _f22_opt = _f22_comfort_opt(_f22_two)
+    for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+        (_f22_r, _f22_u, _f22_l), _f22_rest = _f22_comfort_args(9, _f22_n, _f22_n)
+        _f22_r[0] = _f22_u[0] = _f22_l[0] = 21.5
+        for _f22_order in ("C", "F"):
+            _f22_rr, _f22_uu, _f22_ll = (
+                np.asarray(a, order=_f22_order) for a in (_f22_r, _f22_u, _f22_l)
+            )
+            _f22_pb, _f22_cb = _f22_opt._comfort_terms_batch(
+                _f22_rr, _f22_uu, _f22_ll, *_f22_rest
+            )
+            for _f22_b in range(_f22_rr.shape[0]):
+                _f22_ps, _f22_cs = _f22_opt._comfort_terms(
+                    np.array(_f22_rr[_f22_b]), np.array(_f22_uu[_f22_b]),
+                    np.array(_f22_ll[_f22_b]), *_f22_rest,
+                )
+                if (np.float64(_f22_pb[_f22_b]).tobytes()
+                        != np.float64(_f22_ps).tobytes()
+                        or np.float64(_f22_cb[_f22_b]).tobytes()
+                        != np.float64(_f22_cs).tobytes()):
+                    _f22_bad.append(("comfort", _f22_two, _f22_n, _f22_order, _f22_b))
+    for _f22_n in (1, 2, 5, 8, 9, 96, 97, 129, 192):
+        _f22_pm = np.random.default_rng(_f22_n).uniform(0.0, 6.0, size=(9, _f22_n))
+        _f22_pm[0] = 3.0
+        for _f22_order in ("C", "F"):
+            _f22_pmo = np.asarray(_f22_pm, order=_f22_order)
+            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, 6.0)
+            for _f22_b in range(_f22_pmo.shape[0]):
+                if (np.float64(_f22_got[_f22_b]).tobytes()
+                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, 6.0)).tobytes()):
+                    _f22_bad.append(("cycling", _f22_n, _f22_order, _f22_b))
+R.check(
+    "R9-F2.2: every batched comfort and cycling row is its scalar twin byte "
+    "for byte, C- and Fortran-order, widths 1 to 192 including the production 96",
+    not _f22_bad,
+    f"first divergences: {_f22_bad[:4]}",
+)
+# The scalar twins' own value is unchanged by the fix: each is the sum numpy
+# gives a fresh 1-D array, which is what they returned before (null control
+# for the rows above agreeing only with each other).
+# Twenty-five schedules per width, because one reordered addition changes the
+# last bit of only some sums.
+_f22_ref_bad = []
+for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
+    for _f22_seed in range(25):
+        _f22_x = np.random.default_rng((_f22_n, _f22_seed)).uniform(0.0, 6.0, size=_f22_n)
+        _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
+        if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
+            _f22_ref_bad.append((_f22_n, _f22_seed))
+R.check(
+    "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
+    "swings, to the byte",
+    not _f22_ref_bad,
+    f"(width, seed) that moved: {_f22_ref_bad[:6]} of {len(_f22_ref_bad)}",
+)
+
+
+# D9-s1-02: with a batched objective served, L-BFGS-B takes f(x) from the same
+# batch as the gradient, so the scalar objective is never evaluated inside a
+# minimize run (it still scores the candidates and judges each restart). The
+# plan must not move: on uniform bounds the batched jac is scipy's own
+# estimate to the bit, so the fused solve must land on the point the scalar
+# path (no batch at all) reaches. The toy batch evaluates each row through the
+# scalar objective, which keeps the rows bitwise by construction.
+def _f22_obj(x, *_a):
+    d = np.asarray(x, dtype=float) - np.linspace(-1.0, 1.5, np.size(x))
+    return float(np.sum(d * d * (1.0 + 0.3 * np.abs(d))))
+
+
+def _f22_batch(mat, *_a):
+    return np.array([_f22_obj(np.array(row)) for row in mat])
+
+
+def _f22_solve(batch):
+    state = {"depth": 0, "inside": 0}
+    real_min = _grad_optmod._scoped_minimize
+
+    def tracking(*a, **k):
+        state["depth"] += 1
+        try:
+            return real_min(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def counted(x, *a):
+        if state["depth"]:
+            state["inside"] += 1
+        return _f22_obj(x, *a)
+
+    _grad_optmod._scoped_minimize = tracking
+    try:
+        res = _grad_optmod._multi_start_minimize(
+            counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
+            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real_min
+    return res, state["inside"]
+
+
+_f22_fused, _f22_fused_inside = _f22_solve(_f22_batch)
+_f22_plain, _f22_plain_inside = _f22_solve(None)
+R.check(
+    "R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective "
+    "inside L-BFGS-B",
+    _f22_fused_inside == 0 and _f22_plain_inside > 0,
+    f"scalar calls inside minimize: batched {_f22_fused_inside}, "
+    f"unbatched (null arm) {_f22_plain_inside}",
+)
+R.check(
+    "R9-F2.2 D9-s1-02: the fused solve lands on the scalar path's point, byte "
+    "for byte",
+    _f22_fused.x.tobytes() == _f22_plain.x.tobytes(),
+    f"max |dx| {float(np.max(np.abs(_f22_fused.x - _f22_plain.x))):.3e}",
+)
+
+
+# D9-s1-04: a refused weak slot is refused at its first breach. The fixture's
+# early raises are refused because the tank starts on its ceiling, so each
+# breaches at once; checking the whole suffix anyway cost n - slot steps per
+# refusal. Bound: the two opening simulations, the suffix for each accepted
+# slot, and for each refused slot one chunk of check plus its suffix refresh.
+_f22_mr_out, _, _f22_mr_steps = _mr_run(_mr_plan, _mr_outdoor, _mr_draws)
+_f22_refused = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] == 0.0]
+_f22_accepted = [int(p) for p in _mr_weak_pos if _f22_mr_out[p] != 0.0]
+_f22_early_bound = (
+    2 * (96 + 1)
+    + sum(96 - p for p in _f22_accepted)
+    + sum(8 + (96 - p) for p in _f22_refused)
+)
+R.check(
+    "R9-F2.2 D9-s1-04: a refused weak slot stops simulating at its first "
+    "breach rather than checking the whole suffix",
+    _f22_refused and _f22_mr_steps <= _f22_early_bound,
+    f"steps {_f22_mr_steps} against the early-exit bound {_f22_early_bound} "
+    f"({len(_f22_refused)} refused, {len(_f22_accepted)} accepted)",
+)
+
+
+# ...and every accept/refuse decision is still the whole suffix's. The
+# reference is the pre-chunking check: extend the candidate to the horizon,
+# then compare every step against max(ceiling, base). The scenarios step the
+# per-step ceiling down after a boost window, so a chunk that reads the
+# ceiling one step out of line decides differently (review of #1710, m4),
+# and the recorded first-breach offsets must include both sides of the first
+# chunk boundary.
+_F22MrCls = type(_mr_opt)
+_f22_breach_offsets: list[int] = []
+
+
+def _f22_whole_suffix_fits(
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+):
+    self.model.extend_dhw_temps(
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+    )
+    limit = np.maximum(ceiling[: candidate.size], base)
+    bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]
+    if bad.size:
+        _f22_breach_offsets.append(int(bad[0]) + 1)
+    return bad.size == 0
+
+
+def _f22_mr_scenario(seed, n=96):
+    rng = np.random.default_rng(seed)
+    cap = np.full(n, 50.0 + rng.integers(0, 4))
+    w0, wl = int(rng.integers(4, n - 30)), int(rng.integers(4, 24))
+    cap[w0:w0 + wl] = 60.0 + rng.integers(0, 3)
+    plan = np.zeros(n)
+    plan[w0:w0 + wl] = rng.uniform(0.0, 3.0, wl) * (rng.random(wl) < 0.6)
+    weak = rng.choice(n, int(rng.integers(8, 30)), replace=False)
+    plan[weak] = rng.uniform(0.02, 0.55, weak.size)
+    draws = np.zeros(n)
+    d0 = int(rng.integers(0, n - 8))
+    draws[d0:d0 + int(rng.integers(2, 12))] = rng.uniform(0.5, 3.0)
+    return plan, float(rng.uniform(40, 52)), rng.uniform(-10, 10, n), draws, cap
+
+
+def _f22_mr_decide(fits, sc):
+    plan, t0, outdoor, draws, cap = sc
+    saved = _F22MrCls._dhw_raise_fits
+    _F22MrCls._dhw_raise_fits = fits
+    try:
+        return _mr_opt._apply_dhw_min_run(
+            plan=plan.copy(), initial_temp=t0, outdoor_temps=outdoor,
+            draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
+            min_run_power=_MR_MIN, max_temp=cap,
+        )
+    finally:
+        _F22MrCls._dhw_raise_fits = saved
+
+
+_f22_mr_moved = []
+for _f22_seed in range(120):
+    _f22_sc = _f22_mr_scenario(_f22_seed)
+    _f22_ref = _f22_mr_decide(_f22_whole_suffix_fits, _f22_sc)
+    if _f22_mr_decide(_F22MrCls._dhw_raise_fits, _f22_sc).tobytes() != _f22_ref.tobytes():
+        _f22_mr_moved.append(_f22_seed)
+R.check(
+    "R9-F2.2 D9-s1-04: every min-run accept/refuse decision is the whole "
+    "suffix's, on stepped ceilings and breaches on both sides of a chunk "
+    "boundary",
+    not _f22_mr_moved
+    and _F22_CHUNK in _f22_breach_offsets
+    and _F22_CHUNK + 1 in _f22_breach_offsets,
+    f"seeds that moved {_f22_mr_moved[:6]} of {len(_f22_mr_moved)}; "
+    f"first breaches at the boundary: "
+    f"{_f22_breach_offsets.count(_F22_CHUNK)} at +8, "
+    f"{_f22_breach_offsets.count(_F22_CHUNK + 1)} at +9",
+)
+
+
+# D9-s1-71: the constant DHW parameter helpers are computed once per value of
+# their inputs, not once per step. Instrument: the numpy calls and the window
+# overlaps each helper's body makes, counted through the module's own names,
+# over 50 reads. Each read after an input changes must equal a fresh object's,
+# so the memo can never serve a stale value.
+class _F22NpCount:
+    def __init__(self):
+        self.n = {"clip": 0, "isfinite": 0}
+
+    def __getattr__(self, name):
+        return getattr(np, name)
+
+    def clip(self, *a, **k):
+        self.n["clip"] += 1
+        return np.clip(*a, **k)
+
+    def isfinite(self, *a, **k):
+        self.n["isfinite"] += 1
+        return np.isfinite(*a, **k)
+
+
+_f22_p = _f21_Params()
+_f22_p.dhw_schedule_enabled = True
+_f22_p.dhw_windows = _f22_tm.parse_windows("06:00-08:00,18:00-21:00")
+_f22_p.dhw_inlet_current = 8.5
+_f22_count = _F22NpCount()
+_f22_overlaps = [0]
+_f22_real_np, _f22_real_overlap = _f22_tm.np, _f22_tm.overlap_fraction
+
+
+def _f22_overlap(*a, **k):
+    _f22_overlaps[0] += 1
+    return _f22_real_overlap(*a, **k)
+
+
+_f22_tm.np, _f22_tm.overlap_fraction = _f22_count, _f22_overlap
+try:
+    for _ in range(50):
+        _f22_ua = _f22_p.dhw_tank_heat_loss_coefficient
+        _f22_inlet = _f22_p.dhw_inlet_reference
+        _f22_pat = _f22_p.effective_dhw_draw_pattern()
+finally:
+    _f22_tm.np, _f22_tm.overlap_fraction = _f22_real_np, _f22_real_overlap
+R.check(
+    "R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the "
+    "windowed draw pattern compute each once",
+    _f22_count.n == {"clip": 1, "isfinite": 1} and _f22_overlaps[0] == 24,
+    f"numpy calls {_f22_count.n}, window overlaps {_f22_overlaps[0]} "
+    f"(one computation is 1, 1 and 24)",
+)
+_f22_pat.append(99.0)
+_f22_stale = []
+for _f22_field, _f22_val in (
+    ("dhw_cooling_rate", 2.5), ("dhw_tank_volume", 300.0),
+    ("dhw_inlet_current", 11.0), ("dhw_inlet_current", float("nan")),
+    ("dhw_inlet_temp", 7.0), ("dhw_hourly_draw_pattern", [2.0] * 12 + [0.0] * 12),
+    ("dhw_windows", _f22_tm.parse_windows("05:00-07:00")),
+    ("dhw_schedule_enabled", False),
+):
+    setattr(_f22_p, _f22_field, _f22_val)
+    _f22_fresh = _f21_Params()
+    for _f22_f2 in (
+        "dhw_cooling_rate", "dhw_tank_volume", "dhw_inlet_current",
+        "dhw_inlet_temp", "dhw_hourly_draw_pattern", "dhw_windows",
+        "dhw_schedule_enabled",
+    ):
+        setattr(_f22_fresh, _f22_f2, getattr(_f22_p, _f22_f2))
+    for _f22_attr in ("dhw_tank_heat_loss_coefficient", "dhw_inlet_reference"):
+        if getattr(_f22_p, _f22_attr) != getattr(_f22_fresh, _f22_attr):
+            _f22_stale.append((_f22_field, _f22_attr))
+    if _f22_p.effective_dhw_draw_pattern() != _f22_fresh.effective_dhw_draw_pattern():
+        _f22_stale.append((_f22_field, "effective_dhw_draw_pattern"))
+R.check(
+    "R9-F2.2 D9-s1-71: every input change reaches the next read, and a caller "
+    "mutating the returned pattern cannot reach the memo",
+    not _f22_stale,
+    f"(changed input, stale helper): {_f22_stale}",
+)
+
+
+# The windowed pattern's two fallbacks, now in the memo's compute helper: a
+# learned pattern that is not 24 hours long is replaced by the default before
+# masking (the 24-hour sum is then rescaled to 24), and a pattern the windows
+# mask to nothing is returned as it is rather than divided by zero.
+def _f22_windowed(pattern):
+    params = _f21_Params()
+    params.dhw_schedule_enabled = True
+    params.dhw_windows = _f22_tm.parse_windows("05:00-09:00")
+    params.dhw_hourly_draw_pattern = pattern
+    try:
+        return params.effective_dhw_draw_pattern()
+    except ZeroDivisionError as err:
+        return f"raised {err!r}"
+
+
+_f22_short = _f22_windowed([1.0] * 12)
+_f22_zero = _f22_windowed([0.0] * 24)
+R.check(
+    "R9-F2.2 D9-s1-71: a pattern that is not 24 hours long falls back to the "
+    "default, and one the windows mask to nothing comes back unscaled",
+    isinstance(_f22_short, list) and len(_f22_short) == 24
+    and abs(sum(_f22_short) - 24.0) < 1e-9
+    and _f22_zero == [0.0] * 24,
+    f"short pattern -> {_f22_short!r:.80}; all-zero pattern -> {_f22_zero!r:.80}",
 )
 
 

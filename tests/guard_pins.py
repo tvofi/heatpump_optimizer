@@ -161,6 +161,41 @@ def _pinned_guess_respects_the_lower_bound() -> bool:
     return bool(out[0] == 1.5 and out[1] == 4.0)
 
 
+def _draw_folded_only_without_external_heat() -> bool:
+    """D3-s3-04: a positive draw is folded, except while external heat runs.
+
+    ``async_fold_draw_stats`` skips an interval outright while external heat
+    (a wood burn) drives the tank, and otherwise folds the energy beyond
+    standby into the open occurrence. Both arms are pinned: forcing the
+    ``_external_heat_active()`` guard off folds the wood-driven drop, and
+    forcing it on folds nothing ever -- and no gate check saw either.
+    """
+    folded = []
+    for external in (True, False):
+        params = ThermalParameters()
+        params.dhw_enabled = True
+        learner = DhwProfileLearner(
+            FakeHass(),
+            "guard-pins-draws",
+            params,
+            frozen=lambda *_: None,
+            heating_active=lambda: False,
+            external_heat_active=lambda external=external: external,
+        )
+
+        async def _no_save() -> None:
+            return None
+
+        learner.async_save_draws = _no_save
+        learner.cooling_rate = 0.3
+        # 07:00 lies in the stock morning window; a 2 °C drop in 15 min at
+        # 55 °C is well beyond standby.
+        now = datetime(2026, 1, 15, 7, 0, tzinfo=timezone.utc)
+        asyncio.run(learner.async_fold_draw_stats(now, 55.0, 2.0, 0.25))
+        folded.append(learner.draw_stats._open_kwh)
+    return bool(folded[0] == 0.0 and folded[1] > 0.0)
+
+
 def _ceiling_notice_is_deduplicated() -> bool:
     """D3-01: an unchanged ceiling signature must not re-raise the notice.
 
@@ -192,6 +227,49 @@ def _ceiling_notice_is_deduplicated() -> bool:
     finally:
         legionella_mod.create_issue = original
     return len(calls) == 1
+
+
+def _write_failed_notice_is_memoised() -> bool:
+    """D3-s3-05: the write-failed notice is raised once and cleared once.
+
+    ``_drive_switch`` compares ``switch.failed`` with its memo
+    (``write_failed_notice``) and returns while they agree, so a healthy
+    cycle issues no Repairs call at all. Without the guard every healthy
+    cycle deletes the issue and every failing one re-creates it -- a notice
+    the user dismissed comes straight back; forcing it on never raises it.
+    """
+    guard = LegionellaGuard(
+        FakeHass(),
+        "guard-pins-write-failed",
+        ThermalParameters(),
+        {},
+        action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+
+    async def _no_save() -> None:
+        return None
+
+    guard.async_save = _no_save
+    calls: list[str] = []
+    ir = legionella_mod.ir
+    original = legionella_mod.create_issue, ir.async_delete_issue
+    legionella_mod.create_issue = lambda *a, **k: calls.append(f"create {a[2]}")
+    ir.async_delete_issue = lambda hass, dom, iid: calls.append(f"delete {iid}")
+    try:
+        # Observe mode, nothing owned: release writes nothing, so the
+        # switch's sticky ``failed`` flag is what each cycle reports.
+        for failed in (False, False, True, True, True, False, False):
+            guard.disinfect.failed = failed
+            guard.disinfect.failed_entity = "switch.disinfect" if failed else None
+            asyncio.run(guard._drive_switch(False))
+    finally:
+        legionella_mod.create_issue, ir.async_delete_issue = original
+    return calls == [
+        "create dhw_disinfection_write_failed",
+        "delete dhw_disinfection_write_failed",
+    ]
 
 
 def main() -> int:
@@ -230,6 +308,18 @@ def main() -> int:
         _ceiling_notice_is_deduplicated(),
         "the signature guard in check_ceiling must stop the Repairs issue "
         "being re-created on every tick",
+    )
+    R.check(
+        "a draw is folded, and skipped while external heat drives the tank",
+        _draw_folded_only_without_external_heat(),
+        "the _external_heat_active() guard in async_fold_draw_stats must "
+        "skip exactly the wood-driven intervals",
+    )
+    R.check(
+        "the disinfection write-failed notice is raised once and cleared once",
+        _write_failed_notice_is_memoised(),
+        "the write_failed_notice memo in _drive_switch must stop a Repairs "
+        "call on every cycle whose state did not change",
     )
     return R.close("GUARD PIN CHECKS")
 

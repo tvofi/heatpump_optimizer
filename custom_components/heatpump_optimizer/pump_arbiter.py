@@ -17,21 +17,27 @@ hot water only DHW only, if offered configured       suitable, or
                                                      the space gate
 space only     Heating, if offered  configured, or   suitable
                                     the DHW gate
-both           Heating + DHW        configured       suitable
+both           DHW only, then       configured       suitable
+               Heating (split)
 idle           unchanged            configured       suitable
 baseline       Heating + DHW        configured       suitable
 =============  ==================  ================  ===============
 
 *Configured* is the hot-water set-point from the config flow
-(``dhw_setpoint``), never a literal. *Suitable* is the plan's own number:
-the weather-curve supply temperature for a flow set-point, or the step's
-planned room temperature for an indoor one. A space-only step is heating
+(``dhw_setpoint``), never a literal. *Suitable* is the plan's own number.
+For an indoor set-point it is the step's planned room temperature. For a
+flow set-point it is :data:`FLOW_HEAT_C` on a step that heats the house,
+the gate on one that does not, and on the baseline :data:`FLOW_HOLD_C` or
+the weather curve where that is higher (:func:`_flow_target`). A space-only step is heating
 only (tvofi, 2026-09-24): the cheapest hours for the house need not be the
 ones that keep the tank ready for its next hot-water window, so the pump's
 own tank thermostat must not spend them. A disinfection cycle the
 integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
 into Heating + DHW, so the planned anti-legionella run can make hot water.
-*Idle* writes no mode: see :func:`desired`.
+*Idle* writes no mode: see :func:`desired`. A both step is split by
+:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+then Heating, each through its own row above; a share under
+:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -46,7 +52,7 @@ it writes is recorded. A reading that differs from the record after
 :data:`ECHO_GRACE_S` -- a person, an automation or the pump's own reset --
 is written again at once: while "Optimizer active" is on the optimizer is
 the pump's one writer, and turning it off is how a person takes the pump
-back (the baseline row is written once, then nothing). A value the pump
+back, and nothing is written from then on. A value the pump
 still does not hold after that rewrite raises a warning repair and is sent
 again every :data:`RETRY_MINUTES`; the first reading that holds it clears
 the repair. Readings inside the grace prove nothing either way: the fork
@@ -73,8 +79,11 @@ read the pump before the record agrees (v6.6.12).
 house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
-missing plan, a fixed-rule mode, an experiment, a boost and the end of the
-lease all get the baseline row above. Unloading writes the baseline too.
+missing plan, comfort, an experiment and the end of the lease all get
+the baseline row above, and so does unloading while the optimizer is on.
+A boost adds its duty to the plan step's (Boost Space Heating alone is
+space only, DHW boost alone hot water only), and the global boost mode is
+both (:func:`_planned_duty`). Turning it off writes nothing.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -124,6 +133,7 @@ from .const import (
     DEFAULT_SPACE_SETPOINT_UNIT,
     DOMAIN,
     MODE_AUTO,
+    MODE_BOOST,
     MODE_ECONOMY,
     MODE_OFF,
     PUMP_DUTY_MODES,
@@ -148,12 +158,23 @@ COLD_RAIL_C = -10.0
 FLOW_GATE_C = 25.0
 #: The floor of the hot-water gate on a transport with no heating-only mode.
 DHW_GATE_C = 30.0
+#: A flow set-point on a step the plan heats (tvofi, 2026-09-26): the design
+#: flow of a heat-pump radiator system, so the pump's own water thermostat
+#: never cuts a planned heating step short. The supply itself settles where
+#: the emitters take the pump's output, below this in all but the coldest
+#: weather.
+FLOW_HEAT_C = 55.0
+#: The fallback's flow set-point: the W35 point the nameplate COP is rated at.
+FLOW_HOLD_C = 35.0
 SETPOINT_TOLERANCE = 0.3
 #: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
 ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
+#: The shortest single-duty share of a both step; a shorter share goes to
+#: the other duty for the whole step (valve travel and compressor cycling).
+SPLIT_MIN_MINUTES = 5.0
 TANK_RISE_C = 0.5
 LOG_STEPS = 96
 _STORE_VERSION = 1
@@ -191,6 +212,8 @@ class ArbiterState:
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
+#: The mode slot's writable domains; its third, ``sensor``, is read-only.
+_MODE_DOMAINS = frozenset(("select", "input_select"))
 
 
 def _entities(config: Any) -> dict[str, Any]:
@@ -281,13 +304,47 @@ def _planned_room(result: Any, now: datetime) -> float | None:
     return points[i] if 0 <= i < len(points) else None
 
 
-def _space_target(coord: Any, result: Any, now: datetime) -> float | None:
-    """The plan's own space set-point: the curve supply, or the room target."""
+def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> float | None:
+    """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
     state = _slot_state(coord, "space_setpoint")
     if _flow_unit(coord._config):
-        outdoor = float(coord._current_state.outdoor_temperature)
-        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)
-    return _bounded(state, _planned_room(result, now))
+        return _flow_target(coord, state, duty)
+    room = _planned_room(result, now)
+    low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
+    if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
+        # An "indoor" entity that cannot hold the room target is a flow
+        # set-point declared as indoor: clamping 21 degC up to its minimum
+        # is the 25 degC this module must never write to a flow entity.
+        _LOGGER.warning(
+            "Pump duty: %s is declared an indoor set-point but its minimum is "
+            "%.1f degC; set its unit to Flow temperature. Not writing it.",
+            _entities(coord._config)["space_setpoint"], low,
+        )
+        return None
+    return _bounded(state, room)
+
+
+def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
+    """A flow set-point per duty: heat, gate, or the fallback's hold.
+
+    The model's weather curve is a pricing curve, not a set-point: it sizes
+    the emitters to the pump's full output at ``emitter_design_delta_t``, so
+    it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
+    2026-09-26). So a step that heats writes :data:`FLOW_HEAT_C`: the pump's
+    own water thermostat does not cut it short, the supply settles where the
+    emitters take the heat, and when to heat stays the plan's (mode, power
+    switch and this gate). A step that does not heat writes the gate. The
+    fallback leaves the pump on its own, so it holds the rated
+    :data:`FLOW_HOLD_C`, or the curve where that is higher.
+    """
+    if duty in ("space", "both"):
+        return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
+    if duty is not None:
+        return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
+    outdoor = float(coord._current_state.outdoor_temperature)
+    curve = coord._thermal_model.curve_flow_temp(outdoor)
+    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+    return _bounded(state, hold, FLOW_GATE_C)
 
 
 def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
@@ -296,13 +353,13 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
     mode_state = _slot_state(coord, "mode")
     space_state = _slot_state(coord, "space_setpoint")
     dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
-    space = _space_target(coord, result, now)
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off.
         return PumpCommand(None, None, None)
     both = pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
     if duty == "space" and _disinfecting(coord):
         duty = "both"
+    space = _space_target(coord, result, now, duty)
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -319,8 +376,9 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
         return PumpCommand(both, dhw, space)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
-    gate = _bounded(space_state, FLOW_GATE_C if _flow_unit(coord._config) else 5.0)
-    return PumpCommand(both, dhw, gate)
+    if _flow_unit(coord._config):
+        return PumpCommand(both, dhw, space)
+    return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
 
 
 def _disinfecting(coord: Any) -> bool:
@@ -342,17 +400,32 @@ setpoint_check.dhw_gated = dhw_gated
 
 
 def _planned_duty(coord: Any, now: datetime) -> str | None:
-    """The duty to serve now, or ``None`` for the baseline."""
-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():
+    """The duty to serve now, or ``None`` for the baseline.
+
+    A boost adds its duty to the plan's step, not the baseline (tvofi,
+    2026-09-27): Heating + DHW would hand the other duty to the pump's own
+    thermostat for the boost's two hours, and when that duty runs is the
+    plan's. So Boost Space Heating is heating only, DHW boost hot water
+    only (leased like any), and ``both`` where the step or the other boost
+    wants the other duty too. The global boost mode plans no hot water, so
+    it is ``both``: the heating flow, not the baseline's hold.
+    """
+    if coord._mode == MODE_BOOST:
+        return "both"
+    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
         return None
     if (coord._current_action or {}).get("mode") == "system_identification":
         return None
-    if boost.held_for(coord).until:
-        return None
-    result = getattr(coord, "_optimization_result", None)
-    if result is None:
-        return None
-    return step_duty(result, now, _on_kw(coord))
+    held = boost.held_for(coord)
+    result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
+    duty = None if result is None else step_duty(result, now, _on_kw(coord))
+    space = held.active(boost.CHANNEL_SPACE, now)
+    dhw = held.active(boost.CHANNEL_DHW, now)
+    if not (space or dhw):
+        return duty
+    space = space or duty in ("space", "both")
+    dhw = dhw or duty in ("dhw", "both")
+    return "both" if space and dhw else "space" if space else "dhw"
 
 
 def _on_kw(coord: Any) -> float:
@@ -453,10 +526,13 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         return
     if slot in held.retry and now < held.retry[slot]:
         return
+    domain = entity.split(".", 1)[0]
+    if slot == "mode" and domain not in _MODE_DOMAINS:
+        return  # a read-only mode slot is read, never written (D12-s2-02)
     try:
         if slot == "mode":
             await coord.hass.services.async_call(
-                "select",
+                domain,
                 "select_option",
                 {"entity_id": entity, "option": _option_for(state, value)},
                 blocking=True,
@@ -525,14 +601,16 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
         return
     async with held.lock:
         await _load(coord)
+        if getattr(coord, "_entry_released", False):
+            return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
         await _arbitrate(coord, held, mode, now)
 
 
 async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
     if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
-        if held.written and mode == DUTY_CONTROL:
-            await _command(coord, desired(coord, None, now), now)
+        # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
+        # pump is the person's the moment the optimizer lets go of it.
         if held.written or held.retry:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
@@ -545,7 +623,29 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
     if mode != DUTY_CONTROL or _pump_off(coord):
         return
     hold(coord, now)
-    await _command(coord, desired(coord, duty, now), now)
+    await _command(coord, desired(coord, _share(coord, duty, now), now), now)
+
+
+def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
+    """On a planned both step, hot water first for its share, then heating.
+
+    Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
+    2026-09-27). The share is the step's hot-water power over its total.
+    A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
+    """
+    held = boost.held_for(coord)
+    if (duty != "both" or coord._mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
+            or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
+        return duty
+    result = coord._optimization_result
+    i = bisect.bisect_right(result.timestamps, now) - 1
+    space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
+    dhw_min = 15.0 * dhw / (space + dhw)
+    if dhw_min < SPLIT_MIN_MINUTES:
+        return "space"
+    if 15.0 - dhw_min < SPLIT_MIN_MINUTES:
+        return "dhw"
+    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
 
 
 def _pump_off(coord: Any) -> bool:
@@ -564,7 +664,7 @@ async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
-    if held.written and duty_mode(coord._config) == DUTY_CONTROL:
+    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:
         await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
 
 
@@ -595,7 +695,10 @@ def _listen(coord: Any) -> None:
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(
-        coord.hass, _STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_pump_duty"
+        coord.hass,
+        _STORE_VERSION,
+        f"{DOMAIN}_{coord.entry.entry_id}_pump_duty",
+        naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _load's zone
     )
 
 
@@ -625,13 +728,25 @@ async def _load(coord: Any) -> None:
         return
     if raw.get("manual"):
         _clear(coord, ISSUE_MANUAL)
-    for slot, pair in (raw.get("written") or {}).items():
+    written = raw.get("written")
+    for slot, pair in written.items() if isinstance(written, dict) else ():
         try:
-            at = stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
+            value, at = pair[0], stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
         except (TypeError, KeyError, IndexError):
             continue
-        if at is not None:
-            held.written[slot] = (pair[0], at)
+        if at is not None and _writable(slot, value):
+            held.written[slot] = (value, at)
+
+
+def _writable(slot: str, value: Any) -> bool:
+    """Whether ``value`` is one the arbiter could have written to ``slot``.
+
+    A restored record is compared and rewritten on every pass, so one of any
+    other shape raised there on every cycle (D1-s3-03).
+    """
+    if slot == "mode":
+        return isinstance(value, str) and value in _OWN_MODES
+    return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

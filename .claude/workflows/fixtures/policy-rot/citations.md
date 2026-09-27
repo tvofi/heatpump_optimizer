@@ -6,3 +6,4 @@ A path that is not in the tree: tests/no_such_policy_probe.py must be read first
 A second dead path: tools/audit/briefs/orchestratr.md is the contract you open.
 A budget literal quoted rather than re-measured: coordinator_loc 10086 <= 10086.
 A line citation past the end of its file: CLAUDE.md:999999 says so.
+A quoted output line no tool prints: `MODE: NEVER-PRINTED -- 7 script(s) run`.

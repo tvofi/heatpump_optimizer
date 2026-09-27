@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 2fa81462",
+  "killed_by": "tests/features.py",
+  "old": "        if measured_supply > FLOW_SUPPLY_MAX_C:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 48b696c19761a7f5f0a440891a932c87fa509515: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

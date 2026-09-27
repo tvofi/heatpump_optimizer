@@ -1,5 +1,47 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.6
+
+hotfix follow-up: heating and hot-water duty are split within a planned step, so a boost no longer drags hot water into a heating slot. Also round-9 F11.3 (the policy text and the governance barrier) and F8.2 (documentation fixes).
+
+- #1715 — governance: policy text and the governance barrier (round-9 F11.3)
+- #1703 — docs: five I5 documentation fixes and the md_tables pin (round-9 F8.2)
+- #1719 — fix: split heating and hot-water duty within a step (boost hotfix follow-up)
+
+## v6.7.5
+
+hotfix: pressing Boost space heating now sets a Tuya pump to heat only where the pump offers that mode, with heat+dhw only as the fallback, so the optimizer keeps control of when hot-water and space-heating slots run. Also: round-9 wave 1 closes and wave 2 begins: input and system-identification fixes, store fixes, the solver's F2.2 fixes, a keyboard route for the card's pointer-only editing, and new guard test pins.
+
+- #1704 — fix: inputs and system identification (round-9 F4.1)
+- #1707 — fix: stores (round-9 F3.2)
+- #1709 — fix(card): keyboard route for pointer-only editing and card fixes (round-9 F6.2)
+- #1713 — fix: solver (round-9 F2.2)
+- #1714 — tests: round-9 F9.2 test pins (fixes #1678)
+- #1716 — fix: Boost space heating sets heat only where the pump offers it, heat+dhw as fallback (hotfix)
+
+## v6.7.4
+
+hotfix: when the optimizer is switched off, it no longer writes anything to the heat pump.
+
+- #1708 — fix: optimizer off means no writes to the heat pump (hotfix)
+
+## v6.7.3
+
+hotfix: when the optimizer controls the heat pump's mode and set-point, it no longer writes an indoor temperature (25 °C) to a set-point that is configured as a flow temperature, which badly underheated the house. Also in this release, most of round-9 wave 1: climate and switch modes no longer read a stale mode, stored timestamps are bounded and time-zone-aware, the solver's sign floor on the price margin is fixed (and the storage basin it had lost is restored), config text and card fixes, docs that match the setup wizard, and governance and test-stub fidelity work.
+
+- #1690 — fix the climate hvac_action and switch mode reading a stale or overlay-blind mode (P2, D8-s2-02/03)
+- #1691 — fix: a stored instant loads aware or not at all, never beyond the clock plus its store's lead (round-9 F3.1)
+- #1693 — tests: the HA stub is faithful where production depends on it (round-9 F10.1, P11)
+- #1694 — fix: the solver's sign floor on the price margin (round-9 F2.1)
+- #1696 — docs: initial setup matches the current wizard; simulate_plan lists its wood fields (round-9 F8.1)
+- #1697 — governance: parsers and enumerators (round-9 F11.1)
+- #1698 — fix(config-text): escaped characters, service icons, bare units and a mistranslation (round-9 F5.1)
+- #1699 — fix(card): dashboard card layout, colour and hit-target fixes (round-9 F6.1)
+- #1701 — governance: round-9 F11.2 (part of #1648)
+- #1702 — tests: pin five I1 guards in finite_boundary (round-9 F9.1)
+- #1705 — fix: never write an indoor temperature to a set-point configured as flow temperature (hotfix)
+- #1711 — fix: restore the solver basin that made storage pay (round-9 F2.1 follow-up)
+
 ## v6.7.2
 
 the card's plan history now looks like the plan: past prices (under either price sensor id), 15-minute steps, the plan's own scales and lanes, and no breaks from one-minute sensor blips. Button presses now return before the solve, so a restart no longer cancels a queued reset. The typing toolchain lock also moves to cryptography 50.0.1 for three Dependabot advisories.

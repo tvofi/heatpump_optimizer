@@ -2043,6 +2043,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
         ctx = getattr(self, "_ctx", self)
+        def planned() -> dict[str, Any]:  # the plan's action, one read for both observers
+            return self._current_action or {}
         # DHW state
         self._dhw_temperature: float | None = None
         # W5-G9: the usage profile, day-type profiles, draw statistics and
@@ -2054,9 +2056,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             entry.entry_id,
             ctx._thermal_params,
             frozen=self._learning_frozen,
-            heating_active=lambda: bool(
-                self._current_action.get("dhw_heating_active", False)
-            ),
+            heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
             external_heat_active=lambda: bool(
                 getattr(
                     getattr(self, "_ctx", self)._current_state,
@@ -2074,7 +2074,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             entry.entry_id,
             ctx._thermal_params,
             ctx._config,
-            action=lambda: self._current_action or {},
+            action=lambda: {} if self._mode == MODE_OFF else planned(),  # off writes nothing
             disinfect=_disinfection_switch(hass, ctx._config),
             dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
@@ -2820,7 +2820,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self, entity_id: str, on: bool, reason: str
     ) -> None:
         previous = self._pump_commanded.get(entity_id)
-        if previous is not None and previous == on:
+        if self._mode == MODE_OFF or (previous is not None and previous == on):  # off writes nothing
             return
         service = "turn_on" if on else "turn_off"
         try:
@@ -6568,11 +6568,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
         """Publish MQTT command for the currently selected optimizer action."""
-        if not self._current_action:
+        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
-            displace_value=float(self._current_action.get("displace_value", 0.0)),
-            heat_pump_on=bool(self._current_action.get("heat_pump_on", False)),
+            displace_value=float(action.get("displace_value", 0.0)),
+            heat_pump_on=bool(action.get("heat_pump_on", False)),
             reason=reason,
         )
 
@@ -6587,7 +6587,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
-        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE:
+        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF:
             return
         entity_id = ctx._config.get(CONF_MIXING_VALVE_WRITE_ENTITY)
         if not entity_id:
@@ -6673,7 +6673,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
         await pump_arbiter.apply(self)
-        if not self._current_action:
+        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
             # The action was cut from a plan whose horizon has slid out from
@@ -7868,17 +7868,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         discretionary-suppression gate external heat uses, at the next
         solve — no solve happens here.
         """
-        if not self._current_action:
+        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             self.async_update_listeners()
             return
         if self._peak_guard.suppressing:
             await self.async_publish_ecl110_command(
                 displace_value=float(
-                    self._current_action.get("displace_value", 0.0)
+                    action.get("displace_value", 0.0)
                 )
                 - PEAK_GUARD_DISPLACE_NUDGE_C,
                 heat_pump_on=bool(
-                    self._current_action.get("heat_pump_on", False)
+                    action.get("heat_pump_on", False)
                 ),
                 reason="peak_guard",
             )
@@ -10268,7 +10268,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         map with no evidence writes NOTHING: None is never a frequency.
         """
         entity_id = getattr(self, "_ctx", self)._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL:
+        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
             return
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(

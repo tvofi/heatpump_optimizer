@@ -102,11 +102,15 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.5,
+   "seconds": 9.2,
    "rc": 0
   },
   "tests/finite_boundary.py": {
    "seconds": 62.3,
+   "rc": 0
+  },
+  "tests/md_tables.mjs": {
+   "seconds": 0.2,
    "rc": 0
   }
  },
@@ -2102,8 +2106,14 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/climate.py",
+   "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -2114,6 +2124,7 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
@@ -2125,7 +2136,9 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/plan_view.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "tests/stress.py",
+   "tests/structure.py"
   ],
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2225,6 +2238,18 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py"
+  ],
+  "tests/md_tables.mjs": [
+   ".claude/workflows/vendor/markdown-it.min.js",
+   "README.md",
+   "docs/architecture.md",
+   "docs/automations.md",
+   "docs/configuration.md",
+   "docs/dashboard-card.md",
+   "docs/ecl110.md",
+   "docs/how-it-works.md",
+   "docs/setup.md",
+   "tests/md_tables.mjs"
   ]
  }
 }

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters._windowed_draw_pattern GUARD_OFF 91b5ca5d",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if not self.dhw_windows_active:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

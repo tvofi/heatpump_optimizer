@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_share GUARD_OFF 8cc0b854",
+  "killed_by": "tests/features.py",
+  "old": "    if dhw_min < SPLIT_MIN_MINUTES:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cfa2cb07b1474ed3b405787d3b41978e9be61d2f: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

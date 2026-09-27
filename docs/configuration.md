@@ -532,10 +532,10 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 **The return slot is the pump loop's return, not necessarily the floor's.**
 If the pump feeds your floor loops directly, with no buffer tank and no mixing
 valve in between, the two are the same water and the same sensor may go in both
-this field and *Floor return temperature* on the sensors page. Behind a buffer
+this field and *Floor heating return temperature sensor* on the sensors page. Behind a buffer
 tank or a mixing valve they are **different water**: the pump's return comes
 back from the tank, the floor's from the slab, and they can differ by ten
-degrees or more. *Floor return temperature* is what the optimizer estimates
+degrees or more. *Floor heating return temperature sensor* is what the optimizer estimates
 your slab temperature from, so filling it with the pump's return on such a
 system tells it the slab is far hotter or colder than it is, and it will
 under- or over-heat the lower floor accordingly.
@@ -549,15 +549,28 @@ writes, at every 15-minute plan step:
 
 | Plan step | Operating mode | Heat pump DHW set-point | Space-heating set-point |
 |---|---|---|---|
-| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the suitable value, or the space gate (below) |
-| Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the suitable value |
-| Both | *Heating + DHW* | the same | the suitable value |
-| Neither (idle) | left as it is | the same | the suitable value |
-| Every fallback | *Heating + DHW* | the same | the suitable value |
+| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the space gate (below) |
+| Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the heating value |
+| Both | split: *DHW (Hot Water)* for the step's hot-water share of its 15 minutes, then *Heating* (see below) | as in those two rows | as in those two rows |
+| Neither (idle) | left as it is | the same | the space gate |
+| Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **The suitable space value** is the plan's own: the weather-curve supply
-  temperature for a *Flow temperature* entity, the step's planned room
-  temperature for an *Indoor temperature* one — clamped to the entity's range.
+- **For a *Flow temperature* entity** the heating value is 55 °C, or the
+  entity's maximum if that is lower. The pump's own water thermostat then
+  never cuts a planned heating step short, and the optimizer decides when
+  the house is heated. The supply only gets as hot as your radiators or
+  floor can take the pump's output, so in mild weather it stays well below
+  55 °C. The space gate is the entity's minimum, never below 25 °C. The hold
+  value, for when the plan is not in charge, is 35 °C (the flow the pump's
+  rated COP assumes), or the model's weather curve where that is higher.
+  The model's weather curve is a pricing curve, not a set-point: written
+  as one, it held the pump at 25 °C and underheated the house.
+- **For an *Indoor temperature* entity** each of the three is the step's
+  planned room temperature, clamped to the entity's range (5 °C as the gate
+  where the mode offers no hot-water-only option). An entity whose own
+  minimum is above the planned room temperature cannot be an indoor
+  set-point, so it is not written at all and a warning is logged: set its
+  unit to *Flow temperature*.
 - **Space heating steps are heating only.** The cheapest hours to heat the
   house need not be the ones that keep the tank ready for its next hot water
   window, so the pump's own tank thermostat is kept out of them. The
@@ -578,18 +591,29 @@ writes, at every 15-minute plan step:
   minimum (never below 25 °C) on hot-water-only steps, and the DHW set-point
   (*HP DHW normal setpoint*, register 404) to its minimum (never below 30 °C)
   on space-only steps.
+- **A step the plan gives both duties is split**, so the optimizer rather
+  than the pump's two thermostats decides which runs: hot water first, for
+  the step's hot-water power over its total power, times 15 minutes, then
+  heating for the rest. A share under 5 minutes goes to the other duty for
+  the whole step. On a pump with no single-duty mode, each part is *Heating
+  + DHW* with the other duty's set-point lowered to its gate. A boost or a
+  disinfection cycle keeps *Heating + DHW* for the whole step.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
-  temperature, when a warm house needs no space heat. A stale plan, the
-  comfort, boost and off modes, a boost switch, a system-identification
-  experiment and unloading the integration all get the fallback row.
+  temperature, when a warm house needs no space heat. A stale plan, comfort
+  mode, a system-identification experiment and unloading the integration
+  all get the fallback row. A boost switch adds its own duty to the plan's
+  step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
+  writes *DHW (Hot Water)*, and a step that also wants the other duty
+  writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
+  heating flow set-point (55 °C) rather than the fallback's.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
-  active** off first: the fallback row is written once, and then nothing is
-  written over your settings until you turn it back on. Readings in the first
+  active** off first: from then on nothing is written to the pump, not even
+  the fallback row, until you turn it back on. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
 - **A write the pump does not hold is retried.** If the value written back
@@ -710,8 +734,8 @@ warning; every other field keeps its normal limits.
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
 | Upper / lower floor thermal mass | 3.0 / 8.0 kWh/°C | 0.25–60 | Heat stored in each zone. |
 | Upper / lower floor heat loss | 0.08 / 0.07 kW/°C | 0.001–1.0 | Each zone's own loss coefficient. |
-| Inter-zone transfer | see setup | kW/°C | How fast heat moves between the two floors. |
-| Radiator power fraction | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
+| Inter-zone heat transfer (kW/°C) | see setup | kW/°C | How fast heat moves between the two floors. |
+| Share of heat going to radiators | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
 | Upper floor area ratio | see setup | 0.1–0.9 | Used to split solar gain. |
 | Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. |
 
