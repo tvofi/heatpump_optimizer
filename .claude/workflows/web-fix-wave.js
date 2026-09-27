@@ -95,7 +95,9 @@ const MERGE = { type: 'object', required: ['merged'] }
 const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
-comment says merge and post-dates that head; the diff touches neither VERSION
+comment says merge and post-dates that head, at that head or at an earlier one
+that \`bash tools/audit/app_approve.sh --carry <verdict sha> ${head}\` reports
+carried (#1667; git fetch origin main and the head first); the diff touches neither VERSION
 nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
 with merge_method merge and expectedHeadSha ${head}, and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
@@ -335,7 +337,7 @@ THEN, PER GROUP, ask origin rather than the roster:
 
 Compare each against the roster's own resume field and report a mismatch when:
   - resume.stage is 'done' but the PR is not merged, or there is no PR at all
-  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head does not count -- that is the whole reason this check exists)
+  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/audit/app_approve.sh --carry <verdict sha> <head> reports it carried, #1667 -- that is the whole reason this check exists)
   - resume.stage is 'review' but the PR is closed or merged, or its head SHA differs from resume.head_sha
   - resume.stage is 'fix' but the branch tip differs from resume.pushed_sha, or a PR is already open for it
   - a group has NO resume field but a branch or an open PR already exists for it -- that is work the roster does not know about, and starting a fixer would duplicate or clobber it

@@ -4,6 +4,7 @@
 # only on a `merge` verdict for that SHA from an allowlisted account.
 #
 #   tools/audit/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
+#   tools/audit/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
 #   tools/audit/app_approve.sh --self-test
 #
 # WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
@@ -21,7 +22,9 @@
 #     VERDICT_AUTHORS, user type `Bot` AND user id VERDICT_AUTHOR_ID -- the
 #     NEWEST whose first line starts `Fix review:` is exactly
 #     `Fix review: merge <sha>`, the grammar `fix-review.md` sends reviewers
-#     to. Every other comment is ignored, so an outsider's later line neither
+#     to -- or `Fix review: merge <V>` for an earlier head V that CARRIES to
+#     <sha> (below, #1667), read against `origin`'s main and the pull
+#     request's head fetched into this checkout. Every other comment is ignored, so an outsider's later line neither
 #     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
 #     (decision 0013, amending 0011: the orchestrator posts the reviewer
 #     seat's text with `tools/audit/app_comment.sh`; never as the author App,
@@ -50,6 +53,23 @@
 #     `.github/CODEOWNERS` read at ref=main, never at the head; an unreadable
 #     or empty CODEOWNERS refuses. Matching errs toward owning, which refuses;
 #   - the head is still <sha> when re-read after minting, just before the POST.
+#
+# THE CARRY (#1667, D13-s1-02). A verdict at V carries to a later head H only
+# when (1) V is an ancestor of H; (2) every first-parent commit V..H is a merge
+# whose other parents are all on main, or a single-parent `ci:` commit; and
+# (3) the branch's own diff against its merge base with main is byte-identical
+# at V and at H, read with two relaxations measured over round 9's window
+# (the literal byte rule carried 0 of its 22 re-verification rounds): each
+# hunk header (line numbers, and the function line git reads from above the
+# hunk) and each `index` line are dropped, so a hunk main's merge only shifted
+# still compares equal; and the files main's
+# `.gitattributes` gives a merge driver are left out, because stamps and CI
+# bots rewrite those on main and required checks grade them at every head.
+# Anything else -- a rewrite, a commit of the branch's own, one changed byte
+# in a hunk or its context -- keeps today's re-review. Condition (3) is the
+# guard; (1) and (2) name the moves it applies to, and a `ci:` subject buys
+# nothing on its own. The evidence gate then reads V, the head the reviewer
+# measured.
 #
 # THE SECRETS. The key files are `$HPO_IDENTITY_DIR/identity-approver.appid`
 # and `identity-approver.pem` (default directory `~/.zcode`). The JWT and the
@@ -86,6 +106,35 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
   read -r state merged head <<<"$info"
   [ "$state" = "open" ] || die "pull request #$2 is $state (merged=$merged); only an open one is approved"
   [ "$head" = "$3" ] || die "head moved: asked to approve $3, the live head of #$2 is $head"
+}
+
+# carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
+carry() {
+  local v=$1 h=$2 main=$3 c ps subj p mv mh
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  while IFS=$'\t' read -r c ps subj; do
+    set -- $ps
+    if [ $# -ge 2 ]; then
+      shift
+      for p in "$@"; do
+        git merge-base --is-ancestor "$p" "$main" || { echo "$c merges $p, which is not on $main"; return 1; }
+      done
+    elif [[ $subj != ci:* ]]; then
+      echo "$c is a commit of the branch's own ($subj)"; return 1
+    fi
+  done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
+  mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
+  local x d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
+    --diff-algorithm=myers -U3)
+  # Read at main, never at a head: a branch that gave a file a driver would
+  # otherwise take it out of the comparison itself.
+  x=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
+  mapfile -t x <<<"$x"
+  [ -n "${x[0]}" ] || x=()
+  norm() { "${d[@]}" "$1" "$2" -- . "${x[@]}" | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+  cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
+    || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
+  echo "only merges from $main or ci: commits, and the branch's own diff is byte-identical"
 }
 
 cleanup() {
@@ -137,8 +186,18 @@ else:
   vline=$(printf '%s\n' "$verdict" | sed -n 3p)
   vbody=$(printf '%s\n' "$verdict" | sed -n 4p)
   vbody=${vbody//$'\x01'/$'\n'}
-  [ "$vline" = "Fix review: merge $sha" ] \
-    || die "the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+  local evsha=$sha carried="" vsha why
+  if [ "$vline" != "Fix review: merge $sha" ]; then
+    why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+    vsha=$(printf '%s' "$vline" | sed -n 's/^Fix review: merge \([0-9a-f]\{40\}\)$/\1/p')
+    [ -n "$vsha" ] || die "$why"
+    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+      || die "$why, and fetching main and the head to test a carry failed"
+    [ "$(git rev-parse refs/hpo-carry/head)" = "$sha" ] || die "$why, and the fetched head is not $sha"
+    carried=$(carry "$vsha" "$sha" refs/hpo-carry/main) || die "$why, and it does not carry: $carried"
+    evsha=$vsha
+    printf 'app_approve: CARRY %s -> %s: %s\n' "$vsha" "$sha" "$carried"
+  fi
 
   # The verdict's evidence gate, before minting. At least one absolute path
   # the body names must be a directory that exists here, is non-empty, and
@@ -207,8 +266,8 @@ else:
         continue ;;
     esac
     if [ -z "$(ls -A "$resolved" 2>/dev/null)" ]; then evwhy="$tok ($resolved) is empty"; continue; fi
-    if grep -rqF -- "$sha" "$resolved" 2>/dev/null; then evdir=$resolved; break; fi
-    evwhy="no file under $tok ($resolved) names the head $sha"
+    if grep -rqF -- "$evsha" "$resolved" 2>/dev/null; then evdir=$resolved; break; fi
+    evwhy="no file under $tok ($resolved) names the head $evsha"
   done < <(printf '%s\n' "$vbody" | python3 -c '
 import re, sys
 text = sys.stdin.read()
@@ -219,7 +278,7 @@ for m in re.finditer(boundary + r"(/[^\s\x60\x22]+)", text, re.MULTILINE):
     print(m.group(1))
 ')
   [ -n "$evdir" ] \
-    || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $sha"
+    || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $evsha"
 
   local owners files owned
   owners=$(gh api "repos/$repo/contents/.github/CODEOWNERS?ref=main") \
@@ -283,10 +342,10 @@ open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" 
 
   check_pr "$repo" "$pr" "$sha"
   python3 -c 'import sys,json
-sha, url, f = sys.argv[1:4]
+sha, url, f, v = sys.argv[1:5]
 json.dump({"commit_id": sha, "event": "APPROVE",
-  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`), via `tools/audit/app_approve.sh`." % (sha, url, sha)},
-  open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" || die "could not write the review payload"
+  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/audit/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
+  open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" "$evsha" || die "could not write the review payload"
   local resp
   resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \
     --data-binary @"$PRIV/review.json") || die "the review POST was refused; nothing approved"
@@ -298,6 +357,12 @@ if d.get("state") != "APPROVED" or d.get("commit_id") != sha:
 print("app_approve: APPROVED " + line)' "$sha"
 }
 
+if [ "${1:-}" = "--carry" ]; then
+  [ $# -ge 3 ] && [ $# -le 4 ] && [[ $2 =~ ^[0-9a-f]{40}$ && $3 =~ ^[0-9a-f]{40}$ ]] \
+    || die "usage: app_approve.sh --carry <40-hex verdict sha> <40-hex head sha> [<main ref>]"
+  why=$(carry "$2" "$3" "${4:-origin/main}") && { echo "CARRY: yes $2 -> $3: $why"; exit 0; }
+  echo "CARRY: no $2 -> $3: $why"; exit 1
+fi
 if [ "${1:-}" != "--self-test" ]; then
   approve "$@"
   exit $?
@@ -380,6 +445,48 @@ esac
 STUB
 chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
+# The carry's fixture: a real repository whose `origin` is a local bare one,
+# so `git fetch` and the carry run for real and no case reaches the network.
+export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
+git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
+ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
+seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
+echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
+g checkout -qb fixa; ed1 's/^5$/five/' a.txt; echo 'a.txt merge=ledgermerge' >> "$W/clone/.gitattributes"
+g commit -qam "fix: own, with a driver for its own file"; V_A=$(g rev-parse HEAD)
+g checkout -q main; g checkout -qb fix; ed1 's/^5$/five/' a.txt; ed1 's/^l1$/L1/' led.json; g commit -qam "fix: own"
+V=$(g rev-parse HEAD)
+g checkout -q main; echo b2 > "$W/clone/b.txt"; g commit -qam m1; M1=$(g rev-parse HEAD)
+mkmerge() { # base mainref subject [one-byte edit to a.txt] -> merge sha
+  g checkout -q --detach "$1"; g merge -q --no-ff --no-edit -m "$3" "$2" >/dev/null
+  if [ -n "${4:-}" ]; then sed -i.bak 's/^five$/fivE/' "$W/clone/a.txt"; rm "$W/clone/a.txt.bak"; g commit -q --amend -a --no-edit; fi
+  g rev-parse HEAD
+}
+H_MERGE=$(mkmerge "$V" "$M1" "Merge origin/main into fix")
+H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
+g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
+# The next two leave the branch's diff byte-identical, so only the rule's
+# first two conditions can refuse them: a rewrite under a `ci:` subject, and
+# a merge of an empty commit that is not on main.
+g checkout -q --detach "$V"; g commit -q --amend -m "ci: reworded"; H_REWRITE=$(g rev-parse HEAD)
+g checkout -q -b side "$V"; g commit -q --allow-empty -m side; SIDE=$(g rev-parse HEAD)
+H_SIDE=$(mkmerge "$V" "$SIDE" "Merge side into fix")
+# m2 shifts the branch's hunk, changes its file far from the hunk, and edits
+# the driver file inside the branch's hunk context; m3 edits a context line.
+g checkout -q main; ed1 '1i\
+top
+' a.txt; ed1 's/^35$/thirty-five/' a.txt; ed1 's/^l3$/L3/' led.json; g commit -qam m2
+H_TOUCH=$(mkmerge "$V" main "Merge origin/main into fix")
+g checkout -q main; ed1 's/^7$/seven/' a.txt; g commit -qam m3
+H_CTX=$(mkmerge "$V" main "Merge origin/main into fix")
+H_A=$(mkmerge "$V_A" main "Merge origin/main into fixa")
+g checkout -q main; g push -q origin main
+setpr() { g push -q -f origin "$1:refs/pull/7/head"; }
+
 pr_json() { printf '{"state": "%s", "merged": %s, "head": {"sha": "%s"}}' "$1" "$2" "$3"; }
 comment() { # id first-line [login [association [extra-body-line [type [user-id]]]]]
   local login="${3:-seat-retired-login}" type="${6:-}" uid="${7:-}"
@@ -419,7 +526,7 @@ with open(outf, "wb") as o, open(errf, "wb") as e:
 sys.exit(rc)'
 run() { # name args... -> rc; out/err captured. BASHX=1 runs the tool under bash -x
   local d="$W/$1"; shift
-  ( export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp" HPO_IDENTITY_DIR="${IDDIR:-$W/id}"
+  ( cd "$W/clone" || exit 2; export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp" HPO_IDENTITY_DIR="${IDDIR:-$W/id}"
     if [ "${BASHX:-}" = 1 ]; then
       python3 -c "$RUN_TIMEOUT_PY" bash -x "$SELF" "$@" "$d/out" "$d/err" "$RUN_TIMEOUT_S"
     else
@@ -701,6 +808,36 @@ st "$(calls dry openssl)" 0 "and signs nothing"
 st "$(grep -c '^app_approve: DRY-RUN' "$W/dry/out")" 1 "reporting what it would do"
 mkcase drypolicy open false "$SHA" "$GOOD"; files_json CLAUDE.md > "$W/drypolicy/files.json"
 run drypolicy --dry-run o/r 7 "$SHA"; st $? 1 "--dry-run still refuses what a real run would"
+
+# The carry (#1667). Each refusal is a head the rule must not carry, beside
+# the one move it must: a merge from main that left the branch's diff alone.
+carried() { ( cd "$W/clone" && bash "$SELF" --carry "$V" "$1" origin/main ) > "$W/carry.out" 2>&1; }
+carried "$H_MERGE"; st $? 0 "CARRY: a merge from main that leaves the branch's own diff byte-identical"
+carried "$H_CIEMPTY"; st $? 0 "CARRY: a ci: commit that changes nothing"
+carried "$H_EVIL"; st $? 1 "NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)"
+st "$(grep -c "own diff differs" "$W/carry.out")" 1 "refused by the byte comparison, the guard, not by the commit shape"
+carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own"
+carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass"
+carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
+carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
+carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
+carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
+carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
+( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
+st $? 1 "NO CARRY: a driver the branch gave its own file, since drivers are read at main"
+EVV="$W/ev-v"; mkdir -p "$EVV"; printf 'fix review at head %s\n' "$V" > "$EVV/verdict.md"
+CARRYV="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVV")]"
+setpr "$H_MERGE"; mkcase carry open false "$H_MERGE" "$CARRYV"
+run carry o/r 7 "$H_MERGE"; st $? 0 "a merge verdict at V is approved at a head it carries to"
+st "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["commit_id"], "(#1667)" in d["body"])' "$W/carry/posted.json")" \
+   "$H_MERGE True" "at the live head, and the review says it was carried"
+st "$(grep -c "^app_approve: CARRY $V -> $H_MERGE" "$W/carry/out")" 1 "printing the carry it relied on"
+setpr "$H_EVIL"; mkcase nocarry open false "$H_EVIL" "$CARRYV"
+run nocarry o/r 7 "$H_EVIL"; st $? 1 "REFUSE: the verdict at V does not carry to a head one byte away (null control)"
+st "$(grep -c "does not carry" "$W/nocarry/err")" 1 "saying why"
+st "$(calls nocarry curl)" 0 "and nothing was minted or posted"
+setpr "$H_MERGE"; mkcase carryev open false "$H_MERGE" "[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $W/evnosha-dir")]"
+run carryev o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carried verdict whose evidence names neither head"
 
 echo "app_approve self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
