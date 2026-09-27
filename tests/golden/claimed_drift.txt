@@ -184,8 +184,6 @@
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
 
-valve_storage_flat_prices  # R9-F2.1 follow-up two-zone half-price continuation start
-valve_storage_small_tank  # R9-F2.1 follow-up two-zone half-price continuation start
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
