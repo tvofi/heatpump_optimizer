@@ -2425,7 +2425,7 @@ class HeatPumpOptimizer:
             # it, it wanted more power than it could have; its unconstrained
             # demand there is at least the full compressor.
             pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)
-            wood_temps = self._dhw_coil_wood_forecast(h, space_power)
+            wood_temps = self._dhw_coil_wood_forecast(h, space_power, dhw_power)
             coil_replan = False
             if wood_temps is not None:
                 hours = np.asarray(h.step_hours, dtype=float) % 24.0
@@ -4621,11 +4621,14 @@ class HeatPumpOptimizer:
         self,
         h: _Horizon,
         space_power: np.ndarray | None = None,
+        dhw_power: np.ndarray | None = None,
     ) -> np.ndarray | None:
         """Per-step wood temps the DHW coil credit is priced against (#400).
 
-        Read from ``simulate_trajectory_with_dhw`` with no electric DHW, the
-        physics the published plan runs: standby loss, ``wood_share``, the
+        Read from ``simulate_trajectory_with_dhw`` with the DHW plan in hand
+        (none before the first), the physics the published plan runs -- the
+        coil drains the wood tank on the DHW tank's own draw scale, so the
+        tank's plan moves the read (R9 D2-s1-02): standby loss, ``wood_share``, the
         external-heat forecast and the coil's own drain, coupled step by step.
         A re-derived drain beside it drifted both ways (RCA coil-drain, R8-P3).
         Step i is the temperature the coil reads mid-step, not the trajectory's
@@ -4647,7 +4650,11 @@ class HeatPumpOptimizer:
         *_, wood = self.model.simulate_trajectory_with_dhw(
             initial_state=h.initial_state,
             space_power_schedule=power,
-            dhw_power_schedule=np.zeros(n),
+            dhw_power_schedule=(
+                np.zeros(n)
+                if dhw_power is None
+                else np.asarray(dhw_power, dtype=float)[:n]
+            ),
             outdoor_temps=h.outdoor_temps,
             wind_speeds=h.wind_speeds,
             precipitation=h.precipitation,

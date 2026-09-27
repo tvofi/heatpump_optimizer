@@ -10621,8 +10621,8 @@ _wf_seen: list = []
 _wf_reads: list = []
 
 
-def _wf_spy(self, h, space_power=None):
-    out = _wf_real(self, h, space_power)
+def _wf_spy(self, h, space_power=None, dhw_power=None):
+    out = _wf_real(self, h, space_power, dhw_power)
     _wf_seen.append((space_power is not None, out))
     return out
 
