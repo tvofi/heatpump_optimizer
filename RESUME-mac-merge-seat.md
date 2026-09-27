@@ -20,6 +20,9 @@ Last rewritten 2026-09-27T14:02Z. The full chronology is in RESUME-v670-log-*.md
 - Stamp v6.7.8 after the queue drains (rows ride the branches).
 - bg jobs die with the session — rerun remerge_main.sh then merge_pr.sh per PR; verdict evidence in reverdict/evidence-<sha8>.
 
+## Exceptional mandate (tvofi, 2026-09-27T18:15Z, THIS SESSION ONLY, expires 2026-09-28T08:15Z)
+"Keep driving the full programme autonomously to completion until no open issues remain. On an exceptional basis, you have for the next 14 hours full authority to approve as CODEOWNER/tvofi on policy changes and budget raises (as a last resorts, seats should pay first), as well as design choices (go with the recommended), but record the choices so you can summarize them for me later. FOR 14 HOURS ONLY, AND FOR THIS SESSION ONLY." Choice log kept in the session memory (r9-mandate-20260927); approvals cite this verbatim.
+
 ## Mac local test environment (STANDING, 2026-09-27 — replaces PREPR_SKIP_CLOSURES's cause)
 - The two Mac-local reds (features.py R9-F2.1 P3, optimality.py ftol) are BLAS kernel summation-order sensitivity; no macOS venv fixes them (every macOS wheel links Accelerate; CI's AVX-512 kernel SIGILLs under Rosetta). Fix: container `hpo-ci` (colima, linux/amd64, CI's exact --require-hashes wheels) + `OPENBLAS_CORETYPE=Sandybridge` — features 3474/3474 and optimality 84/84 PASS at main, zero repo changes.
 - Run: `docker exec -e PYTHONPATH=/repo/tests/hastub -e OPENBLAS_CORETYPE=Sandybridge hpo-ci python tests/<script>.py`. Setup script /Users/timmalmstrom/macfloat-fix/.container-setup.sh (container needs git for structure.py). Wall clock: features ~18 min, optimality ~6 min, env_drift --all ~50 min.
@@ -251,3 +254,5 @@ All four merge before the round-9 baseline is cut.
 - #1718 verdict: merge at 7fe356f6. Queue after #1717 and #1720: re-merge main, then merge (issue 1672).
 - #1722 verdict: merge at f13b5523 (critical path, unlocks F1.2). Chain: after #1717, then #1722, then #1718 (each re-merged). #1720 merges independently on tvofi's approval.
 - The resume note and scripts are pushed to origin handoff/mac-merge-seat-resume (d25bbe35). Re-push that branch after each state change.
+- 2026-09-27T18:1xZ #1724 CI: three reds (mutation, mutation-autofix, pr-contract) = one root cause (3 unpinned survivors); fixer told to name both check names + run --pin-killed. #1723 fast(3.14) red root-caused: sysid frontier harness hit harness_headers' 240s subprocess timeout (F4.2+F2.3 combination, real: 182s vs 55/46s single); F2.3 fixer's float-identical runtime fix at f0847ae6 (~2.3x), round-2 review dispatched.
+- 2026-09-27T18:15Z tvofi 14h mandate recorded (above). Stop-hook caught the #1725 seat working in the ORCHESTRATOR's worktree (its branch checked out over the session tree; its tests/README.md edit +420 tokens over the files_tokens cap) — edit recovered to /private/tmp/audit-7/seat-1725-recovered/, worktree restored, policy_lint 0 errors; seat ordered to relocate to its own worktree and PAY FIRST on the cap.
