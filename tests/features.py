@@ -729,6 +729,42 @@ R.check(
 
 
 # ===========================================================================
+# Round 9, F4.2: class-named blocks, sorted by class
+# ===========================================================================
+# The sysid blocks (N-fit-integrator, P5) extend the #1524 runner, whose block
+# they read; they sit beside it. This one reads only the input reader.
+
+# --- R9 N-staleness (carry-1655): a set-point is not a probe -----------------
+R.section("R9 N-staleness: the mixing-valve target is a set-point (carry-1655)")
+
+# Home Assistant stamps a set-point only when someone changes it, so a valve
+# target left alone for 90 min, and for a day, is still the target.
+_r9f42_key = "mixing_valve_target_entity"
+_r9f42_reads = {
+    _r9f42_age: InputReader(
+        FakeHass({"number.valve": FakeState("22.5", last_updated=minutes_ago(_r9f42_age, NOW))}),
+        {_r9f42_key: "number.valve"},
+        now=lambda: NOW,
+    ).read(_r9f42_key)
+    for _r9f42_age in (90, 24 * 60)
+}
+_r9f42_dead = InputReader(
+    FakeHass({"number.valve": FakeState("unavailable", last_updated=minutes_ago(5, NOW))}),
+    {_r9f42_key: "number.valve"},
+    now=lambda: NOW,
+).read(_r9f42_key)
+R.check(
+    "carry-1655: a valve target unchanged for 90 min and for a day reads as "
+    "the target; an unavailable valve is still refused",
+    all(r.ok and r.value == 22.5 for r in _r9f42_reads.values())
+    and inputs_mod.max_age_for(_r9f42_key) is None
+    and not _r9f42_dead.ok,
+    f"{ {a: (r.problem, r.value) for a, r in _r9f42_reads.items()} }, "
+    f"limit {inputs_mod.max_age_for(_r9f42_key)}, dead {_r9f42_dead.problem}",
+)
+
+
+# ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
 R.section("Non-numeric inputs (v5.3.0)")
@@ -37502,13 +37538,14 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
         if not sid.active:
             break
         elec = hold_thermal / _RIDGE_COP if override is None else float(override)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt_h,
-            external_heat_kw=elec * _RIDGE_COP,
-        )
+        for _ in range(15):  # R9 N-fit-integrator: the house is continuous
+            state = model.simulate_step(
+                state,
+                electrical_power=0.0,
+                outdoor_temp=outdoor,
+                dt_hours=dt_h / 15,
+                external_heat_kw=elec * _RIDGE_COP,
+            )
         tick += 1
         when += timedelta(
             hours=(2.5 if (gap_tick is not None and tick == gap_tick) else dt_h)
@@ -38032,9 +38069,18 @@ R.check(
     "check's: tools/audit/round5/D7/seat-a/sysid_step_bias.py, RESULT "
     "gap_settle_bias_heavy_old, at both ends of this fix",
 )
-_gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
-    _gap_plant, 0.0, _RIDGE_SEED0
-)
+# R9 D2-s4-81: light_new's own noise-free night cannot pass the adoption bar,
+# so production now stops it before the step, by name; that is a refusal of
+# the PLANT, which this null control exists to hold apart. It is bypassed here
+# so the fit itself is what the control reads.
+_gap_null_unadoptable = SystemIdentification._unadoptable
+SystemIdentification._unadoptable = lambda self, *a: None
+try:
+    _gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
+        _gap_plant, 0.0, _RIDGE_SEED0
+    )
+finally:
+    SystemIdentification._unadoptable = _gap_null_unadoptable
 _gap_null_bias = (
     (_gap_null_res.heat_loss_kw_per_c - _gap_null_ua) / _gap_null_ua
     if _gap_null_res.completed and _gap_null_res.heat_loss_kw_per_c
@@ -50695,12 +50741,19 @@ from dataclasses import replace as _z1524_replace  # noqa: E402
 
 
 def _z1524_run(
-    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0
+    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0,
+    true_gains=0.0, true_slab_mass=1.0, true_slab_transfer=1.0, drift=0.0,
+    cadence=0.25,
 ):
     """One experiment night on the declared preset; (decision, peak, fit reason).
 
     ``true_ua`` and ``true_mass`` scale the PLANT's heat loss and zone masses
-    away from the declared house, which the experiment still arms on.
+    away from the declared house, which the experiment still arms on. R9-P5:
+    ``true_gains`` adds free heat (kW) the declaration does not carry,
+    ``true_slab_*`` scale the slab the experiment is told about, and ``drift``
+    ramps the room reading (K/h) while the house does not move. The plant is
+    a continuous house (R9 N-fit-integrator): one-minute steps between
+    readings taken every ``cadence`` hours, never the fit's own Euler map.
     """
     cfg = _grad_house(two_zone=two_zone, dhw=False)
     cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
@@ -50719,6 +50772,9 @@ def _z1524_run(
             room_thermal_mass=declared.room_thermal_mass * true_mass,
             upper_floor_thermal_mass=declared.upper_floor_thermal_mass * true_mass,
             lower_floor_thermal_mass=declared.lower_floor_thermal_mass * true_mass,
+            internal_gains=declared.internal_gains + true_gains,
+            slab_thermal_mass=declared.slab_thermal_mass * true_slab_mass,
+            slab_heat_transfer=declared.slab_heat_transfer * true_slab_transfer,
         )
     )
     cop = plant.compute_cop(0.0)
@@ -50727,7 +50783,9 @@ def _z1524_run(
         if two_zone
         else declared.heat_loss_coefficient
     )
-    hold = max(base_ua * true_ua * 21.0 - declared.internal_gains, 0.1) / cop
+    hold = max(
+        base_ua * true_ua * 21.0 - declared.internal_gains - true_gains, 0.1
+    ) / cop
     st = ThermalState(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, slab_temperature=25.0,
@@ -50740,8 +50798,11 @@ def _z1524_run(
     )
     sid.arm(_z1524_night, plant=declared)
     when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
+    stepped = False  # whether the pump was ever driven above the hold power
     while sid.active:
-        reading = st.upper_floor_temperature
+        reading = st.upper_floor_temperature + drift * (
+            (when - _z1524_night).total_seconds() / 3600.0
+        )
         peak = max(peak, abs(reading - base))
         override = sid.step(
             now=when, room_temp=reading, outdoor_temp=0.0, price=0.1,
@@ -50756,8 +50817,13 @@ def _z1524_run(
             house_slab_transfer=declared.slab_heat_transfer,
         )
         el = hold if override is None else float(override)
-        st = plant.simulate_step(st, electrical_power=el, outdoor_temp=0.0)
-        when += timedelta(hours=0.25)
+        stepped = stepped or el > hold + 1e-9
+        for _ in range(round(cadence * 60)):
+            st = plant.simulate_step(
+                st, electrical_power=el, outdoor_temp=0.0, dt_hours=1.0 / 60
+            )
+        when += timedelta(hours=cadence)
+    _z1524_run.stepped = stepped
     decision = _SysIdModule.adoption_decision(sid.result, declared, sid.config)
     return decision, peak, sid.result.reason
 
@@ -50896,6 +50962,224 @@ R.check(
     "as the unvalved two-zone arm",
     _z1524_mis["manual"] >= _z1524_mis[True] > 0,
     f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
+)
+
+# -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
+# D7-s2-01: the candidate was rolled one explicit-Euler step per sample, so on a
+# noise-free, parameter-exact continuous house read every 30 min the fit was
+# 12-25 % low or refused, and adopted on 0 of 3 presets. The rollout now
+# sub-steps at SYSID_ROLLOUT_STEP_HOURS whatever the cadence. The 2 % bound is
+# this check's design choice: the 5-min step measured under 1.2 % on the
+# finder's harness, a fifth of the 10 % adoption bar. Typical_slab's fit is
+# as close, but the told slab pair's term (R9-P5 below) refuses it by name.
+_r9fi_fits, _r9fi_adopted = [], 0
+for _r9fi_name in _b942:
+    _r9fi_d, _, _r9fi_why = _z1524_run(_r9fi_name, False, cadence=0.5)
+    _r9fi_adopted += int(_r9fi_d.admit)
+    if _r9fi_d.admit:
+        _r9fi_fits.append((_r9fi_name, _r9fi_d.scale))
+R.check(
+    "R9 N-fit-integrator (D7-s2-01): on a noise-free continuous house read every "
+    "30 min, every adopted fit is within 2 % of the plant's heat loss, and at "
+    "least one preset adopts",
+    _r9fi_adopted >= 1 and all(abs(sc - 1.0) <= 0.02 for _, sc in _r9fi_fits),
+    f"adopted {_r9fi_adopted} of {len(_b942)}: {_r9fi_fits}",
+)
+
+# -- R9-P5 (#1655): the gate refuses the bias it exists to refuse -------------
+# Class P5 (a sysid adoption gate keyed on a quantity other than the bias it
+# gates) recurred in every audit round. The mismatch arms above perturb what the
+# fit ESTIMATES (UA, zone mass); the round-9 instances live in what it is TOLD:
+# free heat the declaration lacks, and the slab it is handed. The gate now
+# widens by how far one declared width of each told quantity moves the answer,
+# so the property is asserted against the plant's truth, not the interval. The
+# enumerator arm keeps both sides complete: every declared quantity
+# SystemIdentification.step is handed (its house_* keywords) is either fitted
+# or names the sysid width the gate prices it with, and has a runner axis; a
+# new one without both is refused. Liveness is the #1524 null-control check above (the unperturbed
+# nights still adopt), so the sweep cannot go green by refusing everything.
+#
+# A design choice this check encodes: free heat is swept to the edge of the
+# band its prior asserts (1.96 x SLAB_INTERCEPT_PRIOR_SD_KW), not beyond. One
+# night cannot separate unmodelled free heat from heat loss: a fit with the
+# prior loosened to 1e6 kW lands where the ridged one does, to within the
+# 5-min rollout's own error, and the separating signal is ~1.6e-4 K rms on a
+# 1-min rollout, far under a room sensor's noise. Free heat past the band is
+# a wrong PRIOR, whose fix is the learned free-heat profile in coordinator.py:
+# carried to F1 in .claude/workflows/carry-1655.json with the +0.4/+0.8 kW
+# nights as its failing test.
+import inspect as _r9p5_inspect  # noqa: E402
+
+_r9p5_band = round(
+    _SysIdModule._Z_975 * _SysIdModule.SLAB_INTERCEPT_PRIOR_SD_KW, 3
+)
+_R9P5_AXES = {
+    "house_ua": ("true_ua", (1.15,)),
+    "house_capacity": ("true_mass", (1.5,)),
+    "house_gains": ("true_gains", (-_r9p5_band, _r9p5_band)),
+    "house_slab_mass": ("true_slab_mass", (0.5, 2.0)),
+    "house_slab_transfer": ("true_slab_transfer", (0.5, 2.0)),
+}
+_R9P5_MEASURED = {"drift": (0.1,)}  # a reading bias, not a declared quantity
+# The fit estimates UA and the zone mass (they only seed it); the rest it is
+# told, and each names the width the adoption interval prices it with.
+_R9P5_ROLES = {
+    "house_ua": None,
+    "house_capacity": None,
+    "house_gains": "SLAB_INTERCEPT_PRIOR_SD_KW",
+    "house_slab_mass": "SLAB_PAIR_PRIOR_LOG_SD",
+    "house_slab_transfer": "SLAB_PAIR_PRIOR_LOG_SD",
+}
+_r9p5_told = {
+    k for k in _r9p5_inspect.signature(
+        _SysIdModule.SystemIdentification.step
+    ).parameters
+    if k.startswith("house_")
+}
+_r9p5_kw = set(_r9p5_inspect.signature(_z1524_run).parameters)
+R.check(
+    "R9-P5: every declared quantity the experiment is handed has a role in "
+    "the adoption gate and a bias axis in the adoption sweep",
+    _r9p5_told == set(_R9P5_AXES) == set(_R9P5_ROLES)
+    and all(
+        getattr(_SysIdModule, w, 0.0) > 0.0 for w in _R9P5_ROLES.values() if w
+    )
+    and {a for a, _ in _R9P5_AXES.values()} | set(_R9P5_MEASURED) <= _r9p5_kw
+    and all(m for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]),
+    f"handed {sorted(_r9p5_told)}, axes {sorted(_R9P5_AXES)}, widths "
+    f"{ {w: getattr(_SysIdModule, w, None) for w in _R9P5_ROLES.values() if w} }",
+)
+_r9p5_over, _r9p5_nights = [], 0
+for _r9p5_zone in (False, True):
+    for _r9p5_name in _b942:
+        for _r9p5_axis, _r9p5_mags in [
+            *_R9P5_AXES.values(), *_R9P5_MEASURED.items()
+        ]:
+            for _r9p5_mag in _r9p5_mags:
+                _r9p5_d, _, _ = _z1524_run(
+                    _r9p5_name, _r9p5_zone, **{_r9p5_axis: _r9p5_mag}
+                )
+                _r9p5_nights += 1
+                _r9p5_ua = _r9p5_mag if _r9p5_axis == "true_ua" else 1.0
+                if _r9p5_d.admit and abs(_r9p5_d.scale / _r9p5_ua - 1.0) > _z1524_bar:
+                    _r9p5_over.append(
+                        f"{_r9p5_name} two_zone={_r9p5_zone} {_r9p5_axis}="
+                        f"{_r9p5_mag}: scale {_r9p5_d.scale:.4f}"
+                    )
+R.check(
+    "R9-P5: a night whose plant differs from the declaration in what the fit "
+    "is told either adopts within the bar of the plant's own heat loss or is "
+    "refused",
+    not _r9p5_over
+    and _r9p5_nights == 2 * len(_b942) * sum(
+        len(m) for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]
+    ),
+    f"{_r9p5_nights} nights; " + "; ".join(_r9p5_over),
+)
+# D2-s4-81: a night the gate must refuse on the declared plant itself is not
+# stepped. On the unperturbed plant (the fit's best case) every night either
+# adopts or is stopped before the step by the noise-free prediction, by name,
+# and a night stopped that way never drives the pump above its hold power.
+_r9p5_late, _r9p5_stopped, _r9p5_stepped = [], 0, []
+for _r9p5_zone, _r9p5_valve in ((False, None), (True, None), (True, "manual")):
+    for _r9p5_name in _b942:
+        _r9p5_d, _r9p5_peak, _ = _z1524_run(
+            _r9p5_name, _r9p5_zone, valve=_r9p5_valve
+        )
+        if "noise-free night" in _r9p5_d.reason:
+            _r9p5_stopped += 1
+            if _z1524_run.stepped:
+                _r9p5_stepped.append(f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}")
+        if not _r9p5_d.admit and "noise-free night" not in _r9p5_d.reason:
+            _r9p5_late.append(
+                f"{_r9p5_name} two_zone={_r9p5_zone} valve={_r9p5_valve}: "
+                f"'{_r9p5_d.reason}' after {_r9p5_peak:.3f} K"
+            )
+R.check(
+    "R9-P5 (D2-s4-81): on the declared plant every night adopts or is refused "
+    "before its step, by the noise-free prediction",
+    not _r9p5_late,
+    "; ".join(_r9p5_late),
+)
+R.check(
+    "R9-P5 (D2-s4-81): a night the noise-free prediction stops never drives "
+    "the pump above its hold power, and at least one night is stopped",
+    _r9p5_stopped > 0 and not _r9p5_stepped,
+    f"stopped {_r9p5_stopped}; stepped anyway: {_r9p5_stepped}",
+)
+# The told slab-pair width (SLAB_PAIR_PRIOR_LOG_SD) is a liveness choice as
+# much as a safety one: the sweep above refuses a width too NARROW to price the
+# slab the fit is told about; this pins the other side. On the older derived
+# single-zone presets (four structures x pre-1960 and 1960-1980, floor
+# emitters, 3.5 kW), each night on its own declared plant, a continuous house
+# read every 15 min, adopts on 7 of 8 at the measured width 0.10, 4 at 0.15 and
+# 2 at 0.20; at least 6 must adopt, each within the bar of the plant.
+def _r9p5_derived_night(structure, era):
+    cfg = _grad_house(two_zone=False, dhw=False)
+    derived = presets.derive(presets.BuildingPreset(
+        structure=structure, era=era, heated_area_m2=120,
+        lower_emitter=presets.EMITTER_FLOOR,
+    ))
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    decl = ThermalParameters.from_config(cfg)
+    decl.two_zone_enabled = False
+    model = ThermalModel(ThermalParameters.from_config(cfg))
+    model.params.two_zone_enabled = False
+    ua = float(decl.heat_loss_coefficient * decl.house_heat_loss_scale)
+    sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
+        enabled=True, min_days_between_runs=0.0,
+        gains_prior_kw=float(decl.internal_gains),
+    ))
+    if not sid.arm(_z1524_night, plant=decl):
+        return None, ua
+    hold = max(ua * 21.0 - float(decl.internal_gains), 0.0)
+    st = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + hold / max(float(decl.slab_heat_transfer), 1e-9),
+        outdoor_temperature=0.0,
+    )
+    when = _z1524_night
+    for _ in range(32):
+        override = sid.step(
+            now=when, room_temp=st.room_temperature, outdoor_temp=0.0, price=0.1,
+            price_horizon=np.full(48, 1.0), learner_samples=0, max_power_kw=3.5,
+            cop=3.0, plan_power_kw=hold / 3.0, house_ua=ua,
+            house_capacity=float(decl.room_thermal_mass),
+            house_gains=float(decl.internal_gains),
+            house_slab_mass=float(decl.slab_thermal_mass),
+            house_slab_transfer=float(decl.slab_heat_transfer),
+        )
+        if not sid.active:
+            break
+        el = hold / 3.0 if override is None else float(override)
+        for _ in range(15):
+            st = model.simulate_step(
+                st, electrical_power=0.0, outdoor_temp=0.0, dt_hours=1.0 / 60,
+                external_heat_kw=el * 3.0,
+            )
+        when += timedelta(hours=0.25)
+    return _SysIdModule.adoption_decision(sid.result, decl, sid.config), ua
+
+
+_r9p5_live = []
+for _r9p5_struct in (
+    presets.STRUCTURE_TIMBER_CRAWLSPACE, presets.STRUCTURE_TIMBER_SLAB,
+    presets.STRUCTURE_CONCRETE_SLAB, presets.STRUCTURE_MASONRY,
+):
+    for _r9p5_era in (presets.ERA_PRE_1960, presets.ERA_1960_1980):
+        _r9p5_dd, _ = _r9p5_derived_night(_r9p5_struct, _r9p5_era)
+        _r9p5_live.append((
+            f"{_r9p5_struct}|{_r9p5_era}",
+            _r9p5_dd is not None and _r9p5_dd.admit,
+            _r9p5_dd is not None and abs(_r9p5_dd.scale - 1.0) <= _z1524_bar,
+        ))
+R.check(
+    "R9-P5: the told slab-pair width keeps the older derived presets live -- "
+    "at least 6 of 8 declared nights adopt, each within the bar of the plant",
+    sum(a for _, a, _ in _r9p5_live) >= 6
+    and all(w for _, a, w in _r9p5_live if a),
+    [(n, a) for n, a, _ in _r9p5_live],
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
