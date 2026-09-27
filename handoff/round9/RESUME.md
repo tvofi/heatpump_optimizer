@@ -493,3 +493,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
   - F11.6: -v4 @9445141b, 11:59Z.
   - The last three are idle on a verdict or an approval, which is expected.
   Reviewers and the Mac push no handoff branches, so they cannot be checked from the remote.
+- 2026-09-27T14:52Z Mac merge seat: MERGED #1720 F11.6 (2d012406; #1667 closed; tvofi re-approved at bf2723bc, merged first to lock it) and #1722 F1.1 (2d71759e; #1665 #1683 closed; verdict carried f13b5523->7a9e1c0f, main-merge only). F1.2 fixer seat dispatched (opus, handoff/r9-f1-coordinator-2 from main 2d71759e). Queue: #1717 (remerge+merge), #1718 (remerge+merge), F2.3 draft opening (claimnotes refusal hand-resolved; reviewer seat next). Roster updated at 63f77125 on handoff/audit-r9-fixplan. Next stamp v6.7.8.
