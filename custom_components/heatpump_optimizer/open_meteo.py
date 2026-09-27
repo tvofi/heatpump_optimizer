@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable
@@ -194,7 +195,7 @@ def _parse_block(
             continue
         try:
             value = float(raw_v)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             continue
         # R5-D1-06 (#1297): NaN fails both range comparisons (`nan < 0` and
         # `nan > max` are False), so it slipped past the plausibility
@@ -218,17 +219,19 @@ def _parse_block(
     times = [times[i] for i in order]
     values = [values[i] for i in order]
 
-    # Infer the sample interval from the data. Taking the smallest positive gap
-    # rather than the first keeps a single missing sample from doubling the
-    # inferred resolution and smearing every value across twice its true span.
-    gaps = [
+    # Infer the sample interval from the data: the most common positive gap,
+    # the smaller on a tie. Not the first, or a single missing sample would
+    # double the inferred resolution and smear every value across twice its
+    # true span; not the smallest, or one stray off-grid stamp would shrink
+    # every sample's span to its gap and void the whole horizon (D1-s5-04).
+    gaps = Counter(
         (times[i + 1] - times[i]).total_seconds()
         for i in range(len(times) - 1)
         if (times[i + 1] - times[i]).total_seconds() > 0
-    ]
+    )
     if not gaps:
         return _EMPTY
-    resolution = timedelta(seconds=min(gaps))
+    resolution = timedelta(seconds=min(gaps, key=lambda gap: (-gaps[gap], gap)))
 
     return IrradianceSeries(
         times=tuple(times), values=tuple(values), resolution=resolution
