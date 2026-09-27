@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_candidate_model RETURN_DEL 7ab241df",
+  "killed_by": "tests/features.py",
+  "old": "    return ThermalModel(params)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

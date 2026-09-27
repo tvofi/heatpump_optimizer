@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_ua_told_halfwidth CLAMP_DROP 3308b724",
+  "killed_by": "tests/features.py",
+  "old": "            moved = max(moved, abs(float(x[0]) - float(x_hat[0])))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6: CLAMP_DROP (`moved = (moved)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
