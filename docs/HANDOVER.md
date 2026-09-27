@@ -13,6 +13,31 @@ the harness loads on this very path. Delivery status is the frozen table in
 `docs/plan-2026-09-open-issues.md` plus one `docs/delivery/<N>.md` per pull
 request (#1081), linked from here and never restated.
 
+## Round 9 in flight — the audit fix programme
+
+Round 9 (the audit fix programme, tracking issue #201) runs off `main` and keeps
+its live state on three branches, so any session resumes from the tree alone:
+
+- **`handoff/audit-r9-fixplan`** — the fix plan: `handoff/round9/FIX-PLAN.md`,
+  the roster `.claude/workflows/wave-r9-groups.json` (per-PR briefs with
+  `resume` and model fields), the per-lane briefs `handoff/round9/fix/F*.md`,
+  and the standing template `handoff/round9/fix/src/standing.md`, which binds
+  every fixer and reviewer seat this round.
+- **`handoff/audit-r9-plan`** — `handoff/round9/RESUME.md`, the programme log a
+  crashed seat resumes from, and the `handoff/round9/state/` mirror of the
+  orchestrator's shared folder.
+- **`handoff/mac-merge-seat-resume`** — `RESUME-mac-merge-seat.md`, the merge
+  seat's standing rules, with its scripts `merge_pr.sh`, `remerge_main.sh` and
+  `handoff_push.sh`.
+
+Fixer and reviewer seats are dispatched by the Mac merge seat; where `CLAUDE.md`
+still describes cloud threads, the standing template supersedes it. The
+hpo-ci container standing rule — the typing, mutation/pin and closure lanes run
+inside that container in every session — lives on the mac-merge-seat branch and
+in the standing template. Reviewer seats work detached at the head SHA and
+return verdicts to the merge seat, which merges one pull request at a time on
+`Fix review: merge <sha>` with green CI.
+
 ## Decisions taken — do not relitigate
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
