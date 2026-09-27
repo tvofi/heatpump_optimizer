@@ -535,6 +535,9 @@ def _multi_start_minimize(
     maxiter: int = 300,
     batch_objective: Callable[..., Any] | None = None,
     fd_eps: float = 1e-4,
+    move_starts: Callable[[list[np.ndarray], int], list[np.ndarray]] = (
+        lambda candidates, maxiter: candidates
+    ),
 ) -> Any:
     """Run L-BFGS-B from several starting points and keep the best result.
 
@@ -557,6 +560,9 @@ def _multi_start_minimize(
     waste, not a different point. ``args`` is fixed for this call, so the key
     is ``x`` alone.
     """
+    # A caller's continuation moves its starts under this call's own
+    # iteration budget, so a cut budget reaches it too (R9-F2.1).
+    candidates = move_starts(list(candidates), maxiter)
     _raw_objective = objective
     _memo_key = None
     _memo_val = None
@@ -4054,28 +4060,34 @@ class HeatPumpOptimizer:
             # own objective scores 0.83 worse. So the guess is refined at the
             # half price first; what ships is still decided by the true
             # objective below, against every other start.
-            # One plain L-BFGS-B run, not a multi-start: it moves a start, it
-            # is not one.
-            self._floor_l1_scale = 0.5
-            try:
-                starts[0] = np.asarray(_scoped_minimize(
-                    objective, starts[0], method="L-BFGS-B", bounds=bounds,
-                    jac=(lambda x: _batch_fd_gradient(
-                        objective_batch, (), x, float(objective(x)), 1e-4, bounds,
-                    )) if _bounds_supported_by_batch(bounds) else None,
-                    options={"maxiter": 200, "ftol": 1e-6, "eps": 1e-4},
-                ).x, dtype=float)
-            except Exception:  # pragma: no cover - keep the plain guess
-                pass
-            finally:
-                self._floor_l1_scale = 1.0
+            # One plain L-BFGS-B run inside the multi-start's own budget: it
+            # moves a start, it is not one.
+            def move_starts(cands, maxiter, first=len(h.extra_starts or ())):
+                self._floor_l1_scale = 0.5
+                try:
+                    cands[first] = np.asarray(_scoped_minimize(
+                        objective, cands[first], method="L-BFGS-B",
+                        bounds=bounds,
+                        jac=(lambda x: _batch_fd_gradient(
+                            objective_batch, (), x, float(objective(x)),
+                            1e-4, bounds,
+                        )) if _bounds_supported_by_batch(bounds) else None,
+                        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                    ).x, dtype=float)
+                except Exception:  # pragma: no cover - keep the plain guess
+                    pass
+                finally:
+                    self._floor_l1_scale = 1.0
+                return cands
+        else:
+            move_starts = lambda cands, maxiter: cands  # noqa: E731
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
         try:
             result = _multi_start_minimize(
                 objective, starts, bounds, maxiter=200,
-                batch_objective=objective_batch,
+                batch_objective=objective_batch, move_starts=move_starts,
             )
             optimal_power = result.x
             status = _solver_status(result, objective, initial_power)
