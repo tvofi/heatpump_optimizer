@@ -468,3 +468,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-27T12:10Z F11.6: review round-2 fix pushed. code head 02f5f81f on handoff/r9-f11-governance-6-v4 (ci: guard + ancestor pin; 146/146, 13/13 mutants, 7/22 carried); transport 9445141b holds note + body.
 - 2026-09-27T12:01Z MERGED F8.2 #1703 (tvofi confirmed). Next: stamp v6.7.6. F1.1 is the main gate.
 - 2026-09-27T12:01Z STAMPED v6.7.6 at 36d3c27a. #1718 F4.2 at code 5b523977 (branch -2b) after its review round. #1720 F11.6 at code 02f5f81f (branch -v4, with the ci: guard). Both are queued with reviewer 2.
+- 2026-09-27T12:20Z F1.1 HANDED OFF: code head a30bf2d6, transport 6ff57ff4 on handoff/r9-f1-1-jbqcyd; body handoff/round9/fix/resume/F1.1-body.md. Mutation table PASSED; prepr clean except the inherited-claims refusal (CI claims-autofix).
