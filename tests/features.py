@@ -37530,13 +37530,14 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
         if not sid.active:
             break
         elec = hold_thermal / _RIDGE_COP if override is None else float(override)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt_h,
-            external_heat_kw=elec * _RIDGE_COP,
-        )
+        for _ in range(15):  # R9 N-fit-integrator: the house is continuous
+            state = model.simulate_step(
+                state,
+                electrical_power=0.0,
+                outdoor_temp=outdoor,
+                dt_hours=dt_h / 15,
+                external_heat_kw=elec * _RIDGE_COP,
+            )
         tick += 1
         when += timedelta(
             hours=(2.5 if (gap_tick is not None and tick == gap_tick) else dt_h)
@@ -38060,9 +38061,18 @@ R.check(
     "check's: tools/audit/round5/D7/seat-a/sysid_step_bias.py, RESULT "
     "gap_settle_bias_heavy_old, at both ends of this fix",
 )
-_gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
-    _gap_plant, 0.0, _RIDGE_SEED0
-)
+# R9 D2-s4-81: light_new's own noise-free night cannot pass the adoption bar,
+# so production now stops it before the step, by name; that is a refusal of
+# the PLANT, which this null control exists to hold apart. It is bypassed here
+# so the fit itself is what the control reads.
+_gap_null_unadoptable = SystemIdentification._unadoptable
+SystemIdentification._unadoptable = lambda self, *a: None
+try:
+    _gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
+        _gap_plant, 0.0, _RIDGE_SEED0
+    )
+finally:
+    SystemIdentification._unadoptable = _gap_null_unadoptable
 _gap_null_bias = (
     (_gap_null_res.heat_loss_kw_per_c - _gap_null_ua) / _gap_null_ua
     if _gap_null_res.completed and _gap_null_res.heat_loss_kw_per_c
@@ -49900,12 +49910,12 @@ R.check(
 # gates) recurred in every audit round. The mismatch arms above perturb what the
 # fit ESTIMATES (UA, zone mass); the round-9 instances live in what it is TOLD:
 # free heat the declaration lacks, and the slab it is handed. The gate now
-# widens by how far one declared width of each told quantity moves the answer
-# (sysid.STEP_INPUT_ROLES), so the property is asserted against the plant's
-# truth, not the interval. The enumerator arm keeps both sides complete: every
-# declared quantity SystemIdentification.step is handed (its house_* keywords)
-# has a role in the gate and a runner axis, and a new one without either is
-# refused. Liveness is the #1524 null-control check above (the unperturbed
+# widens by how far one declared width of each told quantity moves the answer,
+# so the property is asserted against the plant's truth, not the interval. The
+# enumerator arm keeps both sides complete: every declared quantity
+# SystemIdentification.step is handed (its house_* keywords) is either fitted
+# or names the sysid width the gate prices it with, and has a runner axis; a
+# new one without both is refused. Liveness is the #1524 null-control check above (the unperturbed
 # nights still adopt), so the sweep cannot go green by refusing everything.
 #
 # A design choice this check encodes: free heat is swept to the edge of the
@@ -49930,6 +49940,15 @@ _R9P5_AXES = {
     "house_slab_transfer": ("true_slab_transfer", (0.5, 2.0)),
 }
 _R9P5_MEASURED = {"drift": (0.1,)}  # a reading bias, not a declared quantity
+# The fit estimates UA and the zone mass (they only seed it); the rest it is
+# told, and each names the width the adoption interval prices it with.
+_R9P5_ROLES = {
+    "house_ua": None,
+    "house_capacity": None,
+    "house_gains": "SLAB_INTERCEPT_PRIOR_SD_KW",
+    "house_slab_mass": "SLAB_PAIR_PRIOR_LOG_SD",
+    "house_slab_transfer": "SLAB_PAIR_PRIOR_LOG_SD",
+}
 _r9p5_told = {
     k for k in _r9p5_inspect.signature(
         _SysIdModule.SystemIdentification.step
@@ -49940,11 +49959,14 @@ _r9p5_kw = set(_r9p5_inspect.signature(_z1524_run).parameters)
 R.check(
     "R9-P5: every declared quantity the experiment is handed has a role in "
     "the adoption gate and a bias axis in the adoption sweep",
-    _r9p5_told == set(_R9P5_AXES) == set(getattr(_SysIdModule, "STEP_INPUT_ROLES", {}))
+    _r9p5_told == set(_R9P5_AXES) == set(_R9P5_ROLES)
+    and all(
+        getattr(_SysIdModule, w, 0.0) > 0.0 for w in _R9P5_ROLES.values() if w
+    )
     and {a for a, _ in _R9P5_AXES.values()} | set(_R9P5_MEASURED) <= _r9p5_kw
     and all(m for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]),
-    f"handed {sorted(_r9p5_told)}, axes {sorted(_R9P5_AXES)}, roles "
-    f"{sorted(getattr(_SysIdModule, 'STEP_INPUT_ROLES', {}))}",
+    f"handed {sorted(_r9p5_told)}, axes {sorted(_R9P5_AXES)}, widths "
+    f"{ {w: getattr(_SysIdModule, w, None) for w in _R9P5_ROLES.values() if w} }",
 )
 _r9p5_over, _r9p5_nights = [], 0
 for _r9p5_zone in (False, True):
