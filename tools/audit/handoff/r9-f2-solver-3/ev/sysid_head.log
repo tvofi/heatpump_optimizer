@@ -1,0 +1,33 @@
+
+=== Stress and economics ===
+============================================================================================
+sysid-estimator frontier: gate-passing cells through the production fit
+ridge width = 0.1; interval bar = 0.09531017980432493
+============================================================================================
+typical_slab  sigma=0.01  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -3.9/+1.8 % tau/true p5/p95 0.949/1.084
+typical_slab  sigma=0.02  fitted 12/16 within10 12  interval-refused  4 aborted  0  UA p5/p95 -6.4/+4.0 % tau/true p5/p95 0.924/1.170
+typical_slab  sigma=0.05  fitted  0/16 within10  0  interval-refused 15 aborted  1  no fitted draws
+heavy_old     sigma=0.01  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -3.1/+1.3 % tau/true p5/p95 0.911/1.069
+heavy_old     sigma=0.02  fitted 16/16 within10 16  interval-refused  0 aborted  0  UA p5/p95 -5.9/+2.7 % tau/true p5/p95 0.821/1.138
+heavy_old     sigma=0.05  fitted  9/16 within10  9  interval-refused  7 aborted  0  UA p5/p95 -5.5/+8.4 % tau/true p5/p95 0.799/1.314
+context (NOT pinned): the sigma=0.02 row is the frontier's -8.6/+9.5 cell; its refusals land on the gate itself and its p95 touches the bar, so counts there are printed, never asserted
+shipped preset light_new    : armed=True reason=''
+shipped preset heavy_old    : armed=True reason=''
+shipped preset typical_slab : armed=True reason=''
+unridged control: fitted 0/16 (ridge deleted)
+
+########## RESULT lines ##########
+RESULT gatepass_plants=2 count
+RESULT draws_per_cell=16 count
+RESULT fitted_typical_s001=16 count
+RESULT within10_typical_s001=16 count
+RESULT interval_refused_typical_s005=15 count
+RESULT fitted_heavy_s001=16 count
+RESULT within10_heavy_s001=16 count
+RESULT interval_refused_heavy_s005=7 count
+RESULT shipped_presets_armed=3 count
+RESULT shipped_presets_gate_named=0 count
+RESULT unridged_fitted_typical_s001=0 count
+RESULT thread_factor=1.0 ratio
+RESULT load1=1.87 ratio
+RESULT swapins=0 count

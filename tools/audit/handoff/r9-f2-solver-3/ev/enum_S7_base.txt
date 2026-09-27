@@ -1,0 +1,6 @@
+144:EULER_STABILITY_MAX_RATIO: float = 1.5
+150:EULER_MONOTONE_MAX_RATIO: float = 1.0
+2471:        ``EULER_STABILITY_MAX_RATIO``: nothing crosses its own floor, so a
+2488:        buffer is judged against ``EULER_MONOTONE_MAX_RATIO``.
+2533:            worst * dt_hours / EULER_STABILITY_MAX_RATIO,
+2534:            buf_ratio / EULER_MONOTONE_MAX_RATIO,

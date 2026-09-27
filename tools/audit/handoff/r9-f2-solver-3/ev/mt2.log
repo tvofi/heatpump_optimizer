@@ -1,0 +1,46 @@
+  3647 unpinned site(s) of 3995 candidate sites, 3642 at the ratchet base 9c6b923f2614936aad89e1408dabca8ddd721322; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 3 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 16 new unpinned site(s) against 9c6b923f2614936aad89e1408dabca8ddd721322 to drive
+  16 mutant(s) over 3 file(s); drivers in play: tests/backtest.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against '9c6b923f2614936aad89e1408dabca8ddd721322' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/optimizer.py:218 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/stress.py: baseline and null control deferred until a mutant survives every shared driver
+  baseline tests/backtest.py: rc=0 failed=0 85s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 15s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 3s
+  baseline tests/edge.py: rc=0 failed=0 35s
+  baseline tests/env_drift.py: rc=0 failed=0 185s
+  baseline tests/entities.py: rc=0 failed=0 103s
+  baseline tests/finite_boundary.py: rc=0 failed=0 13s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/manual_plan.py: rc=0 failed=0 6s
+  baseline tests/optimality.py: rc=0 failed=0 152s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 2s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/features.py: rc=0 failed=0 256s
+  baseline tests/validate.py: rc=0 failed=0 27s
+  null control custom_components/heatpump_optimizer/optimizer.py:218 NULL_COMMENT survived every driver
+  baseline tests/stress.py: rc=0 failed=0 405s
+  null control custom_components/heatpump_optimizer/optimizer.py:218 NULL_COMMENT survived tests/stress.py
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:6740 GUARD_OFF -- lives
+  pinned   custom_components/heatpump_optimizer/optimizer.py:6826 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1368 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:1369 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:1369 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:1369 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2517 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:2521 CLAMP_DROP -- lives
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:2522 CLAMP_DROP -- lives
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:2528 GUARD_OFF -- lives
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2547 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2547 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:3248 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3282 GUARD_OFF -- lives
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:3289 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:3298 RETURN_DEL -- killed by tests/features.py
+
+PIN KILLED: 10 pinned, 6 left unpinned -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes

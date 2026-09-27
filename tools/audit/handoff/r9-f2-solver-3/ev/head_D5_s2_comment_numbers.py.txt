@@ -1,0 +1,13 @@
+ROW probe derate_floor [defrost.py:109 'less than half'] comment=0.5 measured=0.55 MISMATCH
+RESULT derate_floor_mismatch=1 row
+Traceback (most recent call last):
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 213, in <module>
+    main()
+    ~~~~^^
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 165, in main
+    off, n = draw_cold_end_mismatches()
+             ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 104, in draw_cold_end_mismatches
+    if abs(implied - const.DHW_COLD_WATER_TEMP) > 1e-6:
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'heatpump_optimizer.const' has no attribute 'DHW_COLD_WATER_TEMP'

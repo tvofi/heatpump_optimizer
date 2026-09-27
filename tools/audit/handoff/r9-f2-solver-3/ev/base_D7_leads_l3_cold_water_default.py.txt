@@ -1,0 +1,11 @@
+site ThermalParameters.from_config({})            value=12.5 follows_default=True
+site config_flow option field default             value=12.5 follows_default=True
+site ThermalParameters() bare                     value=10.0 follows_default=False
+site sysid._sizing_model plant                    value=10.0 follows_default=False
+site dhw_coil_draw_reduction inlet_temp default   value=10.0 follows_default=False
+RESULT sites_not_following=3 of 5 count
+RESULT default_moved_to=12.5
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=0.90
+RESULT swapins=0

@@ -1,0 +1,19 @@
+ROW probe derate_floor [defrost.py:109 'less than half'] comment=0.5 measured=0.5 holds
+RESULT derate_floor_mismatch=0 row
+Traceback (most recent call last):
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 213, in <module>
+    main()
+    ~~~~^^
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 165, in main
+    off, n = draw_cold_end_mismatches()
+             ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 103, in draw_cold_end_mismatches
+    implied = p.dhw_setpoint - p.dhw_draw_power / (lph * const.WATER_SPECIFIC_HEAT * (1 - rec))
+                               ^^^^^^^^^^^^^^^^
+  File "/home/claude/heatpump_optimizer/custom_components/heatpump_optimizer/thermal_model.py", line 714, in dhw_draw_power
+    delta_t = self.dhw_setpoint - self.dhw_inlet_reference  # °C rise
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "$S/ev/tools/audit/round9/D5/s2/comment_numbers.py", line 157, in <lambda>
+    property(lambda self: float(const.DHW_COLD_WATER_TEMP))))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'heatpump_optimizer.const' has no attribute 'DHW_COLD_WATER_TEMP'

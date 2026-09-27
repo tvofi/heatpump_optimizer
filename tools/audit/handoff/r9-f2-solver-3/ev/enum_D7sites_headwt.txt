@@ -1,0 +1,8 @@
+custom_components/heatpump_optimizer/config_flow.py:151:    DEFAULT_DHW_INLET_TEMP,
+custom_components/heatpump_optimizer/config_flow.py:1610:    _F("hot_water_tank", CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP, _number(2, 25, 0.5, '°C'), group="inlet"),
+custom_components/heatpump_optimizer/const.py:349:# at every call site, whose default is DEFAULT_DHW_INLET_TEMP below.
+custom_components/heatpump_optimizer/const.py:826:DEFAULT_DHW_INLET_TEMP: Final = 10.0
+custom_components/heatpump_optimizer/thermal_model.py:100:    DEFAULT_DHW_INLET_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:468:    dhw_inlet_temp: float = DEFAULT_DHW_INLET_TEMP  # °C
+custom_components/heatpump_optimizer/thermal_model.py:1319:    inlet_temp: float = DEFAULT_DHW_INLET_TEMP,
+custom_components/heatpump_optimizer/thermal_model.py:1338:    The default is ``DEFAULT_DHW_INLET_TEMP``, the configured mean's own.

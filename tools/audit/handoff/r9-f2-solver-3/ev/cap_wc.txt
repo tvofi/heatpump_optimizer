@@ -1,0 +1,14 @@
+== $S/wt_base
+baseline_cost 157.190147
+predicted_cost 40.356399
+deferred_energy_cost 26.368664
+dhw_heating_cost 7.852215
+predicted_savings 90.465084
+savings_percentage 57.55137
+== /home/claude/heatpump_optimizer
+baseline_cost 156.407745
+predicted_cost 38.938116
+deferred_energy_cost 27.234755
+dhw_heating_cost 7.823711
+predicted_savings 90.234874
+savings_percentage 57.692075

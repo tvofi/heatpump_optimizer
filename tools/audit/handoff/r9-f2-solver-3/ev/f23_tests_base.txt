@@ -1,0 +1,22 @@
+
+=== f23 ===
+  FAIL R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope by 2.843e+35 K at n_sub=2]
+  FAIL R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.3000, spectral radius 1.5252]
+  FAIL R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope by 7.128e+17 K at n_sub=1]
+  FAIL R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.3000, spectral radius 1.5252]
+  FAIL R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]  [left the envelope by 1.857e+14 K at n_sub=1]
+  FAIL R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.5000, spectral radius 1.3988]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, radiator row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  FAIL R9-F2.3 D2-s1-01 (two-zone valved, radiator row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -0.2667, spectral radius 0.9986]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, floor row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  FAIL R9-F2.3 D2-s1-01 (two-zone valved, floor row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1  [min entry -1.0000, spectral radius 1.0004]
+  ok   R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1
+  FAIL R9-F2.3 D2-s1-02: the coil takes from the wood tank exactly the heat it spares the DHW tank, below the mixed-use temperature as above it  [residual 0.405991 kWh at dhw0=12.0 wood0=90.0]
+  ok   R9-F2.3 D2-s1-02 (control): the coil genuinely draws on the wood tank in every cell, so the identity above is not an empty zero
+  FAIL R9-F2.3 D2-s1-02: the tank debit, the coil's wood debit and the planner's capacity clamp read one draw-scale rule
+  FAIL R9-F2.3 D2-s2-03: the hot-water settle-up's plan end is the published trajectory's last state, store for store  [end gaps (K): {'wood_tank_temperature': 0.369706, 'buffer_tank_temperature': 0.060195, 'upper_floor_temperature': 0.093552, 'lower_floor_temperature': 0.04669, 'slab_temperature': 0.035688, 'dhw_temperature': 0.0}]
+  FAIL R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than its no-coil twin -- it owns the coil the plan owns  [reference wood end 20.792082 vs no-coil 20.792082]
+  FAIL R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default follows DEFAULT_DHW_INLET_TEMP when it moves  [{'ThermalParameters()': 10.0, 'ThermalParameters.from_config({})': 12.5, "dhw_coil_draw_reduction's inlet default": 10.0}]
+  FAIL R9-F2.3 D5-s2-03: no second cold-water constant claims to be the draw model's cold end
+
+14 of 18 F23 FAILED
