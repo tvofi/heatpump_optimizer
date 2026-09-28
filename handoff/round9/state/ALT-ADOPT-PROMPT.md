@@ -1,101 +1,116 @@
-# Prompt: the round-9 fixing orchestrator adopts the ALT endgame plan
+# Prompt (rev 2): the round-9 fixing orchestrator adopts the ALT endgame plan's rev 2
 
-You are the round-9 fixing orchestrator. Read `CLAUDE.md` and `tools/audit/briefs/orchestrator.md`
-before acting; nothing below loosens them.
+You are the round-9 fixing orchestrator. Read `CLAUDE.md` and `tools/audit/briefs/orchestrator.md` before acting;
+nothing below loosens them.
 
-tvofi has decided to replace `handoff/round9/state/DRAFT-ENDGAME-PLAN.md` with the alternative plan on
-branch `handoff/audit-r9-alt` (`handoff/audit-r9-plan` now carries only the resume doc):
+**The background.** You adopted rev 1 of the ALT endgame plan on 2026-09-28: roster deltas at
+`handoff/audit-r9-fixplan` `0f1f5263`/`27049219`, record PR #1749. After the EG-B0 root-cause analysis (RCA-1736),
+tvofi commissioned a follow-up. Its results are rev 2, on branch `handoff/audit-r9-alt`:
 
-- `handoff/round9/state/ALT-ENDGAME-PLAN.md`: the review of the draft and the per-wave, per-PR schedule.
-- `handoff/round9/state/ALT-ROSTER.json`: the roster for the rest of the programme.
-- `handoff/round9/state/alt/`: the evidence (a163db90), the in-tree carry drafts, the filed issue bodies
-  with their read-back, and `EG-B5-DESIGN.md`, the design spec for the DHW planner split tvofi opted in to.
-- Issues #1736 to #1745, #1747 and #1748: filed, verified, and each already carries its disposition.
+- `handoff/round9/state/ALT-ENDGAME-PLAN.md` (rev 2):
+  - §2.3: the new findings;
+  - §4: the schedule regenerated from roster rev 2;
+  - §6: adoption;
+  - §7: the owner decisions.
+- `handoff/round9/state/ALT-ROSTER.json`: roster rev 2, the live roster plus the deltas below. It lints with
+  `TOTAL: 0 error(s)`, is acyclic, and has 66 groups. `alt/build_roster_rev2.py` rebuilds it from the live file.
+- `handoff/round9/state/alt/SCREEN-1736-SHAPES.md`: the shape screen, with its probes in `alt/evidence/screen/`.
+- `handoff/round9/state/alt/register/`: register v2.
+  - `bugclasses.v2.json` (commit `53a9bbab`), built by `build_v2.py` from `rows_v2.tsv`; run `--check` to verify. It is 574 rows, including 88 round 1–7 survivors the old source omitted (`RECON.md`).
+  - `REGISTER-V2.md`.
+  - `RCA-INVENTORY.md`.
+- `handoff/round9/state/alt/rca/RCA-BULK-1..4.md`: the owed RCAs, conducted in bulk, with their helpers.
+- Issues #1752 to #1760: filed, read back, and each carrying its disposition. #1736 carries the screen addendum
+  (comment `5879641429`).
 
-Read the plan in full before step 1. Its §3 is the owner's ratchet stance: "the ratchets are not set in
-stone; the end goal is optimal architecture". A raise the better shape needs is asked for before the push,
-never avoided by a worse shape.
+Read the plan's §2.3, §4, §6 and §7 and the four bulk RCAs before step 1. The rev 1 rules and the ratchet stance
+(§3) stand.
 
 ## Steps, in order
 
-1. **Re-base the plan.** It was measured at origin/main `31394964`.
-   - List every merge since then on origin/main and apply it to `ALT-ROSTER.json`'s `resume` fields. The
-     roster already records F1.4 as merged (#1735, `686239d2`).
-   - If a merge touched a file a carry or an EG brief cites, re-run that brief's citations with
-     `node .claude/workflows/brief_lint.mjs <roster>`, after fetching the round-9 evidence refs
-     (`handoff/audit-r9-evidence`, `handoff/audit-r9-sweep-*`, `handoff/r9-rca-*`). It must print
-     `TOTAL: 0 error(s)`.
+1. **Re-base.** List every merge on origin/main since `3490cb16`.
+   - Apply each to roster rev 2's `resume` fields.
+   - If a merge touched a file a new carry or brief cites, re-run
+     `node .claude/workflows/brief_lint.mjs <roster>` with the evidence refs fetched: `handoff/audit-r9-evidence`,
+     `handoff/audit-r9-sweep-*`, `handoff/r9-rca-*`, `handoff/r9-eg-b0`, `handoff/audit-r9-alt` and
+     `handoff/audit-r9-plan`.
+   - It must print `TOTAL: 0 error(s)`.
 
-2. **Adopt the roster** on `handoff/audit-r9-fixplan`.
-   - Replace `.claude/workflows/wave-r9-groups.json` with the re-based `ALT-ROSTER.json`. If the live file
-     changed after `68919da9`, apply ALT's three deltas to it instead:
-     - the truthed `resume` fields;
-     - the carries appended to the briefs of R9-F1.10 (#1741), R9-F10.1b (#1740), R9-F10.3 (#1748) and
-       R9-F10.4 (#1738), with those numbers added to each group's `issues`;
-     - lane EG: groups R9-EG-B0 to R9-EG-B8, and R9-EG-B5a.
-   - Before any regeneration, change `handoff/round9/fix/src/gen.py` so it carries every group's existing
-     `resume` forward. It currently rebuilds them as `not-started`, which has wiped 17 merged groups. If
-     you would rather not change it, stop regenerating.
-   - Lint the result and read it back.
+2. **Adopt roster rev 2** on `handoff/audit-r9-fixplan`: replace `.claude/workflows/wave-r9-groups.json` with
+   `ALT-ROSTER.json`.
+   - If the live file moved after `27049219`, run `alt/build_roster_rev2.py <live> <ALT rev-1 roster> <out>`
+     instead. It applies:
+     - resume truthing: the live file shows 17 merged groups as `not-started`, and has EG-B0's `rca-done` on EG-B1;
+     - carries into R9-EG-B1, F1.7, F1.8, F2.4, F10.3, F10.4 and F11.4;
+     - new groups: EG-B9, EG-B10, EG-R0, EG-R1, F7.4, F10.1c, F10.7 and F11.7;
+     - edges: F1.6 after EG-B9; EG-B1 after EG-B9 and EG-B10.
+   - **Then assert that every group whose PR is merged on main reads `done`.** The 17-group regression reappeared
+     after rev 1's adoption, so something in regeneration or merging still drops them. Find it and fix it, or stop
+     regenerating.
+   - Lint and read back.
 
-3. **Land one record PR** by the `hpo-author` App through `tools/audit/app_push.sh`, never `push.sh`.
-   - Add `handoff/round9/state/alt/carries/carry-1686.json`, `carry-1654.json` and `carry-1646.json` under
-     `.claude/workflows/`.
-   - Append `carry-1649.entry-to-append.json` to the existing `.claude/workflows/carry-1649.json`. Copy
-     the full `carry-1649.json` draft over it only if main's file is unchanged since `31394964`.
-   - Disposition #1736 to #1745, #1747 and #1748 in the plan of record (`delivery-status-tracking.md` step 5), and give
-     the PR its own `docs/delivery/<N>.md` row.
-   - This must merge before R9-F10.1b, R9-F10.3, R9-F1.10 or R9-F10.4 starts: a carry is in the tree
-     before its stage begins (`finding-propagation.md`).
-   - The PR touches policy-adjacent record files only. It adds no budget and no `VERSION` edit.
+3. **Land one record PR** via `tools/audit/app_push.sh` (never `push.sh`):
+   - disposition #1752 to #1760 in the plan of record (`delivery-status-tracking.md` step 5);
+   - correct #1070's row, which says "root-cause seat in flight": no seat ran, and the band landed as #1124;
+   - give the PR its own `docs/delivery/<N>.md` row.
+   - It adds no budget and no `VERSION` edit.
+   - Every new carry lives in a roster brief whose stage has not started, so no carry file is owed. If one of
+     those stages starts before the roster lands, the carry goes in-tree first (`finding-propagation.md`).
 
-4. **Post one #201 comment** with `.claude/workflows/gh_comment.py post`, and read it back. It says:
-   - the plan was adopted;
+4. **Post one #201 comment** with `.claude/workflows/gh_comment.py post` and read it back. It says:
+   - rev 2 is adopted;
    - the roster SHA;
-   - the new EG lane;
+   - EG-B9 is sev:high and next in the F1 slot;
+   - register v2 awaits tvofi's review;
    - what is dispatched now.
 
-5. **Dispatch W0 now:**
-   - **start F7.2**: both its after-edges are merged, and it gates F2.4;
-   - dispatch **R9-EG-B0**, a `root-cause.md` seat for #1736 that runs beside the programme, not inside
-     any fix.
+5. **Dispatch.**
+   - **F1.5 continues.** When it merges, **R9-EG-B9 is next** in the F1 slot, and F1.6 waits for it.
+   - **F7.2 continues**, then F7.4.
+   - Then follow §4, one merge at a time, respecting every `after` edge.
 
-   Then follow `ALT-ENDGAME-PLAN.md` §4, one merge at a time, respecting every `after` edge.
+## Rules specific to rev 2
 
-## Rules specific to this plan
-
-- **Lane EG never blocks an F-lane.** No F group has an EG after-edge; keep it that way.
-- **Structure-budget writers are serialised.** R9-EG-B5a, R9-EG-B5, R9-EG-B1 and R9-EG-B7 all write the
-  structure budgets, so never two of them are in flight at once (plan principle 2).
-- **B1 lands after the fix release.** Stamp v6.8.0 after R9-F10.6 and R9-F11.5 (stamp point c), then
-  land R9-EG-B1. Its fixer may prepare the branch earlier.
-- **tvofi opted in to R9-EG-B5**, the DHW planner split. Dispatch it per `alt/EG-B5-DESIGN.md` once its
-  after-edges merge: R9-EG-B5a, R9-EG-B8, R9-F1.10 and R9-F10.4. It has two preconditions:
-  - the #1748 carry is in R9-F10.3 before F10.3 merges, or the move is refused as added sites;
-  - R9-EG-B8 (#1747) has fixed the call site the move rewrites.
-  Its `classes_over_300` increase needs tvofi's confirmation before the push, unless R9-F10.4 has
-  re-defined the metric.
-- **R9-EG-B7 is a measured go/no-go.** Where a seam's cut does not fall, record the halt on #1744 with
-  the numbers.
-- **EG PRs are pure refactors, except R9-EG-B8.** The refactors claim no golden drift, and a moved golden
-  means the PR is not pure. Each names its null control in the body (the issue states it). B1 and B5 carry
-  the principle-3 check: a three-dot diff plus a whole-file comparison at every merge from main.
-- **R9-EG-B8 (#1747) is a behaviour fix**, under the normal fix protocol:
-  - failing test first (the -2.0 arm of `alt/evidence/b8_replan_blocked.py`);
-  - mutation proof;
-  - the Root cause section on #1747, which is owed because the defect reached released versions
-    (`defect-root-cause.md` trigger 1).
-  It lands after R9-F2.4 and before R9-EG-B5.
-- **Raises.** Any budget raise, including #1738 arm (c)'s re-definition of `classes_over_300` inside
-  R9-F10.4, needs tvofi's confirmation before the push, and merges on his approving review
-  (budget-raise-gate, 0013).
-- **Mandate.** It expires 2026-09-29T18:15Z. W0 and W1 fit inside it. Everything in lane EG and every
-  owner-gated item after that waits for renewal, not for your judgement.
+- **R9-EG-B9 (#1752, #1753) is a sev:high behaviour fix.**
+  - Normal fix protocol: failing tests first (`alt/evidence/screen/S1.py` and `S2.py`, probe arms against null arms),
+    then mutation proof.
+  - The Root cause section on #1752 is owed (trigger 1). RCA-1736 supplies the class cause and process state; the
+    section adds this instance's escape and cost.
+  - Do not wait for stamp point (c) to release it. Stamp at the next point after it merges (FIX-PLAN's point (b)
+    follows F1.6).
+- **EG refactors still never block an F lane.** EG-B9 is the one exception, and it is a behaviour fix.
+- **R9-EG-B10 (#1754, #1755)** lands after EG-B9 and F1.6, and before EG-B1 (plan principle 3).
+- **R9-EG-R0 is data only.** It needs tvofi's review of the move list and the open questions in `REGISTER-V2.md`
+  before merge:
+  - copy `bugclasses.v2.json` over `tools/audit/bugclasses.json`;
+  - move the `class_guess` enum in the same PR;
+  - put the RCA documents under `tools/audit/rca/` (the 14 round-9 class RCAs from `763b0ba4`, RCA-1736 from
+    `08304c9a`, and RCA-BULK-1..4).
+  - Run `build_v2.py --check` before copying.
+  - If a round's findings are classified before R0 lands, add them through `rows_v2.tsv`. Never hand-edit the JSON.
+- **R9-EG-R1 is owner-gated.** Its four policy clauses (judge.md, defect-root-cause.md, where an RCA is recorded,
+  D8.md) are asked of tvofi before the push. `audit-verify.js` and the briefs are code-owned.
+- **Carries.** Carries already in roster briefs bind their fixers:
+  - F1.7: the P10 kernel-count barrier;
+  - F1.8: the P8 feed currency (ask tvofi about the displayed currency before the push);
+  - F2.4: the P4 refusal (no class widening);
+  - F10.3: the I2 strace oracle;
+  - F10.4: structure-blind reachability, and the `qs_py_typed_files` check;
+  - F11.4: `merge_shape_guard`; the N-silent-zero barrier is tvofi's call;
+  - EG-B1: H1–H4 and P12.
+- **Rev 1's rules stand:**
+  - structure-budget writers are serialised (EG-B5a, EG-B5, EG-B1, EG-B7);
+  - B1 lands after stamp point (c);
+  - B5 per `alt/EG-B5-DESIGN.md`;
+  - EG-B8 before EG-B5;
+  - raises confirmed before the push and merged on tvofi's approving review.
+- **Mandate.** It expires 2026-09-29T18:15Z. W0 and W1 fit inside it, including EG-B9. Everything owner-gated
+  after that waits for renewal.
 
 ## Stop and ask tvofi when
 
-- `brief_lint` is non-zero after re-basing and the fix would weaken a citation instead of correcting it;
-- a carry's destination stage has already started; the carry then belongs to a new issue or that PR's
-  own brief, not to a merged group;
-- a merge since `31394964` has changed something the plan measured (a hub write, a store version, the
-  duplication detector), so that the plan's verdict no longer follows.
+- a §7 owner decision is reached;
+- `brief_lint` is non-zero after re-basing, and the fix would weaken a citation instead of correcting it;
+- a merge since `3490cb16` changes what the screen, register or RCAs measured (the boost overlay, the in-flight
+  guard, the DST tracer, the currency resolver, the entity names);
+- the resume-truthing assertion in step 2 fails again after a regeneration.
