@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from .const import MANUAL_PLAN_WINDOW_HOURS
+
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
 # reads a per-step float array as: NaN -> free to be chosen, 0 -> forced off,
 # 1 -> forced on. Floats (rather than an enum) so a whole channel is a single
@@ -278,8 +280,26 @@ def build_override(
         raise ManualPlanError(
             f"expires_at {expires_at.isoformat()} is not in the future"
         )
+    # D1-s2-54 (round 9): the expiry is clamped to the manual-plan window
+    # here, at the one constructor every apply goes through, so no override
+    # can be built beyond it and the store's lead bound matches it. The
+    # card's editor always offered "up to 20 hours"; the service accepted
+    # any datetime, and a far one owned every step of every plan unenforced.
+    cap = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+    if expires_ref > cap:
+        expires_ref = cap
     space = parse_channel(space_slots, now)
     dhw = parse_channel(dhw_slots, now)
+    # A slot starting at or after the expiry pins nothing -- the override
+    # is dropped at expiry before the slot begins -- and it would outlive
+    # the store's lead bound, so it is a rejected call rather than stored
+    # dead weight that a restart's instant bound would have to rewrite.
+    for _channel, _slots in (("space", space), ("dhw", dhw)):
+        if _slots and _slots[0][0] >= expires_ref:
+            raise ManualPlanError(
+                f"{_channel} slot at {_slots[0][0].isoformat()} starts at "
+                f"or after the plan expires at {expires_ref.isoformat()}"
+            )
     return ManualOverride(
         space_slots=space,
         dhw_slots=dhw,

@@ -6535,6 +6535,9 @@ class _FakeLearnStore:
     async def async_load(self):
         return self.saved
 
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
+
 
 from heatpump_optimizer.drift import Cusum as _Cusum
 
@@ -14171,6 +14174,9 @@ class _FuseStore:
 
     async def async_load(self):
         return dict(_persist_payload)
+
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 _cad_persist._ledger_store = _FuseStore()
@@ -35176,8 +35182,9 @@ _RC2_SETTERS = {
     "async_reset_comfort_weight": "row: the reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
     "async_arm_system_identification": "in memory by design: arms tonight's run",
-    "async_update_thermal_params": "an automation's runtime model override; only "
-        "the three learner anchors persist (#86)",
+    "async_update_thermal_params": "the call's fields persist into entry "
+        "options and reload the entry (D1-s2-53, F1.4); the learner anchors "
+        "also persist through the thermal-learning store (#86)",
 }
 
 
@@ -35319,6 +35326,204 @@ R.check(
     "cancels its refresh",
     _rc2_mp == [True, False],
     f"a plan held after the restart following apply, then clear: {_rc2_mp}",
+)
+
+# F1.4 (round 9) extends the RC2 block with the two seams the S5 sweep
+# confirmed the merged barrier does not cover (class
+# user-state-not-surviving-restart, #1662). D1-s2-52: the five cycle writers
+# save their whole payload from memory, and a save that runs while the
+# startup read is still in flight writes the fresh defaults over the
+# persisted learned state the read is about to install -- #1641's reset
+# row fixed this shape for the accuracy store alone. The read is held open
+# by a gate here, deterministically, where the finding's rig used a
+# latency. D1-s2-53: set_thermal_parameters changed 24 of its 26
+# state-changing fields in memory only, so the next restart forgot them;
+# the call's fields now persist into the entry's options, the same place
+# async_set_target_temperature already persists, and the restart below is
+# a second coordinator on the same entry, exactly as #1641's rows restart.
+from heatpump_optimizer import services as _f14_services  # noqa: E402
+from heatpump_optimizer import store as _f14_store_mod  # noqa: E402
+from homeassistant.helpers import storage as _f14_storage  # noqa: E402
+
+_F14_WRITERS = (
+    ("energy", "_async_save_energy_totals", "energy"),
+    ("ledger", "_async_save_ledger", "ledger"),
+    ("thermal", "_async_save_thermal_learning", "thermal"),
+    ("price", "_async_save_price_model", "price"),
+    ("accuracy", "_async_save_accuracy", "accuracy"),
+)
+
+
+def _f14_markers(c):
+    return {
+        "energy": c._energy_totals["total_energy_kwh"],
+        "ledger": c._operation_score,
+        "thermal": c._house_heat_loss_scale,
+        "price": sorted(c._price_days_seen),
+        "accuracy": c._comfort_learner.learned_weight,
+    }
+
+
+def _f14_learn(c):
+    for key in c._energy_totals:
+        c._energy_totals[key] = 1234.5
+    c._operation_score = 77.0
+    c._apply_house_heat_loss_scale(1.3)
+    c._price_days_seen = {"2026-01-10", "2026-01-11"}
+    c._comfort_learner.learned_weight = 7.5
+
+
+async def _f14_race(marker, writer):
+    """Seed the disk, then restart against a read held in flight.
+
+    Returns (what the restarted coordinator holds once every load has
+    landed, what the racing writer raised): with the writer waiting for
+    its store's read, the load installs the learned state before the save
+    runs, and the marker survives; without the wait the save lands first
+    and the marker reads back as the fresh default.
+    """
+    entry_id = f"f14_race_{marker}"
+    seed = HeatPumpOptimizerCoordinator(
+        FakeHass(), FakeEntry(data=dict(_T1_DATA), entry_id=entry_id))
+    _f14_learn(seed)
+    for _, name, _s in _F14_WRITERS:
+        await getattr(seed, name)()
+    want = _f14_markers(seed)
+    gate = _asyncio.Event()
+    # The gate sits in Store.async_load, the PARENT: QuarantiningStore's own
+    # async_load creates the read future its writers wait on, and gating the
+    # child instead would leave the writer nothing to wait for (the finding's
+    # rig notes the same artefact for a lazily started task).
+    orig_load = _f14_storage.Store.async_load
+
+    async def _gated_load(self):
+        await gate.wait()
+        return await orig_load(self)
+
+    _f14_storage.Store.async_load = _gated_load
+    try:
+        coord = HeatPumpOptimizerCoordinator(
+            _RC2Hass(), FakeEntry(data=dict(_T1_DATA), entry_id=entry_id))
+        await _asyncio.sleep(0)  # every spawned read has started and parked
+        save = _asyncio.get_running_loop().create_task(
+            getattr(coord, writer)())
+        await _asyncio.sleep(0)  # the writer reaches its read-wait, or saves
+        gate.set()
+        await _asyncio.wait({save, *coord._background_tasks}, timeout=5)
+        return _f14_markers(coord)[marker], save.exception(), want[marker]
+    finally:
+        _f14_storage.Store.async_load = orig_load
+        for key in [k for k in _f14_storage._DISK if entry_id in k]:
+            del _f14_storage._DISK[key]
+
+
+_f14_raced = {
+    m: _asyncio.run(_f14_race(m, w)) for m, w, _s in _F14_WRITERS
+}
+_f14_lost = [
+    f"{m}: {want!r} -> {got!r}"
+    for m, (got, exc, want) in _f14_raced.items() if got != want
+]
+_f14_raised = [m for m, (_g, exc, _w) in _f14_raced.items() if exc]
+R.check(
+    "a store writer that races the startup read waits for it, so the "
+    "persisted learned state survives the restart (D1-s2-52)",
+    not _f14_lost and not _f14_raised,
+    f"lost: {_f14_lost}; writer raised: {_f14_raised} -- each of the five "
+    "cycle writers saves its whole payload from memory, and one that runs "
+    "before its store's startup read lands replaces months of learned "
+    "state with the fresh defaults the read is about to install",
+)
+
+# D1-s2-53: one field per schema key, each set alone, then a restart on the
+# same entry. The values double as the classification: a field the schema
+# admits with no value here is refused, so a new set_thermal_parameters
+# field must decide how it survives a restart to land.
+_F14_PARAM_VALUES = {
+    "house_thermal_mass": 12.0,
+    "house_heat_loss_coefficient": 0.2,
+    "slab_thermal_mass": 9.0,
+    "slab_heat_transfer": 1.7,
+    "heat_pump_cop_nominal": 3.7,
+    "upper_floor_thermal_mass": 6.0,
+    "lower_floor_thermal_mass": 7.0,
+    "inter_zone_heat_transfer": 0.9,
+    "radiator_power_fraction": 0.4,
+    "window_area": 11.0,
+    "solar_heat_gain_coefficient": 0.35,
+    "dhw_tank_volume": 150.0,
+    "dhw_setpoint": 52.0,
+    "dhw_min_temperature": 42.0,
+    "dhw_daily_consumption": 7.0,
+    "dhw_cooling_rate": 0.7,
+    "buffer_cooling_rate": 1.1,
+    "dhw_schedule_enabled": False,
+    "dhw_windows": "06:00-07:00",
+    "dhw_idle_min_temperature": 38.0,
+    "dhw_legionella_enabled": False,
+    "dhw_legionella_temperature": 62.0,
+    "dhw_legionella_interval_days": 10,
+    "wind_sensitivity_factor": 0.05,
+    "rain_heat_loss_multiplier": 1.2,
+    "ecl110_pid_time_constant_hours": 0.6,
+    "ecl110_displace_min": -3.0,
+    "ecl110_displace_max": 5.0,
+}
+
+
+def _f14_snap(c):
+    out = {}
+    for tag, obj in (
+        ("tp", getattr(c, "_ctx", c)._thermal_params),
+        ("oc", getattr(c, "_ctx", c)._opt_config),
+        ("co", c),
+    ):
+        for k, v in vars(obj).items():
+            if (isinstance(v, (int, float, str, bool))
+                    and not k.startswith("_store")
+                    and k != "_last_update_success_time"):
+                out[(tag, k)] = v
+    return out
+
+
+async def _f14_param_field(field, value):
+    async def _no_refresh(*_a, **_k):
+        return None
+
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"f14_tp_{field}")
+    a = HeatPumpOptimizerCoordinator(FakeHass(), entry)
+    a.async_request_refresh = _no_refresh
+    s0 = _f14_snap(a)
+    await a.async_update_thermal_params({field: value})
+    s1 = _f14_snap(a)
+    foot = sorted(k for k in s1 if s0.get(k) != s1[k])
+    b = HeatPumpOptimizerCoordinator(FakeHass(), entry)  # the restart
+    s2 = _f14_snap(b)
+    return foot, all(s2.get(k) == s1[k] for k in foot)
+
+
+_f14_tp = {
+    f: _asyncio.run(_f14_param_field(f, v))
+    for f, v in _F14_PARAM_VALUES.items()
+}
+_f14_schema_keys = set(_f14_services.SERVICE_SCHEMA_SET_THERMAL_PARAMS.schema)
+_f14_tp_lost = [
+    f for f, (foot, ok) in _f14_tp.items() if foot and not ok
+]
+_f14_tp_flat = [f for f, (foot, _ok) in _f14_tp.items() if not foot]
+for _f14_k in [k for k in _f14_storage._DISK if "f14_tp_" in k]:
+    del _f14_storage._DISK[_f14_k]
+R.check(
+    "every set_thermal_parameters field that changes state survives a "
+    "restart (D1-s2-53)",
+    not _f14_tp_lost and _f14_schema_keys == set(_F14_PARAM_VALUES),
+    f"lost at restart: {_f14_tp_lost}; schema fields with no value here: "
+    f"{sorted(_f14_schema_keys - set(_F14_PARAM_VALUES))}; values naming "
+    f"no schema field: {sorted(set(_F14_PARAM_VALUES) - _f14_schema_keys)}; "
+    f"no in-memory footprint on this rig: {_f14_tp_flat} -- the call "
+    "changed 24 of 26 fields in memory only, so a restart before the next "
+    "options edit reverted them; the footprint rule is the harness's own "
+    "(simple-typed attributes of the params, config and coordinator)",
 )
 
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
@@ -35767,6 +35972,9 @@ class _T2Store:
 
     async def async_save(self, data):
         self.saved.append(data)
+
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 def _t2_load(payload, **config):
@@ -37627,6 +37835,9 @@ class _T3SavingStore:
 
     async def async_save(self, data):
         self.saved.append(data)
+
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 class _T3FullStore:
@@ -49007,6 +49218,118 @@ R.check(
     == [("dhw", "delivered"), ("space", "delivered"), ("both", "delivered"), (None, "baseline")],
     f"{list(_pa.state_for(_pa_lg).log)}",
 )
+
+# ---------------------------------------------------------------------------
+R.section("N-service-clamp/P1 — the manual plan's expiry clamps to its window and a store sample count loads bounded (D1-s2-54, D1-s2-03)")
+# Round 9 F1.4 (#1681 N-service-clamp, #1647 P1). D1-s2-54: apply_manual_plan
+# accepted an expires_at as far out as the caller cared to send, so a pinned
+# plan owned every step of every plan past it -- README's "pins exact run
+# slots for up to 20 hours" was the card's ceiling, never the service's. The
+# clamp lands in build_override, the one constructor every apply goes
+# through, so no override can be BUILT beyond MANUAL_PLAN_WINDOW_HOURS and
+# the manual-plan store's lead bound (finite_boundary's instant arm, which
+# this PR drops into) is unreachable for a plan the service wrote. D1-s2-03:
+# a stored sample count past int64 parses into the coordinator and then
+# wedges the published state's np.isfinite on every cycle, across restarts;
+# the counts below are finite, so the store's scrub passes them -- this is
+# exactly what a loader receives.
+from heatpump_optimizer import manual_plan as _f14b_mp  # noqa: E402
+from heatpump_optimizer import store as _f14b_store  # noqa: E402
+from heatpump_optimizer.const import MANUAL_PLAN_WINDOW_HOURS as _F14B_W  # noqa: E402
+from harness import FakeServiceCall as _F14BCall  # noqa: E402
+from homeassistant.config_entries import ConfigEntryState as _F14BState  # noqa: E402
+
+_F14B_NOW = _rc2_dt_util.now()
+_F14B_CAP = _F14B_NOW + timedelta(hours=_F14B_W)
+
+
+async def _f14b_apply(data):
+    """The apply service over a loaded coordinator, as the card calls it."""
+    hass = FakeHass()
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id="f14b_apply")
+    coord = HeatPumpOptimizerCoordinator(hass, entry)
+
+    async def _no_refresh(*_a, **_k):
+        return None
+
+    coord.async_request_refresh = _no_refresh
+    entry.state = _F14BState.LOADED
+    entry.runtime_data = coord
+    hass.config_entries.entries.append(entry)
+    await _f14_services.handle_apply_manual_plan(
+        hass, _F14BCall("heatpump_optimizer", "apply_manual_plan", data))
+    return coord._manual_override
+
+
+async def _f14b_expense():
+    far = await _f14b_apply({
+        "space_slots": [],
+        "expires_at": (_F14B_NOW + timedelta(hours=48)).isoformat()})
+    default = await _f14b_apply({"space_slots": []})
+    return far, default
+
+
+_rc2_dt_util.freeze(_F14B_NOW)  # the handler takes its own now(); one clock
+try:
+    _f14b_far, _f14b_default = _asyncio.run(_f14b_expense())
+    _f14b_span = _f14b_mp.build_override(
+        dhw_slots=None,
+        space_slots=[{"start": (_F14B_NOW + timedelta(hours=2)).isoformat(),
+                      "end": (_F14B_NOW + timedelta(hours=30)).isoformat()}],
+        expires_at=_F14B_NOW + timedelta(hours=6), now=_F14B_NOW)
+    try:
+        _f14b_mp.build_override(
+            dhw_slots=None,
+            space_slots=[{"start": (_F14B_NOW + timedelta(hours=21)).isoformat(),
+                          "end": (_F14B_NOW + timedelta(hours=22)).isoformat()}],
+            expires_at=_F14B_NOW + timedelta(hours=48), now=_F14B_NOW)
+        _f14b_dead_slot = None
+    except _f14b_mp.ManualPlanError as _f14b_err:
+        _f14b_dead_slot = str(_f14b_err)
+finally:
+    _rc2_dt_util.freeze(None)
+R.check(
+    "a manual plan's expiry is clamped to MANUAL_PLAN_WINDOW_HOURS at the "
+    "one constructor every apply goes through, and a slot past the expiry "
+    "is refused rather than pinned past the window (D1-s2-54)",
+    _f14b_far.expires_at == _F14B_CAP
+    and _f14b_default.expires_at == _F14B_CAP
+    and _f14b_span.space_slots is not None
+    and _f14b_dead_slot is not None,
+    f"48 h -> {_f14b_far.expires_at!r} (cap {_F14B_CAP!r}); default -> "
+    f"{_f14b_default.expires_at!r}; a slot spanning the expiry -> "
+    f"{_f14b_span.space_slots!r}; a slot starting past the clamped expiry -> "
+    f"{_f14b_dead_slot!r} -- the far expiry used to own all 96 steps of "
+    "every plan unenforced; a slot wholly past the expiry pins nothing and "
+    "outlives the store's lead, so it is a rejected call, not stored dead "
+    "weight",
+)
+
+_f14b_counts = _t1_coord()
+_f14b_counts._thermal_learning_store = _T1DictStore(
+    _f14b_store._sanitize({
+        "cop_baseline": {"4": [3.1, 1e20], "4:dhw": [2.5, 1e308],
+                         "5": [2.0, 5]},
+        "capacity_envelope": {"-3": [5.0, 1e308], "2": [4.0, 9]},
+    }))
+_asyncio.run(_f14b_counts._async_load_thermal_learning())
+R.check(
+    "a stored sample count past int64 never loads, so no cycle wedges on "
+    "it (D1-s2-03)",
+    _f14b_counts._cop_baseline == {(5, False): [2.0, 5]}
+    and _f14b_counts._capacity_envelope == {2: [4.0, 9]}
+    and all(
+        np.isfinite(entry[1])
+        for entry in (list(_f14b_counts._cop_baseline.values())
+                      + list(_f14b_counts._capacity_envelope.values()))),
+    f"cop_baseline={_f14b_counts._cop_baseline} capacity_envelope="
+    f"{_f14b_counts._capacity_envelope} -- 1e20 and 1e308 are finite, so "
+    "the store's scrub hands them to the loader as they are, and the "
+    "published state's np.isfinite(count) raises on any Python int past "
+    "int64: the wedge survived every restart because the parse accepted it",
+)
+for _f14b_k in [k for k in _f14_storage._DISK if "f14b_" in k]:
+    del _f14_storage._DISK[_f14b_k]
 
 # ---------------------------------------------------------------------------
 R.section("P1/P2 — a stored instant loads aware, or not at all (D1-s1-01, D1-s3-01, D1-s1-02, D1-s3-05)")
