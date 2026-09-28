@@ -1462,7 +1462,16 @@ def currency_facts() -> tuple[str, str]:
     return resolve_currency(_Hass()), resolve_currency(object())
 
 
-_CURRENCY_FALSE_CLAIM = r"SEK when the instance has none configured"
+# Whitespace-insensitive: the corpus wraps at ~90 columns, and the base's false
+# claim reads "(SEK when the instance has none\nconfigured)" -- an inline-only
+# pattern scans ok over the defect (the wrapped-fixture class; round-1 review).
+_CURRENCY_FALSE_CLAIM = r"SEK\s+when\s+the\s+instance\s+has\s+none\s+configured"
+
+# The merge base's exact wrapped sentence, restore-able for the null control.
+_CURRENCY_BASE_SENTENCE = (
+    "`CUR` is your Home Assistant instance currency "
+    "(SEK when the instance has none\nconfigured)."
+)
 
 
 def check_readme_currency_claim() -> None:
@@ -1477,13 +1486,16 @@ def check_readme_currency_claim() -> None:
         repr(hits),
     )
     R.check("README still documents the instance currency (anchor)", "instance currency" in README)
-    mutated = README.replace(
-        "`CUR` is your Home Assistant instance currency",
-        "`CUR` is your Home Assistant instance currency "
-        "(SEK when the instance has none configured)",
-    )
+    # Null control over the corpus's real shape: restore the base's WRAPPED
+    # sentence into the committed README text. At the merge base the committed
+    # text already carries the wrapped claim, so the restore is a no-op there
+    # and the scan check above is the red demonstration; at the head the
+    # restore is real, and an inline-only scan would pass it -- so the control
+    # pins the whitespace-insensitivity too.
+    anchor = "`CUR` is your Home Assistant instance currency."
+    mutated = README.replace(anchor, _CURRENCY_BASE_SENTENCE, 1)
     R.check(
-        "re-adding the pre-fix claim fires the scan (null control)",
+        "restoring the base's wrapped claim fires the scan (null control)",
         bool(re.findall(_CURRENCY_FALSE_CLAIM, mutated)),
     )
 
