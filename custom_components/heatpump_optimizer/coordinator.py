@@ -497,6 +497,20 @@ def _as_float(value: Any, default: float) -> float:
     return result
 
 
+def _storable_sample_count(raw: Any) -> int:
+    """A stored sample count a fold could have written (D1-s2-03).
+
+    Raises ValueError for one it could not: a count past int64 parses with
+    ``int()`` and then wedges the published state's ``np.isfinite`` on every
+    cycle, across restarts. No fold reaches 2**31 in a lifetime, so past it
+    the entry is corrupt, not evidence.
+    """
+    count = float(raw)  # raises for non-numeric, as int() did
+    if not np.isfinite(count) or not 0 <= count <= 2**31:
+        raise ValueError(f"sample count {raw!r} is not one a fold wrote")
+    return int(raw)
+
+
 def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
     """Wrap a learned-scalar seam so a non-finite value never reaches the model.
 
@@ -3017,17 +3031,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # "4:lift" the lift-normalised space baseline (#1067).
                     text, _, tag = str(key).partition(":")
                     tags: dict[str, bool | str] = {"": False, "dhw": True, "lift": "lift"}
-                    # D1-s2-03: a count numpy cannot take (any Python int
-                    # past int64) parsed fine and then wedged the published
-                    # state's np.isfinite on every cycle, across restarts.
-                    # No fold reaches 2**31 in a lifetime, so past it the
-                    # entry is corrupt, not evidence.
-                    count = float(entry[1])
-                    if not np.isfinite(count) or not 0 <= count <= 2**31:
-                        continue
                     self._cop_baseline[(int(text), tags[tag])] = [
                         float(entry[0]),
-                        int(entry[1]),
+                        _storable_sample_count(entry[1]),
                     ]
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
@@ -3086,15 +3092,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_env, dict):
             for key, entry in raw_env.items():
                 try:
-                    # Same count rule as cop_baseline above (D1-s2-03): the
-                    # published capacity_envelope view np.isfinite's this
-                    # count, so one past int64 is corrupt, not evidence.
-                    count = float(entry[1])
-                    if not np.isfinite(count) or not 0 <= count <= 2**31:
-                        continue
                     self._capacity_envelope[int(key)] = [
                         float(entry[0]),
-                        int(entry[1]),
+                        _storable_sample_count(entry[1]),
                     ]
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
@@ -3218,10 +3218,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
-            # D1-s2-52 (round 9): wait for the startup read first -- a save
-            # that lands before it writes the fresh defaults over the
-            # persisted learned state the read is about to install.
-            await self._thermal_learning_store.async_wait_for_read()
             await self._thermal_learning_store.async_save(
                 self._thermal_learning_payload()
             )
@@ -5287,10 +5283,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_update_thermal_params(self, params: dict[str, Any]) -> None:
         """Apply a runtime parameter change from the service call.
 
-        Most parameters are a plain assignment and live in the table above.
-        The rest are here because they have a consequence beyond themselves —
-        a learned correction to invalidate, a mirrored attribute to keep in
-        step, or a value that has to be parsed and may fail.
+        Most parameters are a plain assignment in the table above; the rest
+        carry a consequence — a correction to invalidate, a mirror, a parse.
         """
         ctx = getattr(self, "_ctx", self)
         for name, attribute in self._THERMAL_PARAM_FIELDS.items():
@@ -5301,12 +5295,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ctx._thermal_params.heat_loss_coefficient = params[
                 "house_heat_loss_coefficient"
             ]
-            # A new nameplate value invalidates the correction learned against
-            # the old one, so start over from "trust the configuration". The
-            # save below records the anchor for the coefficient just applied,
-            # so the restart pairs this reset with whatever the options carry
-            # (issue #86: the old defect was the reset outliving an in-memory-
-            # only coefficient change, leaving the next start 0.80x wrong).
+            # A new nameplate invalidates the correction learned against the
+            # old one: start over from "trust the configuration". The save
+            # below records the anchor for the coefficient just applied, so
+            # the restart pairs this reset with the options (#86's defect was
+            # the reset outliving an in-memory-only change: 0.80x wrong).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
 
@@ -5315,13 +5308,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._buffer_cooling_samples = 0
 
         # One write for either reset: a call carrying both used to save the
-        # whole store twice, the first time with only half the reset in it.
+        # store twice, half-done the first time.
         if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
             await self._async_save_thermal_learning()
 
         if CONF_DHW_COOLING_RATE in params:
-            # An explicit value replaces the learned one and resets the sample
-            # count, so the learner treats it as the new starting point.
+            # An explicit value replaces the learned one and resets its
+            # sample count, so the learner starts from it again.
             await self._dhw_learner.async_set_cooling_rate(
                 float(params[CONF_DHW_COOLING_RATE])
             )
@@ -5345,9 +5338,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._thermal_params.dhw_windows = parse_windows(
                     params[CONF_DHW_WINDOWS]
                 )
-                # Both structures from one parse (#3): the every-day view
-                # and the weekly one can then never disagree about what
-                # was configured, the same guarantee from_config gives.
+                # Both structures from one parse (#3): the every-day and
+                # weekly views can never disagree, as from_config guarantees.
                 ctx._thermal_params.dhw_weekly_windows = parse_weekly_windows(
                     params[CONF_DHW_WINDOWS]
                 )
@@ -5366,15 +5358,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # floor is re-enforced here — the one chokepoint for service writes.
         ctx._thermal_params.clamp()
 
-        # D1-s2-53 (round 9): the fields above changed memory only, so a
-        # restart before the next options edit reverted them -- 24 of the 26
-        # state-changing fields. The call's fields persist into the entry's
-        # options, the same place async_set_target_temperature writes; the
-        # options write reloads the entry (async_update_options), and the
-        # reload is what rebuilds the model from them.
+        # D1-s2-53: persist into entry options (the set_temperature route);
+        # the options write reloads the entry, rebuilding the model from them.
         self.hass.config_entries.async_update_entry(
-            self.entry, options={**self.entry.options, **params},
-        )
+            self.entry, options={**self.entry.options, **params})
 
         # The model and optimizer hold the parameters by reference at
         # construction, so both are rebuilt rather than mutated in place.
@@ -7291,7 +7278,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_price_model(self) -> None:
         try:
-            await self._price_model_store.async_wait_for_read()  # D1-s2-52
             await self._price_model_store.async_save(
                 {
                     "model": self._price_model.as_dict(),
@@ -7352,7 +7338,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_ledger(self) -> None:
         try:
-            await self._ledger_store.async_wait_for_read()  # D1-s2-52
             await self._ledger_store.async_save(
                 {
                     "ledger": self._ledger.as_dict(),
@@ -7400,22 +7385,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Write ``payload`` unless the store already holds exactly it.
 
-        Both callers run every update cycle, and most cycles change nothing —
-        an unconditional rewrite is pure disk wear on the Pi-class hardware
-        Home Assistant usually lives on. The digest is remembered only after
-        the store accepted the payload, so a failed save is retried on the
-        next cycle rather than skipped as already-written.
+        Both callers run every cycle and most change nothing: a rewrite is
+        disk wear on the Pi-class hardware HA usually lives on. The digest
+        is remembered only after the store accepted the payload, so a
+        failed save is retried, not skipped as already-written.
         """
         digest = hashlib.sha256(
             json.dumps(payload, sort_keys=True, default=str).encode()
         ).hexdigest()
         if self._store_digests.get(name) == digest:
             return
-        # D1-s2-52 (round 9): wait for the startup read first -- a save that
-        # lands before it writes the fresh defaults over the persisted state
-        # the read is about to install. Inside the caller's try, so a store
-        # that cannot be waited on fails like one that cannot be written.
-        await store.async_wait_for_read()
         await store.async_save(payload)
         self._store_digests[name] = digest
 

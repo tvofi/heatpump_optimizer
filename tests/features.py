@@ -6535,9 +6535,6 @@ class _FakeLearnStore:
     async def async_load(self):
         return self.saved
 
-    async def async_wait_for_read(self) -> None:
-        """The fake never holds a read in flight (D1-s2-52's wait)."""
-
 
 from heatpump_optimizer.drift import Cusum as _Cusum
 
@@ -14174,9 +14171,6 @@ class _FuseStore:
 
     async def async_load(self):
         return dict(_persist_payload)
-
-    async def async_wait_for_read(self) -> None:
-        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 _cad_persist._ledger_store = _FuseStore()
@@ -35973,9 +35967,6 @@ class _T2Store:
     async def async_save(self, data):
         self.saved.append(data)
 
-    async def async_wait_for_read(self) -> None:
-        """The fake never holds a read in flight (D1-s2-52's wait)."""
-
 
 def _t2_load(payload, **config):
     """Start a coordinator and load `payload` as its thermal-learning store."""
@@ -37835,9 +37826,6 @@ class _T3SavingStore:
 
     async def async_save(self, data):
         self.saved.append(data)
-
-    async def async_wait_for_read(self) -> None:
-        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 class _T3FullStore:
@@ -49290,19 +49278,20 @@ finally:
     _rc2_dt_util.freeze(None)
 R.check(
     "a manual plan's expiry is clamped to MANUAL_PLAN_WINDOW_HOURS at the "
-    "one constructor every apply goes through, and a slot past the expiry "
-    "is refused rather than pinned past the window (D1-s2-54)",
+    "one constructor every apply goes through, and a slot starting beyond "
+    "the window is refused rather than stored past the store's lead "
+    "(D1-s2-54)",
     _f14b_far.expires_at == _F14B_CAP
     and _f14b_default.expires_at == _F14B_CAP
     and _f14b_span.space_slots is not None
     and _f14b_dead_slot is not None,
     f"48 h -> {_f14b_far.expires_at!r} (cap {_F14B_CAP!r}); default -> "
     f"{_f14b_default.expires_at!r}; a slot spanning the expiry -> "
-    f"{_f14b_span.space_slots!r}; a slot starting past the clamped expiry -> "
+    f"{_f14b_span.space_slots!r}; a slot starting beyond the window -> "
     f"{_f14b_dead_slot!r} -- the far expiry used to own all 96 steps of "
-    "every plan unenforced; a slot wholly past the expiry pins nothing and "
-    "outlives the store's lead, so it is a rejected call, not stored dead "
-    "weight",
+    "every plan unenforced; a slot wholly beyond the window is dead weight "
+    "the store's lead bound would clamp onto itself at the next restart, "
+    "discarding the stored plan",
 )
 
 _f14b_counts = _t1_coord()

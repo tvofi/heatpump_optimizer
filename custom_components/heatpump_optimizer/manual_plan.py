@@ -290,15 +290,18 @@ def build_override(
         expires_ref = cap
     space = parse_channel(space_slots, now)
     dhw = parse_channel(dhw_slots, now)
-    # A slot starting at or after the expiry pins nothing -- the override
-    # is dropped at expiry before the slot begins -- and it would outlive
-    # the store's lead bound, so it is a rejected call rather than stored
-    # dead weight that a restart's instant bound would have to rewrite.
+    # A slot may start at the expiry -- the card's "beyond the window"
+    # arrangement is accepted and pins nothing -- but a slot starting
+    # beyond the window itself is refused: the store's lead bound rewrites
+    # a stored instant beyond now plus the window, and a wholly-beyond slot
+    # would come back with its start clamped onto its end, discarding the
+    # whole stored plan at the next restart for the sake of dead weight.
     for _channel, _slots in (("space", space), ("dhw", dhw)):
-        if _slots and _slots[0][0] >= expires_ref:
+        if _slots and _slots[-1][0] > cap:
             raise ManualPlanError(
-                f"{_channel} slot at {_slots[0][0].isoformat()} starts at "
-                f"or after the plan expires at {expires_ref.isoformat()}"
+                f"{_channel} slot at {_slots[-1][0].isoformat()} starts "
+                f"beyond the manual-plan window "
+                f"({MANUAL_PLAN_WINDOW_HOURS} hours from now)"
             )
     return ManualOverride(
         space_slots=space,
