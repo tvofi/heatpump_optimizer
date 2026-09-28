@@ -1,4 +1,7 @@
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/r9-f2-solver/mutation_proof.py", line 14, in <module>
-    import heatpump_optimizer.tariff as T
-ModuleNotFoundError: No module named 'heatpump_optimizer'
+healthy: grid_divergences=0 term_divergences=0 calls(97,2)=(169, 169)
+M1 row_sums->np.sum(axis=1): grid_divergences=0
+M2 block means->np.mean(axis=1): grid_divergences=0
+M3 bisection without the freeze: grid_divergences=86
+M4 twin accumulation -> plain reduce (single-sum arm, where the mutant is faithful): term_divergences=0
+M5 window means per row: calls(97,2)=(4329, 244) (pin: equal)
+restored: grid_divergences=0 term_divergences=0 calls(97,2)=(169, 169)
