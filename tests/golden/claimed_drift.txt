@@ -743,4 +743,3 @@
 # of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
 # 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
 # cannot excuse and a name cannot be both, so the entry is suspended above.
-wood_coil # R9-F2.3 (#1671): the baseline house owns the plan's coil; baseline_cost up

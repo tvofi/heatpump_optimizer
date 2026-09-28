@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 78
+records every read, so this lane's recorded closure is the package: all 79
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike -- the only closure in ``tests/closures.json`` that reaches every
+alike (78 until R9 F2.5's ``batchmath.py``) -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
 recording finds 70 of the 351 script pairs (27 choose 2) sharing 0.80 or more
