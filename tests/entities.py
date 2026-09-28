@@ -10153,10 +10153,13 @@ _named_entities = (
     + [("button", b) for b in buttons]
     + [("switch", s) for s in switches]
     + [("datetime", d) for d in dt_entities]
+    + [("climate", c) for c in climates]
 )
 
 # Every entity resolves its display name through the translation files. The
-# climate entity is the deliberate exception: device-named (checked above).
+# climate entity keeps name None (still device-identified, entity_id pinned
+# above) but since #1651 D10-s2-01 names itself through its translation key
+# like the rest, so the frontend can translate its own preset states.
 _missing_key = sorted(
     f"{platform}:{e._attr_unique_id}"
     for platform, e in _named_entities
@@ -10316,10 +10319,15 @@ for _plat, _key in (
 # It must reproduce exactly the object ids v4.x generated from the English
 # names, or new installs diverge from every doc, automation example and the
 # card's id-suffix fallback. Existing installs keep their ids via unique_id.
+# The climate entity is exempt: its id predates the scheme and is pinned
+# literally above ("the climate entity pins the corrected object id"), and
+# #1651 D10-s2-01 gave it the integration-named translation key without
+# moving the id every doc and automation example carries.
 _bad_ids = sorted(
     e._attr_unique_id
     for _platform, e in _named_entities
-    if getattr(e, "entity_id", None)
+    if _platform != "climate"
+    and getattr(e, "entity_id", None)
     != f"{_platform}.heat_pump_optimizer_{e._attr_translation_key}"
 )
 R.check(

@@ -519,11 +519,17 @@ def _number(
     appeared eighty-two times in this file; collapsing it makes each field one
     readable line, so a form reads as a list of settings rather than as a wall
     of constructor calls.
+
+    A box field takes ``"any"`` as its step (#1679): its increment pinned the
+    frontend's validity check, so a default or a derived value off that
+    increment — eight shipped defaults and four ``presets.derive`` outputs,
+    which are arbitrary floats — rendered unselectable. A box is typed into,
+    so the increment only belongs to a slider.
     """
     config: selector.NumberSelectorConfig = {
         "min": minimum,
         "max": maximum,
-        "step": step,
+        "step": step if slider else "any",
         "mode": (
             selector.NumberSelectorMode.SLIDER
             if slider
@@ -2514,6 +2520,12 @@ class HeatPumpOptimizerConfigFlow(
         The first two screens are the only required answers. Everything
         after them already has a coordinator fallback, so a user who
         stops here still gets an entry they can refine in Options.
+
+        The quick-setup entry re-offers only a path not yet taken (#1685):
+        the menu used to offer it again to a user who had just walked it,
+        identical to the menu they chose from. The questionnaire's own
+        answers store the same key, so a user who described their house
+        that way is not offered a second questionnaire either.
         """
         return self.async_show_menu(
             step_id="finish_setup",
@@ -2522,7 +2534,11 @@ class HeatPumpOptimizerConfigFlow(
                 "config",
                 "finish_setup",
                 {
-                    "quick_setup": "Quick setup (recommended)",
+                    **(
+                        {}
+                        if CONF_BUILDING_STRUCTURE in self._data
+                        else {"quick_setup": "Quick setup (recommended)"}
+                    ),
                     "temperature": "Continue setup",
                     "finish_now": "Finish setup now",
                 },
