@@ -9,7 +9,7 @@ Measured at origin/main `3490cb16`.
 
 `tools/audit/bugclasses.json`, the only instrument that counts across rounds, has decayed.
 
-- **Missing rounds.** Round 8 was never classified: its 39 survivors are in no class. Round 9 reached only barriered classes, and 186 register rows sit in no class.
+- **Missing rounds.** Round 8 was never classified: its 39 survivors are in no class. Round 9 reached only barriered classes, and 186 register rows sit in no class. The rounds 1–7 seed itself omitted 88 survivors.
 - **Re-minting.** The round-9 judge minted 20 of its 31 "new" classes for mechanisms the register already had, which reset their counts to zero: P10 became N-loop-cpu, P2's entity half and I5's translation half split off.
 - **Splitting.** The judge split mechanisms below the trigger: dead-member vs structure-blind, and the three translation classes.
 - **No unit of count.** Class issues print "2 + 7", N reads 2, and the fix plan counts a third way.
@@ -21,7 +21,7 @@ Measured at origin/main `3490cb16`.
 ## Fix shape
 
 **R9-EG-R0 (data; lands first).** Land register v2:
-- `bugclasses.json` from `alt/register/bugclasses.v2.json` (486 rows; 28 classes; 94 RCAs indexed under `_rca`; 7 rows `_unclassified` with reasons).
+- `bugclasses.json` from `alt/register/bugclasses.v2.json` at `53a9bbab`: 574 rows; 549 counted in 28 classes, 22 `_unclassified` with reasons, 3 `_excluded`; 95 RCAs indexed under `_rca`. The round 1–7 source (`findings.tsv`) had omitted **88 survivors**, including all of round 5's first run at `eaa2a06`, and counted 3 non-survivors. The reconciliation is in `register/RECON.md`.
 - `finding.schema.json`'s `class_guess` enum in the same PR, which `check-wave-script.mjs:730-737` requires.
 - The RCA docs in-tree under `tools/audit/rca/` (INERT, outside `POLICY_GLOBS`): the 14 round-9 class RCAs from `763b0ba4`, RCA-1736, and RCA-BULK-1..4.
 - The applied reclassifications are listed per row in `rows_v2.tsv`. tvofi reviews the flag list before merge.
