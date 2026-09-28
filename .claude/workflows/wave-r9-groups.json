@@ -124,11 +124,11 @@
     "R9-F1.1"
    ],
    "resume": {
-    "stage": "fix",
+    "stage": "done",
     "branch": "handoff/r9-f1-coordinator-2",
-    "commit": "2d71759ee90d6a1f81bbcbbcdb64aa6ef93cb2ad",
-    "last_step": "opus fixer seat dispatched from main 2d71759e on handoff/r9-f1-coordinator-2",
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
+    "last_step": "MERGED as #1724 at 12b0df68; fixes[] empty, so it closes nothing outright -- class issues #1644 and #1651 stay open and close on the later F1 PRs that hold them",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F1.2.md on handoff/r9-f1-coordinator-2",
     "review_branch": "handoff/r9-f1-coordinator-2-review",
     "review_note_file": "handoff/round9/fix/resume/F1.2-review.md on handoff/r9-f1-coordinator-2-review",
@@ -180,10 +180,10 @@
     "R9-F1.2"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fix",
     "branch": "handoff/r9-f1-coordinator-3",
-    "commit": null,
-    "last_step": null,
+    "commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
+    "last_step": "opus fixer seat dispatched from main 12b0df68 on handoff/r9-f1-coordinator-3",
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
     "note_file": "handoff/round9/fix/resume/F1.3.md on handoff/r9-f1-coordinator-3",
     "review_branch": "handoff/r9-f1-coordinator-3-review",
@@ -922,8 +922,8 @@
    "resume": {
     "stage": "fix",
     "branch": "handoff/r9-f2-solver-5",
-    "commit": "2eef524d55376a06a5a807a4f2bf67e9e6d19dc4",
-    "last_step": "opus fixer seat dispatched 2026-09-27 ~19:2xZ from main 2eef524d on handoff/r9-f2-solver-5",
+    "commit": "388402306037a85e1a715e6748b8e9b3769dfc68",
+    "last_step": "opus fixer seat dispatched 2026-09-27 ~19:2xZ from main 2eef524d on handoff/r9-f2-solver-5; still in flight at 38840230",
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
     "note_file": "handoff/round9/fix/resume/F2.5.md on handoff/r9-f2-solver-5",
     "review_branch": "handoff/r9-f2-solver-5-review",
@@ -1416,10 +1416,10 @@
     "R9-F7.1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fix",
     "branch": "handoff/r9-f5-config-text-2",
-    "commit": null,
-    "last_step": null,
+    "commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
+    "last_step": "sonnet fixer seat dispatched from main 12b0df68 on handoff/r9-f5-config-text-2",
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
     "note_file": "handoff/round9/fix/resume/F5.2.md on handoff/r9-f5-config-text-2",
     "review_branch": "handoff/r9-f5-config-text-2-review",
