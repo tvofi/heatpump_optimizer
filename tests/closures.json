@@ -66,8 +66,8 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 637.8,
-   "rc": 1
+   "seconds": 538.4,
+   "rc": 0
   },
   "tests/structure.py": {
    "seconds": 4.2,
