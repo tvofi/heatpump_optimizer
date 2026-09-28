@@ -157,6 +157,20 @@ class QuarantiningStore(Store[_StorePayload]):
         finally:
             reading.set_result(None)
 
+    async def async_save(self, data: Any) -> None:
+        """Save, once this store's read in flight, if any, has landed.
+
+        A save of a whole payload built from memory that runs before the
+        startup read lands replaces the persisted state with the fresh
+        defaults that read is about to install (round 9, D1-s2-52: five
+        coordinator writers lost persisted learned state this way; R6's
+        mode setter hit it before them). Waiting here, in the store itself,
+        is the property rather than a per-writer discipline: no save this
+        type can express clobbers its own pending read.
+        """
+        await self.async_wait_for_read()
+        await super().async_save(data)
+
     async def async_wait_for_read(self) -> None:
         """Return once the read in flight, if any, has landed.
 

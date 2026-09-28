@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from .const import MANUAL_PLAN_WINDOW_HOURS
+
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
 # reads a per-step float array as: NaN -> free to be chosen, 0 -> forced off,
 # 1 -> forced on. Floats (rather than an enum) so a whole channel is a single
@@ -278,8 +280,29 @@ def build_override(
         raise ManualPlanError(
             f"expires_at {expires_at.isoformat()} is not in the future"
         )
+    # D1-s2-54 (round 9): the expiry is clamped to the manual-plan window
+    # here, at the one constructor every apply goes through, so no override
+    # can be built beyond it and the store's lead bound matches it. The
+    # card's editor always offered "up to 20 hours"; the service accepted
+    # any datetime, and a far one owned every step of every plan unenforced.
+    cap = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+    if expires_ref > cap:
+        expires_ref = cap
     space = parse_channel(space_slots, now)
     dhw = parse_channel(dhw_slots, now)
+    # A slot may start at the expiry -- the card's "beyond the window"
+    # arrangement is accepted and pins nothing -- but a slot starting
+    # beyond the window itself is refused: the store's lead bound rewrites
+    # a stored instant beyond now plus the window, and a wholly-beyond slot
+    # would come back with its start clamped onto its end, discarding the
+    # whole stored plan at the next restart for the sake of dead weight.
+    for _channel, _slots in (("space", space), ("dhw", dhw)):
+        if _slots and _slots[-1][0] > cap:
+            raise ManualPlanError(
+                f"{_channel} slot at {_slots[-1][0].isoformat()} starts "
+                f"beyond the manual-plan window "
+                f"({MANUAL_PLAN_WINDOW_HOURS} hours from now)"
+            )
     return ManualOverride(
         space_slots=space,
         dhw_slots=dhw,

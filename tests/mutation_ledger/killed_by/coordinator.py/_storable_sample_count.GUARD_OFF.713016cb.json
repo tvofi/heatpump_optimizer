@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_storable_sample_count GUARD_OFF 713016cb",
+  "killed_by": "tests/features.py",
+  "old": "    if not np.isfinite(count) or not 0 <= count <= 2**31:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8ff6827a9c2219bc6a32e81f47d0776ecdd94ecb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -225,6 +225,7 @@ from .const import (
     ACCURACY_STORE_VERSION,
     ENERGY_STORE_VERSION,
     MANUAL_PLAN_STORE_VERSION,
+    MANUAL_PLAN_WINDOW_HOURS,
     SIMULATE_MIN_INTERVAL_SECONDS,
     CONF_DHW_INLET_ENTITY,
     CONF_DHW_QUANTILE_TARGETS_ENABLED,
@@ -494,6 +495,20 @@ def _as_float(value: Any, default: float) -> float:
     if not np.isfinite(result):
         return default
     return result
+
+
+def _storable_sample_count(raw: Any) -> int:
+    """A stored sample count a fold could have written (D1-s2-03).
+
+    Raises ValueError for one it could not: a count past int64 parses with
+    ``int()`` and then wedges the published state's ``np.isfinite`` on every
+    cycle, across restarts. No fold reaches 2**31 in a lifetime, so past it
+    the entry is corrupt, not evidence.
+    """
+    count = float(raw)  # raises for non-numeric, as int() did
+    if not np.isfinite(count) or not 0 <= count <= 2**31:
+        raise ValueError(f"sample count {raw!r} is not one a fold wrote")
+    return int(raw)
 
 
 def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
@@ -2432,7 +2447,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._manual_override: ManualOverride | None = None
         self._manual_plan_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass, MANUAL_PLAN_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_manual_plan",
-            lead=None,  # D1-s2-54 (F1.4) bounds the expiry; its lead lands there
+            lead=timedelta(hours=MANUAL_PLAN_WINDOW_HOURS),  # D1-s2-54: build_override clamps every expiry to this window
         )
 
         # --- Active system identification (item 18) ------------------------
@@ -2976,13 +2991,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
-        # v5.7.0 (issue #86): the store now records the UA the scale was
-        # fitted against, and an options edit that changed it is corrected
-        # here -- on load, before anything solves -- rather than restored
-        # verbatim against the new nameplate. The gated write adopts an
-        # anchor for a pre-fix store and persists a re-anchor; unconditional
-        # saves are useless here because `updated_at` defeats the store's
-        # content-hash skip.
+        # v5.7.0 (issue #86): the store records the UA the scale was fitted
+        # against, and an options edit that changed it is corrected here --
+        # on load, before anything solves -- not restored verbatim. The
+        # gated write adopts an anchor for a pre-fix store and re-anchors;
+        # `updated_at` defeats the content-hash skip, so not unconditionally.
         _had_anchor = "house_heat_loss_anchor" in stored
         _reanchored = self._reanchor_house_heat_loss_scale(
             stored.get("house_heat_loss_anchor")
@@ -3018,7 +3031,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     tags: dict[str, bool | str] = {"": False, "dhw": True, "lift": "lift"}
                     self._cop_baseline[(int(text), tags[tag])] = [
                         float(entry[0]),
-                        int(entry[1]),
+                        _storable_sample_count(entry[1]),
                     ]
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
@@ -3035,19 +3048,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._last_heavy_snow = datetime.fromisoformat(raw_snow)
             except ValueError:
                 self._last_heavy_snow = None
-        # The accumulator's clock persists too: without it, a restart
-        # after a multi-day outage skipped the downtime's decay entirely
-        # and stale accumulation could re-trip the roof-snow damping.
+        # The accumulator's clock persists too: without it a restart after
+        # a multi-day outage skipped the decay and stale accumulation
+        # could re-trip the roof-snow damping.
         raw_snow_last = stored.get("snow_accum_last")
         if isinstance(raw_snow_last, str):
             try:
                 self._snow_accum_last = datetime.fromisoformat(raw_snow_last)
             except ValueError:
                 self._snow_accum_last = None
-        # T7 #61: the watchdog's stand-down latch. Parsed HERE and not in
+        # T7 #61: the watchdog's stand-down latch, parsed HERE and not in
         # the shared learner parser on purpose — a learner rollback must
-        # not quietly re-arm a controller that stood down over a hardware
-        # fault; only the user re-arms it (by re-saving the mode). Strict
+        # not re-arm a controller that stood down over a hardware fault;
+        # only the user re-arms it. Strict
         # `is True`, not truthiness: corrupt store garbage silently
         # latching a stand-down that never happened would disable control
         # with no repair issue and no visible cause.
@@ -3070,8 +3083,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
 
-        One parser for both the store loader and the snapshot restore, so
-        the two paths cannot drift apart.
+        One parser for the store loader and the snapshot restore, so the
+        two cannot drift apart.
         """
         raw_env = stored.get("capacity_envelope")
         if isinstance(raw_env, dict):
@@ -3079,7 +3092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 try:
                     self._capacity_envelope[int(key)] = [
                         float(entry[0]),
-                        int(entry[1]),
+                        _storable_sample_count(entry[1]),
                     ]
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
@@ -3203,6 +3216,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
+            # D1-s2-52: wait before the payload; one built in flight is stale.
+            await self._thermal_learning_store.async_wait_for_read()
             await self._thermal_learning_store.async_save(
                 self._thermal_learning_payload()
             )
@@ -5268,10 +5283,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_update_thermal_params(self, params: dict[str, Any]) -> None:
         """Apply a runtime parameter change from the service call.
 
-        Most parameters are a plain assignment and live in the table above.
-        The rest are here because they have a consequence beyond themselves —
-        a learned correction to invalidate, a mirrored attribute to keep in
-        step, or a value that has to be parsed and may fail.
+        Most parameters are a plain assignment in the table above; the rest
+        carry a consequence — a correction to invalidate, a mirror, a parse.
         """
         ctx = getattr(self, "_ctx", self)
         for name, attribute in self._THERMAL_PARAM_FIELDS.items():
@@ -5282,12 +5295,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ctx._thermal_params.heat_loss_coefficient = params[
                 "house_heat_loss_coefficient"
             ]
-            # A new nameplate value invalidates the correction learned against
-            # the old one, so start over from "trust the configuration". The
-            # save below records the anchor for the coefficient just applied,
-            # so the restart pairs this reset with whatever the options carry
-            # (issue #86: the old defect was the reset outliving an in-memory-
-            # only coefficient change, leaving the next start 0.80x wrong).
+            # A new nameplate invalidates the learned correction: start
+            # over from "trust the configuration". The save below records
+            # the anchor just applied, so the restart pairs this reset with
+            # the options (#86: 0.80x wrong from an in-memory-only change).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
 
@@ -5295,20 +5306,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
 
-        # One write for either reset: a call carrying both used to save the
-        # whole store twice, the first time with only half the reset in it.
+        # One write for either reset: a call with both used to save twice.
         if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
             await self._async_save_thermal_learning()
 
         if CONF_DHW_COOLING_RATE in params:
-            # An explicit value replaces the learned one and resets the sample
-            # count, so the learner treats it as the new starting point.
+            # An explicit value replaces the learned one and resets its
+            # sample count, so the learner starts from it again.
             await self._dhw_learner.async_set_cooling_rate(
                 float(params[CONF_DHW_COOLING_RATE])
             )
 
-        # The displace limits are mirrored on the coordinator because the MQTT
-        # publisher clamps against them without going through the model.
+        # The displace limits are mirrored for the MQTT publisher, which
+        # clamps against them without going through the model.
         for name, attribute in (
             ("ecl110_displace_min", "_ecl110_displace_min"),
             ("ecl110_displace_max", "_ecl110_displace_max"),
@@ -5326,9 +5336,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._thermal_params.dhw_windows = parse_windows(
                     params[CONF_DHW_WINDOWS]
                 )
-                # Both structures from one parse (#3): the every-day view
-                # and the weekly one can then never disagree about what
-                # was configured, the same guarantee from_config gives.
+                # One parse gives both views (#3), which can never disagree.
                 ctx._thermal_params.dhw_weekly_windows = parse_weekly_windows(
                     params[CONF_DHW_WINDOWS]
                 )
@@ -5343,9 +5351,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if key in params:
                 setattr(ctx._thermal_params, attribute, convert(params[key]))
 
-        # Attribute writes bypass __post_init__, so the thermal-mass divisor
-        # floor is re-enforced here — the one chokepoint for service writes.
+        # Attribute writes bypass __post_init__; the divisor floor is
+        # re-enforced here — the one chokepoint for service writes.
         ctx._thermal_params.clamp()
+
+        # D1-s2-53: entry options persist the call; the write reloads the entry.
+        self.hass.config_entries.async_update_entry(
+            self.entry, options={**self.entry.options, **params})
 
         # The model and optimizer hold the parameters by reference at
         # construction, so both are rebuilt rather than mutated in place.
@@ -7261,8 +7273,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._price_qdays_seen = {str(d) for d in qdays}
 
     async def _async_save_price_model(self) -> None:
+        store = self._price_model_store  # bound once: read twice below (D1-s2-52)
         try:
-            await self._price_model_store.async_save(
+            await store.async_wait_for_read()
+            await store.async_save(
                 {
                     "model": self._price_model.as_dict(),
                     # Only recent days matter for de-duplication, and an
@@ -7322,6 +7336,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_ledger(self) -> None:
         try:
+            await self._ledger_store.async_wait_for_read()  # D1-s2-52
             await self._ledger_store.async_save(
                 {
                     "ledger": self._ledger.as_dict(),
@@ -7369,11 +7384,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Write ``payload`` unless the store already holds exactly it.
 
-        Both callers run every update cycle, and most cycles change nothing —
-        an unconditional rewrite is pure disk wear on the Pi-class hardware
-        Home Assistant usually lives on. The digest is remembered only after
-        the store accepted the payload, so a failed save is retried on the
-        next cycle rather than skipped as already-written.
+        Both callers run every cycle and most change nothing: a rewrite is
+        disk wear. The digest is remembered only after the store accepted
+        the payload, so a failed save is retried, not skipped as written.
         """
         digest = hashlib.sha256(
             json.dumps(payload, sort_keys=True, default=str).encode()
@@ -7385,6 +7398,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_accuracy(self) -> None:
         try:
+            await self._accuracy_store.async_wait_for_read()  # D1-s2-52
             await self._async_save_if_changed(
                 "accuracy",
                 self._accuracy_store,
@@ -7427,6 +7441,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_energy_totals(self) -> None:
         try:
+            await self._energy_store.async_wait_for_read()  # D1-s2-52
             await self._async_save_if_changed(
                 "energy_totals",
                 self._energy_store,

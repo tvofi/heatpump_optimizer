@@ -546,7 +546,6 @@ def _with_instants(payload, when):
 #: opts out, fails the arm: an exemption is reviewed, never inferred.
 LEAD_OPT_OUTS = {
     "away": "the user-set return time; no system maximum exists",
-    "manual_plan": "D1-s2-54 (F1.4) bounds the expiry; set the lead there and drop this",
 }
 
 
