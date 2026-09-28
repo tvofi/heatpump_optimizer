@@ -1,0 +1,23 @@
+field                     probe/no_prices      probe/solve_failed   null/solve_ok        null/no_boost        probe/dhw/no_prices  null/dhw/solve_ok    
+cycle1                    None                 None                 None                 None                 None                 None                 
+cycle2                    no_prices            solve_failed         None                 no_prices            no_prices            None                 
+c1_mode                   boost                boost                boost                off                  hot_water            hot_water            
+c1_disp                   20.0                 20.0                 20.0                 -3.2                 -3.2                 -3.2                 
+c2_action_mode            boost                boost                off                  off                  hot_water            off                  
+c2_power_kw               5.0                  5.0                  0.0                  0.0                  0.0                  0.0                  
+c2_boost_space_key        True                 True                 None                 None                 None                 None                 
+c2_displace               20.0                 20.0                 -3.2                 -3.2                 -3.2                 -3.2                 
+c2_boost_dhw_key          None                 None                 None                 None                 True                 None                 
+c2_dhw_power_kw           None                 None                 None                 None                 4.0                  0.0                  
+c2_dhw_heating_active     None                 None                 None                 None                 True                 False                
+switch_cmd                ['turn_on']          ['turn_on']          ['turn_off']         ['turn_off']         ['turn_on']          ['turn_off']         
+ecl_displace_published    ['20']               ['20']               ['-3']               ['-3']               ['-3']               ['-3']               
+data.current_action.mode  boost                boost                off                  off                  hot_water            off                  
+switch.<channel>_boost is_onFalse                False                False                False                False                False                
+sensor recommended_power  5.0                  5.0                  0.0                  0.0                  4.0                  0.0                  
+max_kw                    5.0                  5.0                  5.0                  5.0                  5.0                  5.0                  
+ecl_max                   20.0                 20.0                 20.0                 20.0                 20.0                 20.0                 
+
+Persistence under a price outage (published mode / switch write per cycle):
+  probe/boost-cancelled    +30min:boost/turn_on  +60min:boost/turn_on  +90min:boost/turn_on  +120min:boost/no-write  +150min:boost/no-write
+  null/no-boost            +30min:off/turn_off  +60min:off/turn_off  +90min:off/turn_off  +120min:off/no-write  +150min:off/no-write

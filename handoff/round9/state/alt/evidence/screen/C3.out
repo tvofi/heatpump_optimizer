@@ -1,0 +1,19 @@
+field                                         probe/whatif->comfort   null/none->comfort      probe/whatif->auto      null/none->auto         
+plan(T0).price_known_steps                    40                      40                      40                      40                      
+T0 pub.price_known_steps                      40                      40                      40                      40                      
+T0 pub.pv.measured_kw                         1.2                     1.2                     1.2                     1.2                     
+whatif.error                                  None                    -                       None                    -                       
+after-whatif live._price_known_steps          39                      40                      39                      40                      
+after-whatif live._pv_production              3.4                     1.2                     3.4                     1.2                     
+after-whatif live._pv_summary.measured_kw     3.4                     1.2                     3.4                     1.2                     
+after-whatif live.snow_accum_cm               0.3333                  0.0                     0.3333                  0.0                     
+after-whatif live.snow_accum_last             22:22                   22:02                   22:22                   22:02                   
+next-cycle(comfort) live.snow_accum_cm        0.3333                  0.0                     -                       -                       
+next-cycle(comfort) live.snow_accum_last      22:22                   22:02                   -                       -                       
+next-cycle(comfort) pub.price_known_steps     39                      40                      -                       -                       
+next-cycle(comfort) pub.pv.measured_kw        3.4                     1.2                     -                       -                       
+plan still T0's                               True                    True                    False                   False                   
+next-cycle(auto) live.snow_accum_cm           -                       -                       0.3333                  0.3333                  
+next-cycle(auto) live.snow_accum_last         -                       -                       22:22                   22:22                   
+next-cycle(auto) pub.price_known_steps        -                       -                       39                      39                      
+next-cycle(auto) pub.pv.measured_kw           -                       -                       3.4                     3.4                     

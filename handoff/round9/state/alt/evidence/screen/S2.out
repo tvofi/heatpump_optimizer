@@ -1,0 +1,11 @@
+one tile simulate on this box: 0.66 s  (limiter SIMULATE_MIN_INTERVAL_SECONDS=3.0)
+cells are (overrides.target_temp, rate_limited, error)
+
+field                 probe(a)/tile           probe(b)/tile           null/tile               probe(a)/fuse           probe(b)/fuse           null/fuse               
+U0                    (20.0, False, None)     (20.0, False, None)     (20.0, False, None)     (20.0, False, None)     (20.0, False, None)     (20.0, False, None)     
+U1                    (20.0, True, None)      (22.0, False, None)     (22.0, False, None)     (20.0, True, None)      (22.0, False, None)     (22.0, False, None)     
+cache_inside_window   (20.0, False, None)     (22.0, False, None)     -                       (20.0, False, None)     (22.0, False, None)     -                       
+cache_after_window    (20.0, False, None)     (20.0, False, None)     (22.0, False, None)     (20.0, False, None)     (20.0, False, None)     (22.0, False, None)     
+stamp_is_U0s          True                    True                    False                   True                    True                    False                   
+U2 issued, s after U1 stamp0.72                    1.54                    0.73                    1.87                    2.73                    0.72                    
+U2(<3s after U1)      (22.5, False, None)     (22.5, False, None)     (22.0, True, None)      (22.5, False, None)     (22.5, False, None)     (22.0, True, None)      

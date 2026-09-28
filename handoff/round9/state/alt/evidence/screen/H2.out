@@ -1,0 +1,14 @@
+one cycle each:
+  null/auto       configured_band=2.00  band_passed_to_learner={'span': 1.454, 'band': 2.0, 'flat_threshold': 0.5, 'counted': False}
+  probe/economy   configured_band=2.00  band_passed_to_learner={'span': 1.666, 'band': 3.5, 'flat_threshold': 0.875, 'counted': False}
+  probe/away      configured_band=2.00  band_passed_to_learner={'span': 5.0, 'band': 0.5, 'flat_threshold': 0.125, 'counted': False}
+
+12 consecutive cycles each (same inputs every cycle):
+  null/auto       calls=12 counted_as_quiet=0 learned_weight(before,after)=(5.0, 5.0)
+  probe/economy   calls=12 counted_as_quiet=0 learned_weight(before,after)=(5.0, 5.0)
+  probe/away      calls=12 counted_as_quiet=0 learned_weight(before,after)=(5.0, 5.0)
+
+synthetic span through the REAL ComfortLearner.record_quiet_period (fresh learner each),
+band = configured 2.0 vs the effective bands captured above (economy 3.5, away 0.5):
+  span=0.3: configured(band 2.0): counted=True; economy(band 3.5): counted=True; away(band 0.5): counted=False
+  span=0.7: configured(band 2.0): counted=False; economy(band 3.5): counted=True; away(band 0.5): counted=False

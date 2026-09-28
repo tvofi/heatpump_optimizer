@@ -1,0 +1,12 @@
+field                                   probe/swap-to-O2          null1/no-swap             null2/O2-alone            
+solve                                   None                      None                      None                      
+solves ran against                      ['O1']                    ['O1']                    ['O2']                    
+current override                        O2                        O1                        O2                        
+result.manual_released_space (n)        41                        41                        28                        
+O1.released_space (n)                   0                         41                        0                         
+O2.released_space (n)                   41                        0                         28                        
+O2.released idx[:6]                     [0, 1, 2, 3, 4, 5]        []                        [13, 14, 15, 16, 17, 18]  
+O2 pin value at those idx               [0.0, 0.0, 0.0, 0.0, 0.0, 0.0][]                        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+published plan kW at O2's ON steps      [2.39, 0.0, 1.0, 3.04, 4.82][2.39, 0.0, 1.0, 3.04, 4.82][1.58, 1.0, 1.1, 3.28, 5.0]
+sensor.space_slots_n                    1                         0                         1                         
+sensor.released_space_n                 41                        41                        28                        

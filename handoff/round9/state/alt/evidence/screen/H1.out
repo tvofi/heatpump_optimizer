@@ -1,0 +1,21 @@
+== probe/away  (A returned None; away_active published after: True)
+  field                       configured    data_B(inside)    data_C(after)
+  comfort_temp_day            21.0          16.0              21.0
+  comfort_temp_night          19.5          16.0              19.5
+  min_temperature             19.0          16.0              19.0
+  dhw_min_temperature         45.0          20.0              45.0
+  dhw_idle_min_temperature    20.0          20.0              20.0
+== probe/economy  (A returned None; away_active published after: False)
+  field                       configured    data_B(inside)    data_C(after)
+  comfort_temp_day            21.0          21.0              21.0
+  comfort_temp_night          19.5          19.5              19.5
+  min_temperature             19.0          17.5              19.0
+  dhw_min_temperature         45.0          45.0              45.0
+  dhw_idle_min_temperature    20.0          20.0              20.0
+== null/no_away_auto  (A returned None; away_active published after: False)
+  field                       configured    data_B(inside)    data_C(after)
+  comfort_temp_day            21.0          21.0              21.0
+  comfort_temp_night          19.5          19.5              19.5
+  min_temperature             19.0          19.0              19.0
+  dhw_min_temperature         45.0          45.0              45.0
+  dhw_idle_min_temperature    20.0          20.0              20.0

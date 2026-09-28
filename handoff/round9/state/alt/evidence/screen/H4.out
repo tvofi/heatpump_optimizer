@@ -1,0 +1,20 @@
+== probe/comfort
+  cycle             mode      live   frozen(live)            state.copy  callable_in_fold  draw_stats_folded
+  c0 burn, auto     auto      True   external_heat_source    True        None              None
+  c1 burn, auto     auto      True   external_heat_source    True        None              None
+  c2 burn over      comfort   False  None                    True        True              False
+  c3 burn over      comfort   False  None                    True        True              False
+  c4 burn over      comfort   False  None                    True        True              False
+  c5 burn over      comfort   False  None                    True        True              False
+  c6 burn over      comfort   False  None                    True        True              False
+  c7 burn over      comfort   False  None                    True        True              False
+== null/auto
+  cycle             mode      live   frozen(live)            state.copy  callable_in_fold  draw_stats_folded
+  c0 burn, auto     auto      True   external_heat_source    True        None              None
+  c1 burn, auto     auto      True   external_heat_source    True        None              None
+  c2 burn over      auto      False  None                    False       True              False
+  c3 burn over      auto      False  None                    False       False             True
+  c4 burn over      auto      False  None                    False       False             True
+  c5 burn over      auto      False  None                    False       False             True
+  c6 burn over      auto      False  None                    False       False             True
+  c7 burn over      auto      False  None                    False       False             True

@@ -1,0 +1,23 @@
+WORKER_FALLBACK_CAP = 3
+
+== probe: A(fails) & B(ok) interleaved, 8 intervals
+   A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n          A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n        
+   A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n          A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n        
+   A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n          A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n        
+   A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n          A:inproc(GIL)/streak=1/issue=Y      B:process/streak=0/issue=n        
+   -> A in-process (GIL) solves: 8; A cycles refused at cap: 0; issue created 8x, deleted 8x
+
+== null:  A(fails) alone, 8 intervals
+   A:inproc(GIL)/streak=1/issue=Y      A:inproc(GIL)/streak=2/issue=Y      A:inproc(GIL)/streak=3/issue=Y      A:CAP:UpdateFailed/streak=4/issue=Y
+   A:CAP:UpdateFailed/streak=5/issue=Y  A:CAP:UpdateFailed/streak=6/issue=Y  A:CAP:UpdateFailed/streak=7/issue=Y  A:CAP:UpdateFailed/streak=8/issue=Y
+   -> A in-process (GIL) solves: 3; A cycles refused at cap: 5; issue created 1x, deleted 0x
+
+== extra: A & B both fail, interleaved, 4 intervals
+   A:inproc(GIL)/streak=1/issue=Y      B:inproc(GIL)/streak=2/issue=Y      A:inproc(GIL)/streak=3/issue=Y      B:CAP:UpdateFailed/streak=4/issue=Y
+   A:CAP:UpdateFailed/streak=5/issue=Y  B:CAP:UpdateFailed/streak=6/issue=Y  A:CAP:UpdateFailed/streak=7/issue=Y  B:CAP:UpdateFailed/streak=8/issue=Y
+   -> A in-process (GIL) solves: 2; A cycles refused at cap: 2; issue created 1x, deleted 0x
+
+== extra-null: A fails alone, 4 intervals
+   A:inproc(GIL)/streak=1/issue=Y      A:inproc(GIL)/streak=2/issue=Y      A:inproc(GIL)/streak=3/issue=Y      A:CAP:UpdateFailed/streak=4/issue=Y
+   -> A in-process (GIL) solves: 3; A cycles refused at cap: 1; issue created 1x, deleted 0x
+

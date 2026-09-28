@@ -1,0 +1,22 @@
+== probe/daytype_evidence=30
+  solve: None
+  |blend-pooled|: 1.8407
+  params after solve == blend: True
+  R1 learner.hourly_profile == pooled: True
+  R2 fallback: |fb-pooled|: 1.8407
+  R2 fallback: |fb-blend|: 0.0
+  R3 pooled after rollback: |.-pooled|: 1.8407
+  R3 pooled after rollback: |.-blend|: 0.0
+  R3 persisted payload hourly_profile == blend: True
+  R4 sweep keys that differ (blend-state, pooled-state): {'heaviest_window_kwh': (4.65, 4.97)}
+== null/daytype_evidence=0
+  solve: None
+  |blend-pooled|: 0.0
+  params after solve == blend: True
+  R1 learner.hourly_profile == pooled: True
+  R2 fallback: |fb-pooled|: 0.0
+  R2 fallback: |fb-blend|: 0.0
+  R3 pooled after rollback: |.-pooled|: 0.0
+  R3 pooled after rollback: |.-blend|: 0.0
+  R3 persisted payload hourly_profile == blend: True
+  R4 sweep keys that differ (blend-state, pooled-state): none
