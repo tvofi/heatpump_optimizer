@@ -1,0 +1,7 @@
+{
+  "from": "the round-9 endgame architecture review (ALT endgame plan on the handoff/audit-r9-plan branch; evidence committed at a163db90), not a pull request: the finding was measured and filed before any stage it constrains started; filed as #1740",
+  "effect": "narrows",
+  "control": "Established by measurement with its null control at origin/main 31394964: handoff/round9/state/alt/evidence/m4_store_version.py at a163db90 saves through the stub Store at one version and loads at the next, and the stub returns the data; at equal versions it returns it too (the control). Home Assistant's own storage helper re-raises NotImplementedError on a major-version mismatch with no migration override (handoff/round9/state/alt/evidence/ha_storage_dev.py.txt, copied from its dev branch).",
+  "remeasure": "Re-run the probe at your merge base.",
+  "brief": "Store version semantics are a P11 instance the barrier landed in R9-F10.1 does not cover: make tests/hastub/homeassistant/helpers/storage.py honour version the way Home Assistant does, so a version bump without a migration fails in the gate rather than on a user's install. R9-EG-B4 then lands the production seam."
+}

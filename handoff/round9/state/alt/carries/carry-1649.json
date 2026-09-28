@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Carry destination for class P11 (#1649) from round-9 F10.1, the pull",
+    "request that repairs the Home Assistant stub (store decode, update",
+    "interval, freeze normalisation) and lands the P11 barrier in",
+    "tests/ha_contract.py. Two later stages have no roster group in this tree,",
+    "so this file is their brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1649,
+  "stage": "the follow-up pull request that makes the stub clock aware by default (round-9 D1-s1-52, split out of F10.1), and any later seat that writes a store-corruption test through the stub Store",
+  "carries": [
+    {
+      "from": "round-9 F10.1 (the P11 barrier and stub fidelity pull request), which keeps the stub clock naive when no zone is configured and declares it DIVERGENT",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control. With the stub clock made aware by default (now() in UTC when no zone is configured), a statement-by-statement execution of tests/features.py raised in 46 top-level statements, and tests/guard_pins.py raised once; with the naive default kept, the same scripts pass (ALL checks, rc 0, on the F10.1 scoped gate). Most raising statements are fixtures that seed a naive stamp and then compare it with the clock: the legionella last_cycle seeded from golden.START, the buffer learner's previous sample, the simulate rate-limit stamp, and the DefrostWindow tz-guard check `_band_mixed`, whose premise (a window stamped aware against a naive caller clock) inverts. One is production: the away picker string check (the `_t1_away_str` block) raises TypeError in custom_components/heatpump_optimizer/away.py `expire_override`, the naive-return-time defect round-9 D1-s3-01, which the F3.1 pull request fixes. The perturbation that voids the finding is the naive default itself: it removes every one of those raises.",
+      "remeasure": "Do not trust the 46: it was measured on the F10.1 tree with the aware default applied, and this stage is judged against its own merge base. Make tests/hastub/homeassistant/util/dt.py now() return datetime.now(timezone.utc) with no zone configured and a naive freeze read as UTC wall time, then run tests/features.py and tests/guard_pins.py with PYTHONPATH=tests/hastub; list every raising statement and every FAIL line, and confirm the away picker-string check passes only once D1-s3-01's fix is on your merge base.",
+      "brief": "Precondition: the F3.1 pull request that fixes D1-s3-01 (a tz-less away return time) has merged; until it has, the aware clock turns a correct production-bug test red, and the fix belongs to F3.1, not here. Then: make now() aware in UTC when no zone is configured, flip util.dt.now in tests/ha_contract.py from DIVERGENT to FAITHFUL, and change its expect=real contract `_dt_now_default_aware` to expect=both. Update the fixtures that seed naive stamps so they stamp through the clock, or aware, rather than weakening a check; `_band_mixed` in tests/features.py keeps its tz-guard premise only with a naive stamp against the aware clock. Measure golden drift with tests/env_drift.py --all against your merge base and claim anything that moves. Re-run the finder harness stub_naive_clock.py from the round-9 evidence commit 79aa98ec: it must read divergent=0 of_6 at your head and 6 of 6 at your merge base."
+    },
+    {
+      "from": "round-9 F10.1, which makes the stub Store decode with orjson's number rules and move a refused document aside, loading None",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. tests/finite_boundary.py's #1512 peak-shape check wrote its non-finite peak as float nan through json.dumps, which emits a bare NaN token; under the orjson-faithful stub Store the whole document is refused and the check failed (1 of 41), and with the peak written as the string NaN it passes (ALL 41) on both the merge-base stub and the F10.1 stub. The stub Store contract in tests/ha_contract.py pins which documents are refused (bare NaN, Infinity, -Infinity, 1e400, a 401-digit integer) and which decode as floats (2**64, -2**63 - 1), and the probe `_p_store_decode` compares that against upstream's decoder in the nightly real-Home-Assistant lane.",
+      "remeasure": "Run PYTHONPATH=tests/hastub python3 tests/ha_contract.py and read the helpers.storage.Store decode contract; it lists the refused cases by name if the stub stops matching.",
+      "brief": "A store-corruption fixture that writes a NaN or Infinity token, or a number that overflows a double, into the stub's storage._DISK now exercises the corrupt-file path (the load returns None and the document is gone), not a loader's leaf guard, exactly as Home Assistant's Store does. A non-finite leaf reaches a production loader only as a numeric string (NaN, Infinity) or through a finite number the loader converts (1e20 through int()), so a test of a loader's non-finite handling writes one of those shapes. Do not restore stdlib json in the stub to make such a fixture reach the loader: that is round-9 D1-s1-51, and the barrier's Store contract refuses it."
+    },
+    {
+      "from": "the round-9 endgame architecture review (ALT endgame plan on the handoff/audit-r9-plan branch; evidence committed at a163db90), not a pull request: the finding was measured and filed before any stage it constrains started; filed as #1740",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control at origin/main 31394964: handoff/round9/state/alt/evidence/m4_store_version.py at a163db90 saves through the stub Store at one version and loads at the next, and the stub returns the data; at equal versions it returns it too (the control). Home Assistant's own storage helper re-raises NotImplementedError on a major-version mismatch with no migration override (handoff/round9/state/alt/evidence/ha_storage_dev.py.txt, copied from its dev branch).",
+      "remeasure": "Re-run the probe at your merge base.",
+      "brief": "Store version semantics are a P11 instance the barrier landed in R9-F10.1 does not cover: make tests/hastub/homeassistant/helpers/storage.py honour version the way Home Assistant does, so a version bump without a migration fails in the gate rather than on a user's install. R9-EG-B4 then lands the production seam."
+    }
+  ]
+}
