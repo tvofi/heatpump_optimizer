@@ -20,6 +20,8 @@
 
 **Within the lane.** PRs merge in the order above. You may prepare the next PR while the previous is in review, on its own branch from origin/main; before its hand-off, `git merge origin/main` (never rebase) once the previous PR has merged, and re-execute `fixer.md` steps 2–8. Your hand-off freezes the branch: after it only the orchestrator moves the head.
 
+**Shape before flatness (tvofi, 2026-09-28).** Ratchet flatness is not inherently the only option — what decides is the soundest architecture. When the sounder shape costs ratchet lines, PAY for them or ASK the orchestrator (who holds the owner's mandate for last-resort raises); never silently trade a proven-better shape for metric flatness, and never present an abandonment forced by flatness as a virtue in the body. A reviewer rig that proves the abandoned shape closes a class the kept shape does not (F1.4 round 1) is exactly this rule's trigger.
+
 **Ratchet.** `python3 tests/structure.py` before every hand-off. Pay for added lines first; re-record with the reason in the commit message when the tree improved; a raise of any `*_budgets.json` needs **tvofi's confirmation before the push** (CLAUDE.md rule 2) — stop and ask, naming the metric and what `structure.py` printed.
 
 **Gate.** Derive the scope (`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`), key on the mode line, run what `scope.run` names with `PYTHONPATH=tests/hastub` and `GOLDEN_MODE=drift` against the merge base, and leave the rest to CI (`gate-scoping.md`). Never run a full `tests/derive_closures.sh` off Linux.
