@@ -1,4 +1,0 @@
-dt_hours property: return self.time_step_minutes / 60.0
-whole-minute steps (reachable: dt_hours = time_step_minutes/60): 18/18 agree
-control, non-whole-minute dt=0.30167h: disagree
-coordinator offset callers need step_offset; optimizer version has none: True False

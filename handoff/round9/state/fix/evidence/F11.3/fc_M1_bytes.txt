@@ -1,6 +1,0 @@
-  read     budgets lines: 40 of 40 capped files reddened
-  ignored  budgets file: the row key itself, not a measurement
-  ignored  budgets always: load class: the always_loaded_tokens aggregate reads it; a per-file cap is load-class-blind by design
-  BLIND    budgets row key `bytes`: 40 of 40 capped files grow in bytes with the per-file check green
-RESULT read=1 ignored=2 declared_none=0 blind=1 dead=0 refused=0 runs=80 seconds=0.0
-FIELD COVERAGE REFUSED: a field of a governance check's input is read by no check and ignored by no reason

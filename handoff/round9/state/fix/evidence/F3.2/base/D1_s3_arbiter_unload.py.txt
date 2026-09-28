@@ -1,7 +1,0 @@
-arm=default armed_before_unload=2
-RESULT live_registrations_after_unload=2 count
-RESULT writes_after_unload=2 count
-RESULT deliberate_thread_cpu=0.000 s
-RESULT thread_factor=1.003
-RESULT load1=0.30
-RESULT swapins=0

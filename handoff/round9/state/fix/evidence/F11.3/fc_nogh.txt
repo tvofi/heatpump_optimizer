@@ -1,3 +1,0 @@
-  skip     ruleset: cannot load the live main-protect-checks ruleset object (spawnSync gh ENOENT); its field coverage is UNCHECKED this run, not confirmed
-RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=0 runs=0 seconds=0.0
-FIELD COVERAGE ok
