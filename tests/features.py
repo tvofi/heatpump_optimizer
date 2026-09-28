@@ -8127,16 +8127,16 @@ _F15_ROWS = [
 
 
 def _f15_outdoor_after(rows, states):
-    """The outdoor state after one update: no outdoor entity is configured,
-    the indoor sensor is, and the forecast rows are whatever ``rows`` is."""
-    coord = _Coord(
-        _FakeHass(states),
-        _FakeEntry(data={
-            "tibber_token": "x",
-            "weather_entity": "weather.home",
-            "indoor_temp_entity": "sensor.indoor",
-        }),
-    )
+    """The outdoor state after one update. The outdoor entity is mapped
+    only when a state for it is given; the indoor sensor always is."""
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+    }
+    if "sensor.outdoor" in states:
+        cfg["outdoor_temp_entity"] = "sensor.outdoor"
+    coord = _Coord(_FakeHass(states), _FakeEntry(data=cfg))
     coord._weather_forecast = rows
     _asyncio.run(coord._update_current_state())
     return coord._current_state.outdoor_temperature
@@ -15046,6 +15046,10 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
     Both tests walk the AST rather than the text: a docstring or comment that
     *names* `_plan_is_stale` is not a gate and does not make a seam look
     gated, which is the mutation this check was first written blind to.
+    A seam reached by REFERENCE counts too (F1.5 routed the cycle's fenced
+    steps through `_best_effort_cycle_step`, which receives the bound
+    method instead of calling it): the same method, the same write, the
+    same gate question.
     """
     src = _d102_inspect.getsource(_d102_mod)
     tree = _d102_ast.parse(src)
@@ -15095,15 +15099,17 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
         )
 
     out = []
-    for call in _d102_ast.walk(methods["_async_update_data"]):
-        if not (
-            isinstance(call, _d102_ast.Call)
-            and isinstance(call.func, _d102_ast.Attribute)
-            and isinstance(call.func.value, _d102_ast.Name)
-            and call.func.value.id == "self"
-        ):
+    for ref in _d102_ast.walk(methods["_async_update_data"]):
+        if isinstance(ref, _d102_ast.Call) and isinstance(
+            ref.func, _d102_ast.Attribute
+        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+            name = ref.func.attr
+        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+            ref.value, _d102_ast.Name
+        ) and ref.value.id == "self":
+            name = ref.attr  # a bound method handed to the fence, not called
+        else:
             continue
-        name = call.func.attr
         if name in methods and writes(methods[name]):
             pair = (name, gated(methods[name]))
             if pair not in out:
@@ -33321,7 +33327,8 @@ R.check(
     and _f15_fb_out[0] == "in-process"
     and _f15_fb_out[2] == "STATE"
     and len(_f15_fb_warned) == 1
-    and "OSError" in _f15_fb_warned[0],
+    and "cannot start" in _f15_fb_warned[0]
+    and "[Errno 35]" in _f15_fb_warned[0],
     f"outcome={_f15_fb_out!r} warnings={_f15_fb_warned!r}",
 )
 R.check(

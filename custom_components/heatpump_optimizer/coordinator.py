@@ -608,19 +608,41 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     return ts
 
 
+#: Each (fence message, cause) pair already surfaced once at WARNING.
+#: Module-level state on ``_WORKER_FALLBACK_CAUSE``'s precedent: the fence
+#: belongs to the process, not to one coordinator instance, and the set is
+#: bounded by the distinct causes an install actually sees (D1-s2-04).
+_FENCED_CAUSES: set[tuple[str, str]] = set()
+
+
 async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None:
     """Run one best-effort cycle step, logging -- never raising -- its fault.
 
     #1644 (D1-s2-51/D1-s2-91): a learner, arbiter or accuracy step on the
     cycle path owns its own failure; one raising used to fail the whole
     cycle and skip every step after it. One fence, one call site.
+
+    D1-s2-04: fenced at DEBUG *forever* is invisible at the log's default
+    level, and five cycle-path guards swallowed persistent actuation
+    failures that way for good. The FIRST occurrence of each (step, cause)
+    reaches WARNING -- keyed per distinct cause exactly as the
+    worker-fallback note keys its repair notice, so the timestamp still
+    says when the failures started -- and repeats stay at DEBUG, where
+    their volume belongs.
     """
     try:
         out = step()
         if inspect.isawaitable(out):
             await out
     except Exception as err:  # noqa: BLE001
-        _LOGGER.debug(message, err)
+        cause = f"{type(err).__name__}: {err}"
+        if (message, cause) not in _FENCED_CAUSES:
+            _FENCED_CAUSES.add((message, cause))
+            _LOGGER.warning(
+                message + " (first occurrence; repeats log at DEBUG)", err
+            )
+        else:
+            _LOGGER.debug(message, err)
 
 
 def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -> None:
@@ -1111,10 +1133,16 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
     by not asking politely at that point: stdin is closed above, which is the
     worker's own clean exit (``process_worker.run_worker`` returns on EOF), and
     it holds no file, lock or buffer that a ``SIGTERM`` would let it flush.
+
+    D1-s2-05: the handle is taken and the child killed BEFORE the lock. The
+    lock is held by ``_run_in_process`` for a whole solve, so taking it first
+    was Home Assistant's stop waiting out the entire in-flight solve before
+    reaping. Killing first breaks that solve's pipe read at once --
+    ``_run_in_process`` translates the dead pipe into its own fallback route
+    and releases the lock -- so the swap below never waits longer than that.
     """
     global _PROCESS_WORKER
-    with _PROCESS_LOCK:
-        worker, _PROCESS_WORKER = _PROCESS_WORKER, None
+    worker = _PROCESS_WORKER
     if worker is None:
         return
     try:
@@ -1129,12 +1157,19 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
                 worker.wait()
             except Exception:  # noqa: BLE001 - shutdown must not raise
                 pass
-            return
-        worker.terminate()
-        try:
-            worker.wait(timeout=2)
-        except Exception:  # noqa: BLE001
-            worker.kill()
+        else:
+            worker.terminate()
+            try:
+                worker.wait(timeout=2)
+            except Exception:  # noqa: BLE001
+                worker.kill()
+    with _PROCESS_LOCK:
+        # Only the swap is locked, and only when this reap's own handle is
+        # still the installed one: a solve that died on the killed pipes has
+        # already cleared it, and a worker spawned after that must not be
+        # clobbered by a stop it outlived.
+        if _PROCESS_WORKER is worker:
+            _PROCESS_WORKER = None
 
 
 @callback
@@ -1158,20 +1193,37 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
 
 
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
-    """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable."""
+    """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
+
+    The translating try opens at the SPAWN, not after it (D1-s2-55): a
+    worker that cannot start raises a bare ``OSError`` out of
+    ``subprocess.Popen``, and raised before the try it escaped as itself --
+    ``_await_optimize`` catches only ``ProcessWorkerUnavailable``, so an
+    install that could not fork got neither the in-process fallback nor its
+    repair notice: no plan at all.
+    """
     global _PROCESS_WORKER
     with _PROCESS_LOCK:
-        worker = _ensure_worker()
-        stdin, stdout = worker.stdin, worker.stdout
-        if stdin is None or stdout is None:
-            raise ProcessWorkerUnavailable("process worker pipes missing")
+        worker: "subprocess.Popen[bytes] | None" = None
         try:
+            worker = _ensure_worker()
+            stdin, stdout = worker.stdin, worker.stdout
+            if stdin is None or stdout is None:
+                raise ProcessWorkerUnavailable("process worker pipes missing")
             pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
             stdin.flush()
             status, payload = pickle.load(stdout)
+        except ProcessWorkerUnavailable:
+            # Already the class the fallback route catches; rewrapping it
+            # would bury the pipes/load-err cause under a generic one.
+            raise
         except Exception as err:  # noqa: BLE001 - transport, never the job
-            rc = worker.poll()
             _PROCESS_WORKER = None
+            if worker is None:
+                raise ProcessWorkerUnavailable(
+                    f"process worker cannot start: {err}"
+                ) from err
+            rc = worker.poll()
             raise ProcessWorkerUnavailable(
                 f"process worker exited rc={rc}: {err}"
             ) from err
@@ -4753,15 +4805,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # the frequency that delivers it. After _apply_action so a
             # failed write can never block the primary actuation, and
             # never allowed to break the cycle.
-            try:
-                await self._command_frequency()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Frequency command skipped: %s", err)
+            await _best_effort_cycle_step(
+                self._command_frequency, "Frequency command skipped: %s")
 
-            try:
-                await self._async_drive_pumps()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Pump scheduling skipped: %s", err)
+            await _best_effort_cycle_step(
+                self._async_drive_pumps, "Pump scheduling skipped: %s")
 
             # Close the loop: pair the previous interval's prediction with
             # what actually happened, accumulate energy, and train the
@@ -4782,10 +4830,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # T4a #42: the learners' insurance — weekly snapshot, daily
             # bias check, and the rollback when drift proves itself on
             # healthy inputs. Never allowed to break the cycle.
-            try:
-                await self._async_watch_learning_drift()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Snapshot heartbeat skipped: %s", err)
+            await _best_effort_cycle_step(
+                self._async_watch_learning_drift, "Snapshot heartbeat skipped: %s")
 
             self._next_optimization = utc_shift(dt_util.now(), timedelta(
                 minutes=ctx._config.get(
@@ -5196,17 +5242,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             # The monthly fuse right-sizing what-if (#3); rate-limited to
             # weekly inside, and never allowed to break the cycle.
-            try:
-                await self._maybe_run_fuse_advisor()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Fuse advisor skipped: %s", err)
+            await _best_effort_cycle_step(
+                self._maybe_run_fuse_advisor, "Fuse advisor skipped: %s")
 
             # T6 #39 (gated): one price tile per scheduled solve, and only
             # here — the tiles must never run on demand.
-            try:
-                await self._maybe_refresh_price_tile()
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Price tile skipped: %s", err)
+            await _best_effort_cycle_step(
+                self._maybe_refresh_price_tile, "Price tile skipped: %s")
 
             # #1644 (D1-s2-51): the quiet learner is the solve's own
             # best-effort tail, not a failed solve.
@@ -5439,6 +5481,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
         if outdoor.ok:
             ctx._current_state.outdoor_temperature = outdoor.value
+        elif (forecast_outdoor := forecast_outdoor_now(
+                self._weather_forecast, dt_util.now())) is not None:
+            # D2-s1-51: this write feeds every reader of the outdoor
+            # state; firing only under ``if outdoor.ok`` left them all on
+            # the 5.0 default beside a plan solved on the forecast (#282).
+            # None (no forecast) keeps the default: the honest horizon.
+            ctx._current_state.outdoor_temperature = forecast_outdoor
 
         # Floor heating return temperature sensor
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
@@ -9241,7 +9290,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             return
         ratio = delivered_ratio(sample)
-        if ratio is not None and in_frost_band(outdoor):
+        # D7-s2-02: the inference folds the same meter the COP learner
+        # refuses (``_cop_fold_blocked``, #1067); the duty path above
+        # reads the flag, not the meter, and stays open.
+        if ratio is not None and in_frost_band(outdoor) and not _cop_fold_blocked(self):
             self._defrost.observe(outdoor, sample.humidity, ratio)
 
     def _record_accuracy(self) -> None:
