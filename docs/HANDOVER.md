@@ -30,8 +30,8 @@ its live state on three branches, so any session resumes from the tree alone:
   seat's standing rules, with its scripts `merge_pr.sh`, `remerge_main.sh` and
   `handoff_push.sh`.
 
-Fixer and reviewer seats are dispatched by the Mac merge seat; where `CLAUDE.md`
-still describes cloud threads, the standing template supersedes it. The
+Fixer and reviewer seats are dispatched by the Mac merge seat; the standing
+template supersedes the roster's own dispatch wording. The
 hpo-ci container standing rule — the typing, mutation/pin and closure lanes run
 inside that container in every session — lives on the mac-merge-seat branch and
 in the standing template. Reviewer seats work detached at the head SHA and
