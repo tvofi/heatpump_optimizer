@@ -52270,6 +52270,284 @@ R.check(
     f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
 )
 
+# -- R9-F2.5: N-solve-recompute -- the twins the sweeps' keying could not see --
+# Round 9, fix F2.5 (Part of #1653). Two instances the S5 enumerator's
+# qualname keying could not reach: RC-rca1, tariff.peak_cost_batch's per-row
+# loop (metering windows, day peaks, plateau-aware day max and the smooth
+# top-k sum re-entered per row -- 0.74 of a winter two-zone DHW
+# capacity-tariff solve re-measured at this fix's merge base), and RC-rca2,
+# the per-row loop inside the closure _terminal_cost_batch returns (a loop
+# S5 keyed to the once-per-solve builder and disposed not applicable). Each
+# arm drives the production symbol; the cost pins count interpreter calls,
+# the shape the production-call channel counts, and the parity pins hold
+# the bitwise contract (fixer.md step 15) at the production width.
+from heatpump_optimizer.tariff import (  # noqa: E402
+    metering_windows as _f25_mw,
+    peak_cost_batch as _f25_pcb,
+    plan_window_days as _f25_pwd,
+)
+from functools import partial as _f25_partial  # noqa: E402
+
+_f25_n = 96
+_f25_rng = np.random.default_rng(2512)
+# Seven plans spanning every branch the twin's row body reaches: separated
+# peaks, the full plateau (every window tied: the day-max smooth arm AND the
+# top-k smooth arm in one row), exactly k+1 tied day peaks (the smallest
+# input that takes the top-k smooth arm), a plan never above threshold, a
+# NaN window in an otherwise chargeable plan, an all-zero plan, and a mixed
+# profile. The NaN row pins the propagation semantics both twins must share.
+_f25_tie = np.zeros(_f25_n)
+_f25_tie[0:16] = 7.0
+_f25_nanrow = _f25_rng.uniform(1.0, 4.0, size=_f25_n)
+_f25_nanrow[5] = np.nan
+_f25_rows = np.vstack([
+    _f25_rng.uniform(0.0, 9.0, size=_f25_n),   # separated peaks
+    np.full(_f25_n, 7.0),                      # full plateau
+    _f25_tie,                                  # k+1 tied day peaks
+    _f25_rng.uniform(0.0, 1.0, size=_f25_n),   # never above threshold
+    _f25_nanrow,                               # NaN window, plan chargeable
+    np.zeros(_f25_n),
+    _f25_rng.uniform(0.0, 6.0, size=_f25_n),
+])
+_f25_base = np.full(_f25_n, 1.5)
+
+# RC-rca1's cost pin: the twin's interpreter work must not grow with the row
+# count. The per-row loop made it B times the one-row body's calls; 97 rows
+# (one gradient at the production width) against 2 separates the shapes by
+# ~48x. Arms: a batch of separated peaks (no smooth branch) and a batch
+# where every row is a full plateau (both smooth branches), with day labels
+# and an off-boundary start so the leading partial window is live. Null
+# control: the scalar peak_cost_smooth, whose calls do not depend on a row
+# count at all, is the unit the per-row loop repeated.
+_f25_labels = _f25_pwd(
+    _f25_mw(np.zeros(_f25_n), 60, 0.25, 3).size, 60,
+    datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc),
+)
+_f25_growth = {}
+for _f25_tag, _f25_batch in (
+    ("separated", _f25_rows[[0, 6]]),
+    ("plateau", np.full((2, _f25_n), 7.0)),
+):
+    for _f25_b in (2, 97):
+        # Both arms must hold their branch shape at every size: tiled
+        # separated rows stay separated, so the count difference cannot be
+        # a row wandering onto the bisection (one random row hitting the
+        # smooth arm would add the bisection's ~400 batch calls and read
+        # as growth).
+        _f25_mat = (
+            _f25_batch if _f25_b == 2
+            else (
+                np.tile(_f25_batch, (49, 1))[:97]
+                if _f25_tag == "separated" else np.full((97, _f25_n), 7.0)
+            )
+        )
+        _f25_growth[(_f25_tag, _f25_b)] = _f22_calls(
+            _f25_partial(
+                _f25_pcb, _f25_mat, _f25_base, 3.0, 20.0, 60, 0.25, 3, 3,
+                window_days=_f25_labels, distinct_days=True,
+            )
+        )[0]
+_f25_growth_pairs = {
+    t: (_f25_growth[(t, 97)], _f25_growth[(t, 2)])
+    for t in ("separated", "plateau")
+}
+R.check(
+    "R9-F2.5 RC-rca1: peak_cost_batch makes the same calls for 97 rows as "
+    "for 2, on separated peaks and on full plateaus (no per-row interpreter "
+    "loop in the windowing, day peaks or the smooth top-k)",
+    all(big == small for big, small in _f25_growth_pairs.values()),
+    f"(97-row calls, 2-row calls) per arm: {_f25_growth_pairs}",
+)
+
+# RC-rca1's parity pin: every row of the twin is peak_cost_smooth on that
+# row's plan, byte for byte, at the production width and on both sides of
+# every reduction-length edge the batched arithmetic replicates -- per-window
+# lengths 1, 3, 4, 8 and 12 (15/45/60/120-minute windows over 15-minute
+# steps, 60-minute over 5-minute steps, the last with an 11-step leading
+# partial window so a head mean crosses the 8-element pairwise block), both
+# memory orders, masked and unmasked factors, day labels across midnight and
+# into the autumn fold, and distinct days off. The plateau, k+1-tie and NaN
+# rows are the detector rows for the two smooth branches and the guard.
+_f25_bad = []
+for _f25_w, _f25_dt, _f25_offs in (
+    (15, 0.25, (0, 1, 3)),
+    (45, 0.25, (0, 1, 3)),
+    (60, 0.25, (0, 1, 3)),
+    (120, 0.25, (0, 1, 3)),
+    (60, 1.0 / 12.0, (0, 1, 3, 11)),
+):
+    for _f25_off in _f25_offs:
+        _f25_nw = _f25_mw(np.zeros(_f25_n), _f25_w, _f25_dt, _f25_off).size
+        _f25_facs = np.tile(
+            np.array([1.0, 0.0, 0.5, 1.0]), 1 + _f25_nw // 4
+        )[:_f25_nw]
+        for _f25_lab in (
+            None,
+            _f25_pwd(_f25_nw, _f25_w, datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc)),
+            _f25_pwd(_f25_nw, _f25_w, datetime(2026, 10, 24, 18, 0, tzinfo=timezone.utc)),
+        ):
+            for _f25_fac in (None, _f25_facs):
+                for _f25_dd in (True, False):
+                    for _f25_order in ("C", "F"):
+                        _f25_mat = np.asarray(_f25_rows, order=_f25_order)
+                        _f25_got = _f25_pcb(
+                            _f25_mat, _f25_base, 3.0, 20.0, _f25_w, _f25_dt, 3,
+                            _f25_off, window_factors=_f25_fac,
+                            distinct_days=_f25_dd, window_days=_f25_lab,
+                        )
+                        for _f25_r in range(_f25_mat.shape[0]):
+                            _f25_one = peak_cost_smooth(
+                                np.array(_f25_mat[_f25_r]), _f25_base, 3.0, 20.0,
+                                _f25_w, _f25_dt, 3, _f25_off,
+                                window_factors=_f25_fac, distinct_days=_f25_dd,
+                                window_days=_f25_lab,
+                            )
+                            if (np.float64(_f25_got[_f25_r]).tobytes()
+                                    != np.float64(_f25_one).tobytes()):
+                                _f25_bad.append(
+                                    ("w", _f25_w, _f25_dt, _f25_off,
+                                     _f25_lab is not None, _f25_fac is not None,
+                                     _f25_dd, _f25_order, _f25_r)
+                                )
+R.check(
+    "R9-F2.5 RC-rca1: every peak_cost_batch row is peak_cost_smooth on that "
+    "row, byte for byte -- per-window lengths 1/3/4/8/12, both memory "
+    "orders, masked factors, midnight and autumn-fold day labels, distinct "
+    "days on and off, plateau, k+1-tie and NaN rows, at the production width",
+    not _f25_bad,
+    f"first divergences: {_f25_bad[:4]} of {len(_f25_bad)}",
+)
+# The same parity at other widths, so the day-run and top-k reduction
+# lengths cross the 8/128 pairwise edges too (24 h at 15-minute steps is 24
+# hourly windows over 1-2 days; 129 and 192 steps stretch the day runs).
+_f25_wbad = []
+for _f25_w_n in (8, 12, 48, 96, 129, 192):
+    _f25_wrows = _f25_rng.uniform(0.0, 9.0, size=(7, _f25_w_n))
+    _f25_wrows[0] = 7.0
+    _f25_wrows[1, : _f25_w_n // 6] = 7.0
+    _f25_nw = _f25_mw(np.zeros(_f25_w_n), 60, 0.25, 3).size
+    _f25_lab = _f25_pwd(
+        _f25_nw, 60, datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc)
+    )
+    _f25_got = _f25_pcb(
+        _f25_wrows, np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25, 3, 3,
+        window_days=_f25_lab, distinct_days=True,
+    )
+    for _f25_r in range(7):
+        _f25_one = peak_cost_smooth(
+            _f25_wrows[_f25_r], np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25,
+            3, 3, window_days=_f25_lab, distinct_days=True,
+        )
+        if (np.float64(_f25_got[_f25_r]).tobytes()
+                != np.float64(_f25_one).tobytes()):
+            _f25_wbad.append((_f25_w_n, _f25_r))
+R.check(
+    "R9-F2.5 RC-rca1: the row parity holds at widths 8 to 192, where the "
+    "day-run and top-k reduction lengths cross the pairwise block edges",
+    not _f25_wbad,
+    f"(width, row) that moved: {_f25_wbad}",
+)
+
+# RC-rca2's cost pin: the twin must not build a name-keyed ends dict per
+# row and walk the stores in Python per row -- the per-row re-entry the
+# closure's loop cost (0.04-0.06 of a solve re-measured at this fix's merge
+# base; the defect is interpreter work, and c_calls to float are invisible
+# to sys.setprofile on CPython 3.11, so the pin reads the shape that work
+# took: every argument the shared row function receives on the row path).
+# The per-row builtin sum stays: that is the bitwise contract (Neumaier on
+# CPython 3.12+), and what remains of the loop is priced in the PR body as
+# the recorded partial.
+def _f25_count_dict_rows(row_cost, counts):
+    """Wrap the shared row function, counting dict-shaped per-row calls."""
+    def wrapped(terms):
+        counts["rows"] += 1
+        counts["dict_rows"] += isinstance(terms, dict)
+        return row_cost(terms)
+    return wrapped
+
+
+_f25_term = {}
+# The split arm needs the three conditions _terminal_cost's own gate lists:
+# a throttling valve, a tank past BUFFER_STORE_MIN_VOLUME, and the
+# cop_flow_carnot gate that makes the tank's temperature the flow.
+for _f25_valve, _f25_kw in (
+    ("single-sum", {}),
+    ("split-COP", {
+        "mixing_valve_mode": "manual", "buffer_tank_volume": 300.0,
+        "cop_flow_carnot": True,
+    }),
+):
+    _f25_opt = _f21_Opt(
+        _f21_Model(_f21_Params(two_zone_enabled=True, **_f25_kw)),
+        _f21_Cfg(),
+    )
+    _f25_cap = {}
+    _f25_real_builder = _f21_optmod._terminal_row_cost
+
+    def _f25_cap_builder(refill, cop_end, cop_buffer, stores):
+        built = _f25_real_builder(refill, cop_end, cop_buffer, stores)
+        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores)
+        _f25_cap["spec"] = built[1]
+        return built
+
+    _f21_optmod._terminal_row_cost = _f25_cap_builder
+    try:
+        _f25_cost, _f25_cbatch = _f25_opt._terminal_cost(
+            np.full(96, 1.0), np.full(96, -5.0)
+        )
+    finally:
+        _f21_optmod._terminal_row_cost = _f25_real_builder
+    _f25_counts = {"rows": 0, "dict_rows": 0}
+    _f25_row_cost, _f25_spec = _f25_real_builder(*_f25_cap["args"])
+    _f25_wrapped = _f25_count_dict_rows(_f25_row_cost, _f25_counts)
+    _f25_term[_f25_valve] = (
+        _f25_cost, _f25_cbatch, _f25_wrapped, _f25_counts, _f25_cap["spec"]
+    )
+_f25_traj = {
+    _f25_name: _f25_rng.uniform(5.0, 32.0, size=(97, 5))
+    for _f25_name in ("room", "slab", "upper", "lower", "buffer")
+}
+_f25_dict_pairs = {}
+for _f25_v, (_c, _cb, _wrapped, _counts, _spec) in _f25_term.items():
+    # Rebuild the twin around the wrapped row function, exactly as the
+    # builder itself does, then price the same 97-row batch.
+    _f25_wbatch = _f21_Opt._terminal_cost_batch(_wrapped, _spec)
+    _f25_wbatch(_f25_traj)
+    _f25_dict_pairs[_f25_v] = (_counts["dict_rows"], _counts["rows"])
+R.check(
+    "R9-F2.5 RC-rca2: the terminal twin prices a 97-row batch without "
+    "building a name-keyed ends dict on any row (single-sum and split-COP)",
+    all(d == 0 for d, _ in _f25_dict_pairs.values()),
+    f"(dict-shaped row calls, total row calls) per arm: {_f25_dict_pairs}",
+)
+# RC-rca2's parity pin: every row of the twin is the scalar closure on the
+# same end temperatures, byte for byte, on 97 rows whose end temperatures
+# span the stores' whole deficit range (uniform 5-32 C against settlement
+# caps near room temperature) -- the shape in which builtin sum's
+# compensated accumulation (CPython 3.12+, CI's 3.14 lane) parts company
+# with any plain one, the ulp class that diverged the jac races in #948
+# round 7. On this box's 3.11 the grid agrees either way; the 3.14 lane is
+# the detector, as _m948t's comment says of the same class one level up.
+_f25_tbad = []
+for _f25_v, (_f25_cost, _f25_cbatch, _w, _n, _s) in _f25_term.items():
+    _f25_got = _f25_cbatch(_f25_traj)
+    for _f25_r in range(_f25_traj["room"].shape[0]):
+        _f25_one = _f25_cost(
+            _f25_traj["room"][_f25_r], _f25_traj["slab"][_f25_r],
+            _f25_traj["upper"][_f25_r], _f25_traj["lower"][_f25_r],
+            _f25_traj["buffer"][_f25_r],
+        )
+        if (np.float64(_f25_got[_f25_r]).tobytes()
+                != np.float64(_f25_one).tobytes()):
+            _f25_tbad.append((_f25_v, _f25_r))
+R.check(
+    "R9-F2.5 RC-rca2: every terminal twin row is its scalar closure on the "
+    "same end temperatures, byte for byte (single-sum and split-COP arms, "
+    "the latter with the buffer store's survival-weighted term)",
+    not _f25_tbad,
+    f"(arm, row) that moved: {_f25_tbad[:4]} of {len(_f25_tbad)}",
+)
+
 # -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
 # D7-s2-01: the candidate was rolled one explicit-Euler step per sample, so on a
 # noise-free, parameter-exact continuous house read every 30 min the fit was

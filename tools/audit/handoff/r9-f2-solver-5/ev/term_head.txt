@@ -1,0 +1,2 @@
+{"label": "winter/2z/dhw", "double": false, "solve_cpu_s": 1.425, "terminal_batch_share": 0.0167}
+{"label": "shoulder/1z/dhw", "double": false, "solve_cpu_s": 0.686, "terminal_batch_share": 0.0223}
