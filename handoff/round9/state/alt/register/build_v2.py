@@ -32,6 +32,13 @@ RCA_MOVES = {
     ('R7', 'R7-INSTR-01'): ('I4', 'RCA-BULK-2 I2: a hand-typed dimension list, as R5-INST-01'),
 }
 
+# ---- rows that are not survivors (reconciliation, RECON.md / excluded.tsv): kept in rows_v2.tsv, counted nowhere
+REMOVE = {
+    ('R1', 'D3-01'): 'refuted 2-0 in round 1 (env_drift --all catches the mutant; register verdicts)',
+    ('R1', 'D8-02'): 'the same finding as R1 D1-04, merged as M2; counted once, under D1-04',
+    ('R5', 'D0-01'): '#1293 closed as refuted after filing (the fix is net-negative on the shoulder cell)',
+}
+
 # ---- class-level updates the bulk RCAs established (text fields only; counts stay derived)
 UPDATES = {
     'P4': {
@@ -132,7 +139,7 @@ RCA_CLASS = {
 CLASS_LEVEL = {'R9-I1', 'R9-N-cpu-gate-blind', 'R9-I3', 'R9-I4', 'R9-I5', 'R9-P1', 'R9-P2', 'R9-P3', 'R9-P5', 'R9-P6',
                'R9-P9', 'R9-P11', 'R9-RC2-bug5-reboot', 'R9-N-future-instant', 'R9-N-solve-recompute', 'R9-RCA-1736',
                'RCA-1041-silent-zero', 'BULK-1-P4', 'BULK-1-P7', 'BULK-1-P8', 'BULK-1-P10', 'BULK-2-I2',
-               'BULK-2-N-structure-blind'}
+               'BULK-2-N-structure-blind', 'BULK-4-N-name-sort'}
 
 NEW_RCAS = [
     ('BULK-1-P4', 'P4', 'refuse barrier; certificate is the detector (owner refusals #1293/#1294 on record)', None, 'RCA-BULK-1.md'),
@@ -146,6 +153,7 @@ NEW_RCAS = [
     ('BULK-3-1545', 'I5', 'confirmed: #1590\'s typing check fails at ba938dc3 and passes at main; gap: qs_py_typed_files has no check', None, 'RCA-BULK-3.md'),
     ('BULK-3-1070', None, 'band confirmed (#1124, 97d9bdb3); per-file band refused until 3 per-file frictions in one window', '97d9bdb3 (#1124)', 'RCA-BULK-3.md'),
     ('BULK-3-v660-freeze', 'P10', 'instrument first: nightly-ha loop heartbeat across options round-trips; cause not established', None, 'RCA-BULK-3.md'),
+    ('BULK-4-N-name-sort', 'N-name-sort', 'build: declare families in const.py (key lead token + override table) and one contiguity check in tests/entities.py; owner rules on the away and sv compressor splits', None, 'RCA-BULK-4.md'),
     ('BULK-3-1041-rerun', 'N-silent-zero', 'refusal overturned: land merge_shape_guard (in agreement.mjs); lint/helper refusals confirmed', None, 'RCA-BULK-3.md'),
 ]
 
@@ -154,12 +162,15 @@ PLANNED = {  # class -> roster groups owed to land its barrier or RCA countermea
     'N-solve-recompute': ['R9-F10.2'], 'I1': ['R9-F10.2', 'R9-F10.3'], 'I5': ['R9-F10.4'], 'I4': ['R9-F11.4'],
     'N-shared-config': ['R9-EG-B9', 'R9-EG-B10', 'R9-EG-B1'], 'P7': ['R9-F10.1c'], 'P10': ['R9-F1.7', 'R9-F10.7'],
     'P8': ['R9-F1.8'], 'P4': ['R9-F2.4'], 'I2': ['R9-F10.3'], 'N-structure-blind': ['R9-F10.4'],
-    'N-silent-zero': ['R9-F11.4'], 'P11': ['R9-F11.7'],
+    'N-silent-zero': ['R9-F11.4'], 'P11': ['R9-F11.7'], 'N-name-sort': ['R9-F7.4'], 'R-register': ['R9-EG-R0', 'R9-EG-R1'],
 }
 
 
 def load_rows():
     rows = list(csv.DictReader(open(os.path.join(HERE, 'register_rows.tsv')), delimiter='\t'))
+    extra = os.path.join(HERE, 'missing_rows.tsv')  # survivors the R1-7 source omitted (reconciliation, RECON.md)
+    if os.path.exists(extra):
+        rows += list(csv.DictReader(open(extra), delimiter='\t'))
     out = []
     for r in rows:
         final, move = r['class_id'], ''
@@ -169,7 +180,9 @@ def load_rows():
             final = '_unclassified' if tgt == 'none' else tgt
             move = f'A1 flag: {r["class_id"]} -> {tgt}' + (f' ({m.group(2)})' if m.group(2) else '')
         k = (r['round'], r['finding_id'])
-        if k in RCA_MOVES:
+        if k in REMOVE:
+            final, move = '_excluded', f'{r["class_id"]} -> excluded: {REMOVE[k]}'
+        elif k in RCA_MOVES:
             final, why = RCA_MOVES[k]
             move = f'{r["class_id"]} -> {final}: {why}'
         out.append({**r, 'final_class': final, 'move': move})
@@ -191,10 +204,14 @@ def build():
 
     per = defaultdict(lambda: defaultdict(list))
     unclassified = []
+    excluded = []
     for r in rows:
-        if r['final_class'] == '_unclassified':
+        if r['final_class'] == '_excluded':
+            excluded.append({'round': r['round'], 'finding_id': r['finding_id'], 'issue': r['issue'] or None,
+                             'was': r['class_id'], 'reason': r['move']})
+        elif r['final_class'] == '_unclassified':
             unclassified.append({'round': r['round'], 'finding_id': r['finding_id'], 'issue': r['issue'] or None,
-                                 'was': r['class_id'], 'reason': r['move']})
+                                 'was': r['class_id'], 'reason': r['move'] or r['note']})
         else:
             per[r['final_class']][r['round']].append(r['finding_id'])
 
@@ -219,7 +236,7 @@ def build():
     # ---- classes
     reg = {
         '_source': 'v2, 2026-09-28: one-time enumeration and classification of every surviving finding of rounds 1-9 '
-                   '(alt/register/rows_v2.tsv, 486 rows; A1 flags and three RCA-seat moves applied, each recorded in its '
+                   '(alt/register/rows_v2.tsv: 486 rows from the A1 enumeration plus 88 survivors the round-8 findings.tsv omitted, missing_rows.tsv / RECON.md; A1 flags and three RCA-seat moves applied, each recorded in its '
                    'row), folded with the inventory of every RCA conducted (alt/register/rca_inventory.json) and the bulk '
                    'RCAs owed by the rebuild (alt/rca/RCA-BULK-{1,2,3}.md). v1 was seeded from the round-8 classification '
                    'of rounds 1-7 and never received a round-8 member. Counts derive from rows_v2.tsv by build_v2.py.',
@@ -262,6 +279,7 @@ def build():
         }
         reg[cid] = entry
     reg['_unclassified'] = unclassified
+    reg['_excluded'] = excluded
     reg['_rca'] = rcas
     return rows, reg
 
@@ -289,7 +307,7 @@ def trigger_report(reg):
         lines.append(f'{cid:20s} {e["total"]:5d} {e["max_per_round"]:4d}  {str(t["per_round"]):9s} {str(t["cross_round"]):11s} '
                      f'{str(t["barriered_any"]):10s} {str(t["class_rca_on_record"]):10s} {"OWED" if missing else ""}')
     lines.append(f'owed and missing a class RCA: {owed or "none"}')
-    lines.append(f'unclassified rows: {len(reg["_unclassified"])}; RCAs indexed: {len(reg["_rca"])}')
+    lines.append(f'rows: {sum(e["total"] for k, e in reg.items() if not k.startswith("_"))} counted, {len(reg["_unclassified"])} unclassified, {len(reg["_excluded"])} excluded; RCAs indexed: {len(reg["_rca"])}')
     return '\n'.join(lines) + '\n', owed
 
 

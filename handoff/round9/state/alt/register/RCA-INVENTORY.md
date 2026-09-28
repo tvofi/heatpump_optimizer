@@ -5,10 +5,9 @@ Measured 2026-09-28 at origin/main `3490cb16`.
 - The register indexes every row under `_rca` in `bugclasses.v2.json`.
 - Built by `a1-src/rca_inventory_build.py`.
 
-**94 RCAs indexed:**
+**95 RCAs indexed:**
 - 82 conducted before this investigation;
-- 11 conducted by it (the bulk RCAs, below);
-- 1 still running at the time of writing (N-name-sort, `RCA-BULK-4`).
+- 13 conducted by it (the bulk RCAs, below, including N-name-sort in `RCA-BULK-4`).
 
 ## What this sweep changes in the record
 
@@ -40,6 +39,7 @@ Measured 2026-09-28 at origin/main `3490cb16`.
 | BULK-3-1545 | the bare `ConfigEntry` claim | confirmed: #1590's check fails at the claim's SHA and passes at main; gap: `qs_py_typed_files` | carry into R9-F10.4 |
 | BULK-3-1070 | corpus-cap headroom | band confirmed (#1124); per-file band refused until 3 per-file frictions in one window | plan-row correction in the record PR |
 | BULK-3-v660-freeze | v6.6.0 options-flow freeze (trigger 1) | cause not established; instrument first (nightly-ha loop heartbeat, plus the owner's host profiler) | R9-F10.7 (new issue) |
+| BULK-4-N-name-sort | N-name-sort entity families split by the name sort (8 instances) | build: declare families in const.py and one contiguity check; tvofi rules on the `away` and Swedish `compressor` splits | R9-F7.4 (#1760) |
 | BULK-3-1041-rerun | the silent-zero cost test | refusal overturned: land `merge_shape_guard` in `agreement.mjs`; lint and helper refusals confirmed; the class barrier goes to the owner | carry into R9-F11.4 (#1650) |
 
 ## The inventory before this investigation (phase A2, verbatim below)
