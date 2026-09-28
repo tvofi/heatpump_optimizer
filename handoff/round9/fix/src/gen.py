@@ -412,9 +412,28 @@ for _p in PRS:
         errors.append(f"{_p['id']}: carries a class barrier but is not routed to the strongest model")
 def branch_of(pid):
     return f"handoff/{LANES[PR[pid]['lane']]['topic']}-{pid.split('.')[1]}"
+def _prev_resume(pid):
+    # Carry an existing group's resume forward on regeneration (the EG-0a wipe:
+    # 17 merged groups were rebuilt as not-started). The template below fills
+    # any group the previous roster lacks.
+    try:
+        with open(os.path.join(OUT, ".claude/workflows/wave-r9-groups.json")) as fh:
+            for g in json.load(fh).get("groups", []):
+                if g.get("group") == "R9-" + pid:
+                    return g.get("resume") or {}
+    except (OSError, ValueError):
+        pass
+    return {}
+
+
 def resume_of(pid):
     b = branch_of(pid); ln = PR[pid]["lane"]
-    return collections.OrderedDict([
+    prev = _prev_resume(pid)
+    carried = collections.OrderedDict()
+    for k in ("stage", "commit", "last_step", "next_step"):
+        if prev.get(k) not in (None, "not-started"):
+            carried[k] = prev[k]
+    base = collections.OrderedDict([
         ("stage", "not-started"),
         ("branch", b), ("commit", None), ("last_step", None),
         ("next_step", "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test"),
@@ -426,6 +445,8 @@ def resume_of(pid):
         ("pickup_local", f"the same commands from the Mac checkout, reading the plan and the log from git alone (handoff/audit-r9-fixplan and handoff/audit-r9-plan); a Mac seat appends its milestone lines to the mirror only, and the orchestrator copies them into the /mnt log at its next pass"),
         ("note", "Final at E2 with the Phase D sweeps, the round-9 RCA results and tvofi's resumability and model-routing rules folded in (2026-09-26). The seat's resume note on its branch outranks this entry for in-flight state; the orchestrator (or a sonnet record seat) updates stage, commit, last_step and next_step here at each hand-off and merge. issues[] and fixes[] are from the Phase E issue map (2026-09-26)."),
     ])
+    base.update(carried)
+    return base
 
 # ---------------------------------------------------------------- roster
 groups = []
