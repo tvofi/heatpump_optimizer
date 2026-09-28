@@ -190,7 +190,6 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
-config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
 
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
