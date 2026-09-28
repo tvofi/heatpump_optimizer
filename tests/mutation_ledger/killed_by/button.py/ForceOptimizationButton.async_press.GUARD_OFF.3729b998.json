@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/button.py:ForceOptimizationButton.async_press GUARD_OFF 3729b998",
+  "killed_by": "tests/features.py",
+  "old": "        if reason == \"no_prices\":",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 12b0df6807d6071ae728f8a25aa0368532b8eec4: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
