@@ -580,11 +580,10 @@ its version on load:
  heatpump-optimizer-card  v6.6.8
 ```
 
-That is the card's own version. It moves only when the card file changes, so it
-is often lower than the integration version — v5.0.0, for instance, ships card
-4.3.0 unchanged. Compare it against the card version named in the release notes
-for the integration version you installed, not against the integration version
-itself.
+That is the card's own version, and it is rewritten to match on every release
+the integration stamps — the release step edits the card file itself, so the
+banner and the integration version move together. If the banner is older than
+the integration version you installed, a stale copy of the card is loading.
 
 If it is older than that, or an error mentions a duplicate registration, go to
 Settings → Dashboards → ⋮ → Resources and remove every entry for this card

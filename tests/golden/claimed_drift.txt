@@ -56,10 +56,7 @@
 #
 # claims-for: 6.7.9
 #
-# v6.7.9: Round-9 wave: F1.2 coordinator fixes, kernel-stable optimality check, verdict-carry rule, handover pointers, may-drift stamp countermeasure. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
 #
-
 # R9 F1.2 (D12-s3-01, round 9; re-claimed by hand at the 6.7.8 absorb): this
 # branch claims exactly one fixture. The wizard's dhw and zones pages ask
 # presence -- a dhw_enabled boolean and a transient two_zone question -- so
@@ -67,7 +64,6 @@
 # dhw_enabled=False an untouched wizard now stores. Structure only: the
 # fixture is float-free, and no solver input moved on any other scenario.
 #
-
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
 # claims the five coordinator captures and NOTHING ELSE; the direction is
 # ADD-ONLY. SysIdResult.as_dict() publishes the re-derived slab-mode tau
@@ -79,7 +75,6 @@
 # changes -- the plan fixtures are untouched and unclaimed, and the
 # coordinator itself is not modified: the published dict is the only
 # surface the new field reaches.
-
 # #925 (R4-D2-01, the smooth top-k bracket): this branch claims the four
 # capacity-tariff fixtures and nothing else. The logistic bisection in
 # tariff._smooth_topk_sum pads its bracket by 40*scale instead of a constant
@@ -93,7 +88,6 @@
 # 26.78 (capacity_tariff_15min) and 13.49 -> 11.04 (everything_on), and
 # rises 6.03 -> 6.98 (tariff_plus_two_zone); the term no longer rewards a
 # spiky profile over the flat one, so the plans' own schedules move with it.
-
 # #926 (R4-D2-02, DSO tariff transcription): this branch claims exactly one
 # fixture. The two unsourced catalog rows (Vattenfall Eldistribution, E.ON)
 # are dropped per the owner's sources-or-stop ruling, so the dso_product
@@ -101,17 +95,13 @@
 # lists move -- the fixture's only diffs, both under dso_product.config.
 # options. No solver input changes anywhere else: grid_fee.py's catalog is
 # config data, not arithmetic.
-
 #
-
 # W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
 # `_build_dhw_requirements` returns the same 14 values as a frozen
 # dataclass instead of a dict. No solver arithmetic is reordered.
 # origin/main's config_flow # E2 claim is not inherited (optimizer.py
 # is claimable; this cut still moves no fixture).
-
 #
-
 #
 # #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
 # custom_components/heatpump_optimizer/diagnostics.py, which Home Assistant
@@ -149,14 +139,12 @@
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. CLAUDE.md and .cursor/rules/ci-autofix.mdc only -- no
 # production file, no test input and no solver parameter is touched.
-
 # #546, the unsaveable setup page: this branch claims NOTHING. The accepted
 # set for `apply_topology`'s `positions` is derived from `_SLOTS` instead of
 # borrowed from a label map, and `describe_setup`'s `wood_valve` re-homing
 # moves verbatim into a module-level `_place_home`. No published key, value
 # or ordering changes, so every scenario fixture is byte-identical by
 # construction.
-
 # #539 (tools/audit generated the forbidden mkdir gate lock into the text new
 # auditors read): this branch claims NOTHING. A shell generator, agent prompt
 # strings under .claude/workflows/ and audit prose only -- no production file,
@@ -186,13 +174,10 @@
 # The README section on AI use: this branch claims NOTHING. README.md only
 # -- no production file, no test input and no solver parameter is touched,
 # so every scenario is byte-identical by construction.
-
 # #550 (the apply_topology set check pinned the reverse direction against a
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
-
-
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -307,7 +292,6 @@
 # fe7a7d877fc73fdb7ccb54dfee968c88 at the merge base and at this head), so no
 # arithmetic is reordered. Both keys it writes are added only under a cap or a
 # mode block, and every scenario fixture plans with neither.
-
 # #558 D2/D3 (lane D of the UX programme): this branch claims NOTHING.
 #
 # D2 changes narrative.py's template TEXT and threads the instance currency
@@ -325,7 +309,6 @@
 # the flow's steps and schemas, not entity.* translation keys -- so neither
 # fixture has a key path for any of it. Measured, not assumed:
 # card_drift reports "identical in all 34 states" at this head.
-
 # #824: the initial config flow's user_sensors page groups its fourteen entity
 # pickers into indoor/solar/plant, the registry's own group names, which the
 # options flow already uses for the same keys. config_flow is float-free
@@ -338,8 +321,6 @@
 # _initial/user_sensors/<group>/fields/<field>, plus three section wrappers,
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
-
-
 # Owner-requested feature (in-session 2026-09-14): the input_problem
 # binary sensor names its sources. The coordinator's _input_health_view
 # publishes two new keys beside the existing watchdog ones, so every
@@ -350,7 +331,6 @@
 # byte-identically, which is why recording here is honest. (That diff is
 # this file's BASELINE since the merge that resolved this conflict: its
 # claims were consumed there and are not restated.)
-
 # Wave 1067 (the Rotenso Windmi optional inputs): this branch claims the five
 # coordinator captures and config_flow, and the direction is ADD-ONLY on all
 # six. Nothing else moved: every plan fixture is byte-identical here.
@@ -541,7 +521,6 @@
 # level 1 and a claim alone leaves that level failing. Every other
 # fixture is byte-identical by construction: no solver, coordinator or
 # card input is touched.
-
 # R5-D12-01 (#1302, the unconfigured ECL110 MQTT surface): this branch
 # claims the five coordinator captures plus config_flow and nothing else;
 # the direction is MOVE-TO-EMPTY, never a value the solver touches. A config
@@ -638,7 +617,6 @@
 # discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
-
 # R7-D0-01 (#1447), fix branch fix/r7-optimizer: this diff claims ONE fixture
 # and NOTHING ELSE, and its direction is CHEAPER.
 # `_optimize_space_only`'s seed set gains a fifth bang-bang anchor at 0.20x
@@ -687,7 +665,6 @@
 # leaf/leaves differ from the committed files in value alone` -- reported,
 # never failed -- and those value differences predate the branch, so
 # recording them here would write values this diff did not measure.
-
 # R7-D0-01 merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds: the
 # five coordinator claims this file inherited from the merge base (R7-D8-01
 # / #1461's note above) come OUT. They were main's own -- written for #1489's
@@ -699,7 +676,6 @@
 # hand-made: the list ADDED a line beside the baseline's, which
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
-
 # R8-P3 (#1530, #1520): this branch claims wood_coil and nothing else. It is the
 # one fixture with a throttling valve AND hot water, so the only one where
 # compute_cop_dhw now prices the tank at the buffer's Carnot lift instead of its
@@ -713,7 +689,6 @@
 # steps are credited against the wood tank the coil actually cooled: again more
 # hot-water electricity, same direction. The humidity half moves nothing here:
 # no fixture learns a derate.
-
 # #1495 (mold-floor breach warning): this branch's own diff claims the
 # config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
 # section gains the mold_floor_breach_margin option, so capture_config_flow's
@@ -722,7 +697,6 @@
 # #1588 (DHW arbiter): this branch's own diff claims the config_flow
 # fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
 # flows' schema; no values move.
-
 # R9-F2.1 (D2-s2-81, the two-zone floor price): each zone of a two-zone house
 # now pays the single-zone _COMFORT_FLOOR_L1 per kelvin under min_temp; the
 # quadratic undershoot stays averaged. Every two-zone fixture's objective
@@ -733,7 +707,6 @@
 # valve_storage_low_target 0 -> 0, 59.02 -> 62.08; valve_storage_small_tank
 # 1.315 -> 1.291, 54.24 -> 52.56. Every other fixture is byte-identical, so
 # the PV margin and the power fraction move none.
-
 # R9-F2.1 follow-up (main red on tests/backtest.py after #1694): a two-zone
 # solve refines its first start at the half floor price before the true solve.
 # The objective is unchanged; each claimed fixture ships a plan with a LOWER
@@ -741,7 +714,6 @@
 # 127.2155 -> 127.1950, valve_storage_small_tank 80.4944 -> 79.9648. The three
 # claims inherited from #1694 are dropped (env_drift --drop-inherited); of them,
 # valve_storage_low_target does not move here.
-
 # R9-F2.3 (#1671, D2-s2-03): this branch claims wood_coil and nothing else. It
 # is the one fixture with a DHW coil in the wood tank, and the baseline
 # thermostat house now owns the same coil and draws the plan does, so the coil
@@ -750,3 +722,10 @@
 # of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
 # 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
 # cannot excuse and a name cannot be both, so the entry is suspended above.
+#
+# F8.3 (handoff/r9-f8-docs-3): the empty list is this diff's own footprint --
+# measured, not inherited: with the list empty, env_drift --all reports
+# NO UNCLAIMED DRIFT / NO STALE FIXTURE over all 56 scenarios against
+# origin/main, and `config_flow is byte-identical to origin/main here`
+# (the entity-name renames move no captured leaf; docs and test-only
+# changes otherwise).

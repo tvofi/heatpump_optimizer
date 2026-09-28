@@ -8,8 +8,8 @@ until it did, the UI would imply a state that does not exist:
 * "Learning Run System Identification" — arm the commissioning step test,
 * "Learning Reset Comfort Weight" — undo the revealed-preference comfort
   tuning,
-* "Diagnose Last Interval" — attribute the last interval's temperature
-  residual.
+* "Prediction Accuracy Diagnose Last Interval" — attribute the last
+  interval's temperature residual.
 
 The runs take real time — an optimization fetches prices and weather and then
 solves — so they report ``available`` as False while busy, giving the user
