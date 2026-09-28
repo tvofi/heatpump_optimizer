@@ -1,0 +1,23 @@
+## d1a531b v6.5.0
+REFUSE policy_lint.MERGE_SUBJECT_RE: matches 0 of 16 merge subject(s) in v6.5.0..d1a531b
+REFUSE stamp.PR_RE: matches 0 of 16 merge subject(s) in v6.5.0..d1a531b
+MERGE-SHAPE: 2 dead enumerator(s) of 2  (0.019s)
+rc=1
+## 3490cb16 v6.7.9
+REFUSE policy_lint.MERGE_SUBJECT_RE: matches 0 of 7 merge subject(s) in v6.7.9..3490cb16
+ok     stamp.PR_RE: matches 7 of 7 merge subject(s) in v6.7.9..3490cb16
+MERGE-SHAPE: 1 dead enumerator(s) of 2  (0.022s)
+rc=1
+## 3490cb16 v6.7.9 --widen
+ok     policy_lint.MERGE_SUBJECT_RE: matches 7 of 7 merge subject(s) in v6.7.9..3490cb16
+ok     stamp.PR_RE: matches 7 of 7 merge subject(s) in v6.7.9..3490cb16
+MERGE-SHAPE: 0 dead enumerator(s) of 2  (0.020s)
+rc=0
+## v6.4.3 v6.4.2
+ok     policy_lint.MERGE_SUBJECT_RE: matches 6 of 7 merge subject(s) in v6.4.2..v6.4.3
+ok     stamp.PR_RE: matches 6 of 7 merge subject(s) in v6.4.2..v6.4.3
+MERGE-SHAPE: 0 dead enumerator(s) of 2  (0.023s)
+rc=0
+## 3490cb16 3490cb16
+UNCHECKED this run, not confirmed alive: empty window
+rc=0

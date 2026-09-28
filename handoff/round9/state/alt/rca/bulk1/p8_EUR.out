@@ -1,0 +1,14 @@
+
+=== Stress and economics ===
+RESULT feed=EUR cycles=2 money_units=11 money_units_mismatched=11
+  MISMATCH sensor.heat_pump_optimizer_plan_predicted_savings=SEK
+  MISMATCH sensor.heat_pump_optimizer_plan_monthly_savings=SEK
+  MISMATCH sensor.heat_pump_optimizer_cost_predicted=SEK
+  MISMATCH sensor.heat_pump_optimizer_cost_baseline=SEK
+  MISMATCH sensor.heat_pump_optimizer_cost_current_electricity_price=SEK/kWh
+  MISMATCH sensor.heat_pump_optimizer_dhw_heating_cost=SEK
+  MISMATCH sensor.heat_pump_optimizer_space_heating_cost=SEK
+  MISMATCH sensor.heat_pump_optimizer_dhw_cost=SEK
+  MISMATCH sensor.heat_pump_optimizer_cost_total_heating=SEK
+  MISMATCH sensor.heat_pump_optimizer_cost_contract_comparison=SEK/kWh
+  MISMATCH sensor.heat_pump_optimizer_sensor_gap_advisor=SEK

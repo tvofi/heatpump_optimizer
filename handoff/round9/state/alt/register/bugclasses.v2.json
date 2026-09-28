@@ -1,0 +1,3397 @@
+{
+  "_source": "v2, 2026-09-28: one-time enumeration and classification of every surviving finding of rounds 1-9 (alt/register/rows_v2.tsv, 486 rows; A1 flags and three RCA-seat moves applied, each recorded in its row), folded with the inventory of every RCA conducted (alt/register/rca_inventory.json) and the bulk RCAs owed by the rebuild (alt/rca/RCA-BULK-{1,2,3}.md). v1 was seeded from the round-8 classification of rounds 1-7 and never received a round-8 member. Counts derive from rows_v2.tsv by build_v2.py.",
+  "_status": "open: no detector; detector: a command enumerates every seam; barriered: that command is a CI check.",
+  "_counting": "An instance is a judged survivor or an instance counted beyond it (a sweep, RCA or fixer seat found the seam and it is not the judged site); non_round_instances are incidents and screens, listed, not counted. trigger.per_round is the rule in force (defect-root-cause.md:87-91); trigger.cross_round is the proposed clause (>=3 over any 3 consecutive rounds, or >=5 total while open), owner-gated in R9-EG-R1.",
+  "P1": {
+    "kind": "production",
+    "mechanism": "A non-finite or malformed value crosses a persisted-store boundary with no guard",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D1-01",
+      "R1 D1-05",
+      "R2 D1-03",
+      "R2 D8-02",
+      "R3 D1-01",
+      "R4 D1-01",
+      "R4 D1-02",
+      "R5 D1-05",
+      "R5 D1-06",
+      "R5 D1-07",
+      "R6 D1-01",
+      "R6 D1-02",
+      "R8 D1-s2-01",
+      "R8 D1-s3-01",
+      "R9 D1-s1-01",
+      "R9 D1-s1-02",
+      "R9 D1-s1-03",
+      "R9 D1-s2-02",
+      "R9 D1-s2-03",
+      "R9 D1-s2-54",
+      "R9 D1-s3-01",
+      "R9 D1-s3-03",
+      "R9 D1-s3-06",
+      "R9 D1-s4-01",
+      "R9 D1-s4-03",
+      "R9 D1-s5-02",
+      "R9 D1-s5-03",
+      "R9 D1-s5-04",
+      "R9 D1-s5-52",
+      "R9 D14-s1-01"
+    ],
+    "per_round": {
+      "R1": 2,
+      "R2": 2,
+      "R3": 1,
+      "R4": 2,
+      "R5": 3,
+      "R6": 2,
+      "R8": 2,
+      "R9": 16
+    },
+    "total": 30,
+    "max_per_round": 16,
+    "detector": null,
+    "detector_idea": "Enumerate every Store/async_load and every float field its from_dict reads; fuzz each with nan/inf/malformed strings across the whole store roster",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched. R1-7 already held live-input and output-boundary rows (R5 D1-06 'nan' sensor state, R5 D1-07 weather feed, R2 D8-02 numpy scalars to attributes) that cross no persisted store; R8 D1-s3-01 (Open-Meteo shape) and the R9 re-maps N-plausibility (finite-but-absurd live input), N-min-gap (one off-grid stamp voids a feed) and N-service-clamp (unbounded service input) add more, and R9 D1-s5-02/D1-s3-06 are finite-but-out-of-domain. Proposed wording: 'A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard'. The detector idea (fuzz the store roster) reaches none of the non-store members.",
+    "aliases": [
+      "N-min-gap",
+      "N-plausibility",
+      "N-service-clamp",
+      "new: live input with no physical-plausibility bound",
+      "new: series resolution inferred from the minimum gap",
+      "new: service input without an upper-bound clamp"
+    ],
+    "rca": [
+      "R9-P1",
+      "RCA-R8-P1"
+    ],
+    "rca_planned": [
+      "R9-F1.6"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P2": {
+    "kind": "production",
+    "mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D10-03",
+      "R1 D10-06",
+      "R1 D10-08",
+      "R1 D7-03",
+      "R1 D7-05",
+      "R2 D1-01",
+      "R2 D1-02",
+      "R2 D10-01",
+      "R2 D10-05",
+      "R2 D10-15",
+      "R2 D7-02",
+      "R2 D7-03",
+      "R3 D7-03",
+      "R3 D8-02",
+      "R4 D10-03",
+      "R4 D7-03",
+      "R5 D12-01",
+      "R5 D7-03",
+      "R5 D7-04",
+      "R5 D8-03",
+      "R6 D12-01",
+      "R6 D8-01",
+      "R7 D1-02",
+      "R7 D10-02",
+      "R7 D12-01",
+      "R7 D8-02",
+      "R8 D12-s1-01",
+      "R8 D12-s1-02",
+      "R8 D2-s1-01",
+      "R8 D2-s1-02",
+      "R8 D7-s1-01",
+      "R8 D8-s1-01",
+      "R8 D8-s2-02",
+      "R9 D1-s2-51",
+      "R9 D1-s2-55",
+      "R9 D1-s2-91",
+      "R9 D1-s3-02",
+      "R9 D1-s4-02",
+      "R9 D1-s5-01",
+      "R9 D10-s1-01",
+      "R9 D10-s1-02",
+      "R9 D12-s2-01",
+      "R9 D12-s2-02",
+      "R9 D12-s3-01",
+      "R9 D14-s2-01",
+      "R9 D2-s1-02",
+      "R9 D2-s2-01",
+      "R9 D2-s2-03",
+      "R9 D2-s3-01",
+      "R9 D4-s2-06",
+      "R9 D4-s2-07",
+      "R9 D7-s1-71",
+      "R9 D7-s2-02",
+      "R9 D8-s1-02",
+      "R9 D8-s1-03",
+      "R9 D8-s2-01",
+      "R9 D8-s2-02",
+      "R9 D8-s2-03",
+      "R9 D8-s3-03",
+      "R9 D8-s3-61"
+    ],
+    "per_round": {
+      "R1": 5,
+      "R2": 7,
+      "R3": 2,
+      "R4": 2,
+      "R5": 4,
+      "R6": 2,
+      "R7": 4,
+      "R8": 7,
+      "R9": 27
+    },
+    "total": 60,
+    "max_per_round": 27,
+    "detector": null,
+    "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched. Used as the catch-all for sibling-seam guard gaps; R8/R9 add entity default-enabled/availability (N-dup-entity, N-availability, R8 D8-s2-02), a try opened after the call it should fence (N-late-try) and a state-blind flow menu (N-menu), all 'guard present at a sibling, missing here'. R1-7 misfits flagged in reclassifications.md (coordinator size, name sort).",
+    "aliases": [
+      "N-availability",
+      "N-dup-entity",
+      "N-late-try",
+      "N-menu",
+      "new: compatibility duplicate entity enabled by default",
+      "new: error-translating try opened after the call it should cover",
+      "new: state-blind menu re-offers a completed path",
+      "new: whole-entity availability gated on an optional input"
+    ],
+    "rca": [
+      "R9-P2",
+      "RCA-1499",
+      "RCA-R8-P2"
+    ],
+    "rca_planned": [
+      "R9-F1.11"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P3": {
+    "kind": "production",
+    "mechanism": "A capacity floor or divisor applied inconsistently across sibling formulas",
+    "rounds": [
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R2 D0-03",
+      "R2 D2-01",
+      "R2 D2-02",
+      "R2 D2-05",
+      "R4 D2-01",
+      "R4 D2-02",
+      "R4 D2-03",
+      "R4 D2-04",
+      "R5 D2-01",
+      "R5 D2-02",
+      "R6 D2-01",
+      "R6 D2-02",
+      "R6 D7-03",
+      "R6 D7-03-EXT",
+      "R7 D2-01",
+      "R8 D2-s2-01",
+      "R9 D12-s2-03",
+      "R9 D14-s3-01",
+      "R9 D2-s1-01",
+      "R9 D2-s2-02",
+      "R9 D2-s2-81",
+      "R9 D2-s3-02"
+    ],
+    "per_round": {
+      "R2": 4,
+      "R4": 4,
+      "R5": 2,
+      "R6": 4,
+      "R7": 1,
+      "R8": 1,
+      "R9": 6
+    },
+    "total": 22,
+    "max_per_round": 6,
+    "detector": null,
+    "detector_idea": "Every max(<capacity>, <constant>) cross-referenced against unclamped reads of the same variable",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched. In practice 'a clamp, floor, limit or step constant in a physics or tariff formula breaks the identity its siblings keep' (R2 D2-05, R4 D2-02/03, R5 D2-01, R6 D2-02); R9 re-maps N-sign-floor (price-margin sign floor), N-euler-coupled (sub-step bound judged per store) and N-clamp-range (bias clamp sized to an assumed range), and R8 D2-s2-01 (tariff top-k by window, not by day) is a low-confidence placement.",
+    "aliases": [
+      "N-clamp-range",
+      "N-euler-coupled",
+      "N-sign-floor",
+      "new: a sign floor on a price margin breaks the stated piecewise identity",
+      "new: explicit-Euler stability judged per store instead of on the coupled step matrix",
+      "new: learned-correction clamp sized against an assumed range, not the model's curve"
+    ],
+    "rca": [
+      "R9-P3",
+      "RCA-R8-P3",
+      "RCA-coil-drain"
+    ],
+    "rca_planned": [
+      "R9-F1.10"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P4": {
+    "kind": "production",
+    "mechanism": "The optimizer seed set or stop tolerance does not bracket the optimum",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D0-01",
+      "R1 D0-02",
+      "R2 D0-01",
+      "R2 D0-02",
+      "R2 D9-01",
+      "R3 D0-01",
+      "R3 D0-02",
+      "R4 D0-01",
+      "R4 D0-02",
+      "R5 D0-01",
+      "R5 D0-03",
+      "R5 D0-04",
+      "R6 D0-02",
+      "R7 D0-01",
+      "R8 D0-s1-01",
+      "R9 D0-s2-02"
+    ],
+    "per_round": {
+      "R1": 2,
+      "R2": 3,
+      "R3": 2,
+      "R4": 2,
+      "R5": 3,
+      "R6": 1,
+      "R7": 1,
+      "R8": 1,
+      "R9": 1
+    },
+    "total": 16,
+    "max_per_round": 3,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/optimality.py (the solve certificate, #1409)",
+    "detector_idea": "Per fixture cell, production multi-start against a dense seed grid on the identical objective",
+    "barrier": null,
+    "status": "detector",
+    "barrier_refusal": "Class-eliminating barrier refused on numbers (RCA-BULK-1): tighter ftol cost 6.4 % money on one backtest cell at 2.4x CPU (#1293, #1294, owner-refused); the certificate stays the detector",
+    "rca": [
+      "BULK-1-P4"
+    ],
+    "rca_planned": [
+      "R9-F2.4"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P5": {
+    "kind": "production",
+    "mechanism": "A sysid/adoption gate keyed on a quantity other than the bias it gates",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D2-01",
+      "R1 D7-02",
+      "R2 D2-04",
+      "R2 D7-01",
+      "R3 D2-01",
+      "R3 D2-03",
+      "R3 D7-01",
+      "R4 D7-01",
+      "R4 D7-02",
+      "R5 D2-03",
+      "R5 D7-01",
+      "R5 D7-02",
+      "R6 D7-01",
+      "R7 D7-01",
+      "R8 D7-s1-02",
+      "R9 D14-s3-03",
+      "R9 D2-s4-01",
+      "R9 D2-s4-02",
+      "R9 D2-s4-81",
+      "R9 D7-s2-01",
+      "R9 P5-rca1"
+    ],
+    "per_round": {
+      "R1": 2,
+      "R2": 2,
+      "R3": 3,
+      "R4": 2,
+      "R5": 3,
+      "R6": 1,
+      "R7": 1,
+      "R8": 1,
+      "R9": 6
+    },
+    "total": 21,
+    "max_per_round": 6,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
+    "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
+    "barrier": "The adoption interval prices every told quantity (intercept prior, slab pair) by how far one declared width moves log UA, and the R9-P5 sweep in tests/features.py runs on the PR gate (F4.2, #1655), with the #1524 liveness checks refusing a gate that refuses everything. Not reached: free heat past the prior's own band, which one night cannot separate from heat loss; it needs the learned free-heat prior in coordinator.py (.claude/workflows/carry-1655.json)",
+    "status": "barriered",
+    "mechanism_note": "Stretched to model-structure mismatch in the fit (already R1 D7-02, R4 D7-01); R9 N-fit-integrator (coarser integrator than the plant) re-mapped here, which puts it under the barriered class's obligation (F4.2 carried both).",
+    "aliases": [
+      "N-fit-integrator",
+      "new: fit integrator differs from the simulated plant"
+    ],
+    "rca": [
+      "R9-P5",
+      "RCA-1525",
+      "RCA-R8-P5-1523"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "P6": {
+    "kind": "production",
+    "mechanism": "A consumer reads a key or field no producer writes, with a silent fallback",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D1-04",
+      "R1 D10-07",
+      "R1 D7-04",
+      "R1 D8-01",
+      "R1 D8-02",
+      "R2 D1-04",
+      "R2 D10-02",
+      "R2 D10-04",
+      "R2 D7-04",
+      "R2 D8-01",
+      "R3 D1-02",
+      "R3 D8-01",
+      "R4 D2-05",
+      "R6 D6-02",
+      "R7 D1-01",
+      "R7 D8-01",
+      "R8 D7-s1-03",
+      "R9 D1-s2-04",
+      "R9 D12-s1-01",
+      "R9 D14-s1-02",
+      "R9 D2-s1-51"
+    ],
+    "per_round": {
+      "R1": 5,
+      "R2": 5,
+      "R3": 2,
+      "R4": 1,
+      "R6": 1,
+      "R7": 2,
+      "R8": 1,
+      "R9": 4
+    },
+    "total": 21,
+    "max_per_round": 5,
+    "detector": null,
+    "detector_idea": "Static cross-reference of coordinator.data/hass.data reads against the keys _build_data_dict writes",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched. R1-7 already held swallowed failures (R1 D10-07, R2 D10-04) that read no missing key; R9 N-debug-swallow (persistent failure logged at DEBUG) re-mapped here; R8 D7-s1-03 is a refusal path that writes no reason, read back as the default 'ok'.",
+    "aliases": [
+      "N-debug-swallow",
+      "new: persistent failure swallowed at DEBUG"
+    ],
+    "rca": [
+      "R9-P6",
+      "RCA-R8-P6-1526"
+    ],
+    "rca_planned": [
+      "R9-F1.11"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P7": {
+    "kind": "production",
+    "mechanism": "Naive wall-clock datetime arithmetic across a DST transition",
+    "rounds": [
+      2,
+      3,
+      5,
+      9
+    ],
+    "instances": [
+      "R2 D2-03",
+      "R3 D2-02",
+      "R5 D1-08",
+      "R9 D14-s4-01"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R3": 1,
+      "R5": 1,
+      "R9": 1
+    },
+    "total": 4,
+    "max_per_round": 1,
+    "detector": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py (its DST tracer section; tests/features.py runs the script)",
+    "detector_idea": "Every datetime-difference and grid-construction site across the DST transition days, against a UTC reference",
+    "barrier": "tests/dst_checks.py's DST tracer on the PR gate (F1.1, #1665): the committed replay day, shifted onto a spring, an autumn and a plain day, runs through replay.run_fixture with Home Assistant's zoned clock traced, and a subtraction of two stamps sharing the zone, or a + timedelta on one, whose result differs from the UTC arithmetic fails the check, keyed on (file, function). Reaches every seam a replayed cycle executes, including operands the static enumerator cannot name (result.timestamps); not reached: a seam no replayed cycle drives, and arithmetic between two datetimes production builds itself from stored text. tariff._window_slot is exempt: a wall-clock tariff label by definition",
+    "status": "barriered",
+    "barrier_gap": "RCA-BULK-1 measured two blind spots of the F1.1 tracer: the R3 tariff seam (#777; the replay fixture configures no capacity tariff) and the R5 plan-age seam (#1299; its operands never straddle the transition in the replayed day). Both re-introduced shapes pass main's dst_checks.py. 13 raw zoned-datetime sites remain (services.py:873 / manual_plan.py:288: a 20 h override lasts 21 h across the autumn fold). Owed: a config arm and a straddle arm (R9-F10.1c)",
+    "rca": [
+      "BULK-1-P7"
+    ],
+    "rca_planned": [
+      "R9-F10.1c"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "P8": {
+    "kind": "production",
+    "mechanism": "A currency or unit resolved by divergent precedence on different surfaces",
+    "rounds": [
+      1,
+      4,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D4-04",
+      "R4 D12-01",
+      "R4 D6-02",
+      "R7 D4-03",
+      "R8 D2-s2-02",
+      "R9 D12-s3-81",
+      "R9 D14-s2-02"
+    ],
+    "per_round": {
+      "R1": 1,
+      "R4": 2,
+      "R7": 1,
+      "R8": 1,
+      "R9": 2
+    },
+    "total": 7,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "The published money unit is the price feed's currency: replay with a EUR/kWh feed on a SEK instance and count published money units in the instance currency (11/11 at 3490cb16; 0 when fixed). currency.py already is the one shared resolver, and it canonicalises the instance label, not the feed: forcing every surface through it (#1657's proposal) would lock the defect in (RCA-BULK-1)",
+    "barrier": null,
+    "status": "open",
+    "rca": [
+      "BULK-1-P8",
+      "RCA-R8-P8-1513"
+    ],
+    "rca_planned": [
+      "R9-F1.8"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P9": {
+    "kind": "production",
+    "mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target",
+    "rounds": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D4-01",
+      "R1 D4-02",
+      "R1 D4-03",
+      "R1 D4-06",
+      "R2 D4-01",
+      "R2 D4-02",
+      "R2 D4-03",
+      "R2 D4-04",
+      "R2 D4-05",
+      "R2 D4-06",
+      "R2 D4-07",
+      "R2 D4-08",
+      "R4 D4-01",
+      "R5 D4-01",
+      "R5 D4-02",
+      "R5 D4-03",
+      "R6 D4-01",
+      "R7 D4-01",
+      "R7 D4-02",
+      "R8 D4-01",
+      "R9 D4-s1-01",
+      "R9 D4-s1-02",
+      "R9 D4-s1-03",
+      "R9 D4-s1-04",
+      "R9 D4-s1-05",
+      "R9 P9-f61a",
+      "R9 P9-f61b",
+      "R9 P9-f61c",
+      "R9 P9-rca1",
+      "R9 P9-rca2",
+      "R9 P9-rca3",
+      "R9 P9-rca4"
+    ],
+    "per_round": {
+      "R1": 4,
+      "R2": 8,
+      "R4": 1,
+      "R5": 3,
+      "R6": 1,
+      "R7": 2,
+      "R8": 1,
+      "R9": 12
+    },
+    "total": 32,
+    "max_per_round": 12,
+    "detector": null,
+    "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched to keyboard access: R8 D4-01 (Tab order) and R9 N-keyboard (pointer-only editing) are card accessibility rules that do not reach a control, the class's shape, but the mechanism text names only clipping/colour/hit target.",
+    "aliases": [
+      "N-keyboard",
+      "new: pointer-only editing with no keyboard route"
+    ],
+    "rca": [
+      "R9-P9",
+      "RCA-R8-P9-1522"
+    ],
+    "rca_planned": [
+      "R9-F6.3"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "P10": {
+    "kind": "production",
+    "mechanism": "CPU work (a model kernel, a fit, a batch simulation) runs outside the process worker, on the event loop or on a GIL-holding executor thread, and starves the loop",
+    "rounds": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      9
+    ],
+    "instances": [
+      "R1 D9-02",
+      "R2 D9-05",
+      "R3 D9-03",
+      "R5 D9-06",
+      "R6 D9-01",
+      "R9 D9-s1-03",
+      "R9 D9-s2-01"
+    ],
+    "per_round": {
+      "R1": 1,
+      "R2": 1,
+      "R3": 1,
+      "R5": 1,
+      "R6": 1,
+      "R9": 2
+    },
+    "total": 7,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "Count model-kernel calls outside the process worker over a replayed day: 2304 on the loop at 3490cb16 (topology.py _advisor_replay), 0 with the advisor removed, 3926 on an executor thread when the worker is forced to fail (RCA-BULK-1 p10_loop_kernels.py); extend the kernel list to sysid",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Widened from \"a solve on a GIL-holding thread starves the loop\" (RCA-BULK-1): R9 re-minted it as N-loop-cpu because the v1 text excluded loop-inline work",
+    "aliases": [
+      "N-loop-cpu",
+      "new: CPU work inline on the event loop"
+    ],
+    "non_round_instances": [
+      "v6.6.0 options-flow freeze (provisional; cause not established, RCA-BULK-3)",
+      "#70 v5.1.1 options save froze the instance (provisional)"
+    ],
+    "rca": [
+      "BULK-1-P10",
+      "BULK-3-v660-freeze",
+      "PRE-70-v511-freeze"
+    ],
+    "rca_planned": [
+      "R9-F1.7",
+      "R9-F10.7"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "I1": {
+    "kind": "instrument",
+    "mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D3-01",
+      "R1 D3-02",
+      "R1 D3-03",
+      "R1 D3-04",
+      "R1 D3-05",
+      "R1 D3-06",
+      "R1 D3-07",
+      "R1 D3-08",
+      "R2 D3-01",
+      "R2 D3-02",
+      "R2 D3-03",
+      "R2 D3-04",
+      "R2 D3-05",
+      "R2 D3-06",
+      "R2 D3-07",
+      "R2 D3-08",
+      "R2 D3-10",
+      "R2 D9-02",
+      "R2 D9-04",
+      "R3 D3-01",
+      "R3 D3-02",
+      "R3 D3-03",
+      "R3 D3-04",
+      "R3 D3-05",
+      "R3 D9-04",
+      "R4 D3-S1",
+      "R4 D3-S2",
+      "R4 D3-S3",
+      "R4 D9-06",
+      "R5 D3-03",
+      "R5 D3-04",
+      "R5 D3-05",
+      "R5 D3-06",
+      "R5 D3-07",
+      "R5 D3-08",
+      "R5 D3-09",
+      "R5 D9-07",
+      "R5 D9-08",
+      "R6 D3-01",
+      "R6 D3-02",
+      "R6 D3-03",
+      "R6 D3-04",
+      "R6 D3-05",
+      "R6 D9-02",
+      "R7 D3-01",
+      "R7 D3-02",
+      "R8 D3-s1-01",
+      "R8 D3-s2-01",
+      "R8 D3-s2-02",
+      "R8 D7-s2-03",
+      "R8 D9-s2-01",
+      "R9 D14-s5-02",
+      "R9 D3-s1-01",
+      "R9 D3-s1-91",
+      "R9 D3-s2-01",
+      "R9 D3-s2-02",
+      "R9 D3-s3-01",
+      "R9 D3-s3-02",
+      "R9 D3-s3-03",
+      "R9 D3-s3-04",
+      "R9 D3-s3-05",
+      "R9 D7-s1-02",
+      "R9 D9-s2-02",
+      "R9 D9-s2-03",
+      "R9 D9-s2-71"
+    ],
+    "per_round": {
+      "R1": 8,
+      "R2": 11,
+      "R3": 6,
+      "R4": 4,
+      "R5": 9,
+      "R6": 6,
+      "R7": 2,
+      "R8": 5,
+      "R9": 14
+    },
+    "total": 65,
+    "max_per_round": 14,
+    "detector": null,
+    "detector_idea": "Count a kill only on at least one failing assertion; re-run previously surviving mutants",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched to performance gates: R2 D9-02, R4 D9-06, R5 D9-07, R6 D9-02 already here; R8 D9-s2-01 and the R9 re-map N-cpu-gate-blind (a 2x regression outside the sampled work leaves the gate green) join them.",
+    "aliases": [
+      "N-cpu-gate-blind",
+      "new: CPU gate blind to a regression outside its sampled work"
+    ],
+    "rca": [
+      "R9-I1",
+      "R9-N-cpu-gate-blind",
+      "RCA-1336-d9-memory-arm",
+      "RCA-1485-ledger-line-shift",
+      "RCA-1595-nan-ratchets",
+      "RCA-R8-I1a-kill-rule",
+      "RCA-vacuous-acceptance-arm"
+    ],
+    "rca_planned": [
+      "R9-F10.2",
+      "R9-F10.3"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "I2": {
+    "kind": "instrument",
+    "mechanism": "A measured closure or scope diverges from the real dependency graph",
+    "rounds": [
+      2,
+      5,
+      8,
+      9
+    ],
+    "instances": [
+      "R2 D3-09",
+      "R5 D3-01",
+      "R5 D3-02",
+      "R8 D3-s1-02",
+      "R9 D14-s5-01"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R5": 2,
+      "R8": 1,
+      "R9": 1
+    },
+    "total": 5,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "Nightly strace -f of the gate against the committed closures, reporting files the recorder missed (child-process reads, .pyc-only loads); over-scope needs no barrier (RCA-BULK-2)",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
+    "rca": [
+      "BULK-2-I2"
+    ],
+    "rca_planned": [
+      "R9-F10.3"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "I3": {
+    "kind": "instrument",
+    "mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
+    "rounds": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R2 D10-03",
+      "R3 D11-01",
+      "R3 D11-02",
+      "R3 D11-03",
+      "R3 D11-05",
+      "R4 D11-01",
+      "R4 D11-02",
+      "R4 D11-03",
+      "R4 D11-04",
+      "R4 D11-05",
+      "R4 D11-07",
+      "R5 D11-01",
+      "R5 D11-02",
+      "R6 D11-01",
+      "R6 D11-02",
+      "R7 D11-01",
+      "R7 D11-02",
+      "R7 D13-04",
+      "R8 D11-s1-01",
+      "R8 D11-s1-03",
+      "R8 D11-s2-01",
+      "R8 D11-s2-02",
+      "R8 D11-s2-03",
+      "R8 D13-s1-02",
+      "R9 D11-s1-01",
+      "R9 D11-s1-02",
+      "R9 D11-s1-03",
+      "R9 D11-s1-04",
+      "R9 D11-s2-01",
+      "R9 D11-s2-02",
+      "R9 D13-s1-03"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R3": 4,
+      "R4": 6,
+      "R5": 2,
+      "R6": 2,
+      "R7": 3,
+      "R8": 6,
+      "R9": 7
+    },
+    "total": 31,
+    "max_per_round": 7,
+    "detector": "node .claude/workflows/field_coverage.mjs",
+    "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
+    "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row, the budget-raise gate's owner review) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03, and the write-grant workflow pin's inputs in tests/entities.py (carry-1648's second entry: that pin is not callable without running the whole script).",
+    "status": "barriered",
+    "rca": [
+      "R9-I3",
+      "R9-RC1-pinned-local",
+      "RCA-1514",
+      "RCA-1515",
+      "RCA-1567-unpinned-installs",
+      "RCA-1589-policy-docs-red",
+      "RCA-R8-I3-1516"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "I4": {
+    "kind": "instrument",
+    "mechanism": "Two independent parsers or definitions of one concept disagree",
+    "rounds": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R4 D11-06",
+      "R5 D13-01",
+      "R5 D13-02",
+      "R5 D13-03",
+      "R5 R5-INST-01",
+      "R6 D13-01",
+      "R6 D13-02",
+      "R6 D13-03",
+      "R7 D11-03",
+      "R7 D13-01",
+      "R7 D13-02",
+      "R7 D13-03",
+      "R7 D13-05",
+      "R7 D13-06",
+      "R7 D9-03",
+      "R7 R7-INSTR-01",
+      "R8 D13-s1-01",
+      "R9 D11-s1-71",
+      "R9 D11-s1-72",
+      "R9 D13-s1-01",
+      "R9 D14-s2-03"
+    ],
+    "per_round": {
+      "R4": 1,
+      "R5": 4,
+      "R6": 3,
+      "R7": 8,
+      "R8": 1,
+      "R9": 4
+    },
+    "total": 21,
+    "max_per_round": 8,
+    "detector": null,
+    "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
+    "barrier": null,
+    "status": "open",
+    "rca": [
+      "R9-I4"
+    ],
+    "rca_planned": [
+      "R9-F11.4"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "I5": {
+    "kind": "instrument",
+    "mechanism": "Docs, comments or a compliance checklist drift stale against the code",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D10-13",
+      "R1 D5-01",
+      "R1 D5-02",
+      "R1 D5-03",
+      "R1 D5-04",
+      "R1 D6-01",
+      "R1 D6-02",
+      "R2 D10-09",
+      "R2 D5-01",
+      "R2 D5-02",
+      "R2 D5-03",
+      "R2 D5-04",
+      "R2 D5-05",
+      "R2 D6-01",
+      "R2 D6-02",
+      "R2 D6-03",
+      "R2 D6-04",
+      "R2 D6-05",
+      "R2 D8-03",
+      "R3 D10-02",
+      "R3 D11-04",
+      "R3 D5-01",
+      "R3 D5-02",
+      "R3 D5-03",
+      "R3 D5-04",
+      "R3 D6-01",
+      "R3 D6-02",
+      "R3 D6-04",
+      "R4 D10-01",
+      "R4 D10-02",
+      "R4 D5-01",
+      "R4 D5-02",
+      "R4 D6-01",
+      "R4 D6-03",
+      "R4 D8-02",
+      "R5 D5-01",
+      "R5 D5-02",
+      "R5 D5-03",
+      "R5 D5-04",
+      "R5 D5-05",
+      "R5 D6-01",
+      "R5 D6-02",
+      "R5 D6-03",
+      "R6 D10-01",
+      "R6 D5-01",
+      "R6 D5-02",
+      "R6 D6-01",
+      "R6 D6-03",
+      "R7 D10-01",
+      "R7 D5-01",
+      "R7 D5-02",
+      "R8 D10-s1-01",
+      "R8 D10-s1-02",
+      "R8 D4-s2-01",
+      "R8 D5-s1-01",
+      "R8 D5-s2-01",
+      "R8 D6-s1-01",
+      "R9 D10-s2-01",
+      "R9 D11-s2-04",
+      "R9 D4-s2-01",
+      "R9 D4-s2-03",
+      "R9 D4-s2-08",
+      "R9 D4-s2-09",
+      "R9 D4-s2-81",
+      "R9 D5-s1-01",
+      "R9 D5-s1-02",
+      "R9 D5-s1-03",
+      "R9 D5-s1-04",
+      "R9 D5-s1-05",
+      "R9 D5-s2-01",
+      "R9 D5-s2-02",
+      "R9 D5-s2-03",
+      "R9 D5-s2-51",
+      "R9 D6-s1-01",
+      "R9 D6-s1-02",
+      "R9 D6-s1-03",
+      "R9 D6-s2-01",
+      "R9 D6-s2-02",
+      "R9 D6-s2-03",
+      "R9 D6-s2-04",
+      "R9 D6-s2-05",
+      "R9 D8-s3-02"
+    ],
+    "per_round": {
+      "R1": 7,
+      "R2": 12,
+      "R3": 9,
+      "R4": 7,
+      "R5": 8,
+      "R6": 5,
+      "R7": 3,
+      "R8": 6,
+      "R9": 25
+    },
+    "total": 82,
+    "max_per_round": 25,
+    "detector": null,
+    "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
+    "barrier": null,
+    "status": "open",
+    "mechanism_note": "Stretched. Holds production translation/icon coverage (R1 D10-13, R4 D8-02, R8 D4-s2-01; R9 re-maps N-escape, N-service-icons, N-language) and rendering defects (R9 N-markdown), which are not drift against code; and R1 D10-01/D10-02/D10-12 are HA quality-scale code conformance (flagged, no class fits).",
+    "aliases": [
+      "N-escape",
+      "N-language",
+      "N-markdown",
+      "N-service-icons",
+      "new: markdown the renderer misplaces",
+      "new: missing icons.json services block",
+      "new: text producer takes no language parameter",
+      "new: translation leaf double-escaped"
+    ],
+    "rca": [
+      "BULK-3-1545",
+      "R9-I5",
+      "RCA-1546",
+      "RCA-R8-I5b"
+    ],
+    "rca_planned": [
+      "R9-F10.4"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-future-instant": {
+    "kind": "production",
+    "mechanism": "A persisted instant stamped by a clock that ran ahead is trusted verbatim on load, so every now-minus-stamp window it opens holds for the clock's whole error",
+    "rounds": [
+      3,
+      9
+    ],
+    "instances": [
+      "R3 D1-03",
+      "R9 D1-s1-04",
+      "R9 D1-s3-05",
+      "R9 FI-rca1",
+      "R9 FI-sw1",
+      "R9 FI-sw2",
+      "R9 FI-sw3",
+      "R9 FI-sw4",
+      "R9 FI-sw5"
+    ],
+    "per_round": {
+      "R3": 1,
+      "R9": 8
+    },
+    "total": 9,
+    "max_per_round": 8,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
+    "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Not reached: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stays masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, and it waits on tvofi's rule in F1.9",
+    "status": "barriered",
+    "aliases": [
+      "new: persisted future instant trusted without bound"
+    ],
+    "rca": [
+      "R9-N-future-instant"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "P11": {
+    "kind": "production",
+    "mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D1-s1-51",
+      "R9 D1-s1-52",
+      "R9 D1-s2-71",
+      "R9 D10-s1-03",
+      "R9 D14-s4-02",
+      "R9 D6-s1-81"
+    ],
+    "per_round": {
+      "R9": 6
+    },
+    "total": 6,
+    "max_per_round": 6,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/ha_contract.py",
+    "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
+    "barrier": "tests/ha_contract.py on the PR gate (F10.1, #1649): a contract that reached none of its asserts fails; every expect=both contract of a symbol a test hook feeds (HOOKS: dt_util.freeze) re-runs in each hook state; every parameter a stub accepts and never reads must be declared in DROPPED. Reaches the vacuous-contract, hook and dropped-parameter routes (D1-s1-52's contract, D14-s4-02, D1-s2-71); the naive default clock itself (D1-s1-52) is declared DIVERGENT with an expect=real contract and split into its own PR. Not reached: behaviour inside a method (D1-s1-51, covered per instance by the Store decode contract and probe), an upstream symbol the stub does not model (D10-s1-03), and doubles outside tests/hastub (D6-s1-81); the RCA (round 9, P11) leaves the last to tvofi",
+    "status": "barriered",
+    "non_round_note": "Incident-derived instances carried in v1; not audit findings, not in register_rows.tsv, not counted in total.",
+    "non_round_instances": [
+      "v6.6.12 bug 1",
+      "v6.6.12 bug 3",
+      "v6.6.12 bug 4",
+      "v6.6.12 bug 5",
+      "v6.6.12 bug 6",
+      "v6.6.12 bug 7",
+      "v6.6.12 arbiter listener without @callback",
+      "v4.0.0 _on_power_event without @callback",
+      "#1290 card history repair",
+      "#511 stub import shape"
+    ],
+    "rca": [
+      "BULK-3-1721",
+      "R9-P11",
+      "V6612-bug1-6-ownership",
+      "V6612-bug2-lease",
+      "V6612-bug3-4-echo",
+      "V6612-bug5-switch",
+      "V6612-bug7-card-history",
+      "V6612-listener-callback"
+    ],
+    "rca_planned": [
+      "R9-F11.7"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "N-restart": {
+    "kind": "production",
+    "mechanism": "A user-set state does not survive a restart: the setter persisted it later than the action (the end of a cycle, a queued platform slot), or not at all",
+    "rounds": [
+      3,
+      9
+    ],
+    "instances": [
+      "R3 D9-02",
+      "R9 D1-s2-52",
+      "R9 D1-s2-53"
+    ],
+    "per_round": {
+      "R3": 1,
+      "R9": 2
+    },
+    "total": 3,
+    "max_per_round": 2,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, the RC2 block and its F1.4 extension: every entity action and coordinator setter is a durability row or says where its state lives (check 1); each row returns before a refresh that never completes and a second coordinator on the same entry shows what it set; the five cycle writers run against a startup read held open by a gate and the persisted learned marker must survive the writer (D1-s2-52); every set_thermal_parameters field that changes state survives a restart through entry options, enumerated from the service schema so a new field is refused until classified (D1-s2-53)",
+    "detector_idea": "The S5 enumerators are the two D1-leads harnesses (enumerate_store_race.py, enumerate_params_restart.py), exhaustive over the coordinator's five stores and the service's 26 state-changing fields",
+    "barrier": "The RC2 block (#1641) classified every entity action and setter; F1.4 extends it with the two seams the sweep confirmed it did not cover. D1-s2-52: each of the five cycle writers awaits its store's async_wait_for_read BEFORE building its payload -- the payload snapshots memory, so a save-side wait alone leaves the disk stale (the round-1 shape did, caught by the review: memory survived, a third restart lost 5 of 5) -- and QuarantiningStore.async_save itself also waits, as defence-in-depth for every other writer. D1-s2-53: async_update_thermal_params writes the call's fields into entry options, the async_set_target_temperature route, whose options write reloads the entry and rebuilds the model. The barrier check reads the marker from a THIRD clean restart after the race, the finding's harm sentence made measurable. Sweep S5 (@51a2e98a86) re-measured both instances at the merge base: lost=5 of 5 stores, lost=24 of 26 fields; both zero at the head",
+    "status": "barriered",
+    "aliases": [
+      "new: user state not surviving restart"
+    ],
+    "non_round_note": "Incident-derived instances carried in v1; not audit findings, not in register_rows.tsv, not counted in total.",
+    "non_round_instances": [
+      "v6.6.12 bug 5 (RC2)"
+    ],
+    "rca": [
+      "PRE-1249-picker-revert",
+      "R9-1638-clobbered-store",
+      "R9-RC2-bug5-reboot"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "N-solve-recompute": {
+    "kind": "production",
+    "mechanism": "The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded)",
+    "rounds": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R1 D9-01",
+      "R2 D9-03",
+      "R4 D9-05",
+      "R5 D9-05",
+      "R7 D9-02",
+      "R8 D9-s1-01",
+      "R9 D9-s1-01",
+      "R9 D9-s1-02",
+      "R9 D9-s1-04",
+      "R9 D9-s1-71",
+      "R9 RC-rca1",
+      "R9 RC-rca2",
+      "R9 RC-sw1"
+    ],
+    "per_round": {
+      "R1": 1,
+      "R2": 1,
+      "R4": 1,
+      "R5": 1,
+      "R7": 1,
+      "R8": 1,
+      "R9": 7
+    },
+    "total": 13,
+    "max_per_round": 7,
+    "detector": null,
+    "detector_idea": "S5 enumerate.py: profiled call counts per (module, qualname) against a once-per-solve boundary; recompute_instances may only fall",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P10",
+    "mechanism_difference": "P10 is where the solve runs (a GIL-holding thread starving the loop); this is avoidable CPU inside the solve wherever it runs, fixed by vectorising or caching, not by moving work off the loop",
+    "aliases": [
+      "new: avoidable interpreter-bound recomputation in the solve"
+    ],
+    "rca": [
+      "R9-N-solve-recompute"
+    ],
+    "rca_planned": [
+      "R9-F10.2"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-structure-blind": {
+    "kind": "instrument",
+    "mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured",
+    "rounds": [
+      2,
+      6,
+      7,
+      8,
+      9
+    ],
+    "instances": [
+      "R2 D7-06",
+      "R6 D7-02",
+      "R7 D2-02",
+      "R8 D7-s2-01",
+      "R8 D7-s2-02",
+      "R9 D7-s1-01",
+      "R9 D7-s3-01",
+      "R9 D7-s3-02",
+      "R9 D7-s3-72"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R6": 1,
+      "R7": 1,
+      "R8": 2,
+      "R9": 4
+    },
+    "total": 9,
+    "max_per_round": 4,
+    "detector": null,
+    "detector_idea": "Liveness by reachability from production roots (tests are not roots), with a self-check planting one example per past shape and a printed count of shapes the metric cannot measure (RCA-BULK-2)",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I4",
+    "mechanism_difference": "I4 is two maintained readers of one concept disagreeing; here there is one in-tree metric, blind to a code shape (rename, module-level helper(self), property, attribute-only load), and the second reader exists only as an audit harness",
+    "aliases": [
+      "N-dead-member",
+      "new: production member reached by no production code",
+      "new: structure metric blind to a code shape"
+    ],
+    "rca": [
+      "BULK-2-N-structure-blind"
+    ],
+    "rca_planned": [
+      "R9-F10.4"
+    ],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-name-sort": {
+    "kind": "production",
+    "mechanism": "An entity family's display names do not lead with a shared token, so the name sort Home Assistant and the card use splits the family, per language",
+    "rounds": [
+      2,
+      3,
+      4,
+      5,
+      9
+    ],
+    "instances": [
+      "R2 D8-04",
+      "R3 D8-03",
+      "R4 D8-01",
+      "R5 D8-01",
+      "R5 D8-02",
+      "R9 D8-s3-01"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R3": 1,
+      "R4": 1,
+      "R5": 2,
+      "R9": 1
+    },
+    "total": 6,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "S6 entity-family-name-sort-split enumerate.sh: per family, sort by name (en, sv) and entity_id and count unexplained splits",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 needs a predicate decided twice; here no predicate exists: names are written per entity and per language and nothing keys them to the family",
+    "aliases": [
+      "new: an entity family whose names do not lead with a shared token splits under the name sort"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-shared-config": {
+    "kind": "production",
+    "mechanism": "Solve-scoped state is mutated on, or read from, live shared objects while the solve runs off the loop, so a concurrent reader publishes it or a concurrent writer is reverted",
+    "rounds": [
+      2,
+      8,
+      9
+    ],
+    "instances": [
+      "R2 D1-05",
+      "R8 D1-s1-01",
+      "R8 D1-s1-02",
+      "R9 D1-s3-04"
+    ],
+    "per_round": {
+      "R2": 1,
+      "R8": 2,
+      "R9": 1
+    },
+    "total": 4,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "alt/evidence/m1_hub_writes.py: solve-path hub write sites must be 0 once the per-solve record lands (26 sites / 23 fields at c54b20d2); extend to _current_action and the what-if cache (#1752, #1753)",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 is a guard present at a sibling and missing here; this is shared mutable state across the solve boundary (no snapshot), which P2's call-site detector cannot see",
+    "aliases": [
+      "new: solve-scoped mutation of shared live config seen by a concurrent reader"
+    ],
+    "non_round_instances": [
+      "mold-guard cap reads the configured target (v4.0.0, 32e2d8e4; reader taught)",
+      "#1752 boost overlay mutates _current_action in place (screen S1)",
+      "#1753 tile/advisor borrow the what-if cache and restore unconditionally (screen S2)",
+      "#1754 manual override swapped mid-solve inherits the old releases (screen C2)",
+      "H1 concurrent cycle publishes the away setback (screen, carried to R9-EG-B1)",
+      "H3 dhw_hourly_draw_pattern has two writers (screen, carried to R9-EG-B1)",
+      "H4 external_heat_active read from the per-solve copy (screen, carried to R9-EG-B1)"
+    ],
+    "rca": [
+      "R9-RCA-1736",
+      "RCA-R8-P12-1517-1529"
+    ],
+    "rca_planned": [
+      "R9-EG-B9",
+      "R9-EG-B10",
+      "R9-EG-B1"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-approval-rebuy": {
+    "kind": "instrument",
+    "mechanism": "An approval or verdict is bound to the exact head SHA rather than to the diff it reviewed, so a diff-identical head move (a merge from main, a ci: commit) re-buys the review",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D13-s1-02"
+    ],
+    "per_round": {
+      "R9": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "Per merged PR, patch-id of the reviewed diff vs the merged diff; count re-verifications whose patch-id did not change",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is enforcement too weak (skipped, stale, bypassable); this is enforcement keyed on the wrong identity, costing rounds without catching defects",
+    "aliases": [
+      "new: an approval bound to an exact head is re-bought on a diff-identical move"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-finally-return": {
+    "kind": "instrument",
+    "mechanism": "A return inside finally swallows an in-flight exception, cancellation included",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D7-s3-51"
+    ],
+    "per_round": {
+      "R9": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S6 return-inside-finally enumerate.py (AST: return/break/continue whose scope escapes a finally)",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I1",
+    "mechanism_difference": "I1 is a gate blind to a behaviour change; this is a code shape that discards the failure signal itself",
+    "aliases": [
+      "new: return inside finally"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-step-grid": {
+    "kind": "production",
+    "mechanism": "A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D4-s2-05"
+    ],
+    "per_round": {
+      "R9": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S7 selector_min_off_step_grid enumerate.py: every box-mode NumberSelector (min - base) % step == 0",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "no guard is missing at a sibling; one declaration (min, step, default) is internally inconsistent",
+    "aliases": [
+      "new: selector minimum off its own step grid"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-reap-lock": {
+    "kind": "production",
+    "mechanism": "Shutdown reaps the solve worker only after acquiring the lock a long solve holds, so stop latency is the solve's remaining time",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D1-s2-05"
+    ],
+    "per_round": {
+      "R9": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "Stop latency ratio vs an unlocked reap (the finder harness perturbation)",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 lifecycle rows (R2 D1-02, R9 D1-s3-02) are a missing guard; this is lock ordering between shutdown and an in-flight solve",
+    "aliases": [
+      "new: shutdown reap waits on the lock a solve holds"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-staleness": {
+    "kind": "production",
+    "mechanism": "A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 D1-s5-51"
+    ],
+    "per_round": {
+      "R9": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S6 staleness-limit-shorter-than-quiet-interval enumerate.sh: silence cells beyond each INPUT_MAX_AGE limit",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P6",
+    "mechanism_difference": "P6 misses staleness behind a silent fallback; this declares false staleness",
+    "aliases": [
+      "new: staleness limit shorter than a report-on-change sensor's quiet interval"
+    ],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-silent-zero": {
+    "kind": "instrument",
+    "mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": null,
+    "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I1",
+    "mechanism_difference": "I1 is a mutation kill miscounted or a vacuous guard; this is any derivation (a census, a sample, a --stats line) whose failure is indistinguishable from an empty success",
+    "members_elsewhere": [
+      "R8 D7-s2-01",
+      "R9 D7-s3-02",
+      "R9 D13-s1-01",
+      "R9 D14-s4-02",
+      "R9 D9-s2-71"
+    ],
+    "members_note": "One mechanism class per finding: these members count under their own classes (I1, I4, P11, N-structure-blind); listed here so the cross-cutting count is visible. #1041 recorded 5 earlier sightings outside audit rounds and RCA-BULK-3 counts 8 new ones since 2026-09-16 (1 per 3.1 releases)",
+    "rca": [
+      "BULK-3-1041-rerun",
+      "RCA-1041-silent-zero"
+    ],
+    "rca_planned": [
+      "R9-F11.4"
+    ],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "_unclassified": [
+    {
+      "round": "R1",
+      "finding_id": "D7-01",
+      "issue": null,
+      "was": "P2",
+      "reason": "A1 flag: P2 -> none (coordinator size/coupling: architecture finding, no mechanism class fits (candidate: coordinator concentration))"
+    },
+    {
+      "round": "R1",
+      "finding_id": "D10-01",
+      "issue": null,
+      "was": "I5",
+      "reason": "A1 flag: I5 -> none (HA quality-scale code conformance (service registration), not docs drift)"
+    },
+    {
+      "round": "R1",
+      "finding_id": "D10-02",
+      "issue": null,
+      "was": "I5",
+      "reason": "A1 flag: I5 -> none (HA quality-scale code conformance (runtime_data), not docs drift)"
+    },
+    {
+      "round": "R1",
+      "finding_id": "D10-12",
+      "issue": null,
+      "was": "I5",
+      "reason": "A1 flag: I5 -> none (missing diagnostics platform: code conformance, not docs drift)"
+    },
+    {
+      "round": "R2",
+      "finding_id": "D7-05",
+      "issue": null,
+      "was": "P2",
+      "reason": "A1 flag: P2 -> none (coordinator size/coupling: architecture finding, no mechanism class fits)"
+    },
+    {
+      "round": "R3",
+      "finding_id": "D3-FLAKE",
+      "issue": "#810",
+      "was": "I2",
+      "reason": "I2 -> _unclassified: RCA-BULK-2 I2: a wall-clock test flake (#810), not a closure divergence"
+    },
+    {
+      "round": "R7",
+      "finding_id": "D9-01",
+      "issue": null,
+      "was": "P6",
+      "reason": "A1 flag: P6 -> none (recorder payload redundancy: an efficiency finding with no producer/consumer key mismatch)"
+    }
+  ],
+  "_rca": {
+    "RCA-546-paired-artifacts": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#546 (released v6.3.17) and its class: paired-artifact divergence",
+      "trigger": "1 (release) + class (8 of 21 issues in one day)",
+      "date": "2026-09-06",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "one check per pair (not a registry)",
+      "landed": "137b6d59 (#548)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5562486191",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5562840457"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-546-paired-artifacts.md"
+    },
+    "RCA-593-preflight": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "PR #593 red check (preflight.sh not in any local path)",
+      "trigger": "2 (red check)",
+      "date": "2026-09-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "refused (owner-gated pre-push instruction named, not built)",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/593"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-593-preflight.md"
+    },
+    "RCA-0002-self-witnessed-proxy": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "check whose only witness is its author's model (7 instances)",
+      "trigger": "recurring class",
+      "date": "2026-09-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "mutation lane over the record mode's checks (#695) and the #616 lane",
+      "landed": "1684e620 (#695); d7dc1423 (#616)",
+      "doc": [
+        "origin/main:docs/decisions/0002-self-witnessed-proxy-assertion.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/616"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-0002-self-witnessed-proxy.md"
+    },
+    "RCA-hassfest-toomanyrequests": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "hassfest required context red on ghcr toomanyrequests (5x)",
+      "trigger": "2 (red required check)",
+      "date": "2026-09-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "retrying warm-up docker pull in hassfest.yml",
+      "landed": "a6e95ff9 (#689)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5605144092"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-hassfest-toomanyrequests.md"
+    },
+    "RCA-690-record-status": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "record-status class that took #690 four review rounds (5 instances)",
+      "trigger": "recurring class",
+      "date": "2026-09-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "status check: roster arm (in-review requires pr) + bullet arm against API",
+      "landed": "c9dfec77 (#691, roster arm)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5607513338"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-690-record-status.md"
+    },
+    "RCA-scratchpad-body-swap": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#694 opened carrying #695's body (shared scratchpad)",
+      "trigger": "incident",
+      "date": "2026-09-09",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(a)",
+      "countermeasure": "per-seat mktemp -d proposed; built later as RCA-scratch-collide (#1092)",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5608473260"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-scratchpad-body-swap.md"
+    },
+    "RCA-678-refusal-not-acted": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "prepr.sh refusal printed and not acted on (4 instances)",
+      "trigger": "recurring class",
+      "date": "2026-09-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "tools/audit/push.sh: contract-check at HEAD then push",
+      "landed": "015fdbd8 (#715)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/678",
+        "https://github.com/tvofi/heatpump_optimizer/issues/678#issuecomment-5608946006",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5608945813"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-678-refusal-not-acted.md"
+    },
+    "RCA-533-nightly-unrun": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "23 of 49 nightly checks merged/dispositioned never having run",
+      "trigger": "class (lane red, uncollected)",
+      "date": "2026-09-10",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "nightly-ha pull_request arm scoped to lane-touching diffs (proposed); two refusals",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/533#issuecomment-5616087353",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5616090514"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-533-nightly-unrun.md"
+    },
+    "RCA-stated-number": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "a stated number in a durable artifact (9 of 18 blocking rounds)",
+      "trigger": "recurring class",
+      "date": "2026-09-10",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "writing rule (a measurement names its instrument), not a detector",
+      "landed": "44f914ac (#724)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5618564043"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-stated-number.md"
+    },
+    "RCA-541-wrong-audience": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "'correct check, wrong audience' class (8 put, 3 verified)",
+      "trigger": "recurring class + main red",
+      "date": "2026-09-10",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "CM-2 record-status reported on every PR; CM-3 owner's call",
+      "landed": "ae36eff1 (#738)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5622000848",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5622010287"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-541-wrong-audience.md"
+    },
+    "RCA-541-stale-body-figures": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "PR-body figures go stale at every merge (18 instances)",
+      "trigger": "recurring class",
+      "date": "2026-09-10",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "fixer.md step 6 re-execution range extended to steps 7-8",
+      "landed": "e64d287f (#793)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5624579071",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5624585324"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-541-stale-body-figures.md"
+    },
+    "RCA-541-gh-api-f": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "gh api -f body=@FILE posts the literal path (5 events)",
+      "trigger": "recurring class",
+      "date": "2026-09-10",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": ".claude/workflows/gh_comment.py wrapper + read-back rule",
+      "landed": "1fd24876 (#759)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5625671141",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5625684379"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-541-gh-api-f.md"
+    },
+    "RCA-dev-record-quantity": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "a quantity in the development record no enumerator ran (#768/#793, 6 instances)",
+      "trigger": "recurring class",
+      "date": "2026-09-11",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "refused (build nothing); moving-referent half closed by #793",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5631076704",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5631258087"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-dev-record-quantity.md"
+    },
+    "RCA-check-does-not-bind": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "audit seat's own recurring defect: a null measurement rendered as a pass (3)",
+      "trigger": "recurring class",
+      "date": "2026-09-11",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c) [+ (b) for occurrence 3]",
+      "countermeasure": "assert_binds + safepost.sh (seat-local tools)",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5632481833"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-check-does-not-bind.md"
+    },
+    "RCA-865-pr-body-live-object": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#860 item 4: pr-contract cannot be green at every head",
+      "trigger": "recurring class",
+      "date": "2026-09-11",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)/(a)",
+      "countermeasure": "refused: no check; S10 order kept; HANDOVER decision (#868)",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/865",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5636576381"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-865-pr-body-live-object.md"
+    },
+    "RCA-trap13-instance-vs-property": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#531/#569/#591: a fix verified against the demonstrated instance",
+      "trigger": "recurring class",
+      "date": "<=2026-09-10",
+      "status": "partial",
+      "parts_missing": [
+        "process_state"
+      ],
+      "process_state": null,
+      "countermeasure": "refused (a check cannot close it)",
+      "landed": null,
+      "doc": [
+        "origin/main:docs/HANDOVER.md (trap 13)"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-trap13-instance-vs-property.md"
+    },
+    "RCA-1041-plan-d6-conflicts": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1041 plan-row and D6 claims merge conflicts (4 in one wave)",
+      "trigger": "recurring class (3rd+)",
+      "date": "2026-09-15",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "deterministic sorted-set render in D6 claims.py; plan-row redesign refused",
+      "landed": "3aa1351d (#1051)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5673831824",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5673843364"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1041-plan-d6-conflicts.md"
+    },
+    "RCA-1041-silent-zero": {
+      "class": "N-silent-zero",
+      "level": "class",
+      "subject": "silent-zero class: a clean count over a set never enumerated (5 instances, 1 on the release path)",
+      "trigger": "1 (stamp.py rule 4 blind across releases) + class",
+      "date": "2026-09-16",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(d) residual 3/stamp; (a) residual 2; (c) Approval hole and class",
+      "countermeasure": "merge_shape_guard.py (built, not pushed); instance fixes #1054-#1057 and ADR 0010",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5693093076",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5693711890",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5693870772",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5694083243",
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5693138924"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1041-silent-zero.md"
+    },
+    "RCA-delivery-row-seam": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "Delivery-status rows collide at one shared seam (31 of 40 merges)",
+      "trigger": "recurring class (owner-ordered)",
+      "date": "2026-09-16",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "(d) one row file per PR, plan table frozen",
+      "landed": "31384db6 (#1081)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5704098870",
+        "origin/main:docs/delivery/1081.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-delivery-row-seam.md"
+    },
+    "RCA-ledger-self-loop": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "ci/delivery-ledger lane re-triggering itself (9 of 11 ledger PRs self-opened)",
+      "trigger": "recurring class",
+      "date": "2026-09-16",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(d) per PR #1086 body",
+      "countermeasure": "publish splices #201 directly; commits/pushes/opens nothing",
+      "landed": "34efcbae (#1086)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5705776367 (NOT FOUND: deleted)",
+        "origin/main:docs/delivery/1086.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-ledger-self-loop.md"
+    },
+    "RCA-gate-lease-full": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "three unleased FULL gates on 2026-09-16 (#1072, #1074, #1068)",
+      "trigger": "incident/class",
+      "date": "2026-09-16",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test"
+      ],
+      "process_state": null,
+      "countermeasure": "run.sh self-leases (gate_lock.py needs-lease/auto-lease)",
+      "landed": "a9dbb68e (#1089)",
+      "doc": [
+        "RCA comment on #201 (not found)",
+        "origin/main:docs/delivery/1089.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-gate-lease-full.md"
+    },
+    "RCA-scratch-collide": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "shared scratchpad/tmp names and pattern kills destroyed seats' outputs (09-16/17)",
+      "trigger": "recurring class",
+      "date": "2026-09-17",
+      "status": "partial",
+      "parts_missing": [
+        "process_state"
+      ],
+      "process_state": null,
+      "countermeasure": "prepr.sh/gh_comment.py refuse body files in shared roots; orchestrator.md §5",
+      "landed": "b673df87 (#1092)",
+      "doc": [
+        "RCA comment on #201 (not found)",
+        "origin/main:docs/delivery/1092.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-scratch-collide.md"
+    },
+    "RCA-1087-friction-measurement": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1087 friction key fixer.md: an issue carried a measurement and no perturbation",
+      "trigger": "recurring friction",
+      "date": "2026-09-17",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "friction_issues.mjs bodyFor states what the count is a property of",
+      "landed": "c71c53cf (#1118)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299 (NOT FOUND)",
+        "origin/main:docs/plan-2026-09-open-issues.md (#1087 disposition)"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1087-friction-measurement.md"
+    },
+    "RCA-1094-relative-scratch": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1094: seats created scratch dirs in the orchestrator's checkout",
+      "trigger": "recurring friction",
+      "date": "2026-09-17",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(c)",
+      "countermeasure": "§5 requires an absolute path and the seat's own worktree",
+      "landed": "3a012f66 (#1123)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1094#issuecomment-5720431439 (NOT FOUND)",
+        "origin/main:docs/delivery/1123.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1094-relative-scratch.md"
+    },
+    "RCA-1095-typing-census": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1095 gate-scoping: mypy census invisible to a green local gate",
+      "trigger": "recurring friction",
+      "date": "2026-09-17",
+      "status": "partial",
+      "parts_missing": [
+        "process_state"
+      ],
+      "process_state": null,
+      "countermeasure": "typing_ruler.py guard 5 (HPO_TYPING_PYTHON)",
+      "landed": "e467026a (#1122)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924 (NOT FOUND)",
+        "origin/main:docs/delivery/1122.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1095-typing-census.md"
+    },
+    "RCA-mutation-lane-baseline": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "mutation lane: red baseline refused PRs though no mutant ran",
+      "trigger": "recurring (lane)",
+      "date": "2026-09-17",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test"
+      ],
+      "process_state": null,
+      "countermeasure": "baseline_refusal(): INCONCLUSIVE on PR scope, refuse on nightly full",
+      "landed": "6bbc0bfa (#1120)",
+      "doc": [
+        "root-cause seat on #201 (comment not found)",
+        "origin/main:docs/delivery/1120.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-mutation-lane-baseline.md"
+    },
+    "RCA-vacuous-acceptance-arm": {
+      "class": "I1",
+      "level": "instance-or-process",
+      "subject": "generalised vacuous-acceptance-arm detector (4th instance)",
+      "trigger": "recurring class",
+      "date": "2026-09-17",
+      "status": "partial",
+      "parts_missing": [
+        "process_state"
+      ],
+      "process_state": null,
+      "countermeasure": "refused on cost",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5720829142 (NOT FOUND)",
+        "origin/main:docs/HANDOVER.md"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-vacuous-acceptance-arm.md"
+    },
+    "RCA-1336-d9-memory-arm": {
+      "class": "I1",
+      "level": "instance-or-process",
+      "subject": "#1336 D9 memory stale arm read a declined attributable as fine",
+      "trigger": "carry",
+      "date": "2026-09-21",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(c)",
+      "countermeasure": "carry to the judging stage",
+      "landed": "24df6743 (#1371)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1371"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1336-d9-memory-arm.md"
+    },
+    "RCA-1293-d0-refutation": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1293 refutation: D0 findings that cost more than they save (4)",
+      "trigger": "recurring class",
+      "date": "2026-09-22",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "cost-aware D0 finding format, requested of the owner",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1372"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1293-d0-refutation.md"
+    },
+    "RCA-1485-ledger-line-shift": {
+      "class": "I1",
+      "level": "instance-or-process",
+      "subject": "mutation ledger re-pointed after D7-01 line shift",
+      "trigger": "2 (red check: briefs)",
+      "date": "2026-09-23",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(a)",
+      "countermeasure": "not built (policy edit recorded)",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1485"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1485-ledger-line-shift.md"
+    },
+    "RCA-1499": {
+      "class": "P2",
+      "level": "instance-or-process",
+      "subject": "#1499 Heat Pump Action / hvac_action off on DHW-only steps",
+      "trigger": "1 (128 of 128 tags)",
+      "date": "2026-09-23",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "D8.md step 2 oracle: operating state vs the plan's own draw",
+      "landed": "f8630d95 (#1504)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1499#issuecomment-5803725714"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1499.md"
+    },
+    "RCA-1514": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#1514 body edit re-creates required contexts as skipped (regression of #1484)",
+      "trigger": "plan-assigned (regression of a fix; strict triggers not met)",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "pr-contract in its own workflow; pin keyed on required-contexts.json",
+      "landed": "e2e8c3bf (#1558)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1514#issuecomment-5805916237"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1514.md"
+    },
+    "RCA-1515": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#1515 required checks run unowned PR code (regression of #1402/#1403)",
+      "trigger": "1 (v6.6.10)",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "standing transitive owner walk over required contexts",
+      "landed": "e2e8c3bf (#1558)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1515#issuecomment-5805916471"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1515.md"
+    },
+    "RCA-1525": {
+      "class": "P5",
+      "level": "instance-or-process",
+      "subject": "#1525 sysid refusal silent while published status says success",
+      "trigger": "1 (v6.6.10)",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "check: cases drive every return of _adopt_system_identification",
+      "landed": "6180d5b7 via 14d7a276 (#1581)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/1525#issuecomment-5819869321"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1525.md"
+    },
+    "RCA-R8-P9-1522": {
+      "class": "P9",
+      "level": "instance-or-process",
+      "subject": "R8-P9 #1522 zoom controls after the chart in Tab order",
+      "trigger": "round-8 class (plan §6)",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "focus-order arm in card_browser",
+      "landed": "30ab40a0 (#1553)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1553"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P9-1522.md"
+    },
+    "RCA-R8-P8-1513": {
+      "class": "P8",
+      "level": "instance-or-process",
+      "subject": "R8-P8 #1513 unit normalisation + _current_weather regression",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a); regression (c)",
+      "countermeasure": "static unit check + convert at storage",
+      "landed": "c59672bc (#1559)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1559"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P8-1513.md"
+    },
+    "RCA-R8-I5b": {
+      "class": "I5",
+      "level": "instance-or-process",
+      "subject": "R8-I5b doc/comment/string drift (#1534-#1537)",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "doc_claims.py arms 4-5",
+      "landed": "4ae0b93a (#1560)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1560"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-I5b.md"
+    },
+    "RCA-R8-I1a-kill-rule": {
+      "class": "I1",
+      "level": "instance-or-process",
+      "subject": "R8-I1a mutation kill counted on exit status (#1521, #1531)",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "kill = failing check named in output; comment-only null control",
+      "landed": "6acd85ac (#1561)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1561"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-I1a-kill-rule.md"
+    },
+    "RCA-R8-P12-1517-1529": {
+      "class": "N-shared-config",
+      "level": "instance-or-process",
+      "subject": "R8-P12 away envelope unconditional restore (#1517) and diagnose_interval hand-off (#1529)",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "compare-and-restore by identity; executor hand-off allow-table",
+      "landed": "97dc04f2 (#1563)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1563"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P12-1517-1529.md"
+    },
+    "RCA-R8-P1": {
+      "class": "P1",
+      "level": "instance-or-process",
+      "subject": "R8-P1 #1518/#1519/#1541 non-finite leaves, Open-Meteo parse, platform scrub",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) #1518; (a) #1519/#1541",
+      "countermeasure": "three arms in finite_boundary/entities",
+      "landed": "8658ef6a (#1569)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1569"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P1.md"
+    },
+    "RCA-R8-P2": {
+      "class": "P2",
+      "level": "instance-or-process",
+      "subject": "R8-P2 hot-water entity gate (#1527, #1542)",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "two population-keyed barriers in entities.py",
+      "landed": "4b2a7d8c (#1572)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1572"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P2.md"
+    },
+    "RCA-R8-P6-1526": {
+      "class": "P6",
+      "level": "instance-or-process",
+      "subject": "R8-P6 #1526 heat-pump switch actuated via switch.* only",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "accept-list vs consumer route census",
+      "landed": "d48d9e9c (#1576)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1576"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P6-1526.md"
+    },
+    "RCA-R8-P5-1523": {
+      "class": "P5",
+      "level": "instance-or-process",
+      "subject": "#1523 sysid ignored the learning freeze (released)",
+      "trigger": "1 (release)",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "class check over coordinator.py",
+      "landed": "14d7a276 (#1581)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1581"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P5-1523.md"
+    },
+    "RCA-1546": {
+      "class": "I5",
+      "level": "instance-or-process",
+      "subject": "#1546 untranslated UpdateFailed raises (released)",
+      "trigger": "1 (release)",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "two doc_claims.py arms",
+      "landed": "f5d4743b (#1590)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1590"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1546.md"
+    },
+    "RCA-R8-P3": {
+      "class": "P3",
+      "level": "instance-or-process",
+      "subject": "R8-P3 COP priced by two sibling paths (wood/DHW)",
+      "trigger": "round-8 class",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "seam rule + law property",
+      "landed": "d449a3b1 (#1602)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1602"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-P3.md"
+    },
+    "RCA-R8-I3-1516": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#1516 published tag tree not checked to be on main",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "release-ancestry workflow step",
+      "landed": "e2e8c3bf (#1558)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1558"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-R8-I3-1516.md"
+    },
+    "RCA-1567-unpinned-installs": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "installs inside SHA-pinned jobs unpinned",
+      "trigger": "round-8 class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "lock files + barrier",
+      "landed": "7af2a261 (#1567)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1567"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1567-unpinned-installs.md"
+    },
+    "RCA-1566-stats-head-moved": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "policy_lint --stats head-moved keyed on the first verdict",
+      "trigger": "round-8 hygiene",
+      "date": "2026-09-24",
+      "status": "partial",
+      "parts_missing": [],
+      "process_state": "unlettered (detector tested only on its source window)",
+      "countermeasure": "one-per-shape synthetic fixture",
+      "landed": "ca8204f4 (#1566)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1566"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1566-stats-head-moved.md"
+    },
+    "RCA-1595-nan-ratchets": {
+      "class": "I1",
+      "level": "instance-or-process",
+      "subject": "ratchets fail open on a non-finite recorded budget",
+      "trigger": "class",
+      "date": "2026-09-24",
+      "status": "partial",
+      "parts_missing": [],
+      "process_state": "unlettered ('class never named')",
+      "countermeasure": "shared finite-budget barrier per ratchet",
+      "landed": "be9a9d58 (#1595)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1595"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1595-nan-ratchets.md"
+    },
+    "RCA-1565-mutation-timeouts": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "CI mutation job 90-minute timeouts",
+      "trigger": "recurring (lane)",
+      "date": "2026-09-24",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test"
+      ],
+      "process_state": null,
+      "countermeasure": "spread over worker trees; mutate touched lines; 160-min job",
+      "landed": "0974905c (#1565)",
+      "doc": [
+        "origin/main:docs/delivery/1565.md",
+        "RELEASE_NOTES.md (#1565)"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1565-mutation-timeouts.md"
+    },
+    "RCA-1577-ledger-anchors": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "mutation ledger DIRTY cascade on concurrent branches",
+      "trigger": "recurring class",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "ledger keyed by content anchor; count derived at merge base",
+      "landed": "3063c1ce (#1577)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1577"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1577-ledger-anchors.md"
+    },
+    "RCA-1584-root-cause-unanswered": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1584 root-cause-unanswered blocks (5 in window, 23 since 09-06); #1585",
+      "trigger": "recurring friction",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "recorded refusal; fixer.md route for #1585",
+      "landed": "48426266 (#1601)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1601"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1584-root-cause-unanswered.md"
+    },
+    "RCA-1596-gate-lease-wait": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#1596 gate-lease waits of hours (4 of 5 entries)",
+      "trigger": "recurring friction",
+      "date": "2026-09-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "bounded wait; stress.py to CI past one lease period",
+      "landed": "5bc99ceb (#1603)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1603"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1596-gate-lease-wait.md"
+    },
+    "RCA-1589-policy-docs-red": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "policy-docs red on main after #1589 (+#1592)",
+      "trigger": "2 (red on main)",
+      "date": "2026-09-25",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(c)",
+      "countermeasure": "re-own delivery_status.py and nightly_status.py",
+      "landed": "fab69590 (#1604)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1604"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-1589-policy-docs-red.md"
+    },
+    "RCA-coil-drain": {
+      "class": "P3",
+      "level": "instance-or-process",
+      "subject": "DHW planner wood forecast re-derived coil drain (R8-P3 carry)",
+      "trigger": "round-8",
+      "date": "2026-09-25",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test"
+      ],
+      "process_state": null,
+      "countermeasure": "features.py check (red until R8-P3 reads the trajectory)",
+      "landed": "e6a26880 via 23eaf856 (#1605)",
+      "doc": [
+        "origin/main commit e6a26880"
+      ],
+      "in_tree_home": "tools/audit/rca/RCA-coil-drain.md"
+    },
+    "V6612-bug5-switch": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 bug 5 (switches flip back on) and class P11",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "entity-action sweep in tests/entities.py",
+      "landed": "8f7abb96 via 6ce591a5",
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/1621"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-bug5-switch.md"
+    },
+    "V6612-listener-callback": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 arbiter listener not @callback",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "stub callback tags; async_track_state_change_event refuses untagged sync fn",
+      "landed": "d9a46139 via 9b60705e (#1619)",
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-listener-callback.md"
+    },
+    "V6612-bug3-4-echo": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 bugs 3/4 and the 25 °C reset (fork's 8 s echo read as landed)",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "owner ruling (hold what it wrote) + fix-review design-trace step",
+      "landed": "13852148 (#1619); 7b663b02/a3f04435 via 7c87d69b (#1625)",
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
+        "origin/handoff/v6612-rc-policy:tools/audit/handoff/v6612-rc-policy.md"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-bug3-4-echo.md"
+    },
+    "V6612-bug1-6-ownership": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 bugs 1 and 6 (arbiter's own DHW-only read as a block)",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-25",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(c)",
+      "countermeasure": "none beyond the fix (cannot recur under the ruling)",
+      "landed": "13852148 (#1619)",
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-bug1-6-ownership.md"
+    },
+    "V6612-bug2-lease": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 bug 2 (90-min DHW-only lease into a warm house)",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-25",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(a)",
+      "countermeasure": "refused: cheapest detector was field use",
+      "landed": null,
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-bug2-lease.md"
+    },
+    "V6612-bug7-card-history": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "v6.6.12 bug 7 (card history by position)",
+      "trigger": "1 (v6.6.7-v6.6.12)",
+      "date": "2026-09-25",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "rig serves HA semantics; real /api/history/period capture pinned",
+      "landed": "6caefba8 via 1f032bd4 (#1622); 3f9f7708 via d1e07037 (#1626)",
+      "doc": [
+        "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
+        "origin/handoff/v6612-history-shape:tools/audit/handoff/v6612-history-shape.md"
+      ],
+      "in_tree_home": "tools/audit/rca/V6612-bug7-card-history.md"
+    },
+    "R9-RC1-pinned-local": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#1633 red trigger: codeowners_gap graded on base copy only",
+      "trigger": "2 (red check)",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "prepr.sh steps 3e-3g (run pinned graders locally; refuse an unrun one)",
+      "landed": "b6234f2c (#1637)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/rca/RC1-root-cause-section.md",
+        "origin/handoff/r9-rc1-pinned-local-r2:tools/audit/handoff/r9-rc1-pinned-local.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/1637"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-RC1-pinned-local.md"
+    },
+    "R9-RC2-bug5-reboot": {
+      "class": "N-restart",
+      "level": "class",
+      "subject": "v6.6.12 bug 5 'all toggles on after reboot'; class N-restart",
+      "trigger": "1 (v6.6.12)",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d) queue; (a) mode; (c) #1621's check",
+      "countermeasure": "RC2 durability block in tests/features.py",
+      "landed": "4f25b5e3 (#1641); R6 8cca77bc (#1638)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/rca/RC2-bug5-reboot.md (brief)",
+        "origin/handoff/r9-rc2-user-state-durable:tools/audit/handoff/r9-rc2-user-state-durable.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/1641"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-RC2-bug5-reboot.md"
+    },
+    "R9-1638-clobbered-store": {
+      "class": "N-restart",
+      "level": "instance-or-process",
+      "subject": "R6 regression: setter save overwrote the store before the startup load",
+      "trigger": "none (record only)",
+      "date": "2026-09-26",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "(c)",
+      "countermeasure": "in-flight ordering fix in #1638",
+      "landed": "8cca77bc (#1638)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1638"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-1638-clobbered-store.md"
+    },
+    "R9-P2": {
+      "class": "P2",
+      "level": "class",
+      "subject": "class P2 (#1644)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c); D12-s2-02 (d)",
+      "countermeasure": "one-fact-one-owner registry lint (P2 owners block, F1.11)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p2/RCA.md",
+        "origin/handoff/r9-rca-p2:tools/audit/round9/rca/p2/RCA.md",
+        "origin/handoff/r9-rca-p2@3938c8ea",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p2.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1644"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P2.md"
+    },
+    "R9-I5": {
+      "class": "I5",
+      "level": "class",
+      "subject": "class I5 (#1645)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c) [earlier rounds recorded (a)]",
+      "countermeasure": "five corpus-wide doc_claims arms (F10.4) + quoted-line citation pass (F11.3)",
+      "landed": "quoted-line pass only, via 87d780c7 (#1715)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/i5/RCA.md",
+        "origin/handoff/r9-rca-i5@c6ba6036",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i5.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1645"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-I5.md"
+    },
+    "R9-I1": {
+      "class": "I1",
+      "level": "class",
+      "subject": "class I1 (#1646)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "per-site mutation ratchet + widened inventory (F10.3)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/i1/RCA.md",
+        "origin/handoff/r9-rca-i1@8eda51a2",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i1.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1646"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-I1.md"
+    },
+    "R9-P1": {
+      "class": "P1",
+      "level": "class",
+      "subject": "class P1 (#1647)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "magnitude scrub in store.py + finite_boundary Arm 4 (F1.6)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p1/RCA.md",
+        "origin/handoff/r9-rca-p1@0ade2456/99118d35",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p1.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1647"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P1.md"
+    },
+    "R9-I3": {
+      "class": "I3",
+      "level": "class",
+      "subject": "class I3 (#1648)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c); D11-s1-01 (d)",
+      "countermeasure": "field_coverage.mjs registered-check field coverage (F11.3)",
+      "landed": "767ab2c4 via 87d780c7 (#1715)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/i3/RCA.md",
+        "origin/handoff/r9-rca-i3:tools/audit/round9/rca/i3/RCA.md",
+        "origin/handoff/r9-rca-i3@844d14b7",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i3.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1648"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-I3.md"
+    },
+    "R9-P11": {
+      "class": "P11",
+      "level": "class",
+      "subject": "class P11 (#1649)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c); currency/Tibber routes (a)",
+      "countermeasure": "ha_contract.py: non-vacuity, hook re-runs, declared drops (F10.1)",
+      "landed": "1c711375 via 1ef6a805 (#1693)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p11/RCA.md",
+        "origin/handoff/r9-rca-p11@82e645c3",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p11.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1649"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P11.md"
+    },
+    "R9-I4": {
+      "class": "I4",
+      "level": "class",
+      "subject": "class I4 (#1650)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(a)",
+      "countermeasure": "agreement lane + grammar discovery (F11.4)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/i4/RCA.md",
+        "origin/handoff/r9-rca-i4:tools/audit/round9/rca/i4/RCA.md",
+        "origin/handoff/r9-rca-i4@06bae072",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i4.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1650"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-I4.md"
+    },
+    "R9-P6": {
+      "class": "P6",
+      "level": "class",
+      "subject": "class P6 (#1651)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "'every read has a producer' section, 7 arms (F1.11)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p6/RCA.md",
+        "origin/handoff/r9-rca-p6@aa2026b7",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p6.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1651"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P6.md"
+    },
+    "R9-P9": {
+      "class": "P9",
+      "level": "class",
+      "subject": "class P9 (#1652)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "p9Grid rendered-property rules over a state grid (F6.3)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p9/RCA.md",
+        "origin/handoff/r9-rca-p9@4f3b9d4f",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p9.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1652"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P9.md"
+    },
+    "R9-N-solve-recompute": {
+      "class": "N-solve-recompute",
+      "level": "class",
+      "subject": "class N-solve-recompute (#1653)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "production-call channel in stress.py (F10.2)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/avoidable-interpreter-bound-recomputation/RCA.md",
+        "origin/handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/avoidable-interpreter-bound-recomputation.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1653"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-N-solve-recompute.md"
+    },
+    "R9-P3": {
+      "class": "P3",
+      "level": "class",
+      "subject": "class P3 (#1654)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "one floor per thermal parameter + one floor price per zone (F1.10)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p3/RCA.md",
+        "origin/handoff/r9-rca-p3@2ca057ae",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p3.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1654"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P3.md"
+    },
+    "R9-P5": {
+      "class": "P5",
+      "level": "class",
+      "subject": "class P5 (#1655)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "adoption sweep perturbs told quantities (F4.2)",
+      "landed": "2e91e219 via fab17619 (#1718)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p5/RCA.md",
+        "origin/handoff/r9-rca-p5@d4cf63d9",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p5.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1655"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-P5.md"
+    },
+    "R9-N-cpu-gate-blind": {
+      "class": "I1",
+      "level": "class",
+      "subject": "class N-cpu-gate-blind (#1656)",
+      "trigger": "class (N>=3 in round 9; judge rca:true)",
+      "date": "2026-09-26",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "plant-axis coverage + loop-thread CPU figure (F10.2)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/cpu-gate-blind/RCA.md",
+        "origin/handoff/r9-rca-cpu-gate-blind@8352c9e0",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/cpu-gate-blind.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1656"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-N-cpu-gate-blind.md"
+    },
+    "R9-N-future-instant": {
+      "class": "N-future-instant",
+      "level": "class",
+      "subject": "class N-future-instant (#1660)",
+      "trigger": "class (N>=3 in round 9; judge rca:true); sweep raised N to 8",
+      "date": "2026-09-26",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "QuarantiningStore(lead=) + finite_boundary Arm 5 (F3.1)",
+      "landed": "74a4e17d via 917f16c2 (#1691)",
+      "doc": [
+        "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/persisted-future-instant-trusted-without-bound/RCA.md",
+        "origin/handoff/r9-rca-persisted-future-instant-trusted-without-bound@8795c4c2",
+        "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/persisted-future-instant-trusted-without-bound.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1660"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-N-future-instant.md"
+    },
+    "R9-RCA-1736": {
+      "class": "N-shared-config",
+      "level": "class",
+      "subject": "#1736 solve-scoped hub writes (5 instances over 3 rounds)",
+      "trigger": "1 (115 releases) + cross-round class",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(a) landing; (c) recognition",
+      "countermeasure": "EG-B1 per-solve immutable inputs; fold class into bugclasses.json; widen barrier window (policy, proposed)",
+      "landed": null,
+      "doc": [
+        "origin/handoff/r9-eg-b0:handoff/round9/state/alt/RCA-1736.md",
+        "https://github.com/tvofi/heatpump_optimizer/issues/1736#issuecomment-5877263448"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-RCA-1736.md"
+    },
+    "R9-1728-stamp-invariant": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "v6.7.8 stamp broke may-drift/claimed-for-VERSION (main red)",
+      "trigger": "2 (red on main)",
+      "date": "2026-09-27",
+      "status": "partial",
+      "parts_missing": [
+        "cost_test"
+      ],
+      "process_state": "unlettered",
+      "countermeasure": "coverage rule moved into env_drift --claims-only (stamp self-check)",
+      "landed": "f9c081fe (#1728)",
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1728"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-1728-stamp-invariant.md"
+    },
+    "PRE-70-v511-freeze": {
+      "class": "P10",
+      "level": "instance-or-process",
+      "subject": "v5.1.1 options save froze the instance (pre-doctrine)",
+      "trigger": "1 (release)",
+      "date": "2026-08-27",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test",
+        "countermeasure_or_refusal"
+      ],
+      "process_state": null,
+      "countermeasure": null,
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/70"
+      ],
+      "in_tree_home": "tools/audit/rca/PRE-70-v511-freeze.md"
+    },
+    "PRE-1249-picker-revert": {
+      "class": "N-restart",
+      "level": "instance-or-process",
+      "subject": "cleared entity picker reverted (released; later an N-restart instance)",
+      "trigger": "1 (release)",
+      "date": "2026-09-19",
+      "status": "partial",
+      "parts_missing": [
+        "process_state",
+        "cost_test",
+        "countermeasure_or_refusal"
+      ],
+      "process_state": null,
+      "countermeasure": null,
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1249"
+      ],
+      "in_tree_home": "tools/audit/rca/PRE-1249-picker-revert.md"
+    },
+    "BULK-1-P4": {
+      "class": "P4",
+      "level": "class",
+      "subject": "BULK-1-P4",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "refuse barrier; certificate is the detector (owner refusals #1293/#1294 on record)",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-1-P4.md"
+    },
+    "BULK-1-P7": {
+      "class": "P7",
+      "level": "class",
+      "subject": "BULK-1-P7",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: tracer config arm + straddle arm (F1.1 barrier catches 1 of 3 historical members)",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-1-P7.md"
+    },
+    "BULK-1-P8": {
+      "class": "P8",
+      "level": "class",
+      "subject": "BULK-1-P8",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: carry the feed currency from ingest + EUR-feed check; refuse #1657's resolver metric",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-1-P8.md"
+    },
+    "BULK-1-P10": {
+      "class": "P10",
+      "level": "class",
+      "subject": "BULK-1-P10",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: model-kernel calls outside the process worker = 0 (2304 on the loop at main)",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-1-P10.md"
+    },
+    "BULK-2-I2": {
+      "class": "I2",
+      "level": "class",
+      "subject": "BULK-2-I2",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: nightly strace comparison; refuse an over-scope barrier",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-2-I2.md"
+    },
+    "BULK-2-N-structure-blind": {
+      "class": "N-structure-blind",
+      "level": "class",
+      "subject": "BULK-2-N-structure-blind",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: reachability liveness + self-check + unmeasured-shape count",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-2-N-structure-blind.md"
+    },
+    "BULK-2-R-register": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "BULK-2-R-register",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: fold_ledger.py + round-record PR, register --check, in-tree RCA docs; policy parts to the owner; refuse rebuilding 9 lost records",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-2-R-register.md"
+    },
+    "BULK-3-1721": {
+      "class": "P11",
+      "level": "instance-or-process",
+      "subject": "BULK-3-1721",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "build: governance step in graders-head-copy running the PR's own policy_lint/field_coverage under GITHUB_TOKEN",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-3-1721.md"
+    },
+    "BULK-3-1545": {
+      "class": "I5",
+      "level": "instance-or-process",
+      "subject": "BULK-3-1545",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "confirmed: #1590's typing check fails at ba938dc3 and passes at main; gap: qs_py_typed_files has no check",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-3-1545.md"
+    },
+    "BULK-3-1070": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "BULK-3-1070",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "band confirmed (#1124, 97d9bdb3); per-file band refused until 3 per-file frictions in one window",
+      "landed": "97d9bdb3 (#1124)",
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-3-1070.md"
+    },
+    "BULK-3-v660-freeze": {
+      "class": "P10",
+      "level": "instance-or-process",
+      "subject": "BULK-3-v660-freeze",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "instrument first: nightly-ha loop heartbeat across options round-trips; cause not established",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-3-v660-freeze.md"
+    },
+    "BULK-3-1041-rerun": {
+      "class": "N-silent-zero",
+      "level": "instance-or-process",
+      "subject": "BULK-3-1041-rerun",
+      "trigger": "owed (register v2)",
+      "date": "2026-09-28",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "see doc",
+      "countermeasure": "refusal overturned: land merge_shape_guard (in agreement.mjs); lint/helper refusals confirmed",
+      "landed": null,
+      "doc": [
+        "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
+      ],
+      "in_tree_home": "tools/audit/rca/BULK-3-1041-rerun.md"
+    }
+  }
+}

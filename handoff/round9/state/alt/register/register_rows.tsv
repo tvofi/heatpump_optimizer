@@ -1,0 +1,487 @@
+round	finding_id	issue	class_id	r9_alias	kind	confidence	source	note
+R1	D1-01		P1		judged	high	12743bf7:handoff/round8/findings.tsv:2	critical; Corrupted ledger month wedges every update cycle (from_dict accepts malformed lines)
+R1	D1-04		P6		judged	high	12743bf7:handoff/round8/findings.tsv:3	medium; Weather fetch failure fabricates flatlined zero forecast forever, no staleness flag
+R1	D1-05		P1		judged	high	12743bf7:handoff/round8/findings.tsv:4	medium; Corrupted snapshot accuracy field crashes drift-rollback path
+R1	D2-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:5	medium; sysid.identify() over-estimates UA under sensor noise; adoption gate rewards drift
+R1	D4-04		P8		judged	high	12743bf7:handoff/round8/findings.tsv:6	high; Hardcoded SEK in config-flow labels and Repairs notices despite currency-agnostic price data
+R1	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:7	critical; Card chart SVG text renders at 3.19px glyph height on phone width
+R1	D4-02		P9		judged	high	12743bf7:handoff/round8/findings.tsv:8	high; Single-point series render nothing while legend chip still reads active
+R1	D4-03		P9		judged	high	12743bf7:handoff/round8/findings.tsv:9	high; Estimated prices label overlaps lane-row labels
+R1	D4-06		P9		judged	high	12743bf7:handoff/round8/findings.tsv:10	medium; Projected savings headline discloses baseline only via hover tooltip
+R1	D7-01		P2		judged	low	12743bf7:handoff/round8/findings.tsv:11	FLAG->none (coordinator size/coupling: architecture finding, no mechanism class fits (candidate: coordinator concentration)); critical; 10,041-line coordinator class; state is the coupling across 249 methods
+R1	D7-02		P5		judged	high	12743bf7:handoff/round8/findings.tsv:12	high; sysid fits first-order plant to >=2nd order house; wrong-signed coefficient on target houses
+R1	D7-03		P10		judged	low	12743bf7:handoff/round8/findings.tsv:13	FLAG->P2 (scalar vs batch physics duplicated (one fact computed twice); not loop starvation); high; Scalar vs batch physics ~720 duplicated lines kept identical only by _grad_parity
+R1	D7-04		P6		judged	high	12743bf7:handoff/round8/findings.tsv:14	medium; last_buffer_trajectory side-channel: scalar writes, batch doesn't; latent stale-read trap
+R1	D7-05		P2		judged	high	12743bf7:handoff/round8/findings.tsv:15	medium; Freeze-gate asymmetry: _accuracy.record() gated only on pump signals, not open-window
+R1	D9-01		P10		judged	med	12743bf7:handoff/round8/findings.tsv:16	FLAG->N-solve-recompute (batched gradient bypassed: avoidable solve CPU, not event-loop starvation); critical; Batched gradient bypassed on 38/39 DHW golden scenarios; ~40x slower solve
+R1	D9-02		P10		judged	high	12743bf7:handoff/round8/findings.tsv:17	high; Solve in executor starves HA event loop 75-76% of solve wall time (GIL)
+R1	D10-06		P2		judged	high	12743bf7:handoff/round8/findings.tsv:18	critical; async_shutdown() drops super(); base coordinator timer/debouncer leak on unload
+R1	D10-07		P6		judged	high	12743bf7:handoff/round8/findings.tsv:19	high; Tibber fetch failures swallowed; last_update_success never flips
+R1	D10-01		I5		judged	low	12743bf7:handoff/round8/findings.tsv:20	FLAG->none (HA quality-scale code conformance (service registration), not docs drift); high; Services registered per config-entry not in async_setup (HA quality rule)
+R1	D10-02		I5		judged	low	12743bf7:handoff/round8/findings.tsv:21	FLAG->none (HA quality-scale code conformance (runtime_data), not docs drift); high; hass.data[DOMAIN] everywhere; ConfigEntry.runtime_data never used
+R1	D10-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:22	high; No duplicate-entry protection in config flow
+R1	D10-08		P2		judged	high	12743bf7:handoff/round8/findings.tsv:23	high; No reauthentication flow for Tibber token
+R1	D10-12		I5		judged	low	12743bf7:handoff/round8/findings.tsv:24	FLAG->none (missing diagnostics platform: code conformance, not docs drift); medium; No diagnostics platform for 149 published keys, incl. token
+R1	D10-13		I5		judged	high	12743bf7:handoff/round8/findings.tsv:25	low; 64 hardcoded _attr_icon, zero icons.json
+R1	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:26	medium; All three L-BFGS-B starts cluster in one basin; bang-bang start reaches cheaper plans
+R1	D0-02		P4		judged	high	12743bf7:handoff/round8/findings.tsv:27	low; _MULTI_START_SOLVES=2 discards a candidate that refines below the shipped result
+R1	D3-01		I1		judged	high	12743bf7:handoff/round8/findings.tsv:28	critical; Compressor-cycling penalty deletable, vacuous even in its titled test
+R1	D3-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:29	critical; COP-learner trust-region clamp deletable; full closure passes
+R1	D3-03		I1		judged	high	12743bf7:handoff/round8/findings.tsv:30	high; ECL110 first-order lag physics deletable, asserted nowhere
+R1	D3-04		I1		judged	high	12743bf7:handoff/round8/findings.tsv:31	high; COP-degradation repair text claims full monthly bill for 1% shortfall, only keys checked
+R1	D3-05		I1		judged	high	12743bf7:handoff/round8/findings.tsv:32	high; pump_mode_unreadable notification path made a no-op, nothing notices
+R1	D3-06		I1		judged	high	12743bf7:handoff/round8/findings.tsv:33	high; climate.hvac_action hard-coded wrong value, zero test references
+R1	D3-07		I1		judged	high	12743bf7:handoff/round8/findings.tsv:34	medium; Grid-fee day-range wrap-around branch deletable, no string exercises it
+R1	D3-08		I1		judged	high	12743bf7:handoff/round8/findings.tsv:35	medium; Config-flow DHW deadband validation permanently disabled, no test notices
+R1	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:36	high; configuration.md missing four real always-asked fields
+R1	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:37	high; configuration.md field counts wrong (21 actual vs 17/18 documented)
+R1	D5-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:38	medium; architecture.md module map omits pump_mode.py/pump_signals.py
+R1	D5-04		I5		judged	high	12743bf7:handoff/round8/findings.tsv:39	medium; plan-open-issues.md lists six shipped issues as open
+R1	D6-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:40	medium; manifest.json documentation/issue_tracker/codeowners point to 404 GitHub identity
+R1	D6-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:41	medium; apply_manual_plan documented example values fail the service's own schema
+R1	D8-01		P6		judged	high	12743bf7:handoff/round8/findings.tsv:42	critical; ScheduleSensor leaks numpy.float64 via solar_gain_trajectory, orjson crashes
+R1	D8-02		P6		judged	high	12743bf7:handoff/round8/findings.tsv:43	high; _fetch_weather_forecast empty-result silently keeps stale forecast forever
+R2	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:44	medium; Capacity-tariff single-zone solver stalls on top-k peak plateau (2-point gradient can't see it)
+R2	D0-02		P4		judged	high	12743bf7:handoff/round8/findings.tsv:45	low; Two-zone solves stop on FACTR at non-stationary points
+R2	D0-03		P3		judged	high	12743bf7:handoff/round8/findings.tsv:46	medium; Small buffer tank + manual mixing valve: re-solve stops at tank-clamp kink
+R2	D1-01		P2		judged	high	12743bf7:handoff/round8/findings.tsv:47	medium; ConfigEntryNotReady leaks listeners/MQTT subs per retry; guard on hass not entry.async_on_unload
+R2	D1-02		P2		judged	high	12743bf7:handoff/round8/findings.tsv:48	medium; Reload during scheduled solve: torn-down coordinator finishes update after async_shutdown
+R2	D1-03		P1		judged	high	12743bf7:handoff/round8/findings.tsv:49	medium; Store loaders crash on corrupt payloads; 152/2000 seeded mutants leave 3 stores forever lost
+R2	D1-04		P6		judged	high	12743bf7:handoff/round8/findings.tsv:50	medium; Price list not covering horizon planned/actuated on flat 0.5 fallback, only price_known_steps=0 discloses it
+R2	D1-05		P6		judged	med	12743bf7:handoff/round8/findings.tsv:51	FLAG->N-shared-config (async_simulate shares live DefrostDerate/gains/dhw_windows with the loop mid-solve); low; async_simulate replace() shares live DefrostDerate/gains/dhw_windows with loop mid-solve
+R2	D2-01		P3		judged	high	12743bf7:handoff/round8/findings.tsv:52	high; Batched single-zone sim ignores Euler sub-step; two-zone twin diverges >=5.28C
+R2	D2-02		P8		judged	low	12743bf7:handoff/round8/findings.tsv:53	FLAG->P3 (COP law non-monotone with a mixing valve: physics formula, not currency/unit precedence); medium; With mixing valve, compute_cop falls as outdoor temp rises above 10-17C (non-monotone)
+R2	D2-03		P7		judged	high	12743bf7:handoff/round8/findings.tsv:54	medium; Planning grid steps wall-clock time; 84/96 steps mispriced on DST transition days
+R2	D2-04		P5		judged	high	12743bf7:handoff/round8/findings.tsv:55	low; sysid confidence cannot reach 0.3 adoption gate at 30-min sampling; drift (not noise) passes it biased
+R2	D2-05		P3		judged	high	12743bf7:handoff/round8/findings.tsv:56	low; wood_share jumps 1.0 for 1e-6K change where docstring claims continuity
+R2	D3-01		I1		judged	high	12743bf7:handoff/round8/findings.tsv:57	medium; PredictiveInsightSensor loses all 21 attributes, no closure script notices
+R2	D3-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:58	medium; dhw_next_window_in_hours inside-a-window return deletable; all goldens start outside a window
+R2	D3-03		I1		judged	high	12743bf7:handoff/round8/findings.tsv:59	medium; DHW setpoint advisor non-positive-mean-price floor deletable, no negative-price scenario used
+R2	D3-04		I1		judged	high	12743bf7:handoff/round8/findings.tsv:60	low; grid_fee._parse_rule finiteness check deletable, NaN rate reaches fee_vector
+R2	D3-05		I1		judged	high	12743bf7:handoff/round8/findings.tsv:61	low; AccuracyTracker.from_dict non-numeric-key handler deletable, no test carries a bad key
+R2	D3-06		I1		judged	high	12743bf7:handoff/round8/findings.tsv:62	low; open_meteo per-sample timestamp handler deletable, none of 30 checks carries a malformed one
+R2	D3-07		I1		judged	high	12743bf7:handoff/round8/findings.tsv:63	low; InputReader._age_minutes clamp deletable, could publish negative age
+R2	D3-08		I1		judged	high	12743bf7:handoff/round8/findings.tsv:64	low; Six closure scripts run 30-34 mutants each and kill none (thin assertion surface)
+R2	D3-09		I2		judged	high	12743bf7:handoff/round8/findings.tsv:65	low; Measured closures are the whole package import; validate.py executes 8/38 of its own closure
+R2	D3-10		I1		judged	high	12743bf7:handoff/round8/findings.tsv:66	medium; Drift gate cannot fail on five SENSITIVE fixtures by design; env_drift --all returns rc 0 with 458 leaves moved
+R2	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:67	high; Chart text 3.70px on 359px phone tile at first paint, no re-render on resize (regression of R1 fix)
+R2	D4-02		P9		judged	high	12743bf7:handoff/round8/findings.tsv:68	high; Schedule-editor targets 5.5-19.9px tall, 1,883 targets under 24px
+R2	D4-03		P9		judged	high	12743bf7:handoff/round8/findings.tsv:69	medium; Axis labels collide at plot corners in every chart state
+R2	D4-04		P9		judged	high	12743bf7:handoff/round8/findings.tsv:70	medium; Empty-state code entity ids spill 31-44px past card box on 359px tiles
+R2	D4-05		P9		judged	high	12743bf7:handoff/round8/findings.tsv:71	medium; Primary-color text and Save button render at 2.63:1 contrast in HA default light theme
+R2	D4-06		P9		judged	high	12743bf7:handoff/round8/findings.tsv:72	medium; Opacity-faded active content below AA contrast
+R2	D4-07		P9		judged	high	12743bf7:handoff/round8/findings.tsv:73	medium; No control grows for coarse pointer; 548 targets under 44px
+R2	D4-08		P9		judged	high	12743bf7:handoff/round8/findings.tsv:74	low; Three of seven SERIES_DEFS colours below WCAG 1.4.11 3:1 on light background
+R2	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:75	low; tests/README.md contradicts tree in seven statements
+R2	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:76	low; configuration.md/ecl110.md contradict shipped MQTT defaults
+R2	D5-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:77	low; Three docs unreachable from README.md by relative links
+R2	D5-04		I5		judged	high	12743bf7:handoff/round8/findings.tsv:78	low; Five content defects: broken prose, stale version, undefined term
+R2	D5-05		I5		judged	high	12743bf7:handoff/round8/findings.tsv:79	low; Comments cite wrong service name / physically-wrong constant claim
+R2	D6-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:80	low; README sensor-table names lack lifetime/next-24h qualifiers strings.json carries
+R2	D6-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:81	low; services.yaml example value contradicts DEFAULT_WIND_SENSITIVITY
+R2	D6-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:82	low; services.yaml declares min 0.0 where schema binds vol.Range(min=0.01)
+R2	D6-04		I5		judged	high	12743bf7:handoff/round8/findings.tsv:83	low; README quoted reference run figures do not reproduce
+R2	D6-05		I5		judged	high	12743bf7:handoff/round8/findings.tsv:84	low; DISCLAIMER.md savings baseline description imprecise vs actual simulated thermostat
+R2	D7-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:85	medium; Active sysid cannot identify production two-store plant; 0/24 cells usable fit
+R2	D7-02		P2		judged	high	12743bf7:handoff/round8/findings.tsv:86	medium; Defrost flag freezes COP learner but not fabric learners, delivered-heat shortfall booked as heat loss
+R2	D7-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:87	low; _record_accuracy skips only on pump-signal freeze; open-window/external-heat intervals still recorded
+R2	D7-04		P6		judged	high	12743bf7:handoff/round8/findings.tsv:88	low; last_buffer_trajectory side channel still worth 5.42 SEK if sim intervenes between writer/reader
+R2	D7-05		P2		judged	low	12743bf7:handoff/round8/findings.tsv:89	FLAG->none (coordinator size/coupling: architecture finding, no mechanism class fits); low; 10,269-line coordinator, 256 methods, no clustering gets cross-cluster refs under 0.33
+R2	D7-06		I5		judged	low	12743bf7:handoff/round8/findings.tsv:90	FLAG->N-structure-blind (dead defs no gate script starts: dead production members); low; Five dead defs (46 lines) never started by any gate script
+R2	D8-01		P6		judged	high	12743bf7:handoff/round8/findings.tsv:91	high; ThermalState() constructor defaults published as available temps while corresponding sensors unavailable
+R2	D8-02		P1		judged	high	12743bf7:handoff/round8/findings.tsv:92	low; numpy scalars reach entity attributes at three sites, bypassing _plain_types
+R2	D8-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:93	low; Optimization/DHW Schedule truncated to 6h while README says whole 24h
+R2	D8-04		P2		judged	med	12743bf7:handoff/round8/findings.tsv:94	FLAG->N-name-sort (alphabetical order splits entity families: name-sort mechanism, no predicate involved); low; Alphabetical order splits ten hand-listed entity families
+R2	D9-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:95	high; One zero-range bound puts whole solve on scalar FD path, 710-751x reference
+R2	D9-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:96	medium; Stress gate can't see 2x/4x solve regression at baseline (smallest detectable 4.69x)
+R2	D9-03		P10		judged	med	12743bf7:handoff/round8/findings.tsv:97	FLAG->N-solve-recompute (batched jac re-evaluates f(x): avoidable recomputation in the solve); low; Batched jac re-evaluates f(x) scipy just computed, doubling scalar steps
+R2	D9-04		I1		judged	high	12743bf7:handoff/round8/findings.tsv:98	low; DHW planning cost share mismeasured; per-slot re-simulation 43-59% uncounted
+R2	D9-05		P10		judged	high	12743bf7:handoff/round8/findings.tsv:99	medium; Solve starves event loop 96.7-99.8% of wall time on real asyncio loop
+R2	D10-01		I5		judged	med	12743bf7:handoff/round8/findings.tsv:100	FLAG->P2 (no duplicate-entry guard: same defect as R1 D10-03 (P2) and R9 D10-s1-01 (P2), filed here as I5); medium; Nothing prevents second config entry (0 duplicate-entry guards)
+R2	D10-02		P6		judged	high	12743bf7:handoff/round8/findings.tsv:101	medium; Rejected Tibber token reported as transient UpdateFailed, not ConfigEntryAuthFailed
+R2	D10-03		I3		judged	high	12743bf7:handoff/round8/findings.tsv:102	low; Three failed refreshes produce four ERROR records with tracebacks (regression of D10-09 fix)
+R2	D10-04		P6		judged	high	12743bf7:handoff/round8/findings.tsv:103	low; Service actions swallow operational failures, return instead of raising HomeAssistantError
+R2	D10-05		P2		judged	high	12743bf7:handoff/round8/findings.tsv:104	low; Two buttons stay available after failed refresh; other 63 entities gated
+R2	D10-09		I5		judged	high	12743bf7:handoff/round8/findings.tsv:105	low; 0/14 ServiceValidationError raises carry translation_domain/translation_key
+R2	D10-15		I5		judged	low	12743bf7:handoff/round8/findings.tsv:106	FLAG->P2 (two energy sensors lack the ENERGY device class their siblings carry); low; solar_surplus_forecast/dhw_heavy_day_demand publish kWh without ENERGY device class
+R3	D1-01	#773	P1		judged	high	12743bf7:handoff/round8/findings.tsv:107	high; A JSON string 'nan' in thermal_learning store makes every update cycle raise UpdateFailed permanently
+R3	D1-02	#774	P6		judged	high	12743bf7:handoff/round8/findings.tsv:108	low; Reload plan handover has no expiry: a 7-day-old plan reports 0.0 minutes old
+R3	D1-03	#775	P7		judged	med	12743bf7:handoff/round8/findings.tsv:109	FLAG->N-future-instant (backward clock step makes a recorded instant lie ahead of now; the watchdog trusts it (in-process, not persisted)); medium; Backward host-clock step under-reports input age; staleness watchdog fails open
+R3	D2-01	#776	P5		judged	high	12743bf7:handoff/round8/findings.tsv:110	low; COP falls as outdoor temp rises in heating band when Carnot flow correction on
+R3	D2-02	#777	P7		judged	high	12743bf7:handoff/round8/findings.tsv:111	low; tariff.window_factors walks wall clock while plan walks UTC; DST days label wrong hour
+R3	D2-03	#778	P5		judged	high	12743bf7:handoff/round8/findings.tsv:112	high; Drifting room sensor lands in identified heat-loss coefficient; adoption gate rewards the drift
+R3	D7-01	#779	P5		judged	high	12743bf7:handoff/round8/findings.tsv:113	medium; sysid step experiment sized by one-state model of a two-state plant, adopts nothing
+R3	D7-03	#781	P2		judged	high	12743bf7:handoff/round8/findings.tsv:114	medium; Frequency map folded during reverse-cycle cooling, inherited when user switches control mode
+R3	D9-02	#782	I1		judged	med	12743bf7:handoff/round8/findings.tsv:115	FLAG->N-restart (fuse advisor rate limit memory-only, lost at restart: state not surviving restart); low; Fuse advisor weekly rate limit is memory-only, restart re-runs shadow solve
+R3	D9-03	#783	P10		judged	high	12743bf7:handoff/round8/findings.tsv:116	low; In-process solve fallback holds GIL ~90% of solve, no cap on time spent there
+R3	D9-04	#784	I1		judged	high	12743bf7:handoff/round8/findings.tsv:117	low; Solve worker released only at HA shutdown, nothing measures its cost honestly
+R3	D8-01	#795	P6		judged	high	12743bf7:handoff/round8/findings.tsv:118	medium; Wood night advisor gated on a value nothing supplies, though tree already computes it
+R3	D8-02	#796	P2		judged	high	12743bf7:handoff/round8/findings.tsv:119	low; One enabled-by-default sensor renders Unknown where siblings render Unavailable
+R3	D8-03	#797	I5		judged	med	12743bf7:handoff/round8/findings.tsv:120	FLAG->N-name-sort (names mix leading/trailing nouns so sort splits families); low; Entity display names mix leading/trailing nouns, alphabetical sort splits families
+R3	D11-01	#798	I3		judged	high	12743bf7:handoff/round8/findings.tsv:121	critical; main's ruleset cannot require a review from any actor; merging identity bypasses every rule
+R3	D11-02	#799	I3		judged	high	12743bf7:handoff/round8/findings.tsv:122	high; record is a required context whose job cannot run on a pull request
+R3	D11-03	#800	I3		judged	high	12743bf7:handoff/round8/findings.tsv:123	high; Owner-approval section required only when author's own title starts with policy:
+R3	D11-04	#801	I5		judged	high	12743bf7:handoff/round8/findings.tsv:124	low; No SECURITY.md advertises the private vulnerability channel already enabled
+R3	D11-05	#802	I3		judged	high	12743bf7:handoff/round8/findings.tsv:125	medium; Five dispatch prompts read GitHub free text while holding merge authority; no rule says it's untrusted
+R3	D3-01	#805	I1		judged	high	12743bf7:handoff/round8/findings.tsv:126	medium; 15/34 single-line production mutants survive fast gate and differential golden gate
+R3	D3-02	#806	I1		judged	high	12743bf7:handoff/round8/findings.tsv:127	medium; A sensor can be made to return None for every state and the gate stays green
+R3	D3-03	#807	I1		judged	high	12743bf7:handoff/round8/findings.tsv:128	medium; Price-shape isfinite guard unpinned; one NaN hour poisons whole weekday profile
+R3	D3-04	#808	I1		judged	high	12743bf7:handoff/round8/findings.tsv:129	medium; Disabling irradiance fallback caught only by a ratchet that calls it an improvement
+R3	D3-05	#809	I1		judged	high	12743bf7:handoff/round8/findings.tsv:130	low; Line deletion is the wrong operator for the end-to-end solver scripts
+R3	D3-FLAKE	#810	I2		judged	high	12743bf7:handoff/round8/findings.tsv:131	medium; Wall-clock lower bound in #525 null control makes ~15% of features.py runs red at random
+R3	D5-01	#835	I5		judged	high	12743bf7:handoff/round8/findings.tsv:132	low; 12/180 adjudicated docs field-help audit rows; finder's 10 conservative
+R3	D5-02	#836	I5		judged	high	12743bf7:handoff/round8/findings.tsv:133	low; 2/739 unresolvable docs symbol refs; gloss inflates actionable population 13x
+R3	D5-03	#FIXED-in-PR-833	I5		judged	high	12743bf7:handoff/round8/findings.tsv:134	low; 1 broken anchor of 338 links / 98 md files
+R3	D5-04	#FIXED-in-PR-833	I5		judged	high	12743bf7:handoff/round8/findings.tsv:135	low; 1 supersession pair, both halves broken; two metrics move independently
+R3	D6-01	#834	I5		judged	high	12743bf7:handoff/round8/findings.tsv:136	medium; 21 offered / 6 top / 15 advanced vs 13 documented options-page census wrong
+R3	D6-02	#FIXED-in-PR-833	I5		judged	high	12743bf7:handoff/round8/findings.tsv:137	low; 74 constants by two independent counting rules; 5 false census sentences
+R3	D6-04	#837	I5		judged	high	12743bf7:handoff/round8/findings.tsv:138	low; 12 constructed / 10 listed entities; repair is gate-blocked (tests/entities.py uses vars())
+R3	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:139	low; Same cell is the maximum for both arms on both grids; unfair comparison, not actionable
+R3	D0-02		P4		judged	high	12743bf7:handoff/round8/findings.tsv:140	low; Actionable half of the same defect; price-shape qualifier is a band-17 artefact
+R3	D10-02	#828	I5		judged	high	12743bf7:handoff/round8/findings.tsv:141	low; 1 of 270 / 3 of 810 HA quality-scale claim mismatches, ruler-robust
+R4	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:142	low; L-BFGS-B ftol=1e-6 halts space solve short in 34/70 priced cells
+R4	D0-02		P4		judged	high	12743bf7:handoff/round8/findings.tsv:143	low; Iteration budget policed by tests never binding; ftol, which moves every plan, has no gate
+R4	D1-01		P1		judged	high	12743bf7:handoff/round8/findings.tsv:144	high; Non-finite bin in persisted price shape prices 4/96 steps at 0.0 SEK/kWh silently
+R4	D1-02		P1		judged	high	12743bf7:handoff/round8/findings.tsv:145	high; Corrupt scalar in accuracy store raises in _async_load_accuracy, next cycle overwrites learned fields
+R4	D2-01		P3		judged	high	12743bf7:handoff/round8/findings.tsv:146	high; tariff._smooth_topk_sum bisects on a bracket not scaled by its logistic temperature
+R4	D2-02		P3		judged	high	12743bf7:handoff/round8/findings.tsv:147	medium; Every shipped DSO catalog row writes a peak-hours mask that discounts 0/672 windows
+R4	D2-03		P3		judged	high	12743bf7:handoff/round8/findings.tsv:148	high; thermal_model.wood_share discontinuous at hp_temp==flow_set, docstring claims continuity
+R4	D2-04		P8		judged	med	12743bf7:handoff/round8/findings.tsv:149	FLAG->P3 (COP floor applied before Carnot/DHW factors: a floor applied inconsistently, not currency/unit); medium; Modelled COP falls below 1.0 in 51/328 cells, inverts below -21C; Carnot/DHW factors apply after floor
+R4	D2-05		P6		judged	high	12743bf7:handoff/round8/findings.tsv:150	low; Grid-fee decimal commas unreachable: parse_rules splits on comma _parse_rule converts
+R4	D3-S1		I1		judged	high	12743bf7:handoff/round8/findings.tsv:151	-; grid_fee.py non-wrapping range like Mar-Sep becomes year-round; only wrapping case is asserted
+R4	D3-S2		I1		judged	high	12743bf7:handoff/round8/findings.tsv:152	-; legionella.py disabled-feature guard, both assertions run enabled
+R4	D3-S3		I1		judged	high	12743bf7:handoff/round8/findings.tsv:153	-; tariff.py top-k clamp a no-op on the one fixture that calls it
+R4	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:154	high; Plan lane strip labels render at 6.4 CSS px / 1.01:1 contrast; card_browser.mjs filters lane-* out of own check
+R4	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:155	medium; docs/configuration.md names 15 of 200 shipped options fields nowhere
+R4	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:156	low; tests/README.md states stress sweep of 48; sweep_combinations() returns 51
+R4	D6-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:157	high; docs/architecture.md stale in ten claims including the HA-boundary claim it exists to state
+R4	D6-02		P8		judged	high	12743bf7:handoff/round8/findings.tsv:158	medium; Sensor-Gap Euro Advisor documented with currency unit, publishes none (unitless)
+R4	D6-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:159	low; docs/automations.md states a Power Headroom precondition the code does not enforce
+R4	D7-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:160	medium; sysid experiment adopted in 0/18 cells: identifier fits one state to a two-state plant
+R4	D7-02		P3		judged	low	12743bf7:handoff/round8/findings.tsv:161	FLAG->P5 (sysid sizing model ignores the house slab constants: model-structure mismatch like R4 D7-01); medium; sysid._sizing_model leaves slab constants at defaults for every house, breaching excursion in 6/18 cells
+R4	D7-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:162	high; _learning_frozen never consults _pump_signals.defrosting; 3/4 learners fold a defrost interval
+R4	D8-01		P2		judged	med	12743bf7:handoff/round8/findings.tsv:163	FLAG->N-name-sort (alphabetical order interleaves foreign entities in family spans); low; Alphabetical order leaves 159 foreign entities inside seven families' spans
+R4	D8-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:164	low; Four entities are the only ones with no icons.json entry
+R4	D9-05		P10		judged	high	12743bf7:handoff/round8/findings.tsv:165	FLAG->N-solve-recompute (cost recomputed in a per-row Python loop: exactly R9 D9-s1-01 shape); medium; Batched objective vectorizes physics then recomputes cost in a Python loop: 33.3% of solve wall
+R4	D9-06		I1		judged	high	12743bf7:handoff/round8/findings.tsv:166	medium; tests/stress.py cannot detect a 2x memory regression on any of 51 scenarios
+R4	D10-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:167	low; quality_scale.yaml drifted: 3/54 rows contradicted by execution
+R4	D10-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:168	low; docs-known-limitations declared done with 0 such headings across 4075 lines
+R4	D10-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:169	low; Package root re-binds HeatPumpOptimizerConfigEntry to bare ConfigEntry; runtime_data reveals Any
+R4	D11-01		I3		judged	high	12743bf7:handoff/round8/findings.tsv:170	critical; main-protect carries no pull_request rule in any of five versions; 0/592 merges have approving review
+R4	D11-02		I3		judged	high	12743bf7:handoff/round8/findings.tsv:171	critical; Eight sites instruct a merge-privileged seat to act on issue/PR text, zero sentences naming it untrusted
+R4	D11-03		I3		judged	high	12743bf7:handoff/round8/findings.tsv:172	high; The one root-cause trigger CLAUDE.md calls enforced is inert in CI: no --red passed
+R4	D11-04		I3		judged	high	12743bf7:handoff/round8/findings.tsv:173	high; Eight tree assertions contradict the live required-check set (18->17->16)
+R4	D11-05		I3		judged	high	12743bf7:handoff/round8/findings.tsv:174	medium; Disposition rule cannot be satisfied before merge; turns main red on 44% of pushes
+R4	D11-06		I4		judged	high	12743bf7:handoff/round8/findings.tsv:175	medium; policy_lint --stats reports a class over threshold and opens nothing; runs under || true
+R4	D11-07		I3		judged	high	12743bf7:handoff/round8/findings.tsv:176	low; No release artefact/provenance: SLSA level 0, 7/9 workflow actions on mutable tags
+R4	D12-01		P8		judged	high	12743bf7:handoff/round8/findings.tsv:177	high; Every temperature input adopted as degC whatever unit HA reports; 96-step plan totals 0.0 kWh
+R5	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:178	medium; ftol=1e-6 stop rule ships plans 0.04-0.93% above what ftol 1e-9 reaches
+R5	D0-03		P4		judged	high	12743bf7:handoff/round8/findings.tsv:179	medium; Fixed four-seed multi-start ships plans strictly above basins one extra structured seed reaches
+R5	D0-04		P4		judged	high	12743bf7:handoff/round8/findings.tsv:180	medium; MPC never warm-starts from the previous shipped plan, though that seed is the most frequent winner
+R5	D1-05		P1		judged	high	12743bf7:handoff/round8/findings.tsv:181	high; One non-finite value in DHW-profile store survives loader into learned state (220 NaN leaves)
+R5	D1-06		P1		judged	high	12743bf7:handoff/round8/findings.tsv:182	high; 'nan' sensor state publishes a failed plan while cycle reports success; Tibber crash escapes 6/6
+R5	D1-07		P1		judged	high	12743bf7:handoff/round8/findings.tsv:183	medium; Weather success path not exception-safe: one non-numeric solar_irradiance latches forecast stale
+R5	D1-08		P7		judged	high	12743bf7:handoff/round8/findings.tsv:184	medium; Age seams subtract same-ZoneInfo datetimes naively: +-1h across DST
+R5	D2-01		P3		judged	high	12743bf7:handoff/round8/findings.tsv:185	medium; Wood tank 95C ceiling clamps charge rate, silently deletes external-heat forecast (no refused ledger)
+R5	D2-02		P3		judged	high	12743bf7:handoff/round8/findings.tsv:186	medium; Shipped 35L valved buffer: more power can leave buffer cooler (non-monotone, discontinuous)
+R5	D2-03		P5		judged	high	12743bf7:handoff/round8/findings.tsv:187	medium; sysid.identify admits sensor-drift-biased UA through the confidence>=0.3 gate: median -28.1%
+R5	D3-01		I2		judged	high	12743bf7:handoff/round8/findings.tsv:188	medium; Closure recorder attributes 0 files to warm-__pycache__ exec_module load; warm re-derivations miss real deps
+R5	D3-02		I2		judged	high	12743bf7:handoff/round8/findings.tsv:189	low; tests/closures.json carries 199 phantom entries; merge never drops committed entries
+R5	D3-03		I1		judged	high	12743bf7:handoff/round8/findings.tsv:190	low; optimality.py is thinnest assertion surface per solve (1.25 checks/solve)
+R5	D3-04		I1		judged	high	12743bf7:handoff/round8/findings.tsv:191	medium; Gate can't fail on coordinator._mixing_valve_view's >=2-positives guard
+R5	D3-05		I1		judged	high	12743bf7:handoff/round8/findings.tsv:192	medium; Gate can't fail on price_model.quarter_confidence's min(1.0,...) cap
+R5	D3-06		I1		judged	high	12743bf7:handoff/round8/findings.tsv:193	medium; Gate can't fail on coordinator._fold_capacity_envelope's non-finite guard
+R5	D3-07		I1		judged	high	12743bf7:handoff/round8/findings.tsv:194	low; Gate can't fail on sensor._finite's ndarray branch (unobservable via __init_subclass__ scrub)
+R5	D3-08		I1		judged	high	12743bf7:handoff/round8/findings.tsv:195	low; Gate can't fail on curve_learning._step_down's bias clamp
+R5	D3-09		I1		judged	high	12743bf7:handoff/round8/findings.tsv:196	low; Gate can't fail on topology blind-spot cost's floor/count guard
+R5	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:197	low; Wood-cheaper alert banner is the only text lane with no colour token: 1.21:1 dark contrast
+R5	D4-02		P9		judged	high	12743bf7:handoff/round8/findings.tsv:198	low; Two clickable controls escape the card's 24px hit floor at phone width
+R5	D4-03		P9		judged	high	12743bf7:handoff/round8/findings.tsv:199	low; Coarse pointer: 728 of ~1100 targets under the 44px touch floor
+R5	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:200	medium; README Requirements/Quick start describe the replaced pre-v6.6.5 setup flow
+R5	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:201	low; 52 shipped PR links (pull/1076..1156 band) return HTTP 404
+R5	D5-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:202	low; HANDOVER.md and plan-1067 have no inbound link from user-reachable docs
+R5	D5-04		I5		judged	high	12743bf7:handoff/round8/findings.tsv:203	low; Entry docstrings say Tibber-only pricing while const.PRICE_SOURCES ships PRICE_SOURCE_ENTITY
+R5	D5-05		I5		judged	high	12743bf7:handoff/round8/findings.tsv:204	low; DefrostDerate docstring contradicts _decide in 11/12 duty-count cells
+R5	D6-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:205	low; Docs name away datetime entity 'Away Return' vs shipped 'Expected Return'
+R5	D6-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:206	low; configuration.md cites two files that exist only in a different repo
+R5	D6-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:207	low; run_optimization is the 1 of 12 registered services with no services.yaml entry
+R5	D7-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:208	medium; sysid can never arm on any install the tree can produce: 0/360 preset-answer combos pass gate
+R5	D7-02		P5		judged	high	12743bf7:handoff/round8/findings.tsv:209	medium; >2h settle gap routes identify_slab to one-state identify(), adoption admits +7.29% biased UA
+R5	D7-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:210	medium; _track_curve_comfort runs before the cycle's pump-signal read; freeze gate one cycle stale
+R5	D7-04		P2		judged	high	12743bf7:handoff/round8/findings.tsv:211	medium; Comfort quiet-period learner is the only learner outside the shared freeze discipline
+R5	D8-01		P2		judged	med	12743bf7:handoff/round8/findings.tsv:212	FLAG->N-name-sort (card-addressed sensors sort into 3 entity-id blocks); low; 6 card-addressed sensors sort into 3 entity-id blocks; #1227 rename covered only 4 headline stats
+R5	D8-02		I5		judged	med	12743bf7:handoff/round8/findings.tsv:213	FLAG->N-name-sort (Swedish names drop family lead tokens: R9 D8-s3-01 split in sv); low; Swedish names drop family lead tokens English keeps
+R5	D8-03		P2		judged	high	12743bf7:handoff/round8/findings.tsv:214	low; 14 enabled-by-default entities unavailable with no evidence marker while 6 peers with same gate are disabled
+R5	D9-05		I1		judged	high	12743bf7:handoff/round8/findings.tsv:215	FLAG->N-solve-recompute (#1208 polish-every-candidate cost share: same seam as R7 D9-02 / R8 D9-s1-01; not a gate-blind (I1) finding); medium; #1208 polish-every-candidate runs restart 4x/solve costing 36.7% of simulate-step-equivalents
+R5	D9-06		P10		judged	high	12743bf7:handoff/round8/findings.tsv:216	medium; On #511 fallback route, in-process solve starves loop's 1ms heartbeat 96.6-97.6% of wall
+R5	D9-07		I1		judged	high	12743bf7:handoff/round8/findings.tsv:217	medium; Stress gate blind to per-call kernel slowdown below 3.0x (doubling cost -> 1.512x solve CPU, 0/51 fire)
+R5	D9-08		I1		judged	high	12743bf7:handoff/round8/findings.tsv:218	low; Memory budget fields have no stale-cheap rule; 3.5x memory improvement leaves table stale-high
+R5	D11-01		I3		judged	high	12743bf7:handoff/round8/findings.tsv:219	medium; Committed required-contexts fixture names one ruleset only; live boundary is two rulesets
+R5	D11-02		I3		judged	high	12743bf7:handoff/round8/findings.tsv:220	medium; Record disposition enforcement escapable by stamping: 3 consecutive stamp windows closed over rowless merges
+R5	D12-01		P8		judged	med	12743bf7:handoff/round8/findings.tsv:221	"FLAG->P2 (ECL110 commands published where no ecl110 key: an ""is configured"" gate missing at a sibling seam, not unit precedence); medium; Installs with no ecl110_* key still publish 2 ECL110 mqtt.publish commands to shipped default topics"
+R5	D13-01		I4		judged	high	12743bf7:handoff/round8/findings.tsv:222	medium; CFR constant 1.0 (8/8): record red at every merge head is a by-design red no in-tree exclusion covers
+R5	D13-02		I4		judged	high	12743bf7:handoff/round8/findings.tsv:223	medium; --stats folds a blocked verdict VERDICT_RE refuses into class 'other'
+R5	D13-03		I4		judged	high	12743bf7:handoff/round8/findings.tsv:224	medium; Friction id grammar FRICTION_ID cannot start with a dot; path spellings parse as no id
+R5	R5-INST-01		I2		judged	high	12743bf7:handoff/round8/findings.tsv:225	low; finding.schema.json admits D0-D12 only; D13 reports/harness paths cannot validate
+R6	D0-02		P4		judged	high	12743bf7:handoff/round8/findings.tsv:226	low; _MULTI_START_SOLVES is 4 while seam is handed 5 candidates in 80/80 cells; comment stale
+R6	D1-01		P1		judged	high	12743bf7:handoff/round8/findings.tsv:227	high; NaN in DHW-profile store's cooling_rate installs non-finite value on live model, never reset/logged (sibling of #1296)
+R6	D1-02		P1		judged	high	12743bf7:handoff/round8/findings.tsv:228	high; NaN in accuracy store's defrost.duty survives from_dict, becomes DERATE_MIN: COP priced at 0.55x permanently
+R6	D2-01		P2		judged	low	12743bf7:handoff/round8/findings.tsv:229	FLAG->P3 (hard-edged buckets make COP step across 1e-9 C: discontinuity like R2 D2-05/R4 D2-03 (P3)); high; DefrostDerate.factor answers from hard-edged buckets: COP steps up to 1.61 across a 1e-9C change
+R6	D2-02		P3		judged	high	12743bf7:handoff/round8/findings.tsv:230	medium; simulate_dhw_step's inlet floor is a heat source with no source: clamp manufactures 0.10-1.30 kWh/day
+R6	D3-01		I1		judged	high	12743bf7:handoff/round8/findings.tsv:231	medium; tests/entities.py reports 3/1678 checks failed whenever optional unpinned orjson is importable
+R6	D3-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:232	low; Deleting the silent-mode no-window guard survives the full gate
+R6	D3-03		I1		judged	high	12743bf7:handoff/round8/findings.tsv:233	low; Forcing the buffer-cap re-solve branch survives the full gate
+R6	D3-04		I1		judged	high	12743bf7:handoff/round8/findings.tsv:234	low; Forcing the emitter-normalisation branch survives the full gate
+R6	D3-05		I1		judged	high	12743bf7:handoff/round8/findings.tsv:235	low; Forcing the defrost accrual branch survives the full gate
+R6	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:236	medium; Plan card's score pill is the one control under the coarse-pointer floor in a 528-cell matrix
+R6	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:237	medium; Committed marginal-cop.svg is not what its generator produces from the shipped model (predates #928 bound)
+R6	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:238	low; README Documentation table omits docs/automations.md, a page the README links four times
+R6	D6-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:239	medium; README tells users without an ECL110 to clear two MQTT topics; all three ship empty by default
+R6	D6-02		P6		judged	high	12743bf7:handoff/round8/findings.tsv:240	medium; Two of three blueprints default sensor input to entity ids the sensor platform never builds
+R6	D6-03		I5		judged	high	12743bf7:handoff/round8/findings.tsv:241	low; docs/automations.md tells users entity prefix follows entry name; it's a hard-coded literal
+R6	D7-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:242	high; Production sysid adoption gate admits UA errors over 10% in 14/75 experiments, worst -28.7%
+R6	D7-02		I5		judged	med	12743bf7:handoff/round8/findings.tsv:243	FLAG->N-structure-blind (structure.py's dead-symbol check reads 0 over a 379-line dead method: metric blind, not docs drift); low; SystemIdentification.identify (379 lines) entered 0 times by production; structure.py's dead-symbol check reads 0
+R6	D7-03		P3		judged	high	12743bf7:handoff/round8/findings.tsv:244	medium; On heavy_old with drifting room sensor, identify_slab raises uncaught OverflowError out of _lm_solve
+R6	D7-03-EXT		P3		judged	high	12743bf7:handoff/round8/findings.tsv:245	high; Same drifting-room divergence hangs silently: 2.5e19 kW/K drives 2.6e17 substeps with no log line
+R6	D8-01		P2		judged	high	12743bf7:handoff/round8/findings.tsv:246	medium; With DHW unconfigured, five of six _DHWEntityMixin entities are enabled-default and unavailable every refresh
+R6	D9-01		P10		judged	high	12743bf7:handoff/round8/findings.tsv:247	medium; Production solve on ThreadPoolExecutor starves loop heartbeat for 0.9737 of wall time; yields don't fix max gap
+R6	D9-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:248	low; tests/stress.py:SolverWork counts step-equivalents on two seams only; DHW planner's 29.63% of work uncounted
+R6	D10-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:249	medium; Silver test-coverage row keyed to package ratio; sysid.py already below per-module 95% bar at 94.62%
+R6	D11-01		I3		judged	high	12743bf7:handoff/round8/findings.tsv:250	high; 0/37 tracked files that implement the checks the ruleset requires is matched by a CODEOWNERS pattern
+R6	D11-02		I3		judged	high	12743bf7:handoff/round8/findings.tsv:251	high; Required check executed from the change it is checking: policy-docs job checks out no ref:
+R6	D12-01		P2		judged	high	12743bf7:handoff/round8/findings.tsv:252	medium; battery.build() guards optional stores with 'is not None' on non-Optional floats nothing ever sets None
+R6	D13-01		I4		judged	high	12743bf7:handoff/round8/findings.tsv:253	high; All 11 of window's rework verdicts are head-moved re-verification; the head-moved class has 0 verdicts
+R6	D13-02		I4		judged	high	12743bf7:handoff/round8/findings.tsv:254	medium; 4/67 merges carry no parsable verdict; policy_lint.mjs --stats reports denominator of 64
+R6	D13-03		I4		judged	high	12743bf7:handoff/round8/findings.tsv:255	medium; cfr_exclusions.json keyed where excluded job cannot gate a merge (record skipped at 67/67 PR heads)
+R7	D0-01		P4		judged	high	12743bf7:handoff/round8/findings.tsv:256	medium; Space-only multi-start anchors to {0.35,1.0}, never brackets the true 0.20x optimum on default two-zone winter cell
+R7	D1-01		P6		judged	high	12743bf7:handoff/round8/findings.tsv:257	medium; async_simulate sets _last_simulation only on success; every failing return leaves rate-limit slot empty
+R7	D1-02		P2		judged	high	12743bf7:handoff/round8/findings.tsv:258	low; _plan_is_stale consulted by _apply_action but not _async_drive_pumps; 1 of 2 actuating paths writes an expired plan
+R7	D2-01		P3		judged	high	12743bf7:handoff/round8/findings.tsv:259	low; _simulate_step_two_zone computes tank rate over max(C_buf,0.01) while availability bound uses raw C_buf (3 more seams)
+R7	D2-02		I1		judged	low	12743bf7:handoff/round8/findings.tsv:260	FLAG->N-structure-blind (unreachable duplicate return line: dead code, not a mutation-kill miscount); low; HeatPumpOptimizer._terminal_cost_batch ends with two identical return lines, second unreachable
+R7	D3-01		I1		judged	high	12743bf7:handoff/round8/findings.tsv:261	low; Four production guards/clamps deletable with no driver in their measured closure failing (confirmed at full gate)
+R7	D3-02		I1		judged	high	12743bf7:handoff/round8/findings.tsv:262	medium; tests/mutation_table.py counts a structure.py 'improved' exit (rc=2, zero failing checks) as a kill
+R7	D4-01		P9		judged	high	12743bf7:handoff/round8/findings.tsv:263	high; Savings table's last column painted 22.4-75.2px outside a box no gesture can widen (overflow-x hidden)
+R7	D4-02		P9		judged	high	12743bf7:handoff/round8/findings.tsv:264	medium; .dlg-tabs flex 0 0 auto inside overflow:hidden clips longer Swedish tab label 7.5-45.9px
+R7	D4-03		P8		judged	high	12743bf7:handoff/round8/findings.tsv:265	medium; Headline savings takes sensor's unit_of_measurement, savings table takes different currency() precedence
+R7	D5-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:266	low; legionella.py comment names a symbol that doesn't exist in the package (already mirrored into tests/features.py)
+R7	D5-02		I5		judged	high	12743bf7:handoff/round8/findings.tsv:267	low; Card's hours error message states a bound its own check does not enforce (0 < hours <= 168 vs 'between 1 and 168')
+R7	D7-01		P5		judged	high	12743bf7:handoff/round8/findings.tsv:268	medium; identify_slab appends fixed-width 0.1kW pseudo-observation; clean data can't out-weigh it, +7.44% UA bias passes gate
+R7	D8-01		P6		judged	high	12743bf7:handoff/round8/findings.tsv:269	medium; SensorGapAdvisorSensor prices missing house-power meter from keys _build_data_dict never writes; publishes 0.00 SEK not 30.0
+R7	D8-02		P2		judged	high	12743bf7:handoff/round8/findings.tsv:270	low; DHWSetpointAdvisorSensor is the one hot-water sensor not wrapped in _DHWEntityMixin; ships enabled-default & unavailable
+R7	D9-01		P6		judged	low	12743bf7:handoff/round8/findings.tsv:271	FLAG->none (recorder payload redundancy: an efficiency finding with no producer/consumer key mismatch); medium; 36.1% of recorder-written entity-attribute bytes/cycle are either already-excluded-class series or byte-identical repeats
+R7	D9-02		P10		judged	high	12743bf7:handoff/round8/findings.tsv:272	FLAG->N-solve-recompute (polish-per-candidate _lbfgsb_restart share: same seam as R8 D9-s1-01); medium; optimizer._lbfgsb_restart consumes 37.1% of gradients / 35.2% of CPU per default two-zone DHW solve (polish-per-candidate)
+R7	D9-03		I4		judged	high	12743bf7:handoff/round8/findings.tsv:273	low; stress.py docstring says zero-range takes solve off batched jac; SolverWork's own definition disagrees by 96x
+R7	D10-01		I5		judged	high	12743bf7:handoff/round8/findings.tsv:274	low; quality_scale.yaml marks strict-typing 'done' on a comment absent from the rule text; py.typed ships 0 files
+R7	D10-02		P2		judged	high	12743bf7:handoff/round8/findings.tsv:275	medium; runtime-data alias defined but only 10 of 100 entry parameters use it; 88 are bare ConfigEntry
+R7	D11-01		I3		judged	high	12743bf7:handoff/round8/findings.tsv:276	high; Friction-histogram filer step is skipped in 39/40 record-job runs whose preceding disposition-refusal step fails
+R7	D11-02		I3		judged	high	12743bf7:handoff/round8/findings.tsv:277	medium; friction_issues.mjs:decide never reads existing.state; recurrence written onto a closed issue, reported UPDATED
+R7	D11-03		I4		judged	high	12743bf7:handoff/round8/findings.tsv:278	medium; --sunset fires only on a self-declared marker; 0/39 policy files carry one, reports 'held(0)' as if measured
+R7	D12-01		P2		judged	high	12743bf7:handoff/round8/findings.tsv:279	medium; two_zone_mode='off' options-flow guard tests key-presence instead of the model's two_zone_enabled: 0 valve writes forever
+R7	D13-01		I4		judged	high	12743bf7:handoff/round8/findings.tsv:280	medium; policy_lint.mjs:fetchWindow never fetches /pulls/<n>/reviews; a verdict posted as a review is invisible
+R7	D13-02		I4		judged	high	12743bf7:handoff/round8/findings.tsv:281	medium; Histogram matcher diverges from web-fix-wave.js's VERDICT_RE on four axes, all one-directional
+R7	D13-03		I4		judged	high	12743bf7:handoff/round8/findings.tsv:282	medium; record job's summary reads exit code only; an UNCHECKED window reports cleaner than a read one that found a violation
+R7	D13-04		I3		judged	high	12743bf7:handoff/round8/findings.tsv:283	medium; pull_request:[edited] re-runs 5/7 governance jobs; governance_cost.py publishes dispatch count as body-contract rounds
+R7	D13-05		I4		judged	high	12743bf7:handoff/round8/findings.tsv:284	medium; product-tradeoff-regression block class is outside VERDICT_CLASSES; histogram and parseVerdict disagree
+R7	D13-06		I4		judged	high	12743bf7:handoff/round8/findings.tsv:285	medium; Merge-keyed CFR counts a merge that passed the same lane at its own head (mutation: 4/7 merge-keyed vs 0/31 heads)
+R7	R7-INSTR-01		I2		judged	high	12743bf7:handoff/round8/findings.tsv:286	medium; audit-find.js DIMS list has no D13 entry; a round driven by this workflow cannot register D13 findings at all
+R8	D5-s1-01	#1535	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:7	verified low; README diagram vs prose numbering
+R8	D5-s2-01	#1536	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:19	verified low; comments name symbols that do not exist
+R8	D6-s1-01	#1537	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:31	verified low; README requirements omit threadpoolctl
+R8	D1-s1-01	#1517	N-shared-config		judged	high	3490cb16:tools/audit/round8/JUDGE.json:43	verified medium; away-setback unwind in the solve finally reverts a concurrent set_thermal_parameters write; same mechanism as R9 D1-s3-04
+R8	D1-s1-02	#1529	N-shared-config		judged	med	3490cb16:tools/audit/round8/JUDGE.json:55	verified low; diagnose service reads live state on the executor; alt P2 (the button path deepcopies, the service path does not)
+R8	D1-s2-01	#1518	P1		judged	high	3490cb16:tools/audit/round8/JUDGE.json:67	weakened medium; non-numeric ledger leaf passes from_dict
+R8	D1-s3-01	#1519	P1		judged	med	3490cb16:tools/audit/round8/JUDGE.json:79	weakened medium; wrong-shaped Open-Meteo member raises out and fails the cycle: malformed live-feed value, precedent R5 D1-07 (P1)
+R8	D11-s1-01	#1514	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:91	weakened high; body edit re-creates skipped required check runs
+R8	D11-s1-03	#1547	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:116	verified low; Stop hook misses the staged policy change
+R8	D11-s2-01	#1515	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:128	verified high; required checks run unowned PR-editable code (merged: D11-s1-02)
+R8	D11-s2-02	#1516	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:140	verified high; release publishes a ref not on main
+R8	D11-s2-03	#1548	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:152	verified low; install commands not hash-pinned: R4 D11-07 shape
+R8	D2-s1-01	#1520	P2		judged	med	3490cb16:tools/audit/round8/JUDGE.json:164	verified medium; DHW planner prices COP at current humidity while physics uses the forecast: one fact decided twice
+R8	D2-s1-02	#1530	P2		judged	med	3490cb16:tools/audit/round8/JUDGE.json:176	verified low; DHW COP keeps its own lift law beside flow_lift_factor: two laws for one fact
+R8	D2-s2-01	#1512	P3		judged	low	3490cb16:tools/audit/round8/JUDGE.json:188	verified high; PeakTracker bills top-k windows not top-k days; alt P2 (catalog rule vs tracker rule) or P11 (external tariff modelled from the code)
+R8	D2-s2-02	#1513	P8		judged	high	3490cb16:tools/audit/round8/JUDGE.json:200	verified high; entity price unit never read: öre/kWh and SEK/MWh reach the plan at 83x/829x
+R8	D8-s1-01	#1541	P2		judged	med	3490cb16:tools/audit/round8/JUDGE.json:212	weakened low; non-finite scrub on the sensor base only, not the shared entity base; alt P1 (R2 D8-02 precedent)
+R8	D8-s2-02	#1542	P2		judged	high	3490cb16:tools/audit/round8/JUDGE.json:236	weakened low; static enabled-default where the gating input is configured: entity default-enabled family
+R8	D13-s1-01	#1549	I4		judged	high	3490cb16:tools/audit/round8/JUDGE.json:248	weakened low; two yield definitions disagree: R6 D13-01/02 shape
+R8	D13-s1-02	#1528	I3		judged	high	3490cb16:tools/audit/round8/JUDGE.json:260	verified medium; owner-approved merges bypass the fix-review verdict
+R8	D10-s1-01	#1545	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:272	verified low; quality_scale.yaml claim contradicted by code
+R8	D10-s1-02	#1546	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:284	verified low; quality_scale.yaml claim contradicted by 4 raise sites
+R8	D3-s1-02	#1531	I2		judged	med	3490cb16:tools/audit/round8/JUDGE.json:308	weakened low; cache key's input set diverges from what the capture reads
+R8	D7-s1-01	#1523	P2		judged	high	3490cb16:tools/audit/round8/JUDGE.json:320	verified medium; sysid experiment ignores _learning_frozen the learners honour: R1 D7-05 shape
+R8	D7-s1-02	#1524	P5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:332	verified medium; one-room sysid cannot identify two-zone plant; #1524, which main's P5 barrier cites
+R8	D7-s1-03	#1525	P6		judged	med	3490cb16:tools/audit/round8/JUDGE.json:344	verified medium; refusal path writes no reason; published view falls back to completed/ok (#1525); alt P2
+R8	D4-01	#1522	P9		judged	med	3490cb16:tools/audit/round8/JUDGE.json:356	verified medium; keyboard Tab order: card a11y, stretches P9 (see mechanism_note)
+R8	D4-s2-01	#1534	I5		judged	high	3490cb16:tools/audit/round8/JUDGE.json:368	verified low; untranslated sv label: translation coverage, I5 by R1-7 precedent
+R8	D0-s1-01		P4		judged	high	3490cb16:tools/audit/round8/JUDGE.json:380	verified low; ftol=1e-6 stop short; survived, not filed: duplicate of owner refusal #1293
+R8	D12-s1-01	#1526	P2		judged	high	3490cb16:tools/audit/round8/JUDGE.json:392	weakened medium; domain accepted at assign_entity, actuation assumes switch: R9 D12-s2-02 shape
+R8	D12-s1-02	#1527	P2		judged	high	3490cb16:tools/audit/round8/JUDGE.json:404	verified medium; boost switch created without the has-DHW gate its siblings honour
+R8	D9-s1-01	#1543	N-solve-recompute		judged	high	3490cb16:tools/audit/round8/JUDGE.json:416	verified low; per-candidate polish spends gradients on discarded results: same seam as R7 D9-02
+R8	D9-s2-01	#1544	I1		judged	med	3490cb16:tools/audit/round8/JUDGE.json:428	weakened low; no budgeted gate covers the coordinator cycle: perf-gate blindness, I1 by R2 D9-02/R4 D9-06 precedent
+R8	D7-s2-01	#1538	N-structure-blind		judged	med	3490cb16:tools/audit/round8/JUDGE.json:440	verified low; structure.py's name-based dead-code screen reads 0 over 12 dead symbols
+R8	D7-s2-02	#1539	N-structure-blind		judged	med	3490cb16:tools/audit/round8/JUDGE.json:452	verified low; a pure rename moves the cross_seam_edges ratchet: same metric blindness as R9 D7-s1-01
+R8	D7-s2-03	#1540	I1		judged	high	3490cb16:tools/audit/round8/JUDGE.json:464	verified low; branch disabled, no driver notices
+R8	D3-s1-01	#1521	I1		judged	high	3490cb16:tools/audit/round8/JUDGE.json:476	verified medium; refusal rc scored as a kill: R7 D3-02 shape
+R8	D3-s2-01	#1532	I1		judged	high	3490cb16:tools/audit/round8/JUDGE.json:488	weakened low; clamp deletion survives the closure
+R8	D3-s2-02	#1533	I1		judged	high	3490cb16:tools/audit/round8/JUDGE.json:500	verified low; boundary mutant survives both service call sites
+R9	D0-s2-02	#1664	P4		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:94	verified low; Multi-start seed set misses lower basins on shoulder prices, above the flat-price null
+R9	D1-s1-01	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:148	verified medium; A tz-naive persisted timestamp raises on every cycle at three sibling loader seams (snapshots, curve, comfort)
+R9	D1-s1-02	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:164	verified medium; A non-numeric snapshot temperature_bias makes best_restore raise and suppresses the accuracy_drift issue for good
+R9	D1-s1-03	#1659	P1	N-plausibility	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:180	"judge class ""live input with no physical-plausibility bound"" re-mapped N-plausibility->P1; verified medium; One out-of-range DHW thermometer sample is booked as a physically impossible draw and inflates the published p90"
+R9	D1-s1-04	#1660	N-future-instant	N-future-instant	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:196	"judge class ""persisted future instant trusted without bound"" kept; verified low; A timestamp stored while the clock ran ahead is trusted verbatim and stretches stale timeouts by the clock error"
+R9	D1-s1-51	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:212	verified low; hastub Store decodes with stdlib json: 6 of 6 hostile number tokens load where HA's orjson Store drops the file
+R9	D1-s1-52	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:228	verified low; hastub dt_util.now() is naive by default: the naive-vs-aware verdict of 6 of 6 stored-timestamp cells is inverted
+R9	D1-s2-02	#1659	P1	N-plausibility	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:244	"judge class ""live input with no physical-plausibility bound"" re-mapped N-plausibility->P1; verified medium; Finite-but-absurd weather forecast values reach the solve unbounded: failed plans and a runaway solve"
+R9	D1-s2-03	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:260	verified medium; A sample count past 2**64 in the thermal-learning store fails every cycle, across restarts
+R9	D1-s2-04	#1676	P6	N-debug-swallow	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:276	"judge class ""persistent failure swallowed at DEBUG"" re-mapped N-debug-swallow->P6; verified medium; Five cycle-path guards swallow a persistent failure at DEBUG, including pump and frequency actuation"
+R9	D1-s2-05	#1682	N-reap-lock	N-reap-lock	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:292	"judge class ""shutdown reap waits on the lock a solve holds"" kept; verified medium; Home Assistant stop waits out an in-flight solve before reaping the solve worker"
+R9	D1-s2-51	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:316	weakened(medium) medium; A learner or arbiter raise on the cycle path fails the solve or the whole cycle and skips actuation and saves
+R9	D1-s2-52	#1662	N-restart	N-restart	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:332	"judge class ""user state not surviving restart"" kept; verified medium; Five store writers do not wait for the startup read: a save in that window replaces persisted learned state"
+R9	D1-s2-53	#1662	N-restart	N-restart	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:348	"judge class ""user state not surviving restart"" kept; verified medium; set_thermal_parameters changes are silently lost at the next restart (24 of 26 fields)"
+R9	D1-s2-54	#1681	P1	N-service-clamp	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:364	"judge class ""service input without an upper-bound clamp"" re-mapped N-service-clamp->P1; verified low; apply_manual_plan accepts expires_at past the horizon: the override owns all 96 steps unenforced (merged: D6-s1-04)"
+R9	D1-s2-55	#1670	P2	N-late-try	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:382	"judge class ""error-translating try opened after the call it should cover"" re-mapped N-late-try->P2; verified medium; A solve worker that cannot start (Popen OSError) skips the in-process fallback: no plan, no fallback notice"
+R9	D1-s2-71	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:398	verified low; hastub DataUpdateCoordinator drops update_interval: the coordinator's cadence is unreadable in 4 of 4 cells
+R9	D1-s2-91	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:414	verified medium; FlowCurveBias.observe raise aborts the cycle's accuracy pipeline and fails the whole update
+R9	D1-s3-01	#1644	P2		judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:430	FLAG->P1 (naive stored/return datetime wedges the cycle: D1-s1-01 (P1) shape at the away seam); verified high; A tz-less return_time (card datetime-local) or a naive stored datetime wedges every cycle with TypeError
+R9	D1-s3-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:446	weakened(medium) medium; Pump-duty arbiter re-registers its timer and state listener on an unloaded coordinator and keeps writing the pump
+R9	D1-s3-03	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:488	verified medium; pump_arbiter._load installs non-numeric set-point values that raise TypeError on every apply
+R9	D1-s3-04	#1683	N-shared-config	N-shared-config	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:504	"judge class ""solve-scoped mutation of shared live config seen by a concurrent reader"" kept; weakened(low) low; Climate entity publishes the away setback as the user's target while the solve is in the executor"
+R9	D1-s3-05	#1660	N-future-instant	N-future-instant	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:545	"judge class ""persisted future instant trusted without bound"" kept; weakened(low) low; Boost 'two-hour maximum' is an absolute instant: a clock step back or a far-future store extends it without bound"
+R9	D1-s3-06	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:589	verified medium; FrequencyMap.from_dict admits an unbounded ratio or out-of-range decile that pins recommend() at hz_min for days
+R9	D1-s4-01	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:605	weakened(low) low; DefrostDerate.from_dict admits non-finite/out-of-range duty; the bucket pins at DERATE_MIN and never recovers
+R9	D1-s4-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:660	verified medium; A failed solve is returned as a plan with status 'failed (...)', so the coordinator counts it a success
+R9	D1-s4-03	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:708	verified low; One unreadable cell in a v2 defrost store voids all 12 measured buckets and is labelled a pre-v5.3.0 upgrade
+R9	D1-s5-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:724	verified medium; inputs.age_of ignores last_reported and accepts future stamps, diverging from InputReader's freshness rule
+R9	D1-s5-02	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:766	verified medium; Learner-store loaders check finiteness but not the domain their own update path enforces (price shape, peak tracker)
+R9	D1-s5-03	#1644	P2		judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:813	FLAG->P1 (one huge JSON integer voids a whole fetch: malformed-input-voids-feed like R5 D1-07 (P1)); weakened(low) low; One huge JSON integer drops a whole price fetch (entity and Tibber) or Open-Meteo refresh instead of one row
+R9	D1-s5-04	#1680	P1	N-min-gap	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:858	"judge class ""series resolution inferred from the minimum gap"" re-mapped N-min-gap->P1; verified low; One off-grid timestamp collapses Open-Meteo's inferred resolution and erases the whole solar horizon"
+R9	D1-s5-51	#1684	N-staleness	N-staleness	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:874	"judge class ""staleness limit shorter than a report-on-change sensor's quiet interval"" kept; verified medium; A report-on-change indoor thermometer silent over 60 min turns Indoor Temperature unavailable"
+R9	D1-s5-52	#1644	P2		judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:890	FLAG->P1 (sentinel -127/85 delivered as ok: the N-plausibility mechanism (now P1), judged P2 after G1-V3); verified high; InputReader has no plausibility window: -127 and 85 degC sentinels deliver as ok readings
+R9	D10-s1-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2759	verified medium; Entry unique id is not re-derived after reauth or an options edit, so the same plant can be set up twice
+R9	D10-s1-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2775	verified medium; Optimize-now button press returns normally when the solve did not run; the run_optimization action raises
+R9	D10-s1-03	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2816	verified low; Tibber auth refusal reaches HA as ConfigEntryNotReady/UpdateFailed, never ConfigEntryAuthFailed
+R9	D10-s2-01	#1651	P6		judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:2832	FLAG->I5 (preset states with no translation or icon: translation/icon coverage, I5 by R1-7 precedent); weakened(low) low; Climate presets auto and economy are non-standard and have no translation or icon in any language
+R9	D11-s1-01	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2876	weakened(medium) medium; A code-owned change pushed after the owner approval merges on that stale approval (dismiss_stale_reviews=false); refused by tvofi (card C16, 'Leave'); recorded in #1648
+R9	D11-s1-02	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2920	weakened(medium) medium; A non-stamp direct push to main over the DeployKey bypass is reported by no enumerator
+R9	D11-s1-03	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2964	weakened(low) low; Three pull_request jobs execute the PR's own code-owned scripts while holding contents:write + actions:write
+R9	D11-s1-04	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3005	verified medium; Owner approvals given by the orchestrator are indistinguishable from the owner's in GitHub's record (merged: D11-s2-03)
+R9	D11-s1-71	#1650	I4		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3051	verified low; Two parsers of a rule's paths: frontmatter disagree on 2 of 6 legal shapes (rules_sync vs policy_lint)
+R9	D11-s1-72	#1650	I4		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3067	verified low; entities.py GOV pin reads governance.yml only: a new governance job in 3 of 3 other workflow files passes
+R9	D11-s2-01	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3083	weakened(low) low; Per-file policy caps count lines, so a capped rule file grows in prose with its per-file budget check green
+R9	D11-s2-02	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3127	weakened(low) low; policy_lint --hooks never reads a hook's matcher: a PreToolUse matcher naming no edit tool passes as wired
+R9	D11-s2-04	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3172	weakened(low) low; CLAUDE.md rule 1 quotes a mode line the gate does not print, and says FULL prints a zero it does not
+R9	D12-s1-01	#1651	P6		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3216	verified high; Hot water without a tank probe: every solve starts from the 55 C ThermalState default, never advanced
+R9	D12-s2-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3232	verified medium; On an on/off pump, the switch path switches off steps whose planned heat the plan books as delivered
+R9	D12-s2-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3248	verified medium; The pump-duty arbiter writes the operating mode with select.select_option whatever domain the mode slot holds
+R9	D12-s2-03	#1654	P3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3264	verified medium; On an on/off pump every full-power step publishes as 'eco' and power_normalized runs to -60
+R9	D12-s3-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3280	verified medium; Full config-flow wizard invents a DHW tank and a second zone the user never affirmed (merged: D4-s2-04,D12-s1-02)
+R9	D12-s3-81	#1657	P8		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3299	verified medium; Grid-fee bounds are SEK numbers: a 0.05 EUR/kWh fee is unenterable in HUF, ISK, JPY and KRW
+R9	D13-s1-01	#1650	I4		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3315	verified medium; --stats API-mode enumerator silently drops 52 of 253 window merges whose /commits/<sha>/pulls answers []
+R9	D13-s1-02	#1667	N-approval-rebuy	N-approval-rebuy	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:3331	"judge class ""an approval bound to an exact head is re-bought on a diff-identical move"" kept; weakened(medium) medium; 22 re-verification rounds after a moved head caught 0 defects; 12 heads moved only by merges or ci: commits"
+R9	D13-s1-03	#1648	I3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3409	weakened(medium) medium; Body-answer blocks (8) exceed every engineering block class (max 1); record-and-body 12 vs engineering 7
+R9	D14-s1-01	#1647	P1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3487	verified medium; P1: a malformed store leaf raises out of a loader or consumer; a naive legionella timestamp wedges every refresh
+R9	D14-s1-02	#1651	P6		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3503	verified low; P6: horizon_hours read from coordinator.data but never written; boost probes a field only a test double defines
+R9	D14-s2-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3519	verified medium; P2: the two-zone and wood-furnace facts are re-derived from a proxy key at three seams beside their canonical predicate
+R9	D14-s2-02	#1657	P8		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3535	verified medium; P8: a money figure's currency comes from the label source, never from the price feed that denominates it (merged: D4-s2-02)
+R9	D14-s2-03	#1650	I4		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3553	verified low; I4: class roster and finding grammar have disagreeing readers (P11 on no D14 seat; intake admits schema-refused ids)
+R9	D14-s3-01	#1654	P3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3569	verified low; P3: 22 quantities are read through a positive floor at one seam and raw at a sibling; no check enumerates them
+R9	D14-s3-03	#1655	P5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3601	verified medium; P5: sysid adoption gate keys on the UA half-width, which barely moves while unmodelled free heat biases UA to -21 %
+R9	D14-s4-01	#1665	P7		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3617	verified high; Eight production seams still do wall-clock datetime arithmetic across DST; the forecast grid lands 60 min off
+R9	D14-s4-02	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3704	weakened(low) low; The replay lane freezes a fixed-offset clock, so a DST-day replay reports zero P7 seams
+R9	D14-s5-01	#1663	I2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3755	verified medium; Python closures miss every file a spawned child process reads; select() skips the script on a change to it
+R9	D14-s5-02	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:3771	verified medium; Mutation ratchet inventory cannot see 528 of 2313 production guard seams; a new guard of those shapes raises it by 0
+R9	D2-s1-01	#1671	P3	N-euler-coupled	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:906	"judge class ""explicit-Euler stability judged per store instead of on the coupled step matrix"" re-mapped N-euler-coupled->P3; verified medium; Euler sub-step guard judges each store's diagonal ratio only, so coupled stores in accepted configs diverge"
+R9	D2-s1-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:981	verified low; DHW refill coil debits the wood tank the full coil heat but spares the DHW tank only its scaled share
+R9	D2-s1-51	#1651	P6		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:997	verified low; DHW setpoint advisor prices candidates at the 5.0 degC ThermalState default when no outdoor thermometer is mapped
+R9	D2-s2-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1013	weakened(medium) medium; Settlement caps (slab_settlement_cap, hold_demand_kw) ignore the learned house_heat_loss_scale the dynamics apply
+R9	D2-s2-02	#1673	P3	N-clamp-range	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:1036	"judge class ""learned-correction clamp sized against an assumed range, not the model's curve"" re-mapped N-clamp-range->P3; verified medium; #1067 flow-lift bias clamp (15 K) cannot reach real supply: model curve tops out at 27.9 C, COP overstated up to 37%"
+R9	D2-s2-03	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1052	verified low; DHW-path savings settle-up replays space schedule without the DHW coil: end state differs from published trajectory
+R9	D2-s2-81	#1654	P3		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1100	verified medium; Two-zone comfort penalty halves each zone's floor price; shipped plans sit up to 0.46 K below min_temp
+R9	D2-s3-01	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1116	verified high; _current_spot_price reads a quarter up to 45 min stale under 15-minute price entries (merged: D8-s1-01)
+R9	D2-s3-02	#1666	P3	N-sign-floor	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1134	"judge class ""a sign floor on a price margin breaks the stated piecewise identity"" re-mapped N-sign-floor->P3; weakened(low) low; PV piecewise cost clipped by import_margin's zero floor wherever import price < export price"
+R9	D2-s4-01	#1655	P5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1157	weakened(low) low; sysid adoption interval misses the true UA on 14 of 22 fits it admits; admitted fits biased high
+R9	D2-s4-02	#1644	P2		judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:1216	FLAG->P5 (sysid step sized to the abort bound: a sysid design defect, not a divergent predicate); verified medium; sysid step sized to exactly the abort bound: sensor noise aborts 100 of 294 experiments, light_new 81 of 96
+R9	D2-s4-81	#1655	P5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1232	verified medium; sysid cannot adopt its own exact noise-free fit on 43 of 80 preset houses, yet arms on all 80
+R9	D3-s1-01	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1248	verified low; No closure script fails when _dhw_inlet_c's lower plausibility bound moves (-5.0 <= value -> -5.0 < value)
+R9	D3-s1-91	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1264	verified medium; coordinator.py tzinfo guards (:8112, :8384) are dead under the gate's naive clock; unblinded they crash
+R9	D3-s2-01	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1280	weakened(low) low; Store-parser non-finite guards in flow_lift, tariff, price_model survive deletion: no gate driver notices
+R9	D3-s2-02	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1296	verified low; PriceShapeModel residual_var restore can discard every stored variance with the gate green
+R9	D3-s3-01	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1312	verified medium; Every gate driver runs with process local time = UTC, so open_meteo's naive-stamp UTC guard is deletable
+R9	D3-s3-02	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1328	verified medium; DrawStats.from_dict can zero the open draw occurrence and no gate check notices
+R9	D3-s3-03	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1344	verified medium; MonthlyLedger.add's non-finite guard is unpinned; one NaN amount loses the month on reload
+R9	D3-s3-04	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1360	verified medium; No gate check observes a positive draw folded by DhwProfileLearner.async_fold_draw_stats
+R9	D3-s3-05	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1376	verified low; The disinfection write-failed notice memo is unpinned
+R9	D4-s1-01	#1652	P9		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1392	verified medium; Status text coloured by HA's --success/--error/--warning-color fails WCAG AA on the default themes
+R9	D4-s1-02	#1652	P9		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1408	weakened(low) low; Lane slot menu is placed at the tap point unclamped; near the right edge it spills past its chart and the viewport
+R9	D4-s1-03	#1652	P9		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1454	verified medium; Setup picker: two identically named sensors render as identical options at 375 and 768 px
+R9	D4-s1-04	#1677	P9	N-keyboard	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1470	"judge class ""pointer-only editing with no keyboard route"" re-mapped N-keyboard->P9; verified medium; Setup layout editor: removing a pipe, drawing a pipe and moving a box have no keyboard route"
+R9	D4-s1-05	#1652	P9		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1486	weakened(medium) medium; Now-marker label prints over the measured-now reading on the live default view
+R9	D4-s2-01	#1651	P6		judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:1533	FLAG->I5 (unlabelled/untranslated pre-fill fields: translation coverage, I5 by R1-7 precedent); verified medium; Setup wizard's device pre-fill page shows raw keys: 3 unlabelled fields and 1 untranslated error
+R9	D4-s2-03	#1688	I5	N-escape	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1549	"judge class ""translation leaf double-escaped"" re-mapped N-escape->I5; verified medium; The hot-water minimum error text shows literal '\u00b0C' (en) and 9 escaped letters (sv)"
+R9	D4-s2-05	#1679	N-step-grid	N-step-grid	judged	low	bad458a38d:tools/audit/round9/judge/JUDGE.json:1593	"judge class ""selector minimum off its own step grid"" kept; verified low; 12 number fields start off their own step grid: native validity flags them, one spinner click gives 5.1 not 5.5"
+R9	D4-s2-06	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1609	verified low; The zones page computes the derivation-overwrite warning but never shows it for its 6 derived fields
+R9	D4-s2-07	#1685	P2	N-menu	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1625	"judge class ""state-blind menu re-offers a completed path"" re-mapped N-menu->P2; verified low; After 'Quick setup (recommended)' the wizard returns to the identical menu, offering quick setup again"
+R9	D4-s2-08	#1675	I5	N-service-icons	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1641	"judge class ""missing icons.json services block"" re-mapped N-service-icons->I5; verified low; None of the 12 registered services has an icon in icons.json"
+R9	D4-s2-09	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1657	verified low; 8 help texts per language write '45 C' / 'W/m2' beside selectors that say °C and m²
+R9	D4-s2-81	#1687	I5	N-language	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1673	"judge class ""text producer takes no language parameter"" re-mapped N-language->I5; verified medium; Setup overview page and setup diagram publish English slot text on a Swedish install"
+R9	D5-s1-01	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1689	verified medium; configuration.md 'Initial setup' documents the pre-v6.6.5 flow: no finish menu, Tibber token required, 74 entities
+R9	D5-s1-02	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1705	verified medium; setup.md Quick setup promises buffer storage and two-tank physics that the quick-setup answers cannot produce
+R9	D5-s1-03	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1721	verified low; dashboard-card.md says the card version lags the integration; the stamp keeps them equal every release
+R9	D5-s1-04	#1674	I5	N-markdown	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:1737	"judge class ""markdown the renderer misplaces"" re-mapped N-markdown->I5; verified low; configuration.md has 9 lines a GFM renderer misplaces: 3 table rows as pipe text, 6 prose lines as rows"
+R9	D5-s1-05	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1753	verified low; Docs name 5 option fields by labels the options forms do not show
+R9	D5-s2-01	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1769	verified low; Card comments cite 12 private members the card no longer has (17 mentions)
+R9	D5-s2-02	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1785	verified low; Three comments cite a number the code beside them does not deliver
+R9	D5-s2-03	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1801	verified low; DHW_COLD_WATER_TEMP comment claims the draw model heats from it; the draw reads the configured inlet
+R9	D5-s2-51	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1817	verified low; Two optimizer comments describe a data flow the code does not have (warm-start alignment, buffer-series stash)
+R9	D6-s1-01	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1833	verified low; README's Heat Pump Action state list omits idle and system_identification, which the sensor publishes
+R9	D6-s1-02	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1849	verified low; README puts the two-zone split and the orientation factor on the wrong options pages
+R9	D6-s1-03	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1865	verified low; README's disabled-by-default census omits six hot-water sensors that the no-hot-water install disables
+R9	D6-s1-81	#1649	P11		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1881	verified low; README's SEK currency fallback is unreachable under Home Assistant core, which defaults Config.currency to EUR
+R9	D6-s2-01	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1897	verified low; configuration.md says 'All 74 entities'; the six platforms create 75
+R9	D6-s2-02	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1913	verified low; configuration.md: the weather page does not create the entry; the setup flowchart omits the menu and overview
+R9	D6-s2-03	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1929	verified low; Curve-bias 'at most 0.5 K per week' is false: 0.6 K in a 7-day window
+R9	D6-s2-04	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1945	verified low; how-it-works.md: space solve 'from two starting points'; it runs four, each refined and polished
+R9	D6-s2-05	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:1961	verified low; configuration.md simulate_plan field list omits the five wood fields (merged: D5-s1-06)
+R9	D7-s1-01	#1686	N-structure-blind	N-structure-blind	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2003	"judge class ""structure metric blind to a code shape"" kept; verified low; Structural ratchet does not price coordinator state reached via module-level _helper(self, ...)"
+R9	D7-s1-02	#1646	I1		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2019	weakened(low) low; Drift-gate comparison and stress per-scenario budget verdict are deletable with every runnable check green
+R9	D7-s1-71	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2063	verified low; Cold-water inlet default held three times: 3 of 5 sites ignore DEFAULT_DHW_INLET_TEMP when it moves
+R9	D7-s2-01	#1672	P5	N-fit-integrator	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2079	"judge class ""fit integrator differs from the simulated plant"" re-mapped N-fit-integrator->P5; verified medium; sysid two-state fit rolls the candidate one Euler step per sample: UA 17-25% low, 0/3 presets adopt"
+R9	D7-s2-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2095	verified medium; Defrost derate fallback folds meter ratios _cop_fold_blocked refuses to the COP learner
+R9	D7-s3-01	#1661	N-structure-blind	N-dead-member	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2111	"judge class ""production member reached by no production code"" re-mapped N-dead-member->N-structure-blind; verified low; 10 class members are reached by no production code; 9 are kept only by tests that pin them"
+R9	D7-s3-02	#1650	I4		judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2127	FLAG->N-structure-blind (structure.py dead_methods census blind to properties/bare loads: same metric as R8 D7-s2-01); verified low; structure.py dead_methods reads 0 while 9 members are dead: properties skipped, bare-name loads count
+R9	D7-s3-51	#1678	N-finally-return	N-finally-return	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2143	"judge class ""return inside finally"" kept; verified low; nightly_ha._async_check_a4 returns inside finally: an in-flight CancelledError or KeyboardInterrupt is swallowed"
+R9	D7-s3-72	#1661	N-structure-blind	N-dead-member	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2159	"judge class ""production member reached by no production code"" re-mapped N-dead-member->N-structure-blind; verified low; 4 of 5 ThermalModel per-step scratch members are written every step and read by no production consumer"
+R9	D8-s1-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2175	verified low; DHW Heating Schedule counts 15-minute steps as 'heating periods', disagreeing with DHW Heating Plan's slot count
+R9	D8-s1-03	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2191	verified low; Recommended Power publishes a sub-threshold draw at steps Heat Pump Action reports 'off'
+R9	D8-s2-01	#1689	P2	N-availability	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2207	"judge class ""whole-entity availability gated on an optional input"" re-mapped N-availability->P2; weakened(medium) medium; Climate entity is unavailable with no indoor thermometer, taking the thermostat control with it; refused by tvofi (card C15, 'Keep'); class issue #1689 closed not planned"
+R9	D8-s2-02	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2259	verified high; Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off
+R9	D8-s2-03	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2311	weakened(low) low; Mode actions publish a state that mixes the live mode with the stale payload mode
+R9	D8-s3-01	#1668	N-name-sort	N-name-sort	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2363	"judge class ""an entity family whose names do not lead with a shared token splits under the name sort"" kept; weakened(low) low; Accuracy and Energy-dashboard meter families split in both English and Swedish name sort"
+R9	D8-s3-02	#1645	I5		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2440	verified low; Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency' and drops the advisor role
+R9	D8-s3-03	#1669	P2	N-dup-entity	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2456	"judge class ""compatibility duplicate entity enabled by default"" re-mapped N-dup-entity->P2; verified low; Upper Floor Temperature, a byte duplicate of Indoor Temperature, is enabled by default on every install"
+R9	D8-s3-61	#1644	P2		judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2472	verified low; Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is
+R9	D9-s1-01	#1653	N-solve-recompute	N-solve-recompute	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2488	"judge class ""avoidable interpreter-bound recomputation in the solve"" kept; verified medium; Per-row Python loop in _comfort_terms_batch costs 13-32% of every solve; a row-vectorized twin is bit-identical here"
+R9	D9-s1-02	#1653	N-solve-recompute	N-solve-recompute	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2538	"judge class ""avoidable interpreter-bound recomputation in the solve"" kept; verified medium; L-BFGS-B asks the scalar objective for f(x) every iterate at ~19-26x a batched row: 9-19% of the solve"
+R9	D9-s1-03	#1658	P10	N-loop-cpu	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2563	"judge class ""CPU work inline on the event loop"" re-mapped N-loop-cpu->P10; verified low; The sysid two-state fit runs inside one event-loop callback: 43-228 ms here (1.1-6x a reference solve)"
+R9	D9-s1-04	#1653	N-solve-recompute	N-solve-recompute	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2612	"judge class ""avoidable interpreter-bound recomputation in the solve"" kept; verified low; DHW min-run repair: a full-suffix re-simulation per refused weak slot, 12-23% of a single-zone DHW solve"
+R9	D9-s1-71	#1653	N-solve-recompute	N-solve-recompute	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2635	"judge class ""avoidable interpreter-bound recomputation in the solve"" kept; verified low; Constant DHW parameter helpers recomputed ~15-45k times per solve; a per-solve cache saves 3-17 % of CPU"
+R9	D9-s2-01	#1658	P10	N-loop-cpu	judged	high	bad458a38d:tools/audit/round9/judge/JUDGE.json:2687	"judge class ""CPU work inline on the event loop"" re-mapped N-loop-cpu->P10; verified low; sensor_advisor ranking re-simulated on the event loop at every plan-sensor write: ~32% of loop CPU"
+R9	D9-s2-02	#1656	I1	N-cpu-gate-blind	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2703	"judge class ""CPU gate blind to a regression outside its sampled work"" re-mapped N-cpu-gate-blind->I1; verified medium; No budgeted check sees a 2x of the coordinator's loop-thread work; stress.py reaches none of it"
+R9	D9-s2-03	#1656	I1	N-cpu-gate-blind	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2727	"judge class ""CPU gate blind to a regression outside its sampled work"" re-mapped N-cpu-gate-blind->I1; verified medium; stress.py misses a 2x solve regression in one scenario when the extra work is outside the simulate seams"
+R9	D9-s2-71	#1656	I1	N-cpu-gate-blind	judged	med	bad458a38d:tools/audit/round9/judge/JUDGE.json:2743	"judge class ""CPU gate blind to a regression outside its sampled work"" re-mapped N-cpu-gate-blind->I1; verified medium; stress.py samples 0 of 51 throttling-valve plants; a valve adds 1.3-2.7x solve CPU the gate never sees"
+R9	RC-sw1	#1653	N-solve-recompute	N-solve-recompute	sweep	high	51a2e98a86:tools/audit/round9/D14/sweep/S5.json:145	found_by=S5; cycling_penalty_batch per-row loop; the other ThermalParameters seams S5 listed are folded into D9-s1-71 (SWEEP.md) and not counted
+R9	RC-rca1	#1653	N-solve-recompute	N-solve-recompute	sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:814	found_by=RCA; tariff.peak_cost_batch per-row loop; RCA-found (FIX-PLAN §10 RCA fold), not sweep-found
+R9	RC-rca2	#1653	N-solve-recompute	N-solve-recompute	sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:815	found_by=RCA; _terminal_cost_batch closure per-row loop; RCA-found, S5 disposed it not applicable
+R9	FI-sw1	#1660	N-future-instant	N-future-instant	sweep	high	1152a74346:tools/audit/round9/D14/sweep/S7.json:61	found_by=S7; fuse-advisor cooldown; RCA: month-bounded
+R9	FI-sw2	#1660	N-future-instant	N-future-instant	sweep	high	1152a74346:tools/audit/round9/D14/sweep/S7.json:67	found_by=S7; heavy-snow damping window
+R9	FI-sw3	#1660	N-future-instant	N-future-instant	sweep	high	1152a74346:tools/audit/round9/D14/sweep/S7.json:73	found_by=S7; _detect_outage last_tick; not reached by the barrier (main register)
+R9	FI-sw4	#1660	N-future-instant	N-future-instant	sweep	med	1152a74346:tools/audit/round9/D14/sweep/S7.json:85	found_by=S7; immersion-event recency; S7 did not probe it separately, the RCA reproduced it
+R9	FI-sw5	#1660	N-future-instant	N-future-instant	sweep	high	1152a74346:tools/audit/round9/D14/sweep/S7.json:79	found_by=S7; pump_arbiter write-echo grace
+R9	FI-rca1	#1660	N-future-instant	N-future-instant	sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:821	found_by=RCA; legionella parse_datetime restore; RCA-found (S7 grep cannot see parse_datetime)
+R9	P5-rca1	#1655	P5		sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:805	found_by=RCA; half-declared slab mass admitted; RCA-found (P5 axis sweep)
+R9	P9-rca1	#1652	P9		sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:806	found_by=RCA; armed clear button 4.29:1 contrast; RCA-found
+R9	P9-rca2	#1652	P9		sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:807	found_by=RCA; 'estimated prices' label 3.94:1; RCA-found
+R9	P9-rca3	#1652	P9		sweep	med	27049219a8:handoff/round9/FIX-PLAN.md:808	found_by=RCA; now label vs estimated-prices label shared ink; RCA-found; D4-s1-05 mechanism at a second seam
+R9	P9-rca4	#1652	P9		sweep	low	27049219a8:handoff/round9/FIX-PLAN.md:809	found_by=RCA; slot-hit target spacing; RCA-found, a counted candidate needing a fix design
+R9	P9-f61a	#1652	P9		sweep	low	27049219a8:handoff/round9/FIX-PLAN.md:810	found_by=fixer-F6.1; found by the F6.1 fixer re-measuring the RCA grid; table labels it S5; seam not named
+R9	P9-f61b	#1652	P9		sweep	low	27049219a8:handoff/round9/FIX-PLAN.md:811	found_by=fixer-F6.1; found by the F6.1 fixer; pointer-only hit targets; seam not named
+R9	P9-f61c	#1652	P9		sweep	low	27049219a8:handoff/round9/FIX-PLAN.md:812	found_by=fixer-F6.1; found by the F6.1 fixer; deferred tap-target candidate

@@ -1,0 +1,2000 @@
+{
+  "_source": "Phase A1 v2 (one-time enumeration, rounds 1-9). Counting rule: judged survivors plus counted instances beyond them (defect-root-cause.md:88-89, audit-verify.js:211-214). Instances derived from register_rows.tsv by derive.py; mechanisms of existing ids kept verbatim from origin/main 3490cb16 tools/audit/bugclasses.json; mechanism_note flags where R8/R9 members stretch them. Classification reasons: reclassifications.md.",
+  "P1": {
+    "kind": "production",
+    "mechanism": "A non-finite or malformed value crosses a persisted-store boundary with no guard",
+    "mechanism_note": "Stretched. R1-7 already held live-input and output-boundary rows (R5 D1-06 'nan' sensor state, R5 D1-07 weather feed, R2 D8-02 numpy scalars to attributes) that cross no persisted store; R8 D1-s3-01 (Open-Meteo shape) and the R9 re-maps N-plausibility (finite-but-absurd live input), N-min-gap (one off-grid stamp voids a feed) and N-service-clamp (unbounded service input) add more, and R9 D1-s5-02/D1-s3-06 are finite-but-out-of-domain. Proposed wording: 'A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard'. The detector idea (fuzz the store roster) reaches none of the non-store members.",
+    "aliases": [
+      "N-min-gap",
+      "N-plausibility",
+      "N-service-clamp",
+      "new: live input with no physical-plausibility bound",
+      "new: series resolution inferred from the minimum gap",
+      "new: service input without an upper-bound clamp"
+    ],
+    "instances": {
+      "R1": [
+        "D1-01",
+        "D1-05"
+      ],
+      "R2": [
+        "D1-03",
+        "D8-02"
+      ],
+      "R3": [
+        "D1-01"
+      ],
+      "R4": [
+        "D1-01",
+        "D1-02"
+      ],
+      "R5": [
+        "D1-05",
+        "D1-06",
+        "D1-07"
+      ],
+      "R6": [
+        "D1-01",
+        "D1-02"
+      ],
+      "R8": [
+        "D1-s2-01",
+        "D1-s3-01"
+      ],
+      "R9": [
+        "D1-s1-01",
+        "D1-s1-02",
+        "D1-s1-03",
+        "D1-s2-02",
+        "D1-s2-03",
+        "D1-s2-54",
+        "D1-s3-03",
+        "D1-s3-06",
+        "D1-s4-01",
+        "D1-s4-03",
+        "D1-s5-02",
+        "D1-s5-04",
+        "D14-s1-01"
+      ]
+    },
+    "total": 27,
+    "max_per_round": 13,
+    "detector": null,
+    "detector_idea": "Enumerate every Store/async_load and every float field its from_dict reads; fuzz each with nan/inf/malformed strings across the whole store roster",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        2,
+        0
+      ],
+      "R2": [
+        2,
+        0
+      ],
+      "R3": [
+        1,
+        0
+      ],
+      "R4": [
+        2,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R6": [
+        2,
+        0
+      ],
+      "R8": [
+        2,
+        0
+      ],
+      "R9": [
+        13,
+        0
+      ]
+    }
+  },
+  "P2": {
+    "kind": "production",
+    "mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling",
+    "mechanism_note": "Stretched. Used as the catch-all for sibling-seam guard gaps; R8/R9 add entity default-enabled/availability (N-dup-entity, N-availability, R8 D8-s2-02), a try opened after the call it should fence (N-late-try) and a state-blind flow menu (N-menu), all 'guard present at a sibling, missing here'. R1-7 misfits flagged in reclassifications.md (coordinator size, name sort).",
+    "aliases": [
+      "N-availability",
+      "N-dup-entity",
+      "N-late-try",
+      "N-menu",
+      "new: compatibility duplicate entity enabled by default",
+      "new: error-translating try opened after the call it should cover",
+      "new: state-blind menu re-offers a completed path",
+      "new: whole-entity availability gated on an optional input"
+    ],
+    "instances": {
+      "R1": [
+        "D10-03",
+        "D10-06",
+        "D10-08",
+        "D7-01",
+        "D7-05"
+      ],
+      "R2": [
+        "D1-01",
+        "D1-02",
+        "D10-05",
+        "D7-02",
+        "D7-03",
+        "D7-05",
+        "D8-04"
+      ],
+      "R3": [
+        "D7-03",
+        "D8-02"
+      ],
+      "R4": [
+        "D10-03",
+        "D7-03",
+        "D8-01"
+      ],
+      "R5": [
+        "D7-03",
+        "D7-04",
+        "D8-01",
+        "D8-03"
+      ],
+      "R6": [
+        "D12-01",
+        "D2-01",
+        "D8-01"
+      ],
+      "R7": [
+        "D1-02",
+        "D10-02",
+        "D12-01",
+        "D8-02"
+      ],
+      "R8": [
+        "D12-s1-01",
+        "D12-s1-02",
+        "D2-s1-01",
+        "D2-s1-02",
+        "D7-s1-01",
+        "D8-s1-01",
+        "D8-s2-02"
+      ],
+      "R9": [
+        "D1-s2-51",
+        "D1-s2-55",
+        "D1-s2-91",
+        "D1-s3-01",
+        "D1-s3-02",
+        "D1-s4-02",
+        "D1-s5-01",
+        "D1-s5-03",
+        "D1-s5-52",
+        "D10-s1-01",
+        "D10-s1-02",
+        "D12-s2-01",
+        "D12-s2-02",
+        "D12-s3-01",
+        "D14-s2-01",
+        "D2-s1-02",
+        "D2-s2-01",
+        "D2-s2-03",
+        "D2-s3-01",
+        "D2-s4-02",
+        "D4-s2-06",
+        "D4-s2-07",
+        "D7-s1-71",
+        "D7-s2-02",
+        "D8-s1-02",
+        "D8-s1-03",
+        "D8-s2-01",
+        "D8-s2-02",
+        "D8-s2-03",
+        "D8-s3-03",
+        "D8-s3-61"
+      ]
+    },
+    "total": 66,
+    "max_per_round": 31,
+    "detector": null,
+    "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        5,
+        0
+      ],
+      "R2": [
+        7,
+        0
+      ],
+      "R3": [
+        2,
+        0
+      ],
+      "R4": [
+        3,
+        0
+      ],
+      "R5": [
+        4,
+        0
+      ],
+      "R6": [
+        3,
+        0
+      ],
+      "R7": [
+        4,
+        0
+      ],
+      "R8": [
+        7,
+        0
+      ],
+      "R9": [
+        31,
+        0
+      ]
+    }
+  },
+  "P3": {
+    "kind": "production",
+    "mechanism": "A capacity floor or divisor applied inconsistently across sibling formulas",
+    "mechanism_note": "Stretched. In practice 'a clamp, floor, limit or step constant in a physics or tariff formula breaks the identity its siblings keep' (R2 D2-05, R4 D2-02/03, R5 D2-01, R6 D2-02); R9 re-maps N-sign-floor (price-margin sign floor), N-euler-coupled (sub-step bound judged per store) and N-clamp-range (bias clamp sized to an assumed range), and R8 D2-s2-01 (tariff top-k by window, not by day) is a low-confidence placement.",
+    "aliases": [
+      "N-clamp-range",
+      "N-euler-coupled",
+      "N-sign-floor",
+      "new: a sign floor on a price margin breaks the stated piecewise identity",
+      "new: explicit-Euler stability judged per store instead of on the coupled step matrix",
+      "new: learned-correction clamp sized against an assumed range, not the model's curve"
+    ],
+    "instances": {
+      "R2": [
+        "D0-03",
+        "D2-01",
+        "D2-05"
+      ],
+      "R4": [
+        "D2-01",
+        "D2-02",
+        "D2-03",
+        "D7-02"
+      ],
+      "R5": [
+        "D2-01",
+        "D2-02"
+      ],
+      "R6": [
+        "D2-02",
+        "D7-03",
+        "D7-03-EXT"
+      ],
+      "R7": [
+        "D2-01"
+      ],
+      "R8": [
+        "D2-s2-01"
+      ],
+      "R9": [
+        "D12-s2-03",
+        "D14-s3-01",
+        "D2-s1-01",
+        "D2-s2-02",
+        "D2-s2-81",
+        "D2-s3-02"
+      ]
+    },
+    "total": 20,
+    "max_per_round": 6,
+    "detector": null,
+    "detector_idea": "Every max(<capacity>, <constant>) cross-referenced against unclamped reads of the same variable",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R2": [
+        3,
+        0
+      ],
+      "R4": [
+        4,
+        0
+      ],
+      "R5": [
+        2,
+        0
+      ],
+      "R6": [
+        3,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        6,
+        0
+      ]
+    }
+  },
+  "P4": {
+    "kind": "production",
+    "mechanism": "The optimizer seed set or stop tolerance does not bracket the optimum",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R1": [
+        "D0-01",
+        "D0-02"
+      ],
+      "R2": [
+        "D0-01",
+        "D0-02",
+        "D9-01"
+      ],
+      "R3": [
+        "D0-01",
+        "D0-02"
+      ],
+      "R4": [
+        "D0-01",
+        "D0-02"
+      ],
+      "R5": [
+        "D0-01",
+        "D0-03",
+        "D0-04"
+      ],
+      "R6": [
+        "D0-02"
+      ],
+      "R7": [
+        "D0-01"
+      ],
+      "R8": [
+        "D0-s1-01"
+      ],
+      "R9": [
+        "D0-s2-02"
+      ]
+    },
+    "total": 16,
+    "max_per_round": 3,
+    "detector": null,
+    "detector_idea": "Per fixture cell, production multi-start against a dense seed grid on the identical objective",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        2,
+        0
+      ],
+      "R2": [
+        3,
+        0
+      ],
+      "R3": [
+        2,
+        0
+      ],
+      "R4": [
+        2,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R6": [
+        1,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "P5": {
+    "kind": "production",
+    "mechanism": "A sysid/adoption gate keyed on a quantity other than the bias it gates",
+    "mechanism_note": "Stretched to model-structure mismatch in the fit (already R1 D7-02, R4 D7-01); R9 N-fit-integrator (coarser integrator than the plant) re-mapped here, which puts it under the barriered class's obligation (F4.2 carried both).",
+    "aliases": [
+      "N-fit-integrator",
+      "new: fit integrator differs from the simulated plant"
+    ],
+    "instances": {
+      "R1": [
+        "D2-01",
+        "D7-02"
+      ],
+      "R2": [
+        "D2-04",
+        "D7-01"
+      ],
+      "R3": [
+        "D2-01",
+        "D2-03",
+        "D7-01"
+      ],
+      "R4": [
+        "D7-01"
+      ],
+      "R5": [
+        "D2-03",
+        "D7-01",
+        "D7-02"
+      ],
+      "R6": [
+        "D7-01"
+      ],
+      "R7": [
+        "D7-01"
+      ],
+      "R8": [
+        "D7-s1-02"
+      ],
+      "R9": [
+        "D14-s3-03",
+        "D2-s4-01",
+        "D2-s4-81",
+        "D7-s2-01",
+        "P5-rca1"
+      ]
+    },
+    "total": 19,
+    "max_per_round": 5,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
+    "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
+    "barrier": "The adoption interval prices every told quantity (intercept prior, slab pair) by how far one declared width moves log UA, and the R9-P5 sweep in tests/features.py runs on the PR gate (F4.2, #1655), with the #1524 liveness checks refusing a gate that refuses everything. Not reached: free heat past the prior's own band, which one night cannot separate from heat loss; it needs the learned free-heat prior in coordinator.py (.claude/workflows/carry-1655.json)",
+    "status": "barriered",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        2,
+        0
+      ],
+      "R2": [
+        2,
+        0
+      ],
+      "R3": [
+        3,
+        0
+      ],
+      "R4": [
+        1,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R6": [
+        1,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        4,
+        1
+      ]
+    }
+  },
+  "P6": {
+    "kind": "production",
+    "mechanism": "A consumer reads a key or field no producer writes, with a silent fallback",
+    "mechanism_note": "Stretched. R1-7 already held swallowed failures (R1 D10-07, R2 D10-04) that read no missing key; R9 N-debug-swallow (persistent failure logged at DEBUG) re-mapped here; R8 D7-s1-03 is a refusal path that writes no reason, read back as the default 'ok'.",
+    "aliases": [
+      "N-debug-swallow",
+      "new: persistent failure swallowed at DEBUG"
+    ],
+    "instances": {
+      "R1": [
+        "D1-04",
+        "D10-07",
+        "D7-04",
+        "D8-01",
+        "D8-02"
+      ],
+      "R2": [
+        "D1-04",
+        "D1-05",
+        "D10-02",
+        "D10-04",
+        "D7-04",
+        "D8-01"
+      ],
+      "R3": [
+        "D1-02",
+        "D8-01"
+      ],
+      "R4": [
+        "D2-05"
+      ],
+      "R6": [
+        "D6-02"
+      ],
+      "R7": [
+        "D1-01",
+        "D8-01",
+        "D9-01"
+      ],
+      "R8": [
+        "D7-s1-03"
+      ],
+      "R9": [
+        "D1-s2-04",
+        "D10-s2-01",
+        "D12-s1-01",
+        "D14-s1-02",
+        "D2-s1-51",
+        "D4-s2-01"
+      ]
+    },
+    "total": 25,
+    "max_per_round": 6,
+    "detector": null,
+    "detector_idea": "Static cross-reference of coordinator.data/hass.data reads against the keys _build_data_dict writes",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        5,
+        0
+      ],
+      "R2": [
+        6,
+        0
+      ],
+      "R3": [
+        2,
+        0
+      ],
+      "R4": [
+        1,
+        0
+      ],
+      "R6": [
+        1,
+        0
+      ],
+      "R7": [
+        3,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        6,
+        0
+      ]
+    }
+  },
+  "P7": {
+    "kind": "production",
+    "mechanism": "Naive wall-clock datetime arithmetic across a DST transition",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R2": [
+        "D2-03"
+      ],
+      "R3": [
+        "D1-03",
+        "D2-02"
+      ],
+      "R5": [
+        "D1-08"
+      ],
+      "R9": [
+        "D14-s4-01"
+      ]
+    },
+    "total": 5,
+    "max_per_round": 2,
+    "detector": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py (its DST tracer section; tests/features.py runs the script)",
+    "detector_idea": "Every datetime-difference and grid-construction site across the DST transition days, against a UTC reference",
+    "barrier": "tests/dst_checks.py's DST tracer on the PR gate (F1.1, #1665): the committed replay day, shifted onto a spring, an autumn and a plain day, runs through replay.run_fixture with Home Assistant's zoned clock traced, and a subtraction of two stamps sharing the zone, or a + timedelta on one, whose result differs from the UTC arithmetic fails the check, keyed on (file, function). Reaches every seam a replayed cycle executes, including operands the static enumerator cannot name (result.timestamps); not reached: a seam no replayed cycle drives, and arithmetic between two datetimes production builds itself from stored text. tariff._window_slot is exempt: a wall-clock tariff label by definition",
+    "status": "barriered",
+    "rounds": [
+      2,
+      3,
+      5,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R2": [
+        1,
+        0
+      ],
+      "R3": [
+        2,
+        0
+      ],
+      "R5": [
+        1,
+        0
+      ],
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "P8": {
+    "kind": "production",
+    "mechanism": "A currency or unit resolved by divergent precedence on different surfaces",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R1": [
+        "D4-04"
+      ],
+      "R2": [
+        "D2-02"
+      ],
+      "R4": [
+        "D12-01",
+        "D2-04",
+        "D6-02"
+      ],
+      "R5": [
+        "D12-01"
+      ],
+      "R7": [
+        "D4-03"
+      ],
+      "R8": [
+        "D2-s2-02"
+      ],
+      "R9": [
+        "D12-s3-81",
+        "D14-s2-02"
+      ]
+    },
+    "total": 10,
+    "max_per_round": 3,
+    "detector": null,
+    "detector_idea": "Every currency/unit read site must resolve through one shared function; a metric vs non-metric sweep",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        1,
+        0
+      ],
+      "R2": [
+        1,
+        0
+      ],
+      "R4": [
+        3,
+        0
+      ],
+      "R5": [
+        1,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        2,
+        0
+      ]
+    }
+  },
+  "P9": {
+    "kind": "production",
+    "mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target",
+    "mechanism_note": "Stretched to keyboard access: R8 D4-01 (Tab order) and R9 N-keyboard (pointer-only editing) are card accessibility rules that do not reach a control, the class's shape, but the mechanism text names only clipping/colour/hit target.",
+    "aliases": [
+      "N-keyboard",
+      "new: pointer-only editing with no keyboard route"
+    ],
+    "instances": {
+      "R1": [
+        "D4-01",
+        "D4-02",
+        "D4-03",
+        "D4-06"
+      ],
+      "R2": [
+        "D4-01",
+        "D4-02",
+        "D4-03",
+        "D4-04",
+        "D4-05",
+        "D4-06",
+        "D4-07",
+        "D4-08"
+      ],
+      "R4": [
+        "D4-01"
+      ],
+      "R5": [
+        "D4-01",
+        "D4-02",
+        "D4-03"
+      ],
+      "R6": [
+        "D4-01"
+      ],
+      "R7": [
+        "D4-01",
+        "D4-02"
+      ],
+      "R8": [
+        "D4-01"
+      ],
+      "R9": [
+        "D4-s1-01",
+        "D4-s1-02",
+        "D4-s1-03",
+        "D4-s1-04",
+        "D4-s1-05",
+        "P9-f61a",
+        "P9-f61b",
+        "P9-f61c",
+        "P9-rca1",
+        "P9-rca2",
+        "P9-rca3",
+        "P9-rca4"
+      ]
+    },
+    "total": 32,
+    "max_per_round": 12,
+    "detector": null,
+    "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        4,
+        0
+      ],
+      "R2": [
+        8,
+        0
+      ],
+      "R4": [
+        1,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R6": [
+        1,
+        0
+      ],
+      "R7": [
+        2,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        5,
+        7
+      ]
+    }
+  },
+  "P10": {
+    "kind": "production",
+    "mechanism": "A solve on a GIL-holding thread starves the event loop",
+    "mechanism_note": "Stretched. R9 N-loop-cpu is CPU work run inline on the event loop (no thread, no GIL contention); same harm (loop starvation). Conversely R1 D9-01, R2 D9-03, R4 D9-05, R7 D9-02 are avoidable solve CPU, not starvation, and are flagged to N-solve-recompute.",
+    "aliases": [
+      "N-loop-cpu",
+      "new: CPU work inline on the event loop"
+    ],
+    "instances": {
+      "R1": [
+        "D7-03",
+        "D9-01",
+        "D9-02"
+      ],
+      "R2": [
+        "D9-03",
+        "D9-05"
+      ],
+      "R3": [
+        "D9-03"
+      ],
+      "R4": [
+        "D9-05"
+      ],
+      "R5": [
+        "D9-06"
+      ],
+      "R6": [
+        "D9-01"
+      ],
+      "R7": [
+        "D9-02"
+      ],
+      "R9": [
+        "D9-s1-03",
+        "D9-s2-01"
+      ]
+    },
+    "total": 12,
+    "max_per_round": 3,
+    "detector": null,
+    "detector_idea": "A real-loop heartbeat around a real solve in the production executor, keyed on a ratio, not wall time",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        3,
+        0
+      ],
+      "R2": [
+        2,
+        0
+      ],
+      "R3": [
+        1,
+        0
+      ],
+      "R4": [
+        1,
+        0
+      ],
+      "R5": [
+        1,
+        0
+      ],
+      "R6": [
+        1,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R9": [
+        2,
+        0
+      ]
+    }
+  },
+  "I1": {
+    "kind": "instrument",
+    "mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green",
+    "mechanism_note": "Stretched to performance gates: R2 D9-02, R4 D9-06, R5 D9-07, R6 D9-02 already here; R8 D9-s2-01 and the R9 re-map N-cpu-gate-blind (a 2x regression outside the sampled work leaves the gate green) join them.",
+    "aliases": [
+      "N-cpu-gate-blind",
+      "new: CPU gate blind to a regression outside its sampled work"
+    ],
+    "instances": {
+      "R1": [
+        "D3-01",
+        "D3-02",
+        "D3-03",
+        "D3-04",
+        "D3-05",
+        "D3-06",
+        "D3-07",
+        "D3-08"
+      ],
+      "R2": [
+        "D3-01",
+        "D3-02",
+        "D3-03",
+        "D3-04",
+        "D3-05",
+        "D3-06",
+        "D3-07",
+        "D3-08",
+        "D3-10",
+        "D9-02",
+        "D9-04"
+      ],
+      "R3": [
+        "D3-01",
+        "D3-02",
+        "D3-03",
+        "D3-04",
+        "D3-05",
+        "D9-02",
+        "D9-04"
+      ],
+      "R4": [
+        "D3-S1",
+        "D3-S2",
+        "D3-S3",
+        "D9-06"
+      ],
+      "R5": [
+        "D3-03",
+        "D3-04",
+        "D3-05",
+        "D3-06",
+        "D3-07",
+        "D3-08",
+        "D3-09",
+        "D9-05",
+        "D9-07",
+        "D9-08"
+      ],
+      "R6": [
+        "D3-01",
+        "D3-02",
+        "D3-03",
+        "D3-04",
+        "D3-05",
+        "D9-02"
+      ],
+      "R7": [
+        "D2-02",
+        "D3-01",
+        "D3-02"
+      ],
+      "R8": [
+        "D3-s1-01",
+        "D3-s2-01",
+        "D3-s2-02",
+        "D7-s2-03",
+        "D9-s2-01"
+      ],
+      "R9": [
+        "D14-s5-02",
+        "D3-s1-01",
+        "D3-s1-91",
+        "D3-s2-01",
+        "D3-s2-02",
+        "D3-s3-01",
+        "D3-s3-02",
+        "D3-s3-03",
+        "D3-s3-04",
+        "D3-s3-05",
+        "D7-s1-02",
+        "D9-s2-02",
+        "D9-s2-03",
+        "D9-s2-71"
+      ]
+    },
+    "total": 68,
+    "max_per_round": 14,
+    "detector": null,
+    "detector_idea": "Count a kill only on at least one failing assertion; re-run previously surviving mutants",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        8,
+        0
+      ],
+      "R2": [
+        11,
+        0
+      ],
+      "R3": [
+        7,
+        0
+      ],
+      "R4": [
+        4,
+        0
+      ],
+      "R5": [
+        10,
+        0
+      ],
+      "R6": [
+        6,
+        0
+      ],
+      "R7": [
+        3,
+        0
+      ],
+      "R8": [
+        5,
+        0
+      ],
+      "R9": [
+        14,
+        0
+      ]
+    }
+  },
+  "I2": {
+    "kind": "instrument",
+    "mechanism": "A measured closure or scope diverges from the real dependency graph",
+    "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
+    "aliases": [],
+    "instances": {
+      "R2": [
+        "D3-09"
+      ],
+      "R3": [
+        "D3-FLAKE"
+      ],
+      "R5": [
+        "D3-01",
+        "D3-02",
+        "R5-INST-01"
+      ],
+      "R7": [
+        "R7-INSTR-01"
+      ],
+      "R8": [
+        "D3-s1-02"
+      ],
+      "R9": [
+        "D14-s5-01"
+      ]
+    },
+    "total": 8,
+    "max_per_round": 3,
+    "detector": null,
+    "detector_idea": "Record closures cold and warm and diff; every closures.json entry resolves to an existing file",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      2,
+      3,
+      5,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R2": [
+        1,
+        0
+      ],
+      "R3": [
+        1,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R7": [
+        1,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "I3": {
+    "kind": "instrument",
+    "mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R2": [
+        "D10-03"
+      ],
+      "R3": [
+        "D11-01",
+        "D11-02",
+        "D11-03",
+        "D11-05"
+      ],
+      "R4": [
+        "D11-01",
+        "D11-02",
+        "D11-03",
+        "D11-04",
+        "D11-05",
+        "D11-07"
+      ],
+      "R5": [
+        "D11-01",
+        "D11-02"
+      ],
+      "R6": [
+        "D11-01",
+        "D11-02"
+      ],
+      "R7": [
+        "D11-01",
+        "D11-02",
+        "D13-04"
+      ],
+      "R8": [
+        "D11-s1-01",
+        "D11-s1-03",
+        "D11-s2-01",
+        "D11-s2-02",
+        "D11-s2-03",
+        "D13-s1-02"
+      ],
+      "R9": [
+        "D11-s1-01",
+        "D11-s1-02",
+        "D11-s1-03",
+        "D11-s1-04",
+        "D11-s2-01",
+        "D11-s2-02",
+        "D13-s1-03"
+      ]
+    },
+    "total": 31,
+    "max_per_round": 7,
+    "detector": "node .claude/workflows/field_coverage.mjs",
+    "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
+    "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row, the budget-raise gate's owner review) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03, and the write-grant workflow pin's inputs in tests/entities.py (carry-1648's second entry: that pin is not callable without running the whole script).",
+    "status": "barriered",
+    "rounds": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R2": [
+        1,
+        0
+      ],
+      "R3": [
+        4,
+        0
+      ],
+      "R4": [
+        6,
+        0
+      ],
+      "R5": [
+        2,
+        0
+      ],
+      "R6": [
+        2,
+        0
+      ],
+      "R7": [
+        3,
+        0
+      ],
+      "R8": [
+        6,
+        0
+      ],
+      "R9": [
+        7,
+        0
+      ]
+    }
+  },
+  "I4": {
+    "kind": "instrument",
+    "mechanism": "Two independent parsers or definitions of one concept disagree",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R4": [
+        "D11-06"
+      ],
+      "R5": [
+        "D13-01",
+        "D13-02",
+        "D13-03"
+      ],
+      "R6": [
+        "D13-01",
+        "D13-02",
+        "D13-03"
+      ],
+      "R7": [
+        "D11-03",
+        "D13-01",
+        "D13-02",
+        "D13-03",
+        "D13-05",
+        "D13-06",
+        "D9-03"
+      ],
+      "R8": [
+        "D13-s1-01"
+      ],
+      "R9": [
+        "D11-s1-71",
+        "D11-s1-72",
+        "D13-s1-01",
+        "D14-s2-03",
+        "D7-s3-02"
+      ]
+    },
+    "total": 20,
+    "max_per_round": 7,
+    "detector": null,
+    "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R4": [
+        1,
+        0
+      ],
+      "R5": [
+        3,
+        0
+      ],
+      "R6": [
+        3,
+        0
+      ],
+      "R7": [
+        7,
+        0
+      ],
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        5,
+        0
+      ]
+    }
+  },
+  "I5": {
+    "kind": "instrument",
+    "mechanism": "Docs, comments or a compliance checklist drift stale against the code",
+    "mechanism_note": "Stretched. Holds production translation/icon coverage (R1 D10-13, R4 D8-02, R8 D4-s2-01; R9 re-maps N-escape, N-service-icons, N-language) and rendering defects (R9 N-markdown), which are not drift against code; and R1 D10-01/D10-02/D10-12 are HA quality-scale code conformance (flagged, no class fits).",
+    "aliases": [
+      "N-escape",
+      "N-language",
+      "N-markdown",
+      "N-service-icons",
+      "new: markdown the renderer misplaces",
+      "new: missing icons.json services block",
+      "new: text producer takes no language parameter",
+      "new: translation leaf double-escaped"
+    ],
+    "instances": {
+      "R1": [
+        "D10-01",
+        "D10-02",
+        "D10-12",
+        "D10-13",
+        "D5-01",
+        "D5-02",
+        "D5-03",
+        "D5-04",
+        "D6-01",
+        "D6-02"
+      ],
+      "R2": [
+        "D10-01",
+        "D10-09",
+        "D10-15",
+        "D5-01",
+        "D5-02",
+        "D5-03",
+        "D5-04",
+        "D5-05",
+        "D6-01",
+        "D6-02",
+        "D6-03",
+        "D6-04",
+        "D6-05",
+        "D7-06",
+        "D8-03"
+      ],
+      "R3": [
+        "D10-02",
+        "D11-04",
+        "D5-01",
+        "D5-02",
+        "D5-03",
+        "D5-04",
+        "D6-01",
+        "D6-02",
+        "D6-04",
+        "D8-03"
+      ],
+      "R4": [
+        "D10-01",
+        "D10-02",
+        "D5-01",
+        "D5-02",
+        "D6-01",
+        "D6-03",
+        "D8-02"
+      ],
+      "R5": [
+        "D5-01",
+        "D5-02",
+        "D5-03",
+        "D5-04",
+        "D5-05",
+        "D6-01",
+        "D6-02",
+        "D6-03",
+        "D8-02"
+      ],
+      "R6": [
+        "D10-01",
+        "D5-01",
+        "D5-02",
+        "D6-01",
+        "D6-03",
+        "D7-02"
+      ],
+      "R7": [
+        "D10-01",
+        "D5-01",
+        "D5-02"
+      ],
+      "R8": [
+        "D10-s1-01",
+        "D10-s1-02",
+        "D4-s2-01",
+        "D5-s1-01",
+        "D5-s2-01",
+        "D6-s1-01"
+      ],
+      "R9": [
+        "D11-s2-04",
+        "D4-s2-03",
+        "D4-s2-08",
+        "D4-s2-09",
+        "D4-s2-81",
+        "D5-s1-01",
+        "D5-s1-02",
+        "D5-s1-03",
+        "D5-s1-04",
+        "D5-s1-05",
+        "D5-s2-01",
+        "D5-s2-02",
+        "D5-s2-03",
+        "D5-s2-51",
+        "D6-s1-01",
+        "D6-s1-02",
+        "D6-s1-03",
+        "D6-s2-01",
+        "D6-s2-02",
+        "D6-s2-03",
+        "D6-s2-04",
+        "D6-s2-05",
+        "D8-s3-02"
+      ]
+    },
+    "total": 89,
+    "max_per_round": 23,
+    "detector": null,
+    "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
+    "barrier": null,
+    "status": "open",
+    "rounds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R1": [
+        10,
+        0
+      ],
+      "R2": [
+        15,
+        0
+      ],
+      "R3": [
+        10,
+        0
+      ],
+      "R4": [
+        7,
+        0
+      ],
+      "R5": [
+        9,
+        0
+      ],
+      "R6": [
+        6,
+        0
+      ],
+      "R7": [
+        3,
+        0
+      ],
+      "R8": [
+        6,
+        0
+      ],
+      "R9": [
+        23,
+        0
+      ]
+    }
+  },
+  "N-future-instant": {
+    "kind": "production",
+    "mechanism": "A persisted instant stamped by a clock that ran ahead is trusted verbatim on load, so every now-minus-stamp window it opens holds for the clock's whole error",
+    "mechanism_note": null,
+    "aliases": [
+      "new: persisted future instant trusted without bound"
+    ],
+    "instances": {
+      "R9": [
+        "D1-s1-04",
+        "D1-s3-05",
+        "FI-rca1",
+        "FI-sw1",
+        "FI-sw2",
+        "FI-sw3",
+        "FI-sw4",
+        "FI-sw5"
+      ]
+    },
+    "total": 8,
+    "max_per_round": 8,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
+    "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Not reached: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stays masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, and it waits on tvofi's rule in F1.9",
+    "status": "barriered",
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        2,
+        6
+      ]
+    }
+  },
+  "P11": {
+    "kind": "production",
+    "mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
+    "mechanism_note": null,
+    "aliases": [],
+    "instances": {
+      "R9": [
+        "D1-s1-51",
+        "D1-s1-52",
+        "D1-s2-71",
+        "D10-s1-03",
+        "D14-s4-02",
+        "D6-s1-81"
+      ]
+    },
+    "total": 6,
+    "max_per_round": 6,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/ha_contract.py",
+    "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
+    "barrier": "tests/ha_contract.py on the PR gate (F10.1, #1649): a contract that reached none of its asserts fails; every expect=both contract of a symbol a test hook feeds (HOOKS: dt_util.freeze) re-runs in each hook state; every parameter a stub accepts and never reads must be declared in DROPPED. Reaches the vacuous-contract, hook and dropped-parameter routes (D1-s1-52's contract, D14-s4-02, D1-s2-71); the naive default clock itself (D1-s1-52) is declared DIVERGENT with an expect=real contract and split into its own PR. Not reached: behaviour inside a method (D1-s1-51, covered per instance by the Store decode contract and probe), an upstream symbol the stub does not model (D10-s1-03), and doubles outside tests/hastub (D6-s1-81); the RCA (round 9, P11) leaves the last to tvofi",
+    "status": "barriered",
+    "non_round_instances": [
+      "v6.6.12 bug 1",
+      "v6.6.12 bug 3",
+      "v6.6.12 bug 4",
+      "v6.6.12 bug 5",
+      "v6.6.12 bug 6",
+      "v6.6.12 bug 7",
+      "v6.6.12 arbiter listener without @callback",
+      "v4.0.0 _on_power_event without @callback",
+      "#1290 card history repair",
+      "#511 stub import shape"
+    ],
+    "non_round_note": "Incident-derived instances carried in v1; not audit findings, not in register_rows.tsv, not counted in total.",
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        6,
+        0
+      ]
+    }
+  },
+  "N-restart": {
+    "kind": "production",
+    "mechanism": "A user-set state does not survive a restart: the setter persisted it later than the action (the end of a cycle, a queued platform slot), or not at all",
+    "mechanism_note": null,
+    "aliases": [
+      "new: user state not surviving restart"
+    ],
+    "instances": {
+      "R9": [
+        "D1-s2-52",
+        "D1-s2-53"
+      ]
+    },
+    "total": 2,
+    "max_per_round": 2,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, the RC2 block and its F1.4 extension: every entity action and coordinator setter is a durability row or says where its state lives (check 1); each row returns before a refresh that never completes and a second coordinator on the same entry shows what it set; the five cycle writers run against a startup read held open by a gate and the persisted learned marker must survive the writer (D1-s2-52); every set_thermal_parameters field that changes state survives a restart through entry options, enumerated from the service schema so a new field is refused until classified (D1-s2-53)",
+    "detector_idea": "The S5 enumerators are the two D1-leads harnesses (enumerate_store_race.py, enumerate_params_restart.py), exhaustive over the coordinator's five stores and the service's 26 state-changing fields",
+    "barrier": "The RC2 block (#1641) classified every entity action and setter; F1.4 extends it with the two seams the sweep confirmed it did not cover. D1-s2-52: each of the five cycle writers awaits its store's async_wait_for_read BEFORE building its payload -- the payload snapshots memory, so a save-side wait alone leaves the disk stale (the round-1 shape did, caught by the review: memory survived, a third restart lost 5 of 5) -- and QuarantiningStore.async_save itself also waits, as defence-in-depth for every other writer. D1-s2-53: async_update_thermal_params writes the call's fields into entry options, the async_set_target_temperature route, whose options write reloads the entry and rebuilds the model. The barrier check reads the marker from a THIRD clean restart after the race, the finding's harm sentence made measurable. Sweep S5 (@51a2e98a86) re-measured both instances at the merge base: lost=5 of 5 stores, lost=24 of 26 fields; both zero at the head",
+    "status": "barriered",
+    "non_round_instances": [
+      "v6.6.12 bug 5 (RC2)"
+    ],
+    "non_round_note": "Incident-derived instances carried in v1; not audit findings, not in register_rows.tsv, not counted in total.",
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        2,
+        0
+      ]
+    }
+  },
+  "N-solve-recompute": {
+    "kind": "production",
+    "mechanism": "The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded)",
+    "mechanism_note": null,
+    "nearest_existing": "P10",
+    "mechanism_difference": "P10 is where the solve runs (a GIL-holding thread starving the loop); this is avoidable CPU inside the solve wherever it runs, fixed by vectorising or caching, not by moving work off the loop",
+    "aliases": [
+      "new: avoidable interpreter-bound recomputation in the solve"
+    ],
+    "instances": {
+      "R8": [
+        "D9-s1-01"
+      ],
+      "R9": [
+        "D9-s1-01",
+        "D9-s1-02",
+        "D9-s1-04",
+        "D9-s1-71",
+        "RC-rca1",
+        "RC-rca2",
+        "RC-sw1"
+      ]
+    },
+    "total": 8,
+    "max_per_round": 7,
+    "detector": null,
+    "detector_idea": "S5 enumerate.py: profiled call counts per (module, qualname) against a once-per-solve boundary; recompute_instances may only fall",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R8": [
+        1,
+        0
+      ],
+      "R9": [
+        4,
+        3
+      ]
+    }
+  },
+  "N-structure-blind": {
+    "kind": "instrument",
+    "mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured",
+    "mechanism_note": null,
+    "nearest_existing": "I4",
+    "mechanism_difference": "I4 is two maintained readers of one concept disagreeing; here there is one in-tree metric, blind to a code shape (rename, module-level helper(self), property, attribute-only load), and the second reader exists only as an audit harness",
+    "aliases": [
+      "N-dead-member",
+      "new: production member reached by no production code",
+      "new: structure metric blind to a code shape"
+    ],
+    "instances": {
+      "R8": [
+        "D7-s2-01",
+        "D7-s2-02"
+      ],
+      "R9": [
+        "D7-s1-01",
+        "D7-s3-01",
+        "D7-s3-72"
+      ]
+    },
+    "total": 5,
+    "max_per_round": 3,
+    "detector": null,
+    "detector_idea": "Run structure.py against a reachability/attribute-load oracle over the package (the S6 production-member-no-caller and structure-metric-blind enumerators)",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R8": [
+        2,
+        0
+      ],
+      "R9": [
+        3,
+        0
+      ]
+    }
+  },
+  "N-name-sort": {
+    "kind": "production",
+    "mechanism": "An entity family's display names do not lead with a shared token, so the name sort Home Assistant and the card use splits the family, per language",
+    "mechanism_note": null,
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 needs a predicate decided twice; here no predicate exists: names are written per entity and per language and nothing keys them to the family",
+    "aliases": [
+      "new: an entity family whose names do not lead with a shared token splits under the name sort"
+    ],
+    "instances": {
+      "R9": [
+        "D8-s3-01"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S6 entity-family-name-sort-split enumerate.sh: per family, sort by name (en, sv) and entity_id and count unexplained splits",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-shared-config": {
+    "kind": "production",
+    "mechanism": "Solve-scoped state is mutated on, or read from, live shared objects while the solve runs off the loop, so a concurrent reader publishes it or a concurrent writer is reverted",
+    "mechanism_note": null,
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 is a guard present at a sibling and missing here; this is shared mutable state across the solve boundary (no snapshot), which P2's call-site detector cannot see",
+    "aliases": [
+      "new: solve-scoped mutation of shared live config seen by a concurrent reader"
+    ],
+    "instances": {
+      "R8": [
+        "D1-s1-01",
+        "D1-s1-02"
+      ],
+      "R9": [
+        "D1-s3-04"
+      ]
+    },
+    "total": 3,
+    "max_per_round": 2,
+    "detector": null,
+    "detector_idea": "Drive a service write and an entity read at every await point of async_run_optimization and diff against a snapshot-isolated run",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      8,
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R8": [
+        2,
+        0
+      ],
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-approval-rebuy": {
+    "kind": "instrument",
+    "mechanism": "An approval or verdict is bound to the exact head SHA rather than to the diff it reviewed, so a diff-identical head move (a merge from main, a ci: commit) re-buys the review",
+    "mechanism_note": null,
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is enforcement too weak (skipped, stale, bypassable); this is enforcement keyed on the wrong identity, costing rounds without catching defects",
+    "aliases": [
+      "new: an approval bound to an exact head is re-bought on a diff-identical move"
+    ],
+    "instances": {
+      "R9": [
+        "D13-s1-02"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "Per merged PR, patch-id of the reviewed diff vs the merged diff; count re-verifications whose patch-id did not change",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-finally-return": {
+    "kind": "instrument",
+    "mechanism": "A return inside finally swallows an in-flight exception, cancellation included",
+    "mechanism_note": null,
+    "nearest_existing": "I1",
+    "mechanism_difference": "I1 is a gate blind to a behaviour change; this is a code shape that discards the failure signal itself",
+    "aliases": [
+      "new: return inside finally"
+    ],
+    "instances": {
+      "R9": [
+        "D7-s3-51"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S6 return-inside-finally enumerate.py (AST: return/break/continue whose scope escapes a finally)",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-step-grid": {
+    "kind": "production",
+    "mechanism": "A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid",
+    "mechanism_note": null,
+    "nearest_existing": "P2",
+    "mechanism_difference": "no guard is missing at a sibling; one declaration (min, step, default) is internally inconsistent",
+    "aliases": [
+      "new: selector minimum off its own step grid"
+    ],
+    "instances": {
+      "R9": [
+        "D4-s2-05"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S7 selector_min_off_step_grid enumerate.py: every box-mode NumberSelector (min - base) % step == 0",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-reap-lock": {
+    "kind": "production",
+    "mechanism": "Shutdown reaps the solve worker only after acquiring the lock a long solve holds, so stop latency is the solve's remaining time",
+    "mechanism_note": null,
+    "nearest_existing": "P2",
+    "mechanism_difference": "P2 lifecycle rows (R2 D1-02, R9 D1-s3-02) are a missing guard; this is lock ordering between shutdown and an in-flight solve",
+    "aliases": [
+      "new: shutdown reap waits on the lock a solve holds"
+    ],
+    "instances": {
+      "R9": [
+        "D1-s2-05"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "Stop latency ratio vs an unlocked reap (the finder harness perturbation)",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  },
+  "N-staleness": {
+    "kind": "production",
+    "mechanism": "A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable",
+    "mechanism_note": null,
+    "nearest_existing": "P6",
+    "mechanism_difference": "P6 misses staleness behind a silent fallback; this declares false staleness",
+    "aliases": [
+      "new: staleness limit shorter than a report-on-change sensor's quiet interval"
+    ],
+    "instances": {
+      "R9": [
+        "D1-s5-51"
+      ]
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "detector_idea": "S6 staleness-limit-shorter-than-quiet-interval enumerate.sh: silence cells beyond each INPUT_MAX_AGE limit",
+    "barrier": null,
+    "status": "open",
+    "new_in_v2": true,
+    "rounds": [
+      9
+    ],
+    "per_round_judged_sweep": {
+      "R9": [
+        1,
+        0
+      ]
+    }
+  }
+}

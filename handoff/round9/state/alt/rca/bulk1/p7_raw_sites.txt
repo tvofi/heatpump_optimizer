@@ -1,0 +1,13 @@
+custom_components/heatpump_optimizer/coordinator.py:2713:            day = (now + timedelta(days=1)).date()
+custom_components/heatpump_optimizer/coordinator.py:6028:        horizon = now + timedelta(hours=hours)
+custom_components/heatpump_optimizer/coordinator.py:6397:        return (now - self._last_heavy_snow).total_seconds() < (
+custom_components/heatpump_optimizer/coordinator.py:7894:            spacing = (now - self._guard_last_fold).total_seconds() / 3600.0
+custom_components/heatpump_optimizer/coordinator.py:8122:            and (now - self._fuse_advisor_at).total_seconds() < 7 * 24 * 3600.0
+custom_components/heatpump_optimizer/coordinator.py:10382:            and (now - self._freq_last_write).total_seconds()
+custom_components/heatpump_optimizer/coordinator.py:10731:            and (now - self._last_simulation).total_seconds()
+custom_components/heatpump_optimizer/manual_plan.py:288:    cap = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+custom_components/heatpump_optimizer/open_meteo.py:327:        age = now - self._last_attempt
+custom_components/heatpump_optimizer/power_guard.py:84:        return (now - self._last_event).total_seconds() < MIN_EVENT_SPACING_S
+custom_components/heatpump_optimizer/pump_arbiter.py:497:    held.retry[slot] = now + timedelta(minutes=RETRY_MINUTES)
+custom_components/heatpump_optimizer/services.py:873:        expires_at = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+custom_components/heatpump_optimizer/wood_fuel.py:212:        nxt = now + timedelta(days=1)

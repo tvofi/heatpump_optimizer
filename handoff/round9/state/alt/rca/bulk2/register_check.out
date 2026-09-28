@@ -1,0 +1,15 @@
+== tools/audit/bugclasses.json
+(1) register rows 486; in no class 186 {'R8': 39, 'R9': 147}; in >1 class 0
+(0) instances with no round-and-id form (not countable per round): [('P11', 16), ('N-restart', 1)]
+(2) classes that met the per-round trigger with no barrier and no rca citation: [('I1', 'R1'), ('I2', 'R5'), ('I4', 'R5'), ('I5', 'R1'), ('P1', 'R5'), ('P10', 'R1'), ('P2', 'R1'), ('P3', 'R2'), ('P4', 'R2'), ('P6', 'R1'), ('P8', 'R4'), ('P9', 'R1')]
+rc=1
+== /tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseA/a1/classes_v2.json
+(1) register rows 486; in no class 0 {}; in >1 class 0
+(0) instances with no round-and-id form (not countable per round): []
+(2) classes that met the per-round trigger with no barrier and no rca citation: [('I1', 'R1'), ('I2', 'R5'), ('I4', 'R5'), ('I5', 'R1'), ('N-solve-recompute', 'R9'), ('N-structure-blind', 'R9'), ('P1', 'R5'), ('P10', 'R1'), ('P2', 'R1'), ('P3', 'R2'), ('P4', 'R2'), ('P6', 'R1'), ('P8', 'R4'), ('P9', 'R1')]
+rc=1
+== /tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk2/v2_all_rca.json
+(1) register rows 486; in no class 0 {}; in >1 class 0
+(0) instances with no round-and-id form (not countable per round): []
+(2) classes that met the per-round trigger with no barrier and no rca citation: []
+rc=0

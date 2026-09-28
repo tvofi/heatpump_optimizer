@@ -1,0 +1,101 @@
+
+== rows per round (judged + sweep)
+R1:   42  (judged 42, sweep/counted-beyond 0)
+R2:   63  (judged 63, sweep/counted-beyond 0)
+R3:   35  (judged 35, sweep/counted-beyond 0)
+R4:   36  (judged 36, sweep/counted-beyond 0)
+R5:   48  (judged 48, sweep/counted-beyond 0)
+R6:   30  (judged 30, sweep/counted-beyond 0)
+R7:   31  (judged 31, sweep/counted-beyond 0)
+R8:   39  (judged 39, sweep/counted-beyond 0)
+R9:  162  (judged 145, sweep/counted-beyond 17)
+all: 486
+
+== reconciliation vs v1 (3490cb16:tools/audit/bugclasses.json)
+class                  v1 v1R1-7 v2R1-7   d v1R8 v2R8 v1R9 v2R9 v2tot flagsR1-7  explanation
+I1                     49     49     49   0    0    5    0   14    68        46  R1-7 identical; flags move R1-7 49->46 (reclassifications.md)
+I2                      6      6      6   0    0    1    0    1     8         6  R1-7 identical
+I3                     18     18     18   0    0    6    0    7    31        18  R1-7 identical
+I4                     14     14     14   0    0    1    0    5    20        14  R1-7 identical
+I5                     60     60     60   0    0    6    0   23    89        51  R1-7 identical; flags move R1-7 60->51 (reclassifications.md)
+N-future-instant        8      0      0   0    0    0    8    8     8         1  R1-7 identical; flags move R1-7 0->1 (reclassifications.md)
+N-restart               3      0      0   0    0    0    2    2     2         1  R1-7 identical; 1 non-round v1 instance(s) kept aside (non_round_instances); flags move R1-7 0->1 (reclassifications.md)
+P1                     12     12     12   0    0    2    0   13    27        12  R1-7 identical
+P10                    10     10     10   0    0    0    0    2    12         5  R1-7 identical; flags move R1-7 10->5 (reclassifications.md)
+P11                    16      0      0   0    0    0    6    6     6         0  R1-7 identical; 10 non-round v1 instance(s) kept aside (non_round_instances)
+P2                     28     28     28   0    0    7    0   31    66        26  R1-7 identical; flags move R1-7 28->26 (reclassifications.md)
+P3                     13     13     13   0    0    1    0    6    20        15  R1-7 identical; flags move R1-7 13->15 (reclassifications.md)
+P4                     14     14     14   0    0    1    0    1    16        14  R1-7 identical
+P5                     17     13     13   0    0    1    4    5    19        14  R1-7 identical; v2 R9 added: 1; flags move R1-7 13->14 (reclassifications.md)
+P6                     18     18     18   0    0    1    0    6    25        16  R1-7 identical; flags move R1-7 18->16 (reclassifications.md)
+P7                      5      4      4   0    0    0    1    1     5         3  R1-7 identical; flags move R1-7 4->3 (reclassifications.md)
+P8                      7      7      7   0    0    1    0    2    10         4  R1-7 identical; flags move R1-7 7->4 (reclassifications.md)
+P9                     19     19     19   0    0    1    0   12    32        19  R1-7 identical
+N-approval-rebuy        -      -      0   0    0    0    0    1     1         0  R1-7 identical
+N-finally-return        -      -      0   0    0    0    0    1     1         0  R1-7 identical
+N-name-sort             -      -      0   0    0    0    0    1     1         5  R1-7 identical; flags move R1-7 0->5 (reclassifications.md)
+N-reap-lock             -      -      0   0    0    0    0    1     1         0  R1-7 identical
+N-shared-config         -      -      0   0    0    2    0    1     3         1  R1-7 identical; flags move R1-7 0->1 (reclassifications.md)
+N-solve-recompute       -      -      0   0    0    1    0    7     8         5  R1-7 identical; flags move R1-7 0->5 (reclassifications.md)
+N-staleness             -      -      0   0    0    0    0    1     1         0  R1-7 identical
+N-step-grid             -      -      0   0    0    0    0    1     1         0  R1-7 identical
+N-structure-blind       -      -      0   0    0    2    0    3     5         3  R1-7 identical; flags move R1-7 0->3 (reclassifications.md)
+R1-7 membership identical to v1 for every class
+flag targets that are not classes: ['none'] (no class fits; see reclassifications.md)
+
+== total >= 3 but max_per_round < 3 (never tripped the per-round RCA trigger)
+P7: total 5, max/round 2, rounds [2, 3, 5, 9]
+N-shared-config: total 3, max/round 2, rounds [8, 9]
+
+== same view with every FLAG move applied (R1-9 flags; "none" = no class fits)
+P8: total 7, max/round 2, rounds [1, 4, 7, 8, 9]
+P10: total 7, max/round 2, rounds [1, 2, 3, 5, 6, 9]
+N-name-sort: total 6, max/round 2, rounds [2, 3, 4, 5, 9]
+N-shared-config: total 4, max/round 2, rounds [2, 8, 9]
+P7: total 4, max/round 1, rounds [2, 3, 5, 9]
+N-restart: total 3, max/round 2, rounds [3, 9]
+
+== per-round N >= 3 (judged + counted beyond); strict = judged + sweep-seat-found only
+I1: R1=8(strict 8), R2=11(strict 11), R3=7(strict 7), R4=4(strict 4), R5=10(strict 10), R6=6(strict 6), R7=3(strict 3), R8=5(strict 5), R9=14(strict 14)
+I2: R5=3(strict 3)
+I3: R3=4(strict 4), R4=6(strict 6), R7=3(strict 3), R8=6(strict 6), R9=7(strict 7)
+I4: R5=3(strict 3), R6=3(strict 3), R7=7(strict 7), R9=5(strict 5)
+I5: R1=10(strict 10), R2=15(strict 15), R3=10(strict 10), R4=7(strict 7), R5=9(strict 9), R6=6(strict 6), R7=3(strict 3), R8=6(strict 6), R9=23(strict 23)
+N-future-instant: R9=8(strict 7)
+N-solve-recompute: R9=7(strict 5)
+N-structure-blind: R9=3(strict 3)
+P1: R5=3(strict 3), R9=13(strict 13)
+P10: R1=3(strict 3)
+P11: R9=6(strict 6)
+P2: R1=5(strict 5), R2=7(strict 7), R4=3(strict 3), R5=4(strict 4), R6=3(strict 3), R7=4(strict 4), R8=7(strict 7), R9=31(strict 31)
+P3: R2=3(strict 3), R4=4(strict 4), R6=3(strict 3), R9=6(strict 6)
+P4: R2=3(strict 3), R5=3(strict 3)
+P5: R3=3(strict 3), R5=3(strict 3), R9=5(strict 4)
+P6: R1=5(strict 5), R2=6(strict 6), R7=3(strict 3), R9=6(strict 6)
+P8: R4=3(strict 3)
+P9: R1=4(strict 4), R2=8(strict 8), R5=3(strict 3), R9=12(strict 5)
+
+== v1 entry lacks R8 / R9 members that v2 has
+I1: v1 has none for R8 (5), R9 (14)
+I2: v1 has none for R8 (1), R9 (1)
+I3: v1 has none for R8 (6), R9 (7)
+I4: v1 has none for R8 (1), R9 (5)
+I5: v1 has none for R8 (6), R9 (23)
+N-approval-rebuy: new id R9 (1)
+N-finally-return: new id R9 (1)
+N-name-sort: new id R9 (1)
+N-reap-lock: new id R9 (1)
+N-shared-config: new id R8 (2), R9 (1)
+N-solve-recompute: new id R8 (1), R9 (7)
+N-staleness: new id R9 (1)
+N-step-grid: new id R9 (1)
+N-structure-blind: new id R8 (2), R9 (3)
+P1: v1 has none for R8 (2), R9 (13)
+P10: v1 has none for R9 (2)
+P2: v1 has none for R8 (7), R9 (31)
+P3: v1 has none for R8 (1), R9 (6)
+P4: v1 has none for R8 (1), R9 (1)
+P5: v1 has none for R8 (1)
+P6: v1 has none for R8 (1), R9 (6)
+P8: v1 has none for R8 (1), R9 (2)
+P9: v1 has none for R8 (1), R9 (12)

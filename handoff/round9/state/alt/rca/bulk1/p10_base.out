@@ -1,0 +1,5 @@
+
+=== Stress and economics ===
+RESULT arm=base cycles=6 worker=8177 executor=0 loop=2304
+  SITE loop     topology.py:_advisor_replay                             2304
+rc=0

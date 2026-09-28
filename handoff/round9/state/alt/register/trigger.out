@@ -1,0 +1,31 @@
+class                total maxR  per-round cross-round barriered  class-RCA  owed-and-missing
+P1                      30   16  True      True        False      True       
+P2                      60   27  True      True        False      True       
+P3                      22    6  True      True        False      True       
+P4                      16    3  True      True        False      True       
+P5                      21    6  True      True        True       True       
+P6                      21    5  True      True        False      True       
+P7                       4    1  False     False       True       True       
+P8                       7    2  False     True        False      True       
+P9                      32   12  True      True        False      True       
+P10                      7    2  False     True        False      True       
+I1                      65   14  True      True        False      True       
+I2                       5    2  False     True        False      True       
+I3                      31    7  True      True        True       True       
+I4                      21    8  True      True        False      True       
+I5                      82   25  True      True        False      True       
+N-future-instant         9    8  True      True        True       True       
+P11                      6    6  True      True        True       True       
+N-restart                3    2  False     False       True       True       
+N-solve-recompute       13    7  True      True        False      True       
+N-structure-blind        9    4  True      True        False      True       
+N-name-sort              6    2  False     True        False      False      OWED
+N-shared-config          4    2  False     True        False      True       
+N-approval-rebuy         1    1  False     False       False      False      
+N-finally-return         1    1  False     False       False      False      
+N-step-grid              1    1  False     False       False      False      
+N-reap-lock              1    1  False     False       False      False      
+N-staleness              1    1  False     False       False      False      
+N-silent-zero            0    0  False     False       False      True       
+owed and missing a class RCA: ['N-name-sort']
+unclassified rows: 7; RCAs indexed: 94

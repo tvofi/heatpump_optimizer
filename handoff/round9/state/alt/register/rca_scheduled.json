@@ -1,0 +1,201 @@
+[
+ {
+  "subject": "#1747 DHW block ignored by the co-optimisation replan (Root cause section owed on the issue)",
+  "where": [
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json group R9-EG-B8 brief",
+   "origin/main:docs/plan-2026-09-open-issues.md:79"
+  ],
+  "trigger": "1 (reached released versions)",
+  "owner_seat": "R9-EG-B8 fixer (fixer.md)",
+  "status": "not-started"
+ },
+ {
+  "subject": "#1736 RCA (EG-B0)",
+  "where": [
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-EG-B0",
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-EG-B0",
+   "origin/main:docs/plan-2026-09-open-issues.md:69"
+  ],
+  "trigger": "1 + cross-round class",
+  "owner_seat": "root-cause seat EG-B0",
+  "status": "done (RCA-1736 on #1736 at 19:47Z); both rosters still show EG-B0 not-started; fixplan commit 27049219 set 'rca-done' on EG-B1 instead"
+ },
+ {
+  "subject": "RCA-1736 countermeasures: EG-B1 per-solve immutable inputs; fold class into bugclasses.json; cross-round barrier-window policy",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-EG-B1",
+   "RCA-1736.md §5"
+  ],
+  "trigger": "from RCA",
+  "owner_seat": "EG-B1 fixer; policy to tvofi",
+  "status": "not-started (EG-B1 wave 12)"
+ },
+ {
+  "subject": "F11.5: land the RCA seats' approved policy drafts A1-A9 (fixer.md, root-cause.md, D1.md, tests/README.md, defect-root-cause.md)",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:handoff/round9/FIX-PLAN.md §5/§10",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F11.5"
+  ],
+  "trigger": "from 14 class RCAs",
+  "owner_seat": "F11.5 fixer (sonnet)",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier P1 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F1.6",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F1.6"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F1.6 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier P3 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F1.10",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F1.10"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F1.10 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier P2 + P6 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F1.11",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F1.11"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F1.11 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier P9 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F6.3",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F6.3"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F6.3 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier N-solve-recompute + N-cpu-gate-blind from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F10.2",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F10.2"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F10.2 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier I1 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F10.3",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F10.3"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F10.3 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier I5 (doc_claims arms) from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F10.4",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F10.4"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F10.4 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "class barrier I4 from its RCA prototype",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json R9-F11.4",
+   "origin/handoff/audit-r9-alt:handoff/round9/state/ALT-ROSTER.json R9-F11.4"
+  ],
+  "trigger": "class (N>=3)",
+  "owner_seat": "R9-F11.4 fixer",
+  "status": "not-started"
+ },
+ {
+  "subject": "#1721 policy-docs/env-matrix/pr-contract red on main (Actions-token ruleset view): cheaper detector 'owed to a root-cause seat'",
+  "where": [
+   "https://github.com/tvofi/heatpump_optimizer/pull/1721 (## Red checks)"
+  ],
+  "trigger": "2 (red on main)",
+  "owner_seat": "unassigned root-cause seat",
+  "status": "no RCA found"
+ },
+ {
+  "subject": "#1545 root-cause seat (weigh the typing arm)",
+  "where": [
+   "origin/main:.claude/workflows/wave-r8-groups.json R8-I5a",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1590"
+  ],
+  "trigger": "plan §6 (round 8)",
+  "owner_seat": "root-cause seat beside R8-I5a",
+  "status": "no RCA found (#1545 has 0 comments)"
+ },
+ {
+  "subject": "#1070 ratchet-budgets corpus-cap headroom",
+  "where": [
+   "origin/main:docs/plan-2026-09-open-issues.md:1302"
+  ],
+  "trigger": "recurring friction",
+  "owner_seat": "root-cause seat 'in flight' (2026-09-17)",
+  "status": "no RCA found"
+ },
+ {
+  "subject": "v6.6.0 options-flow freeze of the whole HA instance (owner CRITICAL report)",
+  "where": [
+   "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5712963862",
+   "origin/main:docs/delivery/1107.md"
+  ],
+  "trigger": "1 (release)",
+  "owner_seat": "fix/options-flow-freeze seat",
+  "status": "no RCA found; #1107 'not shown to fix that freeze'"
+ },
+ {
+  "subject": "#1041 silent-zero: cost-test re-run owed before its refusals are cited as settled",
+  "where": [
+   "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5693870772",
+   "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5694083243"
+  ],
+  "trigger": "class (4 post-analysis sightings)",
+  "owner_seat": "root-cause seat",
+  "status": "not done"
+ },
+ {
+  "subject": "P1 residue (bounded out-of-domain values, blast radius) and P11 residual D6-s1-81: tvofi ruling",
+  "where": [
+   "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p1/RCA.md",
+   "origin/handoff/audit-r9-plan@763b0ba4:handoff/round9/state/rca/p11/RCA.md",
+   "origin/main:tools/audit/bugclasses.json P11"
+  ],
+  "trigger": "class barrier bound",
+  "owner_seat": "tvofi",
+  "status": "asked"
+ },
+ {
+  "subject": "PR-body red at a superseded head (#1116, #1121): RCA at the third instance",
+  "where": [
+   "origin/main:docs/HANDOVER.md (~line 655)"
+  ],
+  "trigger": "recurring (conditional, at 3)",
+  "owner_seat": "root-cause seat",
+  "status": "armed, not triggered"
+ },
+ {
+  "subject": "recurring ledger classes with no RCA: P4 (14 historical, N=1 in r9), I2 (5 of 6 rounds), P7 (4 of 6 rounds; barriered by F1.1 without RCA), P8 (N=2)",
+  "where": [
+   "origin/handoff/audit-r9-fixplan:handoff/round9/FIX-PLAN.md §9 lines ~290-300",
+   "origin/main:tools/audit/bugclasses.json"
+  ],
+  "trigger": "cross-round recurrence (no per-round trigger)",
+  "owner_seat": "ledger owner (unassigned)",
+  "status": "flagged only"
+ }
+]

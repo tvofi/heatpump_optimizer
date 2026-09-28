@@ -1,0 +1,82 @@
+
+=== Stress and economics ===
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 4 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1283, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/../p10_loop_kernels.py", line 75, in failing_await
+    raise cm.ProcessWorkerUnavailable("forced by p10 fallback arm")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: forced by p10 fallback arm
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 5124, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1290, in _await_optimize
+    _raise_update_failed(
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 10957, in _raise_update_failed
+    raise UpdateFailed(
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 4 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 5 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1283, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/../p10_loop_kernels.py", line 75, in failing_await
+    raise cm.ProcessWorkerUnavailable("forced by p10 fallback arm")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: forced by p10 fallback arm
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 5124, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1290, in _await_optimize
+    _raise_update_failed(
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 10957, in _raise_update_failed
+    raise UpdateFailed(
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 5 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Process-solve worker unusable (ProcessWorkerUnavailable: forced by p10 fallback arm); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 6 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1283, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/../p10_loop_kernels.py", line 75, in failing_await
+    raise cm.ProcessWorkerUnavailable("forced by p10 fallback arm")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: forced by p10 fallback arm
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 5124, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 1290, in _await_optimize
+    _raise_update_failed(
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/phaseC/bulk1/tree/custom_components/heatpump_optimizer/coordinator.py", line 10957, in _raise_update_failed
+    raise UpdateFailed(
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 6 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+RESULT arm=fallback cycles=6 worker=0 executor=3926 loop=2304
+  SITE loop     topology.py:_advisor_replay                             2304
+  SITE executor optimizer.py:_apply_dhw_min_run                         1299
+  SITE executor optimizer.py:_clamp_dhw_to_capacity                     864
+  SITE executor optimizer.py:_dhw_raise_fits                            850
+  SITE executor optimizer.py:_plan_dhw_cheapest_first                   558
+  SITE executor optimizer.py:_compute_baseline_power                    288
+  SITE executor optimizer.py:objective_batch                            28
+  SITE executor optimizer.py:_dhw_plan_temps                            15
+  SITE executor optimizer.py:_space_traj                                9
+  SITE executor optimizer.py:_plan_dhw_min_cost                         6
+  SITE executor optimizer.py:trajectory                                 6
+  SITE executor optimizer.py:_optimize_with_dhw                         3
+rc=0
