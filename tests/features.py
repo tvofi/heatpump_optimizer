@@ -904,6 +904,14 @@ R.check(
     _r9f13_press_ran == ("returned", True),
     f"got {_r9f13_press_ran} (want ('returned', True))",
 )
+_r9f13_press_solve_failed = _r9f13_press("solve_failed")
+R.check(
+    "D10-s1-02: the press raises the action's solve-failed refusal when the "
+    "solve died (the reason-is-not-None arm of the same refusal -- the "
+    "mutation survivor at button.py's second guard)",
+    _r9f13_press_solve_failed == ("run_optimization_solve_failed", True),
+    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', True))",
+)
 R.check(
     "D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, "
     "the v6.6.12 bug 5 mechanism)",
