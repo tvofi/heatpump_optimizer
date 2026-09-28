@@ -72,9 +72,9 @@ these lines to the run):
     RESULT scenarios_where_2x_traced_fails=51
     RESULT scenarios_memory_probed=6
     RESULT scenarios_never_memory_probed=45
-    RESULT attrib_leader_label=typical_slab/winter
-    RESULT attrib_fail_threshold_mb=25.05
-    RESULT traced_fail_threshold_mb=5.145
+    RESULT attrib_leader_label=winter_mild/1z/dhw   (typical_slab/winter until R9 F2.5's stress_budgets.json re-record; the batched peak twin lowered the dearest scenarios' attributed RSS, so the failing multiple and with it the leader moved)
+    RESULT attrib_fail_threshold_mb=20.85       (25.05 until R9 F2.5's budgets re-record)
+    RESULT traced_fail_threshold_mb=5.19         (5.145 until R9 F2.5's budgets re-record)
     RESULT clean_attrib_rule_fires=False
     RESULT inject2x_attrib_rule_fires=True
 Every pinned value derives from tests/stress_budgets.json or the stress
