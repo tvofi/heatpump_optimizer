@@ -67,6 +67,7 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
 )
 from .mixing_valve import WRITE_TARGET_FLOW
+from .thermal_model import ThermalParameters
 
 class ResolvedRole(NamedTuple):
     """One role, resolved: the entity ids to try in order, and the scale that
@@ -206,10 +207,12 @@ def _plant(
         ),
         CONF_SPACE_SETPOINT_UNIT: WRITE_TARGET_FLOW if water else None,
         # The building page refuses a flow write target without the two-zone
-        # model's flow curve, so it is never suggested where it would be.
+        # model's flow curve, so it is never suggested where it would be. The
+        # two-zone verdict is the canonical predicate's on the configuration
+        # in force (R9 D14-s2-01), never a proxy read of one zone key.
         CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
             WRITE_TARGET_FLOW
-            if water and current.get(CONF_UPPER_FLOOR_THERMAL_MASS)
+            if water and ThermalParameters.from_config(dict(current)).two_zone_enabled
             else None
         ),
     }

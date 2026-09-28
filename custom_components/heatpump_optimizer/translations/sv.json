@@ -125,7 +125,8 @@
           "buffer_tank_volume": "Ackumulatortankens volym",
           "window_area": "Fönsteryta mot solen",
           "solar_orientation_factor": "Solorientering (1.0=full söder)",
-          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in"
+          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in",
+          "two_zone": "Huset har två zoner (två våningar som värms separat)"
         },
         "data_description": {
           "upper_floor_thermal_mass": "Endast tvåzonssystem. Värme som lagras per grad i det radiatorvärmda övre planet. Oftast mycket lägre än plattan, så zonen reagerar snabbare.",
@@ -138,7 +139,8 @@
           "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
           "window_area": "Kvadratmeter glas som får direkt sol. Används för att förutse gratis solvärme.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen.",
-          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar."
+          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar.",
+          "two_zone": "På: tvåzonsmodellen används och zonfälten nedan gäller. Av: huset modelleras som en zon oavsett fälten nedan."
         }
       },
       "dhw": {
@@ -155,7 +157,8 @@
           "dhw_legionella_enabled": "Kör legionellaskydd",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "dhw_idle_min_temperature": "Låt beredaren svalna till",
-          "dhw_legionella_temperature": "Legionellatemperatur"
+          "dhw_legionella_temperature": "Legionellatemperatur",
+          "dhw_enabled": "Huset har en varmvattenberedare"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -168,7 +171,8 @@
           "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 °C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 °C är den vanliga rekommendationen.",
-          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
+          "dhw_enabled": "På: varmvatten planeras och beredaren laddas. Lämna av om värmepumpen inte真的värmer en beredare — övriga fält gäller bara när denna är på."
         }
       },
       "weather_sensitivity": {
@@ -333,6 +337,15 @@
         "data": {
           "prefill_device": "Värmepumpens enhet",
           "dhw_setpoint": "Högsta temperatur att ladda till",
+          "dhw_min_temperature": "Varmvattentemperatur du behöver",
+          "dhw_windows": "När du behöver varmvatten",
+          "dhw_legionella_temperature": "Legionellatemperatur",
+          "dhw_legionella_interval_days": "Intervall för legionellaskydd",
+          "silent_mode_windows": "Värmepumpens schema för tyst läge",
+          "heat_pump_max_power": "Värmepump max effekt (kW)",
+          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+          "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
+          "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
           "outdoor_temp_entity": "Utomhusgivare",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
           "heat_pump_supply_temp_entity": "Framledningstemperatur",
@@ -343,6 +356,15 @@
         "data_description": {
           "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen.",
           "dhw_setpoint": "Läst ur pumpens register för normalt varmvattenbörvärde (0194H), gånger 0,1.",
+          "dhw_min_temperature": "Läst ur pumpens register för ekonomiskt varmvattenbörvärde (0196H), gånger 0,1.",
+          "dhw_windows": "Läst ur pumpens register för varmvattenschemats start och stopp (02C8H, 02C9H), vardera timme gånger 256 plus minut, bara medan schemat har en dag vald. Att spara en tidsram för varmvatten här slår på planeringen av varmvatten, precis som på sidan Varmvatten.",
+          "dhw_legionella_temperature": "Läst ur pumpens register för legionellabörvärde (0195H), gånger 0,1.",
+          "dhw_legionella_interval_days": "Sju dagar delat med antalet dagar som är valda i pumpens legionellaschema (02CAH), avrundat nedåt.",
+          "silent_mode_windows": "Läst ur pumpens register för nattlägets start och slut (0206H, 0207H), vardera timme gånger 256 plus minut.",
+          "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
+          "space_setpoint_unit": "Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.",
+          "mixing_valve_write_target_kind": "Föreslås som framledning vid vattentemperaturstyrning, bara där tvåzonsmodellen som sidan för värmesystemet kräver för det är konfigurerad.",
+          "compressor_freq_sensor": "Paketets givare för kompressorns faktiska frekvens, föreslås bara medan fältet är tomt.",
           "outdoor_temp_entity": "Värmepumpens givare för utomhustemperatur, föreslås bara medan fältet är tomt.",
           "dhw_temp_entity": "Värmepumpens givare för varmvattenberedarens temperatur, föreslås bara medan fältet är tomt.",
           "heat_pump_supply_temp_entity": "Värmepumpens givare för utgående vattentemperatur (T1), föreslås bara medan fältet är tomt.",
@@ -357,6 +379,7 @@
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
+      "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
       "dhw_min_too_close": "Ett varmvattenminimum så nära börvärdet lämnar tanken utan arbetsband; håll det minst 5 °C under börvärdet.",
       "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
@@ -366,7 +389,9 @@
       "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
       "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut.",
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
-      "price_entity_required": "En prissensor krävs när priskällan är en entitet."
+      "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
+      "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",
+      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad.",
@@ -1348,7 +1373,7 @@
       },
       "thermal_model_zones": {
         "title": "Tvåzonsmodell",
-        "description": "Zonuppdelning, värmeöverföring mellan våningar och solorientering.",
+        "description": "Zonuppdelning, värmeöverföring mellan våningar och solorientering.\n\n{preset_warning}",
         "data": {
           "after_save": "Efter sparande"
         },
@@ -1697,6 +1722,19 @@
     }
   },
   "entity": {
+    "climate": {
+      "heat_pump_optimizer": {
+        "name": "Värmepumpsoptimerare",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "Automatisk",
+              "economy": "Ekonomi"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
       "buffer_tank_temperature_model": {
         "name": "Ackumulatortankens temperatur (modell)"

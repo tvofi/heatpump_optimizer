@@ -5122,17 +5122,19 @@ def pin_number_selector_convention():
     box = config_flow._number(0, 10, 1)
     cfg = dict(box.config)
     R.check(
-        "_number runtime passes min/max/step and explicit BOX mode",
+        "_number runtime passes min/max and explicit BOX mode with step \"any\" (#1679: "
+        "a pinned increment left off-grid defaults unselectable)",
         cfg.get("min") == 0
         and cfg.get("max") == 10
-        and cfg.get("step") == 1
+        and cfg.get("step") == "any"
         and str(cfg.get("mode")) == "box",
         repr(cfg),
     )
     slider = config_flow._number(0, 10, 1, slider=True)
     R.check(
-        "_number(slider=True) passes explicit SLIDER mode",
-        str(dict(slider.config).get("mode")) == "slider",
+        "_number(slider=True) passes its increment as step and explicit SLIDER mode",
+        dict(slider.config).get("step") == 1
+        and str(dict(slider.config).get("mode")) == "slider",
         repr(dict(slider.config)),
     )
 
@@ -5617,12 +5619,23 @@ async def untouched_option_pages_do_not_reload():
     reloads = await _walk_untouched(minimal, {})
     # The only reload left is a page that posts a key whose absence the
     # integration does NOT run as its default (the DHW pair switches hot-water
-    # planning on): that save changes behaviour, so it must reload.
+    # planning on): that save changes behaviour, so it must reload. R9
+    # D12-s1-02 (merged into D12-s3-01) drops the DHW presence pair's default
+    # post over an entry with no hot water at all, so on this no-DHW base
+    # those pages post nothing behaviour-changing either.
+    no_dhw = (
+        const.CONF_DHW_ENABLED not in minimal
+        and not config_flow._dhw_enabled_from_config(minimal)
+    )
     expected = [
         page.step for page in config_flow._OPTION_PAGES
         if any(
             row.key in config_flow._ABSENT_IS_NOT_DEFAULT and row.key not in minimal
             and config_flow._absent_fallback(row) is not config_flow._STORED
+            and not (
+                no_dhw
+                and row.key in config_flow._DHW_PRESENCE_PAIR_DEFAULTS
+            )
             for row in config_flow._page_rows(page.step, minimal)
         )
     ]
@@ -5870,9 +5883,11 @@ async def options_modbus_prefill():
 
     # D12-01: the pre-fill save path must carry the same two-zone rule as the
     # building page. A GCHV pump under water control (register 4109 == 0)
-    # offers a flow write target, and this page's save never passes through the
-    # guarded building page, so a two_zone_mode=off install with the zone keys
-    # present must be refused here rather than saved and silently no-op'd.
+    # offered a flow write target whatever the house, and this page's save
+    # never passes through the guarded building page — R9 D14-s2-01 moved the
+    # OFFER itself onto the canonical rule, so a two_zone_mode=off install
+    # with the zone keys present is not offered a target its own save would
+    # refuse; an explicit post of it still is, below.
     water = {"sensor.hp_gchv_r4109": FakeState("0")}
     off_opts = {
         const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
@@ -5883,11 +5898,25 @@ async def options_modbus_prefill():
     preview = await submit(flow, step, {prefix_key: "hp"})
     check(
         f"opt_{step}", "happy",
-        "a water-controlled pump offers the flow target even on two_zone_mode=off (D12-01)",
-        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(preview)
-        and suggested_value(preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
-        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        "a water-controlled pump offers the flow target only when the "
+        "canonical rule says two-zone, so two_zone_mode=off is not offered it "
+        "(D12-01, R9 D14-s2-01)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in rendered_keys(preview),
         f"{rendered_keys(preview)}",
+    )
+    on_preview_flow, _on_entry, _ = _g7_flow(water, options={
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
+    })
+    on_preview = await submit(on_preview_flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy",
+        "and a two_zone_mode=on install is offered it (the offer's null control)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(on_preview)
+        and suggested_value(on_preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"{rendered_keys(on_preview)}",
     )
     refused = await submit(flow, step, {
         const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,
@@ -6942,6 +6971,287 @@ async def device_prefill_preview_texts():
     )
 
 
+def _shipped_catalogues():
+    """The three shipped string catalogues, keyed as the harnesses name them."""
+    root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+    return {
+        name: json.loads((root / rel).read_text())
+        for name, rel in (
+            ("strings.json", "strings.json"),
+            ("en.json", "translations/en.json"),
+            ("sv.json", "translations/sv.json"),
+        )
+    }
+
+
+def _form_defaults(result):
+    """Every field's form default, the way the page would post it."""
+    out = {}
+    for marker, _value in (result.get("data_schema").schema or {}).items():
+        try:
+            out[str(getattr(marker, "schema", marker))] = marker.default()
+        except Exception:
+            pass
+    return out
+
+
+async def r9_f5_text_and_menu_findings():
+    """The round-9 F5.2 findings, pinned where the frontend resolves them.
+
+    D4-s2-01 -- the initial pre-fill page renders its nine fields and its
+    three error codes as raw keys; the options twin of the same page ships
+    all twelve texts (#1651 P6, arms F and E). D4-s2-05 -- a box-mode
+    NumberSelector pins ``step`` to its increment, so a default or derived
+    value off that increment is not selectable (#1679 N-step-grid).
+    D4-s2-06 -- the two-zone thermal page computes the derivation-overwrite
+    warning and passes it, but its description never shows it (#1644 P2).
+    D4-s2-07 -- finishing "Quick setup (recommended)" lands on the menu that
+    offers it again (#1685 N-menu). D10-s2-01 -- the climate entity offers
+    presets no catalogue translates and no icon translation covers.
+    """
+    from heatpump_optimizer import modbus_prefill  # noqa: PLC0415
+
+    catalogues = _shipped_catalogues()
+    icons = json.loads(
+        (
+            pathlib.Path(__file__).resolve().parent.parent
+            / "custom_components" / "heatpump_optimizer" / "icons.json"
+        ).read_text()
+    )
+
+    # ------------------------------------------------------------------
+    # D4-s2-01: the pre-fill page's own texts, in every catalogue (P6).
+    # ------------------------------------------------------------------
+    R.section("config: the pre-fill page's field texts and error texts (#1651 P6)")
+    universe = (
+        set(modbus_prefill._hot_water({}))
+        | set(modbus_prefill._plant({}, {}))
+        | (set(modbus_prefill._NAMED) - {"unit_capacity"})
+    )
+    error_codes = (
+        "prefill_device_unreadable",
+        "flow_target_needs_two_zone",
+        "silent_mode_window_too_short",
+    )
+    for name, catalog in catalogues.items():
+        config_step = catalog["config"]["step"]["device_prefill"]
+        options_step = catalog["options"]["step"]["modbus_prefill"]
+        missing_labels = sorted(k for k in universe if not (config_step.get("data") or {}).get(k))
+        check(
+            "device_prefill", "happy",
+            f"every field the pre-fill can render is labelled where the frontend looks, in {name}",
+            not missing_labels,
+            f"{len(missing_labels)} unlabelled: {missing_labels}",
+        )
+        missing_descs = sorted(
+            k for k in universe if not (config_step.get("data_description") or {}).get(k)
+        )
+        check(
+            "device_prefill", "happy",
+            f"and every field carries a description where the frontend looks, in {name}",
+            not missing_descs,
+            f"{len(missing_descs)} undescribed: {missing_descs}",
+        )
+        # The labels are copies: the options pre-fill page names the same
+        # fields for the same device, and one setting may not be named two
+        # ways. (Descriptions are the one deliberate divergence -- the device
+        # route says "the heat pump's sensor" where the package route says
+        # "the package's" -- so they are pinned for presence, not equality.)
+        divergent = sorted(
+            k for k in universe
+            if k in (config_step.get("data") or {})
+            and config_step["data"][k] != (options_step.get("data") or {}).get(k)
+        )
+        check(
+            "device_prefill", "happy",
+            f"and each label is a copy of the options pre-fill page's, in {name}",
+            not (set(universe) - set(config_step.get("data") or {})) and not divergent,
+            f"{len(set(universe) - set(config_step.get('data') or {}))} absent, divergent={divergent}",
+        )
+        # Null control: the same walk over the options twin, which ships the
+        # nine texts, shows the walk goes green on a complete page.
+        options_missing = sorted(
+            k for k in universe if not (options_step.get("data") or {}).get(k)
+        )
+        check(
+            "device_prefill", "happy",
+            f"null control: the options twin of the same page passes the same walk, in {name}",
+            not options_missing,
+            f"{len(options_missing)} unlabelled: {options_missing}",
+        )
+        missing_errors = sorted(
+            c for c in error_codes if c not in (catalog["config"].get("error") or {})
+        )
+        check(
+            "device_prefill", "error",
+            f"every error code the flow can raise is translated, in {name}",
+            not missing_errors,
+            f"{len(missing_errors)} untranslated: {missing_errors}",
+        )
+
+    # ------------------------------------------------------------------
+    # D4-s2-05: a box-mode number field accepts any value (#1679).
+    # ------------------------------------------------------------------
+    R.section("config: a box-mode number field must accept any value (#1679)")
+    box = config_flow._number(0.1, 60, 0.5)
+    slider = config_flow._number(0.1, 60, 0.5, slider=True)
+    check(
+        "thermal", "happy",
+        "a box-mode field's step is \"any\": every real value renders selectable",
+        dict(box.config).get("step") == "any" and str(dict(box.config).get("mode")) == "box",
+        repr(dict(box.config)),
+    )
+    check(
+        "thermal", "happy",
+        "and a slider keeps its increment as its step (the arm this check distinguishes)",
+        dict(slider.config).get("step") == 0.5
+        and str(dict(slider.config).get("mode")) == "slider",
+        repr(dict(slider.config)),
+    )
+    flow = fresh_flow()
+    await submit_first_screen(flow, FIRST_SCREEN)
+    config_pages = (
+        ("thermal", await flow.async_step_thermal(None)),
+        ("zones", await flow.async_step_zones(None)),
+    )
+    options_flow, _entry, _hass = fresh_options()
+    options_pages = (
+        ("opt_thermal_model", await options_flow.async_step_thermal_model(None)),
+        ("opt_thermal_model_zones", await options_flow.async_step_thermal_model_zones(None)),
+    )
+    for page, result in (*config_pages, *options_pages):
+        off_grid = []
+        for marker, _value in (result.get("data_schema").schema or {}).items():
+            if isinstance(marker, selector.NumberSelector):
+                cfg = dict(marker.config)
+                if str(cfg.get("mode")) == "box" and cfg.get("step") != "any":
+                    off_grid.append(f"{cfg.get('min')}..{cfg.get('max')} step {cfg.get('step')!r}")
+        check(
+            page, "happy",
+            f"every box-mode number field on {page} renders any value selectable",
+            not off_grid,
+            f"{len(off_grid)} pinned to an increment: {off_grid}",
+        )
+
+    # ------------------------------------------------------------------
+    # D4-s2-06: the two-zone page shows its derivation warning (#1644 P2).
+    # ------------------------------------------------------------------
+    R.section("options: the two-zone page shows the derivation-overwrite warning (#1644 P2)")
+    zones_result = await options_flow.async_step_thermal_model_zones(None)
+    for name, catalog in catalogues.items():
+        zones_desc = (
+            (catalog["options"]["step"].get("thermal_model_zones") or {}).get("description") or ""
+        )
+        model_desc = (
+            (catalog["options"]["step"].get("thermal_model") or {}).get("description") or ""
+        )
+        check(
+            "opt_thermal_model_zones", "happy",
+            f"the zones description carries the warning its step computes, in {name}",
+            "{preset_warning}" in zones_desc,
+            repr(zones_desc[:140]),
+        )
+        # Null control: the page above it ships the placeholder already.
+        check(
+            "opt_thermal_model", "happy",
+            "null control: the single-zone page above it ships the placeholder",
+            "{preset_warning}" in model_desc,
+            repr(model_desc[:140]),
+        )
+    check(
+        "opt_thermal_model_zones", "happy",
+        "the step hands the warning text to the frontend as a placeholder",
+        "preset_warning" in (zones_result.get("description_placeholders") or {}),
+        repr(sorted(zones_result.get("description_placeholders") or {})),
+    )
+
+    # ------------------------------------------------------------------
+    # D4-s2-07: finishing quick setup lands on the menu that offers it
+    # again (#1685 N-menu).
+    # ------------------------------------------------------------------
+    R.section("config: the finished quick path is not offered again (#1685)")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    flow = fresh_flow()
+    first = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "finish_setup", "happy",
+        "null control: from the first menu the quick path is a path not yet taken",
+        offers_finish_setup(first) and const.CONF_BUILDING_STRUCTURE not in flow._data,
+        f"menu={list(first.get('menu_options') or {})} "
+        f"structure={const.CONF_BUILDING_STRUCTURE in flow._data}",
+    )
+    flow2 = fresh_flow()
+    await submit_first_screen(flow2, FIRST_SCREEN)
+    expert_menu = await flow2.async_step_finish_setup(None)
+    check(
+        "finish_setup", "happy",
+        "an expert start that never answered the questionnaire still sees the offer",
+        offers_finish_setup(expert_menu),
+        f"menu={list(expert_menu.get('menu_options') or {})}",
+    )
+    form = await flow.async_step_quick_setup(None)
+    result = await submit(flow, "quick_setup", _form_defaults(form))
+    if shows(result, "device_prefill"):
+        result = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: None})
+    check(
+        "finish_setup", "happy",
+        "walking the quick path to its end lands on a menu without it",
+        shows_menu(result, "finish_setup")
+        and "quick_setup" not in (result.get("menu_options") or {})
+        and const.CONF_BUILDING_STRUCTURE in flow._data,
+        f"menu={list(result.get('menu_options') or {})} "
+        f"structure={const.CONF_BUILDING_STRUCTURE in flow._data}",
+    )
+    config_flow.async_get_clientsession = real
+
+    # ------------------------------------------------------------------
+    # D10-s2-01: the climate entity's own presets, named and iconned.
+    # ------------------------------------------------------------------
+    R.section("entity: the climate entity's own presets, translated and iconned")
+    from heatpump_optimizer import climate  # noqa: PLC0415
+
+    entity_cls = climate.HeatPumpOptimizerClimate
+    tkey = getattr(entity_cls, "_attr_translation_key", None)
+    offered = list(getattr(entity_cls, "_attr_preset_modes") or [])
+    ha_standard = {"none", "eco", "away", "boost", "comfort", "home", "sleep", "activity"}
+    own = sorted(p for p in offered if p not in ha_standard)
+    check(
+        "_climate", "happy",
+        "the entity names itself where the frontend's catalogue looks",
+        tkey == "heat_pump_optimizer",
+        f"translation_key={tkey!r}",
+    )
+    check(
+        "_climate", "happy",
+        "its own presets are exactly auto and economy (the rest are Home Assistant's)",
+        own == ["auto", "economy"],
+        f"offered={offered}",
+    )
+    for name, catalog in catalogues.items():
+        node = ((catalog.get("entity") or {}).get("climate") or {}).get(tkey or "") or {}
+        states = ((node.get("state_attributes") or {}).get("preset_mode") or {}).get("state") or {}
+        missing = sorted(p for p in own if p not in states)
+        check(
+            "_climate", "happy",
+            f"both own presets have a display name where the frontend looks, in {name}",
+            bool(node.get("name")) and not missing,
+            f"name={node.get('name')!r} missing={missing}",
+        )
+    icon_node = ((icons.get("entity") or {}).get("climate") or {}).get(tkey or "") or {}
+    icon_states = (
+        (icon_node.get("state_attributes") or {}).get("preset_mode") or {}
+    ).get("state") or {}
+    missing_icons = sorted(
+        p for p in own if not (icon_states.get(p) or "").startswith("mdi:")
+    )
+    check(
+        "_climate", "happy",
+        "and both own presets have an icon translation",
+        not missing_icons,
+        f"{len(missing_icons)} uniconned: {missing_icons}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -6986,6 +7296,7 @@ async def main() -> int:
     await options_quick_setup()
     await config_flow_device_prefill_offer()
     await device_prefill_preview_texts()
+    await r9_f5_text_and_menu_findings()
 
     print()
     LEDGER.print_result_lines()

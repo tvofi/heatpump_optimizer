@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import atexit
 import asyncio
+import bisect
 import copy
 import functools
 import hashlib
+import inspect
 import json
 import logging
 import math
@@ -589,6 +591,57 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     if ts.tzinfo is not None and reference.tzinfo is None:
         return dt_util.as_local(ts).replace(tzinfo=None)
     return ts
+
+
+async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None:
+    """Run one best-effort cycle step, logging -- never raising -- its fault.
+
+    #1644 (D1-s2-51/D1-s2-91): a learner, arbiter or accuracy step on the
+    cycle path owns its own failure; one raising used to fail the whole
+    cycle and skip every step after it. One fence, one call site.
+    """
+    try:
+        out = step()
+        if inspect.isawaitable(out):
+            await out
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug(message, err)
+
+
+def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -> None:
+    """Count a failed solve and raise the repair issue at its threshold.
+
+    Module level like the fences beside it: it reads the coordinator but
+    owns none of its state, and the failure branch it serves must stay one
+    screen (#1644, D1-s4-02 moved its third caller into it).
+    """
+    _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+    coord._solve_failures += 1
+    if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
+        # Exactly-at, not at-or-above: the issue is idempotent to
+        # re-create, but re-raising it every cycle would refresh its
+        # timestamp and bury when the failures started. Persistent: the
+        # stale plan survives a restart (it is simply re-solved — or not),
+        # so the notice must too.
+        _create_issue(
+            coord.hass,
+            DOMAIN,
+            "solve_failures",
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="solve_failures",
+            translation_placeholders={
+                "count": str(coord._solve_failures),
+                "last_success": (
+                    coord._last_optimization.isoformat(
+                        sep=" ", timespec="minutes"
+                    )
+                    if coord._last_optimization
+                    else "—"
+                ),
+            },
+        )
 
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
@@ -1250,6 +1303,36 @@ def _warm_seeded(
             result.power_schedule, dtype=float
         ).copy()
     return optimizer
+
+
+def _open_loop_plan_value(
+    result: OptimizationResult | None, trajectory_attr: str, now: datetime
+) -> float | None:
+    """The previous plan's own prediction for ``now``, or ``None``.
+
+    Open-loop propagation (R9 D12-s1-01): a plant-state field whose probe is
+    omitted must not reach the solver as a never-advanced constant, so the
+    cycle seeds it from the previous plan's ``trajectory_attr`` at the step
+    covering ``now``. Instants, not wall clocks — the step search is the one
+    ``get_current_action`` uses, so a DST transition cannot shift it (R9
+    D14-s4-01). No plan, no trajectory or a plan that starts more than a step
+    after ``now`` says nothing, and a probe reading always wins over this.
+    """
+    if result is None:
+        return None
+    trajectory = getattr(result, trajectory_attr, None) or []
+    timestamps = result.timestamps or []
+    if not trajectory or not timestamps:
+        return None
+    now_s = now.timestamp()
+    starts = [ts.timestamp() for ts in timestamps]
+    if now_s < starts[0]:
+        return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
+    # The step covering ``now``; the subtraction clamps a ``now`` at or past
+    # the plan's end to its last step, as ``get_current_action`` does. The
+    # loop this replaced needed an unreachable tail return — the mutation
+    # lane's RETURN_DEL site and mypy's missing-return — to say the same.
+    return float(trajectory[bisect.bisect_right(starts, now_s) - 1])
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
@@ -4665,12 +4748,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Pump scheduling skipped: %s", err)
 
-            # Close the loop: pair the previous interval's prediction with what
-            # actually happened, accumulate energy, and train the derate.
-            self._record_accuracy()
-            self._track_realised_peak()
-            await self._async_save_accuracy()
-            await self._async_save_energy_totals()
+            # Close the loop: pair the previous interval's prediction with
+            # what actually happened, accumulate energy, and train the
+            # derate. #1644 (D1-s2-91): each step owns its own failure.
+            await _best_effort_cycle_step(
+                self._record_accuracy, "Accuracy pairing skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._track_realised_peak, "Realised-peak tracking skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._async_save_accuracy, "Accuracy save skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._async_save_energy_totals, "Energy-total save skipped: %s"
+            )
 
             # T4a #42: the learners' insurance — weekly snapshot, daily
             # bias check, and the rollback when drift proves itself on
@@ -5058,6 +5150,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
 
+            # #1644 (D1-s4-02): the optimizer's guard returns a blown solve
+            # as a plan whose status says "failed (...)"; publishing it
+            # counted the cycle a success, so the failure branch below sees
+            # it instead.
+            if str(result.status).startswith("failed"):
+                raise RuntimeError(
+                    f"solver returned a failed plan: {result.status}"
+                )
+
             self._record_manual_release(result)
 
             self._optimization_result = result
@@ -5092,7 +5193,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Price tile skipped: %s", err)
 
-            self._record_quiet_comfort_period()
+            # #1644 (D1-s2-51): the quiet learner is the solve's own
+            # best-effort tail, not a failed solve.
+            await _best_effort_cycle_step(
+                self._record_quiet_comfort_period,
+                "Quiet comfort learning skipped: %s",
+            )
 
             # smart_write: command the valve's controller to the target the
             # plan was just built against. After the solve rather than before,
@@ -5112,33 +5218,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
 
         except Exception as err:
-            _LOGGER.error("Optimization failed: %s", err, exc_info=True)
-            self._solve_failures += 1
-            if self._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
-                # Exactly-at, not at-or-above: the issue is idempotent to
-                # re-create, but re-raising it every cycle would refresh
-                # its timestamp and bury when the failures started.
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "solve_failures",
-                    is_fixable=False,
-                    # Persistent: the stale plan survives a restart (it is
-                    # simply re-solved — or not), so the notice must too.
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="solve_failures",
-                    translation_placeholders={
-                        "count": str(self._solve_failures),
-                        "last_success": (
-                            self._last_optimization.isoformat(
-                                sep=" ", timespec="minutes"
-                            )
-                            if self._last_optimization
-                            else "—"
-                        ),
-                    },
-                )
+            _note_solve_failure(self, err)
             return "solve_failed"
         finally:
             if away_original is not None:
@@ -5359,28 +5439,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     ctx._current_state, floor_temp
                 )
 
-        # The lower zone's room temperature, best source first.
-        #
-        # A real thermometer beats every estimate and is the only source that
-        # carries information about the lower zone at all. There used to be a
-        # second-best branch here: the floor-return reading plus 0.5 K. That was
-        # a *water* temperature standing in for an air temperature -- typically
-        # 3-9 K too warm -- and because the slab is derived from the same sensor
-        # as `return + 1.0`, the slab-to-room difference it produced was pinned
-        # at a constant 0.5 K whatever the sensor read. So the main heat path
-        # into the lower zone was both wrong and unresponsive, the error was
-        # judged against the same comfort bounds as the upper floor, and the
-        # number was published and plotted as a house temperature: an underfloor
-        # return of 27.5 C in a cold snap drew a "house" trace at 28.0 C while
-        # the upper zone sat at 22.1 C, which reads as the optimizer cooking the
-        # house to a temperature nothing ever planned.
-        #
-        # The floor return keeps the job it is a genuine proxy for -- driving
-        # the slab estimate through `update_slab_from_return_temp` above. With
-        # no lower-floor thermometer the honest stand-in is the room
-        # temperature, which is what the last-resort seed further down has
-        # always used; a repair issue says so rather than letting a wrong
-        # number pass for a measurement.
+        # The lower zone's room temperature, best source first. A real
+        # thermometer is the only source that carries information about the
+        # lower zone at all. There used to be a second-best branch here, the
+        # floor-return reading plus 0.5 K: a *water* temperature standing in
+        # for an air temperature (typically 3-9 K too warm) whose slab-to-room
+        # difference was pinned at a constant 0.5 K — a wrong, unresponsive
+        # main heat path judged against the upper floor's comfort bounds and
+        # published as a house temperature (a 27.5 C return drew a "house"
+        # trace at 28.0 C beside a 22.1 C upper zone: the optimizer cooking
+        # the house to a temperature nothing planned). The floor return keeps
+        # the job it is a genuine proxy for, driving the slab estimate above;
+        # with no lower-floor thermometer the honest stand-in is the room
+        # temperature, the last-resort seed further down, and a repair issue
+        # says so rather than letting a wrong number pass for a measurement.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             ctx._current_state.lower_floor_temperature = lower_floor.value
@@ -5391,10 +5463,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._audit_lower_floor_sensor()
         self._audit_comfort_band()
 
-        # A smart valve's target, when the integration can see it. Knowing
-        # where the valve regulates to is what tells the model whether it is
-        # throttling -- and therefore whether surplus heat can reach the tank
-        # at all -- so charging cannot be planned without it.
+        # A smart valve's target, when the integration can see it: where the
+        # valve regulates to is what tells the model whether it is throttling
+        # — and so whether surplus heat can reach the tank at all.
         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
         if valve_target.ok and (valve_value := valve_target.value) is not None:
             ctx._thermal_params.mixing_valve_target = float(valve_value)
@@ -5411,9 +5482,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
-        # Solar radiation: a local pyranometer measures this house, so it wins
-        # over any remote estimate. Open-Meteo fills in when no sensor is
-        # configured or the sensor is not reporting.
+        # Solar radiation: a local pyranometer measures this house, so it
+        # wins over any remote estimate; Open-Meteo fills in when no sensor
+        # is configured or the sensor is not reporting.
         solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
         solar_from_sensor = False
         if solar.ok and (solar_value := solar.value) is not None:
@@ -5427,24 +5498,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._solar_radiation = observed
                 ctx._current_state.solar_radiation = observed
 
-        # DHW temperature sensor
+        # DHW temperature sensor. Without an ok reading the tank is seeded
+        # from the previous plan's own trajectory (open-loop propagation,
+        # R9 D12-s1-01); the 55 °C dataclass default reached every solve
+        # otherwise, so every plan believed the tank was just charged.
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         if dhw.ok:
             self._dhw_temperature = dhw.value
             ctx._current_state.dhw_temperature = self._dhw_temperature
+        elif (
+            seed := _open_loop_plan_value(
+                self._optimization_result, "dhw_temp_trajectory", dt_util.now()
+            )
+        ) is not None:
+            ctx._current_state.dhw_temperature = seed
 
         # Buffer tank temperature sensor (optional; enables cooling learning)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         if buffer_reading.ok:
             ctx._current_state.buffer_tank_temperature = buffer_reading.value
 
-        # Wood tank temperature (issue #40): seeds the two-tank model each
-        # cycle through the same stale-aware reader — the model never
-        # extrapolates yesterday's fire, it re-reads the physical tank.
-        # Staleness maps to absence, and absence means the step falls back
-        # to the single-tank abstraction (free heat routed into the HP
-        # tank) rather than planning against a stalled hot probe or
-        # dropping the heat. Logged once per transition.
+        # Wood tank temperature (issue #40): re-read from the physical tank
+        # each cycle through the same stale-aware reader — the model never
+        # extrapolates yesterday's fire. Staleness maps to absence, which
+        # falls back to the single-tank abstraction (free heat into the HP
+        # tank) rather than a stalled hot probe; logged per transition.
         if ctx._thermal_params.two_tank_modelled:
             wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
             wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
@@ -5468,19 +5546,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # simulates a tank the parameters no longer model.
             ctx._current_state.wood_tank_temperature = None
 
-        # The pump's own supply and return water (#1067; the reader's own
-        # rules are in ``flow_lift.read_water_temps``). Written every cycle
+        # The pump's own supply and return water (#1067; the reader's rules
+        # are in ``flow_lift.read_water_temps``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
-        # not given, and "there is a fresh supply reading" is the gate the
-        # flow-bias fold is taken on.
+        # not given, and a fresh supply reading gates the flow-bias fold.
         self._flow_bias.observe_temps(*read_water_temps(reader))
 
-        # The four heat-pump signals (v5.3.0). Read through the same reader
+        # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
         # their entity id and problem — a mode entity nobody can read is
-        # *visible* in the diagnostics, it just does not act. Read before the
-        # health snapshot is published because every learner below consults
-        # ``_learning_frozen``, which now consults these.
+        # *visible* in the diagnostics, it just does not act — and read
+        # before the health snapshot, because every learner below consults
+        # ``_learning_frozen``, which consults these.
         _mode_now = dt_util.now()
         _last_good_age = (
             # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
@@ -5513,9 +5590,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # to be current before anything calls compute_cop.
         ctx._thermal_params.ambient_humidity = self._current_humidity()
 
-        # Detect an external heat source before the learners run: while one is
-        # active every thermal observation is contaminated, and the learners
-        # need to know that rather than quietly absorbing it.
+        # Detect external heat before the learners run: while one is active,
+        # every thermal observation is contaminated, and they must know.
         self._update_external_heat_detection()
 
         # #2 (gated): the curve learner's daily comfort evidence. Moved here,
@@ -5575,19 +5651,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             self._ecl110_current_displace = ctx._current_state.ecl110_displace_command
 
-        # Last resort: seed the slab, and the lower zone if nothing better has
-        # been read, from the room temperature.
-        #
-        # This used to be guarded on the floor-return *entity* being unset while
-        # the branch above is guarded on the *reading* being good. A sensor that
-        # was configured but stale or unavailable satisfied neither, so both
-        # values silently held whatever they were last set to, with nothing
-        # marking them as unfreshened. Guarding both on the reading closes that
-        # gap. The seed still happens once per process, because nothing else
-        # advances these fields between cycles -- but it now happens for a
-        # broken sensor as well as for an absent one.
+        # Last resort: seed the slab, and the lower zone if nothing better
+        # has been read, from the room temperature. Both guards are on the
+        # READING, not the entity being set: a stale sensor takes the same
+        # path as an absent one. The slab seed runs only until a first plan
+        # exists — its trajectory then advances the slab (open-loop
+        # propagation, R9 D12-s1-01); the room+1 K seed used to freeze forever.
         if not floor_return.ok:
-            if not hasattr(self, "_slab_temp_initialized"):
+            if (
+                seed := _open_loop_plan_value(
+                    self._optimization_result,
+                    "slab_temp_trajectory",
+                    dt_util.now(),
+                )
+            ) is not None:
+                ctx._current_state.slab_temperature = seed
+                self._slab_temp_initialized = True
+            elif not hasattr(self, "_slab_temp_initialized"):
                 ctx._current_state.slab_temperature = (
                     ctx._current_state.room_temperature + 1.0
                 )
@@ -6317,24 +6397,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._current_spot_price() + self._current_grid_fee(dt_util.now())
 
     def _current_spot_price(self) -> float:
-        """The current spot price alone, exactly as Tibber bills it."""
+        """The current spot price alone: the entry whose [start, next start)
+        covers now, the coverage ``_known_prices_for`` reads (#1644,
+        D2-s3-01 -- a one-hour span read a quarter up to 45 min stale)."""
         if not self._prices:
             return 0.0
-
         now = dt_util.now()
-        for price_entry in self._prices:
-            starts_at = price_entry.get("starts_at", "")
-            if starts_at:
-                try:
-                    ts = datetime.fromisoformat(starts_at)
-                    if ts.tzinfo is None:
-                        ts = ts.replace(tzinfo=timezone.utc)
-                    if ts <= now < ts + timedelta(hours=1):
-                        return _raw_value(price_entry) or 0.0
-                except (ValueError, TypeError):
-                    continue
-
-        return _raw_value(self._prices[0]) or 0.0
+        entries: list[tuple[datetime, float | None]] = []
+        for entry in self._prices:
+            ts = _comparable_ts(entry.get("starts_at"), now)
+            if ts is not None:
+                entries.append((ts, _raw_value(entry)))
+        entries.sort(key=lambda item: item[0])
+        idx = bisect_right([ts for ts, _ in entries], now) - 1 if entries else -1
+        if idx < 0:
+            # Before the first entry, or no timestamps at all: the list's
+            # head, the positional assumption the step grid also keeps.
+            return _raw_value(self._prices[0]) or 0.0
+        return entries[idx][1] or 0.0
 
     # ------------------------------------------------------------------
     # The grid-fee layer (v4.0.0 T1, #1)
@@ -6672,7 +6752,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
-        await pump_arbiter.apply(self)
+        # #1644 (D1-s2-51): best-effort like the steps beside it -- an
+        # arbiter raise used to fail the whole cycle and skip everything.
+        await _best_effort_cycle_step(
+            lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
+        )
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -10611,13 +10695,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     @property
     def optimization_running(self) -> bool:
         return self._optimization_running
-
-    async def async_force_optimization(self) -> None:
-        """Run the optimization now, ignoring the schedule."""
-        if self._optimization_running:
-            _LOGGER.debug("Optimization already running; ignoring the request")
-            return
-        await self.async_request_refresh()
 
     async def async_simulate(
         self, overrides: dict[str, Any]

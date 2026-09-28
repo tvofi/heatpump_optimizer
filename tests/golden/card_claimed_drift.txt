@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.7
+# claims-for: 6.7.9
 #
-# v6.7.7: hotfix: Governance reads an unreadable ruleset field as unreadable. The stamp empties the list; the
+# v6.7.9: Round-9 wave: F1.2 coordinator fixes, kernel-stable optimality check, verdict-carry rule, handover pointers, may-drift stamp countermeasure. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

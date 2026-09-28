@@ -157,7 +157,13 @@ rules:
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done
-  entity-translations: done
+  entity-translations:
+    status: done
+    comment: >-
+      #1651 (round 9, D10-s2-01) landed: the climate entity carries
+      _attr_translation_key with its own name and preset states (auto,
+      economy) in strings.json / en / sv; the other platforms name their
+      entities in the catalogues (tests/entities.py display_name).
   exception-translations:
     status: done
     comment: >-
@@ -175,7 +181,8 @@ rules:
       sections for the three sensors #571 bounded with ENUM; the two it
       refused stay bare, because a state icon is looked up by the state
       string and theirs are unbounded. Counts are derived by that section,
-      not recorded here.
+      not recorded here. #1651 (round 9, D10-s2-01) added the climate
+      entity's preset_mode state icons (auto, economy).
   reconfiguration-flow:
     status: done
     comment: >-

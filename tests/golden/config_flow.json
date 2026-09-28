@@ -48,7 +48,7 @@
      "max": "1000",
      "min": "20",
      "mode": "'box'",
-     "step": "5",
+     "step": "'any'",
      "unit_of_measurement": "'m\u00b2'"
     },
     "default": "140.0",
@@ -82,7 +82,7 @@
      "max": "6.0",
      "min": "1.5",
      "mode": "'box'",
-     "step": "0.1"
+     "step": "'any'"
     },
     "default": "3.5",
     "required": "Required",
@@ -93,7 +93,7 @@
      "max": "20",
      "min": "1",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": "5.0",
@@ -105,7 +105,7 @@
      "max": "10",
      "min": "0",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": "1.0",
@@ -127,7 +127,7 @@
      "max": "3.0",
      "min": "0.05",
      "mode": "'box'",
-     "step": "0.05",
+     "step": "'any'",
      "unit_of_measurement": "'\u00b0C/h'"
     },
     "default": "0.3",
@@ -139,12 +139,18 @@
      "max": "1500",
      "min": "50",
      "mode": "'box'",
-     "step": "10",
+     "step": "'any'",
      "unit_of_measurement": "'L/day'"
     },
     "default": "150.0",
     "required": "Optional",
     "selector": "NumberSelector"
+   },
+   "dhw_enabled": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
    },
    "dhw_idle_min_temperature": {
     "config": {
@@ -223,7 +229,7 @@
      "max": "1500",
      "min": "50",
      "mode": "'box'",
-     "step": "10",
+     "step": "'any'",
      "unit_of_measurement": "'L'"
     },
     "default": "200.0",
@@ -303,7 +309,7 @@
      "max": "1000",
      "min": "20",
      "mode": "'box'",
-     "step": "5",
+     "step": "'any'",
      "unit_of_measurement": "'m\u00b2'"
     },
     "default": "140.0",
@@ -456,7 +462,7 @@
      "max": "20",
      "min": "0.1",
      "mode": "'box'",
-     "step": "0.1"
+     "step": "'any'"
     },
     "default": "5.0",
     "required": "Required",
@@ -467,7 +473,7 @@
      "max": "6.0",
      "min": "1.5",
      "mode": "'box'",
-     "step": "0.1"
+     "step": "'any'"
     },
     "default": "3.5",
     "required": "Required",
@@ -478,7 +484,7 @@
      "max": "20",
      "min": "1",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": "5.0",
@@ -490,7 +496,7 @@
      "max": "10",
      "min": "0",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": "1.0",
@@ -502,7 +508,7 @@
      "max": "1.0",
      "min": "0.01",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": "0.15",
@@ -514,7 +520,7 @@
      "max": "80.0",
      "min": "0.5",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": "10.0",
@@ -538,7 +544,7 @@
      "max": "10",
      "min": "0.1",
      "mode": "'box'",
-     "step": "0.1"
+     "step": "'any'"
     },
     "default": "1.0",
     "required": "Required",
@@ -549,7 +555,7 @@
      "max": "5.0",
      "min": "0.02",
      "mode": "'box'",
-     "step": "0.1",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": "0.8",
@@ -561,7 +567,7 @@
      "max": "60.0",
      "min": "0.1",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": "5.0",
@@ -763,7 +769,7 @@
      "max": "1.5",
      "min": "1.0",
      "mode": "'box'",
-     "step": "0.01"
+     "step": "'any'"
     },
     "default": "1.15",
     "required": "Optional",
@@ -774,7 +780,7 @@
      "max": "0.5",
      "min": "0.0",
      "mode": "'box'",
-     "step": "0.01"
+     "step": "'any'"
     },
     "default": "0.03",
     "required": "Optional",
@@ -787,7 +793,7 @@
      "max": "1500",
      "min": "10",
      "mode": "'box'",
-     "step": "5",
+     "step": "'any'",
      "unit_of_measurement": "'L'"
     },
     "default": "35.0",
@@ -799,7 +805,7 @@
      "max": "3.0",
      "min": "0.01",
      "mode": "'box'",
-     "step": "0.1",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": "0.5",
@@ -811,7 +817,7 @@
      "max": "1.0",
      "min": "0.001",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": "0.07",
@@ -823,7 +829,7 @@
      "max": "60.0",
      "min": "0.25",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": "8.0",
@@ -863,6 +869,12 @@
     "required": "Optional",
     "selector": "NumberSelector"
    },
+   "two_zone": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
    "upper_floor_area_ratio": {
     "config": {
      "max": "0.9",
@@ -879,7 +891,7 @@
      "max": "1.0",
      "min": "0.001",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": "0.08",
@@ -891,7 +903,7 @@
      "max": "60.0",
      "min": "0.25",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": "3.0",
@@ -903,7 +915,7 @@
      "max": "50",
      "min": "0.01",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'m\u00b2'"
     },
     "default": "10.0",
@@ -1186,7 +1198,7 @@
        "max": "1500",
        "min": "10",
        "mode": "'box'",
-       "step": "5",
+       "step": "'any'",
        "unit_of_measurement": "'L'"
       },
       "default": "35.0",
@@ -1242,7 +1254,7 @@
        "max": "30",
        "min": "0",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C'"
       },
       "default": "0.0",
@@ -1322,7 +1334,7 @@
        "max": "10",
        "min": "0.5",
        "mode": "'box'",
-       "step": "0.1",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C/h'"
       },
       "default": "1.5",
@@ -1370,7 +1382,7 @@
        "max": "10000",
        "min": "0",
        "mode": "'box'",
-       "step": "10",
+       "step": "'any'",
        "unit_of_measurement": "'SEK/m\u00b3'"
       },
       "default": null,
@@ -1442,7 +1454,7 @@
        "max": "1.5",
        "min": "1.0",
        "mode": "'box'",
-       "step": "0.01"
+       "step": "'any'"
       },
       "default": "1.15",
       "required": "Optional",
@@ -1464,7 +1476,7 @@
        "max": "0.5",
        "min": "0.0",
        "mode": "'box'",
-       "step": "0.01"
+       "step": "'any'"
       },
       "default": "0.03",
       "required": "Optional",
@@ -1475,7 +1487,7 @@
        "max": "50",
        "min": "0.01",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'m\u00b2'"
       },
       "default": "10.0",
@@ -1543,7 +1555,7 @@
        "max": "1000",
        "min": "20",
        "mode": "'box'",
-       "step": "5",
+       "step": "'any'",
        "unit_of_measurement": "'m\u00b2'"
       },
       "default": "140.0",
@@ -1707,7 +1719,7 @@
        "max": "5.0",
        "min": "0.0",
        "mode": "'box'",
-       "step": "0.1",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C'"
       },
       "default": "0.5",
@@ -1725,7 +1737,7 @@
        "max": "0.98",
        "min": "0.3",
        "mode": "'box'",
-       "step": "0.01"
+       "step": "'any'"
       },
       "default": "0.75",
       "required": "Optional",
@@ -1888,7 +1900,7 @@
        "max": "2.0",
        "min": "0.0",
        "mode": "'box'",
-       "step": "0.01"
+       "step": "'any'"
       },
       "default": "0.0",
       "required": "Optional",
@@ -1899,7 +1911,7 @@
        "max": "2.0",
        "min": "0.0",
        "mode": "'box'",
-       "step": "0.01"
+       "step": "'any'"
       },
       "default": "1.0",
       "required": "Optional",
@@ -2050,7 +2062,7 @@
        "max": "250",
        "min": "1",
        "mode": "'box'",
-       "step": "1",
+       "step": "'any'",
        "unit_of_measurement": "'Hz'"
       },
       "default": "120.0",
@@ -2062,7 +2074,7 @@
        "max": "250",
        "min": "1",
        "mode": "'box'",
-       "step": "1",
+       "step": "'any'",
        "unit_of_measurement": "'Hz'"
       },
       "default": "20.0",
@@ -2322,7 +2334,7 @@
      "max": "500",
      "min": "0",
      "mode": "'box'",
-     "step": "1"
+     "step": "'any'"
     },
     "default": "45.0",
     "required": "Optional",
@@ -2367,7 +2379,7 @@
      "max": "125",
      "min": "0",
      "mode": "'box'",
-     "step": "1",
+     "step": "'any'",
      "unit_of_measurement": "'A'"
     },
     "default": "0",
@@ -2439,7 +2451,7 @@
      "max": "10",
      "min": "0",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'SEK/kWh'"
     },
     "default": "0.0",
@@ -2469,7 +2481,7 @@
      "max": "5",
      "min": "0",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'SEK/kWh'"
     },
     "default": "0.0",
@@ -2518,7 +2530,7 @@
      "max": "30",
      "min": "0",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'\u00b0C'"
     },
     "default": "20.0",
@@ -2530,7 +2542,7 @@
      "max": "0",
      "min": "-30",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'\u00b0C'"
     },
     "default": "-20.0",
@@ -2565,7 +2577,7 @@
      "max": "6.0",
      "min": "0.25",
      "mode": "'box'",
-     "step": "0.25",
+     "step": "'any'",
      "unit_of_measurement": "'h'"
     },
     "default": "1.5",
@@ -2909,7 +2921,7 @@
        "max": "8",
        "min": "0",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C'"
       },
       "default": "0.0",
@@ -2921,7 +2933,7 @@
        "max": "25",
        "min": "2",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C'"
       },
       "default": "10.0",
@@ -2964,7 +2976,7 @@
        "max": "3.0",
        "min": "0.05",
        "mode": "'box'",
-       "step": "0.05",
+       "step": "'any'",
        "unit_of_measurement": "'\u00b0C/h'"
       },
       "default": "0.3",
@@ -2976,7 +2988,7 @@
        "max": "1500",
        "min": "50",
        "mode": "'box'",
-       "step": "10",
+       "step": "'any'",
        "unit_of_measurement": "'L/day'"
       },
       "default": "150.0",
@@ -2988,7 +3000,7 @@
        "max": "1500",
        "min": "50",
        "mode": "'box'",
-       "step": "10",
+       "step": "'any'",
        "unit_of_measurement": "'L'"
       },
       "default": "200.0",
@@ -3000,7 +3012,7 @@
        "max": "20",
        "min": "4",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'L/min'"
       },
       "default": "8.0",
@@ -3245,7 +3257,7 @@
      "max": "1000",
      "min": "20",
      "mode": "'box'",
-     "step": "5",
+     "step": "'any'",
      "unit_of_measurement": "'m\u00b2'"
     },
     "default": "140.0",
@@ -3330,7 +3342,7 @@
      "max": "10",
      "min": "0",
      "mode": "'box'",
-     "step": "0.01"
+     "step": "'any'"
     },
     "default": "0.0",
     "required": "Optional",
@@ -3349,7 +3361,7 @@
      "max": "100",
      "min": "0",
      "mode": "'box'",
-     "step": "0.1",
+     "step": "'any'",
      "unit_of_measurement": "'kWp'"
     },
     "default": "0.0",
@@ -3392,7 +3404,7 @@
      "max": "6.0",
      "min": "1.5",
      "mode": "'box'",
-     "step": "0.1"
+     "step": "'any'"
     },
     "default": null,
     "required": "Optional",
@@ -3403,7 +3415,7 @@
      "max": "20",
      "min": "1",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": null,
@@ -3415,7 +3427,7 @@
      "max": "10",
      "min": "0",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kW'"
     },
     "default": null,
@@ -3427,7 +3439,7 @@
      "max": "1.0",
      "min": "0.01",
      "mode": "'box'",
-     "step": "0.01",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": null,
@@ -3439,7 +3451,7 @@
      "max": "80.0",
      "min": "0.5",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": null,
@@ -3451,7 +3463,7 @@
      "max": "5.0",
      "min": "0.02",
      "mode": "'box'",
-     "step": "0.1",
+     "step": "'any'",
      "unit_of_measurement": "'kW/\u00b0C'"
     },
     "default": null,
@@ -3463,7 +3475,7 @@
      "max": "60.0",
      "min": "0.1",
      "mode": "'box'",
-     "step": "0.5",
+     "step": "'any'",
      "unit_of_measurement": "'kWh/\u00b0C'"
     },
     "default": null,
@@ -3556,7 +3568,7 @@
        "max": "3.0",
        "min": "0.01",
        "mode": "'box'",
-       "step": "0.1",
+       "step": "'any'",
        "unit_of_measurement": "'kW/\u00b0C'"
       },
       "default": null,
@@ -3568,7 +3580,7 @@
        "max": "1.0",
        "min": "0.001",
        "mode": "'box'",
-       "step": "0.01",
+       "step": "'any'",
        "unit_of_measurement": "'kW/\u00b0C'"
       },
       "default": null,
@@ -3580,7 +3592,7 @@
        "max": "60.0",
        "min": "0.25",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'kWh/\u00b0C'"
       },
       "default": null,
@@ -3592,7 +3604,7 @@
        "max": "1.0",
        "min": "0.001",
        "mode": "'box'",
-       "step": "0.01",
+       "step": "'any'",
        "unit_of_measurement": "'kW/\u00b0C'"
       },
       "default": null,
@@ -3604,7 +3616,7 @@
        "max": "60.0",
        "min": "0.25",
        "mode": "'box'",
-       "step": "0.5",
+       "step": "'any'",
        "unit_of_measurement": "'kWh/\u00b0C'"
       },
       "default": null,
@@ -3644,7 +3656,7 @@
        "max": "2.0",
        "min": "0.0",
        "mode": "'box'",
-       "step": "0.05"
+       "step": "'any'"
       },
       "default": "0.0",
       "required": "Optional",
@@ -3671,7 +3683,7 @@
        "max": "10",
        "min": "0",
        "mode": "'box'",
-       "step": "0.05"
+       "step": "'any'"
       },
       "default": "0.0",
       "required": "Optional",
@@ -3682,7 +3694,7 @@
        "max": "1000000",
        "min": "1000",
        "mode": "'box'",
-       "step": "1000"
+       "step": "'any'"
       },
       "default": "100000",
       "required": "Optional",
@@ -3693,7 +3705,7 @@
        "max": "100000",
        "min": "0",
        "mode": "'box'",
-       "step": "100",
+       "step": "'any'",
        "unit_of_measurement": "'SEK'"
       },
       "default": "0.0",
@@ -3721,7 +3733,7 @@
        "max": "20",
        "min": "0.1",
        "mode": "'box'",
-       "step": "0.1"
+       "step": "'any'"
       },
       "default": "5.0",
       "required": "Required",
@@ -3744,7 +3756,7 @@
        "max": "10",
        "min": "0.1",
        "mode": "'box'",
-       "step": "0.1"
+       "step": "'any'"
       },
       "default": "1.0",
       "required": "Required",
@@ -3842,7 +3854,7 @@
       "max": "1500",
       "min": "10",
       "mode": "'box'",
-      "step": "5",
+      "step": "'any'",
       "unit_of_measurement": "'L'"
      },
      "default": "35.0",
@@ -3898,7 +3910,7 @@
       "max": "30",
       "min": "0",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'\u00b0C'"
      },
      "default": "0.0",
@@ -3974,7 +3986,7 @@
       "max": "1.5",
       "min": "1.0",
       "mode": "'box'",
-      "step": "0.01"
+      "step": "'any'"
      },
      "default": "1.15",
      "required": "Optional",
@@ -3996,7 +4008,7 @@
       "max": "0.5",
       "min": "0.0",
       "mode": "'box'",
-      "step": "0.01"
+      "step": "'any'"
      },
      "default": "0.03",
      "required": "Optional",
@@ -4007,7 +4019,7 @@
       "max": "50",
       "min": "0.01",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'m\u00b2'"
      },
      "default": "10.0",
@@ -4075,7 +4087,7 @@
       "max": "1000",
       "min": "20",
       "mode": "'box'",
-      "step": "5",
+      "step": "'any'",
       "unit_of_measurement": "'m\u00b2'"
      },
      "default": "140.0",
@@ -4239,7 +4251,7 @@
       "max": "5.0",
       "min": "0.0",
       "mode": "'box'",
-      "step": "0.1",
+      "step": "'any'",
       "unit_of_measurement": "'\u00b0C'"
      },
      "default": "0.5",
@@ -4257,7 +4269,7 @@
       "max": "0.98",
       "min": "0.3",
       "mode": "'box'",
-      "step": "0.01"
+      "step": "'any'"
      },
      "default": "0.75",
      "required": "Optional",
@@ -4420,7 +4432,7 @@
       "max": "2.0",
       "min": "0.0",
       "mode": "'box'",
-      "step": "0.01"
+      "step": "'any'"
      },
      "default": "0.0",
      "required": "Optional",
@@ -4431,7 +4443,7 @@
       "max": "2.0",
       "min": "0.0",
       "mode": "'box'",
-      "step": "0.01"
+      "step": "'any'"
      },
      "default": "1.0",
      "required": "Optional",
@@ -4582,7 +4594,7 @@
       "max": "250",
       "min": "1",
       "mode": "'box'",
-      "step": "1",
+      "step": "'any'",
       "unit_of_measurement": "'Hz'"
      },
      "default": "120.0",
@@ -4594,7 +4606,7 @@
       "max": "250",
       "min": "1",
       "mode": "'box'",
-      "step": "1",
+      "step": "'any'",
       "unit_of_measurement": "'Hz'"
      },
      "default": "20.0",
@@ -4854,7 +4866,7 @@
     "max": "500",
     "min": "0",
     "mode": "'box'",
-    "step": "1"
+    "step": "'any'"
    },
    "default": "45.0",
    "required": "Optional",
@@ -4899,7 +4911,7 @@
     "max": "125",
     "min": "0",
     "mode": "'box'",
-    "step": "1",
+    "step": "'any'",
     "unit_of_measurement": "'A'"
    },
    "default": "0",
@@ -4971,7 +4983,7 @@
     "max": "10",
     "min": "0",
     "mode": "'box'",
-    "step": "0.01",
+    "step": "'any'",
     "unit_of_measurement": "'SEK/kWh'"
    },
    "default": "0.0",
@@ -5001,7 +5013,7 @@
     "max": "5",
     "min": "0",
     "mode": "'box'",
-    "step": "0.01",
+    "step": "'any'",
     "unit_of_measurement": "'SEK/kWh'"
    },
    "default": "0.0",
@@ -5050,7 +5062,7 @@
     "max": "30",
     "min": "0",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'\u00b0C'"
    },
    "default": "20.0",
@@ -5062,7 +5074,7 @@
     "max": "0",
     "min": "-30",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'\u00b0C'"
    },
    "default": "-20.0",
@@ -5097,7 +5109,7 @@
     "max": "6.0",
     "min": "0.25",
     "mode": "'box'",
-    "step": "0.25",
+    "step": "'any'",
     "unit_of_measurement": "'h'"
    },
    "default": "1.5",
@@ -5375,7 +5387,7 @@
       "max": "8",
       "min": "0",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'\u00b0C'"
      },
      "default": "0.0",
@@ -5387,7 +5399,7 @@
       "max": "25",
       "min": "2",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'\u00b0C'"
      },
      "default": "10.0",
@@ -5430,7 +5442,7 @@
       "max": "3.0",
       "min": "0.05",
       "mode": "'box'",
-      "step": "0.05",
+      "step": "'any'",
       "unit_of_measurement": "'\u00b0C/h'"
      },
      "default": "0.3",
@@ -5442,7 +5454,7 @@
       "max": "1500",
       "min": "50",
       "mode": "'box'",
-      "step": "10",
+      "step": "'any'",
       "unit_of_measurement": "'L/day'"
      },
      "default": "150.0",
@@ -5454,7 +5466,7 @@
       "max": "1500",
       "min": "50",
       "mode": "'box'",
-      "step": "10",
+      "step": "'any'",
       "unit_of_measurement": "'L'"
      },
      "default": "200.0",
@@ -5466,7 +5478,7 @@
       "max": "20",
       "min": "4",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'L/min'"
      },
      "default": "8.0",
@@ -5711,7 +5723,7 @@
     "max": "1000",
     "min": "20",
     "mode": "'box'",
-    "step": "5",
+    "step": "'any'",
     "unit_of_measurement": "'m\u00b2'"
    },
    "default": "140.0",
@@ -5796,7 +5808,7 @@
     "max": "10",
     "min": "0",
     "mode": "'box'",
-    "step": "0.01"
+    "step": "'any'"
    },
    "default": "0.0",
    "required": "Optional",
@@ -5815,7 +5827,7 @@
     "max": "100",
     "min": "0",
     "mode": "'box'",
-    "step": "0.1",
+    "step": "'any'",
     "unit_of_measurement": "'kWp'"
    },
    "default": "0.0",
@@ -5858,7 +5870,7 @@
     "max": "6.0",
     "min": "1.5",
     "mode": "'box'",
-    "step": "0.1"
+    "step": "'any'"
    },
    "default": null,
    "required": "Optional",
@@ -5869,7 +5881,7 @@
     "max": "20",
     "min": "1",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'kW'"
    },
    "default": null,
@@ -5881,7 +5893,7 @@
     "max": "10",
     "min": "0",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'kW'"
    },
    "default": null,
@@ -5893,7 +5905,7 @@
     "max": "1.0",
     "min": "0.01",
     "mode": "'box'",
-    "step": "0.01",
+    "step": "'any'",
     "unit_of_measurement": "'kW/\u00b0C'"
    },
    "default": null,
@@ -5905,7 +5917,7 @@
     "max": "80.0",
     "min": "0.5",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'kWh/\u00b0C'"
    },
    "default": null,
@@ -5917,7 +5929,7 @@
     "max": "5.0",
     "min": "0.02",
     "mode": "'box'",
-    "step": "0.1",
+    "step": "'any'",
     "unit_of_measurement": "'kW/\u00b0C'"
    },
    "default": null,
@@ -5929,7 +5941,7 @@
     "max": "60.0",
     "min": "0.1",
     "mode": "'box'",
-    "step": "0.5",
+    "step": "'any'",
     "unit_of_measurement": "'kWh/\u00b0C'"
    },
    "default": null,
@@ -6022,7 +6034,7 @@
       "max": "3.0",
       "min": "0.01",
       "mode": "'box'",
-      "step": "0.1",
+      "step": "'any'",
       "unit_of_measurement": "'kW/\u00b0C'"
      },
      "default": null,
@@ -6034,7 +6046,7 @@
       "max": "1.0",
       "min": "0.001",
       "mode": "'box'",
-      "step": "0.01",
+      "step": "'any'",
       "unit_of_measurement": "'kW/\u00b0C'"
      },
      "default": null,
@@ -6046,7 +6058,7 @@
       "max": "60.0",
       "min": "0.25",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'kWh/\u00b0C'"
      },
      "default": null,
@@ -6058,7 +6070,7 @@
       "max": "1.0",
       "min": "0.001",
       "mode": "'box'",
-      "step": "0.01",
+      "step": "'any'",
       "unit_of_measurement": "'kW/\u00b0C'"
      },
      "default": null,
@@ -6070,7 +6082,7 @@
       "max": "60.0",
       "min": "0.25",
       "mode": "'box'",
-      "step": "0.5",
+      "step": "'any'",
       "unit_of_measurement": "'kWh/\u00b0C'"
      },
      "default": null,
@@ -6110,7 +6122,7 @@
       "max": "2.0",
       "min": "0.0",
       "mode": "'box'",
-      "step": "0.05"
+      "step": "'any'"
      },
      "default": "0.0",
      "required": "Optional",
@@ -6137,7 +6149,7 @@
       "max": "10",
       "min": "0",
       "mode": "'box'",
-      "step": "0.05"
+      "step": "'any'"
      },
      "default": "0.0",
      "required": "Optional",
@@ -6148,7 +6160,7 @@
       "max": "1000000",
       "min": "1000",
       "mode": "'box'",
-      "step": "1000"
+      "step": "'any'"
      },
      "default": "100000",
      "required": "Optional",
@@ -6159,7 +6171,7 @@
       "max": "100000",
       "min": "0",
       "mode": "'box'",
-      "step": "100",
+      "step": "'any'",
       "unit_of_measurement": "'SEK'"
      },
      "default": "0.0",
@@ -6187,7 +6199,7 @@
       "max": "20",
       "min": "0.1",
       "mode": "'box'",
-      "step": "0.1"
+      "step": "'any'"
      },
      "default": "5.0",
      "required": "Required",
@@ -6210,7 +6222,7 @@
       "max": "10",
       "min": "0.1",
       "mode": "'box'",
-      "step": "0.1"
+      "step": "'any'"
      },
      "default": "1.0",
      "required": "Required",

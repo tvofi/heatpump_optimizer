@@ -1,5 +1,26 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.9
+
+round-9 wave: the F1.2 coordinator fixes (presence answers, solve seed, canonical predicates), the solver's F2.3 merged earlier in v6.7.8's window plus this wave's kernel-stability work — the optimality ftol check now gives the same verdict on every BLAS kernel (with the architecture printed on every test run), a fix-review verdict carries across main-only head moves, the round-9 state branches are discoverable from the handover, and the v6.7.8 stamp's may-drift omission is repaired with a standing countermeasure that refuses a stamp owing an entry back.
+
+- #1724 — fix: presence answers, solve seed and canonical predicates (round-9 F1.2)
+- #1726 — fix: the optimality ftol check across BLAS kernels (#1725), with the hpo-ci container setup script
+- #1727 — docs: round-9 state branches pointer (HANDOVER)
+- #1728 — fix: the v6.7.8 stamp broke the may-drift/claimed-for-VERSION invariant (hotfix, with the countermeasure)
+- #1729 — record: the delivery row for #1728
+- #1730 — record: delivery rows for the v6.7.9 wave + HANDOVER clause fix
+
+## v6.7.8
+
+round-9 fixes: the coordinator's DST wall-clock seams and replay clock, store fixes, input and system-identification fixes, the solver's coupled-stability and coil-debit fixes (with a 2.3x faster plant-model step), and a fix review's merge verdict now carries across a main-only re-merge, cutting re-review rework.
+
+- #1717 — fix: stores (round-9 F3.3)
+- #1723 — fix: solver and plant model (round-9 F2.3)
+- #1718 — fix: inputs and system identification (round-9 F4.2)
+- #1720 — governance: a fix-review verdict carries across a main-only head move (round-9 F11.6)
+- #1722 — fix: DST wall-clock seams, the replay clock, naive-stamp guards and the mid-solve thermostat target (round-9 F1.1)
+
 ## v6.7.7
 
 hotfix: the Governance check reads a ruleset field the Actions token cannot see as unreadable, not as a change, so main's Governance run goes green again.
