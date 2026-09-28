@@ -1,6 +1,6 @@
 import json, re, sys
 roster = json.load(open('roster-rev2.json'))
-plan = open('alt/handoff/round9/state/ALT-ENDGAME-PLAN.md').read()
+plan = open('plan_rev1.md').read()
 old = {}
 for line in plan.splitlines():
     m = re.match(r'^\| \d+ \| (\S+) \| (\S+) \| [^|]* \| ([^|]*) \| ([^|]*) \| ([^|]*) \| ([^|]*) \| [^|]* \|$', line)

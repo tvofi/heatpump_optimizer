@@ -28,7 +28,7 @@ Read the plan's §2.3, §4, §6 and §7 and the four bulk RCAs before step 1. Th
 
 ## Steps, in order
 
-1. **Re-base.** List every merge on origin/main since `3490cb16`.
+1. **Re-base.** List every merge on origin/main since `5a2a62ff` (rev 2 is current to it: #1750 re-checked, F1.5 in review as #1751, F7.2 fixing).
    - Apply each to roster rev 2's `resume` fields.
    - If a merge touched a file a new carry or brief cites, re-run
      `node .claude/workflows/brief_lint.mjs <roster>` with the evidence refs fetched: `handoff/audit-r9-evidence`,
@@ -65,8 +65,8 @@ Read the plan's §2.3, §4, §6 and §7 and the four bulk RCAs before step 1. Th
    - what is dispatched now.
 
 5. **Dispatch.**
-   - **F1.5 continues.** When it merges, **R9-EG-B9 is next** in the F1 slot, and F1.6 waits for it.
-   - **F7.2 continues**, then F7.4.
+   - **F1.5 is in review** (PR #1751, CI green at `e3ad93d0`). When it merges, **R9-EG-B9 is next** in the F1 slot, and F1.6 waits for it.
+   - **F7.2 is being fixed** (`handoff/r9-f7-entities-2`); F7.4 follows its merge.
    - Then follow §4, one merge at a time, respecting every `after` edge.
 
 ## Rules specific to rev 2
@@ -111,6 +111,6 @@ Read the plan's §2.3, §4, §6 and §7 and the four bulk RCAs before step 1. Th
 
 - a §7 owner decision is reached;
 - `brief_lint` is non-zero after re-basing, and the fix would weaken a citation instead of correcting it;
-- a merge since `3490cb16` changes what the screen, register or RCAs measured (the boost overlay, the in-flight
+- a merge since `5a2a62ff` changes what the screen, register or RCAs measured (the boost overlay, the in-flight
   guard, the DST tracer, the currency resolver, the entity names);
 - the resume-truthing assertion in step 2 fails again after a regeneration.

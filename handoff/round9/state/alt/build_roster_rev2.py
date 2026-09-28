@@ -34,6 +34,14 @@ G['R9-EG-B0']['resume'].update({
     'stage': 'rca-done', 'last_step': 'RCA-1736 posted on #1736 (comment 5877263448, 2026-09-28T19:47Z); document on handoff/r9-eg-b0 at 08304c9a',
     'next_step': 'none: its obligations are in R9-EG-B1\'s brief; the class is N-shared-config in register v2 (R9-EG-R0)'})
 
+# live status at 2026-09-29T00:05Z (origin/main 5a2a62ff; #201 comment 5879584794; the seats' resume branches)
+G['R9-F1.5']['resume'].update({'stage': 'in-review', 'commit': 'e3ad93d02bd8f5a7f632746d25003e3829761606',
+    'last_step': 'PR #1751 open (hpo-author) at e3ad93d0, merge base 686239d2; first full CI 30 check-runs, zero red; branch frozen for review',
+    'next_step': 'fix-review.md from a detached worktree at e3ad93d0 (review branch handoff/r9-f1-coordinator-5-review), then merge; R9-EG-B9 is next in the F1 slot'})
+G['R9-F7.2']['resume'].update({'stage': 'fixing', 'commit': '028630ac',
+    'last_step': 'failing test pushed at 84d99a9b; fix commit 028630ac (the valve gate typed as a sensor-base subclass) on handoff/r9-f7-entities-2',
+    'next_step': 'fixer.md steps 4-8 at the head, then the hand-off; R9-F7.4 follows its merge'})
+
 # ---- 2. carries
 def carry(gid, text):
     G[gid]['brief'] = G[gid]['brief'].rstrip() + ' ' + text

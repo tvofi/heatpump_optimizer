@@ -312,11 +312,11 @@
         "R9-F1.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-f1-coordinator-5",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "e3ad93d02bd8f5a7f632746d25003e3829761606",
+        "last_step": "PR #1751 open (hpo-author) at e3ad93d0, merge base 686239d2; first full CI 30 check-runs, zero red; branch frozen for review",
+        "next_step": "fix-review.md from a detached worktree at e3ad93d0 (review branch handoff/r9-f1-coordinator-5-review), then merge; R9-EG-B9 is next in the F1 slot",
         "note_file": "handoff/round9/fix/resume/F1.5.md on handoff/r9-f1-coordinator-5",
         "review_branch": "handoff/r9-f1-coordinator-5-review",
         "review_note_file": "handoff/round9/fix/resume/F1.5-review.md on handoff/r9-f1-coordinator-5-review",
@@ -1764,11 +1764,11 @@
         "R9-F8.3"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "fixing",
         "branch": "handoff/r9-f7-entities-2",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "028630ac",
+        "last_step": "failing test pushed at 84d99a9b; fix commit 028630ac (the valve gate typed as a sensor-base subclass) on handoff/r9-f7-entities-2",
+        "next_step": "fixer.md steps 4-8 at the head, then the hand-off; R9-F7.4 follows its merge",
         "note_file": "handoff/round9/fix/resume/F7.2.md on handoff/r9-f7-entities-2",
         "review_branch": "handoff/r9-f7-entities-2-review",
         "review_note_file": "handoff/round9/fix/resume/F7.2-review.md on handoff/r9-f7-entities-2-review",

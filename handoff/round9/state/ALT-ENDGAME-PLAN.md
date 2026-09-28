@@ -4,7 +4,7 @@
 - **Rev 1** was adopted on 2026-09-28. The roster deltas are on `handoff/audit-r9-fixplan` at `0f1f5263`/`27049219`, and record PR #1749 merged.
 - **Rev 2** is for tvofi's decision and is not dispatched.
 
-Rev 2 was written 2026-09-28 by the same cloud review seat, answering tvofi's request after the EG-B0 root-cause analysis. It was measured at origin/main `3490cb16` (v6.7.10). tvofi asked to:
+Rev 2 was written 2026-09-28 by the same cloud review seat, answering tvofi's request after the EG-B0 root-cause analysis. It was measured at origin/main `3490cb16` (v6.7.10), and re-based on 2026-09-29 to `5a2a62ff`. That merge (#1750, record-class merges self-disposing) touches only `policy_lint.mjs` and `stamp.py`. The one measurement it could move, the dead merge-subject arm behind #1041's guard, still reads 0 of 8 at `5a2a62ff`. tvofi asked to:
 - screen the codebase for more RCA-1736 shapes and assess their blast radius;
 - enumerate, classify and update the bug-class register for every finding of rounds 1–8, together with a permanent mechanism;
 - sweep for RCAs conducted but not documented, and RCAs already scheduled;
@@ -181,9 +181,9 @@ Generated from roster rev 2 (`ALT-ROSTER.json`) by `gen_table_rev2.py`:
 
 | wave | PR | lane | open after-edges | issues (**Fixes**) | owner gate | carry in | what | stage |
 |---|---|---|---|---|---|---|---|---|
-| 1 | F1.5 | F1 | — | #1644, #1651, **#1670**, **#1676**, **#1682** | — | — | Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold | not-started |
+| 1 | F1.5 | F1 | — | #1644, #1651, **#1670**, **#1676**, **#1682** | — | — | Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold | in-review |
 | 1 | EG-R0 | EG | — | #1759 | tvofi reviews the move list | — | Register v2 data: rounds 1-9 classified, enum, RCA docs in-tree | not-started |
-| 1 | F7.2 | F7 | — | #1644, **#1669** | — | — | Sensors: schedule count, duplicate entity, valve recommendation | not-started |
+| 1 | F7.2 | F7 | — | #1644, **#1669** | — | — | Sensors: schedule count, duplicate entity, valve recommendation | fixing |
 | 2 | EG-B9 | EG | F1.5 | **#1752**, **#1753** | — | — | Boost overlay acts on a copy; tile and advisor stop borrowing the what-if cache (sev:high actuation) | not-started |
 | 2 | F7.4 | F7 | F7.2 | **#1760** | away and sv compressor: rename or allow | — | Declared entity families and one contiguity check (N-name-sort barrier) | not-started |
 | 3 | F1.6 | F1 | F1.5, EG-B9 | #1647, **#1659** | — | — | Plausibility bounds and the P1 load-layer barrier | not-started |
@@ -250,7 +250,8 @@ Generated from roster rev 2 (`ALT-ROSTER.json`) by `gen_table_rev2.py`:
 ### 4.4 Windows
 
 **W0, now, inside the mandate** (it expires 2026-09-29T18:15Z):
-- F1.5 (branch cut) and F7.2 continue.
+- F1.5 is in review: PR #1751, CI green at `e3ad93d0`. Merge it, then **EG-B9**.
+- F7.2 is being fixed (failing test at `84d99a9b`).
 - Apply roster rev 2 (§6 step 2).
 - Land the record PR (§6 step 3).
 - Post on #201.
