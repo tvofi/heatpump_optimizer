@@ -921,6 +921,92 @@ R.check(
 _r9f13_dt.freeze(None)
 
 
+# --- R9 F1.5 (D1-s2-04): a persistent fenced failure surfaces once ---------
+# The N-debug-swallow sweep named five cycle-path fences that swallowed a
+# persistent failure at DEBUG forever: a frequency command or a pump
+# schedule raising every cycle never reached the log at its default level,
+# so actuation could be dead for a season with nothing visible. One fence
+# mechanism owns them all now, and it logs the FIRST occurrence of each
+# (step, cause) at WARNING -- keyed per distinct cause, exactly as the
+# worker-fallback note keys its repair notice -- with repeats staying at
+# DEBUG, where their volume belongs. Two cycles per site: one WARNING, one
+# DEBUG, and the cycle never fails.
+import logging as _f15_logging
+
+_F15_FENCES = (
+    ("_command_frequency", "Frequency command skipped"),
+    ("_async_drive_pumps", "Pump scheduling skipped"),
+    ("_maybe_run_fuse_advisor", "Fuse advisor skipped"),
+    ("_maybe_refresh_price_tile", "Price tile skipped"),
+    ("_async_watch_learning_drift", "Snapshot heartbeat skipped"),
+)
+
+
+class _F15Sink(_f15_logging.Handler):
+    def __init__(self) -> None:
+        super().__init__(level=_f15_logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.levelno, record.getMessage()))
+
+
+def _f15_fence_site(name):
+    """Two refresh cycles with ``name`` raising every time, plus the
+    marker-named log rows and whether both cycles completed. The clock is
+    frozen on the rig's own NOW: unfrozen, its price rows are months stale
+    and the solve-side sites never run."""
+    _, _, coord = _r9f13_make(f"f15_fence_{name}")
+
+    async def _boom(*_a, **_k):
+        raise TypeError(f"F1.5 fence fault {name}")
+
+    sink = _F15Sink()
+    logger = _f15_logging.getLogger("heatpump_optimizer")
+    logger.setLevel(_f15_logging.DEBUG)
+    logger.addHandler(sink)
+    completed = 0
+    _r9f13_dt.freeze(_R9F13_NOW)
+    try:
+        with _r9f13_mock.patch.object(type(coord), name, _boom), \
+                _r9f13_mock.patch.object(
+                    _r9f13_cmod, "_await_optimize", _r9f13_inline):
+            for _ in range(2):
+                _r9f13_aio.run(coord.async_refresh())
+                completed += int(coord.last_update_success)
+    finally:
+        _r9f13_dt.freeze(None)
+        logger.removeHandler(sink)
+    marker = f"F1.5 fence fault {name}"
+    return (
+        [row for row in sink.rows if marker in row[1]],
+        completed,
+    )
+
+
+_f15_fence_rows, _f15_fence_ok = {}, {}
+for _f15_name, _f15_msg in _F15_FENCES:
+    _f15_fence_rows[_f15_name], _f15_fence_ok[_f15_name] = _f15_fence_site(
+        _f15_name
+    )
+R.check(
+    "D1-s2-04: every cycle-path fence surfaces its persistent failure at "
+    "WARNING exactly once, repeats at DEBUG, and the cycle survives",
+    all(
+        len([lv for lv, _ in rows if lv >= _f15_logging.WARNING]) == 1
+        and len(rows) == 2
+        and _f15_msg in rows[0][1]
+        and _f15_fence_ok[name] == 2
+        for name, rows, _f15_msg in (
+            (n, r, m) for n, m in _F15_FENCES for r in (_f15_fence_rows[n],)
+        )
+    ),
+    f"{[(n, [(lv, msg[:40]) for lv, msg in rows]) for n, rows in _f15_fence_rows.items()]} "
+    f"completed={_f15_fence_ok} -- the sweep measured 5 of 5 sites silent "
+    "at the merge base (tools/audit/round9/D1/s2/guards.py)",
+)
+
+
 # --- R9 P2 (#1644): presence answers, not key presence ----------------------
 R.section("R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)")
 
@@ -8017,6 +8103,83 @@ R.check(
 )
 
 
+# D2-s1-51 (P6, F1.5): the outdoor state write is a producer with ten
+# coordinator readers, and `_update_current_state` wrote it only under
+# ``if outdoor.ok`` -- so with no outdoor thermometer every one of them
+# read the ThermalState constructor default (5.0 degC) beside a plan solved
+# on the forecast: the judge measured the DHW setpoint advisor pricing all
+# 7 candidates up to 53 % off, and the solve seed, the defrost band, the
+# COP curve and the house-loss learners read the same default. The fix is
+# at the producer: whenever no outdoor reading is ok, the state carries the
+# forecast's current hour (`forecast_outdoor_now`, the number the horizon
+# starts on) instead of the default. The four arms below are the full
+# decision table of that write.
+from homeassistant.util import dt as _f15_dt
+
+_F15_NOW = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
+_F15_ROWS = [
+    {"datetime": (_F15_NOW - timedelta(hours=1)).isoformat(),
+     "temperature": -9.0},
+    {"datetime": _F15_NOW.isoformat(), "temperature": -15.0},
+    {"datetime": (_F15_NOW + timedelta(hours=1)).isoformat(),
+     "temperature": -10.0},
+]
+
+
+def _f15_outdoor_after(rows, states):
+    """The outdoor state after one update. The outdoor entity is mapped
+    only when a state for it is given; the indoor sensor always is."""
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+    }
+    if "sensor.outdoor" in states:
+        cfg["outdoor_temp_entity"] = "sensor.outdoor"
+    coord = _Coord(_FakeHass(states), _FakeEntry(data=cfg))
+    coord._weather_forecast = rows
+    _asyncio.run(coord._update_current_state())
+    return coord._current_state.outdoor_temperature
+
+
+_f15_dt.freeze(_F15_NOW)
+R.check(
+    "D2-s1-51: with no outdoor reading the state carries the forecast's "
+    "current hour, not the 5.0 constructor default",
+    _f15_outdoor_after(list(_F15_ROWS),
+                       {"sensor.indoor": FakeState("21.0", unit="°C")})
+    == -15.0,
+    "the current hour is -15.0 between a -9.0 hour before it and a -10.0 "
+    "hour after it; the merge base kept the 5.0 default here",
+)
+R.check(
+    "D2-s1-51 (null control): a fresh outdoor reading wins over the forecast",
+    _f15_outdoor_after(
+        list(_F15_ROWS),
+        {"sensor.indoor": FakeState("21.0", unit="°C"),
+         "sensor.outdoor": FakeState("-3.0", unit="°C")},
+    )
+    == -3.0,
+)
+R.check(
+    "D2-s1-51: an unreadable outdoor entity (mapped, state unavailable) "
+    "falls back to the forecast too",
+    _f15_outdoor_after(
+        list(_F15_ROWS),
+        {"sensor.indoor": FakeState("21.0", unit="°C"),
+         "sensor.outdoor": FakeState("unavailable")},
+    )
+    == -15.0,
+)
+R.check(
+    "D2-s1-51: with no forecast either, the constructor default is what the "
+    "horizon honestly gets (forecast_outdoor_now's None branch)",
+    _f15_outdoor_after([], {"sensor.indoor": FakeState("21.0", unit="°C")})
+    == 5.0,
+)
+_f15_dt.freeze(None)
+
+
 R.section("The optimizer can see the buffer tank (item 29)")
 
 # Two defects meant a charged tank was worth exactly nothing to the optimizer,
@@ -14883,6 +15046,10 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
     Both tests walk the AST rather than the text: a docstring or comment that
     *names* `_plan_is_stale` is not a gate and does not make a seam look
     gated, which is the mutation this check was first written blind to.
+    A seam reached by REFERENCE counts too (F1.5 routed the cycle's fenced
+    steps through `_best_effort_cycle_step`, which receives the bound
+    method instead of calling it): the same method, the same write, the
+    same gate question.
     """
     src = _d102_inspect.getsource(_d102_mod)
     tree = _d102_ast.parse(src)
@@ -14932,15 +15099,17 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
         )
 
     out = []
-    for call in _d102_ast.walk(methods["_async_update_data"]):
-        if not (
-            isinstance(call, _d102_ast.Call)
-            and isinstance(call.func, _d102_ast.Attribute)
-            and isinstance(call.func.value, _d102_ast.Name)
-            and call.func.value.id == "self"
-        ):
+    for ref in _d102_ast.walk(methods["_async_update_data"]):
+        if isinstance(ref, _d102_ast.Call) and isinstance(
+            ref.func, _d102_ast.Attribute
+        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+            name = ref.func.attr
+        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+            ref.value, _d102_ast.Name
+        ) and ref.value.id == "self":
+            name = ref.attr  # a bound method handed to the fence, not called
+        else:
             continue
-        name = call.func.attr
         if name in methods and writes(methods[name]):
             pair = (name, gated(methods[name]))
             if pair not in out:
@@ -33067,6 +33236,200 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("R9 F1.5 — the worker's spawn and its stop (D1-s2-55, D1-s2-05)")
+
+# D1-s2-55 (N-late-try): the try that translates a worker fault into
+# `ProcessWorkerUnavailable` opened AFTER `_ensure_worker`, so a solve
+# worker that could not start (Popen OSError) escaped as itself -- and the
+# `except ProcessWorkerUnavailable` that degrades to the in-process solve
+# caught nothing: no plan, no fallback notice, three failed cycles where
+# the finding's harness counted exactly that. The try now covers the spawn.
+# D1-s2-05 (N-reap-lock): `_shutdown_process_pool` took `_PROCESS_LOCK`
+# before doing anything, and an in-flight solve holds that lock for its
+# whole duration, so Home Assistant's stop waited out the entire solve
+# before reaping (judge: stop_latency_ratio 0.869). The reap now takes the
+# handle and kills without the lock; the lock guards only the swap.
+import threading as _f15_threading
+from unittest import mock as _f15_mock  # noqa: E402
+
+from heatpump_optimizer import coordinator as _f15_cmod  # noqa: E402
+from heatpump_optimizer.optimizer import optimize_in_process as _f15_solve  # noqa: E402
+
+
+def _f15_spawn_translates():
+    """``_run_in_process`` on a spawn that cannot happen, classed."""
+    _f15_cmod._PROCESS_WORKER = None
+
+    def _no_popen(*_a, **_k):
+        raise OSError(35, "Resource temporarily unavailable")
+
+    try:
+        with _f15_mock.patch.object(_f15_cmod.subprocess, "Popen", _no_popen):
+            _f15_cmod._run_in_process(_f15_solve, ())
+        return "returned"
+    except _f15_cmod.ProcessWorkerUnavailable:
+        return "translated"
+    except OSError:
+        return "escaped"
+    finally:
+        _f15_cmod._PROCESS_WORKER = None
+
+
+R.check(
+    "D1-s2-55: a spawn OSError is translated to ProcessWorkerUnavailable",
+    _f15_spawn_translates() == "translated",
+    f"got {_f15_spawn_translates()!r} -- at the merge base the OSError "
+    "escaped untranslated, and `_await_optimize` catches only the "
+    "translated class",
+)
+
+
+class _F15Optimizer:
+    """Carries the solve in this process, reporting where it ran."""
+
+    def optimize(self, state, *_a, **_k):
+        return ("in-process", _os.getpid(), state)
+
+
+def _f15_spawn_fallback():
+    """One solve whose worker cannot start: what the user gets."""
+    hass = _G511Hass()
+    sink = _G511LogSink()
+    logger = _f15_logging.getLogger("heatpump_optimizer")
+    logger.addHandler(sink)
+    _f15_cmod._PROCESS_WORKER = None
+
+    def _no_popen(*_a, **_k):
+        raise OSError(35, "Resource temporarily unavailable")
+
+    try:
+        with _f15_mock.patch.object(_f15_cmod.subprocess, "Popen", _no_popen):
+            out = _asyncio.run(
+                _f15_cmod._await_optimize(hass, _F15Optimizer(), "STATE")
+            )
+    except Exception as err:  # noqa: BLE001 - the defect is the raise itself
+        out = err
+    finally:
+        logger.removeHandler(sink)
+        _f15_cmod._PROCESS_WORKER = None
+    return (
+        out,
+        [r.getMessage() for r in sink.records],
+        [i for i in hass.issues if i[1] == "solve_worker_fallback"],
+    )
+
+
+_f15_fb_out, _f15_fb_warned, _f15_fb_notice = _f15_spawn_fallback()
+R.check(
+    "D1-s2-55: an install that cannot spawn a worker still gets its plan, "
+    "from the in-process fallback, and it is never silent",
+    isinstance(_f15_fb_out, tuple)
+    and _f15_fb_out[0] == "in-process"
+    and _f15_fb_out[2] == "STATE"
+    and len(_f15_fb_warned) == 1
+    and "cannot start" in _f15_fb_warned[0]
+    and "[Errno 35]" in _f15_fb_warned[0],
+    f"outcome={_f15_fb_out!r} warnings={_f15_fb_warned!r}",
+)
+R.check(
+    "D1-s2-55: and the repair notice is raised, like every worker fallback",
+    len(_f15_fb_notice) == 1
+    and _f15_fb_notice[0][2].get("translation_key") == "solve_worker_fallback",
+    f"notices={_f15_fb_notice!r}",
+)
+
+
+class _F15WorkerHandle:
+    """The worker the reap sees: a closeable pipe and a killable process."""
+
+    def __init__(self, dead):
+        self._dead = dead
+        self.stdin = _g511_io.BytesIO()
+        self.terminated = False
+        self.killed = False
+
+    def poll(self):
+        return 0 if self._dead.is_set() else None
+
+    def terminate(self):
+        self.terminated = True
+        self._dead.set()
+
+    def kill(self):
+        self.killed = True
+        self._dead.set()
+
+    def wait(self, timeout=None):
+        self._dead.wait(timeout)
+        return 0
+
+
+def _f15_reap_under_solve():
+    """Stop the worker while a solve holds `_PROCESS_LOCK`.
+
+    The solve thread is what `_run_in_process` does with a worker that dies
+    mid-read: it holds the lock, notices the worker is gone, clears the
+    handle and releases. Returns whether the reap finished within 2 s of
+    the stop -- without waiting for the solve to give the lock up -- and
+    whether the worker was terminated and the handle cleared afterwards.
+    """
+    dead = _f15_threading.Event()
+    parked = _f15_threading.Event()
+    worker = _F15WorkerHandle(dead)
+    _f15_cmod._PROCESS_WORKER = worker
+
+    def _solve():
+        with _f15_cmod._PROCESS_LOCK:
+            parked.set()
+            # a real solve parks reading the worker's pipe, which dies with
+            # the worker; 10 s so a regression cannot hang the suite
+            dead.wait(10.0)
+
+    solve = _f15_threading.Thread(target=_solve)
+    reaped = _f15_threading.Event()
+
+    def _reap():
+        _f15_cmod._shutdown_process_pool()
+        reaped.set()
+
+    reap = _f15_threading.Thread(target=_reap)
+    solve.start()
+    parked.wait(5.0)
+    reap.start()
+    fast = reaped.wait(2.0)
+    dead.set()  # at the merge base the reap never kills; release the solve
+    reap.join(10.0)
+    solve.join(10.0)
+    cleared = _f15_cmod._PROCESS_WORKER is None
+    return fast, worker.terminated or worker.killed, cleared
+
+
+_f15_reap_fast, _f15_reap_killed, _f15_reap_cleared = _f15_reap_under_solve()
+R.check(
+    "D1-s2-05: the stop reaps the worker without waiting out the solve "
+    "that holds the transport lock",
+    _f15_reap_fast and _f15_reap_killed and _f15_reap_cleared,
+    f"reaped within 2 s: {_f15_reap_fast}; worker terminated: "
+    f"{_f15_reap_killed}; handle cleared: {_f15_reap_cleared} -- at the "
+    "merge base the reap queued on `_PROCESS_LOCK` before killing, so the "
+    "stop waited for the full in-flight solve (judge stop_latency_ratio "
+    "0.869; the perturbed unlocked reap 0.015)",
+)
+_f15_idle_dead = _f15_threading.Event()
+_f15_idle_worker = _F15WorkerHandle(_f15_idle_dead)
+_f15_cmod._PROCESS_WORKER = _f15_idle_worker
+_f15_cmod._shutdown_process_pool()
+R.check(
+    "D1-s2-05 (null control): with no solve holding the lock, the reap is "
+    "the same terminate-and-clear it always was",
+    _f15_idle_worker.terminated
+    and _f15_cmod._PROCESS_WORKER is None,
+    f"terminated={_f15_idle_worker.terminated} "
+    f"cleared={_f15_cmod._PROCESS_WORKER is None}",
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
 from heatpump_optimizer.const import (  # noqa: E402
@@ -41109,6 +41472,36 @@ R.check(
     "frosting band because outside it a power overshoot is not defrost, "
     "while the measurement is not restricted at all: a bucket measuring zero "
     "duty is learning something real",
+)
+
+# D7-s2-02 (P2, F1.5): the inference folds the same meter reading the COP
+# learner refuses. `_cop_fold_blocked` exists because a resistive kW in the
+# ratio -- the immersion latch, the pump's own backup heater -- is a
+# different appliance on the same meter, and the COP learner stopped
+# folding it (#1067). The defrost fallback infers from that same
+# `delivered_ratio`, so an immersion interval booked its shortfall as a
+# derate the defrost did not cause: the P2 sweep measured a 0.8738 derate
+# applied against a published raw factor of 0.6814 while the fold was
+# blocked. The inference inherits the same refusal; the measured-duty path
+# does not, because it reads the flag, not the meter.
+def _f15_defrost_fold(immersion_latched):
+    c = _t6_coord()
+    c._immersion_active = immersion_latched
+    c._t6_folds = []
+    c._defrost.observe_duty = lambda *args: c._t6_folds.append(("duty",) + args)
+    c._defrost.observe = lambda *args: c._t6_folds.append(("ratio",) + args)
+    _t6_call(c._settle_defrost, _T6_FROST, _T6DefrostWindow(False))
+    return c._t6_folds
+
+
+R.check(
+    "D7-s2-02: an immersion-latched interval is not folded into the derate "
+    "as an inferred defrost",
+    _f15_defrost_fold(True) == [] and _f15_defrost_fold(False) != [],
+    f"latched -> {_f15_defrost_fold(True)!r}, clean -> "
+    f"{_f15_defrost_fold(False)!r} -- the same ratio the COP learner "
+    "refuses (`_cop_fold_blocked`) must not teach a derate either; the "
+    "clean interval above is the control the existing checks already pin",
 )
 
 
