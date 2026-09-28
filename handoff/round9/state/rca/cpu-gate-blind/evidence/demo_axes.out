@@ -1,0 +1,7 @@
+
+RESULT arm=shipped plants=51 unsampled=6 seconds=0.13 names=['layout:single_tank_valve', 'layout:two_tank_4way', 'layout:valve_upper_direct_slab', 'valve_mode:manual', 'valve_mode:smart_read', 'valve_mode:smart_write']
+RESULT arm=fixed plants=54 unsampled=0 seconds=0.12 names=[]
+  winter/2z/valve: ('manual', 'single_tank_valve')
+  winter/2z/valve-direct-slab: ('smart_read', 'valve_upper_direct_slab')
+  winter/2z/wood-two-tank: ('smart_write', 'two_tank_4way')
+RESULT arm=null plants=3 unsampled=2 names=['layout:no_valve', 'valve_mode:none']

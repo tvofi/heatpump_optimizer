@@ -1,0 +1,157 @@
+{
+  "dimension": "D4",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D4/REPORT.md",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D4-01",
+      "title": "The score pill is a control that never joined the card's own coarse-pointer 44 px target floor",
+      "severity": "medium",
+      "claim": "On the plan card the headline optimization-score pill carries role=\"button\", tabindex=\"0\" and the click that opens the score breakdown, yet under a coarse pointer it renders 25 px tall (158.02 x 25) at 375x812 and 39 px tall (158.02 x 39) at 768x1024 and 1280x800, under the card's own TARGET_MIN_PX_COARSE = 44 px; it is the only control in the 528-cell matrix that lands under the floor.",
+      "mechanism": "heatpump-optimizer-card.js builds one htmlTargetFloor template (2969-2989) whose selector list is the register of controls on the HTML surface, with min-height/min-width set to _coarsePointer() ? 44 : 24 px. The score pill is absent from that list. It gets only the R5-D4-02 rule at 3080-3083 (padding: 5px 0; margin: -5px 0), which adds exactly 10 px and clears the 24 px fine floor at 25 px but knows nothing about the 44 px coarse floor.",
+      "evidence": {
+        "command": "NODE_PATH=<tmp>/node_modules PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers HPO_PLANDATA=<plan>.json node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+        "harness_path": "tools/audit/round6/D4/card_qa.mjs",
+        "value": 12,
+        "unit": "cells with at least one control under the card's own pointer-dependent floor, out of 528",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB RAM, darwin arm64",
+        "cpu_or_wall": "count",
+        "contention_note": "Box shared with the other round-6 seats (load1 4.71 at the final run). Every number is a count, a pixel or a ratio from real layout, never a timing, so contention cannot move it.",
+        "tolerance": "exact",
+        "load1": 4.71,
+        "thread_factor": 1
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:_render (its emitted [data-stat=\"score\"] element and the R5-D4-02 rule at 3080-3083) together with _coarsePointer() at 1310 and the htmlTargetFloor selector list it picks the pixel value for at 2969-2989",
+      "perturbation": {
+        "change": "Add the declarations the floor template applies to every other control to the card's own shadow root after render: node tools/audit/round6/D4/card_qa.mjs --only score_open --perturb '.hl-stat.hl-score{min-height:44px;min-width:44px;box-sizing:border-box}'",
+        "expected_direction": "to_zero",
+        "observed_value": "12 -> 0 under_floor_cells over 24 cells (score_open only); overflow, overlap, contrast, hscroll and error cells all stay 0"
+      },
+      "metric_definition": "min(getBoundingClientRect().width, .height) in CSS px per control, against the card's own pointer floor (24 px fine, 44 px coarse); cells with >=1 control under the floor.",
+      "null_control": {
+        "command": "NODE_PATH=<tmp>/node_modules PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers HPO_PLANDATA=<plan>.json node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json   (read the pointer=fine cells)",
+        "value": 0,
+        "note": "Fine-pointer cells are under_floor_cells=0. The effect is coarse-pointer-only and vanishes where the floor is 24 px, which is what the mechanism predicts."
+      },
+      "leave_one_out": {
+        "cells": 12,
+        "min": 25,
+        "max": 39,
+        "drop_most_favourable": 11
+      },
+      "reproduction_steps": [
+        "npm i --prefix /tmp/d4r6/pw playwright@1.49.0",
+        "NODE_PATH=/tmp/d4r6/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers HPO_PLANDATA=<plan>.json node tools/audit/round6/D4/card_qa.mjs --only score_open",
+        "Repeat with --perturb '.hl-stat.hl-score{min-height:44px;min-width:44px;box-sizing:border-box}' and watch under_floor_cells go 12 -> 0."
+      ],
+      "proposed_fix_scope": "One line: add .hl-stat.hl-score to the htmlTargetFloor selector list in heatpump-optimizer-card.js (2969-2989), with a comment in the group-comment style that block already uses. No new rule, no new token.",
+      "files": [
+        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+      ],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "No text overflows its box, in any state, viewport, theme, language or pointer",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "overflow_cells=0/528, total_overflow=0"
+    },
+    {
+      "claim": "No two text boxes overlap",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "overlap_cells=0/528, total_overlap=0"
+    },
+    {
+      "claim": "No text/background pair fails WCAG AA, in the card's light or the Home Assistant dark token set",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "contrast_cells=0/528"
+    },
+    {
+      "claim": "No state scrolls horizontally, at 375 px or anywhere else",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "hscroll_cells=0/528"
+    },
+    {
+      "claim": "No console error and no uncaught page error in any of the 528 cells, including the empty and error states (no_plan, plan_unavailable, plan_missing)",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "error_cells=0/528"
+    },
+    {
+      "claim": "Every keyboard focus stop shows an indicator under a real Tab keypress (:focus-visible), including the stroke-ring SVG targets rect.setup-hit and rect.lane",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --focus --only plan,score_open,expanded,picker_open,setup,whatif,away,wood_alert",
+      "value": "focus_stops=603 focus_stops_without_indicator=0, no NO-RING line in the per-control roll-up"
+    },
+    {
+      "claim": "The reduced-motion preference removes the card's only animation",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --motion",
+      "value": "arm=no-preference: cells_with_motion=18 elements=24 (div.viewctl) -> arm=reduce: cells_with_motion=0 elements=0"
+    },
+    {
+      "claim": "Hovering a legend chip, the chart, the expand control or the zoom controls moves no layout",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --hover --only plan,score_open,expanded,setup",
+      "value": "hover_shift_cells=0/72, hover_shift_worst=0px (every selector max=0px); probe control hover_ctrl_landed=24/60, hover_ctrl_target_style_changed=12/60"
+    },
+    {
+      "claim": "No ghost tab stops: nothing is focusable that is not painted",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "ghostStops empty in all 528 cells"
+    },
+    {
+      "claim": "Nothing spills out of the card surface horizontally",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json",
+      "value": "'card-surface spill > 1px' empty in all 528 cells"
+    },
+    {
+      "claim": "The setup picker's fields over the setup page are an opaque overlay, not text read through text",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --json /tmp/d4r6/final.json (occlusion roll-up)",
+      "value": "5 pairs, all picker_open, all sp-save/sp-title/sp-cancel/sp-note over setup-value/setup-hint/layout-edit-toggle; the composited ancestor background reaches alpha 1.0 before the card surface, so the modal covers rather than blends"
+    },
+    {
+      "claim": "The counter harness is not a dead probe",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --selfcheck",
+      "value": "selfcheck_control=fires overflow=1 overlap=1 under=1 contrast=1"
+    },
+    {
+      "claim": "Flow: 23 options pages (8 top menu, 15 advanced) and 197 registry rows, every row landing on a leaf page",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "pages=23 top_menu=8 advanced_menu=15, fields=197, orphan_rows=0 []"
+    },
+    {
+      "claim": "Flow: every labelled field on every options page has help text in both strings.json and translations/sv.json",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "missing_help_text_en=0 missing_help_text_sv=0"
+    },
+    {
+      "claim": "Flow: that help-coverage number moves when a data key loses its data_description, so the 0 above is a fact and not a dead probe",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "perturbation_missing_help heat_curve 0 -> 1"
+    },
+    {
+      "claim": "Flow: 10 of 23 pages group their fields with section(); the widest page is building at 23 fields; 5 pages exceed 12 fields",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "pages_with_sections=10, widest_page=building fields=23, pages_over_12_fields=5 ['comfort','hot_water','entities','building','hot_water_tank']"
+    },
+    {
+      "claim": "Flow: a first-time user reaches a first plan through the quick path in 3 screens, or the full questionnaire in 10",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "install_quick_path_screens=3 ['user','user_sensors','quick_setup'], install_full_path_screens=10"
+    },
+    {
+      "claim": "Flow: 4 groups are split in the registry table, so the rendered section order on those pages is not the table order (observation, not filed; the page/field/help coverage it rests on is already gated by tests/entities.py and tests/config_flow_steps.py)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D4/flow_rubric.py",
+      "value": "split_groups=4 {'tuning':['wear','risk'],'entities':['indoor'],'hot_water_tank':['tank'],'learning_features':['weather']}"
+    },
+    {
+      "claim": "Two observations recorded but not filed: (a) .chip has .chip:focus-visible and cursor:pointer but no .chip:hover rule, so a legend chip gives no hover feedback and no pixels of layout move; (b) the D4-01 score pill paints as plain headline text with no visual affordance, so it is invisible to a user that it is a control",
+      "command": "node tools/audit/round6/D4/card_qa.mjs --hover --only plan,expanded,setup  (and the screenshot tools/audit/round6/D4/shots/score_open_375x812_light_coarse.png)",
+      "value": "per-selector maxshift=0px for .chartwrap/.chip/.expand/.vc-out/.setup-hit; .chip viewctl_landed=0/12 (no .chip:hover rule exists)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round6/D4/card_qa.mjs",
+    "tools/audit/round6/D4/flow_rubric.py"
+  ]
+}

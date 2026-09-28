@@ -1,0 +1,26 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+# Read-only validation: the GITHUB_TOKEN needs nothing beyond checkout.
+permissions:
+  contents: read
+
+jobs:
+  validate-hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: HACS validation
+        # Pinned by commit: this is a moving branch upstream.
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main
+        with:
+          category: integration

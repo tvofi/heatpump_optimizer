@@ -1,0 +1,510 @@
+"""Time-of-use grid transfer fees, layered onto the spot price (item #1).
+
+Swedish DSOs increasingly price the grid by time, not only by peak kW:
+höglast energy fees (roughly +25 öre/kWh weekday 06–22, November–March at
+several DSOs), and per-hour dynamic fees are on the way. The spot price the
+integration plans against — Tibber's ``total`` — includes tax and VAT but
+**not** the DSO transfer fee, so a fee layer here is additive, never
+double-counted.
+
+Rules are configured as comma- or newline-separated lines of the form::
+
+    Nov-Mar Mon-Fri 06:00-22:00 = 0.25
+    Jul = 0.10
+
+A comma between digits is a decimal separator (``0,25`` is ``0.25`` — the
+form a Swedish keyboard writes), so it never splits a rule; every other
+comma, ``;`` and a newline separate rules from each other.
+
+Each part before the ``=`` is optional and narrows when the rate applies:
+a month or month range (wrapping allowed, ``Nov-Mar``), a weekday or weekday
+range (``Mon-Fri``), and a time-of-day range in the same ``HH:MM-HH:MM``
+grammar as the DHW demand windows (wrapping allowed). A rule with no
+qualifiers applies always. **Overlapping rules add**: real tariffs are often
+a base transfer fee plus a high-load surcharge, and addition composes those
+without asking the user to pre-merge them.
+
+Kept free of Home Assistant imports so it can be unit-tested directly, like
+``dhw_schedule`` and ``tariff``. The live-entity mode is therefore expressed
+as a value the caller reads from Home Assistant and passes in; this module
+only decides what it means.
+"""
+from __future__ import annotations
+
+import logging
+import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+import numpy as np
+
+from .const import (
+    CONF_GRID_FEE_MODE,
+    CONF_GRID_FEE_RULES,
+    CONF_PEAK_TARIFF_COUNT,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    CONF_PEAK_TARIFF_ENABLED,
+    CONF_PEAK_TARIFF_HOURS,
+    CONF_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_PRICE,
+    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+    CONF_PEAK_TARIFF_WINDOW,
+    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+)
+from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
+
+_LOGGER = logging.getLogger(__name__)
+
+#: Above this a single per-kWh fee component is implausible for any DSO the
+#: integration can plan against — real ToU transfer fees run 0.05–1.5 per
+#: kWh in every currency Tibber prices in. 25 in a whole-unit field is öre
+#: or cents, the classic 100× slip. Two layers use the bound (audit D4-05,
+#: #169): the config flow refuses a rules text above it (``spec_problem``),
+#: because the form is where the typo happens and can still be corrected;
+#: the coordinator raises a warn-only repair issue for a value that arrived
+#: any other way and never touches it, because the parser must stay
+#: permissive (a stored fee that stopped loading, or was silently capped,
+#: would be worse than a wrong one the user was told about).
+IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0
+
+#: The config flow's error keys for a rules text, translated in
+#: strings.json under ``options.error``. Named here, next to the verdict
+#: that returns them, the way ``comfort_band`` names its codes.
+ERROR_INVALID = "invalid_grid_fee_rules"
+ERROR_NEGATIVE = "grid_fee_rules_negative"
+ERROR_IMPLAUSIBLE = "grid_fee_rules_implausible"
+
+#: ``grid_fee_mode`` values. "none" is the sentinel default: every vector is
+#: zeros and an untouched install is byte-for-byte what it was.
+MODE_NONE = "none"
+MODE_RULES = "rules"
+MODE_ENTITY = "entity"
+MODES = (MODE_NONE, MODE_RULES, MODE_ENTITY)
+
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    # Swedish spellings that differ from the English three-letter forms —
+    # a Swedish integration that rejected "maj" would be embarrassing.
+    "maj": 5, "okt": 10,
+}
+_DAYS = {
+    "mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6,
+    # Swedish
+    "mån": 0, "man": 0, "tis": 1, "ons": 2, "tor": 3, "fre": 4,
+    "lör": 5, "lor": 5, "sön": 6, "son": 6,
+}
+
+
+class GridFeeError(ValueError):
+    """Raised when a grid-fee specification cannot be parsed."""
+
+
+def parse_month_range(token: str) -> frozenset[int]:
+    """``"Nov-Mar"`` or ``"Jul"`` as the set of month numbers it covers."""
+    token = token.strip().lower()
+    if "-" in token:
+        start_token, _, end_token = token.partition("-")
+        start = _MONTHS.get(start_token.strip())
+        end = _MONTHS.get(end_token.strip())
+        if start is None or end is None:
+            raise GridFeeError(f"Unknown month in '{token}'")
+        if start <= end:
+            return frozenset(range(start, end + 1))
+        # Wrapping: Nov-Mar is Nov, Dec, Jan, Feb, Mar.
+        return frozenset(list(range(start, 13)) + list(range(1, end + 1)))
+    month = _MONTHS.get(token)
+    if month is None:
+        raise GridFeeError(f"Unknown month '{token}'")
+    return frozenset({month})
+
+
+def parse_day_range(token: str) -> frozenset[int]:
+    """``"Mon-Fri"`` or ``"Sat"`` as the set of ``datetime.weekday()`` values."""
+    token = token.strip().lower()
+    if "-" in token:
+        start_token, _, end_token = token.partition("-")
+        start = _DAYS.get(start_token.strip())
+        end = _DAYS.get(end_token.strip())
+        if start is None or end is None:
+            raise GridFeeError(f"Unknown weekday in '{token}'")
+        if start <= end:
+            return frozenset(range(start, end + 1))
+        return frozenset(list(range(start, 7)) + list(range(0, end + 1)))
+    day = _DAYS.get(token)
+    if day is None:
+        raise GridFeeError(f"Unknown weekday '{token}'")
+    return frozenset({day})
+
+
+@dataclass(frozen=True)
+class FeeRule:
+    """One parsed rule: a rate and the times it applies to."""
+
+    rate: float
+    #: None means "any month"; likewise for days and hours.
+    months: frozenset[int] | None = None
+    days: frozenset[int] | None = None
+    hours: tuple[Window, ...] | None = None
+
+    def applies(self, when: datetime) -> bool:
+        if self.months is not None and when.month not in self.months:
+            return False
+        if self.days is not None and when.weekday() not in self.days:
+            return False
+        if self.hours is not None:
+            hour = when.hour + when.minute / 60.0
+            if not hour_in_windows(hour, list(self.hours)):
+                return False
+        return True
+
+
+def _parse_rule(line: str) -> FeeRule:
+    body, sep, rate_token = line.rpartition("=")
+    if not sep:
+        raise GridFeeError(f"Rule '{line}' has no '= rate' part")
+    try:
+        rate = float(rate_token.strip().replace(",", "."))
+    except ValueError as err:
+        raise GridFeeError(f"Bad rate in '{line}'") from err
+    if not np.isfinite(rate):
+        raise GridFeeError(f"Bad rate in '{line}'")
+
+    months: frozenset[int] | None = None
+    days: frozenset[int] | None = None
+    hours: tuple[Window, ...] | None = None
+    for token in body.split():
+        token = token.strip()
+        if not token:
+            continue
+        if ":" in token or token.replace("-", "").isdigit():
+            # A time range in the DHW window grammar.
+            if hours is not None:
+                raise GridFeeError(f"Two time ranges in '{line}'")
+            try:
+                hours = tuple(parse_windows(token))
+            except DHWWindowError as err:
+                raise GridFeeError(str(err)) from err
+            continue
+        head = token.partition("-")[0].strip().lower()
+        if head in _MONTHS:
+            if months is not None:
+                raise GridFeeError(f"Two month ranges in '{line}'")
+            months = parse_month_range(token)
+        elif head in _DAYS:
+            if days is not None:
+                raise GridFeeError(f"Two weekday ranges in '{line}'")
+            days = parse_day_range(token)
+        else:
+            raise GridFeeError(f"Unrecognised token '{token}' in '{line}'")
+    return FeeRule(rate=rate, months=months, days=days, hours=hours)
+
+
+def parse_rules(spec: str | None) -> list[FeeRule]:
+    """Parse a whole rule specification. Empty input is an empty list.
+
+    A comma with a digit on both sides is a decimal comma — the rate form
+    ``_parse_rule`` already converts — and never a separator (#929); every
+    other comma, ``;`` and a newline separate rules from each other.
+    """
+    if not spec:
+        return []
+    raw = str(spec).replace(";", ",").replace("\n", ",")
+    rules = []
+    for line in re.split(r"(?<!\d),|,(?!\d)", raw):
+        line = line.strip()
+        if line:
+            rules.append(_parse_rule(line))
+    return rules
+
+
+def spec_problem(spec: str) -> str | None:
+    """The config flow's verdict on a rules text: an error key, or None.
+
+    A transfer fee is a charge, so a negative rate is a sign slip that the
+    parser would otherwise store as a permanent subsidy on exactly the hours
+    the grid company charges most for; a rate above the implausibility bound
+    is öre typed where whole units were meant. The sign is judged first --
+    "= -25" is two mistakes, and the sign is the one that inverts the plan.
+    Stricter than ``parse_rules`` on purpose, and separate from it, for the
+    reason ``IMPLAUSIBLE_FEE_SEK_PER_KWH`` spells out.
+    """
+    try:
+        rules = parse_rules(spec)
+    except GridFeeError:
+        return ERROR_INVALID
+    if any(rule.rate < 0.0 for rule in rules):
+        return ERROR_NEGATIVE
+    if any(rule.rate > IMPLAUSIBLE_FEE_SEK_PER_KWH for rule in rules):
+        return ERROR_IMPLAUSIBLE
+    return None
+
+
+@dataclass
+class GridFeeSchedule:
+    """The configured fee layer, evaluated per instant or per step grid."""
+
+    mode: str = MODE_NONE
+    #: A flat SEK/kWh component added in every step, in rules and entity mode.
+    fixed: float = 0.0
+    rules: list[FeeRule] = field(default_factory=list)
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> "GridFeeSchedule":
+        """Build from the config entry; a broken spec degrades to no rules.
+
+        Degrading is deliberate: the config flow validates on the way in, so
+        a parse failure here means a hand-edited store, and pricing the plan
+        with zero fees is better than refusing to plan at all.
+        """
+        from . import const
+
+        mode = str(config.get(const.CONF_GRID_FEE_MODE, const.DEFAULT_GRID_FEE_MODE))
+        if mode not in MODES:
+            mode = MODE_NONE
+        fixed = 0.0
+        rules: list[FeeRule] = []
+        if mode != MODE_NONE:
+            try:
+                fixed = float(
+                    config.get(const.CONF_GRID_FEE_FIXED, const.DEFAULT_GRID_FEE_FIXED)
+                )
+            except (TypeError, ValueError):
+                fixed = 0.0
+            if not np.isfinite(fixed):
+                fixed = 0.0
+        if mode == MODE_RULES:
+            try:
+                rules = parse_rules(config.get(const.CONF_GRID_FEE_RULES, ""))
+            except GridFeeError as err:
+                _LOGGER.warning(
+                    "Invalid grid fee rules (%s); pricing with no ToU fees", err
+                )
+                rules = []
+        return cls(mode=mode, fixed=fixed, rules=rules)
+
+    @property
+    def active(self) -> bool:
+        """Whether the layer can produce a non-zero fee at all."""
+        if self.mode == MODE_RULES:
+            return bool(self.rules) or self.fixed != 0.0
+        if self.mode == MODE_ENTITY:
+            return True
+        return False
+
+    def current_fee(self, when: datetime, entity_value: float | None = None) -> float:
+        """SEK/kWh fee at one instant."""
+        if self.mode == MODE_ENTITY:
+            value = entity_value if entity_value is not None else 0.0
+            if not np.isfinite(value):
+                value = 0.0
+            return self.fixed + float(value)
+        if self.mode == MODE_RULES:
+            return self.fixed + sum(
+                rule.rate for rule in self.rules if rule.applies(when)
+            )
+        return 0.0
+
+    def fee_vector(
+        self,
+        step_starts: list[datetime],
+        entity_value: float | None = None,
+    ) -> np.ndarray:
+        """SEK/kWh per step of a grid.
+
+        In entity mode the current value is held flat across the horizon:
+        an entity reports now, not tomorrow, and holding flat is honest
+        about knowing nothing better.
+        """
+        n = len(step_starts)
+        if self.mode == MODE_NONE or n == 0:
+            return np.zeros(n, dtype=float)
+        if self.mode == MODE_ENTITY:
+            return np.full(n, self.current_fee(step_starts[0], entity_value))
+        return np.asarray(
+            [self.current_fee(when) for when in step_starts], dtype=float
+        )
+
+
+def max_abs_component(
+    schedule: GridFeeSchedule, entity_value: float | None = None
+) -> tuple[float, str]:
+    """The largest-magnitude SEK/kWh component in force, and its source.
+
+    Pure and HA-free like the rest of the module, so the magnitude sanity
+    check is unit-testable here while the repair-issue plumbing stays in the
+    coordinator. Only inputs the active mode actually prices with are
+    inspected: warning about an unused entity or a rules text the mode
+    ignores would send the user hunting a fee the plan never charges.
+    """
+    worst, source = 0.0, "fixed"
+    if schedule.mode == MODE_NONE:
+        return worst, source
+    worst = abs(float(schedule.fixed))
+    if schedule.mode == MODE_RULES:
+        for rule in schedule.rules:
+            if abs(rule.rate) > worst:
+                worst, source = abs(rule.rate), "rules"
+    elif (
+        schedule.mode == MODE_ENTITY
+        and entity_value is not None
+        and abs(float(entity_value)) > worst
+    ):
+        worst, source = abs(float(entity_value)), "entity"
+    return worst, source
+
+
+def min_component(
+    schedule: GridFeeSchedule, entity_value: float | None = None
+) -> tuple[float, str]:
+    """The most negative per-kWh component in force, and its source.
+
+    The sign counterpart of ``max_abs_component`` (audit D4-05, #169): the
+    config flow refuses a negative rule, but a store written before it did,
+    a hand-edited one, or a fee sensor publishing a negative value still
+    reaches the plan as a subsidy. Same rule about which inputs count: only
+    the ones the active mode prices with. Nothing negative returns the fixed
+    component, so a caller can test ``< 0`` and nothing else.
+    """
+    if schedule.mode == MODE_NONE:
+        return 0.0, "fixed"
+    lowest, source = float(schedule.fixed), "fixed"
+    if schedule.mode == MODE_RULES:
+        for rule in schedule.rules:
+            if rule.rate < lowest:
+                lowest, source = float(rule.rate), "rules"
+    elif (
+        schedule.mode == MODE_ENTITY
+        and entity_value is not None
+        and float(entity_value) < lowest
+    ):
+        lowest, source = float(entity_value), "entity"
+    return lowest, source
+
+
+#: Static Sweden v1 catalog. Dated rows; verify against the bill.
+#: Unknown / unparseable product → ``apply_catalog`` returns None (no write).
+#:
+#: #926 research table (sources-or-stop, per row; every kept row cites the
+#: DSO's own price sheet or an authoritative aggregator; unsourced rows are
+#: DROPPED, not invented):
+#:
+#: Ellevio — villa effektabonnemang, HISTORICAL. 81.25 kr/kW incl. moms
+#: (example "6,8 kW × 81,25 kronor/kW = 553 kronor per månad",
+#: ellevio.se/abonnemang/elnatspriser/hus/), timmedeleffekt averaged over
+#: "de tre högsta effekttopparna under månaden, fördelade på tre olika
+#: dygn" with "mellan klockan 22 och 06 ... räknas bara halva
+#: effekttoppen" (ellevio.se/nyheter/energi-hemma/
+#: vinterns-energivanor-sa-undviker-du-effekttoppar/) — every month, any
+#: day, night 22:00-06:00 at half. ABOLISHED effective 2026-06-01: "Den 1
+#: juni 2026 återinförde vi en prismodell baserad på säkringsstorlek. Den
+#: ersätter prismodellen med effektavgifter" (ellevio.se/abonnemang/
+#: prismodell-utan-effektavgift/). The row stays for bills of that era and
+#: is labelled with its end date. Energy side of the same era: "fast
+#: avgift 395 kr/mån, överföringsavgift 7 öre/kWh" (ellevio.se/
+#: abonnemang/elnatspriser/hus/) — flat, so the rules are "= 0.07"; the
+#: monthly fixed fee has no config slot and no time dependence, so the
+#: catalog does not write it.
+#:
+#: Göteborg Energi — ordinarie villa elnätsavgift 2026, in force. "49 kr x
+#: snittet av månadens tre högsta timmedeleffekt i kW", "beräknas på
+#: medelvärdet av de tre högsta topparna fördelat på tre olika dygn",
+#: "Priser inkluderar 25% moms", rörlig avgift 23 öre/kWh flat
+#: (goteborgenergi.se/privat/elnat/elnatspriser, "Prislista ordinarie
+#: elnätsavgift 2026"). No hour or weekday division — peak hours are the
+#: whole day ("00:00-24:00") at factor 1.0, so the mask discounts nothing,
+#: truthfully. The tidsindelade variant (135 kr/kW högpris vardagar
+#: 07:00-20:00 Nov-Mar, 0 kr/kW off-peak) is a product customers must
+#: opt into ("Att byta till denna prismodell är frivilligt", same page),
+#: so it is NOT this default row.
+#:
+#: DROPPED, no sourceable terms (documented on #926):
+#: vattenfall_eldistribution_effekt_2026 — Vattenfall Eldistribution has an
+#: effektavgift only "för en mindre kundgrupp sedan oktober 2025" with no
+#: published SEK/kW, and the planned autumn-2026 introduction is paused
+#: (vattenfalleldistribution.se/abonnemang-och-avgifter/avtal-och-avgifter/
+#: effektguiden/). eon_energidistribution_effekt_2026 — E.ON never
+#: introduced one: "du kommer inte att få en ny elnätsavgift med
+#: effektavgift från och med den 1 september 2026" (eon.se/el/elnat/
+#: effekt; "Vi har sedan tidigare pausat vårt planerade införande och det
+#: gäller fortsatt", via.tt.se/4285048). The old rows' 59.0/64.0 kr/kW and
+#: their masks matched no price sheet; a stored product id that no longer
+#: resolves logs "Unknown DSO catalog product" and writes nothing.
+#: ``peak_tariff_offpeak_factor`` comes from the same transcription: a row
+#: without the key falls back to the default 1.0, which is byte-for-byte
+#: the behaviour its absent key already had.
+CATALOG_VERSION = 1
+DSO_PRODUCT_NONE = "none"
+SWEDEN_CATALOG: dict[str, dict[str, Any]] = {
+    "ellevio_villa_effekt_2026": {
+        "label": "Ellevio — villa effekt (to 2026-05-31)",
+        "dated": "2026 (until 2026-05-31)",
+        "grid_fee_rules": "= 0.07",
+        "peak_tariff_months": "",
+        "peak_tariff_hours": "06:00-22:00",
+        "peak_tariff_weekdays_only": False,
+        "peak_tariff_window_minutes": 60,
+        "peak_tariff_price_per_kw": 81.25,
+        "peak_tariff_peaks_averaged": 3,
+        "peak_tariff_offpeak_factor": 0.5,
+        "peak_tariff_distinct_days": True,
+    },
+    "goteborg_energi_effekt_2026": {
+        "label": "Göteborg Energi — villa elnätsavgift (2026)",
+        "dated": "2026",
+        "grid_fee_rules": "= 0.23",
+        "peak_tariff_months": "",
+        "peak_tariff_hours": "00:00-24:00",
+        "peak_tariff_weekdays_only": False,
+        "peak_tariff_window_minutes": 60,
+        "peak_tariff_price_per_kw": 49.0,
+        "peak_tariff_peaks_averaged": 3,
+        "peak_tariff_offpeak_factor": 1.0,
+        "peak_tariff_distinct_days": True,
+    },
+}
+
+
+def catalog_choices() -> list[str]:
+    return [DSO_PRODUCT_NONE, *SWEDEN_CATALOG]
+
+
+def apply_catalog(product_id: str | None) -> dict[str, Any] | None:
+    """Fields to write for a catalog row, or None when unknown/stale."""
+    if not product_id or product_id == DSO_PRODUCT_NONE:
+        return None
+    row = SWEDEN_CATALOG.get(str(product_id))
+    if row is None:
+        _LOGGER.warning("Unknown DSO catalog product %s; not writing", product_id)
+        return None
+    rules = str(row["grid_fee_rules"])
+    try:
+        parse_rules(rules)
+    except GridFeeError:
+        _LOGGER.warning(
+            "Stale DSO catalog row %s failed parse; not writing", product_id
+        )
+        return None
+    _LOGGER.debug("Applying DSO catalog v%s product %s", CATALOG_VERSION, product_id)
+    return {
+        CONF_GRID_FEE_RULES: rules,
+        CONF_GRID_FEE_MODE: MODE_RULES,
+        CONF_PEAK_TARIFF_ENABLED: True,
+        CONF_PEAK_TARIFF_MONTHS: row["peak_tariff_months"],
+        CONF_PEAK_TARIFF_HOURS: row["peak_tariff_hours"],
+        CONF_PEAK_TARIFF_WEEKDAYS_ONLY: row["peak_tariff_weekdays_only"],
+        CONF_PEAK_TARIFF_WINDOW: row["peak_tariff_window_minutes"],
+        CONF_PEAK_TARIFF_PRICE: row["peak_tariff_price_per_kw"],
+        CONF_PEAK_TARIFF_COUNT: row["peak_tariff_peaks_averaged"],
+        # #926: the mask without its factor discounted nothing. Sourced rows
+        # carry their published factor; an unsourced row falls back to the
+        # default 1.0, which is byte-for-byte the behaviour its absent key
+        # already had.
+        CONF_PEAK_TARIFF_OFFPEAK_FACTOR: row.get(
+            "peak_tariff_offpeak_factor", DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR
+        ),
+        # #1512: both sourced rows quote "fördelat på tre olika dygn".
+        CONF_PEAK_TARIFF_DISTINCT_DAYS: row["peak_tariff_distinct_days"],
+    }

@@ -1,0 +1,2055 @@
+"""Active system identification: run an experiment instead of waiting.
+
+Every learner in the integration is passive. Each waits for the house to happen
+to do something informative, which is why parameters take weeks to converge and
+why the guard thresholds have to be so conservative: normal operation provides
+poor excitation, so most observations are ambiguous and get rejected.
+
+Standard practice in process control is to stop waiting and run an experiment.
+A deliberate step change gives clean excitation, and the time constant and loss
+coefficient fall out in days rather than weeks.
+
+Three constraints shape the design:
+
+**Comfort is a hard constraint on the experiment, not a cost term.** The step
+has to be small enough that the occupants do not notice, which directly bounds
+how much information can be extracted. That is the trade, and it is not
+negotiable — a learning feature that makes the house cold has failed even if
+the identification is excellent.
+
+**It must be gated.** Mild outdoor temperature, cheap electricity, night hours,
+and explicit user opt-in. Running a step test into a -15 °C evening at peak
+tariff would be both expensive and uncomfortable.
+
+**It must be abortable, and must not repeat on a converged house.** Both are
+handled here rather than left to the caller.
+"""
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, replace
+from datetime import datetime
+from typing import Any, Callable
+
+import numpy as np
+
+from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
+from .mixing_valve import is_throttling
+from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+
+_LOGGER = logging.getLogger(__name__)
+
+PHASE_IDLE = "idle"
+PHASE_ARMED = "armed"
+PHASE_SETTLING = "settling"
+PHASE_STEP = "step"
+PHASE_RELAX = "relax"
+PHASE_DONE = "done"
+PHASE_ABORTED = "aborted"
+
+#: The comfort allowance a default install gives the experiment, and the
+#: reference the confidence scores the achieved excursion against.
+#:
+#: It is a DESIGN constant on purpose. Scoring the achieved excursion against
+#: the *configured* bound (v6.3.3) made the confidence fall when the bound was
+#: widened: the same finished experiment, having gathered strictly more
+#: information, scored less because its allowance was larger. That inverted
+#: the whole point of the factor and shut the gate on every install that lifts
+#: the bound (D7-01's own positive control went from 4 of 8 admitted to 0 of
+#: 8). Against a fixed reference the factor is monotone in the excursion the
+#: room actually made, which is what identifiability depends on.
+DEFAULT_MAX_EXCURSION_C = 0.8
+
+#: How far under the allowance a two-zone step is sized (#1524). The sensor
+#: is the light, radiator-fed upper zone and the sizer starts the hidden lower
+#: zone and slab at their steady state, so a house a hair off it moves the
+#: sensor past a step sized to the bound's edge: a v1 harness night on
+#: typical_slab, settled 600 h, peaked 0.8001 K against 0.7999 K predicted.
+TWO_ZONE_SIZING_HEADROOM_C = 0.05
+
+
+def _predict_step_excursion(
+    baseline: float,
+    outdoor: float,
+    ua: float,
+    capacity: float,
+    gains: float,
+    step_thermal_kw: float,
+    step_hours: float,
+    relax_hours: float,
+) -> tuple[float, float]:
+    """Peak and final |T − baseline| over a first-order step then relax.
+
+    Each phase is one exponential with constant Q, so the extrema are at
+    the phase endpoints (heating then cooling is monotonic in each).
+
+    Kept as the one-state control. Production sizing uses
+    :func:`_predict_step_excursion_plant` — heat lands in the slab
+    (:meth:`ThermalModel.simulate_step`), so this over-predicts the
+    room's move and undersizes the experiment (#779).
+    """
+    if ua <= 1e-9 or capacity <= 1e-9:
+        return float("inf"), float("inf")
+    tau = capacity / ua
+
+    def _end(temp: float, q: float, hours: float) -> float:
+        t_ss = outdoor + (q + gains) / ua
+        return float(t_ss + (temp - t_ss) * np.exp(-hours / tau))
+
+    after_step = _end(baseline, step_thermal_kw, step_hours)
+    after_relax = _end(after_step, 0.0, relax_hours)
+    peak = max(abs(after_step - baseline), abs(after_relax - baseline))
+    return peak, abs(after_relax - baseline)
+
+
+def _sizing_model(
+    ua: float,
+    capacity: float,
+    gains: float,
+    slab_thermal_mass: float | None = None,
+    slab_heat_transfer: float | None = None,
+) -> ThermalModel:
+    """Single-zone plant whose UA / room mass / gains match the sizer inputs.
+
+    ``house_heat_loss_scale`` stays 1.0: the caller already folds the
+    learned scale into ``ua``. The slab pair is the configured house's own
+    (``None`` falls back to the ``ThermalParameters`` defaults): sizing on
+    any other slab predicts a different building than the one the step
+    heats — the shipped presets carry (0.24, 0.24) to (23.0, 2.0) against
+    the defaults (5.0, 0.8), which breached ``max_excursion_c`` on the
+    light end (#943). The identified UA remains a room-only lumped figure;
+    the sizer does not pretend otherwise.
+    """
+    if slab_thermal_mass is None:
+        slab_thermal_mass = DEFAULT_SLAB_THERMAL_MASS
+    if slab_heat_transfer is None:
+        slab_heat_transfer = DEFAULT_SLAB_HEAT_TRANSFER
+    return ThermalModel(
+        ThermalParameters(
+            heat_loss_coefficient=ua,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=capacity,
+            internal_gains=gains,
+            slab_thermal_mass=slab_thermal_mass,
+            slab_heat_transfer=slab_heat_transfer,
+            two_zone_enabled=False,
+        )
+    )
+
+
+def _zone_heat_loss(plant: ThermalParameters) -> float:
+    """The two zones' configured heat loss, the base a two-zone scale multiplies."""
+    return float(plant.upper_floor_heat_loss + plant.lower_floor_heat_loss)
+
+
+def _held_state(model: ThermalModel, observed: float, outdoor: float) -> ThermalState:
+    """The candidate's steady state under constant heat, its sensor at ``observed``.
+
+    The house held its temperature before the experiment, so the hidden
+    stores start where the candidate's own heat balance puts them. One zone:
+    the slab sits the hold's offset above the room. Two zones (#1524): the
+    sensor is the upper zone, the hold's heat Q splits by
+    ``radiator_power_fraction`` between it and the slab under the hidden
+    lower zone, and the two zones' balance is linear in (Q, T_lower). Behind a
+    throttling valve (R8-P5c) the tank is a hidden store too: wide open, each
+    circuit draws its emitter UA times (tank - its zone), so the balance of the
+    two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
+    """
+    p = model.params
+    k_slab = max(p.slab_heat_transfer, 1e-9)
+    gains = p.internal_gains
+    if not p.two_zone_enabled:
+        ua = p.heat_loss_coefficient * p.house_heat_loss_scale
+        return ThermalState(
+            room_temperature=observed,
+            slab_temperature=observed + (ua * (observed - outdoor) - gains) / k_slab,
+            outdoor_temperature=outdoor,
+            upper_floor_temperature=observed,
+        )
+    area, rad, k_i = p.upper_floor_area_ratio, p.radiator_power_fraction, p.inter_zone_transfer
+    u_up = model.effective_heat_loss_coefficient(p.upper_floor_heat_loss)
+    u_lo = model.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
+    up_rhs = u_up * (observed - outdoor) + k_i * observed - gains * area
+    lo_rhs = -u_lo * outdoor - k_i * observed - gains * (1.0 - area)
+    if not is_throttling(p.mixing_valve_mode):
+        (q_hold, lower), *_ = np.linalg.lstsq(
+            np.array([[rad, k_i], [1.0 - rad, -(u_lo + k_i)]]),
+            np.array([up_rhs, lo_rhs]), rcond=None,
+        )
+        slab = lower + (1.0 - rad) * q_hold / k_slab
+        tank = ThermalState.buffer_tank_temperature
+    else:
+        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
+        (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
+            np.array([
+                [0.0, k_i, 0.0, a_r],
+                [0.0, -(u_lo + k_i + k_slab), k_slab, 0.0],
+                [0.0, k_slab, -(a_f + k_slab), a_f],
+                [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
+            ]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            rcond=None,
+        )
+    return ThermalState(
+        room_temperature=observed * area + lower * (1.0 - area),
+        slab_temperature=float(slab),
+        outdoor_temperature=outdoor,
+        upper_floor_temperature=observed,
+        lower_floor_temperature=float(lower),
+        buffer_tank_temperature=float(tank),
+    )
+
+
+#: The published refusal of a two-zone step behind a regulating valve (R8-P5c).
+VALVE_REGULATES_REASON = (
+    "the mixing valve holds the flow at its curve, so a step charges the "
+    "buffer tank and the room sensor cannot see it"
+)
+
+
+def _valve_regulates(
+    plant: ThermalParameters | None, observed: float, outdoor: float
+) -> bool:
+    """Whether a throttling valve sits at its curve at the held state.
+
+    Wide open, the tank is the flow and :func:`_held_state` solves it from the
+    sensor. At the curve the valve mixes the flow down to the set-point, so the
+    room reads the same at every tank charge above it (the v1 barrier drive's
+    heavy_old, valve target 21 C: tanks of 36.45 and 25.65 C read alike) and a
+    step only charges the tank: the solve lands on the curve to rounding.
+    """
+    if plant is None or not is_throttling(plant.mixing_valve_mode):
+        return False
+    model = ThermalModel(plant)
+    flow = model.flow_target_for_indoor(
+        plant.mixing_valve_target or plant.comfort_ceiling, outdoor
+    )
+    return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01
+
+
+def _valve_drive(
+    model: ThermalModel, state: ThermalState, q: float, outdoor: float, dt: float
+) -> ThermalState:
+    """One step of recorded thermal power ``q`` into the candidate plant.
+
+    ``q`` is electrical power times the coordinator's ``compute_cop(outdoor)``.
+    Behind a throttling valve the pump charges the tank, whose temperature is
+    the flow and costs COP, so ``q`` is turned back into electrical power and
+    the plant prices the lift itself (#1524).
+    """
+    if not is_throttling(model.params.mixing_valve_mode):
+        return model.simulate_step(
+            state, electrical_power=0.0, outdoor_temp=outdoor, dt_hours=dt,
+            external_heat_kw=q,
+        )
+    return model.simulate_step(
+        state, electrical_power=q / model.compute_cop(outdoor),
+        outdoor_temp=outdoor, dt_hours=dt,
+    )
+
+
+def _predict_step_excursion_plant(
+    ua: float,
+    capacity: float,
+    gains: float,
+    baseline: float,
+    outdoor: float,
+    step_thermal_kw: float,
+    step_hours: float,
+    relax_hours: float,
+    dt_hours: float = 0.25,
+    model: ThermalModel | None = None,
+    slab_thermal_mass: float | None = None,
+    slab_heat_transfer: float | None = None,
+) -> tuple[float, float]:
+    """Peak and final |T − baseline| on the two-state plant the model simulates.
+
+    Heat enters the slab. The room moves only through ``slab_heat_transfer``.
+    The one-state exponential treats the same Q as landing in the room, so
+    it cannot size this experiment (#779). The excursion is the sensor's,
+    ``upper_floor_temperature``, which is the room on one zone (#1524).
+    """
+    if ua <= 1e-9 or capacity <= 1e-9:
+        return float("inf"), float("inf")
+    if model is None:
+        model = _sizing_model(
+            ua, capacity, gains, slab_thermal_mass, slab_heat_transfer
+        )
+    state = _held_state(model, baseline, outdoor)
+    peak = 0.0
+    for q, remaining in ((step_thermal_kw, step_hours), (0.0, relax_hours)):
+        while remaining > 1e-12:
+            dt = min(dt_hours, remaining)
+            state = _valve_drive(model, state, q, outdoor, dt)
+            peak = max(peak, abs(state.upper_floor_temperature - baseline))
+            remaining -= dt
+    return peak, abs(state.upper_floor_temperature - baseline)
+
+
+@dataclass
+class SysIdConfig:
+    """Gating conditions and step size."""
+
+    enabled: bool = False
+    #: Outdoor temperature band in which a step is both safe and informative.
+    #: Too cold and the step risks comfort; too mild and ΔT is too small for
+    #: the loss coefficient to be identifiable.
+    min_outdoor_temp: float = -5.0
+    max_outdoor_temp: float = 10.0
+    #: Only run when the price is in the cheapest fraction of the horizon.
+    max_price_percentile: float = 30.0
+    #: Night window, when nobody is moving between rooms opening doors.
+    start_hour: int = 23
+    end_hour: int = 5
+    #: How far the room is allowed to drift during the step, in °C. This is the
+    #: comfort constraint, and it is what bounds the achievable accuracy.
+    max_excursion_c: float = DEFAULT_MAX_EXCURSION_C
+    #: Duration of each phase in hours.
+    settle_hours: float = 1.0
+    step_hours: float = 2.0
+    relax_hours: float = 2.0
+    #: Prior for the intercept, from the configuration: the comfort-bounded
+    #: excursion (max_excursion_c) keeps the ΔT column nearly constant, so
+    #: the intercept is weakly identified from data alone and pure least
+    #: squares either rejects noisy nights wholesale or adopts a
+    #: selection-biased UA. The fit ridges the intercept toward
+    #: gains_prior_kw / thermal_mass_prior instead of toward nothing.
+    gains_prior_kw: float = 0.3
+    thermal_mass_prior: float = 10.0
+    #: Prior width for the room sensor's own drift, °C/h. The drift column
+    #: is identifiable from a clean window and hopeless from a short noisy
+    #: one, so it gets the same treatment as the intercept: one
+    #: pseudo-observation at ZERO, weighed against the data's own residual
+    #: scatter. A clean night reports the drift it can see; a 0.10 °C-noise
+    #: night at the 30-minute cadence has seven rows and no business
+    #: inventing one, and shrinks back to the undrifted fit. 0.02 °C/h is
+    #: 0.08 °C over the whole window, a tenth of the comfort allowance --
+    #: measured against the alternatives (0.05, 0.1, 0.2) it holds the
+    #: completion rate the release already had while more than halving the
+    #: adopted UA error at every noise level.
+    sensor_drift_prior_c_per_h: float = 0.02
+    #: Do not repeat on a house that has already converged.
+    min_days_between_runs: float = 30.0
+    converged_samples: int = 200
+
+
+@dataclass
+class SysIdSample:
+    """One observation during an experiment.
+
+    ``power_kw`` is *thermal* output, not electrical draw. The fit below
+    regresses the room's energy balance, in which the input is heat delivered
+    into the building; using electrical draw instead would scale both
+    identified parameters by the COP, and the error would look entirely
+    plausible because the ratio between them — the time constant — stays
+    correct.
+    """
+
+    when: datetime
+    room_temp: float
+    outdoor_temp: float
+    power_kw: float
+    phase: str
+
+
+@dataclass
+class SysIdResult:
+    """What an experiment identified."""
+
+    completed: bool = False
+    #: Time constant of the room, hours.
+    time_constant_hours: float | None = None
+    #: Heat loss coefficient, kW/°C.
+    heat_loss_kw_per_c: float | None = None
+    #: Effective thermal capacity, kWh/°C.
+    thermal_mass_kwh_per_c: float | None = None
+    #: Constant free heat during the experiment (occupancy, appliances,
+    #: residual solar), kW. ``None`` when the fit had to run without the
+    #: intercept column that identifies it.
+    internal_gains_kw: float | None = None
+    #: Linear drift of the ROOM SENSOR over the experiment, °C/h, estimated
+    #: as a nuisance parameter alongside the house. ``None`` when the fit had
+    #: to run without the column that identifies it. A sensor ageing at
+    #: 0.10 °C/h is invisible to any noise statistic built on second
+    #: differences — a straight line has none — and lands squarely in UA.
+    sensor_drift_c_per_h: float | None = None
+    #: 0-1; how much the result should be trusted as a prior.
+    confidence: float = 0.0
+    #: The slab-room fast mode's time constant as RE-DERIVED by the
+    #: two-state fitted arm, hours; ``None`` on every one-state result.
+    #: The ratified hybrid (#942, 2026-09-14) fits UA and tau_fast only —
+    #: the C_s/k_s split rides a tau-preserving ridge no window length
+    #: removes — so this is computed from the FITTED room capacity against
+    #: the CONFIG slab pair, and the pair itself is never adopted. An
+    #: adopted change to a slab-mode parameter is a config-class change
+    #: (#996): the claim-grammar treatment is the owner's decision,
+    #: recorded on #996 (comment 5663831849), and until it lands the
+    #: published tau is diagnostic, not an adopted value.
+    slab_mode_tau_hours: float | None = None
+    #: 95 % profile-likelihood half-width of log UA, the interval the
+    #: adoption gate bounds (#1410, supersedes the #942 residual-scatter
+    #: precondition). ``None`` when the fit could not place an interval on
+    #: UA (a refused fit, or a one-state result whose covariance did not
+    #: invert). A wide value means the window cannot pin UA however clean
+    #: its residual looks. Not serialized into ``as_dict``: it is an
+    #: internal quantity the coordinator reads to decide adoption, not a
+    #: published surface (like ``sensor_drift_c_per_h``).
+    ua_profile_halfwidth: float | None = None
+    #: 95 % half-width of log UA contributed by the intercept prior's OWN
+    #: stated width — the term the profile interval above cannot see, because
+    #: it holds ``prior_g`` fixed and counts the ridge as data (round-7 D7-01,
+    #: #1459: a prior-dominated fit reads as tight). The gate bounds
+    #: :func:`slab_ua_adoption_halfwidth` of the two. ``None`` on every
+    #: one-state result, whose ridge is data-scaled. Not serialized, like
+    #: ``ua_profile_halfwidth``.
+    ua_prior_halfwidth: float | None = None
+    reason: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "completed": self.completed,
+            "time_constant_hours": (
+                round(self.time_constant_hours, 2)
+                if self.time_constant_hours is not None
+                else None
+            ),
+            "heat_loss_kw_per_c": (
+                round(self.heat_loss_kw_per_c, 4)
+                if self.heat_loss_kw_per_c is not None
+                else None
+            ),
+            "thermal_mass_kwh_per_c": (
+                round(self.thermal_mass_kwh_per_c, 2)
+                if self.thermal_mass_kwh_per_c is not None
+                else None
+            ),
+            "internal_gains_kw": (
+                round(self.internal_gains_kw, 3)
+                if self.internal_gains_kw is not None
+                else None
+            ),
+            "confidence": round(self.confidence, 2),
+            "slab_mode_tau_hours": (
+                round(self.slab_mode_tau_hours, 4)
+                if self.slab_mode_tau_hours is not None
+                else None
+            ),
+            "reason": self.reason,
+        }
+
+
+#: How many time constants of the slab-room fast mode the protocol's own
+#: SHORTEST phase must hold before the plant looks single-state to the fit
+#: (3 tau is the conventional 95 % settling band). A DESIGN constant, like
+#: DEFAULT_MAX_EXCURSION_C: it prices the model class, not a tuning knob.
+FAST_MODE_SETTLE_TAUS = 3.0
+
+#: Width of the intercept ridge ported to the two-state slab fit, kW — the
+#: D2-01 instrument's regularization (the one-state fit pulls its intercept
+#: toward ``gains_prior_kw``), expressed in the nonlinear form as ONE
+#: pseudo-observation ``(G − gains_prior_kw) / width`` appended to the
+#: residual vector. The sysid-estimator wave's pre-study (#942, comment
+#: 5656402482) measured this port on the nightly 5 h window: UA bias
+#: p5/p95 −91/+112 % unridged at 0.01 °C noise against −6.7/+4.2 % ported
+#: on light_new — the comfort bound keeps ΔT within ~2 % of its mean, so UA
+#: and G are collinear and the unridged fit hands the intercept's noise to
+#: both. A DESIGN constant like the prior it ports: it prices the prior's
+#: own uncertainty (±0.1 kW on a 0.3 kW prior), not a tuning knob.
+SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
+
+#: The adoption bar on the fitted UA's own uncertainty (#1410, supersedes
+#: the #942 residual-scatter precondition): the 95 % profile-likelihood
+#: half-width of log UA above which the fitted heat-loss coefficient is
+#: refused by name instead of adopted. log(1.10) is the ±10 % bar the
+#: intercept ridge's docstring names as the adoption target: a fit whose
+#: interval admits a ≥10 % error is not adoptable however plausible its
+#: residual looks. The interval, not the residual scatter, is the quantity
+#: the gate exists to bound — a clean residual is exactly what a
+#: prior-dominated, useless fit looks like, so the #942 scatter ceiling was
+#: a proxy this bar replaces. A DESIGN constant: it prices the bar, not a
+#: tuning knob.
+UA_ADOPTION_HALFWIDTH_BAR = float(np.log(1.10))
+
+#: The 95 % critical value for a one-degree-of-freedom profile-likelihood
+#: interval (chi-square), the threshold the interval's cost must stay under.
+_PROFILE_CHI2_95 = 3.8414588
+
+#: The 95 % two-sided normal quantile, the linear-model half-width scale
+#: (the one-state regression's profile interval coincides with the
+#: linearized one).
+_Z_975 = 1.959963984540054
+
+
+def slab_mode_tau_fast(c_r: float, c_s: float, k_s: float) -> float:
+    """The slab-room fast mode's time constant, hours.
+
+    One expression for the quantity the #991 gate, the two-state fit's
+    published result and the tests all consume: the gate computes it from
+    the CONFIG plant at arm time, the fitted arm re-derives it from the
+    FITTED room capacity against the config slab pair. Zero when the
+    constants are unset — the gate refuses that plant separately.
+    """
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):
+        return 0.0
+    return c_r * c_s / ((c_r + c_s) * k_s)
+
+
+def slab_mode_identifiability(
+    params: ThermalParameters, config: SysIdConfig
+) -> tuple[bool, str]:
+    """Whether the experiment's own fit can identify this plant (#942, #1329).
+
+    The declared-plant experiment is fitted in the TWO-STATE slab form
+    (:meth:`SystemIdentification.identify_slab`): the fit TRUSTS the config
+    ``(C_s, k_s)`` pair and rolls the production two-state model over the
+    recorded thermal power, so a slab-room fast mode slower than the
+    protocol's shortest phase is MODELLED rather than required to settle.
+    The one-state regression's predicate (``FAST_MODE_SETTLE_TAUS``) is not
+    this gate's requirement. Pricing the arm/adopt gate with it refused
+    every plant the integration ships — tau_fast 0.94-3.72 h against the
+    0.33 h bound is 0 of 360 preset-answer combinations, 0 of 80 derivable
+    presets, the item-18 button inert on every install the tree can produce
+    (finding #1329). That predicate lives where it is needed instead: the
+    cadence-gap fallback that would otherwise hand a slow-slab plant to the
+    one-state regression (:func:`slab_mode_one_state_identifiability`).
+
+    What remains at arm time is the two-state rollout's own precondition:
+    the configured ``(C_s, k_s)`` pair must be non-degenerate, or the fit
+    has no seed and falls back to the one-state program. Whether UA is
+    identifiable from the window is decided by the fit's own named guards
+    at fit time, not predicted from config.
+    """
+    c_r = float(params.room_thermal_mass)
+    c_s = float(params.slab_thermal_mass)
+    k_s = float(params.slab_heat_transfer)
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):
+        return False, (
+            "slab constants not configured; the two-state slab fit cannot "
+            "be seeded on this plant"
+        )
+    return True, "ok"
+
+
+def slab_mode_one_state_identifiability(
+    c_r: float, c_s: float, k_s: float, config: SysIdConfig
+) -> tuple[bool, str]:
+    """Whether the ONE-STATE regression can read this plant (#991/#942).
+
+    The predicate #991 introduced, moved off the arm/adopt gate by #1329 --
+    which prices the two-state fit that actually runs there -- and kept at
+    its one remaining consumer: :meth:`SystemIdentification.identify_slab`'s
+    cadence-gap fallback, which reroutes to the one-state regression.
+
+    The plant the optimizer simulates is two-state: heat lands in the slab
+    and the room sees only ``k_s·(T_s − T_r)``. ``identify()`` fits ONE
+    state to it, which is honest exactly when the slab-room fast mode is
+    quick against the protocol's own phases. The fit pools settle, step and
+    relax rows, and every phase boundary re-excites the fast mode, so a
+    mode that cannot settle within the SHORTEST phase is still visibly
+    two-state everywhere the fit looks — the relax rows carry slab
+    discharge that a one-state model can only explain with a negative UA,
+    which is what the sign guards refuse. On every preset this integration
+    ships tau_fast = C_r·C_s/((C_r+C_s)·k_s) is 0.9–3.7 h against a
+    shortest phase of 1 h, so this predicate refuses them all — the right
+    answer for the ONE-STATE fit, and the reason it no longer gates the
+    two-state one.
+    """
+    window = config.settle_hours + config.step_hours + config.relax_hours
+    settle_band = min(config.settle_hours, config.step_hours, config.relax_hours)
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:
+        return False, (
+            "slab constants not configured; the one-state fit cannot be "
+            "interpreted on this plant"
+        )
+    tau_fast = slab_mode_tau_fast(c_r, c_s, k_s)
+    if FAST_MODE_SETTLE_TAUS * tau_fast <= settle_band:
+        return True, "ok"
+    return False, (
+        "slab mode too slow for the excitation window: tau_fast="
+        f"{tau_fast:.2f} h needs {FAST_MODE_SETTLE_TAUS * tau_fast:.1f} h to "
+        f"settle, but the shortest phase of the {window:.1f} h window is "
+        f"{settle_band:.1f} h"
+    )
+
+
+def _simulate_slab_path(
+    ua: float,
+    room_cap: float,
+    gains: float,
+    slab_mass: float,
+    slab_transfer: float,
+    first_room_c: float,
+    outdoor_c: np.ndarray,
+    thermal_kw: np.ndarray,
+    dt_hours: np.ndarray,
+    two_zone: ThermalParameters | None = None,
+) -> np.ndarray:
+    """Roll a candidate two-state plant over the recorded thermal power.
+
+    The candidate is the production ``ThermalModel`` itself — the same
+    object the optimizer simulates — with UA, room capacity and free heat
+    free and the slab pair trusted from configuration. The hidden stores
+    start at the candidate's own steady state (:func:`_held_state`: the
+    house held temperature before the experiment), and the sensor starts at
+    the first recorded reading. Returns the predicted sensor series, one
+    entry per recorded sample.
+
+    ``two_zone`` is the declared two-zone plant (#1524): the candidate is
+    then that plant with its zones' heat loss scaled to total ``ua`` and
+    their masses to total ``room_cap``, observed through the upper zone the
+    coordinator's indoor reading is, with the lower zone hidden.
+    """
+    if two_zone is None:
+        params = ThermalParameters(
+            heat_loss_coefficient=ua,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=room_cap,
+            internal_gains=gains,
+            slab_thermal_mass=slab_mass,
+            slab_heat_transfer=slab_transfer,
+            two_zone_enabled=False,
+            wind_sensitivity=0.0,
+        )
+    else:
+        zones = two_zone.upper_floor_thermal_mass + two_zone.lower_floor_thermal_mass
+        params = replace(
+            two_zone,
+            house_heat_loss_scale=ua / _zone_heat_loss(two_zone),
+            upper_floor_thermal_mass=two_zone.upper_floor_thermal_mass * room_cap / zones,
+            lower_floor_thermal_mass=two_zone.lower_floor_thermal_mass * room_cap / zones,
+            internal_gains=gains,
+        )
+    model = ThermalModel(params)
+    state = _held_state(model, first_room_c, float(outdoor_c[0]))
+    rooms = [state.upper_floor_temperature]
+    for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
+        state = _valve_drive(model, state, float(q), float(out), float(dt))
+        rooms.append(state.upper_floor_temperature)
+    return np.asarray(rooms)
+
+
+#: The loose band the two-state solver projects its LOG parameters into. The
+#: adoption guards (:func:`_slab_refusal`) are far tighter -- UA in [0.01, 5.0],
+#: tau in [0.1, 200] -- so this band only stops the *divergence* the audit
+#: measured (R6 D7-03 #1396/#1397): a candidate whose log-UA walks outward
+#: makes ``np.exp`` overflow to +inf (an OverflowError inside
+#: ``ThermalModel._stability_substeps``' ``int(np.ceil(...))``) or, staying
+#: finite at ~1e19 kW/K, drives the rollout's substep count to ~2.6e17 and
+#: hangs the event loop. ``exp`` over this band is finite and keeps the worst
+#: substep count bounded (the loose bound is ~4-5 decades outside the seed on
+#: each side, so a legitimate fit never touches it).
+SLAB_LOG_UA_LO = float(np.log(1e-4))
+SLAB_LOG_UA_HI = float(np.log(1e2))
+SLAB_LOG_ROOM_CAP_LO = float(np.log(1e-3))
+SLAB_LOG_ROOM_CAP_HI = float(np.log(1e3))
+
+
+def _lm_solve(
+    residual: Callable[[np.ndarray], np.ndarray],
+    x0: np.ndarray,
+    max_iter: int = 60,
+    clip: tuple[int, float, float] | None = (2, -5.0, 10.0),
+) -> tuple[np.ndarray, float]:
+    """Levenberg–Marquardt on a least-squares residual, in plain numpy.
+
+    The integration runs on Home Assistant installs that do not ship
+    scipy, so the two-state fit solves its own small (three-parameter)
+    problem: forward-difference Jacobian, diagonal Marquardt damping,
+    projection of each parameter into its loose band. Returns the
+    best point found and its cost; convergence quality is pinned by the
+    ensemble test, not by this function's iteration count. ``clip`` is
+    ``(index, lo, hi)`` for a single bounded parameter, or ``None`` to
+    leave every parameter unconstrained (the profiled sub-problem).
+    """
+    x = np.asarray(x0, dtype=float).copy()
+    value = residual(x)
+    cost = float(value @ value)
+    damping = 1e-2
+    for _ in range(max_iter):
+        jac = np.empty((value.size, x.size))
+        for i in range(x.size):
+            step = 1e-6 * max(abs(float(x[i])), 1.0)
+            bumped = x.copy()
+            bumped[i] += step
+            jac[:, i] = (residual(bumped) - value) / step
+        gram = jac.T @ jac
+        gradient = jac.T @ value
+        accepted = False
+        for _attempt in range(10):
+            try:
+                delta = np.linalg.solve(
+                    gram + damping * np.diag(np.diag(gram) + 1e-12), -gradient
+                )
+            except np.linalg.LinAlgError:
+                damping *= 10.0
+                continue
+            candidate = x + delta
+            # D7-03 (#1396/#1397): the two log parameters get the same loose
+            # projection as the linear one, but only in the three-parameter
+            # full solve whose layout is [log UA, log C_r, G]. The profiled
+            # two-parameter sub-problem is [log C_r, G], where index 0 is not
+            # log UA and must not be clipped to the UA band.
+            if x.size >= 3:
+                candidate[0] = float(np.clip(candidate[0], SLAB_LOG_UA_LO, SLAB_LOG_UA_HI))
+                candidate[1] = float(
+                    np.clip(candidate[1], SLAB_LOG_ROOM_CAP_LO, SLAB_LOG_ROOM_CAP_HI)
+                )
+            if clip is not None:
+                candidate[clip[0]] = float(
+                    np.clip(candidate[clip[0]], clip[1], clip[2])
+                )
+            next_value = residual(candidate)
+            next_cost = float(next_value @ next_value)
+            if np.isfinite(next_cost) and next_cost < cost:
+                x, value, cost = candidate, next_value, next_cost
+                damping = max(damping * 0.3, 1e-12)
+                accepted = True
+                break
+            damping *= 10.0
+        if not accepted or float(np.max(np.abs(delta))) < 1e-10:
+            break
+    return x, cost
+
+
+def _slab_series(
+    usable: list[SysIdSample],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
+    """The recorded series the two-state rollout needs, or None.
+
+    ``None`` means fewer than five usable intervals — the one-state fit's
+    own floor, so both fits refuse the same starvation.
+    """
+    rooms = np.asarray([s.room_temp for s in usable], dtype=float)
+    outdoors = np.asarray([s.outdoor_temp for s in usable], dtype=float)
+    powers = np.asarray([s.power_kw for s in usable], dtype=float)
+    dts = np.asarray(
+        [
+            (b.when - a.when).total_seconds() / 3600.0
+            for a, b in zip(usable, usable[1:])
+        ],
+        dtype=float,
+    )
+    if len(dts) < 5:
+        return None
+    return rooms, outdoors, powers, dts
+
+
+def _slab_refusal(
+    ua: float, room_cap: float, gains_kw: float, slab_mass: float
+) -> SysIdResult | None:
+    """The outcome guards the two-state fit shares with the one-state fit.
+
+    Same bands, same reason strings as :meth:`SystemIdentification.identify`
+    — the adoption surface must not move because the model class did.
+    Returns the refusal, or ``None`` when the triple is acceptable (with
+    the gains CLIPPED into their band, exactly as identify() clips).
+    """
+    if ua <= 1e-6 or room_cap <= 1e-6:
+        return SysIdResult(completed=False, reason="fit gave implausible signs")
+    if not (-0.5 <= gains_kw <= 2.0):
+        return SysIdResult(
+            completed=False, reason="fitted gains outside plausible bounds"
+        )
+    tau = (room_cap + slab_mass) / ua
+    if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
+        return SysIdResult(
+            completed=False, reason="fitted parameters outside plausible bounds"
+        )
+    return None
+
+
+def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
+    """Confidence for the two-state fit, mirroring identify()'s ingredients.
+
+    R² of the room series, tempered by sample count, by the achieved
+    excursion against the design allowance, and by the residual SNR — the
+    nonlinear form's stand-in for the one-state noise gate until the wave
+    rebuilds that program (a noisy window is discounted, not refused).
+    """
+    ss_res = float(np.sum(np.square(error)))
+    tail = rooms[1:]
+    ss_tot = float(np.sum(np.square(tail - np.mean(tail))))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
+    confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(error) / 12.0)
+    excursion = float(np.max(rooms) - np.min(rooms))
+    confidence *= float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
+    signal = float(np.percentile(rooms, 90) - np.percentile(rooms, 10))
+    noise = float(np.sqrt(ss_res / max(len(error), 1)))
+    snr = signal / max(noise, 1e-9)
+    return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+
+
+_PathError = Callable[[np.ndarray], np.ndarray]
+
+
+def _path_error(
+    rooms: np.ndarray,
+    outdoors: np.ndarray,
+    powers: np.ndarray,
+    dts: np.ndarray,
+    slab_pair: tuple[float, float],
+    two_zone: ThermalParameters | None,
+) -> _PathError:
+    """A candidate ``[log UA, log C_r, G]``'s rollout error on the recorded series.
+
+    The one plant the fit and both interval terms read (#1524).
+    """
+
+    def error(x: np.ndarray) -> np.ndarray:
+        predicted = _simulate_slab_path(
+            float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
+            slab_pair[0], slab_pair[1], float(rooms[0]),
+            outdoors[:-1], powers[:-1], dts, two_zone,
+        )
+        return np.asarray(predicted[1:] - rooms[1:])
+
+    return error
+
+
+def _ridged(error: _PathError, prior_g: float) -> _PathError:
+    """The fit's residual: the rollout error plus the D2-01 intercept ridge.
+
+    A candidate whose rollout left the finite range reads as a huge finite
+    cost instead of poisoning the Jacobian with a NaN, or raising out of the
+    fit (R6 D7-03 #1396/#1397). The ridge is ONE pseudo-observation on G,
+    weighed against the whole room series through its width; deleting the
+    append is the mutation the ensemble test flips on.
+    """
+
+    def residual(x: np.ndarray) -> np.ndarray:
+        e = error(x)
+        if not bool(np.all(np.isfinite(e))):
+            return np.full(e.size + 1, 1e12, dtype=float)
+        return np.append(e, (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW)
+
+    return residual
+
+
+def _slab_ua_profile_halfwidth(
+    x_hat: np.ndarray, error: _PathError, samples: int, prior_g: float
+) -> float:
+    """The two-state fit's UA half-width, as the adoption gate reads it.
+
+    The gate's quantity is the 95 % profile-likelihood interval of log UA,
+    resolved by the threshold check at the adoption bar (the rigorous form
+    the ruling requires): if the profiled cost at ``x_hat[0] ± bar`` is
+    still inside the 95 % threshold, the interval extends beyond the bar and
+    this returns ``inf`` (refused by name). Otherwise the interval is inside
+    the bar and this returns the linearized (Wald) half-width z_0.975·se --
+    the form the ruling accepts as the blend weight, and exact for the
+    narrow intervals the gate admits.
+    """
+
+    def _residual(x: np.ndarray) -> np.ndarray:
+        return np.append(
+            error(x), (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW
+        )
+
+    def _profiled_cost(t: float) -> float:
+        def _inner(y: np.ndarray) -> np.ndarray:
+            return _residual(np.array([t, y[0], y[1]]))
+        _y, _cost = _lm_solve(
+            _inner, np.array([x_hat[1], x_hat[2]]), max_iter=40,
+            clip=(1, -5.0, 10.0),
+        )
+        return _cost
+
+    cost_hat = float(_residual(x_hat) @ _residual(x_hat))
+    sigma2 = cost_hat / max(samples - 3, 1)
+    threshold = cost_hat + _PROFILE_CHI2_95 * sigma2
+    for sign in (1.0, -1.0):
+        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:
+            return float("inf")
+    value = _residual(x_hat)
+    jac = np.empty((value.size, x_hat.size))
+    for i in range(x_hat.size):
+        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)
+        bumped = np.asarray(x_hat, dtype=float).copy()
+        bumped[i] += step
+        jac[:, i] = (_residual(bumped) - value) / step
+    cov = np.linalg.inv(jac.T @ jac) * sigma2
+    se = float(np.sqrt(max(cov[0, 0], 0.0)))
+    return _Z_975 * se
+
+
+def _one_state_ua_halfwidth(
+    solution: np.ndarray,
+    gram: np.ndarray,
+    col_scale: np.ndarray,
+    s_noise: float,
+    design: np.ndarray,
+) -> float:
+    """95 % interval half-width of UA for the one-state (linear) fit.
+
+    UA = beta1 / beta2 with beta1 = UA/C (``solution[0]``) and
+    beta2 = 1/C (``solution[1]``). The one-state model is linear, so its
+    profile-likelihood interval coincides with the linearized (Wald)
+    interval: z_0.975 times the delta-method relative standard error. On
+    the main path (``solution`` carries the drift column) the covariance is
+    the full normal-equation inverse (ridged and EIV-corrected), unscaled;
+    on the two-column fallback it is the plain least-squares inverse of the
+    fallback design.
+    """
+    beta1 = float(solution[0])
+    beta2 = float(solution[1])
+    if beta2 <= 1e-12:
+        return float("inf")
+    if solution.shape[0] >= 4:
+        cov_s = np.linalg.inv(gram)
+        cov = cov_s[:2, :2] * (s_noise ** 2) / np.outer(
+            col_scale[:2], col_scale[:2]
+        )
+    else:
+        design2 = design[:, :2]
+        cov = np.linalg.inv(design2.T @ design2) * (s_noise ** 2)
+    g = np.array([1.0 / beta2, -beta1 / (beta2 ** 2)])
+    var_ua = float(g @ cov @ g)
+    if not np.isfinite(var_ua) or var_ua < 0.0:
+        return float("inf")
+    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))
+
+
+def _slab_ua_prior_halfwidth(
+    x_hat: np.ndarray, error: _PathError, prior_g: float
+) -> float:
+    """The UA interval the intercept prior ITSELF contributes (D7-01).
+
+    :func:`_slab_ua_profile_halfwidth` profiles log UA at a FIXED
+    ``prior_g`` and appends the ridge's pseudo-observation to the residual,
+    so what it bounds is the fit's self-consistency and not its accuracy:
+    where UA and G are collinear the ridge pins the intercept, the fitted UA
+    becomes a function of the prior, and the residual of such a fit -- and so
+    its interval -- is tiny. Round 7's D7-01 measured the consequence on a
+    noise-free window whose true free heat is 0 kW: UA +7.4 % high, a
+    profile interval of 1e-4, admitted at weight ~1.0.
+
+    The prior is not known, it is asserted with width
+    ``SLAB_INTERCEPT_PRIOR_SD_KW``, so the interval the gate bounds has to
+    widen by how far ONE prior-width moves the answer: the largest
+    ``|log UA(prior_g ± width) − log UA(prior_g)|``, in the same 95 % form
+    (``_Z_975``) as the profile term it is combined with. Measured on the
+    round-7 harness window: 2.34 % per kW of prior, i.e. 0.046 (4.6 %) at the
+    95 % level, against a profile term of 3e-4.
+
+    Each shifted fit is a local re-solve seeded at the converged point, which
+    the measurement showed lands where the full multi-start refit does
+    (identical to six decimals over the presets, noise levels and step sizes
+    in the round-7 harness) at a third of the cost. ``x`` is always finite --
+    the residual maps a divergent rollout to a large finite cost -- so this
+    needs no non-finite arm; the shifted UA is bounded by ``_lm_solve``'s own
+    log-UA projection, and a shift that large is refused by the gate.
+    """
+
+    def _shifted(shifted_prior: float) -> float:
+        x, _cost = _lm_solve(
+            _ridged(error, shifted_prior),
+            np.array([float(x_hat[0]), float(x_hat[1]), shifted_prior]),
+        )
+        return abs(float(x[0]) - float(x_hat[0]))
+
+    width = SLAB_INTERCEPT_PRIOR_SD_KW
+    return _Z_975 * max(
+        _shifted(prior_g + width), _shifted(prior_g - width)
+    )
+
+
+def slab_ua_adoption_halfwidth(
+    profile_halfwidth: float | None, prior_halfwidth: float | None
+) -> float | None:
+    """The single interval the #1410 adoption gate bounds (D7-01).
+
+    Two sources, combined in quadrature because each is a standard error of
+    the same parameter: the fit's own profile-likelihood width
+    (:func:`_slab_ua_profile_halfwidth`) and the intercept prior's
+    (:func:`_slab_ua_prior_halfwidth`). The gate refuses above
+    ``UA_ADOPTION_HALFWIDTH_BAR`` and blends by ``1 − hw / bar``, so a fit
+    whose UA is partly the prior's is discounted in proportion -- which is
+    what the prior-dominated fits the round-7 audit measured never were.
+
+    A ``None`` profile stays ``None`` (a refused fit, or a result whose
+    covariance did not invert) and the gate refuses it, as before. A ``None``
+    prior term means the fit published none, which is every ONE-STATE result:
+    the linear program's ridge is data-scaled (``prior_rel = s_noise /
+    prior_sd``), so it carries no fixed prior for this term to price, and the
+    profile form is what the gate reads there exactly as before.
+    """
+    if profile_halfwidth is None:
+        return None
+    if prior_halfwidth is None:
+        return profile_halfwidth
+    return float(np.hypot(profile_halfwidth, prior_halfwidth))
+
+
+@dataclass(frozen=True)
+class AdoptionDecision:
+    """What :func:`adoption_decision` rules for one finished experiment."""
+
+    admit: bool
+    #: The blend weight the adopted scale enters with; 0.0 on a refusal.
+    weight: float
+    #: The fitted UA over the configured base UA; 0.0 on a refusal, whose
+    #: weight is 0.0 too.
+    scale: float
+    #: Published as the result's reason: "adopted", or why not (#942, #1525).
+    reason: str
+
+
+def adoption_decision(
+    result: SysIdResult, params: ThermalParameters, config: SysIdConfig
+) -> AdoptionDecision:
+    """Whether a finished experiment seeds the heat-loss learner, and why.
+
+    The one place the adoption gate lives (#1525): every path returns a
+    reason, so a refused fit is published by name instead of staying
+    completed with the fit's own "ok" beside a scale that never moved. The
+    interval gate is #1410's (with D7-01's prior term), then #942's
+    identifiability, then the blend arithmetic's own preconditions.
+    ``not hw <= bar`` refuses a NaN width, which ``hw > bar`` admitted.
+    """
+
+    def refuse(why: str) -> AdoptionDecision:
+        return AdoptionDecision(False, 0.0, 0.0, why)
+
+    if not result.completed:
+        return refuse(result.reason)
+    hw = slab_ua_adoption_halfwidth(
+        result.ua_profile_halfwidth, result.ua_prior_halfwidth
+    )
+    if hw is None:
+        return refuse("the fit placed no interval on the heat-loss coefficient")
+    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:
+        bar_pct = np.expm1(UA_ADOPTION_HALFWIDTH_BAR) * 100
+        width = f"+-{np.expm1(hw) * 100:.0f} %" if np.isfinite(hw) else "unbounded"
+        return refuse(
+            f"heat-loss interval ({width}) is wider than the "
+            f"+-{bar_pct:.0f} % adoption bar"
+        )
+    identifiable, why = slab_mode_identifiability(params, config)
+    if not identifiable:
+        return refuse(why)
+    if result.heat_loss_kw_per_c is None:
+        return refuse("the fit returned no heat-loss coefficient")
+    if params.two_zone_enabled:
+        base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+    else:
+        base_u = params.heat_loss_coefficient
+    if not base_u > 1e-6:
+        return refuse("no configured heat-loss coefficient to scale")
+    # The blend weight comes from the same interval as the gate: a fit at
+    # the bar adopts mildly, a pinned one at full weight.
+    return AdoptionDecision(
+        True,
+        1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR,
+        result.heat_loss_kw_per_c / base_u,
+        "adopted",
+    )
+
+
+class SystemIdentification:
+    """State machine driving a step-response experiment."""
+
+    def __init__(self, config: SysIdConfig | None = None) -> None:
+        self.config = config or SysIdConfig()
+        self.phase: str = PHASE_IDLE
+        self.phase_started: datetime | None = None
+        self.samples: list[SysIdSample] = []
+        self.last_run: datetime | None = None
+        self.result: SysIdResult = SysIdResult()
+        self._baseline_temp: float | None = None
+        self._step_power: float = 0.0
+        #: Slab pair (C_s, k_s) and initial-guess room pair (UA, C_r) from
+        #: the plant declared at arm time, recorded ONLY when the #991
+        #: identifiability gate passed on it. ``_finish`` routes the
+        #: experiment to the two-state slab fit exactly when the pair is
+        #: present, so the gate's refusals stay in front of the fit and a
+        #: harness that declares no plant keeps the one-state regression.
+        self._slab_pair: tuple[float, float] | None = None
+        self._slab_prior: tuple[float, float] | None = None
+        #: Whether the finished experiment's result came from
+        #: :meth:`identify_slab` — the routing pin the wave's test reads.
+        self._slab_fit_used: bool = False
+        #: The declared plant when it is two-zone (#1524): the sizer and the
+        #: slab fit then model the upper zone the sensor reads, lower hidden.
+        self._two_zone_plant: ThermalParameters | None = None
+
+    # -- control ------------------------------------------------------------
+
+    @property
+    def active(self) -> bool:
+        return self.phase in (PHASE_ARMED, PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+
+    def arm(self, now: datetime, plant: ThermalParameters | None = None) -> bool:
+        """Arm an experiment, to start when conditions allow.
+
+        ``plant`` is the house the experiment would run on, when the caller
+        knows it. #942's identifiability gate then refuses to arm on a plant
+        whose slab mode is too slow for the excitation window — naming the
+        reason into the result, so it is published — instead of burning the
+        night to have the fit's guards refuse it silently. Callers that do
+        not declare a plant (a harness driving a synthetic one) are not
+        gated; production always declares it.
+        """
+        if not self.config.enabled:
+            _LOGGER.info("System identification is disabled in the configuration")
+            return False
+        if self.active:
+            return False
+        self._slab_pair = None
+        self._slab_prior = None
+        self._slab_fit_used = False
+        self._two_zone_plant = None
+        if plant is not None:
+            identifiable, why = slab_mode_identifiability(plant, self.config)
+            if not identifiable:
+                _LOGGER.info("System identification not armed: %s", why)
+                self.result = SysIdResult(completed=False, reason=why)
+                return False
+            # The gate passed: the experiment this plant runs may be fitted
+            # in the two-state form, seeded from the plant's own figures.
+            self._slab_pair = (
+                float(plant.slab_thermal_mass),
+                float(plant.slab_heat_transfer),
+            )
+            self._slab_prior = (
+                float(plant.heat_loss_coefficient)
+                * float(plant.house_heat_loss_scale),
+                float(plant.room_thermal_mass),
+            )
+            if plant.two_zone_enabled:
+                self._two_zone_plant = replace(plant)
+                self._slab_prior = (
+                    _zone_heat_loss(plant) * float(plant.house_heat_loss_scale),
+                    float(plant.upper_floor_thermal_mass + plant.lower_floor_thermal_mass),
+                )
+        if self.last_run is not None:
+            days = (now - self.last_run).total_seconds() / 86400.0
+            if days < self.config.min_days_between_runs:
+                _LOGGER.info(
+                    "System identification ran %.1f days ago; waiting for the "
+                    "%.0f day minimum",
+                    days,
+                    self.config.min_days_between_runs,
+                )
+                return False
+        self.phase = PHASE_ARMED
+        self.phase_started = now
+        self.samples = []
+        return True
+
+    def abort(self, reason: str) -> None:
+        if not self.active:
+            return
+        _LOGGER.info("Aborting system identification: %s", reason)
+        self.phase = PHASE_ABORTED
+        self.result = SysIdResult(completed=False, reason=reason)
+
+    # -- gating -------------------------------------------------------------
+
+    def conditions_met(
+        self,
+        now: datetime,
+        outdoor_temp: float,
+        price: float,
+        price_horizon: np.ndarray,
+        learner_samples: int,
+    ) -> tuple[bool, str]:
+        """Whether an armed experiment may start right now."""
+        cfg = self.config
+        if learner_samples >= cfg.converged_samples:
+            return False, "house already converged"
+        if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp):
+            return False, "outdoor temperature outside the safe band"
+
+        hour = now.hour
+        if cfg.start_hour <= cfg.end_hour:
+            in_window = cfg.start_hour <= hour < cfg.end_hour
+        else:
+            # The window wraps midnight, which is the normal case.
+            in_window = hour >= cfg.start_hour or hour < cfg.end_hour
+        if not in_window:
+            return False, "outside the night window"
+
+        if price_horizon is not None and len(price_horizon):
+            cutoff = float(np.percentile(price_horizon, cfg.max_price_percentile))
+            if price > cutoff:
+                return False, "electricity is not cheap enough"
+        return True, "ready"
+
+    # -- execution ----------------------------------------------------------
+
+    def _size_step_power(
+        self,
+        max_power_kw: float,
+        cop: float,
+        baseline: float,
+        outdoor_temp: float,
+        ua: float,
+        capacity: float,
+        gains: float,
+        slab_thermal_mass: float | None = None,
+        slab_heat_transfer: float | None = None,
+    ) -> float | None:
+        """Largest electrical step whose predicted excursion fits the bound."""
+        cfg = self.config
+        cop = max(cop, 0.1)
+        q_max = max_power_kw * cop
+        # 0.01 kW thermal: the C=8 UA=0.35 kW/K needle is ~0.05 kW wide.
+        # Binary search: each trial is a two-state rollout, not a closed form.
+        lo = 0.0
+        hi = q_max
+        best: float | None = None
+        plant = (
+            _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
+            if self._two_zone_plant is None
+            else ThermalModel(self._two_zone_plant)
+        )
+
+        bound = cfg.max_excursion_c - (
+            0.0 if self._two_zone_plant is None else TWO_ZONE_SIZING_HEADROOM_C
+        )
+
+        def fits(q: float) -> bool:
+            peak, final = _predict_step_excursion_plant(
+                ua, capacity, gains, baseline, outdoor_temp, q,
+                cfg.step_hours, cfg.relax_hours, model=plant,
+            )
+            return peak <= bound and final <= bound
+
+        if fits(q_max):
+            return max_power_kw
+        for _restart in range(2):
+            while hi - lo > 0.01:
+                q = (lo + hi) / 2.0
+                if fits(q):
+                    best = q / cop
+                    lo = q
+                else:
+                    hi = q
+            if best is not None:
+                break
+            # #1524: the fitting steps are a BAND around the hold power (too
+            # little heat cools the room past the bound too), so a bisection
+            # that stepped under the band read "too cold" as "too big". The
+            # restart bisects up from the largest fitting point of a grid.
+            grid = [q for q in np.linspace(0.0, q_max, 33)[1:] if fits(q)]
+            if not grid:
+                break
+            lo, hi, best = grid[-1], grid[-1] + q_max / 32.0, grid[-1] / cop
+        if best is not None:
+            one_peak, _ = _predict_step_excursion(
+                baseline,
+                outdoor_temp,
+                ua,
+                capacity,
+                gains,
+                best * cop,
+                cfg.step_hours,
+                cfg.relax_hours,
+            )
+            _LOGGER.debug(
+                "System identification sizer: two-state step %.2f kW; "
+                "one-state exponential predicted %.2f K",
+                best,
+                one_peak,
+            )
+        return best
+
+    def _over_excursion(self, room_temp: float) -> bool:
+        base = self._baseline_temp
+        return (
+            base is not None
+            and abs(room_temp - base) > self.config.max_excursion_c
+        )
+
+    def _begin_step_phase(
+        self,
+        now: datetime,
+        outdoor_temp: float,
+        max_power_kw: float,
+        cop: float,
+        house_ua: float | None,
+        house_capacity: float | None,
+        house_gains: float | None,
+        house_slab_mass: float | None = None,
+        house_slab_transfer: float | None = None,
+    ) -> bool:
+        """Enter PHASE_STEP with a comfort-bounded injection. False if none fits."""
+        self.phase = PHASE_STEP
+        self.phase_started = now
+        if (
+            house_ua is not None
+            and house_capacity is not None
+            and house_gains is not None
+            and house_ua > 1e-6
+            and house_capacity > 1e-6
+            and self._baseline_temp is not None
+        ):
+            why = _valve_regulates(
+                self._two_zone_plant, self._baseline_temp, outdoor_temp
+            )
+            sized = None if why else self._size_step_power(
+                max_power_kw,
+                cop,
+                self._baseline_temp,
+                outdoor_temp,
+                house_ua,
+                house_capacity,
+                house_gains,
+                house_slab_mass,
+                house_slab_transfer,
+            )
+            if sized is None:
+                self.abort(
+                    VALVE_REGULATES_REASON if why
+                    else "no step fits within the comfort bound"
+                )
+                return False
+            self._step_power = sized
+        else:
+            self._step_power = max_power_kw * 0.3
+        _LOGGER.debug(
+            "System identification step: injecting %.2f kW",
+            self._step_power,
+        )
+        return True
+
+    def step(
+        self,
+        now: datetime,
+        room_temp: float,
+        outdoor_temp: float,
+        price: float,
+        price_horizon: np.ndarray,
+        learner_samples: int,
+        max_power_kw: float,
+        cop: float = 1.0,
+        plan_power_kw: float = 0.0,
+        house_ua: float | None = None,
+        house_capacity: float | None = None,
+        house_gains: float | None = None,
+        house_slab_mass: float | None = None,
+        house_slab_transfer: float | None = None,
+    ) -> float | None:
+        """Advance the experiment; returns a power override, or ``None``.
+
+        ``None`` means "the optimizer's plan stands". A number overrides it for
+        this interval, which is how the step is actually injected. The returned
+        value is electrical power, because that is what the rest of the
+        integration speaks; ``cop`` converts it to the thermal quantity the fit
+        needs.
+
+        The ``house_*`` figures are the coordinator's configured thermal
+        parameters, the learned scale already folded into ``house_ua``. The
+        sizer builds its plant from them, so a caller that omits the slab
+        pair sizes on the ``ThermalParameters`` defaults instead of on the
+        house it heats (#943).
+        """
+        cfg = self.config
+        if not self.active:
+            return None
+
+        if self.phase == PHASE_ARMED:
+            ok, reason = self.conditions_met(
+                now, outdoor_temp, price, price_horizon, learner_samples
+            )
+            if not ok:
+                if "converged" in reason:
+                    self.phase = PHASE_IDLE
+                    self.result = SysIdResult(completed=False, reason=reason)
+                return None
+            _LOGGER.info("Starting system identification: %s", reason)
+            self.phase = PHASE_SETTLING
+            self.phase_started = now
+            self._baseline_temp = room_temp
+
+        elapsed = (
+            (now - self.phase_started).total_seconds() / 3600.0
+            if self.phase_started
+            else 0.0
+        )
+        self.samples.append(
+            SysIdSample(now, room_temp, outdoor_temp, 0.0, self.phase)
+        )
+        thermal_cop = max(cop, 0.1)
+        if self.phase == PHASE_SETTLING:
+            # D2-08 / #325: the plan keeps running during settle; record what
+            # was actually delivered, not zero, before the rows enter identify().
+            self.samples[-1].power_kw = max(plan_power_kw, 0.0) * thermal_cop
+            if self._over_excursion(room_temp):
+                self.abort("room temperature drifted beyond the allowed excursion")
+                return None
+            if elapsed >= cfg.settle_hours and not self._begin_step_phase(
+                now,
+                outdoor_temp,
+                max_power_kw,
+                cop,
+                house_ua,
+                house_capacity,
+                house_gains,
+                house_slab_mass,
+                house_slab_transfer,
+            ):
+                return None
+            return None
+
+        if self._over_excursion(room_temp):
+            self.abort("room temperature drifted beyond the allowed excursion")
+            return None
+
+        if self.phase == PHASE_STEP:
+            self.samples[-1].power_kw = self._step_power * thermal_cop
+            if elapsed >= cfg.step_hours:
+                self.phase = PHASE_RELAX
+                self.phase_started = now
+            return self._step_power
+
+        if self.phase == PHASE_RELAX:
+            if elapsed >= cfg.relax_hours:
+                self._finish(now)
+            return 0.0
+
+        return None
+
+    def _finish(self, now: datetime) -> None:
+        self.phase = PHASE_DONE
+        self.last_run = now
+        # #942's wave: an experiment the arm-time gate admitted on a declared
+        # plant is fitted in the two-state form (with the ported intercept
+        # ridge); everything else — a harness that declared no plant — keeps
+        # the one-state regression. The gate's refusals never reach here.
+        #
+        # The one-state branch is HARNESS-ONLY (#1395): production always arms
+        # with a declared plant (``HeatPumpOptimizerCoordinator.
+        # async_arm_system_identification`` passes ``_thermal_params``), and a
+        # plant that fails the arm-time gate never finishes an experiment — so
+        # ``_slab_pair`` is set on every ``_finish`` production reaches, and
+        # ``identify()`` is entered zero times by the production call sequence.
+        # It stays for a harness that drives the state machine with no declared
+        # plant, which is why it is retained rather than deleted; the pin is
+        # behavioural (``tests/features.py``).
+        try:
+            if self._slab_pair is not None:
+                self.result = self.identify_slab()
+            else:
+                self._slab_fit_used = False
+                self.result = self.identify()
+        except Exception as err:  # noqa: BLE001 - the fit must fail alone
+            # A fit that raises must not fail the coordinator's whole update
+            # cycle (R6 D7-03 #1396): the armed night is discarded and a
+            # refusal is published, instead of the exception unwinding through
+            # _async_update_data. The solver's own bounds stop the measured
+            # OverflowError before it reaches here; this is the seam guard for
+            # whatever shape the divergence takes next.
+            _LOGGER.exception("System identification fit raised: %s", err)
+            self._slab_fit_used = False
+            self.result = SysIdResult(completed=False, reason="fit raised")
+        if self.result.completed:
+            _LOGGER.info(
+                "System identification complete: tau=%.2f h, UA=%.4f kW/°C, "
+                "C=%.2f kWh/°C (confidence %.2f)",
+                self.result.time_constant_hours or 0.0,
+                self.result.heat_loss_kw_per_c or 0.0,
+                self.result.thermal_mass_kwh_per_c or 0.0,
+                self.result.confidence,
+            )
+
+    # -- fitting ------------------------------------------------------------
+
+    # HARNESS-ONLY (#1395). The production call sequence never enters
+    # ``identify`` below: the coordinator always arms with a declared plant
+    # (``async_arm_system_identification`` passes ``_thermal_params``), so
+    # ``_finish`` routes every experiment production can finish to
+    # ``identify_slab``, and ``identify`` is entered zero times by that
+    # sequence. #1330 removed this method's last production route by refusing
+    # the cadence-gap fallback BY NAME rather than handing a slow-slab plant to
+    # the one-state regression. What reaches here is a harness that drives the
+    # state machine with no declared plant (round-3/4/5 D7 and D2 harnesses
+    # call it directly, and ``tests/features.py`` drives it through
+    # ``arm``/``step``), which is why the method is retained rather than
+    # deleted. ``tests/features.py`` pins both halves: the production sequence
+    # enters it zero times, the no-plant harness path enters it. That pin is
+    # BEHAVIOURAL, because a name-based scan cannot see this shape -- ``_finish``
+    # does reference ``identify`` by name, so ``tests/structure.py``'s
+    # ``dead_methods`` census correctly reads 0.
+    def identify(self) -> SysIdResult:
+        """Fit a first-order model to the recorded step response.
+
+        During the experiment the room obeys
+
+            C·dT/dt = Q + G - UA·(T - T_out)
+
+        with G the constant free heat (occupancy, appliances, residual
+        solar). Regressing dT/dt on (T - T_out), Q and a constant gives
+        UA/C, 1/C and G/C directly, which is a plain least-squares problem.
+        It is solved over settle, step and relax: settle is a known-input
+        hour the step used to throw away; relax carries UA (no input to
+        confound it); the step carries C.
+
+        The intercept column is not decoration. Relax-phase samples carry
+        ``power_kw = 0`` while the gains keep heating the room, so a fit
+        without it pushed G into the other two coefficients and biased both
+        UA and C — the exact parameters the experiment exists to pin. When
+        the data cannot support three columns (rank < 3) the fit degrades
+        to the historical two-column form rather than failing outright,
+        and reports no gains figure. Harness-only: see the note above (#1395).
+        """
+        usable = [
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+        ]
+        if len(usable) < 6:
+            return SysIdResult(completed=False, reason="not enough samples")
+
+        rows = []
+        targets = []
+        row_dts = []
+        t_zero = usable[0].when
+        for previous, current in zip(usable, usable[1:]):
+            dt_h = (current.when - previous.when).total_seconds() / 3600.0
+            if dt_h <= 1e-3 or dt_h > 2.0:
+                continue
+            rate = (current.room_temp - previous.room_temp) / dt_h
+            delta = previous.room_temp - previous.outdoor_temp
+            since = (previous.when - t_zero).total_seconds() / 3600.0
+            # D2-07: the fourth column is elapsed time, and it is there to
+            # catch a drifting ROOM SENSOR. A sensor ageing at d °C/h adds
+            # d·t to every reading, which enters the regression twice — the
+            # rate gains a constant d, the ΔT column gains a ramp d·t — and
+            # the identity
+            #     rate = -(UA/C)·Δ + Q/C + (G/C + d) + (UA/C)·d·t
+            # shows the ramp has nowhere to go in a three-column fit but
+            # into UA. Estimating d as a nuisance parameter costs one degree
+            # of freedom and leaves UA alone. On an undrifting sensor the
+            # column fits zero, so this is inert where there is nothing to
+            # correct.
+            rows.append([-delta, previous.power_kw, 1.0, since])
+            targets.append(rate)
+            row_dts.append(dt_h)
+
+        if len(rows) < 5:
+            return SysIdResult(completed=False, reason="not enough usable intervals")
+
+        a = np.asarray(rows, dtype=float)
+        b = np.asarray(targets, dtype=float)
+        dts = np.asarray(row_dts, dtype=float)
+        # Centre the drift column: uncentred it is strongly correlated with
+        # the intercept, and the ΔT/intercept pair is already the collinear
+        # one this fit has to survive. The centring is undone in the
+        # coefficient algebra below.
+        t_mean = float(np.mean(a[:, 3]))
+        a[:, 3] -= t_mean
+        gains_kw: float | None = None
+        drift_c_per_h: float | None = None
+        # The comfort constraint bounds the room's excursion, which keeps the
+        # ΔT column nearly constant — near-collinear with the intercept — so
+        # with realistic sensor noise the unregularized three-column fit is
+        # ill-conditioned: it either fails the outcome guards on almost every
+        # night (the feature silently dead) or the survivors carry a
+        # selection-biased UA (v4.0.5 review, measured ~+34%). A ridge pulls
+        # the intercept toward the CONFIGURED gains — a genuine prior, not
+        # zero — with weight equal to a quarter of the samples, so a night
+        # with real information still moves it and a noisy one cannot run.
+        prior_icpt = self.config.gains_prior_kw / max(
+            self.config.thermal_mass_prior, 0.1
+        )
+        # Bayesian weighting, calibrated by the data's own residual noise: a
+        # first unregularized pass measures the scatter s, and the prior
+        # then enters as ONE pseudo-observation whose uncertainty is a
+        # generous ±0.5 kW on the gains. Clean data (s → 0) out-weighs the
+        # prior and recovers the truth exactly; a noisy night leans on the
+        # prior instead of handing the collinear intercept the noise.
+        prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1)
+        n_cols = a.shape[1]
+        try:
+            pass1, _res1, rank1, _ = np.linalg.lstsq(a, b, rcond=None)
+            resid = b - a @ pass1
+            dof = max(len(rows) - n_cols, 1)
+            s_noise = float(np.sqrt(np.sum(resid**2) / dof))
+        except np.linalg.LinAlgError:
+            return SysIdResult(completed=False, reason="fit failed")
+        # --- D2-01: errors-in-variables correction -------------------------
+        # ``T_prev`` sits on BOTH sides of the regression -- in the rate
+        # (divided by dt) and in the delta column -- so sensor noise covaries
+        # the two and biases the UA/C slope UPWARD (the audit measured +44 %
+        # at 0.05 °C noise, +108 % at 0.10 °C, and biased fits cleared the
+        # 0.3 adoption gate). The noise variance is estimated from the room
+        # series itself and the KNOWN bias terms are subtracted from the
+        # normal equations: the delta column's own noise deflates X'X by
+        # n*sigma^2, and the rate/regressor noise covariance shifts X'y by
+        # sigma^2 * sum(1/dt). Clean data estimates sigma^2 ~ 0 and the
+        # correction vanishes; a window whose noise exceeds a third of the
+        # delta column's spread is refused outright -- there is no honest
+        # fit to be had there.
+        #
+        # sigma^2 from second differences WITHIN a phase only: the step->
+        # relax transition is a genuine kink in the signal (power drops to
+        # zero), and one boundary second difference would swamp a whole
+        # night of sensor noise.
+        #
+        # D2-07: the plant's OWN curvature is removed first. A second
+        # difference of a smooth exponential is h^2*T'', not zero, and
+        # within a phase Q is constant so T'' = -(UA/C)*T' -- a quantity the
+        # first pass already estimated. Left in, that curvature is read as
+        # sensor noise: it triggered the errors-in-variables correction on
+        # perfectly clean data (measured: the noise-free UA null moved from
+        # +0.0000 to -0.0002) and, on a house whose response is genuinely
+        # curved, it is what the refusal gate would fire on.
+        k_hat = max(float(pass1[0]), 0.0)
+        sigma2 = 0.0
+        d2_all = []
+        for i in range(1, len(usable) - 1):
+            if usable[i - 1].phase == usable[i].phase == usable[i + 1].phase:
+                h_prev = (
+                    usable[i].when - usable[i - 1].when
+                ).total_seconds() / 3600.0
+                if h_prev <= 1e-6:
+                    continue
+                curvature = (
+                    -k_hat
+                    * h_prev
+                    * (usable[i + 1].room_temp - usable[i - 1].room_temp)
+                    / 2.0
+                )
+                d2_all.append(
+                    usable[i + 1].room_temp
+                    - 2.0 * usable[i].room_temp
+                    + usable[i - 1].room_temp
+                    - curvature
+                )
+        if len(d2_all) >= 3:
+            sigma2 = float(
+                np.sum(np.square(d2_all)) / (6.0 * len(d2_all))
+            )
+        n_rows = float(len(rows))
+        x1_spread2 = float(np.var(a[:, 0])) * n_rows / max(n_rows - 1.0, 1.0)
+        if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0:
+            return SysIdResult(
+                completed=False,
+                reason="sensor noise dominates the excursion",
+            )
+        # --- end correction; solve via normal equations ---------------------
+        # Column equilibration before the normal-equation solve: the columns
+        # live at wildly different scales (delta ~20, power ~10, constant 1,
+        # elapsed hours ~2), and an explicit Gram of that is needlessly
+        # ill-conditioned in float64. Normalising each column by its own
+        # norm keeps the solve honest; the correction and prior terms are
+        # applied in the SAME scaled units.
+        #
+        # D2-07: the data weight is GONE from this solve, because it only
+        # ever entered as a ratio against the prior's weight and cancels.
+        # v6.3.3 carried it explicitly as 1/max(s_noise, 1e-3) — and that
+        # floor is a bug with teeth: on a clean night s_noise is ~1e-15, the
+        # floor caps the data's weight at 1e3, and the prior it was supposed
+        # to out-weigh instead takes about a fifth of the near-collinear
+        # intercept direction. Measured on the audit's own null control, a
+        # noise-free window's UA went from +0.0000 to -1.58 %. Carrying the
+        # RATIO s_noise/prior_sd restores the documented intent — clean data
+        # out-weighs the prior and recovers the truth exactly — with no
+        # floor and no 1e9 to make the solve singular.
+        col_scale = np.maximum(
+            np.sqrt(np.mean(np.square(a), axis=0)), 1e-12
+        )
+        a_s = a / col_scale
+        gram = a_s.T @ a_s
+        rhs = a_s.T @ b
+        if sigma2 > 0.0:
+            gram[0, 0] -= n_rows * sigma2 / (col_scale[0] ** 2)
+            rhs[0] -= sigma2 * float(np.sum(1.0 / dts)) / col_scale[0]
+        # The prior enters as its own pseudo-observation, exactly as the
+        # stacked row did -- same algebra, normal-equation form, weighed
+        # against the data through prior_rel = prior_w / data_w.
+        #
+        # D2-07: the right-hand side term had one factor of col_scale[2] too
+        # many, which is not a scaling nicety -- it made the prior pull the
+        # intercept toward prior_icpt/col_scale[2], i.e. toward ZERO gains,
+        # the exact thing the comment above says it exists not to do. On the
+        # D7-01 harness's first-order positive control that alone moved the
+        # identified UA from -8.06 % to -16.21 %.
+        prior_rel = s_noise / prior_sd
+        gram[2, 2] += (prior_rel / col_scale[2]) ** 2
+        rhs[2] += (prior_rel / col_scale[2]) * prior_rel * prior_icpt
+        # The drift column's own shrinkage prior, mean zero. Its coefficient
+        # is (UA/C)·d, so the width in coefficient units is the configured
+        # drift width times the slope the first pass already found (clamped
+        # to the plausible time-constant band, because a wild first pass must
+        # shrink the drift harder, never less).
+        k_prior = float(np.clip(k_hat, 1.0 / 200.0, 1.0 / 0.1))
+        drift_sd = k_prior * max(
+            self.config.sensor_drift_prior_c_per_h, 1e-6
+        )
+        drift_rel = s_noise / drift_sd
+        gram[3, 3] += (drift_rel / col_scale[3]) ** 2
+        try:
+            solution = np.linalg.solve(gram, rhs)
+            rank = n_cols
+        except np.linalg.LinAlgError:
+            solution = None
+        if solution is not None:
+            # Undo the column scaling on the coefficients.
+            solution = solution / col_scale
+        if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:
+            # The constant cannot be separated (e.g. ΔT barely moved, so
+            # the delta column is itself nearly constant). Fall back to
+            # the two-column fit rather than discarding the experiment.
+            a = a[:, :2]
+            try:
+                solution, residuals, rank, _ = np.linalg.lstsq(
+                    a, b, rcond=None
+                )
+            except np.linalg.LinAlgError:
+                return SysIdResult(completed=False, reason="fit failed")
+            if rank < 2:
+                # Both regressors moved together, so they cannot be
+                # separated. This is exactly the ambiguity the experiment
+                # exists to break: the step was too small or too short.
+                return SysIdResult(
+                    completed=False,
+                    reason="step gave insufficient excitation",
+                )
+            gains_kw = None
+            drift_c_per_h = None
+
+        ua_over_c, one_over_c = float(solution[0]), float(solution[1])
+        if one_over_c <= 1e-6 or ua_over_c <= 1e-6:
+            return SysIdResult(completed=False, reason="fit gave implausible signs")
+
+        capacity = 1.0 / one_over_c
+        ua = ua_over_c * capacity
+        tau = 1.0 / ua_over_c
+        # #1410: the adopted parameter's own interval; the one-state model is
+        # linear, so the profile interval coincides with the linearized one.
+        ua_profile_halfwidth = _one_state_ua_halfwidth(
+            solution, gram, col_scale, s_noise, a
+        )
+        if solution.shape[0] >= 4:
+            # rate carries (UA/C)·d on the centred elapsed column, so the
+            # sensor's drift falls straight out of the ratio.
+            drift_c_per_h = float(solution[3]) / ua_over_c
+        if solution.shape[0] >= 3:
+            # The intercept holds G/C + d·(1 + (UA/C)·t̄) once the elapsed
+            # column is centred at t̄; the free heat is what is left of it
+            # after the sensor's own drift is taken back out.
+            gains_over_c = float(solution[2])
+            if drift_c_per_h is not None:
+                gains_over_c -= drift_c_per_h * (1.0 + ua_over_c * t_mean)
+            gains_kw = gains_over_c * capacity
+            # Sanity bound: a hair of negative gains is regression noise and
+            # clips to zero; far outside the band means the "constant" was a
+            # drifting contaminant (sun through a window, a door), and a fit
+            # whose intercept is absorbing an unmodelled input has no claim
+            # on the other two coefficients either.
+            if not (-0.5 <= gains_kw <= 2.0):
+                # Rejecting, not clipping: a triple whose intercept was
+                # clipped no longer satisfies the regression it came from,
+                # so UA and C would carry the unclipped intercept's bias.
+                return SysIdResult(
+                    completed=False,
+                    reason="fitted gains outside plausible bounds",
+                )
+            gains_kw = float(np.clip(gains_kw, 0.0, 2.0))
+
+        # Confidence from how well the fit explains the data, tempered by how
+        # much data there was.
+        predicted = a @ solution
+        ss_res = float(np.sum((b - predicted) ** 2))
+        ss_tot = float(np.sum((b - np.mean(b)) ** 2))
+        r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
+        confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 12.0)
+        # The intercept's identifiability scales with how far ΔT actually
+        # moved; R² cannot see that (a flat fit explains flat data well), so
+        # the blend weight is tempered by the achieved excursion directly.
+        # D7-02: normalised by the default comfort allowance, not by a
+        # literal 2 °C — the comfort constraint caps the excursion at
+        # max_excursion_c (0.8 by default), so the old /2 divisor held every
+        # legal experiment at or below 0.4 here, and together with the /20
+        # row cap it kept the default protocol's confidence under the 0.3
+        # adoption gate on every install: the experiment could never be
+        # adopted at all (inert on target houses). Against the design
+        # reference, a protocol-maximal excursion earns 1.0 — and, unlike
+        # the configured bound v6.3.3 divided by, it stays monotone: an
+        # install that widens its allowance cannot score lower for the same
+        # room movement (see DEFAULT_MAX_EXCURSION_C).
+        #
+        # D2-07: measured on the room's REAL movement. A drifting sensor
+        # inflates the ΔT range with its own ramp, and crediting that as
+        # identifiability is how a 0.10 °C/h drift came to be adopted at
+        # confidence 1.000.
+        deltas = -a[:, 0]
+        if drift_c_per_h is not None and a.shape[1] >= 4:
+            deltas = deltas - drift_c_per_h * a[:, 3]
+        excursion = float(np.max(deltas) - np.min(deltas)) if len(deltas) else 0.0
+        confidence *= float(np.clip(
+            excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0
+        ))
+        # D2-03: the correction above is a SHRINKAGE estimate, and its ridge
+        # (sensor_drift_prior_c_per_h) pulls the fitted drift short of a real
+        # ramp once 0.02 °C of sensor noise is present -- measured: the
+        # fitted drift is exact under the noiseless identity, and the design
+        # is near-singular (cond ~ 2e5) precisely because the drift column
+        # is carried in the ΔT column. So `excursion` is part plant and part
+        # uncorrected drift, and the audit adopted that drifted minority at
+        # median UA bias 0.281 (max 0.316) against a 0.026 no-drift cell
+        # (round-5 D2 harness: drift010_30min vs white002_30min, 30 seeds).
+        # A window cannot separate the two when the fitted drift's own span
+        # is a large share of the movement it is credited with, so the blend
+        # weight is tempered by that share: a window the drift could have
+        # produced is not adopted on the confidence its R² and row count
+        # alone suggest. The settle cross-check below (R3-D2-03) tests the
+        # same class, but its precondition -- a fitted drift below the prior
+        # -- selects the honest fits and skips the biased ones, so it cannot
+        # discharge this on its own (D2-14).
+        if drift_c_per_h is not None and a.shape[1] >= 4 and excursion > 1e-9:
+            t_span = float(np.max(a[:, 3]) - np.min(a[:, 3]))
+            drift_span = abs(float(drift_c_per_h)) * t_span
+            confidence *= float(np.clip(
+                (excursion - drift_span) / excursion, 0.0, 1.0
+            ))
+        # D2-01's gate half: a fit is only as trustworthy as its residual
+        # noise is small against the signal it claims to explain. The rate
+        # signal here is the spread of the target column; the audit showed
+        # biased fits sailing through a pure-R² gate because a noisy window
+        # can still look self-consistent. SNR ≥ 4 earns full weight; SNR ≤ 1
+        # earns none (the EIV-corrected estimator keeps such windows honest,
+        # but they still carry little information).
+        signal_spread = float(np.percentile(b, 90) - np.percentile(b, 10))
+        snr = signal_spread / max(s_noise, 1e-9)
+        confidence *= float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+
+        if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
+            return SysIdResult(
+                completed=False, reason="fitted parameters outside plausible bounds"
+            )
+
+        # R3-D2-03: the drift ridge shrinks d to ~0 at 0.02 °C of noise,
+        # below a typical sensor's quantisation, and the ΔT column then
+        # carries the ramp into UA. Rate residuals of that biased house
+        # look clean. The tell is a settle long enough to have a
+        # (Q+G)/ΔT instantaneous UA, disagreeing with the fit. A
+        # two-row settle (the existing noise-free unbiasedness plant)
+        # is skipped — that window never had the comparison.
+        if (
+            drift_c_per_h is not None
+            and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h
+            and gains_kw is not None
+        ):
+            settle = [s for s in usable if s.phase == PHASE_SETTLING]
+            if len(settle) >= 3:
+                last = settle[-1]
+                den = last.room_temp - last.outdoor_temp
+                if abs(den) > 1e-6:
+                    ua_ss = (last.power_kw + gains_kw) / den
+                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:
+                        return SysIdResult(
+                            completed=False,
+                            reason="sensor drift collapsed into heat-loss",
+                        )
+
+        return SysIdResult(
+            completed=True,
+            time_constant_hours=tau,
+            heat_loss_kw_per_c=ua,
+            thermal_mass_kwh_per_c=capacity,
+            internal_gains_kw=gains_kw,
+            sensor_drift_c_per_h=drift_c_per_h,
+            ua_profile_halfwidth=ua_profile_halfwidth,
+            confidence=confidence,
+            reason="ok",
+        )
+
+    def identify_slab(self) -> SysIdResult:
+        """Fit the two-state plant the optimizer simulates (#942's wave).
+
+        This is the fit that runs where the arm-time identifiability gate
+        passed on a declared plant (see :meth:`_finish`): a candidate
+        ``ThermalModel`` is rolled forward over the recorded thermal power
+        (:func:`_simulate_slab_path`) and UA, the room capacity and the
+        free heat are fitted by simulation-error least squares, with the
+        slab pair TRUSTED from the declared plant — the ratified arm
+        (#942 comment 5659441129: config-trusted today; the C_s/k_s split
+        is structurally unidentifiable and is not this act's work).
+
+        The D2-01 intercept ridge, ported: the comfort bound keeps the
+        excursion — and so ΔT — within ~2 % of its mean, which leaves UA
+        and G collinear; the unridged two-state fit is noise-wrecked at
+        any σ (pre-study, comment 5656402482: −91/+112 % UA-bias p5/p95
+        at σ=0.01 on the nightly window). ONE pseudo-observation
+        ``(G − gains_prior_kw) / SLAB_INTERCEPT_PRIOR_SD_KW`` appended to
+        the residual vector holds the intercept to its configured prior
+        and lands the band at single digits (−6.7/+4.2 % ported).
+
+        Deliberately absent, until the wave rebuilds them for the
+        nonlinear form: the one-state program's D2-01 errors-in-variables
+        correction, D2-07 drift column and R3-D2-03 settle cross-check.
+        The outcome guards and the confidence ingredients mirror
+        :meth:`identify` (R², sample count, achieved excursion, residual
+        SNR) so the confidence surface is the same surface; adoption is
+        decided separately, by the fitted UA's own profile-likelihood
+        interval (#1410): ``_slab_outcome`` publishes
+        ``ua_profile_halfwidth`` and the coordinator refuses any fit whose
+        interval admits more than ±10 % error, so a window that noisy is
+        refused by name rather than discounted, whatever its confidence.
+
+        Reports the lumped equivalents a one-state consumer expects: UA
+        (room-side), total capacity ``C_r + C_s`` and its time constant;
+        no sensor-drift figure exists in this form. The slab mode's own
+        time constant re-derives from the fitted capacity against the
+        config pair and is published as ``slab_mode_tau_hours`` — the
+        quantity the #996 config-class decision prices, never an adopted
+        constant.
+        """
+        self._slab_fit_used = True
+        if self._slab_pair is None or self._slab_prior is None:
+            # Called without an arm-time plant (a harness replaying samples
+            # directly): the one-state regression is what the pre-wave tree
+            # ran on that path, and it stays what runs there. This is the other
+            # harness-only route to ``identify()`` (#1395): production cannot
+            # arrive without a plant, so neither branch is a production path.
+            self._slab_fit_used = False
+            return self.identify()
+        usable = [
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+        ]
+        if len(usable) < 6:
+            return SysIdResult(completed=False, reason="not enough samples")
+        series = _slab_series(usable)
+        if series is None:
+            return SysIdResult(
+                completed=False, reason="not enough usable intervals"
+            )
+        rooms, outdoors, powers, dts = series
+        slab_mass, slab_transfer = self._slab_pair
+        ua0, cr0 = self._slab_prior
+        if bool(np.any((dts <= 1e-3) | (dts > 2.0))):
+            # A cadence gap breaks the rollout's state chain, and the answer
+            # is NOT the one-state regression: the arm was granted on a
+            # DECLARED two-state plant (see _finish), so identify() fits the
+            # model class this experiment exists to replace. #1329 made this
+            # fallback REACHABLE by admitting the arm on slow-slab plants and
+            # guarded it with the #991 predicate, on the premise that where
+            # the predicate passes the one-state regression "can read the
+            # plant". The audit measured that premise false (#1330): on the
+            # heavy_old preset the predicate passes at k_s x100, and the
+            # fallback then ADOPTS a one-state fit of the two-state plant at
+            # confidence 0.436 and +7.29 % UA bias (round-5 D7 harness,
+            # RESULT gap_settle_bias_heavy_old) -- the one-state regression
+            # is the model class the arm was declared against, so the
+            # substitution, not the gap, is the error. The predicate check
+            # stays FIRST, because its naming is right for the slow-slab
+            # plants it refuses and the #942 protection must survive
+            # verbatim; the path it admits
+            # is refused BY NAME instead, with a reason about the slab mode
+            # that caused it rather than about excitation.
+            self._slab_fit_used = False
+            one_state_ok, one_state_why = slab_mode_one_state_identifiability(
+                float(cr0), float(slab_mass), float(slab_transfer), self.config
+            )
+            if not one_state_ok:
+                return SysIdResult(completed=False, reason=one_state_why)
+            return SysIdResult(
+                completed=False,
+                reason=(
+                    "cadence gap breaks the two-state rollout on a declared "
+                    "plant; the one-state regression is not the model that "
+                    "was armed for"
+                ),
+            )
+        error = _path_error(
+            rooms, outdoors, powers, dts, (slab_mass, slab_transfer),
+            self._two_zone_plant,
+        )
+        residual = _ridged(error, self.config.gains_prior_kw)
+        prior_g = self.config.gains_prior_kw
+
+        # Multi-start over the room-capacity decade: the cost surface has a
+        # competing local minimum along C_r (measured while porting: a 3x
+        # seed parked at −61 % UA noise-free where the true basin sits at
+        # 0), and the declared plant's figures seed only one point of it.
+        best_x: np.ndarray | None = None
+        best_cost = float("inf")
+        for mult in (1.0 / 3.0, 1.0, 3.0):
+            x0 = np.array(
+                [
+                    np.log(max(ua0, 1e-3)),
+                    np.log(max(cr0 * mult, 1e-2)),
+                    prior_g,
+                ]
+            )
+            x, cost = _lm_solve(residual, x0)
+            if cost < best_cost:
+                best_x, best_cost = x, cost
+        if best_x is None or not bool(np.all(np.isfinite(best_x))):
+            return SysIdResult(completed=False, reason="fit failed")
+        return self._slab_outcome(best_x, rooms, error, slab_mass, slab_transfer)
+
+    def _slab_outcome(
+        self,
+        best_x: np.ndarray,
+        rooms: np.ndarray,
+        path_error: _PathError,
+        slab_mass: float,
+        slab_transfer: float,
+    ) -> SysIdResult:
+        """Guard and package the converged two-state fit (the wave's act 2).
+
+        Two things happen between the solver and the result: the fitted
+        UA's own profile-likelihood interval is computed and published (the
+        #1410 adoption gate, superseding the #942 residual-scatter
+        precondition), and the tau_fast re-derivation.
+        """
+        ua = float(np.exp(best_x[0]))
+        room_cap = float(np.exp(best_x[1]))
+        gains_kw = float(best_x[2])
+        refusal = _slab_refusal(ua, room_cap, gains_kw, slab_mass)
+        if refusal is not None:
+            return refusal
+        gains_kw = float(np.clip(gains_kw, 0.0, 2.0))
+        capacity = room_cap + slab_mass
+        error = path_error(np.array([best_x[0], best_x[1], gains_kw]))
+        # The adopted parameter's own uncertainty (#1410): the 95 %
+        # profile-likelihood interval on UA is computed here and published
+        # on the result, and the coordinator refuses adoption on it. A
+        # clean residual is exactly what a prior-dominated, useless fit
+        # looks like, so the interval — not the residual scatter — is the
+        # quantity the gate bounds.
+        profile_halfwidth = _slab_ua_profile_halfwidth(
+            best_x, path_error, int(rooms.size), self.config.gains_prior_kw
+        )
+        # ... and the interval the intercept prior itself contributes (round-7
+        # D7-01, #1459): the profile term above holds prior_g FIXED, so on the
+        # collinear windows this experiment produces it reports ~1e-4 while
+        # one prior-width moves UA by ~2.3 %, and only the pair of them is
+        # what the adoption gate may read.
+        prior_halfwidth = _slab_ua_prior_halfwidth(
+            best_x, path_error, self.config.gains_prior_kw
+        )
+        # tau_fast re-derives from the fit. The split itself is never
+        # adopted — see SysIdResult.slab_mode_tau_hours and the #996
+        # decision it points at.
+        return SysIdResult(
+            completed=True,
+            time_constant_hours=capacity / ua,
+            heat_loss_kw_per_c=ua,
+            thermal_mass_kwh_per_c=capacity,
+            internal_gains_kw=gains_kw,
+            sensor_drift_c_per_h=None,
+            slab_mode_tau_hours=slab_mode_tau_fast(
+                room_cap, slab_mass, slab_transfer
+            ),
+            ua_profile_halfwidth=profile_halfwidth,
+            ua_prior_halfwidth=prior_halfwidth,
+            confidence=_slab_confidence(rooms, error),
+            reason="ok",
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "phase": self.phase,
+            "active": self.active,
+            "samples": len(self.samples),
+            "last_run": self.last_run.isoformat() if self.last_run else None,
+            "result": self.result.as_dict(),
+        }

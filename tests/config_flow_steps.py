@@ -1,0 +1,6995 @@
+"""The config flows, walked end to end with real validation (#194).
+
+    PYTHONPATH=tests/hastub python tests/config_flow_steps.py
+    PYTHONPATH=tests/hastub python tests/config_flow_steps.py --self-check
+
+    What this catches that nothing else in the suite does (issue #194, tranche
+    1): the nine-step initial flow had its screens fingerprinted by
+``tests/golden.py`` and its first three steps probed one at a time by
+``tests/entities.py`` (user, temperature, building_describe -- the token
+verdict stubbed to "ok" wherever it mattered), but no test ever submitted
+an answer past the questionnaire: ``building_extras``, ``thermal``,
+``zones``, ``dhw`` and ``weather_sensitivity`` were never submitted to
+anywhere in the suite, no initial flow was ever walked to
+``create_entry``, and the token verdict branches (``invalid_tibber_token``,
+``cannot_connect``) were never asserted through the flow at all.  A step
+whose handler stopped calling the next one, a validator that stopped
+firing, the accumulated ``_data`` losing a page's answers on the way to
+``create_entry`` -- all of it would have shipped green.
+
+This driver walks both paths through the flow, questionnaire and expert,
+
+    user -> user_sensors -> finish_setup (menu)
+      -> quick_setup -> device_prefill -> finish_setup (menu)
+      -> finish_now -> setup_overview -> create_entry
+      -> temperature -> building (menu)
+        -> building_describe -> building_extras -> dhw -> weather_sensitivity
+        -> thermal -> zones -> dhw -> weather_sensitivity
+      -> setup_overview -> create_entry
+
+and one optional page off the second screen (#1067 W1067-POST1): with the
+pre-fill offer switched on and a heat-pump device in the registry,
+
+    user_sensors -> device_prefill -> finish_setup (menu)
+
+asserting at every hop the next step_id and the data accumulated so far,
+then probes each step's INVALID inputs through the validation code that
+really runs (``comfort_band.errors``, ``_power_errors``, the DHW window
+grammar), and drives the two credential behaviours end to end -- the
+duplicate-entry abort and the reauth round trip -- through the fake Tibber
+session seam the round-2 D10-B harness used: the REAL
+``validate_tibber_token`` runs to its verdict against scripted HTTP
+responses, so the branches pinned are the production ones, not a stub's.
+
+Tranche 2 (this file's second half) drives the other two flows:
+
+* the fifteen-step OPTIONS flow (``init``/``advanced`` menus,
+  ``setup_overview``, ``entities``, ``comfort``, ``hot_water``,
+  ``building``, ``thermal_model``, ``tuning``, ``heat_curve``,
+  ``building_preset``, ``grid``, ``solar_pv``, ``away``, ``learning``):
+  every page submitted through the handler that really runs, its save
+  persisted through ``async_update_entry`` (``AFTER_SAVE_MENU``, the
+  stay-in-the-dialog default) or merged into one ``create_entry``
+  (``AFTER_SAVE_CLOSE``), the after-save return routed to the menu the
+  page came from, every per-page validation error, and the
+  clearing-an-entity-selector-None write-backs -- including that the
+  entities page nulls only its own roster (the PV/away/external-heat
+  wipe this handler once shipped).
+* the RECONFIGURE flow end to end through the real
+  ``validate_tibber_token``: ``tests/entities.py`` drives it with the
+  verdict stubbed to accept-anything, so the refused-token and
+  unreachable branches, and the whole round trip against scripted HTTP,
+  had never run.
+
+``--self-check`` is the mutation-proof mode (tests/README.md): it breaks
+the duplicate guard, the token probe, the options grid month validation,
+the reconfigure guard's own-identity exemption and the grid page's
+peak-hours grammar in-memory, one at a time, and fails unless the checks
+that are supposed to catch each breakage really fail.  Normal mode must
+pass on an unmodified tree; the self-check must fail on the broken one.
+
+Expected (tolerance 0): every RESULT line reads full coverage --
+``flow_checks_covered=<checks>`` with no failures, every step
+``happy=P/P error_branches=P/P``, ``options_steps_covered=25/25``,
+``reauth_round_trips=1``, ``reconfigure_round_trips=1``,
+``duplicate_aborts=1``.  Baseline measured: 87645f8, re-verified
+identical at 6d83f0b (tranche 1; ``config_flow.py`` byte-identical
+between the two), extended at 9ab836e (tranche 2, the merge base, whose
+``config_flow.py`` carries the #307 reconfigure flow), MacBookAir10,1;
+every number here is a count, immune to box load.
+"""
+from __future__ import annotations
+
+import os
+
+# The thread pin, before anything that could import numpy. Copied from
+# tests/stress.py; without it a threaded BLAS inflates process CPU time by
+# the thread factor, and the audit harness contract measures that ratio.
+for _var in (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+):
+    os.environ.setdefault(_var, "1")
+
+import ast  # noqa: E402
+import asyncio  # noqa: E402
+import json  # noqa: E402
+import logging  # noqa: E402
+import pathlib  # noqa: E402
+import sys  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "custom_components",
+    ),
+)
+
+import voluptuous as vol  # noqa: E402
+
+from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
+
+# The capture itself, imported rather than re-implemented: a fingerprint
+# copied into this file would pin this file's opinion of the golden, not the
+# golden (#516, and ``tests/README.md`` on tests that re-implement).
+from golden import (  # noqa: E402
+    _nested_schema,
+    _presented_fields,
+    nest_flat,
+    schema_fingerprint,
+)
+
+from heatpump_optimizer import config_flow, const, quick_setup, topology  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL,
+    FREQ_MODE_OBSERVE,
+)
+from heatpump_optimizer.presets import (  # noqa: E402
+    EMITTER_FLOOR,
+    EMITTER_RADIATORS,
+    ERA_1980_2005,
+    FOUNDATION_NONE,
+    STRUCTURE_TIMBER_SLAB,
+)
+from homeassistant.data_entry_flow import AbortFlow, section  # noqa: E402
+from homeassistant.helpers import selector  # noqa: E402
+
+import nightly_ha as _nightly  # noqa: E402
+
+R = Results("Initial config flow, walked end to end")
+
+# The first-screen answers both walks start from. Three required fields and
+# one identity-bearing optional one, so the duplicate section has a real
+# plant identity to collide on.
+FIRST_SCREEN = {
+    "name": "Heat Pump Optimizer",
+    const.CONF_TIBBER_TOKEN: "tok-a",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+}
+USER_SENSORS = {
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+}
+FULL_FIRST_SCREEN = {**FIRST_SCREEN, **USER_SENSORS}
+
+# Valid answers for every form step, at the defaults the forms themselves
+# pre-fill. One dict per step so a probe can override a single field and
+# still submit an otherwise-valid page.
+TEMPERATURE_ANSWERS = {
+    const.CONF_TARGET_TEMP: 21.0,
+    const.CONF_MIN_TEMP: 19.0,
+    const.CONF_MAX_TEMP: 23.0,
+    const.CONF_COMFORT_TEMP_DAY: 21.0,
+    const.CONF_COMFORT_TEMP_NIGHT: 19.5,
+    const.CONF_DAY_START_HOUR: 7,
+    const.CONF_DAY_END_HOUR: 22,
+}
+QUESTIONNAIRE_ANSWERS = {
+    const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+    const.CONF_BUILDING_ERA: ERA_1980_2005,
+    const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+    const.CONF_HEATED_AREA: 140.0,
+    const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+    const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+}
+EXTRAS_ANSWERS = {
+    const.CONF_HEAT_PUMP_COP_NOMINAL: 3.5,
+    const.CONF_HEAT_PUMP_MAX_POWER: 5.0,
+    const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+}
+THERMAL_ANSWERS = {
+    const.CONF_HOUSE_THERMAL_MASS: 10.0,
+    const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.15,
+    const.CONF_SLAB_THERMAL_MASS: 5.0,
+    const.CONF_SLAB_HEAT_TRANSFER: 0.8,
+    const.CONF_HEAT_PUMP_COP_NOMINAL: 3.5,
+    const.CONF_HEAT_PUMP_MAX_POWER: 5.0,
+    const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+    const.CONF_OPTIMIZATION_INTERVAL: 30,
+    const.CONF_PRICE_WEIGHT: 1.0,
+    const.CONF_COMFORT_WEIGHT: 5.0,
+}
+ZONES_ANSWERS = {
+    const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+    const.CONF_LOWER_FLOOR_THERMAL_MASS: 3.0,
+    const.CONF_INTER_ZONE_TRANSFER: 0.1,
+}
+# The legionella pair is deliberately a warning case: 60 °C cycle over a
+# 52 °C charge limit is legitimate and must PROCEED, with the warning in
+# the log -- that is a real branch of the dhw handler, counted in the
+# ledger like the errors beside it.
+DHW_ANSWERS = {
+    const.CONF_DHW_TANK_VOLUME: 200.0,
+    const.CONF_DHW_SETPOINT: 52.0,
+    const.CONF_DHW_MIN_TEMP: 42.0,
+    const.CONF_DHW_DAILY_CONSUMPTION: 200.0,
+    const.CONF_DHW_COOLING_RATE: 0.2,
+    const.CONF_DHW_SCHEDULE_ENABLED: True,
+    const.CONF_DHW_WINDOWS: "weekdays 06:00-08:30",
+    const.CONF_DHW_IDLE_MIN_TEMP: 20.0,
+    const.CONF_DHW_LEGIONELLA_ENABLED: True,
+    const.CONF_DHW_LEGIONELLA_TEMP: 60.0,
+    const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 14,
+}
+HOT_WATER_PAGE_ANSWERS = {
+    k: v
+    for k, v in DHW_ANSWERS.items()
+    if k
+    in (
+        const.CONF_DHW_SCHEDULE_ENABLED,
+        const.CONF_DHW_WINDOWS,
+        const.CONF_DHW_MIN_TEMP,
+        const.CONF_DHW_IDLE_MIN_TEMP,
+        const.CONF_DHW_SETPOINT,
+        const.CONF_DHW_LEGIONELLA_ENABLED,
+        const.CONF_DHW_LEGIONELLA_TEMP,
+        const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+    )
+}
+HOT_WATER_TANK_ANSWERS = {
+    k: v
+    for k, v in DHW_ANSWERS.items()
+    if k
+    in (
+        const.CONF_DHW_TANK_VOLUME,
+        const.CONF_DHW_DAILY_CONSUMPTION,
+        const.CONF_DHW_COOLING_RATE,
+    )
+}
+WEATHER_ANSWERS = {
+    const.CONF_WIND_SENSITIVITY: 0.03,
+    const.CONF_RAIN_HEAT_LOSS_MULTIPLIER: 1.15,
+}
+
+# Valid answers for the fifteen options pages, at the shape each handler
+# reads. One dict per page: a page probe overrides one field and submits
+# an otherwise-valid page, the same discipline as the initial-flow walks.
+COMFORT_PAGE_ANSWERS = {
+    **TEMPERATURE_ANSWERS,
+    const.CONF_MOLD_GUARD_ENABLED: True,
+    const.CONF_THERMAL_BRIDGE_FRSI: 0.7,
+    const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.living_humidity",
+}
+TUNING_ANSWERS = {
+    const.CONF_PRICE_WEIGHT: 2.0,
+    const.CONF_COMFORT_WEIGHT: 8.0,
+    const.CONF_OPTIMIZATION_INTERVAL: 45,
+    const.CONF_CYCLING_COST: 0.35,
+    const.CONF_PRICE_RISK_LAMBDA: 0.4,
+    const.CONF_CONFIDENCE_MARGINS_ENABLED: True,
+    const.CONF_COMPRESSOR_REPLACEMENT_COST: 25000,
+    const.CONF_COMPRESSOR_RATED_STARTS: 300000,
+    const.CONF_WEAR_AUTOTUNE_ENABLED: True,
+    const.CONF_PRICE_TILES_ENABLED: True,
+}
+# The peak-hours field is validated and consumed through ONE grammar. The
+# options page checks it with ``is_valid_spec`` (config_flow.py:2658), bound
+# from ``.dhw_schedule`` and not from ``grid_fee``; that function is
+# ``parse_windows`` succeeding, which is exactly the predicate the
+# coordinator's ``_tariff_hours`` applies to the stored value. So the
+# documented form "07:00-19:00" both saves and takes effect.
+#
+# #327 reported the opposite -- the page validating this field with the
+# grid-fee RULES grammar, leaving every non-empty value unsavable or
+# silently ignored. Driven end to end through ``async_step_grid`` and back
+# through ``_tariff_hours``, that did not reproduce in either direction, at
+# the reported 9ab836e or at main; the issue is closed as not-reproducing.
+# The likely misread is the module import of ``grid_fee`` sitting three
+# lines above the ``.dhw_schedule`` one.
+#
+# The agreement is now pinned rather than assumed. Neither check keyed on
+# the answers below would notice the validator being repointed at the
+# grid-fee grammar (``grid_fee.spec_problem``): this happy page carries the
+# default empty spec, and the error probe uses "garbage", which no grammar accepts. The
+# documented-form check in ``options_error_branches`` is the one that dies,
+# and it is what #327's false report bought.
+GRID_ANSWERS = {
+    const.CONF_PEAK_TARIFF_ENABLED: True,
+    const.CONF_PEAK_TARIFF_PRICE: 60.0,
+    const.CONF_PEAK_TARIFF_COUNT: 3,
+    const.CONF_PEAK_TARIFF_WINDOW: "60",
+    const.CONF_PEAK_TARIFF_MONTHS: "nov-feb",
+    const.CONF_PEAK_TARIFF_HOURS: "",
+    const.CONF_PEAK_TARIFF_WEEKDAYS_ONLY: False,
+    const.CONF_PEAK_TARIFF_OFFPEAK_FACTOR: 0.5,
+    const.CONF_MAIN_FUSE_A: 16,
+    const.CONF_MAIN_FUSE_PHASES: 3,
+    const.CONF_FUSE_GUARD_ENABLED: True,
+    const.CONF_PEAK_GUARD_ENABLED: True,
+    const.CONF_PEAK_GUARD_MARGIN_KW: 1.0,
+    const.CONF_GRID_FEE_MODE: config_flow.grid_fee.MODE_RULES,
+    const.CONF_GRID_FEE_FIXED: 0.15,
+    const.CONF_GRID_FEE_RULES: "06:00-08:00 = 0.5",
+    const.CONF_CONTRACT_FIXED_PRICE: 0.9,
+}
+GRID_PEAK_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("peak_") or k == const.CONF_PEAK_TARIFF_ENABLED
+}
+GRID_CONNECTION_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("main_fuse") or k.startswith("fuse_guard") or k.startswith("peak_guard")
+}
+GRID_FEES_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("grid_fee") or k == const.CONF_CONTRACT_FIXED_PRICE
+}
+BUILDING_PAGE_ANSWERS = {
+    const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_NONE,
+    const.CONF_MIXING_VALVE_TARGET: 0.0,
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_INDOOR,
+    const.CONF_BUFFER_TANK_VOLUME: 250.0,
+    const.CONF_BUFFER_MAX_TEMP: 70.0,
+    const.CONF_WOOD_FURNACE_ENABLED: False,
+    const.CONF_WOOD_TANK_VOLUME: 600.0,
+    const.CONF_DHW_WOOD_COIL_ENABLED: True,
+}
+SOLAR_ANSWERS = {
+    const.CONF_PV_ENABLED: True,
+    const.CONF_PV_PEAK_KW: 8.5,
+    const.CONF_PV_EFFICIENCY: 0.9,
+    const.CONF_PV_EXPORT_PRICE: 0.45,
+    const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
+}
+AWAY_ANSWERS = {
+    const.CONF_AWAY_PRESENCE_ENTITY: "person.home",
+    const.CONF_AWAY_TEMPERATURE: 17.0,
+    const.CONF_AWAY_DHW_MIN_TEMP: 45.0,
+}
+LEARNING_ANSWERS = {
+    const.CONF_STALENESS_ENABLED: True,
+    const.CONF_STALENESS_SCALE: 2.0,
+    const.CONF_COMFORT_LEARNING_ENABLED: True,
+    const.CONF_SYSID_ENABLED: True,
+    const.CONF_PRICE_PRIOR_ENABLED: True,
+    const.CONF_OUTAGE_RECOVERY_ENABLED: True,
+    const.CONF_OPEN_WINDOW_RELAX_ENABLED: True,
+    const.CONF_IMMERSION_FEEDBACK_ENABLED: True,
+    const.CONF_PRECIP_TYPE_ENABLED: True,
+    const.CONF_SNOW_ROOF_FACTOR_ENABLED: True,
+    const.CONF_CAPACITY_CURVE_ENABLED: True,
+    const.CONF_SOLAR_APERTURE_LEARNING_ENABLED: True,
+    const.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True,
+    const.CONF_CURVE_LEARNING_ENABLED: True,
+}
+HEAT_CURVE_ANSWERS = {
+    const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/set",
+    const.CONF_ECL110_COMMAND_TOPIC: "ecl/cmd",
+    const.CONF_ECL110_STATE_TOPIC: "ecl/state",
+    const.CONF_ECL110_QOS: 1,
+    const.CONF_ECL110_RETAIN: True,
+    const.CONF_ECL110_DISPLACE_MIN: -10.0,
+    const.CONF_ECL110_DISPLACE_MAX: 10.0,
+    const.CONF_ECL110_PID_TIME_CONSTANT: 1.5,
+}
+
+
+# ---------------------------------------------------------------------------
+# The Tibber session seam: the real validate_tibber_token, scripted HTTP.
+# Same shape as tools/audit/round2/D10/B/harness.py at 757e164, so what this pins is
+# the production verdict logic (401/403 vs errors payload vs connect
+# failure), not a stub's.
+# ---------------------------------------------------------------------------
+class FakeResponse:
+    def __init__(self, status, payload=None):
+        self.status = status
+        self._payload = payload
+
+    async def json(self):
+        return self._payload
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class FakeSession:
+    """A script of responses, one consumed per POST.
+
+    An entry that is an Exception is raised (connect failure); anything
+    else is returned as (status, json payload). When the script runs out,
+    the last entry repeats -- an ok-responder for the happy walks, so they
+    never depend on how many polls a page does.
+    """
+
+    def __init__(self, script):
+        self._script = list(script)
+        self.posts = 0
+
+    def post(self, *args, **kwargs):
+        self.posts += 1
+        index = min(self.posts - 1, len(self._script) - 1)
+        entry = self._script[index]
+        if isinstance(entry, Exception):
+            raise entry
+        status, payload = entry
+        return FakeResponse(status, payload)
+
+
+TIBBER_VIEWER_OK = (200, {"data": {"viewer": {"name": "Home"}}})
+
+
+def install_session(module, session):
+    """Point a production module's async_get_clientsession at the fake."""
+    real = getattr(module, "async_get_clientsession")
+    module.async_get_clientsession = lambda hass, verify_ssl=True: session
+    return real
+
+
+def fresh_flow(hass=None, data=None):
+    """A new initial flow on a new hass, optionally pre-seeded with data."""
+    flow = config_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = hass or FakeHass()
+    if data:
+        flow._data.update(data)
+    return flow
+
+
+async def submit(flow, step, answers):
+    """Run one step with answers; an AbortFlow comes back as HA renders it.
+
+    There is no flow manager in the stub, so the exception the real manager
+    converts into an abort result is caught here instead -- exactly what
+    tools/audit/round2/D10/B/harness.py (at 757e164) and tests/entities.py do.
+    """
+    try:
+        return await getattr(flow, f"async_step_{step}")(dict(answers))
+    except AbortFlow as err:
+        return {"type": "abort", "reason": err.reason}
+
+
+async def submit_first_screen(flow, creds, sensors=None):
+    """Credentials screen, then optional sensors (#198)."""
+    result = await submit(flow, "user", creds)
+    if shows(result, "user_sensors"):
+        result = await submit(flow, "user_sensors", sensors if sensors is not None else USER_SENSORS)
+    return result
+
+
+async def submit_reconfigure(flow, answers):
+    """Reconfigure through credentials and optional sensors."""
+    creds = {k: answers[k] for k in answers if k in FIRST_SCREEN}
+    sensors = {k: v for k, v in answers.items() if k not in FIRST_SCREEN}
+    result = await submit(flow, "reconfigure", creds)
+    if shows(result, "user_sensors"):
+        result = await submit(flow, "user_sensors", sensors)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# The coverage ledger: one row per step, happy checks and error branches.
+# ---------------------------------------------------------------------------
+class Ledger:
+    def __init__(self):
+        self.rows = {}
+
+    def record(self, step, kind, name, ok):
+        row = self.rows.setdefault(
+            step, {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0}
+        )
+        row[kind].append(name)
+        row[f"{kind}_ok"] += int(bool(ok))
+
+    def print_result_lines(self):
+        steps = {k: v for k, v in self.rows.items() if not k.startswith("_")}
+        total_ok = sum(r["happy_ok"] + r["error_ok"] for r in steps.values())
+        total = sum(len(r["happy"]) + len(r["error"]) for r in steps.values())
+        print(f"RESULT flow_checks_covered={total_ok}/{total} checks")
+        for step in (
+            "user",
+            "user_sensors",
+            "finish_setup",
+            "quick_setup",
+            "finish_now",
+            "temperature",
+            "building",
+            "building_describe",
+            "building_extras",
+            "thermal",
+            "zones",
+            "dhw",
+            "weather_sensitivity",
+            "setup_overview",
+            "reauth_confirm",
+        ):
+            row = steps.get(step)
+            row = self.rows.get(step, {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
+            happy = f"{row['happy_ok']}/{len(row['happy'])}"
+            errors = f"{row['error_ok']}/{len(row['error'])}"
+            print(f"RESULT step_{step} happy={happy} error_branches={errors}")
+        # Tranche 2 (#194): the fifteen options-flow steps. Each row is one
+        # of HeatPumpOptimizerOptionsFlow's step methods; the opt_ prefix
+        # keeps them apart from the initial-flow steps of the same name.
+        options_steps = (
+            "opt_init",
+            "opt_advanced",
+            "opt_setup_overview",
+            "opt_entities",
+            "opt_entities_metering",
+            "opt_entities_pump",
+            "opt_comfort",
+            "opt_hot_water",
+            "opt_hot_water_tank",
+            "opt_hot_water_pumps",
+            "opt_building",
+            "opt_thermal_model",
+            "opt_thermal_model_zones",
+            "opt_tuning",
+            "opt_heat_curve",
+            "opt_building_preset",
+            "opt_grid",
+            "opt_grid_connection",
+            "opt_grid_fees",
+            "opt_solar_pv",
+            "opt_away",
+            "opt_learning",
+            "opt_learning_features",
+            "opt_modbus_prefill",
+            "opt_quick_setup",
+        )
+        covered = 0
+        for step in options_steps:
+            row = self.rows.get(step, {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
+            happy = f"{row['happy_ok']}/{len(row['happy'])}"
+            errors = f"{row['error_ok']}/{len(row['error'])}"
+            print(f"RESULT step_{step} happy={happy} error_branches={errors}")
+            if row["happy"]:
+                covered += 1
+        print(f"RESULT options_steps_covered={covered}/{len(options_steps)} pages")
+        row = self.rows.get("reconfigure", {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
+        print(
+            f"RESULT step_reconfigure happy={row['happy_ok']}/{len(row['happy'])} "
+            f"error_branches={row['error_ok']}/{len(row['error'])}"
+        )
+        print(f"RESULT reauth_round_trips={self.rows.get('_reauth', 0)}")
+        print(f"RESULT reconfigure_round_trips={self.rows.get('_reconfigure', 0)}")
+        print(f"RESULT options_close_round_trips={self.rows.get('_options_close', 0)}")
+        print(f"RESULT duplicate_aborts={self.rows.get('_dup', 0)}")
+
+
+LEDGER = Ledger()
+
+
+def check(step, kind, name, condition, detail=""):
+    """One ledgered check: recorded per step, and pass/fail for the suite."""
+    LEDGER.record(step, kind, name, condition)
+    return R.check(name, condition, detail)
+
+
+def shows(result, step_id):
+    """The result is a form for this step (or a menu, for menu steps)."""
+    if result.get("type") == "menu":
+        return result.get("step_id") == step_id
+    return result.get("type") == "form" and result.get("step_id") == step_id
+
+
+FINISH_SETUP_OPTIONS = ("quick_setup", "temperature", "finish_now")
+
+
+def offers_finish_setup(result):
+    """Second-screen submit opened the continue-or-finish menu (UX E2)."""
+    return (
+        shows_menu(result, "finish_setup")
+        and tuple(result.get("menu_options", {})) == FINISH_SETUP_OPTIONS
+    )
+
+
+def overview_summary(flow):
+    """Production overview text for this flow's collected answers (UX E3)."""
+    return topology.render_text_summary(topology.describe_setup(flow._data))
+
+
+def shows_config_overview(result, flow):
+    """The result is the config-flow setup overview of this flow's data."""
+    return (
+        shows(result, "setup_overview")
+        and result.get("description_placeholders", {}).get("setup_summary")
+        == overview_summary(flow)
+    )
+
+
+def shows_menu(result, step_id):
+    """The result is an options-flow menu for this step."""
+    return result.get("type") == "menu" and result.get("step_id") == step_id
+
+
+# ---------------------------------------------------------------------------
+# user: the credential screen. Token verdicts through the real validate.
+# ---------------------------------------------------------------------------
+async def user_error_branches():
+    R.section("user: refused and unreachable tokens, required fields")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    # invalid_auth: Tibber answers 401. The user must be told the TOKEN is
+    # wrong, on the same screen, with nothing stored.
+    refused = fresh_flow()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [(401, None)]
+    )
+    result = await submit(refused, "user", FIRST_SCREEN)
+    check(
+        "user",
+        "error",
+        "a 401 re-shows the first screen with invalid_tibber_token",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "invalid_tibber_token",
+        str(result.get("errors")),
+    )
+    check(
+        "user",
+        "error",
+        "a refused token stores nothing",
+        not refused._data,
+        str(sorted(refused._data)),
+    )
+
+    # cannot_connect: the POST raises. A network failure must NOT call the
+    # token invalid -- that message sends the user to retype a correct
+    # token and fixes nothing.
+    unreachable = fresh_flow()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [OSError("router rebooting")]
+    )
+    result = await submit(unreachable, "user", FIRST_SCREEN)
+    check(
+        "user",
+        "error",
+        "a connect failure shows cannot_connect, not invalid_tibber_token",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "cannot_connect",
+        str(result.get("errors")),
+    )
+
+    # The fourth status class (#304): neither 200 nor 401/403. A server
+    # fault is the API failing, not the token being wrong, so it belongs
+    # with the transient failures -- calling it invalid_tibber_token would
+    # send the user off to replace a token that works.
+    server_fault = fresh_flow()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [(500, None)]
+    )
+    result = await submit(server_fault, "user", FIRST_SCREEN)
+    check(
+        "user",
+        "error",
+        "an HTTP 500 is cannot_connect, not invalid_tibber_token",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect",
+        str(result.get("errors")),
+    )
+    check(
+        "user",
+        "error",
+        "a server fault stores nothing",
+        not server_fault._data,
+        str(sorted(server_fault._data)),
+    )
+
+    # The errors payload Tibber answers a bad token with, on HTTP 200.
+    errors_payload = fresh_flow()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [(200, {"errors": [{"message": "bad token"}]})]
+    )
+    result = await submit(errors_payload, "user", FIRST_SCREEN)
+    check(
+        "user",
+        "error",
+        "an errors payload on HTTP 200 is an invalid token too",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "invalid_tibber_token",
+        str(result.get("errors")),
+    )
+
+    # Weather stays Required. The token is Optional in the schema: Tibber
+    # still needs one, but that is a handler error so an entity price
+    # source can skip it (#701).
+    form = await fresh_flow().async_step_user(None)
+    try:
+        form["data_schema"]({"name": "x", "weather_entity": "weather.home"})
+        token_schema_rejected = False
+    except vol.Invalid:
+        token_schema_rejected = True
+    try:
+        form["data_schema"]({"name": "x", "tibber_token": "t"})
+        weather_rejected = False
+    except vol.Invalid:
+        weather_rejected = True
+    check(
+        "user",
+        "error",
+        "the first-screen schema requires the weather entity, not the token",
+        (not token_schema_rejected) and weather_rejected,
+        f"token={token_schema_rejected} weather={weather_rejected}",
+    )
+    missing_token = await submit(
+        fresh_flow(),
+        "user",
+        {"name": "x", "weather_entity": "weather.home"},
+    )
+    check(
+        "user",
+        "error",
+        "Tibber without a token is tibber_token_required",
+        shows(missing_token, "user")
+        and missing_token.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "tibber_token_required",
+        str(missing_token.get("errors")),
+    )
+    missing_entity = await submit(
+        fresh_flow(),
+        "user",
+        {
+            "name": "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        },
+    )
+    check(
+        "user",
+        "error",
+        "an entity source without a price sensor is price_entity_required",
+        shows(missing_entity, "user")
+        and missing_entity.get("errors", {}).get(const.CONF_PRICE_ENTITY)
+        == "price_entity_required",
+        str(missing_entity.get("errors")),
+    )
+    entity_ok = await submit(
+        fresh_flow(),
+        "user",
+        {
+            "name": "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+        },
+    )
+    check(
+        "user",
+        "happy",
+        "an entity price source proceeds without a Tibber token",
+        entity_ok.get("type") == "form"
+        and entity_ok.get("step_id") == "user_sensors",
+        f"type={entity_ok.get('type')} step={entity_ok.get('step_id')}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# duplicate: same plant twice aborts, a second pump proceeds (null control).
+# ---------------------------------------------------------------------------
+async def duplicate_and_null_control():
+    R.section("user: the same plant twice, a second pump once")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    hass = FakeHass()
+
+    first = fresh_flow(hass)
+    result = await submit_first_screen(first, FIRST_SCREEN)
+    check(
+        "user",
+        "happy",
+        "a valid first screen offers finish-setup-now",
+        offers_finish_setup(result),
+        str(result)[:120],
+    )
+    check(
+        "user",
+        "happy",
+        "and carries the plant identity as the flow's unique id",
+        bool(first.unique_id),
+        repr(first.unique_id),
+    )
+
+    # What the flow manager does when that flow finishes: an entry holding
+    # the flow's unique id.
+    hass.config_entries.entries.append(
+        FakeEntry(data=dict(FULL_FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
+    )
+    duplicate = await submit_first_screen(fresh_flow(hass), FIRST_SCREEN)
+    dup_aborted = duplicate == {"type": "abort", "reason": "already_configured"}
+    check(
+        "user",
+        "error",
+        "the same answers a second time abort as already_configured",
+        dup_aborted,
+        str(duplicate)[:120],
+    )
+
+    # Null control: one different entity slot is a different plant -- a
+    # second heat pump must go through.
+    distinct = await submit_first_screen(
+        fresh_flow(hass),
+        FIRST_SCREEN,
+        {**USER_SENSORS, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
+    )
+    check(
+        "user",
+        "happy",
+        "a second heat pump on the same account proceeds (null control)",
+        offers_finish_setup(distinct),
+        str(distinct)[:120],
+    )
+
+    LEDGER.rows["_dup"] = int(dup_aborted)
+
+    # Nightly A8 (2026-09-12, run 34680074952) posted the stored flat
+    # identity onto the grouped user_sensors schema. Real HA validates
+    # async_configure before the step; vol.Invalid became InvalidData
+    # "not a valid option at indoor_temp_entity" and already_configured
+    # never ran. The nest is the payload the form actually accepts.
+    a8_flat = {
+        const.CONF_WEATHER_ENTITY: FIRST_SCREEN[const.CONF_WEATHER_ENTITY],
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+        const.CONF_HEAT_PUMP_SWITCH_ENTITY: USER_SENSORS[
+            const.CONF_HEAT_PUMP_SWITCH_ENTITY
+        ],
+    }
+    sensors_schema = vol.Schema(config_flow._user_sensors_sections(hass))
+    flat_invalid = False
+    try:
+        sensors_schema(a8_flat)
+    except (vol.Invalid, vol.MultipleInvalid):
+        flat_invalid = True
+    nested = _nightly.nest_user_sensors_input(
+        a8_flat, config_flow._USER_SENSORS_GROUPS
+    )
+    nested_ok = True
+    try:
+        sensors_schema(nested)
+    except (vol.Invalid, vol.MultipleInvalid):
+        nested_ok = False
+    lifted = config_flow._flatten_section_input(nested)
+    check(
+        "user",
+        "error",
+        "a flat identity payload is invalid on the grouped setup schema, the nested one is valid",
+        flat_invalid
+        and nested_ok
+        and const.CONF_WEATHER_ENTITY not in nested
+        and nested.get("indoor", {}).get(const.CONF_INDOOR_TEMP_ENTITY)
+        == "sensor.indoor"
+        and lifted.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.indoor"
+        and lifted.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY)
+        == USER_SENSORS[const.CONF_HEAT_PUMP_SWITCH_ENTITY],
+        f"flat_invalid={flat_invalid} nested_ok={nested_ok} nested={nested!r} "
+        f"lifted={lifted!r}",
+    )
+    nested_hass = FakeHass()
+    nested_first = fresh_flow(nested_hass)
+    nested_result = await submit_first_screen(
+        nested_first,
+        FIRST_SCREEN,
+        _nightly.nest_user_sensors_input(USER_SENSORS, config_flow._USER_SENSORS_GROUPS),
+    )
+    check(
+        "user",
+        "happy",
+        "a nested user_sensors submit still identifies the plant",
+        offers_finish_setup(nested_result)
+        and nested_first.unique_id == first.unique_id,
+        f"nested_uid={nested_first.unique_id!r} first_uid={first.unique_id!r} "
+        f"result={nested_result}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# The questionnaire walk: building_describe -> building_extras.
+# ---------------------------------------------------------------------------
+async def walk_questionnaire():
+    R.section("walk 1 (questionnaire): user through create_entry")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    flow = fresh_flow()
+
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "finish_setup",
+        "happy",
+        "the accepted first screen offers finish-setup-now",
+        offers_finish_setup(result)
+        and flow._data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
+        and flow._data.get(const.CONF_WEATHER_ENTITY) == "weather.home",
+        str(result.get("step_id")),
+    )
+    result = await flow.async_step_temperature(None)
+    check(
+        "temperature",
+        "happy",
+        "continuing setup lands on temperature",
+        shows(result, "temperature"),
+        str(result.get("step_id")),
+    )
+
+    result = await submit(flow, "temperature", TEMPERATURE_ANSWERS)
+    check(
+        "building",
+        "happy",
+        "a valid comfort band opens the building menu",
+        result.get("type") == "menu"
+        and result.get("step_id") == "building"
+        and set(result.get("menu_options", {})) == {"building_describe", "thermal"},
+        str(result)[:120],
+    )
+    check(
+        "temperature",
+        "happy",
+        "the band answers are accumulated",
+        flow._data.get(const.CONF_TARGET_TEMP) == 21.0
+        and flow._data.get(const.CONF_DAY_START_HOUR) == 7,
+        str({k: flow._data.get(k) for k in TEMPERATURE_ANSWERS}),
+    )
+
+    result = await submit(flow, "building_describe", QUESTIONNAIRE_ANSWERS)
+    check(
+        "building_describe",
+        "happy",
+        "the questionnaire proceeds to the heat pump extras",
+        shows(result, "building_extras"),
+        str(result.get("step_id")),
+    )
+    derived_present = [
+        key
+        for key in (
+            const.CONF_HOUSE_THERMAL_MASS,
+            const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+            const.CONF_SLAB_THERMAL_MASS,
+            const.CONF_SLAB_HEAT_TRANSFER,
+        )
+        if key in flow._data
+    ]
+    check(
+        "building_describe",
+        "happy",
+        "the answers are stored and the physics derived from them",
+        flow._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and len(derived_present) == 4,
+        f"derived {derived_present}",
+    )
+    check(
+        "building_describe",
+        "happy",
+        "a fresh questionnaire derives a single-zone model (no zone keys)",
+        const.CONF_UPPER_FLOOR_THERMAL_MASS not in flow._data
+        and const.CONF_LOWER_FLOOR_THERMAL_MASS not in flow._data,
+        str(
+            [
+                k
+                for k in (const.CONF_UPPER_FLOOR_THERMAL_MASS, const.CONF_LOWER_FLOOR_THERMAL_MASS)
+                if k in flow._data
+            ]
+        ),
+    )
+
+    result = await submit(flow, "building_extras", EXTRAS_ANSWERS)
+    check(
+        "building_extras",
+        "happy",
+        "the nameplate numbers proceed to hot water",
+        shows(result, "dhw"),
+        str(result.get("step_id")),
+    )
+
+    # The dhw step's three errors and one warning, each on its own flow
+    # seeded exactly as the walk had it, each still standing on dhw.
+    seeded = lambda: fresh_flow(data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS, **EXTRAS_ANSWERS, **derived_into(flow)})  # noqa: E731
+
+    bad_spec = await submit(seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
+    check(
+        "dhw",
+        "error",
+        "an unparseable window spec is invalid_dhw_windows",
+        shows(bad_spec, "dhw")
+        and bad_spec.get("errors", {}).get(const.CONF_DHW_WINDOWS)
+        == "invalid_dhw_windows",
+        str(bad_spec.get("errors")),
+    )
+    too_short = await submit(
+        seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "06:05-06:10"}
+    )
+    check(
+        "dhw",
+        "error",
+        "a window shorter than one planning step is dhw_window_too_short",
+        shows(too_short, "dhw")
+        and too_short.get("errors", {}).get(const.CONF_DHW_WINDOWS)
+        == "dhw_window_too_short",
+        str(too_short.get("errors")),
+    )
+    too_close = await submit(
+        seeded(),
+        "dhw",
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+    )
+    check(
+        "dhw",
+        "error",
+        "a minimum with no deadband below the setpoint is dhw_min_too_close",
+        shows(too_close, "dhw")
+        and too_close.get("errors", {}).get(const.CONF_DHW_MIN_TEMP)
+        == "dhw_min_too_close",
+        str(too_close.get("errors")),
+    )
+
+    # The legionella pair is a WARNING: 60 over 52 proceeds, and says so.
+    warnings: list[str] = []
+
+    class Capture(logging.Handler):
+        def emit(self, record):
+            warnings.append(record.getMessage().lower())
+
+    logger = logging.getLogger("heatpump_optimizer.config_flow")
+    logger.addHandler(Capture())
+    try:
+        result = await submit(flow, "dhw", DHW_ANSWERS)
+    finally:
+        logger.removeHandler(Capture())
+    check(
+        "dhw",
+        "happy",
+        "a valid hot-water page proceeds to weather sensitivity",
+        shows(result, "weather_sensitivity"),
+        str(result.get("step_id")),
+    )
+    check(
+        "dhw",
+        "error",
+        "a legionella cycle above the charge limit proceeds with a warning",
+        any("legionella" in w for w in warnings) and flow._data.get(const.CONF_DHW_SETPOINT) == 52.0,
+        str(warnings[:1]),
+    )
+
+    result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+    check(
+        "weather_sensitivity",
+        "happy",
+        "the last questionnaire page shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the questionnaire overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the entry carries one answer from every page it walked",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    entry_data = result.get("data", {})
+    from_every_page = [
+        key
+        for key in (
+            const.CONF_TIBBER_TOKEN,
+            const.CONF_TARGET_TEMP,
+            const.CONF_BUILDING_ERA,
+            const.CONF_HOUSE_THERMAL_MASS,
+            const.CONF_HEAT_PUMP_COP_NOMINAL,
+            const.CONF_DHW_TANK_VOLUME,
+            const.CONF_WIND_SENSITIVITY,
+        )
+        if key not in entry_data
+    ]
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the questionnaire overview creates the entry",
+        result.get("type") == "create_entry"
+        and result.get("title") == "Heat Pump Optimizer",
+        f"{result.get('type')} {result.get('title')!r}",
+    )
+    check(
+        "setup_overview",
+        "happy",
+        "the entry carries one answer from every page it walked",
+        result.get("type") == "create_entry" and not from_every_page,
+        f"missing {from_every_page}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# UX E2 + E3: finish-setup-now after the second screen, then the overview.
+# ---------------------------------------------------------------------------
+async def walk_finish_now():
+    R.section("E2/E3: finish-setup-now shows the overview, then creates")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    flow = fresh_flow()
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "finish_setup",
+        "happy",
+        "the second screen opens the finish-setup menu",
+        offers_finish_setup(result),
+        str(result)[:160],
+    )
+    finish = getattr(flow, "async_step_finish_now", None)
+    if finish is None:
+        check(
+            "finish_now",
+            "happy",
+            "finish-setup-now shows the setup overview",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_finish_now missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await finish(None)
+    check(
+        "finish_now",
+        "happy",
+        "finish-setup-now shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    overview = getattr(flow, "async_step_setup_overview", None)
+    if overview is None:
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    entry_data = result.get("data", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the early overview creates the entry",
+        result.get("type") == "create_entry"
+        and result.get("title") == "Heat Pump Optimizer",
+        f"{result.get('type')} {result.get('title')!r}",
+    )
+    check(
+        "setup_overview",
+        "happy",
+        "the early entry carries the first two screens and no later page",
+        result.get("type") == "create_entry"
+        and entry_data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
+        and entry_data.get(const.CONF_WEATHER_ENTITY) == "weather.home"
+        and const.CONF_TARGET_TEMP not in entry_data
+        and const.CONF_DHW_TANK_VOLUME not in entry_data,
+        f"keys {sorted(entry_data)}",
+    )
+    config_flow.async_get_clientsession = real
+
+
+def derived_into(flow):
+    """The keys the questionnaire's derivation wrote into this flow."""
+    return {key: flow._data[key] for key in config_flow.DERIVED_THERMAL_KEYS if key in flow._data}
+
+
+# ---------------------------------------------------------------------------
+# The expert walk: thermal -> zones. Its own flow, its own error probes.
+# ---------------------------------------------------------------------------
+async def walk_expert():
+    R.section("walk 2 (expert): thermal values and zones")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    seeded = lambda: fresh_flow(  # noqa: E731
+        data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS}
+    )
+
+    # building_extras never runs on this path; its error is probed on a
+    # flow seeded the way the questionnaire walk would have left it.
+    extras_seeded = lambda: fresh_flow(  # noqa: E731
+        data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS}
+    )
+    inverted = await submit(
+        extras_seeded(),
+        "building_extras",
+        {**EXTRAS_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 3.0, const.CONF_HEAT_PUMP_MIN_POWER: 6.0},
+    )
+    check(
+        "building_extras",
+        "error",
+        "a modulation floor above the ceiling is min_power_above_max",
+        shows(inverted, "building_extras")
+        and inverted.get("errors", {}).get(const.CONF_HEAT_PUMP_MIN_POWER)
+        == "min_power_above_max",
+        str(inverted.get("errors")),
+    )
+
+    inverted = await submit(
+        seeded(), "thermal", {**THERMAL_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0}
+    )
+    check(
+        "thermal",
+        "error",
+        "the thermal page refuses the same inverted power pair",
+        shows(inverted, "thermal")
+        and inverted.get("errors", {}).get(const.CONF_HEAT_PUMP_MIN_POWER)
+        == "min_power_above_max",
+        str(inverted.get("errors")),
+    )
+
+    flow = seeded()
+    result = await submit(flow, "thermal", THERMAL_ANSWERS)
+    check(
+        "thermal",
+        "happy",
+        "hand-typed thermal values proceed to the optional zones page",
+        shows(result, "zones"),
+        str(result.get("step_id")),
+    )
+
+    result = await submit(flow, "zones", ZONES_ANSWERS)
+    check(
+        "zones",
+        "happy",
+        "zone answers proceed to hot water",
+        shows(result, "dhw"),
+        str(result.get("step_id")),
+    )
+    check(
+        "zones",
+        "happy",
+        "and the zone keys are accumulated",
+        flow._data.get(const.CONF_UPPER_FLOOR_THERMAL_MASS) == 4.0,
+        str(flow._data.get(const.CONF_UPPER_FLOOR_THERMAL_MASS)),
+    )
+
+    result = await submit(flow, "dhw", {**DHW_ANSWERS, const.CONF_DHW_LEGIONELLA_ENABLED: False})
+    check(
+        "dhw",
+        "happy",
+        "hot water without a legionella cycle proceeds too",
+        shows(result, "weather_sensitivity"),
+        str(result.get("step_id")),
+    )
+    result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+    check(
+        "weather_sensitivity",
+        "happy",
+        "the expert path shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the expert overview creates the entry with the thermal values",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the expert overview creates the entry with the thermal values",
+        result.get("type") == "create_entry"
+        and result.get("data", {}).get(const.CONF_HOUSE_THERMAL_MASS) == 10.0
+        and result.get("data", {}).get(const.CONF_INTER_ZONE_TRANSFER) == 0.1,
+        f"{result.get('type')} "
+        f"{result.get('data', {}).get(const.CONF_HOUSE_THERMAL_MASS)}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# temperature: every comfort-band contradiction, one field at a time.
+# ---------------------------------------------------------------------------
+async def temperature_error_branches():
+    R.section("temperature: every comfort-band contradiction")
+    # Each probe overrides fields so exactly ONE rule fires; the assertion
+    # is on the whole errors dict, so a probe that also trips a second rule
+    # fails here rather than quietly counting itself covered.
+    probes = [
+        (
+            "min_above_target",
+            {const.CONF_MIN_TEMP: 21.5, const.CONF_COMFORT_TEMP_DAY: 22.0, const.CONF_COMFORT_TEMP_NIGHT: 21.5},
+            {const.CONF_MIN_TEMP: "min_above_target"},
+        ),
+        (
+            "max_below_target",
+            {const.CONF_MAX_TEMP: 20.5, const.CONF_COMFORT_TEMP_DAY: 20.0},
+            {const.CONF_MAX_TEMP: "max_below_target"},
+        ),
+        (
+            "night_above_day",
+            {const.CONF_COMFORT_TEMP_NIGHT: 22.0},
+            {const.CONF_COMFORT_TEMP_NIGHT: "night_above_day"},
+        ),
+        (
+            "day_window_empty",
+            {const.CONF_DAY_START_HOUR: 22},
+            {const.CONF_DAY_END_HOUR: "day_window_empty"},
+        ),
+        (
+            "comfort_outside_band (day)",
+            {const.CONF_COMFORT_TEMP_DAY: 23.5},
+            {const.CONF_COMFORT_TEMP_DAY: "comfort_outside_band"},
+        ),
+        (
+            "comfort_outside_band (night)",
+            {const.CONF_COMFORT_TEMP_NIGHT: 18.0},
+            {const.CONF_COMFORT_TEMP_NIGHT: "comfort_outside_band"},
+        ),
+    ]
+    for name, override, expected in probes:
+        flow = fresh_flow(data={**FULL_FIRST_SCREEN})
+        result = await submit(
+            flow, "temperature", {**TEMPERATURE_ANSWERS, **override}
+        )
+        check(
+            "temperature",
+            "error",
+            f"comfort band: {name} re-shows the page with exactly that error",
+            shows(result, "temperature") and result.get("errors") == expected,
+            f"got {result.get('errors')}, want {expected}",
+        )
+        check(
+            "temperature",
+            "error",
+            f"comfort band: {name} stores nothing",
+            const.CONF_TARGET_TEMP not in flow._data,
+            str(sorted(flow._data)),
+        )
+
+
+# ---------------------------------------------------------------------------
+# reauth: refused entry point, refused confirm, unreachable, then fixed.
+# ---------------------------------------------------------------------------
+async def reauth_round_trip():
+    R.section("reauth: refused, unreachable, then fixed")
+    hass = FakeHass()
+    entry = FakeEntry(
+        data={
+            const.CONF_TIBBER_TOKEN: "stale-token",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+        entry_id="reauth-1",
+    )
+    hass.config_entries.entries.append(entry)
+    flow = config_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = hass
+    # What the flow manager stamps on a reauth flow: the entry it repairs.
+    flow.context = {"entry_id": "reauth-1"}
+
+    result = await flow.async_step_reauth(entry.data)
+    check(
+        "reauth_confirm",
+        "happy",
+        "the reauth flow opens on a one-field confirm form",
+        result.get("type") == "form"
+        and result.get("step_id") == "reauth_confirm",
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+
+    real = install_session(
+        config_flow,
+        FakeSession([(401, None), OSError("router rebooting"), TIBBER_VIEWER_OK]),
+    )
+    refused = await flow.async_step_reauth_confirm(
+        {const.CONF_TIBBER_TOKEN: "stale-token"}
+    )
+    check(
+        "reauth_confirm",
+        "error",
+        "the refused old token is invalid_tibber_token, not a network error",
+        shows(refused, "reauth_confirm")
+        and refused.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "invalid_tibber_token",
+        str(refused.get("errors")),
+    )
+    unreachable = await flow.async_step_reauth_confirm(
+        {const.CONF_TIBBER_TOKEN: "anything"}
+    )
+    check(
+        "reauth_confirm",
+        "error",
+        "an unreachable Tibber is cannot_connect on the confirm form too",
+        shows(unreachable, "reauth_confirm")
+        and unreachable.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "cannot_connect",
+        str(unreachable.get("errors")),
+    )
+
+    fixed = await flow.async_step_reauth_confirm(
+        {const.CONF_TIBBER_TOKEN: "brand-new-token"}
+    )
+    round_trip_done = (
+        fixed == {"type": "abort", "reason": "reauth_successful"}
+        and entry.data[const.CONF_TIBBER_TOKEN] == "brand-new-token"
+        and hass.config_entries.reloaded == ["reauth-1"]
+    )
+    check(
+        "reauth_confirm",
+        "happy",
+        "a new token is written through, the entry reloads, reauth_successful",
+        round_trip_done,
+        f"{fixed} token={entry.data[const.CONF_TIBBER_TOKEN]} "
+        f"reloaded={hass.config_entries.reloaded}",
+    )
+    LEDGER.rows["_reauth"] = int(round_trip_done)
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# Tranche 2 (#194): the options flow. Its entry is a real one -- walked
+# through the questionnaire path above, then handed to
+# ``async_get_options_flow`` the way the flow manager does. Every page is
+# submitted through the handler that really runs, and every save is
+# asserted against the entry's options afterwards.
+# ---------------------------------------------------------------------------
+BASE_ENTRY_DATA: dict = {}
+BASE_UNIQUE_ID: str | None = None
+
+
+async def seed_base_entry():
+    """Walk the initial flow once and keep its entry (idempotent)."""
+    global BASE_ENTRY_DATA, BASE_UNIQUE_ID
+    if not BASE_ENTRY_DATA:
+        BASE_ENTRY_DATA, BASE_UNIQUE_ID = await options_entry_data()
+
+
+async def options_entry_data():
+    """The entry data of an existing install, from a real walk (not a fixture)."""
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    try:
+        flow = fresh_flow()
+        await submit(
+            flow,
+            "user",
+            {**FULL_FIRST_SCREEN, const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor_a"},
+        )
+        await submit(flow, "temperature", TEMPERATURE_ANSWERS)
+        await submit(flow, "building_describe", QUESTIONNAIRE_ANSWERS)
+        await submit(flow, "building_extras", EXTRAS_ANSWERS)
+        await submit(flow, "dhw", DHW_ANSWERS)
+        result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+        if result.get("type") != "create_entry":
+            result = await submit(flow, "setup_overview", {})
+    finally:
+        config_flow.async_get_clientsession = real
+    assert result.get("type") == "create_entry", str(result)[:200]
+    return dict(result["data"]), flow.unique_id
+
+
+def fresh_options(pre_options=None, entry_id="opts-1"):
+    """A fresh options flow over a fresh entry seeded as the walk left it."""
+    hass = FakeHass()
+    entry = FakeEntry(
+        data=dict(BASE_ENTRY_DATA),
+        options=dict(pre_options or {}),
+        entry_id=entry_id,
+        unique_id=BASE_UNIQUE_ID,
+    )
+    hass.config_entries.entries.append(entry)
+    flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+    flow.hass = hass
+    return flow, entry, hass
+
+
+async def options_menus():
+    R.section("options: the two menus")
+    flow, entry, _ = fresh_options()
+    top = await flow.async_step_init(None)
+    check(
+        "opt_init",
+        "happy",
+        "the top menu offers the revisited pages plus Quick setup and Advanced, in order",
+        shows_menu(top, "init")
+        and list(top.get("menu_options", {}))
+        == [
+            "setup_overview",
+            "comfort",
+            "hot_water",
+            "tuning",
+            "grid",
+            "away",
+            "modbus_prefill",
+            "quick_setup",
+            "advanced",
+        ],
+        str(list(top.get("menu_options", {}))),
+    )
+    advanced = await flow.async_step_advanced(None)
+    check(
+        "opt_advanced",
+        "happy",
+        "the advanced menu lists the set-once pages, in order",
+        shows_menu(advanced, "advanced")
+        and list(advanced.get("menu_options", {}))
+        == [
+            "entities",
+            "entities_metering",
+            "entities_pump",
+            "building",
+            "building_preset",
+            "thermal_model",
+            "thermal_model_zones",
+            "hot_water_tank",
+            "hot_water_pumps",
+            "solar_pv",
+            "learning",
+            "learning_features",
+            "grid_connection",
+            "grid_fees",
+            "heat_curve",
+        ],
+        str(list(advanced.get("menu_options", {}))),
+    )
+    # The owner's rename + lift (Part of #201): a Tuya device is the primary
+    # pre-fill source and the Modbus package the secondary one, so the entry
+    # is labelled for the device, not the transport, and sits on the first
+    # menu an everyday user opens rather than behind Advanced settings. The
+    # internal key stays ``modbus_prefill`` -- renaming it would orphan every
+    # stored entry that answered the page.
+    check(
+        "opt_init",
+        "happy",
+        "the pre-fill entry is labelled for any heat pump device, not only Modbus",
+        top.get("menu_options", {}).get("modbus_prefill")
+        == "Pre-fill from a heat pump device",
+        f"label={top.get('menu_options', {}).get('modbus_prefill')!r}",
+    )
+    check(
+        "opt_init",
+        "happy",
+        "the pre-fill page sits on the first menu, off the advanced one",
+        "modbus_prefill" in top.get("menu_options", {})
+        and "modbus_prefill" not in advanced.get("menu_options", {}),
+        f"init has it: {'modbus_prefill' in top.get('menu_options', {})}, "
+        f"advanced has it: {'modbus_prefill' in advanced.get('menu_options', {})}",
+    )
+
+
+async def options_walk():
+    """One dialog, six top pages: show each form, submit it, stay in the dialog."""
+    R.section("options walk: six top pages, every save through async_update_entry")
+    flow, entry, hass = fresh_options()
+
+    # setup_overview is read-only: a picture of the system, saving nothing.
+    form = await flow.async_step_setup_overview(None)
+    check(
+        "opt_setup_overview",
+        "happy",
+        "the setup overview renders the configured system as text",
+        shows(form, "setup_overview")
+        and bool(form.get("description_placeholders", {}).get("setup_summary")),
+        str(form.get("description_placeholders", {}))[:120],
+    )
+    result = await submit(flow, "setup_overview", {})
+    check(
+        "opt_setup_overview",
+        "happy",
+        "leaving the overview returns to the menu and saves nothing",
+        shows_menu(result, "init") and not entry.options and not hass.config_entries.updated,
+        f"options={sorted(entry.options)} updated={hass.config_entries.updated}",
+    )
+
+    # comfort: a valid band, a humidity sensor, then the menu again.
+    await flow.async_step_comfort(None)
+    result = await submit(flow, "comfort", COMFORT_PAGE_ANSWERS)
+    check(
+        "opt_comfort",
+        "happy",
+        "a valid comfort page saves and returns to the top menu",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_TARGET_TEMP) == 21.0
+        and entry.options.get(const.CONF_INDOOR_HUMIDITY_ENTITY) == "sensor.living_humidity"
+        and hass.config_entries.updated == ["opts-1"],
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"options={sorted(entry.options)[:6]}",
+    )
+
+    # hot_water: the same page the initial flow has, with its warning.
+    warnings: list[str] = []
+
+    class Capture(logging.Handler):
+        def emit(self, record):
+            warnings.append(record.getMessage().lower())
+
+    logger = logging.getLogger("heatpump_optimizer.config_flow")
+    logger.addHandler(Capture())
+    try:
+        await flow.async_step_hot_water(None)
+        result = await submit(flow, "hot_water", HOT_WATER_PAGE_ANSWERS)
+    finally:
+        logger.removeHandler(Capture())
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid hot-water page saves and warns about the legionella pair",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_SETPOINT) == 52.0
+        and any("legionella" in w for w in warnings),
+        f"{result.get('type')}/{result.get('step_id')} warned={warnings[:1]}",
+    )
+
+    # Optional DHW set-point entity (#408). Unset by default; clearing
+    # writes None. Own flows so the page walk below keeps its `flow`.
+    _hw_flow, _hw_entry, _ = fresh_options()
+    await _hw_flow.async_step_hot_water(None)
+    result = await submit(
+        _hw_flow,
+        "hot_water",
+        {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_sp",
+        },
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "the DHW set-point entity round-trips on the hot_water page",
+        shows_menu(result, "init")
+        and _hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY) == "number.dhw_sp",
+        f"got {_hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY)!r}",
+    )
+    _hw_flow, _hw_entry, _ = fresh_options(
+        pre_options={const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_sp"}
+    )
+    await _hw_flow.async_step_hot_water(None)
+    result = await submit(_hw_flow, "hot_water", dict(HOT_WATER_PAGE_ANSWERS))
+    check(
+        "opt_hot_water",
+        "happy",
+        "clearing the DHW set-point entity writes None",
+        shows_menu(result, "init")
+        and _hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY) is None,
+        f"got {_hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY)!r}",
+    )
+
+    await flow.async_step_hot_water_tank(None)
+    await submit(flow, "hot_water_tank", HOT_WATER_TANK_ANSWERS)
+    await flow.async_step_hot_water_pumps(None)
+    await submit(flow, "hot_water_pumps", {})
+    await flow.async_step_building(None)
+    await submit(flow, "building", BUILDING_PAGE_ANSWERS)
+    check(
+        "opt_hot_water",
+        "happy",
+        "cleared entity slots on split pages are written back as None",
+        entry.options.get(const.CONF_DHW_INLET_ENTITY) is None
+        and entry.options.get(const.CONF_VVC_PUMP_ENTITY) is None
+        and entry.options.get(const.CONF_SPACE_PUMP_ENTITY) is None,
+        str(
+            {
+                k: entry.options.get(k)
+                for k in (
+                    const.CONF_DHW_INLET_ENTITY,
+                    const.CONF_VVC_PUMP_ENTITY,
+                    const.CONF_SPACE_PUMP_ENTITY,
+                )
+            }
+        ),
+    )
+
+    # tuning: the objective weights.
+    await flow.async_step_tuning(None)
+    result = await submit(flow, "tuning", TUNING_ANSWERS)
+    check(
+        "opt_tuning",
+        "happy",
+        "the tuning page saves and returns to the top menu",
+        shows_menu(result, "init") and entry.options.get(const.CONF_PRICE_WEIGHT) == 2.0,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"price_weight={entry.options.get(const.CONF_PRICE_WEIGHT)}",
+    )
+
+    # grid: the fee and tariff page, with its string->int window conversion.
+    await flow.async_step_grid(None)
+    result = await submit(flow, "grid", GRID_PEAK_ANSWERS)
+    await flow.async_step_grid_fees(None)
+    await submit(flow, "grid_fees", GRID_FEES_ANSWERS)
+    check(
+        "opt_grid",
+        "happy",
+        "the grid page saves, converting the window dropdown to minutes",
+        shows_menu(result, "init")
+        # "60" is the default; it is not written for an entry that never
+        # stored the window (_omit_unstored_defaults), and runs as 60 absent.
+        and entry.options.get(const.CONF_PEAK_TARIFF_WINDOW, const.DEFAULT_PEAK_TARIFF_WINDOW) == 60
+        and not isinstance(entry.options.get(const.CONF_PEAK_TARIFF_WINDOW), str)
+        and entry.options.get(const.CONF_PEAK_TARIFF_MONTHS) == "nov-feb"
+        and entry.options.get(const.CONF_GRID_FEE_ENTITY) is None,
+        f"window={entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)!r} "
+        f"months={entry.options.get(const.CONF_PEAK_TARIFF_MONTHS)!r}",
+    )
+
+    # away: the last top page.
+    shown_away = await flow.async_step_away(None)
+    shown_away_keys = schema_keys(shown_away)
+    check(
+        "opt_away",
+        "happy",
+        "the away page no longer offers helper fields",
+        "away_enabled" not in shown_away_keys
+        and "away_return_entity" not in shown_away_keys,
+        f"keys={sorted(shown_away_keys)}",
+    )
+    result = await submit(flow, "away", AWAY_ANSWERS)
+    check(
+        "opt_away",
+        "happy",
+        "the away page saves temperatures and keeps an optional person",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_AWAY_TEMPERATURE) == 17.0
+        and entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY) == "person.home"
+        and const.CONF_AWAY_RETURN_ENTITY not in entry.options,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"presence={entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY)!r}",
+    )
+
+    # Six pages in, one entry: the saves must have accumulated, not replaced.
+    from_every_page = [
+        key
+        for key in (
+            const.CONF_TARGET_TEMP,
+            const.CONF_DHW_SETPOINT,
+            const.CONF_PRICE_WEIGHT,
+            const.CONF_PEAK_TARIFF_MONTHS,
+            const.CONF_AWAY_TEMPERATURE,
+        )
+        if key not in entry.options
+    ]
+    check(
+        "opt_init",
+        "happy",
+        "five saved top pages accumulate on the entry, not replace each other",
+        not from_every_page and len(hass.config_entries.updated) == 9,
+        f"missing {from_every_page} updated={len(hass.config_entries.updated)}",
+    )
+
+    # The other after-save choice: close the dialog. One create_entry whose
+    # data is this page merged into everything saved before it, and the
+    # after-save choice itself never persists.
+    result = await submit(
+        flow,
+        "tuning",
+        {**TUNING_ANSWERS, const.CONF_PRICE_WEIGHT: 3.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE},
+    )
+    close_data = result.get("data", {})
+    round_trip_done = (
+        result.get("type") == "create_entry"
+        and close_data.get(const.CONF_PRICE_WEIGHT) == 3.0
+        and close_data.get(const.CONF_TARGET_TEMP) == 21.0
+        and close_data.get(const.CONF_AWAY_TEMPERATURE) == 17.0
+        and close_data.get(const.CONF_PEAK_TARIFF_MONTHS) == "nov-feb"
+        and const.CONF_AFTER_SAVE not in close_data
+    )
+    check(
+        "opt_tuning",
+        "happy",
+        "'close' merges this page into every page saved before it",
+        round_trip_done,
+        f"{result.get('type')} keys={len(close_data)} "
+        f"after_save_persisted={const.CONF_AFTER_SAVE in close_data}",
+    )
+    LEDGER.rows["_options_close"] = int(round_trip_done)
+
+
+async def options_advanced_pages():
+    """The seven advanced pages, each on its own entry (they seed their own)."""
+    R.section("options: the advanced pages")
+
+    # entities: the token verdicts, the clearing, and the roster scope.
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    refused = fresh_options()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
+    result = await submit(
+        refused[0],
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-wrong", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "error",
+        "a changed but refused token re-shows the entities page as invalid_tibber_token",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "invalid_tibber_token"
+        and not refused[1].options,
+        str(result.get("errors")),
+    )
+    unreachable = fresh_options()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [OSError("router rebooting")]
+    )
+    result = await submit(
+        unreachable[0],
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-wrong", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an unreachable Tibber is cannot_connect on the entities page too",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect"
+        and not unreachable[1].options,
+        str(result.get("errors")),
+    )
+
+    # An UNCHANGED token skips the probe entirely (the session counts zero
+    # POSTs); cleared slots stick as None; and the entities this page does
+    # not render -- the PV, away and external-heat slots -- survive the save.
+    quiet_session = FakeSession([TIBBER_VIEWER_OK])
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: quiet_session
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv",
+            const.CONF_AWAY_PRESENCE_ENTITY: "person.home",
+            const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.stove",
+        }
+    )
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "an unchanged token skips the probe and cleared slots stick as None",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_INDOOR_TEMP_ENTITY) is None
+        and entry.options.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY) is None
+        and quiet_session.posts == 0,
+        f"indoor={entry.options.get(const.CONF_INDOOR_TEMP_ENTITY)!r} "
+        f"posts={quiet_session.posts}",
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "other pages' entities survive an entities-page save",
+        entry.options.get(const.CONF_PV_PRODUCTION_ENTITY) == "sensor.pv"
+        and entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY) == "person.home"
+        and entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY) == "binary_sensor.stove",
+        str(
+            {
+                k: entry.options.get(k)
+                for k in (
+                    const.CONF_PV_PRODUCTION_ENTITY,
+                    const.CONF_AWAY_PRESENCE_ENTITY,
+                    const.CONF_EXTERNAL_HEAT_ENTITY,
+                )
+            }
+        ),
+    )
+
+    # Optional space set-point entity + unit (#408). Unset by default;
+    # clearing writes None; the unit is a declaration, never a recommendation.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_SPACE_SETPOINT_ENTITY: "number.space_sp",
+            const.CONF_SPACE_SETPOINT_UNIT: "flow",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "the space set-point entity and unit round-trip on the entities page",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY) == "number.space_sp"
+        and entry.options.get(const.CONF_SPACE_SETPOINT_UNIT) == "flow",
+        f"entity={entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY)!r} "
+        f"unit={entry.options.get(const.CONF_SPACE_SETPOINT_UNIT)!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_SPACE_SETPOINT_ENTITY: "number.space_sp",
+            const.CONF_SPACE_SETPOINT_UNIT: "flow",
+        }
+    )
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "clearing the space set-point entity writes None",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY) is None,
+        f"got {entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY)!r}",
+    )
+
+    # A changed token that validates saves through.
+    rotated_session = FakeSession([TIBBER_VIEWER_OK])
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: rotated_session
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-rotated", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "a changed token that validates is written to the options",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_TIBBER_TOKEN) == "tok-rotated"
+        and rotated_session.posts == 1,
+        f"token={entry.options.get(const.CONF_TIBBER_TOKEN)!r} "
+        f"posts={rotated_session.posts}",
+    )
+    config_flow.async_get_clientsession = real
+
+    # building: the plumbing page, clearable entities, and one validated
+    # field (#398) -- see below.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", BUILDING_PAGE_ANSWERS)
+    check(
+        "opt_building",
+        "happy",
+        "the building page saves to the advanced menu, clearing its entity slots",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUFFER_TANK_VOLUME) == 250.0
+        and entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None
+        and entry.options.get(const.CONF_WOOD_TANK_TOP_ENTITY) is None
+        and entry.options.get(const.CONF_VALVE_OUTLET_TEMP_ENTITY) is None,
+        f"valve={entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)!r} "
+        f"wood_top={entry.options.get(const.CONF_WOOD_TANK_TOP_ENTITY)!r}",
+    )
+    check(
+        "opt_building",
+        "happy",
+        "the 'indoor' write-target kind round-trips through the page (#398)",
+        # 'indoor' is the default, so an entry that never stored the kind
+        # runs with it absent rather than having it written.
+        not result.get("errors")
+        and entry.options.get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+            const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+        )
+        == config_flow.mixing_valve.WRITE_TARGET_INDOOR,
+        str(entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)),
+    )
+
+    # 'flow' needs the two-zone model, whose absence is what the owner's
+    # entry has by default here -- catch it rather than saving it silently.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "'flow' without the two-zone model is refused, not saved (#398)",
+        shows(result, "building")
+        and result.get("errors", {}).get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND
+        )
+        == "flow_target_needs_two_zone"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # With the two-zone model present, the same choice saves.
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0}
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "happy",
+        "'flow' with the two-zone model configured saves cleanly (#398)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
+    )
+
+    # D12-01: the guard must derive two-zone the way the model does, not from
+    # the mass-key presence. two_zone_mode="off" with the (unerasable) zone
+    # keys still present is single-zone to ThermalParameters.from_config, so a
+    # "flow" target must be refused -- not saved and then silently no-op'd
+    # every cycle by _command_valve_target's own two-zone guard.
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+            const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+            const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_OFF,
+        }
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)",
+        shows(result, "building")
+        and result.get("errors", {}).get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND
+        )
+        == "flow_target_needs_two_zone"
+        and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # Null control: an explicit two_zone_mode="on" is two-zone to the model
+    # even without the mass keys, so "flow" saves cleanly under it -- the fix
+    # tracks the model's override, it does not just refuse on key absence.
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON}
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "happy",
+        "'flow' with two_zone_mode=on saves cleanly even without zone keys (D12-01)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
+    )
+
+    # #1067: pricing the curve lift is for a direct plant. Behind a
+    # throttling valve the tank temperature already is the priced flow, so
+    # the page refuses the pair rather than saving a switch that does nothing.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_MANUAL,
+            const.CONF_FLOW_CURVE_COP_ENABLED: True,
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "the flow-curve lift with a throttling valve is refused, not saved (#1067)",
+        shows(result, "building")
+        and result.get("errors", {}).get(const.CONF_FLOW_CURVE_COP_ENABLED)
+        == "flow_curve_needs_direct_plant"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {**BUILDING_PAGE_ANSWERS, const.CONF_FLOW_CURVE_COP_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "happy",
+        "the flow-curve lift with no valve saves cleanly (#1067)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_FLOW_CURVE_COP_ENABLED) is True,
+        f"options={entry.options.get(const.CONF_FLOW_CURVE_COP_ENABLED)!r}",
+    )
+
+    _WOOD_BLOCK = {
+        const.CONF_WOOD_TANK_TOP_ENTITY,
+        const.CONF_WOOD_PRICE_SEK_M3,
+        const.CONF_EXTERNAL_HEAT_ENABLED,
+        const.CONF_WOOD_TYPE,
+        const.CONF_WOOD_PACKING,
+        const.CONF_WOOD_FURNACE_EFFICIENCY,
+    }
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_building(None)
+    empty_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "empty building schema is toggle-only for wood",
+        const.CONF_WOOD_FURNACE_ENABLED in empty_keys
+        and not (_WOOD_BLOCK & empty_keys),
+        f"keys={sorted(empty_keys)}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top"}
+    )
+    shown = await flow.async_step_building(None)
+    infer_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "a stored top probe infers the wood block on",
+        _WOOD_BLOCK <= infer_keys,
+        f"keys={sorted(infer_keys)}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_TANK_VOLUME: 500.0}
+    )
+    shown = await flow.async_step_building(None)
+    vol_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "500 L volume alone stays toggle-only",
+        const.CONF_WOOD_FURNACE_ENABLED in vol_keys
+        and not (_WOOD_BLOCK & vol_keys),
+        f"keys={sorted(vol_keys)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {const.CONF_WOOD_FURNACE_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "happy",
+        "submitting the toggle on persists it",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is True,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"enabled={entry.options.get(const.CONF_WOOD_FURNACE_ENABLED)!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_FURNACE_ENABLED: True}
+    )
+    shown = await flow.async_step_building(None)
+    on_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "toggle on shows probes, detection, type, packing, price, efficiency",
+        _WOOD_BLOCK <= on_keys
+        and const.CONF_WOOD_TANK_VOLUME in on_keys
+        and const.CONF_DHW_WOOD_COIL_ENABLED in on_keys
+        and const.CONF_EXTERNAL_HEAT_ENTITY in on_keys
+        and const.CONF_EXTERNAL_HEAT_MIN_RISE in on_keys
+        and const.CONF_EXTERNAL_HEAT_DECAY_MINUTES in on_keys,
+        f"keys={sorted(on_keys)}",
+    )
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_learning(None)
+    learn_keys = schema_keys(shown)
+    check(
+        "opt_learning",
+        "happy",
+        "learning schema has no external_heat detection keys",
+        const.CONF_EXTERNAL_HEAT_ENABLED not in learn_keys
+        and const.CONF_EXTERNAL_HEAT_ENTITY not in learn_keys,
+        f"keys={sorted(learn_keys)}",
+    )
+
+    # thermal_model: the presence-hazard page. A no-op save keeps the
+    # questionnaire armed; editing a derived number disarms it.
+    stored_mass = BASE_ENTRY_DATA[const.CONF_HOUSE_THERMAL_MASS]
+    flow, entry, _ = fresh_options()
+    await flow.async_step_thermal_model(None)
+    result = await submit(
+        flow,
+        "thermal_model",
+        {
+            const.CONF_HOUSE_THERMAL_MASS: stored_mass,
+            const.CONF_HEAT_PUMP_MAX_POWER: 5.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+        },
+    )
+    check(
+        "opt_thermal_model",
+        "happy",
+        "re-submitting the derived values as they are keeps the preset armed",
+        shows_menu(result, "advanced")
+        and const.CONF_BUILDING_PRESET_ENABLED not in entry.options,
+        f"preset={entry.options.get(const.CONF_BUILDING_PRESET_ENABLED)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_thermal_model(None)
+    result = await submit(
+        flow, "thermal_model", {const.CONF_HOUSE_THERMAL_MASS: stored_mass + 2.0}
+    )
+    check(
+        "opt_thermal_model",
+        "happy",
+        "editing a derived number disarms the questionnaire",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is False
+        and entry.options.get(const.CONF_HOUSE_THERMAL_MASS) == stored_mass + 2.0,
+        f"preset={entry.options.get(const.CONF_BUILDING_PRESET_ENABLED)!r}",
+    )
+
+    # building_preset: the questionnaire, options-side. Enabling it derives
+    # physics from the answers; disabling it leaves the numbers alone.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building_preset(None)
+    result = await submit(
+        flow,
+        "building_preset",
+        {
+            **QUESTIONNAIRE_ANSWERS,
+            const.CONF_HEATED_AREA: 160.0,
+            const.CONF_WINDOW_AREA: 12.0,
+            const.CONF_BUILDING_PRESET_ENABLED: True,
+        },
+    )
+    check(
+        "opt_building_preset",
+        "happy",
+        "enabling the preset derives physics from the answers",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and const.CONF_HOUSE_THERMAL_MASS in entry.options
+        and entry.options[const.CONF_HOUSE_THERMAL_MASS] != stored_mass,
+        f"derived={entry.options.get(const.CONF_HOUSE_THERMAL_MASS)!r} "
+        f"stored={stored_mass!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building_preset(None)
+    result = await submit(
+        flow,
+        "building_preset",
+        {**QUESTIONNAIRE_ANSWERS, const.CONF_BUILDING_PRESET_ENABLED: False},
+    )
+    check(
+        "opt_building_preset",
+        "happy",
+        "a disabled preset saves the answers without deriving physics",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is False
+        and const.CONF_HOUSE_THERMAL_MASS not in entry.options,
+        f"mass={entry.options.get(const.CONF_HOUSE_THERMAL_MASS)!r}",
+    )
+
+    # solar_pv, learning, heat_curve: plain pages, each clearing its own.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_solar_pv(None)
+    result = await submit(flow, "solar_pv", SOLAR_ANSWERS)
+    check(
+        "opt_solar_pv",
+        "happy",
+        "the solar page saves, clearing an absent production entity",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PV_PEAK_KW) == 8.5
+        and entry.options.get(const.CONF_PV_PRODUCTION_ENTITY) is None
+        and entry.options.get(const.CONF_PV_EXPORT_PRICE_ENTITY) == "sensor.export_price",
+        f"production={entry.options.get(const.CONF_PV_PRODUCTION_ENTITY)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_learning(None)
+    result = await submit(flow, "learning", LEARNING_ANSWERS)
+    check(
+        "opt_learning",
+        "happy",
+        "the learning page saves its watchdogs and does not carry detection",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SYSID_ENABLED) is True
+        and const.CONF_EXTERNAL_HEAT_ENABLED not in entry.options,
+        f"external={entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY)!r} "
+        f"sysid={entry.options.get(const.CONF_SYSID_ENABLED)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", HEAT_CURVE_ANSWERS)
+    check(
+        "opt_heat_curve",
+        "happy",
+        "the heat curve page saves its MQTT wiring",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_ECL110_COMMAND_TOPIC) == "ecl/cmd"
+        # 1.5 h is the default: unwritten for an entry that never stored it.
+        and entry.options.get(
+            const.CONF_ECL110_PID_TIME_CONSTANT, const.DEFAULT_ECL110_PID_TIME_CONSTANT
+        ) == 1.5,
+        str({k: entry.options.get(k) for k in HEAT_CURVE_ANSWERS}),
+    )
+
+
+#: Distinguishable from every value a field could legitimately default to,
+#: ``None`` included.
+NO_DEFAULT = object()
+
+#: The four option pages whose stored-value arm nothing asserted (#547).
+#: ``entities_pump`` was already pinned by ``tests/entities.py``; the arm on
+#: ``learning`` is dead code (#542). Measured at 137b6d5: rewriting
+#: ``return vol.Optional(key, default=existing)`` to ``return
+#: vol.Optional(key)`` on any of these four left this driver, ``entities.py``
+#: and the config-flow golden all green.
+#:
+#: The arm no longer reads ``default=existing`` (it now offers the stored
+#: value as a ``suggested_value``, which is what lets a clear stick -- see
+#: ``entity_clear_survives_the_flow_manager``); the measurement above is a
+#: record of that tree, and the same mutation on the current arm is
+#: ``description={"suggested_value": existing}`` -> dropped.
+STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
+
+
+def entity_field_defaults(result):
+    """Every entity picker on a form, mapped to the value it presents.
+
+    A picker is pre-filled either from ``default`` or from
+    ``description["suggested_value"]``, and the frontend shows and posts both
+    alike, so what this reads is the value the form presents, not the
+    mechanism -- the two differ only after the manager's schema call, which is
+    where a ``default`` is refilled for a cleared (absent) key and a
+    suggestion is not. ``NO_DEFAULT`` is a marker with neither, which
+    ``vol.Optional(key)`` carries: its ``default`` is ``vol.UNDEFINED``, so
+    reading only ``default()`` is what used to be the whole question here; the
+    failed read is the fall-through to the suggestion.
+    """
+    schema = result.get("data_schema")
+    out = {}
+    for key, value in _presented_fields(schema):
+        if type(value).__name__ != "EntitySelector":
+            continue
+        name = str(getattr(key, "schema", key))
+        try:
+            out[name] = key.default()
+        except Exception:
+            out[name] = (getattr(key, "description", None) or {}).get(
+                "suggested_value", NO_DEFAULT
+            )
+    return out
+
+
+async def options_stored_entity_arm():
+    """The arm that renders a CONFIGURED install, on the pages nothing pinned.
+
+    Each page's entity helper has two arms -- a stored value offered as
+    ``description={"suggested_value": existing}``, bare ``vol.Optional(key)``
+    when nothing is -- and every other check in this file drives the empty
+    one. #542 is what leaving the other unasserted costs: a page that forgets
+    what is configured writes a null over it on the next save.
+
+    The fields are DERIVED per page rather than named here, so a page that
+    gains an entity picker is covered without anyone remembering to add it.
+    The pair of checks is what makes that honest: a helper that pre-filled a
+    value unconditionally would satisfy the second one alone.
+    """
+    R.section("options: the stored-value arm, on the four pages that had none")
+    for step in STORED_ARM_PAGES:
+        flow, _entry, _ = fresh_options()
+        unset = {
+            key
+            for key, default in entity_field_defaults(
+                await getattr(flow, f"async_step_{step}")(None)
+            ).items()
+            if default is NO_DEFAULT
+        }
+        check(
+            f"opt_{step}",
+            "happy",
+            f"an unconfigured {step} page offers its entity fields undefaulted",
+            bool(unset),
+            f"undefaulted entity fields={sorted(unset)}",
+        )
+
+        stored = {key: f"sensor.stored_{key}" for key in sorted(unset)}
+        flow, _entry, _ = fresh_options(pre_options=stored)
+        rendered = entity_field_defaults(
+            await getattr(flow, f"async_step_{step}")(None)
+        )
+        wrong = {k: rendered.get(k) for k in stored if rendered.get(k) != stored[k]}
+        check(
+            f"opt_{step}",
+            "happy",
+            f"the {step} page re-renders every stored entity as that field's pre-fill",
+            bool(stored) and not wrong,
+            f"{len(stored)} field(s) seeded; mismatches={wrong}",
+        )
+
+
+def _nested_drop(posted, key):
+    """``posted`` with ``key`` removed wherever a ``section()`` nests it."""
+    return {
+        name: (_nested_drop(value, key) if isinstance(value, dict) else value)
+        for name, value in posted.items()
+        if name != key
+    }
+
+
+def _nested_get(posted, key):
+    """``posted[key]`` wherever a ``section()`` nests it, else ``None``."""
+    if key in posted:
+        return posted[key]
+    for value in posted.values():
+        if isinstance(value, dict):
+            found = _nested_get(value, key)
+            if found is not None:
+                return found
+    return None
+
+
+async def entity_clear_survives_the_flow_manager():
+    """A cleared entity picker persists through the manager's own submit.
+
+    The reported bug -- a temperature sensor can be set on a split page and
+    never cleared again -- is a property of the SUBMIT PATH every other check
+    in this file skips. Home Assistant's flow manager runs each submitted
+    form through the step's own ``data_schema`` before the handler sees it
+    (upstream ``homeassistant/data_entry_flow.py``:
+    ``user_input = data_schema(user_input)`` in ``_async_configure``), and
+    ``ha_contract.py`` records that no flow manager exists in this stub. So
+    every clearing check here hands ``_clear_absent`` a dict the manager
+    would have rewritten first, and the one post a browser never sends is the
+    only one ever tested.
+
+    ``_field_marker`` offered a stored entity as ``vol.Optional(key,
+    default=stored)``. A cleared picker is ABSENT from the post, and
+    voluptuous refills a ``default`` for an absent key -- so the manager
+    handed the old entity straight back, ``_clear_absent`` read it as "still
+    set", and the options merge restored it. The clear below is submitted the
+    way the manager submits it; the two controls are what keep it honest:
+
+    * an UNTOUCHED post must still keep the value (a fix that cleared
+      everything would pass the first check alone), and
+    * the same cleared post WITHOUT the schema call must still clear -- which
+      is exactly why every existing clearing check was green.
+    """
+    R.section("options: a cleared entity picker survives the flow manager")
+    rows = [
+        row for row in config_flow._OPTION_FIELDS
+        if row.default is config_flow._STORED
+    ]
+    pages = list(dict.fromkeys(row.step for row in rows))
+    check(
+        "opt_advanced",
+        "happy",
+        "the two-armed entity slots, over more than one page, are what this drives",
+        len(rows) > 1 and len(pages) > 1,
+        f"{len(rows)} slot(s) over {len(pages)} page(s)",
+    )
+
+    not_presented: dict[str, list[str]] = {}
+    for step in pages:
+        keys = [row.key for row in rows if row.step == step]
+        seed = {key: f"sensor.stored_{key}" for key in keys}
+        # The wood block renders only with its gate on, and the gate is a
+        # field of the same page: seeding it drives the gated slots too.
+        seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
+        for key in keys:
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            payload = _untouched_post(schema)
+            if _nested_get(payload, key) != seed[key]:
+                # A slot this page does not present under this seed: named,
+                # never silently skipped, so a shrinking surface shows here.
+                not_presented.setdefault(step, []).append(key)
+                continue
+
+            # The control against an over-clear: untouched, the value stays.
+            await getattr(flow, f"async_step_{step}")(schema(payload))
+            check(
+                f"opt_{step}",
+                "happy",
+                f"an untouched {step} page keeps {key}",
+                entry.options.get(key) == seed[key],
+                f"stored {seed[key]!r}, untouched save produced "
+                f"{entry.options.get(key)!r}",
+            )
+
+            # The browser's post for the same form with THIS picker cleared,
+            # then the manager's own validation of it.
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            answers = schema(_nested_drop(_untouched_post(schema), key))
+            await getattr(flow, f"async_step_{step}")(answers)
+            check(
+                f"opt_{step}",
+                "happy",
+                f"clearing {key} sticks once the manager validates the post",
+                entry.options.get(key) is None,
+                f"manager posted {key}={_nested_get(answers, key)!r}; stored "
+                f"{entry.options.get(key)!r}",
+            )
+
+            # And the path every other check takes: no schema call at all.
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            await getattr(flow, f"async_step_{step}")(
+                _nested_drop(_untouched_post(schema), key)
+            )
+            check(
+                f"opt_{step}",
+                "happy",
+                f"the same clear without the schema call clears {key} (the old path)",
+                entry.options.get(key) is None,
+                f"stored {entry.options.get(key)!r}",
+            )
+
+    check(
+        "opt_advanced",
+        "happy",
+        "every two-armed slot is presented by its page under the seed this drives",
+        not not_presented,
+        f"not presented: {not_presented}",
+    )
+
+
+async def section_nesting_is_captured():
+    """#516's surviving blocker: the golden capture walked schemas one level.
+
+    ``section()`` is the mechanism #516 groups the wide pages with, and it
+    nests the schema rather than flattening it. ``golden.py`` walked one
+    level, so a grouped page recorded the section marker and nothing beneath
+    it: grouping ``comfort`` dropped all eleven of its fields, and from then
+    on a field added inside that section, a field removed from it, or a
+    selector's bounds rewritten there each left ``config_flow.json``
+    byte-identical. "No drift" would have meant nothing on exactly the pages
+    being grouped -- #553's defect in a new place, a fixture too weak to see
+    what it exists to pin.
+
+    **The removal check is the load-bearing one.** A capture that notices
+    additions but not removals is the same blindness in a different hat, and
+    a silently shrinking surface is what grouping a page actually produces.
+
+    The stub is under test here as much as the capture is (#536): ``section``
+    is Home Assistant API surface this now depends on, and a stub that did
+    not match upstream would leave every check below pinning a fiction.
+    """
+    R.section("golden capture: section() nesting, added and removed fields")
+
+    # The stub against upstream's contract -- homeassistant/data_entry_flow.py
+    # ``class section`` at the declared 2025.2.0 floor. The third clause is
+    # the one the capture turned on: selectors carry ``config``, a section
+    # carries ``options``, and reading only the former is what made the
+    # nested fields invisible.
+    probe = section(vol.Schema({vol.Optional("x"): bool}), {"collapsed": True})
+    check(
+        "capture",
+        "happy",
+        "the section stub matches HA: a vol.Schema, options not config, "
+        "collapsed defaulting False, validating through the inner schema",
+        isinstance(probe.schema, vol.Schema)
+        and dict(probe.options) == {"collapsed": True}
+        and getattr(probe, "config", None) is None
+        and dict(section(vol.Schema({})).options) == {"collapsed": False}
+        and probe({"x": True}) == {"x": True},
+        "upstream: homeassistant/data_entry_flow.py, class section",
+    )
+
+    flow, _entry, _ = fresh_options()
+    # Comfort is grouped in this branch. The synthetic wrap below needs a
+    # still-flat page so the inner mapping is fields, not sections.
+    flat = (await flow.async_step_thermal_model(None)).get("data_schema")
+    inner = dict(flat.schema)
+
+    def grouped(fields, collapsed=True):
+        """The #516 change and nothing else: the same fields, one section."""
+        return vol.Schema(
+            {
+                vol.Required("comfort_basics"): section(
+                    vol.Schema(fields), {"collapsed": collapsed}
+                )
+            }
+        )
+
+    full = schema_fingerprint(grouped(inner))
+    nested = full["comfort_basics"].get("fields", {})
+    check(
+        "capture",
+        "happy",
+        "grouping a page into a section keeps every field in the fingerprint",
+        set(nested) == {str(k) for k in inner} and len(inner) > 1,
+        f"{len(inner)} field(s) grouped, {len(nested)} captured",
+    )
+
+    dropped = sorted(str(k) for k in inner)[0]
+    minus = {k: v for k, v in inner.items() if str(k) != dropped}
+    check(
+        "capture",
+        "happy",
+        "removing a field from inside a section moves the fingerprint",
+        len(minus) == len(inner) - 1 and schema_fingerprint(grouped(minus)) != full,
+        f"removed {dropped!r} from inside the section",
+    )
+
+    added = dict(inner)
+    # A bare builtin, which is how the wood-furnace toggle is declared, so the
+    # addition is a shape the flow really produces rather than a synthetic one.
+    added[vol.Optional("section_probe_field")] = bool
+    check(
+        "capture",
+        "happy",
+        "adding a field inside a section moves the fingerprint",
+        schema_fingerprint(grouped(added)) != full,
+        "added 'section_probe_field' inside the section",
+    )
+
+    numeric = next(
+        (k for k, v in inner.items() if "max" in (getattr(v, "config", None) or {})),
+        None,
+    )
+    widened = dict(inner)
+    if numeric is not None:
+        widened[numeric] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=-99, max=99, step=1, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+    check(
+        "capture",
+        "happy",
+        "rewriting a selector's bounds inside a section moves the fingerprint",
+        numeric is not None and schema_fingerprint(grouped(widened)) != full,
+        f"widened {str(numeric)!r} to min=-99 max=99",
+    )
+
+    check(
+        "capture",
+        "happy",
+        "a section that silently changes its collapsed state moves the fingerprint",
+        schema_fingerprint(grouped(inner, collapsed=False)) != full,
+        "collapsed True -> False, same fields",
+    )
+
+    # #547's seed derives from this walk. Sections nest the form, never the
+    # option keys, so the walk must flatten or a grouped page would quietly
+    # stop being seeded -- leaving ``_seeded`` present and rendering the empty
+    # arm it was added to escape.
+    reached = {str(k) for k, _ in _presented_fields(grouped(inner))}
+    check(
+        "capture",
+        "happy",
+        "the option seed still reaches every field nested inside a section",
+        reached == {str(k) for k in inner},
+        f"{len(reached)} field(s) reached through the section",
+    )
+
+    # The null control on the recursion itself. ``_nested_schema`` must fire
+    # on a section and on nothing else: if it also matched ordinary selectors
+    # every marker in the committed fixture would gain a nested key and the
+    # whole of config_flow.json would move.
+    flat_markers = schema_fingerprint(flat)
+    check(
+        "capture",
+        "happy",
+        "an ungrouped page gains nothing: no marker outside a section nests",
+        bool(flat_markers)
+        and all(
+            set(m) == {"selector", "config", "default", "required"}
+            for m in flat_markers.values()
+        ),
+        f"{len(flat_markers)} marker(s) on the ungrouped thermal_model page",
+    )
+
+
+async def options_error_branches():
+    """Every per-page validation error, each on a fresh flow that must not save."""
+    R.section("options: every page's validation errors")
+
+    # comfort: the comfort band, one rule at a time, exact error dicts.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "comfort",
+        {
+            **COMFORT_PAGE_ANSWERS,
+            const.CONF_MIN_TEMP: 21.5,
+            const.CONF_COMFORT_TEMP_DAY: 22.0,
+            const.CONF_COMFORT_TEMP_NIGHT: 21.5,
+        },
+    )
+    check(
+        "opt_comfort",
+        "error",
+        "an inverted comfort band re-shows the page with min_above_target",
+        shows(result, "comfort")
+        and result.get("errors") == {const.CONF_MIN_TEMP: "min_above_target"},
+        str(result.get("errors")),
+    )
+    check(
+        "opt_comfort",
+        "error",
+        "and stores nothing",
+        not entry.options,
+        str(sorted(entry.options)),
+    )
+
+    # hot_water: the window grammar and the deadband, through the options page.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"}
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "an unparseable window spec is invalid_dhw_windows on this page too",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_DHW_WINDOWS) == "invalid_dhw_windows",
+        str(result.get("errors")),
+    )
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "hot_water",
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "a minimum with no deadband below the setpoint is dhw_min_too_close here too",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_DHW_MIN_TEMP) == "dhw_min_too_close"
+        and not entry.options,
+        str(result.get("errors")),
+    )
+
+    # thermal_model: the power pair, whole and half (the effective-pair rule).
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "thermal_model",
+        {const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0},
+    )
+    check(
+        "opt_thermal_model",
+        "error",
+        "an inverted power pair is min_power_above_max on the thermal page",
+        shows(result, "thermal_model")
+        and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"},
+        str(result.get("errors")),
+    )
+    flow, entry, _ = fresh_options()
+    result = await submit(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 6.0})
+    check(
+        "opt_thermal_model",
+        "error",
+        "a submitted floor above the STORED ceiling is caught too",
+        shows(result, "thermal_model")
+        and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+        and not entry.options,
+        str(result.get("errors")),
+    )
+
+    # grid: three validators, each pinned on its own field.
+    probes = [
+        (
+            "an unparseable month mask on the grid page is invalid_peak_months",
+            {const.CONF_PEAK_TARIFF_MONTHS: "garbage"},
+            const.CONF_PEAK_TARIFF_MONTHS,
+            "invalid_peak_months",
+        ),
+        (
+            "an unparseable hours mask on the grid page is invalid_peak_hours",
+            {const.CONF_PEAK_TARIFF_HOURS: "garbage"},
+            const.CONF_PEAK_TARIFF_HOURS,
+            "invalid_peak_hours",
+        ),
+        (
+            "an unparseable fee rule is invalid_grid_fee_rules",
+            {const.CONF_GRID_FEE_RULES: "garbage"},
+            const.CONF_GRID_FEE_RULES,
+            "invalid_grid_fee_rules",
+        ),
+        (
+            "a negative fee rate is grid_fee_rules_negative",
+            {const.CONF_GRID_FEE_RULES: "06:00-08:00 = -1"},
+            const.CONF_GRID_FEE_RULES,
+            "grid_fee_rules_negative",
+        ),
+    ]
+    for name, override, field, expected in probes[:2]:
+        flow, entry, _ = fresh_options()
+        result = await submit(flow, "grid", {**GRID_PEAK_ANSWERS, **override})
+        check(
+            "opt_grid",
+            "error",
+            name,
+            shows(result, "grid")
+            and result.get("errors") == {field: expected}
+            and not entry.options,
+            f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+        )
+    for name, override, field, expected in probes[2:]:
+        flow, entry, _ = fresh_options()
+        result = await submit(flow, "grid_fees", {**GRID_FEES_ANSWERS, **override})
+        check(
+            "opt_grid_fees",
+            "error",
+            name,
+            shows(result, "grid_fees")
+            and result.get("errors") == {field: expected}
+            and not entry.options,
+            f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+        )
+
+    # grid: the documented peak-hours form, saved through the page and then
+    # READ BACK through the coordinator (#327, see the note above
+    # GRID_ANSWERS). Asserting "the page showed no error" would not be
+    # enough -- the failure this pins is a validator that accepts a string
+    # the coordinator then cannot parse, which is silent at the form and
+    # only shows up as an every-hour-peak fallback hours later. So the
+    # check carries all the way to the mask ``_tariff_hours`` returns.
+    #
+    # The coordinator is imported here rather than at module scope: this
+    # driver is about the flow, and pulling the coordinator in at import
+    # time would make every run pay for it.
+    from heatpump_optimizer.coordinator import (  # noqa: PLC0415
+        HeatPumpOptimizerCoordinator,
+    )
+
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "grid",
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+    )
+    stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
+    coordinator = HeatPumpOptimizerCoordinator(
+        FakeHass(),
+        FakeEntry(data={**BASE_ENTRY_DATA, const.CONF_PEAK_TARIFF_HOURS: stored}),
+    )
+    mask = coordinator._tariff_hours()
+    check(
+        "opt_grid",
+        "happy",
+        "the documented peak-hours form saves and reaches the coordinator's mask",
+        shows_menu(result, "init")
+        and not result.get("errors")
+        and stored == "07:00-19:00"
+        and mask == ((7.0, 19.0),),
+        f"errors={result.get('errors')} stored={stored!r} "
+        f"_tariff_hours()={mask!r}, want ((7.0, 19.0),)",
+    )
+
+    # grid: the window dropdown is a SelectSelector of strings, so what
+    # arrives is "60", not 60, and the page coerces it (#304). A value that
+    # will not coerce falls back to the documented default rather than
+    # storing the string -- the coordinator divides by this number, and a
+    # str would raise there, hours later and far from the form.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "grid",
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_WINDOW: "half an hour"},
+    )
+    # The fallback IS the default, so for an entry that never stored a window
+    # it is not written at all (_omit_unstored_defaults): absent runs as it.
+    stored_window = entry.options.get(
+        const.CONF_PEAK_TARIFF_WINDOW, const.DEFAULT_PEAK_TARIFF_WINDOW
+    )
+    check(
+        "opt_grid",
+        "happy",
+        "an uncoercible peak window falls back to the default, not the string",
+        shows_menu(result, "init")
+        and stored_window == const.DEFAULT_PEAK_TARIFF_WINDOW
+        and isinstance(stored_window, int),
+        f"stored={stored_window!r} want={const.DEFAULT_PEAK_TARIFF_WINDOW!r}",
+    )
+    # Null control: a coercible window is converted, NOT replaced by the
+    # default -- without this the check above would pass on a page that
+    # threw every submitted window away.
+    flow, entry, _ = fresh_options()
+    await submit(
+        flow,
+        "grid",
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_WINDOW: "45"},
+    )
+    coerced = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    check(
+        "opt_grid",
+        "happy",
+        "a coercible peak window is converted to int, not defaulted",
+        coerced == 45 and isinstance(coerced, int),
+        f"stored={coerced!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# The residual statement branches (register row config-flow-test-coverage).
+# Every branch below was found missed by the coverage instrument
+# (tools/audit/w5-partition/coverage_tree.sh) at the merge base this section
+# landed against; each block covers one named production statement through
+# the handler or helper that really runs, with the assertion that dies when
+# that statement is mutated beside it. One branch here is NOT covered:
+# ``_page_schema``'s empty-group guard, which no input can reach (every group
+# that enters the emit order holds at least the row that put it there) and
+# which this branch's pull request removes instead of pragma-ing.
+# ---------------------------------------------------------------------------
+def suggested_value(result, key):
+    """The ``suggested_value`` one rendered field carries, or ``None``.
+
+    ``schema_default`` reads ``marker.default``; a suggested value rides in
+    ``description`` instead, so a field offered only a suggestion reads as
+    undefaulted there. This reader is the distinction between the two.
+    """
+    for marker, _value in _presented_fields(result.get("data_schema")):
+        if str(getattr(marker, "schema", marker)) != key:
+            continue
+        return (getattr(marker, "description", None) or {}).get("suggested_value")
+    return None
+
+
+def options_over(entry, hass):
+    """An options flow over a caller-built entry and hass (no seeding)."""
+    flow = config_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = hass
+    return flow
+
+
+class _ConfigWithoutLocation:
+    """A hass config whose location cannot be read.
+
+    ``_default_location`` reads ``hass.config.latitude``; a config without
+    one is what makes a ``_Computed`` default's recompute raise, which is
+    the arm of ``_omit_unstored_computed`` that must keep the posted value.
+    Everything else the options flow touches on a save stays FakeHass-shaped.
+    """
+
+    language = "en"
+    longitude = 18.07
+    currency = "SEK"
+
+    @property
+    def latitude(self):
+        raise AttributeError("no location configured")
+
+
+PULSE_POWER_ID = "sensor.tibber_pulse_power"
+
+
+def pulse_power_state():
+    """The live state a Pulse live-power suggestion is drawn from (#703)."""
+    return FakeState(
+        "1200",
+        attributes={
+            "device_class": "power",
+            "friendly_name": "Tibber Pulse live power",
+        },
+    )
+
+
+async def residual_statement_branches():
+    """The branches the coverage instrument still found missed, each pinned."""
+    R.section("residual: identity, house power, coercion, holiday windows")
+
+    # entry_identity's price-entity arm (config_flow.py ``entry_identity``):
+    # an entity price source identifies the plant by its price sensor, so two
+    # entries over one account with different price sensors are two plants.
+    # Drop the arm and the two identities collide: the duplicate guard would
+    # refuse the second installation as already_configured.
+    with_price_sensor = {
+        **FIRST_SCREEN,
+        const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        const.CONF_PRICE_ENTITY: "sensor.nordpool",
+    }
+    check(
+        "user",
+        "happy",
+        "a different price sensor is a different plant",
+        config_flow.entry_identity(with_price_sensor)
+        != config_flow.entry_identity(
+            {**with_price_sensor, const.CONF_PRICE_ENTITY: "sensor.awa"}
+        ),
+        "the two identities are equal",
+    )
+    check(
+        "user",
+        "happy",
+        "the same price sensor under another name is the same plant",
+        config_flow.entry_identity(with_price_sensor)
+        == config_flow.entry_identity({**with_price_sensor, "name": "Annex"}),
+        "the name is configuration, not identity",
+    )
+
+    # _house_power_candidates' two refusal arms: a hass with no state machine
+    # at all, and an entity id whose state is gone. Neither may break the
+    # page, and neither may yield a suggestion -- the suggestion may come
+    # only from a state that exists and looks like Pulse live power.
+    no_states = options_over(FakeEntry(data={}), FakeHass())
+    no_states.hass.states = None
+    form = await no_states.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a hass without a state machine renders the page and suggests nothing",
+        shows(form, "entities_metering")
+        and suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) is None,
+        f"{form.get('type')}/{form.get('step_id')} "
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+    dead_state = options_over(
+        FakeEntry(data={}), FakeHass(states={PULSE_POWER_ID: None})
+    )
+    form = await dead_state.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "an entity id holding no state is skipped, suggesting nothing",
+        shows(form, "entities_metering")
+        and suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) is None,
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+    live_state = options_over(
+        FakeEntry(data={}), FakeHass(states={PULSE_POWER_ID: pulse_power_state()})
+    )
+    form = await live_state.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a live Pulse power state is offered as the house power suggestion",
+        suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) == PULSE_POWER_ID,
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+
+    # _user_sensors_sections' forgotten-field fallback: a picker the grouping
+    # table does not name stays visible and flat rather than vanishing from
+    # the setup page. The grouping table is rebound for this one check -- it
+    # is the only seam the function reads -- and restored immediately; the
+    # intact-table control beside it is what makes the fallback's firing
+    # specific to a forgotten field rather than unconditional.
+    real_groups = config_flow._USER_SENSORS_GROUPS
+    try:
+        config_flow._USER_SENSORS_GROUPS = (
+            (
+                "indoor",
+                (const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY),
+            ),
+        )
+        forgotten = config_flow._user_sensors_sections(FakeHass())
+    finally:
+        config_flow._USER_SENSORS_GROUPS = real_groups
+    forgotten_keys = {str(getattr(k, "schema", k)) for k in forgotten}
+    intact_keys = {
+        str(getattr(k, "schema", k))
+        for k in config_flow._user_sensors_sections(FakeHass())
+    }
+    check(
+        "user_sensors",
+        "happy",
+        "a picker the grouping table forgot stays on the page, flat",
+        const.CONF_SOLAR_RADIATION_ENTITY in forgotten_keys
+        and const.CONF_HEAT_PUMP_MODE_ENTITY in forgotten_keys,
+        f"flat top-level keys={sorted(forgotten_keys)}",
+    )
+    check(
+        "user_sensors",
+        "happy",
+        "the intact grouping table hides nothing: only the three sections",
+        intact_keys == {"indoor", "solar", "plant"},
+        f"keys={sorted(intact_keys)}",
+    )
+
+    # _omit_unstored_computed's recompute-failure arm: a value whose computed
+    # default cannot be reproduced is kept verbatim, not dropped. The same
+    # payload runs both arms -- equal to the computable default it is dropped
+    # (the standing behaviour), equal to nothing computable it survives.
+    posted_home = {
+        "latitude": FakeHass().config.latitude,
+        "longitude": FakeHass().config.longitude,
+    }
+    kept_entry = FakeEntry(data={})
+    broken = options_over(kept_entry, FakeHass())
+    broken.hass.config = _ConfigWithoutLocation()
+    result = await submit(
+        broken, "entities_metering", {const.CONF_SOLAR_LOCATION: dict(posted_home)}
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a location whose default cannot be recomputed is kept, not dropped",
+        shows_menu(result, "init")
+        and kept_entry.options.get(const.CONF_SOLAR_LOCATION) == posted_home,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"kept={kept_entry.options.get(const.CONF_SOLAR_LOCATION)!r}",
+    )
+    dropped_entry = FakeEntry(data={})
+    working = options_over(dropped_entry, FakeHass())
+    result = await submit(
+        working, "entities_metering", {const.CONF_SOLAR_LOCATION: dict(posted_home)}
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "the same location over a working hass is dropped as the computed default",
+        shows_menu(result, "init")
+        and const.CONF_SOLAR_LOCATION not in dropped_entry.options,
+        f"stored={dropped_entry.options.get(const.CONF_SOLAR_LOCATION)!r}",
+    )
+
+    # _same_setting's coercion arms, str against number in both directions
+    # and each way round the try: a form rewrite that changed only the
+    # value's TYPE keeps the stored type; one that cannot be the stored
+    # setting at all keeps the posted value.
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PEAK_TARIFF_WINDOW: "60"})
+    await flow.async_step_grid(None)
+    result = await submit(flow, "grid", GRID_PEAK_ANSWERS)
+    stored_window = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    check(
+        "opt_grid",
+        "happy",
+        "a window coerced over a stored string keeps the stored string type",
+        shows_menu(result, "init")
+        and stored_window == "60"
+        and isinstance(stored_window, str),
+        f"stored={stored_window!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER}
+    )
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_SOURCE: 5})
+    check(
+        "opt_entities",
+        "happy",
+        "a posted number that is not the stored string's value keeps the posted value",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PRICE_SOURCE) == 5,
+        f"stored={entry.options.get(const.CONF_PRICE_SOURCE)!r}",
+    )
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PRICE_VAT: 0.25})
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_VAT: "0.25"})
+    stored_vat = entry.options.get(const.CONF_PRICE_VAT)
+    check(
+        "opt_entities",
+        "happy",
+        "a posted '0.25' over a stored 0.25 keeps the stored float",
+        shows_menu(result, "advanced")
+        and stored_vat == 0.25
+        and isinstance(stored_vat, float),
+        f"stored={stored_vat!r}",
+    )
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PRICE_VAT: 0.25})
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_VAT: "not-a-number"})
+    check(
+        "opt_entities",
+        "happy",
+        "a posted string the stored number cannot parse keeps the posted string",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PRICE_VAT) == "not-a-number",
+        f"stored={entry.options.get(const.CONF_PRICE_VAT)!r}",
+    )
+
+    # The options entities page's own credential guards, over an entry that
+    # holds none at all -- the walk's entry always has a token, so both
+    # required-errors and the stored-half of each lookup had never run.
+    tokenless_entry = FakeEntry(data={})
+    tokenless = options_over(tokenless_entry, FakeHass())
+    await tokenless.async_step_entities(None)
+    result = await submit(
+        tokenless, "entities", {const.CONF_WEATHER_ENTITY: "weather.home"}
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an options save with no token anywhere is tibber_token_required",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "tibber_token_required"
+        and not tokenless_entry.options,
+        f"errors={result.get('errors')} options={sorted(tokenless_entry.options)}",
+    )
+    entityless_entry = FakeEntry(data={})
+    entityless = options_over(entityless_entry, FakeHass())
+    await entityless.async_step_entities(None)
+    result = await submit(
+        entityless,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an entity price source with no price sensor is price_entity_required",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_PRICE_ENTITY)
+        == "price_entity_required"
+        and not entityless_entry.options,
+        f"errors={result.get('errors')} options={sorted(entityless_entry.options)}",
+    )
+    stored_price_entry = FakeEntry(
+        data={},
+        options={
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.stored_price",
+        },
+    )
+    stored_price = options_over(stored_price_entry, FakeHass())
+    await stored_price.async_step_entities(None)
+    result = await submit(
+        stored_price,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "a stored price sensor satisfies the entity source without being re-submitted",
+        shows_menu(result, "advanced")
+        and not result.get("errors")
+        and stored_price_entry.options.get(const.CONF_PRICE_ENTITY) is None,
+        f"errors={result.get('errors')} "
+        f"cleared={stored_price_entry.options.get(const.CONF_PRICE_ENTITY)!r}",
+    )
+
+    # The hot_water page's holiday-window validation: the holiday field gets
+    # the same grammar as the weekday field, on its own error key, and a
+    # valid holiday spec saves onto its own key.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(
+        flow,
+        "hot_water",
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_HOLIDAY_DHW_WINDOWS: "garbage"},
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "an unparseable HOLIDAY window spec is invalid_dhw_windows on its own field",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_HOLIDAY_DHW_WINDOWS)
+        == "invalid_dhw_windows"
+        and not entry.options,
+        f"errors={result.get('errors')}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(
+        flow,
+        "hot_water",
+        {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_HOLIDAY_DHW_WINDOWS: "weekends 08:00-09:00",
+        },
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid holiday window spec saves onto its own field",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)
+        == "weekends 08:00-09:00",
+        f"stored={entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)!r}",
+    )
+
+    # #1260: the per-weekday override block. The page gains one toggle;
+    # the seven day fields render only while the toggle is on (the wood
+    # block's `when` mechanism), each takes the ordinary window grammar
+    # without day selectors, and an untouched save stores none of it.
+    flow, entry, _ = fresh_options()
+    plain = await flow.async_step_hot_water(None)
+    check(
+        "opt_hot_water",
+        "happy",
+        "with the toggle off the page shows no per-day fields",
+        const.CONF_DHW_WINDOWS_BY_DAY in rendered_keys(plain)
+        and not any(
+            key in rendered_keys(plain) for key in const.CONF_DHW_WINDOWS_DAY
+        ),
+        f"keys={sorted(rendered_keys(plain))}",
+    )
+    flow, entry, _ = fresh_options(pre_options={
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+    })
+    opened = await flow.async_step_hot_water(None)
+    check(
+        "opt_hot_water",
+        "happy",
+        "the toggle on reveals all seven day fields",
+        all(key in rendered_keys(opened) for key in const.CONF_DHW_WINDOWS_DAY),
+        f"keys={sorted(rendered_keys(opened))}",
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "the day fields offer the stored spec, empty meaning inherit",
+        _untouched_post(opened.get("data_schema")).get("by_day")
+        == {key: "" for key in const.CONF_DHW_WINDOWS_DAY},
+        f"by_day={_untouched_post(opened.get('data_schema')).get('by_day')}",
+    )
+    # An untouched save must not store the toggle: its default is computed
+    # from the seven fields, so writing it on every walk would move stored
+    # bytes for nothing (the weekend-fields rule, _omit_unstored_computed).
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", HOT_WATER_PAGE_ANSWERS)
+    check(
+        "opt_hot_water",
+        "happy",
+        "an untouched save stores neither the toggle nor any day field",
+        shows_menu(result, "init")
+        and const.CONF_DHW_WINDOWS_BY_DAY not in entry.options
+        and not any(key in entry.options for key in const.CONF_DHW_WINDOWS_DAY),
+        f"stored={sorted(entry.options)}",
+    )
+    for key, spec, want in (
+        (const.CONF_DHW_WINDOWS_DAY[2], "garbage", "invalid_dhw_windows"),
+        (const.CONF_DHW_WINDOWS_DAY[2], "06:05-06:10", "dhw_window_too_short"),
+        (const.CONF_DHW_WINDOWS_DAY[2], "weekdays 06:00-08:30",
+         "dhw_windows_day_selector"),
+    ):
+        flow, entry, _ = fresh_options(pre_options={
+            const.CONF_DHW_WINDOWS_BY_DAY: True,
+        })
+        await flow.async_step_hot_water(None)
+        result = await submit(flow, "hot_water", {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_DHW_WINDOWS_BY_DAY: True,
+            key: spec,
+        })
+        check(
+            "opt_hot_water",
+            "error",
+            f"a day field refusing {spec!r} puts {want} on that field alone",
+            shows(result, "hot_water")
+            and result.get("errors", {}).get(key) == want
+            and not any(
+                k in entry.options for k in const.CONF_DHW_WINDOWS_DAY
+            ),
+            f"errors={result.get('errors')}",
+        )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", {
+        **HOT_WATER_PAGE_ANSWERS,
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+        const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+        const.CONF_DHW_WINDOWS_DAY[6]: "12:00-14:00",
+    })
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid per-day save stores the flag and the two specs, not seven keys",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_WINDOWS_BY_DAY) is True
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[5]) == "10:00-12:00"
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[6]) == "12:00-14:00"
+        and sorted(entry.options) == sorted(
+            [const.CONF_DHW_WINDOWS_BY_DAY,
+             const.CONF_DHW_WINDOWS_DAY[5],
+             const.CONF_DHW_WINDOWS_DAY[6],
+             *HOT_WATER_PAGE_ANSWERS]
+        ),
+        f"stored={sorted(entry.options)}",
+    )
+    # Turning the toggle off is non-destructive: the specs stay stored (the
+    # fields are simply not rendered), and the flag's False is what switches
+    # the overrides off in from_config.
+    flow, entry, _ = fresh_options(pre_options={
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+        const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+    })
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", {
+        **HOT_WATER_PAGE_ANSWERS,
+        const.CONF_DHW_WINDOWS_BY_DAY: False,
+    })
+    check(
+        "opt_hot_water",
+        "happy",
+        "switching the toggle off keeps the stored specs for a later re-enable",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_WINDOWS_BY_DAY) is False
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[5]) == "10:00-12:00",
+        f"stored={sorted(entry.options)}",
+    )
+
+    # #1067 W1067-G4: the grid_connection page's silent-mode window takes
+    # the hot-water grammar and its two refusals, the short one on its own
+    # key; a valid spec saves; a cleared field saves as empty rather than
+    # leaving the old schedule in force under the options merge.
+    for spec, want in (("garbage", "invalid_dhw_windows"),
+                       ("22:00-22:05", "silent_mode_window_too_short")):
+        flow, entry, _ = fresh_options()
+        await flow.async_step_grid_connection(None)
+        result = await submit(
+            flow,
+            "grid_connection",
+            {**GRID_CONNECTION_ANSWERS, const.CONF_SILENT_MODE_WINDOWS: spec},
+        )
+        check(
+            "opt_grid_connection",
+            "error",
+            f"a silent-mode window {spec!r} is {want} on its own field (#1067)",
+            shows(result, "grid_connection")
+            and result.get("errors", {}).get(const.CONF_SILENT_MODE_WINDOWS) == want
+            and not entry.options,
+            f"errors={result.get('errors')}",
+        )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_grid_connection(None)
+    result = await submit(
+        flow,
+        "grid_connection",
+        {
+            **GRID_CONNECTION_ANSWERS,
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_SILENT_MODE_FRACTION: 0.7,
+        },
+    )
+    check(
+        "opt_grid_connection",
+        "happy",
+        "a valid silent-mode window and derate save onto their own keys (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_SILENT_MODE_WINDOWS) == "22:00-06:00"
+        and entry.options.get(const.CONF_SILENT_MODE_FRACTION) == 0.7,
+        f"type={result.get('type')} errors={result.get('errors')} "
+        f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
+    )
+    await flow.async_step_grid_connection(None)
+    result = await submit(flow, "grid_connection", dict(GRID_CONNECTION_ANSWERS))
+    check(
+        "opt_grid_connection",
+        "happy",
+        "a cleared silent-mode window saves as empty, not as the old schedule (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_SILENT_MODE_WINDOWS) == "",
+        f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
+    )
+
+    # #1067 W1067-G5: control of the pump's disinfection switch needs the
+    # switch. Control with none is refused on the mode's own field and saves
+    # nothing; control with one saves both keys; observe with none (the
+    # default) saves as before; and clearing the switch writes None rather
+    # than leaving the old one in force under the options merge.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
+        },
+    )
+    check(
+        "opt_hot_water_tank",
+        "error",
+        "disinfection control with no switch is refused, not saved (#1067)",
+        shows(result, "hot_water_tank")
+        and result.get("errors", {}).get(const.CONF_DHW_DISINFECTION_MODE)
+        == "disinfection_control_needs_entity"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
+        },
+    )
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "disinfection control with a switch saves both keys (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
+        == "switch.pump_disinfection"
+        and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_CONTROL,
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+    # The stored mode is control now: clearing the switch without moving the
+    # mode back is the same refusal, judged over what would be stored.
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(flow, "hot_water_tank", dict(HOT_WATER_TANK_ANSWERS))
+    check(
+        "opt_hot_water_tank",
+        "error",
+        "clearing the switch under a stored control mode is refused (#1067)",
+        shows(result, "hot_water_tank")
+        and result.get("errors", {}).get(const.CONF_DHW_DISINFECTION_MODE)
+        == "disinfection_control_needs_entity"
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
+        == "switch.pump_disinfection",
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_OBSERVE,
+        },
+    )
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "observe with the switch cleared saves, and the switch saves as None (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY) is None
+        and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_OBSERVE,
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+
+    # #1067 W1067-G6: a compressor-frequency SENSOR alone observes, but only
+    # a number entity can be written, so choosing control without one is
+    # refused on the mode field and saves nothing. A number with control,
+    # and a sensor with observe and its own Hz range, both save.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "error",
+        "control without a frequency number entity is refused on the mode field (#1067)",
+        shows(result, "entities_metering")
+        and result.get("errors", {}).get(const.CONF_FREQ_CONTROL_MODE)
+        == "freq_control_needs_number"
+        and not entry.options,
+        f"type={result.get('type')} errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_ENTITY: "number.freq",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "control with a frequency number entity saves (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_FREQ_CONTROL_MODE) == "control",
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "observe",
+            const.CONF_COMPRESSOR_FREQ_MIN_HZ: 25.0,
+            const.CONF_COMPRESSOR_FREQ_MAX_HZ: 95.0,
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a sensor-only observe install saves its own Hz range (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hz"
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MIN_HZ) == 25.0
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MAX_HZ) == 95.0,
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+
+    # The grid_fees page's catalog application: choosing a DSO product
+    # writes that product's rules and mode over whatever the page carried.
+    dso_product = "ellevio_villa_effekt_2026"
+    catalog_row = config_flow.grid_fee.SWEDEN_CATALOG[dso_product]
+    flow, entry, _ = fresh_options()
+    await flow.async_step_grid_fees(None)
+    result = await submit(
+        flow,
+        "grid_fees",
+        {**GRID_FEES_ANSWERS, const.CONF_DSO_PRODUCT: dso_product},
+    )
+    check(
+        "opt_grid_fees",
+        "happy",
+        "a catalog DSO product writes its own rules and mode over the page",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_GRID_FEE_RULES)
+        == catalog_row["grid_fee_rules"]
+        and entry.options.get(const.CONF_GRID_FEE_MODE)
+        == config_flow.grid_fee.MODE_RULES,
+        f"rules={entry.options.get(const.CONF_GRID_FEE_RULES)!r} "
+        f"mode={entry.options.get(const.CONF_GRID_FEE_MODE)!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the pages re-rendered over configuration that is already stored.
+#
+# Every options page builds its entity fields through a local ``_entity``
+# helper whose two arms differ only in whether a default is attached. Every
+# walk above starts from an entry with no options, so only the empty arm had
+# ever run -- and the arm that never ran is the one that carries the user's
+# saved sensor back onto the form. When it fails the field renders blank
+# over a stored value, and because the frontend submits the whole form, the
+# next save writes that blank back: the setting disappears without anyone
+# touching it. That is not hypothetical here -- the entities page shipped a
+# version of this wipe once already (see the module docstring).
+# ---------------------------------------------------------------------------
+_NO_DEFAULT = object()
+
+# Distinct from FakeConfig's home point (59.33, 18.07), so "the stored
+# location was kept" cannot be satisfied by the fallback.
+SEEDED_LOCATION = {"latitude": 55.605, "longitude": 13.003}
+
+# One stored value per entity field reached through a page's ``_entity``
+# helper. Keyed by the page that renders it, because the assertion is
+# per-page: each of these is a different closure in a different method.
+SEEDED_ENTITIES = {
+    "entities_metering": {
+        const.CONF_SOLAR_RADIATION_ENTITY: "sensor.solar_radiation",
+        const.CONF_POWER_ENTITY: "sensor.pump_power",
+        const.CONF_ENERGY_ENTITY: "sensor.pump_energy",
+        const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+        const.CONF_COMPRESSOR_FREQ_ENTITY: "number.compressor_freq",
+        const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.compressor_freq",
+    },
+    "hot_water_tank": {
+        const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet",
+        const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+    },
+    "hot_water_pumps": {const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump"},
+    "grid_fees": {const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee"},
+    "solar_pv": {
+        const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
+        const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_production",
+    },
+    "away": {const.CONF_AWAY_PRESENCE_ENTITY: "person.resident"},
+}
+
+
+def schema_default(result, key):
+    """The value a rendered form's marker presents for one key.
+
+    Read from ``default`` or, failing that, from
+    ``description["suggested_value"]``: those are the two ways a form pre-fills
+    a field and the frontend shows and posts them alike, so the value the form
+    presents is both of them. ``_NO_DEFAULT`` when the marker has neither:
+    ``vol.Optional(key)`` parks voluptuous's UNDEFINED sentinel in ``default``,
+    which is not callable, and that is exactly the difference between the two
+    arms of the ``_STORED`` rule -- so the sentinel has to be distinguishable
+    from a stored ``None``.
+    """
+    schema = result.get("data_schema")
+    for marker, _value in _presented_fields(schema):
+        if str(getattr(marker, "schema", marker)) != key:
+            continue
+        default = getattr(marker, "default", None)
+        if callable(default):
+            return default()
+        return (getattr(marker, "description", None) or {}).get(
+            "suggested_value", _NO_DEFAULT
+        )
+    return _NO_DEFAULT
+
+
+async def options_seeded_prefill():
+    """Every page re-rendered over stored values, and over none (#304)."""
+    R.section("options: pages re-rendered over configuration already stored")
+
+    seeded = {k: v for page in SEEDED_ENTITIES.values() for k, v in page.items()}
+    seeded[const.CONF_SOLAR_LOCATION] = dict(SEEDED_LOCATION)
+
+    for page, fields in SEEDED_ENTITIES.items():
+        stored_flow, _, _ = fresh_options(pre_options=dict(seeded))
+        empty_flow, _, _ = fresh_options()
+        stored_form = await getattr(stored_flow, f"async_step_{page}")(None)
+        empty_form = await getattr(empty_flow, f"async_step_{page}")(None)
+        carried = {key: schema_default(stored_form, key) for key in fields}
+        # The null control, and the reason this is two renders rather than
+        # one: an unseeded page must carry NO default for the same fields.
+        # Without it the check would pass just as well on a page that
+        # always attaches one, which would pin nothing about the stored
+        # value ever reaching the form.
+        unseeded = {key: schema_default(empty_form, key) for key in fields}
+        check(
+            f"opt_{page}",
+            "happy",
+            f"the {page} page re-renders its stored entities as pre-fills",
+            carried == fields,
+            f"carried={carried} want={fields}",
+        )
+        check(
+            f"opt_{page}",
+            "happy",
+            f"the {page} page carries no entity default when nothing is stored",
+            all(value is _NO_DEFAULT for value in unseeded.values()),
+            f"unseeded={ {k: (v is _NO_DEFAULT) for k, v in unseeded.items()} }",
+        )
+
+    # The map field is the same hazard in a different shape: a configured
+    # point must survive a re-render rather than snapping back to the HA
+    # home location, which is a silently wrong answer rather than an empty
+    # one -- the user cannot see that the map moved.
+    stored_flow, _, _ = fresh_options(pre_options=dict(seeded))
+    empty_flow, _, hass = fresh_options()
+    stored_form = await stored_flow.async_step_entities_metering(None)
+    empty_form = await empty_flow.async_step_entities_metering(None)
+    kept = schema_default(stored_form, const.CONF_SOLAR_LOCATION)
+    home = schema_default(empty_form, const.CONF_SOLAR_LOCATION)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a configured solar location is kept, not replaced by the HA home point",
+        kept == SEEDED_LOCATION,
+        f"kept={kept!r} want={SEEDED_LOCATION!r}",
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "with no configured location the map falls back to the HA home point",
+        home == {
+            "latitude": hass.config.latitude,
+            "longitude": hass.config.longitude,
+        },
+        f"home={home!r}",
+    )
+
+
+#: Entity keys configured on one page and reachable from every other, used to
+#: ask whether a page's save stays inside its own schema (#542). Each is a key
+#: some page's submit path cleans to ``None`` when absent, so a page that
+#: cleans one it never offered destroys it.
+CROSS_PAGE_SEED = {
+    const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.wood_stove",
+    const.CONF_AWAY_PRESENCE_ENTITY: "person.resident",
+    const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee",
+    const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_production",
+    const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet",
+    const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump",
+    const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.humidity",
+    const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_setpoint",
+}
+
+
+async def options_cross_page_save_scope():
+    """A no-op save must not write keys the page never offered (#542).
+
+    Every option page is driven, and the page list is read from
+    ``_MENU_LABELS`` rather than named here. That derivation is the point:
+    #542 survived because both hand-written witnesses iterate hand-written
+    page lists, so a page absent from them is a page nothing asks about, and
+    ``learning`` was absent from both.
+
+    Each page is rendered over a seeded entry, then submitted with exactly
+    the values it rendered -- opening a page and pressing Save without
+    editing anything. Afterwards every seeded key the page did NOT offer must
+    still hold its seeded value. Pages that DO offer a key are excluded by
+    derivation, so no page has to be listed here as an exception; and a page
+    that legitimately derives a key it does not show writes a key the seed
+    does not carry, so it never trips this.
+
+    Two controls, because the assertion is a negative one. The save must
+    really have happened -- a page that refused to save would preserve every
+    key while proving nothing -- and the seed must really be on disk before
+    the save, or the comparison is against a value that was never there.
+    """
+    R.section("options: a page's save stays inside its own schema (#542)")
+    for page in config_flow.HeatPumpOptimizerOptionsFlow._MENU_LABELS:
+        flow, entry, _ = fresh_options(pre_options=dict(CROSS_PAGE_SEED))
+        form = await getattr(flow, f"async_step_{page}")(None)
+        if form.get("type") != "form":
+            continue
+        presented = list(_presented_fields(form.get("data_schema")))
+        offered = {str(getattr(marker, "schema", marker)) for marker, _ in presented}
+        unseeded = {
+            key: entry.options.get(key)
+            for key, value in CROSS_PAGE_SEED.items()
+            if entry.options.get(key) != value
+        }
+        answers = {}
+        for marker, _value in presented:
+            default = getattr(marker, "default", None)
+            if not callable(default):
+                continue
+            try:
+                answers[str(getattr(marker, "schema", marker))] = default()
+            except Exception:
+                pass
+        result = await submit(flow, page, answers)
+        if result.get("type") == "form" and result.get("step_id") == page and not result.get("errors"):
+            # A page whose submit opens a preview of its own step (the Modbus
+            # pre-fill) saves on the preview's submit: press Save there too,
+            # still editing nothing.
+            result = await submit(flow, page, {})
+        clobbered = {
+            key: entry.options.get(key)
+            for key, value in CROSS_PAGE_SEED.items()
+            if key not in offered and entry.options.get(key) != value
+        }
+        check(
+            f"opt_{page}",
+            "happy",
+            f"a no-op save on the {page} page leaves keys it never offered alone",
+            result.get("type") == "menu" and not unseeded and not clobbered,
+            f"saved={result.get('type')}/{result.get('step_id')} "
+            f"offered={len(offered)} unseeded_before={unseeded} "
+            f"clobbered={clobbered}",
+        )
+
+
+
+
+# ---------------------------------------------------------------------------
+# #223: the settings registry, and the invariants it makes structural.
+#
+# Every list below is DERIVED -- pages from ``_MENU_LABELS``, fields from the
+# rendered schema -- so a page the registry gains is covered without anyone
+# remembering it. That is the property the two witnesses above lack: their
+# hand-written page lists are why #542 lived, and their union still does not
+# reach ``entities_pump``.
+#
+# The walks here go through ``_presented_fields``, which recurses into a
+# ``section()``. A one-level walk does not FAIL on a grouped page, it silently
+# stops asserting -- the same shape as a fixture that moves once and then goes
+# quiet -- so the recursion is proved below against a synthetically grouped
+# page, with the null control that an ungrouped page gains nothing.
+# ---------------------------------------------------------------------------
+
+#: The wood block is the only ``when``-gated block in the registry, and it is
+#: revealed by this toggle. Seeded so the pages below cover those rows too;
+#: without it eight of the building page's fields never render and the
+#: assertions pass over a smaller tree than the flow really has. The per-day
+#: block (#1260) reveals on its own toggle the same way.
+REGISTRY_SEED = {
+    const.CONF_WOOD_FURNACE_ENABLED: True,
+    const.CONF_DHW_WINDOWS_BY_DAY: True,
+}
+
+
+def bare_options(pre_options=None):
+    """An options flow over an entry with NO setup data at all.
+
+    ``fresh_options`` seeds ``BASE_ENTRY_DATA``, which already configures
+    ``indoor_temp_entity`` and ``heat_pump_switch_entity`` -- so those two
+    render defaulted there, and "offered undefaulted" would classify them as
+    ordinary fields. The empty arm is only observable on an entry that
+    genuinely holds nothing.
+    """
+    flow = config_flow.HeatPumpOptimizerOptionsFlow(
+        FakeEntry(data={}, options=dict(pre_options or {}))
+    )
+    flow.hass = FakeHass()
+    return flow
+
+
+def offered_entity_fields(result):
+    """``{key: pre-fill}`` for every entity picker a rendered page offers.
+
+    ``NO_DEFAULT`` where the marker presents nothing: a stored value is
+    offered as a ``suggested_value`` and an unconfigured slot with no
+    suggestion as nothing at all, and that is exactly the difference between
+    the two arms of the registry's ``_STORED`` rule. Reads the same presented
+    value ``entity_field_defaults`` does, rather than a second copy of the
+    rule -- a reader re-implemented is a reader that can disagree.
+    """
+    return entity_field_defaults(result)
+
+
+def rendered_keys(result):
+    """Every option key a rendered page presents, section nesting included."""
+    schema = result.get("data_schema")
+    return {
+        str(getattr(marker, "schema", marker))
+        for marker, _value in _presented_fields(schema)
+    } - {const.CONF_AFTER_SAVE}
+
+
+async def registry_drives_every_page():
+    """#223: one table decides which fields a page has and which menu shows it.
+
+    Three declarations that used to be three hand-kept copies of one fact --
+    the page's markers, its clearable keys, and its menu membership -- and one
+    of them was wrong at the merge base without anything failing.
+    """
+    R.section("options: the settings registry drives every page (#223)")
+    Flow = config_flow.HeatPumpOptimizerOptionsFlow
+    pages = list(Flow._MENU_LABELS)
+    rows = getattr(config_flow, "_OPTION_FIELDS", ())
+    dynamic_rule = getattr(config_flow, "_DYNAMIC", None)
+
+    # The table against the code. Deriving the two menus from one column made
+    # "the menus partition the pages" true by construction, so the invariant
+    # with teeth is now this one: a page in the table with no handler, or a
+    # handler no menu offers, is unreachable either way.
+    handlers = {
+        name[len("async_step_") :]
+        for name in dir(Flow)
+        if name.startswith("async_step_")
+    } - {"init", "advanced"}
+    check(
+        "registry",
+        "happy",
+        "the page table and the step handlers describe the same pages",
+        handlers == set(pages) and len(pages) > 1,
+        f"listed with no handler {sorted(set(pages) - handlers)}, "
+        f"handled but unlisted {sorted(handlers - set(pages))}",
+    )
+
+    # The one control a page renders that is NOT a registry row: the pre-fill
+    # page's device pick (#1067 W1067-G7b-1). It is read once, to decide where
+    # that visit's suggestions come from, and never stored -- so it has no
+    # ``_F`` row, no default and no entry in ``_ABSENT_FALLBACKS``. The check
+    # below would otherwise refuse it. This is a design choice stated rather
+    # than a hole: the allowance is keyed on the production constant so it
+    # cannot drift from the field the page renders, and the two checks after
+    # the loop hold it to being transient -- it is not an option key, and the
+    # page's own walk asserts it is never written to the entry's options.
+    transient = {"modbus_prefill": {config_flow._PREFILL_DEVICE}}
+    # #1258: the quick-setup questions page. Its five toggles are transient
+    # questions exactly like the device pick -- named in ``quick_setup`` and
+    # mapped onto option keys only by ``quick_setup.derive`` -- so they join
+    # the transient allowance, keyed on the module's own SHIPPED_ANSWERS (the
+    # one source the fresh form's defaults and derive's fallbacks also read,
+    # so the allowance cannot drift from the fields the page renders).
+    transient["quick_setup"] = set(quick_setup.SHIPPED_ANSWERS)
+    # The rest of that page's fields are not its own declarations but the
+    # building pages': the questionnaire's one field list serves two flows by
+    # design (``_questionnaire_fields``), and the two wood probes are the
+    # building page's own rows. Keyed on the production objects that build
+    # them, never hand-listed, and held to being real registry rows below --
+    # a shared field the building pages stopped declaring would fail there.
+    shared = {
+        "quick_setup": set(config_flow._QUESTIONNAIRE_DEFAULTS)
+        | {const.CONF_WOOD_TANK_TOP_ENTITY, const.CONF_WOOD_TANK_BOTTOM_ENTITY},
+    }
+    check(
+        "registry",
+        "happy",
+        "the non-registry controls are transient: none is an option key anywhere",
+        not {key for keys in transient.values() for key in keys}
+        & {row.key for row in rows},
+        f"{transient} against the registry's keys",
+    )
+    _bp_rendered = rendered_keys(
+        await bare_options(REGISTRY_SEED).async_step_building_preset(None)
+    )
+    check(
+        "registry",
+        "happy",
+        "every field the questions page shares is declared where it lives",
+        shared["quick_setup"] <= _bp_rendered | {row.key for row in rows},
+        f"declared nowhere: "
+        f"{sorted(shared['quick_setup'] - _bp_rendered - {row.key for row in rows})}",
+    )
+
+    undeclared = {}
+    unrendered = {}
+    for page in pages:
+        flow = bare_options(REGISTRY_SEED)
+        form = await getattr(flow, f"async_step_{page}")(None)
+        rendered = rendered_keys(form)
+        declared = {row.key for row in rows if row.step == page}
+        declared |= transient.get(page, set()) | shared.get(page, set())
+        declared.discard("")
+        for row in rows:
+            if row.step != page or row.default is not dynamic_rule:
+                continue
+            # A block a callable builds is still declared BY the table; its
+            # keys are read from the builder, not from the page, or this
+            # check would be comparing the page with itself.
+            declared |= {
+                str(getattr(marker, "schema", marker))
+                for marker in row.widget(dict(REGISTRY_SEED))
+            }
+        if rendered - declared:
+            undeclared[page] = sorted(rendered - declared)
+        if declared - rendered:
+            unrendered[page] = sorted(declared - rendered)
+    check(
+        "registry",
+        "happy",
+        "every field every page renders is a registry row for that page",
+        not undeclared and not unrendered,
+        f"rendered but not declared {undeclared}, declared but not rendered {unrendered}",
+    )
+
+    # The clearable roster. At the merge base this was a hand-kept tuple that
+    # named ``away_return_entity`` -- a key no option page has ever offered --
+    # and nothing failed, because its only reader is a seven-key hand list
+    # that does not mention it.
+    two_armed = {}
+    for page in pages:
+        flow = bare_options(REGISTRY_SEED)
+        offered = offered_entity_fields(await getattr(flow, f"async_step_{page}")(None))
+        for key, default in offered.items():
+            if default is NO_DEFAULT:
+                two_armed.setdefault(key, []).append(page)
+    roster = set(Flow._OPTIONAL_ENTITY_KEYS)
+    check(
+        "registry",
+        "happy",
+        "the clearable roster is exactly the slots some page offers undefaulted",
+        roster == set(two_armed) and len(two_armed) > 1,
+        f"named but never offered {sorted(roster - set(two_armed))}, "
+        f"offered but not named {sorted(set(two_armed) - roster)}",
+    )
+
+    # Both arms, on every page rather than on the ten the two hand-written
+    # witnesses reach between them. A registry that attached a default to
+    # every field would pass the second half and fail the first.
+    per_page = {}
+    for key, owners in two_armed.items():
+        for page in owners:
+            per_page.setdefault(page, {})[key] = f"sensor.registry_{key}"
+    not_carried = {}
+    for page, stored in sorted(per_page.items()):
+        flow = bare_options({**REGISTRY_SEED, **stored})
+        rendered = offered_entity_fields(
+            await getattr(flow, f"async_step_{page}")(None)
+        )
+        wrong = {k: rendered.get(k) for k, v in stored.items() if rendered.get(k) != v}
+        if wrong:
+            not_carried[page] = wrong
+    check(
+        "registry",
+        "happy",
+        "and every one of them re-renders its stored value as that field's pre-fill",
+        not not_carried and len(per_page) > 1,
+        f"{len(per_page)} page(s) carry a two-armed slot; wrong: {not_carried}",
+    )
+
+
+async def registry_walk_recurses():
+    """The registry's own walk survives a grouped page (#568's precondition).
+
+    ``section()`` nests the form without renaming the option keys, so a
+    one-level walk over a grouped page returns nothing and every assertion
+    built on it passes vacuously. The wide pages are grouped in this branch;
+    this check still uses a synthetic wrap of the ungrouped pump page so the
+    recursion is proved against a known, named key set, not only against the
+    production grouping.
+    """
+    R.section("options: the registry walk reaches fields inside a section()")
+    flow = bare_options(REGISTRY_SEED)
+    flat = (await flow.async_step_entities_pump(None)).get("data_schema")
+    inner = dict(flat.schema)
+
+    def grouped(fields):
+        """The grouping and nothing else: the same fields, one section."""
+        return {
+            "data_schema": vol.Schema(
+                {
+                    vol.Required("pump_signals"): section(
+                        vol.Schema(fields), {"collapsed": True}
+                    )
+                }
+            )
+        }
+
+    flat_fields = offered_entity_fields({"data_schema": flat})
+    # Named rather than counted, so the check cannot go vacuous on a page
+    # that stopped rendering its pickers: an empty set equals an empty set.
+    signals = {
+        const.CONF_HEAT_PUMP_MODE_ENTITY,
+        const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+        const.CONF_HEAT_PUMP_ONLINE_ENTITY,
+        const.CONF_HEAT_PUMP_FAULT_ENTITY,
+        # #1067: the pump's own electric heat and its night mode, on the same
+        # page. Named here rather than counted for the reason above -- a
+        # count would go on agreeing while a picker stopped rendering.
+        const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+        const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+        # #1067 again: the pump's own supply and return water, same page.
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+        const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    }
+    check(
+        "registry",
+        "happy",
+        "every pump-telemetry picker is reached through a section() too",
+        set(offered_entity_fields(grouped(inner))) == signals
+        and set(flat_fields) == signals,
+        f"flat {sorted(flat_fields)}, "
+        f"grouped {sorted(offered_entity_fields(grouped(inner)))}",
+    )
+
+    # The mutation an ungrouped page catches, still caught after grouping.
+    dropped = const.CONF_HEAT_PUMP_FAULT_ENTITY
+    minus = {
+        marker: value
+        for marker, value in inner.items()
+        if str(getattr(marker, "schema", marker)) != dropped
+    }
+    check(
+        "registry",
+        "happy",
+        "a field removed from inside the section leaves the walk's result",
+        set(offered_entity_fields(grouped(minus))) == signals - {dropped},
+        f"still reached: {sorted(offered_entity_fields(grouped(minus)))}",
+    )
+
+    # The over-fire control. #568's first recursion matched ordinary
+    # selectors as well as sections, which gave 411 markers a nested key and
+    # broke the committed fixture; here the same fault would report fields
+    # that are not entity pickers, or report them twice.
+    one_level = {
+        str(getattr(marker, "schema", marker))
+        for marker, value in flat.schema.items()
+        if type(value).__name__ == "EntitySelector"
+    }
+    check(
+        "registry",
+        "happy",
+        "and an ungrouped page reaches exactly what one level reaches",
+        set(flat_fields) == one_level and bool(one_level),
+        f"recursive {sorted(flat_fields)}, one level {sorted(one_level)}",
+    )
+
+
+WIDE_PAGES = (
+    "building",
+    "hot_water_tank",
+    "entities",
+    "building_preset",
+    "comfort",
+    "tuning",
+    "learning_features",
+    "hot_water",
+    "entities_metering",
+    "thermal_model_zones",
+)
+
+
+async def wide_pages_grouped():
+    """#516: the ten wide pages render ``section()`` blocks, and a nested
+    submit stores flat option keys.
+    """
+    R.section("options: the ten wide pages are sectioned (#516)")
+    missing = []
+    for page in WIDE_PAGES:
+        flow = bare_options(REGISTRY_SEED)
+        form = await getattr(flow, f"async_step_{page}")(None)
+        schema = form.get("data_schema")
+        sections = [
+            str(getattr(key, "schema", key))
+            for key, value in (schema.schema.items() if schema else [])
+            if _nested_schema(value) is not None
+        ]
+        if not sections:
+            missing.append(page)
+    check(
+        "e4",
+        "happy",
+        "each of the ten wide pages renders at least one section()",
+        not missing,
+        f"ungrouped: {missing}",
+    )
+
+    flow = bare_options()
+    form = await flow.async_step_comfort(None)
+    schema = form["data_schema"]
+    nested = nest_flat(
+        schema,
+        {
+            const.CONF_TARGET_TEMP: 21.5,
+            const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+        },
+    )
+    result = await flow.async_step_comfort(nested)
+    stored = result.get("data") or {}
+    check(
+        "e4",
+        "happy",
+        "a nested comfort submit stores the option key, not the section name",
+        stored.get(const.CONF_TARGET_TEMP) == 21.5 and "band" not in stored,
+        f"stored keys={sorted(stored)}",
+    )
+
+    # Production widening must recurse: a stored out-of-range number inside
+    # a section is the same un-submittable page #304 fixed at one level.
+    bounded = config_flow.selector.NumberSelector(
+        config_flow.selector.NumberSelectorConfig(
+            min=0, max=10, step=1, mode=config_flow.selector.NumberSelectorMode.BOX
+        )
+    )
+    grouped = vol.Schema(
+        {
+            "band": section(
+                vol.Schema({vol.Optional("n", default=99): bounded}),
+                {"collapsed": True},
+            )
+        }
+    )
+    _fitted, widened = config_flow._fit_stored_values(grouped)
+    check(
+        "e4",
+        "happy",
+        "widening reaches a number nested inside a section()",
+        widened == ["n"],
+        f"widened={widened}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the widening machinery's refusals.
+#
+# ``_fit_stored_values`` relaxes a bounded numeric field far enough to show
+# what is already on disk, because a stored value outside a field's range
+# makes the whole page un-submittable in silence. Its value is therefore
+# entirely in when it declines to move: widening on a value that is not a
+# number, or on an infinity, would replace a real bound with garbage or with
+# no bound at all, and the page would then accept anything. Each check below
+# pairs the refusal with the widening that must still happen, because a
+# function that returned None unconditionally would satisfy every refusal.
+# ---------------------------------------------------------------------------
+def _raising_default():
+    raise RuntimeError("a default that cannot be produced")
+
+
+async def widening_refusals():
+    R.section("schema widening: what must NOT move a field's bounds")
+    selector = config_flow.selector
+    bounded = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0, max=10, step=1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+
+    # A marker whose default raises is a broken field, not a reason to fail
+    # the whole page: the suggested value it also carries must still be read.
+    marker = vol.Optional(
+        "field",
+        default=_raising_default,
+        description={"suggested_value": 7},
+    )
+    check(
+        "schema_widening",
+        "error",
+        "a default that raises is skipped, the suggested value still read",
+        config_flow._prefilled_values(marker) == [7],
+        str(config_flow._prefilled_values(marker)),
+    )
+    working = vol.Optional(
+        "field", default=lambda: 3, description={"suggested_value": 7}
+    )
+    check(
+        "schema_widening",
+        "happy",
+        "a default that works is read alongside the suggested value",
+        config_flow._prefilled_values(working) == [7, 3],
+        str(config_flow._prefilled_values(working)),
+    )
+
+    # An unbounded field has nothing to widen. Real Home Assistant only
+    # admits this shape in box mode (helpers/selector.py validate_slider),
+    # which is why the config says so.
+    unbounded = selector.NumberSelector(
+        selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+    )
+    check(
+        "schema_widening",
+        "error",
+        "an unbounded number field is never rewritten",
+        config_flow._widen_to_fit(unbounded, [10_000]) is None,
+        repr(config_flow._widen_to_fit(unbounded, [10_000])),
+    )
+    for label, value in (
+        ("a non-numeric", "not a number"),
+        ("None", None),
+        ("NaN", float("nan")),
+        ("+inf", float("inf")),
+        ("-inf", float("-inf")),
+    ):
+        check(
+            "schema_widening",
+            "error",
+            f"{label} stored value leaves a bounded field's range alone",
+            config_flow._widen_to_fit(bounded, [value]) is None,
+            f"{label}: {config_flow._widen_to_fit(bounded, [value])!r}",
+        )
+    # The null control for all six refusals above: a finite out-of-range
+    # value DOES widen, and only as far as it has to. Without this, a
+    # ``_widen_to_fit`` that had stopped working entirely would pass every
+    # refusal check in this section.
+    widened = config_flow._widen_to_fit(bounded, [42.0])
+    check(
+        "schema_widening",
+        "happy",
+        "a finite out-of-range value widens the bound to exactly itself",
+        widened is not None
+        and widened.config["max"] == 42.0
+        and widened.config["min"] == 0,
+        repr(None if widened is None else dict(widened.config)),
+    )
+
+    # The whole-schema entry point: nothing to walk is not an error. The
+    # mixin applies it to every form result, including the menus and aborts
+    # that carry no schema at all.
+    for label, schema in (("None", None), ("a non-schema", object())):
+        fitted, widened_fields = config_flow._fit_stored_values(schema)
+        check(
+            "schema_widening",
+            "error",
+            f"{label} data_schema is returned untouched, with nothing widened",
+            fitted is schema and widened_fields == [],
+            f"{label}: fitted={fitted!r} widened={widened_fields!r}",
+        )
+    real_schema = vol.Schema({vol.Optional("field", default=lambda: 42.0): bounded})
+    fitted, widened_fields = config_flow._fit_stored_values(real_schema)
+    check(
+        "schema_widening",
+        "happy",
+        "a schema holding an out-of-range default is widened and named",
+        fitted is not real_schema and widened_fields == ["field"],
+        f"widened={widened_fields!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the menu labels.
+#
+# The menu supplies its own labels because the frontend renders an empty row
+# when its own lookup comes back empty -- a menu of unreadable blank lines.
+# So both arms matter: a translation that resolves must be used, and a
+# lookup that fails must still leave a legible menu behind.
+# ---------------------------------------------------------------------------
+async def menu_label_translations():
+    R.section("options: menu labels, translated and not")
+    Flow = config_flow.HeatPumpOptimizerOptionsFlow
+    untranslated = {step: Flow._MENU_LABELS[step] for step in Flow._TOP_MENU}
+    untranslated["advanced"] = Flow._ADVANCED_LABEL
+    real = config_flow.async_get_translations
+
+    async def _stub(result):
+        async def _get(hass, language, category, integrations=None):
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        config_flow.async_get_translations = _get
+        try:
+            flow, _, _ = fresh_options()
+            return await flow.async_step_init(None)
+        finally:
+            config_flow.async_get_translations = real
+
+    menu = await _stub(RuntimeError("translations unavailable"))
+    check(
+        "opt_init",
+        "error",
+        "a failed translation lookup still renders every menu label",
+        menu.get("menu_options") == untranslated
+        and all(menu.get("menu_options", {}).values()),
+        str(menu.get("menu_options")),
+    )
+
+    # The resolving arm, keyed the way Home Assistant flattens translations:
+    # component.<domain>.<category>.<path>, so this is the key a real
+    # install would actually return for the options menu's comfort entry.
+    prefix = f"component.{config_flow.DOMAIN}.options.step.init.menu_options."
+    menu = await _stub({f"{prefix}comfort": "Komfort"})
+    labels = menu.get("menu_options", {})
+    check(
+        "opt_init",
+        "happy",
+        "a resolved translation replaces that entry's label and no other",
+        labels.get("comfort") == "Komfort"
+        and {k: v for k, v in labels.items() if k != "comfort"}
+        == {k: v for k, v in untranslated.items() if k != "comfort"},
+        str(labels),
+    )
+    # Two null controls for the key format. A translation filed under the
+    # INITIAL flow's category must not reach the options menu, and an empty
+    # string is not a translation -- taking it would blank the row this
+    # whole mechanism exists to keep legible.
+    wrong = f"component.{config_flow.DOMAIN}.config.step.init.menu_options.comfort"
+    menu = await _stub({wrong: "Wrong flow"})
+    check(
+        "opt_init",
+        "error",
+        "a translation from the other flow's category is not used",
+        menu.get("menu_options", {}).get("comfort") == untranslated["comfort"],
+        str(menu.get("menu_options", {}).get("comfort")),
+    )
+    menu = await _stub({f"{prefix}comfort": ""})
+    check(
+        "opt_init",
+        "error",
+        "an empty translation keeps the built-in label, not a blank row",
+        menu.get("menu_options", {}).get("comfort") == untranslated["comfort"],
+        str(menu.get("menu_options", {}).get("comfort")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tranche 2 (#194): the reconfigure flow, end to end through the real
+# validate_tibber_token. tests/entities.py drives this flow with the verdict
+# stubbed to accept-anything; the branches below (a refused token
+# mid-reconfigure, an unreachable Tibber, the whole round trip against
+# scripted HTTP) had never run against the production verdict logic.
+# ---------------------------------------------------------------------------
+RC_ENTRY_DATA = {
+    config_flow.CONF_NAME: "Annex pump",
+    const.CONF_TIBBER_TOKEN: "stale-token",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+    const.CONF_TARGET_TEMP: 21.5,  # a second-screen setting the first screen never asks
+}
+RC_SAME = {
+    config_flow.CONF_NAME: "Annex pump",
+    const.CONF_TIBBER_TOKEN: "stale-token",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+}
+RC_OTHER_PLANT = {
+    **FULL_FIRST_SCREEN,
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b",
+}
+
+
+def rc_setup():
+    """A reconfigure flow as the 2024.6 manager starts one: two plants, entry A."""
+    hass = FakeHass()
+    entry = FakeEntry(
+        data=dict(RC_ENTRY_DATA),
+        entry_id="plant_a",
+        unique_id=config_flow.entry_identity(RC_ENTRY_DATA),
+    )
+    other = FakeEntry(
+        data=dict(RC_OTHER_PLANT),
+        entry_id="plant_b",
+        unique_id=config_flow.entry_identity(RC_OTHER_PLANT),
+    )
+    hass.config_entries.entries += [entry, other]
+    flow = config_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = hass
+    flow.context = {"source": "reconfigure", "entry_id": "plant_a"}
+    return flow, entry, other, hass
+
+
+def schema_keys(result):
+    """Config-key names on a form schema."""
+    schema = result.get("data_schema")
+    if schema is None:
+        return set()
+    return {
+        str(getattr(key, "schema", key)) for key, _value in _presented_fields(schema)
+    }
+
+
+def rc_suggested(result):
+    """The suggested values the reopened first screen carries, by field."""
+    schema = result.get("data_schema")
+    if schema is None:
+        return {}
+    return {
+        str(getattr(key, "schema", key)): (getattr(key, "description", None) or {}).get(
+            "suggested_value"
+        )
+        for key, _value in _presented_fields(schema)
+    }
+
+
+async def reconfigure_flow():
+    R.section("reconfigure: the first screen reopened over the entry it changes")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    # The entry point: the manager calls async_step_reconfigure with the
+    # entry's own data; the step reopens the first screen prefilled from it.
+    flow, entry, _, _ = rc_setup()
+    result = await flow.async_step_reconfigure(None)
+    suggested = rc_suggested(result)
+    sensors_form = await flow.async_step_user_sensors(None)
+    sensors_suggested = rc_suggested(sensors_form)
+    check(
+        "reconfigure",
+        "happy",
+        "reconfigure reopens the first screen, prefilled with this entry's answers",
+        shows(result, "user")
+        and suggested.get(config_flow.CONF_NAME) == "Annex pump"
+        and suggested.get(const.CONF_TIBBER_TOKEN) == "stale-token"
+        and sensors_suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+        f"{result.get('type')}/{result.get('step_id')} suggested={suggested} "
+        f"sensors={sensors_suggested}",
+    )
+
+    # 401 mid-reconfigure: the token is refused, the entry is untouched.
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
+    flow, entry, _, hass = rc_setup()
+    result = await submit_reconfigure(flow, RC_SAME)
+    check(
+        "reconfigure",
+        "error",
+        "a refused token mid-reconfigure shows invalid_tibber_token, changing nothing",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "invalid_tibber_token"
+        and entry.data == dict(RC_ENTRY_DATA)
+        and not hass.config_entries.updated,
+        f"{result.get('errors')} updated={hass.config_entries.updated}",
+    )
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [OSError("router rebooting")]
+    )
+    flow, entry, _, hass = rc_setup()
+    result = await submit_reconfigure(flow, RC_SAME)
+    check(
+        "reconfigure",
+        "error",
+        "an unreachable Tibber is cannot_connect mid-reconfigure too",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect"
+        and not hass.config_entries.updated,
+        str(result.get("errors")),
+    )
+
+    # Re-submitting this entry's OWN identity is the case the plain duplicate
+    # guard would get wrong: the registry finds THIS entry, and the guard's
+    # own-identity exemption is what lets the reconfigure proceed.
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [TIBBER_VIEWER_OK]
+    )
+    flow, entry, _, hass = rc_setup()
+    result = await submit_reconfigure(flow, RC_SAME)
+    round_trip_done = (
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and entry.data[const.CONF_TARGET_TEMP] == 21.5
+        and entry.data[const.CONF_TIBBER_TOKEN] == "stale-token"
+        and hass.config_entries.reloaded == ["plant_a"]
+        and entry.unique_id == config_flow.entry_identity(RC_ENTRY_DATA)
+    )
+    check(
+        "reconfigure",
+        "happy",
+        "re-submitting this entry's own identity reconfigures it instead of aborting",
+        round_trip_done,
+        f"{result} reloaded={hass.config_entries.reloaded}",
+    )
+
+    # A rotated token: a new identity no other entry holds, written through
+    # with the rest of the entry's data intact.
+    flow, entry, _, hass = rc_setup()
+    result = await submit_reconfigure(flow, {**RC_SAME, const.CONF_TIBBER_TOKEN: "tok-fresh"})
+    check(
+        "reconfigure",
+        "happy",
+        "a rotated token is written through and the entry keeps its other settings",
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and entry.data[const.CONF_TIBBER_TOKEN] == "tok-fresh"
+        and entry.data[const.CONF_TARGET_TEMP] == 21.5
+        and hass.config_entries.reloaded == ["plant_a"]
+        and entry.unique_id
+        == config_flow.entry_identity({**RC_ENTRY_DATA, const.CONF_TIBBER_TOKEN: "tok-fresh"}),
+        f"{result} token={entry.data.get(const.CONF_TIBBER_TOKEN)} "
+        f"reloaded={hass.config_entries.reloaded}",
+    )
+
+    # Changed identity: the picks now name the OTHER entry's plant. The
+    # guard runs (this is not this entry's identity) and must refuse.
+    flow, entry, _, hass = rc_setup()
+    result = await submit_reconfigure(flow, RC_OTHER_PLANT)
+    check(
+        "reconfigure",
+        "error",
+        "reconfiguring into another entry's plant is refused",
+        result == {"type": "abort", "reason": "already_configured"}
+        and entry.data == dict(RC_ENTRY_DATA)
+        and not hass.config_entries.reloaded,
+        f"{result} data_unchanged={entry.data == dict(RC_ENTRY_DATA)}",
+    )
+
+    # A cleared slot: the user stopped using this sensor, and the update
+    # drops it instead of silently keeping the old entity.
+    flow, entry, _, _ = rc_setup()
+    cleared = {k: v for k, v in RC_SAME.items() if k != const.CONF_INDOOR_TEMP_ENTITY}
+    result = await submit_reconfigure(flow, cleared)
+    check(
+        "reconfigure",
+        "happy",
+        "a slot the user cleared is dropped, not silently kept",
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and const.CONF_INDOOR_TEMP_ENTITY not in entry.data,
+        f"{result} indoor={entry.data.get(const.CONF_INDOOR_TEMP_ENTITY)!r}",
+    )
+
+    LEDGER.rows["_reconfigure"] = int(round_trip_done)
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# --self-check: break production in memory, one behaviour at a time, and
+# require the checks that guard each behaviour to fail. A check that cannot
+# fail pins nothing (tests/README.md).
+# ---------------------------------------------------------------------------
+async def self_check():
+    print("\n=== self-check: each mutation must break its named check ===")
+    # The base-entry walk passes through the dhw warning; sink it so the
+    # mutation verdicts stay readable.
+    sink = logging.Handler()
+    sink.emit = lambda record: None
+    logging.getLogger().addHandler(sink)
+    outcomes = []
+
+    # Mutation 1: the duplicate guard is a no-op.
+    real_guard = config_flow.HeatPumpOptimizerConfigFlow._abort_if_unique_id_configured
+    config_flow.HeatPumpOptimizerConfigFlow._abort_if_unique_id_configured = (
+        lambda self, *a, **k: None
+    )
+    try:
+        real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+        hass = FakeHass()
+        first = fresh_flow(hass)
+        await submit_first_screen(first, FIRST_SCREEN)
+        hass.config_entries.entries.append(
+            FakeEntry(data=dict(FULL_FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
+        )
+        duplicate = await submit_first_screen(fresh_flow(hass), FIRST_SCREEN)
+        caught = duplicate != {"type": "abort", "reason": "already_configured"}
+        outcomes.append(
+            (
+                "duplicate guard no-op",
+                caught,
+                "the same answers a second time abort as already_configured",
+                str(duplicate)[:120],
+            )
+        )
+        config_flow.async_get_clientsession = real
+    finally:
+        config_flow.HeatPumpOptimizerConfigFlow._abort_if_unique_id_configured = real_guard
+
+    # Mutation 6: nest is a no-op -- the nightly A8 flat payload.
+    real_nest = _nightly.nest_user_sensors_input
+    _nightly.nest_user_sensors_input = lambda payload, groups=None: dict(payload)
+    try:
+        a8_flat = {
+            const.CONF_WEATHER_ENTITY: FIRST_SCREEN[const.CONF_WEATHER_ENTITY],
+            const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+            const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+            const.CONF_HEAT_PUMP_SWITCH_ENTITY: USER_SENSORS[
+                const.CONF_HEAT_PUMP_SWITCH_ENTITY
+            ],
+        }
+        sensors_schema = vol.Schema(config_flow._user_sensors_sections(FakeHass()))
+        nested = _nightly.nest_user_sensors_input(
+            a8_flat, config_flow._USER_SENSORS_GROUPS
+        )
+        nested_ok = True
+        try:
+            sensors_schema(nested)
+        except (vol.Invalid, vol.MultipleInvalid):
+            nested_ok = False
+        caught = not (nested_ok and isinstance(nested.get("indoor"), dict))
+        outcomes.append(
+            (
+                "user_sensors nest is identity",
+                caught,
+                "a flat identity payload is invalid on the grouped setup schema, the nested one is valid",
+                f"nested={nested!r} nested_ok={nested_ok}",
+            )
+        )
+    finally:
+        _nightly.nest_user_sensors_input = real_nest
+
+    # Mutation 2: the token probe always says ok.
+    real_validate = config_flow.validate_tibber_token
+
+    async def always_ok(hass, token):
+        return "ok"
+
+    config_flow.validate_tibber_token = always_ok
+    try:
+        real = install_session(config_flow, FakeSession([(401, None)]))
+        refused = fresh_flow()
+        result = await submit(refused, "user", FIRST_SCREEN)
+        caught = result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) != "invalid_tibber_token"
+        outcomes.append(
+            (
+                "token probe always ok",
+                caught,
+                "a 401 re-shows the first screen with invalid_tibber_token",
+                str(result.get("errors")),
+            )
+        )
+        config_flow.async_get_clientsession = real
+    finally:
+        config_flow.validate_tibber_token = real_validate
+
+    # Mutation 3: the options grid page's month-mask validation is a no-op.
+    real_months = config_flow._valid_months_spec
+    config_flow._valid_months_spec = lambda spec: True
+    try:
+        await seed_base_entry()
+        flow, entry, _ = fresh_options()
+        result = await submit(
+            flow, "grid", {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_MONTHS: "garbage"}
+        )
+        caught = (
+            result.get("errors", {}).get(const.CONF_PEAK_TARIFF_MONTHS)
+            != "invalid_peak_months"
+        )
+        outcomes.append(
+            (
+                "grid months validation no-op",
+                caught,
+                "an unparseable month mask on the grid page is invalid_peak_months",
+                str(result.get("errors")),
+            )
+        )
+    finally:
+        config_flow._valid_months_spec = real_months
+
+    # Mutation 4: the reconfigure guard runs on the entry's OWN identity --
+    # the exemption removed. The wrapper runs the REAL guard against the
+    # REAL identity before delegating, which is exactly what deleting the
+    # ``self._reconfigure_entry is None or ...`` condition does to the
+    # reconfigure path (the production-edit proof is in the PR body).
+    real_user = config_flow.HeatPumpOptimizerConfigFlow.async_step_user
+
+    async def guard_before_exemption(self, user_input=None):
+        if user_input is not None and self._reconfigure_entry is not None:
+            await self.async_set_unique_id(config_flow.entry_identity(user_input))
+            self._abort_if_unique_id_configured()
+        return await real_user(self, user_input)
+
+    config_flow.HeatPumpOptimizerConfigFlow.async_step_user = guard_before_exemption
+    try:
+        real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+        flow, _, _, _ = rc_setup()
+        result = await submit_reconfigure(flow, RC_SAME)
+        caught = result != {"type": "abort", "reason": "reconfigure_successful"}
+        outcomes.append(
+            (
+                "reconfigure guard runs on own identity",
+                caught,
+                "re-submitting this entry's own identity reconfigures it instead of aborting",
+                str(result)[:120],
+            )
+        )
+        config_flow.async_get_clientsession = real
+    finally:
+        config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
+
+    # Mutation 5: the peak-hours field validated with the fee-RULES grammar
+    # instead of the window one -- the defect #327 reported, which did not
+    # reproduce (see the note above GRID_ANSWERS). Nothing in this driver
+    # caught this before the documented-form check existed: the happy page
+    # submits the empty default and the error probe submits "garbage", and
+    # both are verdict-identical under either grammar.
+    real_hours = config_flow.is_valid_spec
+    config_flow.is_valid_spec = lambda spec: config_flow.grid_fee.spec_problem(spec) is None
+    try:
+        await seed_base_entry()
+        flow, entry, _ = fresh_options()
+        result = await submit(
+            flow,
+            "grid",
+            {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+        )
+        stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
+        caught = not (shows_menu(result, "init") and stored == "07:00-19:00")
+        outcomes.append(
+            (
+                "peak hours validated with the fee-rules grammar (#327)",
+                caught,
+                "the documented peak-hours form saves and reaches the coordinator's mask",
+                f"errors={result.get('errors')} stored={stored!r}",
+            )
+        )
+    finally:
+        config_flow.is_valid_spec = real_hours
+
+    ok = True
+    for mutation, caught, check_name, detail in outcomes:
+        print(
+            f"  {'caught' if caught else 'MISSED'}  {mutation}"
+            f"  ->  check {check_name!r}"
+            + ("" if caught else f"  [{detail}]")
+        )
+        ok = ok and caught
+    if not ok:
+        print("\na mutation survived: a check that cannot fail pins nothing")
+        return 1
+    print("\nall six mutations caught by their named checks")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# #590: `_number` always passes min/max/step/mode; no advanced schema keys.
+# Lives here because this script's recorded closure includes config_flow.py.
+# Do not import tests/ha_contract.py -- that would under-scope the table.
+# Walker snippets also run in ha_contract.py (in-memory; it must not open
+# this module). Keep the rules identical.
+# ---------------------------------------------------------------------------
+_NUMBER_BUILDERS = ("_number", "_widen_to_fit")
+_NUMBER_KEYS = frozenset({"min", "max", "step", "mode"})
+_WALKER_GOOD = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step, "mode": "box"}
+    return NumberSelector(NumberSelectorConfig(**config))
+
+def _widen_to_fit(number, values):
+    config = dict(number.config)
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+_WALKER_ROGUE = _WALKER_GOOD + """
+def _field():
+    return NumberSelector(NumberSelectorConfig(min=0, max=1, step=1))
+"""
+_WALKER_NO_MODE = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step}
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+_WALKER_ADVANCED = _WALKER_GOOD + """
+def _schema():
+    vol.Optional("x", description={"advanced": True})
+"""
+
+
+def _call_basename(func):
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def number_convention_failures_from_source(source):
+    tree = ast.parse(source)
+    failures = []
+    number_fn = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.FunctionDef) and n.name == "_number"
+        ),
+        None,
+    )
+    constructs = []
+    stack = []
+
+    def visit(node):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            stack.append(node)
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+            stack.pop()
+            return
+        if isinstance(node, ast.Call):
+            name = _call_basename(node.func)
+            if name in ("NumberSelector", "NumberSelectorConfig"):
+                fn = next(
+                    (
+                        n.name
+                        for n in reversed(stack)
+                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    None,
+                )
+                constructs.append((fn, node.lineno, name))
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(tree)
+    if number_fn is None:
+        failures.append("_number is missing")
+    else:
+        keys = set()
+        for node in ast.walk(number_fn):
+            if isinstance(node, ast.Dict):
+                for key in node.keys:
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                        keys.add(key.value)
+            elif isinstance(node, ast.keyword) and node.arg:
+                keys.add(node.arg)
+        missing = _NUMBER_KEYS - keys
+        if missing:
+            failures.append(f"_number does not pass {sorted(missing)}")
+        if not any(fn == "_number" for fn, _, _ in constructs):
+            failures.append("_number does not construct NumberSelector")
+    for fn, lineno, name in constructs:
+        if fn not in _NUMBER_BUILDERS:
+            failures.append(
+                f"{name} at line {lineno} is in {fn or 'module'}, "
+                "not _number/_widen_to_fit"
+            )
+    seen = set()
+
+    def marks(node):
+        if not isinstance(node, ast.Dict):
+            return False
+        for key, value in zip(node.keys, node.values):
+            if (
+                isinstance(key, ast.Constant)
+                and key.value == "advanced"
+                and isinstance(value, ast.Constant)
+                and value.value is True
+            ):
+                return True
+        return False
+
+    for node in ast.walk(tree):
+        hit = None
+        if isinstance(node, ast.keyword) and node.arg == "description" and marks(
+            node.value
+        ):
+            hit = (node.lineno, "description=")
+        elif marks(node):
+            hit = (node.lineno, "dict")
+        if hit and hit[0] not in seen:
+            seen.add(hit[0])
+            failures.append(f"advanced: True at line {hit[0]} ({hit[1]})")
+    return failures
+
+
+def _token_marker(fingerprint: dict) -> dict:
+    """The ``tibber_token`` marker inside a ``schema_fingerprint``.
+
+    Rule: the key itself, else recurse into each marker's ``fields`` (a
+    ``section()``). Config dicts are not walked. Missing → ``{}``.
+    """
+    if "tibber_token" in fingerprint:
+        return fingerprint["tibber_token"]
+    for marker in fingerprint.values():
+        inner = marker.get("fields") if isinstance(marker, dict) else None
+        if inner:
+            found = _token_marker(inner)
+            if found:
+                return found
+    return {}
+
+
+def _token_mask(schema) -> tuple:
+    """``(selector, config.type)`` for the rendered token field.
+
+    Instrument: ``schema_fingerprint`` (same walker as the config-flow
+    golden). ``config.type`` is ``repr``'d by that walker, so a password
+    TextSelector is ``("TextSelector", "'password'")``. A bare ``str`` is
+    ``("type", None)``.
+    """
+    marker = _token_marker(schema_fingerprint(schema))
+    config = marker.get("config") or {}
+    return (marker.get("selector"), config.get("type"))
+
+
+async def token_surfaces_agree():
+    """E1: three surfaces, one secret; disagreement is the defect."""
+    R.section("E1: setup, reauth and options share one token mask")
+    user = await fresh_flow().async_step_user(None)
+
+    hass = FakeHass()
+    entry = FakeEntry(
+        data={
+            const.CONF_TIBBER_TOKEN: "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        }
+    )
+    hass.config_entries.entries.append(entry)
+    reauth_flow = config_flow.HeatPumpOptimizerConfigFlow()
+    reauth_flow.hass = hass
+    reauth_flow.context = {"entry_id": entry.entry_id}
+    reauth = await reauth_flow.async_step_reauth(entry.data)
+
+    opt_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+    opt_flow.hass = hass
+    options = await opt_flow.async_step_entities(None)
+
+    masks = {
+        "user": _token_mask(user.get("data_schema")),
+        "reauth_confirm": _token_mask(reauth.get("data_schema")),
+        "entities": _token_mask(options.get("data_schema")),
+    }
+    password = ("TextSelector", repr(selector.TextSelectorType.PASSWORD))
+    check(
+        "token_surfaces",
+        "happy",
+        "the three tibber_token surfaces agree on the same mask",
+        len(set(masks.values())) == 1,
+    )
+    check(
+        "token_surfaces",
+        "happy",
+        "that shared mask is the password TextSelector",
+        set(masks.values()) == {password},
+    )
+
+
+def pin_number_selector_convention():
+    """#590: the `_number` convention, now a check rather than a habit."""
+    R.section("#590 NumberSelector / advanced convention")
+    rogue = number_convention_failures_from_source(_WALKER_ROGUE)
+    R.check(
+        "walker refuses a NumberSelector built outside _number",
+        any("not _number/_widen_to_fit" in f for f in rogue),
+        "; ".join(rogue) or "walker reported no failure",
+    )
+    good = number_convention_failures_from_source(_WALKER_GOOD)
+    R.check(
+        "walker accepts _number and _widen_to_fit",
+        not good,
+        "; ".join(good),
+    )
+    no_mode = number_convention_failures_from_source(_WALKER_NO_MODE)
+    R.check(
+        "walker refuses _number that omits mode",
+        any("does not pass" in f for f in no_mode),
+        "; ".join(no_mode) or "walker reported no failure",
+    )
+    advanced = number_convention_failures_from_source(_WALKER_ADVANCED)
+    R.check(
+        "walker refuses description={advanced: True}",
+        any("advanced: True" in f for f in advanced),
+        "; ".join(advanced) or "walker reported no failure",
+    )
+    production = number_convention_failures_from_source(
+        open(config_flow.__file__, encoding="utf-8").read()
+    )
+    R.check(
+        "production config_flow.py holds the #590 convention",
+        not production,
+        "; ".join(production),
+    )
+    box = config_flow._number(0, 10, 1)
+    cfg = dict(box.config)
+    R.check(
+        "_number runtime passes min/max/step and explicit BOX mode",
+        cfg.get("min") == 0
+        and cfg.get("max") == 10
+        and cfg.get("step") == 1
+        and str(cfg.get("mode")) == "box",
+        repr(cfg),
+    )
+    slider = config_flow._number(0, 10, 1, slider=True)
+    R.check(
+        "_number(slider=True) passes explicit SLIDER mode",
+        str(dict(slider.config).get("mode")) == "slider",
+        repr(dict(slider.config)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Untouched option pages do not reload (the no-op half of v5.1.1's #70 fix).
+#
+# v5.1.1 pinned one no-op shape -- a key copied from data with its own value
+# (tests/features.py). An untouched page posts something else: the default
+# the form SHOWS for every key the entry never stored, and None for every
+# empty entity slot. That changed the options dict on 19 of 20 pages of an
+# install never saved page by page, so async_update_options reloaded on each.
+# config_flow._omit_unstored_defaults now drops those posts, and only where
+# _ABSENT_FALLBACKS says the integration already runs with that value while
+# the key is absent. The first block below is the proof of that table; the
+# second drives the pages.
+# ---------------------------------------------------------------------------
+_NOOP_BASE = {
+    "name": "Home",
+    const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+    const.CONF_PRICE_ENTITY: "sensor.prices",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+}
+# A key the plain refresh never reads is judged under a context that reaches
+# its reader, with a perturbation that reader distinguishes.
+_NOOP_CONTEXT = {
+    const.CONF_PEAK_TARIFF_PRICE: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PEAK_TARIFF_MONTHS: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PEAK_TARIFF_HOURS: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PV_PRODUCTION_ENTITY: {const.CONF_PV_ENABLED: True, const.CONF_PV_PEAK_KW: 5.0},
+    const.CONF_AWAY_DHW_MIN_TEMP: {const.CONF_AWAY_PRESENCE_ENTITY: "input_boolean.away"},
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: {
+        const.CONF_MIXING_VALVE_MODE: "smart_write",
+        const.CONF_MIXING_VALVE_WRITE_ENTITY: "number.valve",
+    },
+}
+_NOOP_ALT = {
+    const.CONF_MIXING_VALVE_MODE: "manual",
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: "flow",
+    const.CONF_AWAY_PRESENCE_ENTITY: "input_boolean.away",
+    const.CONF_PEAK_TARIFF_MONTHS: "1,2,3",
+    const.CONF_PEAK_TARIFF_HOURS: "7-20",
+    const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv",
+    const.CONF_HOLIDAY_DHW_WINDOWS: "10:00-12:00",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.heat_pump",
+}
+# diagnostics.py echoes the stored entry verbatim, so every key differs there
+# by construction; config_flow.py is the writer under test; const.py names.
+_NOOP_STATIC_SKIP = ("config_flow.py", "const.py", "diagnostics.py")
+
+
+def _noop_hass(now):
+    from datetime import timedelta
+
+    hass = FakeHass()
+    start = now.replace(minute=0, second=0, microsecond=0)
+    hass.states.set("sensor.prices", FakeState("0.5", attributes={"raw_today": [
+        {"start": (start + timedelta(hours=h)).isoformat(), "value": round(0.5 + 0.1 * (h % 4), 3)}
+        for h in range(48)
+    ]}))
+    hass.states.set("sensor.indoor", FakeState("21.0", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("2.0", unit="°C"))
+    hass.states.set("input_boolean.away", FakeState("on"))
+    hass.states.set("sensor.pv", FakeState("1500", unit="W"))
+    hass.states.set("switch.heat_pump", FakeState("on"))
+    return hass
+
+
+def _noop_snap(obj, seen=None, depth=0):
+    """Everything the integration derived, as plain data (hass/entry excluded)."""
+    import dataclasses
+    import datetime as _dt
+    import enum
+    import math
+
+    import numpy as np
+
+    seen = set() if seen is None else seen
+    if depth > 7:
+        return "<deep>"
+    if obj is None or isinstance(obj, (bool, int, str)):
+        return obj
+    if isinstance(obj, float):
+        return "nan" if math.isnan(obj) else obj
+    if isinstance(obj, (enum.Enum, _dt.date, _dt.timedelta)):
+        return str(obj)
+    if isinstance(obj, (np.ndarray, np.generic)):
+        return _noop_snap(obj.tolist(), seen, depth + 1)
+    if isinstance(obj, dict):
+        return {str(k): _noop_snap(v, seen, depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set, frozenset)):
+        items = [_noop_snap(v, seen, depth + 1) for v in obj]
+        return sorted(items, key=repr) if isinstance(obj, (set, frozenset)) else items
+    if id(obj) in seen:
+        return "<cycle>"
+    seen.add(id(obj))
+    if dataclasses.is_dataclass(obj):
+        return {f.name: _noop_snap(getattr(obj, f.name), seen, depth + 1) for f in dataclasses.fields(obj)}
+    if not type(obj).__module__.startswith("heatpump_optimizer") or callable(obj):
+        return f"<{type(obj).__name__}>"
+    skip = {"hass", "entry", "logger", "config_entry", "_listeners", "_background_tasks", "_refresh_task"}
+    return {
+        k: _noop_snap(v, seen, depth + 1)
+        for k, v in vars(obj).items()
+        if k not in skip and not callable(v)
+    }
+
+
+def _noop_diff(a, b, path="", out=None):
+    out = [] if out is None else out
+    if len(out) >= 3:
+        return out
+    if type(a) is not type(b):
+        out.append(f"{path}: {a!r:.60} != {b!r:.60}")
+    elif isinstance(a, dict):
+        for k in sorted(set(a) | set(b)):
+            if k not in a or k not in b:
+                out.append(f"{path}.{k}: only one side")
+            else:
+                _noop_diff(a[k], b[k], f"{path}.{k}", out)
+    elif isinstance(a, list) and len(a) == len(b):
+        for i, (x, y) in enumerate(zip(a, b)):
+            _noop_diff(x, y, f"{path}[{i}]", out)
+    elif a != b:
+        out.append(f"{path}: {a!r:.60} != {b!r:.60}")
+    return out
+
+
+def _noop_drop_key(snapshot, key, base):
+    """Remove ``key`` from every copy of the stored config inside a snapshot.
+
+    A copy is a dict carrying every ``base`` entry; the key under test is the
+    only thing removed from it, so the stored dict itself cannot be the diff.
+    """
+    import copy
+
+    snapshot = copy.deepcopy(snapshot)
+
+    def walk(node):
+        if isinstance(node, dict):
+            if all(node.get(k) == v for k, v in base.items()):
+                node.pop(key, None)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(snapshot)
+    return snapshot
+
+
+async def _noop_run(coordinator_mod, config, canned, now):
+    """Build a coordinator from ``config``, refresh once, snapshot what it derived."""
+    import copy
+
+    captured = {}
+
+    async def solve(hass, optimizer, state, *positional, **keywords):
+        captured["solve"] = _noop_snap((optimizer, state, positional, keywords))
+        return copy.deepcopy(canned)
+
+    coordinator_mod._await_optimize = solve
+    coord = coordinator_mod.HeatPumpOptimizerCoordinator(
+        _noop_hass(now), FakeEntry(data=dict(config))
+    )
+    built = _noop_snap(coord)
+    try:
+        data = await coord._async_update_data()
+    except Exception as err:  # noqa: BLE001 - a raise is itself an observable
+        data = f"raised {type(err).__name__}: {err}"
+    result = {
+        "built": built,
+        "after": _noop_snap(coord),
+        "data": _noop_snap(data),
+        # The setup picture every entity slot is read into, by table rather
+        # than by name (topology._SLOTS), published on the sensors.
+        "setup": _noop_snap(coord.describe_setup()),
+        **captured,
+    }
+    await coord.async_shutdown()
+    return result
+
+
+def _noop_candidates():
+    """Every unstored key an untouched page can post, with the value it posts."""
+    out = {}
+    for row in config_flow._OPTION_FIELDS:
+        fallback = config_flow._absent_fallback(row)
+        if fallback is not config_flow._STORED:
+            out[row.key] = fallback
+    out.update(config_flow._QUESTIONNAIRE_DEFAULTS)
+    return out
+
+
+def _noop_computed(base):
+    """The ``_Computed`` defaults ``_omit_unstored_computed`` drops, at ``base``."""
+    return {
+        row.key: row.default.of(dict(base), FakeHass())
+        for row in config_flow._OPTION_FIELDS
+        if isinstance(row.default, config_flow._Computed)
+    }
+
+
+def _noop_static_reads(fallbacks):
+    """Judge every NAMED production read of each key: absent vs its fallback.
+
+    A read is proven when ``.get(K, D)`` has a resolvable ``D`` equal to the
+    fallback; when ``.get(K)`` meets a None fallback; when a falsy fallback
+    feeds ``or``/``not``/a truth test; or when ``.get(K)`` is an argument of
+    a resolvable function whose other arguments are resolvable and which
+    returns the same for None and for the fallback (it is called to find
+    out). A key used as a dict-literal KEY is a write, not a read. Any other
+    reference -- ``K in config``, a table row, a subscript -- is unproven.
+    Only names and dotted attributes are resolved; no source is evaluated.
+    """
+    import importlib
+    from pathlib import Path
+
+    unknown = object()
+    conf_values = {v for k, v in vars(const).items() if k.startswith("CONF_") and isinstance(v, str)}
+
+    def resolve(node, mod):
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+            v = resolve(node.operand, mod)
+            return -v if isinstance(v, (int, float)) and not isinstance(v, bool) else unknown
+        if isinstance(node, ast.Name):
+            return vars(mod).get(node.id, unknown)
+        if isinstance(node, ast.Attribute):
+            base = resolve(node.value, mod)
+            return unknown if base is unknown else getattr(base, node.attr, unknown)
+        return unknown
+
+    def key_of(node, mod, literal=False):
+        if isinstance(node, (ast.Name, ast.Attribute)):
+            name = node.id if isinstance(node, ast.Name) else node.attr
+            value = resolve(node, mod) if name.startswith("CONF_") else unknown
+            return value if isinstance(value, str) and value in fallbacks else None
+        if literal and isinstance(node, ast.Constant) and node.value in conf_values and node.value in fallbacks:
+            return node.value
+        return None
+
+    def judge(get, parent, mod, fb):
+        if len(get.args) > 1:
+            d = resolve(get.args[1], mod)
+            return d is not unknown and config_flow._same_setting(fb, d)
+        if fb is None:
+            return True
+        if isinstance(parent, ast.BoolOp) and isinstance(parent.op, ast.Or) and parent.values[0] is get:
+            return not fb or (len(parent.values) == 2 and resolve(parent.values[1], mod) == fb)
+        if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
+            return not fb
+        if isinstance(parent, (ast.If, ast.IfExp, ast.While)) and parent.test is get:
+            return not fb
+        if isinstance(parent, ast.Call) and get in parent.args and not parent.keywords:
+            fn = resolve(parent.func, mod)
+            args = [None if a is get else resolve(a, mod) for a in parent.args]
+            if not callable(fn) or unknown in args:
+                return False
+            try:
+                return fn(*args) == fn(*[fb if a is get else v for a, v in zip(parent.args, args)])
+            except Exception:  # noqa: BLE001 - a wrapper that raises proves nothing
+                return False
+        return False
+
+    unproven = set()
+    package = Path(config_flow.__file__).parent
+    for path in sorted(package.glob("*.py")):
+        if path.name in _NOOP_STATIC_SKIP:
+            continue
+        mod = importlib.import_module(f"heatpump_optimizer.{path.stem}")
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        parents = {id(c): n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        settled = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                settled.update(id(k) for k in node.keys if k is not None)
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "get" and node.args):
+                key = key_of(node.args[0], mod, literal=True)
+                if key is not None:
+                    settled.add(id(node.args[0]))
+                    if not judge(node, parents.get(id(node)), mod, fallbacks[key]):
+                        unproven.add(key)
+        for node in ast.walk(tree):
+            key = key_of(node, mod)
+            if key is not None and id(node) not in settled:
+                unproven.add(key)
+    return unproven
+
+
+def _noop_alt(key, fb):
+    if key in _NOOP_ALT:
+        return _NOOP_ALT[key]
+    if fb is None:
+        return "sensor.indoor"
+    if isinstance(fb, bool):
+        return not fb
+    if isinstance(fb, (int, float)):
+        return fb + 1
+    return f"{fb}_x" if fb else "x"
+
+
+async def absent_fallbacks_are_proven():
+    """``_ABSENT_FALLBACKS`` holds exactly the keys whose absence is the default."""
+    R.section("options: an absent key runs exactly as its form default")
+    from heatpump_optimizer import coordinator as coordinator_mod
+    from heatpump_optimizer.optimizer import optimize_in_process
+    from homeassistant.util import dt as dt_util
+
+    real_solve, real_now, real_utcnow = (
+        coordinator_mod._await_optimize, dt_util.now, dt_util.utcnow)
+    now = real_now().replace(minute=7, second=0, microsecond=0)
+    dt_util.now = lambda *a, **k: now
+    dt_util.utcnow = lambda *a, **k: now
+    try:
+        box = {}
+
+        async def solve_once(hass, optimizer, state, *positional, **keywords):
+            box["plan"] = optimize_in_process(optimizer, state, positional, keywords)
+            return box["plan"]
+
+        coordinator_mod._await_optimize = solve_once
+        seed = coordinator_mod.HeatPumpOptimizerCoordinator(
+            _noop_hass(now), FakeEntry(data=dict(_NOOP_BASE)))
+        await seed._async_update_data()
+        await seed.async_shutdown()
+        canned = box["plan"]
+
+        base = await _noop_run(coordinator_mod, _NOOP_BASE, canned, now)
+        null = _noop_diff(base, await _noop_run(coordinator_mod, _NOOP_BASE, canned, now))
+        R.check("null control: two identical configs snapshot identically", not null, "; ".join(null))
+
+        listed = _noop_candidates()
+        computed = _noop_computed(_NOOP_BASE)
+        candidates = {**listed, **computed}
+        static_unproven = _noop_static_reads(candidates)
+        differ, unobserved, equivalent = {}, set(), set()
+        for key, fb in candidates.items():
+            config = {k: v for k, v in {**_NOOP_BASE, **_NOOP_CONTEXT.get(key, {})}.items() if k != key}
+            ref = _noop_drop_key(await _noop_run(coordinator_mod, config, canned, now), key, config)
+            stored = _noop_drop_key(
+                await _noop_run(coordinator_mod, {**config, key: fb}, canned, now), key, config)
+            found = _noop_diff(ref, stored)
+            if found:
+                differ[key] = found
+                continue
+            moved = _noop_drop_key(
+                await _noop_run(coordinator_mod, {**config, key: _noop_alt(key, fb)}, canned, now),
+                key, config)
+            if not _noop_diff(ref, moved):
+                unobserved.add(key)
+            equivalent.add(key)
+        safe = {k for k in equivalent if k not in unobserved or k not in static_unproven}
+
+        # Positive control: the comparator sees a stored value the absence
+        # does not run with. price_vat is read on every refresh.
+        wrong = _noop_diff(
+            _noop_drop_key(base, const.CONF_PRICE_VAT, _NOOP_BASE),
+            _noop_drop_key(await _noop_run(
+                coordinator_mod, {**_NOOP_BASE, const.CONF_PRICE_VAT: 2.0}, canned, now),
+                const.CONF_PRICE_VAT, _NOOP_BASE))
+        R.check("positive control: a non-default stored value is seen", bool(wrong), "no diff")
+    finally:
+        coordinator_mod._await_optimize = real_solve
+        dt_util.now, dt_util.utcnow = real_now, real_utcnow
+
+    print(f"  .. {len(candidates)} candidate key(s): {len(equivalent)} behave identically, "
+          f"{len(differ)} differ, {len(unobserved)} unobserved by the refresh, "
+          f"{len(static_unproven)} with a named read not proven; {len(safe)} proven safe")
+    for key, found in sorted(differ.items()):
+        print(f"  .. differs when stored at its default: {key}: {found[0]}")
+    for key in sorted(candidates.keys() - safe - differ.keys()):
+        print(f"  .. unproven (unobserved and a named read not proven): {key}")
+    # _omit_unstored_computed predates this and drops a computed default the
+    # posted value EQUALS; that arm is not re-judged here. What this change
+    # added is its type-insensitive arm (_same_setting), which only the
+    # string-valued window dropdown reaches -- so that key must be proven.
+    R.check(
+        "the peak window a retyped post now omits runs as its absence",
+        const.CONF_PEAK_TARIFF_WINDOW in safe,
+        f"differs: {differ.get(const.CONF_PEAK_TARIFF_WINDOW)}",
+    )
+    safe -= set(computed)
+    R.check(
+        "_ABSENT_FALLBACKS is exactly the proven set",
+        set(config_flow._ABSENT_FALLBACKS) == safe,
+        f"unproven but listed: {sorted(set(config_flow._ABSENT_FALLBACKS) - safe)}; "
+        f"proven but missing: {sorted(safe - set(config_flow._ABSENT_FALLBACKS))}",
+    )
+    R.check(
+        "_ABSENT_IS_NOT_DEFAULT is exactly the rest, none of it padding",
+        set(config_flow._ABSENT_IS_NOT_DEFAULT) == set(listed) - safe,
+        f"listed: {sorted(config_flow._ABSENT_IS_NOT_DEFAULT)}; derived: {sorted(set(listed) - safe)}",
+    )
+    R.check(
+        "every listed fallback is the value the form shows while the key is absent",
+        all(config_flow._same_setting(candidates[k], v) for k, v in config_flow._ABSENT_FALLBACKS.items()),
+        str({k: (v, candidates.get(k)) for k, v in config_flow._ABSENT_FALLBACKS.items() if candidates.get(k) != v}),
+    )
+
+
+def _untouched_post(schema):
+    """What the frontend posts for a form nobody edited: shown defaults and suggestions."""
+    out = {}
+    for marker, value in schema.schema.items():
+        key = str(getattr(marker, "schema", marker))
+        inner = _nested_schema(value)
+        if inner is not None:
+            out[key] = _untouched_post(inner)
+            continue
+        default = getattr(marker, "default", vol.UNDEFINED)
+        if default is not vol.UNDEFINED:
+            out[key] = default() if callable(default) else default
+            continue
+        suggested = (getattr(marker, "description", None) or {}).get("suggested_value")
+        if suggested is not None:
+            out[key] = suggested
+    return out
+
+
+async def _walk_untouched(data, options, edit=None):
+    """Submit every options page untouched; return the pages whose save reloaded."""
+    import heatpump_optimizer as integration
+    from harness import ha_setup_entry, ha_unload_entry
+
+    from homeassistant.util import dt as dt_util
+
+    hass = _noop_hass(dt_util.now())
+    entry = FakeEntry(data=dict(data), options=dict(options))
+    await ha_setup_entry(integration, hass, entry)
+    reloaded = []
+    for page in config_flow._OPTION_PAGES:
+        if page.step == "setup_overview":
+            continue
+        # #1258 round 2 (#1273): Quick setup's untouched submit is a NO-OP,
+        # not an answer -- the page suggests the entry's stored answers and
+        # writes nothing when the submission says nothing new. The round-1
+        # design (untouched submit re-derives at the questions' shipped
+        # defaults) flipped two_zone_mode off on existing entries and was
+        # the nightly-ha a5 red. The walk judges it like any other page now:
+        # an untouched submit may not move the stored options, so it appears
+        # in `reloaded` only if that contract breaks.
+        if page.step == "quick_setup":
+            untouched_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(
+                entry
+            )
+            untouched_flow.hass = hass
+            shown = await untouched_flow.async_step_quick_setup(None)
+            before = dict(entry.options)
+            await untouched_flow.async_step_quick_setup(
+                _untouched_post(shown["data_schema"])
+            )
+            if dict(entry.options) != before:
+                reloaded.append("quick_setup")
+            continue
+        flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+        flow.hass = hass
+        shown = await getattr(flow, f"async_step_{page.step}")(None)
+        posted = shown["data_schema"](_untouched_post(shown["data_schema"]))
+        if edit and page.step in edit:
+            posted.update(edit[page.step])
+        before = dict(entry.options)
+        await getattr(flow, f"async_step_{page.step}")(posted)
+        if dict(entry.options) != before:  # Home Assistant fires the listener only then
+            count = len(hass.config_entries.reloaded)
+            await integration.async_update_options(hass, entry)
+            if len(hass.config_entries.reloaded) > count:
+                reloaded.append(page.step)
+            entry.options = before  # judge every page against the built config
+    await ha_unload_entry(integration, hass, entry)
+    return reloaded
+
+
+async def untouched_option_pages_do_not_reload():
+    R.section("options: an untouched page does not reload")
+    minimal = dict(_NOOP_BASE)
+    reloads = await _walk_untouched(minimal, {})
+    # The only reload left is a page that posts a key whose absence the
+    # integration does NOT run as its default (the DHW pair switches hot-water
+    # planning on): that save changes behaviour, so it must reload.
+    expected = [
+        page.step for page in config_flow._OPTION_PAGES
+        if any(
+            row.key in config_flow._ABSENT_IS_NOT_DEFAULT and row.key not in minimal
+            and config_flow._absent_fallback(row) is not config_flow._STORED
+            for row in config_flow._page_rows(page.step, minimal)
+        )
+    ]
+    R.check(
+        "never saved page by page: only the pages posting a behaviour-changing default reload",
+        reloads == expected,
+        f"reloaded {reloads}; expected {expected}",
+    )
+    # Priced from an entity rather than Tibber: the stub has no HTTP session.
+    offline = {
+        **BASE_ENTRY_DATA,
+        const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        const.CONF_PRICE_ENTITY: "sensor.prices",
+    }
+    walked = await _walk_untouched(offline, {})
+    R.check(
+        "an install from the full initial walk: no untouched page reloads",
+        walked == [],
+        f"reloaded {walked}",
+    )
+    seed = _nightly._seed_payload(thermometers=True)
+    upgraded = {
+        k: v for k, v in seed["options"].items()
+        if k not in (
+            const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+            const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+            const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, const.CONF_FLOW_CURVE_COP_ENABLED,
+        )
+    }
+    price = {k: _NOOP_BASE[k] for k in (const.CONF_PRICE_SOURCE, const.CONF_PRICE_ENTITY)}
+    upgraded = {**upgraded, **price}
+    upgraded_data = {**seed["data"], **price}
+    shaped = await _walk_untouched(upgraded_data, upgraded)
+    R.check(
+        "a v6.5.1 install upgraded to 6.6.0 (six new keys absent): no untouched page reloads",
+        shaped == [],
+        f"reloaded {shaped}",
+    )
+    changed = await _walk_untouched(
+        offline, {}, edit={"tuning": {const.CONF_COMFORT_WEIGHT: 7.5}})
+    R.check(
+        "null control: one changed value on one page reloads exactly that page",
+        changed == ["tuning"],
+        f"reloaded {changed}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-G7: the Modbus pre-fill page. One step answered three times:
+# the prefix, then the suggestions to edit, then the save. The entity ids are
+# tvofi/tuya_heat_pump fda9bed's (docs/modbus/rotenso_windmi_gchv.yaml); the
+# raw registers in both spellings an install can hold. tests/features.py pins
+# the inference itself; this pins what the flow writes.
+# ---------------------------------------------------------------------------
+_G7_ENTRY = {
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.garden",
+}
+
+
+def _g7_states(spelling="name", prefix="hp", **overrides):
+    """A GCHV package's states: setpoint 52.0, economic 42.0, a DHW schedule and night mode."""
+    raw = {404: ("0194h", "520"), 406: ("0196h", "420"), 518: ("0206h", str(22 * 256)),
+           519: ("0207h", str(6 * 256)), 711: ("02c7h", str(0b11111110)),
+           712: ("02c8h", str(5 * 256 + 30)), 713: ("02c9h", str(7 * 256)),
+           714: ("02cah", str((1 << 7) | (1 << 1)))}
+    states = {}
+    for addr, (hexaddr, value) in raw.items():
+        value = overrides.get(f"r{addr}", value)
+        suffix = f"_{hexaddr}" if spelling == "name" else ""
+        states[f"sensor.{prefix}_gchv_r{addr}{suffix}"] = FakeState(value)
+    states[f"sensor.{prefix}_outdoor_air_temperature"] = FakeState("-3.5")
+    states[f"sensor.{prefix}_dhw_tank_temperature"] = FakeState("48.0")
+    return states
+
+
+def _g7_flow(states=None, options=None):
+    entry = FakeEntry(data=dict(_G7_ENTRY), options=dict(options or {}))
+    hass = FakeHass(states=states or {})
+    hass.config_entries.entries.append(entry)
+    return options_over(entry, hass), entry, hass
+
+
+async def options_modbus_prefill():
+    R.section("options: pre-filling from a GCHV Modbus package (#1067 G7)")
+    step = "modbus_prefill"
+    prefix_key = const.CONF_MODBUS_PREFILL_PREFIX
+
+    flow, entry, hass = _g7_flow()
+    shown = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy",
+        "the first form asks for a device or a prefix, the prefix defaulted to hp",
+        shows(shown, step)
+        and rendered_keys(shown) == {
+            config_flow._PREFILL_DEVICE, prefix_key, const.CONF_PREFILL_OFFER,
+        }
+        and schema_default(shown, prefix_key) == "hp",
+        f"{rendered_keys(shown)} default={schema_default(shown, prefix_key)!r}",
+    )
+
+    # Null control: nothing of the package in hass.
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    saved = await submit(flow, step, {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        f"opt_{step}", "happy",
+        "null control: no Modbus entities, no suggestions, and the save writes nothing",
+        shows(preview, step) and rendered_keys(preview) == set()
+        and preview.get("description_placeholders", {}).get("found") == "0"
+        and shows_menu(saved, "init") and entry.options == {},
+        f"offered {rendered_keys(preview)} placeholders={preview.get('description_placeholders')} "
+        f"options={entry.options}",
+    )
+    flow, entry, hass = _g7_flow()
+    await submit(flow, step, {prefix_key: "wp"})
+    await submit(flow, step, {})
+    check(
+        f"opt_{step}", "happy",
+        "and a typed prefix that found nothing is not written either",
+        entry.options == {} and prefix_key not in entry.options,
+        f"options={entry.options}",
+    )
+
+    # Both spellings of the raw registers reach the same suggestions.
+    offered = {}
+    for spelling in ("name", "unique_id"):
+        flow, entry, hass = _g7_flow(_g7_states(spelling))
+        await flow.async_step_modbus_prefill(None)
+        preview = await submit(flow, step, {prefix_key: "hp"})
+        offered[spelling] = {key: suggested_value(preview, key) for key in rendered_keys(preview)}
+    check(
+        f"opt_{step}", "happy",
+        "both raw spellings offer the setpoints, both windows and the empty DHW sensor slot, not the set outdoor slot",
+        offered["name"] == offered["unique_id"] == {
+            const.CONF_DHW_SETPOINT: 52.0,
+            const.CONF_DHW_MIN_TEMP: 42.0,
+            const.CONF_DHW_WINDOWS: "05:30-07:00",
+            const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 3.0,
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+        },
+        f"{offered}",
+    )
+
+    # The save: what was kept is written, a cleared or blank field is not,
+    # and the default prefix is not written as a setting (#1107). The blanks
+    # are on keys #1107's own filter would WRITE -- a hot water window, whose
+    # absence is not its default, and a number whose default is not None --
+    # so this pins the pre-fill's filter rather than that one: a blank
+    # silent-mode window, or a None entity slot, is dropped by
+    # _omit_unstored_defaults whatever the page does.
+    flow, entry, hass = _g7_flow(_g7_states())
+    await flow.async_step_modbus_prefill(None)
+    await submit(flow, step, {prefix_key: "hp"})
+    result = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 52.0,
+        const.CONF_DHW_WINDOWS: "",
+        const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: None,
+        const.CONF_DHW_TEMP_ENTITY: None,
+        const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "the save writes what was kept, never a blank or None, and not the default prefix",
+        shows_menu(result, "init") and entry.options == {
+            const.CONF_DHW_SETPOINT: 52.0,
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+        },
+        f"{result.get('type')}/{result.get('step_id')} options={entry.options}",
+    )
+    reopened = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy", "reopening the page starts again at the first form",
+        shows(reopened, step)
+        and rendered_keys(reopened) == {
+            config_flow._PREFILL_DEVICE, prefix_key, const.CONF_PREFILL_OFFER,
+        },
+        f"{rendered_keys(reopened)}",
+    )
+
+    # A prefix other than the default is written with what it found, and a
+    # close-save closes.
+    flow, entry, hass = _g7_flow(_g7_states(prefix="wp"))
+    await submit(flow, step, {prefix_key: "wp"})
+    closed = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 52.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy", "a custom prefix that found the package is kept, and close closes",
+        closed.get("type") == "create_entry"
+        and closed.get("data") == {prefix_key: "wp", const.CONF_DHW_SETPOINT: 52.0},
+        f"{closed.get('type')} {closed.get('data')}",
+    )
+
+    # A register outside the field's own range is not offered: r406 = 60.0
+    # against a hot water minimum field that stops at 55.
+    flow, entry, hass = _g7_flow(_g7_states(r406="600"))
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy", "a value outside its field's range is not offered",
+        const.CONF_DHW_MIN_TEMP not in rendered_keys(preview)
+        and const.CONF_DHW_SETPOINT in rendered_keys(preview),
+        f"{rendered_keys(preview)}",
+    )
+
+    # The pages' own cross-field rules still bind an edited suggestion.
+    flow, entry, hass = _g7_flow(_g7_states())
+    await submit(flow, step, {prefix_key: "hp"})
+    refused = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 45.0, const.CONF_DHW_MIN_TEMP: 42.0,
+        const.CONF_SILENT_MODE_WINDOWS: "22:00-22:05",
+    })
+    check(
+        f"opt_{step}", "error",
+        "a minimum too close to the setpoint and a too-short window re-show the preview, unsaved",
+        shows(refused, step)
+        and refused.get("errors") == {
+            "base": "dhw_min_too_close",
+            const.CONF_SILENT_MODE_WINDOWS: "silent_mode_window_too_short",
+        }
+        and suggested_value(refused, const.CONF_DHW_SETPOINT) == 45.0
+        and suggested_value(refused, const.CONF_DHW_TEMP_ENTITY) is None
+        and const.CONF_DHW_TEMP_ENTITY in rendered_keys(refused)
+        and entry.options == {},
+        f"errors={refused.get('errors')} options={entry.options}",
+    )
+    unreadable = await submit(flow, step, {const.CONF_DHW_WINDOWS: "not a window"})
+    check(
+        f"opt_{step}", "error", "an unreadable hot water window is refused on its own field",
+        shows(unreadable, step)
+        and unreadable.get("errors") == {const.CONF_DHW_WINDOWS: "invalid_dhw_windows"}
+        and entry.options == {},
+        f"errors={unreadable.get('errors')}",
+    )
+    flow_low, entry_low, _ = _g7_flow(_g7_states(), options={const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
+    await submit(flow_low, step, {prefix_key: "hp"})
+    power = await submit(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+    check(
+        f"opt_{step}", "error", "a maximum power below the stored minimum is refused",
+        shows(power, step) and power.get("errors") == {"base": "min_power_above_max"}
+        and entry_low.options == {const.CONF_HEAT_PUMP_MIN_POWER: 2.0},
+        f"errors={power.get('errors')} options={entry_low.options}",
+    )
+
+    # D12-01: the pre-fill save path must carry the same two-zone rule as the
+    # building page. A GCHV pump under water control (register 4109 == 0)
+    # offers a flow write target, and this page's save never passes through the
+    # guarded building page, so a two_zone_mode=off install with the zone keys
+    # present must be refused here rather than saved and silently no-op'd.
+    water = {"sensor.hp_gchv_r4109": FakeState("0")}
+    off_opts = {
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_OFF,
+    }
+    flow, entry, _ = _g7_flow(water, options=off_opts)
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy",
+        "a water-controlled pump offers the flow target even on two_zone_mode=off (D12-01)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(preview)
+        and suggested_value(preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"{rendered_keys(preview)}",
+    )
+    refused = await submit(flow, step, {
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,
+    })
+    check(
+        f"opt_{step}", "error",
+        "the pre-fill save refuses the flow target on a single-zone install (D12-01)",
+        shows(refused, step)
+        and refused.get("errors", {}).get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == "flow_target_needs_two_zone"
+        and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+        f"errors={refused.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # Null control: an explicit two_zone_mode=on is two-zone to the model, so
+    # the same pre-fill save of a flow target is accepted, not refused.
+    on_opts = {
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
+    }
+    flow_on, entry_on, _ = _g7_flow(water, options=on_opts)
+    await submit(flow_on, step, {prefix_key: "hp"})
+    saved_on = await submit(flow_on, step, {
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "'flow' through the pre-fill saves cleanly on two_zone_mode=on (D12-01 null control)",
+        shows_menu(saved_on, "init")
+        and entry_on.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry_on.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-G7b-1: the same page, fed by a heat-pump DEVICE instead of a
+# Modbus prefix. The device's entities come from the generated fixture
+# (tools/gen_device_fixtures.py, tvofi/tuya_heat_pump's own model file at the
+# commit the fixture records); device_prefill maps them to roles and
+# modbus_prefill.infer() is unchanged. tests/features.py pins the mapping;
+# this pins what the page does with it.
+# ---------------------------------------------------------------------------
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+import gen_device_fixtures as _g7b_gen  # noqa: E402
+
+_G7B_FIXTURE = _g7b_gen.load("tuya_heat_pump_000004k4z6.json")
+_G7B_DEVICE_ID = "dev_rotenso"
+_G7B_STATES = {
+    "outdoor_ambient_temperature_t4": ("sensor", "-3.5"),
+    "dhw_tank_temperature": ("sensor", "48.0"),
+    "outlet_water_temperature_t1": ("sensor", "35.2"),
+    "heat_exchanger_inlet_water_temperature_tin": ("sensor", "30.1"),
+    "night_mode_silent": ("switch", "off"),
+    "dhw_setpoint": ("number", "50"),
+}
+
+
+def _g7b_seed(hass, *, platform="tuya_heat_pump", device_id=_G7B_DEVICE_ID, states=True):
+    """Put the fixture's entities on a device in the stub registries."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    dr.async_get(hass).add(device_id, name=_G7B_FIXTURE["device_name"])
+    registry = er.async_get(hass)
+    for row in _G7B_FIXTURE["records"]:
+        registry.add(
+            row["entity_id"],
+            unique_id=row["unique_id"],
+            device_id=device_id,
+            platform=platform,
+            original_name=row["original_name"],
+            original_device_class=row["device_class"],
+            unit_of_measurement=row["unit"],
+        )
+    if not states:
+        return
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    for name, (domain, value) in _G7B_STATES.items():
+        hass.states.set(f"{domain}.{slug}_{name}", FakeState(value))
+
+
+async def options_device_prefill():
+    R.section("options: pre-filling from a heat-pump device (#1067 G7b-1)")
+    step = "modbus_prefill"
+    device_field = "prefill_device"
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+
+    flow, entry, hass = _g7_flow()
+    shown = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy", "the first form offers a device pick beside the prefix row",
+        shows(shown, step)
+        and rendered_keys(shown) == {
+            device_field, const.CONF_MODBUS_PREFILL_PREFIX, const.CONF_PREFILL_OFFER,
+        },
+        f"{rendered_keys(shown)}",
+    )
+
+    # Null control: the page with no device picked is the prefix route,
+    # unchanged. Compared against the same states G7's own walk uses.
+    flow, entry, hass = _g7_flow(_g7_states())
+    await flow.async_step_modbus_prefill(None)
+    without = await submit(flow, step, {const.CONF_MODBUS_PREFILL_PREFIX: "hp"})
+    flow2, entry2, hass2 = _g7_flow(_g7_states())
+    await flow2.async_step_modbus_prefill(None)
+    blank = await submit(flow2, step, {
+        device_field: None, const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+    })
+    offered_without = {k: suggested_value(without, k) for k in rendered_keys(without)}
+    offered_blank = {k: suggested_value(blank, k) for k in rendered_keys(blank)}
+    check(
+        f"opt_{step}", "happy",
+        "null control: no device picked leaves the prefix route's suggestions exactly as they were",
+        offered_without == offered_blank
+        and without.get("description_placeholders") == blank.get("description_placeholders"),
+        f"without={offered_without} blank={offered_blank}",
+    )
+
+    # The device route.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    preview = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    offered = {k: suggested_value(preview, k) for k in rendered_keys(preview)}
+    check(
+        f"opt_{step}", "happy",
+        "a picked device offers its set-point in degrees and its four empty sensor slots",
+        shows(preview, step) and offered == {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+            const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: f"sensor.{slug}_outlet_water_temperature_t1",
+            const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+                f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+            const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: f"switch.{slug}_night_mode_silent",
+        },
+        f"{offered}",
+    )
+    saved = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "the save writes what was kept, and never the transient device pick or a prefix",
+        shows_menu(saved, "init") and entry.options == {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        },
+        f"options={entry.options}",
+    )
+
+    # The outdoor slot is already set in _G7_ENTRY, so it is never offered.
+    check(
+        f"opt_{step}", "happy", "a slot already filled by setup is not offered by the device route",
+        const.CONF_OUTDOOR_TEMP_ENTITY not in offered,
+        f"{sorted(offered)}",
+    )
+
+    # A device from an integration with no source table: no table reaches it,
+    # so the page reads its entity NAMES and says so -- every role that came
+    # from a name, listed as ``role -> name (entity)`` with the friendliest
+    # name the page could see (#1262; here the fixture records' own original
+    # names, the states carrying no friendly_name), and no source named
+    # because none was read (#1067 W1067-G7b-3).
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass, platform="some_other_integration")
+    await flow.async_step_modbus_prefill(None)
+    named = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    notes = named.get("description_placeholders") or {}
+    fixture_names = {
+        row["entity_id"]: row["original_name"] for row in _G7B_FIXTURE["records"]
+    }
+
+    def _named_pair(role, entity_id):
+        return f"{role} -> {fixture_names[entity_id]} ({entity_id})"
+
+    check(
+        f"opt_{step}", "happy",
+        "a device from an integration with no table is read by name, and the page "
+        "lists every role that came from a name and names no source",
+        shows(named, step)
+        and notes.get("matched_sources") == "–"
+        and notes.get("name_matched")
+        == "; ".join((
+            _named_pair(
+                const.CONF_DHW_TEMP_ENTITY, f"sensor.{slug}_dhw_tank_temperature"),
+            _named_pair(
+                const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+                f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+            _named_pair(
+                const.CONF_OUTDOOR_TEMP_ENTITY,
+                f"sensor.{slug}_outdoor_ambient_temperature_t4"),
+            _named_pair("r404", f"number.{slug}_dhw_setpoint"),
+        )),
+        f"name_matched={notes.get('name_matched')!r} "
+        f"sources={notes.get('matched_sources')!r}",
+    )
+    # The supply slot is the corpus's own near-tie trap: this device's T1
+    # outlet and its zone-2 outlet are named the words a supply is named with,
+    # so the role is refused rather than half-guessed -- and the page says so
+    # by leaving it out of the list above.
+    check(
+        f"opt_{step}", "happy",
+        "the near-tie the fallback refuses is absent from both the form and the list",
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in rendered_keys(named)
+        and "heat_pump_supply_temp_entity" not in (notes.get("name_matched") or ""),
+        f"keys={rendered_keys(named)} name_matched={notes.get('name_matched')!r}",
+    )
+    saved = await submit(flow, step, {
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "…and what the name route suggested saves like any other suggestion",
+        saved.get("data") == {const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature"},
+        f"data={saved.get('data')}",
+    )
+
+    # A table's own suggestions are named by their source, and nothing on the
+    # page is presented as a name match.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    tabled = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    tabled_notes = tabled.get("description_placeholders") or {}
+    check(
+        f"opt_{step}", "happy",
+        "a device a source table proves is named by that source, with no name match",
+        tabled_notes.get("matched_sources") == "tuya_heat_pump"
+        and tabled_notes.get("name_matched") == "–",
+        f"name_matched={tabled_notes.get('name_matched')!r} "
+        f"sources={tabled_notes.get('matched_sources')!r}",
+    )
+
+    # A device with no entity any table names or any name fills: the same
+    # refusal as before, and the page still carries both placeholder keys.
+    flow, entry, hass = _g7_flow()
+    from homeassistant.helpers import device_registry as _dr
+    from homeassistant.helpers import entity_registry as _er
+    _dr.async_get(hass).add("dev_plug", name="Kitchen plug")
+    _er.async_get(hass).add(
+        "switch.kitchen_plug", unique_id="kitchen_plug_state",
+        device_id="dev_plug", platform="tuya_heat_pump",
+    )
+    await flow.async_step_modbus_prefill(None)
+    nothing = await submit(flow, step, {device_field: "dev_plug"})
+    check(
+        f"opt_{step}", "error", "a device with no entity the table names is refused the same way",
+        shows(nothing, step)
+        and nothing.get("errors") == {"base": "prefill_device_unreadable"}
+        and (nothing.get("description_placeholders") or {}).get("name_matched") == "–"
+        and entry.options == {},
+        f"errors={nothing.get('errors')} options={entry.options}",
+    )
+
+    # A picked device wins over a prefix typed beside it, and the prefix is
+    # not written when the device route answered.
+    flow, entry, hass = _g7_flow(_g7_states())
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    both = await submit(flow, step, {
+        device_field: _G7B_DEVICE_ID, const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+    })
+    closed = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 50.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "a picked device wins over a prefix typed beside it, and no prefix is stored",
+        suggested_value(both, const.CONF_DHW_SETPOINT) == 50.0
+        and const.CONF_DHW_WINDOWS not in rendered_keys(both)
+        and closed.get("data") == {const.CONF_DHW_SETPOINT: 50.0},
+        f"offered={sorted(rendered_keys(both))} data={closed.get('data')}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-POST1: the same pre-fill, offered while the integration is being
+# set up rather than found in Options later. A device a source G7b can map
+# qualifies -- a source table that proves the model, or the fuzzy fallback
+# filling at least the corpus's own minimum (prefill_offer.QUALIFYING_MINIMUM)
+# -- and the offer sits behind one stored global switch, off by default. With
+# the switch off the wizard is the merge base's, page for page: nothing new
+# renders and nothing new is written.
+# ---------------------------------------------------------------------------
+_POST1_SWITCH = const.CONF_PREFILL_OFFER
+
+
+def _post1_hass(options=None):
+    """A hass holding the G7b fixture device, its states, and one entry.
+
+    Plus one entity belonging to NO device -- a Modbus package's sensors have
+    a unique id and no device, which is the install the prefix route exists
+    for -- so a device-less entity cannot make the offer fire, and the walk
+    has one of those in every arm.
+    """
+    hass = FakeHass(states={})
+    _g7b_seed(hass)
+    from homeassistant.helpers import entity_registry as _er
+    _er.async_get(hass).add(
+        "sensor.hp_gchv_r404_0194h", unique_id="hp_gchv_r404",
+        platform="template", original_name="HP GCHV R404 (0194H)",
+        unit_of_measurement="°C",
+    )
+    if options is not None:
+        hass.config_entries.entries.append(FakeEntry(data={}, options=dict(options)))
+    return hass
+
+
+def _post1_seed_nothing(hass):
+    """A second device nothing resolves: a humidity sensor and no heat pump."""
+    from homeassistant.helpers import device_registry as _dr
+    from homeassistant.helpers import entity_registry as _er
+    _dr.async_get(hass).add("dev_nothing", name="Utility meter cupboard")
+    _er.async_get(hass).add(
+        "sensor.utility_humidity", unique_id="utility_humidity",
+        device_id="dev_nothing", platform="localtuya", original_name="Utility humidity",
+        original_device_class="humidity", unit_of_measurement="%",
+    )
+
+
+async def config_flow_quick_setup():
+    R.section("config: the quick-setup path — house questions, then autodetect")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    flow = fresh_flow()
+    await submit_first_screen(flow, FIRST_SCREEN)
+    form = await flow.async_step_quick_setup(None)
+    check(
+        "quick_setup", "happy",
+        "the quick path asks the five house questions plus the building questionnaire",
+        shows(form, "quick_setup")
+        and rendered_keys(form)
+        == {
+            quick_setup.FIELD_TWO_ZONE,
+            quick_setup.FIELD_BUFFER_TANK,
+            quick_setup.FIELD_DHW_TANK,
+            quick_setup.FIELD_WOOD_FURNACE,
+            quick_setup.FIELD_WOOD_BUFFER_TANK,
+            const.CONF_WOOD_TANK_TOP_ENTITY,
+            const.CONF_WOOD_TANK_BOTTOM_ENTITY,
+            const.CONF_BUILDING_STRUCTURE,
+            const.CONF_BUILDING_ERA,
+            const.CONF_BUILDING_FOUNDATION,
+            const.CONF_HEATED_AREA,
+            const.CONF_UPPER_EMITTER,
+            const.CONF_LOWER_EMITTER,
+        },
+        f"keys={sorted(rendered_keys(form))}",
+    )
+
+    answers = {
+        quick_setup.FIELD_TWO_ZONE: True,
+        quick_setup.FIELD_BUFFER_TANK: True,
+        quick_setup.FIELD_DHW_TANK: True,
+        quick_setup.FIELD_WOOD_FURNACE: True,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_tank_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_tank_bottom",
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    result = await submit(flow, "quick_setup", answers)
+    check(
+        "quick_setup", "happy",
+        "submitting the house questions hands off to the entity pre-fill",
+        shows(result, "device_prefill"),
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+    check(
+        "quick_setup", "happy",
+        "the answers are written as the model's own keys",
+        flow._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
+        and flow._data.get(const.CONF_DHW_ENABLED) is True
+        and flow._data.get(const.CONF_WOOD_FURNACE_ENABLED) is True
+        and flow._data.get(const.CONF_BUFFER_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_TOP_ENTITY) == "sensor.wood_tank_top"
+        and flow._data.get(const.CONF_WOOD_TANK_BOTTOM_ENTITY) == "sensor.wood_tank_bottom"
+        and flow._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS in flow._data,
+        f"data={sorted(flow._data)}",
+    )
+
+    # A single-zone, no-tank answer writes the off override and never the
+    # two-zone presence keys — the trap the options flow exists to avoid.
+    flow2 = fresh_flow()
+    await submit_first_screen(flow2, FIRST_SCREEN)
+    one_zone = {
+        quick_setup.FIELD_TWO_ZONE: False,
+        quick_setup.FIELD_BUFFER_TANK: False,
+        quick_setup.FIELD_DHW_TANK: False,
+        quick_setup.FIELD_WOOD_FURNACE: False,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: False,
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    await submit(flow2, "quick_setup", one_zone)
+    check(
+        "quick_setup", "happy",
+        "a 1-zone answer writes the off override and never the two-zone presence keys",
+        flow2._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_OFF
+        and flow2._data.get(const.CONF_DHW_ENABLED) is False
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS not in flow2._data,
+        f"data={sorted(flow2._data)}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
+#: The house questions, at the shape both quick-setup paths ask them (#1258).
+QUICK_SETUP_ANSWERS = {
+    quick_setup.FIELD_TWO_ZONE: True,
+    quick_setup.FIELD_BUFFER_TANK: True,
+    quick_setup.FIELD_DHW_TANK: True,
+    quick_setup.FIELD_WOOD_FURNACE: True,
+    quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+    const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_tank_top",
+    const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_tank_bottom",
+    const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+    const.CONF_BUILDING_ERA: ERA_1980_2005,
+    const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+    const.CONF_HEATED_AREA: 140,
+    const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+    const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+}
+
+
+async def options_quick_setup():
+    """#1258: the Configure dialog reaches the quick-setup questions too.
+
+    Quick setup used to be initial-flow-only -- the finish menu is not
+    reachable from an existing entry, and reconfigure routes through the
+    first screen and saves -- so an install that missed it at the start had
+    no one-page way to answer the house questions. The fix is a page on the
+    options top menu: the same questions, written through
+    ``quick_setup.derive`` onto the entry's existing options.
+    """
+    R.section("options: Quick setup from Configure (#1258)")
+    flow, entry, hass = fresh_options()
+    top = await flow.async_step_init(None)
+    check(
+        "opt_quick_setup", "happy",
+        "Configure offers Quick setup on the top menu, beside Advanced",
+        shows_menu(top, "init")
+        and list(top.get("menu_options", {}))[-2:] == ["quick_setup", "advanced"],
+        str(list(top.get("menu_options", {}))),
+    )
+
+    # The same questions the initial flow asks, over the entry's own answers,
+    # with the options flow's after-save choice appended like every page.
+    # (Looked up by name so the whole section reports on a tree without the
+    # step, rather than stopping at the first AttributeError.)
+    initial = fresh_flow()
+    initial_form = await initial.async_step_quick_setup(None)
+    quick = getattr(flow, "async_step_quick_setup", None)
+    form = await quick(None) if quick else {}
+    after_save_offered = any(
+        str(getattr(marker, "schema", marker)) == const.CONF_AFTER_SAVE
+        for marker, _value in ((form.get("data_schema") or vol.Schema({})).schema or {}).items()
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "the page asks exactly the questions the initial flow's quick setup asks",
+        shows(form, "quick_setup")
+        and rendered_keys(form) == rendered_keys(initial_form)
+        and after_save_offered,
+        f"keys={sorted(rendered_keys(form))} after_save={after_save_offered}",
+    )
+    # …and the questionnaire defaults come from the entry as configured, not
+    # from a fresh install's: an existing entry's stored answers are the
+    # starting point the user edits.
+    configured, _, _ = fresh_options(
+        pre_options={const.CONF_HEATED_AREA: 175, const.CONF_BUILDING_ERA: "pre_1960"}
+    )
+    configured = getattr(configured, "async_step_quick_setup", None)
+    configured_form = await configured(None) if configured else {}
+    check(
+        "opt_quick_setup", "happy",
+        "the questionnaire pre-fills from the entry's stored answers",
+        schema_default(configured_form, const.CONF_HEATED_AREA) == 175
+        and schema_default(configured_form, const.CONF_BUILDING_ERA) == "pre_1960",
+        f"area={schema_default(configured_form, const.CONF_HEATED_AREA)!r} "
+        f"era={schema_default(configured_form, const.CONF_BUILDING_ERA)!r}",
+    )
+
+    # Null control: opening Configure and looking at the page writes nothing.
+    # The questions are rendered, not answered, so the entry's whole stored
+    # configuration must come back byte-identical.
+    data_before = dict(entry.data)
+    options_before = dict(entry.options)
+    if quick:
+        await quick(None)
+    check(
+        "opt_quick_setup", "happy",
+        "null control: an entry that does not run Quick setup changes nothing",
+        entry.options == options_before and entry.data == data_before,
+        f"options={entry.options} data={sorted(entry.data)}",
+    )
+
+    # #1273, the nightly-ha red this branch shipped with: an UNTOUCHED
+    # submit used to be treated as an answer, derive filled the questions'
+    # shipped defaults, and a real entry was re-derived underneath the user
+    # (two_zone_mode flipping off). The page must pre-fill the STORED answers
+    # -- suggested, never defaulted, so voluptuous cannot refill a bare post
+    # with the shipped defaults -- and a submit that answers nothing the page
+    # did not already say writes NOTHING.
+    qflow, qentry, _ = fresh_options()
+    quick2 = getattr(qflow, "async_step_quick_setup", None)
+    form2 = await quick2(None) if quick2 else {}
+    schema2 = form2.get("data_schema") or vol.Schema({})
+    question_markers = {
+        str(getattr(marker, "schema", marker)): marker
+        for marker, _value in schema2.schema.items()
+        if str(getattr(marker, "schema", marker))
+        in set(getattr(quick_setup, "FIELD_QUESTIONS", ()))
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "the five questions suggest the stored answers and never default them "
+        "(a default is refilled by voluptuous for a key a bare post left out)",
+        question_markers
+        and all(
+            getattr(marker, "default", vol.UNDEFINED) is vol.UNDEFINED
+            and (getattr(marker, "description", None) or {}).get("suggested_value")
+            is not None
+            for marker in question_markers.values()
+        ),
+        f"markers={ {k: (getattr(m, 'default', vol.UNDEFINED) is not vol.UNDEFINED, (getattr(m, 'description', None) or {}).get('suggested_value')) for k, m in question_markers.items()} }",
+    )
+
+    # An entry the quick path configured: the suggestions are its own answers
+    # back, so an untouched submit re-derives the entry byte-identically --
+    # and byte-identically here means NOTHING is written at all.
+    configured, config_entry, config_hass = fresh_options(
+        pre_options=dict(quick_setup.derive(dict(QUICK_SETUP_ANSWERS)))
+    )
+    configured_form = await getattr(configured, "async_step_quick_setup", lambda _u: {})(
+        None
+    )
+    configured_form = configured_form if configured_form.get("data_schema") else {}
+    # The five questions suggest the entry's own answers; the questionnaire
+    # (already pinned above) defaults from the entry as everywhere else.
+    _configured_markers = {
+        str(getattr(m, "schema", m)): m
+        for m, _v in (configured_form.get("data_schema").schema or {}).items()
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "an entry the quick path configured is suggested its own answers back",
+        all(
+            (getattr(_configured_markers.get(question), "description", None) or {}).get(
+                "suggested_value"
+            )
+            == QUICK_SETUP_ANSWERS[question]
+            for question in getattr(quick_setup, "FIELD_QUESTIONS", ())
+        ),
+        f"suggestions={ {q: (getattr(_configured_markers.get(q), 'description', None) or {}).get('suggested_value') for q in getattr(quick_setup, 'FIELD_QUESTIONS', ())} }",
+    )
+    before = dict(config_entry.options)
+    untouched_menu = await submit(
+        configured, "quick_setup", _untouched_post(configured_form["data_schema"])
+    )
+    # "Writes nothing" is judged on the WRITE, not on the values: a
+    # re-derive of a derive-shaped entry reproduces its values byte for
+    # byte (features.py pins that round-trip), so value equality alone
+    # cannot tell a no-op from a same-valued rewrite. No async_update_entry
+    # at all is the contract.
+    check(
+        "opt_quick_setup", "happy",
+        "an untouched submit writes nothing and returns to the menu",
+        shows_menu(untouched_menu, "init")
+        and config_entry.options == before
+        and not config_hass.config_entries.updated,
+        f"options={sorted(config_entry.options)} "
+        f"updated={len(config_hass.config_entries.updated)}",
+    )
+    # The close arm, judged on an entry that NEVER answered the questions:
+    # the create-entry result's data is what the manager stores, so it must
+    # come back with no options at all -- not with a derive nobody asked
+    # for. (On a derive-shaped entry this arm is value-indistinguishable
+    # from a rewrite, which is exactly why the plain entry judges it.)
+    plain, plain_entry, _ = fresh_options()
+    plain_form = await getattr(plain, "async_step_quick_setup", lambda _u: {})(None)
+    plain_form = plain_form if plain_form.get("data_schema") else {}
+    untouched_close = await submit(plain, "quick_setup", {
+        **_untouched_post(plain_form["data_schema"]),
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        "opt_quick_setup", "happy",
+        "the untouched close choice stores no options at all",
+        untouched_close.get("type") == "create_entry"
+        and untouched_close.get("data") == {}
+        and plain_entry.options == {},
+        f"{untouched_close.get('type')} data={sorted(untouched_close.get('data') or {})}",
+    )
+    # The nightly walk's own shape: a bare {after_save: close} post, the five
+    # questions absent entirely (voluptuous refills defaults, not
+    # suggestions), on the same never-answered entry -- a5's exact arm.
+    bare = await submit(plain, "quick_setup", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+    check(
+        "opt_quick_setup", "happy",
+        "a bare close post -- no question keys at all -- writes nothing "
+        "(nightly-ha a5's untouched walk)",
+        bare.get("type") == "create_entry"
+        and plain_entry.options == {}
+        and shows(plain_form, "quick_setup"),
+        f"{bare.get('type')} options={plain_entry.options}",
+    )
+
+    # Saving: the answers map through quick_setup.derive onto the entry's
+    # EXISTING option keys -- never the transient question names, never the
+    # setup data -- and the dialog returns to the menu it came from.
+    derived = quick_setup.derive(dict(QUICK_SETUP_ANSWERS))
+    saved = (
+        await submit(flow, "quick_setup", dict(QUICK_SETUP_ANSWERS)) if quick else {}
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "submitting writes quick_setup.derive's keys onto the entry's options "
+        "and returns to the menu",
+        shows_menu(saved, "init")
+        and hass.config_entries.updated
+        and set(entry.options) <= set(derived) | set(options_before)
+        and not any(
+            field in entry.options
+            for field in (
+                quick_setup.FIELD_TWO_ZONE, quick_setup.FIELD_BUFFER_TANK,
+                quick_setup.FIELD_DHW_TANK, quick_setup.FIELD_WOOD_FURNACE,
+                quick_setup.FIELD_WOOD_BUFFER_TANK,
+            )
+        )
+        and entry.data == data_before,
+        f"options={sorted(entry.options)} data_unchanged={entry.data == data_before}",
+    )
+    # …and every key it wrote is a key derive returned, with derive's value:
+    # the page maps answers, it never invents a setting of its own. The
+    # initial path, given the same answers, must end up with the same physics
+    # -- this page is the second caller of one mapping, not a second mapping.
+    real2 = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    initial2 = fresh_flow()
+    await submit_first_screen(initial2, FIRST_SCREEN)
+    await submit(initial2, "quick_setup", dict(QUICK_SETUP_ANSWERS))
+    config_flow.async_get_clientsession = real2
+    written = {k: v for k, v in entry.options.items() if k in derived}
+    check(
+        "opt_quick_setup", "happy",
+        "the Configure path derives what the initial path derives from the same answers",
+        set(written) <= set(initial2._data)
+        and all(initial2._data[k] == v for k, v in written.items())
+        and written,
+        f"options-only={sorted(set(written) - set(initial2._data))} "
+        f"diverging={sorted(k for k, v in written.items() if initial2._data.get(k) != v)}",
+    )
+
+    # The close arm: the same page saves and closes in one submit (#100).
+    flow, entry, hass_close = fresh_options()
+    quick_close = getattr(flow, "async_step_quick_setup", None)
+    closed = (
+        await submit(
+            flow, "quick_setup",
+            {**QUICK_SETUP_ANSWERS, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE},
+        )
+        if quick_close
+        else {}
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "the after-save close choice creates the entry result with the same keys",
+        closed.get("type") == "create_entry"
+        and not hass_close.config_entries.updated
+        and set(closed.get("data", {})) <= set(derived)
+        and const.CONF_AFTER_SAVE not in closed.get("data", {}),
+        f"{closed.get('type')} data={sorted(closed.get('data') or {})}",
+    )
+
+    # The device pre-fill does NOT run from Configure: an existing entry's
+    # entity slots are already answered, and the pre-fill stays one
+    # deliberate click away on its own page on the first menu. The submit
+    # returns to the menu, never to a device pick.
+    check(
+        "opt_quick_setup", "happy",
+        "the Configure quick path ends at the menu, with no device pre-fill page",
+        not shows(saved, "device_prefill") and not shows(saved, "modbus_prefill"),
+        f"{saved.get('type')}/{saved.get('step_id')}",
+    )
+
+
+async def config_flow_device_prefill_offer():
+    R.section("config: the pre-fill offered when a heat-pump device is added (#1067 POST1)")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    # What the fixture's own six resolved roles are worth on a fresh setup,
+    # where none of these slots is filled yet: tests/features.py pins the
+    # mapping, and the options walk above pins what the same device suggests
+    # to a stored configuration.
+    suggestions = {
+        const.CONF_OUTDOOR_TEMP_ENTITY: f"sensor.{slug}_outdoor_ambient_temperature_t4",
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: f"sensor.{slug}_outlet_water_temperature_t1",
+        const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+            f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: f"switch.{slug}_night_mode_silent",
+    }
+
+    # Null control: the switch is off (nothing stores it) with a qualifying
+    # device right there in the registry, and the wizard walks exactly as it
+    # did before this group -- the finish-setup menu, no pre-fill page.
+    flow = fresh_flow(_post1_hass())
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "null control: with the switch off the device pre-fill is never offered",
+        offers_finish_setup(result) and not shows(result, "device_prefill"),
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+    # …and the switch's own default is what makes that the shipped behaviour.
+    check(
+        "device_prefill", "happy",
+        "the switch is stored, its default is off, and an install with no entry reads it as off",
+        _post1_hass().config_entries.async_entries(const.DOMAIN) == []
+        and const.DEFAULT_PREFILL_OFFER is False
+        and config_flow._prefill_offer_stored(_post1_hass()) is False,
+        f"default={const.DEFAULT_PREFILL_OFFER!r}",
+    )
+
+    # The switch on: the same walk is offered the page before it continues.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    offered = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "with the switch on the wizard offers the pre-fill, asking which device to read",
+        shows(offered, "device_prefill")
+        and rendered_keys(offered) == {config_flow._PREFILL_DEVICE}
+        and (offered.get("description_placeholders") or {}).get("name_matched") == "–"
+        and (offered.get("description_placeholders") or {}).get("matched_sources") == "–",
+        f"{offered.get('type')}/{offered.get('step_id')} keys={sorted(rendered_keys(offered))} "
+        f"placeholders={offered.get('description_placeholders')}",
+    )
+
+    # Declining: an empty pick writes nothing and the wizard continues.
+    declined = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: None})
+    check(
+        "device_prefill", "happy",
+        "an empty pick declines the offer: nothing is written and the wizard continues",
+        offers_finish_setup(declined)
+        and not set(flow._data) & set(suggestions)
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"{declined.get('step_id')} data={sorted(flow._data)}",
+    )
+
+    # The device route: the fixture's entities are suggested, and the G7b-3
+    # disclaimer travels with them -- which roles came from a name, and which
+    # source's table answered for the rest.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    shown = {k: suggested_value(preview, k) for k in rendered_keys(preview)}
+    notes = preview.get("description_placeholders") or {}
+    check(
+        "device_prefill", "happy",
+        "the offered device's entities are suggested, with the disclaimer naming the source",
+        shows(preview, "device_prefill")
+        and shown == suggestions
+        and notes.get("matched_sources") == "tuya_heat_pump"
+        and notes.get("name_matched") == "–"
+        and notes.get("found") == str(len(suggestions)),
+        f"offered={shown} sources={notes.get('matched_sources')!r} "
+        f"named={notes.get('name_matched')!r} found={notes.get('found')!r}",
+    )
+    # The page is the pre-fill page's own: the names it suggests through are
+    # copied from the suggested keys' home pages, so it carries the same keys
+    # the options page does for the same device.
+    check(
+        "device_prefill", "happy",
+        "the offered page presents the same keys the options flow does for that device",
+        set(shown) == set(suggestions),
+        f"{sorted(shown)}",
+    )
+
+    # What the user keeps lands in the entry's own setup data, and the wizard
+    # continues to the menu it would have reached without the offer.
+    kept = await submit(flow, "device_prefill", {
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+    })
+    check(
+        "device_prefill", "happy",
+        "submitting the page writes what was kept into the entry's data and continues the wizard",
+        offers_finish_setup(kept)
+        and flow._data[const.CONF_DHW_SETPOINT] == 50.0
+        and flow._data[const.CONF_DHW_TEMP_ENTITY] == f"sensor.{slug}_dhw_tank_temperature"
+        and const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in flow._data,
+        f"{kept.get('step_id')} data={sorted(flow._data)}",
+    )
+    # …and the entry the wizard then creates carries them, which is the only
+    # thing "written" means on a flow with no entry yet.
+    created = await submit(flow, "finish_now", {})
+    created = await submit(flow, "setup_overview", {})
+    check(
+        "device_prefill", "happy",
+        "the entry the wizard creates carries what the offer filled",
+        created.get("type") == "create_entry"
+        and created.get("data", {}).get(const.CONF_DHW_SETPOINT) == 50.0
+        and created.get("data", {}).get(const.CONF_DHW_TEMP_ENTITY)
+        == f"sensor.{slug}_dhw_tank_temperature",
+        f"{created.get('type')} data={sorted(created.get('data') or {})}",
+    )
+
+    # #1107: the wizard's own data is what the omission rules read, so a
+    # suggestion equal to a setting's default is posted and dropped, and an
+    # unchanged submit stores nothing of the pre-fill.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    await submit_first_screen(flow, FIRST_SCREEN)
+    await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    empty = await submit(flow, "device_prefill", {})
+    check(
+        "device_prefill", "happy",
+        "…and a submit that kept nothing writes nothing at all",
+        offers_finish_setup(empty)
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"data={sorted(flow._data)}",
+    )
+
+    # A suggested value the pages the keys live on would refuse is refused
+    # here too, before anything is written: a pump whose own hot water
+    # set-point leaves no deadband above the minimum in force is a real
+    # reading (the fixture's register says 46 when the probe says so) and an
+    # impossible configuration to store.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    hass.states.set(f"number.{slug}_dhw_setpoint", FakeState("46"))
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    tight = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    refused_pair = await submit(flow, "device_prefill", {const.CONF_DHW_SETPOINT: 46.0})
+    check(
+        "device_prefill", "error",
+        "a set-point too close to the minimum in force is refused, and nothing is written",
+        suggested_value(tight, const.CONF_DHW_SETPOINT) == 46.0
+        and shows(refused_pair, "device_prefill")
+        and refused_pair.get("errors") == {"base": "dhw_min_too_close"}
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"errors={refused_pair.get('errors')} data={sorted(flow._data)}",
+    )
+
+    # A device that fills too few roles is refused on the page rather than
+    # opened empty -- the offer is a prompt, not an empty form.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    _post1_seed_nothing(hass)
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    refused = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: "dev_nothing"})
+    check(
+        "device_prefill", "error",
+        "a device that fills too few roles is refused rather than opened empty",
+        shows(refused, "device_prefill")
+        and refused.get("errors") == {"base": "prefill_device_unreadable"}
+        and (refused.get("description_placeholders") or {}).get("name_matched") == "–"
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"errors={refused.get('errors')} data={sorted(flow._data)}",
+    )
+    # …and an install whose devices all resolve nothing is never offered the
+    # page in the first place, whatever it has in the registry.
+    hass = FakeHass(states={})
+    _post1_seed_nothing(hass)
+    hass.config_entries.entries.append(FakeEntry(data={}, options={_POST1_SWITCH: True}))
+    flow = fresh_flow(hass)
+    silent = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "an install with no qualifying device is offered nothing, switch or no switch",
+        offers_finish_setup(silent) and not shows(silent, "device_prefill"),
+        f"{silent.get('type')}/{silent.get('step_id')}",
+    )
+
+    # The switch's home is the pre-fill page, and turning it on there is what
+    # makes the offer fire: the options flow stores it, the wizard reads it.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    turned_on = await submit(flow, "modbus_prefill", {
+        const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+        config_flow._PREFILL_DEVICE: None,
+        _POST1_SWITCH: True,
+    })
+    turned_on = await submit(flow, "modbus_prefill", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        "opt_modbus_prefill", "happy",
+        "the pre-fill page offers the switch, and turning it on stores it",
+        shows_menu(turned_on, "init")
+        and entry.options == {_POST1_SWITCH: True}
+        and config_flow._prefill_offer_stored(hass) is True,
+        f"options={entry.options}",
+    )
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    untouched = await submit(flow, "modbus_prefill", {
+        const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+        config_flow._PREFILL_DEVICE: None,
+        _POST1_SWITCH: False,
+    })
+    untouched = await submit(flow, "modbus_prefill", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        "opt_modbus_prefill", "happy",
+        "#1107: an untouched switch at its default is not stored by the pre-fill page",
+        shows_menu(untouched, "init")
+        and entry.options == {}
+        and config_flow._prefill_offer_stored(hass) is False,
+        f"options={entry.options}",
+    )
+    config_flow.async_get_clientsession = real
+
+
+async def device_prefill_preview_texts():
+    """#1262: the preview page's own labels, and friendly entity names.
+
+    The preview renders six suggested fields plus the after-save choice, and
+    its strings live under ``config.step.device_prefill`` -- which translated
+    only the device pick, so the frontend fell back to the raw keys. And the
+    page's account of what it read named entities by their raw ids. Both are
+    checked the way the frontend resolves them, in every shipped catalogue.
+    """
+    R.section("config: the pre-fill preview's labels and entity names (#1262)")
+    root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+    catalogues = {
+        name: json.loads((root / rel).read_text())
+        for name, rel in (
+            ("strings.json", "strings.json"),
+            ("en.json", "translations/en.json"),
+            ("sv.json", "translations/sv.json"),
+        )
+    }
+
+    # (a) The label walk: every key the preview renders has a label where the
+    # frontend looks -- config.step.device_prefill.data, the config flow's own
+    # path, not the options page the six keys' labels live under.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    preview_keys = [
+        str(getattr(marker, "schema", marker))
+        for marker, _value in (preview.get("data_schema").schema or {}).items()
+    ]
+    for name, catalog in catalogues.items():
+        data = catalog["config"]["step"]["device_prefill"].get("data", {})
+        raw = [key for key in preview_keys if (data.get(key) or key) == key]
+        check(
+            "device_prefill", "happy",
+            f"every previewed field has a label where the frontend looks, in {name}",
+            not raw and len(preview_keys) > 6,
+            f"{len(raw)} of {len(preview_keys)} render the raw key: {raw}",
+        )
+        # The labels are copies: the options pre-fill page translates the same
+        # keys for the same device, and one setting may not be named two ways.
+        copies = {
+            key: (data.get(key), catalog["options"]["step"]["modbus_prefill"]["data"].get(key))
+            for key in preview_keys
+        }
+        check(
+            "device_prefill", "happy",
+            f"and each preview label is a copy of the options pre-fill page's, in {name}",
+            all(have == mine for have, mine in copies.values()),
+            f"diverging={sorted(k for k, (h, m) in copies.items() if h != m)}",
+        )
+
+    # (b) Friendly names: a device no source table knows is read by entity
+    # name, and the page's account of those roles names the entity the way
+    # the rest of Home Assistant does -- the state's friendly_name when the
+    # state carries one, else the registry record's original name.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    _g7b_seed(hass, platform="untabled_brand")
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    hass.states.set(
+        f"sensor.{slug}_dhw_tank_temperature",
+        FakeState("48.0", attributes={"friendly_name": "Varmvatten lagret"}),
+    )
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    notes = preview.get("description_placeholders") or {}
+    check(
+        "device_prefill", "happy",
+        "a name-matched role is named by its friendly name, the state's "
+        "friendly_name winning over the registry's original name",
+        shows(preview, "device_prefill")
+        and notes.get("matched_sources") == "–"
+        and f"dhw_temp_entity -> Varmvatten lagret (sensor.{slug}_dhw_tank_temperature)"
+        in (notes.get("name_matched") or ""),
+        f"named={notes.get('name_matched')!r}",
+    )
+    check(
+        "device_prefill", "happy",
+        "and an entity with no friendly_name in its state is named by its "
+        "registry original_name",
+        f"outdoor_temp_entity -> Outdoor Ambient Temperature (T4) "
+        f"(sensor.{slug}_outdoor_ambient_temperature_t4)"
+        in (notes.get("name_matched") or ""),
+        f"named={notes.get('name_matched')!r}",
+    )
+
+    # Null control: a device whose entities carry no name anywhere -- no
+    # state friendly_name, no registry original_name -- still resolves by the
+    # words of its entity ids, and the page then degrades to the bare id
+    # rather than dropping the role it read.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    from homeassistant.helpers import device_registry as _dr2
+    from homeassistant.helpers import entity_registry as _er2
+    _dr2.async_get(hass).add("dev_plain", name="Plain Pump")
+    for eid in (
+        "sensor.plain_outdoor_temperature",
+        "sensor.plain_hot_water_tank_temperature",
+        "sensor.plain_outlet_water_temperature",
+    ):
+        # original_device_class and unit only: the matcher's hard filter
+        # needs the type, while the page's display names -- state
+        # friendly_name and registry original_name -- are exactly what this
+        # arm leaves out, so the roles resolve on their entity-id words.
+        _er2.async_get(hass).add(
+            eid, unique_id=eid, device_id="dev_plain", platform="brand_x",
+            original_device_class="temperature", unit_of_measurement="°C",
+        )
+        hass.states.set(eid, FakeState("21.0"))
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: "dev_plain"})
+    plain = preview.get("description_placeholders") or {}
+    named_pairs = [p.strip() for p in (plain.get("name_matched") or "").split(";")]
+    check(
+        "device_prefill", "happy",
+        "null control: with no friendly names anywhere the page degrades to the bare entity id",
+        shows(preview, "device_prefill")
+        and len(named_pairs) >= 2
+        and all(" -> " in p and "(" not in p for p in named_pairs)
+        and any(p.endswith("sensor.plain_outdoor_temperature") for p in named_pairs),
+        f"named={plain.get('name_matched')!r}",
+    )
+
+
+async def main() -> int:
+    if "--self-check" in sys.argv:
+        return await self_check()
+
+    # A sink for the one WARNING the dhw branch provokes, so the ledger's
+    # output stays readable.
+    sink = logging.Handler()
+    sink.emit = lambda record: None
+    logging.getLogger().addHandler(sink)
+
+    pin_number_selector_convention()
+    await token_surfaces_agree()
+    await seed_base_entry()
+    await duplicate_and_null_control()
+    await user_error_branches()
+    await walk_finish_now()
+    await walk_questionnaire()
+    await walk_expert()
+    await temperature_error_branches()
+    await reauth_round_trip()
+    await options_menus()
+    await options_walk()
+    await options_advanced_pages()
+    await options_stored_entity_arm()
+    await entity_clear_survives_the_flow_manager()
+    await section_nesting_is_captured()
+    await options_error_branches()
+    await residual_statement_branches()
+    await options_seeded_prefill()
+    await options_cross_page_save_scope()
+    await registry_drives_every_page()
+    await registry_walk_recurses()
+    await wide_pages_grouped()
+    await widening_refusals()
+    await menu_label_translations()
+    await reconfigure_flow()
+    await absent_fallbacks_are_proven()
+    await untouched_option_pages_do_not_reload()
+    await options_modbus_prefill()
+    await options_device_prefill()
+    await config_flow_quick_setup()
+    await options_quick_setup()
+    await config_flow_device_prefill_offer()
+    await device_prefill_preview_texts()
+
+    print()
+    LEDGER.print_result_lines()
+    return R.close("checks")
+
+
+sys.exit(asyncio.run(main()))

@@ -1,0 +1,164 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D2/s4/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M5",
+   "depth": "deep",
+   "evidence": "production experiment driven end to end (arm/step -> identify_slab -> adoption_decision) on 3 presets x white/quantised/drift/prior-misset noise x 0.25/0.5 h cadence (gate_bias.py, coverage.py, sizer_margin.py); passive learner_newton_step stationary bias (newton_bias.py). COP learner, one-state identify() (harness-only) and two-zone fit not measured (see unfinished). No earlier-round files under tools/audit/round3..round8 were read."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D2.M5",
+   "what": "COP learner (_learn_measured_cop EWMA gate, +-5 % step and [0.5,1.6] clamps) not measured; needs a coordinator drive with a noisy power meter. Two-zone declared-plant and throttling-valve sysid fits not driven. identify() one-state regression not measured (harness-only per #1395)."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D2-s4-01",
+   "scope": "D2-s4",
+   "step": "D2.M5",
+   "title": "sysid adoption interval misses the true UA on 14 of 22 fits it admits; admitted fits biased high",
+   "severity": "medium",
+   "claim": "Under white room-sensor noise of 0.01-0.05 degC, 14 of the 22 two-state sysid fits that adoption_decision admits have the true UA outside their own 95 % interval (nominal ~5 %), and 21 of 22 over-estimate UA (mean +7.26 %, max +18.64 %).",
+   "mechanism": "The gate admits only fits whose profile interval is finite and narrow; with the comfort-bounded collinear window the realisations that produce a sharp profile are a biased subset (ensemble 95 % half-width of log UA 0.15-0.27 against admitted reported 0.05-0.09). One contributor: _simulate_slab_path anchors the hidden stores' held state on the single noisy first reading, an error source the interval does not carry (anchor perturbation 0.636 -> 0.439). A free-heat prior mis-set by 0.2-0.4 kW is a second seam (typical_slab 3/12 and 2/6 admitted beyond the bar).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --seeds 40",
+    "harness_path": "tools/audit/round9/D2/s4/coverage.py",
+    "value": 0.636,
+    "unit": "ratio (admitted_missed/admitted = 14/22)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6, 4-CPU cloud container, CPython 3.14.0rc2, numpy 2.4.6 OpenBLAS pinned 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "count over fixed seeds, contention-immune; other finders sharing the box (load1 6.2)",
+    "tolerance": "exact",
+    "load1": 6.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:adoption_decision (via SystemIdentification.arm/step/_finish/identify_slab, slab_ua_adoption_halfwidth)",
+   "perturbation": {
+    "change": "--perturb sigma0 (sensor noise 0, null control): misses to zero; --perturb anchor (sysid._simulate_slab_path first_room_c := true first temperature) moves it down",
+    "expected_direction": "to_zero",
+    "observed_value": "sigma0: 0/12; anchor: 18/41 = 0.439"
+   },
+   "metric_definition": "Among fits adoption_decision admits, share with |log(UA_fit/UA_true)| > slab_ua_adoption_halfwidth(ua_profile_halfwidth, ua_prior_halfwidth); calibrated 95 % interval ~0.05.",
+   "phenomenon_property": "For every fit the gate admits, the combined half-width it reads must cover the true UA at its stated 95 % level under the noise the experiment is designed for; admitted fits must not carry a systematic sign of bias.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --seeds 40 && PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/gate_bias.py --seeds 16 --cells gains-02,gains+04,white001,white002,white005",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --perturb sigma0",
+    "value": "0 of 12 admitted missed; bias +0.00 %",
+    "note": "noise-free window: fit exact, interval covers"
+   },
+   "leave_one_out": {
+    "cells": 9,
+    "min": 0.286,
+    "max": 1.0,
+    "drop_most_favourable": 0.611
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline (export root)",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --perturb none",
+    "compare RESULT admitted_miss_rate against --perturb sigma0 and --perturb anchor"
+   ],
+   "proposed_fix_scope": "sysid.py: carry the first-reading (initial-state) uncertainty into the fit (estimate the initial offset or average the settle readings) and calibrate the adoption interval against an ensemble (e.g. inflate by the measured ensemble/Wald ratio or bootstrap) so admitted fits meet 95 % coverage; pin with a seeded coverage test.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P5"
+  },
+  {
+   "id": "D2-s4-02",
+   "scope": "D2-s4",
+   "step": "D2.M5",
+   "title": "sysid step sized to exactly the abort bound: sensor noise aborts 100 of 294 experiments, light_new 81 of 96",
+   "severity": "medium",
+   "claim": "With the plant's own max power, SystemIdentification._size_step_power targets a peak equal to max_excursion_c while step() aborts on the same bound, so white sensor noise of 0.01-0.05 degC aborts 100 of 294 experiments (light_new 81 of 96 noisy runs; 47 of 48 at the default 0.5 h cadence) before any fit runs.",
+   "mechanism": "The sizer's fits() test is peak <= max_excursion_c (headroom only on two-zone plants, TWO_ZONE_SIZING_HEADROOM_C) and _over_excursion aborts on |reading - baseline| > max_excursion_c: a noiseless peak at the bound leaves no margin for the reading's noise.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --seeds 16",
+    "harness_path": "tools/audit/round9/D2/s4/sizer_margin.py",
+    "value": 100,
+    "unit": "aborted runs of 294",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6, 4-CPU cloud container, CPython 3.14.0rc2, numpy 2.4.6 OpenBLAS pinned 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "count over fixed seeds, contention-immune; box shared (load1 5.8)",
+    "tolerance": "exact",
+    "load1": 5.82,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power (and SystemIdentification.step/_over_excursion)",
+   "perturbation": {
+    "change": "--perturb margin: _size_step_power's returned step multiplied by 0.85 in memory",
+    "expected_direction": "down",
+    "observed_value": "3 of 294"
+   },
+   "metric_definition": "Count of seeded production experiments ending with reason 'room temperature drifted beyond the allowed excursion', preset x sigma x cadence grid, plant max power.",
+   "phenomenon_property": "A comfort-sized experiment must leave room for the sensor noise the fit is designed to tolerate; a noise level the estimator accepts must not abort the experiment that feeds it.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --seeds 16",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py (sigma 0 rows)",
+    "value": "0 aborts at 0.25 h on all presets",
+    "note": "the one sigma-0 abort (light_new, 0.5 h) is the plant integrator's dt dependence, lead to D2-s1"
+   },
+   "leave_one_out": {
+    "cells": 18,
+    "min": 0.0,
+    "max": 1.0,
+    "drop_most_favourable": 0.305
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --perturb none",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --perturb margin"
+   ],
+   "proposed_fix_scope": "sysid.py: size against max_excursion_c minus a noise margin (e.g. a fixed headroom like TWO_ZONE_SIZING_HEADROOM_C on one zone too, or a multiple of the settle-phase reading scatter), keeping the abort bound unchanged.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "A drifting room sensor (0.02/0.05/0.10 degC/h) is never admitted by the adoption gate although its completed fits are biased -18 % to -49 %",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/gate_bias.py --seeds 16 --dt 0.5 --cells drift002,drift005,drift010 --presets typical_slab,heavy_old",
+   "value": "0 admitted of 96 runs"
+  },
+  {
+   "claim": "0.1 degC quantised readings are refused (unbounded interval)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/gate_bias.py --seeds 16 --dt 0.5 --cells quant01 --presets typical_slab,heavy_old",
+   "value": "0 admitted of 32"
+  },
+  {
+   "claim": "Noise-free windows fit exactly and are covered",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --perturb sigma0",
+   "value": "admitted bias +0.00 %, 0/12 missed"
+  },
+  {
+   "claim": "Passive heat-loss learner learner_newton_step is unbiased under zero-mean residual noise within its symmetric trust region and clamps",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/newton_bias.py",
+   "value": "worst |bias| 0.0016 of scale (asym perturbation: 0.4731)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D2/s4/gate_bias.py",
+  "tools/audit/round9/D2/s4/coverage.py",
+  "tools/audit/round9/D2/s4/sizer_margin.py",
+  "tools/audit/round9/D2/s4/newton_bias.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.simulate_step",
+   "what": "dt-dependence on light_new: peak room rise of the same 2 h heat pulse is 1.5271 K at dt 0.5 h, 1.5104 at 0.25, 1.4991 at 0.05 (1.9 %); enough to push a sysid step sized at 0.25 h over the 0.8 K abort bound when the plant runs at the 0.5 h cadence."
+  }
+ ]
+}

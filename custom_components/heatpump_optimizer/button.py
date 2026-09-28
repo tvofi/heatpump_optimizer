@@ -1,0 +1,161 @@
+"""Button entities for Heat Pump Cost Optimizer.
+
+Four momentary actions with no lasting state, which is exactly what a
+``ButtonEntity`` is for. A switch would have to bounce itself back off, and
+until it did, the UI would imply a state that does not exist:
+
+* "Optimize Now" — run an optimization without waiting for the next interval,
+* "Learning Run System Identification" — arm the commissioning step test,
+* "Learning Reset Comfort Weight" — undo the revealed-preference comfort
+  tuning,
+* "Diagnose Last Interval" — attribute the last interval's temperature
+  residual.
+
+The runs take real time — an optimization fetches prices and weather and then
+solves — so they report ``available`` as False while busy, giving the user
+feedback that the press landed rather than inviting a second one.
+"""
+from __future__ import annotations
+
+import logging
+
+from homeassistant.components.button import ButtonEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity
+
+_LOGGER = logging.getLogger(__name__)
+
+# Every press lands on the coordinator, which commands one heat pump; two
+# presses racing is two commands to one machine, so actions on this platform
+# run one at a time (parallel-updates, Silver).
+PARALLEL_UPDATES = 1
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: HeatPumpOptimizerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Heat Pump Optimizer buttons from a config entry."""
+    coordinator = entry.runtime_data
+    async_add_entities(
+        [
+            ForceOptimizationButton(coordinator, entry),
+            SystemIdentificationButton(coordinator, entry),
+            ResetComfortWeightButton(coordinator, entry),
+            DiagnoseIntervalButton(coordinator, entry),
+        ]
+    )
+
+
+class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
+    """Shared plumbing so the buttons land on the existing device."""
+
+    def __init__(
+        self,
+        coordinator: HeatPumpOptimizerCoordinator,
+        entry: HeatPumpOptimizerConfigEntry,
+        key: str,
+        translation_key: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self._key = key
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_translation_key = translation_key
+        # Pin today's English object id for new installs (the integration
+        # suggested-object-id mechanism); see the sensor base class.
+        self.entity_id = f"button.heat_pump_optimizer_{translation_key}"
+
+
+class ForceOptimizationButton(_OptimizerButtonBase):
+    """Run the optimization now, without waiting for the next interval."""
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(coordinator, entry, "force_optimization", "optimize_now")
+
+    @property
+    def available(self) -> bool:
+        """Unavailable while a run is in flight, so repeated taps do nothing."""
+        return bool(super().available and not self.coordinator.optimization_running)
+
+    async def async_press(self) -> None:
+        """Force an optimization run."""
+        _LOGGER.info("Optimization run requested from the dashboard")
+        await self.coordinator.async_force_optimization()
+
+
+class SystemIdentificationButton(_OptimizerButtonBase):
+    """Arm the commissioning step test (item 18).
+
+    Pressing does not start an experiment immediately: it arms one, and the
+    coordinator runs it at the next moment the gating conditions hold (mild
+    weather, cheap electricity, night). Running it on demand regardless of
+    conditions would be both expensive and uncomfortable.
+    """
+
+    _attr_entity_category = None
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, entry, "system_identification", "learning_run_system_identification"
+        )
+
+    @property
+    def available(self) -> bool:
+        return bool(
+            super().available and not self.coordinator.system_identification_active
+        )
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_arm_system_identification()
+
+
+class ResetComfortWeightButton(_OptimizerButtonBase):
+    """Undo the revealed-preference comfort tuning (item 19).
+
+    A self-adjusting objective the user cannot reset would be alarming, so the
+    learned value is always both visible and revertible.
+    """
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, entry, "reset_comfort_weight", "learning_reset_comfort_weight"
+        )
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_reset_comfort_weight()
+
+
+class DiagnoseIntervalButton(_OptimizerButtonBase):
+    """Attribute the last interval's temperature residual (T6 #52).
+
+    One press, one attribution: the coordinator re-runs the interval that
+    just settled, swapping realised inputs into the plan's assumptions one
+    at a time, and publishes what each swap explains on the Prediction
+    Accuracy sensor. A button rather than an automatic per-interval run,
+    because the answer is for a person mid-investigation — computed
+    unasked it would be noise, and noise about the model's errors is the
+    fastest way to teach people to ignore them.
+    """
+
+    _attr_entity_category = None
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, entry, "diagnose_interval", "diagnose_last_interval"
+        )
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_diagnose_interval()

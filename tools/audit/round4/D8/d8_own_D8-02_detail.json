@@ -1,0 +1,532 @@
+{
+ "dc_and_icon_count": 35,
+ "file_only_missing": [
+  "sensor.compressor_frequency_advisor",
+  "sensor.measured_power",
+  "sensor.optimal_setpoint",
+  "sensor.outdoor_temperature_optimizer"
+ ],
+ "no_dc_no_icon": [],
+ "no_icon": [],
+ "no_icon_device_classes": [],
+ "rows": [
+  {
+   "device_class": "enum",
+   "eid": "sensor.heat_pump_optimizer_optimization_mode",
+   "has_icon": true,
+   "key": "optimization_mode",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_optimization_status",
+   "has_icon": true,
+   "key": "optimization_status",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_predicted_savings",
+   "has_icon": true,
+   "key": "predicted_savings",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_monthly_savings",
+   "has_icon": true,
+   "key": "monthly_savings",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_savings_percentage",
+   "has_icon": true,
+   "key": "savings_percentage",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_predicted_cost",
+   "has_icon": true,
+   "key": "predicted_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_baseline_cost",
+   "has_icon": true,
+   "key": "baseline_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_current_electricity_price",
+   "has_icon": true,
+   "key": "current_electricity_price",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_optimal_setpoint",
+   "has_icon": true,
+   "key": "optimal_setpoint",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "power",
+   "eid": "sensor.heat_pump_optimizer_recommended_power",
+   "has_icon": true,
+   "key": "recommended_power",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_estimated_cop",
+   "has_icon": true,
+   "key": "estimated_cop",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+   "has_icon": true,
+   "key": "indoor_temperature_optimizer",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_outdoor_temperature_optimizer",
+   "has_icon": true,
+   "key": "outdoor_temperature_optimizer",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "irradiance",
+   "eid": "sensor.heat_pump_optimizer_solar_irradiance",
+   "has_icon": true,
+   "key": "solar_irradiance",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_slab_temperature_estimated",
+   "has_icon": true,
+   "key": "slab_temperature_estimated",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "timestamp",
+   "eid": "sensor.heat_pump_optimizer_next_optimization",
+   "has_icon": true,
+   "key": "next_optimization",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "timestamp",
+   "eid": "sensor.heat_pump_optimizer_last_optimization",
+   "has_icon": true,
+   "key": "last_optimization",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "enum",
+   "eid": "sensor.heat_pump_optimizer_heat_pump_action",
+   "has_icon": true,
+   "key": "heat_pump_action",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_optimization_schedule",
+   "has_icon": true,
+   "key": "optimization_schedule",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_optimization_schedule_steps",
+   "has_icon": true,
+   "key": "optimization_schedule_steps",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_upper_floor_temperature",
+   "has_icon": true,
+   "key": "upper_floor_temperature",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_lower_floor_temperature",
+   "has_icon": true,
+   "key": "lower_floor_temperature",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_floor_heating_return_temperature",
+   "has_icon": true,
+   "key": "floor_heating_return_temperature",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "power",
+   "eid": "sensor.heat_pump_optimizer_solar_heat_gain",
+   "has_icon": true,
+   "key": "solar_heat_gain",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_buffer_tank_temperature_model",
+   "has_icon": true,
+   "key": "buffer_tank_temperature_model",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_dhw_temperature",
+   "has_icon": true,
+   "key": "dhw_temperature",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_schedule",
+   "has_icon": true,
+   "key": "dhw_heating_schedule",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_cost",
+   "has_icon": true,
+   "key": "dhw_heating_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_predictive_optimization_insight",
+   "has_icon": true,
+   "key": "predictive_optimization_insight",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_ecl110_displace",
+   "has_icon": true,
+   "key": "ecl110_displace",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_ecl110_effective_displace",
+   "has_icon": true,
+   "key": "ecl110_effective_displace",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_space_heating_plan",
+   "has_icon": true,
+   "key": "space_heating_plan",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_plan",
+   "has_icon": true,
+   "key": "dhw_heating_plan",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "power",
+   "eid": "sensor.heat_pump_optimizer_measured_power",
+   "has_icon": true,
+   "key": "measured_power",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_observed_cop",
+   "has_icon": true,
+   "key": "observed_cop",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "energy",
+   "eid": "sensor.heat_pump_optimizer_space_heating_energy",
+   "has_icon": true,
+   "key": "space_heating_energy",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "energy",
+   "eid": "sensor.heat_pump_optimizer_dhw_energy",
+   "has_icon": true,
+   "key": "dhw_energy",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "energy",
+   "eid": "sensor.heat_pump_optimizer_total_energy",
+   "has_icon": true,
+   "key": "total_energy",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "monetary",
+   "eid": "sensor.heat_pump_optimizer_space_heating_cost",
+   "has_icon": true,
+   "key": "space_heating_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "monetary",
+   "eid": "sensor.heat_pump_optimizer_dhw_cost",
+   "has_icon": true,
+   "key": "dhw_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "monetary",
+   "eid": "sensor.heat_pump_optimizer_total_heating_cost",
+   "has_icon": true,
+   "key": "total_heating_cost",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_prediction_accuracy",
+   "has_icon": true,
+   "key": "prediction_accuracy",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "power",
+   "eid": "sensor.heat_pump_optimizer_monthly_peak_power",
+   "has_icon": true,
+   "key": "monthly_peak_power",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_solar_surplus_forecast",
+   "has_icon": true,
+   "key": "solar_surplus_forecast",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "battery",
+   "eid": "sensor.heat_pump_optimizer_thermal_battery_charge",
+   "has_icon": true,
+   "key": "thermal_battery_charge",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "energy_storage",
+   "eid": "sensor.heat_pump_optimizer_thermal_battery_energy",
+   "has_icon": true,
+   "key": "thermal_battery_energy",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_comfort_weight",
+   "has_icon": true,
+   "key": "comfort_weight",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_contract_comparison",
+   "has_icon": true,
+   "key": "contract_comparison",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "power",
+   "eid": "sensor.heat_pump_optimizer_power_headroom",
+   "has_icon": true,
+   "key": "power_headroom",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_dhw_setpoint_advisor",
+   "has_icon": true,
+   "key": "dhw_setpoint_advisor",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "volume_storage",
+   "eid": "sensor.heat_pump_optimizer_dhw_mixed_water",
+   "has_icon": true,
+   "key": "dhw_mixed_water",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_dhw_heavy_day_demand",
+   "has_icon": true,
+   "key": "dhw_heavy_day_demand",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "temperature",
+   "eid": "sensor.heat_pump_optimizer_valve_target_recommendation",
+   "has_icon": true,
+   "key": "valve_target_recommendation",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "enum",
+   "eid": "sensor.heat_pump_optimizer_plan_narrative",
+   "has_icon": true,
+   "key": "plan_narrative",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_optimization_score",
+   "has_icon": true,
+   "key": "optimization_score",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_compressor_starts",
+   "has_icon": true,
+   "key": "compressor_starts",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "frequency",
+   "eid": "sensor.heat_pump_optimizer_compressor_frequency_advisor",
+   "has_icon": true,
+   "key": "compressor_frequency_advisor",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_sensor_gap_advisor",
+   "has_icon": true,
+   "key": "sensor_gap_advisor",
+   "platform": "sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "sensor.heat_pump_optimizer_wood_burn_advisor",
+   "has_icon": true,
+   "key": "wood_burn_advisor",
+   "platform": "sensor"
+  },
+  {
+   "device_class": "problem",
+   "eid": "binary_sensor.heat_pump_optimizer_input_problem",
+   "has_icon": true,
+   "key": "input_problem",
+   "platform": "binary_sensor"
+  },
+  {
+   "device_class": "heat",
+   "eid": "binary_sensor.heat_pump_optimizer_external_heat_source",
+   "has_icon": true,
+   "key": "external_heat_source",
+   "platform": "binary_sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "binary_sensor.heat_pump_optimizer_away_mode",
+   "has_icon": true,
+   "key": "away_mode",
+   "platform": "binary_sensor"
+  },
+  {
+   "device_class": "window",
+   "eid": "binary_sensor.heat_pump_optimizer_open_window_detected",
+   "has_icon": true,
+   "key": "open_window_detected",
+   "platform": "binary_sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "binary_sensor.heat_pump_optimizer_wood_cheaper",
+   "has_icon": true,
+   "key": "wood_cheaper",
+   "platform": "binary_sensor"
+  },
+  {
+   "device_class": null,
+   "eid": "button.heat_pump_optimizer_optimize_now",
+   "has_icon": true,
+   "key": "optimize_now",
+   "platform": "button"
+  },
+  {
+   "device_class": null,
+   "eid": "button.heat_pump_optimizer_run_system_identification",
+   "has_icon": true,
+   "key": "run_system_identification",
+   "platform": "button"
+  },
+  {
+   "device_class": null,
+   "eid": "button.heat_pump_optimizer_reset_learned_comfort_weight",
+   "has_icon": true,
+   "key": "reset_learned_comfort_weight",
+   "platform": "button"
+  },
+  {
+   "device_class": null,
+   "eid": "button.heat_pump_optimizer_diagnose_last_interval",
+   "has_icon": true,
+   "key": "diagnose_last_interval",
+   "platform": "button"
+  },
+  {
+   "device_class": null,
+   "eid": "climate.heat_pump_optimizer",
+   "has_icon": false,
+   "key": null,
+   "platform": "climate"
+  },
+  {
+   "device_class": null,
+   "eid": "switch.heat_pump_optimizer_optimizer_active",
+   "has_icon": true,
+   "key": "optimizer_active",
+   "platform": "switch"
+  },
+  {
+   "device_class": null,
+   "eid": "switch.heat_pump_optimizer_away",
+   "has_icon": true,
+   "key": "away",
+   "platform": "switch"
+  },
+  {
+   "device_class": null,
+   "eid": "switch.heat_pump_optimizer_boost_dhw",
+   "has_icon": true,
+   "key": "boost_dhw",
+   "platform": "switch"
+  },
+  {
+   "device_class": null,
+   "eid": "switch.heat_pump_optimizer_boost_space",
+   "has_icon": true,
+   "key": "boost_space",
+   "platform": "switch"
+  },
+  {
+   "device_class": null,
+   "eid": "datetime.heat_pump_optimizer_away_return",
+   "has_icon": true,
+   "key": "away_return",
+   "platform": "datetime"
+  }
+ ]
+}

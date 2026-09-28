@@ -1,0 +1,18 @@
+arm: baseline
+  entity  hostile=str: verdict=ok rows=24
+  entity  hostile=int: raised OverflowError
+  tibber  hostile=str: rows=24
+  tibber  hostile=int: raised OverflowError
+  openmeteo hostile=str: forecast_points=72
+Could not fetch solar irradiance from Open-Meteo; continuing with cached data
+  openmeteo hostile=int: forecast_points=0
+RESULT entity_control_rows=24 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT entity_huge_int_rows=0 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT tibber_control_rows=24 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT tibber_huge_int_rows=0 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT open_meteo_control_rows=72 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT open_meteo_huge_int_rows=0 rows (valid in payload: 24 price rows, 72 open_meteo samples)
+RESULT thread_factor=1.000
+RESULT load1=0.92
+RESULT swapins=0
+rc=0

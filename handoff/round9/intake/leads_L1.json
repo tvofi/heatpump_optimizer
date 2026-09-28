@@ -1,0 +1,240 @@
+[
+ {
+  "owner_seat": "D3-s3",
+  "file": "tests/optimality.py",
+  "symbol": "score_plan / pin_result",
+  "what": "The pin 'the plan holds the comfort floor' reads the room series even for two-zone houses, but the objective's floor is on the upper and lower zones. On two-zone DHW-on winter_typical/winter_cold the shipped upper zone reaches 16.53 C (1.34 degree-steps below 17) while room stays at or above 17.57, so the pin cannot see the breach. Separately, _CERT_CELLS contains no DHW-on cell although DHW is on by default.",
+  "raised_by": "D0-s1"
+ },
+ {
+  "owner_seat": "D0-s3",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._solve_space / _co_optimize",
+  "what": "M6: does MPC re-planning mask finding D0-s1-01? Step-0 power moves only 1.197 -> 1.200 kW in the largest cell and not at all in the other two. M7: the co-optimisation re-solve is handed a single warm-start candidate.",
+  "raised_by": "D0-s1"
+ },
+ {
+  "owner_seat": "D0-s3",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "_multi_start_minimize",
+  "what": "D0-s2-01 and D0-s2-02 change step 0 in some cells (two|nodhw|shoulder|winter_cold 1.52->0.89 kW; 48 h two|dhw|summer_typical|winter_cold 0.99->0.93 kW); M6 receding-horizon realisation unmeasured.",
+  "raised_by": "D0-s2"
+ },
+ {
+  "owner_seat": "D0-s3",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._terminal_cost",
+  "what": "At 6 h horizon 36 of 64 cells plan 0 kWh space heating; the terminal credit alone decides the plan (M7).",
+  "raised_by": "D0-s2"
+ },
+ {
+  "owner_seat": "D0-s1",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "_multi_start_minimize / HeatPumpOptimizer._solve_space seed set",
+  "what": "Two-zone winter cells: the race challenger finds 0.3-0.45 % lower objective (e.g. two|1|winter_moderate|winter_cold 0.447 %, two|0|winter_typical|winter_cold 0.350 %) from bang-bang seeds at 0.5x/0.75x/1.5x energy or a tight-ftol warm restart, usually with step 0 unchanged. race.py output in tools/audit/round9/D0/s3/out/race_two.log",
+  "raised_by": "D0-s3"
+ },
+ {
+  "owner_seat": "D0-s2",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "_multi_start_minimize seed set",
+  "what": "shoulder/summer_negative single-zone cells: gaps of 0.9-2.8 % (shoulder) and up to 16 % relative (summer_negative, absolute 0.05 units on a near-zero bill); the winning seeds are 0.1-1.25x bang-bang. Most spend more money than production. out/race_one.log",
+  "raised_by": "D0-s3"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization (:5096 _record_quiet_comfort_period)",
+  "what": "The learner feed is unguarded inside the solve's except-Exception: any learner raise is logged as 'Optimization failed', bumps _solve_failures (towards the solve_failures repair issue) and skips _command_valve_target.",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_async_update_data (:4677 _async_watch_learning_drift guard); _async_load_accuracy (:7270-7283)",
+  "what": "The heartbeat guard logs a permanent failure at DEBUG on every cycle. _async_load_accuracy runs its from_dict calls outside the try, so one raising parser aborts the rest of that store's load (dhw_accuracy, defrost, peaks, mode, comfort) in a fire-and-forget task.",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_async_save_ledger / _async_save_thermal_learning / _async_save_price_model / _async_save_energy_totals",
+  "what": "Only the accuracy store's writer awaits QuarantiningStore.async_wait_for_read (:5153). The other stores' writers do not, although the loads are spawned fire-and-forget in __init__ (write-before-read clobber class, R6).",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "HeatPumpOptimizerCoordinator._apply_action",
+  "what": "pump_arbiter.apply is awaited unfenced, while _command_frequency, _async_drive_pumps and the drift watch are fenced. Any arbiter exception (see D1-s3-01/03) fails the whole _async_update_data with an ERROR traceback on every poll and skips frequency, pumps, accuracy and energy saves.",
+  "raised_by": "D1-s3"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/services.py",
+  "symbol": "SERVICE_SCHEMA_SET_AWAY",
+  "what": "return_time is vol.Any(None, cv.string) with no datetime or awareness validation, so the card's tz-less datetime-local value reaches the coordinator unchecked (D1-s3-01).",
+  "raised_by": "D1-s3"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "thermal-learning load of internal_gains_profile (~3018-3023) and _learn_internal_gains (~8550)",
+  "what": "[float(g) for g in raw_gains] admits the strings 'nan'/'inf'; np.clip keeps NaN, so it never washes out. Handed to ThermalModel.internal_gains_at (unguarded float()), a NaN profile makes every optimizer start non-finite: a scratch probe gave status 'failed (no usable starting point)' with non-finite trajectories -- which D1-s4-02 then publishes as a plan.",
+  "raised_by": "D1-s4"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_shutdown_process_pool / _run_in_process",
+  "what": "_run_in_process holds _PROCESS_LOCK for the whole solve and pickle.load has no timeout; _shutdown_process_pool takes the same lock before it can terminate the worker, so HA stop waits out an in-flight (or hung) solve on the executor.",
+  "raised_by": "D1-s4"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_forecast_arrays",
+  "what": "The optimizer has no input guard: one nan/inf step in prices, outdoor, solar (and -inf wind) yields a 'failed' plan, nan/inf wind raises ValueError/OverflowError at an int() cast (solve_guard.py second section: 9 failed, 2 raised of 15). Worth confirming every non-finite forecast value is neutralised before the solve.",
+  "raised_by": "D1-s4"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "HeatPumpOptimizerCoordinator (price_sensor attributes at ~6992, peak_threshold_kw)",
+  "what": "Publishes peak_threshold_kw as round(threshold_kw, 2) with no sign check. A negative threshold loaded from a corrupt peak store (D1-s5-02) is published as-is.",
+  "raised_by": "D1-s5"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "solar_radiation horizon build from OpenMeteoSolar.irradiance_for",
+  "what": "Not measured: what the plan uses when irradiance_for returns None for every step (D1-s5-04) \u2014 zero solar, the weather entity, or something else \u2014 and whether that is logged.",
+  "raised_by": "D1-s5"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "dhw_legionella_above_setpoint repair (config_flow._dhw_legionella_warning judgement)",
+  "what": "The shipped defaults (DEFAULT_DHW_LEGIONELLA_TEMP 60 > DEFAULT_DHW_SETPOINT 55, legionella on) trip the legionella-above-setpoint judgement on every default submit of the dhw page (config_flow logs it in every expert-path walk here); config_flow's comment says the coordinator turns it into the repair notice the user reads -- check whether a fresh default install raises a repair nobody caused.",
+  "raised_by": "D4-s2"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/services.py",
+  "symbol": "handle_apply_manual_plan",
+  "what": "expires_at is accepted unbounded, which breaks the invariant stated at const.py:MANUAL_PLAN_WINDOW_HOURS (the override must be shorter than the 24 h horizon, or re-applying switches the optimizer off while appearing to leave it on). With space_slots=[] and expires_at=now+48h, all 96 steps are pinned off (claims.py C26).",
+  "raised_by": "D6-s1"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_get_current_price / _current_spot_price",
+  "what": "The same 1 h window prices the settlement's pending dict and the comfort learner's relative price. With quarter-hour prices, booked costs (lifetime cost accumulators, ledger) would use a quarter up to 45 min old.",
+  "raised_by": "D8-s1"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_run_in_process / _ensure_worker",
+  "what": "_ensure_worker() (subprocess.Popen) is called outside _run_in_process's try, so a spawn OSError escapes as OSError, not ProcessWorkerUnavailable; _await_optimize catches only the latter, so a worker that cannot START gets neither the in-process fallback nor the solve_worker_fallback repair notice (seen when p10_loop_seams.py's first perturbation raised OSError from _ensure_worker: traceback, no fallback).",
+  "raised_by": "D14-s4"
+ },
+ {
+  "owner_seat": "D1-s3",
+  "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+  "symbol": "DrawStats.fold / from_dict",
+  "what": "No physical bound on the energy of one occurrence: it accepts 231757 kWh (see D1-s1-03's harness).",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "D1-s5",
+  "file": "custom_components/heatpump_optimizer/inputs.py",
+  "symbol": "input reader (problem codes)",
+  "what": "No plausibility range for temperature readings, so the DS18B20 sentinel values -127 and 85 pass as ok readings to every learner.",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "D1-s4",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "symbol": "ThermalModel._stability_substeps",
+  "what": "Substep count grows without bound with the wind-driven heat loss: one forecast step at wind 1e12 m/s makes a solve run past 60 s (1e6 finishes in 0.9 s). A cap on n_sub (or on the wind it is computed from) would bound a runaway solve whatever the coordinator passes (see D1-s2-02).",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "D1-s4",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer.optimize",
+  "what": "A single outdoor-temperature step at -1e308 yields status 'failed (no usable starting point)' rather than a clamped or refused input; the optimizer accepts non-physical but finite forecast series.",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "D1-s4",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._stash_price_horizon",
+  "what": "Clips sigma at 0 from below but not from above or for inf. price_model.from_dict turns an inf residual_var into inf through max(0.0, v), so sigma is inf and with price_risk_lambda > 0 the unpublished prices become inf. Not hit by this seat's fuzz sample; unmeasured.",
+  "raised_by": "D1-s5"
+ },
+ {
+  "owner_seat": "D1-s1",
+  "file": "custom_components/heatpump_optimizer/store.py",
+  "symbol": "QuarantiningStore._sanitize",
+  "what": "Scrubs non-finite leaves but passes finite values that become unrepresentable after the loader's int() (>= 2**64 floats); the store boundary could refuse counts beyond int64 for every store at once (see D1-s2-03).",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "D2-s4",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "symbol": "identify / heat-loss learner (house_heat_loss_scale)",
+  "what": "Check whether learned masses or house_heat_loss_scale can move a configuration into the D2-s1-01 divergence region (a diagonal ratio near 1.5/h on two coupled stores).",
+  "raised_by": "D2-s1"
+ },
+ {
+  "owner_seat": "D2-s1",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "symbol": "ThermalModel.simulate_step",
+  "what": "dt-dependence on light_new: peak room rise of the same 2 h heat pulse is 1.5271 K at dt 0.5 h, 1.5104 at 0.25, 1.4991 at 0.05 (1.9 %); enough to push a sysid step sized at 0.25 h over the 0.8 K abort bound when the plant runs at the 0.5 h cadence.",
+  "raised_by": "D2-s4"
+ },
+ {
+  "owner_seat": "D2-s1",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_dhw_setpoint_sweep",
+  "what": "It prices candidate setpoints at ctx._current_state.outdoor_temperature, which is the 5.0 C ThermalState default without an outdoor thermometer. _effective_outdoor / forecast_outdoor_now exist for exactly this case.",
+  "raised_by": "D8-s1"
+ },
+ {
+  "owner_seat": "D2-s1",
+  "file": "custom_components/heatpump_optimizer/battery.py",
+  "symbol": "VirtualBattery / label_measured",
+  "what": "On a DHW install without a tank probe, Thermal Battery charge/energy include the dhw_tank at the constant 55.0 C constructor default across cycles. It is disclosed as 'modelled' but not modelled.",
+  "raised_by": "D8-s1"
+ },
+ {
+  "owner_seat": "D5-s1",
+  "file": "docs/configuration.md",
+  "symbol": "lines 181-187 (setup hot-water table)",
+  "what": "A paragraph splits the table; the three anti-legionella rows follow it with no header and render as literal pipe text",
+  "raised_by": "D6-s2"
+ },
+ {
+  "owner_seat": "D5-s2",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "OptimizationResult.buffer_temp_trajectory",
+  "what": "Comment says 'the model stashes the series on itself for the terminal-cost term'; no such stash exists at this baseline (_terminal_cost takes buffer_temps as an argument).",
+  "raised_by": "D7-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/",
+  "symbol": "set_thermal_parameters",
+  "what": "[carried by the orchestrator from RC2] the runtime fields it sets are not persisted and are lost at restart (user state that does not survive a restart; class of v2.4.1, v3.13.0, #1249, bug 5)",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/",
+  "symbol": "async_reset_comfort_weight and the cycle-end save",
+  "what": "[carried by the orchestrator from R6 round 2] a save during startup, before the store's first read completes, can overwrite persisted learner state with defaults (the startup-clobber R6 fixed only in async_set_mode via async_wait_for_read)",
+  "raised_by": "D1-s1"
+ }
+]

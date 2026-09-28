@@ -1,0 +1,4947 @@
+"""Stress the optimizer across realistic combinations, and check the economics.
+
+    PYTHONPATH=tests/hastub python tests/stress.py
+
+The other suites each answer a narrow question. `validate.py` checks a fixed
+list of scenarios, `golden.py` checks that behaviour has not *changed*, and
+`features.py` checks each module in isolation. None of them asks the question
+that actually matters:
+
+    across the whole space of houses, seasons, tariffs and feature
+    combinations a real user might have, does this thing behave sensibly?
+
+So this sweeps a combinatorial matrix and asserts the invariants that must hold
+everywhere. Failures here are the interesting ones: they are conditions nobody
+thought to write a scenario for.
+
+Three families of check:
+
+* **Physical.** Power within bounds, temperatures finite, tank never boiled,
+  energy conserved between the schedule and the slot summaries. A violation is
+  unambiguously a bug.
+* **Economic.** Cheaper than a thermostat when there is price spread to exploit;
+  never worse than one; costs reconcile with the schedule. These are the claims
+  the integration makes, checked rather than assumed.
+* **Comfort.** The floor is respected to within the tolerance the soft penalty
+  allows, and hot water is available when it was promised. A cheaper plan that
+  is colder is not a better plan.
+"""
+from __future__ import annotations
+
+import ast
+import contextlib
+import copy
+import inspect
+import itertools
+import json
+import os
+import resource
+import shutil
+import subprocess
+import sys
+import tempfile
+import textwrap
+import time
+import tracemalloc
+from datetime import datetime, timedelta
+
+from harness import Results
+# The recorded-number barrier every ratchet shares (#1583's review).
+from structure import cap_problem
+
+# Pinned BEFORE numpy is imported, because OpenBLAS reads these once when
+# the library loads and ignores them afterwards. harness only imports
+# stdlib, so this is still the first chance.
+#
+# Two reasons, and the second is the one that bites. time.process_time()
+# sums CPU over every thread in the process, and OpenBLAS worker threads
+# SPIN-WAIT rather than sleep: measured on this box, one reference solve
+# burned 349.6 ms of process CPU for 105.0 ms of this thread's CPU -- a
+# thread factor of 3.33, nearly all of it threads busy-waiting on 96-element
+# vectors no BLAS should have bothered to thread. That inflates the number
+# the solve-time guard budgets, and it inflates it by an amount that depends
+# on how many cores are idle, which is exactly the load-dependence the guard
+# exists to remove. Pinning makes process CPU mean work done again.
+#
+# And it makes the budgets portable: a runner with a different core count
+# would otherwise record a different thread factor for identical work, so
+# ratios calibrated on one machine would be wrong on another.
+#
+# setdefault, not assignment: an operator investigating threading can still
+# override from the environment, and the guard's own parallelism check will
+# then tell them what it did to the measurement. Numerics are unaffected --
+# the drift gate's numeric probe hashes identically at one, two and default
+# threads on this build.
+for _threads in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_threads, "1")
+
+import numpy as np
+from scipy.optimize import minimize
+
+from profiles import DT, house, prices, weather
+from heatpump_optimizer import optimizer as optimizer_module
+from heatpump_optimizer import pv as pv_model
+
+# ===========================================================================
+# The solve-time guard: relative to this machine, not to a stopwatch
+# ===========================================================================
+#
+# This check used to compare every scenario's solve against an absolute
+# millisecond budget (STRESS_SOLVE_BUDGET_MS). An absolute budget cannot
+# tell "this change made the solver slower" from "this machine is busy",
+# and only the first of those is a bug. On a shared box it answers the
+# second one: the check has failed five times in one day for load it could
+# not see, twice needing a hand-built interleaved A/B against a pristine
+# main to prove the branch innocent, and once failing on pristine main with
+# WORSE timings than the branch under test. A guard that fires on the
+# machine's mood is not a guard; it is a tax on every reader of its output.
+#
+# Two changes, and the first matters more than the second.
+#
+# THE CLOCK. The budgets are denominated in CPU time, not wall clock.
+# Wall clock counts time spent waiting for a busy machine; CPU time counts
+# work done. Measured on this box by putting three extra CPU hogs on it
+# while re-solving the same scenario:
+#
+#     scenario wall time   1694 ms -> 5224 ms   (3.08x)
+#     scenario CPU time    1044 ms -> 1038 ms   (0.99x)
+#
+# One of those two numbers is about the code and the other is about the
+# neighbours. result.solve_time_ms is the wall-clock one, so stress.py
+# times the solve itself with time.process_time() and budgets that. This
+# is the whole trick; everything below is refinement.
+#
+# THE RULER. CPU time still depends on how fast the machine is, which is
+# why an absolute CPU budget would go wrong on a slow CI runner in the
+# same way an absolute wall budget goes wrong on a busy one. So it is
+# normalised: immediately before each scenario's solve this file times a
+# REFERENCE SOLVE -- a fixed, seeded L-BFGS-B minimisation over a 96-step
+# vector, built out of the same numpy shapes and operations the optimizer's
+# own objective uses -- and budgets the ratio between them. Two properties
+# make it the right ruler:
+#
+#   * It is defined HERE, in the test suite, not in custom_components. No
+#     change to the integration can make it slower or faster, so it never
+#     moves for the reason the guard is watching for.
+#   * It is the same kind of work the solver does -- bounded L-BFGS-B over
+#     a small dense vector with a Python objective -- so CPU contention,
+#     thermal throttling and a noisy neighbour move it and the real solve
+#     together.
+#
+# A ruler has to be steadier than what it measures, and the first version
+# of this one was not: see reference_solve for the measurements that sized
+# it. On the same three-hog experiment the two ratios behaved like this:
+#
+#     wall-clock ratio     3.0 -> 6.4   (2.12x -- absorbs only part of it)
+#     CPU-time ratio       2.9 -> 3.0   (1.03x)
+#
+# which is why the check is denominated in CPU. A wall-clock ratio was
+# tried first and rejected on this evidence rather than on taste.
+#
+# There are two relative checks, because they catch different things.
+#
+#   * Per scenario: a solve fails when it exceeds STRESS_SOLVE_RATIO times
+#     STRESS_SOLVE_WOBBLE times the reference measured alongside it
+#     (median of a short trailing window, so a single hiccup in either
+#     direction cannot decide the run). The wobble is the measured CI
+#     expansion when the tiny reference does not scale with a real solve.
+#     This catches one scenario going pathological. Its budget has
+#     to be wide enough for the most expensive scenario in the sweep, so
+#     the cheap ones sit far under it -- which is exactly the weakness the
+#     old absolute budget had, for the same reason.
+#   * Whole sweep: total solve time against total reference time, under
+#     STRESS_SWEEP_RATIO. Totals average the per-scenario spread away, so
+#     this margin is far tighter, and it is what notices a change that
+#     made everything moderately slower -- the regression that would
+#     otherwise hide under a budget sized for the worst case.
+#
+# Load lifts the reference and both budgets with it. A solver that
+# genuinely got slower does not lift the reference at all, so the ratios --
+# and only the ratios -- blow up. That is exactly the question worth asking.
+#
+# The absolute ceiling stays as a backstop, and stays on the WALL clock,
+# because the thing it is there to catch -- a solve that has stopped
+# converging and will never return -- is a wall-clock problem. It is
+# deliberately far above anything load can produce: it exists for a hung
+# solve, not for a busy afternoon, and it is no longer the primary signal.
+#
+# For scale, from a real run of this file on unmodified code, on a
+# four-CPU box carrying five other test suites: the dearest scenario took
+# 87 977 ms of wall clock against the 90 000 ms absolute budget the release
+# gate passes in. Two seconds of headroom, on code that had changed
+# nothing. That is the false failure this rewrite removes, caught in the
+# act.
+#
+# STRESS_SOLVE_BUDGET_MS is retired. It is still read, and a run that sets
+# it says so loudly, because the old value would otherwise look like it was
+# still doing something.
+
+#: A scenario may cost this many times the reference solve's CPU.
+#:
+#: DERIVED, not chosen. Every budget in this file now sits at the GEOMETRIC
+#: MIDPOINT between what the sweep costs today and the smallest regression
+#: the gate is required to see (DETECTION_TARGET, below): a budget of
+#: sqrt(DETECTION_TARGET) x the measured cost leaves the same ratio-margin
+#: against a false failure as against missing that regression. At
+#: DETECTION_TARGET = 2 the multiplier is 1.41421.
+#:
+#: The measurement, five consecutive runs of the sweep on one Apple M1
+#: 8-core with the box verified exclusive by process count (no other
+#: tests/*.py running), load1 1.56-2.60, thread factor 1.000 on every run:
+#: the worst scenario is shoulder/tariff+pv+cycle at a mean 553.04x its
+#: reference, sd 4.40, cv 0.80 %. 1.41421 x 553.04 = 782.11. The budget
+#: therefore stands 52 standard deviations above a clean run and 37 below a
+#: doubled one, and the smallest uniform regression it can see is 1.414x.
+#:
+#: It replaces 1400, which was sized when the two dearest scenarios cost
+#: 655x and 662x. The batched jacobian then made every combination 10-20x
+#: cheaper and nobody re-derived the ceiling, so by v6.3.x it stood at 2.8x
+#: the worst observed cost and an injected exact 2x regression passed it
+#: untouched (#287). The detection check at the end of the sweep exists so
+#: that cannot happen quietly again.
+#:
+#: RE-DERIVED for #1208 (owner override, issue comment 5748462577,
+#: 2026-09-20: "But I want you to implement it with budget raise.").
+#: Polish-every-candidate adds up to three full-budget restarts inside the
+#: candidate loop, and a restart that descends anew costs a solve's worth
+#: of evaluations on the dearest scenarios, so the 782.11 floor refused
+#: the branch at 886x-1106x. Three consecutive clean sweeps at the #1208
+#: head (this box, load1 5-10, thread factor 1.000) measured the dearest
+#: scenario, shoulder/tariff+pv+cycle, at 1106.2x / 965.9x / 1071.7x its
+#: beside-it reference -- mean 1047.93x. Applying this file's own rule,
+#: sqrt(DETECTION_TARGET) x the measured mean, the floor is
+#: 1.41421 x 1047.93 = 1482.00: 48 % over the mean sample and 32 % under
+#: a doubled one, the same ratio-margin the 782.11 derivation held. The
+#: budget table is re-recorded in the same change (its recorded worst was
+#: 546.76, and the wobble cap below requires the live ceiling to stay
+#: under 2x the DEAREST RECORDED ratio, which the #1208 costs now set).
+SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "1482.00"))
+
+#: The reference solve (96-element L-BFGS) does not scale with a real
+#: ``optimize()`` call. On CI ubuntu-latest that inflates the observed
+#: ratio when the ruler is at the fast end of its own spread. Measured
+#: 2026-09-05 on consecutive main pushes of the same tree:
+#: ``shoulder/tariff+pv+cycle`` at 775.5x (pass, ref 52.3 ms) vs 808.2x
+#: and 817.7x (fail, ref 42.7-43.7 ms) against this 782.11 ceiling.
+#: 817.7 / 782.11 = 1.046. 1.10 covers that expansion with 5 % spare and
+#: keeps the live ceiling (860x) under ``DETECTION_TARGET`` times the
+#: dearest recorded ratio (2 x 546.76 = 1094), so the 2x detection
+#: check still binds. The 782.11 constant stays the M1 derivation.
+#: (For #1208 the floor is 1482.00 and the live ceiling 1630x; the
+#: budget table is re-recorded in the same change, so the dearest
+#: recorded ratio is again the branch's own measured cost and the same
+#: 2x-detection inequality holds -- see SOLVE_BUDGET_RATIO above.)
+SOLVE_RATIO_WOBBLE = float(os.environ.get("STRESS_SOLVE_WOBBLE", "1.10"))
+
+
+def live_solve_budget_ratio() -> float:
+    """The ceiling the sweep compares each scenario to, this run.
+
+    ``SOLVE_BUDGET_RATIO`` is the M1-derived detection floor. This is
+    that floor times the measured CI ruler-vs-real expansion.
+    """
+    return SOLVE_BUDGET_RATIO * SOLVE_RATIO_WOBBLE
+
+#: The whole sweep may cost this many times the reference work timed
+#: alongside it. Totals average the per-scenario spread away -- and average
+#: the ruler's own noise away with it, over fifty-odd samples -- so this is
+#: the steadiest number the run produces: cv 0.61 % over the same five runs
+#: (0.12 % against the trailing median rather than the raw samples). It is what catches a change
+#: that made everything moderately slower, which is the shape a solver
+#: regression usually has.
+#:
+#: Same derivation: 1.41421 x the measured mean of 94.9804 = 134.32, which
+#: is 67 standard deviations above a clean run. The 450 it replaces came
+#: with its own instruction -- "deliberately generous for a first release of
+#: this check ... tighten it once a few runs' aggregate ratios are on
+#: record". Five runs are now on record and this is that tightening.
+#:
+#: One thing this figure is NOT: a verdict on #291. This sweep ratio is
+#: 94.98 against 52.67 at the round-2 baseline, and the difference is the
+#: two-zone DHW solve getting 2.33x slower. Sizing the budget on today's
+#: cost is correct -- today's cost is what the gate has to watch for change
+#: -- but it does bake that regression into the baseline, which is why #291
+#: is tracked separately and must be judged on its own evidence, not on
+#: this file's silence.
+SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "134.32"))
+
+#: Backstop only: a solve this slow is pathological whatever the machine is
+#: doing -- a non-converging objective, not a busy box.
+SOLVE_CEILING_MS = float(os.environ.get("STRESS_SOLVE_CEILING_MS", "600000"))
+
+#: The size of regression this gate is REQUIRED to be able to see, and the
+#: reason every budget below is a measured figure rather than a comfortable
+#: one. Each budget is checked against this run's own observed cost at the
+#: end of the sweep (see the detection check): a budget more than this many
+#: times what the run actually cost cannot detect a regression of this size,
+#: and fails the run. That is the half of the question every check here used
+#: to leave out -- "is it slower than the budget" was asked, "could the
+#: budget ever notice" was not, and the answer was no: at 1400x/450x against
+#: an observed 553x/95x the two global checks could see 2.53x at best, and
+#: with #145's x3 per-scenario table the whole gate could see 2.09x. An
+#: injected exact 2x tripped none of the three (#287). Together with the budget checks themselves this pins every
+#: observed figure into (budget / DETECTION_TARGET, budget]; widening a
+#: budget to make a red run pass now turns the run red here instead.
+DETECTION_TARGET = float(os.environ.get("STRESS_DETECTION_TARGET", "2.0"))
+
+#: Per-scenario budgets (D9-03). The single SOLVE_BUDGET_RATIO above has to
+#: clear the dearest scenario in the sweep (553.04x its reference on this
+#: box today, against 3.05x for the cheapest -- a 181-fold spread), which
+#: means the cheapest one -- a few multiples -- could regress by three
+#: orders of magnitude and still pass: exactly the hole the old absolute
+#: budget had, rebuilt one level up. Each scenario therefore carries its OWN
+#: budget, recorded in tests/stress_budgets.json as a clean run's ratio
+#: against the reference solve (a pure work ratio: the reference is timed on
+#: the same machine, in the same run, so the number travels). A scenario may
+#: cost this many times its own recorded ratio.
+#:
+#: STAYS AT 3.0, and the attempt to tighten it is the useful part of the
+#: record. On one machine this number could be 1.4142 -- the same sqrt(2)
+#: derivation as the two budgets above, and over five clean consecutive
+#: sweeps it would have been comfortable: the median scenario's ratio has a
+#: cv of 0.44 %, the 90th percentile 0.73 %, the noisiest single scenario
+#: (winter/1z/dhw) 6.04 %, and the largest deviation of any scenario from
+#: its own five-run mean was +10.8 %.
+#:
+#: It does not survive a second machine, and the reason is not noise. CI
+#: ran shoulder/tariff+cycle at 352.7x its reference against a recorded
+#: 154.4x -- 2.28x the work, on a runner whose own reference solve was
+#: steady at 51.4 / 52.1 / 59.3 ms over 58 samples with a thread factor of
+#: 1.000 on both sides. A steady ruler and 2.3x the work means the SOLVE
+#: was different: the multi-start method landed in another basin and did
+#: more iterations, which floating-point differences between platforms can
+#: decide. The same family swings the other way too -- against a table
+#: recorded elsewhere, winter/tariff measured 1.435x its record here and
+#: shoulder/tariff+cycle 0.865x.
+#:
+#: So a per-scenario budget cannot be both portable and under 2x: some
+#: scenarios' cost is bimodal across platforms. 3.0 covers the measured
+#: 2.28x with 31 % to spare. What carries the 2x detection instead is the
+#: SWEEP budget, which averages the basin flips away -- 94.98x here, 77.96x
+#: and 84.02x on two CI runners, all far under its 134.32 -- and that is
+#: what makes the gate's smallest detectable UNIFORM regression 1.42x
+#: rather than the 2.09x it was. A single scenario doubling on its own is
+#: caught at 3.0x, and honestly recorded as such.
+SCENARIO_BUDGET_FACTOR = float(os.environ.get("STRESS_SCENARIO_FACTOR", "3.0"))
+#: ...and a scenario that has become CHEAPER than its record by more than
+#: this factor makes the table stale-high: a later regression back to the
+#: old cost would pass unnoticed. Like the golden-claims file, the table is
+#: re-recorded deliberately (`--record-budgets`), not inherited.
+#:
+#: Raised 3.0 -> 3.5 on 2026-09-05 after CI ubuntu-latest ran
+#: shoulder/tariff+cycle at 162.6x then 159.0x vs the recorded 520.2x
+#: (3.20-3.27x cheaper). The same runner already sits at 2.28x on the
+#: expensive side of this label (see SCENARIO_BUDGET_FACTOR); the cheap
+#: side is the same bimodal machine, not a plan change. Re-record is
+#: refused. SCENARIO_BUDGET_FACTOR and SOLVE_BUDGET_RATIO stay put.
+SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
+#: The SINGLE-SCENARIO detection statistic (#346), measured in SOLVER WORK
+#: rather than in CPU time -- and the first per-scenario number in this
+#: file that was allowed to sit under DETECTION_TARGET
+#: (SCENARIO_KERNEL_FACTOR below, added for round-5 D9-07, is the second).
+#:
+#: SCENARIO_BUDGET_FACTOR above cannot be tightened, and its own comment is
+#: the record of why: CI ran shoulder/tariff+cycle at 2.28x its recorded
+#: cost on a ruler that was steady to a millisecond, because the multi-start
+#: solver landed in another basin. #371 then measured that no value of that
+#: factor moves this file's detection floor at all, and closed. So a 2x
+#: regression confined to ONE scenario passed the whole gate: an injected
+#: 1.99x tripped 0 of 38 checks, because 1.99 < 3.0 and the sweep budget is
+#: a MEAN that divides one scenario's doubling by fifty-one.
+#:
+#: Three CPU-denominated candidates were measured on the audit box before
+#: this one, and all three failed on this box's own numbers -- the measured
+#: spreads are in the PR for #346:
+#:
+#:   * the per-scenario CPU ratio, repeated: identical work (bit-identical
+#:     objective, so the same iterates) cost 1.10x to 1.44x of itself over
+#:     six consecutive solves. A 1.5x factor has 4 % of margin over that;
+#:   * the same ratio normalised by the sweep's own median, which does
+#:     remove the up-to-1.7x compression of the reference solve between
+#:     machines: over three clean sweeps it still ranged 0.60x to 1.81x,
+#:     with a run-to-run spread of 2.03x on one scenario;
+#:   * CPU per solver evaluation, which cancels a basin flip but also
+#:     cancels the injection the finding is written against -- calling
+#:     optimize() twice doubles the evaluations with it.
+#:
+#: What is stable is the COUNT. The solver's evaluations are integers
+#: produced by the iterate path, not by the machine: over the six repeats
+#: above every scenario's count was bit-identical, spread 1.000, while its
+#: CPU moved by up to 44 %. A count carries no ruler, so it cannot compress
+#: between an M1 and a runner, and it cannot drift with a core's clock. That
+#: is what makes a factor under DETECTION_TARGET defensible here when three
+#: attempts at one in CPU were not.
+#:
+#: 1.5, not 1.05: the count is exact on one machine but the iterate path is
+#: not identical across platforms -- floating-point differences can add or
+#: drop a line-search step, which is the same mechanism that makes strict
+#: golden mode non-reproducible off the recording machine (tests/README.md).
+#: 1.5 leaves 50 % for that and still sees the 1.99x the finding injected;
+#: the detection check below holds it under DETECTION_TARGET so it cannot be
+#: widened past the thing it exists to catch.
+#:
+#: The COUNT has two channels since #1229, judged against this one factor.
+#: The second exists because the evaluation count is blind to work that
+#: changes no answer: running the batched finite-difference gradient twice
+#: returns the same gradient, adds no scipy evaluations and leaves every
+#: plan bit-identical -- measured at 1.0000x of the evaluation count --
+#: while the kernel does twice the simulating (1.9868x of the simulate
+#: count on the probe case; round-5 D9-01's harness measured both). So
+#: SolverWork also counts simulate step-equivalents (one per
+#: simulate_step call, rows x steps per simulate_trajectory_batch call,
+#: charged what the batch replaces), and the checks below judge both
+#: channels. Every argument above for trusting a count over a clock
+#: applies to this one unchanged: it is an integer the production path
+#: produces and the machine does not touch.
+#:
+#: 1.80, not 1.5, since #1208 (owner override, issue comment 5748462577,
+#: 2026-09-20: "But I want you to implement it with budget raise.").
+#: Polish-every-candidate runs one extra full-budget restart per solved
+#: candidate inside the loop, so an UNCHANGED plan legitimately costs the
+#: evaluations and simulate steps of those restarts. Measured at the
+#: #1208 head on the dev box (three clean sweeps against the merge-base
+#: baseline captured beside each run), the worst unchanged-plan ratios
+#: were flat/1z/space 658/426 = 1.54x and typical_slab/shoulder 846/490 =
+#: 1.73x on the evaluation channel, the same two scenarios at the same
+#: 1.54x/1.73x on the simulate channel (integer counts, deterministic per
+#: tree pair). The first CI run of PR #1282 (head 317d46e, job 106089813679)
+#: then measured the same check on its own runner pair at
+#: winter/tariff+cycle and winter/tariff+pv+cycle 906/504 = 1.80x solver
+#: evaluations and 4219392/2347584 = 1.80x simulate step-equivalents, on
+#: an unchanged plan (objective 218.3908665 both sides) -- the runner's
+#: float environment makes the polish loop iterate more on those two
+#: bimodal scenarios than the dev box does, which is exactly the
+#: platform-variance headroom the original 1.5-vs-1.05 ruling reserved
+#: this factor's slack for. 1.80 covers the runner-measured worst with
+#: nothing spare and stays under DETECTION_TARGET, so a 2x regression
+#: confined to one scenario is still seen on both channels; the 1.5x
+#: history above is the pre-#1208 record of the same argument.
+SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.80"))
+#: The kernel-cost twin of the factor above (round-5 D9-07): what the two
+#: simulate seams cost in CPU per call, judged against the baseline
+#: captured beside this run. Both channels above are integers the machine
+#: does not touch, which is what lets SCENARIO_WORK_FACTOR sit under
+#: DETECTION_TARGET; kernel CPU seconds are NOT machine-independent --
+#: identical work cost 1.10x to 1.44x of itself over six consecutive
+#: solves on one box (the #346 measurement that rejected every solve-wide
+#: CPU statistic) -- so this one is never judged against the recorded
+#: table, where the same scenario reads 1.435x its record on one machine
+#: and 0.865x on another (the bimodality SCENARIO_BUDGET_FACTOR records),
+#: but against the baseline that solved the same scenarios on this
+#: machine minutes ago. 1.80 clears the measured same-box movement with
+#: 25 % to spare, and what it sees that no count can: an exact 2x of
+#: PER-CALL kernel cost -- D9-07's injection, both seams run twice per
+#: call -- leaves both count channels at 1.0000x and the plan
+#: bit-identical while the seams' own time doubles, so the signal sits at
+#: 2.0x = 1.11x over this factor, the same razor SCENARIO_WORK_FACTOR
+#: rides for the 2x work injection. The whole-SOLVE CPU cannot carry this
+#: check at any factor: the same 2x injection moved solve CPU only
+#: 1.49-1.54x (the seams are about half the solve), inside the 1.44x
+#: clean movement -- #346's refusal of solve-wide CPU holds unchanged
+#: here. Count growth the counts themselves vouch for is divided out
+#: before the comparison (kernel_cost_over_verdict), so #1208's restarts,
+#: which legitimately sit at 1.80x of both counts on an unchanged plan,
+#: do not false-red.
+SCENARIO_KERNEL_FACTOR = float(os.environ.get("STRESS_KERNEL_FACTOR", "1.80"))
+#: How far this run's objective value may sit from the recorded one and
+#: still count as the same basin, relative.
+#:
+#: This is the hinge, so it is worth saying what it separates, and the
+#: separation was measured rather than assumed. A performance regression
+#: does not move the plan -- if it did the golden gate would fail first, and
+#: that is a different failure with a different owner. A multi-start basin
+#: flip does move it, because a different local minimum is the whole reason
+#: _multi_start_minimize exists. Below both sits the last-decimal drift of
+#: the SAME basin re-evaluated on another platform, which tests/README.md
+#: records as why strict golden mode does not reproduce off the recording
+#: machine.
+#:
+#: Fifteen genuine basin changes were executed on shoulder/cycle to size
+#: this, by perturbing the multi-start guess through the production symbol
+#: _price_guess_weights (reversed, flat, alternating, ramped, rolled, and
+#: six random starts). Every one landed in a different minimum, and the
+#: objective moved by 4.41e-5 to 2.24e-3 relative -- the SMALLEST of them,
+#: a random start that also did 1.28x the work, is the number that sets
+#: this constant.
+#:
+#: 1e-6 sits 44x under that smallest measured flip and three or more orders
+#: over same-basin float drift. 1e-4, the first value tried here, would have
+#: read that 4.41e-5 flip as the same basin and judged its 1.28x as a
+#: regression; 1e-9 would read float drift as a flip and quietly empty the
+#: check, which SCENARIO_WORK_MIN_COVERED then refuses to let happen
+#: silently.
+#:
+#: Since #387 both objectives being compared are COMPUTED, in one process
+#: tree on one machine, so two unchanged solves agree bit for bit and the
+#: tolerance is not carrying a platform difference any more. It is carrying
+#: the last-decimal move an unrelated production change on the branch can
+#: make to a solve whose plan is otherwise the same one -- the same width,
+#: for a smaller job, which is why it did not need re-sizing.
+SCENARIO_BASIN_TOLERANCE = float(
+    os.environ.get("STRESS_BASIN_TOLERANCE", "1e-6")
+)
+#: ...and the floor under how many scenarios the work check must still
+#: COVER, or it is reported blind instead of passing on whatever is left. A
+#: check that silently narrows to the scenarios that happen to still agree
+#: is a check that reports success for doing nothing, which this file has
+#: shipped five times.
+#:
+#: WHAT IT COUNTS CHANGED IN #387; THE NUMBER DID NOT. It used to count
+#: scenarios whose objective matched a RECORDED basin, which made it a
+#: statement about the runner rather than about the branch. The table held
+#: two basins for each bimodal scenario -- this box and one CI runner --
+#: and a third runner model reaches a third basin for ALL of them at once,
+#: leaving 51 - 22 = 29 covered, eleven under this floor, on every machine
+#: not already in the table. Main went red on two of the four full-scope
+#: pushes after #378 (runs 33840988749 and 33841375106 red, 33840144200 and
+#: 33847813156 green) on commits whose only differences were in docs/,
+#: .claude/ and tools/ -- inert, unreachable from the solver, so the code
+#: under test was identical and the runner was the variable.
+#:
+#: The 22 that flipped were exactly the 22 the table gave a second basin,
+#: because they share ONE cause: the CPU model and its BLAS kernels
+#: choosing which multi-start basin a solve falls into. They move as a
+#: cohort, so the eleven scenarios of slack this floor was sized with --
+#: "a third platform may hold a third basin FOR SOME SCENARIO" -- never
+#: existed. Recording the new basins does not close it either: the
+#: ubuntu-latest fleet is not enumerable, and each new runner model
+#: contributes another basin for all 22.
+#:
+#: It now counts scenarios whose plan is unchanged against the BASELINE
+#: CAPTURED BESIDE THIS RUN (capture_baseline_work). Both halves solve on
+#: the same machine with the same BLAS, so the runner's basin choice
+#: cancels instead of being enumerated, and what is left uncovered is a
+#: scenario THIS BRANCH re-planned -- a statement about the diff, and the
+#: same population tests/env_drift.py already makes a branch claim. 40 of
+#: 51 stays the number: a branch that has moved a dozen plans has moved the
+#: ground this check stands on and should be told the check no longer
+#: covers most of the sweep, rather than shown a green tick.
+#:
+#: NON-TUNABLE, by the #387 ruling on its sixth acceptance criterion (issue
+#: comment 5541519696). The floor's job -- telling a branch that has
+#: re-planned more than eleven of the fifty-one that the check no longer
+#: covers most of the sweep -- does not depend on being tunable, and an
+#: environment override is reachable from a workflow `env:` line, a
+#: runner-level variable or a helper script without ever appearing in a PR
+#: body where a human would see it. So this is a literal, not a read.
+SCENARIO_WORK_MIN_COVERED = 40
+
+#: The baseline half of the solver-work comparison: the tree this run's
+#: counts are judged against. GOLDEN_REF, because this is the same question
+#: tests/env_drift.py asks about the same pair of trees -- tests/run.sh
+#: exports it, and .github/workflows/tests.yml sets it to the pull
+#: request's merge base, or to HEAD^1 on a push to main.
+WORK_DRIFT_REF = os.environ.get("GOLDEN_REF") or "origin/main"
+
+#: A floor under the per-scenario budget, for a machine whose cheap
+#: scenarios are noisy enough that the factor above cannot hold them.
+#:
+#: RETIRED to 0.0, on measurement. It was 10.0, sized against "a scenario
+#: recorded at 2x is not failed for normal solver jitter at 2.5x" -- a
+#: plausible worry, and false here. At 10.0 with the factor at 1.4142 the
+#: floor, not the factor, would be the budget for every scenario recorded
+#: below 7.07x: TEN of the fifty-one, the cheapest of them recorded at
+#: 3.05x and therefore free to cost 3.3x its record before failing. That is
+#: the D9-03 hole -- a budget wide enough for the dearest scenario applied
+#: to the cheapest -- rebuilt at the bottom of the table. And the jitter it
+#: guards against is not there: the five-run cv of those ten scenarios is
+#: 0.44-5.16 %, no worse than the sweep's median, so the factor clears them
+#: by eight to ninety standard deviations on its own. Cheap does not mean
+#: noisy on this box; summer/1z/space, the cheapest at 3.05x, has a cv of
+#: 0.45 %.
+#: The knob stays, at zero, for a machine that measures otherwise -- but it
+#: has to be set from a measured spread, and the detection check refuses a
+#: floor that would blind a scenario to a DETECTION_TARGET-fold regression.
+SCENARIO_BUDGET_FLOOR_RATIO = float(
+    os.environ.get("STRESS_SCENARIO_FLOOR", "0.0")
+)
+
+#: Memory instrumentation (D9-04). tracemalloc slows allocation-heavy code,
+#: so it must never run inside the timed sweep; the memory pass re-runs a
+#: fixed subset of scenarios afterwards, untimed, and reports the traced
+#: allocation peak and the process's RSS watermark growth. Peaks are
+#: budgeted against the same recorded table, at this factor, over the
+#: SCENARIO-ATTRIBUTABLE component: probe watermark minus the empty-probe
+#: baseline measured in the same run (#949). The factor is held under
+#: DETECTION_TARGET by the detection check -- a 2x regression must fail,
+#: which no additive floor on either axis survives.
+MEMORY_BUDGET_FACTOR = float(os.environ.get("STRESS_MEMORY_FACTOR", "1.5"))
+#: How many scenarios the memory pass covers, split evenly between the two
+#: recorded axes: the biggest traced allocation peaks and the biggest RSS
+#: watermarks. Selected by RECORDED MEMORY, not by recorded CPU -- they are
+#: nearly uncorrelated in this suite's own table, and the CPU ordering
+#: happened to pick six samples of one profile while missing both extremes
+#: (see the memory section for the numbers).
+MEMORY_TOP_N = int(os.environ.get("STRESS_MEMORY_TOP_N", "6"))
+
+#: The committed per-scenario budget table, read from the repo root (the
+#: suite always runs from there, per tests/run.sh). Contents: {"scenario":
+#: {"ratio": <clean-run work ratio>, "rss_peak_mb": ..., "rss_attrib_mb":
+#: <probe watermark minus the same run's empty-probe baseline>,
+#: "traced_peak_mb": ...}}. Recorded by `stress.py --record-budgets`, which
+#: prints the table for shell capture (see print_budget_table), or
+#: memory-only by `stress.py --record-memory` (see record_memory_table);
+#: a missing or renamed scenario fails the check run loudly rather than
+#: falling back to the global budget, because a silent fallback is how the
+#: cheapest scenario regressed 2626x unnoticed in the first place.
+BUDGET_TABLE_PATH = "tests/stress_budgets.json"
+
+#: How many reference samples the trailing median runs over. Wide enough
+#: that the ruler varies less than the solves it judges (see
+#: reference_solve), narrow enough to still follow the machine's load
+#: through a sweep that takes tens of minutes.
+CALIBRATION_WINDOW = int(os.environ.get("STRESS_CALIBRATION_WINDOW", "7"))
+
+_RETIRED_BUDGET = os.environ.get("STRESS_SOLVE_BUDGET_MS")
+
+_CAL_N = 96
+_cal_rng = np.random.default_rng(4711)
+_CAL_WEIGHTS = np.abs(_cal_rng.standard_normal(_CAL_N)) + 0.5
+_CAL_TARGET = 21.0 + 0.5 * _cal_rng.standard_normal(_CAL_N)
+_CAL_START = np.full(_CAL_N, 1.5)
+_CAL_BOUNDS = [(0.0, 5.0)] * _CAL_N
+
+
+def _reference_objective(x: np.ndarray) -> float:
+    """A stand-in for the space-heating objective, fixed for all time.
+
+    Same shapes and same kinds of operation as the real one -- a cumulative
+    sum for stored energy, a squared penalty against a comfort target, a
+    smoothness term over the differences, an exponential response curve --
+    so it responds to machine load the way a real solve does. Its arithmetic
+    is nobody's business but this file's: it must never be "improved", or
+    the ruler moves and every historical ratio stops meaning anything.
+    """
+    stored = np.cumsum(x) * 0.25
+    return float(
+        np.sum(_CAL_WEIGHTS * x)
+        + np.sum((stored - _CAL_TARGET) ** 2)
+        + 0.05 * np.sum(np.diff(x) ** 2)
+        + np.sum(np.exp(-x / 3.0))
+    )
+
+
+def reference_solve() -> tuple[float, float, float]:
+    """One reference solve: (wall ms, process CPU ms, this-thread CPU ms).
+
+    Both CPU clocks, because they answer different questions.
+    ``process_time`` sums CPU over every thread of the process, so a numpy
+    build that runs BLAS on N threads records roughly N times the
+    single-threaded figure. ``thread_time`` counts only this thread. Their
+    ratio is the effective parallelism of the timed section, and the guard
+    checks that the reference's matches the scenarios' -- see the
+    parallelism check at the end of the sweep for why that matters.
+    """
+    started = time.perf_counter()
+    started_cpu = time.process_time()
+    started_thread = time.thread_time()
+    # The iteration cap is not a convergence setting: it makes the amount of
+    # work FIXED. L-BFGS-B stops on the limit rather than on a tolerance, so
+    # every call costs the same number of objective evaluations whatever the
+    # machine, which is what a ruler has to do. Numerical gradients
+    # (eps=1e-4, as the real solver uses) over 96 bounded variables are most
+    # of that cost.
+    #
+    # The SIZE was measured, not guessed, and the first guess was wrong. At
+    # maxiter=3 the call took ~78 ms and had a coefficient of variation of
+    # 19-29 % on a loaded box, while the scenario solves it was meant to
+    # judge varied by only 9.5 %: the ruler wobbled more than the thing it
+    # measured, so dividing by it made the measurement worse rather than
+    # better. A call that short is at the mercy of a single scheduling
+    # quantum. Measured against the same box: ~78 ms -> CV 19 %, ~610 ms ->
+    # CV 10 %, ~1.6 s -> CV 4.5 %. maxiter=12 lands in the middle at a few
+    # hundred milliseconds, and the trailing median over CALIBRATION_WINDOW
+    # samples takes it below the solves' own variation, at a cost of one
+    # sample per scenario rather than a rerun of anything.
+    minimize(
+        _reference_objective,
+        _CAL_START,
+        method="L-BFGS-B",
+        bounds=_CAL_BOUNDS,
+        options={"maxiter": 12, "ftol": 1e-6, "eps": 1e-4},
+    )
+    return ((time.perf_counter() - started) * 1000.0,
+            (time.process_time() - started_cpu) * 1000.0,
+            (time.thread_time() - started_thread) * 1000.0)
+
+
+class Calibration:
+    """A rolling measurement of how much work this machine does per unit CPU.
+
+    Keeps both clocks. CPU time is what the budgets are denominated in --
+    it is what does not move when the box gets busy -- and wall time is
+    kept only so the run can report its own overhead honestly.
+    """
+
+    def __init__(self, window: int) -> None:
+        self.window = max(1, window)
+        self.samples: list[float] = []      # CPU ms, trailing window
+        self.all_cpu: list[float] = []
+        self.all_wall: list[float] = []
+        self.all_thread: list[float] = []
+        self.overhead_ms = 0.0              # wall, for reporting
+        self.count = 0
+
+    def warm_up(self) -> None:
+        """Pay scipy's first-call costs, then fill the window with samples.
+
+        The very first call measures imports and page faults rather than the
+        machine's speed, so it is timed as overhead and thrown away.
+        """
+        started = time.perf_counter()
+        reference_solve()
+        self.overhead_ms += (time.perf_counter() - started) * 1000.0
+        for _ in range(self.window):
+            self.sample()
+
+    def sample(self) -> float:
+        started = time.perf_counter()
+        wall, cpu, thread = reference_solve()
+        self.samples.append(cpu)
+        self.all_cpu.append(cpu)
+        self.all_wall.append(wall)
+        self.all_thread.append(thread)
+        if len(self.samples) > self.window:
+            self.samples.pop(0)
+        self.count += 1
+        self.overhead_ms += (time.perf_counter() - started) * 1000.0
+        return cpu
+
+    @property
+    def unit_ms(self) -> float:
+        """Trailing median reference CPU time -- the current machine unit."""
+        return float(np.median(self.samples))
+
+    def budget_ms(self) -> float:
+        return live_solve_budget_ratio() * self.unit_ms
+
+    def spread(self) -> tuple[float, float, float]:
+        arr = np.asarray(self.all_cpu, dtype=float)
+        return float(arr.min()), float(np.median(arr)), float(arr.max())
+
+    def wall_spread(self) -> tuple[float, float, float]:
+        arr = np.asarray(self.all_wall, dtype=float)
+        return float(arr.min()), float(np.median(arr)), float(arr.max())
+
+    @property
+    def parallelism(self) -> float:
+        """Process CPU over this-thread CPU: the reference's thread factor."""
+        thread = float(np.median(self.all_thread)) if self.all_thread else 0.0
+        cpu = float(np.median(self.all_cpu)) if self.all_cpu else 0.0
+        return cpu / thread if thread > 1e-9 else 1.0
+from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
+from heatpump_optimizer.presets import (
+    BuildingPreset,
+    EMITTER_FLOOR,
+    EMITTER_RADIATORS,
+    ERA_1960_1980,
+    ERA_POST_2005,
+    ERA_PRE_1960,
+    STRUCTURE_CONCRETE_SLAB,
+    STRUCTURE_MASONRY,
+    STRUCTURE_TIMBER_CRAWLSPACE,
+    derive,
+)
+from heatpump_optimizer.thermal_model import (
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
+
+R = Results("Stress and economics")
+
+START = datetime(2026, 1, 15, 0, 0)
+
+# Season -> (price profile, weather profile). Paired because a summer price
+# curve with a January weather profile is not a case any user has.
+SEASONS = {
+    "winter": ("winter_typical", "winter_cold"),
+    "winter_extreme": ("winter_extreme", "winter_cold"),
+    "winter_mild": ("winter_typical", "winter_mild"),
+    "shoulder": ("shoulder", "shoulder"),
+    "summer": ("summer_typical", "summer_warm"),
+    "summer_negative": ("summer_negative", "summer_warm"),
+    "flat": ("flat", "winter_cold"),
+}
+
+# Building archetypes covering the light/heavy and leaky/tight corners.
+BUILDINGS = {
+    "light_new": BuildingPreset(
+        structure=STRUCTURE_TIMBER_CRAWLSPACE,
+        era=ERA_POST_2005,
+        heated_area_m2=120,
+        lower_emitter=EMITTER_RADIATORS,
+    ),
+    "heavy_old": BuildingPreset(
+        structure=STRUCTURE_MASONRY,
+        era=ERA_PRE_1960,
+        heated_area_m2=200,
+        lower_emitter=EMITTER_FLOOR,
+    ),
+    "typical_slab": BuildingPreset(
+        structure=STRUCTURE_CONCRETE_SLAB,
+        era=ERA_1960_1980,
+        heated_area_m2=150,
+        lower_emitter=EMITTER_FLOOR,
+    ),
+}
+
+
+class SolverWork:
+    """Counts the solver's own work across one optimize() call, in two channels.
+
+    ``evaluations`` sums the scipy ``nfev``/``njev`` every L-BFGS-B run
+    reports through ``optimizer._scoped_minimize`` -- the single seam every
+    run in the package goes through, from both the DHW and the space stage
+    and from every multi-start guess. Four calls per solve on the sweep's
+    scenarios, so the instrument costs four Python-level function calls
+    against hundreds of objective evaluations; it is measured as unchanged
+    CPU in the PR for #346 rather than argued to be free.
+
+    ``simulate_steps`` counts the simulation kernel itself, in step
+    equivalents (#1229): one per ``ThermalModel.simulate_step`` call (the
+    scalar objective path) and ``rows x steps`` per
+    ``simulate_trajectory_batch`` call (the batched finite-difference
+    gradient's 97 schedules), charged at the batch's own geometry because
+    that is what the batch replaces -- the scalar parity contract in
+    simulate_trajectory_batch's own docstring is the licence for grading a
+    batch at the work it stands in for. Because a batch is charged at
+    ``rows x steps`` -- exactly what the rows of scalar calls it replaces
+    would record -- this channel cannot tell a batched solve from a scalar
+    one for the same plan: a solve that stops batching moves
+    ``simulate_steps`` by fractions of a percent while its ``kernel_ms`` and
+    its evaluation count both move by an order of magnitude (D9-03). It is a
+    WORK channel, not a COST channel; read the other two to see a
+    batched-vs-scalar swap. The channel exists because the
+    evaluation count is BLIND to cost that changes no answer: running the
+    batched gradient twice returns the same gradient, adds no scipy
+    evaluations and leaves every plan bit-identical -- round-5 D9-01
+    measured 1.0000x of the evaluation count against 1.9868x of this one.
+
+    The candidate SCORING loop in ``_multi_start_minimize`` evaluates the
+    objective directly and is therefore not counted on the evaluation
+    channel -- but it does simulate, and its simulate steps ARE counted,
+    because the kernel meter sits under the objective rather than over the
+    iterate path. That is deliberate: the point of the second channel is to
+    see work the iterate path never reports.
+
+    Hooking private symbols is a coupling, so it is one that fails loudly:
+    the class body below resolves all four at import, so a rename stops
+    the whole file rather than leaving a counter that silently reports
+    zero -- and the sweep additionally refuses a scenario whose count came
+    back zero.
+    """
+
+    _wrapped = optimizer_module._scoped_minimize
+    _step_wrapped = ThermalModel.simulate_step
+    _batch_wrapped = ThermalModel.simulate_trajectory_batch
+    _dhw_step_wrapped = ThermalModel.simulate_dhw_step
+
+    def __init__(self) -> None:
+        self.evaluations = 0
+        self.calls = 0
+        self.simulate_steps = 0
+        self.kernel_ms = 0.0
+
+    def __enter__(self) -> "SolverWork":
+        outer = self
+
+        def counting(*args, **kwargs):
+            res = SolverWork._wrapped(*args, **kwargs)
+            outer.calls += 1
+            outer.evaluations += int(getattr(res, "nfev", 0) or 0)
+            outer.evaluations += int(getattr(res, "njev", 0) or 0)
+            return res
+
+        def counting_step(*args, **kwargs):
+            # One call is one step: this is the scalar objective path.
+            outer.simulate_steps += 1
+            # The per-call-cost channel (round-5 D9-07): the same clock
+            # the solve guard budgets (process_time, load-free), around
+            # the kernel only. A kernel that got slower per call moves
+            # no count and leaves the plan bit-identical; only this
+            # moves. Metered around the class attribute, so wrapping the
+            # seam itself (the injection shape) is inside the meter.
+            _t0 = time.process_time()
+            res = SolverWork._step_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
+
+        def counting_batch(*args, **kwargs):
+            # Assigning a plain function to the class makes it a
+            # descriptor, so a positional call arrives as
+            # (instance, initial_state, power_matrix, ...) and the matrix
+            # is args[2]. Both production call sites pass every argument
+            # by keyword, which is why the kwargs fallback is the one that
+            # fires today; get it wrong and the KeyError is immediate
+            # rather than a quietly miscounted batch.
+            matrix = args[2] if len(args) > 2 else kwargs["power_matrix"]
+            outer.simulate_steps += int(matrix.shape[0] * matrix.shape[1])
+            _t0 = time.process_time()
+            res = SolverWork._batch_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
+
+        def counting_dhw_step(*args, **kwargs):
+            # One call is one DHW step: the tank kernel the space-step
+            # channel is blind to (round-6 D9-02). Same clock as the space
+            # kernel, so a dearer DHW kernel moves the cost channel too.
+            outer.simulate_steps += 1
+            _t0 = time.process_time()
+            res = SolverWork._dhw_step_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
+
+        optimizer_module._scoped_minimize = counting
+        ThermalModel.simulate_step = counting_step
+        ThermalModel.simulate_trajectory_batch = counting_batch
+        ThermalModel.simulate_dhw_step = counting_dhw_step
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        optimizer_module._scoped_minimize = SolverWork._wrapped
+        ThermalModel.simulate_step = SolverWork._step_wrapped
+        ThermalModel.simulate_trajectory_batch = SolverWork._batch_wrapped
+        ThermalModel.simulate_dhw_step = SolverWork._dhw_step_wrapped
+        return False
+
+
+def _simulate_surface() -> tuple[set[str], dict[str, set[str]], set[str]]:
+    """ThermalModel's simulation surface and call graph, derived from source.
+
+    The surface is the set of ``ThermalModel`` methods that advance simulated
+    state, by name: ``simulate*``, ``_simulate_step_*`` and ``extend_*``. The
+    call graph records which surface member each member calls -- including a
+    call made through a method-local alias (``x = self.simulate_dhw_step``
+    then ``x(...)``), which is how ``extend_dhw_temps`` reaches the DHW
+    primitive. The leaves are the members with no outgoing edge: the
+    primitives that advance state directly rather than by calling another
+    simulate method.
+
+    Returns ``(surface, edges, leaves)``.
+    """
+    source = textwrap.dedent(inspect.getsource(ThermalModel))
+    tree = ast.parse(source)
+    cls = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ThermalModel"
+    )
+
+    def _is_simulate(name: str) -> bool:
+        return (
+            name.startswith("simulate")
+            or name.startswith("_simulate_step_")
+            or name.startswith("extend_")
+        )
+
+    surface = {
+        node.name
+        for node in cls.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and _is_simulate(node.name)
+    }
+    edges: dict[str, set[str]] = {name: set() for name in surface}
+    for node in cls.body:
+        if (
+            not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            or node.name not in surface
+        ):
+            continue
+        aliases: dict[str, str] = {}
+        for sub in ast.walk(node):
+            if (
+                isinstance(sub, ast.Assign)
+                and len(sub.targets) == 1
+                and isinstance(sub.targets[0], ast.Name)
+                and isinstance(sub.value, ast.Attribute)
+                and isinstance(sub.value.value, ast.Name)
+                and sub.value.value.id == "self"
+                and sub.value.attr in surface
+            ):
+                aliases[sub.targets[0].id] = sub.value.attr
+        for sub in ast.walk(node):
+            if not isinstance(sub, ast.Call):
+                continue
+            fn = sub.func
+            if (
+                isinstance(fn, ast.Attribute)
+                and isinstance(fn.value, ast.Name)
+                and fn.value.id == "self"
+                and fn.attr in surface
+            ):
+                edges[node.name].add(fn.attr)
+            elif isinstance(fn, ast.Name) and fn.id in aliases:
+                edges[node.name].add(aliases[fn.id])
+    leaves = {name for name in surface if not edges[name]}
+    return surface, edges, leaves
+
+
+def _metered_simulate_seams() -> set[str]:
+    """The simulate seams ``SolverWork`` hooks, derived from its class body.
+
+    A seam is metered iff it is a ``ThermalModel`` function bound as a
+    ``SolverWork`` class attribute -- the ``_*_wrapped`` set, read rather
+    than hand-listed, so a seam wrapped here but forgotten in the cut check
+    is exactly as visible as a seam the model gained but the meter did not.
+    """
+    metered: set[str] = set()
+    for value in vars(SolverWork).values():
+        if not callable(value):
+            continue
+        qualname = getattr(value, "__qualname__", "")
+        if qualname.startswith("ThermalModel."):
+            metered.add(qualname[len("ThermalModel."):])
+    return metered
+
+
+def metered_seam_cut(
+    metered: set[str] | None = None, extra_leaf: str | None = None
+) -> tuple[set[str], set[str], set[str]]:
+    """The cut every leaf of the simulation surface must survive, or fail.
+
+    A leaf -- a simulate method that calls no other simulate method -- is
+    covered iff it is itself metered, or every one of its callers is covered
+    (recursively). ``uncovered`` is the leaves no meter reaches; it is the
+    population the check refuses, by name.
+
+    ``metered`` and ``extra_leaf`` exist only for the self-check's
+    adversarial arms: dropping a metered seam must move something to
+    ``uncovered``, and an injected, un-metered leaf must be reported -- the
+    closure, not a hard-coded ``simulate_dhw_step`` assertion.
+
+    Returns ``(leaves, metered, uncovered)``.
+    """
+    surface, edges, leaves = _simulate_surface()
+    if metered is None:
+        metered = _metered_simulate_seams()
+    if extra_leaf is not None:
+        surface = set(surface) | {extra_leaf}
+        leaves = set(leaves) | {extra_leaf}
+        edges = dict(edges)
+        edges[extra_leaf] = set()
+    callers: dict[str, set[str]] = {name: set() for name in surface}
+    for caller, callees in edges.items():
+        for callee in callees:
+            callers[callee].add(caller)
+    covered = set(metered) & surface
+    changed = True
+    while changed:
+        changed = False
+        for name in surface:
+            if name in covered:
+                continue
+            if callers[name] and callers[name] <= covered:
+                covered.add(name)
+                changed = True
+    return leaves, set(metered), leaves - covered
+
+
+def build_case(
+    *,
+    season: str,
+    building: str | None = None,
+    two_zone: bool = False,
+    dhw: bool = True,
+    tariff: bool = False,
+    pv: bool = False,
+    cycling: float = 0.0,
+    cop_scale: float = 1.0,
+    hours: int = 24,
+    state: dict | None = None,
+    config: dict | None = None,
+    power_cap_kw: float | None = None,
+    pin_off_steps: tuple[int, ...] | None = None,
+):
+    """One fully specified run of the optimizer.
+
+    ``power_cap_kw`` supplies a flat per-step ``power_caps_extra`` -- the fuse
+    guard's channel, a ceiling on space *plus* hot water -- and
+    ``pin_off_steps`` supplies a manual-plan ``space_pins`` array with those
+    steps forced off. Both produce a ZERO-RANGE BOUND (``lo == hi`` on the
+    forced steps) (#286). Since D9-01 the batched jacobian serves that shape:
+    ``_bounds_supported_by_batch`` no longer carves ``lo == hi`` out, and
+    ``_batch_fd_gradient`` returns an exact 0.0 at a fixed variable, so these
+    scenarios sample the batched path, not scipy's n-scalar-call finite
+    differences -- the scalar-FD fallback is no longer in the sweep at all.
+    Nothing in ``stress.py`` or ``optimality.py`` passed either argument
+    before, so a regression confined to that shape was invisible to the whole
+    gate (#287) -- not under-budgeted, UNSAMPLED.
+    """
+    price_key, weather_key = SEASONS[season]
+    cfg = house(two_zone=two_zone, dhw=dhw)
+    if building:
+        preset = BuildingPreset(**{**vars(BUILDINGS[building]), "two_zone": two_zone})
+        derived = derive(preset)
+        derived.pop("heating_response_hours", None)
+        cfg.update(derived)
+    cfg.update(config or {})
+
+    params = ThermalParameters.from_config(cfg)
+    params.dhw_enabled = dhw
+    params.cop_scale = cop_scale
+
+    opt_cfg = OptimizationConfig(
+        horizon_hours=hours,
+        time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"],
+        max_temp=cfg["max_temperature"],
+        cycling_cost=cycling,
+    )
+    if tariff:
+        opt_cfg.peak_price_per_kw = 20.0
+        opt_cfg.peak_threshold_kw = 3.0
+        opt_cfg.baseline_load_kw = 1.5
+
+    n = int(hours / DT)
+
+    def fit(arr):
+        arr = np.asarray(arr, dtype=float)
+        if len(arr) >= n:
+            return arr[:n]
+        return np.tile(arr, int(np.ceil(n / len(arr))))[:n]
+
+    price_series = fit(prices(price_key, START))
+    outdoor, wind, rain, solar = (fit(a) for a in weather(weather_key, START))
+
+    surplus = None
+    if pv:
+        production = np.clip(solar / 1000.0 * 8.0 * 0.8, 0, 8.0)
+        surplus = np.clip(production - 1.0, 0.0, None)
+        # Prices stay the raw import series. Since v3.8.0 the optimizer
+        # prices the surplus-covered energy at the export compensation
+        # itself, piecewise per step, exactly as the coordinator wires it —
+        # substituting a cliff price into the series here would double-count
+        # the discount.
+        opt_cfg.pv_export_price = 0.25
+
+    initial = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=22.0,
+        outdoor_temperature=float(outdoor[0]),
+        upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0,
+        dhw_temperature=50.0,
+        dhw_hours_since_legionella=20.0,
+        buffer_tank_temperature=40.0,
+    )
+    for key, value in (state or {}).items():
+        setattr(initial, key, value)
+
+    # The zero-range-bound channels (#286/#287). Both are shipped inputs:
+    # power_caps_extra is what the fuse guard and the monthly fuse advisor
+    # pass, space_pins is what a manual plan passes. A flat cap below the
+    # DHW run power (0.8 x p_max = 4.8 kW on the default 6 kW pump -- a 16 A
+    # single-phase supply is 3.68 kW) leaves IDENTICALLY ZERO space headroom
+    # at every planned DHW step, and one forced-off pin is one (0, 0) bound.
+    # Either is enough to take the whole solve off the batched jacobian.
+    caps_extra = None
+    if power_cap_kw is not None:
+        caps_extra = np.full(n, float(power_cap_kw))
+    space_pins = None
+    if pin_off_steps:
+        space_pins = np.full(n, float("nan"))
+        for _step in pin_off_steps:
+            space_pins[int(_step)] = 0.0
+
+    model = ThermalModel(params)
+    optimizer = HeatPumpOptimizer(model, opt_cfg)
+    # CPU time, measured here rather than taken from result.solve_time_ms,
+    # which is wall clock. Wall clock counts time spent waiting for a busy
+    # machine; CPU time counts work done. Measured on this box: putting
+    # three extra CPU hogs on it moved a scenario's wall time 3.08x and its
+    # CPU time 0.99x. Only one of those two numbers is about the code.
+    work = SolverWork()
+    _cpu_before = time.process_time()
+    _thread_before = time.thread_time()
+    with work:
+        result = optimizer.optimize(
+            initial, price_series, outdoor, wind, rain, solar, START, None, surplus,
+            space_pins=space_pins, power_caps_extra=caps_extra,
+        )
+    solve_cpu_ms = (time.process_time() - _cpu_before) * 1000.0
+    solve_thread_ms = (time.thread_time() - _thread_before) * 1000.0
+    return {
+        "result": result,
+        "solve_cpu_ms": solve_cpu_ms,
+        "solve_thread_ms": solve_thread_ms,
+        # The machine-independent half of the cost (#346): what the solver
+        # actually did, as opposed to how long this core took to do it.
+        "solver_evals": work.evaluations,
+        "solver_calls": work.calls,
+        # ...and the kernel half of the same claim (#1229): step
+        # equivalents the simulate channels actually ran, so a cost-only
+        # regression that moves no evaluation can still be seen.
+        "solver_simulate_steps": work.simulate_steps,
+        # ...and the per-call-cost channel those counts cannot carry
+        # (round-5 D9-07): CPU milliseconds spent inside the two simulate
+        # seams. A kernel that got slower per call moves no count and
+        # leaves the plan bit-identical; only its own time moves.
+        "solver_kernel_ms": work.kernel_ms,
+        "model": model,
+        "params": params,
+        "config": opt_cfg,
+        "cfg": cfg,
+        "prices": price_series,
+        "outdoor": outdoor,
+        "wind": wind,
+        "rain": rain,
+        "solar": solar,
+        "initial": initial,
+        "optimizer": optimizer,
+        "surplus": surplus,
+        "n": n,
+        "power_caps_extra": caps_extra,
+        "space_pins": space_pins,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Build each distinct scenario once
+# ---------------------------------------------------------------------------
+# ``build_case`` is a pure function of its arguments -- same season, same
+# seeded profiles, same deterministic solve -- so asking for the same
+# scenario twice buys nothing but CPU. This file asked a lot: the plain
+# winter one-zone space case was built NINE times (the thermostat loop, the
+# price-spread loop, four times inside the comfort-weight loop and twice
+# inside the solver-noise loop, where each iteration then threw its solve
+# away and re-optimized, plus `standard`), and three of the economics cases
+# repeat a sweep combination exactly. None of those repeats asserted
+# anything the first did not, so collapsing them gives up no coverage:
+# measured, the Economics section falls from 28 solves and 13.9 s of CPU to
+# 15 solves and 7.3 s.
+#
+# The key is the FULLY DEFAULTED argument tuple, so
+# ``build_case(season="winter", two_zone=True, dhw=True, tariff=True)`` and
+# the sweep's ``dict(..., tariff=True, pv=False, cycling=0.0)`` are
+# recognised as the same scenario rather than missing each other over a
+# default nobody wrote down.
+_CASE_SIGNATURE = inspect.signature(build_case)
+_case_cache: dict[tuple, dict] = {}
+
+
+def case_key(spec: dict) -> tuple:
+    bound = _CASE_SIGNATURE.bind(**spec)
+    bound.apply_defaults()
+    return tuple(sorted((k, repr(v)) for k, v in bound.arguments.items()))
+
+
+def case(**spec) -> dict:
+    """``build_case``, memoised on the fully defaulted arguments."""
+    key = case_key(spec)
+    run = _case_cache.get(key)
+    if run is None:
+        run = _case_cache[key] = build_case(**spec)
+    return run
+
+
+# ===========================================================================
+# Invariants that must hold in every scenario
+# ===========================================================================
+
+
+def check_invariants(label: str, run: dict) -> list[str]:
+    """Return a list of violations. Empty means the plan is sound."""
+    problems = []
+    result = run["result"]
+    params = run["params"]
+    cfg = run["config"]
+    n = run["n"]
+
+    space = np.asarray(result.power_schedule, dtype=float)
+    dhw = np.asarray(result.dhw_power_schedule or np.zeros(n), dtype=float)
+    p_max = params.max_electrical_power
+
+    # --- physical ---------------------------------------------------------
+    if not np.all(np.isfinite(space)):
+        problems.append("space power is not finite")
+    if not np.all(np.isfinite(dhw)):
+        problems.append("DHW power is not finite")
+    if space.min() < -1e-6:
+        problems.append(f"negative space power {space.min():.3f}")
+    if dhw.size and dhw.min() < -1e-6:
+        problems.append(f"negative DHW power {dhw.min():.3f}")
+    # The compressor serves one circuit at a time, so the *sum* is what the
+    # hardware has to deliver.
+    combined = space + (dhw if dhw.size == space.size else 0.0)
+    if combined.max() > p_max + 1e-3:
+        problems.append(
+            f"combined power {combined.max():.3f} exceeds the {p_max:.1f} kW pump"
+        )
+
+    for name, trajectory in (
+        ("room", result.room_temp_trajectory),
+        ("slab", result.slab_temp_trajectory),
+        ("upper", result.upper_temp_trajectory),
+        ("lower", result.lower_temp_trajectory),
+        ("dhw", result.dhw_temp_trajectory),
+    ):
+        if not trajectory:
+            continue
+        arr = np.asarray(trajectory, dtype=float)
+        if not np.all(np.isfinite(arr)):
+            problems.append(f"{name} trajectory is not finite")
+        elif arr.min() < -50 or arr.max() > 120:
+            problems.append(
+                f"{name} trajectory left physical reality "
+                f"({arr.min():.1f}..{arr.max():.1f} °C)"
+            )
+
+    # --- the zero-range-bound channels (#286/#287) ------------------------
+    # Only meaningful when the scenario supplied them, and worth asserting
+    # for their own sake: a fuse cap that the plan quietly exceeds would burn
+    # the fuse, and a forced-off pin the plan quietly ignores would be the
+    # optimizer overriding a manual plan without saying so. The optimizer
+    # MAY release a pin to keep the house above its floor -- it says which
+    # steps in manual_released_space -- so the invariant is over the steps it
+    # did NOT release.
+    caps_extra = run.get("power_caps_extra")
+    if caps_extra is not None:
+        over = float(np.max(combined - np.asarray(caps_extra)[: combined.size]))
+        if over > 1e-3:
+            problems.append(
+                f"combined power exceeds the {float(caps_extra[0]):.2f} kW "
+                f"external cap by {over:.3f} kW"
+            )
+    pins = run.get("space_pins")
+    if pins is not None:
+        released = set(result.manual_released_space)
+        honoured = [
+            i
+            for i in range(min(len(pins), space.size))
+            if float(pins[i]) == 0.0 and i not in released
+        ]
+        breached = [i for i in honoured if space[i] > 1e-6]
+        if breached:
+            problems.append(
+                f"{len(breached)} forced-off space pins were neither honoured "
+                f"nor reported as released (steps {breached[:4]})"
+            )
+        if not result.manual_pins_active:
+            problems.append("manual pins were supplied but not reported active")
+
+    if result.dhw_temp_trajectory:
+        peak = float(np.max(result.dhw_temp_trajectory))
+        # A tank that *starts* above its rating cannot be brought down by a
+        # plan -- there is no way to un-heat water, only to stop adding heat
+        # and let it coast. So the bound is the rating or the starting
+        # temperature, whichever is higher. The RATING, not the everyday
+        # charge limit: a disinfection cycle is meant to exceed the limit
+        # (v5.1.10 split the two).
+        ceiling = max(params.dhw_hard_max_temp, run["initial"].dhw_temperature)
+        if peak > ceiling + 1.0:
+            problems.append(
+                f"tank reached {peak:.1f} °C, over its {ceiling:.0f} °C ceiling"
+            )
+
+    # --- accounting -------------------------------------------------------
+    # With PV surplus the cost is piecewise — covered energy at the export
+    # compensation, the rest at import — so the plain price-times-power sum
+    # is only the right reference when there is no surplus. Written out on
+    # the live ``pv.import_margin`` helper: the ``pv.piecewise_cost`` wrapper
+    # this oracle used to call was production-dead and removed (#226), and
+    # the point here is to re-derive the figure INDEPENDENTLY of the
+    # optimizer's inline version anyway.
+    surplus = run.get("surplus")
+    if surplus is not None:
+        _ref_prices = np.asarray(result.prices)
+        _ref_power = np.asarray(combined, dtype=float)
+        _ref_covered = np.minimum(
+            _ref_power, np.asarray(surplus)[: combined.size]
+        )
+        _ref_margin = pv_model.import_margin(
+            _ref_prices, run["config"].pv_export_price
+        )
+        recomputed = float(
+            (np.sum(_ref_prices * _ref_power) - np.sum(_ref_margin * _ref_covered))
+            * DT
+        )
+    else:
+        recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))
+    if abs(recomputed - result.predicted_cost) > max(0.05, abs(recomputed) * 0.01):
+        problems.append(
+            f"predicted cost {result.predicted_cost:.2f} does not match the "
+            f"schedule's {recomputed:.2f}"
+        )
+    if result.baseline_cost < -1e-6:
+        problems.append(f"negative baseline cost {result.baseline_cost:.2f}")
+    if not -100.0 <= result.savings_percentage <= 100.0:
+        problems.append(f"savings {result.savings_percentage:.1f}% out of range")
+
+    # --- provenance and reporting ----------------------------------------
+    if len(result.price_known) != len(result.prices):
+        problems.append("price provenance mask does not cover the horizon")
+    if len(result.space_reasons) != n:
+        problems.append("reason codes do not cover the horizon")
+    else:
+        unexplained = sum(
+            1
+            for i, p in enumerate(space)
+            if p > 0.05 and result.space_reasons[i] == "idle"
+        )
+        if unexplained:
+            problems.append(f"{unexplained} heating steps have no reason code")
+
+    return problems
+
+
+#: How far below the comfort floor a plan may sit before it counts as a
+#: failure rather than as the soft constraint doing its job.
+COMFORT_TOLERANCE_DEGREE_HOURS = 1.5
+
+
+def best_possible_violation(run: dict) -> float:
+    """Degree-hours below the floor with the pump running flat out.
+
+    An undersized pump in a leaky house cannot hold the comfort floor at all,
+    and calling that a planning bug would be blaming the optimizer for physics.
+    """
+    model = run["model"]
+    room, _, upper, lower, _, _, _ = model.simulate_trajectory(
+        initial_state=run["initial"],
+        power_schedule=np.full(run["n"], run["params"].max_electrical_power),
+        outdoor_temps=run["outdoor"],
+        wind_speeds=run["wind"],
+        precipitation=run["rain"],
+        solar_radiation=run["solar"],
+        dt_hours=DT,
+    )
+    if run["params"].two_zone_enabled:
+        indoor = np.minimum(upper[1:], lower[1:])
+    else:
+        indoor = room[1:]
+    cfg = run["config"]
+    floor = np.array(
+        [cfg.get_temp_bounds((i * DT) % 24)[0] for i in range(len(indoor))]
+    )
+    return float(np.sum(np.maximum(0.0, floor - indoor)) * DT)
+
+
+def comfort_violation(run: dict) -> float:
+    """Degree-hours below the comfort floor, in the coldest zone."""
+    result = run["result"]
+    cfg = run["config"]
+    if result.upper_temp_trajectory and result.lower_temp_trajectory:
+        indoor = np.minimum(
+            np.asarray(result.upper_temp_trajectory[1:]),
+            np.asarray(result.lower_temp_trajectory[1:]),
+        )
+    else:
+        indoor = np.asarray(result.room_temp_trajectory[1:])
+    floor = np.array(
+        [cfg.get_temp_bounds((i * DT) % 24)[0] for i in range(len(indoor))]
+    )
+    return float(np.sum(np.maximum(0.0, floor - indoor)) * DT)
+
+
+def dhw_shortfall(run: dict) -> float:
+    """Worst shortfall below the usable minimum inside a demand window, °C."""
+    result = run["result"]
+    if not result.dhw_temp_trajectory:
+        return 0.0
+    windows = parse_windows(run["cfg"].get("dhw_windows", "") or "")
+    if not windows:
+        return 0.0
+    temps = np.asarray(result.dhw_temp_trajectory[1:])
+    hours = [(START.hour + i * DT) % 24 for i in range(len(temps))]
+    inside = np.array([hour_in_windows(h, windows) for h in hours])
+    if not inside.any():
+        return 0.0
+    return float(max(0.0, run["params"].dhw_min_temp - temps[inside].min()))
+
+
+# ===========================================================================
+# The per-scenario budget table (D9-03) and the memory pass (D9-04)
+# ===========================================================================
+#: The recorded fields of one scenario's row. Each is a strictly positive
+#: finite number: a zero or negative one already reads as unrecorded (and
+#: fails), and a NaN or Infinity one compared as within budget.
+BUDGET_TABLE_FIELDS = ("ratio", "rss_attrib_mb", "rss_peak_mb", "traced_peak_mb")
+
+
+def budget_table_problems(table: dict) -> list[str]:
+    """Every recorded cost in the table that cannot serve as a budget.
+
+    Through `structure.cap_problem`, the barrier every ratchet shares (#1583's
+    review): `ratio > max(nan * factor, floor)` is False -- `max` returns its
+    NaN first argument -- so a NaN ratio passed any regression, and a NaN or
+    Infinity memory figure did the same for its threshold. A field that is
+    ABSENT is left to the check run, which already fails it as unrecorded;
+    `coverage_floor_override` is validated where it is read and falls back to
+    the stricter literal when malformed.
+    """
+    out: list[str] = []
+    for label, entry in sorted(table.items()):
+        if label == "coverage_floor_override":
+            continue
+        if not isinstance(entry, dict):
+            out.append(f"{BUDGET_TABLE_PATH}: {label}={entry!r} is not a "
+                       f"scenario row")
+            continue
+        for field in BUDGET_TABLE_FIELDS:
+            if field in entry:
+                problem = cap_problem(BUDGET_TABLE_PATH, entry, field,
+                                      low_open=True)
+                if problem:
+                    out.append(problem.replace(": ", f": {label} ", 1))
+    return out
+
+
+def load_budget_table(path: str = BUDGET_TABLE_PATH) -> dict:
+    """The committed per-scenario budgets, or {} when not yet recorded.
+
+    A table that parses but carries a cost no comparison can use is REFUSED
+    here, at the one place every consumer reads it through, rather than
+    returned to comparisons that would read it as within budget.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            table = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(table, dict):
+        return {}
+    problems = budget_table_problems(table)
+    if problems:
+        raise SystemExit(
+            "stress budget table REFUSED -- a recorded cost that cannot be "
+            "compared:\n  - " + "\n  - ".join(problems)
+            + "\nRestore the recorded value, or re-record with "
+            "`stress.py --record-budgets`.")
+    return table
+
+
+def print_budget_table(table: dict) -> None:
+    """Emit the budget table between markers, for shell capture.
+
+    Recording never writes into the repository itself: the JSON goes to
+    stdout between BEGIN/END BUDGET TABLE markers and the operator (or
+    the workflow) captures it --
+
+        python3 tests/stress.py --record-budgets \\
+          | sed -n '/^BEGIN BUDGET TABLE$/,/^END BUDGET TABLE$/p' \\
+          | grep -v BUDGET TABLE > tests/stress_budgets.json
+
+    A recording is read as a diff like any golden fixture, and the extra
+    step keeps that reading deliberate.
+    """
+    ordered = {label: table[label] for label in sorted(table)}
+    print("BEGIN BUDGET TABLE")
+    print(json.dumps(ordered, indent=1, sort_keys=True))
+    print("END BUDGET TABLE")
+
+
+def _memory_probe_env() -> dict:
+    """The environment every memory probe launches with, builder-stub first."""
+    env = dict(os.environ)
+    tests_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(tests_dir)
+    for part in (os.path.join(tests_dir, "hastub"),
+                 os.path.join(repo_root, "custom_components")):
+        env["PYTHONPATH"] = part + os.pathsep + env.get("PYTHONPATH", "")
+    return env
+
+
+def _run_memory_probe(mode_args: list[str], env: dict) -> dict:
+    """Launch one probe subprocess (--memory-probe / --memory-baseline).
+
+    The gate's own entry point, byte for byte: the same file, interpreter
+    and environment a gate run exercises, so what comes back is what the
+    memory pass would have measured itself. Raises on anything but a
+    parsable last line, with the child's tail in the message.
+    """
+    proc = subprocess.run(
+        [sys.executable, os.path.abspath(__file__)] + mode_args,
+        capture_output=True, text=True, env=env,
+    )
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        raise RuntimeError(
+            f"probe {' '.join(mode_args[:1])} produced no parsable output: "
+            f"{(proc.stderr or proc.stdout or 'nothing')[-400:]}"
+        ) from None
+
+
+def record_memory_table(combos: list[dict]) -> None:
+    """`--record-memory`: re-record ONLY the memory half of the budget table.
+
+    Probes every scenario plus the empty baseline in subprocesses and
+    prints the memory fields between markers, for the same deliberate
+    shell capture as print_budget_table --
+
+        python3 tests/stress.py --record-memory \\
+          | sed -n '/^BEGIN MEMORY TABLE$/,/^END MEMORY TABLE$/p' \\
+          | grep -v MEMORY TABLE > /tmp/memory-half.json
+
+    The block is then merged into tests/stress_budgets.json BY HAND, one
+    field per scenario (rss_peak_mb, rss_attrib_mb, traced_peak_mb); the
+    CPU `ratio` field is deliberately not re-measured here.
+
+    Why a separate mode (#949): `--record-budgets` re-records the CPU
+    ratios from the sweep it runs, which belongs beside a quiet, locked,
+    exclusive sweep -- while the memory fields are subprocess probes
+    whose values do not depend on any sweep this process ran first.
+
+    The attributable column is a MAXIMUM over probes, not a single
+    sample, and the scenarios CHECK MODE actually compares get five
+    passes where the rest get one: ru_maxrss is a max statistic whose
+    clean spread is solver-path dependent (the same basin bimodality the
+    CPU concession above SCENARIO_BUDGET_FACTOR documents -- nine
+    same-box probes of one scenario measured 6.7-14.1 MiB), so a single
+    low draw as the record would false-red the first high draw at any
+    factor under the spread. Recording the observed maximum is measuring
+    the statistic, not padding it; a later probe above record x
+    MEMORY_BUDGET_FACTOR still reds honestly, and the remedy is this
+    mode again.
+    """
+    combos_by_label = {
+        c["label"]: {k: v for k, v in c.items() if k != "label"}
+        for c in combos
+    }
+    env = _memory_probe_env()
+    print(f"  recording memory budgets for {len(combos_by_label)} scenarios "
+          f"(a full solve each, under tracemalloc)")
+    baseline = float(_run_memory_probe(["--memory-baseline"], env)["rss_mb"])
+    table: dict[str, dict] = {}
+    ordered = sorted(combos_by_label)
+
+    def _probe_attrib(label: str) -> tuple[float, float, float]:
+        probe = _run_memory_probe(
+            ["--memory-probe", json.dumps(combos_by_label[label])], env
+        )
+        rss_peak = float(probe["rss_mb"])
+        traced_peak = float(probe["traced_mb"])
+        return rss_peak, max(0.0, rss_peak - baseline), traced_peak
+
+    for i, label in enumerate(ordered, 1):
+        rss_peak, attrib, traced_peak = _probe_attrib(label)
+        table[label] = {
+            "rss_peak_mb": round(rss_peak, 1),
+            "rss_attrib_mb": round(attrib, 1),
+            "traced_peak_mb": round(traced_peak, 2),
+        }
+        print(f"  [{i:>2}/{len(ordered)}] {label:<34} "
+              f"RSS {rss_peak:7.1f} MiB, attributable {attrib:5.1f} MiB, "
+              f"traced {traced_peak:5.2f} MiB", flush=True)
+
+    # The check-exposed leaders (the same selection rule the memory pass
+    # applies to the COMMITTED table) get four more passes, and keep
+    # their maximum: theirs are the only recorded attributables a check
+    # run ever compares against a probe.
+    committed = load_budget_table()
+    selection_source = committed if committed else table
+    half = max(1, MEMORY_TOP_N // 2)
+    exposed: list[str] = []
+    for key in ("traced_peak_mb", "rss_peak_mb"):
+        ranked = sorted(
+            (-float(entry.get(key, 0.0)), label)
+            for label, entry in selection_source.items()
+            if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
+        )
+        taken = 0
+        for _peak, label in ranked:
+            if taken >= half:
+                break
+            if label in exposed or label not in table:
+                continue
+            exposed.append(label)
+            taken += 1
+    for label in exposed:
+        best = table[label]["rss_attrib_mb"]
+        # Five passes, not three: the 2026-09-13 gate-context draw of
+        # winter/cycle (14.4) sat 53 % above its three-pass recording
+        # maximum (9.4), so three passes under-sample a statistic whose
+        # clean spread reaches 2.1x (see rss_attrib_fail_threshold).
+        for extra in (2, 3, 4, 5):
+            _rss, attrib, _tr = _probe_attrib(label)
+            best = max(best, round(attrib, 1))
+            print(f"        extra pass {extra} for {label:<26} "
+                  f"attributable {attrib:5.1f} MiB "
+                  f"(recorded max now {best:.1f})", flush=True)
+        table[label]["rss_attrib_mb"] = best
+    print(f"  empty-probe baseline for that run: {baseline:.1f} MiB of RSS "
+          f"(same imports, no scenario); the attributable column above is "
+          f"each probe minus this")
+    print("BEGIN MEMORY TABLE")
+    print(json.dumps(table, indent=1, sort_keys=True))
+    print("END MEMORY TABLE")
+
+
+def scenario_budget(label: str, table: dict) -> float | None:
+    """This scenario's allowed work ratio, or None when unrecorded.
+
+    The floor is a per-machine escape hatch for a box whose cheap scenarios
+    are noisier than the factor tolerates; it is 0.0 here because this one's
+    are not (see SCENARIO_BUDGET_FLOOR_RATIO). Whenever it is non-zero it,
+    not the factor, is the budget for every scenario recorded below
+    floor / factor -- which is why the detection check refuses a floor that
+    would let any recorded scenario reach DETECTION_TARGET times its cost.
+    """
+    entry = table.get(label)
+    if not isinstance(entry, dict):
+        return None
+    recorded = float(entry.get("ratio", 0.0))
+    if recorded <= 0.0:
+        return None
+    return max(
+        recorded * SCENARIO_BUDGET_FACTOR, SCENARIO_BUDGET_FLOOR_RATIO
+    )
+
+
+def stale_cheap_verdict(observed: float, recorded: float) -> bool:
+    """Has this figure fallen far enough that its record is stale-high?
+
+    Extracted from the sweep loop so both ends of its range are exercised by
+    a check rather than by the sweep happening to contain an example, and
+    shared by the cost and the solver-work tables so they cannot drift
+    apart. Two later groups (#288, #289) make scenarios cheaper on purpose;
+    this is the rule that has to keep saying so instead of being quietly
+    re-fitted around.
+    """
+    return observed < recorded / SCENARIO_STALE_FACTOR
+
+
+def work_over_verdict(observed: int, recorded: int) -> bool:
+    """Has this scenario's solver work grown past its recorded count?
+
+    The sweep and the checks that prove the sweep can fail both call this
+    one function, so a test cannot pass by re-implementing the comparison it
+    is meant to pin (tests/README.md). Deleting the body's comparison turns
+    four named checks red; the mutation proof is in the PR for #346.
+    """
+    return observed > recorded * SCENARIO_WORK_FACTOR
+
+
+def kernel_cost_over_verdict(
+    observed_ms: float, baseline_ms: float, vouched_ratio: float = 1.0
+) -> bool:
+    """Has the kernel's own CPU cost grown past what its counts vouch for?
+
+    Round-5 D9-07's shape: both count channels at 1.0000x, the plan
+    bit-identical, the seams twice as dear per call. ``vouched_ratio`` is
+    the larger count ratio the same solve already reported (evaluations,
+    simulate step-equivalents): work the counts saw may spend
+    proportionally more kernel CPU (#1208's restarts sit at 1.80x of both
+    counts on an unchanged plan), so what this judges is the PER-CALL
+    cost -- kernel CPU per unit of counted work, with the work divided
+    out. Judged against the baseline captured beside the run, never the
+    recorded table; SCENARIO_KERNEL_FACTOR above records why. Shared by
+    the sweep's comparison and the checks that prove the comparison can
+    fail, for the same reason work_over_verdict is.
+    """
+    return observed_ms > baseline_ms * vouched_ratio * SCENARIO_KERNEL_FACTOR
+
+
+#: Interleaved rounds the per-call-cost arm solves (round-5 D9-07). One
+#: plain solve against one doubled solve is a ratio of two single ~50 ms
+#: kernel readings, and under contention one reading moves by more than
+#: the 1.11x a 2x clears SCENARIO_KERNEL_FACTOR by, so the arm missed on
+#: runners (x1.51, x1.57). The median of each arm's rounds is its reading,
+#: and the rounds interleave so slow drift lands on every arm.
+KERNEL_ARM_ROUNDS = 7
+#: At most this many batches of KERNEL_ARM_ROUNDS when a median lands in the
+#: kernel doubt band (per_call_cost_rounds); an arm outside it pays one.
+KERNEL_ARM_BATCHES = 3
+#: The sweep's own kernel rule reads one solve per scenario per tree, so
+#: it rides the same razor: one reading of a real 2x went as low as x1.518
+#: under forced contention (the arm's single-pair shape, in the PR that
+#: added this), below the factor. A scenario whose single reading lands
+#: between this floor and SCENARIO_KERNEL_FACTOR is re-solved on both trees
+#: and judged on the median of KERNEL_DOUBT_ROUNDS interleaved readings.
+#: The floor sits under that lowest real-2x reading, and above the highest
+#: reading of an unchanged solve on the same load
+#: (tools/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
+#: tree is not re-solved. It only decides what gets measured again; the
+#: factor alone decides what fails.
+KERNEL_DOUBT_FLOOR = 1.50
+KERNEL_DOUBT_ROUNDS = 3
+
+
+def cpu_scaler(factor: float = 2.0):
+    """A wrapper factory that makes each call of a seam cost ``factor``
+    times its CPU.
+
+    The wrapped seam runs once and then burns ``factor - 1`` times its own
+    measured CPU, net of the three clock reads the burn adds inside the
+    meter (its two own and the loop's last), which on ~8 us step calls
+    would otherwise read as a few percent over.
+    """
+    started = time.process_time()
+    for _ in range(1000):
+        time.process_time()
+    clock = (time.process_time() - started) / 1000.0
+
+    def doubled(seam):
+        def _twice(*args, **kwargs):
+            started = time.process_time()
+            res = seam(*args, **kwargs)
+            ended = time.process_time()
+            until = ended + (factor - 1.0) * (ended - started) - 3.0 * clock
+            while time.process_time() < until:
+                pass
+            return res
+        return _twice
+    return doubled
+
+
+def per_call_cost_rounds(
+    probe: dict, rounds: int = KERNEL_ARM_ROUNDS, solve=None
+):
+    """Solve ``probe`` plain, with every kernel seam call's CPU doubled, and
+    plain again, ``rounds`` times interleaved; return the three arms' median
+    kernel milliseconds and the last doubled and second-plain runs. While
+    either median sits in the kernel doubt band after a batch of ``rounds``,
+    another batch is solved and the medians are taken over all of them, up
+    to KERNEL_ARM_BATCHES batches; a median outside the band stops it.
+
+    The first plain arm is the baseline, the doubled arm the injection
+    (through the class attributes SolverWork hooks), and the second plain
+    arm an independent null solved beside them -- a null compared with its
+    own numbers cannot fire, so it pins nothing.
+
+    The injection spends each seam call's own CPU a second time, rather
+    than repeating the call as the finder did: a repeat of an identical
+    call runs on warm caches and costs less than the first under
+    contention (medians in the PR that added this), so "twice" delivered
+    a few percent under 2x of a margin that is only 11 %. Burning the
+    measured CPU is 2x per call on any machine, net of the clock reads
+    the burn itself adds.
+
+    ``solve(kind)`` returns one run dict for ``kind`` in "base", "slow" and
+    "null"; left None it is the real solve above. A stub is how the round
+    and batch decisions are pinned without a clock.
+    """
+    saved_batch = SolverWork._batch_wrapped
+    saved_step = SolverWork._step_wrapped
+    _cost_twice = cpu_scaler(2.0) if solve is None else None
+
+    def _real(kind: str) -> dict:
+        if kind != "slow":
+            return build_case(**probe)
+        SolverWork._batch_wrapped = _cost_twice(saved_batch)
+        SolverWork._step_wrapped = _cost_twice(saved_step)
+        try:
+            return build_case(**probe)
+        finally:
+            SolverWork._batch_wrapped = saved_batch
+            SolverWork._step_wrapped = saved_step
+            # build_case's own __exit__ re-published the wrappers onto the
+            # production seams, so restoring the class attributes alone
+            # would leave the doublers reachable from the module.
+            ThermalModel.simulate_trajectory_batch = saved_batch
+            ThermalModel.simulate_step = saved_step
+
+    solve = solve or _real
+    base_ms, slow_ms, null_ms = [], [], []
+    slower = null = None
+
+    def _in_doubt() -> bool:
+        # Either median inside the kernel doubt band: the same band the
+        # sweep re-solves (judge_work), for the same reason -- a 2x median
+        # read at x1.780 on an idle Linux runner at seven rounds.
+        base = float(np.median(base_ms))
+        return any(
+            base * KERNEL_DOUBT_FLOOR < float(np.median(arm))
+            <= base * SCENARIO_KERNEL_FACTOR
+            for arm in (slow_ms, null_ms)
+        )
+
+    for _ in range(rounds * KERNEL_ARM_BATCHES):
+        if len(base_ms) >= rounds and len(base_ms) % rounds == 0 and not _in_doubt():
+            break
+        base_ms.append(float(solve("base").get("solver_kernel_ms", 0.0)))
+        slower = solve("slow")
+        slow_ms.append(float(slower.get("solver_kernel_ms", 0.0)))
+        null = solve("null")
+        null_ms.append(float(null.get("solver_kernel_ms", 0.0)))
+    return (float(np.median(base_ms)), float(np.median(slow_ms)),
+            float(np.median(null_ms)), slower, null)
+
+
+def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
+    """The scenario-attributable RSS growth (MiB) a probe may show before
+    the check fails.
+
+    The input is the RECORDED attributable component (probe watermark
+    minus the same run's empty-probe baseline), never the absolute
+    watermark: the ~75-95 MiB of interpreter+numpy every probe carries is
+    platform-shaped, and budgeting it is what made the old 150-MiB floor
+    the whole rule -- a scenario had to reach 2.53-2.64x its record
+    before failing, against DETECTION_TARGET 2.0 (#949, round 4 D9-06).
+
+    One measured concession, the memory twin of the basin-bimodality
+    note above SCENARIO_BUDGET_FACTOR: the clean attributable watermark
+    is solver-path dependent -- nine same-box probes of winter/pv
+    measured 6.7-14.1 MiB, a 2.1x spread on an unchanged tree -- so the
+    recorded value is the observed MAXIMUM over the recorder's passes
+    (see record_memory_table), and this threshold keeps 50 % of margin
+    above that maximum. A sub-2x regression can therefore hide in the
+    clean spread on a single low draw, and the traced arm -- whose clean
+    spread is ~1 % -- is the precise detector for Python-side growth;
+    this arm is the one that sees what tracemalloc cannot, at the
+    multiples that make a genuine watermark move unmistakable (the #949
+    demonstration: a doubling of the recorded peak lands 8-9x over its
+    attributable record).
+
+    The maximum must be sampled DEEP, and across contexts, not merely
+    often: on 2026-09-13 winter/cycle's three recorder passes topped at
+    9.4 MiB and a clean gate-context draw the same day reached 14.4 --
+    a first quiet full run reds on a record taken only under one context,
+    which is a sampling defect, not a regression. The recorder now takes
+    five passes on the check-exposed leaders (below), and a clean gate
+    run's own probes are samples too: re-record with the gate draw
+    folded in when a red names a scenario whose record is thinner than
+    that. A red that survives a re-record on a deeper sample is the
+    regression this arm exists for.
+
+    Shared by the memory pass's comparison and the detection check below,
+    for the same reason work_over_verdict is: a budget the check cannot
+    see drifting is a budget nobody re-derives, and a rule that only
+    exists at its call site cannot be held to DETECTION_TARGET by
+    anything. No additive floor on either axis, for the reason
+    SCENARIO_BUDGET_FLOOR_RATIO is 0.0: a floor that dominates the factor
+    blinds the smallest records, and the detection check refuses it.
+    """
+    return recorded_attrib * MEMORY_BUDGET_FACTOR
+
+
+def traced_fail_threshold(recorded_traced: float) -> float:
+    """The traced peak (MiB) a probe may reach before the check fails.
+
+    The old `+ 2` additive went with the 150-MiB RSS floor: it put the
+    threshold at 2.59x on a 1.83 MiB record and 3.77x on the smallest
+    (0.88 MiB), blind to the target in both; the measured run-to-run
+    spread of the traced peak is a tenth of a MiB or so (3.46-3.47 over
+    five same-box repetitions, 3.4 on a Linux CI runner, against a 3.46
+    record), which a bare factor absorbs with an order of magnitude to
+    spare.
+    """
+    return recorded_traced * MEMORY_BUDGET_FACTOR
+
+
+def attributable_reads_the_tree(
+    rss_attrib: float, rss_peak: float, recorded_rss_peak: float
+) -> bool:
+    """Is an attributable-RSS reading about the scenario, or about the floor?
+
+    The attributable is a difference of two SEPARATELY launched probe
+    watermarks (`max(0.0, rss_peak - baseline_rss)`, see the memory
+    pass), so it is floor-relative in a way the record is not, and a
+    reading at that floor is the RSS arm's blindness rather than a
+    cheaper tree:
+
+      * exactly at it. A scenario probe whose ru_maxrss high-water mark
+        lands at or below the empty probe's reads 0.00 MiB, and
+        `_memory_baseline_main` already records that the RSS arm "says
+        nothing about that scenario below the import peak".
+      * and one tick above it, which is the same blindness and not a
+        second thing. The watermark is rounded to 0.1 MiB, so a probe
+        that clears the empty base by ONE tick reads a positive
+        attributable no zero-guard can refuse. Measured on `fast (3.14)`
+        run 35664329700, job 106546561583 (2026-09-21): the empty probe
+        read 95.2 MiB and all six probed scenarios read 95.2-95.7 MiB,
+        an attributable of 0.0-0.5 MiB against records of 9.4-16.7 MiB
+        -- every scenario's whole recorded footprint below that
+        platform's import floor. The traced arm refutes a cheaper tree
+        independently in the same run (3.5 MiB against 3.4-3.5
+        recorded, unchanged), so what that difference measures is the
+        floor.
+
+    What makes a reading the scenario's own is the watermark it was
+    taken from. One empty-probe baseline is subtracted from every probe
+    of a run, so a fall in the difference is a fall in the watermark;
+    conversely a watermark that did not fall below its record says the
+    attributable did not fall either, and whatever moved was the
+    platform's own resident. The memory pass counts those readings as
+    declinations rather than as judged, and prints how many.
+
+    A tree that genuinely got cheaper lowers both, which is why this is
+    a precondition rather than a floor.
+    """
+    return rss_attrib > 0.0 and rss_peak < recorded_rss_peak
+
+
+def memory_stale_axes(
+    rss_attrib: float,
+    traced_peak: float,
+    recorded_attrib: float,
+    recorded_traced: float,
+    rss_peak: float,
+    recorded_rss_peak: float,
+):
+    """Yield (axis, observed, recorded) per memory field left stale-high.
+
+    The CPU ratio channel has had a stale-cheap rule since D9-03
+    (stale_cheap_verdict, in the sweep loop); the memory fields had none
+    (round-5 D9-08), so a 3.5x memory improvement left the table
+    stale-high and a later regression back to the old peak passed at
+    1.0x of a record under the 1.5x over-thresholds. Same rule, same
+    factor and same remedy as the ratio arm: re-record the memory half
+    (`--record-memory`). A generator so the memory pass can format each
+    axis with its own observed and recorded values, and so the selftest
+    arms can drive it on synthetic probe recordings without launching
+    the pass's subprocess probes.
+
+    The attributable-RSS arm is judged only where its reading measures
+    the scenario (`attributable_reads_the_tree`, given the probe's
+    watermark and its record beside the difference): a reading that is
+    the platform's import floor -- 0.00 MiB, or the 0.1-MiB tick above
+    it that no zero-guard can refuse -- is not a cheaper tree. The
+    traced arm takes no such witness, because it needs none: it is the
+    statistic that travels (a ~1 % clean spread, and 3.5 / 1.8
+    identical on the CI runner and in the record), which is why
+    `rss_attrib_fail_threshold`'s docstring calls it the precise
+    detector for Python-side growth.
+    """
+    if attributable_reads_the_tree(
+        rss_attrib, rss_peak, recorded_rss_peak
+    ) and stale_cheap_verdict(rss_attrib, recorded_attrib):
+        yield "attributable RSS", rss_attrib, recorded_attrib
+    if stale_cheap_verdict(traced_peak, recorded_traced):
+        yield "traced peak", traced_peak, recorded_traced
+
+
+#: The worker that captures one tree's solver work, run as a fresh
+#: interpreter against a repository root.
+#:
+#: `python3 -c` rather than this file with a flag, and that is forced
+#: rather than stylistic: the code being captured IS tests/stress.py, and a
+#: module cannot import a second copy of itself -- `import stress` inside a
+#: process that was started from tests/stress.py returns the copy already
+#: in sys.modules. So the driver is the three lines tests/env_drift.py's
+#: capture worker uses (chdir into the root, put its own paths first,
+#: import from it), executed in a child that has never imported anything
+#: from this tree. Both halves of the comparison run identical driver code
+#: over each tree's own sweep_combinations() and build_case(), which is
+#: what makes the two counts comparable.
+#:
+#: tests/harness.py inserts the RELATIVE paths "tests" and
+#: "custom_components", so the chdir is what makes the baseline import its
+#: own production code rather than this one's; PYTHONPATH is rewritten to
+#: the baseline's stub for the same reason.
+WORK_PROBE_DRIVER = '''
+import json, os, sys, time
+root, out_path = sys.argv[1], sys.argv[2]
+# An optional JSON list of labels: the kernel doubt band's re-solve
+# (KERNEL_DOUBT_FLOOR) solves only the scenarios it names.
+only = set(json.loads(sys.argv[3])) if len(sys.argv) > 3 else None
+os.chdir(root)
+for part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
+    sys.path.insert(0, os.path.join(root, part))
+import stress
+from heatpump_optimizer.thermal_model import ThermalModel
+
+# The simulate-work meter is counted HERE, by the driver over the seams,
+# rather than read out of the tree's SolverWork (#1229): the baseline half
+# of the comparison is an older tree whose build_case() may predate the
+# channel, and the driver code is the half both trees share. One per
+# simulate_step call, rows x steps per simulate_trajectory_batch call --
+# the same convention as SolverWork's own channel, which the two windows
+# were measured to agree on (196128 both on the probe case; equal by
+# construction, since both wrap the same optimize() call). The kernel's
+# own CPU seconds are metered here too (round-5 D9-07), with the same
+# clock and around the same region SolverWork's meter times in this
+# tree's own run, so the per-call-cost channel compares like with like.
+_STEP = ThermalModel.simulate_step
+_BATCH = ThermalModel.simulate_trajectory_batch
+_DHW_STEP = ThermalModel.simulate_dhw_step
+count = 0
+dhw_count = 0
+kernel_ms = 0.0
+dhw_kernel_ms = 0.0
+
+def counting_step(*args, **kwargs):
+    global count, kernel_ms
+    count += 1
+    _t0 = time.process_time()
+    res = _STEP(*args, **kwargs)
+    kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
+
+def counting_batch(*args, **kwargs):
+    global count, kernel_ms
+    matrix = args[2] if len(args) > 2 else kwargs["power_matrix"]
+    count += int(matrix.shape[0] * matrix.shape[1])
+    _t0 = time.process_time()
+    res = _BATCH(*args, **kwargs)
+    kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
+
+def counting_dhw_step(*args, **kwargs):
+    # One DHW step per call, the space-step channel's blind side (round-6
+    # D9-02); its own kernel seconds metered with the same clock.
+    global dhw_count, dhw_kernel_ms
+    dhw_count += 1
+    _t0 = time.process_time()
+    res = _DHW_STEP(*args, **kwargs)
+    dhw_kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
+
+def install():
+    ThermalModel.simulate_step = counting_step
+    ThermalModel.simulate_trajectory_batch = counting_batch
+    ThermalModel.simulate_dhw_step = counting_dhw_step
+
+# A tree whose SolverWork hooks the seams captures them into CLASS
+# ATTRIBUTES at import (_step_wrapped / _batch_wrapped) and rebinds the
+# module seams around those for every solve -- which silently bypasses
+# the wrappers above for exactly the trees that have their own channel:
+# their counts come back in the run dict, but a channel the tree lacks
+# (kernel seconds, on trees between #1229 and round-5 D9-07) would have
+# nowhere to come from: measured, 51 of 51 rows at 0.0 ms against a
+# bc5d62b baseline. Patch the class attributes too, so this meter sits
+# around the raw kernel whichever indirection the tree installs; a tree
+# without the hook leaves the module-level patch doing that job.
+#
+# But NOT for a tree that already times the kernel itself: there this
+# wrapper would sit INSIDE the tree's own meter, and its call and clock
+# reads were charged to the baseline's kernel seconds and never to the
+# in-process sweep it is compared with, which pulled a real 2x toward the
+# factor (tools/audit/harnesses/d907_kernel_band.py prints both drivers'
+# readings side by side).
+_tree_meters_kernel = "kernel_ms" in vars(stress.SolverWork())
+if not _tree_meters_kernel and hasattr(
+    stress.SolverWork, "_step_wrapped"
+) and hasattr(stress.SolverWork, "_batch_wrapped"):
+    stress.SolverWork._step_wrapped = counting_step
+    stress.SolverWork._batch_wrapped = counting_batch
+if not _tree_meters_kernel and hasattr(stress.SolverWork, "_dhw_step_wrapped"):
+    stress.SolverWork._dhw_step_wrapped = counting_dhw_step
+
+_tree_meters_dhw = hasattr(stress.SolverWork, "_dhw_step_wrapped")
+
+rows = {}
+for combo in stress.sweep_combinations():
+    combo = dict(combo)
+    label = combo.pop("label")
+    if only is not None and label not in only:
+        continue
+    count = 0
+    dhw_count = 0
+    kernel_ms = 0.0
+    dhw_kernel_ms = 0.0
+    # Re-installed before every build: a tree that HAS its own simulate
+    # channel restores these class attributes when it leaves its own hook
+    # (SolverWork.__exit__), which would otherwise drop this wrapper after
+    # the first scenario. A tree without one leaves the wrapper in place
+    # and count is simply the count.
+    install()
+    run = stress.build_case(**combo)
+    sim = run.get("solver_simulate_steps")
+    kms = run.get("solver_kernel_ms")
+    # The tree's own count when it has the channel -- the same
+    # convention the sweep judges -- and this driver's count when the
+    # tree predates it. A channel that reports zero is kept as zero so
+    # that a broken one fails the baseline check loudly instead of
+    # being papered over by the fallback. A tree whose own channel
+    # predates the DHW metering (round-6 D9-02) reports space-only, so
+    # the DHW steps and seconds this driver metered are added back --
+    # both halves of the comparison must carry the same, complete
+    # convention.
+    tree_sim = int(sim) if isinstance(sim, int) else int(count)
+    tree_kms = (
+        float(kms)
+        if isinstance(kms, (int, float)) and not isinstance(kms, bool)
+        else kernel_ms
+    )
+    if not _tree_meters_dhw:
+        tree_sim += dhw_count
+        tree_kms += dhw_kernel_ms
+    rows[label] = {
+        "evals": int(run["solver_evals"]),
+        "simulate": tree_sim,
+        "objective": float(run["result"].objective_value),
+        # The kernel's own CPU seconds, same convention: the tree's own
+        # meter when it has the channel, this driver's when it predates
+        # it (round-5 D9-07), plus the DHW kernel when the tree's own
+        # channel does not meter it.
+        "kernel_ms": round(tree_kms, 3),
+    }
+with open(out_path, "w") as fh:
+    json.dump(rows, fh, indent=1, sort_keys=True)
+'''
+
+
+def repository_root() -> str:
+    """The checkout this file belongs to, however the run was started."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def git_commit(repo: str, rev: str) -> str | None:
+    """``rev`` as a commit SHA in ``repo``, or None if it names nothing."""
+    proc = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    return proc.stdout.strip() or None
+
+
+def capture_work_rows(
+    root: str, out_path: str, labels: list[str] | None = None
+) -> tuple[dict | None, str]:
+    """Run one tree's sweep in a child process and read back its work rows.
+
+    ``{label: {"evals": int, "simulate": int, "objective": float,
+    "kernel_ms": float}}`` -- the numbers the comparison needs and nothing
+    more (the simulate count added for #1229, the kernel seconds for
+    round-5 D9-07). Whole-solve timing is still not captured, on purpose:
+    CPU moves between two runs of the same box (1.10x to 1.44x over six
+    repeats of bit-identical work, measured for #346) while the counts do
+    not move at all, and a baseline is only worth having in the quantity
+    that does not move. The kernel-seam seconds are the one measured
+    exception, and it is honest because the signal clears the movement
+    the noise does not: an exact 2x of per-call kernel cost leaves both
+    counts flat and doubles this field, while the same 2x reaches only
+    1.49-1.54x of the whole solve (the seams are about half of it) --
+    inside the 1.44x movement, which is exactly why solve-wide CPU is
+    still refused here. SCENARIO_KERNEL_FACTOR (1.80) sits between the
+    two.
+    """
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
+    proc = subprocess.run(
+        [sys.executable, "-c", WORK_PROBE_DRIVER, root, out_path]
+        + ([] if labels is None else [json.dumps(sorted(labels))]),
+        capture_output=True, text=True, env=env,
+    )
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "no output").strip()[-400:]
+        return None, f"the capture exited {proc.returncode}: {tail}"
+    try:
+        with open(out_path, encoding="utf-8") as fh:
+            rows = json.load(fh)
+    except (OSError, ValueError) as err:
+        return None, f"the capture wrote nothing readable: {err}"
+    if not isinstance(rows, dict) or not rows:
+        return None, "the capture produced no scenarios"
+    return rows, f"{len(rows)} scenarios"
+
+
+@contextlib.contextmanager
+def baseline_worktree(repo: str, ref: str):
+    """A pristine detached worktree of ``ref`` for the capture driver.
+
+    Yields ``(worktree, tmp, note)``: ``worktree`` is None when there is
+    none to be had and ``note`` says why, else ``tmp`` is a private
+    directory beside it for the driver's output. Both are removed on exit
+    whatever happened inside, so a sweep that re-creates one for the kernel
+    doubt band (KERNEL_DOUBT_FLOOR) leaves nothing behind either.
+    """
+    ref_sha = git_commit(repo, ref)
+    head_sha = git_commit(repo, "HEAD")
+    if ref_sha is None:
+        yield None, None, (
+            f"{ref} does not resolve to a commit here. Set GOLDEN_REF to the "
+            "tree this one should be judged against (the merge base on a "
+            "branch, HEAD^1 on main)."
+        )
+        return
+    if ref_sha == head_sha:
+        yield None, None, (
+            f"{ref} IS this commit ({head_sha[:12]}). A tree compared against "
+            "itself reports no drift whatever it did, so there is nothing to "
+            "learn here; run with GOLDEN_REF=HEAD^1."
+        )
+        return
+    tmp = tempfile.mkdtemp(prefix="stress_work_")
+    worktree = os.path.join(tmp, "baseline")
+    # Checked out at the resolved SHA rather than at the ref NAME, for the
+    # reason env_drift.py records: a `git fetch` in another worktree
+    # sharing this .git can move origin/main between the two calls, and a
+    # baseline that is not the one it names is worse than none.
+    add = subprocess.run(
+        ["git", "worktree", "add", "--detach", worktree, ref_sha],
+        cwd=repo, capture_output=True, text=True,
+    )
+    try:
+        if add.returncode != 0:
+            yield None, None, (
+                f"git worktree add {ref_sha[:12]} failed: "
+                f"{add.stderr.strip()[-300:]}"
+            )
+        else:
+            yield worktree, tmp, f"{ref} ({ref_sha[:12]})"
+    finally:
+        if add.returncode == 0:
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", worktree],
+                cwd=repo, capture_output=True,
+            )
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def capture_baseline_work(
+    repo: str, ref: str, labels: list[str] | None = None
+) -> tuple[dict | None, str]:
+    """The baseline half of the comparison: ``ref``'s own solver work.
+
+    Captured HERE, now, on this machine, in a pristine worktree of ``ref``
+    -- never read from a committed table. That is the whole of #387. A
+    recorded evaluation count is a recorded solver float outcome, and
+    tests/env_drift.py exists because those do not travel between BLAS
+    builds: the fingerprint table repeated the mistake env_drift had
+    already fixed, and made main red on half its merges. Two solves of the
+    same scenario on the same box in the same minute cannot disagree about
+    which basin they fell into, so nothing here has to know what basins
+    exist.
+
+    Returns (rows, note). ``rows`` is None when there is no baseline to be
+    had, and the note says why in the terms the caller prints; a run
+    without a baseline FAILS the check rather than passing it, because a
+    comparison that did not happen is not a comparison that agreed.
+    """
+    with baseline_worktree(repo, ref) as (worktree, tmp, where):
+        if worktree is None:
+            return None, where
+        rows, note = capture_work_rows(
+            worktree, os.path.join(tmp, "baseline.json"), labels
+        )
+        if rows is None:
+            return None, f"the baseline capture failed -- {note}"
+        return rows, f"{note} from {where}"
+
+
+class WorkDrift:
+    """The scenario-by-scenario verdict of the solver-work comparison.
+
+    Every scenario the sweep ran lands in exactly one of ``covered``,
+    ``replanned`` and ``only_here``; ``over``, ``stale``, ``sim_over``
+    and ``cost_over`` are the verdicts within ``covered``, and
+    ``only_baseline`` names scenarios the baseline had and this tree does
+    not. ``over`` and ``sim_over`` are the same rule on the two channels
+    SolverWork counts -- scipy evaluations and simulation steps (#1229)
+    -- so a scenario can be over on either, both, or neither;
+    ``cost_over`` is the per-call-cost rule on the kernel's own CPU
+    seconds (round-5 D9-07), the quantity that moves when neither count
+    does. The three uncovered populations are
+    LISTS, not a count, because the failure this file keeps having is a
+    check that quietly narrowed to whatever still agreed -- a blind spot
+    has to be printable by name before anyone can argue about it.
+    """
+
+    __slots__ = ("covered", "replanned", "only_here", "only_baseline",
+                 "over", "stale", "sim_over", "cost_over", "cost_doubt")
+
+    def __init__(self) -> None:
+        self.covered: list[str] = []
+        self.replanned: list[str] = []
+        self.only_here: list[str] = []
+        self.only_baseline: list[str] = []
+        self.over: list[str] = []
+        self.stale: list[str] = []
+        self.sim_over: list[str] = []
+        self.cost_over: list[str] = []
+        # Labels whose kernel reading sits in the doubt band, between
+        # KERNEL_DOUBT_FLOOR and SCENARIO_KERNEL_FACTOR: not over on one
+        # reading, but where a real 2x can land on one (judge_work
+        # re-solves them).
+        self.cost_doubt: list[str] = []
+
+
+def work_drift_compare(
+    observed_evals: dict[str, int],
+    observed_simulate: dict[str, int],
+    observed_objective: dict[str, float],
+    observed_kernel: dict[str, float],
+    baseline: dict[str, dict],
+) -> WorkDrift:
+    """Judge this tree's solver work against the baseline's, per scenario.
+
+    Computed against computed. The sweep and the checks that prove the
+    sweep can fail both call this one function, so a test cannot pass by
+    re-implementing the comparison it is meant to pin (tests/README.md).
+
+    Three channels are judged on every covered scenario: scipy
+    evaluations (``over``), simulation steps (``sim_over``, #1229 -- the
+    evaluation count is blind to a kernel that is run twice without
+    adding evaluations, and the simulate channel is the one that moves)
+    and the kernel's own CPU seconds (``cost_over``, round-5 D9-07 -- a
+    kernel that got slower PER CALL moves no count at all, so both count
+    channels are blind to it and only its time moves).
+
+    A scenario is judged only where the two trees produced the SAME PLAN,
+    which is what same_basin() decides on the objective value. That
+    exemption is not a platform allowance any more -- both solves ran in
+    this process tree, on this machine, on the same BLAS -- so a scenario
+    lands in ``replanned`` for exactly one reason: this branch changed what
+    the solver does with it. Which is a behaviour change, belongs to
+    tests/env_drift.py and the golden gate, and cannot be judged as a
+    performance regression because there is no longer one thing being
+    compared.
+    """
+    verdict = WorkDrift()
+    for label in sorted(observed_evals):
+        entry = baseline.get(label)
+        base_evals = entry.get("evals") if isinstance(entry, dict) else None
+        base_objective = (
+            entry.get("objective") if isinstance(entry, dict) else None
+        )
+        if not isinstance(base_evals, int) or base_evals <= 0:
+            # No usable baseline solve for this scenario: either this
+            # branch added it, or the baseline's own solve failed and
+            # reported no evaluations. Either way there is nothing to
+            # compare it with, so it is reported and never judged.
+            verdict.only_here.append(label)
+            continue
+        got = observed_evals[label]
+        objective = observed_objective.get(label)
+        if not same_basin(objective, base_objective):
+            verdict.replanned.append(
+                f"{label} (objective {_fmt_objective(objective)} here vs "
+                f"{_fmt_objective(base_objective)} at the baseline; "
+                f"{got} evaluations vs {base_evals})"
+            )
+            continue
+        verdict.covered.append(label)
+        if work_over_verdict(got, base_evals):
+            verdict.over.append(
+                f"{label} took {got} solver evaluations against the "
+                f"baseline's {base_evals} = {got / base_evals:.2f}x, over "
+                f"the {SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
+                f"plan (objective {_fmt_objective(objective)})"
+            )
+        # The kernel channel (#1229). A baseline row without a usable
+        # simulate count is not judged HERE -- the sweep checks separately
+        # that every baseline row carries one, so that hole cannot open
+        # silently -- and a cost-only regression that fired while the
+        # plan moved is exempt with the plan.
+        base_sim = entry.get("simulate") if isinstance(entry, dict) else None
+        got_sim = observed_simulate[label]
+        if (isinstance(base_sim, int) and base_sim > 0
+                and work_over_verdict(int(got_sim), base_sim)):
+            verdict.sim_over.append(
+                f"{label} stepped the simulation {int(got_sim)} "
+                f"step-equivalents against the baseline's {base_sim} = "
+                f"{int(got_sim) / base_sim:.2f}x, over the "
+                f"{SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
+                f"plan (objective {_fmt_objective(objective)})"
+            )
+        # The per-call-cost channel (round-5 D9-07). The counts above
+        # vouch for the WORK this solve did; this judges what each unit
+        # of that work cost in kernel CPU, against the baseline captured
+        # beside this run. A baseline row without usable kernel seconds
+        # is not judged here -- the sweep checks separately that every
+        # baseline row carries them, so that hole cannot open silently.
+        base_kernel = entry.get("kernel_ms") if isinstance(entry, dict) else None
+        got_kernel = float(observed_kernel.get(label, 0.0))
+        if (isinstance(base_kernel, (int, float))
+                and not isinstance(base_kernel, bool)
+                and base_kernel > 0.0):
+            vouched = got / base_evals
+            if isinstance(base_sim, int) and base_sim > 0:
+                vouched = max(vouched, int(got_sim) / base_sim)
+            if kernel_cost_over_verdict(got_kernel, float(base_kernel), vouched):
+                verdict.cost_over.append(
+                    f"{label} spent {got_kernel:.0f} ms of kernel CPU "
+                    f"against the baseline's {float(base_kernel):.0f} ms = "
+                    f"{got_kernel / float(base_kernel):.2f}x, over the "
+                    f"{SCENARIO_KERNEL_FACTOR:.2f}x factor on work the "
+                    f"counts vouch at {vouched:.2f}x, on an unchanged plan "
+                    f"(objective {_fmt_objective(objective)})"
+                )
+            elif got_kernel > float(base_kernel) * vouched * KERNEL_DOUBT_FLOOR:
+                verdict.cost_doubt.append(label)
+        if stale_cheap_verdict(got, base_evals):
+            # REPORTED, NOT FAILED, and the asymmetry is the point (#387).
+            # The stale rule exists because a RECORD can go stale-high and
+            # then hide a later regression back to the old cost, and its
+            # remedy is `--record-budgets`. A baseline captured from the
+            # merge base on every run cannot go stale -- it tracks main by
+            # construction -- so the premise is gone, and with it the
+            # remedy: there is no table to re-record. Left as a failure it
+            # would turn a real optimisation red with nothing the author
+            # could do, and #317 is exactly that PR: it made three
+            # scenarios 6.2x to 12.4x cheaper on plans it did not move.
+            # The stale rule itself is untouched in the CPU channel above,
+            # where the recorded `ratio` still can go stale and re-record
+            # is still the answer.
+            verdict.stale.append(
+                f"{label} took {got} solver evaluations against the "
+                f"baseline's {base_evals} = {got / base_evals:.2f}x, "
+                f"cheaper by more than {SCENARIO_STALE_FACTOR:g}x on an "
+                f"unchanged plan"
+            )
+    for label in sorted(baseline):
+        if label not in observed_evals:
+            verdict.only_baseline.append(label)
+    return verdict
+
+
+
+def judge_work(
+    observed_evals: dict[str, int],
+    observed_simulate: dict[str, int],
+    observed_objective: dict[str, float],
+    observed_kernel: dict[str, float],
+    baseline: dict[str, dict],
+    repo: str,
+    ref: str,
+    combos_by_label: dict[str, dict],
+    rounds: int = KERNEL_DOUBT_ROUNDS,
+) -> tuple[WorkDrift, bool, str]:
+    """work_drift_compare, with the kernel doubt band re-measured.
+
+    A scenario in ``cost_doubt`` is re-solved ``rounds`` times on both
+    trees, interleaved -- the baseline in a re-created pristine worktree of
+    ``ref`` through the same capture driver, this tree in this process --
+    and judged again on the two medians. Nothing else is re-solved, so a
+    tree with no scenario in the band pays nothing. Returns (drift, ok,
+    note); ``ok`` is False when the band held a scenario that could not be
+    re-measured, which the sweep fails rather than reading as agreement.
+    """
+    drift = work_drift_compare(
+        observed_evals, observed_simulate, observed_objective,
+        observed_kernel, baseline,
+    )
+    doubt = list(drift.cost_doubt)
+    if not doubt:
+        return drift, True, "no scenario in the kernel doubt band"
+    base_ms: dict[str, list[float]] = {label: [] for label in doubt}
+    here_ms: dict[str, list[float]] = {label: [] for label in doubt}
+    started = time.perf_counter()
+    with baseline_worktree(repo, ref) as (worktree, tmp, where):
+        if worktree is None:
+            return drift, False, f"no worktree to re-solve {doubt} in: {where}"
+        for turn in range(rounds):
+            rows, note = capture_work_rows(
+                worktree, os.path.join(tmp, f"doubt{turn}.json"), doubt
+            )
+            if rows is None or set(doubt) - set(rows):
+                return drift, False, f"re-solving {doubt} at {where} failed: {note}"
+            for label in doubt:
+                base_ms[label].append(float(rows[label].get("kernel_ms", 0.0)))
+                run = build_case(**dict(combos_by_label[label]))
+                here_ms[label].append(float(run.get("solver_kernel_ms", 0.0)))
+    kernel = dict(observed_kernel)
+    rebased = dict(baseline)
+    for label in doubt:
+        kernel[label] = float(np.median(here_ms[label]))
+        rebased[label] = dict(
+            baseline[label], kernel_ms=float(np.median(base_ms[label]))
+        )
+    judged = work_drift_compare(
+        observed_evals, observed_simulate, observed_objective, kernel, rebased,
+    )
+    return judged, True, (
+        f"kernel doubt band: re-solved {len(doubt)} scenario(s) "
+        f"{rounds}x on both trees in {time.perf_counter() - started:.1f} s; "
+        + "; ".join(
+            f"{label} median {kernel[label]:.0f} ms against "
+            f"{rebased[label]['kernel_ms']:.0f} ms"
+            for label in doubt
+        )
+    )
+
+
+def _fmt_objective(value) -> str:
+    """An objective for a message, whatever shape it arrived in."""
+    try:
+        return f"{float(value):.10g}"
+    except (TypeError, ValueError):
+        return "none"
+
+
+def same_basin(observed: float | None, reference: float | None) -> bool:
+    """Did these two solves land in the same local minimum?
+
+    The objective value answers it and nothing cheaper does. Cost cannot:
+    that is exactly the observation that reverted the 1.4142 factor, a
+    scenario costing 2.28x on a steady ruler because the plan changed. Nor
+    can the evaluation count, which moves WITH the basin -- which is why it
+    is the thing being judged here rather than the thing doing the judging.
+
+    Both arguments are COMPUTED since #387 -- this tree's solve and the
+    baseline's, taken minutes apart on one machine. Before that the second
+    one came out of tests/stress_budgets.json, which is what made the
+    answer depend on which runner GitHub happened to allocate.
+    """
+    if observed is None or reference is None:
+        return False
+    if not (np.isfinite(observed) and np.isfinite(reference)):
+        return False
+    scale = max(abs(float(reference)), 1e-12)
+    return abs(float(observed) - float(reference)) <= SCENARIO_BASIN_TOLERANCE * scale
+
+
+def rss_mb() -> float:
+    """The process's resident set high-water mark, in MiB (platform-tuned)."""
+    ru = resource.getrusage(resource.RUSAGE_SELF)
+    # macOS reports bytes, Linux reports KiB.
+    div = 1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0
+    return float(ru.ru_maxrss) / div
+
+
+def _memory_probe_main(argv: list[str]) -> int:
+    """`--memory-probe <json>`: build one scenario, print its memory peaks.
+
+    Runs in a SUBPROCESS on purpose: tracemalloc sees only Python-object
+    allocations (numpy's allocator is largely invisible to it -- the whole
+    sweep traced ~1.8 MiB while actually holding tens of MiB of arrays),
+    and ru_maxrss in the parent is a watermark every earlier scenario
+    already raised. A fresh process gives each scenario an honest
+    high-water mark.
+
+    The interpreter+numpy baseline a probe also contains does NOT cancel
+    in the comparison (#949, round 4 D9-06): the old rule compared the
+    absolute watermark against recorded-plus-a-150-MiB floor, and that
+    floor -- sized for a baseline that was supposed to cancel -- is what
+    let a 2x regression pass on all fifty-one scenarios. The baseline is
+    now MEASURED, by `--memory-baseline` in the same run, and subtracted:
+    what the memory pass budgets is the scenario-attributable growth, not
+    the watermark it rides on.
+    """
+    spec = json.loads(argv[argv.index("--memory-probe") + 1])
+    tracemalloc.start()
+    build_case(**spec)
+    _cur, traced_peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    print(
+        json.dumps(
+            {
+                "rss_mb": round(rss_mb(), 1),
+                "traced_mb": round(traced_peak / (1024.0 * 1024.0), 2),
+            }
+        )
+    )
+    return 0
+
+
+def _memory_baseline_main(argv: list[str]) -> int:
+    """`--memory-baseline`: the empty probe -- same imports, no scenario.
+
+    Everything `--memory-probe` pays before build_case runs: this file's
+    own module-level imports (numpy, scipy, the integration modules) and
+    nothing else. The parent launches it with the same interpreter and
+    environment as the real probes, in the same memory pass, and the
+    difference of the two watermarks is the scenario-attributable RSS the
+    budget judges. Measured per run rather than recorded, because the
+    baseline is exactly the part that does not travel between platforms.
+
+    One honest limit, stated where it is designed in: ru_maxrss is a
+    high-water mark, so on a platform whose import peak already exceeds a
+    scenario's build_case peak the attributable component reads as zero
+    and the RSS arm says nothing about that scenario below the import
+    peak. The traced arm is the one that sees Python-side growth there;
+    the RSS arm still sees any regression that pushes past the import
+    peak -- which every regression of the recorded peak's own size does,
+    the case DETECTION_TARGET is sized for.
+    """
+    del argv  # the flag alone selects this mode
+    print(json.dumps({"rss_mb": round(rss_mb(), 1)}))
+    return 0
+
+
+if "--memory-probe" in sys.argv:
+    sys.exit(_memory_probe_main(sys.argv))
+
+if "--memory-baseline" in sys.argv:
+    sys.exit(_memory_baseline_main(sys.argv))
+
+
+def sweep_combinations() -> list[dict]:
+    """The build_case() specs the sweep runs, in order.
+
+    A module-level function rather than a block inside ``__main__`` so
+    that the checks below, and any harness re-deriving this file's
+    numbers, see exactly the list the gate runs. A second, hand-copied
+    list is how a budget table and the sweep it was recorded from drift
+    apart without either one being wrong on its own.
+    """
+    combinations = []
+    for season, two_zone, dhw in itertools.product(
+        SEASONS, (False, True), (False, True)
+    ):
+        combinations.append(
+            dict(season=season, two_zone=two_zone, dhw=dhw, label=f"{season}/{'2z' if two_zone else '1z'}/{'dhw' if dhw else 'space'}")
+        )
+
+    # Feature combinations, on the seasons where each actually bites.
+    for season in ("winter", "shoulder"):
+        for tariff, pv, cycling in itertools.product(
+            (False, True), (False, True), (0.0, 1.0)
+        ):
+            if not (tariff or pv or cycling):
+                continue
+            flags = "+".join(
+                f for f, on in (("tariff", tariff), ("pv", pv), ("cycle", cycling)) if on
+            )
+            combinations.append(
+                dict(
+                    season=season, two_zone=True, dhw=True, tariff=tariff, pv=pv,
+                    cycling=cycling, label=f"{season}/{flags}",
+                )
+            )
+
+    # Building archetypes.
+    for building, season in itertools.product(BUILDINGS, ("winter", "shoulder")):
+        combinations.append(
+            dict(season=season, building=building, dhw=True,
+                 label=f"{building}/{season}")
+        )
+
+    # Zero-range bounds (#286/#287). Every scenario above leaves every
+    # variable a strictly positive range, so until these three were added
+    # EVERY solve in this file and in optimality.py did -- and a bound with
+    # lo == hi takes a different path through the gradient.
+    #
+    # How much that mattered, measured here across #317 (D9-01's fix, which
+    # treats a fixed variable as fixed instead of abandoning the batched
+    # jacobian for scipy's scalar finite differences): the same three
+    # scenarios cost 68.0x / 34.5x / 54.1x their reference at 890ecbd and
+    # 7.4x / 5.5x / 4.3x at 0026f22 -- 9.0x, 6.2x and 12.4x. That is the
+    # size of the thing this file could not see, and these three are still
+    # the only samples of that path anywhere in the gate: if #317 is ever
+    # reverted or broken they go back to costing six to twelve times their
+    # recorded budget, and now something says so. Before them the class was
+    # not merely under-budgeted by a global ratio, it was UNSAMPLED, and no
+    # re-sizing of a global constant could have found it.
+    #
+    # Three scenarios, because there are three distinct producers:
+    #
+    #   * a flat external power cap below the DHW run power (0.8 x 6.0 kW =
+    #     4.8 kW here) -- what the fuse guard and the monthly fuse advisor
+    #     pass for a 16 A single-phase supply. The DHW run power is clamped
+    #     to the cap and solve_space subtracts it from the same cap, so the
+    #     space headroom is identically zero at every planned DHW step;
+    #   * a forced-off manual pin on a two-zone DHW solve -- the production
+    #     topology, one (0, 0) bound out of 96;
+    #   * the same pin on a space-only solve, which reaches the (0, 0) bound
+    #     through _apply_pins_to_bounds rather than through the DHW stage.
+    #
+    # They are deliberately the CHEAPEST members of their class (summer, one
+    # zone where the shape allows): the per-scenario budget judges each
+    # against its own recorded cost, so a cheap sample detects a regression
+    # exactly as well as a dear one. They cost the sweep 17.2 reference
+    # units -- 0.3 s of CPU -- against the ~150 the winter two-zone members
+    # of the same class would, and against the 157 the same three cost
+    # before #317.
+    _FUSE_CAP_KW = 3.68          # 16 A x 230 V, a shipped single-phase supply
+    _PIN_STEP = 90               # 22:30 on a 24 h/15 min horizon
+    combinations.extend(
+        [
+            dict(season="summer", two_zone=False, dhw=True,
+                 power_cap_kw=_FUSE_CAP_KW, label="summer/1z/dhw/fuse-cap"),
+            dict(season="summer", two_zone=True, dhw=True,
+                 pin_off_steps=(_PIN_STEP,), label="summer/2z/dhw/pin-off"),
+            dict(season="winter", two_zone=False, dhw=False,
+                 pin_off_steps=(_PIN_STEP,), label="winter/1z/space/pin-off"),
+        ]
+    )
+    return combinations
+
+
+if __name__ == "__main__":
+    # ===========================================================================
+    # The single-scenario detection statistic (#346), compared in one
+    # environment rather than against a recorded table (#387)
+    # ===========================================================================
+    # The sweep below MEASURES; this section checks that the instrument
+    # doing the measuring can see what it claims to, on synthetic captures,
+    # in milliseconds. Every case is a run that actually happened somewhere
+    # and is named with its number, because this file's two historical
+    # failure modes are a check that cannot fail and a check that
+    # false-fails on the second machine -- and the second one is what
+    # reverted the 1.4142 factor, closed #371, and then came back as #387.
+    R.section("Single-scenario detection (#346, #387)")
+
+    # 2026-09-05 CI ubuntu-latest, consecutive main pushes, same tree:
+    # shoulder/tariff+pv+cycle at 775.5x (pass, ref 52.3 ms) vs 808.2x /
+    # 817.7x (fail, ref 42.7-43.7 ms) against the 782.11 M1 ceiling.
+    # The ruler and a real optimize() do not scale together; 817.7 is that
+    # expansion, not a slower plan (solver-work 51/51, 0 re-planned).
+    R.check(
+        "the live ceiling covers the measured CI ruler-vs-real expansion",
+        live_solve_budget_ratio() >= 817.7,
+        f"{live_solve_budget_ratio():.2f}x vs measured 817.7x",
+    )
+    _wobble_recorded = [
+        float(entry["ratio"])
+        for entry in load_budget_table().values()
+        if isinstance(entry, dict) and float(entry.get("ratio", 0.0)) > 0.0
+    ]
+    _wobble_worst = max(_wobble_recorded) if _wobble_recorded else 0.0
+    R.check(
+        "and the wobble still leaves a 2x detection floor on the recorded worst",
+        live_solve_budget_ratio() < DETECTION_TARGET * _wobble_worst,
+        f"live {live_solve_budget_ratio():.1f}x vs "
+        f"{DETECTION_TARGET:.0f} x {_wobble_worst:.1f} recorded",
+    )
+
+    # A synthetic baseline capture: what capture_baseline_work() hands the
+    # comparison. Fifty-one scenarios, an evaluation count, the
+    # simulate-equivalent count of the same solve (#1229, a separate channel
+    # so the two can be moved independently), the objective value that
+    # identifies the plan it came from, and the kernel's own CPU seconds
+    # (round-5 D9-07, movable independently of both counts for the same
+    # reason).
+    _SYN = {
+        f"synthetic/{i:02d}": {
+            "evals": 20 + 7 * i,
+            "simulate": 400 + 11 * i,
+            "objective": 100.0 + i,
+            "kernel_ms": 30.0 + 5.0 * i,
+        }
+        for i in range(51)
+    }
+    _SYN_LABELS = sorted(_SYN)
+    # The cohort #387 measured: 22 of the 51 are the multi-start family,
+    # and a runner's BLAS decides their basin for all of them at once.
+    _COHORT = _SYN_LABELS[:22]
+    _VICTIM = _SYN_LABELS[7]
+
+    def _capture(work=1.0, objective=1.0, sim=1.0, kernel=1.0, only=None,
+                 drop=(), baseline=None):
+        """One tree's capture, perturbed off the baseline it is compared to.
+
+        ``only`` restricts the perturbation to a set of scenarios; passing
+        the same ``objective`` shift to BOTH captures is how a runner that
+        holds a basin no table has ever seen is expressed, because that is
+        what such a runner does -- it moves both halves together. ``work``
+        scales the evaluation count, ``sim`` the simulate-equivalent count
+        and ``kernel`` the seams' own CPU seconds -- the three channels
+        SolverWork meters (#1229, round-5 D9-07) -- and they are perturbed
+        independently because the regressions that motivated the last two
+        each move one while the first sits still (a doubled
+        finite-difference gradient moves only the simulate count, round-5
+        D9-01; a dearer kernel per call moves only the seconds, round-5
+        D9-07).
+        """
+        rows = baseline if baseline is not None else _SYN
+        evals, simulate, objectives, kernels = {}, {}, {}, {}
+        for label, row in rows.items():
+            if label in drop:
+                continue
+            hot = only is None or label in only
+            evals[label] = int(round(row["evals"] * (work if hot else 1.0)))
+            simulate[label] = int(
+                round(row["simulate"] * (sim if hot else 1.0))
+            )
+            objectives[label] = row["objective"] * (objective if hot else 1.0)
+            kernels[label] = float(row["kernel_ms"]) * (kernel if hot else 1.0)
+        return evals, simulate, objectives, kernels
+
+    def _shifted(factor, only=None):
+        """The same baseline as solved by a machine with different kernels."""
+        return {
+            label: {
+                "evals": row["evals"],
+                "simulate": row["simulate"],
+                "kernel_ms": row["kernel_ms"],
+                "objective": row["objective"] * (
+                    factor if (only is None or label in only) else 1.0
+                ),
+            }
+            for label, row in _SYN.items()
+        }
+
+    def _verdict(baseline=None, **kw):
+        base = _SYN if baseline is None else baseline
+        return work_drift_compare(*_capture(baseline=base, **kw), base)
+
+    # (a) the null: an unchanged tree fires nothing on any channel
+    # (#1229, round-5 D9-07) and covers everything.
+    _null = _verdict()
+    R.check(
+        "an unchanged sweep fires the work check on no scenario, on any "
+        "channel, and covers all of them",
+        not _null.over
+        and not _null.sim_over
+        and not _null.cost_over
+        and len(_null.covered) == len(_SYN),
+        f"{len(_null.over)} fired, {len(_null.sim_over)} fired on the "
+        f"simulate channel, {len(_null.cost_over)} on the kernel-cost "
+        f"channel, {len(_null.covered)} of {len(_SYN)} covered",
+    )
+
+    # (b) the finding itself, executed at 1.99x on one scenario. Before
+    # #346 that tripped 0 of 38 checks: 1.99 < SCENARIO_BUDGET_FACTOR, and
+    # the sweep budget is a mean over fifty-one.
+    _one_2x = _verdict(work=1.99, only={_VICTIM})
+    R.check(
+        "a 2x regression confined to one scenario is seen",
+        [f.split()[0] for f in _one_2x.over] == [_VICTIM],
+        f"{_one_2x.over or 'nothing fired'} at 1.99x one scenario's "
+        f"{_SYN[_VICTIM]['evals']} evaluations",
+    )
+    R.check(
+        "...and it is still under the per-scenario CPU factor, so this is "
+        "the gap #346 records and not a different one",
+        1.99 <= SCENARIO_BUDGET_FACTOR,
+        f"1.99x against SCENARIO_BUDGET_FACTOR {SCENARIO_BUDGET_FACTOR:.2f}",
+    )
+
+    # (b2) the same 1.99x, on the KERNEL channel (#1229): the regression
+    # the evaluation count cannot see. Round-5 D9-01 doubled the batched
+    # finite-difference gradient and measured 1.0000x of the evaluation
+    # count -- the same plan, bit for bit, evaluated the same number of
+    # times -- against 1.9868x of the simulate count. This arm pins that
+    # the rule fires from the simulate channel ALONE, with no evaluation
+    # movement for it to lean on.
+    _sim_2x = _verdict(sim=1.99, only={_VICTIM})
+    R.check(
+        "a cost-only regression confined to one scenario is seen on the "
+        "simulate channel, with the evaluation count flat (#1229)",
+        [f.split()[0] for f in _sim_2x.sim_over] == [_VICTIM]
+        and not _sim_2x.over,
+        f"sim_over={_sim_2x.sim_over or 'nothing fired'}, "
+        f"over={_sim_2x.over or 'nothing fired'} on a tree whose "
+        f"evaluation count for {_VICTIM} is unchanged at "
+        f"{_SYN[_VICTIM]['evals']}",
+    )
+
+    # (b3) the per-call-cost arm (round-5 D9-07): the regression BOTH
+    # count channels are blind to. Doubling what each kernel call costs
+    # leaves the evaluation count and the simulate count at 1.0000x with
+    # a bit-identical plan -- the finder measured the whole solve's CPU
+    # at only 1.51x, inside the 1.44x clean movement that made #346
+    # refuse every solve-wide CPU statistic -- while the kernel's own
+    # seconds double. This arm pins that the rule fires from the
+    # kernel-cost channel ALONE, with no count movement to lean on.
+    _kernel_2x = _verdict(kernel=1.99, only={_VICTIM})
+    R.check(
+        "a per-call kernel slowdown confined to one scenario is seen on "
+        "the kernel-cost channel, with both count channels flat (round-5 "
+        "D9-07)",
+        [f.split()[0] for f in _kernel_2x.cost_over] == [_VICTIM]
+        and not _kernel_2x.over
+        and not _kernel_2x.sim_over,
+        f"cost_over={_kernel_2x.cost_over or 'nothing fired'}, "
+        f"over={_kernel_2x.over or 'nothing fired'}, sim_over="
+        f"{_kernel_2x.sim_over or 'nothing fired'} on a tree whose counts "
+        f"for {_VICTIM} are unchanged at {_SYN[_VICTIM]['evals']} "
+        f"evaluations and {_SYN[_VICTIM]['simulate']} step-equivalents",
+    )
+    R.check(
+        "...and kernel seconds that grow only with the counts do not "
+        "fire it: the vouching is what makes this a per-CALL channel",
+        not _verdict(kernel=1.99, sim=1.99, only={_VICTIM}).cost_over,
+        "kernel seconds at 1.99x moved by counted work fired the "
+        "per-call channel",
+    )
+    # ...and the doubt band under the factor, where one reading of a real
+    # 2x can land: named for a re-solve, never failed on one reading, and
+    # empty for a clean tree, a reading under the floor, or one already
+    # over the factor.
+    _in_band = _verdict(kernel=1.60, only={_VICTIM})
+    R.check(
+        "a kernel reading between the doubt floor and the factor is sent "
+        "to the re-solve and fails nothing on its own (round-5 D9-07)",
+        _in_band.cost_doubt == [_VICTIM]
+        and not _in_band.cost_over
+        and not _verdict().cost_doubt
+        and not _verdict(kernel=1.40, only={_VICTIM}).cost_doubt
+        and not _kernel_2x.cost_doubt,
+        f"at 1.60x cost_doubt={_in_band.cost_doubt}, cost_over="
+        f"{_in_band.cost_over}; floor {KERNEL_DOUBT_FLOOR:.2f}, factor "
+        f"{SCENARIO_KERNEL_FACTOR:.2f}",
+    )
+
+    # (b4) the per-call-cost arm's round and batch decisions, on stubbed
+    # readings through the production per_call_cost_rounds -- no clock, no
+    # solve. Each case is (base, slow, null) kernel ms per round, a list
+    # read in order (the last value repeats), and the rounds and medians
+    # the arm must land on. The edges are the band's own: 1.50x is outside
+    # it (floor exclusive) and 1.80x inside (factor inclusive, since the
+    # factor fires only strictly above).
+    def _arm_stub(base, slow, null):
+        seq = {"base": base, "slow": slow, "null": null}
+        seen = {"base": 0, "slow": 0, "null": 0}
+
+        def _solve(kind):
+            vals = seq[kind]
+            v = vals[min(seen[kind], len(vals) - 1)]
+            seen[kind] += 1
+            return {"solver_kernel_ms": float(v)}
+
+        got = per_call_cost_rounds({}, solve=_solve)
+        return seen["base"], seen["slow"], seen["null"], got[:3]
+
+    _R = KERNEL_ARM_ROUNDS
+    _arm_cases = [
+        # clean 2x, both medians outside the band: one batch
+        ("out of band", [50], [100], [50], _R, (50.0, 100.0, 50.0)),
+        # the doubled median in the band all along: every batch
+        ("slow in band", [50], [85], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 85.0, 50.0)),
+        # the null median in the band: every batch too
+        ("null in band", [50], [100], [80], _R * KERNEL_ARM_BATCHES,
+         (50.0, 100.0, 80.0)),
+        # exactly on the floor: outside
+        ("on the floor", [50], [75], [50], _R, (50.0, 75.0, 50.0)),
+        # exactly on the factor: inside
+        ("on the factor", [50], [90], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 90.0, 50.0)),
+        # in band after batch 1 (median 85 of 4x85, 3x200), out after
+        # batch 2: stops on the batch boundary, not on the first round
+        # whose running median left the band
+        ("leaves at a boundary", [50], [85] * 4 + [200] * 3 + [200], [50],
+         _R * 2, (50.0, 200.0, 50.0)),
+        # batch 2 alone is out of band (100 = 2.0x) but the median over
+        # both batches (90 = 1.8x) is in: a third batch, and the reading is
+        # the median of all 21 (7x80, 7x100, 7x110), not of the last batch
+        ("median over all rounds", [50], [80] * 7 + [100] * 7 + [110],
+         [50], _R * KERNEL_ARM_BATCHES, (50.0, 100.0, 50.0)),
+    ]
+    _arm_bad = []
+    for _name, _b, _s, _n, _want_rounds, _want_med in _arm_cases:
+        _nb, _ns, _nn, _med = _arm_stub(_b, _s, _n)
+        if (_nb, _ns, _nn) != (_want_rounds,) * 3 or tuple(_med) != _want_med:
+            _arm_bad.append(
+                f"{_name}: {_nb}/{_ns}/{_nn} rounds, medians {_med}; want "
+                f"{_want_rounds} rounds, {_want_med}"
+            )
+    R.check(
+        "the per-call-cost arm solves one batch outside the kernel doubt "
+        "band and up to KERNEL_ARM_BATCHES inside it, on the medians of "
+        "every round (round-5 D9-07, stubbed readings)",
+        not _arm_bad,
+        "; ".join(_arm_bad),
+    )
+
+    # (c) THE #387 acceptance bar, and the reason the recorded fingerprint
+    # table is gone. On CI run 33841375106 all 22 bimodal scenarios solved
+    # into a basin no recording held -- 51 - 22 = 29 covered against a
+    # floor of 40 -- and main went red on a commit whose only difference
+    # from a green one was in docs/, .claude/ and tools/. The runner moves
+    # BOTH halves of a computed-vs-computed comparison, so the same event
+    # is now a no-op: 1.003 is above SCENARIO_BASIN_TOLERANCE and inside
+    # the 4.41e-5 to 2.24e-3 band the fifteen executed basin changes moved
+    # the objective by, i.e. a genuinely different local minimum.
+    _foreign = _shifted(1.003, only=_COHORT)
+    _foreign_verdict = _verdict(baseline=_foreign)
+    R.check(
+        "a runner whose basins are in no table changes no verdict at all",
+        len(_foreign_verdict.covered) == len(_SYN)
+        and not _foreign_verdict.over
+        and not _foreign_verdict.sim_over
+        and not _foreign_verdict.replanned,
+        f"{len(_foreign_verdict.covered)} of {len(_SYN)} covered with the "
+        f"{len(_COHORT)}-scenario multi-start cohort in a third basin, "
+        f"{len(_foreign_verdict.replanned)} exempted",
+    )
+    R.check(
+        "...and it still sees the one-scenario 2x from there, which is what "
+        "makes it a check rather than a machine that always says yes",
+        [
+            f.split()[0]
+            for f in _verdict(
+                baseline=_foreign, work=1.99, only={_VICTIM}
+            ).over
+        ] == [_VICTIM],
+        "the 1.99x went unseen on a runner holding an unrecorded basin",
+    )
+    R.check(
+        "...and every scenario moving at once is still not a coverage "
+        "collapse, however far the objectives move",
+        len(_verdict(baseline=_shifted(1.5)).covered) == len(_SYN),
+        "a whole-sweep basin shift emptied the check",
+    )
+
+    # (d) the exemption that remains, and it is now about the BRANCH rather
+    # than the machine: this tree re-planned a scenario, so its work is not
+    # comparable and is named instead of judged. That is what CI saw on
+    # shoulder/tariff+cycle at 2.28x -- a different local minimum doing
+    # more iterations -- and it must not fire. The exemption carries the
+    # simulate channel with it (#1229): both channels are properties of the
+    # same solve, so a plan that moved exempts both rather than judging one.
+    _replan = _verdict(work=2.28, sim=2.28, objective=1.01, only={_VICTIM})
+    R.check(
+        "a scenario this branch re-planned is exempted and named, not judged",
+        not _replan.over
+        and not _replan.sim_over
+        and [f.split()[0] for f in _replan.replanned] == [_VICTIM]
+        and _VICTIM not in _replan.covered,
+        f"over={_replan.over}, sim_over={_replan.sim_over}, "
+        f"replanned={_replan.replanned}",
+    )
+    R.check(
+        "...and 2.28x is still inside the loose per-scenario CPU factor, so "
+        "the gate stays green on it rather than exempting it twice",
+        2.28 <= SCENARIO_BUDGET_FACTOR,
+        f"2.28x against SCENARIO_BUDGET_FACTOR {SCENARIO_BUDGET_FACTOR:.2f}",
+    )
+
+    # The tolerance has to separate those two populations with room on both
+    # sides, or it is a knife-edge wearing a constant's clothes.
+    # Both anchors are measured, not chosen: 1e-9 is same-basin float drift,
+    # and 4.41e-5 is the SMALLEST of fifteen executed basin changes on
+    # shoulder/cycle (see SCENARIO_BASIN_TOLERANCE).
+    R.check(
+        "the basin tolerance sits between float drift and the smallest "
+        "measured flip",
+        same_basin(1234.5, 1234.5 * (1.0 + 1e-9))
+        and not same_basin(1234.5, 1234.5 * (1.0 + 4.41e-5))
+        and not same_basin(1234.5, 1234.5 * 1.01),
+        f"tolerance {SCENARIO_BASIN_TOLERANCE:g} does not separate a 1e-9 "
+        "last-decimal difference from the 4.41e-5 flip that was executed",
+    )
+    R.check(
+        "a missing or non-finite fingerprint is 'cannot tell', never 'agrees'",
+        not same_basin(1.0, None)
+        and not same_basin(None, 1.0)
+        and not same_basin(float("nan"), 1.0)
+        and not same_basin(1.0, float("inf")),
+        "same_basin() agreed with a fingerprint it does not have",
+    )
+
+    # (e) the check may not narrow itself to whatever still agrees. A
+    # baseline that captured nothing exempts every scenario, and that has
+    # to be a failure rather than fifty-one silent passes.
+    _blind = work_drift_compare(*_capture(), {})
+    R.check(
+        "a comparison with no baseline covers nothing, and says so",
+        not _blind.covered
+        and len(_blind.only_here) == len(_SYN)
+        and len(_SYN) - len(_blind.covered) > (
+            len(_SYN) - SCENARIO_WORK_MIN_COVERED
+        ),
+        f"{len(_blind.covered)} scenarios still covered from an empty "
+        f"baseline, against a {SCENARIO_WORK_MIN_COVERED} floor",
+    )
+    # ...and the two asymmetric populations are reported rather than judged
+    # or silently dropped: a scenario this branch added has nothing to be
+    # compared with, and one it deleted is a fact about the diff.
+    _added = work_drift_compare(
+        *_capture(), {k: v for k, v in _SYN.items() if k != _VICTIM}
+    )
+    _deleted = work_drift_compare(*_capture(drop={_VICTIM}), _SYN)
+    R.check(
+        "a scenario on only one side is named, not judged against nothing",
+        _added.only_here == [_VICTIM]
+        and not _added.over
+        and _deleted.only_baseline == [_VICTIM]
+        and len(_deleted.covered) == len(_SYN) - 1,
+        f"added: {_added.only_here}, deleted: {_deleted.only_baseline}",
+    )
+
+    # (f) the cheaper side, at both ends of its range. #288 and #289 make
+    # scenarios cheaper on purpose; this rule is what stops the comparison
+    # being quietly re-fitted around them.
+    R.check(
+        "a figure more than the stale factor cheaper is still caught",
+        stale_cheap_verdict(100.0 / (SCENARIO_STALE_FACTOR + 0.5), 100.0)
+        and stale_cheap_verdict(4, 4 * SCENARIO_STALE_FACTOR + 4),
+        f"{SCENARIO_STALE_FACTOR + 0.5:.1f}x cheaper passed the stale rule",
+    )
+    R.check(
+        "...and one less than the stale factor cheaper is still allowed",
+        not stale_cheap_verdict(100.0 / (SCENARIO_STALE_FACTOR - 0.5), 100.0)
+        and not stale_cheap_verdict(100.0, 100.0),
+        f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the stale rule",
+    )
+
+    # (f2) the memory twin of (f), on both axes the memory pass judges
+    # (round-5 D9-08): the ratio channel has had a stale-cheap rule since
+    # D9-03; rss and traced had none, so a 3.5x memory improvement left
+    # the table stale-high and a regression back to the old peak passed
+    # at 1.0x under the 1.5x over-thresholds. Driven on synthetic probe
+    # recordings through memory_stale_axes -- the same decision path the
+    # memory pass calls -- because the real pass probes in subprocesses
+    # after the sweep.
+    R.check(
+        "a memory peak more than the stale factor cheaper is caught, on "
+        "both axes (round-5 D9-08)",
+        [
+            axis
+            for axis, _observed, _recorded in memory_stale_axes(
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0,
+                100.0,
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0,
+            )
+        ]
+        == ["attributable RSS", "traced peak"],
+        f"{SCENARIO_STALE_FACTOR + 0.5:.1f}x cheaper passed the memory "
+        f"stale rule",
+    )
+    R.check(
+        "...and one less than the stale factor cheaper is still allowed "
+        "on the memory axes",
+        not list(
+            memory_stale_axes(
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0,
+                100.0,
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0,
+            )
+        ),
+        f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the memory "
+        f"stale rule",
+    )
+    # ...and the floor of the RSS axis's own input, which is the other end
+    # (round-1's review): the attributable is a difference of two
+    # separately launched probe watermarks, clamped at zero, so a probe at
+    # or below the empty probe reads exactly 0.00 MiB -- the arm's
+    # blindness below the import peak, not a 3.5x cheaper tree. Judging
+    # that floor against a positive record red-zones every recorded value
+    # (measured at all six CI probes and one local probe), so the stale
+    # rule declines where its input is the clamp. The watermark here IS
+    # below its record, so the clamp alone is what declines it.
+    R.check(
+        "...and an attributable RSS at the instrument's floor reads "
+        "nothing: a probe clamped to 0.00 MiB against the empty probe is "
+        "the RSS arm's blindness, not a >3.5x cheaper tree, so it fires "
+        "nothing against a positive record (round-5 D9-08)",
+        not list(memory_stale_axes(0.0, 100.0, 100.0, 100.0, 40.0, 100.0)),
+        "a 0.00 MiB attributable reading fired the memory stale rule "
+        "against a positive record -- the false red this arm pins",
+    )
+    # ...and its second end, the one round-1's guard missed: a reading one
+    # tick clear of the empty probe is the SAME blindness, because the
+    # watermark is rounded to 0.1 MiB and no zero-guard can refuse a
+    # positive tick. These are `fast (3.14)` run 35664329700's own numbers
+    # for winter/pv+cycle -- attributable 0.50 MiB against a 12.90 MiB
+    # record, on a probe whose watermark (95.7) did NOT fall below its own
+    # record (82.3), while the traced axis read 3.5 against 3.5 recorded
+    # (the independent refutation of "cheaper tree" in the same run). The
+    # arm below it is the same attributable with the watermark fallen,
+    # which still fires: both ends of the reading's range.
+    R.check(
+        "...and a tick above that floor is the same blindness, not a "
+        "third thing: the CI reading of 0.50 MiB against a 12.90 MiB "
+        "record is the platform's import floor, because the probe did not "
+        "fall below its own record's 82.3 MiB (round-5 D9-08, round-1 "
+        "follow-up)",
+        not list(memory_stale_axes(0.5, 3.5, 12.9, 3.5, 95.7, 82.3)),
+        "a 0.50 MiB attributable reading fired the memory stale rule "
+        "while the same run's watermark sat 13.4 MiB above its record -- "
+        "the false red this arm pins",
+    )
+    R.check(
+        "...and the same attributable with a fallen watermark DOES fire, "
+        "which is what keeps this a check: a scenario whose own RSS fell "
+        "lowers the probe watermark with it",
+        [
+            axis
+            for axis, _observed, _recorded in memory_stale_axes(
+                3.5, 3.5, 12.9, 12.0, 79.0, 82.3
+            )
+        ]
+        == ["attributable RSS"],
+        "a 3.7x cheaper attributable with a 3.3 MiB lower watermark did "
+        "not fire the attributable stale arm",
+    )
+    R.check(
+        "...and a regression back to a stale record passes the over side, "
+        "which is why the stale rule has to fire while the tree is cheap",
+        not list(memory_stale_axes(100.0, 100.0, 100.0, 100.0, 50.0, 100.0))
+        and 100.0 <= rss_attrib_fail_threshold(100.0 * SCENARIO_STALE_FACTOR)
+        and 100.0 <= traced_fail_threshold(100.0 * SCENARIO_STALE_FACTOR),
+        "a probe back at a record that is stale-high was caught by the "
+        "over side, or the at-record null fired the stale rule",
+    )
+
+    # (g) the instrument itself, end to end: the hook has to reach the
+    # solver and the count has to move with the work. A counter that
+    # reports a plausible constant is the failure this file exists to
+    # refuse.
+    _probe = dict(sweep_combinations()[0])
+    _probe_label = _probe.pop("label")
+    _plain = build_case(**_probe)
+    # ``.get`` with a zero default, not ``[...]``: on a tree without the
+    # simulate channel the checks below fail BY NAME with the zero in
+    # their detail instead of the run dying in a KeyError (#1229's own
+    # failing-first shape).
+    _plain_sim = int(_plain.get("solver_simulate_steps", 0))
+    _orig_optimize = optimizer_module.HeatPumpOptimizer.optimize
+
+    def _twice(self, *a, **k):
+        _orig_optimize(self, *a, **k)
+        return _orig_optimize(self, *a, **k)
+
+    optimizer_module.HeatPumpOptimizer.optimize = _twice
+    try:
+        _doubled = build_case(**_probe)
+    finally:
+        optimizer_module.HeatPumpOptimizer.optimize = _orig_optimize
+    R.check(
+        "the solver-work counter sees a real solve, and doubles with it",
+        _plain["solver_evals"] > 0
+        and 1.9 <= _doubled["solver_evals"] / _plain["solver_evals"] <= 2.1,
+        f"{_plain['solver_evals']} evaluations plain, "
+        f"{_doubled['solver_evals']} with optimize() run twice",
+    )
+    # ...and the second channel of the same instrument (#1229), on the
+    # regression that motivated it: running the batched finite-difference
+    # gradient a second time gives the SAME answer -- same plan, same
+    # evaluation count, measured at 1.0000x in round-5 D9-01 -- while
+    # doing twice the simulation work. That asymmetry is the whole point
+    # of the channel, and it is executed here rather than argued.
+    _orig_batch = optimizer_module._batch_fd_gradient
+
+    def _batch_twice(*a, **k):
+        _orig_batch(*a, **k)
+        return _orig_batch(*a, **k)
+
+    optimizer_module._batch_fd_gradient = _batch_twice
+    try:
+        _costly = build_case(**_probe)
+    finally:
+        optimizer_module._batch_fd_gradient = _orig_batch
+    _costly_sim = int(_costly.get("solver_simulate_steps", 0))
+    _doubled_sim = int(_doubled.get("solver_simulate_steps", 0))
+    R.check(
+        "the simulate-work meter sees a real solve, and doubles on the "
+        "cost-only arm the evaluation count is blind to (#1229)",
+        _plain_sim > 0
+        and _costly["solver_evals"] == _plain["solver_evals"]
+        and _costly_sim / _plain_sim >= 1.5,
+        f"{_plain['solver_evals']} evaluations and {_plain_sim} simulate "
+        f"step-equivalents plain; {_costly['solver_evals']} evaluations and "
+        f"{_costly_sim} simulate step-equivalents with the batched "
+        f"gradient run twice",
+    )
+    R.check(
+        "...and the hook is restored, so nothing downstream is left wrapped",
+        all(
+            getattr(SolverWork, attr, None) is seam
+            for attr, seam in (
+                ("_wrapped", optimizer_module._scoped_minimize),
+                ("_step_wrapped", ThermalModel.simulate_step),
+                ("_batch_wrapped", ThermalModel.simulate_trajectory_batch),
+                ("_dhw_step_wrapped", ThermalModel.simulate_dhw_step),
+            )
+        ),
+        "SolverWork left a seam it hooks replaced (getattr default None: a "
+        "tree without the simulate seams fails by name here, #1229)",
+    )
+    # The seam-coverage cut (round-6 D9-02 / #1411): the simulate-work
+    # meter's hooked set must be a derived cut of ThermalModel's simulation
+    # call graph -- every leaf primitive metered, or reached only through
+    # metered callers. Both halves are derived, not carried: the surface
+    # from the model's own source, the metered set from SolverWork's class
+    # body. A seam the model gains without a meter here fails by name, and
+    # a seam re-wired to bypass a meter fails the same way -- the blindness
+    # #1411 closes.
+    _cut_leaves, _cut_metered, _cut_uncovered = metered_seam_cut()
+    R.check(
+        "the simulation surface is non-empty -- the source scan found the "
+        "model's state-advancing methods to cut over",
+        bool(_cut_leaves),
+        "the source scan found no simulate entry points on ThermalModel; "
+        "a rename that erases the surface must fail, not pass on nothing",
+    )
+    R.check(
+        "every call-graph leaf of the simulation surface is metered, or "
+        "reached only through metered seams (round-6 D9-02)",
+        not _cut_uncovered,
+        "unmetered leaf seams: " + ", ".join(sorted(_cut_uncovered))
+        + " (metered: " + ", ".join(sorted(_cut_metered)) + ")",
+    )
+    R.check(
+        "...and dropping a metered seam from the hook set moves its leaves "
+        "to uncovered (green is not unconditional)",
+        bool(metered_seam_cut(metered=_cut_metered - {"simulate_step"})[2]),
+        "dropping simulate_step from the metered set left every leaf "
+        "covered -- the cut would pass on an emptied hook",
+    )
+    R.check(
+        "...and a leaf primitive added to the model is reported even with "
+        "the DHW seam metered (it is a closure, not one seam)",
+        "simulate_future_primitive"
+        in metered_seam_cut(extra_leaf="simulate_future_primitive")[2],
+        "an injected simulate_future_primitive leaf was not reported "
+        "uncovered",
+    )
+    # ...and the loop closes on REAL solves, through the same function the
+    # sweep calls: the plain run is the baseline, the doubled run is the
+    # tree, both solved in this process a second apart. Cases (a)-(f) are
+    # the statistic's properties; this one is the finding, and it is also
+    # the whole shape of #387 executed rather than argued -- two computed
+    # captures, no recorded number anywhere in it.
+    _plain_kernel = float(_plain.get("solver_kernel_ms", 0.0))
+    _real_base = {
+        _probe_label: {
+            "evals": int(_plain["solver_evals"]),
+            "simulate": _plain_sim,
+            "objective": float(_plain["result"].objective_value),
+            "kernel_ms": _plain_kernel,
+        }
+    }
+    _real_null = work_drift_compare(
+        {_probe_label: int(_plain["solver_evals"])},
+        {_probe_label: _plain_sim},
+        {_probe_label: float(_plain["result"].objective_value)},
+        {_probe_label: _plain_kernel},
+        _real_base,
+    )
+    _real_2x = work_drift_compare(
+        {_probe_label: int(_doubled["solver_evals"])},
+        {_probe_label: _doubled_sim},
+        {_probe_label: float(_doubled["result"].objective_value)},
+        {_probe_label: float(_doubled.get("solver_kernel_ms", 0.0))},
+        _real_base,
+    )
+    R.check(
+        "a real 2x on one scenario reaches the rule the sweep applies, and "
+        "an unchanged one does not",
+        not _real_null.over
+        and _real_null.covered == [_probe_label]
+        and [f.split()[0] for f in _real_2x.over] == [_probe_label],
+        f"{_probe_label}: plain {_plain['solver_evals']}, doubled "
+        f"{_doubled['solver_evals']}, factor {SCENARIO_WORK_FACTOR:.2f}; "
+        f"null fired {_real_null.over}, doubled fired {_real_2x.over}",
+    )
+    # ...and the rule-level arm for the channel the evaluation count is
+    # blind to (#1229): the cost-only tree's REAL counts through the same
+    # work_drift_compare the sweep calls, beside the same-tree null.
+    _cost_only_rule = work_drift_compare(
+        {_probe_label: int(_costly["solver_evals"])},
+        {_probe_label: _costly_sim},
+        {_probe_label: float(_costly["result"].objective_value)},
+        {_probe_label: float(_costly.get("solver_kernel_ms", 0.0))},
+        _real_base,
+    )
+    R.check(
+        "the cost-only arm reaches the rule the sweep applies, and an "
+        "unchanged solve does not (#1229)",
+        not _real_null.sim_over
+        and _real_null.covered == [_probe_label]
+        and [f.split()[0] for f in _cost_only_rule.sim_over] == [_probe_label]
+        and not _cost_only_rule.over,
+        f"{_probe_label}: {_plain_sim} simulate step-equivalents plain, "
+        f"{_costly_sim} with the batched gradient run twice, factor "
+        f"{SCENARIO_WORK_FACTOR:.2f}; null fired {_real_null.sim_over}, "
+        f"cost-only fired {_cost_only_rule.sim_over}",
+    )
+    # ...and the per-call-cost arm for the channel both counts are blind
+    # to (round-5 D9-07): every call of both kernel seams costs twice its
+    # own CPU, through the same class attributes SolverWork hooks. The
+    # counts see one call each, the plan does not move, and only the
+    # kernel's own seconds double -- which the whole solve's CPU carries
+    # at just 1.49-1.54x. Medians over interleaved rounds, beside an
+    # independent plain null (per_call_cost_rounds says why both).
+    _saved_seam_batch = SolverWork._batch_wrapped
+    _saved_seam_step = SolverWork._step_wrapped
+    _kbase_ms, _kslow_ms, _knull_ms, _slower, _knull = per_call_cost_rounds(
+        _probe
+    )
+    _kbase = {_probe_label: dict(_real_base[_probe_label], kernel_ms=_kbase_ms)}
+
+    def _kernel_rule(run, kernel_ms):
+        return work_drift_compare(
+            {_probe_label: int(run["solver_evals"])},
+            {_probe_label: int(run.get("solver_simulate_steps", 0))},
+            {_probe_label: float(run["result"].objective_value)},
+            {_probe_label: kernel_ms},
+            _kbase,
+        )
+
+    _slower_rule = _kernel_rule(_slower, _kslow_ms)
+    _knull_rule = _kernel_rule(_knull, _knull_ms)
+    R.check(
+        "the per-call-cost arm reaches the rule the sweep applies, with "
+        "both count channels flat, and an unchanged solve does not "
+        "(round-5 D9-07)",
+        not _knull_rule.cost_over
+        and _knull_rule.covered == [_probe_label]
+        and [f.split()[0] for f in _slower_rule.cost_over] == [_probe_label]
+        and not _slower_rule.over
+        and not _slower_rule.sim_over,
+        f"{_probe_label}, median of {KERNEL_ARM_ROUNDS} interleaved rounds: "
+        f"{_kbase_ms:.0f} ms of kernel CPU plain, {_knull_ms:.0f} ms plain "
+        f"again (x{_knull_ms / max(_kbase_ms, 1e-9):.2f}), {_kslow_ms:.0f} "
+        f"ms with every seam call's CPU doubled "
+        f"(x{_kslow_ms / max(_kbase_ms, 1e-9):.2f}); evaluations "
+        f"{_plain['solver_evals']} vs {_slower['solver_evals']}, simulate "
+        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; factor "
+        f"{SCENARIO_KERNEL_FACTOR:.2f}; null fired "
+        f"{_knull_rule.cost_over}, per-call-cost fired "
+        f"{_slower_rule.cost_over}",
+    )
+    # ...and the sweep's doubt band end to end, through the function the
+    # sweep calls: a real per-call regression whose single reading landed
+    # in the band (1.6x, below the factor) is re-solved on both trees --
+    # the baseline in a re-created worktree of WORK_DRIFT_REF, this tree
+    # with every seam call's CPU tripled -- and confirmed on the medians.
+    # Tripled, not doubled: this pins the re-solve's WIRING, and a 2x
+    # rides the 1.11x margin whose miss rate under load is
+    # tools/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
+    _doubler = cpu_scaler(3.0)
+    SolverWork._batch_wrapped = _doubler(_saved_seam_batch)
+    SolverWork._step_wrapped = _doubler(_saved_seam_step)
+    try:
+        _band_drift, _band_ok, _band_note = judge_work(
+            {_probe_label: int(_slower["solver_evals"])},
+            {_probe_label: int(_slower.get("solver_simulate_steps", 0))},
+            {_probe_label: float(_slower["result"].objective_value)},
+            {_probe_label: _kbase_ms * 1.6},
+            _kbase, repository_root(), WORK_DRIFT_REF,
+            {_probe_label: _probe},
+        )
+    finally:
+        SolverWork._batch_wrapped = _saved_seam_batch
+        SolverWork._step_wrapped = _saved_seam_step
+        ThermalModel.simulate_trajectory_batch = _saved_seam_batch
+        ThermalModel.simulate_step = _saved_seam_step
+    R.check(
+        "a real per-call regression read once inside the kernel doubt band "
+        "is re-solved on both trees and confirmed by the rule the sweep "
+        "applies (round-5 D9-07)",
+        _band_ok
+        and [f.split()[0] for f in _band_drift.cost_over] == [_probe_label],
+        f"{_band_note}; per-call-cost fired {_band_drift.cost_over}",
+    )
+
+    # ===========================================================================
+    # The sweep
+    # ===========================================================================
+    R.section("Combination sweep")
+
+    combinations = sweep_combinations()
+    record_mode = "--record-budgets" in sys.argv
+
+    if "--record-memory" in sys.argv:
+        # Memory-only recording (#949): no sweep, no solver-work baseline,
+        # no economics -- just the probes and the empty baseline, exiting
+        # before anything timed starts.
+        record_memory_table(combinations)
+        sys.exit(0)
+
+    # THE BASELINE HALF OF THE SOLVER-WORK COMPARISON (#387), captured
+    # before this tree solves anything so that a broken ref or an
+    # unbuildable worktree is reported in seconds rather than after the
+    # sweep. It costs the sweep's solve time again, and that is the price
+    # of the shape: tests/env_drift.py pays exactly this for exactly this
+    # reason -- solver floats do not travel between BLAS builds, so a
+    # comparison against numbers recorded on another machine is a
+    # comparison against the machine. The fingerprint table this replaces
+    # made main red on two of the four full-scope pushes that followed it.
+    baseline_work: dict = {}
+    if record_mode:
+        baseline_note = "skipped: --record-budgets has nothing to compare"
+        print(f"  solver-work baseline: {baseline_note}")
+    else:
+        # Announced BEFORE it starts. The capture is a whole sweep of
+        # solves, so it is minutes of silence otherwise, and a gate that
+        # goes quiet for that long is indistinguishable from a hung one.
+        print(
+            f"  solver-work baseline: solving {len(combinations)} scenarios "
+            f"from {WORK_DRIFT_REF} in a pristine worktree, to compare "
+            f"computed against computed (#387); this is the sweep's cost "
+            f"again"
+        )
+        _baseline_started = time.perf_counter()
+        baseline_work, baseline_note = capture_baseline_work(
+            repository_root(), WORK_DRIFT_REF
+        )
+        _baseline_s = time.perf_counter() - _baseline_started
+        if baseline_work is None:
+            baseline_work = {}
+            print(f"  solver-work baseline: NONE -- {baseline_note}")
+        else:
+            print(
+                f"  solver-work baseline: {baseline_note}, captured in "
+                f"{_baseline_s:.0f} s on this machine"
+            )
+            if len(baseline_work) != len(combinations):
+                print(
+                    f"    NOTE: the baseline solved {len(baseline_work)} "
+                    f"scenarios and this tree runs {len(combinations)}; the "
+                    f"difference is named scenario by scenario below"
+                )
+
+    failures = 0
+    comfort_failures: list[str] = []
+    worst_dhw = 0.0
+    slow: list[str] = []
+    pathological: list[str] = []
+    ratios: list[tuple[float, str, float, float]] = []
+    sweep_reference_ms = 0.0
+    sweep_solve_ms = 0.0
+    sweep_solve_thread_ms = 0.0
+
+    if _RETIRED_BUDGET is not None:
+        print(
+            f"  NOTE: STRESS_SOLVE_BUDGET_MS={_RETIRED_BUDGET} is set but no longer\n"
+            "        decides anything. An absolute budget cannot separate a slower\n"
+            "        solver from a busier machine, which is the only question this\n"
+            "        guard exists to answer, so the check is now relative to a\n"
+            "        reference solve timed on this machine beside every scenario.\n"
+            "        Tune it with STRESS_SOLVE_RATIO (multiple of the reference)\n"
+            "        and STRESS_SOLVE_CEILING_MS (the pathological backstop)."
+        )
+
+    calibration = Calibration(CALIBRATION_WINDOW)
+    calibration.warm_up()
+    print(
+        f"  solve-time guard: reference solve {calibration.unit_ms:.1f} ms of CPU "
+        f"on this machine, budget {live_solve_budget_ratio():.0f}x that per scenario "
+        f"(= {calibration.budget_ms() / 1000.0:.1f} s of CPU), sweep budget "
+        f"{SWEEP_BUDGET_RATIO:.0f}x, absolute wall ceiling {SOLVE_CEILING_MS:.0f} ms"
+    )
+
+    # D9-03: each scenario is ALSO judged against its own recorded work
+    # ratio (tests/stress_budgets.json). The global budget above has to
+    # clear the dearest scenario, so alone it let the cheapest one regress
+    # by three orders of magnitude; the per-scenario table closes that. In
+    # record mode the sweep's measurements become the new table instead of
+    # being judged.
+    budget_table = load_budget_table()
+    unrecorded: list[str] = []
+    stale_cheap: list[str] = []
+    over_budget: list[str] = []
+    new_table: dict[str, dict] = {}
+    observed_evals: dict[str, int] = {}
+    observed_simulate: dict[str, int] = {}
+    observed_kernel: dict[str, float] = {}
+    observed_objective: dict[str, float] = {}
+    if not record_mode and not budget_table:
+        print(
+            "  NOTE: no budget table found; run `stress.py --record-budgets`\n"
+            "        on a clean tree to give every scenario its own budget."
+        )
+    # The loop below pops "label" out of each combo; the memory pass re-runs
+    # a subset by label afterwards and needs the build arguments intact.
+    combos_by_label = {
+        c["label"]: {k: v for k, v in c.items() if k != "label"}
+        for c in combinations
+    }
+
+    # Three sweep combinations are re-solved verbatim by the economics
+    # section below. The sweep's own run is kept for them -- three
+    # dictionaries against the 245 reference units the three solves cost --
+    # and `case()` hands it back when economics asks. Every other run is
+    # dropped as before, so the sweep's memory profile is unchanged.
+    # The sweep must NOT go through `case()` wholesale: it would retain all
+    # fifty-one runs to save nothing, since no sweep combination repeats.
+    REUSED_BY_ECONOMICS = ("winter/2z/dhw", "winter/tariff", "winter/1z/dhw")
+
+    for combo in combinations:
+        label = combo.pop("label")
+        # Time the reference immediately before the solve it will judge, so the
+        # ruler and the thing being measured see the same machine.
+        sample_ms = calibration.sample()
+        unit_ms = max(calibration.unit_ms, 1e-6)
+        budget_ms = live_solve_budget_ratio() * unit_ms
+        run = build_case(**combo)
+        if label in REUSED_BY_ECONOMICS:
+            _case_cache[case_key(combo)] = run
+        solve_ms = float(run["solve_cpu_ms"])          # CPU: the load-free clock
+        wall_ms = float(run["result"].solve_time_ms)   # wall: for the ceiling only
+        ratio = solve_ms / unit_ms
+        ratios.append((ratio, label, solve_ms, unit_ms))
+        # The machine-independent channel (#346). The count is what the
+        # iterate path did; the CPU above is what this core charged for it.
+        evals = int(run["solver_evals"])
+        observed_evals[label] = evals
+        # The kernel half of the same instrument (#1229): step-equivalents
+        # the simulate channels actually ran. ``.get`` with a zero default
+        # for the failing-first reason spelled out at the probe section.
+        observed_simulate[label] = int(run.get("solver_simulate_steps", 0))
+        # ...and the seams' own CPU seconds (round-5 D9-07): the channel
+        # that moves when neither count does, ``.get`` for the same
+        # failing-first reason.
+        observed_kernel[label] = float(run.get("solver_kernel_ms", 0.0))
+        # NaN when the solve failed, which same_basin() reads as "cannot
+        # tell" rather than as agreement.
+        observed_objective[label] = float(run["result"].objective_value)
+        sweep_reference_ms += sample_ms
+        sweep_solve_ms += solve_ms
+        sweep_solve_thread_ms += float(run["solve_thread_ms"])
+        if record_mode:
+            # A ratio, and no fingerprint. The recorded evaluation count and
+            # objective this used to write were removed in #387: both are
+            # recorded SOLVER FLOAT OUTCOMES, which tests/env_drift.py
+            # exists because they do not travel between BLAS builds, and
+            # judging a runner's solve against them made main red on half
+            # its merges. The work comparison captures its own baseline in
+            # this environment instead (capture_baseline_work).
+            new_table[label] = {"ratio": round(ratio, 2)}
+        else:
+            allowed = scenario_budget(label, budget_table)
+            if allowed is None:
+                unrecorded.append(label)
+            else:
+                recorded = float(budget_table[label]["ratio"])
+                if ratio > allowed:
+                    over_budget.append(
+                        f"{label} at {ratio:.1f}x its reference vs its own "
+                        f"budget {allowed:.1f}x (recorded {recorded:.1f}x "
+                        f"x {SCENARIO_BUDGET_FACTOR:.0f})"
+                    )
+                if stale_cheap_verdict(ratio, recorded):
+                    stale_cheap.append(
+                        f"{label} at {ratio:.1f}x vs recorded {recorded:.1f}x "
+                        f"(cheaper by more than {SCENARIO_STALE_FACTOR:g}x: "
+                        f"re-record, or a regression back to the old cost "
+                        f"would pass unnoticed)"
+                    )
+        if solve_ms > budget_ms:
+            slow.append(
+                f"{label} used {solve_ms:.0f} ms of CPU = {ratio:.0f}x the "
+                f"{unit_ms:.1f} ms reference measured beside it "
+                f"(budget {live_solve_budget_ratio():.0f}x)"
+            )
+        if wall_ms > SOLVE_CEILING_MS:
+            pathological.append(f"{label} took {wall_ms:.0f} ms of wall clock")
+        problems = check_invariants(label, run)
+        violation = comfort_violation(run)
+        shortfall = dhw_shortfall(run)
+        worst_dhw = max(worst_dhw, shortfall)
+        if violation > COMFORT_TOLERANCE_DEGREE_HOURS:
+            achievable = best_possible_violation(run)
+            if violation > achievable + COMFORT_TOLERANCE_DEGREE_HOURS:
+                comfort_failures.append(
+                    f"{label}: {violation:.2f} vs {achievable:.2f} achievable"
+                )
+
+        # The comfort floor is a soft constraint, so a small breach is by design.
+        # A large one means the penalty is not doing its job -- unless the pump
+        # physically cannot hold the house, in which case no plan can, and the
+        # honest comparison is against what running flat out would achieve.
+        if violation > COMFORT_TOLERANCE_DEGREE_HOURS:
+            achievable = best_possible_violation(run)
+            if violation > achievable + COMFORT_TOLERANCE_DEGREE_HOURS:
+                problems.append(
+                    f"{violation:.2f} degree-hours below the comfort floor, "
+                    f"against {achievable:.2f} achievable at full power"
+                )
+        if shortfall > 2.0:
+            problems.append(f"hot water {shortfall:.1f} °C short inside a demand window")
+
+        if problems:
+            failures += 1
+            print(f"  FAIL {label}")
+            for p in problems:
+                print(f"         {p}")
+
+    R.check(
+        f"all {len(combinations)} combinations satisfy the invariants",
+        failures == 0,
+        f"{failures} failed",
+    )
+    R.check(
+        "the comfort floor is never breached beyond what physics forces",
+        not comfort_failures,
+        "; ".join(comfort_failures),
+    )
+    R.check(
+        "hot water is available when promised",
+        worst_dhw <= 2.0,
+        f"worst shortfall {worst_dhw:.1f} °C",
+    )
+    # The guard can only mean something if the ruler was actually measured. A
+    # calibration that silently produced nothing would turn the check below into
+    # one more test that cannot fail, which is a failure mode this suite has
+    # shipped five times already.
+    R.check(
+        "the solve-time guard calibrated against a reference solve per scenario",
+        calibration.count >= len(combinations) + CALIBRATION_WINDOW
+        and calibration.unit_ms > 0.0,
+        f"{calibration.count} reference samples for {len(combinations)} scenarios, "
+        f"unit {calibration.unit_ms:.3f} ms",
+    )
+    _worst = max(ratios) if ratios else (0.0, "-", 0.0, 0.0)
+    _lo, _mid, _hi = calibration.spread() if calibration.all_cpu else (0.0, 0.0, 0.0)
+    _wlo, _wmid, _whi = (
+        calibration.wall_spread() if calibration.all_wall else (0.0, 0.0, 0.0)
+    )
+    print(
+        f"  reference solve over the sweep: {_lo:.1f} / {_mid:.1f} / {_hi:.1f} ms of "
+        f"CPU (min/median/max of {calibration.count} samples); the same samples in "
+        f"wall clock: {_wlo:.1f} / {_wmid:.1f} / {_whi:.1f} ms -- the wall spread is "
+        f"the machine's load, the CPU spread is all the guard has to tolerate"
+    )
+    print(
+        f"  calibration overhead: {calibration.overhead_ms / 1000.0:.1f} s of wall "
+        f"clock for {calibration.count} samples"
+    )
+    print(
+        f"  worst scenario: {_worst[1]} used {_worst[2]:.0f} ms of CPU = "
+        f"{_worst[0]:.1f}x its {_worst[3]:.1f} ms reference; budget is "
+        f"{live_solve_budget_ratio():.0f}x"
+    )
+    R.check(
+        "every scenario's solve costs what it should, in CPU, for this machine",
+        not slow,
+        "; ".join(slow),
+    )
+    # D9-03's per-scenario half. The global check above has to accommodate
+    # the dearest scenario in the sweep, which is exactly why the cheapest
+    # one could regress 2626x under it alone; these two hold every scenario
+    # to its own recorded cost. Unrecorded scenarios fail rather than fall
+    # back -- a silent fallback to the global budget is the hole itself.
+    if record_mode:
+        print(
+            f"  budget table: recorded {len(new_table)} scenarios; writing "
+            "tests/stress_budgets.json -- read the diff before "
+            f"committing it, exactly as you would a golden fixture"
+        )
+    else:
+        R.check(
+            "every scenario has a per-scenario budget on record",
+            not unrecorded,
+            f"{len(unrecorded)} unrecorded: {', '.join(unrecorded[:8])}"
+            + (" ..." if len(unrecorded) > 8 else "")
+            + "; run `stress.py --record-budgets` on a clean tree",
+        )
+        R.check(
+            "no scenario exceeds its own recorded cost by the budget factor",
+            not over_budget,
+            "; ".join(over_budget),
+        )
+        R.check(
+            "no scenario got dramatically cheaper without a re-record",
+            not stale_cheap,
+            "; ".join(stale_cheap),
+        )
+
+        # -- the single-scenario statistic (#346), compared against a
+        #    baseline captured beside this run (#387) -------------------
+        # Everything above judges a scenario's CPU against its own record
+        # times a constant, and that constant has to be 3.0: it must clear
+        # the most bimodal scenario on the least similar machine, so 1.99x
+        # on one scenario passes it by design. This judges the SOLVER WORK
+        # instead -- counts of what the solver did, evaluations and (since
+        # #1229) simulate step-equivalents, integers the iterate path
+        # produces and the machine does not touch -- and can therefore run
+        # at a factor under DETECTION_TARGET. See SCENARIO_WORK_FACTOR for
+        # the three CPU-denominated statistics measured and rejected first.
+        #
+        # WHAT IT IS COMPARED AGAINST CHANGED IN #387. It used to be a
+        # count recorded in tests/stress_budgets.json, with a list of the
+        # basins two machines had been seen to reach; a third runner model
+        # reaches a third basin for the whole 22-scenario multi-start
+        # cohort at once, and the check then covered 29 of 51 and failed
+        # its own floor -- on main, on half the merges, with no code
+        # difference between a red run and a green one. Enumerating basins
+        # cannot fix that: the ubuntu-latest fleet is not enumerable.
+        #
+        # So the baseline is CAPTURED, not recorded: the merge base solves
+        # the same fifty-one scenarios in a pristine worktree, on this
+        # machine, minutes before this tree does. A runner's basin choice
+        # then moves both halves together and cancels, exactly as
+        # tests/env_drift.py's doctrine says it must -- that file exists
+        # because solver floats do not reproduce across BLAS builds, and a
+        # recorded evaluation count is a recorded solver float outcome.
+        #
+        # The exemption that remains is about the DIFF, not the machine: a
+        # scenario whose plan this branch changed has no comparable work,
+        # and is named rather than judged.
+        drift, _doubt_ok, _doubt_note = judge_work(
+            observed_evals, observed_simulate, observed_objective,
+            observed_kernel, baseline_work, repository_root(),
+            WORK_DRIFT_REF, combos_by_label,
+        )
+        print(f"  {_doubt_note}")
+        R.check(
+            "every scenario in the kernel doubt band was re-measured on "
+            "both trees (round-5 D9-07)",
+            _doubt_ok,
+            _doubt_note,
+        )
+        _work_covered = len(drift.covered)
+        print(
+            f"  solver work: {_work_covered} of {len(observed_evals)} "
+            f"scenarios judged against the baseline captured beside this "
+            f"run, at {SCENARIO_WORK_FACTOR:.2f}x; "
+            f"{len(drift.replanned)} re-planned by this branch, "
+            f"{len(drift.only_here)} new here, "
+            f"{len(drift.only_baseline)} dropped"
+        )
+        for _exempt in drift.replanned:
+            print(f"    re-planned by this branch: {_exempt}")
+        for _new in drift.only_here:
+            print(f"    new here, no baseline solve to compare: {_new}")
+        for _gone in drift.only_baseline:
+            print(f"    dropped here, the baseline solved it: {_gone}")
+        for _cheaper in drift.stale:
+            # Reported by name, not failed: see work_drift_compare().
+            print(f"    cheaper than the baseline: {_cheaper}")
+        R.check(
+            "the solver-work counter counted something for every scenario",
+            all(v > 0 for v in observed_evals.values()),
+            f"{sum(1 for v in observed_evals.values() if v <= 0)} scenarios "
+            "reported zero solver evaluations -- SolverWork's hook on "
+            "optimizer._scoped_minimize has stopped reaching the solver, so "
+            "the check below cannot fail and means nothing",
+        )
+        R.check(
+            "the simulate-work meter and the kernel-cost meter counted "
+            "something for every scenario (#1229, round-5 D9-07)",
+            bool(observed_simulate)
+            and all(v > 0 for v in observed_simulate.values())
+            and bool(observed_kernel)
+            and all(v > 0.0 for v in observed_kernel.values()),
+            f"{sum(1 for v in observed_simulate.values() if v <= 0)} "
+            "scenarios reported zero simulate step-equivalents and "
+            f"{sum(1 for v in observed_kernel.values() if v <= 0.0)} zero "
+            "kernel seconds -- SolverWork's hooks on "
+            "ThermalModel.simulate_step and simulate_trajectory_batch have "
+            "stopped reaching the kernel, so the checks below cannot fail "
+            "and mean nothing",
+        )
+        R.check(
+            "this tree's solver work has a baseline to be judged against",
+            bool(baseline_work),
+            f"no baseline was captured, so the checks below compared "
+            f"nothing: {baseline_note}",
+        )
+        _sim_base_missing = [
+            label
+            for label, entry in baseline_work.items()
+            if not (
+                isinstance(entry, dict)
+                and isinstance(entry.get("simulate"), int)
+                and entry["simulate"] > 0
+                and isinstance(entry.get("kernel_ms"), (int, float))
+                and not isinstance(entry.get("kernel_ms"), bool)
+                and entry["kernel_ms"] > 0.0
+            )
+        ]
+        if not baseline_work:
+            _sim_why = f"no baseline was captured ({baseline_note})"
+        else:
+            _sim_why = (
+                f"{len(_sim_base_missing)} of {len(baseline_work)} baseline "
+                f"rows carry no positive simulate count or kernel seconds "
+                f"({', '.join(_sim_base_missing[:5])}"
+                + (" ..." if len(_sim_base_missing) > 5 else "")
+                + "), so the simulate and kernel-cost checks judged nothing "
+                "for them; the capture worker (WORK_PROBE_DRIVER) counts and "
+                "times the two kernel seams itself so that an older baseline "
+                "tree needs no channel of its own"
+            )
+        R.check(
+            "the baseline capture carries simulate counts and kernel "
+            "seconds this meter can read (#1229, round-5 D9-07)",
+            bool(baseline_work) and not _sim_base_missing,
+            _sim_why,
+        )
+        R.check(
+            "no scenario's solver work grew on an unchanged plan",
+            not drift.over,
+            "; ".join(drift.over)
+            + "; this is the localised-regression check -- the sweep budget "
+            "is a mean over fifty-one and cannot see one scenario double, "
+            "and the per-scenario CPU factor is 3.0 because bimodal "
+            "scenarios need it there (#346)",
+        )
+        R.check(
+            "no scenario's simulate work grew on an unchanged plan (#1229)",
+            not drift.sim_over,
+            "; ".join(drift.sim_over)
+            + "; this is the run-twice half of the localised cost check -- "
+            "the evaluation count cannot see a kernel that is run twice "
+            "without adding evaluations (round-5 D9-01 measured a doubled "
+            "batched gradient at 1.0000x of the evaluation count and "
+            "1.9868x of this one)",
+        )
+        R.check(
+            "no scenario's simulate kernel got slower per call on an "
+            "unchanged plan (round-5 D9-07)",
+            not drift.cost_over,
+            "; ".join(drift.cost_over)
+            + "; this is the per-call-cost half -- a kernel that got "
+            "slower PER CALL moves no count at all, and round-5 D9-07 "
+            "measured both count channels at 1.0000x with the solve CPU "
+            "at 1.49-1.54x passing every budget in this file, so the "
+            "kernel's own CPU seconds against the baseline captured "
+            "beside this run is the only channel that moves",
+        )
+        # Two different failures wear this check's name, and telling a
+        # reader they made a behaviour change when the baseline simply
+        # never arrived would send them looking in the wrong place.
+        if not baseline_work:
+            _cover_why = (
+                f"there was no baseline at all, so nothing could be judged: "
+                f"{baseline_note}. The check above says the same thing; this "
+                f"one is here because a comparison that did not happen must "
+                f"not read as a comparison that agreed"
+            )
+        else:
+            _cover_why = (
+                f"{len(drift.replanned)} were re-planned by this branch and "
+                f"{len(drift.only_here)} have no baseline solve (each "
+                f"printed above with both objectives). Those are properties "
+                f"of this diff, not of the runner -- the baseline solved the "
+                f"same scenarios on this same machine minutes ago -- so the "
+                f"golden drift gate is where a deliberate one is claimed, "
+                f"and this floor is the statement that so many of them "
+                f"leave the work check covering less than most of the "
+                f"sweep -- a statement about THIS DIFF, the same population "
+                f"tests/env_drift.py already makes a branch claim about. "
+                f"There is no environment variable that reaches this floor "
+                f"any more (#387 ruling, comment 5541519696): a branch that "
+                f"re-plans this much on purpose says so in its PR body -- "
+                f"how many plans moved and why -- the way a moved fixture "
+                f"is claimed, rather than reaching for a variable that no "
+                f"longer exists"
+            )
+        # The floor itself stays the #387 literal 40; the owner's override
+        # for THIS branch is a committed entry in the budget table (#1207
+        # comment 3e26fc3 / node IC_kwDOT-9fds8AAAABVuDeMg, ruling (a),
+        # 2026-09-20: CI's 38/51 vs the floor of 40 is the same
+        # runner-conditional variance as the drift set -- 13 re-planned on
+        # CI against 11 on the dev box) -- an entry in the pull request's
+        # own diff, which is exactly the visibility the retired environment
+        # variable lacked (#387, comment 5541519696). The entry may only
+        # LOWER the floor below the literal, never above it, must cite the
+        # ruling that sanctioned it, and anything malformed is ignored in
+        # favour of the stricter literal.
+        _floor = SCENARIO_WORK_MIN_COVERED
+        _floor_override = budget_table.get("coverage_floor_override")
+        if isinstance(_floor_override, dict):
+            _ov_floor = _floor_override.get("floor")
+            _ov_cites = _floor_override.get("cites")
+            if (isinstance(_ov_floor, int)
+                    and not isinstance(_ov_floor, bool)
+                    and 0 < _ov_floor < SCENARIO_WORK_MIN_COVERED
+                    and isinstance(_ov_cites, str) and _ov_cites.strip()):
+                _floor = _ov_floor
+                if baseline_work:
+                    _cover_why = (
+                        f"owner override active: floor {_floor} per "
+                        f"{_ov_cites}; {len(drift.replanned)} re-planned by "
+                        f"this branch here, {len(drift.only_here)} with no "
+                        f"baseline solve"
+                    )
+        R.check(
+            "the solver-work check still covers most of the sweep",
+            _work_covered >= _floor,
+            f"only {_work_covered} of {len(observed_evals)} scenarios are "
+            f"judged, against a floor of {_floor}: "
+            + _cover_why,
+        )
+        # The #387 ruling on the sixth acceptance criterion (comment
+        # 5541519696) restored this floor to a hard-coded backstop
+        # specifically because a runtime override is reachable from a
+        # workflow env: line without ever appearing in a PR body where a
+        # human would see it. Pinning "the default is still 40" is not
+        # enough -- os.environ.get(name, "40") also evaluates to 40 with no
+        # override set, so a mutation that puts the read back would pass
+        # that alone. This scans this file's own source for the retired
+        # read instead. The name is split across two adjacent literals so
+        # that THIS check's own text does not contain the very string the
+        # mutation proof is looking for -- if it did, restoring the deleted
+        # read would add nothing new for the scan to find.
+        _retired_env_name = "STRESS_WORK" "_MIN_COVERED"
+        _own_source = open(__file__, encoding="utf-8").read()
+        R.check(
+            "the solver-work floor is a literal, not an environment override",
+            SCENARIO_WORK_MIN_COVERED == 40
+            and isinstance(SCENARIO_WORK_MIN_COVERED, int)
+            and _retired_env_name not in _own_source,
+            f"SCENARIO_WORK_MIN_COVERED is {SCENARIO_WORK_MIN_COVERED!r}, or "
+            f"the retired environment variable name is back in this file -- "
+            f"either way the #387 ruling (comment 5541519696) is violated: "
+            f"this floor must be a hard-coded 40 that no environment "
+            f"variable, workflow env: line or helper script can move",
+        )
+
+    # -- D9-04: memory instrumentation -----------------------------------
+    # tracemalloc slows allocation-heavy code by more than the solve-time
+    # budgets tolerate, and it only sees Python objects anyway, so the
+    # memory pass re-runs a subset of scenarios UNTIMED in SUBPROCESSES
+    # after the sweep: each probe reports its own ru_maxrss (a real
+    # high-water mark, numpy included) and its traced allocation peak.
+    # Both are budgeted from the same recorded table, at
+    # MEMORY_BUDGET_FACTOR over the SCENARIO-ATTRIBUTABLE component: the
+    # empty-probe baseline is measured in the same run and subtracted,
+    # because it does not cancel on its own -- budgeting the absolute
+    # watermark against a 150-MiB floor is what blinded the old rule to a
+    # 2x regression on all fifty-one scenarios (#949, round 4 D9-06).
+    R.section("Memory (D9-04)")
+    # Record mode probes ALL of them. Check mode probes the scenarios whose
+    # RECORDED peaks are the largest -- half by traced allocation, half by
+    # RSS watermark -- and this is a correction, not a refinement (#287).
+    #
+    # It used to probe the MEMORY_TOP_N dearest scenarios by CPU, on the
+    # assumption that "the dear ones allocate the biggest trajectories".
+    # The recorded table says otherwise, in this repository's own numbers:
+    # the six dearest by CPU cost 2050 reference units between them and all
+    # traced the same middling 1.83 MiB, while the actual leaders -- 3.47
+    # MiB traced and 98.1 MiB of RSS -- cost 588. So the old selection
+    # probed six samples of ONE memory profile, missed both extremes, and
+    # paid tracemalloc's 3.5x more solver CPU for it: measured end to end on
+    # a box with no competing test process and load1 1.74-2.10, the memory
+    # pass falls from 667.7 s of child CPU to 207.0 s, which is 60 % of this
+    # whole script's cost. It is also the tighter test: the traced budget is
+    # recorded x1.5, which catches a 2x traced regression with the whole
+    # factor as margin (the old "+ 2 MiB" put the threshold at 2.59x on a
+    # 1.83 MiB record and 3.77x on the smallest, 0.88 MiB -- one of the
+    # two blind spots of #949).
+    #
+    # Selecting from the COMMITTED table rather than from this run's
+    # measurements also makes the probe set machine-independent, which fixes
+    # at the root the CI failure the old comment described: a peak recorded
+    # only for this machine's own dearest six left a runner with a different
+    # ordering with unrecorded scenarios (shoulder/tariff, shoulder/cycle).
+    _by_cost = sorted(((r[1], r[0]) for r in ratios), key=lambda kv: -kv[1])
+
+    def _memory_probe_labels() -> list[str]:
+        """The recorded memory leaders, half on each axis, in a stable order."""
+        half = max(1, MEMORY_TOP_N // 2)
+        chosen: list[str] = []
+        for key in ("traced_peak_mb", "rss_peak_mb"):
+            ranked = sorted(
+                (-float(entry[key]), label)
+                for label, entry in budget_table.items()
+                if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
+            )
+            taken = 0
+            for _peak, label in ranked:
+                if taken >= half:
+                    break
+                if label in chosen:
+                    continue
+                chosen.append(label)
+                taken += 1
+        return chosen
+
+    if record_mode:
+        mem_labels = [label for label, _ in _by_cost]
+    else:
+        mem_labels = [
+            label
+            for label in _memory_probe_labels()
+            if label in combos_by_label
+        ]
+        if not mem_labels:
+            # No memory recorded yet (a first run, or a fresh table): fall
+            # back to the cost ordering so the pass still says something.
+            mem_labels = [label for label, _ in _by_cost[:MEMORY_TOP_N]]
+    rss_before_mb = rss_mb()
+    mem_over: list[str] = []
+    mem_stale: list[str] = []
+    mem_unrecorded: list[str] = []
+    # Readings the attributable stale arm declines because the difference
+    # is the platform's import floor rather than the scenario
+    # (attributable_reads_the_tree). Named, not merely dropped: a platform
+    # whose floor sits above a record makes that arm say nothing, and the
+    # pass prints the count instead of counting those probes as judged.
+    mem_floor_declined: list[str] = []
+    probe_env = _memory_probe_env()
+
+    # The empty probe, launched FIRST and in the SAME run as the probes it
+    # judges (#949): the interpreter+numpy baseline is the part of every
+    # watermark that is platform-shaped, so it is measured live and
+    # subtracted rather than recorded or absorbed into a floor.
+    baseline_rss = float(
+        _run_memory_probe(["--memory-baseline"], probe_env)["rss_mb"]
+    )
+    print(
+        f"  empty-probe baseline (same imports, no scenario): "
+        f"{baseline_rss:.1f} MiB of RSS, subtracted from every probe below"
+    )
+
+    for label in mem_labels:
+        try:
+            probe = _run_memory_probe(
+                ["--memory-probe", json.dumps(combos_by_label[label])],
+                probe_env,
+            )
+        except RuntimeError as _probe_err:
+            R.check(
+                f"the memory probe for {label} ran",
+                False,
+                str(_probe_err)[-200:],
+            )
+            continue
+        rss_peak = float(probe["rss_mb"])
+        traced_peak = float(probe["traced_mb"])
+        rss_attrib = max(0.0, rss_peak - baseline_rss)
+        entry = new_table.get(label) if record_mode else budget_table.get(label)
+        recorded_rss = float(entry.get("rss_peak_mb", 0.0)) if entry else 0.0
+        recorded_traced = (
+            float(entry.get("traced_peak_mb", 0.0)) if entry else 0.0
+        )
+        recorded_attrib = (
+            float(entry.get("rss_attrib_mb", 0.0)) if entry else 0.0
+        )
+        if record_mode:
+            new_table[label]["rss_peak_mb"] = round(rss_peak, 1)
+            new_table[label]["rss_attrib_mb"] = round(rss_attrib, 1)
+            new_table[label]["traced_peak_mb"] = round(traced_peak, 2)
+        else:
+            if (
+                recorded_rss <= 0.0
+                or recorded_traced <= 0.0
+                or recorded_attrib <= 0.0
+            ):
+                # A scenario with no rss_attrib_mb is a table recorded
+                # before #949: refuse loudly rather than fall back to the
+                # absolute watermark, which is the rule this fix retired.
+                mem_unrecorded.append(label)
+                continue
+            if rss_attrib > rss_attrib_fail_threshold(recorded_attrib):
+                mem_over.append(
+                    f"{label} attributable RSS {rss_attrib:.1f} MiB vs "
+                    f"recorded {recorded_attrib:.1f} MiB "
+                    f"(x{MEMORY_BUDGET_FACTOR:.1f} headroom; probe "
+                    f"{rss_peak:.1f} MiB over a {baseline_rss:.1f} MiB "
+                    f"baseline)"
+                )
+            if traced_peak > traced_fail_threshold(recorded_traced):
+                mem_over.append(
+                    f"{label} traced peak {traced_peak:.1f} MiB vs recorded "
+                    f"{recorded_traced:.1f} MiB "
+                    f"(x{MEMORY_BUDGET_FACTOR:.1f})"
+                )
+            # The stale-cheap side (round-5 D9-08), mirroring the rule the
+            # CPU ratio channel has carried since D9-03: a table left
+            # stale-high by a memory improvement would pass a regression
+            # back to the old peak at 1.0x under the over-thresholds
+            # above, so the cheap observation itself has to fail here. An
+            # attributable reading that is the platform's import floor is
+            # declined rather than judged, and named for the pass to count.
+            if not attributable_reads_the_tree(rss_attrib, rss_peak, recorded_rss):
+                mem_floor_declined.append(label)
+            for axis, observed, recorded in memory_stale_axes(
+                rss_attrib,
+                traced_peak,
+                recorded_attrib,
+                recorded_traced,
+                rss_peak,
+                recorded_rss,
+            ):
+                mem_stale.append(
+                    f"{label} {axis} {observed:.2f} MiB vs recorded "
+                    f"{recorded:.2f} MiB (cheaper by more than "
+                    f"{SCENARIO_STALE_FACTOR:g}x: re-record the memory half "
+                    f"with `stress.py --record-memory`, or a regression "
+                    f"back to the old peak would pass unnoticed)"
+                )
+        print(
+            f"  {label:<34} RSS peak {rss_peak:7.1f} MiB, attributable "
+            f"{rss_attrib:5.1f} MiB, traced {traced_peak:5.1f} MiB"
+            + (
+                f" (recorded {recorded_rss:.0f} / {recorded_attrib:.0f} "
+                f"/ {recorded_traced:.1f})"
+                if recorded_rss > 0.0
+                else " (unrecorded)"
+            )
+        )
+    rss_growth_mb = rss_mb() - rss_before_mb
+    print(
+        f"  parent RSS watermark growth over the memory pass: "
+        f"{rss_growth_mb:.1f} MiB (ru_maxrss is a high-water mark; growth "
+        f"here means the pass itself retained memory)"
+    )
+    if not record_mode:
+        # Said rather than implied (#949): the memory pass compares
+        # MEMORY_TOP_N of the recorded scenarios; the rest are compared
+        # only when their budgets are recorded. A regression confined to
+        # an unprobed scenario is invisible here -- the recorded leaders
+        # on both axes are always probed (the check below), and probing
+        # all fifty-one would cost this pass five times over, which is a
+        # trade stated here rather than silently reversed.
+        _mem_recorded = sum(
+            1
+            for entry in budget_table.values()
+            if isinstance(entry, dict)
+            and float(entry.get("traced_peak_mb", 0.0)) > 0.0
+        )
+        print(
+            f"  coverage: this pass probed {len(mem_labels)} of "
+            f"{_mem_recorded} recorded memory budgets; the unprobed ones "
+            f"are compared only at recording time"
+        )
+        if mem_floor_declined:
+            # Said rather than implied, like the coverage line above: on a
+            # platform whose import floor sits at or above a scenario's
+            # record the attributable is unreadable, and this says which
+            # probes the stale arm declined instead of leaving them to
+            # read as judged-and-fine.
+            print(
+                f"  attributable RSS: {len(mem_floor_declined)} of "
+                f"{len(mem_labels)} probe(s) read at this platform's import "
+                f"floor, so the stale arm says nothing about them (probe "
+                f"watermark not below the record): "
+                + "; ".join(mem_floor_declined)
+            )
+        # The pass is only worth its CPU if it probes the scenarios that
+        # actually allocate. It used to probe six samples of one middling
+        # profile and miss both extremes, so this states the requirement
+        # rather than trusting the selection rule to keep meeting it.
+        _mem_missed: list[str] = []
+        for _axis in ("traced_peak_mb", "rss_peak_mb"):
+            _ranked = sorted(
+                (-float(entry[_axis]), name)
+                for name, entry in budget_table.items()
+                if isinstance(entry, dict) and float(entry.get(_axis, 0.0)) > 0.0
+            )
+            if _ranked and _ranked[0][1] not in mem_labels:
+                _mem_missed.append(
+                    f"{_axis}: the recorded maximum is {_ranked[0][1]} at "
+                    f"{-_ranked[0][0]:.2f} and it was not probed"
+                )
+        R.check(
+            "the memory pass probes the recorded peak on each axis",
+            not _mem_missed,
+            "; ".join(_mem_missed)
+            + "; the pass exists to watch the biggest allocators, so it has "
+            "to include them",
+        )
+        R.check(
+            "the probed scenarios' memory peaks stay within their "
+            "recorded budgets",
+            not mem_over,
+            "; ".join(mem_over),
+        )
+        R.check(
+            "no probed scenario's memory got dramatically cheaper without "
+            "a re-record",
+            not mem_stale,
+            "; ".join(mem_stale),
+        )
+        R.check(
+            "every memory-pass scenario has recorded peaks",
+            not mem_unrecorded,
+            f"unrecorded: {mem_unrecorded}",
+        )
+        R.check(
+            "the memory pass retains less than 512 MiB of RSS in the parent",
+            rss_growth_mb < 512.0,
+            f"RSS watermark grew {rss_growth_mb:.1f} MiB across "
+            f"{len(mem_labels)} probe launches",
+        )
+
+    if record_mode:
+        print_budget_table(new_table)
+        print(
+            "ALL BUDGETS RECORDED -- capture the block above into "
+            "tests/stress_budgets.json and read its diff before committing; "
+            "a recording is a decision, not a reflex"
+        )
+        sys.exit(0)
+    _sweep_ratio = sweep_solve_ms / max(sweep_reference_ms, 1e-6)
+    print(
+        f"  whole sweep: {sweep_solve_ms / 1000.0:.1f} s of solver CPU against "
+        f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = "
+        f"{_sweep_ratio:.2f}x; budget is {SWEEP_BUDGET_RATIO:.2f}x"
+    )
+    R.check(
+        "the sweep as a whole costs what it has always cost, relative to this machine",
+        _sweep_ratio <= SWEEP_BUDGET_RATIO,
+        f"{sweep_solve_ms / 1000.0:.1f} s of solver CPU vs "
+        f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = {_sweep_ratio:.2f}x, "
+        f"over the {SWEEP_BUDGET_RATIO:.2f}x budget",
+    )
+
+    # -- can the budgets SEE a regression? (#287) -------------------------
+    # The other half of every check above. They ask whether the run exceeded
+    # its budget; this one asks whether the budget sits close enough to the
+    # observed cost to be capable of noticing. A budget nobody re-derives
+    # drifts away from the code it guards -- the two global ones were sized
+    # when the dearest scenario cost 655x, the batched jacobian made every
+    # combination 10-20x cheaper, and nothing brought them back down -- and a
+    # gate that cannot fail is not a gate.
+    # It is judged against the RECORDED table, not against this run's own
+    # observation, and that distinction was executed rather than reasoned.
+    # The first version of this check compared the budgets to the run's own
+    # figures; it passed here and FAILED on CI, because the ratio itself
+    # does not travel. On the M1 the reference solve is 18.1 ms and the
+    # dearest scenario 10056 ms -- a ratio of 553x. On a GitHub runner the
+    # same scenario costs 10846 ms (1.08x more) against a 33.5 ms reference
+    # (1.85x more), a ratio of 324x. The runner is disproportionately slow
+    # at the tiny 96-element reference, so every ratio COMPRESSES by up to
+    # 1.7x there. A budget is a property of the recording; an observation is
+    # a property of the machine, and judging the first by the second is
+    # exactly the false failure this file's whole design exists to avoid.
+    # Both figures are printed below so a reader sees the machine's own
+    # headroom too -- and note what that compression costs: where the table
+    # detects a 1.41x regression on the machine it was recorded on, it
+    # detects 1.5-2.4x on a runner whose ratios compress. Re-record there if
+    # that matters.
+    _recorded = [
+        float(entry["ratio"])
+        for entry in budget_table.values()
+        if isinstance(entry, dict) and float(entry.get("ratio", 0.0)) > 0.0
+    ]
+    _rec_worst = max(_recorded) if _recorded else _worst[0]
+    _rec_sweep = sum(_recorded) / len(_recorded) if _recorded else _sweep_ratio
+    _blind: list[str] = []
+    if SOLVE_BUDGET_RATIO >= DETECTION_TARGET * _rec_worst:
+        _blind.append(
+            f"the per-scenario ceiling is {SOLVE_BUDGET_RATIO:.0f}x against a "
+            f"dearest recorded {_rec_worst:.1f}x: it cannot see a "
+            f"{SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9):.2f}x regression, "
+            f"let alone a {DETECTION_TARGET:.0f}x one"
+        )
+    if SWEEP_BUDGET_RATIO >= DETECTION_TARGET * _rec_sweep:
+        _blind.append(
+            f"the sweep budget is {SWEEP_BUDGET_RATIO:.0f}x against a recorded "
+            f"mean of {_rec_sweep:.2f}x: it cannot see a "
+            f"{SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9):.2f}x regression"
+        )
+    # The per-scenario factor is NOT held to DETECTION_TARGET, and that is a
+    # measured concession rather than a comfortable one: some scenarios' cost
+    # is bimodal across platforms (see SCENARIO_BUDGET_FACTOR), so a factor
+    # under 2 false-fails on a runner where the solver picks another basin.
+    # What must see a DETECTION_TARGET-fold UNIFORM regression is the gate as
+    # a whole -- in practice the sweep budget, which averages basin flips
+    # away. The floor, though, may never be looser than the factor: that
+    # would rebuild D9-03's hole at the bottom of the table, where a budget
+    # sized for the dearest scenario gets applied to the cheapest.
+    _floor_blind = [
+        (label, float(entry["ratio"]))
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("ratio", 0.0)) > 0.0
+        and SCENARIO_BUDGET_FLOOR_RATIO
+        > SCENARIO_BUDGET_FACTOR * float(entry["ratio"])
+    ]
+    if _floor_blind:
+        _worst_floored = min(_floor_blind, key=lambda kv: kv[1])
+        _blind.append(
+            f"the per-scenario floor is {SCENARIO_BUDGET_FLOOR_RATIO:.2f}x and "
+            f"is looser than the {SCENARIO_BUDGET_FACTOR:.2f}x factor for "
+            f"{len(_floor_blind)} scenario(s) -- {_worst_floored[0]} is "
+            f"recorded at {_worst_floored[1]:.2f}x and could reach "
+            f"{SCENARIO_BUDGET_FLOOR_RATIO / _worst_floored[1]:.1f}x its cost "
+            f"before failing, against the "
+            f"{SCENARIO_BUDGET_FACTOR:.1f}x every other scenario gets"
+        )
+    print(
+        f"  detection against the RECORDED costs: per-scenario ceiling "
+        f"{SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9):.2f}x, sweep budget "
+        f"{SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9):.2f}x, per-scenario "
+        f"table {SCENARIO_BUDGET_FACTOR:.2f}x -- the smallest of those is the "
+        f"smallest UNIFORM regression this gate can see where it was "
+        f"recorded; a regression confined to one scenario is seen at "
+        f"{SCENARIO_WORK_FACTOR:.2f}x of that scenario's recorded solver "
+        f"work instead, or at {SCENARIO_KERNEL_FACTOR:.2f}x of the kernel "
+        f"CPU the baseline spent beside it (round-5 D9-07)"
+    )
+    # The memory rules owe the same answer (#949, round 4 D9-06): a 2x
+    # memory regression -- the DETECTION_TARGET -- passed all sixty-two
+    # checks on every one of the fifty-one scenarios while this very check
+    # printed green three lines below the silent memory section, because
+    # no arm here held the memory thresholds to the target. The multiples
+    # are exact rationals of the committed table and the module constants,
+    # so like the arms above this is machine-independent arithmetic judged
+    # against the recording, never against this run's own probes.
+    _mem_have_attrib = [
+        label
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("rss_peak_mb", 0.0)) > 0.0
+    ]
+    _mem_rss_mult = {
+        label: rss_attrib_fail_threshold(float(entry["rss_attrib_mb"]))
+        / float(entry["rss_attrib_mb"])
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("rss_attrib_mb", 0.0)) > 0.0
+    }
+    _mem_no_attrib = [
+        label for label in _mem_have_attrib if label not in _mem_rss_mult
+    ]
+    if _mem_no_attrib:
+        _blind.append(
+            f"{len(_mem_no_attrib)} recorded scenario(s) have an RSS peak "
+            f"but no rss_attrib_mb budget (first: "
+            f"{sorted(_mem_no_attrib)[0]}): the attributable rule cannot "
+            f"judge them -- re-record the memory half with "
+            f"`stress.py --record-memory`"
+        )
+    _mem_traced_mult = {
+        label: traced_fail_threshold(float(entry["traced_peak_mb"]))
+        / float(entry["traced_peak_mb"])
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("traced_peak_mb", 0.0)) > 0.0
+    }
+    _mem_blind_rss = [
+        label for label, m in _mem_rss_mult.items() if m >= DETECTION_TARGET
+    ]
+    if _mem_blind_rss:
+        _blind.append(
+            f"the memory RSS budget cannot see a {DETECTION_TARGET:.0f}x "
+            f"regression on {len(_mem_blind_rss)} of {len(_mem_rss_mult)} "
+            f"recorded scenario(s): the tightest threshold sits at "
+            f"{min(_mem_rss_mult[l] for l in _mem_blind_rss):.2f}x the "
+            f"recorded attributable peak, so anything smaller passes green"
+        )
+    _mem_blind_traced = [
+        label for label, m in _mem_traced_mult.items() if m >= DETECTION_TARGET
+    ]
+    if _mem_blind_traced:
+        _blind.append(
+            f"the memory traced budget cannot see a "
+            f"{DETECTION_TARGET:.0f}x regression on "
+            f"{len(_mem_blind_traced)} of {len(_mem_traced_mult)} recorded "
+            f"scenario(s): the tightest threshold sits at "
+            f"{min(_mem_traced_mult[l] for l in _mem_blind_traced):.2f}x the "
+            f"recorded peak, so anything smaller passes green"
+        )
+    if _mem_rss_mult and _mem_traced_mult:
+        print(
+            f"  detection for MEMORY: attributable-RSS budget "
+            f"{min(_mem_rss_mult.values()):.2f}x, traced budget "
+            f"{min(_mem_traced_mult.values()):.2f}x of the recorded peak, "
+            f"over the {len(mem_labels)} scenario(s) this pass probes -- a "
+            f"regression smaller than these multiples passes the memory "
+            f"section green"
+        )
+    print(
+        f"  detection on THIS machine: per-scenario ceiling "
+        f"{live_solve_budget_ratio() / max(_worst[0], 1e-9):.2f}x "
+        f"({SOLVE_BUDGET_RATIO:.0f}x x {SOLVE_RATIO_WOBBLE:g} wobble), "
+        f"sweep budget "
+        f"{SWEEP_BUDGET_RATIO / max(_sweep_ratio, 1e-9):.2f}x -- these move "
+        f"with the machine because the reference solve does not scale with "
+        f"the real ones (measured 1.7x of ratio compression between an M1 "
+        f"and a CI runner); re-record here to get the figures above"
+    )
+    _smallest = min(
+        SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9),
+        SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9),
+        SCENARIO_BUDGET_FACTOR,
+    )
+    if _smallest >= DETECTION_TARGET:
+        _blind.append(
+            f"the smallest uniform regression any budget could see is "
+            f"{_smallest:.2f}x, against a required {DETECTION_TARGET:.0f}x"
+        )
+    # The other half of the same question, and the one #346 was opened on:
+    # what is the smallest regression this gate sees when it is confined to
+    # ONE scenario? Not the min() above. Its sweep term is a mean over
+    # fifty-one, so a single scenario's doubling reaches it divided by
+    # fifty-one, and its per-scenario term is 3.0 for reasons no code change
+    # can move -- #371 measured the min() at 1.420 for every value of that
+    # factor from 3.0 to 100.0 and closed on it, which is what a decorative
+    # check looks like. It is SCENARIO_WORK_FACTOR, and that constant IS
+    # free to be tightened, so this check can bind on it -- as is
+    # SCENARIO_KERNEL_FACTOR, the kernel-CPU twin round-5 D9-07 added,
+    # which carries the one regression shape no count can see.
+    if SCENARIO_WORK_FACTOR >= DETECTION_TARGET or (
+        SCENARIO_KERNEL_FACTOR >= DETECTION_TARGET
+    ):
+        _blind.append(
+            f"a regression confined to ONE scenario is invisible below "
+            f"{SCENARIO_WORK_FACTOR:.2f}x of its recorded solver work or "
+            f"{SCENARIO_KERNEL_FACTOR:.2f}x of the kernel CPU the baseline "
+            f"spent beside it, against a required "
+            f"{DETECTION_TARGET:.0f}x"
+        )
+    R.check(
+        f"the budgets are tight enough to see a {DETECTION_TARGET:.0f}x "
+        "regression, uniform or confined to one scenario",
+        not _blind,
+        "; ".join(_blind)
+        + "; re-derive the budgets from a measured quiet run "
+        "(tests/stress.py prints its own figures) rather than widening them",
+    )
+
+    # The thread factor has to cancel, or the budgets do not travel.
+    #
+    # time.process_time() sums CPU over every thread in the process. A numpy
+    # built against a threaded BLAS records roughly N times the single-threaded
+    # figure for work big enough to parallelise. That is perfectly stable on one
+    # machine and completely unstable across machines -- CI has a different core
+    # count -- so a ratio calibrated here would be systematically wrong there.
+    #
+    # It cancels in the ratio only if the reference and the scenarios are
+    # parallelised to the SAME degree, and they need not be: the reference works
+    # on 96-element vectors that no BLAS bothers to thread, while a scenario
+    # solve touches larger arrays that one might. So rather than assume it, the
+    # run measures both factors and says so. If they diverge the ratio is not a
+    # pure work ratio any more and the budget below is not portable -- which is
+    # a thing to be told, loudly, not to discover as a mystery failure on a
+    # runner with a different core count. Pinning OMP_NUM_THREADS and
+    # OPENBLAS_NUM_THREADS to 1 makes both factors 1 and the question go away.
+    _ref_parallel = calibration.parallelism
+    _solve_parallel = (
+        sweep_solve_ms / sweep_solve_thread_ms if sweep_solve_thread_ms > 1e-9 else 1.0
+    )
+    print(
+        f"  thread factor (process CPU / this-thread CPU): reference "
+        f"{_ref_parallel:.3f}, scenarios {_solve_parallel:.3f} -- these must "
+        f"match for the ratio above to be a pure work ratio that travels to "
+        f"another machine"
+    )
+    R.check(
+        "the reference and the scenarios are parallelised alike, so the thread "
+        "factor cancels in the ratio",
+        abs(_ref_parallel - _solve_parallel) <= 0.25 * max(_ref_parallel, 1.0),
+        f"reference runs at {_ref_parallel:.2f} threads' worth of CPU and the "
+        f"scenarios at {_solve_parallel:.2f}; the ratio then carries a thread "
+        f"factor that will differ on a machine with another core count. Pin "
+        f"OMP_NUM_THREADS=1 and OPENBLAS_NUM_THREADS=1 for this suite, or "
+        f"recalibrate STRESS_SOLVE_RATIO and STRESS_SWEEP_RATIO on this machine",
+    )
+
+    # Not redundant, whatever it looks like. A CPU-time budget measures work
+    # done, so it is blind to a regression that makes the solver WAIT rather
+    # than compute -- a lock held across a solve, an I/O stall, a retry loop
+    # with a sleep in it, a solve that never converges and never returns. Those
+    # consume no CPU and would sail through every check above while making the
+    # gate take an hour longer. The wall clock is the only thing that sees them,
+    # which is why this ceiling stays on the wall clock and stays in the file.
+    R.check(
+        "no scenario hits the absolute pathological-solve ceiling",
+        not pathological,
+        f"wall-clock ceiling {SOLVE_CEILING_MS:.0f} ms: " + "; ".join(pathological),
+    )
+
+
+    # ===========================================================================
+    # Economics: the claims the integration makes
+    # ===========================================================================
+    R.section("Economics")
+
+
+    def thermostat_cost(run: dict) -> float:
+        """What a plain setpoint-holding thermostat would spend."""
+        power, _ = run["optimizer"]._compute_baseline_power(
+            run["initial"], run["outdoor"], run["wind"], run["rain"], run["solar"], DT
+        )
+        return float(np.sum(run["prices"] * np.asarray(power) * DT))
+
+
+    for season in ("winter", "winter_extreme", "shoulder"):
+        run = case(season=season, two_zone=False, dhw=False)
+        result = run["result"]
+        baseline = thermostat_cost(run)
+        R.check(
+            f"{season}: cheaper than holding the setpoint",
+            result.predicted_cost < baseline,
+            f"{result.predicted_cost:.2f} vs {baseline:.2f}",
+        )
+
+    # With a flat price curve there is nothing to arbitrage, so the optimizer
+    # should not be *worse* than a thermostat -- but neither should it claim a
+    # large saving, which would mean it is simply running colder.
+    flat = case(season="flat", two_zone=False, dhw=False)
+    R.check(
+        "a flat price curve produces no fictitious saving",
+        flat["result"].savings_percentage < 35.0,
+        f"claimed {flat['result'].savings_percentage:.1f}%",
+    )
+    R.check(
+        "a flat price curve still respects comfort",
+        comfort_violation(flat) <= COMFORT_TOLERANCE_DEGREE_HOURS,
+        f"{comfort_violation(flat):.2f} degree-hours",
+    )
+
+    # More price spread must buy more saving. If it does not, the optimizer is not
+    # actually responding to price.
+    spread_savings = {}
+    for season in ("flat", "winter", "winter_extreme"):
+        run = case(season=season, two_zone=False, dhw=False)
+        prices_arr = np.asarray(run["result"].prices)
+        spread = float(prices_arr.max() - prices_arr.min())
+        spread_savings[season] = (spread, run["result"].savings_percentage)
+
+    R.check(
+        "a wider price spread yields a larger saving",
+        spread_savings["winter_extreme"][1] > spread_savings["winter"][1]
+        > spread_savings["flat"][1],
+        ", ".join(
+            f"{k}: spread {v[0]:.2f} -> {v[1]:.0f}%" for k, v in spread_savings.items()
+        ),
+    )
+
+    # Comfort weight is the money/degrees exchange rate, and the README publishes
+    # a table of what it buys. That table is the contract, so it is what gets
+    # checked -- over the documented range, where the signal is far larger than the
+    # solver noise discussed below.
+    # One case, four re-optimizations. It used to build the case inside the
+    # loop, which solved it a fifth, sixth, seventh and eighth time and read
+    # none of those four results -- the loop wants the case's model, config
+    # and inputs, never its plan. The config is COPIED rather than mutated
+    # in place: it is now shared with every other user of this scenario, and
+    # leaving comfort_weight at 40 behind would silently change them.
+    comfort_curve = []
+    _comfort_base = case(season="winter", two_zone=False, dhw=False)
+    for weight in (5.0, 10.0, 20.0, 40.0):
+        run = _comfort_base
+        weighted = copy.copy(run["config"])
+        weighted.comfort_weight = weight
+        optimizer = HeatPumpOptimizer(run["model"], weighted)
+        result = optimizer.optimize(
+            run["initial"], run["prices"], run["outdoor"], run["wind"],
+            run["rain"], run["solar"], START,
+        )
+        comfort_curve.append(
+            (weight, float(np.mean(result.room_temp_trajectory)),
+             result.savings_percentage)
+        )
+
+    temps = [t for _, t, _ in comfort_curve]
+    savings = [s for _, _, s in comfort_curve]
+    R.check(
+        "a higher comfort weight is warmer, across the documented range",
+        all(a < b for a, b in zip(temps, temps[1:])),
+        ", ".join(f"w={w:.0f}: {t:.2f}°C" for w, t, _ in comfort_curve),
+    )
+    R.check(
+        "a higher comfort weight saves less, across the documented range",
+        all(a > b for a, b in zip(savings, savings[1:])),
+        ", ".join(f"w={w:.0f}: {s:.0f}%" for w, _, s in comfort_curve),
+    )
+    # The README's own table, reproduced. If this drifts, either the optimizer
+    # changed or the documentation is now lying to users.
+    documented = {5.0: (19.4, 53), 10.0: (19.8, 51), 20.0: (20.2, 49), 40.0: (20.4, 47)}
+    drift = [
+        f"w={w:.0f}: {t:.1f}°C/{s:.0f}% vs documented "
+        f"{documented[w][0]}°C/{documented[w][1]}%"
+        for w, t, s in comfort_curve
+        if abs(t - documented[w][0]) > 0.15 or abs(s - documented[w][1]) > 2
+    ]
+    R.check("the README's comfort-weight table still holds", not drift, "; ".join(drift))
+
+    # Solver noise, measured directly. The objective is non-convex -- the
+    # comfort penalty is one-sided and the price signal creates several distinct
+    # "charge here, coast there" patterns that are each locally optimal -- so a
+    # meaningless perturbation can in principle drop the solver into a different
+    # basin. This used to be measured between comfort weights 2 and 5, on the
+    # observation that nearby weights differ only by basin noise (~1%). The
+    # v3.8.0 wind-default correction gave the comfort trade room to be real:
+    # weight 2 vs 5 now buys 0.3 K of average warmth for 17% of cost, and even
+    # 5 vs 5.25 moves 0.7 kWh of genuine energy, so no weight pair isolates
+    # noise from signal any more. An economically nil perturbation does: a
+    # ±1e-6 wobble on the prices changes the optimal cost by nothing a user
+    # could ever see, so whatever it moves is pure solver instability.
+    adjacent = []
+    for scale in (0.0, 1.0):
+        # Same case both times, by construction: the wobble is the only
+        # thing that differs, which is the whole point of the measurement.
+        # Rebuilding it inside the loop also re-solved it twice over,
+        # unread.
+        run = case(season="winter", two_zone=False, dhw=False)
+        optimizer = HeatPumpOptimizer(run["model"], run["config"])
+        wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
+        result = optimizer.optimize(
+            run["initial"], run["prices"] + wobble, run["outdoor"], run["wind"],
+            run["rain"], run["solar"], START,
+        )
+        adjacent.append(result.predicted_cost)
+    R.check(
+        "solver noise under an economically nil perturbation stays small",
+        abs(adjacent[0] - adjacent[1]) / max(adjacent) < 0.02,
+        f"{adjacent[0]:.2f} vs {adjacent[1]:.2f}",
+    )
+
+    # The capacity tariff must actually flatten the peak it is priced against.
+    plain = case(season="winter", two_zone=True, dhw=True)
+    tariffed = case(season="winter", two_zone=True, dhw=True, tariff=True)
+    plain_peak = plain["result"].projected_peak_kw
+    tariff_peak = tariffed["result"].projected_peak_kw
+    R.check(
+        "a capacity tariff lowers the projected peak",
+        tariff_peak <= plain_peak + 1e-6,
+        f"{plain_peak:.2f} kW -> {tariff_peak:.2f} kW",
+    )
+    R.check(
+        "and does not wreck comfort doing it",
+        comfort_violation(tariffed) <= COMFORT_TOLERANCE_DEGREE_HOURS,
+        f"{comfort_violation(tariffed):.2f} degree-hours",
+    )
+
+    # A cycling cost must reduce cycling.
+    smooth = case(season="winter", two_zone=False, dhw=True, cycling=3.0)
+    rough = case(season="winter", two_zone=False, dhw=True, cycling=0.0)
+    R.check(
+        "a cycling cost reduces compressor starts",
+        smooth["result"].compressor_starts <= rough["result"].compressor_starts,
+        f"{rough['result'].compressor_starts} -> {smooth['result'].compressor_starts}",
+    )
+
+    # PV surplus must pull consumption into the surplus hours.
+    sunny = case(season="shoulder", two_zone=False, dhw=True, pv=True)
+    R.check(
+        "PV surplus is self-consumed",
+        sunny["result"].pv_self_consumed_kwh > 0.0,
+        f"{sunny['result'].pv_self_consumed_kwh:.2f} kWh",
+    )
+
+    # A better heat pump must never leave the house worse off. It is tempting to
+    # assert simply that it costs less, and that was the check here until v3.9.0 --
+    # but it is not an invariant of an optimizer that values comfort, and it fails
+    # for a legitimate reason.
+    #
+    # `winter_typical` has a six-hour cheap night block, which is exactly 24
+    # quarter-hour steps; both plans saturate it, so both buy 36.00 kWh and both
+    # spend 23.28 SEK. What the efficient pump does with that identical energy is
+    # deliver more heat: the same money buys a house 0.95 K warmer on average and
+    # 1.21 K warmer at its coldest. Efficiency is converted into whichever of
+    # money or comfort the user's `comfort_weight` says is worth more, and here
+    # the price structure means the cheap window binds before the money does.
+    #
+    # So the honest invariant is dominance: never worse on either axis, and
+    # strictly better on at least one.
+    efficient = case(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
+    standard = case(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
+
+
+    def _warmth(run):
+        """Mean indoor temperature the plan actually delivers."""
+        result = run["result"]
+        series = [
+            s
+            for s in (result.upper_temp_trajectory, result.lower_temp_trajectory)
+            if s
+        ] or [result.room_temp_trajectory]
+        return float(np.mean([np.mean(np.asarray(s)[1:]) for s in series]))
+
+
+    _eff_cost = efficient["result"].predicted_cost
+    _std_cost = standard["result"].predicted_cost
+    _eff_warm, _std_warm = _warmth(efficient), _warmth(standard)
+    R.check(
+        "a more efficient heat pump is never worse, and is better somewhere",
+        _eff_cost <= _std_cost + 1e-6
+        and _eff_warm >= _std_warm - 1e-6
+        and (_eff_cost < _std_cost - 1e-6 or _eff_warm > _std_warm + 1e-6),
+        f"cost {_std_cost:.2f} -> {_eff_cost:.2f}, "
+        f"mean indoor {_std_warm:.2f} -> {_eff_warm:.2f} °C",
+    )
+
+    # A leakier house must cost more than a tight one, all else equal.
+    tight = case(season="winter", building="light_new", dhw=False)
+    leaky = case(season="winter", building="heavy_old", dhw=False)
+    R.check(
+        "a leakier, larger house costs more to heat",
+        leaky["result"].predicted_cost > tight["result"].predicted_cost,
+        f"{tight['result'].predicted_cost:.2f} vs {leaky['result'].predicted_cost:.2f}",
+    )
+
+
+    # ===========================================================================
+    # Edge conditions
+    # ===========================================================================
+    R.section("Edge conditions")
+
+    edges = {
+        "very cold start": dict(
+            season="winter", state={"room_temperature": 10.0,
+                                    "upper_floor_temperature": 10.0,
+                                    "lower_floor_temperature": 10.0,
+                                    "slab_temperature": 11.0}),
+        "overheated start": dict(
+            season="summer", state={"room_temperature": 30.0,
+                                    "upper_floor_temperature": 30.0,
+                                    "lower_floor_temperature": 30.0}),
+        "empty tank": dict(season="winter", state={"dhw_temperature": 10.0}),
+        "boiling tank": dict(season="winter", state={"dhw_temperature": 70.0}),
+        "legionella overdue": dict(
+            season="winter", state={"dhw_hours_since_legionella": 400.0}),
+        "collapsed comfort band": dict(
+            season="winter",
+            config={"min_temperature": 21.0, "target_temperature": 21.0,
+                    "max_temperature": 21.0}),
+        "enormous band": dict(
+            season="winter",
+            config={"min_temperature": 5.0, "max_temperature": 35.0}),
+        "tiny pump": dict(season="winter", config={"heat_pump_max_power": 0.5}),
+        "huge pump": dict(season="winter", config={"heat_pump_max_power": 40.0}),
+        "tiny tank": dict(season="winter", config={"dhw_tank_volume": 20.0}),
+        "enormous tank": dict(season="winter", config={"dhw_tank_volume": 2000.0}),
+        "no demand windows": dict(season="winter", config={"dhw_windows": ""}),
+        "all-day window": dict(season="winter", config={"dhw_windows": "00:00-24:00"}),
+        "six hour horizon": dict(season="winter", hours=6),
+        "48 hour horizon": dict(season="winter", hours=48),
+        "negative prices": dict(season="summer_negative"),
+        "external heat": dict(
+            season="winter", state={"external_heat_active": True,
+                                    "dhw_temperature": 60.0}),
+    }
+
+    edge_failures = 0
+    for label, spec in edges.items():
+        try:
+            run = case(**spec)
+        except Exception as err:  # noqa: BLE001 - a crash is the finding
+            edge_failures += 1
+            print(f"  FAIL {label}: raised {type(err).__name__}: {err}")
+            continue
+        problems = check_invariants(label, run)
+        if problems:
+            edge_failures += 1
+            print(f"  FAIL {label}")
+            for p in problems:
+                print(f"         {p}")
+
+    R.check(
+        f"all {len(edges)} edge conditions produce a sound plan",
+        edge_failures == 0,
+        f"{edge_failures} failed",
+    )
+
+    # A pump that physically cannot keep up must still produce its best effort
+    # rather than an infeasible or nonsensical plan.
+    tiny = case(season="winter", config={"heat_pump_max_power": 0.5}, dhw=False)
+    R.check(
+        "an undersized pump runs flat out rather than giving up",
+        float(np.mean(tiny["result"].power_schedule)) > 0.3,
+        f"mean {float(np.mean(tiny['result'].power_schedule)):.3f} kW of 0.5 kW",
+    )
+
+    # Negative prices mean being paid to consume; the plan should take some.
+    negative = case(season="summer_negative", dhw=True)
+    cheapest = float(np.min(negative["result"].prices))
+    if cheapest < 0:
+        total = np.asarray(negative["result"].power_schedule) + np.asarray(
+            negative["result"].dhw_power_schedule or 0.0
+        )
+        negative_steps = np.asarray(negative["result"].prices) < 0
+        R.check(
+            "negative prices are exploited rather than ignored",
+            float(np.sum(total[negative_steps])) > 0.0,
+            "nothing was consumed while being paid to consume",
+        )
+
+    # External heat must suppress discretionary electric hot water. The
+    # suppression only zeroes planned DHW steps inside its 2 h coasting horizon,
+    # and only where coasting on nothing would still meet the requirement — so
+    # the energy it can remove is by construction DISCRETIONARY: pre-heating
+    # ahead of a window, never a run the floor is forcing. The scenario has to
+    # put exactly that kind of power in the first two hours, which is why the
+    # guard below exists: a pair of already-hot tanks would produce
+    # byte-identical plans and a check that can never fail.
+    #
+    # The default windows do it. START is midnight and the first window opens at
+    # 06:00, so the first two hours are the night trough (0.62 SEK against a
+    # 2.85 peak) and a tank three degrees under its charge limit pre-buys there
+    # for the morning — 3.1 kW of it — while coasting alone still clears the
+    # floor, so the fire can take all of it away.
+    #
+    # A window opening AT t=0 was used here until v5.1.10 and no longer works.
+    # With the disinfection temperature out of `dhw_max_temp` the everyday
+    # ceiling is the user's 55 °C charge limit, so a tank starting at 52 °C
+    # inside a demand window has three degrees of headroom rather than eight:
+    # it is already above the floor, and the plan buys later in the window
+    # instead of immediately. Baseline and fire then both plan 0.00 kW in the
+    # first two hours and the suppression check measures nothing — which is
+    # precisely what the guard caught.
+    _fire_spec = dict(season="winter")
+    with_fire = case(
+        **_fire_spec, state={"external_heat_active": True, "dhw_temperature": 52.0}
+    )
+    without_fire = case(**_fire_spec, state={"dhw_temperature": 52.0})
+    _horizon_steps = int(round(2.0 / DT))
+    _fire_early = float(np.sum(with_fire["result"].dhw_power_schedule[:_horizon_steps]))
+    _base_early = float(
+        np.sum(without_fire["result"].dhw_power_schedule[:_horizon_steps])
+    )
+    R.check(
+        "the baseline scenario plans electric hot water inside the 2 h horizon",
+        _base_early > 1e-6,
+        f"only {_base_early:.2f} kW planned; the suppression check would be vacuous",
+    )
+    R.check(
+        "an external heat source suppresses electric hot water",
+        _fire_early < _base_early - 1e-6,
+        f"first 2 h: {_base_early:.2f} -> {_fire_early:.2f} kW (no suppression)",
+    )
+    R.check(
+        "suppression lowers total electric DHW energy, not just moves it",
+        float(np.sum(with_fire["result"].dhw_power_schedule))
+        < float(np.sum(without_fire["result"].dhw_power_schedule)) - 1e-6,
+        f"{float(np.sum(without_fire['result'].dhw_power_schedule)):.2f} -> "
+        f"{float(np.sum(with_fire['result'].dhw_power_schedule)):.2f}",
+    )
+
+
+    sys.exit(R.close("STRESS CHECKS"))

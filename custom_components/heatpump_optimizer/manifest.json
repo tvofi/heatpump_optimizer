@@ -1,0 +1,24 @@
+{
+  "domain": "heatpump_optimizer",
+  "name": "Heat Pump Cost Optimizer",
+  "after_dependencies": [
+    "mqtt"
+  ],
+  "codeowners": [
+    "@tvofi"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
+  "documentation": "https://github.com/tvofi/heatpump_optimizer",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/tvofi/heatpump_optimizer/issues",
+  "quality_scale": "platinum",
+  "requirements": [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "threadpoolctl>=3.5.0"
+  ],
+  "version": "6.6.12"
+}

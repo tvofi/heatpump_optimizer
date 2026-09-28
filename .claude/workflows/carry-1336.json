@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Carry destination for issue #1336 (R5-D9-05, the round-5 D9 audit's",
+    "polish-cost finding; its `the stress budget table likely needs",
+    "re-derivation` hypothesis is refuted in the pull request under this",
+    "issue). The stage that needs this is any later seat that judges or",
+    "re-records the D9 memory arm -- a later round's D9 dimension, or a seat",
+    "running `tests/stress.py --record-memory`. No roster group in this tree",
+    "claims #1336 (no wave-*-groups.json names D9, the round-5 audit or the",
+    "issue), so this file is that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1336,
+  "stage": "any later seat that judges or re-records the D9 memory arm (a later round's D9 dimension; tools/audit/briefs/D9.md is its method, the memory pass in tests/stress.py its instrument, tools/audit/round5/D9/* its round-5 harnesses)",
+  "carries": [
+    {
+      "from": "the pull request that follows round-1's guard ddbb6878 and judges the memory stale arm's attributable axis only where the probe's own watermark fell below its record (tests/stress.py, attributable_reads_the_tree)",
+      "effect": "narrows",
+      "control": "The assumption invalidated: that a cheap attributable-RSS reading means a cheaper tree. The attributable is `max(0.0, rss_peak - baseline_rss)`, a difference of two SEPARATELY launched probe watermarks, so it is floor-relative in a way its record is not, and the pass subtracts ONE empty-probe baseline from every probe of a run. Measured on `fast (3.14)` run 35664329700, job 106546561583 (2026-09-21): the empty probe read 95.2 MiB and all six probed scenarios read 95.2-95.7 MiB, an attributable of 0.0-0.5 MiB against records of 9.40-16.70 MiB -- every probed scenario's whole recorded footprint (82-92 MiB peak) below that platform's import floor, so the difference measured the platform's own resident and not the scenario. The null control is the same pass on a platform whose floor sits below the records (77.1 MiB, measured locally): it read attributable 6.8-10.3 MiB against those same records and passed. The independent refutation in the same CI run is the traced axis, which travels (3.5 MiB against 3.4-3.5 recorded, unchanged) -- a cheaper tree would have moved it too. The first guard (ddbb6878) declined only the exactly-0.00 clamp, but the watermark is rounded to 0.1 MiB, so a probe one tick clear of the empty base reads a positive attributable no zero-guard can refuse; that is the red this follow-up answers.",
+      "remeasure": "Do not trust this paragraph's numbers: they are properties of the RUNNER's import floor, not of the record, and the floor moves with the interpreter, numpy and the OS. Re-establish it at your own merge base by reading the memory pass's own printed lines -- `empty-probe baseline (...) MiB` and the per-scenario `RSS peak / attributable / traced` rows -- and check whether each probed scenario's `rss_peak` sits above or below its recorded `rss_peak_mb` in tests/stress_budgets.json. A platform whose floor is at or above a record cannot read that scenario's attributable, which is the case the arm now declines and names.",
+      "brief": "The memory stale arm's attributable-RSS axis is judged ONLY where the probe's own watermark fell below its record (`attributable_reads_the_tree`); the pass NAMES and PRINTS each declination (`attributable RSS: N of M probe(s) read at this platform's import floor ...`) and does not count them as judged. So a declined attributable is an instrument saying nothing, never a verdict of `fine`: do not read a green memory stale check on a platform whose floor is at or above the records as evidence that no scenario got cheaper. The axis that travels is `traced_peak_mb` (a ~1 % clean spread, and bit-identical between the CI runner and the record), so price or audit attributable-RSS improvements against the traced axis, and re-record the memory half with `stress.py --record-memory` only from the canonical recording environment -- a re-record taken on a runner whose floor sits above the records would pin that runner's noise and blind the arm."
+    }
+  ]
+}

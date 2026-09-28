@@ -1,0 +1,43 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             87d780c7822093a617c20f0056e86cef323e8b47
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 210 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  ok       wave-script            151 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 87d780c7822093a617c20f0056e86cef323e8b47 ok
+  ok       closures               scoped recordings are covered
+  ok       closes #1667 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             11:none
+             36:every
+             43:every
+             44:every
+             46:never
+             48:every
+             61:each
+             72:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             22 s
+             12 s
+             22 r
+             1720 w
+             373 a
+  ok       policy corpus -- current with origin/main (1 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/07a1ebb3-77dc-514b-aed6-75fef96d253b/scratchpad/f116/body.md
+  ok       figures                FIGURES: 7 resolved, 1 not verified, 0 refused
+  ok       push order             origin/handoff/r9-f11-governance-6-v3 is at 8bcce59d -- local mirror, unfetched
+
+PRE-PR: 8bcce59debfc04914cb538591c2e81d54de815fa 000000000000000000000
+prepr rc=0

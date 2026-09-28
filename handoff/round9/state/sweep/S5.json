@@ -1,0 +1,224 @@
+[
+  {
+    "class": "P9",
+    "N": 5,
+    "rca": true,
+    "barrier_proposal": "enumerate.mjs canonical-grid invocation as a CI 'browser' lane asserting contrast_instances==0, popup_out_cells==0, option_indistinct_pairs==0, now_marker_collisions==0, overlap_instances==0",
+    "gate_seconds": 35,
+    "seams": [
+      {
+        "path": "heatpump-optimizer-card.js:whatif/save/pin/dhw-warn text",
+        "disposition": "instance",
+        "probe": "enumerate.mjs canonical grid, contrast_instances",
+        "note": "D4-s1-01: 90 instances below WCAG AA at baseline"
+      },
+      {
+        "path": "heatpump-optimizer-card.js:div.slot-menu placement",
+        "disposition": "instance",
+        "probe": "enumerate.mjs canonical grid, popup_out_cells",
+        "note": "D4-s1-02: 6 cells spill past chart/viewport"
+      },
+      {
+        "path": "heatpump-optimizer-card.js:div.setup-picker select.sp-select",
+        "disposition": "instance",
+        "probe": "enumerate.mjs canonical grid, option_indistinct_pairs",
+        "note": "D4-s1-03: 8 indistinguishable option pairs"
+      },
+      {
+        "path": "heatpump-optimizer-card.js:text.now-label/text.now-temp",
+        "disposition": "instance",
+        "probe": "enumerate.mjs canonical grid, now_marker_collisions",
+        "note": "D4-s1-05: 24 collisions"
+      },
+      {
+        "path": "heatpump-optimizer-card.js:svg axis number/unit label pairs",
+        "disposition": "instance",
+        "probe": "enumerate.mjs canonical grid, overlap_instances (subset excl. now-marker)",
+        "note": "new: 160 overlap instances total, of which 136 are axis-label pairs distinct from the now-marker collision seam"
+      },
+      {
+        "path": "heatpump-optimizer-card.js:chart pan svg / setup-hit rects",
+        "disposition": "not applicable",
+        "probe": "not measured this session (--no-keys skipped keyboard cells)",
+        "note": "pointerOnly_instances=204 across 8 selectors; exposure only, not counted toward N -- keyboard cells not run this session"
+      }
+    ]
+  },
+  {
+    "class": "P3",
+    "N": 3,
+    "rca": true,
+    "barrier_proposal": "p3_floors.py as a tests/ lint with an allow-list of the 22 (group, floor) pairs; refuse a new group or a floor raised above the config schema minimum",
+    "gate_seconds": 2,
+    "seams": [
+      {
+        "path": "optimizer.py/thermal_model.py:dhw_tank_thermal_mass",
+        "disposition": "instance",
+        "probe": "p3_floors.py --json, buffer_tank_thermal_mass_seam",
+        "note": "D14-s3-01: floored at 1e-6 in _clamp_dhw_to_capacity, read raw as divisor in _dhw_window_floors/simulate_dhw_step"
+      },
+      {
+        "path": "optimizer.py:_comfort_terms_batch two-zone halving",
+        "disposition": "instance",
+        "probe": "judge verdict (outside p3_floors.py's literal floor/raw shape)",
+        "note": "D2-s2-81: two-zone comfort penalty halves each zone's floor price"
+      },
+      {
+        "path": "optimizer.py/sensor.py:power_normalized on/off pump",
+        "disposition": "instance",
+        "probe": "judge verdict (outside p3_floors.py's literal floor/raw shape)",
+        "note": "D12-s2-03: publishes 'eco' and runs to -60 on an on/off pump"
+      },
+      {
+        "path": "22 (group, floor) pairs from p3_floors.py --json",
+        "disposition": "guarded",
+        "probe": "p3_floors.py --json seams.json (19 groups not already counted as instance)",
+        "note": "every floor sits at or below the config schema's _number minimum; not reachable from the UI"
+      }
+    ]
+  },
+  {
+    "class": "P5",
+    "N": 3,
+    "rca": true,
+    "barrier_proposal": "p5_gate.py (no flags) as a tests/ script asserting p5_admitted_over_bar == 0",
+    "gate_seconds": 2,
+    "seams": [
+      {
+        "path": "sysid.py:adoption_decision / UA_ADOPTION_HALFWIDTH_BAR (typical_slab, gains mag 0.4)",
+        "disposition": "instance",
+        "probe": "p5_gate.py, p5_admitted_over_bar cell",
+        "note": "D2-s4-01/D14-s3-03: -10.70% true UA error admitted"
+      },
+      {
+        "path": "sysid.py:adoption_decision (typical_slab, gains mag 0.8)",
+        "disposition": "instance",
+        "probe": "p5_gate.py, p5_admitted_over_bar cell",
+        "note": "D2-s4-81: -21.43% true UA error admitted, worst blended shift -7.97%"
+      },
+      {
+        "path": "sysid.py:adoption_decision (heavy_old, gains mag 0.8)",
+        "disposition": "instance",
+        "probe": "p5_gate.py, p5_admitted_over_bar cell",
+        "note": "D14-s3-03: -12.15% true UA error admitted"
+      },
+      {
+        "path": "coordinator.py: 19 learned-parameter writer seams (p5_gate.py --seams)",
+        "disposition": "not applicable",
+        "probe": "p5_gate.py --seams",
+        "note": "15 passive-learner seams apply bounded EWMA updates with no discrete admit/reject gate to key inconsistently; 1 seam (async_update_thermal_params) is a lead (see SWEEP.md), not a P5 instance since it has no gate at all"
+      }
+    ]
+  },
+  {
+    "class": "avoidable interpreter-bound recomputation in the solve",
+    "N": 5,
+    "rca": true,
+    "barrier_proposal": "nightly ratchet: enumerate.py's dynamic call-count profiling asserting recompute_instances may only fall",
+    "gate_seconds": 18,
+    "seams": [
+      {
+        "path": "optimizer.py:1889,1915 HeatPumpOptimizer._comfort_terms_batch",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve=453",
+        "note": "D9-s1-01: per-row python loop, 13-32% of solve"
+      },
+      {
+        "path": "optimizer.py:_scoped_minimize scalar objective calls",
+        "disposition": "instance",
+        "probe": "scalar_objective.py (D9-s1, not a for-loop shape, not caught by enumerate.py's static scan)",
+        "note": "D9-s1-02: L-BFGS-B asks scalar objective per iterate, 9-19% of solve"
+      },
+      {
+        "path": "optimizer.py:5584 HeatPumpOptimizer._clamp_dhw_to_capacity / DHW min-run repair",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve=5; dhw_min_run.py",
+        "note": "D9-s1-04: full-suffix re-simulation per refused weak slot, 12-23% of DHW solve"
+      },
+      {
+        "path": "thermal_model.py: ThermalParameters.{dhw_tank_heat_loss_coefficient,dhw_inlet_reference,effective_dhw_draw_pattern}",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve=5594/16747/97",
+        "note": "D9-s1-71: recomputed 15-45k times/solve (this profiled cell: up to 16747), no per-solve cache"
+      },
+      {
+        "path": "optimizer.py:819 cycling_penalty_batch",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve=453",
+        "note": "new: same per-row-loop shape as D9-s1-01, independent function"
+      },
+      {
+        "path": "thermal_model.py: ThermalParameters.{lower_floor_heat_loss_learned,buffer_tank_thermal_mass,buffer_tank_heat_loss_coefficient,dhw_tank_thermal_mass,dhw_hard_max_temp,dhw_windows_active}",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve up to 176354",
+        "note": "new: widens D9-s1-71's 3 named helpers to 6 more properties on the same class with no cache, folded into the same finding/mechanism"
+      },
+      {
+        "path": "thermal_model.py: ThermalParameters.{topology_layout,two_tank_modelled}",
+        "disposition": "instance",
+        "probe": "enumerate.py, ncalls_per_solve=100",
+        "note": "new, low severity: cheap O(1) boolean derivations recomputed 100x/solve; negligible CPU despite meeting the class's literal shape"
+      },
+      {
+        "path": "34 other statically-reachable loops/properties",
+        "disposition": "not applicable",
+        "probe": "enumerate.py seams.json",
+        "note": "called O(1) times in the profiled solve: setup, bounded repair rounds, or post-solve reporting"
+      }
+    ]
+  },
+  {
+    "class": "CPU gate blind to a regression outside its sampled work",
+    "N": 3,
+    "rca": true,
+    "barrier_proposal": "3 additive tests/stress.py & tests/replay.py channels: per-scenario non-kernel CPU vs same-machine baseline; loop-thread-only cost channel in cost_offenders; at least one throttling-valve scenario in sweep_combinations()",
+    "gate_seconds": 5,
+    "seams": [
+      {
+        "path": "tests/replay.py:cost_offenders / coordinator.py:_async_update_data loop-thread share",
+        "disposition": "instance",
+        "probe": "enumerate_loop.py, loop2x.offenders=0 vs cpu.offenders=1",
+        "note": "D9-s2-02: no budgeted check sees a 2x of loop-thread work; stress_cycle_functions=0"
+      },
+      {
+        "path": "tests/stress.py rules vs non-kernel solve CPU (objective assembly, DHW planning python)",
+        "disposition": "instance",
+        "probe": "enumerate_nonkernel.py (reused finder evidence: nonkernel2x_one 0 of 6 rules tripped at 1.92-2.21x)",
+        "note": "D9-s2-03: stress.py misses a confined 2x solve regression outside the 3 metered simulate seams"
+      },
+      {
+        "path": "tests/stress.py:sweep_combinations() throttling-valve topologies",
+        "disposition": "instance",
+        "probe": "enumerate_valve.py, stress_sweep_valve_cases=0 of 51",
+        "note": "D9-s2-71: gate samples 0 of 51 valve plants; valve solves cost 1.3-2.9x this run's controls"
+      }
+    ]
+  },
+  {
+    "class": "user state not surviving restart",
+    "N": 2,
+    "rca": true,
+    "barrier_proposal": "2 targeted fixes matching RC2's own pattern: await async_wait_for_read() at each of the 5 writer call sites (D1-s2-52); persist the 24 set_thermal_parameters fields through entry.options (D1-s2-53). Each barriered by its own enumerator asserting lost==0",
+    "gate_seconds": 2,
+    "seams": [
+      {
+        "path": "coordinator.py: 5 store writers (energy_totals, ledger, thermal_learning, price_model, accuracy)",
+        "disposition": "instance",
+        "probe": "enumerate_store_race.py, lost=5 stores_of_5",
+        "note": "D1-s2-52: writer races the fire-and-forget startup load; confirmed unfixed on current tip (post RC2/#1641)"
+      },
+      {
+        "path": "coordinator.py:async_update_thermal_params, 24 of 26 fields",
+        "disposition": "instance",
+        "probe": "enumerate_params_restart.py, lost=24 of_changed",
+        "note": "D1-s2-53: no persistence path at all for 24 fields; confirmed unfixed on current tip (post RC2/#1641)"
+      },
+      {
+        "path": "coordinator.py:async_set_mode",
+        "disposition": "guarded",
+        "probe": "enumerate_store_race.py, mode_arm_lost=0 of_1",
+        "note": "the one writer that already awaits its store's read before writing"
+      }
+    ]
+  }
+]

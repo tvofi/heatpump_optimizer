@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Carry destination for issue #1463 (R7-D9-02, the round-7 D9 audit's",
+    "finding that the per-candidate polish in _multi_start_minimize is ~35 % of",
+    "a solve's CPU and 37 % of its batched gradients, against the code's own",
+    "cost model 'one short L-BFGS-B run per candidate, not a second solve').",
+    "The stage that needs this is any later seat that prices that polish or",
+    "re-proposes a cut of it -- a later round's D9 dimension",
+    "(tools/audit/briefs/D9.md is its method, tests/stress.py its budget",
+    "instrument). No roster group in this tree claims #1463 (no",
+    "wave-*-groups.json names it), so this file is that stage's brief. Shape and",
+    "required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1463,
+  "stage": "any later seat that prices the per-candidate polish in optimizer._multi_start_minimize, or that re-proposes a cut of it (a later round's D9 dimension; tools/audit/briefs/D9.md is its method and tests/stress.py's per-scenario budgets its instrument)",
+  "carries": [
+    {
+      "from": "the round-7 optimizer fix group (D0-01 #1447, D2-02 #1451, D9-02 #1463), which closed D9-02 as a measured refusal instead of taking either cut the row's proposed_fix_scope names",
+      "effect": "narrows",
+      "control": "The claim is a negative result, so its control is the arm that cannot move: a cap that cannot bind (polish maxiter=1000, i.e. the probe's own replica of the production polish at the production budget) is bit-identical to a shipped control arm on all 21 scenarios of the wide grid, INCLUDING the grid's total polish-gradient count (1709 at both ends), while every cap that does bind moves at least two objectives. The shipped control runs the production function itself (optimizer._lbfgsb_restart), so the probe's replica cannot be what makes an arm look equal. What would have falsified the finding: any binding arm that left all 21 objectives unchanged AND cut the polish's gradients -- none did, so the cost is bought rather than waste. The finding's own arm is the perturbed one: polish_cost.py --dhw-free reads polish_cpu_share 0.3583 / polish_gradient_share 0.3595 at the merge base (the finder's own 0.3580 / 0.3595), which attributes the cost to the polish and not to the DHW planner.",
+      "remeasure": "Do not trust this paragraph's numbers: they are this branch's, and a later stage is judged against its own merge base. The round-7 D9 harnesses are not in this tree; re-export that round's evidence or rebuild the two probes and drive them with `PYTHONPATH=tests/hastub python3 <probe>` from the repository root. The metric is the polish's fraction of the solve's batched gradients, measured by hooking optimizer._lbfgsb_restart around stress.build_case's solve; re-measure it on the default two-zone DHW shape and on the --dhw-free space-only shape. Then re-price any proposed cut over the wide grid (all seven stress seasons x one/two-zone, plus tariff, PV, three building presets and a cycling penalty) against a shipped arm and a non-binding-cap arm, and report per-scenario objective movement rather than the aggregate: this round's worst was +0.1807 % of the objective, on two axes (flat/1z/dhw and the light_new building preset) under every binding route. Read res.nit from the polish's own scipy result before choosing a cap -- it is the number that says whether a cap binds.",
+      "brief": "The per-candidate polish is expensive and the cost is deliberate. `_multi_start_minimize` polishes EVERY solved candidate (R5 D0-02 / #1208, owner override 2026-09-20 to the unbounded form), and round 7 measured it at 0.3496-0.3512 of a default two-zone DHW solve's CPU and 0.3710 of its batched gradients (164 of 442). The code comment's old claim -- 'one short L-BFGS-B run per candidate, not a second solve' -- is false for a reason worth knowing: the restart stops on ITS OWN convergence, at the same ftol=1e-6 the run it restarts used, so its length is set by the objective and not by the budget handed in. Measured per-polish nit on the default shape is 18 / 6 / 4 / 4 against maxiter=300, and on the space-only shape 0 / 4 / 13 / 0 / 4; the winning polish on both shapes is the nit=4 one. A cap therefore does nothing until it truncates a restart that is doing real work, and every route tried -- polish maxiter caps at 4, 12 and 20; a cap at the main run's own nit; polish ftol at 2e-5, 5e-6 and 1e-5; polishing only the best-scoring two candidates -- moved at least two of the 21 objectives, worst +0.1807 %, each a strictly worse plan because the polish can only add descent. That is the R6 D0-02 (#1378) class, a fixed cut that silently discards a refinement, which is why the round retained the cost and corrected only the cost model. If a later seat proposes a cut, the price is that table, not the CPU share alone; and a plan-moving cut widens the may-drift allow-set in tests/env_drift.py (MAY_DRIFT_ALLOWED, pinned by set-equality in tests/entities.py) or needs a claim in tests/golden/claimed_drift.txt, which is an owner's call and not a fixer's."
+    }
+  ]
+}

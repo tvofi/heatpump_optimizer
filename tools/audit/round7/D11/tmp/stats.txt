@@ -1,0 +1,43 @@
+STATS: 31 merged pull request(s) in v6.6.9..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other"] read from .claude/workflows/web-fix-wave.js
+STATS COVERAGE: 25 of 31 merged pull request(s) in the window carried a parsable verdict; 6 carried none (#1445 #1442 #1423 #1439 #1436 #1430); the histogram's verdict denominator is 25, not the window's merge count
+
+verdict class (PRs / entries):
+    25 / 28    merge   <- at or over threshold
+     4 / 5     head-moved   <- at or over threshold
+     1 / 1     product-tradeoff-regression
+     1 / 1     root-cause-unanswered
+CENSUS	verdict class	25	28	merge
+CENSUS	verdict class	4	5	head-moved
+CENSUS	verdict class	1	1	product-tradeoff-regression
+CENSUS	verdict class	1	1	root-cause-unanswered
+
+friction rule id (PRs / entries):
+     4 / 4     tools/audit/briefs/fixer.md   <- at or over threshold
+     2 / 3     .claude/rules/ratchet-budgets.md
+     2 / 2     .claude/rules/gate-scoping.md
+     1 / 2     D11-01
+     1 / 1     tools/audit/briefs/COMMON.md
+     1 / 1     .claude/rules/finding-propagation.md
+     1 / 1     tools/audit/briefs/D13.md
+     1 / 1     .claude/rules/defect-root-cause.md
+     1 / 1     figure_lint.mjs
+CENSUS	friction rule id	4	4	tools/audit/briefs/fixer.md
+CENSUS	friction rule id	2	3	.claude/rules/ratchet-budgets.md
+CENSUS	friction rule id	2	2	.claude/rules/gate-scoping.md
+CENSUS	friction rule id	1	2	D11-01
+CENSUS	friction rule id	1	1	tools/audit/briefs/COMMON.md
+CENSUS	friction rule id	1	1	.claude/rules/finding-propagation.md
+CENSUS	friction rule id	1	1	tools/audit/briefs/D13.md
+CENSUS	friction rule id	1	1	.claude/rules/defect-root-cause.md
+CENSUS	friction rule id	1	1	figure_lint.mjs
+
+CENSUS: 13 key(s)
+
+threshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.
+
+(window)
+  INFO    [stats] (window): not opened: verdict class "merge" at 25 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- the rework a merge verdict spells is keyed under the wave's "head-moved", a later verdict naming a moved head. Friction is rework.
+  INFO    [stats] (window): would open "[policy] recurring friction: head-moved" -- verdict class at 4 in this window, threshold 3. Counted as DISTINCT pull requests (5 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: tools/audit/briefs/fixer.md" -- friction rule id at 4 in this window, threshold 3. Counted as DISTINCT pull requests (4 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+
+WOULD OPEN: 2 issue(s)

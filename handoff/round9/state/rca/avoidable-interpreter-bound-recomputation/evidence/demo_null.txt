@@ -1,0 +1,8 @@
+
+=== Stress and economics ===
+  shoulder/1z/dhw                calls 1.0000x  evals 554/554  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  summer/1z/space                calls 1.0000x  evals 34/34  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/1z/dhw                  calls 1.0000x  evals 52/52  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/2z/space                calls 1.0000x  evals 906/906  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/tariff                  calls 1.0000x  evals 764/764  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+RESULT arm=null here=origin/main base=origin/main scenarios=5 covered=5 replanned=0 unmetered=0 calls_over=0 shipped_count_over=0 capture_wall_s=143.3

@@ -1,0 +1,126 @@
+[
+ {
+  "key": "custom_components/heatpump_optimizer/legionella.py:528:GUARD_OFF",
+  "old": "        if signature == self.ceiling_notice:",
+  "new": "        if False:",
+  "weight": 12,
+  "tier": "confirm",
+  "drivers": [
+   "tests/config_flow_steps.py",
+   "tests/deployment_shape.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/manual_plan.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/structure.py",
+   "tests/typing_ruler.py",
+   "tests/wood_advisor.py"
+  ],
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:3131:GUARD_OFF",
+  "old": "                if f.size < n_steps:",
+  "new": "                if False:",
+  "weight": 15,
+  "tier": "confirm",
+  "drivers": [
+   "tests/config_flow_steps.py",
+   "tests/deployment_shape.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/guard_pins.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/structure.py",
+   "tests/typing_ruler.py",
+   "tests/validate.py",
+   "tests/wood_advisor.py"
+  ],
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:2547:GUARD_OFF",
+  "old": "        if not isinstance(items, list):",
+  "new": "        if False:",
+  "weight": 12,
+  "tier": "confirm",
+  "drivers": [
+   "tests/config_flow_steps.py",
+   "tests/deployment_shape.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/structure.py",
+   "tests/typing_ruler.py",
+   "tests/wood_advisor.py"
+  ],
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/thermal_model.py:1309:CLAMP_DROP",
+  "old": "    t_in = min(t_in, dhw_setpoint)",
+  "new": "    t_in = (t_in)",
+  "weight": 12,
+  "tier": "confirm",
+  "drivers": [
+   "tests/config_flow_steps.py",
+   "tests/deployment_shape.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/guard_pins.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/structure.py",
+   "tests/typing_ruler.py",
+   "tests/validate.py",
+   "tests/wood_advisor.py"
+  ],
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/tariff.py:139:RETURN_DEL",
+  "old": "        return float(min(1.0, max(0.0, self.offpeak_factor)))",
+  "new": "        pass",
+  "weight": 10,
+  "tier": "confirm",
+  "drivers": [
+   "tests/config_flow_steps.py",
+   "tests/deployment_shape.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/guard_pins.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/structure.py",
+   "tests/typing_ruler.py",
+   "tests/validate.py",
+   "tests/wood_advisor.py"
+  ],
+  "kills": [
+   "tests/env_drift.py(rc=1 fails=0 base_rc=0 base_f=0)",
+   "tests/features.py(rc=1 fails=3 base_rc=0 base_f=0)"
+  ]
+ }
+]

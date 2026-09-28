@@ -1,0 +1,15 @@
+[services: drop `wood_type` from simulate_plan list] rc=1
+     FAIL every service paragraph that lists or counts fields matches its schema  [{'simulate_plan': "lists 15, omits ['wood_type']"}]
+     1 of 47 checks FAILED
+[services: All 28 fields -> 27] rc=1
+     FAIL every service paragraph that lists or counts fields matches its schema  [{'set_thermal_parameters': 'says 27 fields, schema has 28'}]
+     1 of 47 checks FAILED
+[labels: rename options-page row (Two-zone model)] rc=1
+     FAIL every options field the docs name is a label the forms render  [["configuration.md 'Two-zone model': Inter-zone coupling"]]
+     1 of 47 checks FAILED
+[labels: italic ghost field name] rc=1
+     FAIL every options field the docs name is a label the forms render  [['setup.md: *Ghost feedback control*']]
+     1 of 47 checks FAILED
+[ANCHOR: no Setting tables] rc=1
+     FAIL the docs tabulate options-page fields (anchor)  [0 rows]
+     1 of 47 checks FAILED

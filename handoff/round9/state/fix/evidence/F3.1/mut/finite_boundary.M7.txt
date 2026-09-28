@@ -1,0 +1,75 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  ok   the boundary quarantines nan at every depth
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  ok   the boundary quarantines str-nan at every depth
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the ledger payload carries month line and meta leaves to corrupt (#1518)
+  ok   no non-finite value reaches the live thermal model
+  ok   no non-finite value reaches the published payload
+  ok   no corrupt leaf makes the next refresh's publication raise (#1518)
+  ok   no wrong-type leaf is installed where the live model holds a number
+  ok   no loader raised on a quarantined payload
+  ok   the peak store loads its pre-#1512 and malformed label shapes: finite peaks only, one string label each, no raise
+  ok   healthy payload 'heatpump_optimizer_test_entry_thermal_learning' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_price_model' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_accuracy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_energy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_manual_plan' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_snapshots' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_ledger' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_profile' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_draws' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_legionella' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_boost' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_away' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_pump_duty' leaves the model finite (null control)
+RESULT store_boundaries=13 count
+RESULT raw_store_calls=0 count
+RESULT stores_swept=13 count
+RESULT model_poison_total=0 count
+RESULT published_poison_total=0 count
+RESULT loader_escape_total=0 count
+RESULT type_drift_total=0 count
+RESULT refresh_escape_total=0 count
+  FAIL no stored instant reaches a loader beyond the clock plus its store's lead  [escaped=['thermal_learning:updated_at', 'thermal_learning:__instant_probe', 'thermal_learning:__instant_probe_aware', 'price_model:__instant_probe', 'price_model:__instant_probe_aware', 'ledger:__instant_probe', 'ledger:__instant_probe_aware', 'accuracy:__instant_probe'] of 28]
+  ok   the instant sweep drove every loader and checked instants (not vacuous)
+  ok   every lead opt-out is a listed, reasoned one, and every listed one opts out
+  ok   an honest payload comes back byte-identical (null control)
+  ok   an instant inside its store's lead survives the load (a lead is not lost)
+RESULT instant_escaped_total=28 count
+RESULT instant_stores_driven=13 count
+RESULT instant_leaves_checked=28 count
+RESULT instant_lead_opt_outs=['away', 'manual_plan']
+  ok   every sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published sensor value (the arm is not vacuous)
+RESULT publish_sensor_entities=59 count
+RESULT publish_sensor_leaks=0 count
+  ok   every binary_sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published binary_sensor value (the arm is not vacuous)
+RESULT publish_binary_sensor_entities=6 count
+RESULT publish_binary_sensor_leaks=0 count
+  ok   every button entity publishes finite values from non-finite input (#1541)
+RESULT publish_button_entities=4 count
+RESULT publish_button_leaks=0 count
+  ok   every climate entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published climate value (the arm is not vacuous)
+RESULT publish_climate_entities=1 count
+RESULT publish_climate_leaks=0 count
+  ok   every switch entity publishes finite values from non-finite input (#1541)
+RESULT publish_switch_entities=4 count
+RESULT publish_switch_leaks=0 count
+  ok   every datetime entity publishes finite values from non-finite input (#1541)
+RESULT publish_datetime_entities=1 count
+RESULT publish_datetime_leaks=0 count
+  ok   an inherited scrubbed property re-exported by a subclass is not wrapped twice
+
+1 of 46 FINITE BOUNDARY CHECKS FAILED
+rc=1

@@ -1,0 +1,6 @@
+arm=default healthy_recommend_hz=80.0 stuck_by_op={'huge_ratio': 3, 'neg_key': 7}
+RESULT healthy_stuck=0 count
+RESULT stuck_after_day=10 count_of_200
+RESULT thread_factor=1.000
+RESULT load1=0.36
+RESULT swapins=0

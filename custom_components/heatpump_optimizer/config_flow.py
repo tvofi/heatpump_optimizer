@@ -1,0 +1,3847 @@
+"""Config flow for Heat Pump Cost Optimizer integration."""
+from __future__ import annotations
+
+import hashlib
+import logging
+from collections.abc import Callable, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
+
+import aiohttp
+import voluptuous as vol
+
+from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import section
+from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.translation import async_get_translations
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlowResult
+
+    from .coordinator import HeatPumpOptimizerConfigEntry
+
+
+class _ShowFormParent(Protocol):
+    def async_show_form(
+        self,
+        *,
+        step_id: str | None = None,
+        data_schema: vol.Schema | None = None,
+        errors: dict[str, str] | None = None,
+        description_placeholders: Mapping[str, str] | None = None,
+        last_step: bool | None = None,
+        preview: str | None = None,
+    ) -> ConfigFlowResult: ...
+
+from .const import (
+    DOMAIN,
+    CONFIG_ENTRY_VERSION,
+    CONF_TIBBER_TOKEN,
+    CONF_PRICE_SOURCE,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_VAT,
+    CONF_PRICE_SURCHARGE,
+    DEFAULT_PRICE_SOURCE,
+    DEFAULT_PRICE_VAT,
+    DEFAULT_PRICE_SURCHARGE,
+    PRICE_SOURCE_ENTITY,
+    PRICE_SOURCE_TIBBER,
+    PRICE_SOURCES,
+    CONF_WEATHER_ENTITY,
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_SOLAR_RADIATION_ENTITY,
+    CONF_SOLAR_FORECAST_SOURCE,
+    CONF_SOLAR_LOCATION,
+    DEFAULT_SOLAR_FORECAST_SOURCE,
+    SOLAR_SOURCES,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_BUFFER_MAX_TEMP,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_MIXING_VALVE_MODE,
+    CONF_MIXING_VALVE_TARGET,
+    CONF_MIXING_VALVE_TARGET_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+    DEFAULT_BUFFER_MAX_TEMP,
+    DEFAULT_MIXING_VALVE_TARGET,
+    DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+    CONF_FLOW_CURVE_COP_ENABLED,
+    DEFAULT_FLOW_CURVE_COP_ENABLED,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_ECL110_COMMAND_TOPIC,
+    CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_ECL110_STATE_TOPIC,
+    CONF_ECL110_QOS,
+    CONF_ECL110_RETAIN,
+    CONF_ECL110_DISPLACE_MIN,
+    CONF_ECL110_DISPLACE_MAX,
+    CONF_ECL110_PID_TIME_CONSTANT,
+    CONF_TARGET_TEMP,
+    CONF_MIN_TEMP,
+    CONF_MAX_TEMP,
+    CONF_COMFORT_TEMP_DAY,
+    CONF_COMFORT_TEMP_NIGHT,
+    CONF_COMFORT_TEMP_DAY_WEEKEND,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND,
+    CONF_DAY_START_HOUR_WEEKEND,
+    CONF_DAY_END_HOUR_WEEKEND,
+    CONF_HOLIDAY_CALENDAR_ENTITY,
+    CONF_HOLIDAY_DHW_WINDOWS,
+    CONF_HOLIDAY_COMFORT_DAY,
+    CONF_HOLIDAY_COMFORT_NIGHT,
+    CONF_HOLIDAY_DAY_START_HOUR,
+    CONF_HOLIDAY_DAY_END_HOUR,
+    AFTER_SAVE_CLOSE,
+    AFTER_SAVE_MENU,
+    CONF_AFTER_SAVE,
+    COMFORT_TEMP_DAY_SELECTOR_MAX,
+    COMFORT_TEMP_DAY_SELECTOR_MIN,
+    COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+    COMFORT_TEMP_NIGHT_SELECTOR_MIN,
+    CONF_DAY_START_HOUR,
+    CONF_DAY_END_HOUR,
+    CONF_HOUSE_THERMAL_MASS,
+    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+    CONF_SLAB_THERMAL_MASS,
+    CONF_SLAB_HEAT_TRANSFER,
+    CONF_HEAT_PUMP_COP_NOMINAL,
+    CONF_HEAT_PUMP_MAX_POWER,
+    CONF_HEAT_PUMP_MIN_POWER,
+    CONF_UPPER_FLOOR_THERMAL_MASS,
+    CONF_LOWER_FLOOR_THERMAL_MASS,
+    CONF_UPPER_FLOOR_HEAT_LOSS,
+    CONF_LOWER_FLOOR_HEAT_LOSS,
+    CONF_INTER_ZONE_TRANSFER,
+    CONF_RADIATOR_POWER_FRACTION,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    CONF_BUFFER_TANK_VOLUME,
+    CONF_WINDOW_AREA,
+    POSITIVE_PARAM_FLOOR,
+    CONF_SOLAR_ORIENTATION_FACTOR,
+    CONF_SOLAR_HEAT_GAIN_COEFF,
+    CONF_DHW_TANK_VOLUME,
+    CONF_DHW_SETPOINT,
+    CONF_DHW_SETPOINT_ENTITY,
+    CONF_DHW_MIN_TEMP,
+    CONF_DHW_DAILY_CONSUMPTION,
+    CONF_DHW_COOLING_RATE,
+    CONF_DHW_SCHEDULE_ENABLED,
+    CONF_DHW_WINDOWS,
+    CONF_DHW_WINDOWS_BY_DAY,
+    CONF_DHW_WINDOWS_DAY,
+    CONF_DHW_IDLE_MIN_TEMP,
+    CONF_DHW_LEGIONELLA_ENABLED,
+    CONF_DHW_LEGIONELLA_TEMP,
+    CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+    CONF_DHW_INLET_TEMP,
+    DEFAULT_DHW_INLET_TEMP,
+    CONF_DHW_INLET_SEASONAL_AMPLITUDE,
+    DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE,
+    CONF_DHW_INLET_ENTITY,
+    CONF_GREYWATER_RECOVERY,
+    DEFAULT_GREYWATER_RECOVERY,
+    CONF_DHW_QUANTILE_TARGETS_ENABLED,
+    DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+    CONF_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+    CONF_DHW_ELASTIC_LEGIONELLA_ENABLED,
+    DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED,
+    CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+    DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+    CONF_SHOWER_FLOW_LPM,
+    DEFAULT_SHOWER_FLOW_LPM,
+    CONF_DHW_DISINFECTION_SWITCH_ENTITY,
+    CONF_DHW_DISINFECTION_MODE,
+    DEFAULT_DHW_DISINFECTION_MODE,
+    CONF_VVC_PUMP_ENTITY,
+    CONF_VVC_LEAD_MINUTES,
+    DEFAULT_VVC_LEAD_MINUTES,
+    CONF_SPACE_PUMP_ENTITY,
+    CONF_SPACE_SETPOINT_ENTITY,
+    CONF_SPACE_SETPOINT_UNIT,
+    DEFAULT_SPACE_SETPOINT_UNIT,
+    SPACE_SETPOINT_UNITS,
+    CONF_WIND_SENSITIVITY,
+    CONF_RAIN_HEAT_LOSS_MULTIPLIER,
+    CONF_OPTIMIZATION_INTERVAL,
+    CONF_PRICE_WEIGHT,
+    CONF_COMFORT_WEIGHT,
+    DEFAULT_TARGET_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_COMFORT_TEMP_DAY,
+    DEFAULT_COMFORT_TEMP_NIGHT,
+    DEFAULT_DAY_START_HOUR,
+    DEFAULT_DAY_END_HOUR,
+    DEFAULT_HOUSE_THERMAL_MASS,
+    DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
+    DEFAULT_SLAB_THERMAL_MASS,
+    DEFAULT_SLAB_HEAT_TRANSFER,
+    DEFAULT_HEAT_PUMP_COP_NOMINAL,
+    DEFAULT_HEAT_PUMP_MAX_POWER,
+    DEFAULT_HEAT_PUMP_MIN_POWER,
+    DEFAULT_UPPER_FLOOR_THERMAL_MASS,
+    DEFAULT_LOWER_FLOOR_THERMAL_MASS,
+    DEFAULT_UPPER_FLOOR_HEAT_LOSS,
+    DEFAULT_LOWER_FLOOR_HEAT_LOSS,
+    DEFAULT_INTER_ZONE_TRANSFER,
+    DEFAULT_RADIATOR_POWER_FRACTION,
+    DEFAULT_UPPER_FLOOR_AREA_RATIO,
+    DEFAULT_BUFFER_TANK_VOLUME,
+    DEFAULT_WINDOW_AREA,
+    DEFAULT_SOLAR_ORIENTATION_FACTOR,
+    DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+    DEFAULT_DHW_TANK_VOLUME,
+    DEFAULT_DHW_SETPOINT,
+    DEFAULT_DHW_MIN_TEMP,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
+    DEFAULT_DHW_DAILY_CONSUMPTION,
+    DEFAULT_DHW_COOLING_RATE,
+    DEFAULT_DHW_SCHEDULE_ENABLED,
+    DEFAULT_DHW_WINDOWS,
+    DEFAULT_DHW_IDLE_MIN_TEMP,
+    DEFAULT_DHW_LEGIONELLA_ENABLED,
+    DEFAULT_DHW_LEGIONELLA_TEMP,
+    DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+    DEFAULT_ECL110_QOS,
+    DEFAULT_ECL110_RETAIN,
+    DEFAULT_ECL110_DISPLACE_MIN,
+    DEFAULT_ECL110_DISPLACE_MAX,
+    DEFAULT_ECL110_PID_TIME_CONSTANT,
+    DEFAULT_WIND_SENSITIVITY,
+    DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
+    DEFAULT_OPTIMIZATION_INTERVAL,
+    DEFAULT_PRICE_WEIGHT,
+    DEFAULT_COMFORT_WEIGHT,
+    # Added in v2.8.0
+    CONF_POWER_ENTITY,
+    CONF_ENERGY_ENTITY,
+    CONF_HOUSE_POWER_ENTITY,
+    CONF_STALENESS_ENABLED,
+    CONF_STALENESS_SCALE,
+    DEFAULT_STALENESS_ENABLED,
+    DEFAULT_STALENESS_SCALE,
+    STALENESS_SCALE_MIN,
+    STALENESS_SCALE_MAX,
+    CONF_EXTERNAL_HEAT_ENABLED,
+    CONF_EXTERNAL_HEAT_ENTITY,
+    CONF_EXTERNAL_HEAT_MIN_RISE,
+    CONF_EXTERNAL_HEAT_DECAY_MINUTES,
+    DEFAULT_EXTERNAL_HEAT_ENABLED,
+    DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+    DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_WOOD_TANK_TOP_ENTITY,
+    CONF_WOOD_TANK_BOTTOM_ENTITY,
+    CONF_WOOD_TANK_VOLUME,
+    DEFAULT_WOOD_TANK_VOLUME,
+    CONF_DHW_WOOD_COIL_ENABLED,
+    DEFAULT_DHW_WOOD_COIL_ENABLED,
+    CONF_WOOD_FURNACE_ENABLED,
+    CONF_WOOD_TYPE,
+    CONF_WOOD_PACKING,
+    CONF_WOOD_PRICE_SEK_M3,
+    CONF_WOOD_FURNACE_EFFICIENCY,
+    DEFAULT_WOOD_TYPE,
+    DEFAULT_WOOD_PACKING,
+    DEFAULT_WOOD_FURNACE_EFFICIENCY,
+    WOOD_TYPES,
+    WOOD_PACKINGS,
+    CONF_PRICE_PRIOR_ENABLED,
+    DEFAULT_PRICE_PRIOR_ENABLED,
+    CONF_PEAK_TARIFF_ENABLED,
+    CONF_PEAK_TARIFF_PRICE,
+    CONF_PEAK_TARIFF_COUNT,
+    CONF_PEAK_TARIFF_WINDOW,
+    DEFAULT_PEAK_TARIFF_ENABLED,
+    DEFAULT_PEAK_TARIFF_PRICE,
+    DEFAULT_PEAK_TARIFF_COUNT,
+    DEFAULT_PEAK_TARIFF_WINDOW,
+    CONF_CYCLING_COST,
+    DEFAULT_CYCLING_COST,
+    CONF_GRID_FEE_MODE,
+    DEFAULT_GRID_FEE_MODE,
+    CONF_GRID_FEE_RULES,
+    DEFAULT_GRID_FEE_RULES,
+    CONF_GRID_FEE_ENTITY,
+    CONF_GRID_FEE_FIXED,
+    DEFAULT_GRID_FEE_FIXED,
+    CONF_DSO_PRODUCT,
+    DEFAULT_DSO_PRODUCT,
+    CONF_PEAK_TARIFF_MONTHS,
+    DEFAULT_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_HOURS,
+    DEFAULT_PEAK_TARIFF_HOURS,
+    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
+    CONF_PRICE_RISK_LAMBDA,
+    DEFAULT_PRICE_RISK_LAMBDA,
+    CONF_CONTRACT_FIXED_PRICE,
+    DEFAULT_CONTRACT_FIXED_PRICE,
+    CONF_MAIN_FUSE_A,
+    DEFAULT_MAIN_FUSE_A,
+    CONF_MAIN_FUSE_PHASES,
+    DEFAULT_MAIN_FUSE_PHASES,
+    CONF_FUSE_GUARD_ENABLED,
+    DEFAULT_FUSE_GUARD_ENABLED,
+    CONF_PEAK_GUARD_ENABLED,
+    DEFAULT_PEAK_GUARD_ENABLED,
+    CONF_PEAK_GUARD_MARGIN_KW,
+    DEFAULT_PEAK_GUARD_MARGIN_KW,
+    CAPACITY_FLOOR_FRACTION,
+    CONF_SILENT_MODE_WINDOWS,
+    CONF_MODBUS_PREFILL_PREFIX,
+    DEFAULT_MODBUS_PREFILL_PREFIX,
+    CONF_PREFILL_OFFER,
+    DEFAULT_PREFILL_OFFER,
+    DEFAULT_SILENT_MODE_WINDOWS,
+    CONF_SILENT_MODE_FRACTION,
+    DEFAULT_SILENT_MODE_FRACTION,
+    CONF_OUTAGE_RECOVERY_ENABLED,
+    DEFAULT_OUTAGE_RECOVERY_ENABLED,
+    CONF_OPEN_WINDOW_RELAX_ENABLED,
+    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+    CONF_IMMERSION_FEEDBACK_ENABLED,
+    DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+    CONF_PRECIP_TYPE_ENABLED,
+    DEFAULT_PRECIP_TYPE_ENABLED,
+    CONF_SNOW_ROOF_FACTOR_ENABLED,
+    DEFAULT_SNOW_ROOF_FACTOR_ENABLED,
+    CONF_CAPACITY_CURVE_ENABLED,
+    DEFAULT_CAPACITY_CURVE_ENABLED,
+    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+    CONF_CURVE_LEARNING_ENABLED,
+    DEFAULT_CURVE_LEARNING_ENABLED,
+    CONF_CONFIDENCE_MARGINS_ENABLED,
+    DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+    CONF_COMPRESSOR_REPLACEMENT_COST,
+    DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+    CONF_COMPRESSOR_RATED_STARTS,
+    DEFAULT_COMPRESSOR_RATED_STARTS,
+    CONF_WEAR_AUTOTUNE_ENABLED,
+    DEFAULT_WEAR_AUTOTUNE_ENABLED,
+    CONF_PRICE_TILES_ENABLED,
+    DEFAULT_PRICE_TILES_ENABLED,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_COMPRESSOR_FREQ_SENSOR,
+    CONF_COMPRESSOR_FREQ_MIN_HZ,
+    CONF_COMPRESSOR_FREQ_MAX_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
+    CONF_FREQ_CONTROL_MODE,
+    DEFAULT_FREQ_CONTROL_MODE,
+    CONF_PUMP_DUTY_MODE,
+    DEFAULT_PUMP_DUTY_MODE,
+    PUMP_DUTY_MODES,
+    CONF_MOLD_GUARD_ENABLED,
+    DEFAULT_MOLD_GUARD_ENABLED,
+    CONF_INDOOR_HUMIDITY_ENTITY,
+    CONF_THERMAL_BRIDGE_FRSI,
+    DEFAULT_THERMAL_BRIDGE_FRSI,
+    CONF_MOLD_FLOOR_BREACH_MARGIN,
+    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
+    CONF_PV_ENABLED,
+    CONF_PV_PEAK_KW,
+    CONF_PV_EFFICIENCY,
+    CONF_PV_EXPORT_PRICE,
+    CONF_PV_EXPORT_PRICE_ENTITY,
+    CONF_PV_PRODUCTION_ENTITY,
+    DEFAULT_PV_ENABLED,
+    DEFAULT_PV_PEAK_KW,
+    DEFAULT_PV_EFFICIENCY,
+    DEFAULT_PV_EXPORT_PRICE,
+    CONF_AWAY_PRESENCE_ENTITY,
+    CONF_AWAY_RETURN_ENTITY,
+    CONF_AWAY_TEMPERATURE,
+    CONF_AWAY_DHW_MIN_TEMP,
+    DEFAULT_AWAY_TEMPERATURE,
+    DEFAULT_AWAY_DHW_MIN_TEMP,
+    CONF_SYSID_ENABLED,
+    DEFAULT_SYSID_ENABLED,
+    CONF_COMFORT_LEARNING_ENABLED,
+    DEFAULT_COMFORT_LEARNING_ENABLED,
+    CONF_TWO_ZONE_MODE,
+    TWO_ZONE_MODES,
+    TWO_ZONE_MODE_AUTO,
+    CONF_BUILDING_PRESET_ENABLED,
+    CONF_BUILDING_STRUCTURE,
+    CONF_BUILDING_ERA,
+    CONF_BUILDING_FOUNDATION,
+    CONF_HEATED_AREA,
+    CONF_UPPER_EMITTER,
+    CONF_LOWER_EMITTER,
+    DEFAULT_BUILDING_PRESET_ENABLED,
+    DEFAULT_HEATED_AREA,
+)
+from . import (
+    comfort_band,
+    device_prefill,
+    grid_fee,
+    mixing_valve,
+    modbus_prefill,
+    prefill_offer,
+    presets,
+    quick_setup,
+    topology,
+)
+from .wood_fuel import wood_furnace_on
+from .thermal_model import ThermalParameters
+from .currency import resolve_currency
+from .dhw_schedule import (
+    ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
+    MIN_WINDOW_MINUTES,
+    day_overrides_enabled,
+    day_spec_problem,
+    is_valid_spec,
+    spec_problem as dhw_spec_problem,
+)
+from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
+
+# What the hot-water pages' error text quotes (audit D4-08, #171): the
+# shortest time frame the form accepts, which is one planning step.
+_WINDOW_PLACEHOLDERS: Final = {"min_window_minutes": f"{MIN_WINDOW_MINUTES:g}"}
+
+_LOGGER = logging.getLogger(__name__)
+
+TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
+
+
+async def validate_tibber_token(hass: HomeAssistant, token: str) -> str:
+    """Check the Tibber API token: "ok", "invalid_auth" or "cannot_connect".
+
+    The distinction matters at 03:00 with the router rebooting: a network
+    failure must not tell the user their token is wrong — retyping a
+    correct token fixes nothing, and the message sends them to the wrong
+    place. Only Tibber's own verdict (an errors payload, or 401/403) may
+    say "invalid"; everything else is a connectivity answer.
+    """
+    query = '{ "query": "{ viewer { name } }" }'
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    try:
+        # Home Assistant's shared session — never closed here. A private
+        # ClientSession per validation attempt leaked its connection pool.
+        session = async_get_clientsession(hass)
+        async with session.post(
+            TIBBER_API_URL, data=query, headers=headers,
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return "ok" if "errors" not in data else "invalid_auth"
+            if resp.status in (401, 403):
+                return "invalid_auth"
+            return "cannot_connect"
+    except Exception:
+        return "cannot_connect"
+
+
+# The first-screen answers that identify the plant an entry describes
+# (unique-config-entry, Bronze): the Tibber account, and every entity slot.
+# Several entries are deliberate -- a second heat pump gets a second entry --
+# so the duplicate to refuse is the same account pointed at the same entities
+# in the same slots: one heat pump configured twice. A second heat pump has
+# at least one entity of its own. The name, the solar forecast source and the
+# location are configuration, not identity, and stay out.
+_IDENTITY_ENTITY_KEYS: Final = (
+    CONF_WEATHER_ENTITY,
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
+    CONF_SOLAR_RADIATION_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+)
+
+
+def entry_identity(user_input: Mapping[str, Any]) -> str:
+    """The unique id for a first-screen answer: a digest, never the token.
+
+    Sorted by key and hashed, so the same answers give the same id whatever
+    order they arrive in, and the token -- which the id would otherwise
+    expose in the entry registry and in diagnostics -- cannot be read back
+    out of it. An empty slot and an absent one are the same slot.
+    """
+    parts = [f"{CONF_TIBBER_TOKEN}={user_input.get(CONF_TIBBER_TOKEN, '')}"]
+    if user_input.get(CONF_PRICE_ENTITY):
+        parts.append(f"{CONF_PRICE_ENTITY}={user_input[CONF_PRICE_ENTITY]}")
+    parts.extend(
+        f"{key}={user_input[key]}"
+        for key in sorted(_IDENTITY_ENTITY_KEYS)
+        if user_input.get(key)
+    )
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
+
+
+def _number(
+    minimum: float,
+    maximum: float,
+    step: float,
+    unit: str | None = None,
+    *,
+    slider: bool = False,
+) -> selector.NumberSelector:
+    """A numeric field.
+
+    The nested ``NumberSelector(NumberSelectorConfig(...))`` construction
+    appeared eighty-two times in this file; collapsing it makes each field one
+    readable line, so a form reads as a list of settings rather than as a wall
+    of constructor calls.
+    """
+    config: selector.NumberSelectorConfig = {
+        "min": minimum,
+        "max": maximum,
+        "step": step,
+        "mode": (
+            selector.NumberSelectorMode.SLIDER
+            if slider
+            else selector.NumberSelectorMode.BOX
+        ),
+    }
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+# --- Nominal bounds for the thermal model ----------------------------------
+#
+# These are the ranges the expert page and the initial setup flow accept for
+# the parameters ``presets.derive`` writes. They were originally guessed
+# around one 140 m² house with floor heating, and the guess was narrower than
+# the physics: ``derive`` scales everything by heated area, so the same
+# archetype at 40 m² or 400 m² lands far outside a range chosen for the
+# middle. A radiator-only house derives a ``slab_thermal_mass`` — the emitter
+# loop's few litres of water and steel — of about 0.002 kWh/°C per m², i.e.
+# 0.1 to 0.8 for any ordinary house, against a field that used to start at 1.
+#
+# So each pair below covers what ``derive`` can emit for a *plausible*
+# building — 40 to 400 m² of heated area, every structure, era, foundation,
+# emitter pair and zone split — with modest headroom, and no more. The
+# extremes the questionnaire still allows (a 20 m² cabin, a 1000 m² block)
+# are not covered here on purpose: a range wide enough for those would stop
+# catching a mistyped number, and a stored value outside its field's range
+# is admitted anyway by ``_fit_stored_values`` above, which relaxes only the
+# one field that holds it. ``tests/entities.py`` pins both halves.
+#
+# kWh/°C. 0.72 is a 40 m² timber house on a crawlspace; 62.5 a 400 m² masonry
+# house with a heated basement. Only the *fast* store — air, furnishings and
+# light fabric — lives here; heavy floors are in the slab mass below.
+RANGE_HOUSE_THERMAL_MASS: Final = (0.5, 80.0)
+# kW/°C. 0.0140 is a 40 m² low-energy house (14 W/K), 0.7316 a 400 m²
+# pre-1960 one with a heated basement. The ceiling is unchanged.
+RANGE_HOUSE_HEAT_LOSS: Final = (0.01, 1.0)
+# kWh/°C. 0.1 is the radiator loop of a small house, and it is where three
+# things meet: ``derive`` floors its radiator-loop mass there, the whole
+# 20–1000 m² sweep bottoms out there exactly, and ``ThermalParameters.clamp``
+# raises anything below it to ``THERMAL_MASS_FLOOR`` anyway. A lower field
+# minimum would only buy a window in which the page stores a number the model
+# silently overrides. 53.0 is a 400 m² masonry house's heated slab.
+RANGE_SLAB_THERMAL_MASS: Final = (0.1, 60.0)
+# kW/°C. ``derive`` floors this at 0.05; a 400 m² floor circuit reaches 4.0.
+# The ceiling is unchanged.
+RANGE_SLAB_HEAT_TRANSFER: Final = (0.02, 5.0)
+# kWh/°C per zone. ``derive`` floors both at 0.5; the heaviest zone of a
+# 400 m² masonry house with a heated basement is 58.45. The two zones share
+# one range because either can be the heavy one, depending on the emitters.
+RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
+# kW/°C per zone. A tenth of a 40 m² low-energy house is 0.0014; nine tenths
+# of a 400 m² pre-1960 one with a basement is 0.6584. A single zone cannot
+# lose more than the whole house, so the ceiling matches RANGE_HOUSE_HEAT_LOSS.
+RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
+
+
+# Shown on the expert page while the questionnaire is armed. English here
+# is the fallback; the translated text lives beside the page's own strings.
+# Shown on the expert page while the questionnaire is armed. Home Assistant
+# validates strings.json against a fixed schema, and a step may only carry
+# title/description/data/data_description/menu_options/submit/sections -- a
+# free-standing sentence under the step is rejected by hassfest. A
+# description *placeholder* is substituted verbatim by the frontend, so the
+# text has to be chosen here, by language, rather than looked up.
+PRESET_WARNING: Final = {
+    "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
+    "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+}
+
+# Everything ``presets.derive`` writes into the entry, in the order the
+# expert page shows them. The last six only exist in two-zone mode.
+# ``tests/entities.py`` checks this against ``derive`` itself, so a new
+# derived parameter cannot quietly fall off the list.
+DERIVED_THERMAL_KEYS: Final = (
+    CONF_HOUSE_THERMAL_MASS,
+    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+    CONF_SLAB_THERMAL_MASS,
+    CONF_SLAB_HEAT_TRANSFER,
+    CONF_UPPER_FLOOR_THERMAL_MASS,
+    CONF_LOWER_FLOOR_THERMAL_MASS,
+    CONF_UPPER_FLOOR_HEAT_LOSS,
+    CONF_LOWER_FLOOR_HEAT_LOSS,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    CONF_RADIATOR_POWER_FRACTION,
+)
+
+
+# The error a page reports on a field whose stored value sits outside that
+# field's nominal range. Raised when the form is *shown*, not when it is
+# submitted: the value is already on disk, so the user has to be told before
+# they press anything — and the whole point of a nominal range is that
+# leaving it is worth noticing.
+ERROR_STORED_VALUE_OUT_OF_RANGE: Final = "stored_value_out_of_range"
+
+
+def _prefilled_values(marker: Any) -> list[Any]:
+    """What the frontend will put in this field before the user touches it.
+
+    Both mechanisms count. ``description={"suggested_value": x}`` pre-fills
+    the box without defaulting the key, and ``default=x`` pre-fills it *and*
+    substitutes itself when the key is absent from the submission. Either way
+    the value comes back on submit and is validated by this field's own
+    selector — so either way, a stored value the selector rejects makes the
+    page impossible to save.
+    """
+    values: list[Any] = []
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        values.append(description["suggested_value"])
+    default = getattr(marker, "default", None)
+    # A marker without a default carries voluptuous' UNDEFINED sentinel here,
+    # which is not callable; only a real default is.
+    if callable(default):
+        try:
+            values.append(default())
+        except Exception:  # noqa: BLE001 - a broken default is not our business
+            pass
+    return values
+
+
+def _widen_to_fit(
+    number: selector.NumberSelector, values: list[Any]
+) -> selector.NumberSelector | None:
+    """The same field with bounds stretched to admit ``values``, or None.
+
+    Returns None when nothing needs to move, so an untouched page keeps the
+    very selector object it declared.
+    """
+    low = number.config.get("min")
+    high = number.config.get("max")
+    if low is None and high is None:
+        return None
+    fitted_low, fitted_high = low, high
+    for value in values:
+        try:
+            number_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if number_value != number_value or number_value in (
+            float("inf"),
+            float("-inf"),
+        ):
+            continue
+        if fitted_low is not None and number_value < fitted_low:
+            fitted_low = number_value
+        if fitted_high is not None and number_value > fitted_high:
+            fitted_high = number_value
+    if fitted_low == low and fitted_high == high:
+        return None
+    config: selector.NumberSelectorConfig = {**number.config}
+    if fitted_low is not None:
+        config["min"] = fitted_low
+    if fitted_high is not None:
+        config["max"] = fitted_high
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
+    """Schema with every numeric field widened to admit what it displays.
+
+    A bounded numeric field is validated on submit against its own min/max,
+    and the frontend submits the whole form — including the fields nobody
+    touched. So a *stored* value outside a field's range does not merely look
+    odd: it makes the entire page un-submittable, silently, because
+    voluptuous rejects the submission before any handler sees it and the
+    dialog just re-renders. The user experiences a Submit button that does
+    nothing.
+
+    That is not hypothetical: ``presets.derive`` scales the thermal
+    parameters by heated area and knows nothing about the bounds the expert
+    page happens to declare, and a radiator-only house legitimately derives a
+    ``slab_thermal_mass`` an order of magnitude below what that field used to
+    accept.
+
+    So whenever a value is already on disk, the field that displays it
+    relaxes far enough to display it — and no further. Every other field
+    keeps its nominal bounds, which is what makes them worth having. The
+    caller gets back the list of fields that had to relax, so it can say so.
+    """
+    if schema is None or not hasattr(schema, "schema"):
+        return schema, []
+    fitted: dict[Any, Any] = {}
+    widened: list[str] = []
+    for marker, value in schema.schema.items():
+        inner = _section_inner(value)
+        if inner is not None:
+            inner_fitted, inner_widened = _fit_stored_values(inner)
+            if inner_widened:
+                value = section(
+                    inner_fitted,
+                    {"collapsed": bool(value.options.get("collapsed", False))},
+                )
+                widened.extend(inner_widened)
+        elif isinstance(value, selector.NumberSelector):
+            replacement = _widen_to_fit(value, _prefilled_values(marker))
+            if replacement is not None:
+                value = replacement
+                widened.append(str(getattr(marker, "schema", marker)))
+        fitted[marker] = value
+    if not widened:
+        return schema, []
+    return vol.Schema(fitted), widened
+
+
+class _StoredValuesAlwaysFit:
+    """Mixin: a page can never be blocked by a value already on disk.
+
+    Applied to both flows rather than to one page, because the hazard is
+    structural — any bounded numeric field fed from stored configuration can
+    reach it, and the stored value need not have come from this integration's
+    own forms (``apply_schedule`` and the climate entity both write config
+    keys straight into the entry's options, with their own wider limits).
+
+    The widening is deliberately paired with an error on the same field. A
+    form that silently accepts an implausible number teaches the user
+    nothing, and the failure this exists to end was invisible: the page
+    simply did not save. Whatever else happens, the user must be told which
+    field is odd and why.
+    """
+
+    @callback
+    def async_show_form(
+        self,
+        *,
+        step_id: str | None = None,
+        data_schema: vol.Schema | None = None,
+        errors: dict[str, str] | None = None,
+        description_placeholders: Mapping[str, str] | None = None,
+        last_step: bool | None = None,
+        preview: str | None = None,
+    ) -> ConfigFlowResult:
+        """Show a form, first making sure it can be submitted at all."""
+        # Forward only the arguments the caller passed. The test stub (and the
+        # real manager) splat the kwargs into the result dict; a key whose
+        # value is None is not the same as an omitted key.
+        forwarded: dict[str, Any] = {
+            key: value
+            for key, value in (
+                ("step_id", step_id),
+                ("data_schema", data_schema),
+                ("errors", errors),
+                ("description_placeholders", description_placeholders),
+                ("last_step", last_step),
+                ("preview", preview),
+            )
+            if value is not None
+        }
+        fitted, widened = _fit_stored_values(forwarded.get("data_schema"))
+        if widened:
+            forwarded["data_schema"] = fitted
+            shown = dict(forwarded.get("errors") or {})
+            for field in widened:
+                # A real validation error on the same field wins: it is about
+                # what the user just typed, which is more urgent than a value
+                # that has been sitting on disk for months.
+                shown.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+            forwarded["errors"] = shown
+        parent = cast(_ShowFormParent, super())
+        return parent.async_show_form(**forwarded)
+
+
+def _effective(
+    candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
+) -> float:
+    """The value a save would leave in force for one field.
+
+    Cross-field rules must judge the *pair that would be stored*, not just
+    the submitted form: the options pages save partial pages over existing
+    data, so a form that only carries one half of a pair can still create a
+    contradiction with the stored other half.
+    """
+    return float(candidate.get(key, current.get(key, default)))
+
+
+def _band_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """Comfort-band contradictions no single selector can catch.
+
+    Each violation lands on the field a user would naturally correct. The
+    optimizer treats these bounds as soft penalties, so an inverted band is
+    not rejected downstream — the plan just sits in permanent violation,
+    which is the same undiagnosable failure mode the DHW deadband check
+    exists for.
+
+    The rules themselves live in ``comfort_band`` (v5.1.7), because this form
+    stopped being the only way into these fields: the ``apply_schedule``
+    service writes ``comfort_temp_day`` and the climate entity's slider writes
+    ``target_temperature``, and both used to reach the config entry without
+    passing anything like this check. One rule set, three callers.
+    """
+    return comfort_band.errors(candidate, current)
+
+
+def _power_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """A modulation floor above the ceiling inverts the solver's power bounds."""
+    if _effective(
+        candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
+    ) > _effective(
+        candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
+    ):
+        return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+    return {}
+
+
+def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
+    """Optional key that suggests the stored value without defaulting it."""
+    if key in current:
+        return vol.Optional(key, description={"suggested_value": current[key]})
+    return vol.Optional(key)
+
+
+def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
+    """An entity picker that suggests the stored slot, never defaults it.
+
+    The same two-armed rule as ``_options_suggested_numeric`` beside it, and
+    for the same reason: a ``default`` is refilled by voluptuous for a key the
+    submission left absent, so the stored value rides only as a
+    ``suggested_value``. #1258: the Configure quick-setup page shows an
+    existing entry's wood probes rather than pickers that read as unconfigured.
+    """
+    if key in current:
+        return vol.Optional(key, description={"suggested_value": current[key]})
+    return vol.Optional(key)
+
+
+def _building_preset_warning(hass: Any, current: dict[str, Any]) -> str:
+    """Preset-derived warning when the thermal model pages would overwrite it."""
+    if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):
+        return ""
+    lang = (hass.config.language or "en").split("-")[0]
+    return PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+
+
+def _disarm_preset_on_derived_edit(
+    saved: dict[str, Any], stored: dict[str, Any]
+) -> None:
+    """Stop the questionnaire from overwriting a hand-edited derived value."""
+    if any(
+        key in saved and saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS
+    ):
+        saved[CONF_BUILDING_PRESET_ENABLED] = False
+
+
+def _dhw_day_field_errors(user_input: dict[str, Any]) -> dict[str, str]:
+    """The per-day window fields' refusals, each on its own key (#1260).
+
+    Only the posted fields are judged; the ones the toggle hides are absent
+    from the submission, exactly the wood block's division between what
+    renders and what the save may judge.
+    """
+    errors: dict[str, str] = {}
+    for key in CONF_DHW_WINDOWS_DAY:
+        day_spec = user_input.get(key, "")
+        if day_spec:
+            problem = day_spec_problem(day_spec)
+            if problem is not None:
+                errors[key] = problem
+    return errors
+
+
+def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
+    """Whether the effective DHW minimum leaves no deadband below the setpoint.
+
+    The apply_schedule service and the card already enforce this margin; a form
+    that lets the same pair through would store the one configuration the
+    solver cannot express — the tank limits are soft penalties, so an
+    impossible minimum is not rejected downstream, the plan just sits in
+    permanent slight violation.
+    """
+    setpoint = candidate.get(
+        CONF_DHW_SETPOINT, current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
+    )
+    minimum = candidate.get(
+        CONF_DHW_MIN_TEMP, current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
+    )
+    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+
+
+def _dhw_legionella_warning(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str] | None:
+    """The disinfection cycle takes the tank above the charge limit — or not.
+
+    A warning, never an error. Since v5.1.10 the charge limit is exactly what
+    it says on the label: the plan does not take the tank above it on an
+    ordinary day, and the disinfection temperature applies only while a cycle
+    is running. That makes a 52/60 pair perfectly legitimate — it just means
+    the tank goes 8 °C above the limit once an interval, which is worth
+    saying out loud rather than blocking.
+
+    Returns the placeholders for the ``dhw_legionella_above_setpoint`` notice
+    (temperature, limit, and how often), or ``None`` when the pair says
+    nothing surprising. Shaped like ``_band_errors`` and ``_dhw_min_too_close``
+    beside it: judged on the pair a save would LEAVE IN FORCE, not on the
+    half of it this page happens to carry.
+    """
+    enabled = candidate.get(
+        CONF_DHW_LEGIONELLA_ENABLED,
+        current.get(CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED),
+    )
+    if not bool(enabled):
+        return None
+    setpoint = _effective(
+        candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT
+    )
+    legionella = _effective(
+        candidate, current, CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
+    )
+    if legionella <= setpoint:
+        return None
+    interval = _effective(
+        candidate,
+        current,
+        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+        DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+    )
+    return {
+        "legionella_temp": f"{legionella:.0f}",
+        "setpoint": f"{setpoint:.0f}",
+        "interval_days": f"{interval:.0f}",
+    }
+
+
+def _valid_months_spec(spec: Any) -> bool:
+    """Whether a #13 month-mask spec parses; empty means every month."""
+    text = str(spec or "").strip()
+    if not text:
+        return True
+    try:
+        for chunk in text.replace(";", ",").split(","):
+            if chunk.strip():
+                grid_fee.parse_month_range(chunk)
+    except grid_fee.GridFeeError:
+        return False
+    return True
+
+
+def _tibber_token_selector() -> selector.TextSelector:
+    """The masked token widget shared by setup, reauth and options."""
+    return selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+    )
+
+
+def _entity_of(
+    domain: str | list[str], device_class: str | None = None
+) -> selector.EntitySelector:
+    """An entity picker, optionally narrowed to a device class.
+
+    The filter is expressed under ``filter`` rather than as top-level
+    ``domain``/``device_class`` keys. Those top-level keys are the legacy form:
+    Home Assistant still accepts them, but the frontend reads only ``filter``
+    when it decides which entities match and which helper types the picker may
+    offer to create. With the legacy form the "create helper" shortcut cannot
+    resolve a single helper domain, and submits the creation without a name —
+    which surfaces to the user as "required key not provided @ data['name']".
+    """
+    entity_filter: selector.EntityFilterSelectorConfig = {
+        "domain": [domain] if isinstance(domain, str) else list(domain)
+    }
+    if device_class is not None:
+        entity_filter["device_class"] = [device_class]
+    return selector.EntitySelector(
+        selector.EntitySelectorConfig(filter=[entity_filter])
+    )
+
+
+def _select(options: list[str], translation_key: str) -> selector.SelectSelector:
+    """A dropdown of fixed options with a translation key for its labels."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            translation_key=translation_key,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _freq_mode_selector() -> selector.SelectSelector:
+    """Observe or control (T7 #61).
+
+    An explicit two-option select rather than a boolean, because the
+    words matter: "control" is the moment actuation begins, and the user
+    should read that word, not flip an anonymous toggle.
+    """
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL],
+            translation_key="freq_control_mode",
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _solar_source_selector() -> selector.SelectSelector:
+    """Where irradiance comes from.
+
+    Kept as an explicit choice rather than "use Open-Meteo when no sensor
+    exists": silently calling an external API on a user's behalf is not a
+    decision an integration should make for them.
+    """
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=list(SOLAR_SOURCES),
+            translation_key="solar_forecast_source",
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _solar_location_selector() -> selector.LocationSelector:
+    """Map picker for the irradiance coordinate."""
+    return selector.LocationSelector(selector.LocationSelectorConfig(radius=False))
+
+
+def _options_schema(fields: dict[Any, Any]) -> vol.Schema:
+    """One options-page schema, with the after-save choice appended (#100).
+
+    Every saving page in the options flow carries the same last field: what
+    the dialog should do after this save. A Home Assistant form renders
+    exactly one submit button, so a schema field is the only mechanism that
+    can express two outcomes from one submit. Optional with a default, so
+    it can never make a page unsubmittable, and the value is stripped by
+    ``_save_or_menu`` before anything persists.
+    """
+    return vol.Schema({
+        **fields,
+        vol.Optional(CONF_AFTER_SAVE, default=AFTER_SAVE_MENU): _select(
+            [AFTER_SAVE_MENU, AFTER_SAVE_CLOSE], "after_save"
+        ),
+    })
+
+
+def _default_location(hass: HomeAssistant, current: dict[str, Any]) -> dict[str, float]:
+    """Pre-fill the map with the configured point, else the HA home location."""
+    existing = current.get(CONF_SOLAR_LOCATION)
+    if isinstance(existing, dict) and "latitude" in existing:
+        return existing
+    return {
+        "latitude": hass.config.latitude,
+        "longitude": hass.config.longitude,
+    }
+
+
+#: What the questionnaire shows for an unanswered question.
+_QUESTIONNAIRE_DEFAULTS: Final[dict[str, Any]] = {
+    CONF_BUILDING_STRUCTURE: presets.STRUCTURE_TIMBER_SLAB,
+    CONF_BUILDING_ERA: presets.ERA_1980_2005,
+    CONF_BUILDING_FOUNDATION: presets.FOUNDATION_NONE,
+    CONF_HEATED_AREA: DEFAULT_HEATED_AREA,
+    CONF_UPPER_EMITTER: presets.EMITTER_RADIATORS,
+    CONF_LOWER_EMITTER: presets.EMITTER_FLOOR,
+}
+
+
+def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
+    """The building questionnaire, shared by initial setup and options.
+
+    One field list, two flows: the initial ``building_describe`` step and the
+    options ``building_preset`` page must ask the identical questions, or the
+    two paths would derive different physics for the same answers. Anything
+    either page adds around these (the enable flag, the structural extras)
+    stays that page's own.
+    """
+    widgets = {
+        CONF_BUILDING_STRUCTURE: _select(list(presets.STRUCTURES), "building_structure"),
+        CONF_BUILDING_ERA: _select(list(presets.ERAS), "building_era"),
+        CONF_BUILDING_FOUNDATION: _select(list(presets.FOUNDATIONS), "building_foundation"),
+        CONF_HEATED_AREA: _number(20, 1000, 5, "m²"),
+        CONF_UPPER_EMITTER: _select(list(presets.EMITTERS), "emitter"),
+        CONF_LOWER_EMITTER: _select(list(presets.EMITTERS), "emitter"),
+    }
+    return {
+        vol.Optional(key, default=current.get(key, default)): widgets[key]
+        for key, default in _QUESTIONNAIRE_DEFAULTS.items()
+    }
+
+
+def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    """Turn questionnaire answers into thermal-parameter starting values.
+
+    ``two_zone`` follows the same presence rule the rest of the integration
+    uses — a fresh setup has no zone keys, so the questionnaire derives a
+    single-zone model and never writes the keys whose presence would flip
+    two-zone on.
+    """
+    preset = presets.BuildingPreset(
+        structure=answers.get(CONF_BUILDING_STRUCTURE, ""),
+        era=answers.get(CONF_BUILDING_ERA, ""),
+        foundation=answers.get(CONF_BUILDING_FOUNDATION, ""),
+        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
+        upper_emitter=answers.get(CONF_UPPER_EMITTER, ""),
+        lower_emitter=answers.get(CONF_LOWER_EMITTER, ""),
+        upper_area_ratio=float(
+            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
+        ),
+        two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),
+    )
+    derived = presets.derive(preset)
+    # The derived response time is informational; it is not a thermal
+    # parameter and would be rejected by the model.
+    derived.pop("heating_response_hours", None)
+    return derived
+
+
+def _quick_setup_schema(
+    current: dict[str, Any], *, suggest_stored: bool = False
+) -> vol.Schema:
+    """The quick-setup page: the house in five yes/no answers plus the questionnaire.
+
+    The five toggles are transient questions, not option keys — they are named
+    in ``quick_setup`` and mapped there, so the page never writes a key the
+    options flow would then have to un-write. The building questionnaire is the
+    same field list the ``building_describe`` and ``building_preset`` pages use,
+    so a house answered here derives the identical physics as one answered
+    there. The two wood-tank probe pickers ride the same page because they are
+    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
+    nothing the model reads. Both callers share the field list: the initial
+    flow over its accumulating wizard data (which never holds the probes), and
+    the Configure page over the entry's effective config, where a stored probe
+    is suggested back rather than shown empty (#1258).
+
+    ``suggest_stored`` is the Configure page's arm (#1273): the five questions
+    suggest the entry's OWN answers and carry no ``default``. A default is
+    refilled by voluptuous for a key a bare post left out — the nightly walk
+    posts nothing but the after-save choice — and a refilled shipped default
+    is an answer nobody gave, which re-derived real entries at the shipped
+    answers and flipped their two-zone mode off. A suggested value pre-fills
+    the form the same way and lets an absent key stay absent, which is what
+    lets the handler tell "untouched" from "answered".
+    """
+    questions = dict.fromkeys(quick_setup.FIELD_QUESTIONS)
+    if suggest_stored:
+        suggested = quick_setup.suggested_answers(current)
+        question_fields = {
+            (
+                vol.Optional(
+                    field, description={"suggested_value": suggested[field]}
+                )
+            ): selector.BooleanSelector()
+            for field in questions
+        }
+    else:
+        question_fields = {
+            vol.Optional(
+                field, default=quick_setup.SHIPPED_ANSWERS[field]
+            ): selector.BooleanSelector()
+            for field in questions
+        }
+    return vol.Schema(
+        {
+            **question_fields,
+            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
+            _suggested_entity(
+                CONF_WOOD_TANK_BOTTOM_ENTITY, current
+            ): _entity_of(["sensor"]),
+            **_questionnaire_fields(current),
+        }
+    )
+
+
+async def _translated_menu(
+    hass: HomeAssistant, flow_type: str, step_id: str, labels: dict[str, str]
+) -> dict[str, str]:
+    """Menu entries as explicit ``step id -> label`` pairs.
+
+    Passing plain step ids instead would leave the frontend to translate
+    them, and it renders an empty row when that lookup comes back empty,
+    which shows up as a menu of unreadable blank lines. Supplying the label
+    ourselves means the menu is always legible; the translation is still
+    used whenever it resolves.
+    """
+    labels = dict(labels)
+    try:
+        translations = await async_get_translations(
+            hass, hass.config.language, flow_type, {DOMAIN}
+        )
+    except Exception:  # noqa: BLE001 - a menu must never fail to render
+        _LOGGER.debug("Could not load %s menu translations", flow_type, exc_info=True)
+        return labels
+
+    prefix = f"component.{DOMAIN}.{flow_type}.step.{step_id}.menu_options."
+    for entry in labels:
+        translated = translations.get(f"{prefix}{entry}")
+        if translated:
+            labels[entry] = translated
+    return labels
+
+
+def _user_credentials_fields() -> dict[Any, Any]:
+    """Name, price source and weather — token only when the source is Tibber."""
+    return {
+        vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
+        vol.Optional(
+            CONF_PRICE_SOURCE, default=DEFAULT_PRICE_SOURCE
+        ): _select(list(PRICE_SOURCES), "price_source"),
+        vol.Optional(CONF_TIBBER_TOKEN, default=""): _tibber_token_selector(),
+        vol.Optional(CONF_PRICE_ENTITY): _entity_of("sensor"),
+        vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
+    }
+
+
+def _house_power_candidates(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Power-shaped states the Pulse matcher can see (#703)."""
+    states = getattr(hass, "states", None)
+    if states is None or not hasattr(states, "keys"):
+        return []
+    candidates: list[dict[str, Any]] = []
+    for entity_id in list(states.keys()):
+        state = states.get(entity_id)
+        if state is None:
+            continue
+        attrs = getattr(state, "attributes", None) or {}
+        domain = str(entity_id).split(".", 1)[0]
+        candidates.append(
+            {
+                "entity_id": str(entity_id),
+                "name": str(attrs.get("friendly_name") or ""),
+                "unique_id": str(attrs.get("unique_id") or ""),
+                "manufacturer": str(attrs.get("manufacturer") or ""),
+                "device_class": attrs.get("device_class"),
+                "domain": domain,
+            }
+        )
+    return candidates
+
+
+def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
+    """Optional telemetry pickers, separated from credentials (#198).
+
+    Flat, and deliberately so: this is the reconfigure path's key source and
+    ``_first_screen_schema`` merges it, both of which want the bare markers.
+    ``_user_sensors_sections`` is what the setup page renders (#824).
+    """
+    return {
+        vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
+        vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
+        vol.Optional(
+            CONF_SOLAR_FORECAST_SOURCE,
+            default=DEFAULT_SOLAR_FORECAST_SOURCE,
+        ): _solar_source_selector(),
+        vol.Optional(
+            CONF_SOLAR_LOCATION,
+            default=_default_location(hass, {}),
+        ): _solar_location_selector(),
+        vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(
+            CONF_BUFFER_TANK_TEMP_ENTITY
+        ): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
+        ),
+    }
+
+
+#: #824: setup rendered these fourteen pickers flat while the options flow
+#: split the very same keys into sections -- 0 groupings against 34 over the
+#: same ground. The groups here are the ones the registry already uses, so a
+#: user meets one vocabulary in both places: ``indoor`` and ``plant`` from the
+#: ``entities`` page, ``solar`` from ``entities_metering``.
+#:
+#: Nothing is collapsed. ``_page_schema`` collapses every section after the
+#: first, which is right for an options page a user navigates to on purpose
+#: and wrong for a setup screen, where a collapsed section is a field the user
+#: never sees. All fourteen are optional, so none of this is a gate -- but
+#: hiding an optional field behind a closed disclosure on the mandatory path
+#: is how a sensor goes unconfigured.
+_USER_SENSORS_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("indoor", (CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)),
+    (
+        "solar",
+        (CONF_SOLAR_RADIATION_ENTITY, CONF_SOLAR_FORECAST_SOURCE, CONF_SOLAR_LOCATION),
+    ),
+    (
+        "plant",
+        (
+            CONF_HEAT_PUMP_SWITCH_ENTITY,
+            CONF_FLOOR_RETURN_TEMP_ENTITY,
+            CONF_LOWER_FLOOR_TEMP_ENTITY,
+            CONF_DHW_TEMP_ENTITY,
+            CONF_BUFFER_TANK_TEMP_ENTITY,
+            CONF_HEAT_PUMP_MODE_ENTITY,
+            CONF_HEAT_PUMP_DEFROST_ENTITY,
+            CONF_HEAT_PUMP_ONLINE_ENTITY,
+            CONF_HEAT_PUMP_FAULT_ENTITY,
+        ),
+    ),
+)
+
+
+def _user_sensors_sections(hass: HomeAssistant) -> dict[Any, Any]:
+    """The setup page's fourteen pickers, grouped as the options flow groups them."""
+    flat = _user_sensors_fields(hass)
+    by_key = {str(getattr(marker, "schema", marker)): marker for marker in flat}
+    placed: set[str] = set()
+    fields: dict[Any, Any] = {}
+    for group, keys in _USER_SENSORS_GROUPS:
+        bucket = {by_key[k]: flat[by_key[k]] for k in keys if k in by_key}
+        placed.update(k for k in keys if k in by_key)
+        if bucket:
+            fields[group] = section(vol.Schema(bucket), {"collapsed": False})
+    # Any field the table above forgot stays visible and flat rather than
+    # vanishing -- a grouping that silently drops a picker is worse than an
+    # ungrouped page, which is the defect this replaces.
+    for key, marker in by_key.items():
+        if key not in placed:
+            fields[marker] = flat[marker]
+    return fields
+
+
+def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
+    """Both first-screen steps merged — for reconfigure key iteration only."""
+    return vol.Schema({**_user_credentials_fields(), **_user_sensors_fields(hass)})
+
+
+# ---------------------------------------------------------------------------
+# The options-flow settings registry (#223)
+#
+# Two tables -- one of pages, one of fields -- and every option page is a
+# query over them: which fields does this step declare, and which menu does
+# this step appear in. Before this, each page hand-listed its own markers,
+# repeated ``default=current.get(KEY, DEFAULT_KEY)`` for each one, declared
+# the two-armed entity default as its own identical nested helper, and named
+# its clearable keys a third time in a clearing loop. Three hand-kept copies
+# of one fact is how a page came to null a key its schema never presented
+# (#542) and how the clearable roster came to name one no page offers.
+#
+# What is deliberately NOT in the tables: validation, error text and the
+# after-save routing. Those differ per page for reasons the page owns, and a
+# table column for each would be a worse home than the handler.
+# ---------------------------------------------------------------------------
+
+
+class _Rule:
+    """A default that is a rule rather than a value."""
+
+    __slots__ = ("name",)
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __repr__(self) -> str:  # pragma: no cover - diagnostics only
+        return self.name
+
+
+#: Two-armed: suggest the stored value when there is one, and render a bare
+#: ``vol.Optional`` when there is not. Both arms are load-bearing, and NEITHER
+#: may carry a ``default``.
+#:
+#: A ``default`` pre-fills the field the same way a ``suggested_value`` does,
+#: but Home Assistant's flow manager validates every submitted form through
+#: this schema before the handler sees it (``data_entry_flow.py``,
+#: ``user_input = data_schema(user_input)`` in ``_async_configure``), and
+#: voluptuous refills a ``default`` for a key the form left ABSENT -- which is
+#: what a cleared picker posts. A stored value offered as a ``default``
+#: therefore came back as "set" on every clear, ``_clear_absent`` never saw an
+#: empty slot, and clearing a signal could not stick. A ``suggested_value``
+#: pre-fills the same field and leaves a cleared post empty.
+#:
+#: The second arm must stay bare for the same reason from the other side: a
+#: default on an UNCONFIGURED slot would be refilled for an untouched page and
+#: stored as a choice nobody made.
+_STORED: Final = _Rule("_STORED")
+
+#: Suggest the stored value without defaulting it, and render nothing when the
+#: key is absent. ``two_zone_enabled`` and ``dhw_enabled`` are inferred from
+#: whether their keys exist at all, so a default here would write one on an
+#: untouched save and flip a single-zone entry to two-zone.
+_SUGGESTED: Final = _Rule("_SUGGESTED")
+
+#: The row is a whole field block a callable builds from the effective config.
+_DYNAMIC: Final = _Rule("_DYNAMIC")
+
+
+class _Computed(NamedTuple):
+    """A default derived from the effective config and hass."""
+
+    of: Callable[[dict[str, Any], HomeAssistant], Any]
+
+
+class _Suggested(NamedTuple):
+    """Suggest the stored value, falling back to ``fallback`` when unset."""
+
+    fallback: Any
+
+
+class _ByHass(NamedTuple):
+    """A widget that cannot be built until hass is known (the currency)."""
+
+    of: Callable[[HomeAssistant], Any]
+
+
+class _P(NamedTuple):
+    """One option page: its fallback menu label, and which menu shows it."""
+
+    step: str
+    label: str
+    menu: str
+
+
+class _F(NamedTuple):
+    """One option-flow field.
+
+    ``widget`` is the voluptuous validator the marker maps to -- a selector,
+    a bare builtin, or a ``_ByHass`` that builds one. Selectors are built once
+    here rather than per render: nothing mutates them (``_widen_to_fit``
+    returns a new one), so sharing is safe and the fingerprint reads the same
+    ``config`` either way. ``group`` is the ``section()`` the field renders
+    inside; ``None`` leaves it at the page's top level.
+    """
+
+    step: str
+    key: str
+    default: Any
+    widget: Any
+    required: bool = False
+    when: Callable[[dict[str, Any]], bool] | None = None
+    group: str | None = None
+
+
+#: The pages a household actually revisits come first; everything else moves
+#: behind one extra click so the first menu reads as questions a user has, not
+#: as a map of the integration's internals. ``menu`` is the whole of that
+#: decision -- the two menus are a query over this column, in this order, and
+#: a page in neither would be unreachable.
+#:
+#: A submenu, not ``section()``: that groups fields inside one page and is a
+#: different question from this column. ``section()`` membership is the
+#: registry's ``group`` column, consumed by ``_page_schema``. The golden
+#: capture (#568) and the assertion walks that cover a grouped page both
+#: recurse, so a field inside a section stays visible to the fingerprint
+#: and to the selectors / bounds / submission helpers.
+_TOP: Final = "top"
+_ADVANCED: Final = "advanced"
+
+_OPTION_PAGES: Final[tuple[_P, ...]] = (
+    _P("setup_overview", "Your system, as configured", _TOP),
+    _P("comfort", "Comfort and temperatures", _TOP),
+    _P("hot_water", "Hot water", _TOP),
+    _P("tuning", "Savings vs comfort", _TOP),
+    _P("grid", "Grid peak tariff", _TOP),
+    _P("away", "Away and holiday mode", _TOP),
+    # The pre-fill reads a heat pump DEVICE -- a Tuya integration's device is
+    # the primary source, the Modbus package the secondary one -- so it sits
+    # on the everyday menu, between the settings and the one-shot pages. The
+    # step key stays ``modbus_prefill``: renaming it would orphan the stored
+    # options of every entry that answered this page.
+    _P("modbus_prefill", "Pre-fill from a heat pump device", _TOP),
+    # #1258: the one-page house questions, reachable from Configure. Last of
+    # the top pages on purpose -- it is a deliberate re-answer of the whole
+    # questionnaire rather than a setting to revisit, so it sits at the end of
+    # the everyday menu rather than at its head.
+    _P("quick_setup", "Quick setup", _TOP),
+    _P("entities", "Sensors and entities", _ADVANCED),
+    _P("entities_metering", "Power and solar sensors", _ADVANCED),
+    _P("entities_pump", "Heat pump telemetry", _ADVANCED),
+    _P("building", "Heating system and heat storage", _ADVANCED),
+    _P("building_preset", "Building type and emitters", _ADVANCED),
+    _P("thermal_model", "Thermal model (expert)", _ADVANCED),
+    _P("thermal_model_zones", "Two-zone model", _ADVANCED),
+    _P("hot_water_tank", "Hot water tank and inlet", _ADVANCED),
+    _P("hot_water_pumps", "Circulation pumps", _ADVANCED),
+    _P("solar_pv", "Solar panels", _ADVANCED),
+    _P("learning", "Self-learning and diagnostics", _ADVANCED),
+    _P("learning_features", "Advanced learning features", _ADVANCED),
+    _P("grid_connection", "Fuse and peak guards", _ADVANCED),
+    _P("grid_fees", "Transfer fees and contract", _ADVANCED),
+    _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+)
+
+#: Every field the options flow presents, in the order each page renders them.
+_OPTION_FIELDS: Final[tuple[_F, ...]] = (
+    # -- entities
+    _F("entities", CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE, _select(list(PRICE_SOURCES), "price_source"), group="credentials"),
+    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=False, group="credentials"),
+    _F("entities", CONF_PRICE_ENTITY, _STORED, _entity_of('sensor'), group="credentials"),
+    _F("entities", CONF_PRICE_VAT, DEFAULT_PRICE_VAT, _number(0.0, 2.0, 0.01), group="credentials"),
+    _F("entities", CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE, _number(0.0, 2.0, 0.01), group="credentials"),
+    _F("entities", CONF_WEATHER_ENTITY, '', _entity_of('weather'), required=True, group="credentials"),
+    _F("entities", CONF_INDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
+    _F("entities", CONF_OUTDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
+    _F("entities", CONF_HEAT_PUMP_SWITCH_ENTITY, _STORED, _entity_of('switch'), group="plant"),
+    _F("entities", CONF_DHW_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_BUFFER_TANK_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_FLOOR_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit'), group="indoor"),
+    # -- entities_metering
+    _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
+    _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
+    _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector(), group="solar"),
+    _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
+    _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
+    _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _freq_mode_selector(), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
+    # -- entities_pump
+    _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
+    _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
+    _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
+    _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
+    _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
+    # The pump's own electric heat and its night mode. Options-only, with no
+    # row in ``topology._SLOTS`` -- the precedent is the compressor-frequency
+    # pair above, which is options-only for the same reason: they are not
+    # places on the plant diagram, and adding them would change the 21
+    # assignable keys `assign_entity` and docs/configuration.md both name.
+    # So the domain list comes from ``topology.FLAG_DOMAINS`` directly, which
+    # is the same tuple the card slots' flags are built from.
+    _F("entities_pump", CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    _F("entities_pump", CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    _F("entities_pump", CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    # The water the pump is moving (#1067). Options-only for the same reason
+    # the three flags above are: they are readings off the pump, not places
+    # on the plant diagram, and ``ASSIGNABLE_KEYS`` is the documented set the
+    # card and `assign_entity` share. A temperature device class each, the
+    # same picker every other water temperature on the plant uses.
+    _F("entities_pump", CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
+    _F("entities_pump", CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
+    # -- comfort
+    _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_MAX_TEMP, DEFAULT_MAX_TEMP, _number(18, 28, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY, _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT, _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR, _number(0, 23, 1, slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1, 24, 1, slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_COMFORT_TEMP_DAY_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY)), _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), group="weekend"),
+    _F("comfort", CONF_COMFORT_TEMP_NIGHT_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT)), _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), group="weekend"),
+    _F("comfort", CONF_DAY_START_HOUR_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)), _number(0, 23, 1, slider=True), group="weekend"),
+    _F("comfort", CONF_DAY_END_HOUR_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)), _number(1, 24, 1, slider=True), group="weekend"),
+    _F("comfort", CONF_HOLIDAY_COMFORT_DAY, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY)), _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_COMFORT_NIGHT, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT)), _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_DAY_START_HOUR, _Computed(lambda cur, hass: cur.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)), _number(0, 23, 1, slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_DAY_END_HOUR, _Computed(lambda cur, hass: cur.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)), _number(1, 24, 1, slider=True), group="holiday"),
+    _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool, group="mold"),
+    _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity'), group="mold"),
+    _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01), group="mold"),
+    _F("comfort", CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number(0.0, 5.0, 0.1, '°C'), group="mold"),
+    # -- hot_water
+    _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
+    _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
+    _F("hot_water", CONF_HOLIDAY_DHW_WINDOWS, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
+    # #1260: the toggle reveals the seven per-day rows below (the wood
+    # block's ``when`` mechanism), and its default is computed from those
+    # rows -- on iff any holds a spec -- which is the same rule
+    # ``dhw_schedule.day_overrides_enabled`` applies at load, so the form
+    # and the optimizer cannot disagree about what "on" is.
+    _F("hot_water", CONF_DHW_WINDOWS_BY_DAY, _Computed(lambda cur, _hass: day_overrides_enabled(cur)), selector.BooleanSelector(), group="schedule"),
+    *(
+        _F("hot_water", key, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), when=day_overrides_enabled, group="by_day")
+        for key in CONF_DHW_WINDOWS_DAY
+    ),
+    _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="temperatures"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="legionella"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP, _number(55, 70, 1, '°C', slider=True), group="legionella"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS, _number(1, 30, 1, 'days', slider=True), group="legionella"),
+    # -- hot_water_tank
+    _F("hot_water_tank", CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME, _number(50, 1500, 10, 'L'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION, _number(50, 1500, 10, 'L/day'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE, _number(0.05, 3.0, 0.05, '°C/h'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP, _number(2, 25, 0.5, '°C'), group="inlet"),
+    _F("hot_water_tank", CONF_DHW_INLET_SEASONAL_AMPLITUDE, DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE, _number(0, 8, 0.5, '°C'), group="inlet"),
+    _F("hot_water_tank", CONF_DHW_INLET_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="inlet"),
+    _F("hot_water_tank", CONF_GREYWATER_RECOVERY, DEFAULT_GREYWATER_RECOVERY, _number(0, 0.9, 0.05, None, slider=True), group="recovery"),
+    _F("hot_water_tank", CONF_DHW_QUANTILE_TARGETS_ENABLED, DEFAULT_DHW_QUANTILE_TARGETS_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_FREE_DISINFECTION_ENABLED, DEFAULT_DHW_FREE_DISINFECTION_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_ELASTIC_LEGIONELLA_ENABLED, DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, _number(1, 14, 1, 'days', slider=True), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_DISINFECTION_SWITCH_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_DISINFECTION_MODE, DEFAULT_DHW_DISINFECTION_MODE, _select([FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL], 'dhw_disinfection_mode'), group="disinfection"),
+    _F("hot_water_tank", CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM, _number(4, 20, 0.5, 'L/min'), group="tank"),
+    # -- hot_water_pumps
+    _F("hot_water_pumps", CONF_VVC_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean'])),
+    _F("hot_water_pumps", CONF_VVC_LEAD_MINUTES, DEFAULT_VVC_LEAD_MINUTES, _number(0, 120, 5, 'min', slider=True)),
+    # -- building
+    _F("building", CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE, _select(list(mixing_valve.SELECTABLE_MODES), 'mixing_valve_mode'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET, _number(0, 30, 0.5, '°C'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_TARGET_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_WRITE_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="valve"),
+    _F("building", CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _select(list(mixing_valve.WRITE_TARGET_KINDS), 'mixing_valve_write_target_kind'), group="valve"),
+    _F("building", CONF_FLOW_CURVE_COP_ENABLED, DEFAULT_FLOW_CURVE_COP_ENABLED, selector.BooleanSelector(), group="valve"),
+    _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
+    _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
+    _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
+    _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_BOTTOM_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME, _number(50, 3000, 50, 'L', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_DHW_WOOD_COIL_ENABLED, DEFAULT_DHW_WOOD_COIL_ENABLED, bool, when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED, bool, when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_ENTITY, _STORED, _entity_of(['binary_sensor', 'switch', 'input_boolean', 'sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_MIN_RISE, DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number(0.5, 10, 0.1, '°C/h'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_DECAY_MINUTES, DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number(15, 360, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE, _select(list(WOOD_TYPES), 'wood_type'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _number(0, 10000, 10, 'SEK/m³'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
+    # -- thermal_model
+    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
+    _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C')),
+    _F("thermal_model", CONF_SLAB_THERMAL_MASS, _SUGGESTED, _number(*RANGE_SLAB_THERMAL_MASS, 0.5, 'kWh/°C')),
+    _F("thermal_model", CONF_SLAB_HEAT_TRANSFER, _SUGGESTED, _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, 'kW/°C')),
+    _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),
+    _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
+    _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+    # -- thermal_model_zones
+    _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_LOWER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_LOWER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_INTER_ZONE_TRANSFER, _SUGGESTED, _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_RADIATOR_POWER_FRACTION, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True), group="split"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_AREA_RATIO, _SUGGESTED, _number(0.1, 0.9, 0.05, slider=True), group="split"),
+    _F("thermal_model_zones", CONF_SOLAR_ORIENTATION_FACTOR, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True), group="split"),
+    # -- tuning
+    _F("tuning", CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT, _number(0.1, 10, 0.1), required=True, group="weights"),
+    _F("tuning", CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT, _number(0.1, 20, 0.1), required=True, group="weights"),
+    _F("tuning", CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL, _number(10, 120, 5, 'min', slider=True), required=True, group="weights"),
+    _F("tuning", CONF_CYCLING_COST, DEFAULT_CYCLING_COST, _number(0, 10, 0.05), group="wear"),
+    _F("tuning", CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA, _number(0.0, 2.0, 0.05), group="risk"),
+    _F("tuning", CONF_CONFIDENCE_MARGINS_ENABLED, DEFAULT_CONFIDENCE_MARGINS_ENABLED, bool, group="risk"),
+    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _number(0, 100000, 100, resolve_currency(hass))), group="wear"),
+    _F("tuning", CONF_COMPRESSOR_RATED_STARTS, DEFAULT_COMPRESSOR_RATED_STARTS, _number(1000, 1000000, 1000), group="wear"),
+    _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool, group="wear"),
+    _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool, group="risk"),
+    # -- heat_curve
+    # R5-D12-01: the topic fields suggest EMPTY, never the shipped default
+    # topics -- with no topic stored the coordinator runs no MQTT surface at
+    # all, so the form's suggestion and the key's absence must agree, and an
+    # untouched heat_curve save stays the no-op #100 promised. A user with
+    # an ECL110 types their topics; DEFAULT_*_TOPIC still fills a key left
+    # alone only when the surface exists (coordinator._ecl110_topic).
+    _F("heat_curve", CONF_ECL110_DISPLACE_SET_TOPIC, "", str),
+    _F("heat_curve", CONF_ECL110_COMMAND_TOPIC, "", str),
+    _F("heat_curve", CONF_ECL110_STATE_TOPIC, "", str),
+    _F("heat_curve", CONF_ECL110_QOS, DEFAULT_ECL110_QOS, _number(0, 2, 1, slider=True)),
+    _F("heat_curve", CONF_ECL110_RETAIN, DEFAULT_ECL110_RETAIN, bool),
+    _F("heat_curve", CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN, _number(-30, 0, 0.5, '°C')),
+    _F("heat_curve", CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX, _number(0, 30, 0.5, '°C')),
+    _F("heat_curve", CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT, _number(0.25, 6.0, 0.25, 'h')),
+    # -- building_preset
+    _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
+    _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
+    _F("building_preset", CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA, _number(POSITIVE_PARAM_FLOOR, 50, 0.5, 'm²'), group="climate"),
+    _F("building_preset", CONF_SOLAR_HEAT_GAIN_COEFF, DEFAULT_SOLAR_HEAT_GAIN_COEFF, _number(0.1, 1.0, 0.05, slider=True), group="climate"),
+    _F("building_preset", CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY, _number(0.0, 0.5, 0.01), group="climate"),
+    _F("building_preset", CONF_RAIN_HEAT_LOSS_MULTIPLIER, DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER, _number(1.0, 1.5, 0.01), group="climate"),
+    # -- grid
+    _F("grid", CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED, bool),
+    _F("grid", CONF_PEAK_TARIFF_PRICE, DEFAULT_PEAK_TARIFF_PRICE, _number(0, 500, 1)),
+    _F("grid", CONF_PEAK_TARIFF_COUNT, DEFAULT_PEAK_TARIFF_COUNT, _number(1, 10, 1, slider=True)),
+    _F("grid", CONF_PEAK_TARIFF_WINDOW, _Computed(lambda cur, hass: str(cur.get(CONF_PEAK_TARIFF_WINDOW, DEFAULT_PEAK_TARIFF_WINDOW))), _select(['15', '60'], 'peak_window')),
+    _F("grid", CONF_PEAK_TARIFF_MONTHS, DEFAULT_PEAK_TARIFF_MONTHS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    _F("grid", CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    _F("grid", CONF_PEAK_TARIFF_WEEKDAYS_ONLY, DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY, bool),
+    _F("grid", CONF_PEAK_TARIFF_OFFPEAK_FACTOR, DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number(0.0, 1.0, 0.05, slider=True)),
+    _F("grid", CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS, bool),
+    # -- grid_connection
+    _F("grid_connection", CONF_MAIN_FUSE_A, DEFAULT_MAIN_FUSE_A, _number(0, 125, 1, 'A')),
+    _F("grid_connection", CONF_MAIN_FUSE_PHASES, DEFAULT_MAIN_FUSE_PHASES, _number(1, 3, 1, slider=True)),
+    _F("grid_connection", CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED, bool),
+    _F("grid_connection", CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED, bool),
+    _F("grid_connection", CONF_PEAK_GUARD_MARGIN_KW, DEFAULT_PEAK_GUARD_MARGIN_KW, _number(0.0, 3.0, 0.1, 'kW', slider=True)),
+    _F("grid_connection", CONF_SILENT_MODE_WINDOWS, DEFAULT_SILENT_MODE_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    _F("grid_connection", CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION, _number(CAPACITY_FLOOR_FRACTION, 1.0, 0.05, slider=True)),
+    # -- grid_fees
+    _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
+    _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
+    _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass: _number(0, 5, 0.01, f'{resolve_currency(hass)}/kWh'))),
+    _F("grid_fees", CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=True))),
+    _F("grid_fees", CONF_GRID_FEE_ENTITY, _STORED, _entity_of('sensor')),
+    _F("grid_fees", CONF_CONTRACT_FIXED_PRICE, DEFAULT_CONTRACT_FIXED_PRICE, _ByHass(lambda hass: _number(0, 10, 0.01, f'{resolve_currency(hass)}/kWh'))),
+    # -- solar_pv
+    _F("solar_pv", CONF_PV_ENABLED, DEFAULT_PV_ENABLED, bool),
+    _F("solar_pv", CONF_PV_PEAK_KW, DEFAULT_PV_PEAK_KW, _number(0, 100, 0.1, 'kWp')),
+    _F("solar_pv", CONF_PV_EFFICIENCY, DEFAULT_PV_EFFICIENCY, _number(0.3, 1.0, 0.01, slider=True)),
+    _F("solar_pv", CONF_PV_EXPORT_PRICE, DEFAULT_PV_EXPORT_PRICE, _number(0, 10, 0.01)),
+    _F("solar_pv", CONF_PV_EXPORT_PRICE_ENTITY, _STORED, _entity_of('sensor')),
+    _F("solar_pv", CONF_PV_PRODUCTION_ENTITY, _STORED, _entity_of('sensor', 'power')),
+    # -- away
+    _F("away", CONF_AWAY_PRESENCE_ENTITY, _STORED, _entity_of(['person', 'device_tracker', 'calendar', 'binary_sensor'])),
+    _F("away", CONF_HOLIDAY_CALENDAR_ENTITY, _STORED, _entity_of('calendar')),
+    _F("away", CONF_AWAY_TEMPERATURE, DEFAULT_AWAY_TEMPERATURE, _number(5, 21, 0.5, '°C', slider=True)),
+    _F("away", CONF_AWAY_DHW_MIN_TEMP, DEFAULT_AWAY_DHW_MIN_TEMP, _number(10, 55, 1, '°C', slider=True)),
+    # -- learning
+    _F("learning", CONF_STALENESS_ENABLED, DEFAULT_STALENESS_ENABLED, bool),
+    _F("learning", CONF_STALENESS_SCALE, DEFAULT_STALENESS_SCALE, _number(STALENESS_SCALE_MIN, STALENESS_SCALE_MAX, 0.5, slider=True)),
+    _F("learning", CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED, bool),
+    _F("learning", CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED, bool),
+    _F("learning", CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED, bool),
+    # -- learning_features
+    _F("learning_features", CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_OPEN_WINDOW_RELAX_ENABLED, DEFAULT_OPEN_WINDOW_RELAX_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_IMMERSION_FEEDBACK_ENABLED, DEFAULT_IMMERSION_FEEDBACK_ENABLED, bool, group="plant"),
+    _F("learning_features", CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_SNOW_ROOF_FACTOR_ENABLED, DEFAULT_SNOW_ROOF_FACTOR_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_SOLAR_APERTURE_LEARNING_ENABLED, DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_INTERNAL_GAINS_LEARNING_ENABLED, DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED, bool, group="model"),
+    # -- modbus_prefill: only the prefix is a row; the preview it opens is
+    # built from the rows of the keys it suggests (``_prefill_schema``).
+    _F("modbus_prefill", CONF_MODBUS_PREFILL_PREFIX, DEFAULT_MODBUS_PREFILL_PREFIX, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    # #1067 W1067-POST1: the offer switch, on the pre-fill's own page because
+    # that is where the pre-fill is met -- "offer this at setup" belongs beside
+    # the page it offers. Off by default, and stored rather than transient:
+    # the initial flow reads it from the entries' options, so it survives a
+    # restart and applies install-wide.
+    _F("modbus_prefill", CONF_PREFILL_OFFER, DEFAULT_PREFILL_OFFER, selector.BooleanSelector()),
+)
+
+
+def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
+    """The voluptuous marker one registry row renders for this configuration."""
+    default = row.default
+    if default is _STORED:
+        existing = current.get(row.key)
+        if existing:
+            return vol.Optional(
+                row.key, description={"suggested_value": existing}
+            )
+        if row.key == CONF_HOUSE_POWER_ENTITY:
+            suggestion = topology.suggest_house_power_entity(
+                None, _house_power_candidates(hass)
+            )
+            if suggestion:
+                return vol.Optional(
+                    row.key, description={"suggested_value": suggestion}
+                )
+        return vol.Optional(row.key)
+    if default is _SUGGESTED:
+        return _options_suggested_numeric(current, row.key)
+    if isinstance(default, _Suggested):
+        return vol.Optional(
+            row.key,
+            description={
+                "suggested_value": current.get(row.key, default.fallback)
+            },
+        )
+    value = (
+        default.of(current, hass)
+        if isinstance(default, _Computed)
+        else current.get(row.key, default)
+    )
+    return (vol.Required if row.required else vol.Optional)(row.key, default=value)
+
+
+def _page_rows(step: str, current: dict[str, Any]) -> list[_F]:
+    """The registry rows one page renders for this configuration.
+
+    ``when`` is what makes a revealed block part of the table rather than an
+    exception to it: the wood-furnace fields are rows like any other, and the
+    predicate decides both what renders and what the save may clear -- which
+    is why the two can no longer disagree.
+    """
+    return [
+        row
+        for row in _OPTION_FIELDS
+        if row.step == step and (row.when is None or row.when(current))
+    ]
+
+
+def _section_inner(value: Any) -> vol.Schema | None:
+    """The inner ``vol.Schema`` of a ``section()``, or ``None`` for a leaf.
+
+    Keyed on the nesting itself rather than on ``isinstance(value, section)``,
+    matching ``tests.golden._nested_schema``: what hides a field from a
+    one-level walk is an inner schema, whatever the class holding it is called.
+    """
+    inner = getattr(value, "schema", None)
+    return inner if isinstance(inner, vol.Schema) else None
+
+
+def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Lift ``section()`` payloads to option keys.
+
+    The form nests; stored options do not. A payload that is already flat
+    (tests, and any page with no groups) is unchanged. Dict-valued option
+    keys such as ``solar_location`` are not section names -- only registry
+    ``group`` values are lifted. Setup's ``_USER_SENSORS_GROUPS`` names are
+    included so a fresh ``user_sensors`` submit flattens the same way.
+    """
+    groups = {row.group for row in _OPTION_FIELDS if row.group}
+    groups.update(group for group, _keys in _USER_SENSORS_GROUPS)
+    flat: dict[str, Any] = {}
+    for key, value in user_input.items():
+        if key in groups and isinstance(value, dict):
+            flat.update(value)
+        else:
+            flat[key] = value
+    return flat
+
+
+def _page_schema(
+    step: str, current: dict[str, Any], hass: HomeAssistant
+) -> vol.Schema:
+    """One option page's schema, queried from the registry.
+
+    Rows that share a ``group`` become one ``section()``, even when they
+    are not adjacent in the table -- a second write to the same section
+    key would otherwise drop the fields already collected. A page whose
+    rows carry no group stays flat. ``after_save`` is appended outside
+    every section so it is never nested. Sections emit in first-seen
+    group order; fields inside a section keep table order.
+    """
+    buckets: dict[str | None, dict[Any, Any]] = {}
+    order: list[str | None] = []
+    for row in _page_rows(step, current):
+        group = row.group
+        if group not in buckets:
+            buckets[group] = {}
+            order.append(group)
+        if row.default is _DYNAMIC:
+            buckets[group].update(row.widget(current))
+            continue
+        widget = row.widget.of(hass) if isinstance(row.widget, _ByHass) else row.widget
+        buckets[group][_field_marker(row, current, hass)] = widget
+    fields: dict[Any, Any] = {}
+    emitted_group = False
+    for group in order:
+        bucket = buckets[group]
+        if group is None:
+            fields.update(bucket)
+            continue
+        fields[group] = section(
+            vol.Schema(bucket),
+            {"collapsed": emitted_group},
+        )
+        emitted_group = True
+    return _options_schema(fields)
+
+
+def _prefill_row(key: str) -> _F:
+    """The first registry row presenting ``key``; its widget renders the suggestion."""
+    return next(row for row in _OPTION_FIELDS if row.key == key)
+
+
+def _prefill_fits(key: str, value: Any) -> bool:
+    """A suggestion its own field would accept: a number inside its range.
+
+    A register can hold what a field refuses -- the pump's economic hot water
+    setpoint reaches 63 degrees, the hot water minimum stops at 55 -- and a
+    suggestion outside the range would reach the form as a widened field with
+    an error on it, for a value nobody typed.
+    """
+    widget = _prefill_row(key).widget
+    if not isinstance(widget, selector.NumberSelector):
+        return True
+    return bool(widget.config["min"] <= value <= widget.config["max"])
+
+
+def _prefill_schema(keys: Iterable[str], values: Mapping[str, Any]) -> vol.Schema:
+    """The pre-fill preview: one flat, suggested field per key.
+
+    Flat, because a suggested value does not reach a field inside a
+    ``section()``; suggested rather than defaulted, so a field the user
+    clears is absent from the submit and nothing is written for it.
+    """
+    return _options_schema({
+        (
+            vol.Optional(key, description={"suggested_value": values[key]})
+            if key in values
+            else vol.Optional(key)
+        ): _prefill_row(key).widget
+        for key in keys
+    })
+
+
+#: The pre-fill page's device pick. Transient: it names where to read the
+#: suggestions from for this one visit and is never stored, so it carries no
+#: ``_F`` row, no default and nothing in ``_ABSENT_FALLBACKS`` -- reopening
+#: the page asks again. The selector is deliberately not filtered by
+#: integration: W1067-G7b-3's fallback serves a device no source table knows.
+_PREFILL_DEVICE: Final = "prefill_device"
+
+
+def _prefill_device_schema() -> dict[Any, Any]:
+    """The pre-fill's own field: which device's entities to read.
+
+    The pick is the options page's first form beside the Modbus prefix row
+    (that page's other fields are registry rows), and it is the whole of the
+    offer page W1067-POST1 shows during setup -- the prefix route stays on the
+    options page, because a package's entities are already in the states
+    rather than behind a device the user has just added.
+    """
+    return {
+        vol.Optional(_PREFILL_DEVICE): selector.DeviceSelector(
+            selector.DeviceSelectorConfig()
+        )
+    }
+
+
+def _device_record(entry: Any) -> device_prefill.EntityRecord:
+    """One entity-registry entry as the plain record the resolvers read."""
+    return device_prefill.EntityRecord(
+        platform=entry.platform or "",
+        unique_id=entry.unique_id,
+        entity_id=entry.entity_id,
+        original_name=entry.original_name,
+        translation_key=entry.translation_key,
+        device_class=entry.device_class or entry.original_device_class,
+        unit=entry.unit_of_measurement,
+        state_class=None,
+    )
+
+
+def _device_records(hass: HomeAssistant, device_id: str) -> list[device_prefill.EntityRecord]:
+    """One device's entity-registry entries, as plain records.
+
+    The registry read lives here rather than in ``device_prefill``, which
+    stays free of Home Assistant imports like ``modbus_prefill``.
+    """
+    registry = er.async_get(hass)
+    return [
+        _device_record(entry)
+        for entry in er.async_entries_for_device(registry, device_id)
+    ]
+
+
+def _records_by_device(hass: HomeAssistant) -> dict[str, list[device_prefill.EntityRecord]]:
+    """Every device's records at once, in one pass over the entity registry.
+
+    The offer's input (``prefill_offer.offered``): which device a record
+    belongs to is the registry's own answer, and asking per device would be
+    one scan of the registry per device in the install. Entities belonging to
+    no device are left out -- there is no device to offer.
+    """
+    grouped: dict[str, list[device_prefill.EntityRecord]] = {}
+    for entry in er.async_get(hass).entities.values():
+        if entry.device_id is not None:
+            grouped.setdefault(entry.device_id, []).append(_device_record(entry))
+    return grouped
+
+
+def _display_names(
+    hass: HomeAssistant, records: Iterable[device_prefill.EntityRecord]
+) -> dict[str, str]:
+    """``entity_id -> the friendliest name the pre-fill pages can see`` (#1262).
+
+    The page's account of a name-matched role used to print the raw
+    ``entity_id``, which is a registry key rather than a name. The friendliest
+    name available to the page itself is the state's ``friendly_name``
+    attribute -- the same attribute Home Assistant shows everywhere else --
+    falling back to the entity-registry record's ``original_name``, the name
+    the owning integration gave it. A record with neither (an entity matched
+    purely on the words of its id) is simply absent from the map, and the page
+    then degrades to the bare id rather than dropping the role it read.
+    """
+    names: dict[str, str] = {}
+    for record in records:
+        attrs = getattr(hass.states.get(record.entity_id), "attributes", None) or {}
+        friendly = str(attrs.get("friendly_name") or "").strip()
+        if not friendly:
+            friendly = str(record.original_name or "").strip()
+        if friendly and friendly != record.entity_id:
+            names[record.entity_id] = friendly
+    return names
+
+
+def _prefill_offer_stored(hass: HomeAssistant) -> bool:
+    """Whether any entry of this domain has the pre-fill offer switched on.
+
+    The switch is global, so it is read across the install's entries rather
+    than from one of them: a user who turned it on has turned it on. An
+    install with no entry yet reads the default, which is off -- the offer is
+    opt-in, and that is what its absence means.
+    """
+    return any(
+        entry.options.get(CONF_PREFILL_OFFER, DEFAULT_PREFILL_OFFER)
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    )
+
+
+def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+    """The refusals of the pages the suggested keys live on, for this save.
+
+    A pair rule is judged only when the save carries half of that pair, so a
+    stored pair the pre-fill never touched cannot block it.
+    """
+    errors: dict[str, str] = {}
+    # D12-01: the pre-fill save never passes through the guarded building page,
+    # and a GCHV pump under water control offers a flow write target, so the
+    # building page's two-zone rule must fire here too -- a flow target saved on
+    # a single-zone install would otherwise be silently no-op'd every cycle.
+    if (
+        saved.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == mixing_valve.WRITE_TARGET_FLOW
+        and not ThermalParameters.from_config({**current, **saved}).two_zone_enabled
+    ):
+        errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
+    for key in (CONF_DHW_WINDOWS, CONF_SILENT_MODE_WINDOWS):
+        problem = dhw_spec_problem(saved[key]) if key in saved else None
+        if problem == DHW_ERROR_TOO_SHORT and key == CONF_SILENT_MODE_WINDOWS:
+            problem = "silent_mode_window_too_short"
+        if problem is not None:
+            errors[key] = problem
+    if {CONF_DHW_SETPOINT, CONF_DHW_MIN_TEMP} & saved.keys() and _dhw_min_too_close(
+        saved, current
+    ):
+        errors["base"] = "dhw_min_too_close"
+    if CONF_HEAT_PUMP_MAX_POWER in saved and _power_errors(saved, current):
+        errors["base"] = "min_power_above_max"
+    return errors
+
+
+def _omit_unstored_computed(
+    user_input: dict[str, Any],
+    current: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any]:
+    """Drop ``_Computed`` defaults the entry never stored.
+
+    ``section()`` fills ``Optional(..., default=)`` on an empty group.
+    Weekend/holiday comfort and ``wood_furnace_enabled`` are derived, not
+    answers; writing them on a no-op options walk moves the stored bytes
+    (A5) the same way a default on ``two_zone_enabled`` would. A key that
+    is already stored, or whose posted value differs from the computed
+    default, is kept.
+
+    A posted value that equals the stored one keeps the stored type:
+    voluptuous ``_number`` widgets coerce ``7`` to ``7.0``, and a
+    ``_select(['15', '60'])`` on real Home Assistant retypes ``'60'``
+    to ``60``. Options win the effective merge, so either rewrite moves
+    JSON bytes without changing the setting.
+    """
+    cleaned = dict(user_input)
+    for row in _OPTION_FIELDS:
+        if not isinstance(row.default, _Computed):
+            continue
+        if row.key in current or row.key not in cleaned:
+            continue
+        try:
+            computed = row.default.of(current, hass)
+        except Exception:  # noqa: BLE001 - leave a value we cannot recompute
+            continue
+        if _same_setting(computed, cleaned[row.key]):
+            del cleaned[row.key]
+    for key, value in list(cleaned.items()):
+        if key in current and _same_setting(current[key], value):
+            cleaned[key] = current[key]
+    return cleaned
+
+
+#: Registry keys whose form default is NOT interchangeable with the key being
+#: absent, so an unstored one is written even when it equals that default.
+#: The DHW pair is presence-inferred (either key switches hot-water planning
+#: on); the wood trio publishes ``None`` while absent. The credential pair
+#: could not be shown equivalent, and the initial flow always stores both.
+#: ``tests/config_flow_steps.py`` derives this whole set and fails when it
+#: moves.
+_ABSENT_IS_NOT_DEFAULT: Final = frozenset({
+    CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
+    CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
+    CONF_TIBBER_TOKEN, CONF_WEATHER_ENTITY,
+})
+
+
+def _absent_fallback(row: _F) -> Any:
+    """What the form shows for an absent ``row.key``; ``_STORED`` when none."""
+    if row.default is _STORED:
+        return None
+    if isinstance(row.default, _Suggested):
+        return row.default.fallback
+    if isinstance(row.default, (_Rule, _Computed)):
+        return _STORED
+    return row.default
+
+
+#: Every unstored key an untouched page may post, and the value that post
+#: carries while the integration already runs with exactly that value.
+_ABSENT_FALLBACKS: Final[dict[str, Any]] = {
+    key: fallback
+    for key, fallback in [
+        *((row.key, _absent_fallback(row)) for row in _OPTION_FIELDS),
+        *_QUESTIONNAIRE_DEFAULTS.items(),
+    ]
+    if fallback is not _STORED and key not in _ABSENT_IS_NOT_DEFAULT
+}
+
+
+def _omit_unstored_defaults(
+    user_input: dict[str, Any], current: dict[str, Any]
+) -> dict[str, Any]:
+    """Drop the defaults and cleared slots an untouched page posts for keys
+    the entry never stored.
+
+    The form shows its default for an absent key, and a cleared entity slot
+    comes back as ``None`` (``_clear_absent``), so an untouched submit used
+    to write every such key and turn an unchanged configuration into an
+    options change -- and, through ``async_update_options``, a reload.
+    Dropped only for ``_ABSENT_FALLBACKS``; a stored key is always kept.
+    """
+    return {
+        key: value
+        for key, value in user_input.items()
+        if key in current
+        or key not in _ABSENT_FALLBACKS
+        or not _same_setting(_ABSENT_FALLBACKS[key], value)
+    }
+
+
+def _same_setting(stored: Any, posted: Any) -> bool:
+    """True when a form rewrite did not change the setting, only its type."""
+    if stored == posted:
+        return True
+    if isinstance(stored, str) and isinstance(posted, (int, float)):
+        try:
+            return stored == str(posted) or type(posted)(stored) == posted
+        except (TypeError, ValueError):
+            return False
+    if isinstance(posted, str) and isinstance(stored, (int, float)):
+        try:
+            return posted == str(stored) or type(stored)(posted) == stored
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
+def _clear_absent(
+    user_input: dict[str, Any], step: str, current: dict[str, Any]
+) -> dict[str, Any]:
+    """``user_input`` with this page's cleared entity slots written back as None.
+
+    A cleared selector is simply absent from ``user_input``, and options merge
+    on top of setup data, so an absent key would silently restore the old
+    entity. The keys come from the registry, so a page can only null one its
+    own schema presented -- the invariant #542 broke when a clearing loop
+    outlived the fields it was written for, and the one the entities page
+    broke earlier by nulling the whole roster instead of its own.
+    """
+    cleaned = dict(_flatten_section_input(user_input))
+    for row in _page_rows(step, current):
+        if row.default is _STORED and not cleaned.get(row.key):
+            cleaned[row.key] = None
+    return cleaned
+
+
+def _setup_overview_form(
+    flow: _ShowFormParent,
+    data: Mapping[str, Any],
+    *,
+    last_step: bool | None = None,
+) -> ConfigFlowResult:
+    """Read-only picture of ``data`` — the same text Options already shows."""
+    setup = topology.describe_setup(dict(data))
+    return flow.async_show_form(
+        step_id="setup_overview",
+        data_schema=vol.Schema({}),
+        description_placeholders={
+            "setup_summary": topology.render_text_summary(setup)
+        },
+        last_step=last_step,
+    )
+
+
+class HeatPumpOptimizerConfigFlow(
+    _StoredValuesAlwaysFit, config_entries.ConfigFlow, domain=DOMAIN
+):
+    """Handle a config flow for Heat Pump Optimizer."""
+
+    VERSION = CONFIG_ENTRY_VERSION
+
+    #: The suggested keys the offer page is showing, between its two submits
+    #: (#1067 W1067-POST1). None means the page is being opened; a tuple means
+    #: the preview was computed and the next submit is the one that keeps or
+    #: drops what it offered -- the same two-submit shape as the options
+    #: flow's pre-fill page, with the wizard's own data as the target.
+    _device_prefill: tuple[str, ...] | None = None
+
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._data: dict[str, Any] = {}
+        # Set by async_step_reconfigure (D10-14): the entry being
+        # reconfigured, or None while this is a plain setup flow.
+        self._reconfigure_entry: HeatPumpOptimizerConfigEntry | None = None
+        self._reauth_entry: HeatPumpOptimizerConfigEntry | None = None
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle a reconfigure flow initialized by the user (D10-14).
+
+        A rotated token, a renamed sensor, a second pump where the first
+        used to be: before this step existed the only way through was to
+        delete the entry and walk all of setup again. Home Assistant
+        (2024.4+) starts the step from the entry's own page -- the manager
+        stamps ``context={"source": "reconfigure", "entry_id": ...}`` and
+        the entry's ``supports_reconfigure`` is what offers the button --
+        and the step itself reopens the first screen over the entry's
+        current answers, the 2024.6 pattern the shelly and tado flows set
+        (resolve the entry, suggest its values, save back to it) rather
+        than re-walking the whole wizard, whose pages 2-9 would clobber
+        settings the first screen never asks about.
+        """
+        self._reconfigure_entry = self._entry_from_context()
+        assert self._reconfigure_entry is not None
+        return await self.async_step_user(user_input)
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the initial step — API credentials and entity selection."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            source = user_input.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+            if source == PRICE_SOURCE_ENTITY:
+                if not user_input.get(CONF_PRICE_ENTITY):
+                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+                else:
+                    self._data.update(user_input)
+                    return await self.async_step_user_sensors()
+            else:
+                token = user_input.get(CONF_TIBBER_TOKEN)
+                if not token:
+                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+                else:
+                    verdict = await validate_tibber_token(self.hass, token)
+                    if verdict == "invalid_auth":
+                        errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+                    elif verdict != "ok":
+                        errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+                    else:
+                        self._data.update(user_input)
+                        return await self.async_step_user_sensors()
+
+        schema = vol.Schema(_user_credentials_fields())
+        if self._reconfigure_entry is not None:
+            schema = self.add_suggested_values_to_schema(
+                schema, self._reconfigure_entry.data
+            )
+        return self.async_show_form(
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "tibber_info": "Get your token from https://developer.tibber.com",
+            },
+        )
+
+    async def async_step_user_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Optional entity pickers, after credentials (#198)."""
+        if user_input is not None:
+            self._data.update(_flatten_section_input(dict(user_input)))
+            await self.async_set_unique_id(entry_identity(self._data))
+            if (
+                self._reconfigure_entry is None
+                or self.unique_id != self._reconfigure_entry.unique_id
+            ):
+                self._abort_if_unique_id_configured()
+            if self._reconfigure_entry is not None:
+                return await self._async_save_reconfigure(self._data)
+            if _prefill_offer_stored(self.hass) and prefill_offer.offered(
+                _records_by_device(self.hass)
+            ):
+                # #1067 W1067-POST1: the device the user has just added is in
+                # the registry, and this is the moment the pre-fill is worth
+                # offering -- before the wizard moves past the entity screens.
+                return await self.async_step_device_prefill()
+            return await self.async_step_finish_setup()
+
+        # Grouped on a FRESH setup only. On reconfigure the page is prefilled
+        # through add_suggested_values_to_schema, which fills by top-level key:
+        # against a sectioned schema every sensor came back None, so a user
+        # reconfiguring would silently lose the pickers they had set. Measured,
+        # not feared -- tests/config_flow_steps.py's reconfigure-prefill check
+        # fails on the grouped schema and passes on the flat one (#824).
+        if self._reconfigure_entry is not None:
+            schema = self.add_suggested_values_to_schema(
+                vol.Schema(_user_sensors_fields(self.hass)),
+                self._reconfigure_entry.data,
+            )
+        else:
+            schema = vol.Schema(_user_sensors_sections(self.hass))
+        return self.async_show_form(
+            step_id="user_sensors",
+            data_schema=schema,
+        )
+
+    def _device_prefill_form(
+        self,
+        schema: vol.Schema,
+        notes: dict[str, str],
+        errors: dict[str, str],
+    ) -> ConfigFlowResult:
+        """The offer page, with the placeholders its description always reads.
+
+        ``device_prefill.disclaimer()`` with no resolution is the empty form,
+        so the pick and the refusal both carry the two keys the device route
+        overrides rather than leaving the description's braces unrendered --
+        the options flow's pre-fill page, and its reason, in one place.
+        """
+        return self.async_show_form(
+            step_id="device_prefill",
+            errors=errors,
+            description_placeholders={**device_prefill.disclaimer(), **notes},
+            data_schema=schema,
+        )
+
+    async def async_step_device_prefill(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Offer the device pre-fill for a pump added to this install (#1067 POST1).
+
+        Reached from the second screen's submit when the pre-fill offer is
+        switched on and a device in the registry resolves through G7b -- the
+        device the user has just added, at the moment the suggestion is worth
+        making. One page, submitted twice, exactly like the options flow's
+        pre-fill page: the first submit says which device to read and opens a
+        preview of what its entities suggest, the second keeps what the user
+        left in the form and lets the wizard continue.
+
+        Nothing is written until that second submit, and an empty device pick
+        is a decline rather than an error: the offer is the user's to leave,
+        and leaving it writes nothing. A device that resolves too few roles to
+        be worth the page is refused on the page rather than opened empty
+        (``prefill_offer.qualifies``), so a prompt never becomes an empty form.
+
+        What the user keeps lands in the entry's own setup data rather than in
+        options, because there is no entry yet: the wizard's own pages store
+        their answers the same way, and the coordinator reads setup data and
+        options alike. The omission rules are the options page's own
+        (#1107): a blank field, an unchanged value and an unstored default
+        are dropped by ``infer`` and ``_omit_unstored_defaults``, so accepting
+        the offer cannot rewrite a setting as itself.
+        """
+        if user_input is None:
+            # The page opened: which device's entities to read. Reopening
+            # after a refusal comes back here too, which is why the pick and
+            # the refusal render the same form.
+            return self._device_prefill_form(
+                vol.Schema(_prefill_device_schema()),
+                modbus_prefill.notes({}),
+                {},
+            )
+        if self._device_prefill is None:
+            device_id = user_input.get(_PREFILL_DEVICE)
+            if not device_id:
+                return await self.async_step_finish_setup()
+            records = _device_records(self.hass, str(device_id))
+            resolution = device_prefill.resolve_with_fallback(records)
+            snapshot = (
+                modbus_prefill.snapshot(self.hass.states.get, resolution.roles)
+                if prefill_offer.qualifies(resolution)
+                else {}
+            )
+            suggested = {
+                key: value
+                for key, value in modbus_prefill.infer(
+                    snapshot, {**_ABSENT_FALLBACKS, **self._data}
+                ).items()
+                if _prefill_fits(key, value)
+            }
+            if not suggested:
+                # A device no source recognises, one that filled too few
+                # roles, or one whose entities hold nothing to suggest: say so
+                # on the page rather than open an empty form.
+                return self._device_prefill_form(
+                    vol.Schema(_prefill_device_schema()),
+                    modbus_prefill.notes({}),
+                    {"base": "prefill_device_unreadable"},
+                )
+            notes = {
+                **modbus_prefill.notes(snapshot),
+                # #1262: the roles read by NAME are named the way the rest of
+                # Home Assistant names an entity, not by their registry key.
+                **device_prefill.disclaimer(
+                    resolution, _display_names(self.hass, records)
+                ),
+            }
+            self._device_prefill = tuple(suggested)
+            return self._device_prefill_form(
+                _prefill_schema(suggested, suggested), notes, {}
+            )
+        keys = self._device_prefill
+        saved = {
+            key: value
+            for key, value in _flatten_section_input(user_input).items()
+            if value not in (None, "")
+        }
+        errors = _prefill_errors(saved, {**_ABSENT_FALLBACKS, **self._data})
+        if errors:
+            return self._device_prefill_form(_prefill_schema(keys, saved), {}, errors)
+        self._device_prefill = None
+        self._data.update(
+            _omit_unstored_defaults(
+                _omit_unstored_computed(saved, self._data, self.hass),
+                self._data,
+            )
+        )
+        return await self.async_step_finish_setup()
+
+    async def _async_save_reconfigure(
+        self, user_input: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Write the first screen's answers back onto the entry they came from."""
+        entry = self._reconfigure_entry
+        assert entry is not None
+        data = dict(entry.data)
+        for key in (
+            str(getattr(marker, "schema", marker))
+            for marker in _first_screen_schema(self.hass).schema
+        ):
+            # A first-screen slot the user cleared is a sensor they stopped
+            # using; the user step's own description promises exactly that,
+            # so the cleared value must not survive the update.
+            if key in user_input:
+                data[key] = user_input[key]
+            else:
+                data.pop(key, None)
+        self.hass.config_entries.async_update_entry(
+            entry,
+            data=data,
+            unique_id=self.unique_id,
+            title=data.get(CONF_NAME, entry.title),
+        )
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reconfigure_successful")
+
+    async def async_step_finish_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Continue the wizard, or finish now with shipped defaults (UX E2).
+
+        The first two screens are the only required answers. Everything
+        after them already has a coordinator fallback, so a user who
+        stops here still gets an entry they can refine in Options.
+        """
+        return self.async_show_menu(
+            step_id="finish_setup",
+            menu_options=await _translated_menu(
+                self.hass,
+                "config",
+                "finish_setup",
+                {
+                    "quick_setup": "Quick setup (recommended)",
+                    "temperature": "Continue setup",
+                    "finish_now": "Finish setup now",
+                },
+            ),
+        )
+
+    async def async_step_finish_now(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the overview of the first two screens, then create."""
+        return await self.async_step_setup_overview()
+
+    async def async_step_setup_overview(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Last config-flow step: show what will be created, then persist."""
+        if user_input is not None:
+            return self._create_setup_entry()
+        return _setup_overview_form(self, self._data, last_step=True)
+
+    def _create_setup_entry(self) -> ConfigFlowResult:
+        """Persist whatever the wizard has collected so far."""
+        return self.async_create_entry(
+            title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
+            data=self._data,
+        )
+
+    async def async_step_quick_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The recommended path: five house questions, then the entity pre-fill.
+
+        A fresh install's answers are few: whether the house has two zones, a
+        buffer store, a DHW tank, a wood furnace and a second wood tank, plus
+        the building questionnaire the full wizard already asks.
+        ``quick_setup.derive`` turns those answers into config keys, then the
+        existing device pre-fill step autodetects the heat pump's entities.
+        Everything the quick path leaves unanswered keeps a shipped default,
+        and the full wizard stays reachable from the same menu.
+
+        The device pre-fill is entered directly rather than gated by the
+        global ``CONF_PREFILL_OFFER`` switch: a user who chose the quick path
+        asked for autodetection, so it runs here regardless of that advanced
+        switch, which keeps governing only the auto-offer on the ordinary path.
+        """
+        if user_input is not None:
+            self._data.update(quick_setup.derive(dict(user_input)))
+            return await self.async_step_device_prefill()
+
+        return self.async_show_form(
+            step_id="quick_setup",
+            data_schema=_quick_setup_schema(self._data),
+        )
+
+    async def async_step_temperature(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle temperature configuration step."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = _band_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_building()
+
+        return self.async_show_form(
+            step_id="temperature",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_TARGET_TEMP, default=DEFAULT_TARGET_TEMP
+                    ): _number(15, 28, 0.5, "°C", slider=True),
+                    vol.Required(
+                        CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
+                    ): _number(14, 25, 0.5, "°C", slider=True),
+                    vol.Required(
+                        CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
+                    ): _number(18, 28, 0.5, "°C", slider=True),
+                    vol.Required(
+                        CONF_COMFORT_TEMP_DAY, default=DEFAULT_COMFORT_TEMP_DAY
+                    ): _number(
+                        COMFORT_TEMP_DAY_SELECTOR_MIN,
+                        COMFORT_TEMP_DAY_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
+                    vol.Required(
+                        CONF_COMFORT_TEMP_NIGHT, default=DEFAULT_COMFORT_TEMP_NIGHT
+                    ): _number(
+                        COMFORT_TEMP_NIGHT_SELECTOR_MIN,
+                        COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
+                    vol.Required(
+                        CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
+                    ): _number(0, 23, 1, slider=True),
+                    vol.Required(
+                        CONF_DAY_END_HOUR, default=DEFAULT_DAY_END_HOUR
+                    ): _number(1, 24, 1, slider=True),
+                }
+            ),
+        )
+
+    async def async_step_building(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Choose how the thermal model gets its starting values.
+
+        The raw ``thermal`` page asks for kWh/°C, which nobody knows; the
+        questionnaire asks what the house is made of and derives the physics
+        (presets.py). Both paths exist because both users exist — someone
+        holding a real energy declaration should not be forced through an
+        approximation of it.
+        """
+        return self.async_show_menu(
+            step_id="building",
+            menu_options=await _translated_menu(
+                self.hass,
+                "config",
+                "building",
+                {
+                    "building_describe": "Describe my building (recommended)",
+                    "thermal": "Enter thermal values directly",
+                },
+            ),
+        )
+
+    async def async_step_building_describe(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The questionnaire path: answerable questions instead of kWh/°C.
+
+        Stores the answers themselves (so the options page shows them back),
+        marks the preset enabled, and writes the derived physics where the
+        ``thermal`` step would have written hand-typed numbers. The ``zones``
+        step is skipped entirely: its voluptuous defaults would write the
+        two-zone presence keys on every fresh install, which is exactly the
+        one-specific-house prior presets.py exists to end.
+        """
+        if user_input is not None:
+            self._data.update(user_input)
+            self._data[CONF_BUILDING_PRESET_ENABLED] = True
+            self._data.update(_derive_preset(user_input, self._data))
+            return await self.async_step_building_extras()
+
+        return self.async_show_form(
+            step_id="building_describe",
+            data_schema=vol.Schema(_questionnaire_fields(self._data)),
+        )
+
+    async def async_step_building_extras(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """What the questionnaire cannot derive: the heat pump itself.
+
+        Three numbers off the nameplate. Everything else the skipped
+        ``thermal``/``zones`` pages asked (weights, interval, window and
+        solar factors) has a shipped default every reader falls back to,
+        and lives in the options pages for anyone who needs it.
+        """
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = _power_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_dhw()
+
+        return self.async_show_form(
+            step_id="building_extras",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_HEAT_PUMP_COP_NOMINAL,
+                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
+                    ): _number(1.5, 6.0, 0.1),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
+                    ): _number(1, 20, 0.5, "kW"),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
+                    ): _number(0, 10, 0.5, "kW"),
+                }
+            ),
+        )
+
+    async def async_step_thermal(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle thermal model configuration step."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = _power_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_zones()
+
+        return self.async_show_form(
+            step_id="thermal",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
+                    ): _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    vol.Required(
+                        CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+                        default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
+                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
+                    vol.Required(
+                        CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
+                    ): _number(*RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"),
+                    vol.Required(
+                        CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
+                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
+                    vol.Required(
+                        CONF_HEAT_PUMP_COP_NOMINAL,
+                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
+                    ): _number(1.5, 6.0, 0.1),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
+                    ): _number(1, 20, 0.5, "kW"),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
+                    ): _number(0, 10, 0.5, "kW"),
+                    vol.Required(
+                        CONF_OPTIMIZATION_INTERVAL,
+                        default=DEFAULT_OPTIMIZATION_INTERVAL,
+                    ): _number(10, 120, 5, "min", slider=True),
+                    vol.Required(
+                        CONF_PRICE_WEIGHT, default=DEFAULT_PRICE_WEIGHT
+                    ): _number(0.1, 10, 0.1),
+                    vol.Required(
+                        CONF_COMFORT_WEIGHT, default=DEFAULT_COMFORT_WEIGHT
+                    ): _number(0.1, 20, 0.1),
+                }
+            ),
+        )
+
+    async def async_step_zones(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle two-zone and solar configuration (optional step)."""
+        if user_input is not None:
+            self._data.update(user_input)
+            return await self.async_step_dhw()
+
+        return self.async_show_form(
+            step_id="zones",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_UPPER_FLOOR_THERMAL_MASS,
+                        default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    vol.Optional(
+                        CONF_LOWER_FLOOR_THERMAL_MASS,
+                        default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    vol.Optional(
+                        CONF_UPPER_FLOOR_HEAT_LOSS,
+                        default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    vol.Optional(
+                        CONF_LOWER_FLOOR_HEAT_LOSS,
+                        default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    vol.Optional(
+                        CONF_INTER_ZONE_TRANSFER,
+                        default=DEFAULT_INTER_ZONE_TRANSFER,
+                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
+                    vol.Optional(
+                        CONF_RADIATOR_POWER_FRACTION,
+                        default=DEFAULT_RADIATOR_POWER_FRACTION,
+                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    vol.Optional(
+                        CONF_UPPER_FLOOR_AREA_RATIO,
+                        default=DEFAULT_UPPER_FLOOR_AREA_RATIO,
+                    ): _number(0.1, 0.9, 0.05, slider=True),
+                    vol.Optional(
+                        CONF_BUFFER_TANK_VOLUME,
+                        default=DEFAULT_BUFFER_TANK_VOLUME,
+                    ): _number(10, 1500, 5, "L"),
+                    vol.Optional(
+                        CONF_WINDOW_AREA, default=DEFAULT_WINDOW_AREA
+                    ): _number(POSITIVE_PARAM_FLOOR, 50, 0.5, "m²"),
+                    vol.Optional(
+                        CONF_SOLAR_ORIENTATION_FACTOR,
+                        default=DEFAULT_SOLAR_ORIENTATION_FACTOR,
+                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    vol.Optional(
+                        CONF_SOLAR_HEAT_GAIN_COEFF,
+                        default=DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+                    ): _number(0.1, 1.0, 0.05, slider=True),
+                }
+            ),
+        )
+
+    async def async_step_dhw(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle DHW (Domestic Hot Water) configuration step."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+            if window_problem is not None:
+                errors[CONF_DHW_WINDOWS] = window_problem
+            elif _dhw_min_too_close(user_input, self._data):
+                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
+            else:
+                # A warning, not a block: the pair is legitimate, it just has
+                # a consequence worth naming. The coordinator turns the same
+                # judgement into the repair notice the user actually reads,
+                # from the parameters that end up in force — which also
+                # covers the set_thermal_parameters service, a path no form
+                # validator can see.
+                warning = _dhw_legionella_warning(user_input, self._data)
+                if warning is not None:
+                    _LOGGER.warning(
+                        "Hot water: the anti-legionella cycle at %s °C is "
+                        "above the %s °C charge limit, so the tank is taken "
+                        "above that limit every %s days",
+                        warning["legionella_temp"],
+                        warning["setpoint"],
+                        warning["interval_days"],
+                    )
+                self._data.update(user_input)
+                return await self.async_step_weather_sensitivity()
+
+        return self.async_show_form(
+            step_id="dhw",
+            errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_DHW_TANK_VOLUME,
+                        default=DEFAULT_DHW_TANK_VOLUME,
+                    ): _number(50, 1500, 10, "L"),
+                    vol.Optional(
+                        CONF_DHW_SETPOINT,
+                        default=DEFAULT_DHW_SETPOINT,
+                    ): _number(40, 65, 1, "°C", slider=True),
+                    vol.Optional(
+                        CONF_DHW_MIN_TEMP,
+                        default=DEFAULT_DHW_MIN_TEMP,
+                    ): _number(35, 55, 1, "°C", slider=True),
+                    vol.Optional(
+                        CONF_DHW_DAILY_CONSUMPTION,
+                        default=DEFAULT_DHW_DAILY_CONSUMPTION,
+                    ): _number(50, 1500, 10, "L/day"),
+                    vol.Optional(
+                        CONF_DHW_COOLING_RATE,
+                        default=DEFAULT_DHW_COOLING_RATE,
+                    ): _number(0.05, 3.0, 0.05, "°C/h"),
+                    vol.Optional(
+                        CONF_DHW_SCHEDULE_ENABLED,
+                        default=DEFAULT_DHW_SCHEDULE_ENABLED,
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_WINDOWS,
+                        default=DEFAULT_DHW_WINDOWS,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_IDLE_MIN_TEMP,
+                        default=DEFAULT_DHW_IDLE_MIN_TEMP,
+                    ): _number(10, 55, 1, "°C", slider=True),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_ENABLED,
+                        default=DEFAULT_DHW_LEGIONELLA_ENABLED,
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_TEMP,
+                        default=DEFAULT_DHW_LEGIONELLA_TEMP,
+                    ): _number(55, 70, 1, "°C", slider=True),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+                        default=DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+                    ): _number(1, 30, 1, "days", slider=True),
+                }
+            ),
+        )
+
+    async def async_step_weather_sensitivity(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle weather sensitivity configuration step."""
+        if user_input is not None:
+            self._data.update(user_input)
+            return await self.async_step_setup_overview()
+
+        return self.async_show_form(
+            step_id="weather_sensitivity",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_WIND_SENSITIVITY,
+                        default=DEFAULT_WIND_SENSITIVITY,
+                    ): _number(0.0, 0.5, 0.01),
+                    vol.Optional(
+                        CONF_RAIN_HEAT_LOSS_MULTIPLIER,
+                        default=DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
+                    ): _number(1.0, 1.5, 0.01),
+                }
+            ),
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: HeatPumpOptimizerConfigEntry,
+    ) -> HeatPumpOptimizerOptionsFlow:
+        """Get the options flow for this handler."""
+        return HeatPumpOptimizerOptionsFlow(config_entry)
+
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Reauthentication entry point (D10-08).
+
+        The coordinator starts this flow when Tibber refuses the token
+        (HTTP 401/403) -- a credential a retry cannot fix. Without it, a
+        rotated or revoked token meant deleting and recreating the entry;
+        with it, Repairs walks the user straight to a single token field.
+        """
+        getter = getattr(self, "_get_reauth_entry", None)
+        self._reauth_entry = getter() if getter else self._entry_from_context()
+        return await self.async_step_reauth_confirm()
+
+    def _entry_from_context(self) -> HeatPumpOptimizerConfigEntry | None:
+        """The entry a sourced flow (reauth, reconfigure) is here to change.
+
+        The manager stamps the entry's id into the flow's context; this
+        resolves it without assuming a manager did, the way the reauth step
+        has had to since D10-08.
+        """
+        context = getattr(self, "context", None) or {}
+        entry_id = context.get("entry_id")
+        entries = self.hass.config_entries.async_entries(DOMAIN)
+        for entry in entries:
+            if entry.entry_id == entry_id:
+                return entry
+        return entries[0] if entries else None
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the one credential that can have gone bad."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            verdict = await validate_tibber_token(
+                self.hass, user_input[CONF_TIBBER_TOKEN]
+            )
+            if verdict == "ok":
+                entry = self._reauth_entry
+                assert entry is not None
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    data={**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]},
+                )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+            errors[CONF_TIBBER_TOKEN] = (
+                "invalid_tibber_token" if verdict == "invalid_auth" else "cannot_connect"
+            )
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector()}
+            ),
+            errors=errors,
+        )
+
+
+class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
+    """Handle options flow for Heat Pump Optimizer.
+
+    The options are split into a menu of focused pages rather than one very
+    long form, so that changing a single setting does not mean scrolling past
+    forty unrelated fields. Which fields a page presents, how each one
+    defaults and which menu the page appears in all come from the registry
+    above (#223); what stays here is what a table cannot hold -- each page's
+    own validation, its error text and where it returns after a save.
+    """
+
+    # Three views of ``_OPTION_PAGES``, kept under the names the suite reads:
+    # the flat roster of every leaf page, and the two menus that partition it.
+    # A page in neither menu is unreachable and a page in both renders twice,
+    # and deriving all three from one ``menu`` column is what makes those
+    # impossible rather than merely asserted. The synthetic ``advanced`` entry
+    # is deliberately not a member: it opens the second menu, not a form.
+    _MENU_LABELS = {page.step: page.label for page in _OPTION_PAGES}
+    _TOP_MENU = tuple(page.step for page in _OPTION_PAGES if page.menu == _TOP)
+    _ADVANCED_MENU = tuple(
+        page.step for page in _OPTION_PAGES if page.menu == _ADVANCED
+    )
+
+    # Every entity slot offered with the two-armed default, and so exactly the
+    # slots some page's save may clear. Derived rather than listed: the
+    # hand-kept roster this replaces named ``away_return_entity``, which no
+    # option page has ever offered.
+    _OPTIONAL_ENTITY_KEYS = tuple(
+        dict.fromkeys(row.key for row in _OPTION_FIELDS if row.default is _STORED)
+    )
+    _ENTITIES_PUMP_KEYS = tuple(
+        row.key
+        for row in _OPTION_FIELDS
+        if row.step == "entities_pump" and row.default is _STORED
+    )
+
+    _ADVANCED_LABEL = "Advanced settings"
+
+    def __init__(self, config_entry: HeatPumpOptimizerConfigEntry) -> None:
+        """Initialize options flow."""
+        # Assigning to ``self.config_entry`` goes through a property setter that
+        # Home Assistant deprecated in 2024.11 and removed in 2025.12, which makes
+        # the options flow raise and the frontend report a 500 error. Keep our own
+        # reference instead so the flow works on every supported version.
+        self._entry = config_entry
+
+    @property
+    def _current(self) -> dict[str, Any]:
+        """Effective configuration: setup data with saved options applied."""
+        return {**self._entry.data, **self._entry.options}
+
+    def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """Persist one page without discarding settings from the other pages."""
+        return self.async_create_entry(
+            title="", data={**self._entry.options, **user_input}
+        )
+
+    async def _save_or_menu(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """Persist one page, then stay in the dialog or close it (#100).
+
+        The default is the section menu: changing settings in two sections
+        used to mean opening the dialog, saving, watching it close, and
+        opening it again. The write goes through immediately -- an
+        ``async_update_entry`` the whole integration reacts to at once,
+        exactly as a save-and-close always did -- and never a deferral
+        keyed on flow liveness, whose leaked flow ids would suppress
+        reloads permanently (the silent-save failure this project has
+        been bitten by once already; see the issue for the design that
+        was rejected).
+
+        The after-save choice is read here and stripped before the merge,
+        so it can never persist. ``cur_step`` -- set by
+        ``async_show_form`` on every render -- says which section's menu
+        to come back to, so the advanced pages return to the advanced
+        menu rather than the top one.
+        """
+        user_input = _omit_unstored_defaults(
+            _omit_unstored_computed(
+                _flatten_section_input(dict(user_input)),
+                self._current,
+                self.hass,
+            ),
+            self._current,
+        )
+        choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
+        if choice == AFTER_SAVE_CLOSE:
+            return self._save(user_input)
+        self.hass.config_entries.async_update_entry(
+            self._entry, options={**self._entry.options, **user_input}
+        )
+        step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
+        if step_id in self._ADVANCED_MENU:
+            return await self.async_step_advanced()
+        return await self.async_step_init()
+
+    async def _try_thermal_model_save(
+        self, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult | tuple[dict[str, str], dict[str, Any]]:
+        """Shared submit path for the split thermal_model pages."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            errors = _power_errors(user_input, self._current)
+            if not errors:
+                saved = dict(user_input)
+                _disarm_preset_on_derived_edit(saved, self._current)
+                return await self._save_or_menu(saved)
+            current = {**current, **user_input}
+        return errors, current
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the top-level options menu."""
+        labels = {step: self._MENU_LABELS[step] for step in self._TOP_MENU}
+        labels["advanced"] = self._ADVANCED_LABEL
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=await _translated_menu(self.hass, "options", "init", labels),
+        )
+
+    async def async_step_advanced(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the advanced submenu of set-once pages."""
+        labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
+        return self.async_show_menu(
+            step_id="advanced",
+            menu_options=await _translated_menu(
+                self.hass, "options", "advanced", labels
+            ),
+        )
+
+    async def async_step_setup_overview(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Item 32: a read-only picture of the configured system.
+
+        Rendered from the same ``describe_setup`` the card's setup page uses,
+        so the two can never disagree about what the system looks like. Empty
+        sensor slots are shown as empty on purpose — the point is to reveal
+        what is missing, and a diagram that silently omits an unconfigured
+        sensor looks complete. Click-to-assign is deliberately deferred: a
+        config flow renders a voluptuous schema, and a genuinely interactive
+        drawing means a custom panel. This page is the staging the item
+        recommends.
+        """
+        if user_input is not None:
+            return await self.async_step_init()
+        # Read-only: no after-save choice, because this page saves nothing
+        # -- offering the choice here would be a button that lies. It carries
+        # no registry rows for the same reason.
+        return _setup_overview_form(self, self._current)
+
+    async def async_step_quick_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The quick-setup questions over an existing entry (#1258).
+
+        The same page the initial flow shows after its second screen, asked
+        here from Configure: an install that missed Quick setup at the start
+        had no one-page way to answer the house questions, because the finish
+        menu is initial-flow-only and reconfigure routes through the first
+        screen and saves. The answers go through ``quick_setup.derive`` onto
+        the entry's EXISTING option keys -- the transient question names are
+        mapped away by the same module the initial path uses, so this page is
+        a second caller of one mapping, never a second mapping -- and the
+        omission rules of ``_save_or_menu`` apply as on every page.
+
+        The questions are SUGGESTED, never defaulted (#1273): each one
+        suggests the entry's own recorded answer, a question the entry has
+        never answered suggests the shipped default, and a submission that
+        answers nothing the page did not already say writes nothing at all.
+        An untouched submit is therefore a no-op rather than a re-answer at
+        the shipped defaults -- which used to flip two_zone_mode off on real
+        entries that had never answered the question.
+
+        The device pre-fill deliberately does NOT run here. On the fresh-add
+        quick path it follows the questions because a user who chose that
+        path asked for autodetection and the entry is empty; from Configure
+        the entry's entity slots are already answered, so an automatic device
+        read would mostly have nothing to add and could only suggest over
+        deliberate configuration -- the clobber the reconfigure step's own
+        design refuses. The pre-fill stays where an existing entry already
+        reaches it on purpose: the Pre-fill from a heat pump device page on
+        the first menu.
+        """
+        if user_input is not None:
+            # ``after_save`` rides the page like every options page, but it
+            # is a routing choice rather than a question, so it is stripped
+            # before the answers reach the one mapping and handed back for
+            # ``_save_or_menu`` to read.
+            current = self._current
+            submitted = {
+                key: value
+                for key, value in user_input.items()
+                if key != CONF_AFTER_SAVE
+            }
+            # #1273: the baseline is exactly what the form suggested -- the
+            # entry's own answers where it has them, the shipped defaults
+            # where it does not, the stored questionnaire and probes. The
+            # five questions carry no ``default``, so voluptuous cannot
+            # refill a bare post with shipped answers, and a submission that
+            # says nothing the page did not already say writes NOTHING: an
+            # untouched submit used to be treated as an answer and re-derived
+            # real entries at the questions' shipped defaults, flipping
+            # their two-zone mode off (the nightly-ha a5 red).
+            baseline: dict[str, Any] = {
+                **quick_setup.suggested_answers(current),
+                **{
+                    key: current.get(key, default)
+                    for key, default in _QUESTIONNAIRE_DEFAULTS.items()
+                },
+                **{
+                    key: current[key]
+                    for key in (CONF_WOOD_TANK_TOP_ENTITY, CONF_WOOD_TANK_BOTTOM_ENTITY)
+                    if current.get(key)
+                },
+            }
+            answers = {**baseline, **submitted}
+            untouched = set(answers) == set(baseline) and all(
+                _same_setting(answers[key], baseline[key]) for key in baseline
+            )
+            if untouched:
+                # Nothing was answered that the entry does not already say,
+                # so there is nothing to derive and nothing to write; the
+                # dialog simply goes where the after-save choice sends it.
+                if user_input.get(CONF_AFTER_SAVE) == AFTER_SAVE_CLOSE:
+                    return self._save({})
+                return await self.async_step_init()
+            derived = quick_setup.derive(answers)
+            if user_input.get(CONF_AFTER_SAVE) is not None:
+                derived[CONF_AFTER_SAVE] = user_input[CONF_AFTER_SAVE]
+            return await self._save_or_menu(derived)
+        return self.async_show_form(
+            step_id="quick_setup",
+            data_schema=_options_schema(
+                dict(
+                    _quick_setup_schema(self._current, suggest_stored=True).schema
+                )
+            ),
+        )
+
+    async def async_step_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change which Home Assistant entities the optimizer reads."""
+        errors: dict[str, str] = {}
+        current = self._current
+
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            source = user_input.get(
+                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+            )
+            if source == PRICE_SOURCE_ENTITY:
+                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
+                    CONF_PRICE_ENTITY
+                )
+                if not entity:
+                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+            else:
+                token = user_input.get(CONF_TIBBER_TOKEN) or current.get(
+                    CONF_TIBBER_TOKEN
+                )
+                if not token:
+                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+                else:
+                    submitted = user_input.get(CONF_TIBBER_TOKEN)
+                    if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+                        verdict = await validate_tibber_token(self.hass, submitted)
+                        if verdict == "invalid_auth":
+                            errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+                        elif verdict != "ok":
+                            errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+            if not errors:
+                return await self._save_or_menu(
+                    _clear_absent(user_input, "entities", current)
+                )
+            current = {**current, **user_input}
+
+        return self.async_show_form(
+            step_id="entities",
+            errors=errors,
+            data_schema=_page_schema("entities", current, self.hass),
+        )
+
+    async def async_step_entities_metering(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Solar, power and compressor frequency sensors."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            # Only a number entity can be written; a sensor alone observes.
+            if user_input.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not user_input.get(CONF_COMPRESSOR_FREQ_ENTITY):
+                errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
+            else:
+                return await self._save_or_menu(
+                    _clear_absent(user_input, "entities_metering", current)
+                )
+            current = {**current, **user_input}
+        return self.async_show_form(
+            step_id="entities_metering",
+            errors=errors,
+            data_schema=_page_schema("entities_metering", current, self.hass),
+        )
+
+    async def async_step_entities_pump(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """What the heat pump reports about itself."""
+        current = self._current
+        if user_input is not None:
+            return await self._save_or_menu(
+                _clear_absent(user_input, "entities_pump", current)
+            )
+        return self.async_show_form(
+            step_id="entities_pump",
+            data_schema=_page_schema("entities_pump", current, self.hass),
+        )
+
+    async def async_step_comfort(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """How warm the house should be, and when."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            errors = _band_errors(user_input, current)
+            if not errors:
+                return await self._save_or_menu(
+                    _clear_absent(user_input, "comfort", current)
+                )
+            # Re-render the rejected form with what was typed, not with the
+            # stored values the user was in the middle of changing.
+            current = {**current, **user_input}
+        return self.async_show_form(
+            step_id="comfort",
+            errors=errors,
+            data_schema=_page_schema("comfort", current, self.hass),
+        )
+
+    async def async_step_hot_water(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """When hot water is needed and how hot it has to be."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+            if window_problem is not None:
+                errors[CONF_DHW_WINDOWS] = window_problem
+            holiday_spec = user_input.get(CONF_HOLIDAY_DHW_WINDOWS, "")
+            if holiday_spec:
+                holiday_problem = dhw_spec_problem(holiday_spec)
+                if holiday_problem is not None:
+                    errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+            # #1260: each revealed per-day field gets the ordinary verdicts
+            # plus the selector refusal, on its own key.
+            errors.update(_dhw_day_field_errors(user_input))
+            if not errors and _dhw_min_too_close(user_input, current):
+                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
+            if not errors:
+                # Warned, never blocked — see the setup flow's DHW step.
+                warning = _dhw_legionella_warning(user_input, current)
+                if warning is not None:
+                    _LOGGER.warning(
+                        "Hot water: the anti-legionella cycle at %s °C is "
+                        "above the %s °C charge limit, so the tank is taken "
+                        "above that limit every %s days",
+                        warning["legionella_temp"],
+                        warning["setpoint"],
+                        warning["interval_days"],
+                    )
+                return await self._save_or_menu(
+                    _clear_absent(user_input, "hot_water", current)
+                )
+            current = {**current, **user_input}
+
+        return self.async_show_form(
+            step_id="hot_water",
+            errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
+            data_schema=_page_schema("hot_water", current, self.hass),
+        )
+
+    async def async_step_hot_water_tank(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Tank size, inlet water, advanced DHW learning and the pump's switch."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            cleaned = _clear_absent(user_input, "hot_water_tank", current)
+            merged = {**current, **cleaned}
+            # #1067: control writes the pump's disinfection switch, so it is
+            # refused without one -- judged over what would be stored, so
+            # clearing the switch under a stored control mode is refused too.
+            if merged.get(CONF_DHW_DISINFECTION_MODE) != FREQ_MODE_CONTROL or merged.get(
+                CONF_DHW_DISINFECTION_SWITCH_ENTITY
+            ):
+                return await self._save_or_menu(cleaned)
+            errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
+            current = merged
+        return self.async_show_form(
+            step_id="hot_water_tank",
+            errors=errors,
+            data_schema=_page_schema("hot_water_tank", current, self.hass),
+        )
+
+    async def async_step_hot_water_pumps(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Hot-water circulation pump scheduling."""
+        current = self._current
+        if user_input is not None:
+            return await self._save_or_menu(
+                _clear_absent(user_input, "hot_water_pumps", current)
+            )
+        return self.async_show_form(
+            step_id="hot_water_pumps",
+            data_schema=_page_schema("hot_water_pumps", current, self.hass),
+        )
+
+    async def async_step_building(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The heating system's plumbing: valve, tanks, and the heat split.
+
+        One page for everything between the heat sources and the emitters —
+        the mixing valve, the buffer tank as a store, and the wood-furnace
+        tank with its probes. These used to be spread across three pages
+        (building, mixing valve, and the wood block on the learning page),
+        which meant describing one physical system in three places.
+        The purely structural properties (windows, wind and rain) live on
+        *Building type and emitters* instead.
+
+        The write-target kind (#398) is validated here rather than trusted:
+        "flow" asks for the same flow curve `_command_valve_target` reuses
+        from the two-zone model, so selecting it without that model
+        configured is caught as an error instead of being saved and
+        silently skipped every write cycle.
+        """
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            if (
+                user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+                == mixing_valve.WRITE_TARGET_FLOW
+                and not ThermalParameters.from_config(
+                    {**current, **user_input}
+                ).two_zone_enabled
+            ):
+                errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
+                    "flow_target_needs_two_zone"
+                )
+            elif user_input.get(CONF_FLOW_CURVE_COP_ENABLED) and (
+                mixing_valve.is_throttling(
+                    {**current, **user_input}.get(CONF_MIXING_VALVE_MODE)
+                )
+            ):
+                # #1067: behind a throttling valve the tank temperature is
+                # already the priced flow; the model refuses the curve lift
+                # there too, so saving it would be a switch that does nothing.
+                errors[CONF_FLOW_CURVE_COP_ENABLED] = (
+                    "flow_curve_needs_direct_plant"
+                )
+            else:
+                # The wood block's rows carry ``when=wood_furnace_on``, so one
+                # predicate decides both what the page rendered and what its
+                # save may clear. It is evaluated over the SUBMISSION merged
+                # onto the stored config, not over the stored config alone:
+                # turning the block off would otherwise still clear its slots.
+                merged = {**current, **user_input}
+                cleaned = _clear_absent(user_input, "building", merged)
+                if wood_furnace_on(merged):
+                    cleaned[CONF_WOOD_FURNACE_ENABLED] = True
+                elif CONF_WOOD_FURNACE_ENABLED in cleaned:
+                    cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(
+                        cleaned[CONF_WOOD_FURNACE_ENABLED]
+                    )
+                return await self._save_or_menu(cleaned)
+            current = {**current, **user_input}
+
+        return self.async_show_form(
+            step_id="building",
+            errors=errors,
+            data_schema=_page_schema("building", current, self.hass),
+        )
+
+    async def async_step_thermal_model(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The raw numeric thermal model, previously settable only at setup.
+
+        A wrong ``heat_pump_max_power`` or zone split could until now only be
+        fixed by deleting the integration and starting over — losing every
+        learned parameter with it. This page surfaces those numbers.
+
+        The presence hazard: ``two_zone_enabled`` and ``dhw_enabled`` are not
+        flags but *inferences* from whether their keys exist at all
+        (``ThermalParameters.from_config``), so a ``vol.Optional`` with a
+        default would write that default on any untouched save and silently
+        flip a legacy single-zone entry to two-zone. Every row on this page is
+        therefore ``_SUGGESTED``: a stored value is offered back but not
+        defaulted — writing the same value again is a no-op — and a field
+        without one renders empty; an empty box is omitted from
+        ``user_input`` and never saved.
+        """
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+
+        return self.async_show_form(
+            step_id="thermal_model",
+            errors=errors,
+            description_placeholders={
+                "preset_warning": _building_preset_warning(self.hass, current)
+            },
+            data_schema=_page_schema("thermal_model", current, self.hass),
+        )
+
+    async def async_step_thermal_model_zones(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Two-zone split and solar orientation."""
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+
+        return self.async_show_form(
+            step_id="thermal_model_zones",
+            errors=errors,
+            description_placeholders={
+                "preset_warning": _building_preset_warning(self.hass, current)
+            },
+            data_schema=_page_schema("thermal_model_zones", current, self.hass),
+        )
+
+    async def async_step_tuning(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Balance between saving money and holding the setpoint."""
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+        return self.async_show_form(
+            step_id="tuning",
+            data_schema=_page_schema("tuning", self._current, self.hass),
+        )
+
+    async def async_step_heat_curve(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Danfoss ECL110 heat-curve offset control over MQTT."""
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+        return self.async_show_form(
+            step_id="heat_curve",
+            data_schema=_page_schema("heat_curve", self._current, self.hass),
+        )
+
+    # ------------------------------------------------------------------
+    # Option pages added in v2.8.0
+    # ------------------------------------------------------------------
+
+    async def async_step_building_preset(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Describe the building in terms a homeowner can actually answer.
+
+        The numeric thermal page asks for kWh/°C, which nobody knows. This page
+        asks what the house is made of, roughly when it was built and what the
+        heat comes out of, then derives the physics. Enabling it overwrites the
+        numeric values on the *House and heating system* page, which stays
+        available for anyone with a real energy declaration.
+        """
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            saved = dict(user_input)
+            if saved.get(CONF_BUILDING_PRESET_ENABLED):
+                saved.update(_derive_preset(saved, current))
+            return await self._save_or_menu(saved)
+        return self.async_show_form(
+            step_id="building_preset",
+            data_schema=_page_schema("building_preset", current, self.hass),
+        )
+
+    async def async_step_grid(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Peak capacity tariff hours and pricing."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            if not _valid_months_spec(
+                user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
+            ):
+                errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
+            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, "")):
+                errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
+            if not errors:
+                cleaned = dict(user_input)
+                window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+                if window is not None:
+                    try:
+                        cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+                    except (TypeError, ValueError):
+                        cleaned[CONF_PEAK_TARIFF_WINDOW] = (
+                            DEFAULT_PEAK_TARIFF_WINDOW
+                        )
+                return await self._save_or_menu(cleaned)
+            current = {**current, **user_input}
+
+        return self.async_show_form(
+            step_id="grid",
+            errors=errors,
+            description_placeholders={
+                "currency": resolve_currency(self.hass),
+                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+            },
+            data_schema=_page_schema("grid", current, self.hass),
+        )
+
+    async def async_step_grid_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Main fuse, peak guards and the pump's silent-mode window."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            # A cleared text field is absent, and options merge over setup
+            # data, so an absent window would silently keep the old one.
+            user_input = {CONF_SILENT_MODE_WINDOWS: "", **user_input}
+            problem = dhw_spec_problem(user_input[CONF_SILENT_MODE_WINDOWS])
+            if problem is None:
+                return await self._save_or_menu(user_input)
+            errors[CONF_SILENT_MODE_WINDOWS] = (
+                "silent_mode_window_too_short"
+                if problem == DHW_ERROR_TOO_SHORT
+                else problem
+            )
+            current = {**current, **user_input}
+        return self.async_show_form(
+            step_id="grid_connection",
+            errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
+            data_schema=_page_schema("grid_connection", current, self.hass),
+        )
+
+    async def async_step_grid_fees(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Transfer fees and contract shadow price."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            user_input = _flatten_section_input(user_input)
+            fee_problem = grid_fee.spec_problem(
+                user_input.get(CONF_GRID_FEE_RULES, "")
+            )
+            if fee_problem is not None:
+                errors[CONF_GRID_FEE_RULES] = fee_problem
+            if not errors:
+                cleaned = _clear_absent(user_input, "grid_fees", current)
+                applied = grid_fee.apply_catalog(user_input.get(CONF_DSO_PRODUCT))
+                if applied:
+                    cleaned.update(applied)
+                return await self._save_or_menu(cleaned)
+            current = {**current, **user_input}
+            if not user_input.get(CONF_GRID_FEE_ENTITY):
+                current.pop(CONF_GRID_FEE_ENTITY, None)
+
+        return self.async_show_form(
+            step_id="grid_fees",
+            errors=errors,
+            description_placeholders={
+                "currency": resolve_currency(self.hass),
+                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+            },
+            data_schema=_page_schema("grid_fees", current, self.hass),
+        )
+
+    async def async_step_solar_pv(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Photovoltaic array and export economics."""
+        current = self._current
+        if user_input is not None:
+            return await self._save_or_menu(
+                _clear_absent(user_input, "solar_pv", current)
+            )
+        return self.async_show_form(
+            step_id="solar_pv",
+            data_schema=_page_schema("solar_pv", current, self.hass),
+        )
+
+    async def async_step_away(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Deep setback while the house is empty, with timed recovery."""
+        current = self._current
+        if user_input is not None:
+            return await self._save_or_menu(
+                _clear_absent(user_input, "away", current)
+            )
+        return self.async_show_form(
+            step_id="away",
+            data_schema=_page_schema("away", current, self.hass),
+        )
+
+    async def async_step_learning(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Watchdogs and the opt-in learning features.
+
+        Nothing is cleaned here, and nothing can be: this page declares no
+        ``_STORED`` row, so ``_clear_absent`` would have nothing to null.
+        External-heat detection moved to ``async_step_building``, which owns
+        clearing its own entity; a clearing loop left behind on this page
+        wrote ``None`` over whatever that page had stored, on every save
+        (#542).
+        """
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+        return self.async_show_form(
+            step_id="learning",
+            data_schema=_page_schema("learning", self._current, self.hass),
+        )
+
+    async def async_step_learning_features(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Plan-affecting learning toggles."""
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+        return self.async_show_form(
+            step_id="learning_features",
+            data_schema=_page_schema("learning_features", self._current, self.hass),
+        )
+
+    #: The preview a first submit of the pre-fill page computed: the prefix to
+    #: store with the save (None when it found nothing, so nothing is written),
+    #: the suggested keys the preview shows, and what the page says about them.
+    _prefill: tuple[str | None, tuple[str, ...], dict[str, str]] | None = None
+
+    #: The offer switch as the first submit posted it (#1067 W1067-POST1).
+    #: It renders on that first form, beside the prefix row, and the preview
+    #: that follows shows only suggested keys -- so the choice is carried here
+    #: rather than through a schema that does not present it. None means the
+    #: page is being opened afresh; the save then writes what the switch was
+    #: set to, and omits it as an unchanged default when it was left off.
+    _prefill_offer: bool | None = None
+
+    def _prefill_phase_one(self, current: dict[str, Any]) -> vol.Schema:
+        """The page's first form: the device pick above the Modbus prefix row."""
+        return vol.Schema({
+            **_prefill_device_schema(),
+            **_page_schema("modbus_prefill", current, self.hass).schema,
+        })
+
+    def _prefill_form(
+        self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
+    ) -> ConfigFlowResult:
+        """The page, with the placeholders its description always reads.
+
+        ``device_prefill.disclaimer()`` with no resolution is the empty form,
+        so the prefix route and the refusal below carry the same two keys the
+        device route overrides rather than leaving the description's braces
+        unrendered.
+        """
+        return self.async_show_form(
+            step_id="modbus_prefill",
+            errors=errors,
+            description_placeholders={
+                **_WINDOW_PLACEHOLDERS, **device_prefill.disclaimer(), **notes,
+            },
+            data_schema=schema,
+        )
+
+    async def async_step_modbus_prefill(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Suggest option values from a GCHV heat pump's Modbus package (#1067).
+
+        One page, submitted twice. The first submit says where to read the
+        pump from -- a heat-pump device, or the Modbus package's entity-id
+        prefix -- and opens a preview of what that source suggests
+        (``modbus_prefill.infer``, fed by ``device_prefill.resolve`` or
+        ``modbus_prefill.candidates``); the second saves what the user kept
+        of it, dropping every field left blank, under the refusals of the
+        pages those keys live on. Opening the page again starts over.
+
+        A picked device wins over a typed prefix. Both routes stay: a
+        Modbus YAML package's sensors have a unique id and no device, so no
+        device route ever reaches them (#1067 W1067-G7b-1). A device no
+        source table proves is read by entity name, and the page says so
+        (#1067 W1067-G7b-3): the description lists every role that came from
+        a name rather than from published definitions, and asks the user to
+        check them before saving.
+        """
+        current = self._current
+        if user_input is None:
+            self._prefill = None
+            self._prefill_offer = None
+            return self._prefill_form(self._prefill_phase_one(current), modbus_prefill.notes({}), {})
+        if self._prefill is None:
+            # The offer switch is posted here, on the same form as the device
+            # pick, and saved by the second submit below -- this one only
+            # opens the preview, and nothing on this page is written yet.
+            self._prefill_offer = user_input.get(CONF_PREFILL_OFFER)
+            device_id = user_input.get(_PREFILL_DEVICE)
+            sourced: dict[str, str] = {}
+            if device_id:
+                # The device route (#1067 W1067-G7b-1): a source table for the
+                # integration that owns the device's entities replaces the
+                # prefix resolver, and W1067-G7b-3's fallback fills the roles
+                # that table left empty. Nothing after this differs, and the
+                # page is told which of the two answered for each role.
+                prefix = None
+                records = _device_records(self.hass, str(device_id))
+                resolution = device_prefill.resolve_with_fallback(records)
+                resolved = resolution.roles
+                sourced = device_prefill.disclaimer(
+                    resolution, _display_names(self.hass, records)
+                )
+            else:
+                prefix = str(
+                    user_input.get(CONF_MODBUS_PREFILL_PREFIX)
+                    or DEFAULT_MODBUS_PREFILL_PREFIX
+                )
+                resolved = modbus_prefill.candidates(prefix)
+            snap = modbus_prefill.snapshot(self.hass.states.get, resolved)
+            if prefix is None and not snap:
+                # A device no source recognises, or one whose mapped entities
+                # hold no state: say so on the page rather than open an empty
+                # form the user cannot act on.
+                return self._prefill_form(
+                    self._prefill_phase_one(current),
+                    modbus_prefill.notes({}),
+                    {"base": "prefill_device_unreadable"},
+                )
+            suggested = {
+                key: value
+                for key, value in modbus_prefill.infer(
+                    snap, {**_ABSENT_FALLBACKS, **current}
+                ).items()
+                if _prefill_fits(key, value)
+            }
+            notes = {**modbus_prefill.notes(snap), **sourced}
+            self._prefill = (prefix if snap else None, tuple(suggested), notes)
+            return self._prefill_form(_prefill_schema(suggested, suggested), notes, {})
+        matched_prefix, keys, notes = self._prefill
+        saved = {
+            key: value
+            for key, value in _flatten_section_input(user_input).items()
+            if value not in (None, "")
+        }
+        errors = _prefill_errors(saved, current)
+        if errors:
+            return self._prefill_form(_prefill_schema(keys, saved), notes, errors)
+        if self._prefill_offer is not None:
+            # Carried from the first submit, and written with the rest of what
+            # the page keeps: an off switch left off is an unchanged default
+            # and is dropped by ``_omit_unstored_defaults`` (#1107).
+            saved[CONF_PREFILL_OFFER] = self._prefill_offer
+        self._prefill = None
+        self._prefill_offer = None
+        if matched_prefix is not None:
+            saved[CONF_MODBUS_PREFILL_PREFIX] = matched_prefix
+        return await self._save_or_menu(saved)

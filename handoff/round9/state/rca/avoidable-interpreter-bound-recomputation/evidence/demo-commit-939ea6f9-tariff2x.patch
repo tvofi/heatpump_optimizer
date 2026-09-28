@@ -1,0 +1,28 @@
+From 939ea6f90eb6ebd72cae84892ab0631680e8f4fe Mon Sep 17 00:00:00 2001
+From: rca <rca@local>
+Date: Sat, 26 Sep 2026 18:07:36 +0000
+Subject: [PATCH] RCA demo arm: peak_cost_batch run twice per call (D9-s2-03
+ shape: 2x non-kernel work)
+
+---
+ custom_components/heatpump_optimizer/optimizer.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 33dcaee6..9756350c 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2543,6 +2543,10 @@ class HeatPumpOptimizer:
+             )
+ 
+         def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
++            _rca_2x = peak_cost_batch(
++                total_power_matrix, *peak_args, window_factors=factors,
++                **day_kwargs,
++            )
+             return peak_cost_batch(
+                 total_power_matrix, *peak_args, window_factors=factors,
+                 **day_kwargs,
+-- 
+2.43.0
+

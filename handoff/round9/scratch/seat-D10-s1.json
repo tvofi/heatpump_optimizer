@@ -1,0 +1,288 @@
+{
+ "dimension": "D10",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D10/s1/REPORT.md",
+ "exposure": "none. docs/ (README.md, docs/configuration.md, docs/setup*.md) was read only for the docs-* rules: headings, service names and option-topic keywords. No audit register, backlog or GitHub was read. The rule text was fetched from raw.githubusercontent.com/home-assistant/developers.home-assistant (rules/*.md and _includes/tiers.json) on 2026-09-26.",
+ "coverage": [
+  {
+   "step": "D10.M1",
+   "depth": "deep",
+   "evidence": "One executed check per Bronze (20) and Silver (10) rule. tools/audit/round9/D10/s1/rules_check.py drives async_setup, async_setup_entry, the six platform setups (75 entities), async_unload_entry and the Tibber fetch latch through tests/hastub, and uses AST or text for the structural rules. Three rules failed and each has its own harness with a perturbation and a null control: unique_id_drift.py (unique-config-entry), press_vs_service.py (action-exceptions), auth_failed.py (test-before-setup). config-flow-test-coverage and test-coverage are carried, not measured: the coverage measurement is D10.M3, seat D10-s2."
+  },
+  {
+   "step": "D10.M2",
+   "depth": "deep",
+   "evidence": "Tier table in the returned report text, and a draft tools/audit/round9/D10/s1/quality_scale.yaml for the Bronze and Silver rows. Status: 25 done, 2 exempt (docs-triggers, docs-conditions), 3 todo (unique-config-entry, test-before-setup, action-exceptions). No todo needs an HA API newer than hacs.json's floor 2025.2.0: ConfigEntryAuthFailed, HomeAssistantError and async_update_entry(unique_id=) predate it, and _abort_if_unique_id_mismatch shipped in 2024.11. The in-tree quality_scale.yaml marks all three todo rows done."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D10.M1",
+   "what": "The REPORT.md file could not be written: the harness tool refused a report .md write from this subagent. Its full content (method, tier table, findings, non-findings) is carried in this JSON. The orchestrator should write it at tools/audit/round9/D10/s1/REPORT.md if the file is required. Also left: the DiagnoseIntervalButton.async_press seam of D10-s1-02 is named but not counted. On a coordinator with no settled interval it logs INFO and returns normally."
+  },
+  {
+   "step": "D10.M2",
+   "what": "The rows for config-flow-test-coverage and test-coverage are carried from the in-tree register without measurement. They wait on D10-s2's M3 per-module coverage number."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D10-s1-01",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Entry unique id is not re-derived after reauth or an options edit, so the same plant can be set up twice",
+   "severity": "medium",
+   "claim": "A fresh setup that submits an entry's current identity answers is accepted as a new entry in 3 of 5 arms. The 3 arms are after reauth, after an options-page token change, and after an options-page indoor-sensor change. In the same 3 arms, a setup with the original answers (which no entry now holds) is refused as already_configured.",
+   "mechanism": "config_flow.entry_identity hashes the Tibber token and 13 entity slots into the unique id. _async_save_reconfigure re-stamps unique_id. async_step_reauth_confirm and the options 'entities' page (_save_or_menu/_save) write the same identity keys but never update entry.unique_id, so the duplicate guard compares against a stale id.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/unique_id_drift.py",
+    "harness_path": "tools/audit/round9/D10/s1/unique_id_drift.py",
+    "value": 3,
+    "unit": "arms (dup_accepted; stale_refused also 3)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.05,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_user_sensors (duplicate guard), driven after config_flow:HeatPumpOptimizerConfigFlow.async_step_reauth_confirm and config_flow:HeatPumpOptimizerOptionsFlow.async_step_entities",
+   "perturbation": {
+    "change": "--fix: wrap hass.config_entries.async_update_entry so every write re-stamps entry.unique_id = config_flow.entry_identity({**data, **options}). This is the one-line fix at each write seam.",
+    "expected_direction": "to_zero",
+    "observed_value": "dup_accepted 3 -> 0, stale_refused 3 -> 0; control_none and reconfigure arms 0 in both runs"
+   },
+   "metric_definition": "Arms out of 5 in which a fresh config flow submitting the entry's current effective identity answers is not aborted as already_configured.",
+   "phenomenon_property": "Every flow that writes an identity key (token, price entity or an _IDENTITY_ENTITY_KEYS slot) leaves entry.unique_id equal to the identity of the entry's effective config. Better: the id is keyed on an account or home identity that does not rotate with the credential (for example Tibber viewer.userId or home id), which would also let reauth refuse a different account (wrong_account).",
+   "seam_rule": "grep -n \"async_update_entry\\|_save(\\|async_create_entry\" custom_components/heatpump_optimizer/config_flow.py, keeping each write that can change CONF_TIBBER_TOKEN, CONF_PRICE_ENTITY or a key in _IDENTITY_ENTITY_KEYS",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "config_flow.py only: re-derive unique_id in async_step_reauth_confirm and in the options save path (or key the identity on a non-credential account id from validate_tibber_token), plus tests/config_flow_steps.py arms for reauth and options."
+  },
+  {
+   "id": "D10-s1-02",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Optimize-now button press returns normally when the solve did not run; the run_optimization action raises",
+   "severity": "medium",
+   "claim": "On the same coordinator state, handle_run_optimization raises HomeAssistantError but ForceOptimizationButton.async_press returns normally, in 2 of 3 input arms (stale prices / no_prices, price feed down). The prices-OK control arm counts 0.",
+   "mechanism": "async_press awaits coordinator.async_force_optimization, which awaits async_request_refresh. _async_update_data ignores async_run_optimization's reason code, and the coordinator refresh swallows UpdateFailed. So the #294 refusal that the service implements never reaches a platform action, which the action-exceptions rule covers explicitly.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/press_vs_service.py",
+    "harness_path": "tools/audit/round9/D10/s1/press_vs_service.py",
+    "value": 2,
+    "unit": "arms (silent_presses)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press vs heatpump_optimizer.services:handle_run_optimization; solve outcome observed via coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+   "perturbation": {
+    "change": "--fix: replace ForceOptimizationButton.async_press in memory with 'reason = await self.coordinator.async_run_optimization(); raise HomeAssistantError if reason is not None'.",
+    "expected_direction": "to_zero",
+    "observed_value": "silent_presses 2 -> 0; prices_ok control 0 in both runs"
+   },
+   "metric_definition": "Input arms in which the run_optimization service raises HomeAssistantError on a coordinator state while the Optimize-now button press on the same state returns without an exception.",
+   "phenomenon_property": "Every platform action whose purpose is to cause a solve (or an analysis) surfaces a not-run outcome as HomeAssistantError or ServiceValidationError, exactly as the equivalent service action does.",
+   "seam_rule": "grep -n \"async_press\\|async_turn_on\\|async_turn_off\\|async_set_\" custom_components/heatpump_optimizer/{button,switch,climate,datetime}.py, keeping entries whose only effect is to request a solve or analysis (named candidate, not counted: DiagnoseIntervalButton.async_press)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "button.py ForceOptimizationButton.async_press, and optionally coordinator.async_force_optimization returning the reason code; plus the strings.json exceptions key (already present: run_optimization_no_prices / run_optimization_solve_failed)."
+  },
+  {
+   "id": "D10-s1-03",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Tibber auth refusal reaches HA as ConfigEntryNotReady/UpdateFailed, never ConfigEntryAuthFailed",
+   "severity": "low",
+   "claim": "In 3 of 3 auth-refusal arms (setup 401, setup 403, steady-cycle 401), the exception the integration delivers is transient-class (ConfigEntryNotReady or UpdateFailed), not ConfigEntryAuthFailed. The integration has 0 ConfigEntryAuthFailed raise sites. The HTTP 500 and connection-error controls are correctly transient (2/2).",
+   "mechanism": "_fetch_tibber_prices calls _tibber_start_reauth on a 'reauth' verdict, then _tibber_fetch_failed raises UpdateFailed. The first refresh converts that to ConfigEntryNotReady, so HA retries setup and keeps polling Tibber with a token it knows is revoked, instead of stopping and marking the entry for reauthentication as test-before-setup requires. The stub has no ConfigEntryAuthFailed class and no auth arm in DataUpdateCoordinator._async_refresh, so no test can express the correct behaviour (P11).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/auth_failed.py",
+    "harness_path": "tools/audit/round9/D10/s1/auth_failed.py",
+    "value": 3,
+    "unit": "arms (auth_as_transient)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer:async_setup_entry and heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "perturbation": {
+    "change": "--fix: wrap _fetch_tibber_prices to raise ConfigEntryAuthFailed (defined locally as an IntegrationError subclass, because the stub lacks it) when the fetch fails after _tibber_start_reauth fired, and let the first refresh pass it through the update wrappers as upstream's async_config_entry_first_refresh does.",
+    "expected_direction": "to_zero",
+    "observed_value": "auth_as_transient 3 -> 0; transient_ok stays 2"
+   },
+   "metric_definition": "Auth-refusal arms (HTTP 401/403) in which the exception escaping async_setup_entry or _fetch_tibber_prices is not ConfigEntryAuthFailed.",
+   "phenomenon_property": "An authentication refusal from any credentialed fetch reaches Home Assistant as ConfigEntryAuthFailed, at setup and on steady cycles, and the update wrappers never re-wrap it as UpdateFailed. The test stub models ConfigEntryAuthFailed and upstream's auth arm.",
+   "seam_rule": "grep -n '\"reauth\"\\|_tibber_start_reauth\\|except Exception' custom_components/heatpump_optimizer/coordinator.py (the fetch, _async_update_data and _async_first_refresh_light), plus grep -n 'ConfigEntryAuthFailed' tests/hastub/homeassistant/exceptions.py tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "stop_rule_class": "bug",
+   "class_guess": "P11",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/hastub/homeassistant/exceptions.py",
+    "tests/hastub/homeassistant/helpers/update_coordinator.py"
+   ],
+   "proposed_fix_scope": "coordinator.py: raise ConfigEntryAuthFailed on the reauth verdict and pass it through the two update wrappers. tests/hastub: add the exception and the upstream auth arm in _async_refresh and the first refresh."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "action-setup: services are registered in async_setup, with none registered or removed per entry",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/rules_check.py",
+   "value": "12 async_register in services.py; 12 registered by async_setup with no entry; 0 in setup_entry/unload; services.yaml 12"
+  },
+  {
+   "claim": "appropriate-polling: coordinator interval",
+   "command": "rules_check.py (same command)",
+   "value": "update_interval 30.0 min, captured at the DataUpdateCoordinator constructor"
+  },
+  {
+   "claim": "brands: brand assets shipped",
+   "command": "rules_check.py",
+   "value": "brand/icon.png 256x256; brand/logo.png present"
+  },
+  {
+   "claim": "common-modules",
+   "command": "rules_check.py",
+   "value": "coordinator.py DataUpdateCoordinator subclass 1; entity.py CoordinatorEntity base 1"
+  },
+  {
+   "claim": "config-flow: UI setup with data_description on every field",
+   "command": "rules_check.py",
+   "value": "manifest config_flow true; fields without data_description 0/91 (config), 0/117 (options)"
+  },
+  {
+   "claim": "dependency-transparency",
+   "command": "rules_check.py",
+   "value": "3 requirements (numpy, scipy, threadpoolctl), 0 not a plain PyPI spec"
+  },
+  {
+   "claim": "docs-actions: every service documented",
+   "command": "rules_check.py",
+   "value": "0 of 12 services.yaml actions absent from README + user docs"
+  },
+  {
+   "claim": "docs-triggers / docs-conditions: vacuous, so exempt",
+   "command": "rules_check.py",
+   "value": "device_trigger.py 0, device_condition.py 0"
+  },
+  {
+   "claim": "docs-high-level-description, docs-installation-instructions, docs-removal-instructions",
+   "command": "rules_check.py",
+   "value": "README headings 'What it does' 1, 'Installation' 1, 'Removal' 1"
+  },
+  {
+   "claim": "entity-event-setup",
+   "command": "rules_check.py",
+   "value": "0 async_track_*/async_listen calls in platform or entity modules outside async_added_to_hass"
+  },
+  {
+   "claim": "entity-unique-id and has-entity-name over every entity the real platform setups add",
+   "command": "rules_check.py (and --perturb as control)",
+   "value": "75 entities: unique_id missing 0, duplicates 0; has_entity_name False 0 (perturb -> 1)"
+  },
+  {
+   "claim": "runtime-data",
+   "command": "rules_check.py",
+   "value": "entry.runtime_data is HeatPumpOptimizerCoordinator; hass.data[DOMAIN] keys 0"
+  },
+  {
+   "claim": "test-before-configure: the token is validated in every flow that accepts one",
+   "command": "rules_check.py",
+   "value": "3 'await validate_tibber_token(' sites (user, reauth_confirm, options entities)"
+  },
+  {
+   "claim": "test-before-setup, offline arm: an unreachable service is ConfigEntryNotReady",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/auth_failed.py",
+   "value": "transient_ok 2/2 (HTTP 500, connection error)"
+  },
+  {
+   "claim": "unique-config-entry, control: the same answers twice abort already_configured",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/unique_id_drift.py",
+   "value": "control_none and reconfigure arms: 0 duplicates accepted"
+  },
+  {
+   "claim": "config-entry-unloading",
+   "command": "rules_check.py",
+   "value": "async_unload_entry returns True; coordinator base async_shutdown called 1"
+  },
+  {
+   "claim": "docs-configuration-parameters / docs-installation-parameters",
+   "command": "python3 label/keyword grep of strings.json config/options data labels against README.md + docs/*.md (non-plan) + docs/setup/*.md",
+   "value": "options: 110/117 labels verbatim, the other 7 (min power, export compensation, away indicator, holiday calendar, circulation pump, DSO tariff, live fee sensor) found by topic keyword in docs/configuration.md; config: 87/91 verbatim, the other 4 (min power, floor heat loss) found by keyword"
+  },
+  {
+   "claim": "entity-unavailable: entities follow coordinator failure",
+   "command": "rules_check.py",
+   "value": "53 entities available while last_update_success True, 0 while False"
+  },
+  {
+   "claim": "integration-owner",
+   "command": "rules_check.py",
+   "value": "codeowners 1 (@tvofi)"
+  },
+  {
+   "claim": "log-when-unavailable: log once when unavailable, once on recovery",
+   "command": "rules_check.py",
+   "value": "3 failed Tibber fetches + 1 success: 1 ERROR line, 1 INFO recovery line"
+  },
+  {
+   "claim": "parallel-updates",
+   "command": "rules_check.py (and --perturb as control)",
+   "value": "6/6 platforms declare it (sensor=0, binary_sensor=0, button/switch/climate/datetime=1); perturb -> 5"
+  },
+  {
+   "claim": "reauthentication-flow: exists and is started on a refused token",
+   "command": "rules_check.py; auth_failed.py",
+   "value": "async_step_reauth defined 1; a 401 starts 1 reauth flow (reauth_flows_started=1). The new token's account is not checked; the cause is in D10-s1-01."
+  },
+  {
+   "claim": "action-exceptions, services side: service handlers raise on refusal",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/press_vs_service.py",
+   "value": "run_optimization raises HomeAssistantError in 2/2 not-run arms and returns normally in the prices_ok control"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D10/s1/rules_check.py",
+  "tools/audit/round9/D10/s1/unique_id_drift.py",
+  "tools/audit/round9/D10/s1/press_vs_service.py",
+  "tools/audit/round9/D10/s1/auth_failed.py",
+  "tools/audit/round9/D10/s1/quality_scale.yaml"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "config-flow-test-coverage / test-coverage rows",
+   "what": "s1 carried both coverage-bearing Bronze/Silver rows as done without measuring them. The per-module coverage number is D10.M3 and decides both rows."
+  },
+  {
+   "owner_seat": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "exceptions section",
+   "what": "exception-translations (gold): the fixes for D10-s1-02 (button raise) and D10-s1-03 (ConfigEntryAuthFailed) add raise sites, and each needs a translation_key in strings.json/en/sv."
+  },
+  {
+   "owner_seat": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/quality_scale.yaml",
+   "symbol": "manifest quality_scale: platinum",
+   "what": "The manifest tier is derived from the in-tree register, which marks unique-config-entry, test-before-setup and action-exceptions done. The s1 draft marks them todo, so the declared tier depends on the gold/platinum rows only through s1's Bronze/Silver outcome."
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+CELL winter_typical/winter_cold/tz1/dhw1/h6         J=17.50710  ftol14=+0.0005%  polish=+0.0005%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0000
+CELL winter_extreme/winter_cold/tz1/dhw1/h6         J=25.24014  ftol14=+0.0001%  polish=+0.0001%  viol 0.0000/0.0000/0.0000  p0 2.6114->2.5067
+CELL summer_negative/winter_cold/tz1/dhw1/h6        J=8.60590  ftol14=+0.0001%  polish=+0.0001%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0000
+CELL flat/winter_cold/tz1/dhw1/h6                   J=33.49447  ftol14=+0.0000%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 6.0000->6.0000
+CELL winter_typical/winter_cold/tz0/dhw1/h6         J=18.70579  ftol14=+0.0000%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 6.0000->6.0000
+CELL summer_negative/winter_cold/tz0/dhw1/h6        J=9.20442  ftol14=+0.0000%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 6.0000->6.0000
+CELL winter_typical/winter_cold/tz1/dhw1/h48        J=168.95254  ftol14=+0.4507%  polish=+0.5113%  viol 0.0000/0.0000/0.0000  p0 1.9993->1.9993
+CELL winter_extreme/winter_cold/tz1/dhw1/h48        J=249.34213  ftol14=+0.0341%  polish=+0.0502%  viol 0.0000/0.0000/0.0000  p0 1.9993->1.9993
+CELL summer_negative/winter_cold/tz1/dhw1/h48       J=36.75429  ftol14=+0.0712%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0036
+CELL flat/winter_cold/tz1/dhw1/h48                  J=207.50410  ftol14=+0.5309%  polish=+0.6027%  viol 0.0000/0.0000/0.0000  p0 1.7978->1.9993
+CELL winter_typical/winter_cold/tz1/dhw0/h48        J=149.35791  ftol14=+0.1925%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 6.0000->6.0000
+CELL summer_negative/winter_cold/tz1/dhw0/h48       J=32.18311  ftol14=+0.0741%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0000
+CELL flat/winter_cold/tz1/dhw0/h48                  J=190.64289  ftol14=+0.3359%  polish=+0.0581%  viol 0.0000/0.0000/0.0000  p0 4.5231->3.4009
+CELL winter_typical/summer_warm/tz1/dhw1/h48        J=63120.84811  ftol14=+0.0000%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0000
+CELL shoulder/summer_warm/tz1/dhw1/h48              J=63118.07846  ftol14=+0.0000%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 0.0000->0.0000
+CELL winter_extreme/winter_cold/tz0/dhw1/h48        J=181.48358  ftol14=+0.1305%  polish=+0.0953%  viol 1.1104/1.0798/1.0947  p0 1.9993->1.9993
+CELL summer_negative/winter_cold/tz0/dhw1/h48       J=26.34908  ftol14=+0.1107%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 1.9665->1.9596
+CELL flat/winter_cold/tz0/dhw1/h48                  J=164.65027  ftol14=+0.0009%  polish=+0.0000%  viol 0.0000/0.0000/0.0000  p0 1.9993->1.9993
+RESULT own_gap_ftol_priced_mean_pct=0.0760297 %
+RESULT own_gap_ftol_priced_max_pct=0.450731 %
+RESULT own_gap_ftol_priced_min_pct=0 %
+RESULT own_gap_ftol_priced_loo_mean_pct=0.0472066 %
+RESULT own_gap_ftol_priced_cells_above_0p01pct=7
+RESULT own_gap_ftol_priced_cells_negative=0
+RESULT own_gap_ftol_flat_mean_pct=0.216922 %
+RESULT own_gap_ftol_flat_max_pct=0.530901 %
+RESULT own_gap_ftol_flat_min_pct=0 %
+RESULT own_gap_ftol_flat_loo_mean_pct=0.112263 %
+RESULT own_gap_ftol_flat_cells_above_0p01pct=2
+RESULT own_gap_ftol_flat_cells_negative=0
+RESULT own_gap_ftol_cells_challenger_worse_comfort=0
+RESULT own_gap_polish_priced_mean_pct=0.0469635 %
+RESULT own_gap_polish_priced_max_pct=0.511316 %
+RESULT own_gap_polish_priced_min_pct=0 %
+RESULT own_gap_polish_priced_loo_mean_pct=0.0112441 %
+RESULT own_gap_polish_priced_cells_above_0p01pct=3
+RESULT own_gap_polish_priced_cells_negative=0
+RESULT own_gap_polish_flat_mean_pct=0.165196 %
+RESULT own_gap_polish_flat_max_pct=0.602666 %
+RESULT own_gap_polish_flat_min_pct=0 %
+RESULT own_gap_polish_flat_loo_mean_pct=0.0193725 %
+RESULT own_gap_polish_flat_cells_above_0p01pct=2
+RESULT own_gap_polish_flat_cells_negative=0
+RESULT own_gap_polish_cells_challenger_worse_comfort=0
+RESULT own_cells_total=18
+RESULT own_cells_step0_differs_gt_0p01kW=1
+RESULT own_wiring_both_tight_identical=1
+RESULT own_wiring_loose_not_better_cells=4 of 4
+RESULT thread_factor=1
+RESULT load1=7.48
+RESULT swapins=42529707

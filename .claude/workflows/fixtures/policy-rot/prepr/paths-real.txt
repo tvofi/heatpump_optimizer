@@ -1,0 +1,2 @@
+CLAUDE.md
+docs/plan-2026-09-open-issues.md

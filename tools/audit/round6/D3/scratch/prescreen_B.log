@@ -1,0 +1,28 @@
+[18] optimizer.py:3546 ALWAYS   -> PARTIAL  
+[19] thermal_model.py:1445 NOGUARD  -> KILLED   tests/features.py
+[20] name_match.py:415 ALWAYS   -> KILLED   tests/config_flow_steps.py
+[21] thermal_model.py:2277 ALWAYS   -> KILLED   tests/features.py
+[22] config_flow.py:1860 NOGUARD  -> KILLED   tests/config_flow_steps.py
+[23] services.py:593 NOGUARD  -> KILLED   tests/features.py
+[24] coordinator.py:9878 NOGUARD  -> KILLED   tests/manual_plan.py
+[25] coordinator.py:5587 ALWAYS   -> PARTIAL  
+[26] presets.py:153 ALWAYS   -> PARTIAL  
+[27] coordinator.py:527 NOGUARD  -> KILLED   tests/features.py
+[28] price_model.py:754 FLIPCMP  -> KILLED   tests/manual_plan.py
+[29] inputs.py:684 NOGUARD  -> KILLED   tests/features.py
+[30] defrost.py:599 ALWAYS   -> PARTIAL  
+[31] dhw_schedule.py:273 ALWAYS   -> KILLED   tests/guard_pins.py
+[32] legionella.py:157 ALWAYS   -> KILLED   tests/features.py
+[33] sysid.py:743 FLIPCMP  -> KILLED   tests/features.py
+[34] grid_fee.py:273 NOGUARD  -> KILLED   tests/features.py
+[35] config_flow.py:2273 ALWAYS   -> KILLED   tests/config_flow_steps.py
+
+########## RESULT lines ##########
+RESULT mutants_killed=14 count
+RESULT mutants_survivor=0 count
+RESULT mutants_partial=4 count
+RESULT mutants_unapplicable=0 count
+RESULT mutants_run=18 count
+RESULT thread_factor=1.0 ratio
+RESULT load1=6.11 load
+RESULT swapins=0 count

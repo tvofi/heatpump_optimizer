@@ -1,0 +1,6 @@
+# micro.py at 1936d5ca, winter/tariff; isolated CPU of N calls at the per-solve count, over the same solve's CPU. Verbatim.
+{"solve_cpu_s": 12.215, "effective_heat_loss_coefficient": {"cpu_s": 0.042, "share": 0.0034}, "_stability_substeps": {"cpu_s": 0.076, "share": 0.0062}, "is_throttling": {"cpu_s": 0.01, "share": 0.0008}, "lower_floor_heat_loss_learned": {"cpu_s": 0.008, "share": 0.0007}}
+# meter_check.py (global DISABLE meter): overhead and in-process repeat identity. Verbatim.
+{"label": "winter/tariff", "plain_s": [11.845, 11.786], "metered_s": [14.353, 13.776], "overhead_x": 1.169, "total": 8133048, "repeat_identical": true}
+{"label": "winter/1z/dhw", "plain_s": [0.341, 0.345], "metered_s": [0.495, 0.503], "overhead_x": 1.451, "total": 655216, "repeat_identical": true}
+{"label": "shoulder/2z/space", "plain_s": [4.352, 4.62], "metered_s": [5.716, 5.728], "overhead_x": 1.314, "total": 4300491, "repeat_identical": true}

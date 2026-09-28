@@ -1,0 +1,5263 @@
+[
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 7,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 10,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 14,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 20,
+  "failing_2_5_8": 9,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   }
+  ],
+  "spared_by_spacing": 11
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 23,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 16
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 21,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 14
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 18,
+  "failing_2_5_8": 8,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.slot-hit",
+    "text": "",
+    "w": 16.72,
+    "h": 24.5,
+    "nearest": 13.14,
+    "nearestSel": "rect.slot-hit"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 18,
+  "failing_2_5_8": 8,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.slot-hit",
+    "text": "",
+    "w": 16.72,
+    "h": 24.5,
+    "nearest": 13.14,
+    "nearestSel": "rect.slot-hit"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 20,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 18
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 22,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve target — click to ",
+    "w": 149.32,
+    "h": 11.67,
+    "nearest": 13.22,
+    "nearestSel": "rect.setup-hit"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve outlet temperature",
+    "w": 149.32,
+    "h": 11.67,
+    "nearest": 13.22,
+    "nearestSel": "rect.setup-hit"
+   }
+  ],
+  "spared_by_spacing": 18
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 23,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve target — click to ",
+    "w": 149.33,
+    "h": 11.67,
+    "nearest": 13.22,
+    "nearestSel": "rect.setup-hit"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve outlet temperature",
+    "w": 149.33,
+    "h": 11.67,
+    "nearest": 13.22,
+    "nearestSel": "rect.setup-hit"
+   }
+  ],
+  "spared_by_spacing": 19
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 24,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 22
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 24,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 22
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 23,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 21
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 17,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 18,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 11
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 19,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 12
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 18,
+  "failing_2_5_8": 7,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 8.34,
+    "nearestSel": "button.close"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 12.29,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 15.17,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 11
+ },
+ {
+  "arm": "fine",
+  "vp": "375x812",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 7,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 10,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 21,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 17
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 27,
+  "failing_2_5_8": 8,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 22.6,
+    "nearestSel": "button.dlg-tab"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.dlg-tab",
+    "text": "Setup",
+    "w": 65.02,
+    "h": 23.69,
+    "nearest": 22.6,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   }
+  ],
+  "spared_by_spacing": 19
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 30,
+  "failing_2_5_8": 10,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 18.06,
+    "nearestSel": "button.dlg-tab"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.dlg-tab",
+    "text": "Setup",
+    "w": 65.02,
+    "h": 23.69,
+    "nearest": 18.06,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Electricity price",
+    "w": 117.08,
+    "h": 23.66,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "DHW heating",
+    "w": 107.77,
+    "h": 23.66,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 28,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 24
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 24,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 20,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 18
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 22,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve target — click to ",
+    "w": 186.46,
+    "h": 14.57,
+    "nearest": 16.51,
+    "nearestSel": "rect.setup-hit"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve outlet temperature",
+    "w": 186.46,
+    "h": 14.57,
+    "nearest": 16.51,
+    "nearestSel": "rect.setup-hit"
+   }
+  ],
+  "spared_by_spacing": 18
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 23,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve target — click to ",
+    "w": 186.46,
+    "h": 14.57,
+    "nearest": 16.51,
+    "nearestSel": "rect.setup-hit"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Valve outlet temperature",
+    "w": 186.46,
+    "h": 14.57,
+    "nearest": 16.51,
+    "nearestSel": "rect.setup-hit"
+   }
+  ],
+  "spared_by_spacing": 19
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 24,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 22
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 24,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 22
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 23,
+  "failing_2_5_8": 3,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "rect.setup-hit",
+    "text": "Buffer tank temperature ",
+    "w": 186.47,
+    "h": 14.57,
+    "nearest": 13.69,
+    "nearestSel": "select.sp-select"
+   }
+  ],
+  "spared_by_spacing": 20
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 24,
+  "failing_2_5_8": 10,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 18.06,
+    "nearestSel": "button.dlg-tab"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.dlg-tab",
+    "text": "Setup",
+    "w": 65.02,
+    "h": 23.69,
+    "nearest": 18.06,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Electricity price",
+    "w": 117.08,
+    "h": 23.66,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "DHW heating",
+    "w": 107.77,
+    "h": 23.66,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 14
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 25,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 21
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 26,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 22
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 25,
+  "failing_2_5_8": 10,
+  "failing": [
+   {
+    "sel": "button.chip",
+    "text": "DHW tank temperature",
+    "w": 155.39,
+    "h": 22,
+    "nearest": 18.06,
+    "nearestSel": "button.dlg-tab"
+   },
+   {
+    "sel": "button.chip",
+    "text": "House temperature",
+    "w": 136.28,
+    "h": 22,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Solar irradiance",
+    "w": 118.41,
+    "h": 22,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.dlg-tab",
+    "text": "Setup",
+    "w": 65.02,
+    "h": 23.69,
+    "nearest": 18.06,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "Electricity price",
+    "w": 117.08,
+    "h": 23.66,
+    "nearest": 23.4,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.chip",
+    "text": "DHW heating",
+    "w": 107.77,
+    "h": 23.66,
+    "nearest": 22.56,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 17.33,
+    "h": 17.33,
+    "nearest": 19.33,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 15
+ },
+ {
+  "arm": "fine",
+  "vp": "768x1024",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 7,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 7,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 11,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 16,
+  "failing_2_5_8": 6,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 17.85,
+    "nearestSel": "button.chip"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-reset",
+    "text": "↺",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 19,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 15
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 17,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 13
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 11,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 11,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 11,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 15,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 13
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 15,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 13
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 13,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 11
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 9,
+  "failing_2_5_8": 2,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 7
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 13,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 9
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 14,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 15,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 11
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 14,
+  "failing_2_5_8": 4,
+  "failing": [
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 20.22,
+    "h": 20.22,
+    "nearest": 22.22,
+    "nearestSel": "button.vc-out"
+   },
+   {
+    "sel": "button.vc-out",
+    "text": "−",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-in"
+   },
+   {
+    "sel": "button.vc-in",
+    "text": "+",
+    "w": 18.63,
+    "h": 18.63,
+    "nearest": 20.63,
+    "nearestSel": "button.vc-out"
+   }
+  ],
+  "spared_by_spacing": 10
+ },
+ {
+  "arm": "fine",
+  "vp": "1280x800",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 1,
+  "failing_2_5_8": 1,
+  "failing": [
+   {
+    "sel": "rect.slot-hit",
+    "text": "",
+    "w": 16.72,
+    "h": 44.5,
+    "nearest": 21.06,
+    "nearestSel": "rect.slot-hit"
+   }
+  ],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 1,
+  "failing_2_5_8": 1,
+  "failing": [
+   {
+    "sel": "rect.slot-hit",
+    "text": "",
+    "w": 16.72,
+    "h": 44.5,
+    "nearest": 21.06,
+    "nearestSel": "rect.slot-hit"
+   }
+  ],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 1,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 1
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "375x812",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 1,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 1
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "768x1024",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "no_plan",
+  "drive_ok": true,
+  "targets": 7,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "no_plan_expanded",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "plan_inline",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "plan_inline_sv",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "plan_short_window",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "custom_title_currency",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "hidden_series",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "score_open",
+  "drive_ok": true,
+  "targets": 12,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "expanded_plan",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "what_if_off",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "expanded_zoomed",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "draft_dirty_menu_open",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "draft_mid_drag",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "whatif_edited",
+  "drive_ok": true,
+  "targets": 55,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "whatif_weekly",
+  "drive_ok": true,
+  "targets": 51,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "override_active",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "shared_steps",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "shared_steps_hover",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "tooltip_hover",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "coarse_pointer",
+  "drive_ok": true,
+  "targets": 43,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "reduced_motion",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "setup_single_buffer",
+  "drive_ok": true,
+  "targets": 23,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "setup_two_tank",
+  "drive_ok": true,
+  "targets": 25,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "setup_coil",
+  "drive_ok": true,
+  "targets": 26,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "layout_editing_dragged",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "layout_editing_tidy",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "picker_open_filtered",
+  "drive_ok": true,
+  "targets": 27,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "wood_alert",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "wood_lane",
+  "drive_ok": true,
+  "targets": 11,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "wood_whatif",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "away_toggle",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "away_return",
+  "drive_ok": true,
+  "targets": 45,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "away_status",
+  "drive_ok": true,
+  "targets": 44,
+  "undersized": 0,
+  "failing_2_5_8": 0,
+  "failing": [],
+  "spared_by_spacing": 0
+ },
+ {
+  "arm": "coarse",
+  "vp": "1280x800",
+  "state": "editor_schema",
+  "drive": {
+   "ok": true,
+   "note": "no ha-form element locally; editor renders its host only"
+  },
+  "error": "no shadow root"
+ }
+]

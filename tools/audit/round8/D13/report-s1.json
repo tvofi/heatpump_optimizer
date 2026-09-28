@@ -1,0 +1,156 @@
+{
+ "dimension": "D13",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D13-s1",
+ "report_path": "tools/audit/round8/D13/REPORT-s1.md",
+ "exposure": "GitHub REST API (read-only GET, via GITHUB_TOKEN through the agent proxy, cached at /home/claude/audit-r8/tmp/D13-s1/ghcache): /commits/<sha>/pulls, /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews, /commits/<sha>/check-runs for 92 first-parent commits and 88 PRs' heads; /actions/runs?head_sha=7779dfc and /actions/runs/<id>/jobs for one duplicate-suite check. main's git history c310541..cdf82da in the tree (a shallow clone; older history is unavailable). The GitHub MCP tools were not used: the harnesses need a transport a judge can re-run. PR bodies and comments were read only as the population.",
+ "findings": [
+  {
+   "id": "D13-s1-01",
+   "title": "Rework is moved-head re-verification: 15 of 20 extra review rounds; one-round yield 0.8125 vs 0.963",
+   "severity": "medium",
+   "claim": "Over the 80 window merges that carry a verdict, 15 of the 20 verdicts after a merge's first re-verified a head that moved after a `merge` verdict, and all 15 returned `merge`. Only 3 extra rounds were repairs after a block, and 1 of those blocks was an engineering class. So the brief's first-pass yield (0.963) counts as first-pass 12 merges that were reviewed two or three times; the one-round yield is 0.8125.",
+   "mechanism": "orchestrator.md s11 requires a merge verdict from a reviewer that measured THIS head, and fixer.md re-executes steps 2-8 after any rebase or merge. So a head that moves after `merge` (origin/main merged in: 6; a bot autofix commit such as `ci: drop inherited claims` or a closures re-record: 3; a content commit after the verdict: 6) costs one more full review round. First-verdict yield counts none of these rounds, and policy_lint.mjs:statsHistogram's `head-moved` row (19) puts them in one cell with the 3 repair rounds and 1 duplicate same-head post.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+    "harness_path": "tools/audit/round8/D13/s1_yield.mjs",
+    "value": 15,
+    "unit": "re-verification rounds (extra_rounds_by_cause reverify->merge); extra_rounds=20, repair->merge=3, duplicate=2, one_round_yield=0.8125, first_pass_yield=0.963, prod_head_moved_entries=19",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU shared cloud container (not the audit box); counts from the GitHub REST API, no timing on this box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts from the API; box load1 24 during the run, which a count does not depend on",
+    "tolerance": "exact (closed window c310541..cdf82da)",
+    "load1": 24.16,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/web-fix-wave.js:parseVerdict (VERDICT_RE, VERDICT_CLASSES, evaluated from source) and .claude/workflows/policy_lint.mjs:statsHistogram (REWORK_CLASS arm)",
+   "perturbation": {
+    "change": "--pin-head 1375 (rewrite that PR's verdict SHAs to its first verdict's SHA in the fixture: its head no longer moves)",
+    "expected_direction": "down",
+    "observed_value": "reverify->merge 15 -> 14; prod_head_moved_entries 19 -> 18"
+   },
+   "metric_definition": "Per merge, each Fix-review verdict after the first, by time over both endpoints; `reverify` = previous verdict merge and this one names a different 40-hex head.",
+   "phenomenon_property": "A review round whose only trigger is a head moving after a `merge` verdict is paid in full and caught nothing in the window. Yield and rework figures must separate those rounds from repair rounds a block paid for.",
+   "seam_rule": "node tools/audit/round8/D13/s1_yield.mjs | grep -E 'extra_rounds_by_cause|reverify_rounds_by_pr'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+    "value": "null_expected_blocks_in_reverify=0.56 (first-round block rate 3/80=0.0375 x 15 rounds)",
+    "note": "At the first-round block rate, 15 re-verification rounds would be expected to catch 0.56 blocks. So 0 catches is NOT evidence that those rounds are useless, and this finding claims only their share of the cost (15 of 20 extra rounds), not that they are zero-value. Control arm: the app-approved single-verdict merges (65) have zero extra rounds by construction."
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": 1,
+    "max": 2,
+    "drop_most_favourable": 13
+   },
+   "stop_rule_class": "bug",
+   "provisional": false,
+   "files": [
+    ".claude/workflows/policy_lint.mjs",
+    "tools/audit/briefs/orchestrator.md",
+    "tools/audit/briefs/fixer.md",
+    ".claude/workflows/web-fix-wave.js"
+   ],
+   "proposed_fix_scope": "Measurement first: statsHistogram (or --stats) prints re-verification rounds apart from repair rounds and reports one-round yield beside first-verdict yield. The process cost is the owner's call: for example, a delta re-review when the only change since the verdict is a main merge or a bot autofix commit (orchestrator.md s11 already allows 'a recorded reason why an older verdict carries -- the authored diff proved byte-identical')."
+  },
+  {
+   "id": "D13-s1-02",
+   "title": "Owner-approved (code-owned) merges skip the fix verdict: 8 of 22 carry none, against 0 of 66 app-approved",
+   "severity": "medium",
+   "claim": "All 8 of the window's 88 merges that carry no `Fix review:` verdict on either endpoint went through the owner-approval path (APPROVED review by the code owner): 8 of 22 owner-approved merges, against 0 of 66 hpo-approver merges. No rule in the tree exempts that class: orchestrator.md s11 requires a merge verdict at the merged head before every merge, and CLAUDE.md makes the owner the approver for code-owned paths, not the fix reviewer.",
+   "mechanism": "Approval and verdict are separate gates. The app path cannot approve without a verdict (app_approve.sh is keyed on the verdict's SHA), so that arm is 0/66. The owner's review satisfies the code-owner rule without one, so nothing forces a verdict on that arm. The brief's title-prefix classes spread these 8 across fix-and-feature (3) and record-and-chore (5); the approval path is the variable that separates them.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+    "harness_path": "tools/audit/round8/D13/s1_yield.mjs",
+    "value": 8,
+    "unit": "merges with no parsable verdict (no_verdict_by_approval_path owner-approved 8/22, app-approved 0/66); no_verdict=8/88",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU shared cloud container (not the audit box); counts from the GitHub REST API, no timing on this box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts from the API; box load1 24 during the run, which a count does not depend on",
+    "tolerance": "exact (closed window c310541..cdf82da)",
+    "load1": 24.16,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:statsHistogram (coverage.noVerdict, cross-checked: prod verdict_prs=80) and web-fix-wave.js:parseVerdict",
+   "perturbation": {
+    "change": "--reshape 1493 (re-shape an app-approved PR's verdict first line out of the grammar in the fixture)",
+    "expected_direction": "up",
+    "observed_value": "no_verdict 8 -> 9; verdict_prs 80 -> 79; prod_statsHistogram_verdict_prs 80 -> 79; app-approved no_verdict 0 -> 1"
+   },
+   "metric_definition": "Window merge with no comment/review whose trimmed first line matches ^Fix review:\\s*(merge|blocked), split by whether the code owner or hpo-approver[bot] APPROVED it.",
+   "phenomenon_property": "Every merge carries a merge verdict at its merged head, or a recorded, rule-cited reason why not, whatever the approval path.",
+   "seam_rule": "node tools/audit/round8/D13/s1_yield.mjs | grep -E 'no_verdict_by_approval_path|merged_head_without_merge_verdict_at_it'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+    "value": "app-approved arm: 0 of 66 merges without a verdict",
+    "note": "The arm where a verdict is mechanically required shows zero. The gap exists only where approval does not consume a verdict."
+   },
+   "stop_rule_class": "bug",
+   "provisional": false,
+   "files": [
+    "tools/audit/briefs/orchestrator.md",
+    "CLAUDE.md",
+    "tools/audit/app_approve.sh",
+    ".claude/workflows/policy_lint.mjs"
+   ],
+   "proposed_fix_scope": "Owner's decision, because it is policy. Either make the code-owned path consume a verdict too (the orchestrator posts `Fix review:` before requesting owner review), or write a rule that exempts the owner-approved class and cite it beside the coverage row. Separately, 2 merges (#1444, #1426) carry verdicts, but none names the merged head. Check the carry reason s11 allows."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Window and enumeration: 92 first-parent commits c310541..cdf82da; /commits/<sha>/pulls maps 88 to distinct merged PRs and 4 to no PR (the v6.6.7-v6.6.10 stamps); api_failures=0",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py",
+   "value": "first_parent_commits=92 window_merges=88 stamps=4 api_failures=0"
+  },
+  {
+   "claim": "Output 1: first-pass yield (first verdict merge) 77/80=0.963; rounds per merge mean 1.25, max 3 (hist 1:65, 2:10, 3:5); every one of the 100 verdicts arrived as an issue comment, none as a PR review; one verdict outside VERDICT_RE, which gets its own row (#1287 `Fix review: blocked <sha> class-c-live-worktree-deleted (POST-MERGE ...)`); production statsHistogram agrees (verdict_prs 80, unclassified 1)",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+   "value": "first_pass_yield=0.963 rounds_mean=1.25 rounds_max=3 verdicts_by_endpoint={issue comment:100, review:0} verdicts_outside_grammar=1"
+  },
+  {
+   "claim": "Output 3: blocked verdicts, 4 in total. By VERDICT_CLASSES: product-tradeoff-regression 1, root-cause-unanswered 1, claims 1, outside grammar 1. By bucket (engineering = mutation-vacuous/harness/null-control/class-open/product-tradeoff-regression; record-and-body = claims/version/carry-missing/root-cause-unanswered; orchestration = head-moved/preflight-mismatch/conflict): engineering 1, record-and-body 2, orchestration 0, outside grammar 1. No written class word falls outside the vocabulary except the one outside-grammar line. Record-and-body blocks (2) outnumber engineering blocks (1), but 1 vs 2 is too small a count to support the brief's high-severity comparison, so it is not filed",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+   "value": "blocked_total=4 blocked_by_bucket={engineering:1, record-and-body:2, (outside grammar):1}"
+  },
+  {
+   "claim": "Output 4, DORA by job: 4 releases in 3.33 d (1.2/day); lead time median 7.89 h, p90 23.74 h (n=73, 15 unreleased at baseline); 0 revert commits and 0 Revert PRs in the window. Change-failure rate at the merge commit is 0.989 unexcluded (record 87/88) and 0.102 after the exclusion list; the 0.102 is mutation 4, fast (3.14) 3, env-matrix 2 and policy-docs 2, overlapping. At the PR head it is 0.068, all of it delivery-status (6/88). All six head reds are main's overdue-row detector, and each is answered in its PR body. Time to restore: fast (3.14) median 0.33 h / max 1.74 h over 3 episodes, mutation 3.2 h, env-matrix and policy-docs 0.48 h. record stays open by design",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_dora.py",
+   "value": "releases_per_day=1.2 lead_time_median_h=7.89 cfr_merge_keyed=0.102 cfr_head_keyed=0.068 cfr_merge_unexcluded=0.989 reverted_merges=0"
+  },
+  {
+   "claim": "Output 4 perturbation: adding `mutation` to the exclusion list moves cfr_merge_keyed by exactly its sole-non-excluded count (4/88 = 0.045) and leaves the head-keyed rate unchanged",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_dora.py --exclude mutation",
+   "value": "cfr_merge_keyed 0.102 -> 0.057; cfr_head_keyed 0.068 -> 0.068"
+  },
+  {
+   "claim": "Output 5, CI seconds per merge: GOV re-derived from governance.yml plus `briefs` equals governance_cost.py's carried GOV set (8 names, no job added to governance.yml since). At the PR head, governance takes a median 160 s and mean 212 s per merge; the gate takes a median 4041 s and mean 5078 s (LOO over 88 cells: min 1656, max 22740, mean without the max 4875); governance share 0.040 at the head, 0.036 at the merge commit. mutation is the largest single name, at 158818 s over the window's heads. The only check-run name at heads with no workflow job is the CodeQL app's `CodeQL`. Governance jobs re-ran 37 extra times at the same heads (pr-contract 42), against 6 for the Tests jobs. At 31 of 88 heads two Governance pull_request runs started 1 s apart where Tests ran once. That costs at most ~200 s per affected merge, inside the 0.04 share",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_dora.py",
+   "value": "gov_rederived_equals_carried=True governance_share_head=0.04 gov median 160 s gate median 4041 s; --gov-drop pr-contract -> 0.034"
+  },
+  {
+   "claim": "Output 6, friction keys: 69 `## Friction` entries (production statsHistogram also counts 69). Under the brief's rule, 52 name exactly one --budgets file (share 0.754), 0 are ambiguous, and 17 resolve to no policy file (tool names and finding ids such as figure_lint, D2-01, D11-01, tests/env_drift.py). Spellings per file: fixer.md 6 spellings/17 entries; gate-scoping 3/7; ratchet-budgets 3/6; claim-files 2/6; finding-propagation 3/4; COMMON 2/4. Production frictionKey differs from the brief's rule in one place only, by design: the bare role name `fixer` (1) stays verbatim there and folds to fixer.md here",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs",
+   "value": "friction_entries=69 friction_share_one_file=0.754 friction_ambiguous=0 friction_unresolved=17"
+  },
+  {
+   "claim": "Output 6 perturbation: re-spelling #1358's `ratchet-budgets.md` entry as `README.md` moves one entry from the ratchet-budgets row to ambiguous; re-spelling it as `ratchet-budgets` moves no file's count, only the spelling",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && TMPDIR=/home/claude/audit-r8/tmp/D13-s1 HPO_PLANDATA=/home/claude/audit-r8/tmp/D13-s1/plandata PYTHONPATH=tests/hastub node tools/audit/round8/D13/s1_yield.mjs --respell '1358|- ratchet-budgets.md:|- README.md:'",
+   "value": "ambiguous 0 -> 1, one_file 52 -> 51; with '- ratchet-budgets:' one_file stays 52 and the spelling ratchet-budgets goes 4 -> 5"
+  },
+  {
+   "claim": "Instrument gap, not a finding: the round-4 D11 instruments (d11lib.py `gh api` and GraphQL merged_prs; dora_keys.py tags and actions/runs) cannot run on this box. There is no gh binary, the agent proxy refuses GraphQL and /tags, and the shallow clone has no tags. s1_gh.py swaps d11lib.api for a GET-only urllib transport and uses per-commit check runs (no 1000 cap); the stamps are read from first-parent subjects",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_window.py && PYTHONPATH=tests/hastub python3 tools/audit/round8/D13/s1_dora.py",
+   "value": "api_failures=0 after dropping the /tags read (HTTP 403 from the proxy)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D13/s1_gh.py",
+  "tools/audit/round8/D13/s1_window.py",
+  "tools/audit/round8/D13/s1_yield.mjs",
+  "tools/audit/round8/D13/s1_dora.py"
+ ],
+ "unfinished": "Finding ids follow the task's D13-s1-NN form, which finding.schema.json's id pattern ^D(1[0-3]|[0-9])-[0-9]{2}$ rejects; the schema has no seat slot. The window is only as long as the shallow clone (3.33 d, 88 merges). Why two Governance runs start 1 s apart at 31 heads is not established (both were pull_request events, and the action type is not in the API record)."
+}

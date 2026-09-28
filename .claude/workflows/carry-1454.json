@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Carry destination for R7-D4-01 (#1454), the round-7 D4 audit's",
+    "unreachable-ink finding -- the savings table's percent column painted",
+    "outside a box no gesture could widen. The D4-02 finding (#1455, the",
+    "Swedish tab label) is the same measurement on a second seam and rides",
+    "this carry rather than a second file, since one stage needs both.",
+    "The stage that needs this is any later D4 seat measuring whether the",
+    "card's dialog content is reachable at phone width:",
+    "tools/audit/briefs/D4.md is its method and tests/card_browser.mjs its",
+    "browser lane. No roster group in this tree claims #1454 -- every group",
+    "in every wave-*-groups.json is at resume.stage done -- so this file is",
+    "that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1454,
+  "stage": "any later D4 seat measuring whether the card's dialog content is reachable at phone width (tools/audit/briefs/D4.md is its method, tests/card_browser.mjs its browser lane, tests/card_drift.mjs its states)",
+  "carries": [
+    {
+      "from": "the pull request that made the dialog's overflowing content reachable and the savings surfaces agree on one currency (R7-D4-01 #1454, R7-D4-02 #1455)",
+      "effect": "narrows",
+      "control": "The measurement that separates the defect from its imitation is a pair of readings taken on the same rendering, and it is why scanning for overflow is not enough. At the round-7 baseline, the savings table at 375 px on a phone-width dialog: `.savings-table`'s own scrollWidth is 366 px against `.dlg-body`'s 336 px clientWidth, and 22.4 px of the percent column's ink is past the right edge of a body whose `overflow-x` is hidden -- unreachable by any gesture. The same overflow figure (366 vs 336) is present with the defect AND after the fix, because the fix is `overflow-x: auto` on the body: the table still overflows, the ink is now reachable, and the measured unreachability is -1 at every seam. A reader who scores the tree by 'does something overflow' therefore gets the same answer on both arms; the arm that moves is the reachable-extra subtraction. The null control on the other axis is width: at 1280 px the table's scrollWidth equals the body's clientWidth (1197 = 1197) and every seam reads -1, so a measure that reported unreachable ink on a wide dialog would be measuring something other than reachability.",
+      "remeasure": "Do not trust the pixels above; they are a snapshot of one box and one font stack, and a table's min-content width is font-dependent. Re-run the round-7 harness (tools/audit/round7/D4/dialog_clip.mjs in the round-7 baseline export) or, better, the check this branch landed in tests/card_browser.mjs, which walks the dialog's text runs at 375/360/320 px in en and sv-SE on the savings and plan pages with 1280 px as the null control. Both compute the same thing: the pixels by which a run's ink extends past the nearest clipping ancestor's right edge, MINUS what that ancestor can scroll to reveal. Establish the metric's non-vacuity beside it -- a walk that finds no text run reports no unreachable text for the wrong reason, and the savings arms only measure anything when the savings sensor publishes savings_months.",
+      "brief": "A D4 finding that content does not fit its box is not a finding until the content is unreachable, and the two are not the same measurement. The defect is the pixels by which a text run's ink extends past the right edge of the nearest clipping ancestor, minus what that ancestor can scroll to reveal: an ancestor whose overflow-x is hidden or clip reaches none of its overflow, and one whose overflow-x is auto or scroll reaches all of it. Score that, not the element's own scrollWidth against its clientWidth, which returns the same reading on a table a phone can pan to and on one whose rightmost column is painted outside the dialog -- measured on the same rendering at the round-7 baseline, and that pair is the control. The ancestors that clip this card's dialog are `.dlg-body` and `dialog.expanded` in custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, and a row that cannot shrink below its content (a flex item with flex: 0 0 auto, the dialog's tab strip was one) is the other shape of the same seam: measure the ink's reach, not the box's width. Re-measure at your own merge base with the check tests/card_browser.mjs now runs and its null control, at the phone widths and in both languages -- the instance the round-7 audit reported was a Swedish label and an English one at 375 px, and the same surface is clean at 1280 px."
+    }
+  ]
+}

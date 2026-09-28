@@ -1,0 +1,5 @@
+# One build_case per spec on the gate prototype worktree (production = origin/main), process_time CPU, this box. Verbatim.
+{"label": "winter/2z/valve", "cpu_s": 10.86, "objective": 100.18099790193745}
+{"label": "winter/2z/valve-direct-slab", "cpu_s": 8.98, "objective": 96.79451744330723}
+{"label": "winter/2z/wood-two-tank", "cpu_s": 18.65, "objective": 99.95557913339869}
+{"label": "winter/2z/dhw (control)", "cpu_s": 5.89, "objective": 86.77985962676209}

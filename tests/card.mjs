@@ -1,0 +1,8671 @@
+import fs from "fs";
+import vm from "vm";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass,
+         CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
+         justifiesSolverClaim, justifiesCardClaim, movesClaimable,
+         threeDotFiles, claimsAreThisBranchs, sameClaimMap,
+         historyApi, historyFixture, HISTORY_IDS, flushHistory,
+         withActuals, realisticHistory, haStamp } from "./card_rig.mjs";
+
+// Plan payload written by tests/plan_view.py earlier in the run. The path is
+// argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
+// directory — the same derivation plan_view.py uses — so this test cannot
+// quietly pass against a stale file another checkout left in /tmp. The old
+// fixed /tmp/plandata.json is only accepted as a last resort, loudly.
+const testsDir = path.dirname(fileURLToPath(import.meta.url));
+const defaultPath = path.join(
+  "/tmp",
+  `plandata-${crypto.createHash("sha256").update(testsDir).digest("hex").slice(0, 12)}.json`
+);
+let planPath = process.argv[2] || process.env.HPO_PLANDATA || defaultPath;
+if (!fs.existsSync(planPath)) {
+  const legacy = "/tmp/plandata.json";
+  if (planPath === defaultPath && fs.existsSync(legacy)) {
+    console.warn(
+      `WARNING: ${planPath} not found (run tests/plan_view.py first); ` +
+      `falling back to ${legacy}, which may be stale or from another checkout`
+    );
+    planPath = legacy;
+  } else {
+    console.error(`FAIL: plan payload ${planPath} not found — run tests/plan_view.py first`);
+    process.exit(1);
+  }
+}
+const plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
+
+// The vm context, its DOM stub and the listener registries come from the
+// shared rig (tests/card_rig.mjs), one copy for every Node card harness, so
+// the stub this file grew one shim at a time cannot drift from the renderer's
+// or the markup gate's again (#101). `innerHTML` is parsed rather than merely
+// stored: the card queries its own output for the controls it then wires up
+// -- the legend chips, the expand button, the what-if slider -- so a stub
+// that kept the markup as an opaque string would silently skip every one of
+// those paths and report a pass.
+const {
+  ctx, document, store, winListeners, docListeners, intervals,
+  fireWindow, fireDocument, tickIntervals, coarseTouch, reducedMotion,
+  VOID_TAGS, parseHtml, Node, matches, HTMLElement,
+} = makeCardContext();
+const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
+vm.runInContext(cardSrc, ctx);
+
+const names = Object.keys(ctx.customElements._d);
+console.log("defined elements:", names.join(", "));
+console.log("customCards:", JSON.stringify(ctx.window.customCards));
+
+const Card = ctx.customElements.get("heatpump-optimizer-card");
+if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
+
+// Module-level functions the tests call directly, reached the way the setup
+// constants already are: by name, in the card's own realm (#136, PR 9).
+const fn = (name) => vm.runInContext(name, ctx);
+const reasonHtml = fn("reasonHtml");
+const sharedTooltipHtml = fn("sharedTooltipHtml");
+const extraFields = fn("extraFields");
+const lineNote = fn("lineNote");
+const lineLabel = fn("lineLabel");
+const chartSvgs = fn("chartSvgs");
+const timeAtClientX = fn("timeAtClientX");
+const geomOfChart = fn("geomOfChart");
+// `lineLabel` asks whether the lower floor is modelled only for the one line
+// that needs it; a card's answer is bound here so a test reads as it did.
+const lineLabelOf = (c) => (def, line) =>
+  lineLabel(def, line, () => c.plan.lowerFloorModelled());
+
+const SOLAR_ID = "sensor.heat_pump_optimizer_solar_irradiance";
+
+// The irradiance sensor publishes its own {t, ghi} horizon. Its timestamps are
+// already interval starts, so the card must plot them as-is.
+const solarForecast = plan.space_plan.forecast.map((p, i) => ({
+  t: p.t,
+  ghi: Math.max(0, 400 * Math.sin((i / plan.space_plan.forecast.length) * Math.PI)),
+}));
+
+const mkStates = (spaceId, dhwId, withMarker) => ({
+  [SOLAR_ID]: { state:"120", attributes:{
+    forecast: solarForecast, source:"open_meteo", friendly_name:"Solar Irradiance",
+    ...(withMarker ? { plan_kind: "solar" } : {}) } },
+  [spaceId]: { state:"3 slots planned", attributes:{
+    forecast: plan.space_plan.forecast, slots: plan.space_plan.slots,
+    total_energy_kwh: plan.space_plan.total_energy_kwh, total_cost: plan.space_plan.total_cost,
+    active_now: plan.space_plan.active_now, friendly_name:"Space Heating Plan",
+    ...(withMarker ? { plan_kind: "space" } : {}) } },
+  [dhwId]: { state:"4 slots planned", attributes:{
+    forecast: plan.dhw_plan.forecast, slots: plan.dhw_plan.slots,
+    total_energy_kwh: plan.dhw_plan.total_energy_kwh, total_cost: plan.dhw_plan.total_cost,
+    active_now: plan.dhw_plan.active_now, friendly_name:"DHW Heating Plan",
+    ...(withMarker ? { plan_kind: "dhw" } : {}) } },
+});
+
+// The plan sensors use has_entity_name, so a default install prefixes the
+// device name. These are the ids a real Home Assistant actually creates --
+// #1333 moved the suggested ids (space_heating_plan -> plan_space_heating,
+// dhw_heating_plan -> plan_dhw_heating, new installs only), and Scenario 3
+// below keeps the pre-#1333 pair as the card's legacy fallback.
+const DEFAULT_SPACE = "sensor.heat_pump_optimizer_plan_space_heating";
+const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
+
+function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
+
+function build(states, config) {
+  const card = new Card();
+  card.setConfig({ type:"custom:heatpump-optimizer-card", ...(config||{}) });
+  card.hass = { states };
+  if (card.connectedCallback) card.connectedCallback();
+  card.hass = { states };
+  return card;
+}
+
+let fails = 0;
+function check(name, cond, detail) {
+  console.log((cond ? "  ok  " : "  FAIL") + "  " + name);
+  if (!cond) {
+    if (detail) console.log("        " + detail);
+    fails++;
+  }
+}
+
+// --- Scenario 1: stock install, real (device-prefixed) entity ids ----------
+const card = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const dump = collect(card.shadowRoot).join("\n");
+
+check("renders an <svg>", /<svg/.test(dump));
+check("draws polyline/path data", /(<polyline|<path)/.test(dump));
+check("draws heating bars", /<rect/.test(dump));
+check("legend has all eight series", ["Electricity price","DHW heating","Space heating","Actioned power","Outdoor temperature","DHW tank temperature","House temperature","Solar irradiance"].every(l=>dump.includes(l)));
+check("shows a cost or energy summary", /kWh|SEK/.test(dump));
+check("default entity ids match a real install", !/No plan data available yet/.test(dump));
+
+// Toggling a series off must change the rendered output.
+const before = dump;
+card.legend.onChipClick({ currentTarget: { getAttribute: (k) => (k === "data-key" ? "dhw_temp" : null) } });
+const after = collect(card.shadowRoot).join("\n");
+check("toggling a series changes the chart", after !== before);
+check("toggle persisted to localStorage", Object.keys(store).length > 0);
+
+// --- Scenario 2: user renamed the entities; discovery via plan_kind --------
+const renamed = build(mkStates("sensor.my_heat_plan", "sensor.my_water_plan", true));
+const renamedDump = collect(renamed.shadowRoot).join("\n");
+check("discovers renamed entities by plan_kind", !/No plan data available yet/.test(renamedDump) && /<svg/.test(renamedDump));
+
+// --- Scenario 3: older integration without plan_kind; suffix fallback ------
+const legacy = build(mkStates("sensor.space_heating_plan", "sensor.dhw_heating_plan", false));
+const legacyDump = collect(legacy.shadowRoot).join("\n");
+check("falls back to name-suffix discovery", !/No plan data available yet/.test(legacyDump) && /<svg/.test(legacyDump));
+
+// --- Scenario 3b: id generations across the #1333 move ---------------------
+// #1333 moved the two plan sensors' suggested ids (new installs only). An
+// install upgraded from before keeps the OLD registry ids and may carry no
+// plan_kind marker (that marker is #1227-era), so the card has to resolve
+// the pre-#1333 pair by suffix alone; a fresh install resolves the new pair
+// the same way. Pin both, and pin that the pair is what it was handed --
+// a derivation or a scan that grabbed the other generation would still draw
+// a chart, so the check reads the resolved id, not just "no error".
+const pre1333 = build(mkStates(
+  "sensor.heat_pump_optimizer_space_heating_plan",
+  "sensor.heat_pump_optimizer_dhw_heating_plan", false));
+check("resolves a pre-#1333 device-prefixed id with no marker",
+  !/No plan data available yet/.test(collect(pre1333.shadowRoot).join("\n")) && /<svg/.test(collect(pre1333.shadowRoot).join("\n")));
+check("the pre-#1333 pair resolves to the ids it was given",
+  pre1333.plan.resolveEntity("space") === "sensor.heat_pump_optimizer_space_heating_plan" &&
+  pre1333.plan.resolveEntity("dhw") === "sensor.heat_pump_optimizer_dhw_heating_plan",
+  pre1333.plan.resolveEntity("space") + " / " + pre1333.plan.resolveEntity("dhw"));
+const fresh = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, false));
+check("the post-#1333 pair resolves to the ids it was given",
+  fresh.plan.resolveEntity("space") === DEFAULT_SPACE &&
+  fresh.plan.resolveEntity("dhw") === DEFAULT_DHW,
+  fresh.plan.resolveEntity("space") + " / " + fresh.plan.resolveEntity("dhw"));
+
+// --- Scenario 4: nothing published; message must be actionable -------------
+const empty = build({});
+const emptyDump = collect(empty.shadowRoot).join("\n");
+check("reports missing entities clearly", /no entity found/.test(emptyDump) && /Developer Tools/.test(emptyDump));
+
+// --- Scenario 5: explicit config overrides discovery -----------------------
+const explicit = build(
+  { ...mkStates("sensor.a_plan", "sensor.b_plan", true), ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true) },
+  { space_entity: "sensor.a_plan", dhw_entity: "sensor.b_plan" }
+);
+check("explicit config is honoured", explicit.plan.resolveEntity("space") === "sensor.a_plan");
+
+// --- Scenario 6: click to expand ------------------------------------------
+const exp = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const collapsed = collect(exp.shadowRoot).join("\n");
+check("collapsed card offers an expand affordance",
+  /class="expand"/.test(collapsed) && /ha-card class="clickable"/.test(collapsed));
+check("no dialog is rendered until asked for", !/<dialog/.test(collapsed));
+
+exp._onCardClick({});
+const opened = collect(exp.shadowRoot).join("\n");
+check("clicking the card opens a dialog", exp.dialog.expanded && /<dialog/.test(opened));
+check("the dialog uses showModal-capable markup", /dialog class="expanded"/.test(opened));
+
+// Lovelace does not only hand a card `hass` and `config`. `hui-card` writes
+// its own properties straight onto the card element -- `preview`, `editMode`
+// and `layout` among them -- and an element property the card also uses for
+// its own state is simply overwritten. That is not hypothetical: it shipped.
+// A real install's card carried
+//
+//   props: ...,_onCardClick,_onExpandClick,preview,editMode
+//   hasLayout: false
+//
+// with `layout` still listed but holding Lovelace's value, so the first
+// render that reached `attachBody` died on `this.layout.attach` -- and only
+// the expanded view reaches it, because `sync` returns early when there is no
+// dialog in the shadow root. The card looked perfect until it was expanded.
+//
+// So the contract this asserts is: the card keeps working after Lovelace has
+// written the properties it writes. The names are taken from hui-card, and
+// `layout` is the one that actually collided.
+const hui = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+hui.preview = false;
+hui.editMode = false;
+hui.layout = undefined;           // what hui-card assigns in a sections view
+hui._onCardClick({});
+const huiOpened = collect(hui.shadowRoot).join("\n");
+check("expanding survives the properties Lovelace writes onto the element",
+  hui.dialog.expanded && /<dialog/.test(huiOpened));
+check("and the layout editor is still the card's own, not Lovelace's",
+  typeof hui.layoutEditor === "object" && hui.layoutEditor !== null
+  && typeof hui.layoutEditor.attach === "function");
+check("the dialog carries its own chart", (opened.match(/<svg/g) || []).length >
+  (collapsed.match(/<svg/g) || []).length);
+// data-key also appears on series paths, so count the legend containers.
+check("the dialog carries its own legend and close button",
+  /class="close"/.test(opened) && (opened.match(/class="legend"/g) || []).length === 2);
+
+// The enlarged chart has room for an hourly time axis rather than every third
+// hour, so it must not be a pixel-identical copy of the inline one.
+const svgs = opened.split("<svg").slice(1);
+const labelCount = (s) => (s.match(/text-anchor="middle"/g) || []).length;
+check("the enlarged chart labels more of the time axis",
+  labelCount(svgs[svgs.length - 1]) > labelCount(svgs[0]));
+
+// --- Scenario 7: toggles must not open the popup ---------------------------
+const tog = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+let stopped = false;
+tog.legend.onChipClick({
+  stopPropagation: () => { stopped = true; },
+  currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
+});
+check("a legend click stops propagating to the card", stopped);
+check("a legend click does not expand the card", tog.dialog.expanded === false);
+
+// Toggling while expanded must keep the popup open, not dismiss it.
+tog._onCardClick({});
+tog.legend.onChipClick({
+  stopPropagation: () => {},
+  currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
+});
+check("toggling inside the popup keeps it open",
+  tog.dialog.expanded && /<dialog/.test(collect(tog.shadowRoot).join("\n")));
+
+tog.dialog.close();
+check("closing removes the dialog",
+  !tog.dialog.expanded && !/<dialog/.test(collect(tog.shadowRoot).join("\n")));
+
+// --- Scenario 8: nothing to show, nothing to expand ------------------------
+const emptyExp = build({});
+const emptyExpDump = collect(emptyExp.shadowRoot).join("\n");
+// "clickable" also occurs in the stylesheet, so check the element's attribute.
+check("the empty state is not clickable",
+  !/class="expand"/.test(emptyExpDump) && !/<ha-card class="clickable"/.test(emptyExpDump));
+
+
+// --- Scenario 9: solar irradiance series (item 2) --------------------------
+//
+// The value of this check is that it exercises *discovery*: hardcoding
+// `sensor.heat_pump_optimizer_solar_irradiance` is exactly the mistake that
+// caused the v2.6.1 bug where the card never found its plan sensors, so the
+// series has to be found by its `plan_kind` marker on a renamed entity too.
+const solarCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const solarDump = collect(solarCard.shadowRoot).join("\n");
+check("solar series has data", solarCard._series.find(s => s.key === "solar").hasData);
+check("solar gets its own W/m2 axis", /W\/m/.test(solarDump));
+check("the solar axis does not share the power scale",
+  solarCard._plot.axes.solar !== null && solarCard._plot.axes.solar !== solarCard._plot.axes.power);
+
+// Turning the series off must give the plot its width back rather than
+// permanently reserving room for an axis most users will not show.
+const plotRWithSolar = solarCard._plot.plotR;
+solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
+check("hiding solar returns the reserved axis width", solarCard._plot.plotR > plotRWithSolar);
+
+const renamedSolar = build({
+  ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+  "sensor.my_sun": { state:"90", attributes:{ forecast: solarForecast, plan_kind:"solar" } },
+});
+delete renamedSolar._hass.states[SOLAR_ID];
+renamedSolar.plan.resolvedCache = null;
+check("discovers a renamed solar sensor by plan_kind",
+  renamedSolar.plan.resolveEntity("solar") === "sensor.my_sun");
+
+// A missing solar sensor must not break the rest of the card.
+const noSolar = build((() => { const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true); delete st[SOLAR_ID]; return st; })());
+const noSolarDump = collect(noSolar.shadowRoot).join("\n");
+check("a missing solar sensor degrades cleanly",
+  /<svg/.test(noSolarDump) && !/No plan data available yet/.test(noSolarDump));
+
+// --- Scenario 10: legend legibility in the popup (item 1) ------------------
+//
+// The legend is plain HTML, so it cannot literally be low resolution. What it
+// was, was sized in em against the card's font, which does not grow with the
+// dialog. The fix is a rule that scales it, so assert the rule exists and that
+// it targets the dialog specifically.
+const legendCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+legendCard._onCardClick({});
+const legendDump = collect(legendCard.shadowRoot).join("\n");
+check("the popup scales the legend up",
+  /dialog\.expanded \.legend\s*\{[^}]*font-size/.test(legendDump));
+check("the popup scales the legend chips and dots",
+  /dialog\.expanded \.chip\s*\{[^}]*font-size/.test(legendDump) &&
+  /dialog\.expanded \.chip \.dot\s*\{[^}]*width/.test(legendDump));
+
+// SVG text is sized in viewBox units, so the same nominal size across a much
+// larger chart reads as cramped. The expanded chart must use a larger one.
+const expSvgs = legendDump.split("<svg").slice(1);
+const maxFont = (s) => Math.max(0, ...[...s.matchAll(/font-size="(\d+)"/g)].map(m => Number(m[1])));
+check("the popup chart uses a larger in-viewBox font",
+  maxFont(expSvgs[expSvgs.length - 1]) > maxFont(expSvgs[0]));
+
+// --- Scenario 11: plan reason codes (item 16) ------------------------------
+//
+// Without these an unexpected slot is indistinguishable from a bug, which is
+// what makes bug reports weak and the optimizer hard to trust.
+const reasonCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const withReason = reasonHtml([
+  { reason: "cheap_price" }, { reason: "cheap_price" }, { reason: "dhw_window" },
+]);
+check("reason codes render as readable text",
+  /Cheapest hours/.test(withReason) && /Hot water needed now/.test(withReason));
+check("a repeated reason is not repeated in the tooltip",
+  (withReason.match(/Cheapest hours/g) || []).length === 1);
+check("idle steps produce no explanation",
+  reasonHtml([{ reason: "idle" }, {}]) === "");
+check("an unknown reason code still shows something",
+  /brand_new_code/.test(reasonHtml([{ reason: "brand_new_code" }])));
+
+// --- Scenario 12: estimated prices are marked (item 7) ---------------------
+//
+// A plan that looks identical whether or not it rests on published prices
+// cannot be audited, so the guessed stretch has to be visible.
+const halfKnown = (() => {
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const fc = plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
+  st[DEFAULT_SPACE].attributes.forecast = fc;
+  return st;
+})();
+const markedCard = build(halfKnown);
+const markedDump = collect(markedCard.shadowRoot).join("\n");
+check("the estimated stretch of the horizon is shaded",
+  /class="estimated"/.test(markedDump) && /estimated prices/.test(markedDump));
+check("the tooltip says a price is estimated",
+  /estimated, not published/.test(reasonHtml([{ priceKnown: false }])));
+check("a fully published horizon is not shaded",
+  !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
+
+// --- Scenario 13: what-if simulator ---------------------------------------
+// The panel is on by default: editing a draft costs nothing, and only the
+// Simulate and Save buttons reach Home Assistant. It can still be turned off.
+const onCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+onCard._onCardClick({});
+check("the schedule editor is available without extra configuration",
+  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")));
+check("and it is reachable in the expanded view specifically",
+  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")) && onCard.dialog.expanded === true);
+
+const offCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: false });
+offCard._onCardClick({});
+check("what_if: false still hides the panel",
+  !/class="whatif"/.test(collect(offCard.shadowRoot).join("\n")));
+
+let called = null;
+const simResult = {
+  monthly_cost_delta: -42.5,
+  min_room_temperature: 19.4,
+  baseline_min_room_temperature: 20.1,
+  min_dhw_temperature: 46.0,
+  baseline_min_dhw_temperature: 45.8,
+  compressor_starts: 4,
+  rate_limited: false,
+};
+const mkHass = (states, respond) => ({
+  states,
+  callService: async (domain, service, data) => {
+    called = { domain, service, data };
+    return respond ? respond() : { response: { results: { abc: simResult } } };
+  },
+});
+
+// The plan sensors advertise the schedule the plan was made against, which is
+// what the editor pre-fills from.
+const slotStates = (() => {
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.day_start_hour = 7;
+  st[DEFAULT_SPACE].attributes.day_end_hour = 22;
+  st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30, 17:00-22:00";
+  return st;
+})();
+
+const whatIf = build(slotStates, { what_if: true });
+whatIf._hass = mkHass(whatIf._hass.states);
+whatIf._onCardClick({});
+const whatIfDump = collect(whatIf.shadowRoot).join("\n");
+check("the what-if panel appears when enabled",
+  /class="whatif"/.test(whatIfDump) && /class="wi-temp"/.test(whatIfDump));
+check("the panel offers heating hour editors",
+  /class="wi-day-start"/.test(whatIfDump) && /class="wi-day-end"/.test(whatIfDump));
+check("the panel offers hot water window editors",
+  /class="wi-win-start"/.test(whatIfDump) && /class="wi-add"/.test(whatIfDump));
+check("it distinguishes simulating from saving",
+  /Simulating changes\s+nothing/.test(whatIfDump) &&
+  /saving replaces your configured schedule/.test(whatIfDump));
+
+// Item 22. The comfort slider used to sit alone in the scheduling section with
+// no context, which is what made it read as a stray control. It now shares a
+// "Temperatures" section with the hot water minimum.
+check("the temperature sliders have a section of their own",
+  /Temperatures/.test(whatIfDump) && /class="wi-dhw-min"/.test(whatIfDump));
+check("each slider has its own readout",
+  /wi-comfort-value/.test(whatIfDump) && /wi-dhw-value/.test(whatIfDump));
+
+// The two sliders deliberately share one debounce timer: independent timers
+// racing on one service call is how the delta ends up pricing the *previous*
+// drag rather than the current one.
+{
+  const comfortBefore = whatIf.whatIf.draft().comfort;
+  const timerBefore = whatIf.whatIf.timer;
+  whatIf.whatIf.onInput({
+    stopPropagation(){},
+    target:{ value:"42", classList:{ contains:(c)=>c === "wi-dhw-min" } },
+  });
+  check("the hot water slider writes its own draft field, not the comfort one",
+    whatIf.whatIf.draft().dhwMin === 42 &&
+    whatIf.whatIf.draft().comfort === comfortBefore);
+  check("moving either slider uses the one shared debounce",
+    whatIf.whatIf.timer !== timerBefore && whatIf.whatIf.timer !== null);
+  check("the hot water readout follows its own slider",
+    /42/.test(whatIf.shadowRoot.querySelector(".wi-dhw-value").textContent) &&
+    !/42/.test(whatIf.shadowRoot.querySelector(".wi-comfort-value").textContent));
+  // Leave no armed timer behind: it would fire mid-await further down and
+  // overwrite `called` with a simulate the next assertion never asked for.
+  clearTimeout(whatIf.whatIf.timer);
+  whatIf.whatIf.timer = null;
+  whatIf.whatIf.draft().dhwMin = 45;
+}
+
+// The ceiling is published by the integration rather than recomputed here, so
+// the card and the backend validator cannot drift apart. A stored minimum that
+// the setpoint no longer allows is lowered *and* said out loud -- silently
+// reducing someone's hot water is exactly the kind of quiet correction that
+// gets reported as a bug months later.
+{
+  const clampStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.dhw_setpoint = 52;
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature_max = 47;
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature = 50;
+    return st;
+  })();
+  const clamped = build(clampStates, { what_if: true });
+  clamped._hass = mkHass(clamped._hass.states);
+  clamped._onCardClick({});
+  const dump = collect(clamped.shadowRoot).join("\n");
+  check("a stored minimum above the ceiling is clamped to it",
+    clamped.whatIf.draft().dhwMin === 47,
+    `got ${clamped.whatIf.draft().dhwMin}`);
+  check("and the clamp is visible rather than silent",
+    /wi-warn/.test(dump) && /50/.test(dump));
+  check("the slider's maximum comes from the published ceiling",
+    /class="wi-dhw-min"[^>]*max="47"/.test(dump) ||
+    /max="47"[^>]*class="wi-dhw-min"/.test(dump));
+  check("the deadband is described from the setpoint actually in force",
+    /52/.test(dump) && /5\s*&nbsp;°C band/.test(dump));
+}
+
+// Before the first plan arrives there is no setpoint to clamp against. The
+// attribute is published as null in that case, and `Number(null)` is 0 -- a
+// finite value that would sail through a naive isFinite guard and cap the
+// slider at nothing.
+{
+  const blankStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature_max = null;
+    st[DEFAULT_SPACE].attributes.comfort_temp_day = null;
+    return st;
+  })();
+  const blank = build(blankStates, { what_if: true });
+  blank._hass = mkHass(blank._hass.states);
+  check("a null ceiling falls back instead of collapsing to zero",
+    blank.whatIf.dhwMinCeiling() === 45, `got ${blank.whatIf.dhwMinCeiling()}`);
+  check("a null comfort target falls back instead of reading as 0 °C",
+    blank.whatIf.draft().comfort === 21,
+    `got ${blank.whatIf.draft().comfort}`);
+}
+
+// The comfort target must come from our own plan, not from whatever climate
+// entity happens to be enumerated first. A frost-protection valve, an air
+// conditioner or a towel rail would otherwise pin the slider to its setpoint,
+// which is where the mystery "5" came from.
+const strayStates = (() => {
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.comfort_temp_day = 19.5;
+  st["climate.frost_protection_valve"] = {
+    state: "heat",
+    attributes: { temperature: 5 },
+  };
+  return st;
+})();
+const strayCard = build(strayStates, { what_if: true });
+strayCard._hass = mkHass(strayCard._hass.states);
+check("the comfort target comes from the plan, not a stray thermostat",
+  strayCard.whatIf.draft().comfort === 19.5,
+  `got ${strayCard.whatIf.draft().comfort}`);
+
+// Pre-filling from the live plan matters: an editor that starts from defaults
+// would silently propose changes the user never asked for.
+check("the heating hours are pre-filled from the plan",
+  /value="07:00"/.test(whatIfDump) && /value="22:00"/.test(whatIfDump));
+check("the hot water windows are pre-filled from the plan",
+  whatIf.whatIf.draft().dhwWindows.length === 2 &&
+  whatIf.whatIf.draft().dhwWindows[0].start === "06:00" &&
+  whatIf.whatIf.draft().dhwWindows[1].end === "22:00");
+
+// Temperature: debounced, then reported.
+whatIf.whatIf.onInput({ stopPropagation(){}, target:{ value:"19.5" } });
+check("dragging does not call the service immediately", called === null);
+check("the label follows the slider straight away",
+  /19\.5/.test(whatIf.shadowRoot.querySelector(".wi-value").textContent));
+
+await whatIf.whatIf.run();
+check("the simulator calls the right service",
+  called && called.domain === "heatpump_optimizer" && called.service === "simulate_plan");
+check("the simulator sends the dragged temperature",
+  called && called.data.target_temp === 19.5);
+check("the simulator sends the heating hours",
+  called && called.data.day_start_hour === 7 && called.data.day_end_hour === 22);
+check("the simulator sends the hot water windows",
+  called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00");
+
+const resultText = whatIf.shadowRoot.querySelector(".wi-result").textContent;
+check("a cheaper answer is reported as a monthly saving",
+  /43 less per month/.test(resultText));
+// Reporting only the saving would invite the obvious mistake: a plan is always
+// cheaper if it is allowed to be colder.
+check("the comfort consequence is reported alongside the money",
+  /Coldest the house gets: 19\.4/.test(resultText) && /-0\.7/.test(resultText));
+check("the hot water consequence is reported too",
+  /Lowest tank temperature: 46\.0/.test(resultText));
+
+// --- Scenario 14: editing the slots ---------------------------------------
+const editor = build(slotStates, { what_if: true });
+editor._hass = mkHass(editor._hass.states);
+editor._onCardClick({});
+
+// Editing a time field updates the draft without triggering a solve: a
+// half-typed time should not cost a multi-second optimization.
+const root = editor.shadowRoot;
+root.querySelector(".wi-day-start").value = "05:00";
+called = null;
+editor.whatIf.onSlotEdit({ stopPropagation(){} });
+check("editing an hour does not simulate on its own", called === null);
+check("editing an hour updates the draft", editor.whatIf.draft().dayStart === 5);
+
+editor.whatIf.onAddWindow({ stopPropagation(){} });
+check("a window can be added", editor.whatIf.draft().dhwWindows.length === 3);
+check("the added window is rendered",
+  (collect(editor.shadowRoot).join("\n").match(/class="wi-window"/g) || []).length === 3);
+
+editor.whatIf.onRemoveWindow({
+  stopPropagation(){},
+  currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
+});
+const remaining = editor.whatIf.draft().dhwWindows;
+check("a window can be removed", remaining.length === 2);
+check("the right window was removed", remaining[0].start === "17:00");
+
+await editor.whatIf.onApplySlots({ stopPropagation(){} });
+check("applying sends the edited hours",
+  called && called.data.day_start_hour === 5);
+check("applying sends the edited windows",
+  called && called.data.dhw_windows === "17:00-22:00, 06:00-08:00",
+  );
+
+// Removing every window is a legitimate thing to price ("what if I stopped
+// guaranteeing hot water at fixed times?"), so it must be sent as an explicit
+// empty schedule rather than omitted. Driven through the UI, because the
+// editors are the source of truth on apply.
+while (editor.whatIf.draft().dhwWindows.length) {
+  editor.whatIf.onRemoveWindow({
+    stopPropagation(){},
+    currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
+  });
+}
+check("all windows can be removed",
+  !/class="wi-window"/.test(collect(editor.shadowRoot).join("\n")));
+called = null;
+await editor.whatIf.onApplySlots({ stopPropagation(){} });
+check("an empty schedule is sent explicitly, not omitted",
+  called && called.data.dhw_windows === "" && "dhw_windows" in called.data);
+
+// A malformed time must be caught before a solve is spent on it.
+editor.whatIf.draft().dhwWindows = [{ start: "notatime", end: "08:00" }];
+called = null;
+await editor.whatIf.run();
+check("an invalid window is rejected without calling the service",
+  called === null &&
+  /not a valid time/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+// Reset must restore the plan's own schedule, not a hardcoded default.
+editor.whatIf.onReset({ stopPropagation(){} });
+check("reset restores the live schedule",
+  editor.whatIf.draft().dayStart === 7 &&
+  editor.whatIf.draft().dhwWindows.length === 2);
+
+// Controls must not reach the card's expand handler underneath.
+// Without this, a click anywhere in the panel reaches the card handler and
+// collapses the dialog the panel lives in.
+for (const [name, handler] of [
+  ["add", editor.whatIf.onAddWindow],
+  ["reset", editor.whatIf.onReset],
+  ["apply", editor.whatIf.onApplySlots],
+  ["edit", editor.whatIf.onSlotEdit],
+]) {
+  let stopCount = 0;
+  handler.call(editor, { stopPropagation: () => { stopCount++; } });
+  check(`the ${name} control stops propagating to the card`, stopCount > 0);
+}
+
+// An error from the service must be shown, not swallowed.
+editor._hass = mkHass(editor._hass.states, () => ({
+  response: { results: { abc: { error: "invalid_windows: bad" } } },
+}));
+await editor.whatIf.run();
+check("a rejected simulation reports why",
+  /invalid_windows: bad/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+editor._hass = { states: editor._hass.states, callService: async () => { throw new Error("boom"); } };
+await editor.whatIf.run();
+check("a failed simulation is reported, not swallowed",
+  /Could not simulate: boom/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+// ---------------------------------------------------------------------------
+// Saving the edited schedule
+// ---------------------------------------------------------------------------
+// Simulating is reversible; saving rewrites the schedule the house runs on, so
+// it takes two deliberate presses and must not fire on the first one.
+const saver = build(slotStates, { what_if: true });
+saver.dialog.open();
+saver._hass = mkHass(saver._hass.states, () => ({}));
+called = null;
+
+const saveRoot = saver.shadowRoot;
+check("the expanded card offers a save button",
+  !!saveRoot.querySelector(".wi-save"));
+
+await saver.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("the first press does not call the service", called === null);
+check("the first press asks for confirmation",
+  /Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
+check("the first press says what saving will do",
+  /replaces your configured/i.test(saveRoot.querySelector(".wi-result").textContent));
+
+await saver.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("the second press calls apply_schedule",
+  called && called.domain === "heatpump_optimizer" && called.service === "apply_schedule");
+check("it sends the whole schedule, not a fragment",
+  called && ["day_start_hour", "day_end_hour", "dhw_windows", "comfort_temp_day",
+             "dhw_min_temperature"]
+    .every((k) => called.data[k] !== undefined));
+check("the button returns to its resting label",
+  !/Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
+
+// An edit between the two presses invalidates the confirmation: the user would
+// otherwise confirm one schedule and save a different one.
+const armed = build(slotStates, { what_if: true });
+armed.dialog.open();
+armed._hass = mkHass(armed._hass.states, () => ({}));
+called = null;
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("the confirmation is armed", armed.whatIf.pendingSave === true);
+armed.shadowRoot.querySelector(".wi-day-start").value = "04:00";
+armed.whatIf.onSlotEdit({ stopPropagation: () => {} });
+check("editing a slot disarms the confirmation", armed.whatIf.pendingSave === false);
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("so the next press only re-arms, it does not save", called === null);
+
+// Pressing save twice with no edit in between must still save: `_onSaveSchedule`
+// runs `_onSlotEdit` itself, and an unchanged draft is not an edit.
+called = null;
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("an unchanged draft still confirms on the second press",
+  called && called.service === "apply_schedule");
+
+// Nonsense must be caught here rather than written to the configuration, where
+// it would fail on every subsequent load.
+const bad = build(slotStates, { what_if: true });
+bad.dialog.open();
+bad._hass = mkHass(bad._hass.states, () => ({}));
+called = null;
+bad.shadowRoot.querySelector(".wi-day-start").value = "07:00";
+bad.shadowRoot.querySelector(".wi-day-end").value = "07:00";
+await bad.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("an empty comfort period is refused before it is saved",
+  called === null && /no comfort period/i.test(bad.shadowRoot.querySelector(".wi-result").textContent));
+
+const boom = build(slotStates, { what_if: true });
+boom.dialog.open();
+boom._hass = { states: boom._hass.states, callService: async () => { throw new Error("nope"); } };
+await boom.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+await boom.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("a failed save is reported, not swallowed",
+  /Could not save: nope/.test(boom.shadowRoot.querySelector(".wi-result").textContent));
+check("and the button is usable again afterwards",
+  boom.shadowRoot.querySelector(".wi-save").disabled === false);
+
+// ---------------------------------------------------------------------------
+// Chart text sizing
+// ---------------------------------------------------------------------------
+// Chart text is sized in viewBox units, and the whole chart geometry -- margins,
+// tick spacing, legend rows -- is authored in those same units against a font of
+// roughly that size. Sizing the font independently of the geometry is what made
+// labels overlap, so the sizes are pinned here as part of the layout.
+const svgFont = (expanded) => {
+  const c = build(slotStates, {});
+  if (expanded) c.dialog.open();
+  const dump = collect(c.shadowRoot).join("\n");
+  const wrap = expanded
+    ? dump.slice(dump.indexOf('chartwrap big'))
+    : dump.slice(0, dump.indexOf('chartwrap big') === -1 ? dump.length : dump.indexOf('chartwrap big'));
+  const m = wrap.match(/font-size="([\d.]+)"/);
+  return m ? Number(m[1]) : null;
+};
+
+// The real constraint is that labels must not run into each other. Label
+// density used to be a fixed choice -- every hour when expanded -- which is
+// comfortable over 12 hours and unreadable over 48, where labels sit 15 units
+// apart and are 40 units wide. Measure the rendered labels instead of trusting
+// the setting.
+//
+// #558 C2: the rendered box depends on the label's `text-anchor`, and the
+// chart sets `start` / `end` for the labels it clamps to the plot edge. A
+// reader that keys on `text-anchor="middle"` is blind to exactly the labels
+// that can collide -- clamping moves a label toward its neighbour and spends
+// the gap the density calculation reserved. This check reported zero overlaps
+// while the clamped label ran into its neighbour by between 3.2u and 10.6u in
+// five of the six horizon/view combinations below: it never looked at the
+// clamped label at all.
+const timeLabels = (svg) => {
+  const out = [];
+  const re =
+    /<text x="([-\d.]+)" y="([-\d.]+)" font-size="([\d.]+)" text-anchor="(\w+)"[^>]*>(\d{1,2}[:.]\d{2}[^<]*)<\/text>/g;
+  let m;
+  while ((m = re.exec(svg))) {
+    const [, x, , size, anchor, text] = m;
+    const w = text.length * Number(size) * 0.55;
+    const cx = Number(x);
+    // `middle` centres the box on x; `start` puts its left edge there, `end`
+    // its right edge.
+    const left = anchor === "end" ? cx - w : anchor === "start" ? cx : cx - w / 2;
+    out.push({ text, anchor, x: cx, size: Number(size), w, left, right: left + w });
+  }
+  return out.sort((a, b) => a.left - b.left);
+};
+
+const collisions = (labels) => {
+  const bad = [];
+  for (let i = 1; i < labels.length; i++) {
+    const prev = labels[i - 1];
+    const cur = labels[i];
+    const gap = cur.left - prev.right;
+    if (gap < 0)
+      bad.push(
+        `${prev.text}[${prev.anchor}]/${cur.text}[${cur.anchor}] overlap by ${(-gap).toFixed(1)}u`
+      );
+  }
+  return bad;
+};
+
+// Every horizon, not only the default: the clamp fires wherever the first
+// labelled tick lands within half a label of the plot edge, and which tick
+// that is depends on the interval the width picked.
+for (const hours of [12, 24, 48]) {
+  for (const expanded of [false, true]) {
+    const c = build(slotStates, { hours });
+    if (expanded) c.dialog.open();
+    const dump = collect(c.shadowRoot).join("\n");
+    // The shadow root holds the inline chart and, once opened, the expanded one
+    // too. Compare labels within a single chart, or every label pairs with its
+    // twin in the other chart at the same coordinate.
+    const cut = dump.indexOf("chartwrap big");
+    const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
+    const labels = timeLabels(scoped);
+    const where = `${expanded ? "expanded" : "inline"} ${hours} h`;
+    check(`the ${where} chart labels its time axis`, labels.length > 1,
+      `found ${labels.length} time labels`);
+    // This check's own anti-vacuity control. With no clamped label present it
+    // would be measuring the case that never failed.
+    check(`the ${where} chart really does clamp a label to the plot edge`,
+      labels.some((l) => l.anchor !== "middle"),
+      `anchors present: ${[...new Set(labels.map((l) => l.anchor))].join(", ")}`);
+    const bad = collisions(labels);
+    check(`the ${where} time axis labels do not overlap`, bad.length === 0,
+      bad.join("; "));
+    // Making room by dropping the clamped label passes the check above while
+    // losing the window boundary, which is the only reason the clamp exists.
+    // Derived rather than hardcoded: the ticks that were MEANT to carry a
+    // label are readable off the chart, so the one at each end of the span
+    // must still have a label sitting over it -- which is also the invariant
+    // that a label names the tick it stands on, since a clamped label is
+    // moved but never past its own tick.
+    //
+    // The derivation moved when #558 C1 landed on top of this check. It used
+    // to read heaviness -- `stroke-width="1" opacity="0.7"` against an
+    // unlabelled tick's 0.5/0.35 -- because both kinds of tick were drawn.
+    // C1 draws a vertical gridline ONLY inside `if (labelled)`, at one weight
+    // over `--secondary-text-color`, having measured `--divider-color` at
+    // 1.315:1 and unreadable. So `.grid.grid-v` IS the labelled set now, and
+    // matching on it is the same derivation against the markup that exists,
+    // not a relaxation. The old regex matched zero lines against C1's markup,
+    // which failed this check rather than passing it vacuously -- the
+    // `length > 1` arm below is what made the collision visible.
+    const labelledGrid = [...scoped.matchAll(
+      /<line class="grid grid-v" x1="([-\d.]+)"[^>]*\/>/g)]
+      .map((m) => Number(m[1])).sort((a, b) => a - b);
+    const covered = (g) => labels.some((l) => l.left - 0.01 <= g && g <= l.right + 0.01);
+    check(`the ${where} time axis keeps a label over the tick at each end`,
+      labelledGrid.length > 1 &&
+        covered(labelledGrid[0]) && covered(labelledGrid[labelledGrid.length - 1]),
+      `${labelledGrid.length} labelled gridlines, ends at ` +
+      `${labelledGrid[0]} (${covered(labelledGrid[0]) ? "labelled" : "BARE"}) and ` +
+      `${labelledGrid[labelledGrid.length - 1]} ` +
+      `(${covered(labelledGrid[labelledGrid.length - 1]) ? "labelled" : "BARE"})`);
+  }
+}
+
+// The value-axis titles have the same problem as the time labels, in the one
+// place the chart puts two axes on one side. The gap between the price axis and
+// the solar axis is a fixed 46 viewBox units and does not grow with the font, so
+// at the expanded size "SEK/kWh" is wider than the space it has and used to run
+// straight through "W/m2".
+const axisTitles = (svg) => {
+  const out = [];
+  const re =
+    /<text x="([-\d.]+)" y="([-\d.]+)" font-size="([\d.]+)" text-anchor="(\w+)"[^>]*>([^<]*)<\/text>/g;
+  let m;
+  while ((m = re.exec(svg))) {
+    const [, x, y, size, anchor, text] = m;
+    if (!/^(kW|°C|SEK\/kWh|W\/m²)$/.test(text)) continue;
+    const w = text.length * Number(size) * 0.55;
+    const left = anchor === "end" ? Number(x) - w : Number(x);
+    out.push({ text, anchor, x: Number(x), y: Number(y), left, right: left + w });
+  }
+  return out.sort((a, b) => a.left - b.left);
+};
+
+// `_hidden` is persisted in localStorage, which the stub shares across every
+// build in this file. Force the series on: with solar hidden there is no second
+// right-hand axis and this stops testing the case it exists for.
+const withAllSeries = (config) => {
+  const c = build(slotStates, config || {});
+  c.legend.hidden = {};
+  c._sig = null;
+  return c;
+};
+
+for (const expanded of [false, true]) {
+  const c = withAllSeries();
+  if (expanded) c.dialog.open();
+  else c._render();
+  const dump = collect(c.shadowRoot).join("\n");
+  const cut = dump.indexOf("chartwrap big");
+  const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
+  const titles = axisTitles(scoped);
+  const where = expanded ? "expanded" : "inline";
+  check(`the ${where} chart titles its value axes`, titles.length >= 3,
+    `found ${titles.map((t) => t.text).join(", ")}`);
+  check(`the ${where} chart really is showing both right-hand axes`,
+    titles.some((t) => t.text === "W/m²") && titles.some((t) => t.text === "SEK/kWh"),
+    "otherwise this is not testing the crowded case at all");
+  const bad = [];
+  for (let i = 1; i < titles.length; i++) {
+    if (Math.abs(titles[i].y - titles[i - 1].y) > 1) continue;
+    const gap = titles[i].left - titles[i - 1].right;
+    if (gap < 0)
+      bad.push(`${titles[i - 1].text}/${titles[i].text} overlap by ${(-gap).toFixed(1)}u`);
+  }
+  check(`the ${where} value axis titles do not overlap`, bad.length === 0, bad.join("; "));
+}
+
+// The flip is conditional, not unconditional: with no solar series there is no
+// second right-hand axis, so the price title must stay where it always sat.
+{
+  const expandedTitles = (card) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    return axisTitles(dump.slice(dump.indexOf("chartwrap big")));
+  };
+
+  const withSolar = withAllSeries();
+  withSolar.dialog.open();
+  const a = expandedTitles(withSolar);
+  const priceWith = a.find((t) => t.text === "SEK/kWh");
+
+  const noSolar = withAllSeries();
+  noSolar.legend.hidden = { solar: true };
+  noSolar._sig = null;
+  noSolar.dialog.open();
+  const b = expandedTitles(noSolar);
+  const priceWithout = b.find((t) => t.text === "SEK/kWh");
+
+  check("the price title is pushed aside when the solar axis crowds it",
+    priceWith && priceWith.anchor === "end",
+    priceWith && `anchor ${priceWith.anchor}`);
+  check("and left exactly where it was when nothing crowds it",
+    priceWithout && priceWithout.anchor === "start",
+    priceWithout && `anchor ${priceWithout.anchor}`);
+  check("the solar title itself never moves",
+    !b.some((t) => t.text === "W/m²") &&
+      a.some((t) => t.text === "W/m²" && t.anchor === "start"));
+}
+
+// Density must follow the space available, not a hardcoded interval, so the
+// same code stays readable at any horizon.
+check("label density is derived, not hardcoded",
+  !/expanded \? 1 : 3/.test(cardSrc),
+  "the time axis still picks a fixed label interval");
+
+const inlineFont = svgFont(false);
+check("chart text is sized in the units its layout was authored in",
+  inlineFont !== null && inlineFont <= 12,
+  `got ${inlineFont} units; the 92-unit left margin and 34-unit bottom margin ` +
+  `are sized for about 10, so a larger font collides with its neighbours`);
+
+// The chart is stretched from a fixed viewBox, so a given size in those units
+// already renders larger in a wider container. That is the scaling; it does not
+// need help from a larger unit count.
+check("the chart scales by being stretched, not by inflating its font",
+  /preserveAspectRatio="none"/.test(collect(build(slotStates, {}).shadowRoot).join("\n")));
+
+// The chrome around the chart is plain HTML and cannot scale by itself, so the
+// dialog font is set from the measured width. Clamped at both ends.
+const fontCard = build(slotStates, {});
+fontCard.dialog.open();
+const dlgOf = (w) => {
+  const d = fontCard.shadowRoot.querySelector("dialog");
+  d.getBoundingClientRect = () => ({ width: w });
+  if (!d.style) d.style = {};
+  fontCard.dialog.fontPx = 0;
+  fontCard.dialog.scaleFont();
+  return fontCard.dialog.fontPx;
+};
+check("a wide dialog gets larger chrome than a narrow one",
+  dlgOf(1800) > dlgOf(700));
+check("a phone-width dialog stays legible", dlgOf(320) >= 12 - 1e-9);
+check("a very wide dialog does not turn the legend into a headline",
+  dlgOf(4000) <= 21 + 1e-9);
+
+// D4-01: the COMPACT chart's rendered font is floored, not left to shrink
+// with the container. The audit measured a 287 px dashboard tile rendering
+// axis text at 3.19 px glyph height -- the label outlines were gone. The
+// card boosts the viewBox-unit font as the measured width falls, so the
+// rendered size (font units x width / 900) stays >= the floor, and the
+// margins scale with any boost so labels keep their relative space.
+{
+  const renderedFontOf = (w) => {
+    const c = withAllSeries();
+    // The CHART's width, not the host's: the floor divides by the box the
+    // text is actually drawn in, which is 26 px narrower than the host
+    // (D4-01, #256). The stub answers a constant 900x400 for every element,
+    // so the width is injected on the svg the next render measures -- the
+    // copy already in the DOM, which is the production path. The corrective
+    // re-render is stood down for the same reason: it would re-measure the
+    // FRESH svg, which the stub answers 900 for. Its own behaviour is
+    // measured for real in tests/card_browser.mjs.
+    c._refitCharts = () => {};
+    const prior = chartSvgs(c.shadowRoot)[0];
+    if (prior) {
+      prior.getBoundingClientRect =
+        () => ({ width: w, height: (w * 380) / 900, left: 0, top: 0 });
+    }
+    c._render();
+    const dump = collect(c.shadowRoot).join("\n");
+    const cut = dump.indexOf("chartwrap big");
+    const scoped = cut === -1 ? dump : dump.slice(0, cut);
+    const fonts = [...scoped.matchAll(/font-size="([\d.]+)"/g)].map((m) => Number(m[1]));
+    return { max: Math.max(0, ...fonts), dump: scoped };
+  };
+  const wide = renderedFontOf(900);
+  const phone = renderedFontOf(287);
+  // 287 px: the floor demands 8 x 900 / 287 = 25.087 viewBox units, below
+  // the 28-unit cap, so the floor is what the tile actually gets.
+  check("a phone-width tile boosts the chart font to the floor",
+    Math.abs(phone.max - (8 * 900) / 287) < 1e-9,
+    `max font-size ${phone.max} at 287 px, floor ${(8 * 900) / 287}`);
+  check("the rendered size at phone width is at least the 8 px floor",
+    (phone.max * 287) / 900 >= 8 - 1e-9,
+    `${((phone.max * 287) / 900).toFixed(2)} px rendered`);
+  check("a 900 px chart is untouched (the historical 10-unit font)",
+    wide.max <= 10 + 1e-9,
+    `max font-size ${wide.max} at 900 px`);
+  // The margins scale with the boost: the plot frame starts further right
+  // than the authored 92-unit left margin, or the boosted labels would
+  // collide with the axis they describe.
+  const frameX = (dump) => {
+    const m = dump.match(/<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="[\d.]+" fill="none" stroke="var\(--divider-color/);
+    return m ? Number(m[1]) : null;
+  };
+  check("the boosted font carries the left margin with it",
+    frameX(phone.dump) > 92 + 1e-9 && (frameX(wide.dump) === 92 || frameX(wide.dump) === null || Math.abs(frameX(wide.dump) - 92) < 1e-9),
+    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}`);
+}
+check("an unmeasured dialog is left alone rather than sized from zero",
+  dlgOf(0) === 0);
+
+
+// ---------------------------------------------------------------------------
+// The slot model itself
+// ---------------------------------------------------------------------------
+// The editing rules are pure functions on plain arrays, exposed as a static so
+// they can be exercised without a pointer, a chart or a clock.
+{
+  const S = Card.slots;
+  const t0 = Date.parse("2026-08-22T00:00:00Z");
+  const STEP = 15 * 60000;
+  const H = (h) => t0 + h * 3600000;
+  const bounds = [t0, H(24)];
+
+  const fc = [];
+  for (let i = 0; i < 96; i++) {
+    fc.push({
+      t: new Date(t0 + i * STEP).toISOString(),
+      dhw_power: (i >= 8 && i < 12) || (i >= 40 && i < 44) ? 2 : 0,
+      price: 1,
+    });
+  }
+  const runs = S.runsFrom(fc, "dhw_power", 0.05, STEP);
+  check("consecutive running steps collapse into one slot",
+    runs.length === 2 && runs[0].start === H(2) && runs[0].end === H(3),
+    JSON.stringify(runs));
+
+  let r = S.move(runs, 0, 3600000, STEP, bounds);
+  check("a slot moves without changing length",
+    r[0].start === H(3) && r[0].end === H(4), JSON.stringify(r[0]));
+  r = S.move(runs, 0, 1000 * 3600000, STEP, bounds);
+  check("a slot pushed past the horizon stops there, unstretched",
+    r[r.length - 1].end - r[r.length - 1].start === 3600000, JSON.stringify(r));
+  r = S.move(runs, 0, 9 * 3600000, STEP, bounds);
+  check("dragging a slot onto another merges them", r.length === 1, JSON.stringify(r));
+
+  r = S.resize(runs, 0, "end", 3600000, STEP, bounds);
+  check("resizing the end leaves the start alone",
+    r[0].start === H(2) && r[0].end === H(4), JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "start", -3600000, STEP, bounds);
+  check("resizing the start leaves the end alone",
+    r[0].start === H(1) && r[0].end === H(3), JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "end", -99 * 3600000, STEP, bounds);
+  check("a slot never collapses below one timestep",
+    r[0].end - r[0].start === STEP, JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "start", -99 * 3600000, STEP, bounds);
+  check("resizing cannot reach back before the editable range",
+    r[0].start >= t0, JSON.stringify(r[0]));
+
+  r = S.add(runs, H(20), STEP, bounds);
+  check("a slot can be added in free space", r.length === 3, JSON.stringify(r));
+  // Adding next to an existing slot must not swallow it: the new slot stops at
+  // its neighbour, and the two then merge into one continuous block.
+  r = S.add(runs, H(9), STEP, bounds, 4 * 3600000);
+  const added = r.find((x) => x.start === H(9));
+  check("a slot added beside another merges rather than swallowing it",
+    r.length === 2 && added && added.end === H(11), JSON.stringify(r));
+  r = S.add(runs, H(24), STEP, bounds);
+  const last = r[r.length - 1];
+  check("adding at the far edge still gives a usable slot",
+    r.length === 3 && last.end === H(24) && last.end - last.start === STEP,
+    JSON.stringify(last));
+
+  check("a slot can be removed", S.remove(runs, 0).length === 1);
+  check("a time resolves to the slot covering it",
+    S.indexAt(runs, H(2) + 60000) === 0 && S.indexAt(runs, H(5)) === -1);
+
+  const power = S.typicalPower(fc, "dhw_power");
+  check("typical power is the mean of the running steps", power === 2, String(power));
+  check("cost is power x time x price",
+    Math.abs(S.cost(runs, fc, power, STEP) - 4) < 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Direct manipulation of today's slots
+// ---------------------------------------------------------------------------
+// The slots are edited by dragging them on the chart, so the interesting logic
+// is geometric: a pointer position has to become a time, and a drag has to
+// become a new arrangement. The stub reports the svg as 900px wide against a
+// 900-unit viewBox, so a client x and a viewBox x coincide here; the card is
+// still asked for the geometry it recorded rather than told what it should be.
+const HOUR = 3600000;
+
+// The captured plan is dated to the day it was recorded, so the clock has to
+// be moved to the plan rather than the plan to the clock. Re-dating the plan
+// against the real clock made these checks depend on what time of day the
+// suite happened to run: the edit floor is "now", so the set of slots still in
+// the future changed from one run to the next. Freeze time six hours into the
+// captured day instead, which always leaves both a locked past and an
+// editable future.
+const RealDate = Date;
+const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+class FrozenDate extends RealDate {
+  constructor(...a) { super(...(a.length ? a : [FROZEN])); }
+  static now() { return FROZEN; }
+}
+ctx.Date = FrozenDate;
+
+const drag = build(slotStates, { what_if: true });
+drag._hass = mkHass(drag._hass.states);
+drag._onCardClick({});
+
+const laneDump = collect(drag.shadowRoot).join("\n");
+check("the chart grows editable lanes", /class="lane"/.test(laneDump));
+check("both channels get a lane",
+  /data-channel="dhw"/.test(laneDump) && /data-channel="space"/.test(laneDump));
+check("the plan is drawn as draggable slots", /class="slot"/.test(laneDump));
+check("slots carry resize handles", /class="slot-handle"/.test(laneDump));
+
+const svgOf = (card) => card.shadowRoot.querySelector(".chartwrap svg");
+const fire = (el, type, ev) => (el._listeners[type] || []).forEach((f) => f(ev));
+
+const geom = drag._geom;
+check("the card records the geometry a pointer needs",
+  !!geom && Number.isFinite(geom.plotL) && geom.plotW > 0);
+
+const xOf = (t) =>
+  geom.plotL + ((t - geom.windowStart) / (geom.windowEnd - geom.windowStart)) * geom.plotW;
+
+// Round-tripping a time through the geometry is the whole basis of dragging.
+const probe = geom.windowStart + 5 * HOUR;
+check("a screen position maps back to the time under it",
+  Math.abs(timeAtClientX(svgOf(drag), xOf(probe), drag._geom) - probe) < 60000);
+
+const evAt = (t, target) => ({
+  clientX: xOf(t), clientY: 0, target,
+  stopPropagation() {}, preventDefault() {},
+});
+
+// A slot that is entirely in the past cannot be rescheduled, so pick one that
+// the editor will actually let us move.
+const editable = () => {
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  return { runs, i };
+};
+
+{
+  const { runs, i } = editable();
+  check("there is a future hot water slot to edit", i >= 0);
+  if (i >= 0) {
+    const before = { ...runs[i] };
+    const [lo0] = drag.manual.bounds();
+    const pastBefore = JSON.stringify(runs.filter((r) => r.end <= lo0));
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svg, "pointerdown", evAt(before.start + 60000, target));
+    fire(svg, "pointermove", evAt(before.start + 60000 + HOUR, target));
+    const moved = drag.manual.draft().dhw[i];
+    check("dragging a slot moves it",
+      moved && moved.start === before.start + HOUR,
+      `${before.start} -> ${moved && moved.start}`);
+    check("and keeps its length",
+      moved && moved.end - moved.start === before.end - before.start);
+    // Making room for an edit must not rewrite what already happened: the
+    // editable range starts at the present, and clamping every slot into it
+    // would haul this morning's runs forward and merge them together.
+    const history = drag.manual.draft().dhw.filter((r) => r.end <= lo0);
+    check("editing leaves slots that have already run untouched",
+      JSON.stringify(history) === pastBefore,
+      `${pastBefore} -> ${JSON.stringify(history)}`);
+    fire(svg, "pointerup", {});
+  }
+}
+
+{
+  // Re-seed from the plan so the resize starts from a known arrangement.
+  drag.manual.reset();
+  drag._render();
+  const { runs, i } = editable();
+  if (i >= 0) {
+    const before = { ...runs[i] };
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(i), edge: "end" } };
+    fire(svg, "pointerdown", evAt(before.end, target));
+    fire(svg, "pointermove", evAt(before.end + HOUR, target));
+    const sized = drag.manual.draft().dhw[i];
+    check("dragging an edge resizes the slot",
+      sized && sized.end === before.end + HOUR && sized.start === before.start,
+      JSON.stringify(sized));
+    fire(svg, "pointerup", {});
+  }
+}
+
+// Editing must never rewrite history.
+{
+  drag.manual.reset();
+  const [lo] = drag.manual.bounds();
+  const past = drag.manual.draft().dhw.findIndex((r) => r.end <= lo);
+  if (past >= 0) {
+    const before = JSON.stringify(drag.manual.draft().dhw[past]);
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(past) } };
+    fire(svg, "pointerdown", evAt(lo - HOUR, target));
+    fire(svg, "pointermove", evAt(lo, target));
+    check("a slot that has already happened cannot be dragged",
+      JSON.stringify(drag.manual.draft().dhw[past]) === before);
+    fire(svg, "pointerup", {});
+  } else {
+    check("a slot that has already happened cannot be dragged", true);
+  }
+}
+
+// Right-click: add where there is nothing, remove where there is something.
+{
+  drag.manual.reset();
+  drag._render();
+  const svg = svgOf(drag);
+  const runs = drag.manual.draft().space;
+  const [lo, hi] = drag.manual.bounds();
+  // A time inside the editable range that no slot covers, and that is clear of
+  // its neighbours: a slot added flush against another correctly merges with
+  // it, which is a different behaviour and is covered by the model checks.
+  let gap = null;
+  for (let t = lo + HOUR; t < hi - HOUR; t += 15 * 60000) {
+    if ([-HOUR, 0, HOUR].every((d) => slotFree(runs, t + d))) { gap = t; break; }
+  }
+  function slotFree(list, t) { return !list.some((r) => t >= r.start && t < r.end); }
+
+  check("there is a free stretch to add into", gap !== null);
+  if (gap !== null) {
+    fire(svg, "contextmenu", evAt(gap, { dataset: { channel: "space" } }));
+    const menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("right-clicking an empty lane offers to add a slot",
+      !!menu && /Add a heating slot here/.test(collect(menu).join("")));
+    if (menu) {
+      const n = drag.manual.draft().space.length;
+      fire(menu, "click", { target: { dataset: { act: "add" } }, stopPropagation() {} });
+      check("choosing add creates a slot",
+        drag.manual.draft().space.length === n + 1,
+        JSON.stringify(drag.manual.draft().space));
+      check("and the menu closes", !drag.shadowRoot.querySelector(".slot-menu"));
+    }
+  }
+}
+
+{
+  drag.manual.reset();
+  drag._render();
+  const svg = svgOf(drag);
+  const { runs, i } = (() => {
+    const list = drag.manual.draft().space;
+    const [lo] = drag.manual.bounds();
+    return { runs: list, i: list.findIndex((r) => r.end > lo) };
+  })();
+  if (i >= 0) {
+    fire(svg, "contextmenu",
+      evAt(runs[i].start + 60000, { dataset: { channel: "space" } }));
+    const menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("right-clicking a slot offers to remove it",
+      !!menu && /Remove this heating slot/.test(collect(menu).join("")));
+    if (menu) {
+      const n = drag.manual.draft().space.length;
+      fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
+      check("choosing remove deletes it", drag.manual.draft().space.length === n - 1);
+    }
+  }
+}
+
+// The price delta is the point of the exercise: it has to move, and in the
+// right direction, when the arrangement changes.
+{
+  drag.manual.reset();
+  const base = drag.manual.costDelta();
+  check("an untouched arrangement costs the same as the plan",
+    Math.abs(base.delta) < 1e-9, JSON.stringify(base));
+
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo);
+  if (i >= 0) {
+    drag.lanes.commitRuns("dhw", SlotModelOf(drag).remove(runs, i));
+    const less = drag.manual.costDelta();
+    check("removing a slot is reported as cheaper", less.delta < 0,
+      JSON.stringify(less));
+  }
+  function SlotModelOf(card) { return card.constructor.slots; }
+}
+
+// Applying pins the arrangement through the service the backend exposes.
+{
+  drag.manual.reset();
+  drag._render();
+  called = null;
+  drag.manual.apply();
+  check("applying calls the manual plan service",
+    called && called.domain === "heatpump_optimizer" &&
+    called.service === "apply_manual_plan",
+    JSON.stringify(called && { d: called.domain, s: called.service }));
+  const sent = (called && called.data) || {};
+  check("it sends both channels",
+    Array.isArray(sent.dhw_slots) && Array.isArray(sent.space_slots));
+  const [lo] = drag.manual.bounds();
+  const allFuture = [...(sent.dhw_slots || []), ...(sent.space_slots || [])]
+    .every((s) => Date.parse(s.end) > lo && Date.parse(s.start) >= lo);
+  check("it never tries to reschedule the past", allFuture,
+    JSON.stringify(sent.dhw_slots || []));
+  const iso = (sent.dhw_slots || [])[0];
+  check("slots are sent as ISO timestamps",
+    !iso || (!Number.isNaN(Date.parse(iso.start)) && /T/.test(iso.start)),
+    JSON.stringify(iso));
+}
+
+// Prices are shown in the user's currency, not the author's.
+{
+  const saved = drag._hass;
+  drag._hass = { ...saved, config: { currency: "EUR" } };
+  check("Home Assistant's configured currency is used",
+    /EUR/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
+  drag._config = { ...drag._config, currency: "NOK" };
+  check("an explicit card setting still wins",
+    /NOK/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
+  drag._config = { ...drag._config, currency: undefined };
+  drag._hass = saved;
+  check("with neither, it falls back rather than showing nothing",
+    /SEK/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
+}
+
+// Every reason the optimizer can emit needs a human label, or the tooltip
+// falls back to showing a raw identifier.
+check("the hand-scheduled reason has a label",
+  /You scheduled this/.test(cardSrc) && /manual_plan:/.test(cardSrc));
+
+// The plan is re-optimised every few minutes. The draft has to follow it,
+// except where the user has said otherwise by editing.
+{
+  const fresh = build(slotStates, { what_if: true });
+  fresh._hass = mkHass(slotStates);
+  fresh._onCardClick({});
+  const seeded = JSON.stringify(fresh.manual.draft().dhw);
+
+  // A refresh carrying a different plan must be picked up.
+  const moved = JSON.parse(JSON.stringify(slotStates));
+  const fc = moved[DEFAULT_DHW].attributes.forecast;
+  fc.forEach((f) => { f.dhw_power = 0; });
+  for (let i = 60; i < 66; i++) fc[i].dhw_power = 3;
+  fresh.hass = { ...mkHass(moved), states: moved };
+  const followed = JSON.stringify(fresh.manual.draft().dhw);
+  check("an untouched draft follows a newly published plan",
+    followed !== seeded, followed);
+
+  // But an edit in progress must not be thrown away by a refresh landing
+  // mid-drag: that would discard work the user can see themselves doing.
+  const edited = fresh.manual.draft().dhw;
+  const [lo] = fresh.manual.bounds();
+  const i = edited.findIndex((r) => r.end > lo && r.start >= lo);
+  if (i >= 0) {
+    fresh.lanes.commitRuns("dhw", Card.slots.move(
+      edited, i, HOUR, 15 * 60000, fresh.manual.bounds()
+    ));
+    const mine = JSON.stringify(fresh.manual.draft().dhw);
+    const again = JSON.parse(JSON.stringify(moved));
+    again[DEFAULT_DHW].attributes.forecast[70].dhw_power = 2;
+    fresh.hass = { ...mkHass(again), states: again };
+    check("but edits in progress survive a refresh",
+      JSON.stringify(fresh.manual.draft().dhw) === mine);
+  }
+}
+
+// A channel with no plan data means "we do not know", which is not the same as
+// "the user wants it off": sending [] would switch hot water off until midnight.
+{
+  const partial = JSON.parse(JSON.stringify(slotStates));
+  partial[DEFAULT_DHW].attributes.forecast = [];
+  const c = build(partial, { what_if: true });
+  c._hass = mkHass(partial);
+  c._onCardClick({});
+  called = null;
+  c.manual.apply();
+  check("a channel with no plan data is left automatic",
+    called && called.data && !("dhw_slots" in called.data),
+    JSON.stringify(called && called.data));
+  check("while the channel that does have a plan is still pinned",
+    called && Array.isArray(called.data.space_slots));
+
+  const blank = JSON.parse(JSON.stringify(slotStates));
+  blank[DEFAULT_DHW].attributes.forecast = [];
+  blank[DEFAULT_SPACE].attributes.forecast = [];
+  const empty = build(blank, { what_if: true });
+  empty._hass = mkHass(blank);
+  empty._onCardClick({});
+  called = null;
+  empty.manual.apply();
+  check("with no plan at all, nothing is pinned", called === null);
+}
+
+// An override now lasts a fixed window from the moment it is applied, so the
+// chart must not let a slot be dragged past that: a slot shown as pinned that
+// quietly does nothing would be worse than not offering the gesture at all.
+//
+// This used to recompute midnight by hand and assert the ceiling was below it,
+// which said nothing once the rule changed. The ceiling is now clock-independent
+// -- it is measured from `now` -- so it can be asserted directly.
+{
+  const [, hi] = drag.manual.bounds();
+  const WINDOW_H = 20;
+  const applyEnd = FROZEN + WINDOW_H * HOUR;
+  check("editing stops at the window the card would actually send",
+    hi <= applyEnd + 1000,
+    `${new Date(hi).toISOString()} vs ${new Date(applyEnd).toISOString()}`);
+
+  // The ceiling has to come from the integration, not from a literal in the
+  // card, or the chart and the service's expiry default could drift apart and
+  // the chart would show slots as pinned past the point the backend frees them.
+  check("the window is read from the plan, not hardcoded in the card",
+    /manual_plan_window_hours/.test(cardSrc),
+    "the card should read the published window");
+
+  // Deliberately not the active override's expiry. One applied 15 hours ago has
+  // 5 left, but the user editing now is composing a new plan that will last the
+  // full window from this moment -- deriving the ceiling from the old expiry
+  // would shrink the editable window through the day.
+  {
+    // An override applied 15 hours ago, with 5 left to run.
+    const stale = build((() => {
+      const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+      const info = {
+        active: true,
+        expires_at: new Date(FROZEN + 5 * HOUR).toISOString(),
+        space_slots: [], dhw_slots: [], released_space: [], released_dhw: [],
+      };
+      st[DEFAULT_SPACE].attributes.manual_override = info;
+      st[DEFAULT_DHW].attributes.manual_override = info;
+      return st;
+    })(), { what_if: true });
+    stale.dialog.open();
+    const [, staleHi] = stale.manual.bounds();
+    check("the ceiling ignores the expiry already in force",
+      staleHi > FROZEN + 5 * HOUR,
+      `ceiling ${new Date(staleHi).toISOString()} would shrink to the old expiry`);
+  }
+
+  // Dragging hard to the right must stop there rather than run past it.
+  drag.manual.reset();
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  if (i >= 0) {
+    const pushed = Card.slots.move(
+      runs, i, 72 * HOUR, 15 * 60000, drag.manual.bounds()
+    );
+    check("a slot cannot be dragged past the expiry",
+      pushed.every((r) => r.end <= hi), JSON.stringify(pushed));
+  }
+
+  // And nothing sent to the backend may reach past it either, since the
+  // backend frees every step at or beyond the expiry.
+  drag.manual.reset();
+  called = null;
+  drag.manual.apply();
+  const sent = [
+    ...((called && called.data && called.data.dhw_slots) || []),
+    ...((called && called.data && called.data.space_slots) || []),
+  ];
+  check("there are slots to send in the first place", sent.length > 0);
+  check("no slot is sent past the expiry",
+    sent.every((sl) => Date.parse(sl.end) <= hi),
+    JSON.stringify(sent.filter((sl) => Date.parse(sl.end) > hi)));
+}
+
+// An override is a state the user is in, not just an action they took, so the
+// card has to show it -- including when the optimizer overruled part of it.
+{
+  check("with no override there is nothing to go back from",
+    !drag.shadowRoot.querySelector(".wi-auto"));
+  check("and no override banner", !drag.shadowRoot.querySelector(".wi-override"));
+
+  const withOverride = (info) => {
+    const states = JSON.parse(JSON.stringify(slotStates));
+    for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) {
+      states[id].attributes.manual_override = info;
+    }
+    const c = build(states, { what_if: true });
+    c._hass = mkHass(states);
+    c._onCardClick({});
+    return c;
+  };
+
+  const pinned = withOverride({
+    active: true,
+    expires_at: new Date(FROZEN + 6 * HOUR).toISOString(),
+    space_slots: [], dhw_slots: [], released_space: [], released_dhw: [],
+  });
+  const banner = pinned.shadowRoot.querySelector(".wi-override");
+  check("an active override is announced", !!banner);
+  check("and says how long it lasts",
+    !!banner && /pinned until \d/i.test(banner.textContent),
+    banner && banner.textContent);
+  check("and offers a way back to automatic",
+    !!pinned.shadowRoot.querySelector(".wi-auto"));
+
+  // The optimizer releases pins that would breach a safety limit. Staying
+  // quiet about that would leave the user believing a plan that is not running.
+  const released = withOverride({
+    active: true,
+    expires_at: new Date(FROZEN + 6 * HOUR).toISOString(),
+    space_slots: [], dhw_slots: [],
+    released_space: [{ start: "x", end: "y" }],
+    released_dhw: [],
+  });
+  const note = released.shadowRoot.querySelector(".wi-override");
+  check("a pin released for safety is reported, not hidden",
+    !!note && /released to protect/i.test(note.textContent),
+    note && note.textContent);
+}
+
+{
+  called = null;
+  drag.manual.clear();
+  check("going back to automatic clears the override",
+    called && called.service === "clear_manual_plan");
+}
+
+// ---------------------------------------------------------------------------
+// Touch can edit too (field report: on a phone, existing slots could not be
+// modified or removed at all — the menu lived behind right-click, which iOS
+// Safari never synthesises, and the resize handles were ~7 px wide).
+// ---------------------------------------------------------------------------
+{
+  drag.manual.reset();
+  drag.view.range = null;
+  drag._render();
+  const svg = svgOf(drag);
+  const { runs, i } = editable();
+  check("(setup) a future slot exists to tap", i >= 0);
+  if (i >= 0) {
+    // Tap ON a slot: down + up with no movement opens the menu with Remove.
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svg, "pointerdown", evAt(runs[i].start + 60000, target));
+    fire(svg, "pointerup", {});
+    let menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("tapping a slot opens the slot menu (no right-click needed)",
+      !!menu && /Remove this hot water slot/.test(collect(menu).join("")),
+      menu ? collect(menu).join("") : "no menu");
+    if (menu) {
+      const n = drag.manual.draft().dhw.length;
+      fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
+      check("and Remove removes it", drag.manual.draft().dhw.length === n - 1);
+    }
+
+    // Tap on an EMPTY editable stretch: the add menu, from a bare press.
+    drag.manual.reset();
+    drag._render();
+    const [lo2, hi2] = drag.manual.bounds();
+    const space = drag.manual.draft().space;
+    let gap2 = null;
+    for (let t = lo2 + HOUR; t < hi2 - HOUR; t += 15 * 60000) {
+      if (!space.some((r) => t >= r.start - HOUR && t < r.end + HOUR)) { gap2 = t; break; }
+    }
+    check("(setup) an empty stretch exists", gap2 !== null);
+    if (gap2 !== null) {
+      fire(svgOf(drag), "pointerdown", evAt(gap2, { dataset: { channel: "space" } }));
+      fire(svgOf(drag), "pointerup", {});
+      menu = drag.shadowRoot.querySelector(".slot-menu");
+      check("tapping an empty lane offers to add a slot",
+        !!menu && /Add a heating slot here/.test(collect(menu).join("")));
+      if (menu) fire(menu, "click", { target: { dataset: {} }, stopPropagation() {} });
+      drag.lanes.closeMenu();
+    }
+
+    // A DRAG must not open the menu on release.
+    drag.manual.reset();
+    drag._render();
+    const e2 = editable();
+    if (e2.i >= 0) {
+      const t2 = { dataset: { channel: "dhw", index: String(e2.i) } };
+      fire(svgOf(drag), "pointerdown", evAt(e2.runs[e2.i].start + 60000, t2));
+      fire(svgOf(drag), "pointermove", evAt(e2.runs[e2.i].start + 60000 + HOUR, t2));
+      fire(svgOf(drag), "pointerup", {});
+      check("a real drag does not open the menu on release",
+        !drag.shadowRoot.querySelector(".slot-menu"));
+    }
+  }
+
+  // Coarse pointers get finger-sized resize handles; fine pointers keep the
+  // slim ones the mouse tests above rely on.
+  drag.manual.reset();
+  coarseTouch.on = true;
+  drag._render();
+  const dumpCoarse = collect(drag.shadowRoot).join("\n");
+  coarseTouch.on = false;
+  drag._render();
+  const dumpFine = collect(drag.shadowRoot).join("\n");
+  const widthOf = (dump) => {
+    const m = dump.match(/class="slot-handle"[^>]*width="([0-9.]+)"/);
+    return m ? Number(m[1]) : null;
+  };
+  check("touch widens the grab handles", widthOf(dumpCoarse) === 16,
+    `coarse width ${widthOf(dumpCoarse)}`);
+  check("mouse keeps the slim handles", widthOf(dumpFine) === 6,
+    `fine width ${widthOf(dumpFine)}`);
+}
+
+// ---------------------------------------------------------------------------
+// #936 (D4-03): the 24 px HTML target floor is not a touch-only courtesy.
+//
+// The floor (min-width/min-height 24 px on the zoom pair, the chips, the
+// dialog tabs, ...) was emitted only inside `@media (pointer: coarse)` and
+// its `_coarsePointer()` JS duplicate, so under a mouse -- the pointer a
+// dashboard tile usually has -- the zoom pair laid out at 20.22x20.22 px
+// with 22.22 px between centres: under SC 2.5.8's 24 px minimum AND inside
+// the spacing exception's 24 px circle, so the exception rescued nothing.
+// The audit's grid counted 364 fine-pointer targets failing the criterion
+// against 2 on the coarse arm -- the floor worked exactly where it was
+// applied. The card already floors its SVG-drawn targets at TARGET_MIN_PX
+// for every pointer (`_targetMinPx()` adds the touch extra only under a
+// coarse pointer); the HTML floor must not be coarse-gated either.
+//
+// STRUCTURAL PIN, not a rendered-size test: this stub has no layout
+// engine, so what it can pin is the emission -- the floor must reach the
+// stylesheet through a path a fine pointer applies, i.e. outside any
+// `@media (pointer: coarse)` wrapper, in BOTH stub arms (the coarse arm
+// guards against a later "fine-only" rewrite the way the fine arm guards
+// against this defect). Real rendered geometry is card_browser.mjs's to
+// measure.
+// ---------------------------------------------------------------------------
+{
+  // 24, read from the card's own realm rather than restated here (#136).
+  const FLOOR = fn("TARGET_MIN_PX");
+  // 44, the card's coarse-pointer touch EXTRA (#1320), read the same way.
+  const COARSE_FLOOR = fn("TARGET_MIN_PX_COARSE");
+  // Remove every `@media (...) { ... }` block whose query matches. Balanced
+  // braces by hand: the wrapped rules nest one brace deep, so a flat regex
+  // cannot tell "inside the wrapper" from "after it closed".
+  const stripMedia = (css, query) => {
+    let out = "";
+    let i = 0;
+    while (i < css.length) {
+      const at = css.indexOf("@media", i);
+      if (at < 0) { out += css.slice(i); break; }
+      const open = css.indexOf("{", at);
+      const head = css.slice(at, open);
+      let depth = 1;
+      let j = open + 1;
+      while (j < css.length && depth > 0) {
+        if (css[j] === "{") depth += 1;
+        else if (css[j] === "}") depth -= 1;
+        j += 1;
+      }
+      out += css.slice(i, at);
+      if (!query.test(head)) out += css.slice(at, j);
+      i = j;
+    }
+    return out;
+  };
+  // Executes the production symbol in the card's own realm: the stylesheet
+  // exactly as a render injects it, in the stub arm named.
+  const styleIn = (coarse) => {
+    coarseTouch.on = coarse;
+    try { return fn("cardStyleBlock")(); } finally { coarseTouch.on = false; }
+  };
+  const fineCss = stripMedia(styleIn(false), /pointer:\s*coarse/);
+  const coarseCss = stripMedia(styleIn(true), /pointer:\s*coarse/);
+  // A selector is floored when some rule names it as a whole selector token
+  // (a group counts) and that rule's body sets both min-width and
+  // min-height to the floor asked for.
+  const floored = (css, sel, floor) =>
+    [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].some((m) =>
+      m[1].split(",").some((s) => s.trim() === sel) &&
+      new RegExp(`min-width:\\s*${floor}px`).test(m[2]) &&
+      new RegExp(`min-height:\\s*${floor}px`).test(m[2]));
+
+  check("under a mouse, the zoom pair's 24 px floor is emitted outside the coarse media query",
+    floored(fineCss, ".viewctl button", FLOOR),
+    "the .viewctl button floor appears only inside @media (pointer: coarse) in the fine-pointer arm");
+  check("under a mouse, the chips share that floor",
+    floored(fineCss, ".chip", FLOOR),
+    "no .chip rule outside @media (pointer: coarse) carries min-width/min-height 24 in the fine-pointer arm");
+  check("under touch, the same controls carry the card's coarse EXTRA (#1320)",
+    floored(coarseCss, ".viewctl button", COARSE_FLOOR) && floored(coarseCss, ".chip", COARSE_FLOOR),
+    "the coarse arm kept the every-pointer 24 px floor instead of the 44 px touch EXTRA");
+  check("and the mouse arm is not handed that EXTRA",
+    !floored(fineCss, ".viewctl button", COARSE_FLOOR) && !floored(fineCss, ".chip", COARSE_FLOOR),
+    "the 44 px coarse floor leaked into the every-pointer arm");
+  // R6-D4-01 (#1388): the headline score pill is a control (role="button",
+  // tabindex="0", a click handler) but the R5-D4-02 padding rule alone
+  // reaches 25 px under a fine pointer and never the 44 px coarse floor, so
+  // under touch it is the one control on the surface below the floor. It
+  // must sit in the same selector list, floored at the pointer in force, in
+  // BOTH arms.
+  check("under touch, the score pill joins the coarse floor (#1388)",
+    floored(coarseCss, ".hl-stat.hl-score", COARSE_FLOOR),
+    "the score pill never joined the 44 px coarse floor the other controls share");
+  check("and under a mouse it still carries the every-pointer 24 px floor",
+    floored(fineCss, ".hl-stat.hl-score", FLOOR) &&
+    !floored(fineCss, ".hl-stat.hl-score", COARSE_FLOOR),
+    "the score pill's floor must be the every-pointer 24 px, not the coarse 44 px");
+}
+
+// ---------------------------------------------------------------------------
+// Zoom-limited editing: the ceiling names its cause, and dragging pans it
+// away (user report on v4.0.0: "slots can only be edited until midnight" —
+// a forgotten zoom had clamped the edit ceiling to the visible window).
+// ---------------------------------------------------------------------------
+{
+  drag.manual.reset();
+  drag.view.range = null;
+  drag._render();
+  const dump0 = collect(drag.shadowRoot).join("\n");
+  check("an unzoomed card shows no view-limit hint", !/class="wi-viewlimit"/.test(dump0));
+  check("and no lane chevron", !/class="lane-more"/.test(dump0));
+
+  drag.view.zoom(0.25);
+  const parts = drag.manual.ceilingParts();
+  check("zoomed: the visible edge is the binding edit limit",
+    drag.manual.editCeiling() === drag._geom.windowEnd &&
+      parts.visibleEnd < Math.min(parts.applyEnd, parts.planEnd),
+    JSON.stringify({ceiling: drag.manual.editCeiling(), parts}));
+  const dump1 = collect(drag.shadowRoot).join("\n");
+  check("the lanes flag the zoom with a chevron", /class="lane-more"/.test(dump1));
+  check("the what-if panel says the zoom is the limit", /class="wi-viewlimit"/.test(dump1));
+
+  // Auto-pan: grab a slot, park the pointer at the plot's right edge, and let
+  // the interval carry the view forward.
+  const zoomGeom = drag._geom;
+  const zx = (t) =>
+    zoomGeom.plotL +
+    ((t - zoomGeom.windowStart) / (zoomGeom.windowEnd - zoomGeom.windowStart)) *
+      zoomGeom.plotW;
+  const zRuns = drag.manual.draft().dhw;
+  const [zlo] = drag.manual.bounds();
+  const zi = zRuns.findIndex((r) => r.end > zlo && r.start >= zlo && r.start < zoomGeom.windowEnd);
+  check("there is a visible slot to drag against the edge", zi >= 0);
+  if (zi >= 0) {
+    const startView = drag.view.current().start;
+    const target = { dataset: { channel: "dhw", index: String(zi) } };
+    fire(svgOf(drag), "pointerdown", {
+      clientX: zx(zRuns[zi].start + 60000), clientY: 0, target,
+      stopPropagation() {}, preventDefault() {},
+    });
+    fireWindow("pointermove", { clientX: 897, clientY: 0, target: {} });
+    tickIntervals();
+    tickIntervals();
+    tickIntervals();
+    check("holding the drag at the edge pans the view forward",
+      drag.view.current().start > startView,
+      `${startView} -> ${drag.view.current().start}`);
+    fireWindow("pointerup", {});
+    check("releasing the drag stops the auto-pan", !drag.lanes.dragPan);
+  }
+
+  // Closing the dialog ends the session, and the view with it: one
+  // accidental pinch used to cap editing for days on a wall-mounted
+  // dashboard, because the view re-anchored to "now" and never expired.
+  drag.view.zoom(0.25);
+  check("(setup) the view is narrowed again", !!drag.view.range);
+  drag.dialog.onDialogClose();
+  check("closing the dialog discards the pan/zoom view", drag.view.range === null);
+  // Reopen directly: the drag above armed the one-shot click suppression,
+  // which would silently spend a simulated card click.
+  drag.dialog.open();
+  // Narrow again: the reset-button checks below need a zoomed card.
+  drag.view.zoom(0.25);
+
+  // The hint's button is the escape hatch: one press, whole plan back.
+  drag._render();
+  const resetBtn = drag.shadowRoot.querySelector(".wi-viewreset");
+  check("the hint carries a reset button", !!resetBtn);
+  if (resetBtn) {
+    fire(resetBtn, "click", { stopPropagation() {} });
+    check("pressing it clears the zoom", drag.view.range === null);
+    const dump2 = collect(drag.shadowRoot).join("\n");
+    check("and the hint disappears with it", !/class="wi-viewlimit"/.test(dump2));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Nothing painted over the lanes may eat pointer events (field report,
+// Safari: hover, drags and right-click add all dead wherever a filled
+// series body covered the lane strip — the series are painted after the
+// lanes, and SVG fills capture events by default). The stub fires events
+// with pre-built targets and does no real hit-testing, so this is pinned
+// at the markup level: every chart-body overlay must declare itself inert.
+// ---------------------------------------------------------------------------
+{
+  const dump = collect(drag.shadowRoot).join("\n");
+  // Every path whose class STARTS with `series`, not only the ones whose
+  // class is exactly that: a filled body drawn with a second class on it is
+  // the same hazard and would have slipped past an equality match (#558 C2's
+  // band envelope is one).
+  const seriesTags = dump.match(/<path class="series[^"]*"[^>]*>/g) || [];
+  check("the chart draws series paths at all", seriesTags.length > 0);
+  check("every series path is pointer-inert",
+    seriesTags.every((t) => t.includes('pointer-events="none"')),
+    seriesTags.find((t) => !t.includes('pointer-events="none"')));
+  for (const frag of [
+    '<rect class="estimated" pointer-events="none"',
+    '<line class="crosshair" pointer-events="none"',
+  ]) {
+    check(`source keeps ${frag.slice(1, 30)}… inert`, cardSrc.includes(frag));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// R4-D4-01 (#935): the lane strip's own labels -- the words that name which
+// lane is which, on the surface the what-if editor asks a user to drag --
+// were the one chart text the 8 px floor never reached: they drew at 0.8 em
+// of the axis font (6.4 px exactly where that floor binds, on a phone) and
+// took their contrast from whatever slot happened to be painted beneath
+// them (1.01:1 over the wood lane's blocks, where AA asks 4.5:1). Two pins
+// at a phone-narrow chart: every label's own rendered size clears the same
+// floor the axis text gets, and every label is backed by an opaque plate of
+// the card's own background, painted after that lane's slots and inert to
+// pointers, so the pixels behind the glyphs are the card's, never a slot's.
+// ---------------------------------------------------------------------------
+{
+  const MIN_PX = fn("MIN_AXIS_FONT_PX");
+  const VW = fn("VIEW_W");
+  const CHAR_W = fn("CHAR_WIDTH_EM");
+  // A phone tile's chart: 359 px host less ha-card's 26 px chrome. The stub
+  // hands every element the same constant rect, so the narrow width has to
+  // go on the prototype -- an override on one svg instance is measured by
+  // the first render but not by `_refitCharts`' corrective pass, which then
+  // re-renders back at the stub's 900. With the prototype patched, every
+  // measurement in the card agrees and the corrective pass finds no drift.
+  const W = 333;
+  const realRect = Node.prototype.getBoundingClientRect;
+  Node.prototype.getBoundingClientRect = function () {
+    return { width: W, height: 148, left: 0, top: 0 };
+  };
+  let markup = "";
+  try {
+    const narrow = build(slotStates, { what_if: true });
+    narrow._hass = mkHass(narrow._hass.states);
+    markup = collect(narrow.shadowRoot).join("\n");
+  } finally {
+    Node.prototype.getBoundingClientRect = realRect;
+  }
+  const labels = [...markup.matchAll(
+    /<text class="lane-label" x="([\d.]+)" y="([\d.]+)" font-size="([\d.]+)"[^>]*>([^<]*)<\/text>/g
+  )].map((m) => ({ x: +m[1], y: +m[2], f: +m[3], text: m[4] }));
+  check("a phone-narrow chart still draws its lane labels", labels.length >= 2,
+    `${labels.length} label(s): ${labels.map((l) => l.text).join(", ")}`);
+  if (labels.length) {
+    const px = labels.map((l) => l.f * (W / VW));
+    check("every lane label clears the 8 px rendered floor",
+      px.every((v) => v >= MIN_PX - 0.05),
+      `rendered ${px.map((v) => v.toFixed(2)).join(", ")} px (floor ${MIN_PX} px)`);
+    const plates = [...markup.matchAll(/<rect class="lane-label-plate"[^>]*>/g)]
+      .map((m) => m[0]);
+    check("every lane label carries a backing plate of the card's background",
+      plates.length === labels.length &&
+        plates.every((p) =>
+          p.includes('fill="var(--card-background-color,#fff)"') &&
+          p.includes('pointer-events="none"')),
+      `${plates.length} plate(s) for ${labels.length} label(s)`);
+    if (plates.length === labels.length) {
+      const num = (p, k) => +p.match(new RegExp(` ${k}="([\\d.]+)"`))[1];
+      const covered = labels.map((l, i) => {
+        const p = plates[i];
+        const [px0, py0, pw, ph] = ["x", "y", "width", "height"].map((k) => num(p, k));
+        // The label's ink extent from the card's own per-em width constant:
+        // the plate must span it horizontally, and the font's ascent and
+        // descent vertically.
+        return px0 <= l.x && px0 + pw >= l.x + l.text.length * l.f * CHAR_W &&
+          py0 <= l.y - 0.75 * l.f && py0 + ph >= l.y + 0.25 * l.f;
+      });
+      check("each plate spans the whole of the label it backs",
+        covered.every(Boolean),
+        labels.map((l, i) => `${l.text}:${covered[i] ? "ok" : "gap"}`).join(" "));
+      // The plate has to be painted ABOVE the series: the chart draws the
+      // lanes' group before the series paths, so a label drawn there sat
+      // under whatever bar ran through the strip, whatever plate it carried.
+      // The labels therefore live in their own group the chart emits after
+      // the last series path.
+      const lastSeries = markup.lastIndexOf('<path class="series');
+      const labelGroup = markup.lastIndexOf('<g class="lane-labels">');
+      check("the labels' layer is painted after the series paths",
+        lastSeries < 0 ? labelGroup >= 0 : lastSeries < labelGroup,
+        `last series path at ${lastSeries}, lane-labels group at ${labelGroup}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Item 23: pan and zoom the plan window
+// ---------------------------------------------------------------------------
+{
+  const zoom = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  zoom._hass = mkHass(zoom._hass.states);
+
+  const windowOf = (card) => {
+    const b = card._buildSeries();
+    return { start: b.windowStart, end: b.windowEnd, span: b.windowEnd - b.windowStart };
+  };
+
+  const base = windowOf(zoom);
+  check("an untouched card renders the default window",
+    zoom.view.range === null && base.span > 0);
+
+  // Zooming has to hold the pointed-at time still. Zooming about the centre
+  // walks whatever the user is looking at off the edge, so repeated zooming
+  // feels like it is fighting back.
+  const anchor = base.start + base.span / 4;
+  zoom.view.zoom(1 / 4, anchor);
+  const zoomed = windowOf(zoom);
+  check("zooming in narrows the window", zoomed.span < base.span,
+    `${zoomed.span} vs ${base.span}`);
+  check("the anchored time stays inside the new window",
+    anchor >= zoomed.start - 1 && anchor <= zoomed.end + 1,
+    `anchor ${anchor} not within ${zoomed.start}..${zoomed.end}`);
+  check("zooming never starts before the default window does",
+    zoomed.start >= base.start - 1, `${zoomed.start} < ${base.start}`);
+
+  // Forward-only: there is no recorded history to scroll back into, so the
+  // window must not be draggable to before the start of the plan.
+  zoom.view.panBy(-base.span * 10);
+  check("panning backwards stops at the start of the plan",
+    windowOf(zoom).start >= base.start - 1);
+
+  zoom.view.panBy(base.span * 10);
+  const far = windowOf(zoom);
+  check("panning forwards stops at the end of the plan",
+    far.end <= base.end + 1, `${far.end} > ${base.end}`);
+  check("and panning never changes the span it is panning",
+    Math.abs(far.span - zoomed.span) < 2, `${far.span} vs ${zoomed.span}`);
+
+  // Zooming out is bounded by the plan, not by the configured plot width: past
+  // the optimizer's horizon there is empty chart, not more plan.
+  zoom.view.zoom(1000, null);
+  const out = windowOf(zoom);
+  check("zooming out stops at the extent of the plan",
+    out.span <= base.span + 1, `${out.span} > ${base.span}`);
+
+  zoom.view.reset();
+  const back = windowOf(zoom);
+  check("reset restores the default window exactly",
+    zoom.view.range === null &&
+    back.start === base.start && back.end === base.end);
+
+  // The controls are the only route for touch and keyboard users; a gesture
+  // nobody can perform is not an affordance.
+  const dump = collect(zoom.shadowRoot).join("\n");
+  check("the chart offers zoom controls",
+    /class="vc-in"/.test(dump) && /class="vc-out"/.test(dump) &&
+    /class="vc-reset"/.test(dump));
+  check("reset is disabled while the view is already the default",
+    /vc-reset[^>]*disabled/.test(dump));
+}
+
+// A drag that starts on a lane belongs to the slot editor. If panning stole it
+// the slots would stop being draggable, which is the entire point of the lanes.
+{
+  const guard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  guard._hass = mkHass(guard._hass.states);
+  guard._buildSeries();
+  const before = guard.view.range;
+  guard.view.onPanDown({
+    stopPropagation(){}, clientX: 400,
+    target: { dataset: { channel: "space" } },
+    currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+  });
+  check("a pointerdown on a lane does not start a pan",
+    guard.view.panGesture === null && guard.view.range === before);
+
+  // A pan finishes with a click on the chart, and a click on the chart opens
+  // the expanded view. Without suppression, every drag would pop the dialog.
+  const svgRect = { getBoundingClientRect: () => ({ width: 900, left: 0 }) };
+  guard.view.onPanDown({
+    stopPropagation(){}, preventDefault(){}, clientX: 400,
+    target: { dataset: {} }, currentTarget: svgRect,
+  });
+  check("a pointerdown on the background does start a pan", guard.view.panGesture !== null);
+  const pan = guard.view.panGesture;
+  pan.move({ clientX: 340 });
+  pan.up();
+  check("a drag suppresses the click that ends it", guard._suppressClick === true);
+  guard.dialog.expanded = false;
+  guard._onCardClick({});
+  check("so the drag does not open the expanded view", guard.dialog.expanded === false);
+  check("and the suppression is spent, not sticky", guard._suppressClick === false);
+  guard._onCardClick({});
+  check("a real click still opens the expanded view", guard.dialog.expanded === true);
+
+  // A click with no movement is not a pan and must stay a click.
+  const still = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  still._hass = mkHass(still._hass.states);
+  still._buildSeries();
+  still.view.onPanDown({
+    stopPropagation(){}, preventDefault(){}, clientX: 400,
+    target: { dataset: {} }, currentTarget: svgRect,
+  });
+  if (still.view.panGesture) still.view.panGesture.up();
+  check("a click that never moved is not treated as a pan",
+    still._suppressClick === false);
+}
+
+{
+  // The browser synthesises a click after a slot drag's pointerup —
+  // preventDefault on pointerdown suppresses compatibility mouse events but
+  // not click — and on the INLINE chart that click bubbles to ha-card.
+  // Without suppression, every drag ended by popping the expanded dialog open.
+  const inline = build(slotStates, { what_if: true });
+  inline._hass = mkHass(inline._hass.states);
+  inline._buildSeries();
+  const g = inline._geom;
+  const svg = svgOf(inline);
+  const runs = inline.manual.draft().dhw;
+  const [lo] = inline.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  check("the inline chart has an editable slot to drag", i >= 0 && !!g && !!svg);
+  if (i >= 0) {
+    const at = (t) => ({
+      clientX:
+        g.plotL +
+        ((t - g.windowStart) / (g.windowEnd - g.windowStart)) * g.plotW,
+      clientY: 0,
+      target: { dataset: { channel: "dhw", index: String(i) } },
+      stopPropagation() {},
+      preventDefault() {},
+    });
+    fire(svg, "pointerdown", at(runs[i].start + 60000));
+    fire(svg, "pointermove", at(runs[i].start + 60000 + HOUR));
+    fire(svg, "pointerup", {});
+    check("a slot drag suppresses the click that ends it",
+      inline._suppressClick === true);
+    inline._onCardClick({});
+    check("so the drag does not open the expanded view",
+      inline.dialog.expanded === false);
+    inline._onCardClick({});
+    check("a real click after the drag still opens it",
+      inline.dialog.expanded === true);
+  }
+}
+
+{
+  // A re-render replaces the <dialog> element wholesale, so the font memo has
+  // to be forgotten or _scaleDialogFont skips the write and the fresh
+  // dialog's chrome collapses back to card size mid-session.
+  const refont = build(slotStates, {});
+  refont.dialog.open();
+  // Measured at the stub's constant width, as a real browser would measure a
+  // constant viewport: a changed width would re-trigger the write and mask
+  // exactly the bug this guards against.
+  const size = (card) => {
+    const d = card.shadowRoot.querySelector("dialog");
+    if (!d.style) d.style = {};
+    card.dialog.scaleFont();
+    return d.style.fontSize;
+  };
+  const first = size(refont);
+  check("the expanded dialog chrome is sized on open", !!first);
+  refont._sig = null;
+  refont._render();
+  const second = size(refont);
+  check("a re-render while the dialog is open re-applies its font",
+    second === first, `first ${first}, after re-render ${second}`);
+}
+
+// --- Scenario: the setup page (item 33) ------------------------------------
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topo = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: true, volume_l: 500 },
+    // v3.16.0: the coordinator publishes the active layout's drawn edges and
+    // the card draws those, rather than hardcoding pipes that can drift from
+    // the physics. This is what `describe_setup` sends for a single-tank
+    // house with a throttling valve, two zones and a wood furnace.
+    edges: [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["wood_tank", "buffer_tank"],
+      ["heat_pump", "dhw_tank"],
+    ],
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: TEMP },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: "sensor.tank", domains: TEMP },
+      { key: "wood_tank_top_entity", label: "Wood tank top",
+        place: "wood_tank", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: "sensor.outside", domains: TEMP },
+      { key: "heat_pump_switch_entity", label: "Heat pump switch",
+        place: "heat_pump", entity: null,
+        domains: ["switch", "input_boolean", "climate"] },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.livingroom"] = {
+    state: "21.3", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.tank"] = {
+    state: "47.5", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.outside"] = { state: "unavailable", attributes: {} };
+  const su = build(states);
+  su._onCardClick({});
+  const planPage = collect(su.shadowRoot).join("\n");
+  check("the dialog offers plan and setup tabs",
+    /dlg-tab[^>]*data-page="plan"/.test(planPage) &&
+    /dlg-tab[^>]*data-page="setup"/.test(planPage));
+
+  check("the dialog offers a savings tab",
+    /dlg-tab[^>]*data-page="savings"/.test(planPage));
+
+  su.dialog.page = "savings";
+  su._render();
+  const savingsEmpty = collect(su.shadowRoot).join("\n");
+  const savingsBody = collect(
+    su.shadowRoot.querySelector(".dlg-body") || su.shadowRoot
+  ).join("\n");
+  check("savings tab empty copy when the attribute is missing",
+    /No settled savings months yet/.test(savingsEmpty));
+  check("savings tab does not invent zero rows",
+    !/0\.00/.test(savingsBody) && !/<tbody>\s*<tr/.test(savingsBody));
+  check("legend stays off the savings page",
+    !/Electricity price/.test(savingsEmpty));
+
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  savStates["sensor.heat_pump_optimizer_monthly_savings"] = {
+    state: "100.00",
+    attributes: {
+      unit_of_measurement: "SEK",
+      savings_months: [
+        {
+          month: "2026-02",
+          baseline_sek: 800,
+          actual_sek: 700,
+          savings_sek: 100,
+          savings_pct: 12,
+          estimated: true,
+        },
+      ],
+    },
+  };
+  const sav = build(savStates);
+  sav._onCardClick({});
+  sav.dialog.page = "savings";
+  sav._render();
+  const savingsFilled = collect(sav.shadowRoot).join("\n");
+  check("savings tab draws the estimated current-month row",
+    /2026-02/.test(savingsFilled) &&
+    /800\.00/.test(savingsFilled) &&
+    /700\.00/.test(savingsFilled) &&
+    /100\.00/.test(savingsFilled) &&
+    /12%/.test(savingsFilled) &&
+    /estimated/.test(savingsFilled));
+
+  su.dialog.page = "setup";
+  su._render();
+  const setupPage = collect(su.shadowRoot).join("\n");
+  check("the setup page draws the system", /setup-svg/.test(setupPage) &&
+    /Buffer tank \(750 L\)/.test(setupPage) && /Wood furnace tank/.test(setupPage));
+  check("the setup page offers add/remove tank toggles",
+    /data-tank="dhw"/.test(setupPage) && /data-tank="wood"/.test(setupPage)
+    && /aria-pressed="true"/.test(setupPage));
+  const tankCalls = [];
+  su._hass.callService = async (domain, service, data) => {
+    tankCalls.push([domain, service, data]);
+  };
+  const dhwBtn = su.shadowRoot.querySelector('[data-tank="dhw"]');
+  if (dhwBtn) await Promise.all(
+    (dhwBtn._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("toggling the DHW tank calls apply_topology",
+    tankCalls.length === 1 && tankCalls[0][0] === "heatpump_optimizer"
+    && tankCalls[0][1] === "apply_topology"
+    && tankCalls[0][2].dhw === false
+    && tankCalls[0][2].wood === true,
+    JSON.stringify(tankCalls));
+  check("live values are read straight from hass states",
+    /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
+  check("an unavailable sensor says so instead of a stale number",
+    /unavailable/.test(setupPage));
+  // Labels longer than the row are trimmed with an ellipsis, so match the
+  // prefix rather than the full name.
+  check("empty slots are drawn empty, not omitted",
+    /not configured/.test(setupPage) && /Lower floor te/.test(setupPage));
+  // Issue #40: the drawn hydronics must match the model. The model computes
+  // one t_mix and feeds both circuits from it in parallel, so with a valve
+  // BOTH floor boxes hang off the mixing valve; the old drawing ran the
+  // slab straight from the tank, which is a different (unmodelled) system.
+  const edges = (html) =>
+    (html.match(/data-edge="([^"]+)"/g) || []).map((m) => m.slice(11, -1));
+  const drawn = edges(setupPage);
+  check("with a valve, one shared flow feeds both floors",
+    drawn.includes("mixing_valve>upper_zone") &&
+    drawn.includes("mixing_valve>lower_zone") &&
+    drawn.includes("buffer_tank>mixing_valve") &&
+    !drawn.includes("buffer_tank>lower_zone"),
+    `edges drawn: ${drawn.join(", ")}`);
+  // v4.0.0 (#40 feedback, item 3): the wood chain is tank to tank; the
+  // wood-side blending valve is no longer a box of its own.
+  check("and the wood chain is drawn tank to tank from the published edges",
+    drawn.includes("wood_tank>buffer_tank") &&
+    !/Wood mixing valve/.test(setupPage),
+    `edges drawn: ${drawn.join(", ")}`);
+  // #40 feedback, item 2: the DHW tank used to float unconnected.
+  check("the heat pump visibly feeds the hot water tank",
+    drawn.includes("heat_pump>dhw_tank"),
+    `edges drawn: ${drawn.join(", ")}`);
+  // v4.3.0: each place is drawn as the equipment it is. The silhouette rides
+  // its own contour path so the rect can stay the invisible geometry carrier
+  // every older assertion (and the drag editor) reads.
+  check("every place wears its own silhouette",
+    ["heat_pump", "wood_tank", "buffer_tank", "dhw_tank", "mixing_valve",
+      "upper_zone", "lower_zone", "outdoor"].every((p) =>
+      new RegExp(`class="setup-contour kind-${p}"`).test(setupPage)),
+    "a place without a contour is a box that lost its shape");
+  check("no box goes without a contour",
+    (setupPage.match(/class="setup-contour/g) || []).length >=
+      (su.layoutEditor.boxes || []).length,
+    `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
+    + `${(su.layoutEditor.boxes || []).length} boxes`);
+  check("the carrier rect is invisible, not gone",
+    /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
+    "the rect is geometry for the tests and the editor; the contours are "
+    + "the paint");
+  // Outside air is unbounded: its contour is an open tray baseline, no Z,
+  // while a tank's silhouette closes.
+  {
+    const outdoorG = setupPage.split("<g>")
+      .find((g) => g.includes("kind-outdoor")) || "";
+    const contourD = (seg, place) => {
+      const m = new RegExp(
+        `class="setup-contour kind-${place}"\\s+d="([^"]*)"`).exec(seg);
+      return m ? m[1] : "";
+    };
+    check("outside air is drawn open, tanks are drawn closed",
+      contourD(outdoorG, "outdoor") !== "" &&
+      !/Z/.test(contourD(outdoorG, "outdoor")) &&
+      /Z/.test(contourD(setupPage, "wood_tank")),
+      "walls around the outdoors would claim a container that place is not");
+  }
+  // Endpoint dots and flow chevrons are ornament: none of them may carry
+  // `data-edge`, or every scrape of the drawn topology inflates. Scoped to
+  // the diagram's own svg -- the plan lanes elsewhere in the shadow root
+  // legitimately use data-edge for their drag handles.
+  {
+    const svgOnly =
+      (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
+    check("pipe decorations never carry data-edge",
+      (svgOnly.match(/data-edge=/g) || []).length === topo.edges.length &&
+      (svgOnly.match(/<path class="setup-pipe/g) || []).length ===
+        topo.edges.length,
+      `${(svgOnly.match(/data-edge=/g) || []).length} data-edge and `
+      + `${(svgOnly.match(/<path class="setup-pipe/g) || []).length} pipes `
+      + `for ${topo.edges.length} edges`);
+  }
+  // Designer QA pass (v4.3.x): the silhouettes keep their ink apart.
+  {
+    const svgOnly =
+      (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
+    // The house ridge is a shallow r=30 knuckle. An `A 4 4` arc over the
+    // 8-unit chord was a full semicircle whose apex sat above the bounding
+    // box -- a pimple on every roof.
+    const houseG = svgOnly.split("<g>")
+      .find((g) => g.includes("kind-upper_zone")) || "";
+    check("the house ridge arc is shallow and stays inside the box",
+      /A 30 30 0 0 1/.test(houseG) && !/A 4 4 /.test(houseG),
+      "chord 8 at r=4 renders a semicircle bulging above the roofline");
+    // The same-column pipe into the mixing valve drops its flow chevron:
+    // the apex would land on the valve's bowtie accent and merge ink. Every
+    // other pipe keeps its chevron, so the count is exactly edges - 1.
+    const pipeSegs = svgOnly.split('<path class="setup-pipe');
+    const valveSeg = pipeSegs.find((s) =>
+      s.includes('data-edge="buffer_tank>mixing_valve"')) || "";
+    check("the pipe into the mixing valve carries no flow chevron",
+      valveSeg !== "" && !/class="setup-flow"/.test(valveSeg) &&
+      (svgOnly.match(/class="setup-flow"/g) || []).length ===
+        topo.edges.length - 1,
+      `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
+      + `${topo.edges.length} edges`);
+    // A row-less box (h = 32) draws no header divider -- it would separate
+    // the title from nothing and graze the valve's bowtie -- while a box
+    // with rows keeps it.
+    const valveBoxG = svgOnly.split("<g>")
+      .find((g) => g.includes("Mixing valve")) || "";
+    const bufBoxG = svgOnly.split("<g>")
+      .find((g) => g.includes("Buffer tank (750 L)")) || "";
+    check("a row-less box draws no header divider",
+      valveBoxG !== "" && !/setup-accent divider/.test(valveBoxG) &&
+      /setup-accent divider/.test(bufBoxG),
+      "a divider over an empty band underlines nothing");
+  }
+  {
+    // A coordinator from before v4.0.0 still publishes the wood-valve hop
+    // and a slot placed on it. The pipes anchor where the slot went — the
+    // wood tank — so a stale payload degrades to the new drawing instead of
+    // dropping its wood chain or losing the outlet sensor.
+    const stale = JSON.parse(JSON.stringify(topo));
+    stale.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["wood_tank", "wood_valve"],
+      ["wood_valve", "buffer_tank"],
+    ];
+    stale.slots = topo.slots.concat([
+      { key: "valve_outlet_temp_entity", label: "Valve outlet temperature",
+        place: "wood_valve", entity: null, domains: TEMP }]);
+    const stStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    stStates[DEFAULT_SPACE].attributes.setup_topology = stale;
+    const st = build(stStates);
+    st._onCardClick({});
+    st.dialog.page = "setup";
+    st._render();
+    const stPage = collect(st.shadowRoot).join("\n");
+    const woodGroup = stPage.split("<g>")
+      .find((g) => g.includes("Wood furnace tank")) || "";
+    check("a stale wood-valve payload re-homes its slot onto the wood tank",
+      !/Wood mixing valve/.test(stPage) &&
+      /data-key="valve_outlet_temp_entity"/.test(woodGroup) &&
+      edges(stPage).includes("wood_valve>buffer_tank"),
+      "the removed box must not take the outlet sensor down with it");
+  }
+  {
+    // An older coordinator publishes no `edges` at all. The card must fall
+    // back to the drawing it has always made rather than showing a system
+    // with no plumbing in it.
+    const legacyTopo = JSON.parse(JSON.stringify(topo));
+    delete legacyTopo.edges;
+    const lgStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    lgStates[DEFAULT_SPACE].attributes.setup_topology = legacyTopo;
+    const lg = build(lgStates);
+    lg._onCardClick({});
+    lg.dialog.page = "setup";
+    lg._render();
+    const lgDrawn = edges(collect(lg.shadowRoot).join("\n"));
+    check("a coordinator that publishes no edges still gets the old drawing",
+      ["hp-buffer", "buffer-valve", "valve-upper", "valve-lower",
+        "wood-buffer", "hp-dhw"].every((e) =>
+        lgDrawn.includes(e)) && !lgDrawn.some((e) => e.includes(">")),
+      `edges drawn: ${lgDrawn.join(", ")}`);
+  }
+  // The caption is wrapped across rows (SVG text does not wrap itself), so
+  // match its fragments rather than the whole sentence.
+  check("the wood box admits the single-tank abstraction",
+    /modelled as heat into the/.test(setupPage) &&
+    /heat-pump tank/.test(setupPage));
+  {
+    // Issue #40, stage 5: with the two-tank model active the drawing is of
+    // the real plumbing, not of the abstraction. One physical 4-way valve
+    // that both stores feed and both floors are served from -- so no wood
+    // valve, no wood tank pouring into the heat-pump tank, and no caption
+    // claiming the wood heat is folded in, because it no longer is.
+    const twoTank = JSON.parse(JSON.stringify(topo));
+    twoTank.two_tank_modelled = true;
+    twoTank.layout = "two_tank_4way";
+    twoTank.valve_mode = "manual";
+    // What `describe_setup` composes for `two_tank_4way`: both stores into
+    // the one 4-way valve, and no wood chain at all.
+    twoTank.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["wood_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["heat_pump", "dhw_tank"],
+    ];
+    twoTank.slots.push(
+      { key: "mixing_valve_target_entity", label: "Valve target",
+        place: "mixing_valve", entity: null, domains: TEMP },
+      // describe_setup moves this slot onto the mixing valve in the
+      // two-tank layout: one device, one place.
+      { key: "valve_outlet_temp_entity", label: "Valve outlet temperature",
+        place: "mixing_valve", entity: null, domains: TEMP });
+    const ttStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    ttStates[DEFAULT_SPACE].attributes.setup_topology = twoTank;
+    const tt = build(ttStates);
+    tt._onCardClick({});
+    tt.dialog.page = "setup";
+    tt._render();
+    const ttPage = collect(tt.shadowRoot).join("\n");
+    const ttDrawn = edges(ttPage);
+    check("the two-tank drawing runs both stores into one 4-way valve",
+      ["heat_pump>buffer_tank", "wood_tank>mixing_valve",
+        "buffer_tank>mixing_valve", "mixing_valve>upper_zone",
+        "mixing_valve>lower_zone"].every((e) => ttDrawn.includes(e)) &&
+      !ttDrawn.includes("wood_valve>buffer_tank") &&
+      !ttDrawn.includes("wood_tank>wood_valve") &&
+      !ttDrawn.includes("buffer_tank>lower_zone"),
+      `edges drawn: ${ttDrawn.join(", ")}`);
+    check("and names the tanks by what fills them",
+      /4-way mixing valve \(manual\)/.test(ttPage) &&
+      /Heat pump tank \(750 L\)/.test(ttPage) &&
+      !/Buffer tank \(750 L\)/.test(ttPage) &&
+      !/Wood mixing valve/.test(ttPage),
+      "with two modelled stores 'buffer tank' no longer says which one");
+    check("and drops the single-tank caption, which is no longer true",
+      !/modelled as heat into the/.test(ttPage),
+      "the box is the physics now, so the abstraction note would lie");
+    // Each box is its own <g>, so ask which box the row landed in rather
+    // than whether the page mentions it anywhere.
+    const valveGroup = ttPage.split("<g>")
+      .find((g) => g.includes("4-way mixing valve (manual)")) || "";
+    check("the valve outlet probe is drawn on the one valve that has it",
+      /data-key="valve_outlet_temp_entity"/.test(valveGroup) &&
+      /data-key="mixing_valve_target_entity"/.test(valveGroup),
+      "the slot moved to the mixing valve place; drawing it anywhere else "
+      + "would put a sensor on a device this system does not have");
+    // The coil is off in this topo, so neither the pipe nor the caption may
+    // appear. A drawing that shows plumbing the model does not run is the
+    // failure this whole diagram exists to prevent.
+    check("no coil in the drawing when the topology does not have one",
+      !ttDrawn.includes("wood_tank>dhw_tank") &&
+      !/refilled through/.test(ttPage),
+      `edges drawn: ${ttDrawn.join(", ")}`);
+
+    // v3.15.1: the same two-tank system, plus the DHW tank's cold-water inlet
+    // running through a coil in the wood tank. That is a second, separate
+    // path out of the wood tank -- mains water on its way in, not heating
+    // water on its way to the house -- so it is its own pipe, and every pipe
+    // the two-tank drawing already had survives.
+    const coil = JSON.parse(JSON.stringify(twoTank));
+    coil.dhw_wood_coil = true;
+    coil.edges = twoTank.edges.concat([["wood_tank", "dhw_tank"]]);
+    coil.slots.push(
+      { key: "dhw_temp_entity", label: "Hot water temperature",
+        place: "dhw_tank", entity: null, domains: TEMP });
+    const coStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    coStates[DEFAULT_SPACE].attributes.setup_topology = coil;
+    const co = build(coStates);
+    co._onCardClick({});
+    co.dialog.page = "setup";
+    co._render();
+    const coPage = collect(co.shadowRoot).join("\n");
+    const coDrawn = edges(coPage);
+    check("the coil is drawn as its own pipe, wood tank to hot water tank",
+      coDrawn.includes("wood_tank>dhw_tank") &&
+      ["heat_pump>buffer_tank", "wood_tank>mixing_valve",
+        "buffer_tank>mixing_valve", "mixing_valve>upper_zone",
+        "mixing_valve>lower_zone"].every((e) => coDrawn.includes(e)),
+      `edges drawn: ${coDrawn.join(", ")}`);
+    check("and the electric pipe survives beside the coil (#40 item 2)",
+      coDrawn.includes("heat_pump>dhw_tank"),
+      "with the coil, the only pipe shown used to be the wood one — "
+      + "implying a tank with no electric heat source at all");
+    // 33 characters, which fits the box on a single row (wrapExtra breaks
+    // above 34 -- the original wording wrapped with "coil" alone on row two).
+    const dhwGroup = coPage.split("<g>")
+      .find((g) => g.includes("Hot water tank")) || "";
+    check("and the hot water box says where its refill water comes from",
+      /refilled through a wood tank coil/.test(dhwGroup),
+      "the caption belongs on the tank being preheated, not loose on the page");
+    // v4.3.0: the coil is also drawn -- a helix on the wood tank's wall --
+    // and only when the connection exists. The plain two-tank drawing above
+    // has no coil, so it must have no helix either.
+    check("the coil is drawn as a helix on the wood tank",
+      /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
+      "the helix exists exactly when the wood>DHW connection does");
+    {
+      const wb = (co.layoutEditor.boxes || []).find((b) => b.place === "wood_tank");
+      const coilPipe = new RegExp(
+        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
+        `${wb.y + 23}`);
+      check("and the coil pipe departs from the helix, not the box wall",
+        coilPipe.test(coPage),
+        "a pipe from the box midpoint would leave the helix as ornament");
+    }
+  }
+  {
+    const noValve = JSON.parse(JSON.stringify(topo));
+    noValve.valve_mode = "none";
+    noValve.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "upper_zone"],
+      ["buffer_tank", "lower_zone"],
+      ["wood_tank", "buffer_tank"],
+      ["heat_pump", "dhw_tank"],
+    ];
+    const nvStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    nvStates[DEFAULT_SPACE].attributes.setup_topology = noValve;
+    const nv = build(nvStates);
+    nv._onCardClick({});
+    nv.dialog.page = "setup";
+    nv._render();
+    const nvDrawn = edges(collect(nv.shadowRoot).join("\n"));
+    check("without a valve the tank feeds both floors directly",
+      nvDrawn.includes("buffer_tank>upper_zone") &&
+      nvDrawn.includes("buffer_tank>lower_zone") &&
+      !nvDrawn.some((e) => e.startsWith("mixing_valve>")),
+      `edges drawn: ${nvDrawn.join(", ")}`);
+  }
+  // The hidden page must be genuinely unrendered, not display:none --
+  // getBoundingClientRect on a hidden chart returns zeroes and
+  // _timeAtClientX would compute garbage drag times rather than fail.
+  check("the plan chart is genuinely unrendered on the setup page",
+    !/chartwrap big/.test(setupPage) && !/class="whatif"/.test(setupPage));
+
+  // A plan refresh must not yank the user off the page they are reading.
+  su._sig = null;
+  su._maybeRender(true);
+  const afterRefresh = collect(su.shadowRoot).join("\n");
+  check("the current page survives a plan refresh",
+    su.dialog.page === "setup" && /setup-svg/.test(afterRefresh));
+
+  su.dialog.page = "plan";
+  su._render();
+  const backToPlan = collect(su.shadowRoot).join("\n");
+  check("switching back restores the chart and the what-if panel",
+    /chartwrap big/.test(backToPlan) && !/class="setup-svg"/.test(backToPlan));
+
+  // --- click-to-assign (item 32's second stage) ---------------------------
+  su.dialog.page = "setup";
+  su._render();
+  const clickable = collect(su.shadowRoot).join("\n");
+  check("every slot is a click target, not just the configured ones",
+    (clickable.match(/class="setup-hit"/g) || []).length === topo.slots.length,
+    `${(clickable.match(/class="setup-hit"/g) || []).length} hit targets for `
+    + `${topo.slots.length} slots -- an empty slot is the one you most need `
+    + `to click`);
+
+  su.setup.pickerKey = "lower_floor_temp_entity";
+  su._render();
+  const picking = collect(su.shadowRoot).join("\n");
+  check("clicking a slot opens a picker for it",
+    /class="setup-picker"/.test(picking) && /Lower floor temperature/.test(picking));
+  check("the picker offers entities of the domains the slot accepts",
+    /sensor\.livingroom/.test(picking) && /sensor\.tank/.test(picking));
+  check("and offers clearing the slot",
+    /\(not configured\)/.test(picking));
+  // The service validates domains too, but a picker that offers what the
+  // service will refuse turns a wrong click into an error message instead of
+  // an impossibility.
+  su.setup.pickerKey = "heat_pump_switch_entity";
+  su._render();
+  const switchPick = collect(su.shadowRoot).join("\n");
+  check("a switch slot does not offer temperature sensors",
+    !/sensor\.livingroom/.test(switchPick),
+    "the picker is filtered by the same domain list the service enforces");
+
+  su.setup.pickerKey = "lower_floor_temp_entity";
+  su._render();
+  const calls = [];
+  su._hass.callService = async (domain, service, data) => {
+    calls.push([domain, service, data]);
+  };
+  const saveBtn = su.shadowRoot.querySelector(".sp-save");
+  const select = su.shadowRoot.querySelector(".sp-select");
+  if (select) select.value = "sensor.tank";
+  if (saveBtn) await Promise.all(
+    (saveBtn._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("assigning calls the validated service, not a config write",
+    calls.length === 1 && calls[0][0] === "heatpump_optimizer"
+    && calls[0][1] === "assign_entity",
+    JSON.stringify(calls));
+  check("and sends the slot key and the chosen entity",
+    calls.length === 1 && calls[0][2].key === "lower_floor_temp_entity"
+    && calls[0][2].entity_id === "sensor.tank"
+    && calls[0][2].manual_setpoint === undefined,
+    JSON.stringify(calls[0] && calls[0][2]));
+  check("the picker closes once the assignment is away",
+    su.setup.pickerKey === null);
+
+  // Dumb mixing valve: no entity, a typed setpoint.
+  topo.slots.push(
+    { key: "mixing_valve_target_entity", label: "Valve target",
+      place: "mixing_valve", entity: null, domains: TEMP });
+  su.setup.pickerKey = "mixing_valve_target_entity";
+  su._render();
+  const spInput = su.shadowRoot.querySelector(".sp-setpoint");
+  check("the valve-target picker offers a manual setpoint", !!spInput);
+  if (spInput) spInput.value = "21";
+  const callsMv = [];
+  su._hass.callService = async (domain, service, data) => {
+    callsMv.push([domain, service, data]);
+    return true;
+  };
+  const saveMv = su.shadowRoot.querySelector(".sp-save");
+  if (saveMv) await Promise.all(
+    (saveMv._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("saving a dumb valve sends the manual setpoint and no entity",
+    callsMv.length === 1
+    && callsMv[0][1] === "assign_entity"
+    && callsMv[0][2].key === "mixing_valve_target_entity"
+    && callsMv[0][2].entity_id === ""
+    && callsMv[0][2].manual_setpoint === 21,
+    JSON.stringify(callsMv[0] && callsMv[0][2]));
+
+  // A failed call must say so rather than looking like it worked.
+  su.setup.pickerKey = "lower_floor_temp_entity";
+  su._render();
+  su._hass.callService = async () => {
+    throw new Error("Entity does not exist");
+  };
+  const saveBtn2 = su.shadowRoot.querySelector(".sp-save");
+  if (saveBtn2) await Promise.all(
+    (saveBtn2._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("a rejected assignment is reported, not swallowed",
+    /Could not assign/.test(su.setup.note || ""),
+    `note was ${JSON.stringify(su.setup.note)}`);
+  check("and the picker stays open so the choice can be corrected",
+    su.setup.pickerKey === "lower_floor_temp_entity");
+}
+
+// --- Scenario: the sensor advisor page (#1269) ------------------------------
+//
+// The inverse of the sensor-gap advisor: the backend ranks which UNCONFIGURED
+// optional temperature sensors would tighten the thermal model most, and the
+// card renders that ranking on its own page in the dialog's tab system. The
+// proxy is an estimate and must say so on the page, and acting on a
+// suggestion must land in the assign picker for that exact slot -- the same
+// lane the setup page's own rows use, not a second editing path.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  // The setup topology the assign picker needs: the two slots the advisor
+  // rows below act on, at their places.
+  const advTopo = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: false, volume_l: 500 },
+    edges: [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["heat_pump", "dhw_tank"],
+    ],
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: TEMP },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: null, domains: TEMP },
+    ],
+  };
+  // The backend's payload shape, as topology.rank_sensor_advisor publishes
+  // it: priced rows first (sorted by spread), unpriced rows after, each
+  // carrying its reason; the basis names what drove the replay.
+  const advisor = {
+    basis: "history",
+    candidates: [
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        spread_c: 2.87, parameters: ["lower_floor_loss_ratio"], priced: true },
+      { key: "dhw_temp_entity", label: "Hot water temperature",
+        priced: false, reason: "no_clamped_parameter" },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        priced: false, reason: "weather_backed" },
+      { key: "floor_return_temp_entity", label: "Floor loop return",
+        priced: false, reason: "state_estimate" },
+    ],
+  };
+  const advStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  advStates[DEFAULT_SPACE].attributes.setup_topology = advTopo;
+  advStates[DEFAULT_SPACE].attributes.sensor_advisor = advisor;
+  const adv = build(advStates);
+  adv._onCardClick({});
+  const advTabs = collect(adv.shadowRoot).join("\n");
+  check("the dialog offers an advisor tab beside the other three",
+    /dlg-tab[^>]*data-page="advisor"/.test(advTabs),
+    "the advisor is a page in the card's page system, not a section of another");
+
+  adv.dialog.page = "advisor";
+  adv._render();
+  // The whole shadow root: the rig's collect() reads the markup a render
+  // produced from the root's own innerHTML, and parsed children carry none.
+  const advPage = collect(adv.shadowRoot).join("\n");
+  check("the advisor page ranks the priced rows with their spread",
+    /Buffer tank temperature/.test(advPage)
+    && /4\.13/.test(advPage)
+    && /2\.87/.test(advPage)
+    && advPage.indexOf("Buffer tank temperature") < advPage.indexOf("Lower floor temperature"),
+    "priced rows render in the backend's order, top first");
+  check("every quantified row carries the estimate label",
+    (advPage.match(/estimated/g) || []).length >= 2,
+    "a prior is a prior; the page must never read as a measurement");
+  check("the page names what drove the replay",
+    /measured delivery/.test(advPage),
+    "the basis line distinguishes the history arm from the config arm");
+  check("unpriced rows render after every priced one, with their reason",
+    (() => {
+      // Scoped to the advisor page's own markup, found by its class
+      // attribute: "Outdoor temperature" is also a legend series label,
+      // and ".advisor-page" also names a stylesheet rule, and both of
+      // those render before the dialog does.
+      const at = advPage.indexOf('setup-page advisor-page"');
+      const page = at >= 0 ? advPage.slice(at) : "";
+      return page.indexOf("Hot water temperature") > page.indexOf("Lower floor temperature")
+        && page.indexOf("Outdoor temperature") > page.indexOf("Lower floor temperature");
+    })(),
+    "a row the proxy cannot price must not pose as a ranked one");
+
+  // Acting on a suggestion: the row is a button that lands in the setup
+  // page's assign picker for that exact slot -- the one editing lane the
+  // card already owns. The rig's selector engine answers tag, class and
+  // [attr] forms, so the row is found by its data-key and checked to BE
+  // the button.
+  const row = adv.shadowRoot.querySelector(
+    '[data-key="buffer_tank_temp_entity"]');
+  check("each suggestion is its own 24px-floor button",
+    !!row && row.tagName === "BUTTON" && row.classList.contains("adv-row"),
+    "a ranked list whose rows cannot be acted on is a report, not advice");
+  if (row) await Promise.all(
+    (row._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("acting on a suggestion opens the assign picker for that slot",
+    adv.dialog.activePage() === "setup"
+    && adv.setup.pickerKey === "buffer_tank_temp_entity",
+    `page=${adv.dialog.activePage()} picker=${adv.setup.pickerKey}`);
+  const pickerOpen = collect(adv.shadowRoot).join("\n");
+  check("and the picker is the setup page's own, filters and all",
+    /sp-filter|sp-select/.test(pickerOpen),
+    "the advisor must reuse the one assign lane, not grow a second");
+
+  // Null control: a coordinator that publishes no advisor attribute (every
+  // optional temperature sensor configured) shows the page saying so, not
+  // an empty table or a missing tab.
+  const doneStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  doneStates[DEFAULT_SPACE].attributes.setup_topology = advTopo;
+  const done = build(doneStates);
+  done._onCardClick({});
+  done.dialog.page = "advisor";
+  done._render();
+  const donePage = collect(done.shadowRoot).join("\n");
+  // Only one dialog exists at a time, and the done card never saw the
+  // advisor attribute, so the absence below is the page's own answer.
+  // The markup form is what counts: the stylesheet text names .adv-row
+  // in every render, rows or not.
+  check("with no candidates the advisor page says so in as many words",
+    /already configured/.test(donePage)
+    && !/class="adv-row/.test(donePage),
+    "an absent attribute must read as 'nothing to suggest', not as silence");
+
+  // Swedish: the page is a first-class citizen of the card's i18n.
+  const svCard = new Card();
+  svCard.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svCard.hass = { states: advStates, language: "sv-SE" };
+  svCard._onCardClick({});
+  svCard.dialog.page = "advisor";
+  svCard._render();
+  const svPage = collect(svCard.shadowRoot).join("\n");
+  check("the advisor page speaks Swedish",
+    /uppskattat/.test(svPage) && /Rådgivare/.test(svPage),
+    "sv strings must exist for every key the page renders");
+
+  // WCAG 2.5.8: the rows are HTML targets, so they belong to the
+  // unconditional 24px floor the #1220 repair moved out of the coarse
+  // media query -- a selector list that forgets the new control ships it
+  // under the floor on day one. Anchored to the definition itself: the
+  // name also appears in prose comments later in the file.
+  check("the advisor rows sit in the html target floor's selector list",
+    /\.adv-row/.test(
+      cardSrc.slice(cardSrc.indexOf("const htmlTargetFloor"),
+        cardSrc.indexOf("const htmlTargetFloor") + 450)),
+    "a new HTML control joins the floor or ships below it");
+}
+
+// --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
+//
+// The editor's whole promise is that a drawing cannot claim physics the model
+// does not run: every edit is matched against the catalog the coordinator
+// published for THIS configuration, and only a key -- never a free-form graph
+// -- is ever saved. These checks are about that promise, not about pixels.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  // A two-zone house with a throttling valve and no wood tank: exactly the
+  // configuration where `valve_upper_direct_slab` and `single_tank_valve` are
+  // both storable, so an edit can legitimately move between them.
+  const EDGES = {
+    no_valve: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"],
+      ["buffer_tank", "lower_zone"]],
+    single_tank_valve: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"]],
+    two_tank_4way: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["wood_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"]],
+    valve_upper_direct_slab: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["buffer_tank", "lower_zone"]],
+    slab_shunt: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["buffer_tank", "slab_shunt"], ["slab_shunt", "lower_zone"]],
+  };
+  // `valid` is what `topology_layout_valid` answers for a throttling valve,
+  // two zones and no wood-tank probe.
+  const CATALOG = [
+    { key: "no_valve", label: "No mixing valve", description: "",
+      requirement: "no throttling mixing valve configured",
+      selectable: true, valid: false, edges: EDGES.no_valve },
+    { key: "single_tank_valve", label: "One tank behind a valve",
+      description: "", requirement: "a throttling mixing valve",
+      selectable: true, valid: true, edges: EDGES.single_tank_valve },
+    { key: "two_tank_4way", label: "Two tanks, one 4-way valve",
+      description: "",
+      requirement: "a throttling valve, two zones and a wood-tank top probe",
+      selectable: true, valid: false, edges: EDGES.two_tank_4way },
+    { key: "valve_upper_direct_slab",
+      label: "Valve on the radiators, slab fed direct", description: "",
+      requirement: "a throttling valve, two zones, and no wood-tank probe",
+      selectable: true, valid: true, edges: EDGES.valve_upper_direct_slab },
+    { key: "slab_shunt", label: "Separate slab shunt", description: "",
+      requirement: "not selectable: no model variant exists yet",
+      selectable: false, valid: false, edges: EDGES.slab_shunt },
+  ];
+  const mkTopo = (over) => ({
+    two_zone: true, dhw: false, valve_mode: "manual",
+    layout: "valve_upper_direct_slab", two_tank_modelled: false,
+    buffer: { volume_l: 500, is_store: true, max_temp: 65 },
+    wood: { present: false, volume_l: 0 },
+    edges: EDGES.valve_upper_direct_slab.map((e) => [e[0], e[1]]),
+    catalog: CATALOG, positions: {},
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: TEMP },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: "sensor.tank", domains: TEMP },
+      { key: "mixing_valve_target_entity", label: "Valve target",
+        place: "mixing_valve", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: "sensor.outside", domains: TEMP },
+      { key: "heat_pump_switch_entity", label: "Heat pump switch",
+        place: "heat_pump", entity: null,
+        domains: ["switch", "input_boolean", "climate"] },
+    ],
+    ...(over || {}),
+  });
+  const mkEditor = (over) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_SPACE].attributes.setup_topology = mkTopo(over);
+    states["sensor.livingroom"] = {
+      state: "21.3", attributes: { unit_of_measurement: "°C" } };
+    states["sensor.tank"] = {
+      state: "47.5", attributes: { unit_of_measurement: "°C" } };
+    states["sensor.outside"] = { state: "3.0", attributes: {} };
+    const c = build(states);
+    c._onCardClick({});
+    c.dialog.page = "setup";
+    c._render();
+    return c;
+  };
+  // The diagram as it stands now. An edit refreshes the canvas in place, so
+  // the shadow root's own innerHTML is a snapshot from before it -- reading
+  // the whole dump would happily assert against the drawing being replaced.
+  const pageHtml = (card) => {
+    const canvas = card.shadowRoot.querySelector(".setup-canvas");
+    return (canvas && canvas.innerHTML) || collect(card.shadowRoot).join("\n");
+  };
+  const edgesOf = (card) =>
+    (pageHtml(card).match(/data-edge="([^"]+)"/g) || [])
+      .map((m) => m.slice(11, -1));
+  const clickOn = (el) => (el._listeners.click || [])
+    .map((f) => f({ stopPropagation() {}, preventDefault() {} }));
+  // The DOM stub measures every element 900 px wide and the diagram's viewBox
+  // is 720 units, so a viewBox unit is 1.25 px. Aiming at real box geometry
+  // (from `_layoutBoxes`) rather than at guessed coordinates is what makes
+  // these drags mean anything.
+  const pxOf = (u) => (u * 900) / 720;
+  const boxAt = (card, place) =>
+    (card.layoutEditor.boxes || []).find((b) => b.place === place);
+  const centre = (card, place) => {
+    const b = boxAt(card, place);
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  };
+  const ev = (pt, target) => ({
+    clientX: pxOf(pt.x), clientY: pxOf(pt.y), target: target || {},
+    stopPropagation() {}, preventDefault() {},
+  });
+  // Drag from one box's port and drop on another, the way a pointer does it.
+  const connect = (card, from, to) => {
+    const src = centre(card, from);
+    const dst = centre(card, to);
+    card.layoutEditor.onDown(ev(src, { dataset: { place: from, port: "right" } }));
+    card.layoutEditor.onMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
+    card.layoutEditor.onUp(ev(dst));
+  };
+
+  {
+    const c = mkEditor();
+    const dump0 = collect(c.shadowRoot).join("\n");
+    check("the setup page offers an Edit layout toggle",
+      /class="layout-edit-toggle[^"]*"/.test(dump0) &&
+      !/class="layout-port"/.test(dump0),
+      "and draws no drag handles until it is pressed");
+    const toggle = c.shadowRoot.querySelector(".layout-edit-toggle");
+    clickOn(toggle);
+    const dump = pageHtml(c);
+    check("the editor draws a port on every box edge",
+      (dump.match(/class="layout-port"/g) || []).length ===
+        (c.layoutEditor.boxes || []).length * 4,
+      `${(dump.match(/class="layout-port"/g) || []).length} ports for `
+      + `${(c.layoutEditor.boxes || []).length} boxes`);
+    // v4.3.0: the pipe ornament (endpoint dots, flow chevrons) is styled
+    // away while editing -- it would sit right on the widened pipes that
+    // are the editor's click targets. The stub computes no styles, so what
+    // can be pinned is that the rule exists and is scoped as designed.
+    check("pipe ornament is suppressed while the layout is being edited",
+      /\.setup-svg\.editing \.setup-pipe-dot/.test(cardSrc) &&
+      /\.setup-svg\.editing \.setup-flow \{ display: none; \}/.test(cardSrc),
+      "dots and chevrons under the pointer would cover the editor's "
+      + "click targets");
+    const save = c.shadowRoot.querySelector(".layout-save");
+    check("Save is offered but disabled until something is drawn",
+      !!save && !!save.disabled,
+      "an untouched editor would otherwise offer to write what is already "
+      + "configured");
+    check("and the editor says which layout is on screen",
+      /Valve on the radiators, slab fed direct/
+        .test(collect(c.shadowRoot).join("\n")),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    // Editing takes the diagram over; a picker opening on top of a drag is
+    // the interaction that made the whole page feel broken.
+    const hit = c.shadowRoot.querySelector(".setup-hit");
+    if (hit) (hit._listeners.click || []).forEach((f) =>
+      f({ stopPropagation() {}, currentTarget: hit }));
+    check("click-to-assign is off while the layout is being edited",
+      !c.setup.pickerKey);
+  }
+
+  {
+    // The edit this feature exists for: the slab is not fed straight from the
+    // tank after all, it hangs off the valve like the radiators. That is
+    // exactly `single_tank_valve`, and the editor has to recognise it.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    check("clicking a pipe while editing removes it",
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("and a drawing that is no layout is rejected, with a reason",
+      !c.layoutEditor.edit.match &&
+      /No supported layout matches/.test(c.layoutEditor.edit.verdict) &&
+      /Lower floor/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    connect(c, "mixing_valve", "lower_zone");
+    check("dragging a port onto another box proposes that connection",
+      edgesOf(c).includes("mixing_valve>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("the finished drawing snaps to the layout it equals",
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "single_tank_valve",
+      `matched ${JSON.stringify(c.layoutEditor.edit.match)}`);
+    const dump = pageHtml(c);
+    check("a matched layout is highlighted and Save is enabled",
+      /setup-pipe layout-match/.test(dump) &&
+      !c.shadowRoot.querySelector(".layout-save").disabled &&
+      /One tank behind a valve/.test(c.layoutEditor.edit.verdict));
+
+    // (4) Only the key travels. A free-form graph is never stored, which is
+    // what keeps the model from being asked to run physics nobody wrote.
+    const calls = [];
+    c._hass.callService = async (domain, service, data) => {
+      calls.push([domain, service, data]);
+    };
+    await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+    check("saving calls apply_topology with the matched key and positions",
+      calls.length === 1 && calls[0][0] === "heatpump_optimizer" &&
+      calls[0][1] === "apply_topology" &&
+      calls[0][2].layout === "single_tank_valve" &&
+      calls[0][2].positions && typeof calls[0][2].positions === "object" &&
+      !("edges" in calls[0][2]),
+      JSON.stringify(calls));
+    check("and the editor closes once the write is away",
+      c.layoutEditor.edit === null && /Saved/.test(c.setup.note || ""),
+      `note was ${JSON.stringify(c.setup.note)}`);
+  }
+
+  {
+    // A rejected write keeps the drawing: it is the user's work, and losing
+    // it is not a way to say no.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    connect(c, "mixing_valve", "lower_zone");
+    c._hass.callService = async () => {
+      throw new Error("that layout needs a wood-tank top probe");
+    };
+    await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+    check("a rejected layout write is reported, not swallowed",
+      /Could not save the layout/.test(c.setup.note || "") &&
+      /wood-tank top probe/.test(c.setup.note || ""),
+      `note was ${JSON.stringify(c.setup.note)}`);
+    check("and the editor stays open with the drawing intact",
+      c.layoutEditor.editing() &&
+      c.layoutEditor.edit.edges.some((e) => e[1] === "lower_zone" &&
+        e[0] === "mixing_valve"));
+  }
+
+  {
+    // (3) An edit that is no layout at all: drawn, but drawn as rejected.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    connect(c, "heat_pump", "upper_zone");
+    const dump = pageHtml(c);
+    check("an unsupported drawing names the nearest layout and what differs",
+      !c.layoutEditor.edit.match &&
+      /No supported layout matches/.test(c.layoutEditor.edit.verdict) &&
+      /Closest: Valve on the radiators, slab fed direct/
+        .test(c.layoutEditor.edit.verdict) &&
+      /Heat pump → Upper floor/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    check("the offending pipe is drawn as rejected, and Save stays disabled",
+      /setup-pipe invalid" data-edge="heat_pump>upper_zone"/.test(dump) &&
+      !!c.shadowRoot.querySelector(".layout-save").disabled,
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    const verdictEl = c.shadowRoot.querySelector(".layout-verdict");
+    check("and the page says so, not just the console",
+      !!verdictEl && /No supported layout matches/.test(verdictEl.textContent));
+
+    // A drawing that IS a known layout this configuration cannot run gets the
+    // requirement instead: nothing is mis-drawn, the house is just not that.
+    c.layoutEditor.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
+    check("a layout the configuration cannot run explains what it needs",
+      !c.layoutEditor.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layoutEditor.edit.verdict) &&
+      /wood-tank top probe/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    c.layoutEditor.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
+    check("and a known-but-unmodelled layout says it is not selectable",
+      !c.layoutEditor.edit.match &&
+      /Separate slab shunt/.test(c.layoutEditor.edit.verdict) &&
+      /no model variant exists yet/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+  }
+
+  {
+    // #40 feedback, item 5: a catalog from before the `requirement` field
+    // existed must not render "needs undefined" — the message shown at the
+    // exact moment the user needs to know what to configure.
+    const bare = CATALOG.map((e) => {
+      const copy = { ...e };
+      delete copy.requirement;
+      return copy;
+    });
+    const c = mkEditor({ catalog: bare });
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c.layoutEditor.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
+    check("a catalog without requirement text degrades, never 'undefined'",
+      !c.layoutEditor.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layoutEditor.edit.verdict) &&
+      !/undefined/.test(c.layoutEditor.edit.verdict) &&
+      /cannot store/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    c.layoutEditor.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
+    check("and the unmodelled layout degrades the same way",
+      !/undefined/.test(c.layoutEditor.edit.verdict) &&
+      /not modelled yet/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+  }
+
+  {
+    // (5) The recorded trap: `_maybeRender` rebuilds the shadow root on the
+    // coordinator's schedule, and an editor living in local state would be
+    // wiped out mid-drawing every few minutes.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    connect(c, "mixing_valve", "lower_zone");
+    c._sig = null;
+    c._maybeRender(true);
+    const dump = pageHtml(c);
+    check("the layout editor survives a plan refresh",
+      c.layoutEditor.editing() && /class="layout-port"/.test(dump) &&
+      edgesOf(c).includes("mixing_valve>lower_zone") &&
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("and so does the match it had made",
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "single_tank_valve" &&
+      !c.shadowRoot.querySelector(".layout-save").disabled);
+    // Cancel discards: nothing was written, so the working set must not
+    // outlive the editor.
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    check("closing the editor discards the drawing",
+      c.layoutEditor.edit === null &&
+      edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  {
+    // (6) Cosmetic positions come from the coordinator and move a box; the
+    // drawing grows to fit rather than clipping it.
+    const plain = mkEditor();
+    const plainBox = boxAt(plain, "heat_pump");
+    const moved = mkEditor({ positions: { heat_pump: [430, 360] } });
+    const movedBox = boxAt(moved, "heat_pump");
+    check("a published position moves the box it names",
+      movedBox.x === 430 && movedBox.y === 360 &&
+      (plainBox.x !== 430 || plainBox.y !== 360),
+      `default ${plainBox.x},${plainBox.y} -> ${movedBox.x},${movedBox.y}`);
+    const dump = pageHtml(moved);
+    check("and the drawing is written at that position",
+      /<rect class="setup-box" x="430" y="360"/.test(dump));
+    const height = (html) => {
+      const m = /viewBox="0 0 720 (\d+)"/.exec(html);
+      return m ? Number(m[1]) : 0;
+    };
+    check("the diagram grows so the moved box is not clipped",
+      height(dump) >= 360 + movedBox.h,
+      `viewBox height ${height(dump)} for a box ending at `
+      + `${360 + movedBox.h}`);
+    // Out of the viewBox is out of reach: a position that would park a box
+    // off the page is clamped back onto it.
+    const wild = mkEditor({ positions: { heat_pump: [9999, -50] } });
+    const wildBox = boxAt(wild, "heat_pump");
+    check("an impossible position is clamped onto the drawing",
+      wildBox.x === 720 - wildBox.w && wildBox.y === 0,
+      `clamped to ${wildBox.x},${wildBox.y}`);
+
+    // Dragging a box records a position and nothing else: a box that moved
+    // must not change which layout the drawing is.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    const before = c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const from = centre(c, "buffer_tank");
+    c.layoutEditor.onDown(ev(from, { dataset: {} }));
+    c.layoutEditor.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+    c.layoutEditor.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
+    const at = c.layoutEditor.edit.positions.buffer_tank;
+    check("dragging a box records its position and leaves the pipes alone",
+      Array.isArray(at) && at.length === 2 &&
+      c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
+      `position ${JSON.stringify(at)}`);
+    check("and a moved box is still the layout it was, now saveable",
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "valve_upper_direct_slab" &&
+      !c.shadowRoot.querySelector(".layout-save").disabled);
+    // The click a drag owes is swallowed by whatever it ended over -- a slot
+    // row stops it before the diagram sees it -- so the next gesture must
+    // clear the debt rather than spend it on the user's next real click.
+    c.layoutEditor.onDown(ev({ x: 4, y: 4 }, { dataset: {} }));
+    c.layoutEditor.onClick({
+      target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    check("a click after a drag is not silently eaten",
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  {
+    // v4.3.0: the coil helix follows the drawing while the editor is open.
+    // The wood>DHW pipe is what claims a coil, so removing it must take the
+    // helix off the tank live, and re-drawing it must bring it back --
+    // otherwise the editor shows a heat exchanger the drawing just deleted.
+    const c = mkEditor({
+      dhw: true, dhw_wood_coil: true,
+      wood: { present: true, volume_l: 300 },
+      edges: EDGES.valve_upper_direct_slab
+        .concat([["wood_tank", "dhw_tank"]]).map((e) => [e[0], e[1]]),
+    });
+    check("the coil helix hangs on the wood tank",
+      /class="setup-coil"/.test(pageHtml(c)),
+      "the drawn wood>DHW edge is the coil's existence condition");
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c.layoutEditor.removeEdge("wood_tank>dhw_tank");
+    check("removing the wood>DHW pipe removes the helix with it",
+      !/class="setup-coil"/.test(pageHtml(c)),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    connect(c, "wood_tank", "dhw_tank");
+    check("and drawing the pipe again brings the helix back",
+      /class="setup-coil"/.test(pageHtml(c)) &&
+      edgesOf(c).includes("wood_tank>dhw_tank"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  // --- Undo: back to the layout in force, without leaving the editor ------
+  //
+  // The owner's ask: a rearrangement that turned out wrong should be
+  // undoable in place. Cancel already throws the drawing away, but it closes
+  // the editor too, so starting over meant reopening it. Undo restores the
+  // layout the editor opened on -- pipes AND box positions -- and stays.
+  {
+    const undoBtn = (card) => card.shadowRoot.querySelector(".layout-undo");
+    // A native <button> is activated by Enter and Space by the browser
+    // itself, which synthesises a click on it; a <div role="button"> is not.
+    // So the keyboard question is answered by what the control IS, plus the
+    // click path actually running -- which is what those keys deliver.
+    const pressKey = (el, key) => {
+      if (!el || el.tagName !== "BUTTON" || el.disabled) return [];
+      if (key !== "Enter" && key !== " ") return [];
+      return clickOn(el);
+    };
+    const posOf = (card) => JSON.stringify(card.layoutEditor.edit.positions);
+    const edgeNames = (card) =>
+      card.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const PUBLISHED = EDGES.valve_upper_direct_slab
+      .map((e) => `${e[0]}>${e[1]}`).join();
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Undo is offered but disabled on a freshly opened editor",
+        !!undoBtn(c) && !!undoBtn(c).disabled,
+        "an untouched drawing already IS the layout in use, so there is "
+        + "nothing to take back");
+      check("and it says what it does, for a screen reader and on hover",
+        /class="layout-undo"[\s\S]*?aria-label="[^"]*layout in use/
+          .test(collect(c.shadowRoot).join("\n")) &&
+        /class="layout-undo"[\s\S]*?title="[^"]*layout in use/
+          .test(collect(c.shadowRoot).join("\n")));
+      check("the Undo label goes through the translation layer, both ways",
+        /"setup\.undo_layout": "Undo"/.test(cardSrc) &&
+        /"setup\.undo_layout": "Ångra"/.test(cardSrc) &&
+        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === 2,
+        "a hard-coded English string is a string the Swedish card keeps");
+
+      // One drag and one new pipe: both halves of the working set moved.
+      const from = centre(c, "buffer_tank");
+      c.layoutEditor.onDown(ev(from, { dataset: {} }));
+      c.layoutEditor.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+      c.layoutEditor.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
+      connect(c, "heat_pump", "upper_zone");
+      check("Undo lights up as soon as something is changed",
+        !undoBtn(c).disabled && c.layoutEditor.edit.dirty &&
+        posOf(c) !== "{}" && edgeNames(c) !== PUBLISHED,
+        `edges ${edgeNames(c)}, positions ${posOf(c)}`);
+
+      clickOn(undoBtn(c));
+      check("Undo restores the pipes and the box positions it opened with",
+        edgeNames(c) === PUBLISHED && posOf(c) === "{}",
+        `edges ${edgeNames(c)}, positions ${posOf(c)}`);
+      check("and re-derives the verdict for the restored drawing",
+        !!c.layoutEditor.edit.match &&
+        c.layoutEditor.edit.match.key === "valve_upper_direct_slab" &&
+        /Valve on the radiators, slab fed direct/
+          .test(c.layoutEditor.edit.verdict) &&
+        /Valve on the radiators, slab fed direct/.test(
+          (c.shadowRoot.querySelector(".layout-verdict") || {}).textContent
+          || ""),
+        `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+      check("the editor stays open, unlike Cancel",
+        c.layoutEditor.editing() && /class="layout-port"/.test(pageHtml(c)),
+        "Undo is the way to start over without reopening the editor");
+      check("and Undo goes dark again, with nothing left to take back",
+        !c.layoutEditor.edit.dirty && !!undoBtn(c).disabled &&
+        !!c.shadowRoot.querySelector(".layout-save").disabled,
+        "an editor back at its starting point has nothing to save either");
+      check("no drag survives the restore",
+        c.layoutEditor.edit.drag === null && !c.layoutEditor.edit.suppressClick,
+        "a pointerup still owed would land an edge against a drawing that "
+        + "no longer exists");
+
+      // The baseline is a deep copy, so touching the working set cannot
+      // reach into the layout Undo owes on the NEXT press.
+      c.layoutEditor.edit.positions.buffer_tank = [1, 2];
+      c.layoutEditor.edit.edges.push(["heat_pump", "upper_zone"]);
+      check("the baseline is a copy the working set cannot corrupt",
+        JSON.stringify(c.layoutEditor.edit.baseline.positions) === "{}" &&
+        c.layoutEditor.edit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
+          === PUBLISHED,
+        JSON.stringify(c.layoutEditor.edit.baseline));
+    }
+
+    {
+      // Only a drag: the positions half must come back on its own, and it
+      // has to come back to the PUBLISHED position, not to the origin.
+      const c = mkEditor({ positions: { heat_pump: [430, 360] } });
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      const from = centre(c, "heat_pump");
+      c.layoutEditor.onDown(ev(from, { dataset: {} }));
+      c.layoutEditor.onMove(ev({ x: from.x + 40, y: from.y + 20 }));
+      c.layoutEditor.onUp(ev({ x: from.x + 40, y: from.y + 20 }));
+      const moved = JSON.stringify(c.layoutEditor.edit.positions.heat_pump);
+      clickOn(undoBtn(c));
+      check("Undo after a drag alone puts the box back where it was",
+        JSON.stringify(c.layoutEditor.edit.positions.heat_pump) === "[430,360]" &&
+        moved !== "[430,360]" && boxAt(c, "heat_pump").x === 430 &&
+        boxAt(c, "heat_pump").y === 360,
+        `moved to ${moved}, restored to `
+        + JSON.stringify(c.layoutEditor.edit.positions.heat_pump));
+      check("and the pipes it never touched are still the published ones",
+        edgeNames(c) === PUBLISHED, `edges ${edgeNames(c)}`);
+    }
+
+    {
+      // Only an edge change: the pipes half must come back on its own.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      c.layoutEditor.onClick({
+        target: { dataset: { edge: "buffer_tank>lower_zone" } },
+        stopPropagation() {} });
+      connect(c, "mixing_valve", "lower_zone");
+      check("a rearranged drawing is a different layout before Undo",
+        c.layoutEditor.edit.match.key === "single_tank_valve");
+      clickOn(undoBtn(c));
+      check("Undo after pipe edits alone restores the published pipe set",
+        edgeNames(c) === PUBLISHED &&
+        edgesOf(c).includes("buffer_tank>lower_zone") &&
+        !edgesOf(c).includes("mixing_valve>lower_zone"),
+        `edges drawn: ${edgesOf(c).join(", ")}`);
+
+      // Nothing stale left behind: the editor still works exactly as it did
+      // before the Undo, all the way through a real write.
+      c.layoutEditor.onClick({
+        target: { dataset: { edge: "buffer_tank>lower_zone" } },
+        stopPropagation() {} });
+      connect(c, "mixing_valve", "lower_zone");
+      const calls = [];
+      c._hass.callService = async (domain, service, data) => {
+        calls.push([domain, service, data]);
+      };
+      await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+      check("Save still works normally after an Undo",
+        calls.length === 1 && calls[0][1] === "apply_topology" &&
+        calls[0][2].layout === "single_tank_valve" && c.layoutEditor.edit === null,
+        JSON.stringify(calls));
+    }
+
+    {
+      // Keyboard parity with the buttons beside it.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("a disabled Undo does nothing on Enter",
+        pressKey(undoBtn(c), "Enter").length === 0 &&
+        undoBtn(c).tagName === "BUTTON" &&
+        undoBtn(c).getAttribute("type") === "button" &&
+        !/class="layout-undo"[^>]*tabindex/.test(collect(c.shadowRoot).join("")),
+        "a real button is in the tab order and activated by the browser; "
+        + "nothing here may take it back out");
+      connect(c, "heat_pump", "upper_zone");
+      pressKey(undoBtn(c), "Enter");
+      check("Enter on Undo restores the layout, from the keyboard alone",
+        edgeNames(c) === PUBLISHED && c.layoutEditor.editing());
+      connect(c, "heat_pump", "upper_zone");
+      pressKey(undoBtn(c), " ");
+      check("and so does Space",
+        edgeNames(c) === PUBLISHED && c.layoutEditor.editing());
+      check("the bar's buttons ring themselves with :focus-visible, no more",
+        /\.layout-bar button:focus-visible \{\s*outline: 2px solid/
+          .test(cardSrc),
+        "the shared rule covers Undo; an SVG-style outline is what clipped "
+        + "the setup rows' ring");
+    }
+
+    {
+      // The path Undo must NOT have changed: Cancel still closes, and still
+      // leaves the published layout on screen.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      connect(c, "heat_pump", "upper_zone");
+      clickOn(undoBtn(c));
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Cancel still closes the editor, Undo or no Undo",
+        c.layoutEditor.edit === null && !c.layoutEditor.editing() &&
+        !/class="layout-port"/.test(pageHtml(c)) &&
+        edgesOf(c).includes("buffer_tank>lower_zone"),
+        `edges drawn: ${edgesOf(c).join(", ")}`);
+    }
+  }
+
+  // --- Tidy up: exhaustive in-column reorder (#403) -----------------------
+  {
+    const layoutCost = fn("layoutCost");
+    const layoutArrange = fn("layoutArrange");
+    const W_PIPE = fn("LAYOUT_W_PIPE");
+    const W_TANK = fn("LAYOUT_W_TANK");
+    const tidyBtn = (card) => card.shadowRoot.querySelector(".layout-tidy");
+    const pileBox = (card, place, dx, dy) => {
+      const from = centre(card, place);
+      card.layoutEditor.onDown(ev(from, { dataset: {} }));
+      card.layoutEditor.onMove(ev({ x: from.x + dx, y: from.y + dy }));
+      card.layoutEditor.onUp(ev({ x: from.x + dx, y: from.y + dy }));
+    };
+    const costNow = (card) =>
+      layoutCost(card.layoutEditor.boxes, card.layoutEditor.edit.edges);
+    const overlap = (card) => {
+      const bs = card.layoutEditor.boxes || [];
+      for (let i = 0; i < bs.length; i++) {
+        for (let j = i + 1; j < bs.length; j++) {
+          const a = bs[i];
+          const b = bs[j];
+          if (
+            a.x < b.x + b.w && a.x + a.w > b.x &&
+            a.y < b.y + b.h && a.y + a.h > b.y
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    check("a pipe over a tank outranks two pipes crossing",
+      W_TANK > 2 * W_PIPE,
+      `w_tank=${W_TANK} w_pipe=${W_PIPE}`);
+
+    {
+      const outdoor = { place: "outdoor", x: 16, y: 16, w: 200, h: 83, col: 0 };
+      const hp = { place: "heat_pump", x: 16, y: 113, w: 200, h: 32, col: 0 };
+      const valve = { place: "mixing_valve", x: 260, y: 16, w: 200, h: 32, col: 1 };
+      const buffer = { place: "buffer_tank", x: 260, y: 62, w: 200, h: 66, col: 1 };
+      const upper = { place: "upper_zone", x: 504, y: 16, w: 200, h: 66, col: 2 };
+      const lower = { place: "lower_zone", x: 504, y: 96, w: 200, h: 49, col: 2 };
+      const edges = [
+        ["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
+        ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"],
+        ["buffer_tank", "lower_zone"],
+      ];
+      const neat = [outdoor, hp, valve, buffer, upper, lower];
+      const piled = [
+        outdoor, hp,
+        { ...buffer, x: 260, y: 16 },
+        { ...valve, x: 260, y: 62 },
+        upper, lower,
+      ];
+      const neatCost = layoutCost(neat, edges);
+      const piledCost = layoutCost(piled, edges);
+      check("layoutCost scores a tangled column stack above the neat default",
+        piledCost > neatCost + W_PIPE,
+        `neat=${neatCost} piled=${piledCost}`);
+    }
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Tidy up is offered while the layout editor is open",
+        !!tidyBtn(c) && /Tidy up/.test(tidyBtn(c).textContent));
+      const beforeCost = costNow(c);
+      pileBox(c, "buffer_tank", 50, 40);
+      pileBox(c, "mixing_valve", 45, 35);
+      check("two dragged boxes can land on each other",
+        overlap(c), `boxes ${JSON.stringify(c.layoutEditor.boxes)}`);
+      const piledCost = costNow(c);
+      check("a piled layout costs strictly more than the default",
+        piledCost > beforeCost,
+        `${beforeCost} -> ${piledCost}`);
+      clickOn(tidyBtn(c));
+      check("Tidy up lowers the crossing cost and clears the pile",
+        costNow(c) < piledCost && !overlap(c),
+        `after tidy cost=${costNow(c)}`);
+      check("Tidy up leaves the pipe set and the matched layout alone",
+        c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() ===
+          EDGES.valve_upper_direct_slab.map((e) => `${e[0]}>${e[1]}`).join() &&
+        c.layoutEditor.edit.match.key === "valve_upper_direct_slab");
+      check("Tidy up marks the drawing dirty and saveable",
+        c.layoutEditor.edit.dirty &&
+        !c.shadowRoot.querySelector(".layout-save").disabled);
+    }
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      const optimal = costNow(c);
+      clickOn(tidyBtn(c));
+      check("Tidy up on an already neat layout does not raise the cost",
+        costNow(c) <= optimal + 1e-9,
+        `${optimal} -> ${costNow(c)}`);
+      const once = JSON.stringify(c.layoutEditor.edit.positions);
+      clickOn(tidyBtn(c));
+      check("Tidy up is idempotent once the layout is already tidy",
+        JSON.stringify(c.layoutEditor.edit.positions) === once);
+    }
+
+    {
+      const mkPiled = () => {
+        const c = mkEditor();
+        clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+        pileBox(c, "heat_pump", 60, 50);
+        pileBox(c, "buffer_tank", 55, 45);
+        return c;
+      };
+      const a = mkPiled();
+      clickOn(tidyBtn(a));
+      const posA = JSON.stringify(a.layoutEditor.edit.positions);
+      const b = mkPiled();
+      clickOn(tidyBtn(b));
+      const posB = JSON.stringify(b.layoutEditor.edit.positions);
+      check("Tidy up is deterministic from two different starting piles",
+        posA === posB, `${posA} vs ${posB}`);
+    }
+
+    check("the Tidy up label goes through the translation layer, both ways",
+      /"setup\.tidy_layout": "Tidy up"/.test(cardSrc) &&
+      /"setup\.tidy_layout": "Städa upp"/.test(cardSrc) &&
+      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === 2);
+  }
+}
+
+// --- Scenario: phone-width usability (#40 feedback, item 1) -----------------
+//
+// Style rules, asserted on the source: the DOM stub computes no layout, so
+// what CAN be pinned is that the rules exist and are scoped as designed.
+{
+  check("only the chart claims raw touch input",
+    /\.chartwrap svg \{ touch-action: none; \}/.test(cardSrc) &&
+    !/^\s*svg \{[^}]*touch-action/m.test(cardSrc),
+    "a blanket svg { touch-action: none } swallowed touch on the setup "
+    + "diagram, which on a phone fills the dialog — the page could not be "
+    + "scrolled at all");
+  check("the editor still claims the diagram while a drag must move a box",
+    /\.setup-svg\.editing \{ touch-action: none; \}/.test(cardSrc));
+  const phone = (cardSrc.match(/@media \(max-width: 600px\) \{[\s\S]*?\n {8}\}/g) || [])
+    .join("\n");
+  check("the dialog header may wrap at phone width, keeping the tabs reachable",
+    /\.dlg-head \{ flex-wrap: wrap/.test(phone),
+    "without wrapping, the title pushes the Plan/Setup tabs out of the "
+    + "header on narrow screens");
+  check("the setup diagram scrolls sideways at phone width instead of shrinking",
+    /\.setup-canvas \{ overflow-x: auto/.test(phone) &&
+    /\.setup-canvas svg \{ min-width/.test(phone),
+    "slot rows scaled to a 380px dialog are too small to read or tap");
+
+  // R7-D4-01 (#1454) and R7-D4-02 (#1455): the dialog draws content whose
+  // intrinsic width can exceed its own box and then hides the overflow, which
+  // is ink no gesture can reach. Measured instances: the savings table's `%`
+  // column (its `width:100%` table has a min-content width larger than
+  // `.dlg-body`, and right-aligned cells put the digits in the hidden strip)
+  // and the Swedish tab label `Rådgivare` (`.dlg-tabs` could not shrink, and
+  // `dialog.expanded` cut the spill off). The geometry is measured in
+  // tests/card_browser.mjs, which lays the card out in real Chromium; here,
+  // where the stub computes no layout, what is pinned is that the dialog's
+  // own declarations do not hide what a phone cannot otherwise reach.
+  check("the dialog body reaches sideways content instead of hiding it",
+    /\.dlg-body \{[^}]*overflow-x: auto/.test(cardSrc),
+    "with overflow-x: hidden, a table whose min-content width exceeds the "
+    + "body is painted outside a box no gesture can widen");
+  check("and the tab row wraps rather than spilling out of the dialog",
+    /\.dlg-tabs \{[^}]*flex-wrap: wrap/.test(cardSrc) &&
+    /\.dlg-tabs \{[^}]*flex: 0 1 auto/.test(cardSrc),
+    "`.dlg-tabs { flex: 0 0 auto }` cannot shrink below its content, and "
+    + "`dialog.expanded { overflow: hidden }` then cuts the last tab off");
+}
+
+// --- Scenario: shared-step honesty (T3b, user report on v3.16.0) -----------
+// The optimizer plans space + hot water in the same quarter hour as a
+// time-share (their sum stays under nameplate). Two full-height bars with
+// nothing said implied double-booking; the chart must mark shared spans
+// and say what they are.
+{
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const spFc = clone(plan.space_plan.forecast);
+  const dwFc = clone(plan.dhw_plan.forecast);
+  // Doctor three consecutive steps into a guaranteed overlap — placed
+  // deep enough into the horizon to sit inside the default view window,
+  // which clips the first hours.
+  for (const i of [40, 41, 42]) {
+    if (spFc[i]) spFc[i].space_power = 2.0;
+    if (dwFc[i]) dwFc[i].dhw_power = 3.0;
+  }
+  states[DEFAULT_SPACE].attributes.forecast = spFc;
+  states[DEFAULT_DHW].attributes.forecast = dwFc;
+  const sh = build(states);
+  const shDump = collect(sh.shadowRoot).join("\n");
+  check("shared quarter hours are marked with a hatched band",
+    /shared-band/.test(shDump) && /hpoShared/.test(shDump));
+  check("the band explains itself: time-sharing, not double-booking",
+    /alternates circuits/.test(shDump) && /not double-booking/.test(shDump));
+
+  // Control: with hot water flat off there is nothing to mark.
+  const off = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const dwOff = clone(plan.dhw_plan.forecast);
+  for (const p of dwOff) p.dhw_power = 0.0;
+  off[DEFAULT_DHW].attributes.forecast = dwOff;
+  const shOff = build(off);
+  check("no overlap, no band",
+    !/shared-band/.test(collect(shOff.shadowRoot).join("\n")));
+
+  // Hiding one channel hides its half of the story: no orphan bands.
+  const hid = build(states);
+  hid.legend.hidden = { dhw_slots: true };
+  hid._render();
+  check("a hidden channel takes its shared bands with it",
+    !/shared-band/.test(collect(hid.shadowRoot).join("\n")));
+
+  // The hover tooltip's shared line, driven directly: each series snaps to
+  // its own nearest point, so the guard must demand the SAME timestamp —
+  // otherwise a stale sensor whose horizon ends early pairs points hours
+  // apart and the tooltip claims a sharing the band refuses to draw.
+  const T0 = 1700000000000;
+  const row = (field, value, t) => ({ field, value, t });
+  const shared = sharedTooltipHtml([
+    row("space_power", 1.2, T0), row("dhw_power", 4.8, T0),
+  ]);
+  check("the tooltip explains a genuinely shared step, with the sum",
+    /Shared step/.test(shared) && /alternates/.test(shared) && /6/.test(shared));
+  check("nearest points from different timestamps are never called shared",
+    sharedTooltipHtml([
+      row("space_power", 1.2, T0), row("dhw_power", 4.8, T0 + 3600000),
+    ]) === "");
+  check("one idle channel means no shared line",
+    sharedTooltipHtml([
+      row("space_power", 1.2, T0), row("dhw_power", 0.0, T0),
+    ]) === "" && sharedTooltipHtml([row("space_power", 1.2, T0)]) === "");
+}
+
+// --- Scenario: the Outside box and the plan's real irradiance (T3b) --------
+// With no radiation sensor configured the plan still runs on Open-Meteo or
+// weather-derived irradiance every cycle; the setup diagram used to call
+// that "not configured".
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const mkTopo = () => ({
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 200, is_store: false, max_temp: 60 },
+    wood: { present: false },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "solar_radiation_entity", label: "Solar radiation",
+        place: "outdoor", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: null, domains: TEMP },
+    ],
+  });
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
+  const su = build(states);
+  su._onCardClick({});
+  su.dialog.page = "setup";
+  su._render();
+  const page = collect(su.shadowRoot).join("\n");
+  check("an unconfigured solar slot shows the irradiance the plan uses",
+    /120 W\/m² · Open-Meteo/.test(page));
+  check("only the genuinely absent slot reads as not configured",
+    (page.match(/not configured/g) || []).length === 1,
+    "the solar row has a fallback; the outdoor temperature row does not");
+
+  // Without any irradiance source the old answer is the right one.
+  const bare = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  delete bare[SOLAR_ID];
+  bare[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
+  const suBare = build(bare);
+  suBare._onCardClick({});
+  suBare.dialog.page = "setup";
+  suBare._render();
+  check("no source at all still says not configured",
+    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")));
+}
+
+// --- Scenario: slot values follow the user's unit system (T3b) -------------
+// A natively-°F probe read raw showed °F on a metric install while every
+// other HA surface converts. The card must prefer the frontend's own
+// formatter and keep the raw concatenation only as a fallback.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topo = {
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 200, is_store: false, max_temp: 60 },
+    wood: { present: true, volume_l: 500 },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"],
+      ["wood_tank", "buffer_tank"]],
+    slots: [
+      { key: "wood_tank_top_entity", label: "Wood tank top",
+        place: "wood_tank", entity: "sensor.wood_top", domains: TEMP },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.wood_top"] = {
+    state: "140.0", attributes: { unit_of_measurement: "°F" } };
+
+  const fmt = build(states);
+  fmt.hass = { states, formatEntityState: (st) =>
+    st === states["sensor.wood_top"] ? "60.0 °C" : `${st.state}` };
+  fmt._onCardClick({});
+  fmt.dialog.page = "setup";
+  fmt._render();
+  const fmtPage = collect(fmt.shadowRoot).join("\n");
+  check("the frontend's formatter wins: the probe reads in the user's units",
+    /60\.0 °C/.test(fmtPage) && !/140\.0 °F/.test(fmtPage));
+
+  const raw = build(states);
+  raw._onCardClick({});
+  raw.dialog.page = "setup";
+  raw._render();
+  check("an older frontend without the formatter still gets the raw value",
+    /140\.0 °F/.test(collect(raw.shadowRoot).join("\n")));
+}
+
+// --- Scenario: the card speaks Swedish (v4.2.0 i18n + currency) -------------
+//
+// The language rides on `hass.language` and is applied in the hass setter, so
+// no card-level configuration exists (or is needed). English remains the
+// default and the fallback: every earlier scenario in this file asserts the
+// English literals, which is itself the regression test for the "en" table.
+{
+  const svStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card" });
+  sv.hass = { states: svStates, language: "sv-SE" };
+  const svDump = collect(sv.shadowRoot).join("\n");
+  check("hass.language sv-SE renders the legend in Swedish",
+    ["Elpris", "Varmvattenberedning", "Uppvärmning", "Utetemperatur",
+     "Innetemperatur", "Solinstrålning"].every((l) => svDump.includes(l)),
+    svDump.match(/class="legend"[\s\S]{0,400}/)?.[0]);
+  check("the default title localizes too (it is not baked in at setConfig)",
+    /Värmepumpsplan/.test(svDump) && !/Heat pump plan/.test(svDump));
+  check("reason codes explain themselves in Swedish",
+    /Billigaste timmarna/.test(reasonHtml([{ reason: "cheap_price" }])) &&
+    /Varmvatten behövs nu/.test(reasonHtml([{ reason: "dhw_window" }])));
+  check("wire contracts stay untranslated under sv",
+    /data-key="price"/.test(svDump) && /data-key="dhw_slots"/.test(svDump));
+
+  sv._onCardClick({});
+  const svExpanded = collect(sv.shadowRoot).join("\n");
+  check("the expanded dialog is Swedish: tabs, slot actions, schedule editor",
+    /Anläggning/.test(svExpanded) &&
+    /Tillämpa denna plan/.test(svExpanded) &&
+    /Spara som mitt schema/.test(svExpanded) &&
+    /Varmvattenfönster/.test(svExpanded));
+  check("the slot menu strings are whole Swedish sentences",
+    /värmepass/.test(
+      (() => { // exercise the L() path the menu uses
+        sv.dialog.close();
+        return ctxL(sv, "menu.add_slot_space");
+      })()
+    ));
+
+  // A language without a dictionary falls back to English wholesale.
+  const de = new Card();
+  de.setConfig({ type: "custom:heatpump-optimizer-card" });
+  de.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    language: "de-DE" };
+  const deDump = collect(de.shadowRoot).join("\n");
+  check("an unknown language falls back to English",
+    deDump.includes("Electricity price") &&
+    deDump.includes("Heat pump plan") &&
+    !/Elpris/.test(deDump));
+
+  // Currency: published by the plan sensor as `currency`, shown on the price
+  // axis and in the legend chip; absent, the SEK fallback holds.
+  const eurStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  eurStates[DEFAULT_SPACE].attributes.currency = "EUR";
+  const eur = build(eurStates);
+  const eurDump = collect(eur.shadowRoot).join("\n");
+  check("a currency published on the plan sensor reaches the price axis",
+    /EUR\/kWh/.test(eurDump) && !/SEK\/kWh/.test(eurDump));
+  const sekDump =
+    collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot)
+      .join("\n");
+  check("no published currency still falls back to SEK",
+    /SEK\/kWh/.test(sekDump));
+  // hass's global currency fills in when the sensor publishes none.
+  const nok = new Card();
+  nok.setConfig({ type: "custom:heatpump-optimizer-card" });
+  nok.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    config: { currency: "NOK" } };
+  check("hass.config.currency fills in when the sensor publishes none",
+    /NOK\/kWh/.test(collect(nok.shadowRoot).join("\n")));
+
+  // Leave the module back in English for anything that runs after this block.
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+}
+
+// The slot-menu helper above: reach the same lookup the menu uses without
+// standing up a pointer gesture. `_openSlotMenu` needs real chart geometry;
+// what the i18n scenario cares about is only that the per-channel sentence
+// exists in the active language.
+function ctxL(card, key) {
+  card.lanes.closeMenu();
+  // The card file keeps L private; the menu markup is the observable. Build
+  // it via a minimal fake wrapper.
+  const host = new (Object.getPrototypeOf(card.shadowRoot).constructor)("div");
+  host.classList.add("chartwrap");
+  card.shadowRoot.appendChild(host);
+  card._geom = null;
+  try {
+    card.lanes.openMenu("space", Date.now(), 0, 0, host);
+    const menu = card.lanes.menu;
+    return menu ? menu.innerHTML : "";
+  } finally {
+    card.lanes.closeMenu();
+  }
+}
+
+// --- Scenario: the visual config editor (v4.2.0) ----------------------------
+//
+// The editor is a plain element wrapping ha-form: the schema, the effective
+// values and the config-changed contract are the card's own code and are
+// exercised here; ha-form itself is Home Assistant's and is only stood up as
+// a stub node the editor sets properties on.
+{
+  const Editor = ctx.customElements.get("heatpump-optimizer-card-editor");
+  check("an editor element is registered", !!Editor);
+
+  const el = Card.getConfigElement();
+  check("getConfigElement returns the editor element",
+    !!el && el.tagName === "HEATPUMP-OPTIMIZER-CARD-EDITOR");
+
+  const stub = Card.getStubConfig();
+  let stubErr = null;
+  try { new Card().setConfig(stub); } catch (e) { stubErr = e; }
+  check("getStubConfig passes setConfig", stubErr === null,
+    stubErr && stubErr.message);
+
+  check("the card advertises itself with a preview",
+    ctx.window.customCards.some((c) =>
+      c.type === "heatpump-optimizer-card" && c.preview === true));
+
+  const ed = new Editor();
+  ed.hass = { states: {}, language: "en" };
+  ed.setConfig(stub);
+  const form = ed.querySelector("ha-form");
+  check("the editor builds an ha-form with a schema",
+    !!form && Array.isArray(form.schema));
+  const names = form ? form.schema.map((s) => s.name) : [];
+  check("the schema covers the card's config keys",
+    ["title", "space_entity", "dhw_entity", "solar_entity", "hours",
+     "what_if", "show_stats", "currency", "series"]
+      .every((k) => names.includes(k)),
+    `schema names: ${names.join(", ")}`);
+  const spaceRow = form && form.schema.find((s) => s.name === "space_entity");
+  check("entity pickers are filtered to this integration's sensors",
+    !!spaceRow && spaceRow.selector.entity.integration === "heatpump_optimizer"
+    && spaceRow.selector.entity.domain === "sensor");
+  check("the form shows effective values, defaults filled in",
+    form && form.data.hours === 24 && form.data.what_if === true &&
+    form.data.show_stats === true && form.data.series.price === true);
+  check("labels come from the dictionary, not raw key names",
+    form && form.computeLabel({ name: "hours" }) === "Hours to show" &&
+    form.computeLabel({ name: "price" }) === "Electricity price");
+
+  // A user edit flows out as config-changed, and the emitted config both
+  // passes setConfig and stays free of keys that restate defaults.
+  let fired = null;
+  ed.addEventListener("config-changed", (ev) => { fired = ev.detail.config; });
+  form.dispatchEvent(new ctx.CustomEvent("value-changed", { detail: { value: {
+    ...form.data, hours: 48, show_stats: false, title: "",
+    series: { ...form.data.series, solar: false },
+  } } }));
+  check("editing fires config-changed with the new values",
+    !!fired && fired.hours === 48 && fired.show_stats === false &&
+    fired.type === "custom:heatpump-optimizer-card");
+  check("an emptied field falls back to the default rather than storing ''",
+    fired && !("title" in fired));
+  // The form pre-fills every default, so its emitted value carries them all;
+  // the stored config must not. Only the two keys the user changed (hours,
+  // show_stats) and the non-default series choice may appear.
+  check("untouched defaults do not appear in the emitted config",
+    fired && !("space_entity" in fired) && !("dhw_entity" in fired) &&
+    !("solar_entity" in fired) && !("what_if" in fired),
+    fired && JSON.stringify(fired));
+  check("only non-default series choices are stored",
+    fired && fired.series && fired.series.solar === false &&
+    !("price" in fired.series));
+  // A value edited back to its default drops out of the config again.
+  let firedBack = null;
+  ed.addEventListener("config-changed", (ev) => { firedBack = ev.detail.config; });
+  form.dispatchEvent(new ctx.CustomEvent("value-changed", { detail: { value: {
+    ...form.data, hours: 24, show_stats: false,
+  } } }));
+  check("a field edited back to its default is dropped, not stored",
+    !!firedBack && !("hours" in firedBack) && firedBack.show_stats === false,
+    firedBack && JSON.stringify(firedBack));
+
+  // An explicit `title: ""` is a real choice (it renders no header text):
+  // it must survive an unrelated edit, while a title that was never
+  // configured must not materialize as "".
+  const edTitled = new Editor();
+  edTitled.hass = { states: {}, language: "en" };
+  edTitled.setConfig({ type: "custom:heatpump-optimizer-card", title: "" });
+  const formTitled = edTitled.querySelector("ha-form");
+  let firedTitled = null;
+  edTitled.addEventListener("config-changed",
+    (ev) => { firedTitled = ev.detail.config; });
+  formTitled.dispatchEvent(new ctx.CustomEvent("value-changed",
+    { detail: { value: { ...formTitled.data, hours: 48 } } }));
+  check("an existing title: \"\" survives an unrelated edit",
+    !!firedTitled && firedTitled.title === "" && firedTitled.hours === 48,
+    firedTitled && JSON.stringify(firedTitled));
+  let firedErr = null;
+  try { new Card().setConfig(fired); } catch (e) { firedErr = e; }
+  check("the emitted config passes setConfig", firedErr === null,
+    firedErr && firedErr.message);
+}
+
+// --- D5-02 (#1458): the hours bound is one number, stated once --------------
+//
+// `setConfig` rejected on `hours <= 0 || hours > 168` -- the accepted range
+// was (0, 168] -- while its own message said "between 1 and 168" and the
+// editor schema pinned `min: 1`. A hand-written `hours: 0.5` therefore passed
+// validation while the message called it invalid, and the editor could
+// neither produce nor correct it (0.5 is not on its step-1 grid from 1).
+//
+// The checks read the bound where all three parties state it: the message the
+// card throws, the guard that threw it, and the schema the editor offers. The
+// message's own two numbers are the test's inputs, so a reworded message
+// cannot make this pass by moving the goalposts -- what must hold is that the
+// bounds it names are accepted and anything outside them is not.
+{
+  let msg = null;
+  try { new Card().setConfig({ type: "custom:heatpump-optimizer-card", hours: 0.5 }); }
+  catch (e) { msg = e.message; }
+  check("a fractional hour count is rejected, as the message says it is",
+    msg !== null, msg === null ? "hours: 0.5 was accepted" : "");
+  const stated = (msg || "").match(/between\s+(\d+(?:\.\d+)?)\s+and\s+(\d+(?:\.\d+)?)/);
+  const lo = stated ? Number(stated[1]) : null;
+  const hi = stated ? Number(stated[2]) : null;
+  const accepts = (h) => {
+    try { new Card().setConfig({ type: "custom:heatpump-optimizer-card", hours: h }); return true; }
+    catch { return false; }
+  };
+  check("the bounds the hours message names are exactly the ones the check enforces",
+    stated !== null && accepts(lo) && accepts(hi) && accepts(24) &&
+      !accepts(lo - 0.5) && !accepts(hi + 1),
+    `message names ${lo} and ${hi}; accepts ${lo}, 24, ${hi}; ` +
+    `rejects ${lo - 0.5} and ${hi + 1}`);
+  // The editor's floor is the same number: it can produce the smallest value
+  // the check accepts, and nothing below it.
+  const Editor = ctx.customElements.get("heatpump-optimizer-card-editor");
+  const ed = new Editor();
+  ed.hass = { states: {}, language: "en" };
+  ed.setConfig({ type: "custom:heatpump-optimizer-card" });
+  const hoursRow = ed.querySelector("ha-form").schema.find((s) => s.name === "hours");
+  const editorMin = hoursRow.selector.number.min;
+  check("and the editor's floor is the bound its own check enforces",
+    editorMin === lo && accepts(editorMin) && !accepts(editorMin - 0.5),
+    `editor min ${editorMin}, message min ${lo}`);
+}
+
+// --- Scenario: the headline stats row (v4.2.0) ------------------------------
+{
+  const statStates = () => ({
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+    "sensor.heat_pump_optimizer_savings_percentage": {
+      state: "8.2", attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "cheap_price", attributes: {
+        lines: ["Most heating is placed in the cheapest hours."],
+        language: "en" } },
+  });
+  const full = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() };
+  const hl = build(full);
+  const hlDump = collect(hl.shadowRoot).join("\n");
+  check("headline shows the projected savings in the sensor's unit",
+    /class="headline"/.test(hlDump) && /Projected savings/.test(hlDump) &&
+    /12\.34 SEK \(8%\)/.test(hlDump),
+    hlDump.match(/class="headline"[\s\S]{0,300}/)?.[0]);
+
+  // The savings sensor declares the unit its value is denominated in; a
+  // card-level `currency:` must not relabel it (nothing converts here).
+  const relabeled = build(full, { currency: "EUR" });
+  check("a config currency does not relabel the sensor's own unit",
+    /12\.34 SEK/.test(collect(relabeled.shadowRoot).join("\n")));
+  const noUnit = { ...full,
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "12.34", attributes: {} } };
+  check("a savings sensor without a unit falls back to the resolved currency",
+    /12\.34 EUR/.test(
+      collect(build(noUnit, { currency: "EUR" }).shadowRoot).join("\n")));
+
+  // Percent spacing is orthographic, so it rides the language: sv keeps the
+  // space before %, en drops it.
+  const svHl = new Card();
+  svHl.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svHl.hass = { states: full, language: "sv-SE" };
+  check("Swedish spaces the percent; English does not",
+    /\(8 %\)/.test(collect(svHl.shadowRoot).join("\n")));
+  build(full); // leave the module back in English
+
+  // Discovery is scoped to the plan sensors' device (shared entity-id
+  // prefix): a foreign integration's sensor that shares the suffix — and
+  // sorts first — must not capture the headline.
+  const foreign = { ...full,
+    "sensor.aaa_other_vendor_predicted_savings": {
+      state: "99.99", attributes: { unit_of_measurement: "EUR" } } };
+  const scopedDump = collect(build(foreign).shadowRoot).join("\n");
+  check("headline binds to the plan sensors' device, not a foreign twin",
+    /12\.34 SEK/.test(scopedDump) && !/99\.99/.test(scopedDump));
+
+  // A backend that starts publishing the stat sensors later must still be
+  // found: the miss is cached, but keyed to the number of sensor ids.
+  const lateCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  check("(setup) no headline before the backend publishes",
+    !/class="headline"/.test(collect(lateCard.shadowRoot).join("\n")));
+  lateCard.hass = { states:
+    { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() } };
+  check("a late-arriving backend still surfaces the headline",
+    /class="headline"/.test(collect(lateCard.shadowRoot).join("\n")));
+  check("headline shows the optimization score",
+    /Optimization score/.test(hlDump) && /82\/100/.test(hlDump));
+  check("headline shows the narrative's first line",
+    hlDump.includes("Most heating is placed in the cheapest hours."));
+
+  // The row must track its own sensors: a new savings value re-renders even
+  // though no plan data changed (the headline is part of _signature).
+  const next = { ...full,
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "20.00", attributes: { unit_of_measurement: "SEK" } } };
+  hl.hass = { states: next };
+  check("a savings update re-renders the headline",
+    /20\.00 SEK/.test(collect(hl.shadowRoot).join("\n")));
+
+  // No stat sensors: no row, no empty chrome.
+  const bare = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  check("no headline chrome when the sensors are absent",
+    !/class="headline"/.test(collect(bare.shadowRoot).join("\n")));
+
+  // Sensors present but unavailable and with no lines: still nothing.
+  const unavail = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "unavailable", attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "unknown", attributes: {} },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "idle", attributes: { lines: [] } } };
+  check("unavailable sensors render no row either",
+    !/class="headline"/.test(collect(build(unavail)).join("\n") ||
+      collect(build(unavail).shadowRoot).join("\n")));
+
+  // The config toggle removes the row even with data to show.
+  const off = build(full, { show_stats: false });
+  check("show_stats: false removes the row",
+    !/class="headline"/.test(collect(off.shadowRoot).join("\n")));
+  let err = null;
+  try { new Card().setConfig({ show_stats: "yes" }); } catch (e) { err = e; }
+  check("a non-boolean show_stats is rejected",
+    !!err && /show_stats/.test(err.message));
+
+  // The score's hover says what the score is MADE OF (owner request #2):
+  // the sub-scores ride the same sensor's attributes, and an owner staring
+  // at a low number wants to know where the rest went before deciding
+  // anything. The hover title carries all three, evidence or not.
+  const scoreTitle =
+    (hlDump.match(/data-stat="score" title="([^"]*)"/) || ["", ""])[1];
+  check("the score's hover lists the sub-scores it is made of",
+    /House: 90\/100/.test(scoreTitle) && /Heat pump: 75\/100/.test(scoreTitle),
+    scoreTitle);
+  check("and says the unmeasured part has no evidence, not zero",
+    /Driving: No evidence yet/.test(scoreTitle), scoreTitle);
+  check("and invites the click that opens the panel",
+    /Click for/.test(scoreTitle), scoreTitle);
+
+  // The click opens a panel: one row per sub-score, each with its value
+  // (or the no-evidence wording) and one line of what it measures and what
+  // a low value points at. Closed by default, closed again by a second
+  // click, and the click must NOT open the expanded dialog.
+  check("the breakdown panel is closed by default",
+    !/class="score-breakdown"/.test(collect(hl.shadowRoot).join("\n")));
+  const scoreEl = hl.shadowRoot.querySelector('[data-stat="score"]');
+  let clickOpenedDialog = false;
+  hl._onCardClick = () => { clickOpenedDialog = true; };
+  scoreEl.dispatchEvent({ type: "click", stopPropagation() {} });
+  const openDump = collect(hl.shadowRoot).join("\n");
+  check("clicking the score opens the breakdown panel",
+    /class="score-breakdown"/.test(openDump) && /sb-row/.test(openDump), openDump);
+  check("and the click does not open the expanded dialog",
+    !clickOpenedDialog);
+  check("each row carries its plain-language explanation",
+    /how long the building holds its stored heat/.test(openDump) &&
+    /against its own\s+baseline/.test(openDump) &&
+    /buying at or above flat scores 0/.test(openDump),
+    (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
+  check("an unmeasured part shows no-evidence, never 0/100",
+    /sb-na">No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
+  check("a measured part gets its bar and value",
+    /sb-fill[^>]*width:90%/.test(openDump) && /sb-val">90\/100/.test(openDump));
+  hl.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "click", stopPropagation() {} });
+  check("a second click closes the panel",
+    !/class="score-breakdown"/.test(collect(hl.shadowRoot).join("\n")));
+  // The keyboard path opens it too, for the same reason every other
+  // control here has one.
+  const kbCard = build(full);
+  kbCard.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "keydown", key: "Enter",
+      preventDefault() {}, stopPropagation() {} });
+  check("Enter opens the panel as well",
+    /class="score-breakdown"/.test(collect(kbCard.shadowRoot).join("\n")));
+  // And the whole thing speaks Swedish with the install.
+  const svScore = new Card();
+  svScore.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svScore.hass = { states: full, language: "sv-SE" };
+  svScore.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "click", stopPropagation() {} });
+  const svOpen = collect(svScore.shadowRoot).join("\n");
+  check("the panel is in Swedish too",
+    /Huset/.test(svOpen) && /Värmepumpen/.test(svOpen) &&
+    /Körningen/.test(svOpen) && /Inget underlag ännu/.test(svOpen),
+    (svOpen.match(/score-breakdown[\s\S]{0,500}/) || [""])[0]);
+  build(full); // back to English
+}
+
+// --- Scenario: reduced motion is honored (v4.2.0) ---------------------------
+{
+  reducedMotion.on = false;
+  const animated = collect(build(
+    mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n");
+  check("the zoom controls fade by default",
+    /transition: opacity 120ms/.test(animated));
+  reducedMotion.on = true;
+  const calm = collect(build(
+    mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n");
+  check("prefers-reduced-motion drops the fade",
+    !/transition: opacity 120ms/.test(calm));
+  reducedMotion.on = false;
+}
+
+// --- Scenario: localStorage keys carry the card's identity (v4.2.0) ---------
+//
+// Two cards can plot the same entities — different titles, different horizons
+// — and a series hidden on one must not vanish from the other.
+{
+  const a = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Upstairs" });
+  const b = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Downstairs", hours: 48 });
+  check("cards with different config identities get different keys",
+    a.legend.storageKey(a._config) !== b.legend.storageKey(b._config) &&
+    a.legend.storageKey(a._config).includes("Upstairs") &&
+    a.legend.storageKey(a._config).includes(DEFAULT_SPACE));
+  a.legend.onChipClick({ stopPropagation(){}, currentTarget: {
+    getAttribute: (k) => (k === "data-key" ? "outdoor" : null) } });
+  const bReloaded = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Downstairs", hours: 48 });
+  check("a toggle on one card does not leak into the other",
+    a.legend.hidden.outdoor === true && !bReloaded.legend.hidden.outdoor);
+
+  // A pre-v4.2.0 key (no identity suffix) still loads, so an upgrade keeps
+  // the user's saved toggles; writes then move to the new key.
+  const legacySpace = "sensor.legacy_space_heating_plan";
+  const legacyDhw = "sensor.legacy_dhw_heating_plan";
+  store[`heatpump-optimizer-card:${legacySpace}:${legacyDhw}`] =
+    JSON.stringify({ price: true });
+  const legacy = build(mkStates(legacySpace, legacyDhw, true),
+    { space_entity: legacySpace, dhw_entity: legacyDhw });
+  check("a legacy storage key is still honoured after the upgrade",
+    legacy.legend.hidden.price === true);
+}
+
+// --- Scenario: keyboard access to the plan slots (v4.2.0) -------------------
+// D4-02 (#257): the editor is the DIALOG's. On the compact tile the lanes
+// are a picture of the schedule -- a tap there opens the dialog -- so the
+// keyboard surface below is driven on the expanded chart, and the checks
+// that the tile offers no targets at all are just after it.
+{
+  const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const tileDump = collect(kb.shadowRoot).join("\n");
+  check("the compact tile draws the schedule but offers no slot targets",
+    /class="slot"/.test(tileDump) &&
+    !/<rect class="slot[^"]*"[^>]*tabindex/.test(tileDump) &&
+    !/class="slot-hit"/.test(tileDump),
+    tileDump.match(/<rect class="slot[^>]*>/) || "no slot drawn");
+  check("nor a focusable lane on the tile",
+    /class="lane"/.test(tileDump) &&
+    !/<rect class="lane"[^>]*tabindex/.test(tileDump),
+    (tileDump.match(/<rect class="lane"[^>]*>/) || [""])[0]);
+  kb.dialog.open();
+  const editSvg = () => {
+    const all = chartSvgs(kb.shadowRoot);
+    return all[all.length - 1];
+  };
+  const kbDump = collect(kb.shadowRoot).join("\n");
+  check("editable slots are focusable buttons with a spoken label",
+    /<rect class="slot-hit" [^>]*tabindex="0"/.test(kbDump) &&
+    /<rect class="slot-hit" [^>]*role="button"/.test(kbDump) &&
+    /Press Enter for actions/.test(kbDump));
+  check("the lanes are focusable add targets",
+    /<rect class="lane" [^>]*tabindex="0"/.test(kbDump) &&
+    /Press Enter to add a slot/.test(kbDump));
+  check("an svg with focusable children is not role=img",
+    /<svg viewBox="0 0 900[^>]*role="group"/.test(kbDump));
+
+  const svg = editSvg();
+  const slot = svg.querySelector(".slot-hit");
+  check("there is a slot to drive", !!slot && slot.dataset.index !== undefined);
+  const keydown = (target, key) => svg._listeners.keydown.forEach((f) =>
+    f({ key, target, preventDefault(){}, stopPropagation(){} }));
+
+  const kdBase = (docListeners.keydown || []).length;
+  keydown(slot, "Enter");
+  check("Enter on a slot opens the slot menu",
+    !!kb.lanes.menu && /slot/.test(kb.lanes.menu.innerHTML));
+  check("an open menu parks an Escape listener on the document",
+    (docListeners.keydown || []).length === kdBase + 1);
+  check("a keyboard-opened menu takes focus onto its button",
+    document.activeElement &&
+    document.activeElement.tagName === "BUTTON");
+  kb.lanes.menu._listeners.keydown.forEach((f) =>
+    f({ key: "Escape", stopPropagation(){} }));
+  check("Escape dismisses the menu", kb.lanes.menu === null);
+  check("and hands focus back to the slot it came from",
+    document.activeElement === editSvg().querySelector(".slot-hit") ||
+    (document.activeElement &&
+      document.activeElement.classList.contains &&
+      document.activeElement.classList.contains("slot-hit")));
+  check("closing the menu releases its document Escape listener",
+    (docListeners.keydown || []).length === kdBase);
+
+  const channel = slot.dataset.channel;
+  const before = (kb.manual.draft()[channel] || []).length;
+  keydown(slot, "Delete");
+  const after = (kb.manual.draft()[channel] || []).length;
+  check("Delete removes the focused slot", before > 0 && after === before - 1);
+  // The render that removed the slot destroyed the element holding focus;
+  // the card must not let it fall to document.body. The slot is gone, so
+  // its lane (or, failing that, the chart svg) is the logical successor.
+  const active = document.activeElement;
+  check("after Delete, focus lands on the lane or the chart, not the body",
+    !!active && active !== document.body &&
+    ((active.classList.contains("lane") &&
+      active.dataset.channel === channel) ||
+     active.tagName === "SVG"),
+    active && `${active.tagName} class=${active.className}`);
+
+  // A MOUSE-opened menu leaves focus on the chart, so the menu element
+  // itself never sees the keydown: Escape is caught at the document while
+  // the menu is open.
+  const freshSvg = editSvg();
+  const freshSlot = freshSvg.querySelector(".slot-hit");
+  const freshRuns = kb.manual.draft()[freshSlot.dataset.channel] || [];
+  const freshRun = freshRuns[Number(freshSlot.dataset.index)];
+  kb.lanes.openMenu(freshSlot.dataset.channel,
+    (freshRun.start + freshRun.end) / 2, 120, 300, freshSvg);
+  check("a mouse-opened menu does not steal focus",
+    !!kb.lanes.menu && document.activeElement !== kb.lanes.menu &&
+    (document.activeElement === null ||
+      document.activeElement.tagName !== "BUTTON"));
+  fireDocument("keydown",
+    { key: "Escape", stopPropagation(){}, preventDefault(){} });
+  check("Escape closes a mouse-opened menu via the document listener",
+    kb.lanes.menu === null);
+  check("the document Escape listener is removed with the menu",
+    (docListeners.keydown || []).length === kdBase);
+
+  const lane = editSvg().querySelector(".lane");
+  const laneChannel = lane.dataset.channel;
+  const laneBefore = (kb.manual.draft()[laneChannel] || []).length;
+  editSvg()._listeners.keydown.forEach((f) =>
+    f({ key: "Enter", target: lane, preventDefault(){}, stopPropagation(){} }));
+  check("Enter on a lane offers the menu there too", !!kb.lanes.menu);
+  // Acting on the menu re-renders; focus must follow to the fresh lane.
+  kb.lanes.menu._listeners.click.forEach((f) => f({
+    target: kb.lanes.menu.querySelector("button"), stopPropagation(){} }));
+  const laneActive = document.activeElement;
+  check("a menu action returns focus to the lane in the fresh DOM",
+    !!laneActive && laneActive !== document.body &&
+    ((laneActive.classList.contains("lane") &&
+      laneActive.dataset.channel === laneChannel) ||
+     laneActive.tagName === "SVG"),
+    laneActive && `${laneActive.tagName} class=${laneActive.className}`);
+}
+
+// --- Scenario: keyboard access to the setup page (v4.2.0) -------------------
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topo = {
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 500, is_store: true, max_temp: 70 },
+    wood: { present: false },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.livingroom"] = {
+    state: "21.0", attributes: { unit_of_measurement: "°C" } };
+  const su = build(states);
+  su._onCardClick({});
+  su.dialog.page = "setup";
+  su._render();
+  const page = collect(su.shadowRoot).join("\n");
+  check("setup rows are focusable buttons",
+    /setup-hit[^>]*[\s\S]{0,120}?tabindex="0"/.test(page) &&
+    /setup-hit[\s\S]{0,200}?role="button"/.test(page));
+  check("the setup diagram is a group, not a flattened image",
+    /setup-svg[\s\S]{0,200}?role="group"/.test(page));
+
+  const hit = su.shadowRoot.querySelector(".setup-hit");
+  hit._listeners.keydown.forEach((f) => f({ key: "Enter",
+    currentTarget: hit, preventDefault(){}, stopPropagation(){} }));
+  const picker = su.shadowRoot.querySelector(".setup-picker");
+  check("Enter on a setup row opens the entity picker", !!picker);
+  picker._listeners.keydown.forEach((f) =>
+    f({ key: "Escape", stopPropagation(){} }));
+  check("Escape closes the picker without assigning",
+    !su.shadowRoot.querySelector(".setup-picker") && su.setup.pickerKey === null);
+  // The close re-rendered the page, destroying the focused select; focus
+  // must come back to the row the picker was opened from, re-located by
+  // its data-key in the fresh DOM.
+  check("Escape returns focus to the setup row it came from",
+    !!document.activeElement &&
+    document.activeElement.classList.contains("setup-hit") &&
+    document.activeElement.dataset.key === "indoor_temp_entity",
+    document.activeElement &&
+      `${document.activeElement.tagName} class=${document.activeElement.className}`);
+}
+
+// --- Shared rig for the v5.1.4 setup-page scenarios (items A-F) -------------
+// One topology with every box kind the reports touch: an open outdoor node,
+// the heat-pump cabinet, a wood tank, a valve, two zones. Built here rather
+// than reusing the layout editor's rig above, which is scoped to its own
+// block and carries a catalog these scenarios have no use for.
+const SETUP_TEMP = ["sensor", "number", "input_number"];
+const setupTopo = (over) => ({
+  two_zone: true, dhw: false, valve_mode: "manual",
+  layout: "valve_upper_direct_slab", two_tank_modelled: false,
+  buffer: { volume_l: 500, is_store: true, max_temp: 65 },
+  wood: { present: true, volume_l: 750 },
+  edges: [
+    ["heat_pump", "buffer_tank"],
+    ["buffer_tank", "mixing_valve"],
+    ["mixing_valve", "upper_zone"],
+    ["mixing_valve", "lower_zone"],
+    ["wood_tank", "buffer_tank"],
+  ],
+  positions: {},
+  slots: [
+    { key: "indoor_temp_entity", label: "Indoor temperature",
+      place: "upper_zone", entity: "sensor.livingroom", domains: SETUP_TEMP },
+    { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: SETUP_TEMP },
+    { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+      place: "buffer_tank", entity: "sensor.tank", domains: SETUP_TEMP },
+    { key: "wood_tank_top_entity", label: "Wood tank top",
+      place: "wood_tank", entity: null, domains: SETUP_TEMP },
+    { key: "mixing_valve_target_entity", label: "Valve target",
+      place: "mixing_valve", entity: null, domains: SETUP_TEMP },
+    { key: "outdoor_temp_entity", label: "Outdoor temperature",
+      place: "outdoor", entity: "sensor.outside", domains: SETUP_TEMP },
+    { key: "heat_pump_switch_entity", label: "Heat pump switch",
+      place: "heat_pump", entity: null,
+      domains: ["switch", "input_boolean", "climate"] },
+  ],
+  ...(over || {}),
+});
+function mkSetup(over, extraStates) {
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = setupTopo(over);
+  states["sensor.livingroom"] = {
+    state: "21.3", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Living room" } };
+  states["sensor.tank"] = {
+    state: "47.5", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Buffer tank" } };
+  states["sensor.outside"] = {
+    state: "3.0", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Outside" } };
+  Object.assign(states, extraStates || {});
+  const c = build(states);
+  c._onCardClick({});
+  c.dialog.page = "setup";
+  c._render();
+  return c;
+}
+const setupPage = (over, extraStates) =>
+  collect(mkSetup(over, extraStates).shadowRoot).join("\n");
+const setupBox = (card, place) =>
+  (card.layoutEditor.boxes || []).find((b) => b.place === place);
+
+// --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
+// Two horizontal strokes used to sit in the cabinet's bottom-left band as
+// vents. From a step back they read as two stray lines in the corner of a
+// box rather than as louvres, so they were removed. Everything else the
+// silhouette is built from -- contour, fan shroud, blades, hub, header
+// divider -- stays, and this pins that the removal took the ink and nothing
+// around it.
+{
+  const X = 16, Y = 79, W = 200, H = 49;
+  const acc = vm
+    .runInContext(`NODE_SHAPES.hp.accents(${X}, ${Y}, ${W}, ${H})`, ctx)
+    .filter(Boolean);
+  check("the heat pump draws four accents, not six",
+    acc.length === 4, `${acc.length} accents: ${JSON.stringify(acc)}`);
+  const ds = acc.map((a) => a.d || "").join(" ");
+  check("the fan shroud, its blades, the hub and the divider all survive",
+    /A 8 8 0 1 1/.test(ds) &&
+    (ds.match(/A 5 5 0 0 1/g) || []).length === 3 &&
+    acc.some((a) => (a.cls || "").includes("hub") && a.r === 1.6) &&
+    acc.some((a) => (a.cls || "").includes("divider")),
+    ds);
+  // The louvres lived at y+h-7 and y+h-4.5, i.e. the band within 10 units of
+  // the cabinet floor. Numeric, not textual: any ink that lands there again
+  // fails this whether or not it is spelled the way the old pair was. `d`
+  // is read as "M/L x y" pairs, which is every point the accents place.
+  const floorBand = [];
+  for (const a of acc) {
+    for (const m of String(a.d || "").matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)) {
+      if (Number(m[2]) > Y + H - 10) floorBand.push(m[0]);
+    }
+    if (a.cy !== undefined && a.cy > Y + H - 10) floorBand.push(`circle@${a.cy}`);
+  }
+  check("nothing is drawn in the cabinet's floor band any more",
+    floorBand.length === 0,
+    `ink below y=${Y + H - 10}: ${floorBand.join(", ")}`);
+  // ...and the same holds once the box is actually drawn: the louvres would
+  // have rendered as `M 30 121 H 56 M 30 123.5 H 56` on this box.
+  const page = setupPage();
+  check("the drawn heat pump has no louvre strokes",
+    !/M 30 121 H 56/.test(page) && !/M 30 123\.5 H 56/.test(page) &&
+    !/H 56 M 30/.test(page));
+  check("but it does still have its fan",
+    /M 190 92 A 8 8 0 1 1 206 92/.test(page));
+}
+
+// --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.4) -----
+// `pipeDeco` used to draw an axis-aligned glyph in both branches: a
+// horizontal chevron for every cross-column pipe whatever its slope. Those
+// pipes are cubics whose ends usually differ in height, so on most of them
+// the arrow sat across the pipe at very nearly a right angle -- which is
+// what the reporter saw. The glyph is now built from the curve's own unit
+// tangent at its midpoint.
+//
+// Nothing below repeats the card's formula. The tangent is measured off the
+// ACTUAL drawn path by central difference, so a chevron that agreed with a
+// wrong derivation would still fail here.
+{
+  // Every pipe in the card's drawing, paired with the chevron on it.
+  //
+  // One asymmetry to respect: a cross-column pipe's cubic is written from
+  // source to target, so the path runs with the water. A same-column pipe
+  // is always written top to bottom whichever way the water goes, so its
+  // flow direction has to come from the edge's own place names.
+  const pipesOf = (card, html) => {
+    const page = html || collect(card.shadowRoot).join("\n");
+    const boxes = card.layoutEditor.boxes || [];
+    const boxOf = (place) => boxes.find((b) => b.place === place);
+    const re = new RegExp(
+      '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
+      'd="M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)\\s+(C|L)([^"]*)"\\s*/>' +
+      '\\s*(?:<circle[^>]*/>\\s*<circle[^>]*/>)?' +
+      '\\s*(?:<path class="setup-flow" d="M (-?[\\d.]+) (-?[\\d.]+) ' +
+      'L (-?[\\d.]+) (-?[\\d.]+) L (-?[\\d.]+) (-?[\\d.]+)"\\s*/>)?',
+      "g");
+    const out = [];
+    let m;
+    while ((m = re.exec(page)) !== null) {
+      const n = (v) => Number(v);
+      const rest = (m[6].match(/-?[\d.]+/g) || []).map(Number);
+      const cubic = m[5] === "C";
+      const p0 = [n(m[3]), n(m[4])];
+      const p1 = cubic ? [rest[0], rest[1]] : null;
+      const p2 = cubic ? [rest[2], rest[3]] : null;
+      const p3 = cubic ? [rest[4], rest[5]] : [rest[0], rest[1]];
+      const [srcPlace, dstPlace] = m[2].split(">");
+      const src = boxOf(srcPlace);
+      const dst = boxOf(dstPlace);
+      // True when the path was written against the water: only ever the
+      // same-column case, and only when the source box is the lower one.
+      const flipped = !cubic && !!src && !!dst && src.y > dst.y;
+      out.push({
+        edge: m[2], cls: m[1], cubic, p0, p1, p2, p3, flipped,
+        chevron: m[8] === undefined ? null : {
+          tail1: [n(m[7]), n(m[8])],
+          apex: [n(m[9]), n(m[10])],
+          tail2: [n(m[11]), n(m[12])],
+        },
+      });
+    }
+    return out;
+  };
+  // The drawn path at t (t running along the PATH), and its tangent there by
+  // central difference -- the curve's real direction, not a restatement of
+  // the card's algebra.
+  const at = (p, t) => {
+    if (!p.cubic) {
+      return [p.p0[0] + (p.p3[0] - p.p0[0]) * t,
+        p.p0[1] + (p.p3[1] - p.p0[1]) * t];
+    }
+    const u = 1 - t;
+    return [0, 1].map((i) =>
+      u * u * u * p.p0[i] + 3 * u * u * t * p.p1[i] +
+      3 * u * t * t * p.p2[i] + t * t * t * p.p3[i]);
+  };
+  // The direction the WATER moves at the pipe's midpoint.
+  const flowAtMid = (p) => {
+    const h = 1e-6;
+    const a = at(p, 0.5 - h);
+    const b = at(p, 0.5 + h);
+    const sign = p.flipped ? -1 : 1;
+    return [sign * (b[0] - a[0]) / (2 * h), sign * (b[1] - a[1]) / (2 * h)];
+  };
+  // How well the chevron's axis agrees with the flow there: +1 is "points
+  // exactly down the pipe", 0 "crosses it at a right angle", -1 "points
+  // back up it". This is the number the bug got wrong.
+  const report = (p) => {
+    const mid = at(p, 0.5);
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    const T = flowAtMid(p);
+    const dn = Math.hypot(d[0], d[1]);
+    const tn = Math.hypot(T[0], T[1]);
+    return {
+      mid, d, dn, T,
+      cos: (d[0] * T[0] + d[1] * T[1]) / (dn * tn),
+      // The chord midpoint, which is where the glyph is anchored. For this
+      // cubic the two coincide exactly -- the two 40-unit handles cancel --
+      // and that is worth pinning, because the anchoring assumes it.
+      chord: [(p.p0[0] + p.p3[0]) / 2, (p.p0[1] + p.p3[1]) / 2],
+    };
+  };
+  const near = (a, b, eps) => Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps);
+  const byEdge = (list, e) => list.find((p) => p.edge === e);
+
+  // The five orientations, each on a real pipe of a real drawing. Downhill,
+  // uphill and flat come from the default rig; a near-horizontal pipe is
+  // made by parking two boxes almost level; the two vertical directions
+  // need a same-column edge that is not the one into the mixing valve
+  // (which drops its chevron on purpose -- see (3)).
+  const rig = mkSetup();
+  const cross = pipesOf(rig);
+  const upCard = mkSetup({
+    edges: [["wood_tank", "heat_pump"], ["heat_pump", "buffer_tank"]] });
+  const downCard = mkSetup({
+    edges: [["heat_pump", "wood_tank"], ["heat_pump", "buffer_tank"]] });
+  const tiltCard = mkSetup({
+    edges: [["heat_pump", "buffer_tank"]],
+    positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+
+  const cases = [
+    ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
+    ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+    ["flat cross-column", byEdge(cross, "mixing_valve>upper_zone")],
+    ["near-horizontal cross-column",
+      byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
+    ["vertical, water flowing down",
+      byEdge(pipesOf(downCard), "heat_pump>wood_tank")],
+    ["vertical, water flowing up",
+      byEdge(pipesOf(upCard), "wood_tank>heat_pump")],
+  ];
+  // The set is only worth anything if the orientations really differ, so
+  // state each one's slope and insist the family covers the ground.
+  const slopes = [];
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) {
+      check(`${name}: the pipe is drawn with a chevron`, false,
+        p ? "pipe drawn without one" : "pipe not found");
+      continue;
+    }
+    const r = report(p);
+    const dy = r.T[1] / Math.hypot(r.T[0], r.T[1]);
+    slopes.push({ name, dy });
+    check(`${name}: the chevron points down the pipe, not across it`,
+      near(r.cos, 1, 1e-6) && near(r.dn, 2, 1e-3),
+      `flow direction (${r.T.map((v) => v.toFixed(2))}), ` +
+      `cos=${r.cos.toFixed(9)}, |apex-mid|=${r.dn.toFixed(4)}`);
+    check(`${name}: it is anchored on the pipe's own midpoint`,
+      near(r.mid[0], r.chord[0], 1e-6) && near(r.mid[1], r.chord[1], 1e-6),
+      `curve mid ${r.mid} vs chord mid ${r.chord}`);
+    // The tails straddle the axis 3 units back and 3 to each side, so the
+    // glyph is the same arrowhead as before -- just rotated into frame.
+    const tm = [(p.chevron.tail1[0] + p.chevron.tail2[0]) / 2,
+      (p.chevron.tail1[1] + p.chevron.tail2[1]) / 2];
+    const span = Math.hypot(p.chevron.tail1[0] - p.chevron.tail2[0],
+      p.chevron.tail1[1] - p.chevron.tail2[1]);
+    const reach = Math.hypot(tm[0] - p.chevron.apex[0],
+      tm[1] - p.chevron.apex[1]);
+    check(`${name}: the arrowhead keeps its 5-long, 6-wide proportions`,
+      near(reach, 5, 1e-3) && near(span, 6, 1e-3),
+      `apex-to-tailmid ${reach.toFixed(4)}, span ${span.toFixed(4)}`);
+    // ...and it is a chevron, not a spike: the two tails are on opposite
+    // sides of the axis.
+    const nrm = [-r.T[1], r.T[0]];
+    const side = (pt) => (pt[0] - r.mid[0]) * nrm[0] + (pt[1] - r.mid[1]) * nrm[1];
+    check(`${name}: its two tails sit on opposite sides of the axis`,
+      side(p.chevron.tail1) * side(p.chevron.tail2) < 0,
+      `${side(p.chevron.tail1).toFixed(3)} and ` +
+      `${side(p.chevron.tail2).toFixed(3)}`);
+  }
+  // Genuinely different orientations, not one orientation spelled six ways.
+  // `dy` here is the flow direction's vertical component once normalised:
+  // +1 straight down, -1 straight up, 0 dead level.
+  const vy = slopes.map((x) => x.dy);
+  const seen = (lo, hi) => vy.some((v) => v > lo && v < hi);
+  check("the six cases really are six different slopes",
+    slopes.length === 6 &&
+    vy.some((v) => near(v, 1, 1e-9)) &&   // straight down
+    vy.some((v) => near(v, -1, 1e-9)) &&  // straight up
+    vy.some((v) => near(v, 0, 1e-9)) &&   // dead level
+    seen(0.02, 0.5) &&                  // barely tilted
+    seen(0.5, 0.999) &&                 // steeply down, but not vertical
+    seen(-0.999, -0.5) &&               // steeply up, but not vertical
+    new Set(vy.map((v) => v.toFixed(4))).size === 6,
+    slopes.map((x) => `${x.name}=${x.dy.toFixed(4)}`).join("; "));
+
+  // (2) The bug itself. A horizontal glyph on a sloped pipe puts the apex on
+  //     the midpoint's own horizontal, and on the steepest pipe of the
+  //     drawing that is nearly 90 degrees away from the pipe.
+  const steep = byEdge(cross, "wood_tank>buffer_tank");
+  const steepR = report(steep);
+  const degrees = Math.acos(Math.max(-1, Math.min(1, steepR.cos))) * 180 / Math.PI;
+  // 0.05 degrees, not zero: the card rounds the glyph's coordinates to
+  // three decimals, which at a radius of 2 units is worth about 0.014
+  // degrees of slack. The bug being excluded is 87 degrees wide.
+  check("a steep pipe's chevron is no longer drawn horizontally",
+    !near(steepR.d[1], 0, 1e-3) && degrees < 0.05,
+    `dy=${(steep.p3[1] - steep.p0[1]).toFixed(1)}: apex is ` +
+    `${steepR.d[1].toFixed(3)} off the midpoint's horizontal and ` +
+    `${degrees.toFixed(6)} degrees off the tangent`);
+  // The old code wrote `M mx-3s my-3 L mx+2s my L mx-3s my+3`, apex on the
+  // midpoint's own y. Nowhere in the drawing now.
+  const axisAligned = cross.filter((p) =>
+    p.chevron && p.cubic &&
+    Math.abs(p.p3[1] - p.p0[1]) > 1 &&
+    near(p.chevron.apex[1], (p.p0[1] + p.p3[1]) / 2, 1e-3));
+  check("no sloped pipe carries an axis-aligned chevron any more",
+    axisAligned.length === 0, axisAligned.map((p) => p.edge).join(", "));
+
+  // (3) The two suppressions the fix had to preserve.
+  const intoValve = byEdge(cross, "buffer_tank>mixing_valve");
+  check("a same-column pipe into the mixing valve still keeps its chevron off",
+    !!intoValve && intoValve.chevron === null &&
+    intoValve.p0[0] === intoValve.p3[0],
+    intoValve ? JSON.stringify(intoValve.chevron) : "pipe not found");
+  // An invalid pipe is drawn to be rejected, and an arrow on it would
+  // endorse a connection the model refuses.
+  const ed = mkSetup();
+  ed.layoutEditor.edit = { active: true,
+    edges: setupTopo().edges.map((e) => e.slice()),
+    positions: {}, invalid: ["heat_pump>buffer_tank"], match: null,
+    drag: null, verdict: null };
+  ed.layoutEditor.refresh();
+  const canvas = ed.shadowRoot.querySelector(".setup-canvas");
+  const edited = pipesOf(ed, (canvas && canvas.innerHTML) || "");
+  const bad = edited.filter((p) => / invalid/.test(p.cls));
+  check("an invalid pipe still carries dots but no chevron",
+    bad.length === 1 && bad[0].edge === "heat_pump>buffer_tank" &&
+    bad[0].chevron === null &&
+    edited.some((p) => p.edge === "mixing_valve>lower_zone" && p.chevron),
+    `${bad.length} invalid pipes; chevrons ` +
+    bad.map((p) => JSON.stringify(p.chevron)).join(","));
+
+  // (4) Direction, stated the plain way: the apex is on the downstream side.
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) continue;
+    const mid = at(p, 0.5);
+    const far = p.flipped ? p.p0 : p.p3;
+    const toEnd = [far[0] - mid[0], far[1] - mid[1]];
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    check(`${name}: the apex is on the downstream side of the midpoint`,
+      d[0] * toEnd[0] + d[1] * toEnd[1] > 0,
+      `apex offset ${d.map((v) => v.toFixed(3))} vs travel ` +
+      `${toEnd.map((v) => v.toFixed(3))}`);
+  }
+}
+
+// --- Scenario: the boxes have room to breathe (item C, v5.1.4) -------------
+// Titles and slot rows started at x+10 and right-anchored values ended at
+// x+190, against contour walls at x+2 and x+w-2: eight viewBox units of
+// air, which at desktop width reads as text pressed against the wall it is
+// inside. `SETUP_PAD` is now 16, so the margin is 14 units on both sides.
+//
+// The point of the change is that NOTHING ELSE moved. Box width, the three
+// column abscissae, the viewBox and the row arithmetic that sets `b.h` are
+// all as shipped, which is why the drawing's only literal geometry pin
+// (`<rect class="setup-box" x="430" y="360"`, the moved-box test above)
+// still reads true and did not have to be rewritten.
+{
+  const card = mkSetup();
+  const page = collect(card.shadowRoot).join("\n");
+  const boxes = card.layoutEditor.boxes || [];
+  const PAD = 16;
+  const COLW = 200;
+
+  // (1) Nothing that was pinned moved.
+  check("the columns, the box width and the viewBox are untouched",
+    boxes.every((b) => b.w === COLW) &&
+    boxes.every((b) => [16, 260, 504].includes(b.x)) &&
+    /viewBox="0 0 720 \d+"/.test(page),
+    `widths ${[...new Set(boxes.map((b) => b.w))]}, ` +
+    `columns ${[...new Set(boxes.map((b) => b.x))].sort((a, c) => a - c)}, ` +
+    `viewBox ${(/viewBox="([^"]*)"/.exec(page) || [])[1]}`);
+  // b.h = 24 + (rows + caption lines) * 17 + 8, exactly as before: the line
+  // count drives the height, and neither the padding nor the caption
+  // wrapping that follows from it may change how many lines there are.
+  // Counted off the drawing, so a caption that started wrapping differently
+  // would show up here as a height that no longer matches its own content.
+  const topo = setupTopo();
+  const groups = page.split('<rect class="setup-box"').slice(1);
+  const perBox = groups.map((g) => {
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+      .exec(g);
+    return {
+      x: m && Number(m[1]), y: m && Number(m[2]),
+      w: m && Number(m[3]), h: m && Number(m[4]),
+      lines: (g.match(/<text class="setup-slot/g) || []).length,
+    };
+  });
+  const heightWrong = perBox.filter((b) => b.h !== 24 + b.lines * 17 + 8);
+  check("the row arithmetic that sets each box height is unchanged",
+    perBox.length === boxes.length && heightWrong.length === 0,
+    `${perBox.length} boxes; ` + perBox.map((b) =>
+      `${b.x},${b.y} h=${b.h} lines=${b.lines}`).join("; "));
+  check("the carrier rects are still written at the column abscissae",
+    /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
+    (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);
+
+  // (2) The padding itself, measured against the contour walls the boxes
+  //     are actually painted with (x+2 and x+w-2).
+  const titles = [...page.matchAll(/<text class="setup-title" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const labels = [...page.matchAll(/<text class="setup-slot[^"]*" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const values = [...page.matchAll(
+    /<tspan class="setup-value" x="([\d.]+)"/g)].map((m) => Number(m[1]));
+  const cols = [...new Set(boxes.map((b) => b.x))].sort((a, b) => a - b);
+  const leftGaps = [...new Set([...titles, ...labels])]
+    .map((x) => x - (cols.reduce((best, c) => (x - c >= 0 && x - c < x - best
+      ? c : best), -1e9) + 2));
+  const rightGaps = [...new Set(values)].map((x) => {
+    const c = cols.reduce((best, cc) => (x - cc >= 0 && x - cc < x - best
+      ? cc : best), -1e9);
+    return c + COLW - 2 - x;
+  });
+  check("every title and every row label clears the left wall by 14 units",
+    titles.length > 0 && labels.length > 0 &&
+    leftGaps.every((g) => g === 14),
+    `text at x ${[...new Set([...titles, ...labels])].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(leftGaps)]}`);
+  check("every right-anchored value clears the right wall by 14 units",
+    values.length > 0 && rightGaps.every((g) => g === 14),
+    `values anchored at ${[...new Set(values)].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(rightGaps)]}`);
+  // Both are a real widening, not a shuffle: main put text 8 units off the
+  // wall on both sides.
+  check("that is a widening on both sides, not a shift",
+    leftGaps.every((g) => g > 8) && rightGaps.every((g) => g > 8) &&
+    leftGaps.every((g) => g <= 16) && rightGaps.every((g) => g <= 16));
+  // The rule under a title starts where the title starts, or it reads as a
+  // second, contradictory margin.
+  const dividers = [...page.matchAll(
+    /<path class="setup-accent divider" d="M ([\d.]+) [\d.]+ L ([\d.]+)/g)];
+  check("the header rules start on the title's own left margin",
+    dividers.length > 0 &&
+    dividers.every((m) => cols.includes(Number(m[1]) - PAD)),
+    dividers.map((m) => `${m[1]}->${m[2]}`).join(", "));
+
+  // (3) The hit targets still cover the rows they belong to. A row that
+  //     stops responding to the pointer is a worse regression than cramped
+  //     text, so this is checked per row rather than in aggregate.
+  const pairs = [...page.matchAll(new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="([\\d.]+)">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="([^"]+)"[^>]*?' +
+    'x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)"\\s*height="([\\d.]+)"',
+    "g"))].map((m) => ({
+      labelX: Number(m[1]), baseline: Number(m[2]), label: m[3],
+      valueX: Number(m[4]), value: m[5], key: m[6],
+      x: Number(m[7]), y: Number(m[8]), w: Number(m[9]), h: Number(m[10]),
+    }));
+  check("every slot row is matched with its own hit rect",
+    pairs.length === topo.slots.length,
+    `${pairs.length} of ${topo.slots.length}`);
+  // 12px text: the cap line sits about 8.7 units above the baseline and the
+  // descenders about 2.6 below, so a rect that spans that band covers every
+  // glyph in the row as well as the gap between label and value.
+  const uncovered = pairs.filter((r) =>
+    !(r.x <= r.labelX && r.x + r.w >= r.valueX &&
+      r.y <= r.baseline - 9 && r.y + r.h >= r.baseline + 3));
+  check("and every hit rect covers its row's text from label to value",
+    uncovered.length === 0,
+    uncovered.map((r) =>
+      `${r.key}: rect x${r.x}..${r.x + r.w} y${r.y}..${r.y + r.h} ` +
+      `vs text x${r.labelX}..${r.valueX} baseline ${r.baseline}`).join("; "));
+  // The rects are inset inside their box and off their neighbours, so the
+  // focus ring drawn on them (item F) has all four sides on screen.
+  const boxOf = (r) => boxes.find((b) => b.x + 4 === r.x);
+  check("the hit rects sit inside the box, clear of the contour",
+    pairs.every((r) => {
+      const b = boxOf(r);
+      return b && r.x > b.x + 2 && r.x + r.w < b.x + COLW - 2;
+    }),
+    pairs.map((r) => `${r.key} x${r.x}+${r.w}`).join("; "));
+  const sameBox = {};
+  for (const r of pairs) (sameBox[r.x] ||= []).push(r);
+  const touching = [];
+  for (const list of Object.values(sameBox)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h);
+      if (gap < 1) touching.push(`${sorted[i - 1].key}/${sorted[i].key}=${gap}`);
+    }
+  }
+  check("and neighbouring rows do not touch, so neither do their rings",
+    touching.length === 0, touching.join(", "));
+
+  // (4) The outdoor node is explicitly out of scope: the owner has seen the
+  //     open composition -- no walls, a tray baseline the rows hang over, a
+  //     cloud in the header's right corner -- and wants it as shipped. These
+  //     are the two paths origin/main draws for it at column 0, verbatim.
+  //     Only the text inside moved, and only by the padding above.
+  const cloudInk = [...page.matchAll(
+    /<path class="setup-contour[^"]*"\s+d="([^"]*)"/g)]
+    .map((m) => m[1].replace(/\s+/g, " ").trim());
+  check("the outdoor node's tray and cloud are exactly as shipped",
+    cloudInk.includes("M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57") &&
+    cloudInk.includes("M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 " +
+      "22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z"),
+    cloudInk.slice(0, 3).join(" | "));
+  // ...and it is still an OPEN composition: no header rule, no side walls,
+  // no closing Z on the tray.
+  const outdoorBox = boxes.find((b) => b.place === "outdoor");
+  const outdoorGroup = page.slice(
+    page.indexOf("kind-outdoor"),
+    page.indexOf("<g", page.indexOf("kind-outdoor")));
+  check("the outdoor node still has no walls and no header rule",
+    !!outdoorBox && outdoorBox.x === 16 && outdoorBox.y === 16 &&
+    !/setup-accent divider/.test(outdoorGroup) &&
+    !/\bZ"/.test((/kind-outdoor"\s+d="([^"]*)"/.exec(page) || ["", ""])[1]),
+    outdoorGroup.slice(0, 160).replace(/\s+/g, " "));
+}
+
+// --- Scenario: the solar row's label and value never collide (item D) -------
+// With no radiation probe the plan still has irradiance -- from Open-Meteo
+// or from the weather forecast -- and the row says so: "123 W/m² ·
+// Open-Meteo", right-anchored in the same 200-unit row as its label. The
+// old rule sized the label by COUNTING CHARACTERS of the value ("longer
+// than 10 characters, allow the label 15"), which prices an "i" and a "W"
+// alike and never looked at the value's rendered width at all. On the
+// reporter's install the two strings ran through each other.
+//
+// Both strings are measured now. The value is priced first, the label gets
+// what is left, and only the LABEL is ever ellipsized -- when the label
+// would be squeezed below legibility the VALUE gives up its provenance tag
+// instead, never a digit of the reading.
+{
+  const INNER = vm.runInContext("SETUP_COL_W - 2 * SETUP_PAD", ctx);
+  const GAP = vm.runInContext("SETUP_ROW_GAP", ctx);
+  const MINLABEL = vm.runInContext("SETUP_MIN_LABEL_W", ctx);
+  const w = (s, bold) =>
+    vm.runInContext(`setupTextW(${JSON.stringify(s)}, 12, ${!!bold})`, ctx);
+  const fit = (label, alts) => vm.runInContext(
+    `fitSlotRow(${JSON.stringify(label)}, ${JSON.stringify(alts)}, ` +
+    `${INNER}, 12)`, ctx);
+  // Every spelling of the fallback the card can actually produce, at both
+  // ends of the reading's length, in both languages, plus the ordinary
+  // rows it shares the drawing with.
+  const cases = [
+    ["Solar radiation", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["123 W/m² · Open-Meteo", "123 W/m²"]],
+    ["Solar radiation", ["0 W/m² · Open-Meteo", "0 W/m²"]],
+    ["Solar radiation", ["123 W/m² · weather forecast", "123 W/m²"]],
+    ["Solar radiation", ["1000 W/m² · weather forecast", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · väderprognos", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["(not configured)"]],
+    ["Outdoor temperature", ["unavailable"]],
+    ["Lower floor temperature", ["21.3 °C"]],
+    ["Buffer tank temperature", ["47.5 °C"]],
+    ["Valve target", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Hot water temperature",
+      ["a sensor whose state is a whole sentence about the weather"]],
+  ];
+  const collisions = [];
+  const cutReadings = [];
+  const rows = [];
+  for (const [label, alts] of cases) {
+    const f = fit(label, alts);
+    const lw = w(f.label, false);
+    const vw = w(f.value, true);
+    rows.push(`${JSON.stringify(label)} + ${JSON.stringify(alts[0])} -> ` +
+      `${lw.toFixed(1)}+${vw.toFixed(1)}=${(lw + vw).toFixed(1)}/${INNER}`);
+    if (lw + vw + GAP > INNER + 1e-9) {
+      collisions.push(`${label} | ${f.label} + ${f.value} = ` +
+        `${(lw + vw).toFixed(2)} > ${INNER - GAP}`);
+    }
+    // The reading itself is never cut. Whatever spelling the row settles
+    // on must still open with the same number the longest one did.
+    const num = /^[\d.]+/.exec(alts[0]);
+    if (num && !f.value.startsWith(num[0])) {
+      cutReadings.push(`${alts[0]} -> ${f.value}`);
+    }
+  }
+  check("no slot row's label and value can overlap, at any real length",
+    collisions.length === 0, collisions.join("; ") || rows.join("\n    "));
+  check("and the reading itself is never what gets cut",
+    cutReadings.length === 0, cutReadings.join("; "));
+
+  // The specific report: the longest fallback the card can write, beside
+  // the label it shares its row with.
+  const worst = fit("Solar radiation",
+    ["1000 W/m² · weather forecast", "1000 W/m²"]);
+  const worstL = w(worst.label, false);
+  const worstV = w(worst.value, true);
+  check("the longest real solar value leaves the label whole and legible",
+    worst.label === "Solar radiation" && worstL >= MINLABEL &&
+    worst.value === "1000 W/m²" && worst.shortened === true &&
+    worstL + worstV + GAP <= INNER,
+    `label ${JSON.stringify(worst.label)} (${worstL.toFixed(2)}u, minimum ` +
+    `${MINLABEL}) + value ${JSON.stringify(worst.value)} ` +
+    `(${worstV.toFixed(2)}u) = ${(worstL + worstV).toFixed(2)}u of ` +
+    `${INNER}, ${(INNER - worstL - worstV).toFixed(2)}u to spare`);
+  // ...and the tag it dropped is still reachable, so nothing is lost.
+  check("the dropped provenance tag is kept for the tooltip",
+    worst.full === "1000 W/m² · weather forecast", worst.full);
+
+  // The old rule, priced with the same metrics, on the same strings: this
+  // is the collision the owner reported, in viewBox units. The old row was
+  // 180 units wide (x+10 to x+190).
+  const oldRow = (label, value) => {
+    const room = value.length > 10 ? 15 : 19;
+    const lab = label.length > room ? label.slice(0, room - 1) + "…" : label;
+    return w(lab, false) + w(value, true) - 180;
+  };
+  const oldOverlaps = [
+    ["Solar radiation", "1000 W/m² · Open-Meteo"],
+    ["Solar radiation", "123 W/m² · Open-Meteo"],
+    ["Solar radiation", "1000 W/m² · weather forecast"],
+    ["Solinstrålning", "1000 W/m² · väderprognos"],
+  ].map(([l, v]) => `${JSON.stringify(v)} overran by ` +
+    `${oldRow(l, v).toFixed(2)}u`);
+  check("the rule this replaced really did overlap on these very strings",
+    oldRow("Solar radiation", "1000 W/m² · Open-Meteo") > 40 &&
+    oldRow("Solar radiation", "123 W/m² · Open-Meteo") > 30 &&
+    oldRow("Solar radiation", "1000 W/m² · weather forecast") > 60 &&
+    oldRow("Solinstrålning", "1000 W/m² · väderprognos") > 40,
+    oldOverlaps.join("; "));
+
+  // A short label keeps a long value whole: the label only ever asks for
+  // the room it actually needs, so the tag is not dropped out of habit.
+  // (At 138.65u the tag is a near thing -- "Sun" reserves 21.6u and the row
+  // has 138.4u to give -- which is exactly why this is measured and not
+  // counted.)
+  const roomy = fit("Sun", ["0 W/m² · Open-Meteo", "0 W/m²"]);
+  check("a short label lets the value keep its source tag",
+    roomy.label === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
+    roomy.shortened === false &&
+    w(roomy.label, false) + w(roomy.value, true) + GAP <= INNER,
+    `${JSON.stringify(roomy.label)} + ${JSON.stringify(roomy.value)} = ` +
+    `${(w(roomy.label, false) + w(roomy.value, true)).toFixed(2)}u`);
+  // The invariant behind that: a shorter label never costs the value room.
+  const alts = ["123 W/m² · Open-Meteo", "123 W/m²"];
+  const short = fit("Sun", alts);
+  const long = fit("Solar radiation", alts);
+  check("a shorter label never buys the value less room",
+    w(short.value, true) >= w(long.value, true),
+    `"Sun" keeps ${JSON.stringify(short.value)}, ` +
+    `"Solar radiation" keeps ${JSON.stringify(long.value)}`);
+  // An ellipsis is only ever spent when it buys something, and it never
+  // leaves a dangling separator behind it.
+  check("a label that fits is left exactly alone",
+    fit("Valve target", ["21.3 °C"]).label === "Valve target" &&
+    !/[\s·-]…$/.test(fit("Lower floor temperature", ["21.3 °C"]).label),
+    fit("Lower floor temperature", ["21.3 °C"]).label);
+
+  // ...and the whole thing again on the real drawing, which is where the
+  // report came from: a solar slot with no probe, falling back to
+  // Open-Meteo, rendered beside its label.
+  const solarTopo = setupTopo();
+  solarTopo.slots = solarTopo.slots.concat([{
+    key: "solar_radiation_entity", label: "Solar radiation",
+    place: "outdoor", entity: null, domains: SETUP_TEMP }]);
+  // The harness already publishes an Open-Meteo irradiance sensor; drive it
+  // to the widest reading the fallback can ever print.
+  const solarStates = {};
+  solarStates[SOLAR_ID] = {
+    state: "1000",
+    attributes: { forecast: solarForecast, source: "open_meteo",
+      friendly_name: "Solar Irradiance", plan_kind: "solar",
+      unit_of_measurement: "W/m²" },
+  };
+  const page = setupPage(solarTopo, solarStates);
+  const row = new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="[\\d.]+">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="solar_radiation_entity"[^>]*' +
+    'aria-label="([^"]*)"').exec(page);
+  check("the drawing really does fall back to Open-Meteo for irradiance",
+    !!row && /W\/m²/.test(row[4]), row ? row[4] : "no solar row drawn");
+  if (row) {
+    const labelX = Number(row[1]);
+    const valueEnd = Number(row[3]);
+    const lw = w(row[2], false);
+    const vw = w(row[4], true);
+    check("on the page, the solar label ends before its value begins",
+      labelX + lw <= valueEnd - vw,
+      `label ${JSON.stringify(row[2])} runs x${labelX}..` +
+      `${(labelX + lw).toFixed(2)}; value ${JSON.stringify(row[4])} runs ` +
+      `x${(valueEnd - vw).toFixed(2)}..${valueEnd}; ` +
+      `${(valueEnd - vw - labelX - lw).toFixed(2)}u between them`);
+    check("the label is the whole label, not a truncation",
+      row[2] === "Solar radiation", row[2]);
+    // Nothing is lost by shortening: the row's accessible name and tooltip
+    // still carry the reading with its provenance.
+    check("and the row still says where the number came from, out loud",
+      /1000 W\/m² · Open-Meteo/.test(row[5]) && row[4] === "1000 W/m²",
+      `drawn ${JSON.stringify(row[4])}, spoken ${JSON.stringify(row[5])}`);
+  }
+}
+
+// --- Scenario: the entity picker stops destroying assignments (item E) ------
+// Three faults, and the first two combined into a data-loss bug rather than
+// an inconvenience:
+//
+//  - The slot's own entity was offered only if it happened to fall inside
+//    the candidate list. When it did not, the `<select>` fell back to
+//    "(not configured)" -- so a configured slot was SHOWN as empty, and
+//    pressing Assign wrote that emptiness and reloaded the integration.
+//  - PICKER_MAX_OPTIONS truncated the alphabetical candidate list, so on a
+//    large install the user's own probe was simply not in the list, with no
+//    way to reach it. That is the case above, on every install big enough.
+//  - Options were friendly names only. The reporter's two wood-tank probes
+//    are both called "Vedpanna temperatur"; one of them is silently
+//    `..._2`. A list of identical labels is a list nobody can choose from.
+{
+  const MAX = vm.runInContext("PICKER_MAX_OPTIONS", ctx);
+  // Parse a rendered picker into something to assert against.
+  const pickerOf = (card) => {
+    const page = collect(card.shadowRoot).join("\n");
+    const html = (/<div class="setup-picker">[\s\S]*?<\/div>\s*$/m
+      .exec(page) || [page])[0];
+    const options = [...page.matchAll(
+      /<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+      .map((m) => ({ value: m[1], selected: !!m[2], text: m[3] }));
+    const note = (/<div class="sp-note">([^<]*)<\/div>/.exec(page) || [])[1];
+    return { html, options, note,
+      selected: options.filter((o) => o.selected) };
+  };
+  const openPicker = (card, key, viaKeyboard) => {
+    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+      .find((h) => h.dataset.key === key);
+    if (!hit) return null;
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+    return card.shadowRoot.querySelector(".setup-picker");
+  };
+  const clickBtn = async (card, sel) => {
+    const b = card.shadowRoot.querySelector(sel);
+    if (!b) return;
+    await Promise.all((b._listeners.click || [])
+      .map((f) => f({ stopPropagation() {}, preventDefault() {} })));
+  };
+  const typeFilter = (card, text) => {
+    const box = card.shadowRoot.querySelector(".sp-filter");
+    box.value = text;
+    (box._listeners.input || []).forEach((f) =>
+      f({ currentTarget: box, target: box }));
+  };
+  const chooseInSelect = (card, value) => {
+    const sel = card.shadowRoot.querySelector(".sp-select");
+    sel.value = value;
+    (sel._listeners.change || []).forEach((f) =>
+      f({ currentTarget: sel, target: sel }));
+  };
+
+  // A big install: 400 sensors whose names give nothing away, plus the two
+  // wood-tank probes the report is actually about -- identical friendly
+  // names, distinguishable only by their ids.
+  const bigStates = {};
+  for (let i = 0; i < 400; i++) {
+    bigStates[`sensor.zz_probe_${String(i).padStart(3, "0")}`] = {
+      state: "20.0",
+      attributes: { unit_of_measurement: "°C",
+        friendly_name: `Probe ${String(i).padStart(3, "0")}` },
+    };
+  }
+  bigStates["sensor.vedpanna_temperatur_temperature"] = {
+    state: "71.2", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+  bigStates["sensor.vedpanna_temperatur_temperature_2"] = {
+    state: "48.9", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+
+  // (a) A slot that HAS an entity shows it, and shows it selected -- even
+  //     when the install is far too big for it to survive the render cap.
+  const assignedTopo = setupTopo();
+  assignedTopo.slots = assignedTopo.slots.map((s) =>
+    s.key === "wood_tank_top_entity"
+      ? { ...s, entity: "sensor.vedpanna_temperatur_temperature_2" }
+      : s);
+  const big = mkSetup(assignedTopo, bigStates);
+  openPicker(big, "wood_tank_top_entity");
+  const p1 = pickerOf(big);
+  const mine = p1.options.find((o) =>
+    o.value === "sensor.vedpanna_temperatur_temperature_2");
+  check("a slot's own entity is offered even on an install past the cap",
+    !!mine, `${p1.options.length} options rendered, cap ${MAX}`);
+  check("and it is the option the picker comes up on",
+    !!mine && mine.selected && p1.selected.length === 1 &&
+    p1.selected[0].value === "sensor.vedpanna_temperatur_temperature_2",
+    `selected: ${JSON.stringify(p1.selected)}`);
+  check("so the placeholder is NOT what a configured slot shows",
+    !p1.options.some((o) => o.value === "" && o.selected),
+    JSON.stringify(p1.options.filter((o) => o.value === "")));
+  // The bug's payload: pressing Assign on an untouched picker must not
+  // write a clearance. It writes the entity that is already there, if it
+  // writes anything at all.
+  const calls = [];
+  big._hass.callService = async (d, s2, data) => { calls.push([d, s2, data]); };
+  await clickBtn(big, ".sp-save");
+  check("Assign on an untouched configured slot never clears it",
+    calls.length === 1 &&
+    calls[0][2].entity_id === "sensor.vedpanna_temperatur_temperature_2",
+    JSON.stringify(calls));
+
+  // ...and every option carries its entity id, because the two probes this
+  // report is about are indistinguishable without it.
+  const twins = p1.options.filter((o) => /vedpanna/.test(o.value));
+  check("every option shows its entity id next to the friendly name",
+    p1.options.filter((o) => o.value).every((o) => o.text.includes(o.value)),
+    p1.options.filter((o) => o.value && !o.text.includes(o.value))
+      .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
+  check("so the two identically-named wood-tank probes are tellable apart",
+    twins.length === 2 && twins[0].text !== twins[1].text &&
+    twins.every((o) => /Vedpanna temperatur/.test(o.text)),
+    twins.map((o) => o.text).join(" | "));
+
+  // (b) Filtering. The cap is a RENDER bound applied after the filter, so
+  //     anything on the install is reachable by typing, and the footnote
+  //     says so while the list is standing on more than it shows.
+  const fresh = mkSetup(setupTopo(), bigStates);
+  openPicker(fresh, "wood_tank_top_entity");
+  const p2 = pickerOf(fresh);
+  const listed = p2.options.filter((o) => o.value).length;
+  check("a big install's list is capped rather than built in full",
+    listed === MAX, `${listed} options for 400+ candidates, cap ${MAX}`);
+  check("and the footnote says what it is standing on",
+    /showing 200 of 40\d/i.test(p2.note || "") ||
+    /200 of 40\d/.test(p2.note || ""),
+    p2.note);
+  // The probe the reporter could not reach: past the cap alphabetically,
+  // and found by typing part of its name.
+  const reachable = (q) => {
+    typeFilter(fresh, q);
+    const opts = [...fresh.shadowRoot.querySelector(".sp-select").innerHTML
+      .matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+    return opts;
+  };
+  const byName = reachable("vedpanna");
+  check("typing part of a friendly name reaches an entity past the cap",
+    byName.includes("sensor.vedpanna_temperatur_temperature") &&
+    byName.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byName.length} options: ${byName.slice(0, 4).join(", ")}`);
+  const byId = reachable("TEMPERATURE_2");
+  check("and typing part of an entity id does too, case-insensitively",
+    byId.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byId.length} options: ${byId.slice(0, 4).join(", ")}`);
+  const deep = reachable("probe 387");
+  check("an entity 387 places down the alphabet is one search away",
+    deep.includes("sensor.zz_probe_387"),
+    `${deep.length} options: ${deep.slice(0, 4).join(", ")}`);
+  // A filter that matches nothing says so rather than showing an empty box.
+  typeFilter(fresh, "no such sensor anywhere");
+  const emptyNote = fresh.shadowRoot.querySelector(".sp-note");
+  check("a filter that matches nothing says so",
+    /nothing matches/i.test(emptyNote.textContent || ""),
+    emptyNote.textContent);
+  // Narrowing below the cap drops the truncation notice.
+  typeFilter(fresh, "vedpanna");
+  check("and once the list fits, the footnote stops warning about the cap",
+    !/\bof 40\d/.test(
+      fresh.shadowRoot.querySelector(".sp-note").textContent || ""),
+    fresh.shadowRoot.querySelector(".sp-note").textContent);
+
+  // (c) A clearing Assign is confirmed, the way the what-if save is.
+  const clearing = mkSetup(assignedTopo, bigStates);
+  const clearCalls = [];
+  clearing._hass.callService = async (d, s2, data) => {
+    clearCalls.push([d, s2, data]);
+  };
+  openPicker(clearing, "wood_tank_top_entity");
+  chooseInSelect(clearing, "");
+  await clickBtn(clearing, ".sp-save");
+  const saveBtn = clearing.shadowRoot.querySelector(".sp-save");
+  check("choosing (not configured) does not clear the slot on one click",
+    clearCalls.length === 0 && clearing.setup.pendingClear === true,
+    JSON.stringify(clearCalls));
+  check("the button says what the second click will do",
+    /confirm/i.test(saveBtn.textContent || "") &&
+    saveBtn.classList.contains("confirm"),
+    `${JSON.stringify(saveBtn.textContent)} ` +
+    `class=${saveBtn.className}`);
+  check("and the warning names the entity that would be lost",
+    /vedpanna_temperatur_temperature_2/.test(clearing.setup.note || ""),
+    clearing.setup.note);
+  await clickBtn(clearing, ".sp-save");
+  check("a second, deliberate click does clear it",
+    clearCalls.length === 1 && clearCalls[0][1] === "assign_entity" &&
+    clearCalls[0][2].entity_id === "" &&
+    clearCalls[0][2].key === "wood_tank_top_entity",
+    JSON.stringify(clearCalls));
+  // Clearing a slot that was already empty is not destructive and is not
+  // made to feel like it.
+  const emptySlot = mkSetup(setupTopo(), bigStates);
+  const emptyCalls = [];
+  emptySlot._hass.callService = async (d, s2, data) => {
+    emptyCalls.push([d, s2, data]);
+  };
+  openPicker(emptySlot, "wood_tank_top_entity");
+  chooseInSelect(emptySlot, "");
+  await clickBtn(emptySlot, ".sp-save");
+  check("an empty slot does not demand confirmation to stay empty",
+    emptyCalls.length === 1 && emptyCalls[0][2].entity_id === "",
+    JSON.stringify(emptyCalls));
+  // Changing your mind disarms it, so the armed state cannot be inherited
+  // by a different answer.
+  const rearm = mkSetup(assignedTopo, bigStates);
+  rearm._hass.callService = async () => {};
+  openPicker(rearm, "wood_tank_top_entity");
+  chooseInSelect(rearm, "");
+  await clickBtn(rearm, ".sp-save");
+  chooseInSelect(rearm, "sensor.vedpanna_temperatur_temperature");
+  check("picking something else disarms the clear",
+    rearm.setup.pendingClear === false &&
+    !rearm.shadowRoot.querySelector(".sp-save").classList.contains("confirm"),
+    `pendingClear=${rearm.setup.pendingClear}`);
+  // Leaving the picker drops the arming with it.
+  const leave = mkSetup(assignedTopo, bigStates);
+  leave._hass.callService = async () => {};
+  openPicker(leave, "wood_tank_top_entity");
+  chooseInSelect(leave, "");
+  await clickBtn(leave, ".sp-save");
+  await clickBtn(leave, ".sp-cancel");
+  check("and cancelling out of the picker disarms it too",
+    leave.setup.pendingClear === false && leave.setup.pickerKey === null &&
+    leave.setup.pickerFilter === "" && leave.setup.pickerChoice === null,
+    `pendingClear=${leave.setup.pendingClear} key=${leave.setup.pickerKey} ` +
+    `filter=${JSON.stringify(leave.setup.pickerFilter)}`);
+
+  // Keyboard access has to survive all of that.
+  const kb = mkSetup(assignedTopo, bigStates);
+  check("Enter on a row still opens the picker",
+    !!openPicker(kb, "wood_tank_top_entity", true));
+  const kbPicker = kb.shadowRoot.querySelector(".setup-picker");
+  (kbPicker._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape still closes it without assigning",
+    !kb.shadowRoot.querySelector(".setup-picker") && kb.setup.pickerKey === null);
+  check("and still hands focus back to the row it came from",
+    !!document.activeElement &&
+    document.activeElement.classList.contains("setup-hit") &&
+    document.activeElement.dataset.key === "wood_tank_top_entity",
+    document.activeElement && document.activeElement.className);
+  // The filter is a labelled control, not an unexplained box.
+  const kb2 = mkSetup(assignedTopo, bigStates);
+  openPicker(kb2, "wood_tank_top_entity", true);
+  const filterBox = kb2.shadowRoot.querySelector(".sp-filter");
+  check("the filter box says out loud what it filters",
+    !!filterBox && /wood tank top/i.test(filterBox["aria-label"] || "") &&
+    !!filterBox.placeholder,
+    filterBox && `${filterBox["aria-label"]} / ${filterBox.placeholder}`);
+}
+
+// --- Scenario: no focus ring is left behind by a mouse (item F) -------------
+// Click a sensor field, click Cancel, click elsewhere: "a thin blue line
+// remains at the left and above the sensor field". The rows have been
+// focusable buttons since v4.2.0, and Cancel handed focus back to the row
+// whether or not the person wanted it there -- so a mouse user was left
+// holding focus on a field they had just backed out of, ringed by an
+// `outline` that the row's own geometry clipped down to two edges.
+//
+// Fixed by keeping the ring (keyboard users need it) and fixing everything
+// around it: focus goes back to the row only when the keyboard sent it
+// there, any pointer gesture off a row drops it, and the ring is stroked
+// onto the rect -- part of the drawing, so nothing can clip it -- inside a
+// rect inset far enough for all four sides to show.
+{
+  const hitFor = (card, key) => card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === key);
+  const openBy = (card, key, viaKeyboard) => {
+    const hit = hitFor(card, key);
+    // A real pointer press focuses what it presses; the keyboard path
+    // arrives on an already-focused row.
+    hit.focus();
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+  };
+  const cancel = (card) => {
+    const b = card.shadowRoot.querySelector(".sp-cancel");
+    (b._listeners.click || []).forEach((f) =>
+      f({ stopPropagation() {}, preventDefault() {} }));
+  };
+  const focusedRow = () => {
+    const a = document.activeElement;
+    return a && a.classList && a.classList.contains("setup-hit")
+      ? a.dataset.key : null;
+  };
+  // A pointer press somewhere in the dialog that is not a row. The card
+  // parks the listener on the dialog, which is the root `_attachSetupEvents`
+  // is handed.
+  const clickElsewhere = (card, target) => {
+    const dlg = card.shadowRoot.querySelector("dialog");
+    ((dlg && dlg._listeners.pointerdown) || []).forEach((f) =>
+      f({ target: target || new Node("div") }));
+  };
+
+  // The reported sequence, with a mouse throughout.
+  const mouse = mkSetup();
+  openBy(mouse, "indoor_temp_entity", false);
+  check("a mouse click on a row opens the picker",
+    !!mouse.shadowRoot.querySelector(".setup-picker"));
+  cancel(mouse);
+  check("Cancel does not hand the row back to a mouse user",
+    focusedRow() === null,
+    `focus is on ${focusedRow() || (document.activeElement || {}).tagName}`);
+  // Put focus back on the row by hand first, so this is a real test of the
+  // click and not of the line above it.
+  hitFor(mouse, "indoor_temp_entity").focus();
+  clickElsewhere(mouse);
+  check("and clicking elsewhere afterwards leaves no row focused",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+  // The listener that does it is parked once per render, not once per
+  // render since the dialog opened.
+  const before = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  mouse._sig = null;
+  mouse._maybeRender(true);
+  const after = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  check("and re-rendering does not stack another copy of it",
+    after === before, `${before} listeners before a re-render, ${after} after`);
+
+  // The keyboard path is the one the ring exists for, and it is unchanged.
+  const keys = mkSetup();
+  openBy(keys, "indoor_temp_entity", true);
+  check("Enter on a row opens the picker",
+    !!keys.shadowRoot.querySelector(".setup-picker"));
+  cancel(keys);
+  check("Cancel does return the row to a keyboard user",
+    focusedRow() === "indoor_temp_entity",
+    `focus is on ${focusedRow()}`);
+  // ...and Escape, the other way out, still does the same.
+  const esc = mkSetup();
+  openBy(esc, "buffer_tank_temp_entity", true);
+  const pk = esc.shadowRoot.querySelector(".setup-picker");
+  (pk._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape returns it too",
+    focusedRow() === "buffer_tank_temp_entity", `focus is on ${focusedRow()}`);
+  // A row a keyboard user is deliberately sitting on is not stolen from
+  // them by an unrelated pointer gesture on that same row.
+  const kept = mkSetup();
+  hitFor(kept, "indoor_temp_entity").focus();
+  clickElsewhere(kept, hitFor(kept, "indoor_temp_entity"));
+  check("a pointer press on the row itself does not drop its focus",
+    focusedRow() === "indoor_temp_entity", `focus is on ${focusedRow()}`);
+  clickElsewhere(kept);
+  check("but a pointer press anywhere else does",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+
+  // The ring itself: kept, and kept visible.
+  check("the ring is still there for keyboard users",
+    /\.setup-hit:focus-visible \{/.test(cardSrc),
+    "no :focus-visible rule for setup rows");
+  check("it is not painted with an outline that geometry can clip",
+    /\.setup-hit:focus-visible \{[^}]*outline:\s*none/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke:/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke-width:\s*2/.test(cardSrc),
+    (/\.setup-hit:focus-visible \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  check("and it is :focus-visible, so a mouse click cannot leave one",
+    !/\.setup-hit:focus(?![-\w])/.test(cardSrc),
+    "a bare :focus rule on .setup-hit would ring mouse clicks too");
+  // Hover and focus-visible have equal specificity, so a hover rule using
+  // element opacity would fade the ring on the row under the pointer.
+  check("hovering a focused row does not fade its ring",
+    /\.setup-hit:hover \{[^}]*fill-opacity/.test(cardSrc) &&
+    !/\.setup-hit:hover \{[^}]*[^-]opacity:\s*0\.12/.test(cardSrc),
+    (/\.setup-hit:hover \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  // Nobody's outline was hidden wholesale to make the report go away.
+  check("no blanket outline suppression was added",
+    !/outline:\s*none[^;]*;\s*\}\s*\/\* *hide/i.test(cardSrc) &&
+    /\.slot-hit:focus-visible, \.lane:focus-visible \{[\s\S]{0,80}outline: 2px solid/
+      .test(cardSrc),
+    "the other focusable SVG parts keep their outlines");
+
+  // Geometry: at stroke-width 2 centred on the path the ring reaches one
+  // unit outside the rect, and must still clear the contour and the rows
+  // above and below -- otherwise it is clipped again, differently.
+  const geoCard = mkSetup();
+  const page = collect(geoCard.shadowRoot).join("\n");
+  const rects = [...page.matchAll(
+    /<rect class="setup-hit" data-key="([^"]+)"[^>]*?x="([\d.]+)" y="([\d.]+)"\s*width="([\d.]+)"\s*height="([\d.]+)"/g)]
+    .map((m) => ({ key: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] }));
+  const boxes = geoCard.layoutEditor.boxes || [];
+  const clipped = [];
+  for (const r of rects) {
+    const b = boxes.find((bb) => r.x > bb.x && r.x < bb.x + bb.w &&
+      r.y > bb.y && r.y < bb.y + bb.h);
+    if (!b) { clipped.push(`${r.key}: no box`); continue; }
+    // 1 unit of ring on every side, against the contour at x+2 / x+w-2 and
+    // the box's own top and bottom.
+    if (r.x - 1 < b.x + 2) clipped.push(`${r.key}: left ${r.x - 1} < ${b.x + 2}`);
+    if (r.x + r.w + 1 > b.x + b.w - 2) {
+      clipped.push(`${r.key}: right ${r.x + r.w + 1} > ${b.x + b.w - 2}`);
+    }
+    if (r.y - 1 < b.y) clipped.push(`${r.key}: top ${r.y - 1} < ${b.y}`);
+    if (r.y + r.h + 1 > b.y + b.h) {
+      clipped.push(`${r.key}: bottom ${r.y + r.h + 1} > ${b.y + b.h}`);
+    }
+  }
+  check("the ring has room for all four of its sides inside the box",
+    clipped.length === 0, clipped.join("; "));
+  // Two rings on adjacent rows must not merge into one smear.
+  const merged = [];
+  const byCol = {};
+  for (const r of rects) (byCol[r.x] ||= []).push(r);
+  for (const list of Object.values(byCol)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h) - 2;
+      if (gap < 0) merged.push(`${sorted[i - 1].key}/${sorted[i].key} ${gap}`);
+    }
+  }
+  check("and two neighbouring rings never touch each other",
+    merged.length === 0, merged.join(", "));
+}
+
+
+// --- Scenario: tooltip prose wraps, and the box stays on the chart ---------
+//
+// `.tooltip` sets `white-space: nowrap`, which is right for the value rows
+// ("House temperature: 22 °C" must not break) and wrong for everything else
+// in the box. `.tt-shared` carried a `max-width: 180px` that could never take
+// effect, because nowrap was never overridden on it: the ~110-character
+// shared-step sentence rendered as one unbroken line roughly 500 px wide and
+// spilled straight out of the box. `.tt-reason` is prose too and had no width
+// bound at all.
+//
+// STRUCTURAL PIN, not a rendered-overflow test. This DOM stub has no layout
+// engine: there is no box model, no text measurement and no `offsetWidth`, so
+// nothing here can observe an overflow. What it can pin is the rule that
+// prevents one — every prose block inside the tooltip declares
+// `white-space: normal` and a `max-width`, and none is left inheriting nowrap.
+// A future prose block added without those two declarations is caught; a
+// declared max-width that is simply too narrow for its content is NOT, and
+// neither is a real overflow arising from anything other than these rules.
+{
+  const styleOf = (cls) => {
+    const re = new RegExp(
+      "\\.tooltip \\." + cls + "\\s*\\{([\\s\\S]*?)\\}", "m"
+    );
+    const m = cardSrc.match(re);
+    return m ? m[1] : null;
+  };
+  // Every block the tooltip builder emits, and whether it is prose.
+  const PROSE = ["tt-shared", "tt-reason"];
+  const VALUES = ["tt-row", "tt-time"];
+
+  check("the tooltip itself still keeps short value rows on one line",
+    /\.tooltip \{[\s\S]*?white-space:\s*nowrap[\s\S]*?\}/.test(cardSrc));
+  for (const cls of PROSE) {
+    const css = styleOf(cls);
+    check(`${cls} declares a style block at all`, css !== null);
+    check(`${cls} wraps instead of inheriting nowrap`,
+      css !== null && /white-space:\s*normal/.test(css), css);
+    check(`${cls} bounds its own width`,
+      css !== null && /max-width:\s*\d/.test(css), css);
+  }
+  for (const cls of VALUES) {
+    const css = styleOf(cls);
+    check(`${cls} is left on one line, which is what nowrap is for`,
+      css === null || !/white-space:\s*normal/.test(css), css);
+  }
+  // Every class the tooltip HTML emits must be one of the two lists above, so
+  // a new prose block cannot be added without deciding which it is.
+  const emitted = new Set(
+    [...cardSrc.matchAll(/<div class="(tt-[\w-]+)"/g)].map((m) => m[1])
+  );
+  check("every tooltip block is classified as prose or as a value row",
+    [...emitted].every((c) => PROSE.includes(c) || VALUES.includes(c)),
+    [...emitted].join(", "));
+
+  // The competing hypothesis, and a real second defect: placement clamped
+  // only the LEFT edge (`Math.max(0, place)`) and flipped the box left of the
+  // pointer past 60 % of the width assuming a 160 px box. A wider box near the
+  // right-hand edge ran off the chart whether or not its text wrapped.
+  const posCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const rect = { width: 900, left: 0, top: 0 };
+  // The stub has no layout, so `offsetWidth` is supplied by hand: this is the
+  // one number the placement needs and the only thing standing in for layout.
+  const TT_W = 420;
+  const ttNode = posCard.shadowRoot.querySelector(".tooltip");
+  ttNode.offsetWidth = TT_W;
+  const place = (clientX) => {
+    posCard._onPointerMove({
+      clientX,
+      currentTarget: { getBoundingClientRect: () => rect },
+    });
+    return parseFloat(ttNode.style.left);
+  };
+  // Inside the plot area: the pointer handler ignores anything outside it, so
+  // these have to be plot coordinates, not card ones.
+  const atRightEdge = place(830);
+  check("the tooltip never starts past the chart's right edge",
+    atRightEdge + TT_W <= rect.width,
+    `left ${atRightEdge} + ${TT_W} > ${rect.width}`);
+  check("and never starts left of the chart", place(95) >= 0,
+    `left ${place(95)}`);
+  check("a pointer in the middle still places it beside the crosshair",
+    place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+}
+
+// --- Scenario: the zone traces are named, in one legend entry ------------
+//
+// The house-temperature series draws `room` solid and `upper`/`lower` dashed
+// in one colour. Until v5.1.7 all three shared one legend chip and one label,
+// and the tooltip reported `s.lines.find(l => l.primary)` — the ROOM value —
+// for whichever line the pointer was over. A two-zone house whose downstairs
+// trace sat at 28 °C therefore hovered as 21 °C, which is how a display defect
+// reads as the optimizer overheating the house.
+//
+// v5.1.7 named every trace in both places at once, which put three chips in
+// the legend under one colour. They all carry the series' data-key — the only
+// granularity the visibility model has — so clicking any of them toggled all
+// three lines together, and the owner reported three legend entries that
+// resolve to one line. The naming belongs in the tooltip, which points at the
+// trace under the pointer; the legend gets one entry per series.
+{
+  const twoZone = (opts) => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    // Same timestamps, three genuinely different temperatures.
+    st[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p,
+        // Whole degrees apart: the chart formats anything at or above 10
+        // with `toFixed(0)`, so smaller gaps would render identically and the
+        // "own value" check below would pass on a coincidence.
+        room: 22.0,
+        upper: 20.0,
+        lower: 28.0,
+      }));
+    if (opts && opts.topology) {
+      st[DEFAULT_SPACE].attributes.setup_topology = {
+        slots: [
+          { key: "indoor_temp_entity", entity: "sensor.indoor" },
+          { key: "lower_floor_temp_entity", entity: opts.lowerEntity || null },
+        ],
+      };
+    }
+    return st;
+  };
+
+  // Just the chips: the legend div ends at the first </div>, and nothing
+  // inside a chip is one. Slicing rather than regex-matching keeps unrelated
+  // markup (which may legitimately contain the word "modelled") out of the
+  // labelling assertions below.
+  const legendOf = (dump) => {
+    const i = dump.indexOf('<div class="legend">');
+    if (i < 0) return "";
+    const end = dump.indexOf("</div>", i);
+    return dump.slice(i, end < 0 ? undefined : end);
+  };
+  /** The `title` of one series' legend chip: what the chip claims beyond
+   * its visible name. One chip per series, so one title per key. */
+  const titleOf = (lg, key) => {
+    const m = lg.match(new RegExp(`data-key="${key}" title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  const chipsFor = (lg, key) =>
+    (lg.match(new RegExp(`<button[^>]*data-key="${key}"`, "g")) || []).length;
+  const zc = build(twoZone());
+  const zdump = collect(zc.shadowRoot).join("\n");
+  const zlegend = legendOf(zdump);
+
+  // The regression the owner reported. Three lines are drawn — the count
+  // below proves the drop rule kept all three — and the legend still gets
+  // exactly one entry for them, because one chip is all the visibility model
+  // can act on.
+  const zlines = zc._series.find((s) => s.key === "house_temp").lines;
+  check("a two-zone house draws all three house-temperature traces",
+    zlines.length === 3 &&
+    zlines.map((l) => l.field).join(",") === "room,upper,lower",
+    JSON.stringify(zlines.map((l) => l.field)));
+  check("a multi-line series gets one legend entry, not one per line",
+    chipsFor(zlegend, "house_temp") === 1, zlegend);
+  check("and the zone names are not chips of their own",
+    !/>\s*Upper floor/.test(zlegend) && !/>\s*Lower floor/.test(zlegend),
+    zlegend);
+  // Every other series keeps exactly one chip too, so the count above is not
+  // passing because the legend lost entries wholesale. Eight since the
+  // history pan added the actioned-power series its own chip.
+  check("the legend still carries one chip per series",
+    (zlegend.match(/<button[^>]*data-key=/g) || []).length === 8, zlegend);
+  check("the one chip still says what else rides on its line",
+    /also drawn: Upper floor, Lower floor/.test(zlegend), zlegend);
+
+  // Hover: three rows, each with its own name and its OWN value. This is
+  // where the disambiguation lives now, and it is the half of v5.1.7 the
+  // owner did not ask to lose.
+  const hovered = (card) => {
+    card._onPointerMove({
+      clientX: 450,
+      currentTarget: {
+        getBoundingClientRect: () => ({ width: 900, left: 0, top: 0 }),
+      },
+    });
+    const tt = card.shadowRoot.querySelector(".tooltip");
+    return tt ? tt.innerHTML : "";
+  };
+  const tip = hovered(zc);
+  check("the tooltip names all three house-temperature traces",
+    /House temperature/.test(tip) && /Upper floor/.test(tip) &&
+    /Lower floor/.test(tip), tip);
+  check("and reports each trace's own value, not the room's three times",
+    /House temperature: 22 °C/.test(tip) &&
+    /Upper floor: 20 °C/.test(tip) &&
+    /Lower floor: 28 °C/.test(tip), tip);
+  // One row per rendered line, with no two rows sharing a label: a tooltip
+  // that lost a row, or repeated one, is the pre-v5.1.7 defect coming back.
+  const ttRows = (tt) =>
+    (tt.match(/<div class="tt-row">.*?<\/div>/g) || []).map((r) =>
+      parseHtml(r, (t) => new Node(t))[0].textContent.split(":")[0].trim()
+    );
+  const zoneRows = ttRows(tip).filter((l) => /floor|House temperature/i.test(l));
+  check("the tooltip carries one row per drawn trace, all distinctly labelled",
+    zoneRows.length === 3 && new Set(zoneRows).size === 3, zoneRows.join(" | "));
+  check("a dashed trace gets a dashed swatch in the tooltip, not a solid dot",
+    /repeating-linear-gradient/.test(tip), tip);
+
+  // A single-zone house publishes upper == lower == room (the one-zone
+  // dynamics assign both from the room temperature every step). Naming those
+  // copies would put three identical rows in the tooltip for a house with one
+  // zone, so an exact duplicate is dropped instead.
+  const oneZone = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const olegend = legendOf(collect(oneZone.shadowRoot).join("\n"));
+  check("a single-zone house still gets one house-temperature chip",
+    chipsFor(olegend, "house_temp") === 1 && !/Upper floor/.test(olegend),
+    olegend);
+  check("and the duplicate traces are dropped rather than drawn",
+    oneZone._series.find((s) => s.key === "house_temp").lines.length === 1);
+  // Scoped to the house chip's own title, not the whole legend: v5.2.0
+  // gives the tank series extra traces of its own on this same fixture, and
+  // "does the legend contain the words 'also drawn' anywhere" stopped being
+  // a question about the house the moment a second series could answer it.
+  check("so its chip claims no extra traces",
+    !/also drawn/.test(titleOf(olegend, "house_temp")),
+    titleOf(olegend, "house_temp"));
+  const otip = ttRows(hovered(oneZone)).filter((l) =>
+    /floor|House temperature/i.test(l));
+  check("and its tooltip carries the one house row",
+    otip.length === 1 && otip[0] === "House temperature", otip.join(" | "));
+
+  // Modelled vs measured. With no lower-floor thermometer the trace is the
+  // model running open-loop, and the tooltip has to say so.
+  const modelled = build(twoZone({ topology: true }));
+  const mtip = hovered(modelled);
+  check("an unmeasured lower zone is labelled as modelled in the tooltip",
+    /Lower floor \(modelled\): 28 °C/.test(mtip), mtip);
+  const measured = build(twoZone({ topology: true, lowerEntity: "sensor.down" }));
+  const stip = hovered(measured);
+  check("a lower zone with its own thermometer is not",
+    /Lower floor: 28 °C/.test(stip) && !/modelled/.test(stip), stip);
+  check("no topology published means no claim either way",
+    !/modelled/.test(tip), tip);
+  // The distinction reaches the legend too, without costing a second chip.
+  check("the chip's title carries the modelled wording as well",
+    /also drawn: Upper floor, Lower floor \(modelled\)/.test(
+      legendOf(collect(modelled.shadowRoot).join("\n"))),
+    legendOf(collect(modelled.shadowRoot).join("\n")));
+
+  // Swedish, like every other user-visible string on this card.
+  const svZone = new Card();
+  svZone.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svZone.hass = { states: twoZone({ topology: true }), language: "sv-SE" };
+  const svTip = hovered(svZone);
+  check("the zone traces are named in Swedish too",
+    /Övre plan/.test(svTip) && /Nedre plan \(modellerad\)/.test(svTip), svTip);
+  const svLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  check("and the Swedish legend says one thing, in Swedish",
+    chipsFor(svLegend, "house_temp") === 1 &&
+    /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
+    svLegend);
+
+  // A channel paused by the pump's own operating mode carries no power, so
+  // the hover would show nothing at all -- and "cannot do this", the old
+  // label, was true but never actionable. The explanation is channel-aware
+  // and says where the setting lives: on the unit, not in this card.
+  const pumpBlocked = (dhwBlocked, spaceBlocked) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_DHW].attributes.forecast =
+      plan.dhw_plan.forecast.map((p) => ({
+        ...p, dhw_power: 0,
+        reason: dhwBlocked ? "pump_mode" : p.reason,
+      }));
+    states[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p, space_power: 0,
+        reason: spaceBlocked ? "pump_mode" : p.reason,
+      }));
+    return states;
+  };
+  const dhwBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(true, false) };
+    return c;
+  })();
+  const dbTip = hovered(dhwBlockedCard);
+  check("a mode-blocked hot-water channel explains itself on hover",
+    /cannot heat water/.test(dbTip) && /heat-only or cooling/.test(dbTip),
+    dbTip);
+  check("and points at the setting on the unit, not at the optimizer",
+    /set on the unit/.test(dbTip), dbTip);
+  const spaceBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(false, true) };
+    return c;
+  })();
+  check("a mode-blocked heating channel gets its own half of the explanation",
+    /cannot heat rooms/.test(hovered(spaceBlockedCard)) &&
+    !/cannot heat water/.test(hovered(spaceBlockedCard)),
+    hovered(spaceBlockedCard));
+  const svBlocked = new Card();
+  svBlocked.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svBlocked.hass = { states: pumpBlocked(true, false), language: "sv-SE" };
+  check("and the mode explanation is in Swedish too",
+    /kan inte värma vatten/.test(hovered(svBlocked)),
+    hovered(svBlocked));
+}
+
+// --- Scenario: the hot-water expected-error band (v5.2.0) ------------------
+//
+// `dhw_temp_lo` / `dhw_temp_hi` bracket the tank curve with the model's own
+// expected error. It rides v5.1.7's multi-trace machinery -- the same `extra`
+// array, the same dashed stroke, the same one-chip-toggles-the-series rule,
+// the same duplicate-drop -- and differs in exactly one deliberate way: the
+// pair is ONE envelope, so it collapses to a single named ± row and a single
+// chip instead of two of each.
+{
+  const mkCard = (mut, lang) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    if (mut) {
+      states[DEFAULT_DHW].attributes.forecast = plan.dhw_plan.forecast.map(mut);
+    }
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states, ...(lang ? { language: lang } : {}) };
+    // Legend toggles persist to the shared localStorage stub and earlier
+    // scenarios switch series off; these assertions are about the band.
+    c.legend.hidden = {};
+    c.hass = { states, ...(lang ? { language: lang } : {}) };
+    return { card: c, dump: collect(c.shadowRoot).join("\n") };
+  };
+  const dhwPaths = (dump) =>
+    [...dump.matchAll(/<path class="series" data-key="dhw_temp"[^>]*>/g)]
+      .map((m) => m[0]);
+  const dashed = (paths) =>
+    paths.filter((x) => /stroke-dasharray="3 3"/.test(x));
+  const ptsOf = (c, field) => {
+    const s = c._series.find((x) => x.key === "dhw_temp");
+    return s.lines.filter((l) => l.field === field).flatMap((l) => l.points);
+  };
+  const hover = (c) => {
+    c._onPointerMove({
+      clientX: 400,
+      currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+    });
+    const tt = c.shadowRoot.querySelector(".tooltip");
+    return (tt && tt._html) || "";
+  };
+  const legendOnly = (dump) => {
+    const i = dump.indexOf('<div class="legend">');
+    if (i < 0) return "";
+    const end = dump.indexOf("</div>", i);
+    return dump.slice(i, end < 0 ? undefined : end);
+  };
+
+  const banded = plan.dhw_plan.forecast.filter(
+    (p) => p.dhw_temp_lo !== null && p.dhw_temp_lo !== undefined
+  );
+  check("the plan fixture actually carries a hot-water band to draw",
+    banded.length > 0 && banded.every(
+      (p) => p.dhw_temp_lo <= p.dhw_temp && p.dhw_temp <= p.dhw_temp_hi),
+    `${banded.length} banded steps of ${plan.dhw_plan.forecast.length}`);
+
+  const on = mkCard(null);
+  const onPaths = dhwPaths(on.dump);
+  check("the tank curve draws with its two dashed band edges",
+    onPaths.length === 3 && dashed(onPaths).length === 2,
+    `${onPaths.length} dhw_temp paths, ${dashed(onPaths).length} dashed`);
+  // Matching the room's dashes visually is the whole request: the chart must
+  // have ONE vocabulary for "this line is a companion, not a plan". The
+  // default fixture publishes upper == lower == room, which v5.1.7 rightly
+  // drops as duplicates, so the comparison needs a genuinely two-zone card.
+  const twoZoneEl = (() => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p, i) => ({
+        ...p, upper: p.room + 1.5, lower: p.room - 1.5 + (i % 3) * 0.1,
+      }));
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states };
+    c.legend.hidden = {};
+    c.hass = { states };
+    return c;
+  })();
+  const twoZoneCard = collect(twoZoneEl.shadowRoot).join("\n");
+  const roomDashed = [...twoZoneCard.matchAll(
+    /<path class="series" data-key="house_temp"[^>]*>/g)]
+    .map((m) => m[0]).filter((x) => /stroke-dasharray/.test(x));
+  const dashAttrs = (x) =>
+    (String(x).match(/stroke-dasharray="[^"]*" stroke-opacity="[^"]*"/) || [""])[0];
+  check("the band's dashes match the room extras' pattern and opacity exactly",
+    roomDashed.length === 2 &&
+    dashAttrs(dashed(onPaths)[0]) === dashAttrs(roomDashed[0]) &&
+    dashAttrs(dashed(onPaths)[0]) ===
+      'stroke-dasharray="3 3" stroke-opacity="0.7"',
+    `band ${dashAttrs(dashed(onPaths)[0])} vs `
+    + `room[${roomDashed.length}] ${dashAttrs(roomDashed[0])}`);
+  check("and the band is drawn in the tank series' own colour",
+    dashed(onPaths).every((x) => /stroke="#c264d0"/.test(x)),
+    dashed(onPaths).join("\n"));
+  check("the band brackets the curve it belongs to at every plotted step",
+    (() => {
+      const lo = ptsOf(on.card, "dhw_temp_lo");
+      const hi = ptsOf(on.card, "dhw_temp_hi");
+      const mid = new Map(ptsOf(on.card, "dhw_temp").map((q) => [q.t, q.v]));
+      const hiAt = new Map(hi.map((q) => [q.t, q.v]));
+      return lo.length > 0 && lo.every(
+        (q) => q.v <= mid.get(q.t) && mid.get(q.t) <= hiAt.get(q.t));
+    })());
+
+  // A fresh install: null at every step, and the card must draw no band at
+  // all rather than a zero-width one lying on the curve.
+  const off = mkCard((p) => ({ ...p, dhw_temp_lo: null, dhw_temp_hi: null }));
+  const offPaths = dhwPaths(off.dump);
+  check("null band values draw nothing -- only the tank curve remains",
+    offPaths.length === 1 && dashed(offPaths).length === 0,
+    `${offPaths.length} dhw_temp paths`);
+  check("and the tank curve keeps exactly the data it had with the band",
+    JSON.stringify(ptsOf(off.card, "dhw_temp").map((q) => [q.t, q.v])) ===
+    JSON.stringify(ptsOf(on.card, "dhw_temp").map((q) => [q.t, q.v])));
+
+  // v5.1.7's duplicate rule, which the band inherits: a record that has
+  // scored pairs but never been wrong answers sigma 0, so both edges land
+  // exactly on the curve. That is a zero-width envelope and must not draw.
+  const flat = mkCard((p) => ({
+    ...p, dhw_temp_lo: p.dhw_temp, dhw_temp_hi: p.dhw_temp,
+  }));
+  const flatPaths = dhwPaths(flat.dump);
+  check("a zero-width band is dropped by the same rule that drops a copied "
+    + "zone, not drawn on top of the curve",
+    flatPaths.length === 1 && dashed(flatPaths).length === 0,
+    `${flatPaths.length} dhw_temp paths`);
+  check("and it contributes no tooltip row either",
+    !/expected error/.test(hover(flat.card)), hover(flat.card));
+
+  // A hole in the middle must BREAK each dashed edge, not bridge it, and not
+  // plot the null as a zero -- a zero would drag the shared temperature axis
+  // down and flatten every other curve sharing it.
+  const gapFrom = 30, gapTo = 40;
+  const gapNulled = new Set(
+    plan.dhw_plan.forecast.slice(gapFrom, gapTo).map((p) => Date.parse(p.t)));
+  const gapped = mkCard((p, i) =>
+    i >= gapFrom && i < gapTo
+      ? { ...p, dhw_temp_lo: null, dhw_temp_hi: null }
+      : p);
+  const gapPaths = dhwPaths(gapped.dump);
+  check("a null in the middle breaks each band edge into two paths",
+    gapPaths.length === 5 && dashed(gapPaths).length === 4,
+    `${gapPaths.length} dhw_temp paths, ${dashed(gapPaths).length} dashed`);
+  const gapPts = ptsOf(gapped.card, "dhw_temp_lo");
+  check("and no null is plotted -- not as a zero, not as anything",
+    gapPts.length > 0 && gapPts.every((q) => !gapNulled.has(q.t)),
+    `${gapPts.filter((q) => gapNulled.has(q.t)).length} nulled steps plotted`);
+  check("every step that DID have a value is still drawn",
+    (() => {
+      const kept = new Set(gapPts.map((q) => q.t));
+      return ptsOf(on.card, "dhw_temp_lo")
+        .filter((q) => !gapNulled.has(q.t))
+        .every((q) => kept.has(q.t));
+    })());
+  check("the hole is a real break: the two segments do not share a step",
+    (() => {
+      const segs = gapped.card._series
+        .find((x) => x.key === "dhw_temp")
+        .lines.filter((l) => l.field === "dhw_temp_lo");
+      if (segs.length !== 2) return false;
+      const endA = segs[0].points[segs[0].points.length - 1].t;
+      const startB = segs[1].points[0].t;
+      return endA < startB && [...gapNulled].some(
+        (t) => t > endA && t < startB);
+    })());
+  // A segmented field is still ONE trace to the reader: v5.1.7 names every
+  // trace in the legend and the tooltip, and naming each fragment would say
+  // the same thing three times.
+  const chipCount = (dump, key) =>
+    (legendOnly(dump).match(
+      new RegExp(`data-key="${key}"`, "g")) || []).length;
+  // The chip carries other attributes between `data-key` and `title` now
+  // (#558 C2's aria-pressed and aria-describedby), so this cannot assume they
+  // are adjacent -- an anchored match would report every title as empty and
+  // pass every "named once" check below on an empty string.
+  const legendTitle = (dump, key) => {
+    const m = legendOnly(dump).match(
+      new RegExp(`data-key="${key}"[^>]*title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  // ... and the explanatory sentence is no longer in that title at all: it is
+  // the .legend-note the chip points at with aria-describedby (#558 C2).
+  const legendNote = (dump, key) => {
+    const m = legendOnly(dump).match(
+      // The id is scoped to the legend COPY (card-/dlg-), so match the
+      // series suffix rather than the whole id.
+      new RegExp(`<p class="legend-note" id="hpo-note-[^"]*${key}">([^<]*)</p>`));
+    return m ? m[1] : "";
+  };
+  check("a broken band is still named once and reported once, not once per "
+    + "segment",
+    chipCount(gapped.dump, "dhw_temp") === 1 &&
+    (legendTitle(gapped.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
+    (hover(gapped.card).match(/expected error/g) || []).length === 1,
+    legendTitle(gapped.dump, "dhw_temp"));
+
+  // --- what the dashed lines SAY -----------------------------------------
+  const ttEn = hover(on.card);
+  check("the tooltip names the band as the model's expected error, with a ±",
+    /Hot water, expected error: ±[\d.]+ °C/.test(ttEn), ttEn);
+  check("the solid tank row still reads as an absolute temperature",
+    /DHW tank temperature: [\d.-]+ °C/.test(ttEn), ttEn);
+  check("the band is ONE row, not two absolute temperatures nobody asked for",
+    (ttEn.match(/expected error/g) || []).length === 1 &&
+    !/dhw_temp_lo|dhw_temp_hi/.test(ttEn), ttEn);
+  const ttOff = hover(off.card);
+  check("with no band there is no expected-error row to mislead anyone",
+    !/expected error/.test(ttOff) && /DHW tank temperature:/.test(ttOff), ttOff);
+
+  // The legend chip carries the explanation, which is where a reader puzzled
+  // by a dashed line actually looks.
+  const legEn = legendOnly(on.dump);
+  check("the legend says what the tank's dashed pair is",
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")),
+    legendNote(on.dump, "dhw_temp"));
+  // v5.1.9: ONE chip per series, extras named inside its title. The band
+  // gets no chip of its own and must not: the chip toggles the series, and
+  // there is no such thing as hiding one edge of it.
+  check("and it is the tank's own single chip that says so, not a second one",
+    chipCount(on.dump, "dhw_temp") === 1 &&
+    /also drawn: Hot water, expected error\./.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
+  // The sentence used to ride in the chip's `title` for exactly one reason:
+  // stretched across the legend row it would push every other chip off the
+  // card. #558 C2 keeps the chip the size it was and gives the sentence a row
+  // of its own underneath, because a `title` renders on hover and on nothing
+  // else -- a keyboard user never reaches it and a touch device has no hover
+  // to give. So: still not inside the button, and now genuinely rendered.
+  check("the explanation is a row of its own, not text inside the chip",
+    />DHW tank temperature\s*<\/button>/.test(legEn) &&
+    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn) &&
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")), legEn);
+  // The band is named ONCE in that title, not once per edge -- which is the
+  // whole point of enumerating traces through `_extraFields`: a legend
+  // rewritten to stop repeating a name must not start repeating this one.
+  // Counted on the band's NAME, not on the words "expected error": the
+  // explanatory sentence that follows legitimately contains them again.
+  check("and it names the pair once, not once per edge",
+    (legendTitle(on.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
+    !/DHW tank temperature.*also drawn.*DHW tank temperature/.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
+
+  // A band is a PAIR or it is nothing. Either edge can go missing on its own
+  // -- a key absent from the payload, an edge published null the whole way
+  // across, or an edge dropped by v5.1.7's duplicate rule -- and before this
+  // was enforced the card drew ONE dashed line hugging the curve, still
+  // offered the "expected error" legend chip, and reported nothing in the
+  // tooltip. Three parts of the card disagreeing about whether a band exists.
+  for (const [how, mut] of [
+    ["the high edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_hi; return q; }],
+    ["the low edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_lo; return q; }],
+    ["the high edge null throughout", (p) => ({ ...p, dhw_temp_hi: null })],
+    ["the low edge null throughout", (p) => ({ ...p, dhw_temp_lo: null })],
+  ]) {
+    const half = mkCard(mut);
+    const paths = dhwPaths(half.dump);
+    check(`with ${how} the card draws no band at all, not half of one`,
+      paths.length === 1 && dashed(paths).length === 0,
+      `${paths.length} dhw_temp paths, ${dashed(paths).length} dashed`);
+    check(`and offers no expected-error chip for a band it is not drawing`,
+      !/expected error/.test(legendOnly(half.dump)),
+      legendOnly(half.dump));
+    check(`and the tank curve itself is untouched`,
+      ptsOf(half.card, "dhw_temp").length ===
+      ptsOf(on.card, "dhw_temp").length);
+  }
+
+  // --- the legend toggle --------------------------------------------------
+  const chipFor = (c, key) =>
+    [...c.shadowRoot.querySelectorAll(".chip")]
+      .find((el) => el.getAttribute("data-key") === key);
+  // `_onLegendClick` reads `currentTarget`, which the stub's dispatch does
+  // not set, so the handler is called directly with the chip as its target.
+  const clickChip = (c, key) => {
+    const el = chipFor(c, key);
+    for (const f of el._listeners.click || []) {
+      f({ currentTarget: el, stopPropagation() {}, preventDefault() {} });
+    }
+    return collect(c.shadowRoot).join("\n");
+  };
+  const toggled = mkCard(null);
+  const hiddenDump = clickChip(toggled.card, "dhw_temp");
+  check("turning the tank series off takes its band with it",
+    dhwPaths(hiddenDump).length === 0,
+    `${dhwPaths(hiddenDump).length} dhw_temp paths after the toggle`);
+  // Compared against the SAME card before the toggle, not against the
+  // two-zone card above: the point is that hiding one series leaves the
+  // other exactly as it was.
+  const housePaths = (dump) =>
+    [...dump.matchAll(/<path class="series" data-key="house_temp"[^>]*>/g)]
+      .map((m) => m[0]);
+  // Trace count and dash treatment, not path geometry: hiding a series frees
+  // the shared temperature axis to rescale, so the remaining curve's
+  // coordinates legitimately move. What must not change is how many traces
+  // the room series has and which of them are dashed.
+  const dashCount = (paths) =>
+    paths.filter((x) => /stroke-dasharray/.test(x)).length;
+  check("while the room's own traces are untouched -- one chip, one series",
+    housePaths(hiddenDump).length === housePaths(on.dump).length &&
+    dashCount(housePaths(hiddenDump)) === dashCount(housePaths(on.dump)),
+    `${housePaths(hiddenDump).length}/${dashCount(housePaths(hiddenDump))} vs `
+    + `${housePaths(on.dump).length}/${dashCount(housePaths(on.dump))}`);
+  check("and the chip count is unchanged: the room keeps its own chips",
+    chipCount(hiddenDump, "house_temp") === chipCount(on.dump, "house_temp"),
+    `${chipCount(hiddenDump, "house_temp")} vs `
+    + `${chipCount(on.dump, "house_temp")}`);
+  const backDump = clickChip(toggled.card, "dhw_temp");
+  check("and turning it back on restores the curve and both band edges",
+    dhwPaths(backDump).length === 3 && dashed(dhwPaths(backDump)).length === 2,
+    `${dhwPaths(backDump).length} paths, `
+    + `${dashed(dhwPaths(backDump)).length} dashed`);
+  const hoverHidden = (() => {
+    clickChip(toggled.card, "dhw_temp");
+    const tt = hover(toggled.card);
+    clickChip(toggled.card, "dhw_temp");
+    return tt;
+  })();
+  check("a hidden tank series contributes no band row to the tooltip either",
+    !/expected error/.test(hoverHidden) &&
+    !/DHW tank temperature:/.test(hoverHidden), hoverHidden);
+
+  // --- naming the band WITHOUT a chip of its own --------------------------
+  //
+  // This branch draws one chip per named trace. A sibling change replaces
+  // that with one chip per SERIES, naming the rest of its traces inside that
+  // chip's `title`. The band must not assume either shape: what it owes any
+  // such consumer is that "how many traces are there, and what is each
+  // called" has a right answer, which is `_extraFields` + `_lineLabel`.
+  // Asserted against those two directly, because the markup this branch
+  // happens to render cannot show it.
+  //
+  // Both failure modes here are silent and would ship: iterating `lines`
+  // instead of `_extraFields` names a band twice and a gapped trace once per
+  // fragment, and without `extraLabels` an edge falls back to the series
+  // label and calls itself "DHW tank temperature" -- a second, wrong
+  // absolute temperature in a legend built to remove duplicates.
+  {
+    const traces = (c, key) => {
+      const s = c._series.find((x) => x.key === key);
+      return extraFields(s).map((line) => lineLabelOf(c)(s, line));
+    };
+    check("the band is ONE named trace, however many paths draw it",
+      JSON.stringify(traces(on.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    check("and it stays one when a hole splits both edges in two",
+      JSON.stringify(traces(gapped.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(gapped.card, "dhw_temp")));
+    check("neither edge ever answers to the tank curve's own name",
+      !traces(on.card, "dhw_temp").includes("DHW tank temperature"),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    // The collapse is the BAND's, not every extra's: two floors are two
+    // real temperatures and must keep two names.
+    check("while the room's two floors stay two separately named traces",
+      JSON.stringify(traces(twoZoneEl, "house_temp")) ===
+        JSON.stringify(["Upper floor", "Lower floor"]),
+      JSON.stringify(traces(twoZoneEl, "house_temp")));
+    check("and a series with no band is unaffected by any of it",
+      traces(on.card, "house_temp").length === 0,
+      JSON.stringify(traces(on.card, "house_temp")));
+    check("the explanation is fetched per trace too, so a one-chip legend "
+      + "can reach it",
+      (() => {
+        const s = on.card._series.find((x) => x.key === "dhw_temp");
+        const zs = twoZoneEl._series.find((x) => x.key === "house_temp");
+        return /widens further ahead/.test(
+          lineNote(s, extraFields(s)[0])) &&
+          lineNote(zs, extraFields(zs)[0]) === "";
+      })());
+  }
+
+  // Swedish: both dictionaries carry the new keys, or the band is explained
+  // to half the users only.
+  const sv = mkCard(null, "sv-SE");
+  const svTt = hover(sv.card);
+  check("the band is named in Swedish too",
+    /Varmvatten, förväntat fel: ±[\d.]+ °C/.test(svTt), svTt);
+  check("the Swedish legend explains the dashed pair",
+    /förväntade fel/.test(legendOnly(sv.dump)), legendOnly(sv.dump));
+  check("and no English band string leaks into the Swedish render",
+    !/expected error/.test(svTt) && !/expected error/.test(legendOnly(sv.dump)),
+    svTt);
+}
+
+// --- Scenario: DHW band display overlay (option 1 + option 3) --------------
+//
+// Card-only. Published forecast lo/hi stay the historical lead envelope;
+// the chart may replace the live sample and floor in-window lo. Collapse-
+// after-heat (option 2) is not on.
+{
+  const TANK = "sensor.heat_pump_optimizer_dhw_temperature";
+  const overlayDhwDisplay = (() => {
+    try { return fn("overlayDhwDisplay"); } catch { return null; }
+  })();
+  const stamp = (y, mo, d, h, mi = 0) => {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${y}-${p(mo)}-${p(d)}T${p(h)}:${p(mi)}:00`;
+  };
+  // Thursday / Saturday in the plan_view.py week (2026-01-15 is Thursday).
+  const thu0600 = stamp(2026, 1, 15, 6, 0);
+  const thu0615 = stamp(2026, 1, 15, 6, 15);
+  const thu2030 = stamp(2026, 1, 15, 20, 30);
+  const thu2145 = stamp(2026, 1, 15, 21, 45);
+  const thu2300 = stamp(2026, 1, 15, 23, 0);
+  const sat0700 = stamp(2026, 1, 17, 7, 0);
+  const sat0800 = stamp(2026, 1, 17, 8, 0);
+  const sample = (t, temp, lo, hi, extra) => ({
+    t, dhw_temp: temp, dhw_temp_lo: lo, dhw_temp_hi: hi, ...(extra || {}),
+  });
+  const published = [
+    sample(thu0600, 53.74, 49.44, 58.04, { reason: "dhw_ready", dhw_power: 4.8 }),
+    sample(thu0615, 53.5, 49.2, 57.8, { reason: "idle", dhw_power: 0 }),
+    sample(thu2030, 45.21, 38.21, 52.21, { reason: "dhw_window", dhw_power: 2.1 }),
+    sample(thu2145, 45.2, 38.2, 52.2, { reason: "idle", dhw_power: 0 }),
+    sample(thu2300, 42.89, 34.79, 50.99, { reason: "idle", dhw_power: 0 }),
+  ];
+  const WINDOWS = "06:00-08:30, 17:00-22:00";
+  const W = 45;
+  const apply = (fc, opts) =>
+    overlayDhwDisplay ? overlayDhwDisplay(fc, opts) : null;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const ptsOf = (c, field) => {
+    const s = c._series.find((x) => x.key === "dhw_temp");
+    return s.lines.filter((l) => l.field === field).flatMap((l) => l.points);
+  };
+  const hoverAt = (c, t) => {
+    const plot = c._plot;
+    const x = plot
+      ? plot.scaleX(t)
+      : 400;
+    c._onPointerMove({
+      clientX: x,
+      currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+    });
+    const tt = c.shadowRoot.querySelector(".tooltip");
+    return (tt && tt._html) || "";
+  };
+
+  check("overlayDhwDisplay is the display-layer overlay",
+    typeof overlayDhwDisplay === "function");
+
+  const noProbe = apply(published, {
+    probe: null, now: Date.parse(thu0600), windowMin: W, windowsSpec: "",
+  });
+  check("with no probe the published centres and edges are unchanged",
+    noProbe && same(noProbe, published),
+    noProbe ? JSON.stringify(noProbe[0]) : "no overlay");
+  check("and the input forecast is not mutated",
+    published[0].dhw_temp === 53.74 && published[0].dhw_temp_lo === 49.44);
+
+  const liveNow = Date.parse(thu0600);
+  const live = apply(published, {
+    probe: 50.004, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("a live probe replaces the first displayed centre and omits the band",
+    live && live[0].dhw_temp === 50 && live[0].t === thu0600 &&
+    live[0].dhw_temp_lo == null && live[0].dhw_temp_hi == null,
+    live ? JSON.stringify(live[0]) : "no overlay");
+  check("later published centres stay on the live overlay when there is no clip",
+    live && live[2].dhw_temp === 45.21 && live[2].dhw_temp_lo === 38.21);
+
+  const farNow = Date.parse(thu0600) + 3 * 3600 * 1000;
+  const prepended = apply(published, {
+    probe: 50, now: farNow, windowMin: W, windowsSpec: "",
+  });
+  check("a stale now prepends a display-only probe sample and leaves the first plan step",
+    prepended && prepended.length === published.length + 1 &&
+    Date.parse(prepended[0].t) === farNow &&
+    prepended[0].dhw_temp === 50 &&
+    prepended[0].dhw_temp_lo == null &&
+    prepended[1].dhw_temp === 53.74 && prepended[1].dhw_temp_lo === 49.44,
+    prepended ? JSON.stringify(prepended[0]) : "no overlay");
+
+  const unknown = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("an unavailable probe does not invent a tank sample",
+    unknown && unknown[0].dhw_temp === 53.74 && unknown[0].t === thu0600);
+
+  const clipped = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("an in-window heating step floors displayed lo at the window minimum",
+    clipped && clipped[2].dhw_temp_lo === 45 && clipped[2].dhw_temp_hi === 52.21 &&
+    clipped[2].dhw_temp === 45.21,
+    clipped ? JSON.stringify(clipped[2]) : "no overlay");
+  check("idle-in-window is clipped too, not only reason==dhw_window",
+    clipped && clipped[3].reason === "idle" && clipped[3].dhw_temp_lo === 45,
+    clipped ? JSON.stringify(clipped[3]) : "no overlay");
+  check("a step outside the windows keeps its published lo",
+    clipped && clipped[4].dhw_temp === 42.89 && clipped[4].dhw_temp_lo === 34.79,
+    clipped ? JSON.stringify(clipped[4]) : "no overlay");
+
+  const inverted = apply(
+    [sample(thu2030, 44.0, 38.0, 50.0, { reason: "dhw_window" })],
+    { probe: null, now: Date.parse(thu2030), windowMin: W, windowsSpec: WINDOWS },
+  );
+  check("a centre below the window minimum is not inverted by the clip",
+    inverted && inverted[0].dhw_temp === 44.0 && inverted[0].dhw_temp_lo === 38.0);
+
+  const noWin = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("empty windows do not clip",
+    noWin && noWin[2].dhw_temp_lo === 38.21);
+
+  const liveClipped = apply(published, {
+    probe: 50, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("the clip does not put a band back on the probe sample",
+    liveClipped && liveClipped[0].dhw_temp === 50 &&
+    liveClipped[0].dhw_temp_lo == null && liveClipped[0].dhw_temp_hi == null);
+
+  const weekly = "weekdays 06:00-08:30, weekend 08:00-09:30";
+  const satIn = apply(
+    [sample(sat0800, 46.0, 38.0, 54.0, { reason: "idle" })],
+    { probe: null, now: Date.parse(sat0800), windowMin: W, windowsSpec: weekly },
+  );
+  const satOut = apply(
+    [sample(sat0700, 46.0, 38.0, 54.0, { reason: "idle" })],
+    { probe: null, now: Date.parse(sat0700), windowMin: W, windowsSpec: weekly },
+  );
+  check("a Saturday hour inside the weekend window is clipped",
+    satIn && satIn[0].dhw_temp_lo === 45, satIn && JSON.stringify(satIn[0]));
+  check("a Saturday hour inside the weekday window is not clipped",
+    satOut && satOut[0].dhw_temp_lo === 38.0, satOut && JSON.stringify(satOut[0]));
+
+  const night = [sample(stamp(2026, 1, 15, 3, 0), 46.0, 38.0, 54.0)];
+  const always = apply(night, {
+    probe: null, now: Date.parse(night[0].t), windowMin: W, windowsSpec: "always",
+  });
+  const fullDay = apply(night, {
+    probe: null, now: Date.parse(night[0].t), windowMin: W, windowsSpec: "00:00-24:00",
+  });
+  check("a full-day window clips the whole horizon",
+    always && always[0].dhw_temp_lo === 45 &&
+    fullDay && fullDay[0].dhw_temp_lo === 45,
+    always && JSON.stringify(always[0]));
+
+  // Option 2 is off: a later step must keep the published half-width, not
+  // a re-clock from the last qualifying heat.
+  const afterHeat = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("collapse-after-heat is not applied: later published σ stays",
+    afterHeat && afterHeat[4].dhw_temp_lo === 34.79 &&
+    afterHeat[4].dhw_temp_hi === 50.99);
+
+  const savedDate = ctx.Date;
+  const firstT = Date.parse(plan.dhw_plan.forecast[0].t);
+  const firstPub = plan.dhw_plan.forecast[0];
+  const mkLive = (tankState, at, extra) => {
+    ctx.Date = frozenDateClass(Date, at);
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    if (extra) Object.assign(states[DEFAULT_DHW].attributes, extra);
+    if (tankState !== undefined) {
+      states[TANK] = tankState;
+    }
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states };
+    c.legend.hidden = {};
+    c.hass = { states };
+    return c;
+  };
+
+  const noSensor = mkLive(undefined, firstT);
+  const firstPlotted = ptsOf(noSensor, "dhw_temp")[0];
+  check("without a tank sensor the first plotted sample is the published first point",
+    firstPlotted && firstPlotted.v === firstPub.dhw_temp,
+    firstPlotted && `${firstPlotted.v} vs published ${firstPub.dhw_temp}`);
+
+  const liveCard = mkLive({ state: "50.0", attributes: {} }, firstT);
+  const livePts = ptsOf(liveCard, "dhw_temp");
+  const liveLo = ptsOf(liveCard, "dhw_temp_lo");
+  const liveHi = ptsOf(liveCard, "dhw_temp_hi");
+  check("with a live tank sensor the first displayed sample is the probe",
+    livePts[0] && livePts[0].v === 50,
+    livePts[0] && String(livePts[0].v));
+  check("and that probe sample has no dashed extras",
+    liveLo.every((q) => q.t !== livePts[0].t) &&
+    liveHi.every((q) => q.t !== livePts[0].t),
+    `${liveLo.filter((q) => livePts[0] && q.t === livePts[0].t).length} lo extras`);
+  const liveTt = hoverAt(liveCard, livePts[0].t);
+  check("the tooltip at the probe sample has no expected-error row",
+    /DHW tank temperature: 50/.test(liveTt) && !/expected error/.test(liveTt),
+    liveTt);
+  check("the published HA forecast is not rewritten by the overlay",
+    liveCard.hass.states[DEFAULT_DHW].attributes.forecast[0].dhw_temp ===
+      firstPub.dhw_temp &&
+    liveCard.hass.states[DEFAULT_DHW].attributes.forecast[0].dhw_temp_lo ===
+      firstPub.dhw_temp_lo);
+
+  const dead = mkLive({ state: "unavailable", attributes: {} }, firstT);
+  check("an unavailable tank sensor leaves the published first point on the chart",
+    ptsOf(dead, "dhw_temp")[0].v === firstPub.dhw_temp);
+
+  const unknownSt = mkLive({ state: "unknown", attributes: {} }, firstT);
+  check("an unknown tank sensor leaves the published first point on the chart",
+    ptsOf(unknownSt, "dhw_temp")[0].v === firstPub.dhw_temp);
+
+  if (savedDate === undefined) delete ctx.Date;
+  else ctx.Date = savedDate;
+  const hourOf = (iso) => {
+    const d = new Date(Date.parse(iso));
+    return d.getHours() + d.getMinutes() / 60;
+  };
+  const clockIn = (iso) => {
+    const h = hourOf(iso);
+    return (h >= 6 && h < 8.5) || (h >= 17 && h < 22);
+  };
+  const winStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  winStates[DEFAULT_DHW].attributes.dhw_windows = WINDOWS;
+  const winCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: winStates };
+    c.legend.hidden = {};
+    c.hass = { states: winStates };
+    return c;
+  })();
+  const winLoAt = new Map(ptsOf(winCard, "dhw_temp_lo").map((q) => [q.t, q.v]));
+  const winMidAt = new Map(ptsOf(winCard, "dhw_temp").map((q) => [q.t, q.v]));
+  const inWinPub = plan.dhw_plan.forecast.filter(
+    (p) => clockIn(p.t) && p.dhw_temp >= W && p.dhw_temp_lo != null &&
+      winLoAt.has(Date.parse(p.t)));
+  const outWinPub = plan.dhw_plan.forecast.filter(
+    (p) => !clockIn(p.t) && p.dhw_temp_lo != null &&
+      winLoAt.has(Date.parse(p.t)));
+  check("the card floors every in-window plotted lo at the window minimum",
+    inWinPub.length > 0 && inWinPub.every((p) => {
+      const lo = winLoAt.get(Date.parse(p.t));
+      const mid = winMidAt.get(Date.parse(p.t));
+      return lo >= W && lo <= mid;
+    }),
+    `${inWinPub.length} in-window plotted steps`);
+  check("and a step outside the windows keeps its published lo on the card",
+    outWinPub.length > 0 && outWinPub.every((p) =>
+      winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
+    `${outWinPub.length} outside-window plotted steps`);
+  const winNote = (collect(winCard.shadowRoot).join("\n").match(
+    /<p class="legend-note" id="hpo-note-[^"]*dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
+  check("the floored-band legend names the window-minimum floor",
+    /floored at the window minimum|window minimum/.test(winNote), winNote);
+
+  // #1260: the band prefers the resolved per-day schedule the plan was
+  // actually made against. Same payload, one added attribute: the resolved
+  // spec names a weekday window the configured spec does not, and the
+  // floored band follows the RESOLVED one, not the configured one.
+  const RESOLVED = "weekdays 18:30-22:00";
+  const resStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  resStates[DEFAULT_DHW].attributes.dhw_windows = WINDOWS;
+  resStates[DEFAULT_DHW].attributes.dhw_windows_spec = WINDOWS;
+  resStates[DEFAULT_DHW].attributes.dhw_windows_resolved = RESOLVED;
+  const resCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: resStates };
+    c.legend.hidden = {};
+    c.hass = { states: resStates };
+    return c;
+  })();
+  const resLoAt = new Map(ptsOf(resCard, "dhw_temp_lo").map((q) => [q.t, q.v]));
+  const resMidAt = new Map(ptsOf(resCard, "dhw_temp").map((q) => [q.t, q.v]));
+  const inResolved = plan.dhw_plan.forecast.filter((p) => {
+    const h = hourOf(p.t);
+    return h >= 18.5 && h < 22 && p.dhw_temp >= W && p.dhw_temp_lo != null &&
+      resLoAt.has(Date.parse(p.t));
+  });
+  const inOldOnly = plan.dhw_plan.forecast.filter((p) => {
+    const h = hourOf(p.t);
+    return clockIn(p.t) && !(h >= 18.5 && h < 22) && p.dhw_temp >= W &&
+      p.dhw_temp_lo != null && resLoAt.has(Date.parse(p.t));
+  });
+  const inResolvedLowLo = inResolved.filter((p) => p.dhw_temp_lo < W);
+  check("the plan-tab band floors the hours the RESOLVED schedule names",
+    inResolved.length > 0 && inResolved.every((p) => {
+      const lo = resLoAt.get(Date.parse(p.t));
+      return lo >= W && lo <= resMidAt.get(Date.parse(p.t));
+    }) && inResolvedLowLo.length > 0,
+    `${inResolved.length} resolved-window steps, ${inResolvedLowLo.length} published below the floor`);
+  check("and hours only the CONFIGURED schedule names keep their published lo",
+    inOldOnly.length > 0 && inOldOnly.every((p) =>
+      resLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
+    `${inOldOnly.length} configured-only steps`);
+  // The what-if editor is NOT moved by the resolved spec: it edits the
+  // configuration it saves, so it keeps reading `dhw_windows_spec`.
+  const editStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  editStates[DEFAULT_DHW].attributes.dhw_windows_spec = WINDOWS;
+  editStates[DEFAULT_DHW].attributes.dhw_windows_resolved = RESOLVED;
+  const editCard = build(editStates, { what_if: true });
+  editCard._hass = mkHass(editCard._hass.states);
+  editCard._onCardClick({});
+  const editRows = editCard.whatIf.draft().dhwWindows;
+  check("the what-if editor still pre-fills from the configured spec",
+    editRows.length === 2 && editRows[0].days === "daily" &&
+    editRows[0].start === "06:00" && editRows[1].end === "22:00",
+    JSON.stringify(editRows));
+}
+
+
+// ===========================================================================
+// Card setup and what-if surfaces (a2)
+// ===========================================================================
+
+// --- Scenario: hot water guaranteed until midnight -------------------------
+// `dhw_schedule.format_windows` renders a window that runs to the end of the
+// day as "20:00-24:00" ON PURPOSE, and `parse_windows` reads it straight back
+// to the same window. The card's `hourOf` has no 24:00 — nor should it, since
+// it also parses `<input type="time">` values and there is no 24:00 in one.
+//
+// The two paths differ, and only one of them was broken:
+//
+//   * The SAVE path and the Apply button both call `_onSlotEdit` first, which
+//     re-reads the window rows out of the DOM, where the browser has already
+//     turned an unrepresentable 24:00 into something a time input can hold.
+//   * The slider path does NOT. `_onWhatIfInput` writes one number into the
+//     memoised draft and schedules `_runWhatIf`, which validates that draft —
+//     the one seeded straight from the sensor's published "20:00-24:00".
+//
+// So a household whose hot water is guaranteed until midnight could not price
+// a single change: every simulate was refused by the card itself, with a
+// message blaming the schedule the integration had just published.
+{
+  const calls = [];
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.day_start_hour = 7;
+  st[DEFAULT_SPACE].attributes.day_end_hour = 22;
+  st[DEFAULT_DHW].attributes.dhw_windows = "20:00-24:00";
+  const mid = build(st, { what_if: true });
+  mid._hass = {
+    states: st,
+    callService: async (domain, service, data) => {
+      calls.push({ domain, service, data });
+      return { response: { results: { abc: simResult } } };
+    },
+  };
+  mid._onCardClick({});
+
+  const seeded = mid.whatIf.draft().dhwWindows;
+  check("the editor seeds one window from the published schedule",
+    seeded.length === 1 && seeded[0].start === "20:00",
+    JSON.stringify(seeded));
+
+  // The slider path: nothing re-reads the DOM, so what is validated is the
+  // seeded draft itself.
+  mid.whatIf.onInput({
+    stopPropagation() {},
+    target: { value: "21.5", classList: { contains: () => false } },
+  });
+  clearTimeout(mid.whatIf.timer);
+  mid.whatIf.timer = null;
+  await mid.whatIf.run();
+  const sims = calls.filter((c) => c.service === "simulate_plan");
+  check("a 20:00-24:00 household reaches simulate_plan",
+    sims.length === 1,
+    `${calls.length} service call(s): ${JSON.stringify(calls.map((c) => c.service))}`);
+  check("and the panel does not call the house's own schedule invalid",
+    !/not a valid time/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+  // What it prices has to still be the window the house runs. "20:00-00:00"
+  // is the same window to `parse_windows`; anything else is a different
+  // schedule wearing the same label.
+  check("and the window it prices is still the one the house runs",
+    sims.length === 1 && sims[0].data.dhw_windows === "20:00-00:00",
+    sims.length === 1 ? JSON.stringify(sims[0].data.dhw_windows) : "no call");
+
+  // A window that is genuinely not a time still stops the run — and now says
+  // WHICH one, because a household with four windows given "one of them is
+  // wrong" has to check all four by hand.
+  mid.whatIf.draft().dhwWindows = [
+    { start: "06:00", end: "08:00" },
+    { start: "17:00", end: "25:70" },
+  ];
+  const beforeBad = calls.length;
+  await mid.whatIf.run();
+  check("a genuinely malformed window still stops the run",
+    calls.length === beforeBad,
+    JSON.stringify(calls.slice(beforeBad).map((c) => c.service)));
+  check("and the error names the window that is wrong",
+    /17:00-25:70/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+  check("without naming the windows that are fine",
+    !/06:00-08:00/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+}
+
+// --- Scenario: the slot menu's document listener is not for keeps ----------
+// The menu parks an Escape handler on the DOCUMENT, because a mouse-opened
+// menu leaves focus on the chart and the menu element never sees the key.
+// Two paths dropped the menu without dropping the listener:
+//
+//   * `_render` replaces the whole shadow root — on the coordinator's
+//     schedule, not the user's — so the menu element is destroyed under the
+//     open menu on the next plan refresh.
+//   * `disconnectedCallback` never called `_closeSlotMenu` at all, so a card
+//     scrolled off a dashboard left its listener behind for the lifetime of
+//     the page: one per card visit.
+{
+  const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const count = () => (docListeners.keydown || []).length;
+  const base = count();
+  kb.dialog.open();
+  const openMenu = (card) => {
+    // The editor's chart, which is the dialog's (D4-02).
+    const svgs = chartSvgs(card.shadowRoot);
+    const svg = svgs[svgs.length - 1];
+    const slot = svg.querySelector(".slot-hit");
+    const runs = card.manual.draft()[slot.dataset.channel] || [];
+    const run = runs[Number(slot.dataset.index)];
+    card.lanes.openMenu(slot.dataset.channel,
+      (run.start + run.end) / 2, 120, 300, svg);
+  };
+
+  check("no card leaves a document keydown listener behind at rest",
+    base === 0, `${base} listener(s) already parked`);
+  openMenu(kb);
+  check("an open slot menu parks exactly one document keydown listener",
+    !!kb.lanes.menu && count() === base + 1, `${count()} listener(s)`);
+
+  // A plan refresh. The menu's markup goes with the shadow root either way;
+  // the question is whether its listener does.
+  kb._render();
+  check("a re-render takes the menu's document listener with the menu",
+    count() === base, `${count()} listener(s), expected ${base}`);
+  check("and leaves no menu state behind on the card",
+    kb.lanes.menu === null && kb.lanes.menuEscape === null,
+    `slotMenu=${kb.lanes.menu} escape=${kb.lanes.menuEscape}`);
+
+  // Repeated refreshes with a menu open each time must not accumulate.
+  for (let i = 0; i < 5; i++) { openMenu(kb); kb._render(); }
+  check("five open-and-refresh cycles leak nothing",
+    count() === base, `${count()} listener(s), expected ${base}`);
+
+  // Teardown: the card is removed from the dashboard with its menu open.
+  openMenu(kb);
+  check("the menu is open before the card goes away",
+    count() === base + 1, `${count()} listener(s)`);
+  kb.disconnectedCallback();
+  check("disconnecting the card releases the document listener too",
+    count() === base, `${count()} listener(s), expected ${base}`);
+  check("and the whole page is back to no parked keydown listeners",
+    count() === 0, `${count()} listener(s)`);
+}
+
+// --- Scenario: the Setup tab before the first solve ------------------------
+// `sensor.py` publishes `setup_topology` with no plan at all, and says why in
+// as many words: "Configuration-derived, so it exists before the first plan
+// does; the card's setup page should not need a solve to draw." The card
+// gated the expand affordance AND the dialog on plan data, so the one page
+// that could have told a user which sensor is missing was reachable only
+// after a solve that the missing sensor was preventing.
+{
+  const preStates = {};
+  preStates[DEFAULT_SPACE] = {
+    state: "unknown",
+    attributes: {
+      plan_kind: "space",
+      friendly_name: "Space Heating Plan",
+      manual_plan_window_hours: 6,
+      setup_topology: setupTopo(),
+      currency: "SEK",
+    },
+  };
+  preStates[DEFAULT_DHW] = {
+    state: "unknown",
+    attributes: { plan_kind: "dhw", friendly_name: "DHW Heating Plan",
+      currency: "SEK" },
+  };
+  preStates["sensor.livingroom"] = { state: "21.3",
+    attributes: { unit_of_measurement: "°C", friendly_name: "Living room" } };
+  const pre = build(preStates);
+  const preDump = collect(pre.shadowRoot).join("\n");
+  check("with no plan the card still says there is no plan",
+    /no plan data/i.test(preDump), preDump.slice(0, 200));
+  check("but it still offers a way in to the setup page",
+    /class="expand"/.test(preDump),
+    "no expand affordance rendered");
+
+  pre._onExpandClick({ stopPropagation() {} });
+  const openDump = collect(pre.shadowRoot).join("\n");
+  check("expanding before the first solve opens the dialog",
+    pre.dialog.expanded === true && /<dialog/.test(openDump),
+    `expanded=${pre.dialog.expanded}`);
+  check("and it lands on the setup page rather than an empty plan",
+    pre.dialog.page === "setup" && /class="setup-page"/.test(openDump),
+    `page=${pre.dialog.page}`);
+  check("the diagram is drawn from the published topology",
+    /class="setup-hit"/.test(openDump) && /Indoor temperature/.test(openDump),
+    "no clickable slots rendered");
+  check("so an unassigned sensor can be assigned without a plan first",
+    pre.shadowRoot.querySelectorAll(".setup-hit")
+      .some((h) => h.dataset.key === "lower_floor_temp_entity"),
+    pre.shadowRoot.querySelectorAll(".setup-hit")
+      .map((h) => h.dataset.key).join(", "));
+  // The Plan tab is still there and still honest about having nothing.
+  const planTab = pre.shadowRoot.querySelectorAll(".dlg-tab")
+    .find((t) => t.dataset.page === "plan");
+  check("the Plan tab is still offered", !!planTab);
+  ((planTab && planTab._listeners.click) || []).forEach((f) =>
+    f({ currentTarget: planTab, stopPropagation() {} }));
+  // Scoped to the DIALOG's own body: the card underneath says "no plan data"
+  // too, so a match anywhere in the shadow root would pass against a dialog
+  // page that drew nothing at all.
+  const dlgBody = pre.shadowRoot.querySelector("dialog .dlg-body");
+  check("and switching to it explains the absence rather than drawing nothing",
+    pre.dialog.page === "plan" && !!dlgBody &&
+    /no plan data/i.test(dlgBody.textContent || ""),
+    `page=${pre.dialog.page} body=${JSON.stringify(
+      (dlgBody && dlgBody.textContent) || null)}`);
+
+  // An install with genuinely nothing published has nothing to expand to:
+  // no plan, and no topology either. That empty state stays as it was.
+  const nothing = build({});
+  check("an install with nothing published still offers no expansion",
+    !/class="expand"/.test(collect(nothing.shadowRoot).join("\n")) &&
+    !/<ha-card class="clickable"/.test(collect(nothing.shadowRoot).join("\n")));
+}
+
+// --- Scenario: what a slot is asking for comes from the slot ---------------
+// The picker ranks a matching device_class to the top, which is what makes a
+// temperature slot usable on an install with hundreds of sensors. That
+// expectation used to live in a hardcoded map inside the card, keyed by slot
+// id — a second copy of something `topology._SLOTS` already describes, and
+// one that no test touched. It is published on the slot now, beside the
+// domains it sits with in the same table.
+{
+  const bigStates = {};
+  for (let i = 0; i < 250; i++) {
+    bigStates[`sensor.aaa_meter_${String(i).padStart(3, "0")}`] = {
+      state: "3.2",
+      attributes: { device_class: "power", unit_of_measurement: "kW",
+        friendly_name: `Meter ${String(i).padStart(3, "0")}` },
+    };
+  }
+  bigStates["sensor.zzz_wood_probe"] = {
+    state: "71.2",
+    attributes: { device_class: "temperature", unit_of_measurement: "°C",
+      friendly_name: "Wood probe" },
+  };
+  const topo = setupTopo();
+  topo.slots = topo.slots.map((s) =>
+    s.key === "wood_tank_top_entity"
+      ? { ...s, device_class: "temperature" }
+      : s);
+  const card = mkSetup(topo, bigStates);
+  const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === "wood_tank_top_entity");
+  (hit._listeners.click || []).forEach((f) =>
+    f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+  const pickerHtml = collect(card.shadowRoot).join("\n");
+  const opts = [...pickerHtml.matchAll(/<option value="([^"]*)"/g)]
+    .map((m) => m[1]).filter(Boolean);
+  check("a slot that wants a temperature ranks one above 250 power meters",
+    opts[0] === "sensor.zzz_wood_probe",
+    `first five: ${opts.slice(0, 5).join(", ")}`);
+  // Ranking, not filtering. A house full of sensors carrying no device
+  // class at all is normal, and a picker that hid them would hide the very
+  // probe the user is trying to assign.
+  check("and hides none of the ones it did not ask for",
+    opts.some((id) => /aaa_meter/.test(id)) &&
+    opts.length === vm.runInContext("PICKER_MAX_OPTIONS", ctx),
+    `${opts.length} options, ${opts.filter((id) => /aaa_meter/.test(id)).length} of them power meters`);
+}
+
+// --- Scenario: the assignment the picker could not see ---------------------
+// The picker prepends the slot's own entity as the SELECTED option, outside
+// the text filter and outside the 200-option cap, because an option that is
+// absent reads as "(not configured)" and Assign writes that absence back as a
+// clearance. That production line has been there since v5.1.4 — and until now
+// nothing reached it. The scenario above assigns
+// `sensor.vedpanna_temperatur_temperature_2`, which sorts BEFORE 400
+// `sensor.zz_probe_*` and therefore lands inside the cap on its own merits;
+// replacing `if (chosen && !listed.has(chosen))` with `if (false)` left the
+// whole suite green. Three ordinary ways an assignment falls outside the list
+// the picker would otherwise build, and the write that used to follow.
+{
+  const MAX = vm.runInContext("PICKER_MAX_OPTIONS", ctx);
+  const bigStates = {};
+  for (let i = 0; i < 400; i++) {
+    bigStates[`sensor.zz_probe_${String(i).padStart(3, "0")}`] = {
+      state: "20.0",
+      attributes: { unit_of_measurement: "°C",
+        friendly_name: `Probe ${String(i).padStart(3, "0")}` },
+    };
+  }
+  const assignedTo = (id) => {
+    const t = setupTopo();
+    t.slots = t.slots.map((s) =>
+      s.key === "wood_tank_top_entity" ? { ...s, entity: id } : s);
+    return t;
+  };
+  const openAndRead = (card, filter) => {
+    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+      .find((h) => h.dataset.key === "wood_tank_top_entity");
+    (hit._listeners.click || []).forEach((f) =>
+      f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    if (filter !== undefined) {
+      const box = card.shadowRoot.querySelector(".sp-filter");
+      box.value = filter;
+      (box._listeners.input || []).forEach((f) =>
+        f({ currentTarget: box, target: box }));
+    }
+    const page = collect(card.shadowRoot).join("\n");
+    return [...page.matchAll(
+      /<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+      .map((mm) => ({ value: mm[1], selected: !!mm[2], text: mm[3] }));
+  };
+
+  // (a) Past the cap on its own merits: 400 candidates, and the assigned one
+  //     is the last of them alphabetically. The cap is a RENDER bound, so the
+  //     answer is 200 listed candidates PLUS the one that is already
+  //     configured — not 200 that happen to exclude it.
+  const past = mkSetup(assignedTo("sensor.zz_probe_399"), bigStates);
+  const pastOpts = openAndRead(past);
+  const pastMine = pastOpts.find((o) => o.value === "sensor.zz_probe_399");
+  check("an assignment 200 places past the cap is still offered",
+    !!pastMine && pastOpts.filter((o) => o.value).length === MAX + 1,
+    `${pastOpts.filter((o) => o.value).length} options for 400 candidates, ` +
+    `cap ${MAX}`);
+  check("and it is the one and only option the picker comes up on",
+    !!pastMine && pastMine.selected &&
+    pastOpts.filter((o) => o.selected).length === 1,
+    JSON.stringify(pastOpts.filter((o) => o.selected)));
+
+  // (b) A filter the assignment does not match. Narrowing the list to look
+  //     for something else must not quietly deselect what is configured.
+  const filtered = mkSetup(assignedTo("sensor.zz_probe_399"), bigStates);
+  const fOpts = openAndRead(filtered, "probe 012");
+  check("a filter that excludes the assignment does not drop it",
+    fOpts.some((o) => o.value === "sensor.zz_probe_399" && o.selected),
+    fOpts.map((o) => o.value).join(", ").slice(0, 120));
+
+  // (c) The strongest form: the assignment is in no list the picker builds,
+  //     because the entity is not in `states` at all — renamed, removed, or
+  //     an integration that has not come up yet. Ranking and filtering can
+  //     never reach it; only the prepend can.
+  const gone = mkSetup(assignedTo("sensor.renamed_away"), bigStates);
+  const goneOpts = openAndRead(gone);
+  const ghost = goneOpts.find((o) => o.value === "sensor.renamed_away");
+  check("an assignment that is not a candidate at all is still shown",
+    !!ghost && ghost.selected,
+    JSON.stringify(goneOpts.slice(0, 3)));
+  check("and it is labelled with its raw id, and said to be unavailable",
+    !!ghost && ghost.text.includes("sensor.renamed_away") &&
+    /not available/i.test(ghost.text),
+    ghost && ghost.text);
+  // The payload. This is the write that used to arrive as a clearance.
+  const calls = [];
+  gone._hass.callService = async (d, s2, data) => { calls.push([d, s2, data]); };
+  const saveBtn = gone.shadowRoot.querySelector(".sp-save");
+  await Promise.all((saveBtn._listeners.click || [])
+    .map((f) => f({ stopPropagation() {}, preventDefault() {} })));
+  check("and Assign on an untouched picker writes it back, not a clearance",
+    calls.length === 1 && calls[0][2].entity_id === "sensor.renamed_away",
+    JSON.stringify(calls));
+}
+
+
+
+
+// --- Weekly hot-water windows in the schedule editor -------------------------
+// v6.2.5 let a hot-water window carry a day selector; the editor showed such a
+// schedule flattened to one day and would have saved it that way. The plan
+// sensors now publish the configured spec (`dhw_windows_spec`) beside the
+// plan's flat reading, every window row carries a day selector, and what is
+// sent back is the integration's own grammar.
+{
+  const weekly = "weekdays 06:00-08:30, weekend 08:00-09:30";
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30"; // the plan's reading: today's set
+  st[DEFAULT_DHW].attributes.dhw_windows_spec = weekly;
+  const wk = build(st, { what_if: true });
+  wk._hass = mkHass(wk._hass.states);
+  wk._onCardClick({});
+  const rows = wk.whatIf.draft().dhwWindows;
+  check("the editor pre-fills from the configured spec, not the plan's flat reading",
+    rows.length === 2 && rows[0].days === "weekdays" && rows[0].start === "06:00" &&
+    rows[1].days === "weekend" && rows[1].end === "09:30", JSON.stringify(rows));
+  const dump = collect(wk.shadowRoot).join("\n");
+  check("every window row carries a day selector",
+    (dump.match(/class="wi-win-days"/g) || []).length === 2);
+  check("with the window's own days selected",
+    /<option value="weekdays" selected>Weekdays<\/option>/.test(dump) &&
+    /<option value="weekend" selected>Weekend<\/option>/.test(dump));
+  check("and the selector is labelled for a screen reader",
+    /aria-label="Window 1 days"/.test(dump));
+  called = null;
+  await wk.whatIf.run();
+  check("simulating sends the weekly spec back in the integration's grammar",
+    called && called.data.dhw_windows === weekly, called && called.data.dhw_windows);
+  // Changing a selector in the editor changes what is sent.
+  const sel = wk.shadowRoot.querySelectorAll(".wi-win-days")[1];
+  sel.value = "daily";
+  wk.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await wk.whatIf.onApplySlots({ stopPropagation(){} });
+  check("a window switched to every day drops its selector",
+    called && called.data.dhw_windows === "weekdays 06:00-08:30, 08:00-09:30",
+    called && called.data.dhw_windows);
+  wk.whatIf.onAddWindow({ stopPropagation(){} });
+  check("a new window applies every day",
+    wk.whatIf.draft().dhwWindows[2].days === "daily");
+
+  // A day list typed in the options flow is not something the picker offers,
+  // but it must survive a round trip through the card untouched.
+  const listSpec = "Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30";
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.dhw_windows_spec = listSpec;
+  const custom = build(st2, { what_if: true });
+  custom._hass = mkHass(custom._hass.states);
+  custom._onCardClick({});
+  const cw = custom.whatIf.draft().dhwWindows;
+  check("a day list is read as one selector, its comma and all",
+    cw.length === 3 && cw[0].days === "Mo" && cw[1].days === "Tu-Fr" && cw[2].days === "Sa,Su",
+    JSON.stringify(cw));
+  check("and offered as the row's own option",
+    /<option value="Sa,Su" selected>Sa,Su<\/option>/.test(collect(custom.shadowRoot).join("\n")));
+  custom.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await custom.whatIf.run();
+  check("and sent back exactly as configured after a pass through the editors",
+    called && called.data.dhw_windows === listSpec, called && called.data.dhw_windows);
+  // The Swedish editor names the same three sets.
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+  sv.hass = { states: st, language: "sv-SE" };
+  sv._onCardClick({});
+  check("the day sets are named in Swedish too",
+    /<option value="weekdays" selected>Vardagar<\/option>/.test(collect(sv.shadowRoot).join("\n")));
+  build(st); // leave the module back in English
+
+  // Older integrations publish no spec; the plan's reading is still the source,
+  // and an empty spec (nothing configured, windows learned) defers to it too.
+  const st3 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st3[DEFAULT_DHW].attributes.dhw_windows = "17:00-22:00";
+  const old = build(st3, { what_if: true });
+  old._onCardClick({});
+  check("without a published spec the plan's windows still pre-fill the editor",
+    old.whatIf.draft().dhwWindows.length === 1 && old.whatIf.draft().dhwWindows[0].days === "daily",
+    JSON.stringify(old.whatIf.draft().dhwWindows));
+  st3[DEFAULT_DHW].attributes.dhw_windows_spec = "";
+  const learned = build(st3, { what_if: true });
+  learned._onCardClick({});
+  check("an empty spec defers to the learned windows the plan runs on",
+    learned.whatIf.draft().dhwWindows.length === 1);
+  // A flat spec keeps sending the flat string: nothing changes for a flat install.
+  const flat = build((() => { const t = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    t[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00"; return t; })(), { what_if: true });
+  flat._hass = mkHass(flat._hass.states);
+  flat._onCardClick({});
+  called = null;
+  await flat.whatIf.run();
+  check("a flat schedule is sent back flat",
+    called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00", called && called.data.dhw_windows);
+}
+
+// --- #1416: the window day selector offers specific weekdays -----------------
+// The backend ships per-weekday keys (`dhw_windows_mon..sun`) and the card's
+// own grammar already reads and writes a single day as its day token ("Mo"),
+// but the selector offered only the three named sets, so a Monday-only window
+// could only be reached by typing it in the options flow.
+{
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].attributes.dhw_windows_spec = "Mo 05:30-07:00, Fr 17:00-19:00";
+  const wd = build(st, { what_if: true });
+  wd._hass = mkHass(wd._hass.states);
+  wd._onCardClick({});
+  const dump = collect(wd.shadowRoot).join("\n");
+  check("a single-day window pre-fills its own day token",
+    wd.whatIf.draft().dhwWindows.length === 2 &&
+    wd.whatIf.draft().dhwWindows[0].days === "Mo" &&
+    wd.whatIf.draft().dhwWindows[1].days === "Fr",
+    JSON.stringify(wd.whatIf.draft().dhwWindows));
+  check("the selector offers Monday through Sunday, the day token selected",
+    /<option value="Mo" selected>Monday<\/option>/.test(dump) &&
+    /<option value="Fr" selected>Friday<\/option>/.test(dump) &&
+    /<option value="Su">Sunday<\/option>/.test(dump),
+    "expected the seven weekday options, each keyed by its day token");
+  // Selecting a weekday and simulating sends that day's token back.
+  const sel = wd.shadowRoot.querySelectorAll(".wi-win-days")[0];
+  sel.value = "Tu";
+  wd.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await wd.whatIf.run();
+  check("a window switched to a weekday keeps that day's token",
+    called && called.data.dhw_windows === "Tu 05:30-07:00, Fr 17:00-19:00",
+    called && called.data.dhw_windows);
+}
+
+
+// --- #142: a no-data render forgets the lane geometry ---------------------------
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  check("a rendered plan records the lane geometry", !!c._geom);
+  c.hass = { states: {} };
+  check("a render with no plan forgets it, as it forgets the hover geometry",
+    c._geom === null && c._plot === null);
+}
+
+// --- #137: a card removed mid-gesture takes its listeners and timers with it ----
+// The drag and the pan park their move/up handlers on `window` so they survive
+// a mid-gesture rebuild; the edge auto-pan renders on an interval; a view
+// change waits on a frame. None of them may outlive the card.
+{
+  const xOfGeom = (geom, t) =>
+    geom.plotL + ((t - geom.windowStart) / (geom.windowEnd - geom.windowStart)) * geom.plotW;
+  const listeners = () => (winListeners.pointermove || []).length;
+
+  // A slot drag, held against the plot's right edge in a zoomed view: the
+  // handlers are on window and the auto-pan interval is armed.
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  c.view.zoom(0.25);
+  const geom = c._geom;
+  const runs = c.manual.draft().dhw;
+  const [lo] = c.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  const before = listeners();
+  const intervalsBefore = intervals.size;
+  if (i >= 0) {
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svgOf(c), "pointerdown", { clientX: xOfGeom(geom, runs[i].start + 60000), clientY: 0,
+      target, stopPropagation() {}, preventDefault() {} });
+    fireWindow("pointermove", { clientX: 899 });
+  }
+  check("a drag parks its handlers on window and arms the edge auto-pan",
+    i >= 0 && listeners() === before + 1 && intervals.size === intervalsBefore + 1 && c.lanes.drag !== null,
+    `slot ${i}, listeners ${before} -> ${listeners()}, intervals ${intervalsBefore} -> ${intervals.size}`);
+  c.disconnectedCallback();
+  check("removing the card mid-drag takes them off again",
+    listeners() === before && intervals.size === intervalsBefore &&
+    c.lanes.drag === null && c.lanes.dragPan === null && c.lanes.gesture === null,
+    `listeners ${listeners()}, intervals ${intervals.size}`);
+
+  // A pan gesture likewise.
+  const p = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  p._onCardClick({});
+  const b2 = listeners();
+  p.view.onPanDown({ currentTarget: svgOf(p), target: {}, clientX: 100, preventDefault() {} });
+  check("a pan parks its handlers on window", listeners() === b2 + 1 && p.view.panGesture !== null);
+  p.disconnectedCallback();
+  check("removing the card mid-pan takes them off again",
+    listeners() === b2 && p.view.panGesture === null);
+
+  // A redraw waiting on a frame. The stub's requestAnimationFrame is
+  // synchronous, so the timer fallback is what can be caught in flight.
+  const q = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  q._onCardClick({});
+  const savedRaf = ctx.requestAnimationFrame;
+  ctx.requestAnimationFrame = undefined;
+  let renders = 0;
+  const realRender = q._render.bind(q);
+  q._render = () => { renders++; realRender(); };
+  q.view.zoom(0.5);
+  check("a view change waits on a frame", q.view.pendingFrame !== 0 && renders === 0);
+  q.disconnectedCallback();
+  ctx.requestAnimationFrame = savedRaf;
+  await new Promise((r) => setTimeout(r, 40));
+  check("removing the card cancels the pending redraw",
+    renders === 0 && q.view.pendingFrame === 0 && q.view.cancelFrame === null,
+    `${renders} render(s) after removal`);
+}
+
+
+// --- #139: one reading of a plan sensor's forecast ------------------------------
+// The chart read a forecast through `forecast` (unavailable means none; a
+// JSON string is parsed) and the slot editor through `forecastOf` (the raw
+// attribute, array or nothing). A sensor gone unavailable with its last
+// forecast still attached was therefore "no plan" to the chart and "a plan"
+// to the lanes, the bounds, the delta and the apply payload.
+{
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].state = "unavailable";
+  const gone = build(st, { what_if: true });
+  gone._onCardClick({});
+  check("an unavailable channel has no forecast for the editor either",
+    gone.plan.forecastOf("dhw").length === 0 && gone.manual.draft().dhw.length === 0,
+    `${gone.plan.forecastOf("dhw").length} steps, ${gone.manual.draft().dhw.length} runs`);
+  check("while the other channel still does",
+    gone.plan.forecastOf("space").length > 0 && gone.manual.draft().space.length > 0);
+  // ...so Apply leaves the unavailable channel automatic rather than pinning
+  // the stale arrangement: the payload omits it.
+  const calls = [];
+  gone._hass = { states: gone._hass.states, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  gone.manual.apply();
+  await new Promise((r) => setTimeout(r, 0));
+  check("and Apply omits it instead of pinning stale slots",
+    calls.length === 1 && !("dhw_slots" in calls[0]) && "space_slots" in calls[0],
+    JSON.stringify(calls[0] || null));
+
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.forecast = JSON.stringify(st2[DEFAULT_DHW].attributes.forecast);
+  const stringy = build(st2, { what_if: true });
+  stringy._onCardClick({});
+  check("a forecast published as a JSON string reaches the editor as the chart already saw it",
+    stringy.plan.forecastOf("dhw").length > 0 && stringy.manual.draft().dhw.length > 0);
+}
+
+
+// --- #140: the picker's slot is read, not remembered by the markup builder -----
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topoWith = (entity) => ({
+    two_zone: false, dhw: true, valve_mode: "none", positions: {},
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity, domains: TEMP },
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+    ],
+  });
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topoWith("sensor.tank_a");
+  states["sensor.tank_a"] = { state: "47.5", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.tank_b"] = { state: "48.0", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.livingroom"] = { state: "21.3", attributes: { unit_of_measurement: "°C" } };
+  const c = build(states);
+  c._onCardClick({});
+  c.dialog.page = "setup";
+  c._render();
+  check("rendering the setup page keeps no memo of a slot",
+    !("pickerSlot" in c.setup) && c.setup.openSlot() === null);
+  const hit = c.shadowRoot.querySelectorAll(".setup-hit").find((h) => h.dataset.key === "buffer_tank_temp_entity");
+  (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+  check("the open picker's slot is the one the topology holds now",
+    c.setup.pickerKey === "buffer_tank_temp_entity" && c.setup.openSlot().entity === "sensor.tank_a");
+  // The integration republishes the topology while the picker is open (an
+  // assignment elsewhere reloaded it): what Assign writes back for an
+  // untouched picker is what the slot holds NOW, not what it held at open.
+  const fresh = { ...states };
+  fresh[DEFAULT_SPACE] = { ...states[DEFAULT_SPACE], last_updated: "later",
+    attributes: { ...states[DEFAULT_SPACE].attributes, setup_topology: topoWith("sensor.tank_b") } };
+  const calls = [];
+  c.hass = { states: fresh, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  check("the picker survives the republish", c.setup.pickerKey === "buffer_tank_temp_entity" &&
+    !!c.shadowRoot.querySelector(".setup-picker"));
+  const save = c.shadowRoot.querySelector(".sp-save");
+  await Promise.all((save._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("Assign on an untouched picker writes the slot's current entity, not a stale memo",
+    calls.length === 1 && calls[0].entity_id === "sensor.tank_b", JSON.stringify(calls));
+}
+
+
+// --- #141: shared-band pattern ids are the card's own, and start over per render
+// They used to come from a page-global counter shared by every card, so the
+// ids in one card's markup depended on how often any other card had rendered.
+{
+  const shared = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const sp = st[DEFAULT_SPACE].attributes.forecast;
+    const heating = new Set(sp.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+    st[DEFAULT_DHW].attributes.forecast = st[DEFAULT_DHW].attributes.forecast.map((p) =>
+      heating.has(p.t) ? { ...p, dhw_power: 1.5 } : p);
+    return st;
+  })();
+  const ids = (card) => (collect(card.shadowRoot).join("\n").match(/<pattern id="([^"]+)"/g) || [])
+    .map((m) => m.slice(13, -1));
+  const a = build(shared);
+  a._onCardClick({});
+  const first = ids(a);
+  check("the two charts of one render get distinct ids",
+    first.length === 2 && first[0] !== first[1], first.join(","));
+  a._render();
+  check("and a second render hands out the same ids again",
+    JSON.stringify(ids(a)) === JSON.stringify(first), ids(a).join(","));
+  const b = build(shared);
+  b._onCardClick({});
+  check("a second card on the page starts from the same ids, not after the first's",
+    JSON.stringify(ids(b)) === JSON.stringify(first), ids(b).join(","));
+  check("the page-global counter is gone", !("_sharedPatternSeq" in Card));
+}
+
+
+// --- #138: each chart copy keeps its own lane geometry --------------------------
+// With the dialog open two charts render into one shadow root, and the
+// geometry the lanes and the hit-tests used was whichever was drawn last --
+// the expanded copy's. Its font is 15 against the compact chart's 10, and on
+// a phone the compact chart's boosted font moves its margins too, so a drag
+// on the inline chart was hit-tested against the dialog's plot.
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  const svgs = chartSvgs(c.shadowRoot);
+  check("two chart copies, two geometries",
+    svgs.length === 2 && c.geomAt(0) !== c.geomAt(1) && c.geomAt(0).font === 10 && c.geomAt(1).font === 15,
+    `fonts ${c.geomAt(0) && c.geomAt(0).font}, ${c.geomAt(1) && c.geomAt(1).font}`);
+  check("and the one the event's chart gets is its own",
+    geomOfChart(c, svgs[0]) === c.geomAt(0) && geomOfChart(c, svgs[1]) === c.geomAt(1) &&
+    c.geomAt() === c.geomAt(1));
+  // The labels live in their own layer above the series since #935, and the
+  // redraw refreshes it from the same per-copy geometry as the lanes' group.
+  const labelFont = (svg) => ((svg.querySelector(".lane-labels") || { innerHTML: "" }).innerHTML.match(/class="lane-label"[^>]*font-size="([\d.]+)"/) || [])[1];
+  c.lanes.refreshLanes();
+  check("a redraw draws the inline lanes at the inline font and the dialog's at the dialog's",
+    labelFont(svgs[0]) === "8" && labelFont(svgs[1]) === "12",
+    `inline ${labelFont(svgs[0])}, expanded ${labelFont(svgs[1])}`);
+
+  // On a phone-width card the compact chart's boosted font widens its margins
+  // (D4-01), so the same screen x is a different time on the two copies; the
+  // inline chart's own geometry is what a pointer on it must be read with.
+  const narrow = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  narrow._refitCharts = () => {};
+  { const s0 = chartSvgs(narrow.shadowRoot)[0];
+    if (s0) s0.getBoundingClientRect = () => ({ width: 287, height: 121, left: 0, top: 0 }); }
+  narrow._onCardClick({});
+  const [inl, exp] = chartSvgs(narrow.shadowRoot);
+  const gi = geomOfChart(narrow, inl), ge = geomOfChart(narrow, exp);
+  check("the compact copy's margins differ from the dialog's", gi.plotL !== ge.plotL, `${gi.plotL} vs ${ge.plotL}`);
+  const t = gi.windowStart + 4 * HOUR;
+  const x = gi.plotL + ((t - gi.windowStart) / (gi.windowEnd - gi.windowStart)) * gi.plotW;
+  check("a point on the inline chart maps back to its own time",
+    Math.abs(timeAtClientX(inl, x, geomOfChart(narrow, inl)) - t) < 60000 &&
+    Math.abs(timeAtClientX(inl, x, ge) - t) > 60000,
+    "the dialog's geometry would have read it as a different time");
+}
+
+// --- D4-08 (#263): chart series colours against the card background --------
+// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const BG = { light: hex("#ffffff"), dark: hex("#1c1c1c") };
+  let low = { light: 0, dark: 0 };
+  for (const d of defs) {
+    const c = hex(d.color);
+    if (ratio(c, BG.light) < 3) low.light++;
+    if (ratio(c, BG.dark) < 3) low.dark++;
+  }
+  check("every series colour clears WCAG 1.4.11's 3:1 on a light card",
+    low.light === 0, `${low.light} of ${defs.length} below 3:1 on #fff`);
+  check("every series colour clears WCAG 1.4.11's 3:1 on a dark card",
+    low.dark === 0, `${low.dark} of ${defs.length} below 3:1 on #1c1c1c`);
+}
+
+// --- C1 (#558): the chart's graphical objects, in BOTH default themes ------
+//
+// The shipped witness (tests/card_browser.mjs) measures four TEXT sites at
+// 4.5:1 under HA_LIGHT only, so nothing here was ever measured: a stroke, a
+// fill and a marker are not text, and a dark card is not a light one. These
+// checks read the rendered chart markup, resolve each `var(--token,fallback)`
+// against Home Assistant's own default light and dark themes, composite any
+// alpha, and apply a threshold chosen per KIND of object.
+//
+// The kind split is a design choice and is stated rather than implied
+// (`tools/audit/briefs/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
+// graphics required to understand the content", which is the series, the
+// "now" reference and the boundary of the estimated-price region -- not the
+// plot frame and not the gridlines, whose job is to be legible without
+// competing with the data. Gridlines therefore get a PERCEPTIBILITY floor,
+// well under 3:1; demanding 3:1 of them would force a grid that drowns the
+// series, which is the opposite of the fix.
+//
+// Token substitution, not layout: this is the Node lane, so the numbers are
+// what the theme's own values imply. Measuring what Chromium actually
+// composites is tests/card_browser.mjs's job (item C4).
+{
+  const THEMES = {
+    // Home Assistant's default light and dark themes, the two a stock
+    // install can be in. The card's own `var(...)` fallbacks are exercised
+    // by tests/card_browser.mjs's second lane.
+    light: {
+      "--card-background-color": "#ffffff", "--primary-text-color": "#212121",
+      "--secondary-text-color": "#727272", "--primary-color": "#03a9f4",
+      "--divider-color": "rgba(0,0,0,.12)",
+    },
+    dark: {
+      "--card-background-color": "#1c1c1c", "--primary-text-color": "#e1e1e1",
+      "--secondary-text-color": "#9b9b9b", "--primary-color": "#03a9f4",
+      "--divider-color": "rgba(225,225,225,.12)",
+    },
+  };
+  const rgba = (s) => {
+    s = String(s).trim();
+    if (s.startsWith("#")) {
+      let h = s.slice(1);
+      if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+      const n = parseInt(h, 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1];
+    }
+    const m = s.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+    if (!m) return null;
+    return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+  };
+  // `var(--token, fallback)` as the theme resolves it. One level deep is
+  // all the card writes.
+  const resolve = (spec, theme) => {
+    const m = String(spec).match(/^var\(\s*(--[\w-]+)\s*(?:,\s*(.+?)\s*)?\)$/);
+    if (!m) return rgba(spec);
+    return rgba(theme[m[1]] !== undefined ? theme[m[1]] : m[2]);
+  };
+  const overBg = (c, bg, extra = 1) => {
+    const a = c[3] * extra;
+    return [0, 1, 2].map((i) => c[i] * a + bg[i] * (1 - a)).concat(1);
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  // Contrast of one drawn object against the card it sits on, in one theme.
+  const against = (spec, theme, opacity) => {
+    const c = resolve(spec, theme);
+    if (!c) return null;
+    const bg = rgba(theme["--card-background-color"]);
+    return ratio(overBg(c, bg, opacity === undefined ? 1 : +opacity), bg);
+  };
+
+  // The chart with a half-published horizon, so the estimated-price region
+  // is drawn. Read from the rendered tree, not from the source: a check
+  // pins the artifact it reads (`fixer.md` step 11).
+  const est = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
+    return st;
+  })();
+  const estDump = collect(build(est, { what_if: true }).shadowRoot).join("\n");
+  const attrs = (tag) => {
+    const out = {};
+    for (const m of tag.matchAll(/([\w-]+)="([^"]*)"/g)) out[m[1]] = m[2];
+    return out;
+  };
+  const tagsOf = (name, src) =>
+    (src.match(new RegExp(`<${name}\\b[^>]*>`, "g")) || []).map(attrs);
+  const lines = tagsOf("line", estDump);
+  const rects = tagsOf("rect", estDump);
+  const texts = tagsOf("text", estDump);
+
+  // ---- the "now" marker: a full-height dashed rule -----------------------
+  // Located by its dash signature rather than by a class, so this check
+  // measures the CONTRAST of whatever the tree draws there and cannot pass
+  // merely because a class was renamed.
+  const nowLine = lines.find((a) => a["stroke-dasharray"] === "4 3" && a.x1 === a.x2);
+  check("the chart draws a 'now' marker at all", !!nowLine,
+    `${lines.length} <line> elements, none dashed 4 3 and vertical`);
+  if (nowLine) {
+    for (const t of ["light", "dark"]) {
+      const r = against(nowLine.stroke, THEMES[t], nowLine.opacity);
+      check(`the 'now' marker clears WCAG 1.4.11's 3:1 on a ${t} card (#558 C1)`,
+        r !== null && r >= 3, `${nowLine.stroke} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+    }
+  }
+  // Its label is text, so 4.5:1 -- and in BOTH themes, which is what a
+  // light-only witness could never have said.
+  const nowLabel = texts.find((a) => /now/i.test(a.class || "")) ||
+    texts.find((a) => a.fill && a.fill.startsWith("#") && a.fill !== "#888");
+  if (nowLabel) {
+    for (const t of ["light", "dark"]) {
+      const r = against(nowLabel.fill, THEMES[t]);
+      check(`the 'now' label clears 4.5:1 on a ${t} card (#558 C1)`,
+        r !== null && r >= 4.5, `${nowLabel.fill} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+    }
+  }
+
+  // ---- the estimated-price region ---------------------------------------
+  // The wash alone cannot carry this: a tint dark enough to reach 3:1 would
+  // bury the series underneath it. So the region is required to be
+  // DELIMITED by an object that reaches 3:1, and the wash only has to be
+  // perceptible. Absence of a delimiter is the defect, so "missing" is the
+  // correct failure here rather than a low number.
+  const wash = rects.find((a) => (a.class || "").includes("estimated"));
+  check("the estimated-price region is drawn", !!wash, "no rect.estimated");
+  if (wash) {
+    for (const t of ["light", "dark"]) {
+      const r = against(wash.fill, THEMES[t], wash["fill-opacity"]);
+      check(`the estimated-price wash is perceptible on a ${t} card (#558 C1)`,
+        r !== null && r >= 1.15,
+        `${wash.fill} at fill-opacity ${wash["fill-opacity"]} measures ` +
+        `${r === null ? "unparseable" : r.toFixed(3)}:1`);
+    }
+    // The edge must declare itself part of the region: any vertical rule
+    // that merely shares the region's x would pass vacuously, and on a tree
+    // with an hourly gridline at every hour one always does.
+    const edge = lines.find(
+      (a) => (a.class || "").includes("estimated") && a.x1 === a.x2);
+    check("the estimated-price region has a delimiting edge (#558 C1)", !!edge,
+      `nothing marks where the guesses start at x=${wash.x}; the region's only ` +
+      `marker is a ${(against(wash.fill, THEMES.light, wash["fill-opacity"]) || 0).toFixed(3)}:1 wash`);
+    if (edge) {
+      for (const t of ["light", "dark"]) {
+        const r = against(edge.stroke, THEMES[t], edge.opacity);
+        check(`the estimated-price edge clears 3:1 on a ${t} card (#558 C1)`,
+          r !== null && r >= 3, `${edge.stroke} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+      }
+    }
+  }
+
+  // ---- gridlines ---------------------------------------------------------
+  // Vertical rules that are not the now marker. On a tree that emits an
+  // unlabelled rule at every hour these are the invisible ones.
+  const gridV = lines.filter(
+    (a) => a.x1 === a.x2 && a !== nowLine && a["stroke-dasharray"] === undefined &&
+      Math.abs(+a.y2 - +a.y1) > 100);
+  const gridH = lines.filter((a) => a.y1 === a.y2 && Math.abs(+a.x2 - +a.x1) > 100);
+  check("the chart draws horizontal gridlines to compare values against (#558 C1)",
+    gridH.length > 0,
+    `${gridV.length} vertical rules, ${gridH.length} horizontal — a reader ` +
+    `comparing two values has nothing to sight along`);
+  for (const [kind, set] of [["vertical", gridV], ["horizontal", gridH]]) {
+    if (!set.length) continue;
+    for (const t of ["light", "dark"]) {
+      const worst = set.reduce((w, a) => {
+        const r = against(a.stroke, THEMES[t], a.opacity);
+        return r !== null && r < w.r ? { r, a } : w;
+      }, { r: Infinity, a: null });
+      check(`every ${kind} gridline is perceptible on a ${t} card (#558 C1)`,
+        worst.r >= 1.3,
+        worst.a && `${worst.a.stroke} at opacity ${worst.a.opacity} measures ${worst.r.toFixed(3)}:1`);
+    }
+  }
+}
+
+// --- C1 (#558): series colours must survive colour-blindness --------------
+// D4-08 above asks each colour to read against the CARD. This asks the
+// colours to read against EACH OTHER, which is what tells one line from
+// another, and it asks it of a deuteranope -- the commonest form, and the
+// one that collapses exactly the amber/gold axis this palette leans on.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  // Vienot 1999 reduced model: project onto the deuteranope's surface in
+  // LMS, then back to sRGB.
+  const g = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const ug = (v) => {
+    v = v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055;
+    return Math.min(255, Math.max(0, v * 255));
+  };
+  const deuter = (c) => {
+    const [R, G, B] = [g(c[0]), g(c[1]), g(c[2])];
+    const L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    const S = 0.0299566 * R + 0.184309 * G + 1.46709 * B;
+    const M = 0.494207 * L + 1.24827 * S;
+    return [
+      ug(0.080944 * L - 0.130504 * M + 0.116721 * S),
+      ug(-0.0102485 * L + 0.0540194 * M - 0.113615 * S),
+      ug(-0.000365294 * L - 0.00412163 * M + 0.693513 * S),
+    ];
+  };
+  // CIE Lab, so the distance is perceptual rather than a contrast ratio --
+  // a ratio only sees lightness, and two colours can differ in hue while
+  // sharing it exactly, which is this defect.
+  const lab = (c) => {
+    const [r, gg, b] = [g(c[0]), g(c[1]), g(c[2])];
+    let X = (0.4124 * r + 0.3576 * gg + 0.1805 * b) / 0.95047;
+    let Y = 0.2126 * r + 0.7152 * gg + 0.0722 * b;
+    let Z = (0.0193 * r + 0.1192 * gg + 0.9505 * b) / 1.08883;
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+    [X, Y, Z] = [f(X), f(Y), f(Z)];
+    return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
+  };
+  const dE = (a, b) => {
+    const A = lab(a), B = lab(b);
+    return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
+  };
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  // A CIE Lab dE of about 2.3 is the just-noticeable difference. 10 is a
+  // deliberate margin over it: below that two traces are not "hard to tell
+  // apart", they are the same colour.
+  const JND_MARGIN = 10;
+  let worst = { d: Infinity, pair: "" };
+  for (let i = 0; i < defs.length; i++)
+    for (let j = i + 1; j < defs.length; j++) {
+      const d = dE(deuter(hex(defs[i].color)), deuter(hex(defs[j].color)));
+      if (d < worst.d) worst = { d, pair: `${defs[i].key}/${defs[j].key}` };
+    }
+  check("no two series are the same colour to a deuteranope (#558 C1)",
+    worst.d >= JND_MARGIN,
+    `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
+    `(just-noticeable is about 2.3)`);
+
+  // Colour cannot carry it alone here, and the reason is a CONVENTION rather
+  // than a measurement -- stated that way because earlier drafts of this
+  // comment gave contrast-shaped reasons that measurement refuted.
+  //
+  // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
+  // "lightness is the only axis a deuteranope keeps" is false -- among in-band
+  // colours of EQUAL luminance to the solar series the separation reaches
+  // 140 dE. Colours far from price DO exist -- no count of them is given,
+  // because a count is only defined against a stated separation, and the
+  // one that governs here is the MINIMUM to every series, not the distance
+  // from price. What must NOT be asserted is that those colours collide with
+  // something else: the best blue is 147 dE from dhw_slots, not close to it.
+  // And "green would have done" is false under the metric this check uses:
+  // by MINIMUM separation to every series, green reaches only 19.6 -- below
+  // the 20 dE demanded, and inside the 2.3 dE just-noticeable difference of
+  // the warm best at 18.1. Blue does clear it (54.2); solar is warm by
+  // convention rather than by constraint.
+  //
+  // Solar is warm because a solar series is warm by convention, not because
+  // the palette forbids the alternatives. Within the warm family the
+  // deuteranope ceiling against price is 18.1 dE (a plateau over hue 30-50 at
+  // C>=40), and the shipped #ed6900 sits at 15.0 -- its own figure, not the
+  // family's. Both are under the 20 dE below, so the dash is necessary.
+  //
+  // So two series drawn by the SAME branch of seriesPath -- same shape, same
+  // fill treatment -- must differ in stroke pattern unless their colours are
+  // far apart on their own. 20 is comfortably below every same-style pair the
+  // palette already ships except the one this fixes: price/solar at 15.0 is
+  // the only pair under it, and the next lowest is 24.7.
+  const byStyle = {};
+  for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);
+  const undistinguished = [];
+  for (const group of Object.values(byStyle))
+    for (let i = 0; i < group.length; i++)
+      for (let j = i + 1; j < group.length; j++) {
+        const d = dE(deuter(hex(group[i].color)), deuter(hex(group[j].color)));
+        if (d < 20 && !group[i].dash === !group[j].dash)
+          undistinguished.push(`${group[i].key}/${group[j].key} (${group[i].style}, dE ${d.toFixed(1)}, neither dashed)`);
+      }
+  check("series sharing a draw style are separated by more than colour (#558 C1)",
+    undistinguished.length === 0, undistinguished.join("; "));
+}
+
+// --- D4-12 (#266): what-if delta sentence grammar -------------------------
+{
+  vm.runInContext(`setLanguage("en")`, ctx);
+  let badEn = 0;
+  for (const [verdict, detailKey] of [
+    ["stats.cheaper", "stats.delta_detail"],
+    ["stats.dearer", "stats.delta_detail"],
+    ["stats.the_same", "stats.delta_detail_same"],
+  ]) {
+    const s = vm.runInContext(
+      `L(${JSON.stringify(detailKey)}, { verdict: L(${JSON.stringify(verdict)}), ` +
+      `planned: "31.97", edited: "31.97", currency: "SEK" })`,
+      ctx);
+    if (/\bthe same than\b/.test(s)) badEn++;
+  }
+  check("no English delta sentence reads 'the same than'",
+    badEn === 0, `${badEn} of 3 verdicts ungrammatical`);
+  vm.runInContext(`setLanguage("sv")`, ctx);
+  let badSv = 0;
+  for (const verdict of ["stats.cheaper", "stats.dearer", "stats.the_same"]) {
+    const s = vm.runInContext(
+      `L("stats.delta_detail", { verdict: L(${JSON.stringify(verdict)}), ` +
+      `planned: "31.97", edited: "31.97", currency: "SEK" })`,
+      ctx);
+    if (/oförändrad än/.test(s)) badSv++;
+  }
+  check("Swedish delta sentences stay grammatical for all three verdicts",
+    badSv === 0, `${badSv} of 3 verdicts ungrammatical`);
+}
+
+// --- 3L-G9 (#463): wood alert, Wood lane, what-if --------------------------
+{
+  const slotT0 = plan.space_plan.forecast[0].t;
+  const slotT1 = plan.space_plan.forecast[Math.min(4, plan.space_plan.forecast.length - 1)].t;
+  const withFuel = (fuel) => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.wood_fuel = fuel;
+    return st;
+  };
+  const cheaper = build(withFuel({
+    cheaper: true, show_whatif: true, ready: true, slots: [],
+  }));
+  const cheaperDump = collect(cheaper.shadowRoot).join("\n");
+  check("wood alert when cheaper",
+    /class="wood-alert"/.test(cheaperDump),
+    cheaperDump.match(/ha-card[\s\S]{0,400}/)?.[0]);
+  const quiet = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true, slots: [],
+  }));
+  check("no wood alert when not cheaper",
+    !/class="wood-alert"/.test(collect(quiet.shadowRoot).join("\n")));
+  const lane = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true,
+    slots: [{ start: slotT0, end: slotT1, source: "detected" }],
+  }));
+  const laneDump = collect(lane.shadowRoot).join("\n");
+  check("Wood lane renders one detected slot",
+    /data-channel="wood"/.test(laneDump) && /slots\.lane_wood|Wood/.test(laneDump),
+    laneDump.match(/lane-label[\s\S]{0,80}/g)?.join(" | "));
+  check("laneSpecs length stays 2 with a Wood display lane",
+    lane.manual.laneSpecs().length === 2,
+    String(lane.manual.laneSpecs().length));
+  const wi = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true, slots: [],
+  }), { what_if: true });
+  wi._onCardClick({});
+  const wiDump = collect(wi.shadowRoot).join("\n");
+  check("what-if wood editor when show_whatif",
+    /wi-add-wood/.test(wiDump) && /whatif\.wood|Wood fire/.test(wiDump),
+    wiDump.match(/wi-add-wood[\s\S]{0,80}/)?.[0]);
+  const off = build(withFuel({
+    cheaper: false, show_whatif: false, ready: false, slots: [],
+  }), { what_if: true });
+  off._onCardClick({});
+  check("no what-if wood editor when furnace off",
+    !/wi-add-wood/.test(collect(off.shadowRoot).join("\n")));
+}
+
+// --- 3L-G10 (#465): Plan-page Away toggle ---------------------------------
+{
+  function withAway(states, { sw = false, returnIso = null, resolved = false } = {}) {
+    const st = { ...states };
+    st["switch.heat_pump_optimizer_away"] = { state: sw ? "on" : "off", attributes: {} };
+    st["datetime.heat_pump_optimizer_away_return"] = {
+      state: returnIso || "unknown", attributes: {},
+    };
+    st["binary_sensor.heat_pump_optimizer_away_mode"] = {
+      state: resolved ? "on" : "off",
+      attributes: { source: resolved && !sw ? "person.alice" : "none" },
+    };
+    return st;
+  }
+  const awayOff = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  awayOff._onCardClick({});
+  const awayOffHtml = collect(awayOff.shadowRoot).join("\n");
+  check("expanded plan shows the away toggle", /data-away-toggle/.test(awayOffHtml));
+  check("collapsed card has no away toggle",
+    !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true))).shadowRoot).join("\n")));
+  check("return datetime is hidden while the switch is off",
+    !/data-away-return/.test(awayOffHtml));
+  const awayOn = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awayOn._onCardClick({});
+  check("return datetime is shown while the switch is on",
+    /data-away-return/.test(collect(awayOn.shadowRoot).join("\n")));
+  const awaySetup = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awaySetup._onCardClick({});
+  awaySetup.dialog.page = "setup";
+  awaySetup._render();
+  check("setup page has no away strip",
+    !/data-away-toggle/.test(collect(awaySetup.shadowRoot).join("\n"))
+    && !/data-away-return/.test(collect(awaySetup.shadowRoot).join("\n")));
+  const awaySav = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awaySav._onCardClick({});
+  awaySav.dialog.page = "savings";
+  awaySav._render();
+  check("savings page has no away strip",
+    !/data-away-toggle/.test(collect(awaySav.shadowRoot).join("\n"))
+    && !/data-away-return/.test(collect(awaySav.shadowRoot).join("\n")));
+  check("collapsed card still has no away toggle",
+    !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true })).shadowRoot).join("\n")));
+  const awayPerson = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { resolved: true }));
+  awayPerson._onCardClick({});
+  check("person-away while the switch is off shows a status line",
+    /data-away-status/.test(collect(awayPerson.shadowRoot).join("\n")));
+
+  // Ticking the box must expand the return-time field in this render, not
+  // wait for a later plan-sensor hass update. The switch entity is still
+  // "off" in hass -- that is the live bug: set_away is called and the
+  // signature ignores the switch, so the picker never appears.
+  const tick = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  const tickCalls = [];
+  tick._hass.callService = async (domain, service, data) => {
+    tickCalls.push({ domain, service, data });
+  };
+  tick._onCardClick({});
+  const tickBox = tick.shadowRoot.querySelector(".away-strip input");
+  check("the plan page has a tick box to bind", tickBox != null);
+  if (tickBox) {
+    tickBox.checked = true;
+    tickBox.dispatchEvent({ type: "change", stopPropagation() {} });
+  }
+  check("ticking Away shows the return-time field before hass flips the switch",
+    /data-away-return/.test(collect(tick.shadowRoot).join("\n")));
+  check("and the tick calls set_away with active true",
+    tickCalls.length === 1
+    && tickCalls[0].domain === "heatpump_optimizer"
+    && tickCalls[0].service === "set_away"
+    && tickCalls[0].data.active === true,
+    JSON.stringify(tickCalls));
+
+  // A hass update of the switch alone -- no plan sensor moved -- must also
+  // redraw. Otherwise a phone that toggled the entity leaves this card stale.
+  const late = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  late._onCardClick({});
+  check("(setup) return field absent before the switch entity turns on",
+    !/data-away-return/.test(collect(late.shadowRoot).join("\n")));
+  late.hass = { states: withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }) };
+  check("a hass update of the away switch reveals the return-time field",
+    /data-away-return/.test(collect(late.shadowRoot).join("\n")));
+}
+
+// ---------------------------------------------------------------------------
+// #558 C2 / C3 — legend chips, the hot-water envelope, the savings table
+// ---------------------------------------------------------------------------
+// Colours are composited the way a browser does it: paint alpha multiplied by
+// element opacity, in non-linear sRGB 8-bit space. Compositing in linear light
+// moves every number below and is not what is drawn.
+const sRGB = (h) => {
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const relLum = (c) => {
+  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+};
+const contrast = (a, b) => {
+  const la = relLum(a), lb = relLum(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+};
+const over = (fg, bg, alpha) =>
+  fg.map((v, i) => Math.round(alpha * v + (1 - alpha) * bg[i]));
+// A constant the card has not defined yet reads as NaN rather than aborting
+// the run: a failing test has to fail, not stop the file.
+const cardNumber = (name) => {
+  try { return Number(vm.runInContext(name, ctx)); } catch (e) { return NaN; }
+};
+// The two themes a stock install can be in. The surface everything here is
+// drawn on is the `ha-card`, so `--card-background-color` is the background
+// and `--primary-text-color` is the text that sits on it.
+const STOCK_THEMES = {
+  light: { card: sRGB("#ffffff"), text: sRGB("#212121") },
+  dark: { card: sRGB("#1c1c1c"), text: sRGB("#e1e1e1") },
+};
+
+// --- C2: the legend chips are toggles, and say so --------------------------
+{
+  const chipsIn = (card) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    const from = dump.indexOf('class="legend"');
+    const legend = from === -1 ? "" : dump.slice(from);
+    return [...legend.matchAll(/<button[^>]*class="chip[^"]*"[^>]*>/g)].map((m) => ({
+      tag: m[0],
+      key: (/data-key="([^"]+)"/.exec(m[0]) || [])[1],
+      off: /class="chip off/.test(m[0]),
+      pressed: (/aria-pressed="(true|false)"/.exec(m[0]) || [])[1],
+      describedBy: (/aria-describedby="([^"]+)"/.exec(m[0]) || [])[1],
+    }));
+  };
+  const chipEl = (card, key) =>
+    [...card.shadowRoot.querySelectorAll(".chip")].find(
+      (e) => e.getAttribute("data-key") === key
+    );
+
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend" });
+  c.legend.hidden = { solar: true };
+  c._sig = null;
+  c._render();
+  const chips = chipsIn(c);
+
+  check("every legend chip publishes its toggle state as aria-pressed",
+    chips.length > 1 && chips.every((x) => x.pressed !== undefined),
+    `${chips.filter((x) => x.pressed === undefined).length} of ${chips.length} carry none`);
+  // A constant would pass the check above on every chip. This is the control
+  // that says the attribute is the state and not decoration: the fixture has
+  // one series hidden and the rest shown, so both values must appear.
+  check("aria-pressed is the state, not a constant",
+    chips.some((x) => x.off) && chips.some((x) => !x.off) &&
+      chips.every((x) => x.pressed === (x.off ? "false" : "true")),
+    chips.map((x) => `${x.key}:${x.off ? "off" : "on"}=${x.pressed}`).join(" "));
+
+  // A behaviour, not markup. The click goes through the listener the card
+  // wired up itself, and the attribute is read back off the re-rendered
+  // legend -- a chip that renders the attribute once and never updates it
+  // would pass a markup check and fail this one.
+  const pressedOf = (key) => (chipsIn(c).find((x) => x.key === key) || {}).pressed;
+  const wasPressed = pressedOf("price");
+  const priceEl = chipEl(c, "price");
+  priceEl.dispatchEvent({ type: "click", currentTarget: priceEl, stopPropagation() {} });
+  const nowPressed = pressedOf("price");
+  check("clicking a chip flips its aria-pressed",
+    wasPressed === "true" && nowPressed === "false", `${wasPressed} -> ${nowPressed}`);
+  const priceEl2 = chipEl(c, "price");
+  priceEl2.dispatchEvent({ type: "click", currentTarget: priceEl2, stopPropagation() {} });
+  check("and clicking it again flips it back", pressedOf("price") === "true");
+
+  // The note. `title=` renders only on hover, so a keyboard user never sees
+  // it and a touch user has no hover at all to give. It has to be text.
+  const noteText = vm.runInContext(`L("series.dhw_band_note")`, ctx)
+    .replace(/&nbsp;/g, " ");
+  const notes = [...c.shadowRoot.querySelectorAll(".legend-note")];
+  const noteFor = notes.find((n) => (n.textContent || "").includes(noteText.slice(0, 30)));
+  check("the hot-water band's note is rendered as text, not only as a hover title",
+    !!noteFor, `${notes.length} .legend-note element(s) rendered`);
+  const dhwChip = chips.find((x) => x.key === "dhw_temp");
+  check("and the chip it belongs to names it as its description",
+    !!noteFor && !!dhwChip && dhwChip.describedBy === noteFor.getAttribute("id"),
+    `chip aria-describedby=${dhwChip && dhwChip.describedBy}, ` +
+    `note id=${noteFor && noteFor.getAttribute("id")}`);
+
+  // The dialog renders a SECOND legend beside the inline one, in the same
+  // shadow root, so an id minted per series is minted twice. Duplicate ids
+  // make aria-describedby ambiguous -- the defect this item exists to remove,
+  // not to introduce -- and each chip has to point at the note in its own
+  // copy.
+  {
+    const two = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend-two" });
+    two.legend.hidden = {};
+    two._sig = null;
+    two.dialog.open();
+    const d = collect(two.shadowRoot).join("\n");
+    const copies = d.split('class="legend"').slice(1);
+    check("the dialog really does render a second legend beside the inline one",
+      copies.length === 2, `${copies.length} legend container(s)`);
+    const ids = [...d.matchAll(/<p class="legend-note" id="([^"]+)"/g)].map((m) => m[1]);
+    check("every note id in the shadow root is unique",
+      ids.length === 2 && new Set(ids).size === ids.length, ids.join(", "));
+    check("and each chip describes the note in its own copy of the legend",
+      copies.every((copy) => {
+        const id = (/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1];
+        const by = (/aria-describedby="([^"]+)"/.exec(copy) || [])[1];
+        return !!id && id === by;
+      }),
+      copies.map((copy) =>
+        `${(/aria-describedby="([^"]+)"/.exec(copy) || [])[1]} -> ` +
+        `${(/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1]}`).join(" | "));
+  }
+
+  // Null control. Strip the band's two fields and the note has nothing to
+  // explain: no note element, and no chip pointing at one that is not there.
+  const noBand = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const dhwSt = noBand[DEFAULT_DHW];
+  noBand[DEFAULT_DHW] = { ...dhwSt, attributes: { ...dhwSt.attributes,
+    forecast: dhwSt.attributes.forecast.map((p) => {
+      const q = { ...p }; delete q.dhw_temp_lo; delete q.dhw_temp_hi; return q;
+    }) } };
+  const plain = build(noBand, { title: "c2-legend-noband" });
+  plain.legend.hidden = {};
+  plain._sig = null;
+  plain._render();
+  check("a card with no expected-error band renders no note",
+    plain.shadowRoot.querySelectorAll(".legend-note").length === 0);
+  check("and no chip claims a description that is not there",
+    chipsIn(plain).every((x) => x.describedBy === undefined),
+    chipsIn(plain).map((x) => `${x.key}=${x.describedBy}`).join(" "));
+  check("the null control really did remove the band",
+    !/stroke-dasharray="3 3"/.test(collect(plain.shadowRoot).join("\n")),
+    "otherwise the two checks above are testing the same card as the two before");
+}
+
+// --- C2: the hot-water expected-error band is one region, not two lines ----
+// Two dashed edges leave the reader to join them by eye, and a reader who does
+// not read them as a pair reads them as two more predicted temperatures --
+// exactly the misreading `band` exists in SERIES_DEFS to stop.
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-band" });
+  c.legend.hidden = {};
+  c._sig = null;
+  c._render();
+  const dump = collect(c.shadowRoot).join("\n");
+  const paths = [...dump.matchAll(/<path class="series[^"]*" data-key="dhw_temp"[^>]*\/>/g)]
+    .map((m) => m[0]);
+  const env = paths.filter((p) => /class="series band"/.test(p));
+  const edges = paths.filter((p) => /stroke-dasharray/.test(p));
+  const curve = paths.filter((p) => !/stroke-dasharray/.test(p) && !/class="series band"/.test(p));
+
+  check("the hot-water band is drawn as a filled envelope",
+    env.length >= 1,
+    `${paths.length} dhw_temp path(s): ${edges.length} dashed, ${env.length} filled`);
+  check("the envelope is a closed region", env.every((p) => /Z"/.test(p)));
+  check("its two edges still delimit it", edges.length === 2);
+  check("and the tank's own curve is still drawn", curve.length === 1);
+  check("the envelope is pointer-inert, like every other filled series body",
+    env.every((p) => p.includes('pointer-events="none"')));
+
+  // Geometry, not markup: the envelope has to span the two edges. Every
+  // coordinate in a path's `d` comes in x,y pairs after its command letter,
+  // for M, L and C alike.
+  const ysOf = (p) => {
+    const d = (/ d="([^"]+)"/.exec(p) || [])[1] || "";
+    const n = d.replace(/[A-Za-z]/g, " ").trim().split(/\s+/).filter(Boolean).map(Number);
+    return n.filter((_, i) => i % 2 === 1);
+  };
+  const envY = env.flatMap(ysOf);
+  const edgeY = edges.flatMap(ysOf);
+  check("the envelope spans exactly the two edges it fills between",
+    envY.length > 0 && edgeY.length > 0 &&
+      Math.abs(Math.min(...envY) - Math.min(...edgeY)) < 0.01 &&
+      Math.abs(Math.max(...envY) - Math.max(...edgeY)) < 0.01,
+    `envelope y ${Math.min(...envY).toFixed(2)}..${Math.max(...envY).toFixed(2)}, ` +
+    `edges y ${Math.min(...edgeY).toFixed(2)}..${Math.max(...edgeY).toFixed(2)}`);
+
+  // The fill's weight, both ways, from the card's own constant. Two bounds
+  // rather than one: a fill nobody can see is not an envelope, and a fill
+  // heavier than the line it surrounds hides what it explains. Both bounds
+  // are measured quantities -- no threshold is chosen here except the 1.3:1
+  // perceptibility floor this suite already applies to a graphic that is not
+  // required to read the chart.
+  const alpha = cardNumber("BAND_FILL_OPACITY");
+  const dhwColor = sRGB(vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp").color);
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const band = over(dhwColor, th.card, alpha);
+    const seen = contrast(band, th.card);
+    const line = contrast(dhwColor, th.card);
+    check(`the envelope's fill is perceptible on a ${theme} card`,
+      seen >= 1.3, `${seen.toFixed(3)}:1 at fill-opacity ${alpha}`);
+    check(`the envelope stays quieter than the curve it surrounds on a ${theme} card`,
+      seen < line, `fill ${seen.toFixed(3)}:1 vs curve ${line.toFixed(3)}:1`);
+  }
+  // Why the band is NOT also held to leaving the curve at 3:1 against it.
+  // The band is a tint of the very colour it surrounds, so the two demands
+  // pull opposite ways, and ON A LIGHT CARD they have no common ground at
+  // all. Swept exhaustively over every fill-opacity in 0.001 steps rather
+  // than argued from an interval, because an interval argument is only as
+  // good as its arithmetic.
+  //
+  // The dark card is the control, and it is why this is stated as a
+  // light-card result rather than a general one: there a window does exist,
+  // and the shipped opacity sits inside it. A sweep that found nothing in
+  // either theme would more likely be a broken sweep than a real result.
+  {
+    const window = (th) => {
+      let both = 0, seen = 0, three = 0;
+      for (let i = 0; i <= 1000; i++) {
+        const band = over(dhwColor, th.card, i / 1000);
+        const p = contrast(band, th.card) >= 1.3;
+        const t = contrast(dhwColor, band) >= 3;
+        if (p) seen++;
+        if (t) three++;
+        if (p && t) both++;
+      }
+      return { both, seen, three };
+    };
+    const light = window(STOCK_THEMES.light);
+    const dark = window(STOCK_THEMES.dark);
+    check("on a light card no fill-opacity is both perceptible and leaves the curve at 3:1",
+      light.both === 0 && light.seen > 0 && light.three > 0,
+      `${light.both} of 1001 steps satisfy both ` +
+      `(${light.seen} clear perceptibility, ${light.three} leave the curve at 3:1)`);
+    check("and the dark card is the control that says the sweep can find one",
+      dark.both > 0,
+      `${dark.both} of 1001 steps satisfy both on a dark card`);
+  }
+}
+
+// --- C3: the savings table reads as a numeric table ------------------------
+{
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const months = [
+    { month: "2025-11", baseline_sek: 1840.5, actual_sek: 1502.25, savings_sek: 338.25, savings_pct: 18 },
+    { month: "2025-12", baseline_sek: 2410, actual_sek: 2265.5, savings_sek: 144.5, savings_pct: 6 },
+    { month: "2026-01", baseline_sek: 980.75, actual_sek: 1002, savings_sek: -21.25, savings_pct: -2 },
+    { month: "2026-02", baseline_sek: 800, actual_sek: 700, savings_sek: 100, savings_pct: 12, estimated: true },
+  ];
+  const withMonths = (rows) => {
+    const st = { ...savStates };
+    st["sensor.heat_pump_optimizer_monthly_savings"] = {
+      state: String(rows.length), attributes: { savings_months: rows },
+    };
+    return st;
+  };
+  // Cells are read off the parsed DOM the card built, not by stripping tags
+  // out of its serialisation. A `.replace(/<[^>]*>/g, "")` is the shape of an
+  // HTML sanitiser and is flagged as one (CodeQL js/incomplete-multi-character
+  // -sanitization), which is fair: it is the wrong tool even here, where all
+  // that was wanted is the text a reader sees.
+  const tableOf = (rows, title) => {
+    const c = build(withMonths(rows), { title });
+    c.dialog.open();
+    c.dialog.page = "savings";
+    c._sig = null;
+    c._render();
+    const dump = collect(c.shadowRoot).join("\n");
+    const at = dump.indexOf('class="savings-table');
+    const cellsOf = (tag) =>
+      [...c.shadowRoot.querySelectorAll(tag)].map((el) => ({
+        cls: el.getAttribute("class") || "",
+        text: (el.textContent || "").replace(/\u00a0/g, " ").trim(),
+        el,
+      }));
+    return {
+      dump, table: at === -1 ? "" : dump.slice(at),
+      cells: cellsOf("td"), heads: cellsOf("th"),
+    };
+  };
+
+  const { dump, table, cells, heads } = tableOf(months, "c3-savings");
+  // "Numeric" by position, not by a regex over the rendered text: the month
+  // column reads as digits too ("2025-11") and must NOT be right-aligned.
+  const COLS = 5;
+  const numeric = cells.filter((_, i) => i % COLS !== 0);
+  const monthCells = cells.filter((_, i) => i % COLS === 0);
+
+  check("the savings table renders one row per month",
+    cells.length === months.length * COLS, `${cells.length} cells`);
+  const css = dump.slice(0, dump.indexOf("</style>") + 8);
+  check("every numeric cell is marked as a numeric column",
+    numeric.length > 0 && numeric.every((x) => x.cls.split(/\s+/).includes("num")),
+    `${numeric.filter((x) => !x.cls.split(/\s+/).includes("num")).length} of ${numeric.length} are not`);
+  // The control on the check above: marking every cell would pass it and
+  // wreck the one column that is a label, not a quantity.
+  check("and the month column is not",
+    monthCells.every((x) => !x.cls.split(/\s+/).includes("num")));
+  check("the numeric headers are marked the same way",
+    heads.length === COLS && heads.slice(1).every((x) => x.cls.split(/\s+/).includes("num")) &&
+      !heads[0].cls.split(/\s+/).includes("num"),
+    heads.map((x) => `${x.text}${x.cls.split(/\s+/).includes("num") ? "[num]" : ""}`).join(" | "));
+  // The mark is only worth having if the stylesheet acts on it. Read the
+  // rule, not the class: a class nothing styles is not an alignment.
+  check("and the stylesheet right-aligns them, so the columns can be read down",
+    /\.savings-table[^{]*\.num[^{]*\{[^}]*text-align:\s*right/.test(css),
+    (/\.savings-table[^{]*\.num[^{]*\{[^}]*\}/.exec(css) || ["no .num rule at all"])[0]);
+
+  // Tabular figures, scoped to this table's own rule. The card already
+  // declares them for two what-if elements, so a check for the property
+  // "anywhere in the CSS" would return confirming evidence for a table that
+  // has none.
+  const rule = /\.savings-table[^{]*\{([^}]*)\}/.exec(css);
+  check("the savings table asks for tabular figures",
+    !!rule && /font-variant-numeric:\s*tabular-nums/.test(rule[1]),
+    rule ? rule[0].replace(/\s+/g, " ") : "no .savings-table rule at all");
+
+  // Twelve repetitions of the currency inside the cells is noise the header
+  // can carry once, and it is what stops right alignment from lining the
+  // decimal points up.
+  check("the currency is named in the column head, not in every cell",
+    heads.filter((h) => /\(.+\)/.test(h.text)).length === 3 &&
+      !cells.some((x, i) => i % COLS !== 0 && /[A-Za-z]{2,}/.test(x.text)),
+    `heads: ${heads.map((h) => h.text).join(" | ")}; ` +
+    `first money cell: "${cells[1].text}"`);
+  const money = cells.filter((_, i) => i % COLS >= 1 && i % COLS <= 3).map((x) => x.text);
+  check("so every money figure carries the same number of decimals",
+    money.every((t) => /^-?\d+\.\d\d$/.test(t)), money.join(" | "));
+
+  // In-cell magnitude. The number says how much; the bar says how much
+  // compared with the other months, which is the question a savings table is
+  // read to answer and which twelve free-standing numbers cannot answer.
+  const bars = [...table.matchAll(/<span class="sv-mag([^"]*)"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => ({ neg: /\bneg\b/.test(m[1]), width: Number(m[2]) }));
+  check("every month's savings carries an in-cell magnitude bar",
+    bars.length === months.length, `${bars.length} bars for ${months.length} months`);
+  const byMagnitude = months.map((m) => Math.abs(m.savings_sek));
+  const biggest = Math.max(...byMagnitude);
+  check("the bar is proportional to the figure it sits behind",
+    bars.length === months.length &&
+      bars.every((b, i) => Math.abs(b.width - (byMagnitude[i] / biggest) * 100) < 0.51),
+    bars.map((b, i) => `${b.width}% vs ${((byMagnitude[i] / biggest) * 100).toFixed(1)}%`).join(", "));
+  check("a month that cost money is marked by more than its minus sign",
+    bars.filter((b) => b.neg).length === 1 &&
+      bars[months.findIndex((m) => m.savings_sek < 0)].neg,
+    bars.map((b) => (b.neg ? "neg" : "pos")).join(","));
+
+  // Null controls for the bar. A run of equal figures must not manufacture a
+  // ranking, and an all-zero table must not divide by zero and paint
+  // full-width bars for nothing saved.
+  const flat = tableOf(
+    [0, 1, 2].map((i) => ({ month: `2026-0${i + 3}`, baseline_sek: 10, actual_sek: 5, savings_sek: 5, savings_pct: 50 })),
+    "c3-savings-flat");
+  const flatBars = [...flat.table.matchAll(/class="sv-mag[^"]*"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => Number(m[1]));
+  check("equal savings draw equal bars", flatBars.length === 3 &&
+    flatBars.every((w) => w === flatBars[0]), flatBars.join(","));
+  const zero = tableOf(
+    [0, 1].map((i) => ({ month: `2026-1${i}`, baseline_sek: 10, actual_sek: 10, savings_sek: 0, savings_pct: 0 })),
+    "c3-savings-zero");
+  const zeroBars = [...zero.table.matchAll(/class="sv-mag[^"]*"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => Number(m[1]));
+  check("a month that saved nothing draws no bar",
+    zeroBars.length === 2 && zeroBars.every((w) => w === 0), zeroBars.join(","));
+
+  // The bar is painted behind the figure, so it is the figure's background.
+  // The number must still be text at 4.5:1, and the bar itself must be
+  // visible at the perceptibility floor -- both in both themes.
+  const barAlpha = cardNumber("SV_MAG_ALPHA");
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    // `currentColor` on the cell is --primary-text-color, so the bar is the
+    // text colour laid over the card at that opacity.
+    const bar = over(th.text, th.card, barAlpha);
+    check(`the savings figure still clears 4.5:1 over its own bar on a ${theme} card`,
+      contrast(th.text, bar) >= 4.5, `${contrast(th.text, bar).toFixed(3)}:1`);
+    check(`and the bar itself is perceptible on a ${theme} card`,
+      contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
+  }
+}
+
+// --- D4-03 (#1456): one screen, one quantity, one currency -----------------
+//
+// The headline savings item names the unit the plan SENSOR declares, and says
+// so in its own comment -- "nothing here converts, so a card-config
+// `currency:` must not relabel it". The savings table named every column from
+// `plan.currency()`, whose chain puts `config.currency` ahead of that same
+// declared unit, so one screen could print "300.25 SEK" above a table headed
+// "Baseline (EUR)". Nothing converts anywhere: the table relabels the
+// sensor's own figures. The checks read the RENDERED heads and the RENDERED
+// headline, never the config that produced them.
+{
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const months = [
+    { month: "2026-01", baseline_sek: 1200.5, actual_sek: 900.25,
+      savings_sek: 300.25, savings_pct: 25 },
+  ];
+  // Both savings surfaces of one install, as production publishes them: the
+  // two sensors carry the same currency (the coordinator's), and this harness
+  // gives them the same token too, so "the screen agrees with itself" is a
+  // property of the resolution and not of the fixture.
+  const surface = (unit, config) => {
+    const st = { ...savStates };
+    st["sensor.heat_pump_optimizer_monthly_savings"] = {
+      state: "300.25",
+      attributes: unit
+        ? { unit_of_measurement: unit, savings_months: months }
+        : { savings_months: months } };
+    st["sensor.heat_pump_optimizer_predicted_savings"] = {
+      state: "300.25",
+      attributes: unit ? { unit_of_measurement: unit } : {} };
+    st["sensor.heat_pump_optimizer_savings_percentage"] = {
+      state: "25", attributes: {} };
+    const c = build(st, { show_stats: true, ...config });
+    c.dialog.open();
+    c.dialog.page = "savings";
+    c._sig = null;
+    c._render();
+    const root = c.shadowRoot;
+    const headline = [...root.querySelectorAll(".hl-stat")]
+      .map((e) => e.textContent.replace(/\s+/g, " ").trim())
+      .find((t) => /saving/i.test(t)) || "";
+    return {
+      // The token each surface names: the trailing one of the headline
+      // figure, the parenthesised one on a column head.
+      headlineUnit: (headline.match(/\d[\d.,]*\s+([A-Za-z]{2,5})\b/) || [])[1] || "",
+      units: [...root.querySelectorAll(".savings-table thead th")]
+        .map((th) => th.textContent.trim())
+        .map((t) => (t.match(/\(([^)]+)\)/) || [])[1] || ""),
+      headline,
+    };
+  };
+
+  const own = surface("SEK", { currency: "EUR" });
+  check("a card currency does not relabel the savings table's figures",
+    own.units.length === 5 && own.units[0] === "" &&
+      own.units.slice(1, 4).length === 3 &&
+      own.units.slice(1, 4).every((u) => u === "SEK"),
+    `units ${JSON.stringify(own.units)}`);
+  check("so one screen names one currency, as the headline already did",
+    own.headlineUnit === "SEK" && own.units.slice(1, 4).every((u) => u === own.headlineUnit),
+    `headline "${own.headline}" names ${own.headlineUnit}`);
+
+  // The control: a savings sensor that declares no unit still falls back to
+  // the resolved currency, so the fix cannot pass by having frozen the token
+  // at whatever the sensor happened to say.
+  const blind = surface(null, { currency: "EUR" });
+  check("a savings sensor that declares no unit still takes the card's currency",
+    blind.headlineUnit === "EUR" && blind.units.slice(1, 4).every((u) => u === "EUR"),
+    `headline names ${blind.headlineUnit}; units ${JSON.stringify(blind.units)}`);
+}
+
+// --- The history pan (owner request, part of #201) ---------------------------
+// The plan chart pans BACK through Home Assistant's recorded history, up to
+// 48 h: left of "now" the measured temperatures, the spot price, the
+// irradiance and the pump's own action record replace the plan's
+// forward-looking series, fetched lazily from hass.callApi in 12 h windows.
+// Every check here drives the production collaborator (card.histSource)
+// against the recorder stub from the shared rig (historyApi/historyFixture),
+// so a card that fetches the wrong ids, the wrong window, or a needlessly
+// fat response fails rather than passes vacuously.
+{
+  const fieldPointsOf = fn("fieldPoints");
+  const mkHistoryCard = (entries, opts) => {
+    const api = historyApi(entries, opts);
+    const states = withActuals(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+    const c = build(states, {});
+    c.hass = { states, callApi: api.callApi };
+    return { c, api };
+  };
+  const windowOf = (card) => {
+    const b = card._buildSeries();
+    return { start: b.windowStart, end: b.windowEnd };
+  };
+  const seriesOf = (card, key) => card._series.find((s) => s.key === key);
+
+  // Untouched, the card asks nothing of the recorder: history is loaded by
+  // the pan, never by the render.
+  const idle = mkHistoryCard(historyFixture(FROZEN));
+  check("an untouched card never asks Home Assistant for history",
+    idle.api.calls.length === 0, `${idle.api.calls.length} call(s)`);
+
+  // Panning back before now loads the entered chunks; the measured samples
+  // ride the plan's OWN series (one price, one outdoor, one house
+  // temperature, one solar trace: left of the seam they are the actuals,
+  // right of it the forecast, and the "now" rule is the seam).
+  //
+  // "Left of now" is asked as left of the FORECAST'S OWN FIRST STEP, not
+  // merely left of the frozen clock: the payload a solve publishes starts
+  // at the solve, so its first steps predate now, and a check keyed on
+  // t < now alone is satisfied by those stale steps with no history loaded
+  // at all -- the mutation that deletes the fetch wiring proved it.
+  const beforeForecast = Date.parse(plan.space_plan.forecast[0].t) - 1;
+  const live = windowOf(idle.c);
+  idle.c.view.panBy(-10 * HOUR);
+  await flushHistory();
+  const panned = windowOf(idle.c);
+  check("panning back before now moves the window into the past",
+    panned.start < FROZEN - 9 * HOUR, `${(panned.start - FROZEN) / HOUR} h`);
+  const house = seriesOf(idle.c, "house_temp");
+  const roomPts = fieldPointsOf(house, "room");
+  check("the measured indoor temperature renders left of now",
+    roomPts.some((p) => p.t <= beforeForecast && p.v >= 20 && p.v <= 22),
+    `${roomPts.filter((p) => p.t <= beforeForecast).length} past point(s)`);
+  check("the recorded past and the forecast never double-book a timestamp",
+    roomPts.every((p, i) => i === 0 || roomPts[i - 1].t !== p.t));
+  const outPts = fieldPointsOf(seriesOf(idle.c, "outdoor"), "outdoor");
+  check("the measured outdoor temperature renders left of now",
+    outPts.some((p) => p.t <= beforeForecast));
+  const pricePts = fieldPointsOf(seriesOf(idle.c, "price"), "price");
+  check("the measured spot price renders left of now",
+    pricePts.some((p) => p.t <= beforeForecast));
+  const solarPts = fieldPointsOf(seriesOf(idle.c, "solar"), "ghi");
+  check("the measured irradiance renders left of now",
+    solarPts.some((p) => p.t <= beforeForecast));
+
+  // An unavailable sample is a hole (the trace breaks), never a zero. The
+  // fixture plants it 24 h back, so it is asked about from the deep window.
+  const segsOf = (s, field) => s.lines.filter((l) => l.field === field).length;
+
+  // The action record is its own series: the pump's commanded power, from
+  // the heat_pump_action sensor's own history, on the same power axis as
+  // the plan's slot bars.
+  const actioned = seriesOf(idle.c, "actioned");
+  check("the pump's own action record renders as a power series",
+    !!actioned && actioned.hasData &&
+      fieldPointsOf(actioned, "action_power").some((p) => p.t <= beforeForecast));
+  const actionDump = collect(idle.c.shadowRoot).join("\n");
+  check("the actioned series has a legend chip",
+    /data-key="actioned"/.test(actionDump));
+  check("the legend offers exactly one chip per series",
+    (actionDump.match(/class="chip/g) || []).length === 8);
+
+  // Laziness: only the chunks the visible window entered are fetched, one
+  // call pair each (the lean numeric set; the attribute-carrying action).
+  check("history loads lazily, one call pair per 12 h chunk entered",
+    idle.api.calls.length > 0 && idle.api.calls.length <= 4,
+    idle.api.calls.join(" | "));
+  const numericCall = idle.api.calls.find((p) => p.includes("no_attributes"));
+  const actionCall = idle.api.calls.find((p) => p.includes("_heat_pump_action"));
+  check("the numeric history call is lean (minimal_response, no attributes)",
+    !!numericCall && numericCall.includes("minimal_response"));
+  check("the action call carries the attributes its power lives in",
+    !!actionCall && !actionCall.includes("no_attributes"));
+  check("the entity ids are the optimizer's own actual sensors",
+    !!numericCall &&
+      numericCall.includes(HISTORY_IDS.indoor) &&
+      numericCall.includes(HISTORY_IDS.outdoor) &&
+      numericCall.includes(HISTORY_IDS.price) &&
+      numericCall.includes(HISTORY_IDS.solar));
+
+  // The clamp: 48 hours back, no further, however hard the pan.
+  idle.c.view.panBy(-500 * HOUR);
+  await flushHistory();
+  const deep = windowOf(idle.c);
+  check("panning back stops at 48 hours before now",
+    deep.start >= FROZEN - 48 * HOUR - 1 && deep.start <= FROZEN - 47 * HOUR,
+    `${(deep.start - FROZEN) / HOUR} h`);
+  // The fixture plants its unavailable sample 24 h back, on the deep
+  // window's right edge, so slide forward to center it before asking.
+  idle.c.view.panBy(20 * HOUR);
+  await flushHistory();
+  const deepHouse = seriesOf(idle.c, "house_temp");
+  check("an unavailable stretch breaks the measured trace rather than zeroing it",
+    segsOf(deepHouse, "room") >= 2, `${segsOf(deepHouse, "room")} segment(s)`);
+
+  // Panning forward past the plan is unchanged by history: the right-hand
+  // clamp stays the plan's end.
+  idle.c.view.panBy(500 * HOUR);
+  await flushHistory();
+  const fwd = windowOf(idle.c);
+  check("panning forward still stops at the end of the plan",
+    fwd.end <= live.end + 1, `${fwd.end} > ${live.end}`);
+
+  // Reset is the snap back to the live edge.
+  idle.c.view.reset();
+  check("reset snaps the view back to the live window",
+    windowOf(idle.c).start === live.start);
+
+  // Null control: a hass without callApi (an old frontend, a stripped-down
+  // host) keeps the forward-only pan, exactly as before the feature.
+  const plain = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), {});
+  plain.view.panBy(-10 * HOUR);
+  check("a hass without callApi keeps the forward-only pan",
+    windowOf(plain).start >= FROZEN - 1);
+
+  // Null controls for the fetch itself: the recorder off (every entity
+  // answers empty) and the API refusing both degrade to a notice over the
+  // live view, snap the window back to now, and never throw.
+  for (const [label, opts, entries] of [
+    ["recorder off", {}, {}],
+    ["api refused", { fail: true }, historyFixture(FROZEN)],
+  ]) {
+    const bad = mkHistoryCard(entries, opts);
+    bad.c.view.panBy(-10 * HOUR);
+    let threw = null;
+    try { await flushHistory(); } catch (e) { threw = e; }
+    const badDump = collect(bad.c.shadowRoot).join("\n");
+    check(`history ${label} degrades to a notice, never an error`,
+      !threw && /hist-note/.test(badDump) &&
+        badDump.toLowerCase().includes("history"),
+      threw ? String(threw) : "no notice rendered");
+    check(`history ${label} snaps the view back to the live edge`,
+      windowOf(bad.c).start >= FROZEN - 1);
+  }
+
+  // Renamed devices: the actual sensors are derived from the RESOLVED plan
+  // sensor's own prefix, so a renamed install asks for its own sensors.
+  const villaStates = withActuals(
+    {
+      ...mkStates("sensor.villa_space_heating_plan", "sensor.villa_dhw_heating_plan", true),
+      [SOLAR_ID.replace("heat_pump_optimizer", "villa")]: {
+        state: "110", attributes: { forecast: solarForecast, plan_kind: "solar" } },
+    },
+    { prefix: "villa" });
+  delete villaStates[SOLAR_ID];
+  const villaEntries = historyFixture(FROZEN);
+  const remap = (ids) => {
+    const out = {};
+    for (const [k, id] of Object.entries(ids)) {
+      out[id.replace("heat_pump_optimizer", "villa")] = villaEntries[id];
+    }
+    return out;
+  };
+  const villaApi = historyApi(remap(HISTORY_IDS));
+  const villa = build(villaStates, {});
+  villa.hass = { states: villaStates, callApi: villaApi.callApi };
+  villa.view.panBy(-10 * HOUR);
+  await flushHistory();
+  check("a renamed install derives its own actual sensors from the plan prefix",
+    villaApi.calls.length > 0 &&
+      villaApi.calls.every((p) => !p.includes("heat_pump_optimizer_indoor")) &&
+      villaApi.calls.some((p) => p.includes("sensor.villa_indoor_temperature_optimizer")),
+    villaApi.calls.join(" | "));
+}
+
+// --- The history pan vs the REAL recorder (owner bug round on #1286) ---------
+// Two owner-reported defects survived the synthetic fixture, both because
+// the fixture was too kind: a fixed 30-minute grid for every entity, and
+// an action entity that always carried power_kw. The recorder writes a
+// state only when state OR attributes CHANGE, stamps carry microseconds
+// and the local offset, and installs exist with no power attribute at
+// all. Every check below drives realisticHistory/haStamp shapes.
+{
+  const fieldPointsOf = fn("fieldPoints");
+  const mkCard = (entries, opts, states) => {
+    const api = historyApi(entries, opts);
+    const st = states || withActuals(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+    const c = build(st, {});
+    c.hass = { states: st, callApi: api.callApi };
+    return { c, api };
+  };
+
+  // ---- defect 1: the drawn trace ran BACKWARD through time ---------------
+  // A uniform Catmull-Rom control point sits outside its segment whenever
+  // a narrow gap neighbours a wide one -- exactly what a stable overnight
+  // stretch followed by dense heating writes -- and the bezier then loops
+  // back in x. Sampled straight out of the rendered path markup, not out
+  // of the points, because the artifact lives BETWEEN the points.
+  const samplePathX = (d) => {
+    const xs = [];
+    let cur = null;
+    const num = "[-\\d.eE]+";
+    const lineRe = new RegExp(`[ML] (${num})`, "g");
+    const cubRe = new RegExp(`C (${num}) (${num}) (${num}) (${num}) (${num}) (${num})`, "g");
+    let m;
+    while ((m = lineRe.exec(d))) { cur = Number(m[1]); xs.push(cur); }
+    while ((m = cubRe.exec(d))) {
+      const [c1x, , c2x, , x2] = m.slice(1).map(Number);
+      for (let s = 0; s <= 1; s += 0.02) {
+        const u = 1 - s;
+        xs.push(u * u * u * cur + 3 * u * u * s * c1x + 3 * u * s * s * c2x + s * s * s * x2);
+      }
+      cur = x2;
+    }
+    return xs;
+  };
+  // Monotonicity is PER DRAWN PATH: a holed trace is several paths, each
+  // starting at its own M, and joining them would count every new segment
+  // as a step "back" to its own first x.
+  const backwardSteps = (ds) => ds.reduce((n, d) => {
+    const xs = samplePathX(d);
+    for (let i = 1; i < xs.length; i++) if (xs[i] < xs[i - 1] - 1e-9) n++;
+    return n;
+  }, 0);
+  const pathsOf = (card, key) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    // The dump is the raw innerHTML strings, so the attributes carry real
+    // quotes; a holed trace is several paths with the same data-key, and
+    // every one of them is the drawn path.
+    const re = new RegExp(`data-key="${key}"[^>]*\\sd="([^"]+)`, "g");
+    return [...dump.matchAll(re)].map((m) => m[1]);
+  };
+  {
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const ds = pathsOf(c, "house_temp");
+    check("the realistic fixture produces a path worth asking about",
+      ds.some((d) => /C /.test(d)), `${ds.length} path(s)`);
+    const back = backwardSteps(ds);
+    check("the drawn temperature path never runs backward in time",
+      back === 0, `${back} sampled x steps went back`);
+  }
+
+  // ---- defect 2: actioned slots from STATE history alone -----------------
+  // The owner's correction: executed slots cannot be inferred from power;
+  // the entity's state IS the commanded mode. An install with no power
+  // attribute at all must still render slots, with power_kw only an
+  // optional overlay when it exists.
+  {
+    const { c } = mkCard(realisticHistory(FROZEN, { power: false }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    check("mode runs forward-fill between the state changes",
+      runs.length > 3 &&
+        runs.every((r, i) => i === 0 || runs[i - 1].end <= r.start + 1) &&
+        runs.every((r) => r.end > r.start),
+      runs.map((r) => `${r.mode}@${Math.round((r.start - FROZEN) / HOUR)}h`).join(" "));
+    const dump = collect(c.shadowRoot).join("\n");
+    check("actioned slots render from state history alone, no power attribute",
+      /class="actioned-band"/.test(dump), "no band rects in the dump");
+    const act = c._series.find((s) => s.key === "actioned");
+    check("the actioned chip reads as having data without power",
+      act && act.hasData === true);
+  }
+  {
+    // The overlay arm: with power_kw present the bars ride the band.
+    const { c } = mkCard(realisticHistory(FROZEN, { power: true }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const pts = fieldPointsOf(c._series.find((s) => s.key === "actioned"), "action_power");
+    check("power_kw, where the attribute exists, still draws the overlay",
+      pts.some((p) => p.t <= Date.parse(plan.space_plan.forecast[0].t)),
+      `${pts.length} pts`);
+    const dump = collect(c.shadowRoot).join("\n");
+    check("and the mode band draws beside it",
+      /class="actioned-band"/.test(dump));
+  }
+
+  // The tooltip names the mode the pump was in at the hovered moment --
+  // the state-first reading -- and only inside the recorded past.
+  {
+    const { c } = mkCard(realisticHistory(FROZEN, { power: false }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    c._onCardClick({});
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    // The hover target must be asserted INSIDE the plot before it is
+    // hovered: `_onPointerMove` bails left of plotL, and the payload's
+    // forecast stamps carry no offset, so the frozen clock -- and with it
+    // the first runs' place in the window -- shifts with the host's TZ
+    // (round 1: green in CET, red on CI's UTC, the same tree). Selecting
+    // a run whose midpoint is in-window, and saying so, keeps the check
+    // about the tooltip rather than about the clock.
+    const plot = c._plot;
+    const midOf = (r) => (r.start + r.end) / 2;
+    const hoverable = runs.filter((r) =>
+      r.mode !== "off" && r.mode !== "idle" &&
+      midOf(r) >= plot.windowStart && midOf(r) <= plot.windowEnd);
+    check("an active run's midpoint sits inside the plot to hover",
+      hoverable.length > 0,
+      `${runs.length} run(s), window ${new Date(plot.windowStart).toISOString()}..${new Date(plot.windowEnd).toISOString()}`);
+    const active = hoverable[0];
+    if (!active) {
+      check("the tooltip names the actioned mode under the crosshair",
+        false, "no in-window active run to hover");
+    } else {
+      c._onPointerMove({ currentTarget: svgOf(c), clientX: plot.scaleX(midOf(active)) });
+      const tt = collect(c.shadowRoot).join("\n");
+      check("the tooltip names the actioned mode under the crosshair",
+        /Actioned/.test(tt) && tt.includes(active.mode), active.mode);
+      c._onPointerLeave({ currentTarget: null });
+    }
+  }
+
+  // ---- chunk joins and boundary duplicates --------------------------------
+  {
+    // end_time served inclusive: the boundary state arrives in BOTH
+    // neighbouring chunks. Points must stay unique in time.
+    const { c, api } = mkCard(realisticHistory(FROZEN), { inclusiveEnd: true });
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const roomPts = fieldPointsOf(c._series.find((s) => s.key === "house_temp"), "room");
+    const ts = roomPts.map((p) => p.t);
+    check("an inclusive chunk boundary does not double-book a timestamp",
+      new Set(ts).size === ts.length, `${ts.length - new Set(ts).size} dup(s)`);
+    check("the boundary state was in fact served twice",
+      api.calls.length >= 4, api.calls.join(" | ").slice(0, 120));
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    const joined = runs.filter((r, i) => i > 0 && runs[i - 1].mode === r.mode).length;
+    check("a run split across a chunk boundary merges into one",
+      joined === 0, `${joined} adjacent equal-mode run(s)`);
+    check("the joined trace still never runs backward",
+      backwardSteps(pathsOf(c, "outdoor")) === 0);
+  }
+
+  // ---- entity resolution against foreign same-suffix sensors --------------
+  {
+    // A foreign sensor that merely shares the suffix must not be picked up
+    // by the fallback scan: it would render someone else's history as the
+    // pump's own record. The scan validates against the live state's
+    // shape (device_class/options/unit), which our sensors publish.
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st["sensor.boiler_heat_pump_action"] = { state: "on", attributes: {} };
+    const entries = realisticHistory(FROZEN, { power: false });
+    const foreign = entries[HISTORY_IDS.action];
+    delete entries[HISTORY_IDS.action];
+    const api = historyApi({ ...entries, "sensor.boiler_heat_pump_action": foreign });
+    const c = build(st, {});
+    c.hass = { states: st, callApi: api.callApi };
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    check("a foreign sensor sharing the suffix is not asked for history",
+      api.calls.every((p) => !p.includes("sensor.boiler_")),
+      api.calls.join(" | ").slice(0, 160));
+    const dump = collect(c.shadowRoot).join("\n");
+    check("and no foreign band is drawn as the pump's own record",
+      !/class="actioned-band"/.test(dump));
+  }
+
+  // ---- the stale seam: the live edge's chunk must refresh -----------------
+  {
+    // The fixture is built through six hours past the frozen clock, so
+    // rows EXIST right of the first fetch's live edge -- they are what a
+    // stale chunk refuses to go back for. The first pan loads the chunk
+    // containing FROZEN through FROZEN; the clock then moves on, and the
+    // stretch between the old live edge and the chunk's end is a hole
+    // that no NEW chunk index ever covers (indices only extend forward).
+    // Only refetching the stale chunk fills it.
+    const { c } = mkCard(realisticHistory(FROZEN + 6 * HOUR));
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    const CH = 12 * HOUR;
+    const b = (Math.floor(FROZEN / CH) + 1) * CH; // the chunk's own end
+    const before = c.histSource.space
+      .filter((p) => Date.parse(p.t) > FROZEN && Date.parse(p.t) < b).length;
+    c.histSource.ensure(FROZEN - HOUR, FROZEN + 13 * HOUR);
+    await flushHistory();
+    const after = c.histSource.space
+      .filter((p) => Date.parse(p.t) > FROZEN && Date.parse(p.t) < b).length;
+    check("a stale live-edge chunk is fetched again, filling the seam hole",
+      before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+  }
+}
+
+// --- The host stays small ---------------------------------------------------
+// The decomposition (#136) left the element with the Lovelace contract, the
+// render cycle and its compositions, and nothing else. A ratchet, not a
+// target: the ceiling may be lowered, never raised, and a feature that needs
+// a new member on the element should ask whether it belongs to a
+// collaborator instead.
+{
+  const HOST_MEMBER_CEILING = 26;
+  const members = Object.getOwnPropertyNames(Card.prototype)
+    .filter((n) => n !== "constructor");
+  check(`the card element defines at most ${HOST_MEMBER_CEILING} members of its own (${members.length})`,
+    members.length <= HOST_MEMBER_CEILING, members.join(", "));
+}
+
+// --- The markup gate's claim file is stamped for this release ---------------
+// tests/card_drift.mjs compares this tree's card against GOLDEN_REF and runs
+// only when that ref resolves; this check runs always, so a claim list left
+// over from an earlier release fails a strict local run too -- the
+// tests/entities.py precedent for tests/golden/claimed_drift.txt.
+{
+  const version = fs.readFileSync("VERSION", "utf8").trim();
+  const { declared } = parseClaims(fs.readFileSync(CLAIM_FILE, "utf8"));
+  const err = claimVersionError(declared, version);
+  check(`the card markup gate's claim file is stamped for v${version}`, !err, err || "");
+}
+
+// --- Whose claim is it? the judgement card_drift.mjs gates its two claim ----
+// failures on. Ported from tests/env_drift.py's `stale_claims_judged`, which
+// #658 added there and card_drift.mjs never received: on the tree that merged
+// #735's six card claims, `env_drift.py --claims-only` printed
+// "claims hygiene: ok" while card_drift.mjs failed the same branch with one
+// INHERITED CLAIMS and six STALE CLAIMs. Two gates reading one file must not
+// answer differently about it, so these assert the SIBLING's rule -- the union
+// over both claim files -- and not a card-shaped approximation of it.
+{
+  check("a docs-only three-dot moves nothing a claim excuses",
+    movesClaimable(["docs/HANDOVER.md", "README.md", ".github/workflows/tests.yml"]) === false);
+  check("the card source moves something a claim excuses",
+    movesClaimable(["docs/HANDOVER.md", CLAIMED_CARD_PATH]) === true);
+  check("justifiesCardClaim names the card and nothing beside it",
+    justifiesCardClaim(CLAIMED_CARD_PATH) === true
+    && justifiesCardClaim(CLAIMED_CARD_PATH + ".map") === false
+    && justifiesCardClaim("custom_components/heatpump_optimizer/www/other.js") === false);
+  // The union, deliberately: env_drift.py runs `inherited_claims_error`
+  // against the CARD claim file gated on this same predicate, so a branch
+  // touching only integration Python is judged for its card claims there.
+  // Narrowing it here would re-open the disagreement the other way round.
+  check("integration Python moves something a claim excuses (the union)",
+    justifiesSolverClaim("custom_components/heatpump_optimizer/coordinator.py") === true
+    && movesClaimable(["custom_components/heatpump_optimizer/coordinator.py"]) === true);
+  check("a capture source moves something a claim excuses",
+    CAPTURE_SOURCES.every((p) => justifiesSolverClaim(p) === true)
+    && movesClaimable(["tests/golden.py"]) === true);
+  check("a non-Python file under the integration does not, on its own",
+    justifiesSolverClaim("custom_components/heatpump_optimizer/manifest.json") === false);
+  check("a test script that is not a capture source does not",
+    justifiesSolverClaim("tests/card.mjs") === false
+    && movesClaimable(["tests/card.mjs", "tests/card_drift.mjs"]) === false);
+
+  // three_dot_files' three commands, in order, and the uncommitted work the
+  // third and second add. A stub runner records what it was asked.
+  {
+    const asked = [];
+    const stub = (...a) => {
+      asked.push(a.join(" "));
+      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
+      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+      return "notes.txt\n";
+    };
+    const files = threeDotFiles(stub, "REF");
+    check("threeDotFiles runs the sibling's three commands in order",
+      asked.length === 3
+      && asked[0] === "diff --name-only REF...HEAD"
+      && asked[1] === "diff --name-only HEAD"
+      && asked[2] === "ls-files --others --exclude-standard", asked.join(" | "));
+    check("threeDotFiles de-duplicates, drops blanks and sorts",
+      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+    check("an untracked card makes the three-dot claimable",
+      claimsAreThisBranchs((...a) =>
+        a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
+    check("a docs-only three-dot is NOT this branch's claim to judge",
+      claimsAreThisBranchs(() => "docs/HANDOVER.md\n", "REF") === false);
+    // Per file kind, never per branch (#747): a solver diff can move a card
+    // STATE through the payload, but the card claim LIST is not the solver
+    // branch's to rewrite -- env_drift.py's claim_kinds refuses the rewrite,
+    // so judging the list here demands the one action the other gate vetoes
+    // (#948 sat one CI round in that deadlock).
+    check("a solver-only three-dot is NOT this branch's CARD list to judge",
+      claimsAreThisBranchs(
+        () => "custom_components/heatpump_optimizer/optimizer.py\n",
+        "REF", justifiesCardClaim) === false);
+    check("a card diff IS this branch's card list to judge",
+      claimsAreThisBranchs(() => CLAIMED_CARD_PATH + "\n", "REF",
+        justifiesCardClaim) === true);
+  }
+
+  // Fail closed. A git command that did not answer must judge: a guard that
+  // silences everything is worse than the bug it fixes, and reading stdout
+  // without the exit status returns the same empty list for a failure as for
+  // an unchanged tree.
+  check("an unanswerable three-dot judges (fail closed)",
+    claimsAreThisBranchs(() => { throw new Error("exit 128: no merge base"); }, "REF") === true);
+}
+
+// --- The #1266 collapse: every line a state has, not just the last -----------
+//
+// parseClaims keyed its map on the state name, so two bare claim lines for
+// ONE state collapsed to the last. A branch that added a fresh claim beside
+// the baseline's own line then parsed exactly equal to the baseline's single
+// entry -- the added claim was invisible -- and card_drift.mjs's INHERITED
+// CLAIMS fired on the branch's own list, while the Python gate, multi-valued
+// since #1255 (parse_claim_map -> name -> every line's reason), answered
+// "not inherited" on the same file. Two gates reading one file must not
+// answer differently about it. The map carries every line's reason now, in
+// file order, so equality is same names AND same lines, count included --
+// and a claim file with one line per state parses to one reason per state,
+// the shape every existing list already has.
+{
+  const ONE = "# claims-for: 6.6.6\n#\n\nplan_inline  # the baseline's reason\n";
+  const TWO =
+    "# claims-for: 6.6.6\n#\n\n" +
+    "plan_inline  # this branch's fresh claim\n" +
+    "plan_inline  # the baseline's reason\n";
+  const one = parseClaims(ONE), two = parseClaims(TWO);
+  const shape = (m) => JSON.stringify([...m]);
+  check("parseClaims carries every line a state has, not just the last",
+    shape(two.claims)
+      === '[["plan_inline",["this branch\'s fresh claim","the baseline\'s reason"]]]',
+    shape(two.claims));
+  check("a claim file with one line per state parses to one reason per state",
+    shape(one.claims) === '[["plan_inline",["the baseline\'s reason"]]]',
+    shape(one.claims));
+  check("an exact copy of the baseline's list still parses its equal",
+    shape(parseClaims(ONE).claims) === shape(one.claims));
+  // The comparison card_drift.mjs gates INHERITED CLAIMS on, pinned here
+  // the way `claimsAreThisBranchs` is above: an added line beside an
+  // inherited one is a rewrite, not an inheritance; an exact copy is still
+  // the inherited list it always was, so the autofix that empties one
+  // (env_drift.py's drop_inherited_claim_lines, multi-valued since #1255)
+  // still sees it and still leaves a rewritten list alone.
+  check("a claim added beside an inherited line is not an inherited list",
+    sameClaimMap(two.claims, one.claims) === false,
+    `two lines for one state parsed equal to the baseline's single entry: ${shape(two.claims)}`);
+  check("an exact copy of a multi-line list still is the inherited list",
+    sameClaimMap(parseClaims(TWO).claims, two.claims) === true
+    && sameClaimMap(parseClaims(TWO).claims, parseClaims(
+      "# claims-for: 6.6.6\nplan_inline  # this branch's fresh claim\n"
+      + "plan_inline  # the baseline's reason\n").claims) === true);
+  check("a different reason on the same line is not an inherited list either",
+    sameClaimMap(parseClaims(
+      "# claims-for: 6.6.6\nplan_inline  # a third reason\n").claims, one.claims) === false);
+  check("empty lists claim nothing and are never an inheritance",
+    sameClaimMap(parseClaims("# claims-for: 6.6.6\n").claims,
+      one.claims) === false);
+}
+
+// --- #1495: the space-blocked de-emphasis and the measured "now" reading ---
+// The plan sensor publishes `space_blocked` when the pump's mode cannot
+// deliver space heat; the card then dims the promised house/upper/lower
+// traces and labels them, instead of charting a promise the pump is not
+// executing. The unblocked stock card (Scenario 1's `dump`) is the control.
+const blockedStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+blockedStates[DEFAULT_SPACE].attributes.space_blocked = true;
+const blockedCard = build(blockedStates);
+const blockedDump = collect(blockedCard.shadowRoot).join("\n");
+check("a space-blocked plan shows the DHW-only banner",
+  /DHW only/.test(blockedDump));
+check("a space-blocked plan dims the promised house traces",
+  /<g opacity="0\.35">/.test(blockedDump));
+check("an unblocked plan shows no DHW-only banner and no dimming",
+  !/DHW only/.test(dump) && !/<g opacity="0\.35">/.test(dump));
+
+// The measured "now" temperature is read from the indoor sensor the same
+// derivation the history pan uses; a live reading renders the corner label,
+// an absent one renders nothing.
+const nowStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+nowStates["sensor.heat_pump_optimizer_indoor_temperature_optimizer"] = {
+  state: "16.8", attributes: { device_class: "temperature", unit_of_measurement: "°C" } };
+const nowCard = build(nowStates);
+const nowDump = collect(nowCard.shadowRoot).join("\n");
+check("a live indoor reading shows the corner now temperature",
+  /now 16\.8/.test(nowDump));
+check("without an indoor reading the corner now label is absent",
+  !/now-temp/.test(dump));
+
+console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
+process.exit(fails?1:0);

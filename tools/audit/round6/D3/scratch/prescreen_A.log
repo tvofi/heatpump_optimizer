@@ -1,0 +1,28 @@
+[ 0] wear.py:106 NOCLAMP  -> KILLED   tests/features.py
+[ 1] thermal_model.py:1511 NOGUARD  -> KILLED   tests/features.py
+[ 2] wood_fuel.py:352 NOGUARD  -> KILLED   tests/features.py
+[ 3] frontend.py:147 FLIPCMP  -> KILLED   tests/frontend.py
+[ 4] coordinator.py:990 NOGUARD  -> KILLED   tests/features.py
+[ 5] optimizer.py:3249 FLIPCMP  -> KILLED   tests/features.py
+[ 6] accuracy.py:381 ALWAYS   -> KILLED   tests/features.py
+[ 7] optimizer.py:4652 NOCLAMP  -> SURVIVOR 
+[ 8] config_flow.py:445 NOGUARD  -> KILLED   tests/config_flow_steps.py
+[ 9] price_model.py:697 NOGUARD  -> KILLED   tests/manual_plan.py
+[10] tariff.py:61 FLIPCMP  -> KILLED   tests/features.py
+[11] wood_fuel.py:373 NOGUARD  -> KILLED   tests/features.py
+[12] optimizer.py:5178 NOCLAMP  -> KILLED   tests/manual_plan.py
+[13] comfort_band.py:113 FLIPCMP  -> KILLED   tests/config_flow_steps.py
+[14] config_flow.py:2483 ALWAYS   -> KILLED   tests/config_flow_steps.py
+[15] wood_fuel.py:176 FLIPCMP  -> KILLED   tests/features.py
+[16] thermal_model.py:2064 NOCLAMP  -> KILLED   tests/features.py
+[17] silent_mode.py:79 NOGUARD  -> PARTIAL  
+
+########## RESULT lines ##########
+RESULT mutants_killed=16 count
+RESULT mutants_survivor=1 count
+RESULT mutants_partial=1 count
+RESULT mutants_unapplicable=0 count
+RESULT mutants_run=18 count
+RESULT thread_factor=0.999 ratio
+RESULT load1=5.53 load
+RESULT swapins=0 count

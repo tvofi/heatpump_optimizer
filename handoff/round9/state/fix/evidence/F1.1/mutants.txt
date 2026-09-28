@@ -1,0 +1,43 @@
+P-grid [dst_checks.py] rc=1 ['2 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL at noon on every transition day the grid starts at now's own quarter  [{'plain': 0, 'spring': 96, 'autumn': 96, 'spring2025': 96, 'autumn2025': 96, 'spring2027': 96, 'autumn2027': 96}]
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_forecast_arrays')] autumn [('coordinator.py', '_forecast_arrays')]]
+    2 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-record-accuracy [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_record_accuracy')] autumn [('coordinator.py', '_record_accuracy')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-dhw-lead [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_file_dhw_lead_predictions')] autumn [('coordinator.py', '_file_dhw_lead_predictions')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-room-lead [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_file_lead_predictions')] autumn [('coordinator.py', '_file_lead_predictions')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-next-opt [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [] autumn [('coordinator.py', '_async_update_data')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-score [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('accuracy.py', 'score_lead_predictions')] autumn [('accuracy.py', 'score_lead_predictions')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-ext-rate [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('external_heat.py', '_rate')] autumn [('external_heat.py', '_rate')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+P-dhw-dyn [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('dhw_learning.py', 'async_learn_dynamics')] autumn [('dhw_learning.py', 'async_learn_dynamics')]]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+R-replay-step [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL the replay lane steps a zoned clock in UTC: every day runs its true cycles  [(cycles, cycle failures) per day {'spring': (12, 0), 'autumn': (8, 0), 'plain': (10, 0)}, want 10]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+I1-outage-guard [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL a naive last tick past the gap floor opens the outage window  [recovery until None]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+I1-immersion-guard [dst_checks.py] rc=1 ['1 of 59 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL three naive immersion events inside 14 days ask for the readiness margin  [margin TypeError("can't compare offset-naive and offset-aware datetimes")]
+    1 of 59 DST / QUARTER-GRID CHECKS FAILED
+I1-M02-open-meteo [open_meteo.py] rc=1 ['1 CHECK(S) FAILED']
+    FAIL a naive Open-Meteo stamp is UTC under a non-UTC process zone too  [zone took True, first instant 2026-08-20 22:00:00+00:00]
+    1 CHECK(S) FAILED
+N-target [f11_block.py] rc=1 ['1 of 2 F11 FAILED']
+    FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [16.0], after 21.0]
+    1 of 2 F11 FAILED
+CONTROL-unmutated [dst_checks.py] rc=0 ['ALL 59 DST / QUARTER-GRID CHECKS PASSED']
+CONTROL-unmutated [open_meteo.py] rc=0 ['ALL OPEN-METEO CHECKS PASSED']
+CONTROL-unmutated [f11_block.py] rc=0 ['ALL 2 F11 PASSED']

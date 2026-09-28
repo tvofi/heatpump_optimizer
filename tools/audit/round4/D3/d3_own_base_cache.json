@@ -1,0 +1,19 @@
+{
+ "runs": {
+  "0855277edc49cb3cce3b1095fa1e5edcda7663c8:tests/features.py:9fbf2aa81b1b": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 117.2
+  },
+  "0855277edc49cb3cce3b1095fa1e5edcda7663c8:tests/entities.py:f8b9f0cf5d62": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 27.6
+  },
+  "0855277edc49cb3cce3b1095fa1e5edcda7663c8:tests/config_flow_steps.py:4724bcb24e22": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.9
+  }
+ }
+}

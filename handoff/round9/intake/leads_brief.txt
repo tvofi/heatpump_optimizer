@@ -1,0 +1,28 @@
+Before doing any work, read `CLAUDE.md` in /home/claude/heatpump_optimizer and all related rules files (`.claude/rules/`, and `tools/audit/briefs/COMMON.md`, the finder's contract, which is yours), and follow them. Pass this rule on in every sub-agent brief you write.
+Never refer to the project owner as "Tim" anywhere; call them "tvofi". Pass this rule on.
+Do NOT re-run heavy D3 scripts (mutation pre-screens, mutant pools, full-gate mutant confirmation): tvofi's rule of 2026-09-26. Reuse the D3 seats' evidence. Pass this rule on.
+Do NOT call any mcp__hearthbot__ tools. Never open, approve or merge PRs, never file issues, never run gh. Stop only PIDs you started. Other leads seats share this 4-core box: at most one compute-heavy process of yours at a time.
+
+You are leads seat {G} of audit round 9 (batch 1). This is the leads step of `.claude/workflows/audit-find.js` (origin/main), split four ways at tvofi's request. Seat L1 owns the D0/D1/D2/D3/D5 leads. Your set is ONLY the leads in /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/intake/leads_{G}.json. Each entry has owner_seat (maybe "unknown") and raised_by.
+
+Brief (the driver's, in substance): Read tools/audit/briefs/COMMON.md and tools/audit/README.md, and follow them.
+- Prepare your own export of baseline 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 from /home/claude/heatpump_optimizer the way a finder's is prepared. Use git archive into /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/leads-{G}/tree. Delete docs/audit-*.md and docs/backlog.md, and copy tools/audit/ in from the baseline.
+- Then strip earlier rounds: run the script at `git -C /home/claude/heatpump_optimizer show origin/handoff/audit-r9-plan:$(git -C /home/claude/heatpump_optimizer ls-tree -r --name-only origin/handoff/audit-r9-plan | grep r9-strip-rounds.sh)` on that export.
+- Work only in the export, with PYTHONPATH=tests/hastub and /home/claude/venv314/bin/python. Do not look for earlier findings.
+- Before measuring a lead, read its owner seat's report. Full reports (findings and non_findings) are in .../scratchpad/intake/reports.json (key "reports"; "sources" names each seat's box). REPORT.md files are on origin/handoff/audit-r9-find-B1..B10; read them with git show.
+- A lead the owner already measured, as a finding or a non-finding, is closed by that entry and not re-measured.
+- A lead whose owner is D3-s2, D3-s3 or D7-s1 (deferred to the catch-up batch) is closed with why "owner deferred to catch-up batch; re-route then". Do not measure it.
+- A lead with owner "unknown" first gets an owner. Run `python3 tools/audit/check_scopes.py --repo /home/claude/heatpump_optimizer --ref 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 --seat <id>` from /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/base-wt, which is at the baseline. If the owner turns out to be a D0/D1/D2/D3/D5 seat, still measure it yourself.
+- Turn a lead into a finding ONLY with an executed number under COMMON.md: a harness, the instrumented symbol, a perturbation, a metric definition, and the null control and leave-one-out where they apply.
+- The finding is the owner's cells' finding. Its scope is the owner seat, its id is <owner seat>-{N0}..{N9} (your range only), and its harness goes under tools/audit/round9/<owner dimension>/leads/ with filenames prefixed "{g}_".
+- Each finding needs class_guess (an id in tools/audit/bugclasses.json, or "new"), step, severity, and the fields of finding.schema.json.
+
+Outputs:
+1. Write tools/audit/round9/LEADS-{G}.md in your export (if Write refuses .md, use a shell heredoc), plus your harnesses.
+2. Make a worktree of your own from origin/main, never touching /home/claude/heatpump_optimizer's checkout, on branch handoff/audit-r9-leads-{g}. Copy LEADS-{G}.md, your harnesses and leads-{G}.json (the JSON below) into it, commit, and `git push -u origin HEAD:handoff/audit-r9-leads-{g}`.
+3. Write the JSON to /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/intake/leads_result_{G}.json:
+   {report_path, findings (each as finding.schema.json's finding), non_findings, harnesses, converted: [{raised_by, file, symbol, finding_id}], closed: [{raised_by, file, symbol, why}]}
+   Every lead of your set appears in exactly one of converted and closed.
+4. Milestones: the orchestrator relays your progress to tvofi. So as soon as you have closed or converted a batch of about 8 leads, append one line per lead to /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/intake/progress_{G}.txt, as "<raised_by> | <file>:<symbol> | converted <id> (<metric value>) / closed: <why>".
+
+Final message: the branch and commit SHA, counts (converted, closed, findings by severity), and anything unfinished. Keep it short.

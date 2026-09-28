@@ -1,0 +1,200 @@
+{
+ "dimension": "D11",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D11-s1",
+ "report_path": "tools/audit/round8/D11/REPORT-s1.md",
+ "exposure": "Read GitHub through api.github.com REST GETs (the proxy's credential): rulesets 22628467 and 23698884; /pulls (state=all/closed/open, ~120 PRs, heads only); /commits/{sha}/check-runs for ~120 heads; /pulls/{n} for 18 PRs. Also the main history in a full clone of tvofi/heatpump_optimizer at cdf82da (under /home/claude/audit-r8/tmp/D11-s1/full), including tools/audit/round6/D11/fix/codeowners_gap.py, which CODEOWNERS cites. Fetched docs.github.com 'troubleshooting required status checks'. The seat did not read the audit register, issue bodies or comments, or earlier findings.",
+ "findings": [
+  {
+   "id": "D11-s1-01",
+   "title": "A PR body edit re-reports three required contexts as SKIPPED at the same head, over their real verdict",
+   "severity": "critical",
+   "provisional": true,
+   "claim": "On every `pull_request: edited` event governance.yml's `if:` guard makes policy-docs, env-matrix and wave-script (3 of the 16 required contexts) create a new `skipped` check run at the unchanged head SHA; 3 of the 15 PRs merged since the guard landed merged with those 3 contexts' latest run `skipped` over an earlier real verdict, so a red policy-docs followed by a body edit is plausibly merge-eligible.",
+   "mechanism": "GitHub reports a job skipped by `if:` as passing a required check (docs, 'Handling skipped but required checks'; governance.yml's own on: comment relies on it). The body edit changes no commit, so the skipped run sits at the same SHA as the synchronize run's verdict. If the ruleset reads the latest run per context name, a failure is replaced by a pass-equivalent. No red has been masked yet in the window (masked_red_heads=0); the latest-wins hop was not probed live (brief forbids live perturbation), hence provisional.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_skip_supersede.py --api --clone <non-shallow clone at cdf82da>",
+    "harness_path": "tools/audit/round8/D11/s1_skip_supersede.py",
+    "value": 3,
+    "unit": "required contexts skipped at same head on `edited` (history arm: superseded_merged_heads=3 of 15 merged, superseded_heads=6 of 18, masked_red_heads=0)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container shared with ~13 seats (round 8), not the audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; contention-immune; shared box at load1 ~21",
+    "tolerance": "exact (tree arm); history arm is live data and only grows",
+    "load1": 21.84,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".github/workflows/governance.yml:jobs.policy-docs.if / jobs.env-matrix.if / jobs.wave-script.if (evaluated), plus GET /repos/tvofi/heatpump_optimizer/commits/{sha}/check-runs",
+   "perturbation": {
+    "change": "delete the three `if: github.event_name != 'pull_request' || github.event.action != 'edited'` lines (harness --perturb, temp copy); the fix-shaped equivalent is moving pr-contract to its own workflow so an edit creates no run of the others",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of ruleset-required contexts whose producing job's if: is false for pull_request/edited, i.e. re-created as `skipped` at an unchanged head by a body edit.",
+   "phenomenon_property": "No event that does not change the head commit may create a new check run, of any conclusion, under a required context's name at that head.",
+   "seam_rule": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_skip_supersede.py (prints every required context skipped under edited, tests.yml workflow_dispatch recheck=true [closure-scope] and recheck=false [briefs, browser, closure-scope, mutation, typing])",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_skip_supersede.py",
+    "value": 0,
+    "note": "null_synchronize_skipped=0: a synchronize event skips no required context"
+   },
+   "stop_rule_class": "bug",
+   "files": [
+    ".github/workflows/governance.yml",
+    ".github/workflows/tests.yml"
+   ],
+   "proposed_fix_scope": "Move pr-contract into its own workflow file triggered on pull_request [edited, opened, synchronize, reopened] and drop `edited` from governance.yml's types, so an edit dispatches no run of policy-docs/env-matrix/wave-script; same treatment for tests.yml's closure-scope under workflow_dispatch. Before relying on either, probe latest-wins in a sandbox repo (red job, then skipped same-name job at the same SHA, read mergeable_state)."
+  },
+  {
+   "id": "D11-s1-02",
+   "title": "CODEOWNERS' required-check surface omits 14 verdict-bearing files, tests/run.sh among them",
+   "severity": "high",
+   "claim": "Deriving the required-check enforcement surface with the executed-in-any-form rule plus imports and read data finds 51 files, 14 of which no CODEOWNERS owner pattern matches, so a change to them merges on the hpo-approver App's review alone.",
+   "mechanism": "CODEOWNERS says the surface is derived as the scripts the workflows' non-comment lines execute and points to round6 codeowners_gap.py, whose EXEC regex only matches `<interpreter> <path>`. That misses `./tests/run.sh` (the `fast (3.14)` gate itself), `./tests/derive_closures.sh`, and `tools/audit/w5-partition/coverage_tree.sh`. It also stops at the entry script: counts.mjs (checkCounts, the required-contexts reader) and render_md.mjs are imported by policy_lint.mjs and unowned. The data that decides verdicts is unowned too: policy_known_bad.json (the suppression ledger, whose 'may only shrink' is left to 'a reviewer'), policy_budgets.json and tests/structure_budgets.json (caps that CLAUDE.md rule 2 and ratchet-budgets.md say rise only with the owner's confirmation), corpus_excluded.json, cfr_exclusions.json, closures.json, both claim files and requirements-ci.txt.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_owner_surface.py --list",
+    "harness_path": "tools/audit/round8/D11/s1_owner_surface.py",
+    "value": 14,
+    "unit": "surface files with no CODEOWNERS owner (3 exec, 2 import, 9 data)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container shared with ~13 seats (round 8), not the audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; contention-immune; shared box at load1 ~21",
+    "tolerance": "exact",
+    "load1": 22.35,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".github/CODEOWNERS (last-match owner resolution) over the run: lines of .github/workflows/*.yml",
+   "perturbation": {
+    "change": "append `/tests/run.sh @tvofi` to CODEOWNERS (harness --perturb, in-memory copy)",
+    "expected_direction": "down",
+    "observed_value": 13
+   },
+   "metric_definition": "Tracked files executed by a workflow in any form, imported by those, or named as verdict data by them, that no owner-bearing CODEOWNERS pattern matches.",
+   "phenomenon_property": "Every tracked file whose content can change a required context's verdict is matched by an owner-bearing CODEOWNERS pattern.",
+   "seam_rule": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_owner_surface.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_owner_surface.py",
+    "value": 0,
+    "note": "the round-6 derivation rule (interpreter form only, no imports, no data) finds 37 files and 0 uncovered, which reproduces CODEOWNERS' own claim; the gap is entirely in the rule"
+   },
+   "stop_rule_class": "bug",
+   "files": [
+    ".github/CODEOWNERS",
+    "tools/audit/round6/D11/fix/codeowners_gap.py",
+    "tests/run.sh",
+    ".claude/workflows/counts.mjs",
+    ".claude/workflows/render_md.mjs",
+    ".claude/workflows/policy_known_bad.json",
+    ".claude/workflows/policy_budgets.json",
+    "tests/structure_budgets.json"
+   ],
+   "proposed_fix_scope": "Widen the derivation to the any-form exec plus imports plus data rule (or own `/.claude/workflows/*.mjs`, `/.claude/workflows/*.json` minus fixtures, `/tests/*.sh`, `/tests/*_budgets.json`) and add the 14 paths. About 14 CODEOWNERS lines, and owner review on budget and ledger edits, which the rules already require."
+  },
+  {
+   "id": "D11-s1-03",
+   "title": "stop-selfcheck.sh lets a red policy corpus end a turn when the policy change is only staged",
+   "severity": "low",
+   "claim": "The real Stop hook exits 0 against a red linter in 2 of 4 policy-touching worktree states: a modified policy file that is `git add`ed, and a new policy file that is staged. Its CHANGED set unions only BASE...HEAD and the unstaged worktree diff.",
+   "mechanism": "`git diff --name-only` compares the worktree with the index, so a change already in the index appears in neither half of CHANGED, and touches_policy returns false. The hook's self-test drives only committed and unstaged changes.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_stop_hook_states.py",
+    "harness_path": "tools/audit/round8/D11/s1_stop_hook_states.py",
+    "value": 2,
+    "unit": "of 4 states in which a red corpus exits 0",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container shared with ~13 seats (round 8), not the audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; contention-immune; shared box at load1 ~21",
+    "tolerance": "exact",
+    "load1": 21.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/hooks/stop-selfcheck.sh:CHANGED (driven end to end as a process over stdin)",
+   "perturbation": {
+    "change": "add `git diff --cached --name-only` to the CHANGED line (harness --perturb, temp copy of the hook)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of the four policy-touching states (committed, unstaged, staged, staged-new) in which the hook exits 0 while its linter stub exits 1.",
+   "phenomenon_property": "The Stop hook's policy-touch test sees every change the seat has made in the worktree, including the index.",
+   "seam_rule": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_stop_hook_states.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_stop_hook_states.py",
+    "value": 0,
+    "note": "null_red_exits=0: with a green stub all four states exit 0"
+   },
+   "stop_rule_class": "bug",
+   "files": [
+    ".claude/hooks/stop-selfcheck.sh"
+   ],
+   "proposed_fix_scope": "One line: union `git diff --cached --name-only`, and add a staged case to the self-test's end-to-end block."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "policy_lint default (CI) path on a non-shallow clone at baseline: 0 errors, acceptance holds",
+   "command": "node .claude/workflows/policy_lint.mjs (in a full clone at cdf82da)",
+   "value": "TOTAL: 0 error(s) across 39 policy file(s); FIXTURE ok: 91 error(s) hold 187 pins across 12 check classes; KNOWN-BAD 7 of 7"
+  },
+  {
+   "claim": "Detector health: every enumerated corpus check (11) and loop check (11) turns the acceptance red when emptied, and the entry exit status tracks findings both ways",
+   "command": "node .claude/workflows/policy_lint_mutants.mjs (full clone)",
+   "value": "MUTANTS ok: 22 PIN, 0 ACCEPTED; DRIVEN entry exit-status"
+  },
+  {
+   "claim": "The per-file classes the mutation lane does not enumerate (citations, no-gh) are still pinned by the acceptance: emptying each by hand turns it red",
+   "command": "sed-empty checkNoGh / checkCitations in a temp clone copy, then node .claude/workflows/policy_lint.mjs",
+   "value": "checkNoGh rc=1 (no-gh 0 of 1 required); checkCitations rc=1 (citations 0 of 4 required)"
+  },
+  {
+   "claim": "All three wired hooks exist and pass their own self-tests; the unwired always-fails.sh is the documented negative control",
+   "command": "node .claude/workflows/policy_lint.mjs --hooks",
+   "value": "session-start 8/0, pre-edit 16/0, stop-selfcheck 19/0; HOOKS ok: 3"
+  },
+  {
+   "claim": "Policy size budgets: every per-file cap holds; aggregates within the 500-token band",
+   "command": "node .claude/workflows/policy_lint.mjs --budgets",
+   "value": "CLAUDE.md 211/211, orchestrator 290/291, fixer 279/280; always-loaded 3445 vs 3349+500; corpus 55434 vs 55433+500"
+  },
+  {
+   "claim": "Structural ratchet, rules_sync and brief_lint carry acceptance are green at baseline",
+   "command": "python3 tests/structure.py; node .claude/workflows/rules_sync.mjs --check; node .claude/workflows/brief_lint.mjs",
+   "value": "STRUCTURE RATCHET PASSED; RULES-SYNC ok; CARRY ok (10 errors pin the carry acceptance)"
+  },
+  {
+   "claim": "Ruleset read directly (not the bypass-blind branch-rules endpoint): two active rulesets on ~DEFAULT_BRANCH; current_user_can_bypass=never on both; bypass_actors not returned to this credential",
+   "command": "GET /repos/tvofi/heatpump_optimizer/rulesets/{22628467,23698884} (snapshots in tools/audit/round8/D11/s1_ruleset_*.json)",
+   "value": "main-protect: deletion, non_fast_forward; main-protect-checks: 16 required contexts (strict=false, no integration_id), 1 approval, code-owner review, dismiss stale on push, last-push approval off"
+  },
+  {
+   "claim": "Recurrence: --stats over v6.6.9..origin/main (46 merges) proposes 4 recurring-friction keys (head-moved 7, fixer.md 7, ratchet-budgets.md 3, gate-scoping.md 3); 40 of 46 merges carried a parsable verdict. Not a finding: whether each has a root-cause record was not checked",
+   "command": "GITHUB_TOKEN=x node .claude/workflows/policy_lint.mjs --stats --since v6.6.9 (full clone)",
+   "value": "WOULD OPEN: 4; CENSUS 19 keys (figure_lint and figure_lint.mjs key separately, 1+1)"
+  },
+  {
+   "claim": "Live control in history per required context: over the 100 most recently updated closed PR heads, only pr-contract (12), fast (3.14) (3) and closures (1) ever went red; 13 of 16 contexts have no historic red",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D11/s1_red_census.py",
+   "value": "contexts_never_red=13 of 16"
+  },
+  {
+   "claim": "HARNESS GAP, not a finding: prepr.sh --self-test fails 1 of 85 here, the figure case, because figure_lint needs a `gh` binary this box lacks. CI's pr-contract runs it green",
+   "command": "bash tools/audit/prepr.sh --self-test",
+   "value": "84 passed, 1 failed (gh ENOENT)"
+  },
+  {
+   "claim": "HARNESS GAP, not a finding: in the seat's shallow worktree, policy_lint reports 7 citation errors and policy_lint_mutants refuses to run. Both come from tag and SHA objects the shallow clone lacks; a full clone at the same SHA is clean",
+   "command": "node .claude/workflows/policy_lint.mjs (in the seat tree) vs a full clone",
+   "value": "7 errors (shallow) vs 0 (full)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D11/s1_skip_supersede.py",
+  "tools/audit/round8/D11/s1_owner_surface.py",
+  "tools/audit/round8/D11/s1_stop_hook_states.py",
+  "tools/audit/round8/D11/s1_red_census.py"
+ ],
+ "unfinished": "The latest-run-wins hop behind D11-s1-01 needs a sandbox-repo probe. The root-cause record check for the 4 recurring-friction keys was not done. Staleness beyond one spot check was not done: decision 0005's header still reads 'Status: accepted' above its 2026-09-17 'Superseded' note. The claim-file mechanism (env_drift merge driver) had no control of its own. Schema conflict: the task mandates ids D11-s1-NN, but finding.schema.json's id pattern ^D(1[0-3]|[0-9])-[0-9]{2}$ rejects them, so report-s1.json fails validation on the 3 ids only."
+}

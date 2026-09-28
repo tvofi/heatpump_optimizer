@@ -1,0 +1,1362 @@
+[
+ {
+  "cell": "one|winter_typical|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   60.1042784820211,
+   63.059807202709514,
+   69.51965594108455,
+   99.84972746728891,
+   115.89183041039404
+  ],
+  "shipped_obj": 60.1042784820211,
+  "all_cand_obj": 60.1042784820211,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_typical|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   23.403098426832887,
+   26.110998938514296,
+   26.56700420146013,
+   56.7409746489046,
+   44596.88839085151
+  ],
+  "shipped_obj": 23.403098426832887,
+  "all_cand_obj": 23.403098426832887,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_typical|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   191679.37057125472
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_typical|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   3.318075572394626,
+   3.6923750754246334,
+   3.9522584203757,
+   8.514090570441033,
+   151340.96503972562
+  ],
+  "shipped_obj": 3.318075572394626,
+  "all_cand_obj": 3.318075572394626,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_typical|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6.721813387200558,
+   7.591172909919866,
+   8.151184950316766,
+   19.267787149197016,
+   54587.26908710262
+  ],
+  "shipped_obj": 6.721813387200558,
+  "all_cand_obj": 6.721813387200558,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_extreme|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   80.7405562556082,
+   84.18197691206515,
+   105.99904109536601,
+   190.29780222237076,
+   221.37328325466297
+  ],
+  "shipped_obj": 80.7405562556082,
+  "all_cand_obj": 80.7405562556082,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_extreme|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   33.30281213959816,
+   35.309294147690416,
+   35.95888653028519,
+   113.64126046198358,
+   47135.721769837815
+  ],
+  "shipped_obj": 33.30281213959816,
+  "all_cand_obj": 33.30281213959816,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_extreme|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   214633.27662447392
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_extreme|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   4.429317098075311,
+   4.641416365719764,
+   5.055085876280044,
+   15.64269485162119,
+   176078.73984624317
+  ],
+  "shipped_obj": 4.429317098075311,
+  "all_cand_obj": 4.429317098075311,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_extreme|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   9.446429038164709,
+   9.99634932442552,
+   10.964775575119212,
+   36.35335403455796,
+   65642.90348483933
+  ],
+  "shipped_obj": 9.446429038164709,
+  "all_cand_obj": 9.446429038164709,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_typical|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   19.510791199020566,
+   22.00641289133231,
+   27.197294313390287,
+   27.314027138518007,
+   31.93158172784603
+  ],
+  "shipped_obj": 19.510791199020566,
+  "all_cand_obj": 19.510791199020566,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_typical|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   7.553460735489994,
+   7.7738728143836235,
+   10.458903469103543,
+   16.019102818645198,
+   37336.0982794869
+  ],
+  "shipped_obj": 7.553460735489994,
+  "all_cand_obj": 7.553460735489994,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_typical|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   174580.35404435257
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_typical|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   1.663490295663637,
+   1.6958284193856028,
+   1.7961921067090454,
+   3.0323086319632715,
+   147649.16334401324
+  ],
+  "shipped_obj": 1.6625750326103224,
+  "all_cand_obj": 1.6625750326103224,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_typical|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   2.698466088711667,
+   2.845058304954157,
+   3.042024230253152,
+   6.071471573225522,
+   48122.36601484366
+  ],
+  "shipped_obj": 2.698466088711667,
+  "all_cand_obj": 2.698466088711667,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_negative|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   12.95920355291685,
+   15.084062634236403,
+   15.83467956822655,
+   20.619928627375167,
+   65.03469387430188
+  ],
+  "shipped_obj": 12.959203552916845,
+  "all_cand_obj": 12.959203552916845,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_negative|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   0.6223228574414179,
+   1.4602829679759937,
+   8.06223140085935,
+   9.349254652535901,
+   9262.035515381407
+  ],
+  "shipped_obj": 0.6223228574414179,
+  "all_cand_obj": 0.6223228574414179,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_negative|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   95570.09339140831
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_negative|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   0.6693530050236839,
+   0.8993448592281821,
+   1.4320107656578118,
+   2.138374428170733,
+   57749.27165563216
+  ],
+  "shipped_obj": 0.6693530050236839,
+  "all_cand_obj": 0.6693530050236839,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|summer_negative|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   0.28654094058908863,
+   0.7287916455869171,
+   2.149008893540125,
+   3.8856221427818047,
+   14452.59174285973
+  ],
+  "shipped_obj": 0.2769122685574376,
+  "all_cand_obj": 0.2769122685574376,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|shoulder|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   48.813725823679036,
+   53.20930037876373,
+   53.28398995011952,
+   67.82757248367764,
+   74.65725838152922
+  ],
+  "shipped_obj": 48.81372294871021,
+  "all_cand_obj": 48.81372294871021,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|shoulder|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   18.001328633515996,
+   18.81825566390041,
+   22.020277786384007,
+   37.318440563559435,
+   46233.612139293014
+  ],
+  "shipped_obj": 18.001328212069893,
+  "all_cand_obj": 18.001328212069893,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|shoulder|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   176024.85225025768
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|shoulder|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   2.893903735110501,
+   3.0263588459496984,
+   3.120218526493221,
+   6.260065470915647,
+   146984.32445631808
+  ],
+  "shipped_obj": 2.893903735110496,
+  "all_cand_obj": 2.893903735110496,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|shoulder|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   5.591451855220346,
+   6.108838837267897,
+   6.364644012023792,
+   13.858717426632834,
+   49024.78649438108
+  ],
+  "shipped_obj": 5.591451855220346,
+  "all_cand_obj": 5.591451855220346,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_narrow|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   103.13622585521432,
+   109.02756517681883,
+   116.99046472500714,
+   119.90153002815147,
+   132.37437677275483
+  ],
+  "shipped_obj": 103.13622585521432,
+  "all_cand_obj": 103.13622585521432,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_narrow|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   45.0135462770226,
+   45.66418722657546,
+   52.01681156161535,
+   56.9658995478892,
+   25814.526700494185
+  ],
+  "shipped_obj": 45.0135462770226,
+  "all_cand_obj": 45.0135462770226,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_narrow|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   116779.42686711725
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_narrow|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   5.189965389533048,
+   5.720264634495539,
+   6.762535922040841,
+   7.919511031951627,
+   86086.47723963817
+  ],
+  "shipped_obj": 5.189965389533048,
+  "all_cand_obj": 5.189965389533048,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_narrow|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   11.591756033703732,
+   12.733473375958347,
+   15.316461642197625,
+   18.37929184231507,
+   23024.220197177005
+  ],
+  "shipped_obj": 11.591756033703732,
+  "all_cand_obj": 11.591756033703732,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_moderate|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   75.90508317173781,
+   78.39432557990855,
+   88.81393338817595,
+   93.9197855970245,
+   109.89818892327419
+  ],
+  "shipped_obj": 75.90508317173781,
+  "all_cand_obj": 75.90508317173781,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_moderate|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   32.12123864831866,
+   32.96743431007911,
+   36.824131511487074,
+   48.878404855606355,
+   25587.683721919453
+  ],
+  "shipped_obj": 32.12123853063192,
+  "all_cand_obj": 32.12123853063192,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_moderate|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   130183.295313699
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_moderate|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   3.9970421115814347,
+   4.353530074816215,
+   5.057537764143323,
+   6.9751771377273375,
+   96371.1787291048
+  ],
+  "shipped_obj": 3.9970421115814347,
+  "all_cand_obj": 3.9970421115814347,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|winter_moderate|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   8.565218694641096,
+   9.268961955885215,
+   10.967726970241852,
+   15.919006001805027,
+   28247.449874916314
+  ],
+  "shipped_obj": 8.565218694641096,
+  "all_cand_obj": 8.565218694641096,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|flat|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   82.46331409593733,
+   91.80275319716537,
+   96.86203736472254,
+   105.09707627057179,
+   499.7708344923701
+  ],
+  "shipped_obj": 82.4632724560698,
+  "all_cand_obj": 82.4632724560698,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|flat|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   37.4691637149581,
+   38.609425625065654,
+   39.58761136092731,
+   40.40234443696814,
+   23233.144174451303
+  ],
+  "shipped_obj": 37.4691637149581,
+  "all_cand_obj": 37.4691637149581,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|flat|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   6435.620174082218,
+   112517.38839239693
+  ],
+  "shipped_obj": 6435.620174082218,
+  "all_cand_obj": 6435.620174082218,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|flat|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   4.4496849110842405,
+   4.949492940315691,
+   5.540861367756182,
+   5.565259249059241,
+   77717.70518667343
+  ],
+  "shipped_obj": 4.4496849110842405,
+  "all_cand_obj": 4.4496849110842405,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "one|flat|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   9.61391546417361,
+   10.501369950220006,
+   11.637324645599355,
+   12.628272670807968,
+   21322.675128332256
+  ],
+  "shipped_obj": 9.61391546417361,
+  "all_cand_obj": 9.61391546417361,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_typical|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   77.88422768805394,
+   88.31226814094057,
+   100.9893168956718,
+   140.2092779865921,
+   10876.689039262164
+  ],
+  "shipped_obj": 77.88422641789896,
+  "all_cand_obj": 77.88422641789896,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_typical|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   29.68152776167998,
+   66.02931856003528,
+   721.5991311853138,
+   1964.1827182408426,
+   84485.56244502541
+  ],
+  "shipped_obj": 29.654908793264855,
+  "all_cand_obj": 29.654908793264855,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_typical|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10735.693312605395,
+   10923.551244390916,
+   10994.41811429399,
+   358654.5962382562
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_typical|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   3.823520239463227,
+   4.466722884306188,
+   5.1262164082167,
+   11.66896069322463,
+   291590.06160879374
+  ],
+  "shipped_obj": 3.823520239463227,
+  "all_cand_obj": 3.823520239463227,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_typical|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   8.32704586761626,
+   9.370844524450337,
+   13.756542839284753,
+   23.66470186086867,
+   97743.78979375532
+  ],
+  "shipped_obj": 8.32704586761626,
+  "all_cand_obj": 8.32704586761626,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_extreme|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   111.57681122600928,
+   132.2734726284429,
+   190.83383401245266,
+   273.7217740609711,
+   10631.898908673966
+  ],
+  "shipped_obj": 111.52595619404273,
+  "all_cand_obj": 111.52595619404273,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_extreme|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   41.13505378513257,
+   131.83233240522983,
+   731.4470381801234,
+   1615.733599671265,
+   91592.36881525004
+  ],
+  "shipped_obj": 41.135005277644815,
+  "all_cand_obj": 41.135005277644815,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_extreme|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10735.712646442364,
+   10923.821377964894,
+   10994.473353828185,
+   420238.5701298913
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_extreme|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   5.185443689345451,
+   5.662944428677768,
+   6.630709481097982,
+   22.28830492747198,
+   347929.1139207321
+  ],
+  "shipped_obj": 5.185443613449368,
+  "all_cand_obj": 5.185443613449368,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_extreme|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   11.776871287298182,
+   12.35047704889638,
+   17.17045110424845,
+   45.57317086393616,
+   125870.01722260776
+  ],
+  "shipped_obj": 11.776871287298182,
+  "all_cand_obj": 11.776871287298182,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_typical|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   25.02422081480364,
+   28.99198340906785,
+   29.142355889208396,
+   37.41504790952633,
+   10365.063171818154
+  ],
+  "shipped_obj": 25.02422081480364,
+  "all_cand_obj": 25.02422081480364,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_typical|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   8.670700278432623,
+   17.88722896845989,
+   78.29444173897512,
+   508.94698261490475,
+   67558.55077453895
+  ],
+  "shipped_obj": 8.67070011828814,
+  "all_cand_obj": 8.67070011828814,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_typical|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10733.587859580199,
+   10923.348288057316,
+   10988.096299175573,
+   325504.1094450697
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_typical|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   1.7227577732585035,
+   1.7800101550389713,
+   1.9365547529166343,
+   3.580962501547448,
+   281668.22227285133
+  ],
+  "shipped_obj": 1.7227577464672674,
+  "all_cand_obj": 1.7227577464672674,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_typical|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   3.294873988360824,
+   3.637443250056033,
+   3.6983650520029254,
+   7.143121162340032,
+   84804.47329648935
+  ],
+  "shipped_obj": 3.294873936274927,
+  "all_cand_obj": 3.294873936274927,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_negative|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   17.213834943592772,
+   20.62514492539694,
+   21.60827644073433,
+   135.61801809085676,
+   12484.37664146662
+  ],
+  "shipped_obj": 17.213834756750963,
+  "all_cand_obj": 17.213834756750963,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_negative|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   1.946305339709612,
+   10.241887126197216,
+   264.52196073858636,
+   844.1925311682215,
+   18935.010373467085
+  ],
+  "shipped_obj": 1.932382237325458,
+  "all_cand_obj": 1.932382237325458,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_negative|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10733.567144754876,
+   10923.317833637606,
+   10988.037113960365,
+   192091.47889764165
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_negative|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   0.46452432874790966,
+   0.5415565681248412,
+   1.3058916425341267,
+   2.2793417791908066,
+   125306.11078463144
+  ],
+  "shipped_obj": 0.46452432770573887,
+  "all_cand_obj": 0.46452432770573887,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|summer_negative|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   0.21596413362883055,
+   1.3015753034558437,
+   2.616332300507871,
+   4.467058132219778,
+   29595.561705458535
+  ],
+  "shipped_obj": 0.21596413362883055,
+  "all_cand_obj": 0.21596413362883055,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|shoulder|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   59.058557044818365,
+   66.00024204887215,
+   69.45426300747164,
+   88.55217114325724,
+   8901.93336708342
+  ],
+  "shipped_obj": 59.05344427084019,
+  "all_cand_obj": 59.05344427084019,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|shoulder|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   23.32308397874579,
+   42.445991317543346,
+   414.5940185385713,
+   713.4415761954244,
+   89599.00421596086
+  ],
+  "shipped_obj": 23.32308397874579,
+  "all_cand_obj": 23.32308397874579,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|shoulder|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10729.843301048648,
+   10923.450080958753,
+   10977.456608114471,
+   336143.2990920268
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|shoulder|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   3.3420584569053657,
+   3.5176782036291128,
+   3.708475048467288,
+   7.874692289523745,
+   291222.86920043593
+  ],
+  "shipped_obj": 3.34205842747671,
+  "all_cand_obj": 3.34205842747671,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|shoulder|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6.894105138317885,
+   7.645347845233763,
+   12.757721287645218,
+   16.00264632813959,
+   91409.00455894132
+  ],
+  "shipped_obj": 6.894104557686414,
+  "all_cand_obj": 6.894104557686414,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_narrow|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   124.26294207115735,
+   132.0615311684272,
+   138.00650395795634,
+   155.79072025455497,
+   10659.282063024657
+  ],
+  "shipped_obj": 124.25746504042908,
+  "all_cand_obj": 124.25746504042908,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_narrow|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   50.67302335230426,
+   67.6891590522094,
+   742.8634608218174,
+   1633.0948061525262,
+   49538.011313922354
+  ],
+  "shipped_obj": 50.66369400515943,
+  "all_cand_obj": 50.66369400515943,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_narrow|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10735.747171151235,
+   10923.590021754844,
+   10994.571995853532,
+   228588.08863395307
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_narrow|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   6.084169738704151,
+   7.141479413750825,
+   9.219810735487103,
+   10.54318663113557,
+   175945.32051005954
+  ],
+  "shipped_obj": 6.0841697387041345,
+  "all_cand_obj": 6.0841697387041345,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_narrow|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   14.482993320579626,
+   15.951955470902737,
+   23.150474366371938,
+   23.25244184204777,
+   44154.641692311954
+  ],
+  "shipped_obj": 14.482993320579626,
+  "all_cand_obj": 14.482993320579626,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_moderate|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   95.3389663059841,
+   102.80622595837495,
+   107.43953528746985,
+   131.13144099224104,
+   10625.96901606355
+  ],
+  "shipped_obj": 95.32886428982988,
+  "all_cand_obj": 95.32886428982988,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_moderate|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   38.16203850605074,
+   58.10002591240613,
+   729.2659610397143,
+   1615.8168757825083,
+   47914.50453027484
+  ],
+  "shipped_obj": 38.16203850605074,
+  "all_cand_obj": 38.16203850605074,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_moderate|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10735.716098913252,
+   10923.534272551293,
+   10994.483218030718,
+   247048.00766275916
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_moderate|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   4.678310884667198,
+   5.388225194543324,
+   6.826968033919907,
+   9.393504169690372,
+   189038.42486313015
+  ],
+  "shipped_obj": 4.678310884667198,
+  "all_cand_obj": 4.678310884667198,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|winter_moderate|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10.920188802421542,
+   11.605767144071216,
+   17.567477085507846,
+   20.146567989733423,
+   50931.49112649767
+  ],
+  "shipped_obj": 10.920188802421542,
+  "all_cand_obj": 10.920188802421542,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|flat|winter_cold|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   100.00109965532015,
+   102.02798470660076,
+   113.07166465654225,
+   835.3004441131384,
+   13422.428396767387
+  ],
+  "shipped_obj": 99.95299120325176,
+  "all_cand_obj": 99.95299120325176,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|flat|winter_mild|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   41.49472671115286,
+   47.62120562735098,
+   470.94535084978884,
+   1639.9409125982415,
+   48454.6093525594
+  ],
+  "shipped_obj": 41.49472671115286,
+  "all_cand_obj": 41.49472671115286,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|flat|summer_warm|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   10597.96755569283,
+   10735.733361267687,
+   10923.50460594608,
+   10994.532539043394,
+   231695.3112263283
+  ],
+  "shipped_obj": 10597.96755569283,
+  "all_cand_obj": 10597.96755569283,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|flat|summer_cool|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   5.189502544662778,
+   6.123519301255535,
+   7.1263845413411095,
+   7.5122499292871545,
+   171897.22434859016
+  ],
+  "shipped_obj": 5.189502456537233,
+  "all_cand_obj": 5.189502456537233,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ },
+ {
+  "cell": "two|flat|shoulder|dhw=0",
+  "n_cand": 5,
+  "multi_start_solves": 4,
+  "n_discarded": 1,
+  "start_scores": [
+   12.232447128856382,
+   13.072873339007291,
+   15.86659204365044,
+   25.529788995198107,
+   46054.232960388785
+  ],
+  "shipped_obj": 12.232439436906462,
+  "all_cand_obj": 12.232439436906462,
+  "gap_rel": 0.0,
+  "n_seam_calls": 1
+ }
+]

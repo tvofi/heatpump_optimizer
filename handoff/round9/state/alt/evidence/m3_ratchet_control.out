@@ -1,0 +1,12 @@
+ARM A: six private coordinator reads added inside pump_arbiter.state_for
+ custom_components/heatpump_optimizer/pump_arbiter.py | 2 ++
+ 1 file changed, 2 insertions(+)
+structure.py rc=0
+no FAIL/IMPROVED line: the instrument did not see the reads
+ARM B (control): the same six reads inside the coordinator's dhw-seam method _dhw_current_hour
+ custom_components/heatpump_optimizer/coordinator.py | 2 ++
+ 1 file changed, 2 insertions(+)
+structure.py rc=1
+FAIL coordinator_loc 9028 > 9026 (+2)
+FAIL cut_dhw 78 > 73 (+5)
+FAIL max_class_loc 9028 > 9026 (+2)

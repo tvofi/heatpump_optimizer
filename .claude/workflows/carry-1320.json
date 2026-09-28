@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Carry destination for issue #1320 (R5-D4-03, the round-5 D4 audit's",
+    "coarse-pointer HTML target-floor finding). The stage that needs this is any",
+    "later seat that audits the card's hit-target floors under a coarse pointer,",
+    "or that measures anything through tests/card_browser.mjs's coarse arm. No",
+    "roster group in this tree claims #1320 -- the wave-ux D4 group is at",
+    "resume.stage done and is not a destination -- so this file is that stage's",
+    "brief. Shape and required fields: .claude/rules/finding-propagation.md.",
+    "Linted by .claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1320,
+  "stage": "any later seat auditing the card's hit-target floors under a coarse pointer (a later round's D4 dimension; tools/audit/briefs/D4.md is its method, tests/card_browser.mjs its browser lane, tools/audit/round5/D4/seat-a/sweep.mjs the round-5 harness)",
+  "carries": [
+    {
+      "from": "the pull request that raised the card's HTML target floor to the 44 px touch floor under a coarse pointer (R5-D4-03, #1320)",
+      "effect": "narrows",
+      "control": "The assumption invalidated: that a card change written inside `@media (pointer: coarse)` reaches a coarse arm driven by CDP emulation. It does not. Measured on a minimal page in the same Chromium this lane installs (Playwright 1.49.0, Chromium 1148): a `#t` element whose `min-height` is 24px with a `@media (pointer: coarse)` override to 44px reads `getComputedStyle(#t).minHeight` 24px in the coarse arm, and `window.matchMedia(\"(pointer: coarse)\").matches` is false there too -- so `Emulation.setEmulatedMedia({features:[{name:\"pointer\",value:\"coarse\"}]})` drives neither the CSS `pointer` media feature nor the JS matchMedia read. The harness's coarse arm is coarse only because tests/card_browser.mjs installs an in-page `window.matchMedia` stub, which is the card's own `_coarsePointer()` predicate. The null control separates the real thing from its imitation: the same minimal page in the fine arm reads 24px with the stub absent, and the card's own `.chip` reads 24px under the coarse page and 44px only once its floor keys on `_coarsePointer()`. The first fix for #1320 was written inside `@media (pointer: coarse)` and moved the judge's subset 38 -> 38; re-keying it on `_coarsePointer()` moved the same subset 38 -> 2.",
+      "remeasure": "Do not trust this paragraph's numbers; re-establish the predicate at your own merge base, because it is a property of the installed browser build and not of the card. Build the card the way tests/card_browser.mjs does, and in the coarse page read BOTH `window.matchMedia(\"(pointer: coarse)\").matches` and the computed `min-height` of an element that carries a coarse-only CSS override. If the media feature reads false and the override does not apply, the arm is coarse for JavaScript only. For any floor you add, assert on the computed style of a real card control in the coarse page (the `.chip` is the cheapest) and require the coarse value to equal the fine value plus the touch EXTRA -- a fix that cannot move that reading is written in the wrong predicate.",
+      "brief": "Coarse-pointer target floors on this card are keyed on ONE predicate, `_coarsePointer()` -- the same read `_targetMinPx()` uses for the SVG-drawn lane and slot rects, and the same read the HTML floor in `cardStyleBlock()` now uses after #1320. Write any coarse-pointer floor inside that predicate, never inside `@media (pointer: coarse)`: the media query does not match under this lane's coarse emulation, so a fix inside it measures as no change and cannot be priced. The two floors are one parameterised rule set, 24 px every-pointer and 44 px coarse, so an HTML control added to the target surface joins `htmlTargetSelectors` rather than carrying its own literal. Two behaviours are legitimate to leave under 44 px in the coarse arm and are NOT regressions to repair here: the SVG-drawn `rect.slot-hit[N]` rects (their height is already at the 44 px floor; their width follows the slot, so a sub-44 slot draws a sub-44 width) and the score pill `span.hl-stat.hl-score` (25 px, a control the earlier R5-D4-02 fix sized by padding, not by a floor, and which the #1320 perturbation the judge accepted also left). Measure them as findings of their own if you can price them; do not read their survival as the HTML floor failing."
+    }
+  ]
+}

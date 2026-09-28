@@ -1,0 +1,150 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D3/s1/REPORT.md (NOT WRITTEN: this session's harness refuses to let a subagent write report .md files. The report is in this JSON; the raw logs are in tools/audit/round9/D3/s1/logs/)",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "depth": "deep",
+   "evidence": "mutants.py: an AST scan of coordinator.py found 576 candidates: GUARD_DROP 215, CMP_BOUND 188, CONST_SHIFT 104, MINMAX_SWAP 69. Each is weighted by operator (3/2/1/2) times consequence (3 for functions named payload/publish/stale/guard/price/dhw/..., 1 otherwise); total weight 1797. Seed 90301, capped at 4 per module by D3.md. Sample: C0043 _dhw_inlet_c:1371, C0023 _watch_lift:796, C0054 _apply_result_payload:1557, C0086 _dhw_setpoint_sweep:2728."
+  },
+  {
+   "step": "D3.M2",
+   "depth": "deep",
+   "evidence": "prescreen.py ran the null tree and all 4 mutants, each in a private git worktree with an empty anchor commit. It ran all 15 closure scripts (closure.py select, minus stress/edge/backtest, with golden.py replaced by env_drift.py --all <baseline>, unpinned so it hits the warm cache) and did not stop at the first kill. Results: null 0 kills; C0043 0; C0023 1 (features.py); C0054 0; C0086 1 (features.py). Logs: tools/audit/round9/D3/s1/logs/prescreen_*.log."
+  },
+  {
+   "step": "D3.M3",
+   "depth": "deep",
+   "evidence": "Of the 2 survivors, C0043 is a real candidate. C0054 is withdrawn as an equivalent mutant: behaviour.py C0054 measured behaviour_delta_production_shape=0, because heat_pump_on_schedule is always horizon-length from optimizer.py's single OptimizationResult constructor (line 2239). The quiet-window full gate for C0043 is not run: it is the quiet window's job."
+  },
+  {
+   "step": "D3.M4",
+   "depth": "deep",
+   "evidence": "C0043: the production line is coordinator.py:1371. The check that should have failed is the features.py inlet check near line 45296, 'and a stale, implausible or non-numeric inlet reading is refused'. It probes only 40.0 °C, a stale reading and 'unknown'; it has no arm below -5.0 and no arm at either bound. behaviour.py C0043 gives behaviour_delta=1 (the null arm gives 0). C0054 is equivalent, so no check owes a kill."
+  },
+  {
+   "step": "D3.M5",
+   "depth": "deep",
+   "evidence": "Null-run cost of a coordinator change is 660 s wall (provisional): features 291.6 s, env_drift --all 218.0 s, entities 89.8 s, the other 12 scripts about 60 s. Kill matrix: features.py is the sole killer of 2/2 killed mutants; the other 14 scripts killed 0, so there is no duplicated coverage. reach.py measured distinct coordinator lines executed in-process: features 5498, config_flow_steps 3077, entities 2890, finite_boundary 1731, manual_plan 1685, solar_alignment 1193, plan_view 639, wood_advisor 490. Six scripts reached 0: typing_ruler, structure and doc_claims read the file as text; deployment_shape and env_drift run their capture in untraced child processes. The union is 5629 of 5910 executable lines, so 281 are never reached; the most are in async_run_optimization (24) and _record_accuracy (13). closures.json recorded seconds diverge from the measured ones in both directions (features 140.7 vs 291.6, finite_boundary 62.3 vs 11.3); these are provisional and not a finding."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D3.M1",
+   "what": "The 4-per-module cap binds on a one-module cell, so 572 of the 576 candidates are unscreened. The seed and weights are recorded, so the next draw can exclude C0043/C0023/C0054/C0086. The 281 lines no closure script reaches in-process (reach.py; most in async_run_optimization and _record_accuracy) should raise the M1 weights next round."
+  },
+  {
+   "step": "D3.M3",
+   "what": "The quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate with C0043 applied has not been run."
+  },
+  {
+   "step": "D3.M5",
+   "what": "Wall and CPU per script were measured at load1 of about 4 on a shared box and need a quiet re-take (prescreen.py null) before they are compared with closures.json's recorded seconds."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D3-s1-01",
+   "scope": "D3-s1",
+   "step": "D3.M2",
+   "title": "No closure script fails when _dhw_inlet_c's lower plausibility bound moves (-5.0 <= value -> -5.0 < value)",
+   "severity": "low",
+   "claim": "With coordinator.py:1371 mutated from `-5.0 <= value` to `-5.0 < value`, all 15 scripts of coordinator.py's measured closure pass, including env_drift --all against the baseline. Yet _dhw_inlet_c then returns None instead of -5.0 for a fresh -5.0 °C inlet reading.",
+   "mechanism": "The inlet checks in tests/features.py (near line 45296: 40.0 °C, stale and 'unknown' readings; near line 18850: a fresh 12.0 and a frozen probe) never probe below the window or at either bound. The coordinator goldens do not configure a live inlet probe at the boundary.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0043 ; PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/behaviour.py C0043",
+    "harness_path": "tools/audit/round9/D3/s1/prescreen.py",
+    "value": 0,
+    "unit": "scripts killing the mutant (of 15); behaviour_delta=1 at the seam",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1, 4 vCPU cloud container, Linux 6.18, CPython 3.14.0rc2, node 22",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box with up to 3 compute seats (load1 about 4). The counts are contention-immune.",
+    "tolerance": "exact",
+    "load1": 4.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c",
+   "perturbation": {
+    "change": "Apply mutant C0043 (coordinator.py:1371 `-5.0 <= value` -> `-5.0 < value`). behaviour.py C0043 compared with behaviour.py C0043 --null: behaviour_delta moves up from 0 to 1, while prescreen.py killed_by stays 0. Kill-count control: prescreen.py C0023 gives killed_by=1 (features.py), which shows the prescreen counter moves.",
+    "expected_direction": "up",
+    "observed_value": "behaviour_delta 0 -> 1; killed_by 0 (null) / 0 (C0043) / 1 (C0023 control)"
+   },
+   "metric_definition": "killed_by = number of scripts in coordinator.py's measured closure (minus stress/edge/backtest; env_drift --all for golden) that exit non-zero with the mutant applied",
+   "phenomenon_property": "The lower plausibility bound of the live DHW inlet probe (_dhw_inlet_c) is pinned by no check. The suite stays green when that bound moves, while the published inlet (dhw_inlet_current, and through it DHW draw power) changes at the bound.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/mutants.py --list | grep '\"func\": \"_dhw_inlet_c\"'  (seams C0041-C0045; each runs through tools/audit/round9/D3/s1/prescreen.py <CID>)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py null ; .../behaviour.py C0043 --null",
+    "value": "killed_by=0; behaviour_delta=0",
+    "note": "The unmutated tree passes all 15 scripts. Patching the unmutated source through the same path changes nothing."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/mutants.py   # shows C0043 in the seeded sample",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/behaviour.py C0043   # behaviour_delta=1 (-5.0 -> None)",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0043   # killed_by=0, about 11 min"
+   ],
+   "proposed_fix_scope": "tests only: extend the features.py inlet-refusal check (near line 45296) with arms at -5.0 (accepted), just below -5.0 (refused), 35.0 (accepted) and just above 35.0 (refused), and a far-below value such as -20 (refused). No production change.",
+   "files": [
+    "tests/features.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I1",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Null control: the unmutated tree passes all 15 closure scripts, and env_drift --all reports NO UNCLAIMED DRIFT over 56 scenarios",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py null",
+   "value": "killed_by=0"
+  },
+  {
+   "claim": "C0023 (_watch_lift early-return guard dropped) is killed",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0023",
+   "value": "killed_by=1 (features.py, 6 of 3369 checks fail: the #1067 watch-baseline checks)"
+  },
+  {
+   "claim": "C0086 (_dhw_setpoint_sweep usable-band max->min) is killed",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0086",
+   "value": "killed_by=1 (features.py, 4 checks). env_drift stays green because both coordinator goldens carrying dhw_advisor have meets_heaviest_window=false for all 7 candidates."
+  },
+  {
+   "claim": "C0054 (_apply_result_payload idx < len -> <=) survives only as an equivalent mutant: every production-shaped result has heat_pump_on_schedule of horizon length",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/behaviour.py C0054",
+   "value": "behaviour_delta_production_shape=0 (n=4,96,192); behaviour_delta=1 only on the non-production one-short shape (IndexError); prescreen killed_by=0"
+  },
+  {
+   "claim": "Closure over-approximation for coordinator.py is negligible: the scripts forced by a coordinator change that execute none of its lines in-process cost about 7 s",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/reach.py",
+   "value": "reach 0 for typing_ruler, structure, doc_claims (text readers) and deployment_shape (child process); union 5629/5910, never_reached 281"
+  },
+  {
+   "claim": "No duplicated coverage in the sample: every kill came from a single script",
+   "command": "grep -h '^SCRIPT' tools/audit/round9/D3/s1/logs/prescreen_*.log",
+   "value": "features.py killed 2/2; the other 14 scripts killed 0/2"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D3/s1/mutants.py",
+  "tools/audit/round9/D3/s1/prescreen.py",
+  "tools/audit/round9/D3/s1/behaviour.py",
+  "tools/audit/round9/D3/s1/reach.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/golden/coord_dhw.json",
+   "symbol": "data.dhw_advisor",
+   "what": "Both coordinator goldens carrying dhw_advisor (coord_dhw, coord_all_features) sit in the degenerate regime where every candidate has meets_heaviest_window=false and the recommendation is the last candidate (60). As a result, env_drift --all cannot observe the advisor's cover and ranking logic: mutant C0086 left it green and was caught only by features.py."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tools/audit/round3..round8",
+   "symbol": "(tracked files)",
+   "what": "During this session (directory mtimes around 09:15 UTC), 498 tracked files under tools/audit/round3-8 were deleted from the D3-s1 worktree. No D3-s1 harness writes outside mkdtemp roots or round9/D3/s1. This is probably the orchestrator's pruning, but it should be confirmed that the gate does not read any of them."
+  }
+ ]
+}

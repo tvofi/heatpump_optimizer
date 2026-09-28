@@ -1,0 +1,135 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D2/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M4",
+   "depth": "deep",
+   "evidence": "Checked seven M4 areas against independent formulas, each with a null arm and a perturbation, in three harnesses: current_quarter_price.py, pv_piecewise.py and m4_probes.py. The areas: folding 15-minute and hourly prices into steps, the current-price seam, 23 h and 25 h DST days, grid-fee day/night and weekday windows, the capacity tariff's exact top-k charge, PeakTracker's monthly billing and rollover, and the PV export price applied piecewise. Not measured: the capacity tariff across a month boundary and currency conversion (see unfinished)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D2.M4",
+   "what": "Capacity tariff at a month boundary is not measured: plan windows after midnight on the 1st are priced against the previous month's threshold_kw and top-k in one pool, while the tracker would return inf for the new month."
+  },
+  {
+   "step": "D2.M4",
+   "what": "Currency conversion is not measured: price_model.apply_price_adjustments adds the configured SEK/kWh surcharge to entity series in any currency after unit scaling."
+  },
+  {
+   "step": "D2.M4",
+   "what": "The live PV export-price entity against the static value under negative spot is not measured."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D2-s3-01",
+   "scope": "D2-s3",
+   "step": "D2.M4",
+   "title": "_current_spot_price reads a quarter up to 45 min stale under 15-minute price entries",
+   "severity": "high",
+   "claim": "With 15-minute price entries (what the default Tibber QUARTER_HOURLY pull returns), HeatPumpOptimizerCoordinator._current_spot_price returns the earliest entry that started within the last hour instead of the entry covering now. It is wrong on 28..42 of 96 quarters per day when prices ramp within the hour, and on 12..18 of 96 when prices are constant within each hour (the three quarters after every price change). The published current_price, the settlement's price/spot_price, sysid's price and the comfort learner's relative price all read it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/current_quarter_price.py [--perturb]",
+    "harness_path": "tools/audit/round9/D2/s3/current_quarter_price.py",
+    "value": "28..42",
+    "unit": "quarters of 96 mispriced per non-flat profile (ramp arm); step arm 12..18; mean |err| 0.042..0.584 per kWh, mean 0.185, leave-max-out 0.105",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B7 audit container, linux",
+    "cpu_or_wall": "count",
+    "contention_note": "light seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 0.33,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_spot_price",
+   "perturbation": {
+    "change": "In _current_spot_price, replace the entry span timedelta(hours=1) with 15 minutes (the harness does this in memory with --perturb)",
+    "expected_direction": "The quarter-entry arms fall to 0 mismatches and the hourly-entries null control rises from 0 to 273. The span is the mechanism; an honest fix takes each entry's end from the next entry's start, as _known_prices_for does, and must read 0 on all three arms."
+   },
+   "metric_definition": "Per profile, the count of the 96 quarters (clock frozen 7 minutes into each) where _current_spot_price() differs from the price of the entry whose [start, start+15 min) contains now; keyed on the value the seam returns.",
+   "phenomenon_property": "Every seam that prices 'now' from the price entry list must use each entry's real span, taken from the entries, and not a fixed one-hour span.",
+   "seam_rule": "grep -n \"timedelta(hours=1)\" custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/*.py | grep -i -e price -e starts",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "Make _current_spot_price look up the covering entry the way _known_prices_for does (bisect on the sorted starts; the end is the next start), or call _known_prices_for([now]) directly. Add a features.py pin with quarter entries at :07 past each quarter.",
+   "provisional": false
+  },
+  {
+   "id": "D2-s3-02",
+   "scope": "D2-s3",
+   "step": "D2.M4",
+   "title": "PV piecewise cost clipped by import_margin's zero floor wherever import price < export price",
+   "severity": "medium",
+   "claim": "pv.import_margin floors (import - export) at zero, so wherever import < export on a surplus step, HeatPumpOptimizer._energy_cost_fn and pv.blended_block_prices price surplus-covered energy at the import price instead of the export compensation it forgoes. This breaks the stated identity export·min(P,s)+import·max(P−s,0) on 16 of 96 steps for summer_negative at the shipped default export price 0.0. On a real solve the published predicted_cost is −0.609 where the identity gives 0.000, and the plan draws 5.07 kWh from surplus in negative-price steps against 2.27 kWh unfloored.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/pv_piecewise.py [--perturb]",
+    "harness_path": "tools/audit/round9/D2/s3/pv_piecewise.py",
+    "value": 16,
+    "unit": "steps of 96 breaching the piecewise identity (summer_negative, export 0.0 default); summer_typical @0.30 = 20; signed error per day at 3 kW, export 0.30: range −5.04..0, mean −1.14, leave-most-negative-out −0.36; solve predicted_cost − identity = −0.609",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B7 audit container, linux",
+    "cpu_or_wall": "count",
+    "contention_note": "light seat; counts and currency identities are contention-immune",
+    "tolerance": "exact for counts; ±1e-6 for the solve's currency figure",
+    "load1": 0.1,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._energy_cost_fn (via custom_components.heatpump_optimizer.pv:import_margin)",
+   "perturbation": {
+    "change": "Remove the zero floor in pv.import_margin, returning import − export unclipped (the harness does this in memory with --perturb via mock.patch.object)",
+    "expected_direction": "Breach steps fall to 0 in every cell, the solve's predicted_cost − identity goes from −0.609 to 0.000, and surplus kWh in negative-price steps goes from 5.07 to 2.27."
+   },
+   "metric_definition": "Per (price profile, export price) cell, the count of the 96 steps where the production cost closure's price of a 3 kW single-step draw differs by more than 1e-9 from export·min(P,s)+import·max(P−s,0)·dt with a clear-sky 6 kWp surplus; keyed on the closure's returned value.",
+   "phenomenon_property": "Every PV-aware pricing seam must charge surplus-covered energy at the export compensation for any sign of import − export; no seam may floor the margin.",
+   "seam_rule": "grep -n \"import_margin\" custom_components/heatpump_optimizer/*.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/pv.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "proposed_fix_scope": "Drop the clip in pv.import_margin, or replace it with a guard only on non-finite values. Correct its docstring's rationale: with export > import, the unfloored cost is still correct and does not invert anything. Add a features.py pin covering a negative-import surplus step and an export > import step through both _energy_cost_fn and blended_block_prices.",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "_known_prices_for assigns every step the covering entry's price on the 23 h (2026-03-29) and 25 h (2026-10-25) Europe/Stockholm days, with both hourly and quarter entries",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+   "value": "0 of 384 steps"
+  },
+  {
+   "claim": "GridFeeSchedule.fee_vector matches an independent local-wall-clock rule across both DST days and a January week. Rules tested: a base rule, a Nov-Mar Mon-Fri 06-22 surcharge written with a decimal comma, and a wrapping 22-06 night rule.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+   "value": "0 of 900 steps"
+  },
+  {
+   "claim": "tariff.peak_cost equals price_per_kw × sum of the top-k per-day-max window excess (distinct days, 60-minute windows)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py [--perturb moves it to 500/500]",
+   "value": "0 of 500 random plans"
+  },
+  {
+   "claim": "PeakTracker.billed_peak_kw equals the mean of the top-3 distinct-day hourly means over a month of 15-minute samples, and resets to 0 at month rollover, so the monthly peak is charged once",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+   "value": "0 of 2 checks"
+  },
+  {
+   "claim": "Hourly price entries give a correct current spot price (null control for D2-s3-01)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/current_quarter_price.py",
+   "value": "0 mismatches over 7 profiles × 96 quarters"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D2/s3/current_quarter_price.py",
+  "tools/audit/round9/D2/s3/pv_piecewise.py",
+  "tools/audit/round9/D2/s3/m4_probes.py"
+ ],
+ "leads": []
+}

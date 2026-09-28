@@ -1,0 +1,358 @@
+"""Climate entity for Heat Pump Cost Optimizer.
+
+Provides a virtual climate entity that represents the optimizer's control
+over the heat pump. Users can use this to:
+- Set target temperature
+- Switch between optimization modes (auto, comfort, economy, off, boost)
+- View current state and optimizer recommendations
+- See both zone temperatures in attributes (two-zone mode)
+"""
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from homeassistant.components.climate import (
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACAction,
+    HVACMode,
+)
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import (
+    MODE_AUTO,
+    MODE_COMFORT,
+    MODE_ECONOMY,
+    MODE_OFF,
+    MODE_BOOST,
+    CONF_MIN_TEMP,
+    CONF_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_MAX_TEMP,
+)
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity, commanded_power_kw
+
+_LOGGER = logging.getLogger(__name__)
+
+# A setpoint or mode change lands on the coordinator, which commands one heat
+# pump (and publishes an ECL110 displacement); two of them racing is two
+# commands to one machine, so actions on this platform run one at a time
+# (parallel-updates, Silver).
+PARALLEL_UPDATES = 1
+
+# Map our modes to HVAC modes
+MODE_TO_HVAC = {
+    MODE_AUTO: HVACMode.AUTO,
+    MODE_COMFORT: HVACMode.HEAT,
+    MODE_ECONOMY: HVACMode.HEAT,
+    MODE_OFF: HVACMode.OFF,
+    MODE_BOOST: HVACMode.HEAT,
+}
+
+# Map our modes to HVAC presets
+PRESET_AUTO = "auto"
+PRESET_COMFORT = "comfort"
+PRESET_ECONOMY = "economy"
+PRESET_BOOST = "boost"
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: HeatPumpOptimizerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the Heat Pump Optimizer climate entity."""
+    coordinator = entry.runtime_data
+    async_add_entities([HeatPumpOptimizerClimate(coordinator, entry)])
+
+
+class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+    """Climate entity for the Heat Pump Optimizer."""
+
+    # The device's main feature: a device-named entity (name None) takes the
+    # device's own name, which is what the old literal "Heat Pump Optimizer"
+    # resolved to after registry deduplication — same display, idiomatically.
+    _attr_name = None
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_OFF
+        | ClimateEntityFeature.TURN_ON
+    )
+    _attr_preset_modes = [PRESET_AUTO, PRESET_COMFORT, PRESET_ECONOMY, PRESET_BOOST]
+    _attr_target_temperature_step = 0.5
+    _enable_turn_on_off_backwards_compat = False
+
+    def __init__(
+        self,
+        coordinator: HeatPumpOptimizerCoordinator,
+        entry: HeatPumpOptimizerConfigEntry,
+    ) -> None:
+        """Initialize the climate entity."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._config = {**entry.data, **entry.options}
+        self._attr_unique_id = f"{entry.entry_id}_climate"
+        # Pin today's object id for new installs (the integration
+        # suggested-object-id mechanism); see the sensor base class.
+        self.entity_id = "climate.heat_pump_optimizer"
+        # The slider offers exactly the band, and nothing outside it.
+        #
+        # It used to run a degree past the ceiling AND a degree below the
+        # floor, and wrote whatever it was given without a check. v5.1.7 added
+        # the check, which made the overshoot on both ends worse than useless:
+        # the band's rules refuse `min > target` and `target > max`
+        # unconditionally, so every value in those two outer degrees was
+        # advertised as settable and then refused. A control must not offer a
+        # position it will reject — that is a worse bug than the one being
+        # fixed, and it is what the earlier `- 1` here produced. If a user
+        # wants a target outside the band, the band is what they need to
+        # change, and the options page is where that is done.
+        self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
+
+    @property
+    def available(self) -> bool:
+        """Unavailable while the indoor thermometer has not read.
+
+        ``current_temperature`` used to return ``ThermalState.room_temperature``
+        (21.0 °C) on a default install with no indoor entity, and the climate
+        entity stayed available, so the thermostat card published that
+        constructor default as a measurement (A3(e)).
+        """
+        flags = (self.coordinator.data or {}).get("reading_ok") or {}
+        return bool(super().available and flags.get("upper_floor_temperature"))
+
+    @property
+    def current_temperature(self) -> float | None:
+        """Return the current indoor temperature, or None if nothing measured it."""
+        if not self.coordinator.data:
+            return None
+        measured = self._measured("upper_floor_temperature")
+        if isinstance(measured, (int, float)) and not isinstance(measured, bool):
+            return float(measured)
+        flags = self.coordinator.data.get("reading_ok") or {}
+        if flags.get("upper_floor_temperature"):
+            indoor = self.coordinator.data.get("indoor_temperature")
+            if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):
+                return float(indoor)
+        return None
+
+    @property
+    def target_temperature(self) -> float | None:
+        """Return the comfort target the user asked for.
+
+        The optimizer's own per-step setpoint is deliberately not reported
+        here: it moves every 15 minutes, so showing it made the thermostat
+        card drift away from whatever the user had just dialled in. It stays
+        available as the "Optimal Setpoint" sensor and the attribute below.
+        """
+        target: float | None = self.coordinator.target_temperature
+        return target
+
+    @property
+    def hvac_mode(self) -> HVACMode:
+        if self.coordinator.data:
+            mode = self.coordinator.data.get("mode", MODE_AUTO)
+            return MODE_TO_HVAC.get(mode, HVACMode.AUTO)
+        return HVACMode.AUTO
+
+    @property
+    def hvac_action(self) -> HVACAction | None:
+        if self.coordinator.data:
+            action = self.coordinator.data.get("current_action", {})
+            power_norm = action.get("power_normalized", 0)
+            mode = self.coordinator.data.get("mode", MODE_AUTO)
+
+            if mode == MODE_OFF:
+                return HVACAction.OFF
+            # The machine, not only the space band: a step below the band's
+            # first rung and a DHW-only step both run the pump (#1499).
+            if power_norm > 0.1 or action.get("heat_pump_on"):
+                return HVACAction.HEATING
+            return HVACAction.IDLE
+        return None
+
+    @property
+    def preset_mode(self) -> str | None:
+        # "off" is a mode but not a preset, and reporting a preset outside
+        # _attr_preset_modes leaves the frontend selector in an invalid state.
+        if self.coordinator.data:
+            mode = self.coordinator.data.get("mode", MODE_AUTO)
+            return mode if mode in self._attr_preset_modes else None
+        return PRESET_AUTO
+
+    def _measured(self, key: str) -> Any:
+        """A published temperature, or ``None`` where nothing measured it.
+
+        The sensor platform gates six temperature sensors on the
+        coordinator's ``reading_ok`` map, because ``ThermalState`` carries
+        constructor defaults (55/40/22/21 °C) and overwrites a field only
+        when its entity read OK. The identical numbers were left ungated
+        here: an install with no tank probe had DHW Temperature correctly
+        unavailable and ``climate.heat_pump_optimizer``'s ``dhw_temperature``
+        attribute reading 55.0 two rows away in the same dashboard — the same
+        fiction with the gate taken off.
+
+        ``None`` rather than a dropped key: an attribute that disappears
+        breaks every template that reads it, while ``None`` is what Home
+        Assistant renders as unknown and what a template already handles.
+        """
+        data = self.coordinator.data or {}
+        flags = data.get("reading_ok") or {}
+        return data.get(key) if flags.get(key) else None
+
+    @property
+    def _effective_outdoor(self) -> float | None:
+        """The outdoor thermometer, else the forecast step the plan uses.
+
+        Mirrors ``sensor._effective_outdoor``; kept as its own tiny property
+        rather than imported so the climate platform does not depend on the
+        sensor platform. The rule is the one that matters: without a
+        thermometer this attribute used to publish the 5.0 constructor
+        default beside a plan solved at the forecast's −5 °C.
+        """
+        data = self.coordinator.data or {}
+        if (data.get("reading_ok") or {}).get("outdoor_temperature"):
+            return data.get("outdoor_temperature")
+        return data.get("outdoor_forecast_temperature")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes including two-zone info."""
+        attrs = {}
+        if self.coordinator.data:
+            action = self.coordinator.data.get("current_action", {})
+            attrs["optimizer_mode"] = action.get("mode", "unknown")
+            attrs["optimizer_setpoint"] = action.get("setpoint")
+            attrs["recommended_power_kw"] = commanded_power_kw(action)
+            attrs["current_price"] = self.coordinator.data.get("current_price")
+            attrs["predicted_savings"] = self.coordinator.data.get("predicted_savings")
+            attrs["savings_percentage"] = self.coordinator.data.get(
+                "savings_percentage"
+            )
+            attrs["optimization_status"] = self.coordinator.data.get(
+                "optimization_status"
+            )
+            attrs["slab_temperature"] = self._measured("slab_temperature")
+            attrs["heat_pump_on"] = action.get("heat_pump_on")
+            attrs["ecl110_displace"] = action.get("displace_value")
+            attrs["ecl110_effective_displace"] = self.coordinator.data.get(
+                "ecl110_effective_displace"
+            )
+            attrs["ecl110_command_topic"] = self.coordinator.data.get(
+                "ecl110_command_topic"
+            )
+            attrs["outdoor_temperature"] = self._effective_outdoor
+
+            # Two-zone attributes
+            attrs["two_zone_enabled"] = self.coordinator.data.get(
+                "two_zone_enabled", False
+            )
+            attrs["upper_floor_temperature"] = self._measured(
+                "upper_floor_temperature"
+            )
+            attrs["lower_floor_temperature"] = self._measured(
+                "lower_floor_temperature"
+            )
+            attrs["floor_return_temperature"] = self._measured(
+                "floor_return_temperature"
+            )
+            attrs["solar_heat_gain_kw"] = self.coordinator.data.get(
+                "solar_heat_gain"
+            )
+            attrs["solar_radiation_wm2"] = self.coordinator.data.get(
+                "solar_radiation"
+            )
+
+            # Zone setpoints from current action
+            if "upper_setpoint" in action:
+                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+            if "lower_setpoint" in action:
+                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+
+            # DHW status
+            attrs["dhw_enabled"] = self.coordinator.data.get("dhw_enabled", False)
+            attrs["dhw_temperature"] = self._measured("dhw_temperature")
+            attrs["dhw_setpoint"] = self.coordinator.data.get("dhw_setpoint")
+            attrs["dhw_heating_active"] = self.coordinator.data.get(
+                "dhw_heating_active", False
+            )
+            attrs["dhw_heating_cost"] = self.coordinator.data.get(
+                "dhw_heating_cost", 0.0
+            )
+
+            # Predictive optimization insights
+            predictive = self.coordinator.data.get("predictive_info", {})
+            if predictive:
+                attrs["solar_reduction_factor"] = predictive.get(
+                    "solar_reduction_factor"
+                )
+                attrs["wind_anticipation_factor"] = predictive.get(
+                    "wind_anticipation_factor"
+                )
+                attrs["pre_heat_urgency"] = predictive.get("pre_heat_urgency")
+
+        return attrs
+
+    async def _async_publish_displace_from_current_action(self, reason: str) -> None:
+        """Publish current displace command over MQTT through the coordinator (integer output)."""
+        try:
+            await self.coordinator.async_publish_current_action(reason=reason)
+        except Exception as err:
+            _LOGGER.warning("Failed to publish ECL110 displace command: %s", err)
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        if hvac_mode == HVACMode.OFF:
+            await self.coordinator.async_set_mode(MODE_OFF)
+            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+        elif hvac_mode == HVACMode.AUTO:
+            await self.coordinator.async_set_mode(MODE_AUTO)
+            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+        elif hvac_mode == HVACMode.HEAT:
+            await self.coordinator.async_set_mode(MODE_COMFORT)
+            await self._async_publish_displace_from_current_action("manual_hvac_mode")
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        temp = kwargs.get(ATTR_TEMPERATURE)
+        if temp is not None:
+            _LOGGER.info("Target temperature set to %.1f°C", temp)
+            # Persisting the option reloads the entry, which re-optimizes and
+            # re-applies the plan, so no manual refresh/publish is needed.
+            # It can also refuse: the comfort band's rules run here (v5.1.7).
+            await self.coordinator.async_set_target_temperature(float(temp))
+            # A manual override is the user telling us the plan went too far in
+            # one direction, which is the only evidence anyone ever produces
+            # about what ``comfort_weight`` should be. Recorded AFTER the write
+            # and only if it succeeded: a refused setpoint is not a preference
+            # the user got, so training the comfort learner on it would teach
+            # the weight from a temperature the house was never asked to hold.
+            # (The write updates the entry's options, which reloads the entry
+            # asynchronously; this coordinator object is still the live one
+            # here, so recording after it is safe.)
+            self.coordinator.record_setpoint_override(float(temp))
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        mode_map = {
+            PRESET_AUTO: MODE_AUTO,
+            PRESET_COMFORT: MODE_COMFORT,
+            PRESET_ECONOMY: MODE_ECONOMY,
+            PRESET_BOOST: MODE_BOOST,
+        }
+        mode = mode_map.get(preset_mode, MODE_AUTO)
+        await self.coordinator.async_set_mode(mode)
+        await self._async_publish_displace_from_current_action("manual_preset")
+
+    async def async_turn_on(self) -> None:
+        await self.coordinator.async_set_mode(MODE_AUTO)
+        await self._async_publish_displace_from_current_action("manual_turn_on")
+
+    async def async_turn_off(self) -> None:
+        await self.coordinator.async_set_mode(MODE_OFF)
+        await self._async_publish_displace_from_current_action("manual_turn_off")

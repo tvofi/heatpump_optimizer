@@ -1,0 +1,82 @@
+{
+ "window_since": "v6.6.6",
+ "window_since_sha": "c3105412f1812d5501d45ae71660332145d0a026",
+ "window_since_utc": "2026-09-20T10:32:14Z",
+ "baseline": "1cc89e020fff9040a9d0090a27bf22bc1dd497f0",
+ "baseline_utc": "2026-09-20T17:23:10Z",
+ "merges": [
+  {
+   "pr": "1289",
+   "merge_sha": "1cc89e020fff9040a9d0090a27bf22bc1dd497f0",
+   "committer_date": "2026-09-20T19:23:10+02:00",
+   "subject": "Merge pull request #1289 from tvofi/fix/gc-class-c",
+   "tags_containing": [],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1287",
+   "merge_sha": "2de1c182334e127748f518c72d8c54cd82020b59",
+   "committer_date": "2026-09-20T18:43:19+02:00",
+   "subject": "Merge pull request #1287 from tvofi/fix/worktree-gc",
+   "tags_containing": [],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1282",
+   "merge_sha": "e7139a7f38df9b88ba7e9f41e82f8c3bd752f1e3",
+   "committer_date": "2026-09-20T18:29:40+02:00",
+   "subject": "Merge pull request #1282 from tvofi/fix/polish-every-candidate",
+   "tags_containing": [],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1285",
+   "merge_sha": "6fae33b1da3eee28789d033d138ed98080e13b69",
+   "committer_date": "2026-09-20T18:10:00+02:00",
+   "subject": "Merge pull request #1285 from tvofi/fix/dhw-minrun-quadratic",
+   "tags_containing": [],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1286",
+   "merge_sha": "dec0b4ea2d617862c698b57ff194f5e81fb638ca",
+   "committer_date": "2026-09-20T17:30:06+02:00",
+   "subject": "Merge pull request #1286 from tvofi/fix/plan-history",
+   "tags_containing": [
+    "v6.6.7"
+   ],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1284",
+   "merge_sha": "72cfa892885b9ce4eb5787555e30610c99ac5fe0",
+   "committer_date": "2026-09-20T16:55:46+02:00",
+   "subject": "Merge pull request #1284 from tvofi/fix/approve-race",
+   "tags_containing": [
+    "v6.6.7"
+   ],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1281",
+   "merge_sha": "f50dcc90e57ce73837e164f52d6da1b8623c3b37",
+   "committer_date": "2026-09-20T14:12:28+02:00",
+   "subject": "Merge pull request #1281 from tvofi/fix/prefill-rename",
+   "tags_containing": [
+    "v6.6.7"
+   ],
+   "delivery_row_at_baseline": false
+  },
+  {
+   "pr": "1280",
+   "merge_sha": "ac8b1ecfc51a2412f2bcb59527d7af23ead7e256",
+   "committer_date": "2026-09-20T13:06:52+02:00",
+   "subject": "Merge pull request #1280 from tvofi/fix/autofix-approve-held",
+   "tags_containing": [
+    "v6.6.7"
+   ],
+   "delivery_row_at_baseline": false
+  }
+ ],
+ "revert_commits": []
+}

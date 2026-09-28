@@ -1,0 +1,24 @@
+[count elsewhere: README 75->76] rc=1 fails=2
+     FAIL every '<N> entities' in the corpus equals the constructed total  [total 75: [('README.md', 76), ('architecture.md', 75), ('configuration.md', 75)
+     1 of 47 checks FAILED
+[platform head: Buttons total +1] rc=1 fails=2
+     FAIL every README '### <platform> (N total)' equals that platform's count  [[('Sensors', 59), ('Binary Sensors', 6), ('Buttons', 5)] vs {'sensor': 59,
+     1 of 47 checks FAILED
+[state list: drop `eco` from Heat Pump Action row] rc=1 fails=2
+     FAIL every README row that lists an enum entity's states lists all of them  [{'Heat Pump Action': ['eco']}]
+     1 of 47 checks FAILED
+[census: drop DHW Setpoint Advisor from the sentence] rc=1 fails=2
+     FAIL every entity a no-hot-water install disables is documented as disabled  [['DHW Setpoint Advisor']]
+     1 of 47 checks FAILED
+[card comment names a ghost member] rc=1 fails=2
+     FAIL every backticked private name in the card names something that exists  [['_ghostMember']]
+     1 of 47 checks FAILED
+[sv help text writes '45 C'] rc=1 fails=2
+     FAIL no translated string writes '<n> C' or 'm2' for °C / m²  [['translations/sv.json.config.step.building_describe.description']]
+     1 of 47 checks FAILED
+[ANCHOR: README loses its Disabled-by-default list] rc=1 fails=2
+     FAIL README keeps its 'Disabled by default:' list (anchor)
+     1 of 47 checks FAILED
+[ANCHOR: no '<N> entities' left in corpus] rc=1 fails=2
+     FAIL the corpus states an entity count (anchor)
+     1 of 47 checks FAILED

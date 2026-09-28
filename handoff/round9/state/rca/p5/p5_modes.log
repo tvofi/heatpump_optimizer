@@ -1,0 +1,13 @@
+FAIL R9-P5: a night whose plant differs from the declaration in what the fit is told either adopts within the bar o  [60 nights; heavy_old two_zone=False true_gains=0.8: scale 0.8799; heavy_old two_zone=False true_slab_mass=0.5: scale 0.8827; typical_slab two_zone=False true_gains=0.4: scale 0.8967; typical_slab two_zone=False true_gains=0.8: scale 0.7916]
+RESULT mode=defect fails=1 wall_s=9.56
+RESULT mode=null fails=0 wall_s=8.42
+FAIL R9-P5: every declared quantity the experiment is handed has a bias axis in the adoption sweep  [handed ['house_capacity', 'house_gains', 'house_slab_mass', 'house_slab_transfer', 'house_ua'], axes ['house_capacity', 'house_gains', 'house_slab_mass', 'house_slab_transfer', 'house_ua']]
+RESULT mode=empty fails=1 wall_s=1.64
+RESULT mode=oracle fails=0 wall_s=18.74
+FAIL #1524: the two-zone derivation adopts on at least as many presets as the single-zone one (the null-control arm  [two-zone 0, single-zone 0 of 3]
+FAIL R8-P5c: the two-zone derivation behind a throttling valve adopts on as many presets as without one  [valve 0, no valve 0 of 3]
+FAIL #1524: on the mismatched plant the two-zone derivation still adopts on at least as many presets as the single-  [two-zone 0, single-zone 0 of 3]
+FAIL R8-P5c: on the mismatched plant the valve arm adopts on as many presets as the unvalved two-zone arm  [valve 0, no valve 0 of 3]
+RESULT mode=bar_tight fails=4 wall_s=16.50
+FAIL R9-P5: every declared quantity the experiment is handed has a bias axis in the adoption sweep  [handed ['house_capacity', 'house_gains', 'house_radiator_fraction', 'house_slab_mass', 'house_slab_transfer', 'house_ua'], axes ['house_capacity', 'house_gains', 'house_slab_mass', 'house_slab_transfer', 'house_ua']]
+RESULT mode=newinput fails=1 wall_s=5.99

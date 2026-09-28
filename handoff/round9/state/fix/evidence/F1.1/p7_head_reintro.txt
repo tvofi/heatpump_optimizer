@@ -1,0 +1,26 @@
+RESULT autumn_grid_skewed_cycles=42_of_48 count
+RESULT autumn_grid_skew_max_min=60 minutes
+RESULT autumn_cycles=48 count
+RESULT autumn_cycle_errors=0 count
+RESULT autumn_wrong_sites=4 count
+# every arithmetic site reached (file:line func kind hits crossing wrong max_err_s):
+#  coordinator.py:3168 close add-shared-zone hits=9 crossing=0 wrong=0 max_err_s=0 
+#  coordinator.py:5487 _update_current_state aware-shared-zone hits=47 crossing=1 wrong=1 max_err_s=3600 WRONG
+#  coordinator.py:6206 _forecast_arrays aware-shared-zone hits=48 crossing=42 wrong=42 max_err_s=3600 WRONG
+#  coordinator.py:6658 _plan_age_minutes aware-shared-zone hits=192 crossing=0 wrong=0 max_err_s=0 
+#  coordinator.py:9204 _record_accuracy aware-shared-zone hits=47 crossing=1 wrong=1 max_err_s=3600 WRONG
+#  tariff.py:58 _window_slot add-shared-zone hits=96 crossing=80 wrong=80 max_err_s=3600 WRONG
+RESULT clock=zoneinfo
+RESULT arm=base
+RESULT reintroduce=1
+RESULT sites_reached=6 count
+RESULT wrong_sites=4 count
+RESULT wrong_sites_aware-shared-zone=3 count
+RESULT wrong_sites_naive=0 count
+RESULT wrong_sites_add-shared-zone=1 count
+RESULT wrong_sites_add-naive=0 count
+RESULT untraced_note=plain-plain_arithmetic_on_production_built_datetimes_not_seen
+RESULT wall_s=6.2 s provisional
+RESULT thread_factor=0.977
+RESULT load1=0.62
+RESULT swapins=0

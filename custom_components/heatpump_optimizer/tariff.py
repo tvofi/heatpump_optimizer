@@ -1,0 +1,1007 @@
+"""Monthly capacity (peak power) tariff awareness.
+
+Swedish and increasingly Nordic DSOs bill a monthly *effekttariff*: typically
+the mean of the three highest hourly consumption peaks in the month, priced per
+kW. Nothing in the optimizer modelled this, so it would happily stack hot water
+and space heating into the same cheap hour. A single new monthly peak can
+easily cost more than the energy that stacking saved — the tariff is often
+30-90 SEK/kW, against an energy saving measured in öre.
+
+Three design points:
+
+**The peak is whole-house.** Metering happens at the connection point, so the
+heat pump's own draw is not the quantity being billed. A baseline load entity
+is therefore part of the configuration; without one the model still works but
+only sees the heat pump, and will under-estimate the peak.
+
+**The penalty is soft, not a cap.** A hard constraint would fight the comfort
+band and could make the problem infeasible on a cold morning. What is wanted is
+a price signal: exceeding the running peak costs the tariff rate, so the
+optimizer trades it off against energy cost the same way it trades everything
+else.
+
+**Only exceeding the *running* peak costs anything.** If the month already has
+a 9 kW peak, an 8 kW hour is free — the bill is already set. That asymmetry is
+the whole point, and modelling it as "keep power low" instead would give away
+savings for nothing.
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable
+
+import numpy as np
+
+from .accuracy import HISTORY_LENGTH
+from .dhw_schedule import Window, hour_in_windows
+
+
+def _window_slot(when: datetime, window_minutes: int) -> datetime:
+    """The start of the metering window containing ``when``.
+
+    Anchored at local midnight and stepped by ``timedelta``, matching the
+    optimizer's ``_window_offset_steps`` phase arithmetic — the DSO's grid
+    runs from midnight, not from each wall-clock hour. The previous
+    ``minute``-modulo snap could only move the minute field, so for windows
+    longer than an hour the hour never advanced and a 90/120-minute tariff
+    silently degenerated to hourly metering: less burst dilution, inflated
+    recorded peaks and thresholds, and factor masks sampled one window off.
+    For any window that divides the hour (15/30/60 — every common DSO
+    config) this is bit-identical to the old snap, isoformat key included,
+    so persisted ``window_key`` accumulators survive the upgrade untouched.
+    """
+    window = max(1, int(window_minutes))
+    midnight = when.replace(hour=0, minute=0, second=0, microsecond=0)
+    minutes = ((when.hour * 60 + when.minute) // window) * window
+    slot = midnight + timedelta(minutes=minutes)
+    if window <= 60:
+        # ``timedelta`` arithmetic resets ``fold``, and the window key is the
+        # slot's isoformat: without the flag, both real passes of the autumn
+        # transition's repeated hour render the same key, one accumulator
+        # swallows two metered hours, and a burst peak is diluted by their
+        # average — under-recording exactly the threshold the live guard
+        # protects. Sub-hour slots share ``when``'s wall hour, so the flag
+        # transfers exactly (and is inert outside the ambiguous hour).
+        # Windows longer than an hour stay wall-anchored at fold 0: the
+        # repeated hour extends that window's real duration, which matches
+        # wall-clock billing, while splitting on the flag would fabricate a
+        # one-hour "window" no DSO meters.
+        slot = slot.replace(fold=when.fold)
+    return slot
+
+
+@dataclass
+class CapacityTariff:
+    """Configuration of a monthly capacity tariff.
+
+    The masks (#13) are how most real Swedish effekttariffs deviate from the
+    flat model: many count only weekday daytime peaks, bill night peaks at a
+    reduced rate, or apply only November–March. Every mask's default means
+    "no mask": empty month set, empty hour windows and ``weekdays_only``
+    False with ``offpeak_factor`` 1.0 reproduce the flat model bit for bit.
+    """
+
+    enabled: bool = False
+    #: Currency per kW per month.
+    price_per_kw: float = 0.0
+    #: How many of the month's highest peaks are averaged for the bill.
+    peaks_averaged: int = 3
+    #: Metering window in minutes. Most Swedish DSOs meter hourly; some newer
+    #: tariffs use 15 minutes, which is much harder to hide a defrost in.
+    window_minutes: int = 60
+    #: Months the tariff applies in at all; empty = every month. Outside
+    #: them a window contributes *nothing* — not a discounted peak.
+    months: frozenset[int] = frozenset()
+    #: Peak hours; empty = all hours are peak. Outside them (or on a
+    #: weekend, with ``weekdays_only``) the off-peak factor applies.
+    peak_hours: tuple[Window, ...] = ()
+    #: Weekends are off-peak when set.
+    weekdays_only: bool = False
+    #: What an off-peak window's kW counts at, 0..1. 1.0 = no distinction
+    #: (the flat model); 0.5 = the common half-rate night peak; 0.0 =
+    #: off-peak hours are free.
+    offpeak_factor: float = 1.0
+    #: The k billed peaks fall on k different days (#1512): a day
+    #: contributes only its highest window, so one cold morning is one peak,
+    #: not three. Both catalog DSOs bill this way ("de tre högsta topparna
+    #: fördelat på tre olika dygn"). Inert at ``peaks_averaged`` 1, where the
+    #: highest window is the highest day's.
+    distinct_days: bool = True
+
+    @property
+    def marginal_price_per_kw(self) -> float:
+        """Cost of raising the billed peak by 1 kW.
+
+        Raising *one* peak by 1 kW raises the average of ``peaks_averaged``
+        peaks by ``1/peaks_averaged`` kW, so the marginal cost is the tariff
+        divided by the number averaged. Charging the full tariff would
+        over-price the constraint by a factor of three on a typical tariff and
+        make the optimizer far too timid.
+        """
+        if not self.enabled or self.peaks_averaged <= 0:
+            return 0.0
+        return self.price_per_kw / float(self.peaks_averaged)
+
+    def sample_factor(self, when: datetime) -> float:
+        """What a metered kW at ``when`` counts at towards the billed peak.
+
+        1.0 in peak hours (or with no masks at all), the off-peak factor in
+        off-peak hours, and 0.0 in months where the tariff does not apply.
+        """
+        if self.months and when.month not in self.months:
+            return 0.0
+        offpeak = False
+        if self.weekdays_only and when.weekday() >= 5:
+            offpeak = True
+        elif self.peak_hours:
+            hour = when.hour + when.minute / 60.0
+            offpeak = not hour_in_windows(hour, list(self.peak_hours))
+        if not offpeak:
+            return 1.0
+        return float(min(1.0, max(0.0, self.offpeak_factor)))
+
+    def billing_summary(self) -> dict[str, float]:
+        """The three figures the peak term is priced with (#1460).
+
+        What the sensor-gap advisor reads to price a missing house meter:
+        a payload that publishes these lets the row use the user's own
+        tariff instead of the documented default.
+        """
+        return {
+            "price_per_kw": self.price_per_kw,
+            "window_minutes": self.window_minutes,
+            "peaks_averaged": self.peaks_averaged,
+        }
+
+
+@dataclass
+class PeakTracker:
+    """The realised peaks so far this month.
+
+    With the masks (#13) the peaks kept here are *billed-equivalent* kW:
+    each closed window's average scaled by what its hour counts at. A window
+    in a month the tariff skips is not recorded at all — recording a zero
+    would poison ``threshold_kw``'s early-month "lowest peak seen" answer.
+    With no masks configured the factor is always 1.0 and nothing changes.
+    """
+
+    month: str = ""
+    #: Highest billed-equivalent window averages seen this month, descending.
+    peaks: list[float] = field(default_factory=list)
+    #: The local date of each entry in ``peaks``, index for index (#1512).
+    #: ``""`` is a peak whose day is unknown -- a store written before the
+    #: field -- and is never merged with another, which bills it exactly as
+    #: the per-window tracker did until the month rolls over.
+    peak_days: list[str] = field(default_factory=list)
+    #: The measured whole-house readings behind ``peaks``, newest last, one
+    #: per CYCLE and bounded at `accuracy.HISTORY_LENGTH` like the pump's own
+    #: window -- the payload's ``house_power_series`` (#1460). A live
+    #: fingerprint, not persisted state: a restart carries none of it.
+    #: The meter-event path (#7) samples at 10-second spacing, where a
+    #: windowed power series would be a different quantity, so a sample is
+    #: recorded only when the caller says its value was measured. Not
+    #: persisted -- it is rebuilt from the cycles after a restart.
+    house_samples: list[float] = field(default_factory=list)
+    #: Accumulator for the window currently being metered.
+    _window_key: str = ""
+    _window_sum: float = 0.0
+    _window_samples: int = 0
+    #: What the open window's kW counts at, captured when it opens.
+    _window_factor: float = 1.0
+    #: Time-weighted accumulator (#7): kW·h and hours. Fed only when a
+    #: caller supplies ``dt_hours`` — the live meter listener, which knows
+    #: real spacing. The 30-minute tick path never does, and with both
+    #: accumulators empty of weighted samples the unweighted average is used
+    #: bit for bit, which is what keeps every pre-T2 install identical.
+    _window_wsum: float = 0.0
+    _window_weight: float = 0.0
+
+    # -- accumulation -------------------------------------------------------
+
+    def observe(
+        self,
+        when: datetime,
+        house_power_kw: float,
+        tariff: CapacityTariff,
+        dt_hours: float | None = None,
+        measured_house_kw: float | None = None,
+    ) -> None:
+        """Fold one power sample into the current metering window.
+
+        With ``dt_hours`` the sample is weighted by the time it actually
+        stood for; a window holding any weighted sample closes on the
+        weighted average. Without it (every pre-T2 caller) the unweighted
+        sample mean is used, unchanged.
+
+        ``measured_house_kw`` is the whole-house meter's own reading, for the
+        per-cycle caller only: the payload's ``house_power_series`` is the
+        readings that were MEASURED, so a cycle the integration could only
+        estimate from the plan contributes to the peak and not to the series.
+        """
+        if not np.isfinite(house_power_kw) or house_power_kw < 0:
+            return
+        if measured_house_kw is not None and np.isfinite(measured_house_kw):
+            self.house_samples.append(float(measured_house_kw))
+            del self.house_samples[:-HISTORY_LENGTH]
+        month = when.strftime("%Y-%m")
+        if month != self.month:
+            # A new month starts with a clean slate; last month's peaks are
+            # already billed and constrain nothing.
+            self.month = month
+            self.peaks = []
+            self.peak_days = []
+            self._window_key = ""
+            self._window_sum = 0.0
+            self._window_samples = 0
+            self._window_factor = 1.0
+            self._window_wsum = 0.0
+            self._window_weight = 0.0
+
+        window = max(1, int(tariff.window_minutes))
+        slot = _window_slot(when, window)
+        key = f"{slot.isoformat()}|{window}"
+
+        if key != self._window_key:
+            self._close_window(tariff)
+            self._window_key = key
+            self._window_sum = 0.0
+            self._window_samples = 0
+            self._window_wsum = 0.0
+            self._window_weight = 0.0
+            # The whole window bills at one rate, so the factor is the
+            # window's, not each sample's: a window straddling the 19:00
+            # peak-hour boundary is billed by where it starts, exactly as
+            # the DSO's meter attributes it.
+            self._window_factor = tariff.sample_factor(slot)
+
+        self._window_sum += float(house_power_kw)
+        self._window_samples += 1
+        if dt_hours is not None and np.isfinite(dt_hours) and dt_hours > 0:
+            self._window_wsum += float(house_power_kw) * float(dt_hours)
+            self._window_weight += float(dt_hours)
+
+    def _window_mean(self) -> float | None:
+        """The open window's running average, weighted where possible."""
+        if self._window_weight > 0:
+            return self._window_wsum / self._window_weight
+        if self._window_samples > 0:
+            return self._window_sum / self._window_samples
+        return None
+
+    def window_snapshot(
+        self, when: datetime, tariff: CapacityTariff
+    ) -> tuple[str, float | None, float, float]:
+        """(window key, running mean or None, elapsed minutes, billing
+        factor) at ``when``.
+
+        The guard's projection input (#7). Read-only: a snapshot for a
+        window other than the open one reports no accumulated mean, which
+        the projection treats as "assume the current draw throughout". The
+        factor is what this window's kW counts at under the #13 masks —
+        the guard must compare billed-equivalent kW against the
+        billed-equivalent threshold, or it would defend hours the tariff
+        does not bill.
+        """
+        window = max(1, int(tariff.window_minutes))
+        slot = _window_slot(when, window)
+        key = f"{slot.isoformat()}|{window}"
+        elapsed = (when - slot).total_seconds() / 60.0
+        mean = self._window_mean() if key == self._window_key else None
+        return key, mean, elapsed, tariff.sample_factor(slot)
+
+    def _close_window(self, tariff: CapacityTariff) -> None:
+        average = self._window_mean()
+        if average is None:
+            return
+        if self._window_factor <= 0.0:
+            # The tariff does not bill this window at all (masked month, or
+            # off-peak hours that are free). Contributing nothing is the
+            # point; contributing zero would be a discount.
+            return
+        days = self.peak_days[: len(self.peaks)]
+        ranked = list(zip(self.peaks, days + [""] * (len(self.peaks) - len(days))))
+        # The window key opens with the slot's local date, and a slot never
+        # crosses midnight: ``_window_slot`` anchors every window there.
+        ranked.append((average * self._window_factor, self._window_key[:10]))
+        if tariff.distinct_days:
+            ranked = _one_per_day(ranked)
+        ranked.sort(key=lambda entry: entry[0], reverse=True)
+        # Keep a little more than the billed count so that a later correction
+        # (a retracted sample) does not lose the runner-up.
+        del ranked[max(tariff.peaks_averaged * 2, 6):]
+        self.peaks = [kw for kw, _ in ranked]
+        self.peak_days = [day for _, day in ranked]
+
+    # -- reporting ----------------------------------------------------------
+
+    def billed_peak_kw(self, tariff: CapacityTariff) -> float:
+        """The peak level the bill is currently based on, in kW."""
+        if not self.peaks:
+            return 0.0
+        n = max(1, tariff.peaks_averaged)
+        top = self.peaks[:n]
+        return float(sum(top) / len(top))
+
+    def threshold_kw(self, tariff: CapacityTariff) -> float:
+        """Above what level a new hour would raise the bill, in kW.
+
+        Once the month has ``peaks_averaged`` peaks recorded, this is the
+        lowest of them: anything under it displaces nothing and is free.
+        Under ``distinct_days`` a peak is a day's highest window (#1512), so
+        this is the k-th highest DAY. It is deliberately not raised to the
+        current day's own maximum, below which a window today is also free:
+        the plan this feeds runs past midnight, and tomorrow has no maximum.
+
+        Before that there is no reference, and the honest answer is *not*
+        zero. Treating every kW as a brand-new peak makes the capacity term
+        dwarf the entire energy cost — measured at roughly nine times it for a
+        normal 6 kW day — so a fresh install, or the first days of any month,
+        would contort the plan to avoid a peak the house sets on any ordinary
+        day regardless.
+
+        So with too little history the threshold is the lowest peak actually
+        seen, and with none at all the term is disabled entirely by returning
+        infinity. The tariff starts biting once there is something real to
+        compare against, which is also when its answer starts being right.
+
+        That infinity is a *decision sentinel* for the solver, never a number
+        to publish. It is what this returns on the 1st of every month, for
+        every install with a capacity tariff, because the tracker starts each
+        month with no peaks. Two consumers have to know that: the entity
+        base maps non-finite to ``None`` at the publication boundary
+        (``entity._finite``), and ``_power_headroom`` reads it as "the bill is
+        set from zero", not as "draw what you like".
+        """
+        if not self.peaks:
+            return float("inf")
+        n = max(1, tariff.peaks_averaged)
+        if len(self.peaks) < n:
+            return float(self.peaks[-1])
+        return float(self.peaks[n - 1])
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "month": self.month,
+            "peaks": [round(p, 3) for p in self.peaks],
+            "peak_days": list(self.peak_days),
+            "window_key": self._window_key,
+            "window_sum": self._window_sum,
+            "window_samples": self._window_samples,
+            "window_factor": self._window_factor,
+            "window_wsum": self._window_wsum,
+            "window_weight": self._window_weight,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> "PeakTracker":
+        tracker = cls()
+        if not isinstance(data, dict):
+            return tracker
+        tracker.month = str(data.get("month", ""))
+        ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
+        tracker.peaks = [kw for kw, _ in ranked]
+        tracker.peak_days = [day for _, day in ranked]
+        tracker._window_key = str(data.get("window_key", ""))
+        try:
+            tracker._window_sum = float(data.get("window_sum", 0.0))
+            tracker._window_samples = int(data.get("window_samples", 0))
+        except (TypeError, ValueError, OverflowError):
+            tracker._window_sum = 0.0
+            tracker._window_samples = 0
+        if not math.isfinite(tracker._window_sum):
+            # An inf window sum closes into an inf recorded peak; reset to
+            # the absent-data default.
+            tracker._window_sum = 0.0
+        try:
+            # Absent from pre-v4 payloads; 1.0 is the unmasked behaviour.
+            tracker._window_factor = float(data.get("window_factor", 1.0))
+        except (TypeError, ValueError, OverflowError):
+            tracker._window_factor = 1.0
+        if not math.isfinite(tracker._window_factor):
+            tracker._window_factor = 1.0
+        try:
+            # A restart mid-window must not close that window on the
+            # unweighted mean — that would readmit exactly the phantom
+            # chatty-meter peak the weighted fold exists to prevent.
+            tracker._window_wsum = float(data.get("window_wsum", 0.0))
+            tracker._window_weight = float(data.get("window_weight", 0.0))
+        except (TypeError, ValueError, OverflowError):
+            tracker._window_wsum = 0.0
+            tracker._window_weight = 0.0
+        if not (
+            math.isfinite(tracker._window_wsum)
+            and math.isfinite(tracker._window_weight)
+        ):
+            # Either accumulator non-finite makes the weighted mean it
+            # feeds non-finite; both reset together, as the except above
+            # already does for unparseable values.
+            tracker._window_wsum = 0.0
+            tracker._window_weight = 0.0
+        return tracker
+
+
+def _one_per_day(ranked: list[tuple[float, str]]) -> list[tuple[float, str]]:
+    """Each dated day's highest entry, plus every undated one (#1512)."""
+    best: dict[str, tuple[float, str]] = {}
+    undated: list[tuple[float, str]] = []
+    for kw, day in ranked:
+        if not day:
+            undated.append((kw, day))
+        elif day not in best or kw > best[day][0]:
+            best[day] = (kw, day)
+    return undated + list(best.values())
+
+
+def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
+    """A persisted peak list and its day labels, descending, finite only.
+
+    R5-D1-05 (#1296): a non-finite peak survives ``float()`` and poisons the
+    billed-peak average and ``threshold_kw`` (an inf peak disarms the
+    capacity term), so it is dropped per entry with its label; the finite
+    ones are real evidence and stay. A store written before ``peak_days``
+    (#1512), or one whose labels are not a list of strings, loads every
+    unlabelled peak as undated: billed as the per-window tracker did.
+    """
+    if not isinstance(peaks, list):
+        return []
+    labels = days if isinstance(days, list) else []
+    ranked: list[tuple[float, str]] = []
+    for index, p in enumerate(peaks):
+        if not isinstance(p, (int, float)):
+            continue
+        try:
+            value = float(p)
+        except OverflowError:  # a huge JSON int
+            continue
+        if not math.isfinite(value):
+            continue
+        day = labels[index] if index < len(labels) else ""
+        ranked.append((value, day if isinstance(day, str) else ""))
+    ranked.sort(key=lambda entry: entry[0], reverse=True)
+    return ranked
+
+
+def metering_windows(
+    house_power_kw: np.ndarray,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int = 0,
+) -> np.ndarray:
+    """Box-average a per-step series into the tariff's metering windows.
+
+    A 15-minute burst inside an hourly-metered tariff only raises the hourly
+    average by a quarter of its excess, so penalising the instantaneous step
+    would give away real savings to avoid a peak that is never billed.
+
+    ``offset_steps`` is how many steps remain until the DSO's next window
+    boundary. The plan rarely starts on one — a solve at 12:15 folded windows
+    [12:15, 13:15) while the meter bills [12:00, 13:00) — and on the shifted
+    grid a burst that really sits inside one billed window is split across
+    two, halving its priced excess. The leading partial window is averaged
+    over the steps it has; its already-elapsed consumption is unknowable here
+    and is what the peak tracker's threshold accounts for.
+    """
+    house = np.asarray(house_power_kw, dtype=float)
+    if house.size == 0:
+        return house
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    if per_window <= 1:
+        return house
+
+    head_steps = int(offset_steps) % per_window
+    head = house[:head_steps]
+    rest = house[head_steps:]
+
+    pieces: list[np.ndarray] = []
+    if head.size:
+        pieces.append(np.array([head.mean()]))
+    full = rest.size // per_window
+    if full:
+        pieces.append(rest[: full * per_window].reshape(full, per_window).mean(axis=1))
+    tail = rest[full * per_window :]
+    if tail.size:
+        pieces.append(np.array([tail.mean()]))
+    if not pieces:
+        return np.array([house.mean()])
+    return np.concatenate(pieces)
+
+
+def mask_active(tariff: CapacityTariff) -> bool:
+    """Whether any #13 mask can change what a window counts at."""
+    return bool(tariff.months) or (
+        (bool(tariff.peak_hours) or tariff.weekdays_only)
+        and tariff.offpeak_factor < 1.0
+    )
+
+
+def window_factors(
+    tariff: CapacityTariff,
+    start_time: datetime | None,
+    n_windows: int,
+    dt_hours: float,
+) -> np.ndarray | None:
+    """Billing factor per metering window over the horizon, or None.
+
+    None when no mask is configured — the fast path, and the proof of
+    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
+    Windows are keyed by the aligned start instant the horizon's *real* clock
+    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
+    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
+    the realised tracker cannot disagree about which hour a window bills under.
+    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
+    wall clock instead, and on the two DST days a year it disagreed from the
+    transition onwards. The walk below is the load-bearing part, and the
+    divides-the-hour qualifier on it is not decoration; see there.
+    """
+    if start_time is None or n_windows <= 0 or not mask_active(tariff):
+        return None
+    window = max(1, int(tariff.window_minutes))
+    slot0 = _window_slot(start_time, window)
+    # Walk the windows in UTC and convert back — ``optimizer._utc_step_starts``'
+    # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
+    # is wall-clock arithmetic: across the autumn fold it emits the repeated
+    # hour once and across the spring gap the hour that never happens, so every
+    # window after a transition was labelled an hour away from the instant the
+    # step grid puts it at and ``PeakTracker.observe`` keys it at — the
+    # disagreement the docstring above says cannot occur. ``slot0`` carries
+    # ``_window_slot``'s ``fold``, which is what picks the real pass to start
+    # from, and ``astimezone`` honours it.
+    #
+    # WHY THE DOCSTRING SAYS "divides the hour" — the condition is DIVISIBILITY,
+    # not size. A DST transition shifts the wall-clock offset by 60 minutes, so
+    # a window length that divides 60 falls on the same ``_window_slot`` wall
+    # grid on both sides of the shift and the walk reconciles the two ends
+    # exactly. A length that does not divide 60 lands off that grid afterwards,
+    # and 45 and 7 minutes are under the hour and still off it, so "above an
+    # hour" names a subset and not the rule. What the walk cannot repair there
+    # is that the two sides are different PARTITIONS of a transition day: the
+    # power array this labels is bucketed by STEP INDEX (``metering_windows``),
+    # so bucket i holds ``window`` minutes of REAL time, while ``_window_slot``
+    # deliberately keeps a window longer than an hour wall-anchored, which lets
+    # the autumn fold's repeated hour stretch one metered window to three real
+    # hours. No per-window label reconciles two partitions.
+    #
+    # So for an off-grid length this walk REDISTRIBUTES the disagreement rather
+    # than leaving a residual, and not only downwards. Both ends are driven at
+    # both transitions by ``tools/audit/round3/D2/window_size_sweep.py``, which
+    # prints a pre/post pair per day and size: summed over the two transition
+    # days, 90 minutes is one window WORSE after this change than before it (its
+    # spring arm alone accounts for two of sixteen), and 120 is unchanged. The
+    # #791 review measured the same both-ways shape past that sweep's set — one
+    # worse at 180, one better at 240. Labelling bucket i by its real start is
+    # what every divides-the-hour length needs and is still the half that
+    # matches the power the bucket holds; off the grid it is a trade, and the
+    # sweep is where its price is read rather than argued. No shipped install
+    # reaches it: the four catalog rows set 15 and the options selector offers
+    # 15 and 60, which is also the pair ``tests/dst_checks.py`` drives across
+    # both transitions.
+    tz = slot0.tzinfo
+    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+    starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
+    return np.asarray(
+        [
+            tariff.sample_factor(s if tz is None else s.astimezone(tz))
+            for s in starts
+        ],
+        dtype=float,
+    )
+
+
+def plan_window_days(
+    n_windows: int, window_minutes: int, start_time: datetime
+) -> np.ndarray:
+    """The local day of each metering window of a plan, as ordinals (#1512).
+
+    Walked exactly as ``window_factors`` walks the windows -- from the slot
+    ``start_time`` falls in, in UTC, converted back -- so a window is dated by
+    the real start the meter dates it by, across both DST transitions.
+    """
+    window = int(window_minutes)
+    slot0 = _window_slot(start_time, window)
+    tz = slot0.tzinfo
+    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
+    return np.asarray(
+        [(s if tz is None else s.astimezone(tz)).toordinal() for s in starts],
+        dtype=np.int64,
+    )
+
+
+def _day_peaks(
+    excess: np.ndarray,
+    window_days: np.ndarray | None,
+    window_minutes: int,
+    day_max_of: Callable[[np.ndarray], float],
+) -> np.ndarray:
+    """Each plan day's excess: one value per day, in plan order (#1512).
+
+    Under a distinct-days tariff a day contributes one peak, so k high
+    windows on one morning are one billed excess, not k. Windows are
+    chronological, so each day is one contiguous run of labels. A plan with
+    no labels (no clock) is taken to start at local midnight on the metering
+    grid: the anchor ``metering_windows``' ``offset_steps=0`` already
+    assumes. Windows past the labels join the last labelled day's run.
+    """
+    if window_days is None:
+        window_days = np.arange(excess.size) * int(window_minutes) // (24 * 60)
+    edges = np.flatnonzero(np.diff(np.asarray(window_days)[: excess.size])) + 1
+    return np.asarray(
+        [day_max_of(run) for run in np.split(excess, edges)], dtype=float
+    )
+
+
+def _hard_day_max(run: np.ndarray) -> float:
+    return float(np.max(run))
+
+
+def _plateau_aware_day_max(run: np.ndarray) -> float:
+    """A day's peak for the solver: exact unless its windows tie at the top.
+
+    #232's blindness one level down: a hard max over tied windows reads flat
+    to a downward probe on any one of them, so on a same-day plateau the
+    smooth top-1 spreads the descent signal across the tied windows.
+    """
+    peak = float(np.max(run))
+    if int(np.sum(run >= peak - _PEAK_TIE_BAND)) > 1:
+        return _smooth_topk_sum(run, 1, _PEAK_SMOOTH_TAU)
+    return peak
+
+
+# Soft top-k temperature as a fraction of the largest excess. Small enough
+# that separated peaks still match the billed sum; large enough that tied
+# windows all carry gradient (#232).
+_PEAK_SMOOTH_TAU = 0.05
+# Wider than L-BFGS-B's 2-point abs_step (1e-4 kW) so a plateau still
+# looks tied under a one-window probe; tighter than a 0.1 kW separated
+# peak so those stay on the exact hard sum.
+_PEAK_TIE_BAND = 1e-3
+
+
+def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
+    """Differentiable approximation to ``sum(sort(values)[-k:])``.
+
+    A hard top-k has zero gradient on every tied window beyond the kth, which
+    leaves gradient-based solvers blind on the peak plateau that capacity
+    tariffs create. Here a logistic threshold is chosen so the soft weights
+    sum to *k*; when many windows tie, each gets weight ``k/n`` and the
+    approximate sum stays ``k × tie_level``.
+    """
+    x = np.asarray(values, dtype=float)
+    if x.size == 0 or k <= 0:
+        return 0.0
+    k = max(1, min(int(k), x.size))
+    if not np.any(x > 0):
+        return 0.0
+    peak = float(np.max(x))
+    scale = max(tau * peak, 1e-9)
+    # The tie root sits at peak + scale*ln((n-k)/k), which moves with the
+    # peak's own magnitude: a bracket padded by a constant 1 kW stops
+    # containing it once the plateau is high enough, the bisection parks on
+    # the bracket end, and every tied window keeps weight sigmoid(-1/scale)
+    # -- charging a multiple of the billed top-k instead of approximating
+    # it (#925). Pad by the temperature itself; ln((n-k)/k) is under 5.25
+    # for any horizon this optimizer plans, so 40*scale holds the root with
+    # an order of magnitude to spare.
+    pad = 40.0 * scale
+    lo, hi = float(np.min(x)) - 1.0 - pad, peak + 1.0 + pad
+    mid = 0.5 * (lo + hi)
+    for _ in range(64):
+        z = np.clip((x - mid) / scale, -60.0, 60.0)
+        w = 1.0 / (1.0 + np.exp(-z))
+        count = float(np.sum(w))
+        if abs(count - k) < 1e-6:
+            break
+        if count > k:
+            lo = mid
+        else:
+            hi = mid
+        mid = 0.5 * (lo + hi)
+    z = np.clip((x - mid) / scale, -60.0, 60.0)
+    w = 1.0 / (1.0 + np.exp(-z))
+    return float(np.sum(w * x))
+
+
+def _peak_excess(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int,
+    window_factors: np.ndarray | None,
+) -> np.ndarray | None:
+    """The per-window excess above the threshold both peak charges share.
+
+    One helper so the exact and the smooth charge (and only those two -- the
+    batch twin keeps its verbatim per-row body, #948) cannot drift on the
+    scaffolding: same guards, same window means, same billed-equivalent
+    factors (#13), same order of operations, so both scalars are bit-for-bit
+    what they were when each carried its own copy. ``None`` is the shared
+    "nothing is chargeable" answer (disabled tariff, empty plan, no window
+    above the threshold).
+    """
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+        return None
+    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
+        baseline_load_kw, dtype=float
+    )
+    if house.size == 0:
+        return None
+    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
+    if window_factors is not None and window_factors.size:
+        # Billed-equivalent kW (#13): each window's average counts at its
+        # hour's factor, against a threshold the tracker keeps in the same
+        # billed-equivalent terms. A masked-out window (factor 0) can never
+        # exceed any threshold, which is "contributes nothing" exactly.
+        factors = window_factors[: windows.size]
+        if factors.size < windows.size:
+            factors = np.concatenate(
+                [factors, np.ones(windows.size - factors.size)]
+            )
+        windows = windows * factors
+    excess = np.maximum(0.0, windows - threshold_kw)
+    if not np.any(excess > 0):
+        return None
+    return excess
+
+
+def _exact_topk_sum(excess: np.ndarray, k: int) -> float:
+    """The billed top-k: sum of the k largest window excesses."""
+    return float(np.sum(np.sort(excess)[-k:]))
+
+
+def _plateau_aware_topk_sum(excess: np.ndarray, k: int) -> float:
+    """Exact while at most k windows sit at the peak, smooth above that.
+
+    The solver's rule (#232): a hard top-k has no finite-difference gradient
+    at a bound-pinned plateau -- the probe points downward and the top-k just
+    swaps in another tied window -- so once more than ``k`` windows tie at
+    the peak the smooth sum spreads the descent signal across them.
+    """
+    peak = float(np.max(excess))
+    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+    if n_at_peak > k:
+        return _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+    return _exact_topk_sum(excess, k)
+
+
+def _peak_charge(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int,
+    offset_steps: int,
+    window_factors: np.ndarray | None,
+    top_sum_of: Callable[[np.ndarray, int], float],
+    day_max_of: Callable[[np.ndarray], float],
+    window_days: np.ndarray | None,
+    distinct_days: bool,
+) -> float:
+    """One scaffolding for both peak charges, parameterised by the top-k rule.
+
+    The exact charge (``peak_cost``) and the solver's smooth surrogate
+    (``peak_cost_smooth``) differ ONLY in how they sum the top-k excesses;
+    everything else -- the guards, the window means, the billed-equivalent
+    factors, the k clamp, the final multiply -- is shared here once, in one
+    order of operations, so the two scalars stay bit-for-bit comparable on
+    every input. The batch twin keeps its own verbatim per-row body (#948)
+    and does not go through this.
+    """
+    excess = _peak_excess(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, offset_steps, window_factors,
+    )
+    if excess is None:
+        return 0.0
+    if distinct_days:
+        excess = _day_peaks(excess, window_days, window_minutes, day_max_of)
+    k = max(1, min(int(peaks_averaged), excess.size))
+    return float(price_per_kw * top_sum_of(excess, k))
+
+
+def peak_cost(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+    offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
+    window_days: np.ndarray | None = None,
+    distinct_days: bool = True,
+) -> float:
+    """What this plan would add to the monthly capacity charge.
+
+    The bill is ``full_price × mean(top-k window peaks)``. Rearranged, that is
+    ``(full_price / k) × sum(top-k)`` — and ``full_price / k`` is exactly
+    ``marginal_price_per_kw``. So the cost of a plan is the marginal price
+    times the sum of its top-k excesses above what the month already commits
+    to, which is what this computes: the EXACT hard top-k sum, on every
+    input (#1210). This is the figure published as ``projected_peak_cost``;
+    the solver's objective uses the smooth surrogate ``peak_cost_smooth``
+    instead, for the gradient reason its docstring states.
+
+    Two things fall out of that algebra:
+
+    * **Several high hours all count.** Charging only the single largest
+      excess, as this previously did, under-states a plan with several high
+      hours — precisely the plan a capacity tariff exists to discourage.
+    * **The solver can see it.** ``max`` has zero gradient everywhere except at
+      one window, so a gradient-based optimizer got a signal at 1 step in 96
+      and the term was effectively inert; the measured result was that enabling
+      the tariff *raised* the peak. Summing the top k gives every one of those
+      k windows a gradient; when more than k windows tie, the smooth surrogate
+      spreads that signal across all of them (#232).
+
+    It is still an upper bound on the true marginal bill, not an exact figure:
+    each of the plan's top-k windows is charged as if it displaced a billed
+    peak, but only windows that end the *month* in the top k actually do.
+    Early in a month that is usually true; late in a high-peak month it
+    over-charges and the plan is more peak-shy than strictly necessary —
+    the conservative side of the error.
+
+    Under ``distinct_days`` (#1512) a plan day contributes one excess, its
+    highest window's, before the top-k: k high windows on one morning are
+    billed once, as the DSO bills them, not k times. ``window_days`` dates
+    each window (``plan_window_days``); without it a plan is taken to start
+    at local midnight. A plan day that is today is still charged against the
+    month's threshold, not against today's recorded maximum -- the
+    conservative side again, and the tracker's threshold docstring says why.
+
+    Only the excess above the threshold is charged: if the month already has a
+    9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.
+    """
+    # The exact hard sum on every input: this function is the billed figure,
+    # and the smooth surrogate that replaced it on wide plateaus under-charged
+    # by up to 3.45% there (round 5 D2-01, #1210) -- its logistic weights sum
+    # to k, so every unit of weight that leaks onto a window below the tie
+    # level bills that unit at the lower level. The surrogate, and the reason
+    # the solver still needs it, live in peak_cost_smooth.
+    return _peak_charge(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, peaks_averaged, offset_steps,
+        window_factors, _exact_topk_sum, _hard_day_max, window_days,
+        distinct_days,
+    )
+
+
+def peak_cost_smooth(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+    offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
+    window_days: np.ndarray | None = None,
+    distinct_days: bool = True,
+) -> float:
+    """The solver's capacity term: exact off plateaus, smooth on them.
+
+    Same arithmetic as ``peak_cost`` (whose docstring carries the bill
+    algebra) on every input with at most ``k`` windows at the peak. Only when
+    MORE than ``k`` windows tie at the peak does this take the smooth top-k
+    sum, because a gradient-based solver is otherwise blind on exactly that
+    plateau (#232): the tied windows sit at the clip ceiling, so the
+    finite-difference probe at each pinned step points DOWNWARD, a hard
+    top-k just swaps in another tied window, and the term reads flat in
+    every direction the solver can move — measured, enabling the tariff
+    with the hard sum RAISED the peak it exists to lower.
+
+    The price of that gradient is a bounded under-charge on the plateau arm:
+    the logistic weights still sum to ``k``, so weight landing on windows
+    below the tie level bills there, and the value is below the exact
+    ``full_price/k × sum(top-k)`` by up to 3.45% of it on wide mixed
+    plateaus (round 5, D2-01/#1210; pure plateaus, every window at the tie,
+    are exact). That is why this is the SOLVER's term only: the descent
+    signal is the product, the value is a bounded-surrogate means to it,
+    and every billed or published figure goes through ``peak_cost``, which
+    is exact everywhere.
+    """
+    return _peak_charge(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, peaks_averaged, offset_steps,
+        window_factors, _plateau_aware_topk_sum, _plateau_aware_day_max,
+        window_days, distinct_days,
+    )
+
+
+def peak_cost_batch(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+    offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
+    distinct_days: bool = True,
+    window_days: np.ndarray | None = None,
+) -> np.ndarray:
+    """``peak_cost_smooth`` for a [B, n] batch of plans, one entry per row (#948).
+
+    The solver's batched objective used to CALL the scalar capacity term once
+    per batch row; the per-row re-entry -- not the arithmetic -- is the
+    recomputation round 4 (D9-05) counted, and this twin is what the
+    recomputation-count pin reads. Each row runs the scalar body verbatim
+    on its own freshly allocated per-row arrays (``house``, the window
+    means through ``metering_windows``, the factors multiply, ``excess``,
+    the sort and the top-k slice sum, and the scalar ``_smooth_topk_sum``
+    on a plateau), so a row is bit-for-bit ``peak_cost_smooth`` on that
+    row's plan on EVERY numpy backend -- not by measurement on one. The
+    twin's scalar is the SOLVER's smooth surrogate (the gradient pathway,
+    #232/#1210), which is what the batched objective exists to serve; the
+    billed figure ``peak_cost`` is exact and has no batch twin, because
+    nothing batches it. The body is
+    held against drift by the unit row-parity grid in tests/features.py
+    (#948 section: offsets, window lengths, billing factors, plateaus),
+    because it cannot call the function it mirrors without re-entering it.
+    """
+    matrix = np.asarray(total_power_kw, dtype=float)
+    n_rows = matrix.shape[0]
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+        return np.zeros(n_rows)
+    baseline = np.asarray(baseline_load_kw, dtype=float)
+    out = np.empty(n_rows)
+    for b in range(n_rows):
+        house = matrix[b] + baseline
+        windows = metering_windows(
+            house, window_minutes, dt_hours, offset_steps
+        )
+        if window_factors is not None and window_factors.size:
+            # Billed-equivalent kW (#13); see ``peak_cost``.
+            factors = window_factors[: windows.size]
+            if factors.size < windows.size:
+                factors = np.concatenate(
+                    [factors, np.ones(windows.size - factors.size)]
+                )
+            windows = windows * factors
+        excess = np.maximum(0.0, windows - threshold_kw)
+        if not np.any(excess > 0):
+            out[b] = 0.0
+            continue
+        if distinct_days:
+            excess = _day_peaks(
+                excess, window_days, window_minutes, _plateau_aware_day_max
+            )
+        k = max(1, min(int(peaks_averaged), excess.size))
+        peak = float(np.max(excess))
+        n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+        if n_at_peak > k:
+            top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+        else:
+            top_sum = float(np.sum(np.sort(excess)[-k:]))
+        out[b] = float(price_per_kw * top_sum)
+    return out
+
+
+def realised_peak(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int = 0,
+) -> float:
+    """The peak a plan would actually be billed on, in kW.
+
+    The highest metering-window average over the horizon — the quantity the
+    DSO meters — not the per-step maximum, which would overstate the peak by
+    however much of a burst the window average dilutes.
+    """
+    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
+        baseline_load_kw, dtype=float
+    )
+    if house.size == 0:
+        return 0.0
+    return float(np.max(metering_windows(house, window_minutes, dt_hours, offset_steps)))

@@ -1,0 +1,6 @@
+  3682 unpinned site(s) of 3970 candidate sites, 3670 at the ratchet base 7428d87af49bf0f1d827feedc7f1a4a953b179ff; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 13 new unpinned site(s) against 7428d87af49bf0f1d827feedc7f1a4a953b179ff to drive
+  13 mutant(s) over 5 file(s); drivers in play: tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  ref-driven drivers compare against '7428d87af49bf0f1d827feedc7f1a4a953b179ff' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/freq_control.py:38 NULL_COMMENT, a comment-only edit every driver in play must let survive

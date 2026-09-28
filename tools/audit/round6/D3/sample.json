@@ -1,0 +1,414 @@
+{
+ "method": "ast walk of every custom_components/heatpump_optimizer/*.py; four deletion shapes",
+ "seed": 20260922,
+ "n_requested": 36,
+ "cap_per_module": 4,
+ "pool_size": 6046,
+ "pool_by_kind": {
+  "NOGUARD": 2315,
+  "ALWAYS": 2315,
+  "FLIPCMP": 897,
+  "NOCLAMP": 519
+ },
+ "pool_by_weight": {
+  "2": 1290,
+  "3": 4733,
+  "1": 23
+ },
+ "pool_sites_per_module": {
+  "coordinator.py": 1500,
+  "optimizer.py": 847,
+  "config_flow.py": 371,
+  "thermal_model.py": 344,
+  "sysid.py": 266,
+  "sensor.py": 201,
+  "dhw_schedule.py": 162,
+  "price_model.py": 161,
+  "wood_fuel.py": 150,
+  "tariff.py": 143,
+  "grid_fee.py": 116,
+  "away.py": 115,
+  "inputs.py": 99,
+  "topology.py": 96,
+  "legionella.py": 94,
+  "external_heat.py": 90,
+  "defrost.py": 86,
+  "services.py": 81,
+  "dhw_learning.py": 80,
+  "open_meteo.py": 76,
+  "accuracy.py": 73,
+  "freq_control.py": 61,
+  "presets.py": 51,
+  "climate.py": 41,
+  "disinfection.py": 41,
+  "manual_plan.py": 40,
+  "snapshots.py": 40,
+  "comfort_learning.py": 35,
+  "ledger.py": 35,
+  "comfort_band.py": 34,
+  "__init__.py": 30,
+  "curve_learning.py": 30,
+  "frontend.py": 30,
+  "name_match.py": 30,
+  "battery.py": 29,
+  "boost.py": 29,
+  "dhw_draws.py": 29,
+  "pump_schedule.py": 29,
+  "drift.py": 26,
+  "const.py": 23,
+  "wear.py": 23,
+  "power_guard.py": 22,
+  "pump_signals.py": 20,
+  "diagnosis.py": 18,
+  "flow_lift.py": 15,
+  "modbus_prefill.py": 15,
+  "repairs.py": 15,
+  "setpoint_check.py": 15,
+  "silent_mode.py": 14,
+  "device_prefill.py": 12,
+  "mixing_valve.py": 10,
+  "pump_mode.py": 10,
+  "quick_setup.py": 10,
+  "process_worker.py": 8,
+  "switch.py": 7,
+  "diagnostics.py": 6,
+  "narrative.py": 6,
+  "pv.py": 4,
+  "prefill_offer.py": 2
+ },
+ "weight_classes": {
+  "3": [
+   "away.py",
+   "battery.py",
+   "boost.py",
+   "comfort_band.py",
+   "comfort_learning.py",
+   "coordinator.py",
+   "curve_learning.py",
+   "defrost.py",
+   "dhw_learning.py",
+   "dhw_schedule.py",
+   "disinfection.py",
+   "external_heat.py",
+   "flow_lift.py",
+   "freq_control.py",
+   "grid_fee.py",
+   "inputs.py",
+   "legionella.py",
+   "mixing_valve.py",
+   "optimizer.py",
+   "power_guard.py",
+   "price_model.py",
+   "pump_mode.py",
+   "pump_schedule.py",
+   "pump_signals.py",
+   "pv.py",
+   "setpoint_check.py",
+   "sysid.py",
+   "tariff.py",
+   "thermal_model.py",
+   "topology.py",
+   "wood_fuel.py"
+  ],
+  "2": [
+   "__init__.py",
+   "accuracy.py",
+   "binary_sensor.py",
+   "button.py",
+   "climate.py",
+   "config_flow.py",
+   "currency.py",
+   "datetime.py",
+   "device_prefill.py",
+   "dhw_draws.py",
+   "diagnosis.py",
+   "diagnostics.py",
+   "drift.py",
+   "entity.py",
+   "frontend.py",
+   "ledger.py",
+   "manual_plan.py",
+   "modbus_prefill.py",
+   "name_match.py",
+   "narrative.py",
+   "open_meteo.py",
+   "prefill_offer.py",
+   "presets.py",
+   "process_worker.py",
+   "quick_setup.py",
+   "repairs.py",
+   "sensor.py",
+   "services.py",
+   "silent_mode.py",
+   "snapshots.py",
+   "switch.py",
+   "wear.py"
+  ],
+  "1": "every other module in the package"
+ },
+ "chosen": [
+  {
+   "kind": "NOCLAMP",
+   "lineno": 106,
+   "end_lineno": 106,
+   "detail": "max",
+   "module": "wear.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 1511,
+   "detail": "if->if False",
+   "module": "thermal_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 352,
+   "detail": "if->if False",
+   "module": "wood_fuel.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 147,
+   "end_lineno": 147,
+   "detail": "NotEq",
+   "module": "frontend.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 990,
+   "detail": "if->if False",
+   "module": "coordinator.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 3249,
+   "end_lineno": 3249,
+   "detail": "Gt",
+   "module": "optimizer.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 381,
+   "detail": "if->if True",
+   "module": "accuracy.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOCLAMP",
+   "lineno": 4652,
+   "end_lineno": 4652,
+   "detail": "min",
+   "module": "optimizer.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 445,
+   "detail": "if->if False",
+   "module": "config_flow.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 697,
+   "detail": "if->if False",
+   "module": "price_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 61,
+   "end_lineno": 61,
+   "detail": "LtE",
+   "module": "tariff.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 373,
+   "detail": "if->if False",
+   "module": "wood_fuel.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOCLAMP",
+   "lineno": 5178,
+   "end_lineno": 5178,
+   "detail": "max",
+   "module": "optimizer.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 113,
+   "end_lineno": 113,
+   "detail": "Gt",
+   "module": "comfort_band.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 2483,
+   "detail": "if->if True",
+   "module": "config_flow.py",
+   "weight": 2
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 176,
+   "end_lineno": 176,
+   "detail": "GtE",
+   "module": "wood_fuel.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOCLAMP",
+   "lineno": 2064,
+   "end_lineno": 2064,
+   "detail": "max",
+   "module": "thermal_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 79,
+   "detail": "if->if False",
+   "module": "silent_mode.py",
+   "weight": 2
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 3546,
+   "detail": "if->if True",
+   "module": "optimizer.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 1445,
+   "detail": "if->if False",
+   "module": "thermal_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 415,
+   "detail": "if->if True",
+   "module": "name_match.py",
+   "weight": 2
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 2277,
+   "detail": "if->if True",
+   "module": "thermal_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 1860,
+   "detail": "if->if False",
+   "module": "config_flow.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 593,
+   "detail": "if->if False",
+   "module": "services.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 9878,
+   "detail": "if->if False",
+   "module": "coordinator.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 5587,
+   "detail": "if->if True",
+   "module": "coordinator.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 153,
+   "detail": "if->if True",
+   "module": "presets.py",
+   "weight": 2
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 527,
+   "detail": "if->if False",
+   "module": "coordinator.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 754,
+   "end_lineno": 754,
+   "detail": "Eq",
+   "module": "price_model.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 684,
+   "detail": "if->if False",
+   "module": "inputs.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 599,
+   "detail": "if->if True",
+   "module": "defrost.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 273,
+   "detail": "if->if True",
+   "module": "dhw_schedule.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 157,
+   "detail": "if->if True",
+   "module": "legionella.py",
+   "weight": 3
+  },
+  {
+   "kind": "FLIPCMP",
+   "lineno": 743,
+   "end_lineno": 743,
+   "detail": "Gt",
+   "module": "sysid.py",
+   "weight": 3
+  },
+  {
+   "kind": "NOGUARD",
+   "lineno": 273,
+   "detail": "if->if False",
+   "module": "grid_fee.py",
+   "weight": 3
+  },
+  {
+   "kind": "ALWAYS",
+   "lineno": 2273,
+   "detail": "if->if True",
+   "module": "config_flow.py",
+   "weight": 2
+  }
+ ]
+}

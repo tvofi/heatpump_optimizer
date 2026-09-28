@@ -1,0 +1,65 @@
+{
+  "_note": "Round 9, Phase D, sweep thread S3. Classes I1, P1. Baseline 1936d5ca72a0; both classes unchanged (all probes still fail) on origin/main db878b2 (post #1641/#1642/#1643).",
+  "baseline": "1936d5ca72a0",
+  "checked_on_main": "db878b2",
+  "classes": [
+    {
+      "class": "I1",
+      "N": 11,
+      "rca": true,
+      "enumerator": "tools/audit/round9/D14/sweep/I1/enumerator.py",
+      "probes": "tools/audit/round9/D14/sweep/I1/probes.py",
+      "sweep_md": "tools/audit/round9/D14/sweep/I1/SWEEP.md",
+      "gate_seconds": 0,
+      "barrier_proposal": "Two countermeasures: (1) widen tests/mutation_table.py:candidates() to emit GUARD_OFF/CLAMP_DROP for multi-line-test/elif/else/trailing-comment ifs (fixes the ratchet-inventory axis, D14-s5-02); (2) a closure-scoped CI lane running the existing HASTUB_TZ=Europe/Stockholm subprocess suite plus a non-UTC open_meteo/drift pass on any push touching a tzinfo/timestamp seam (fixes the naive-clock/fixed-zone axis, D3-s1-91/D3-s3-01/D7-s1-02). Neither built here; proposals for the RCA/fix seats.",
+      "seams": [
+        {"path": "tests/mutation_table.py:candidates (aggregate)", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/I1/enumerator.py --list", "note": "D14-s5-02: 528/2313 production guard seams (EXIT 52/1346, CLAMP 246/668, TERN 230/299) invisible to the mutation ratchet's inventory; identical to the finding's own recorded numbers on re-run"},
+        {"path": "custom_components/heatpump_optimizer/coordinator.py:8112", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/I1/probes.py::probe_D3_s1_91_dead_tzinfo_guard", "note": "D3-s1-91; light check run this round: guard fires only when now.tzinfo is not None, dead under the gate's naive clock, and the one-line deletion mutant crashes under an aware clock"},
+        {"path": "custom_components/heatpump_optimizer/coordinator.py:8384", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/I1/probes.py::probe_D3_s1_91_dead_tzinfo_guard", "note": "D3-s1-91, second sibling seam, same mechanism as :8112"},
+        {"path": "custom_components/heatpump_optimizer/open_meteo.py (naive-stamp-is-UTC parse)", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/I1/probes.py::probe_D3_s3_01_open_meteo_naive_utc_guard", "note": "D3-s3-01; light check run this round, plus D3 seat's distinguish.py M02 (differs=1 under TZ=Europe/Stockholm, differs=0 under TZ=UTC, the gate's own zone)"},
+        {"path": "custom_components/heatpump_optimizer/coordinator.py (dhw_inlet_c plausibility bound, C0041-C0045)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s1/mutants.py --list (reused, no heavy re-run)", "note": "D3-s1-01, low severity, no closure script fails on the bound's tightening"},
+        {"path": "custom_components/heatpump_optimizer/flow_lift.py,tariff.py,price_model.py (store-parser non-finite guards)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s2/storeguards.py (reused, no heavy re-run)", "note": "D3-s2-01, weakened(low)"},
+        {"path": "custom_components/heatpump_optimizer/price_model.py (residual_var restore)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s2/storeguards.py; cross-confirmed live via tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s5_02_price_model_residual_var", "note": "D3-s2-02; same production line as P1's residual_var instance -- I1 (gate can't see the deletion) and P1 (no isfinite guard) are two properties of the same line"},
+        {"path": "custom_components/heatpump_optimizer/dhw_draws.py (DrawStats.from_dict open draw occurrence)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s3/distinguish.py M19 (reused, no heavy re-run)", "note": "D3-s3-02, medium; light check not re-run this round (see SWEEP.md Coverage note)"},
+        {"path": "custom_components/heatpump_optimizer/ledger.py (MonthlyLedger.add non-finite guard)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s3/distinguish.py M21 (reused, no heavy re-run)", "note": "D3-s3-03, medium; light check not re-run this round"},
+        {"path": "custom_components/heatpump_optimizer/dhw_learning.py (async_fold_draw_stats)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s3/probe.py M24 (reused, no heavy re-run)", "note": "D3-s3-04, medium; light check not re-run this round"},
+        {"path": "custom_components/heatpump_optimizer/legionella.py (disinfection write-failed notice memo)", "disposition": "instance", "probe": "D3 seat evidence: tools/audit/round9/D3/s3/distinguish.py M20 (reused, no heavy re-run)", "note": "D3-s3-05, low"},
+        {"path": "tests/env_drift.py,tests/stress.py,tests/entities.py (drift-gate comparison / stress verdict)", "disposition": "instance", "probe": "D3/D7 seat evidence: tools/audit/round9/D7/s1/train_mutations.py --only drift_leaf,drift,stress,drift_ctl (reused, no heavy re-run)", "note": "D7-s1-02, weakened(low)"}
+      ]
+    },
+    {
+      "class": "P1",
+      "N": 11,
+      "rca": true,
+      "enumerator": "tools/audit/round9/D14/sweep/P1/enumerator.py",
+      "probes": "tools/audit/round9/D14/sweep/P1/probes.py",
+      "sweep_md": "tools/audit/round9/D14/sweep/P1/SWEEP.md",
+      "gate_seconds": 0,
+      "barrier_proposal": "One validated-load helper, load_finite_field(data, key, default, *, cast=float, lo=None, hi=None), used by every loader in place of the current per-field float(data.get(...))/try-except pairs: converts, checks math.isfinite for float casts, and clamps to [lo, hi] when given. ~15 call sites, ~15 new lines in a shared module; no new gate seconds. Not built here; proposal for the RCA/fix seats.",
+      "seams": [
+        {"path": "custom_components/heatpump_optimizer/snapshots.py:74 SnapshotRing.due", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s1_01_snapshots", "note": "D1-s1-01; (now-last) computed outside due()'s own try/except"},
+        {"path": "custom_components/heatpump_optimizer/curve_learning.py:111 CurveLearner._step_down", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s1_01_curve_learning", "note": "D1-s1-01; except ValueError only, not TypeError"},
+        {"path": "custom_components/heatpump_optimizer/comfort_learning.py:100 ComfortLearner._decay", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s1_01_comfort_learning", "note": "D1-s1-01; no try/except at all around the subtraction"},
+        {"path": "custom_components/heatpump_optimizer/snapshots.py:194 SnapshotRing.best_restore", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s1_02_best_restore", "note": "D1-s1-02; np.isfinite(bias) assumes bias already numeric, raises TypeError on a non-numeric temperature_bias"},
+        {"path": "custom_components/heatpump_optimizer/coordinator.py:2994 _load_t4b_learners", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s2_03_sample_count", "note": "D1-s2-03; int(entry[1]) has no magnitude bound, loads 2**64"},
+        {"path": "custom_components/heatpump_optimizer/pump_arbiter.py:629 _load", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s3_03_pump_arbiter", "note": "D1-s3-03; pair[0] (set-point) stored with zero type/finite check"},
+        {"path": "custom_components/heatpump_optimizer/freq_control.py:245 FrequencyMap.from_dict", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s3_06_freq_control", "note": "D1-s3-06; ratio has a lower bound only, decile key has none"},
+        {"path": "custom_components/heatpump_optimizer/defrost.py:466 _grid_of('duty', float)", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s4_01_defrost_duty", "note": "D1-s4-01; no isfinite check on cast cells"},
+        {"path": "custom_components/heatpump_optimizer/defrost.py:434 from_dict (duty/duty_counts all-or-nothing parse)", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s4_03_defrost_migration", "note": "D1-s4-03; one bad duty_counts cell discards a fully valid duty grid, relabelled migrated"},
+        {"path": "custom_components/heatpump_optimizer/price_model.py:360 PriceShapeModel.from_dict residual_var", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s5_02_price_model_residual_var", "note": "D1-s5-02; no isfinite guard, unlike sibling shapes/quarter_factors fields in the same function"},
+        {"path": "custom_components/heatpump_optimizer/tariff.py:395 PeakTracker.from_dict window_factor", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D1_s5_02_tariff_window_factor", "note": "D1-s5-02; isfinite-checked but not domain-bounded"},
+        {"path": "custom_components/heatpump_optimizer/legionella.py:136 async_load attempt_peak", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D14_s1_01_legionella_attempt_peak", "note": "D14-s1-01; isinstance(peak,(int,float)) only, no isfinite"},
+        {"path": "custom_components/heatpump_optimizer/comfort_learning.py:236 ComfortLearner.from_dict stored_configured", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D14_s1_02_comfort_learning_gate_bypass", "note": "sweep-found (new, beyond the 9 named findings); NaN bypasses the abs(...)>1e-6 stale-weight gate instead of being discarded by it"},
+        {"path": "custom_components/heatpump_optimizer/comfort_learning.py:244-245 ComfortLearner.from_dict learned_weight/evidence", "disposition": "instance", "probe": "tools/audit/round9/D14/sweep/P1/probes.py::probe_D14_s1_03_comfort_learning_nonfinite_fields", "note": "sweep-found (new); float() cast, no isfinite check"},
+        {"path": "custom_components/heatpump_optimizer/price_model.py shapes/quarter_factors", "disposition": "guarded", "probe": null, "note": "explicit np.isfinite check present (#922), sibling of the residual_var instance in the same function"},
+        {"path": "custom_components/heatpump_optimizer/flow_lift.py FlowCurveBias.from_dict bias_k", "disposition": "guarded", "probe": null, "note": "bias is isfinite-checked before bias_k is clamped from it"},
+        {"path": "custom_components/heatpump_optimizer/dhw_draws.py DrawStats.from_dict (_open_kwh, reservoir events)", "disposition": "guarded", "probe": null, "note": "explicit isfinite checks present (#1296)"},
+        {"path": "custom_components/heatpump_optimizer/curve_learning.py bias field", "disposition": "guarded", "probe": null, "note": "explicit isfinite check present (#1296), distinct from the instance seam at _step_down's datetime handling in the same class"},
+        {"path": "custom_components/heatpump_optimizer/wear.py,curve_learning.py,snapshots.py,tariff.py,dhw_learning.py,legionella.py integer counters (lifetime, comfortable_days, resets, _bias_days, _window_samples, cooling_samples, owned)", "disposition": "not applicable", "probe": null, "note": "int()-cast inside try/except catching ValueError; CPython's int() already rejects NaN/Inf with ValueError, so no separate isfinite guard is needed for this shape"},
+        {"path": "custom_components/heatpump_optimizer/accuracy.py AccuracySample.from_dict when (fromisoformat)", "disposition": "not applicable", "probe": null, "note": "parsed value never combined with another datetime inside this function; any naive/aware mismatch belongs to whichever caller later diffs it -- recorded as a lead, not measured here (out of this seam's local scope per COMMON.md)"},
+        {"path": "custom_components/heatpump_optimizer/manual_plan.py ManualOverride.from_dict expires_at/created_at", "disposition": "guarded", "probe": null, "note": "expires_at raises ManualPlanError deliberately (documented contract); created_at catches ValueError, falls back to None"},
+        {"path": "custom_components/heatpump_optimizer/ledger.py MonthlyLedger.from_dict via _clean_month", "disposition": "guarded", "probe": null, "note": "quarantines malformed months individually with a dropped counter; this is I1's shape (guard exists, mutation-invisible per D3-s3-03), not P1's"}
+      ]
+    }
+  ]
+}

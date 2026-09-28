@@ -1,0 +1,227 @@
+{
+  "_generated_by": "tools/gen_device_fixtures.py",
+  "upstream_repo": "make-all/tuya-local",
+  "upstream_tag": "2026.9.1",
+  "upstream_commit": "4551357adb34b6cf3073af8deada6a9bf13c94f0",
+  "upstream_path": "custom_components/tuya_local/devices/fisher_water_heatpump.yaml",
+  "platform": "tuya_local",
+  "device_name": "Radiator heat pump",
+  "device_uid": "bf1234567890abcdef12",
+  "products": [
+    {
+      "id": "3gabjnrhtblg3ub6",
+      "manufacturer": "Fisher",
+      "model": "e-HeatR",
+      "name": "Air-water heat pump"
+    }
+  ],
+  "records": [
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-binary_sensor_problem",
+      "entity_id": "binary_sensor.radiator_heat_pump",
+      "original_name": null,
+      "translation_key": null,
+      "device_class": "problem",
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-climate",
+      "entity_id": "climate.radiator_heat_pump",
+      "original_name": null,
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-select_combined_mode",
+      "entity_id": "select.radiator_heat_pump_combined_mode",
+      "original_name": "Combined mode",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-sensor_inlet_temperature",
+      "entity_id": "sensor.radiator_heat_pump_inlet_temperature",
+      "original_name": "Inlet temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-sensor_outdoor_temperature",
+      "entity_id": "sensor.radiator_heat_pump_outdoor_temperature",
+      "original_name": "Outdoor temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-sensor_outlet_temperature",
+      "entity_id": "sensor.radiator_heat_pump_outlet_temperature",
+      "original_name": "Outlet temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-switch_disinfection",
+      "entity_id": "switch.radiator_heat_pump_disinfection",
+      "original_name": "Disinfection",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-switch_instant_heating",
+      "entity_id": "switch.radiator_heat_pump_instant_heating",
+      "original_name": "Instant heating",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-switch_power",
+      "entity_id": "switch.radiator_heat_pump_power",
+      "original_name": "Power",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_local",
+      "unique_id": "bf1234567890abcdef12-water_heater",
+      "entity_id": "water_heater.radiator_heat_pump",
+      "original_name": null,
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    }
+  ],
+  "dp_readings": [
+    {
+      "dp": 1,
+      "key": "climate",
+      "name": "hvac_mode"
+    },
+    {
+      "dp": 1,
+      "key": "switch_power",
+      "name": "switch"
+    },
+    {
+      "dp": 2,
+      "key": "climate",
+      "name": "mode"
+    },
+    {
+      "dp": 2,
+      "key": "select_combined_mode",
+      "name": "option"
+    },
+    {
+      "dp": 4,
+      "key": "switch_disinfection",
+      "name": "switch"
+    },
+    {
+      "dp": 7,
+      "key": "water_heater",
+      "name": "operation_mode"
+    },
+    {
+      "dp": 9,
+      "key": "climate",
+      "name": "temperature"
+    },
+    {
+      "dp": 10,
+      "key": "climate",
+      "name": "current_temperature"
+    },
+    {
+      "dp": 15,
+      "key": "switch_instant_heating",
+      "name": "switch"
+    },
+    {
+      "dp": 16,
+      "key": "water_heater",
+      "name": "schedule"
+    },
+    {
+      "dp": 20,
+      "key": "binary_sensor_problem",
+      "name": "sensor"
+    },
+    {
+      "dp": 20,
+      "key": "binary_sensor_problem",
+      "name": "fault_code"
+    },
+    {
+      "dp": 26,
+      "key": "climate",
+      "name": "temp_current_f"
+    },
+    {
+      "dp": 101,
+      "key": "sensor_inlet_temperature",
+      "name": "sensor"
+    },
+    {
+      "dp": 102,
+      "key": "water_heater",
+      "name": "away_mode"
+    },
+    {
+      "dp": 104,
+      "key": "water_heater",
+      "name": "temperature"
+    },
+    {
+      "dp": 105,
+      "key": "sensor_outdoor_temperature",
+      "name": "sensor"
+    },
+    {
+      "dp": 106,
+      "key": "sensor_outlet_temperature",
+      "name": "sensor"
+    },
+    {
+      "dp": 107,
+      "key": "water_heater",
+      "name": "current_temperature"
+    },
+    {
+      "dp": 108,
+      "key": "water_heater",
+      "name": "power_level"
+    },
+    {
+      "dp": 109,
+      "key": "water_heater",
+      "name": "pump_speed"
+    }
+  ]
+}

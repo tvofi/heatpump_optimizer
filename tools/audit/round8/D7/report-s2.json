@@ -1,0 +1,174 @@
+{
+ "dimension": "D7",
+ "seat": "s2",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D7-s2",
+ "report_path": "tools/audit/round8/D7/REPORT-s2.md (not written: the seat's file tool refused a .md report; the report content is this JSON plus the returned text)",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D7-s2-01",
+   "title": "structure.py's dead-code screen treats a symbol as live if any same-named symbol is referenced, hiding 12 unreachable symbols",
+   "severity": "low",
+   "claim": "12 top-level production symbols (grid_fee.is_valid_spec, presets.describe, and the unused _LOGGER in 10 modules) are unreachable from every Home Assistant root and are never called or read at runtime by production code, yet tests/structure.py reports dead_top_level_symbols=0 because its screen decides liveness by bare name across the whole package.",
+   "mechanism": "structure.py:module_references unions every Name load and attribute name across all modules, so dhw_schedule.is_valid_spec keeps grid_fee.is_valid_spec alive, comfort_band.describe keeps presets.describe alive, and any module's _LOGGER keeps every _LOGGER alive. grid_fee.is_valid_spec's only callers are tests, one of them config_flow_steps.py's #327 mutation arm. presets.describe's docstring says 'for display and for the sensor attributes', but no sensor calls it, and features.py:4423's check 'the derived values are presented as a starting point' pins a dict no user sees.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_reach.py --perturb --gate-probe && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_sentinel.py",
+    "harness_path": "tools/audit/round8/D7/s2_reach.py",
+    "value": 12,
+    "unit": "count (unreachable_missed_by_gate)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container (audit-r8), python 3.11.15",
+    "cpu_or_wall": "count",
+    "contention_note": "up to 13 other seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 23.15,
+    "thread_factor": 1.0,
+    "null_control": "sentinel controls in the same run: prod_calls[dhw_schedule.is_valid_spec]=14, prod_calls[presets.derive]=69, logger_reads[coordinator]=5324 (live code is seen)",
+    "leave_one_out": "n/a (a count of symbols, not a grid aggregate)"
+   },
+   "instrumented_symbol": "tests/structure.py:measure (dead_top_level_symbols via module_references); runtime: heatpump_optimizer.grid_fee:is_valid_spec, heatpump_optimizer.presets:describe, <module>:_LOGGER",
+   "perturbation": {
+    "change": "(a) planting an uncalled def describe() in a temp copy of wear.py leaves the gate at 0, while an uncalled uniquely named def raises it to 1; (b) s2_reach --perturb adds a root import of the first candidate and unreachable_total goes 12 -> 11; (c) s2_sentinel --perturb rebinds config_flow.is_valid_spec to grid_fee.is_valid_spec and prod_calls[grid_fee.is_valid_spec] goes 0 -> 12",
+    "expected_direction": "down",
+    "observed": {
+     "gate_probe_describe": 0,
+     "gate_probe_unique": 1,
+     "reach_perturbed": 11,
+     "sentinel_prod_calls_perturbed": 12
+    }
+   },
+   "metric_definition": "Top-level production symbols unreachable by import-resolved AST reachability from the HA roots that structure.py's dead_top_level_symbols does not report.",
+   "phenomenon_property": "A production symbol no root reaches is reported dead, whatever other symbol shares its name.",
+   "seam_rule": "tools/audit/round8/D7/s2_reach.py",
+   "stop_rule_class": "hygiene",
+   "files": [
+    "tests/structure.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "tests/features.py"
+   ],
+   "proposed_fix_scope": "Delete the 12 symbols. Re-point or delete features.py:4423. Make structure.py:module_references resolve top-level names through import bindings (from .m import n / from . import m; m.n), keeping the 4 DYNAMIC_REFERENCES exemptions."
+  },
+  {
+   "id": "D7-s2-02",
+   "title": "cross_seam_edges and cut_* ratchet method names: a pure rename moves them by up to 7 and 22",
+   "severity": "low",
+   "claim": "27 of the coordinator's 227 methods each lower the budgeted cross_seam_edges (140, zero headroom) when renamed alone with no code changed, by 1 to 7 per rename (5 with the top one left out); the largest single drop in sum(cut_*) is 22; 48 renames raise it.",
+   "mechanism": "structure.seam_metrics puts each method in a seam bucket by regex on its name (SEAM_REGEXES), so a rename re-buckets it and re-counts every self-call edge and attribute reference it touches. With every row at zero headroom, a PR can add up to 7 real cross-seam edges and pay for them by renaming _commanded_power.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_rename.py",
+    "harness_path": "tools/audit/round8/D7/s2_rename.py",
+    "value": 27,
+    "unit": "count (renames_that_lower_cross_seam_edges; max_single_rename_drop=7)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container (audit-r8), python 3.11.15",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 24.18,
+    "thread_factor": 1.0,
+    "null_control": "each method renamed to <name>_r (same bucket): null_nonzero=0",
+    "leave_one_out": {
+     "cells": 27,
+     "min": 1,
+     "max": 7,
+     "drop_most_favourable": 5
+    }
+   },
+   "instrumented_symbol": "tests/structure.py:seam_metrics on coordinator.py:HeatPumpOptimizerCoordinator",
+   "perturbation": {
+    "change": "SEAM_REGEXES emptied (--perturb), so every method is core",
+    "expected_direction": "to_zero",
+    "observed": {
+     "base_cross_seam_edges": 0,
+     "renames_that_lower": 0
+    }
+   },
+   "metric_definition": "Per coordinator method, delta in seam_metrics cross_edges and sum(cut_*) when only its def name and self.<name> references are renamed into the core bucket.",
+   "phenomenon_property": "A coupling ratchet row is invariant under a behaviour-preserving rename.",
+   "seam_rule": "tools/audit/round8/D7/s2_rename.py",
+   "stop_rule_class": "hygiene",
+   "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+   ],
+   "proposed_fix_scope": "Bucket methods by a committed explicit method->seam map that structure.py checks (a new method must be classified), or refuse a bucket change for a method present at recorded_at."
+  },
+  {
+   "id": "D7-s2-03",
+   "title": "The wood-coil DHW edge of the two_tank_4way layout survives deletion under every driver in its closure",
+   "severity": "low",
+   "claim": "Disabling the 'if dhw_coil:' branch of topology.layout_edges (the wood_tank->dhw_tank edge of two_tank_4way) is killed by none of the Python scripts in topology.py's recorded closure (features.py plus 13 more) nor by card.mjs/card_drift.mjs; the only dhw_coil check (features.py:10513) passes dhw_coil=False.",
+   "mechanism": "layout_edges is the single composition the drawing and the editor's snap/match both use (its docstring). With the coil branch gone, a coil install's diagram loses its wood->DHW pipe and the editor's edge match changes, and no check sees it. In this year's train it is the only one of 6 items whose spot mutation survived.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_spot.py --only M3 && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_spot.py --only M3 --closure --jobs 4",
+    "harness_path": "tools/audit/round8/D7/s2_spot.py",
+    "value": 0,
+    "unit": "count (killed[M3]; drivers that kill: 0 of 15)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container (audit-r8), python 3.11.15",
+    "cpu_or_wall": "count",
+    "contention_note": "M3 via features.py at load 7-24; the --closure arm at load1 1.94",
+    "tolerance": "exact",
+    "load1": 1.94,
+    "thread_factor": 1.0,
+    "null_control": "same kill rule, same copy: M1, M2, M5, M6, M7 and M4 each killed (5 of 6 train items plus M4); s2_spot --null --only M4 -> killed 0",
+    "leave_one_out": "n/a"
+   },
+   "instrumented_symbol": "heatpump_optimizer.topology:layout_edges (dhw_coil branch), verdict by tests/mutation_table.py:run_script",
+   "perturbation": {
+    "change": "a killing check, e.g. layout_edges('two_tank_4way', two_zone=True, wood=True, dhw_coil=True) contains ('wood_tank','dhw_tank'), added to features.py; killed[M3] must go 0 -> 1",
+    "expected_direction": "up"
+   },
+   "metric_definition": "Whether a spot mutation of the item's owning symbol changes the exit status or raises the FAILED count of any driver versus the unmutated copy (mutation_table's rule).",
+   "phenomenon_property": "Every train item's owning branch is killed by a check when mutated.",
+   "seam_rule": "tools/audit/round8/D7/s2_spot.py --closure",
+   "stop_rule_class": "hygiene",
+   "files": [
+    "custom_components/heatpump_optimizer/topology.py",
+    "tests/features.py"
+   ],
+   "proposed_fix_scope": "Add one features.py check for the dhw_coil=True edge set of two_tank_4way (and its editor match); re-run s2_spot.py --only M3."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Step 1 readings: all 24 structure_budgets.json metrics read exactly their budget (zero headroom); ratchet passes. Readings: attrbag 1, classes_over_300 11, const_modules_over_50 3, coordinator_attrs 153, coordinator_loc 9127, coordinator_methods 227, multiassigned 117, cross_seam_edges 140, cut_dhw 73, cut_fetch 132, cut_grid 200, cut_learning 285, cut_views 110, dead_methods 0, dead_top_level_symbols 0, duplication_blocks 14, cc>15 34, cc>25 8, internal_call_edges 319, local_imports 7, max_cc 48, max_class_loc 9127, max_method_loc 387, methods>150 18, methods>200 11.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tests/structure.py",
+   "value": "24/24 at budget"
+  },
+  {
+   "claim": "Metric not in the file (reading only, no finding): coordinator.py is 10803 lines; the budgeted class is 9127 lines; 46 module-level functions (950 lines) in the same file sit under no row, so hoisting a method there lowers coordinator_loc/methods without shrinking the file.",
+   "command": "python3 -c 'ast count of coordinator.py top-level functions'",
+   "value": "46 functions / 950 lines"
+  },
+  {
+   "claim": "dead_methods=0 holds under self-scoped reachability: no method is unreachable once self.m is resolved within its class family (SystemIdentification.identify is reached through self.identify at sysid.py:1245).",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_reach.py",
+   "value": "unreachable_methods_name_based=0"
+  },
+  {
+   "claim": "DYNAMIC_REFERENCES holds: the 4 CONF_* getattr-assembled constants are the only other unreachable names, and the gate exempts them correctly.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_reach.py",
+   "value": "string_referenced_set_aside=4"
+  },
+  {
+   "claim": "Train spot mutations killed (owning module / driver): M1 optimizer._bounds_supported_by_batch->False killed by features.py (1->8 failed; optimality.py did not see it); M2 dhw_schedule weekly day selector ignored killed by features.py (1->19; entities.py did not see it); M4 coordinator._dhw_confidence_band always null killed by plan_view.py (rc 0->1); M5 coordinator._reanchor_house_heat_loss_scale->False killed by features.py (1->9); M6 device_prefill Tuya T4 row removed killed by config_flow_steps.py (0->2); M7 wood_fuel.wood_furnace_on->False killed by features.py (1->27). Drift gate, scoped gate and stress budgets are test infrastructure with no production owning symbol and were not spot-mutated.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_spot.py --jobs 3",
+   "value": "6 of 7 killed (M3 survives, D7-s2-03)"
+  },
+  {
+   "claim": "Harness gap: in the no-.git copy the baselines are features.py 1 failed, entities.py 20 failed, optimality.py 1 failed, golden.py rc=1, card_drift.mjs rc=1, all for the prepared-environment reasons in BASELINE.md. The spot verdicts compare against the same unmutated copy, so these do not bias them, but a mutant killed only by those checks could be missed.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D7-s2 python3 tools/audit/round8/D7/s2_spot.py",
+   "value": "baseline failed counts 1/20/1"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D7/s2_reach.py",
+  "tools/audit/round8/D7/s2_sentinel.py",
+  "tools/audit/round8/D7/s2_rename.py",
+  "tools/audit/round8/D7/s2_spot.py"
+ ],
+ "unfinished": "Finding ids follow the task's D7-s2-NN form, which finding.schema.json's id pattern ^D..-[0-9]{2}$ rejects; the schema's null_control/leave_one_out shapes also differ from the evidence-embedded form used here. The spot-mutation --null arm ran for M4 only. Step 5 covered production items only; the drift gate, scoped gate and stress budgets were not mutated. The card collaborators were covered only through card.mjs/card_drift.mjs on M3. The REPORT-s2.md write was refused by the harness."
+}

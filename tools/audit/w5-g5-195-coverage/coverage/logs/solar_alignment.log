@@ -1,0 +1,21 @@
+== step alignment ==
+  ok   returns one irradiance value per step
+  ok   step 0 carries the interval containing now
+  ok   step 1 is the next quarter hour, not the same or a jump
+  ok   the whole horizon advances monotonically by one step
+
+== resolution independence ==
+  ok   hourly data lands on the hour containing now
+  ok   an hourly value is held across its four steps
+  ok   steps straddling two hours are not forced to one value
+
+== observed data wins ==
+  ok   observed satellite values replace the forecast
+
+== fallbacks ==
+  ok   steps beyond the Open-Meteo horizon keep the weather entity value
+  ok   without Open-Meteo the weather entity is still used
+  ok   an unavailable Open-Meteo client does not zero the irradiance
+  ok   irradiance is never negative
+
+ALL SOLAR ALIGNMENT CHECKS PASSED

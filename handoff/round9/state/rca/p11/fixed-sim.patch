@@ -1,0 +1,73 @@
+--- ../../rca-p11/tests/hastub/homeassistant/util/dt.py	2026-09-26 17:46:32.393256123 +0000
++++ hastub/homeassistant/util/dt.py	2026-09-26 17:57:17.101451596 +0000
+@@ -33,20 +33,17 @@
+ 
+ 
+ def now():
++    zone = DEFAULT_TIME_ZONE or timezone.utc
+     if _FROZEN is not None:
+-        return _FROZEN
+-    if DEFAULT_TIME_ZONE is not None:
+-        return datetime.now(DEFAULT_TIME_ZONE)
+-    return datetime.now()
++        if _FROZEN.tzinfo is None:
++            return _FROZEN.replace(tzinfo=zone)
++        return _FROZEN.astimezone(zone)
++    return datetime.now(zone)
+ 
+ 
+ def utcnow():
+     if _FROZEN is not None:
+-        return (
+-            _FROZEN
+-            if _FROZEN.tzinfo is not None
+-            else _FROZEN.replace(tzinfo=timezone.utc)
+-        )
++        return now().astimezone(timezone.utc)
+     return datetime.now(timezone.utc)
+ 
+ 
+--- ../../rca-p11/tests/hastub/homeassistant/helpers/update_coordinator.py	2026-09-26 17:46:32.392361192 +0000
++++ hastub/homeassistant/helpers/update_coordinator.py	2026-09-26 17:57:17.101706423 +0000
+@@ -133,6 +133,7 @@
+         self.logger = logger
+         self.name = name
+         self.config_entry = config_entry
++        self.update_interval = update_interval
+         # Upstream's default (:75, :92) is True, and the integration's
+         # coordinator constructs with no override, so listeners are fanned
+         # out on EVERY successful refresh, not only when data or success
+--- ../../rca-p11/tests/ha_contract.py	2026-09-26 17:58:56.805810696 +0000
++++ ha_contract.py	2026-09-26 17:57:17.102140380 +0000
+@@ -741,7 +741,7 @@
+ # the suite puts it in: a hook upstream does not have must not make the symbol
+ # return a value upstream never returns. round-9 D14-s4-02: the replay lane
+ # froze a fixed-offset clock where Home Assistant hands out its ZoneInfo.
+-def _freeze_at(value):
+     def enter():
+         from homeassistant.util import dt as dt_util
+ 
+@@ -760,10 +760,10 @@
+     from datetime import datetime, timedelta, timezone
+ 
+     return [
+-        ("frozen naive", _freeze_at(datetime(2026, 7, 1, 12)), _thaw),
+         (
+             "frozen at a fixed offset",
+-            _freeze_at(datetime(2026, 7, 1, 12, tzinfo=timezone(timedelta(hours=1)))),
+             _thaw,
+         ),
+     ]
+@@ -1944,9 +1944,10 @@
+     from homeassistant.util import dt as dt_util
+ 
+     got = dt_util.now()
++    assert got.tzinfo is not None
++    assert got.utcoffset() == got.tzinfo.utcoffset(got.replace(tzinfo=None))
+     if dt_util.DEFAULT_TIME_ZONE is not None:
+-        assert got.tzinfo is not None
+-        assert got.utcoffset() == dt_util.DEFAULT_TIME_ZONE.utcoffset(got.replace(tzinfo=None))
++        assert got.tzinfo is dt_util.DEFAULT_TIME_ZONE
+ 
+ 
+ @contract(

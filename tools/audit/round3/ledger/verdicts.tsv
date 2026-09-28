@@ -1,0 +1,42 @@
+id	verdict	severity	class	dim	headline
+D1-01	verified	high	bug	D1	A JSON string "nan" in the thermal_learning store makes every update cycle raise UpdateFailed, permanently
+D1-02	weakened	low	bug	D1	The reload plan handover has no expiry: one published payload reports a 7-day-old plan as 0.0 minutes old
+D1-03	weakened	medium	bug	D1	A backward host-clock step under-reports every input age, so the staleness watchdog fails open for a bounded window
+D2-01	weakened	low	bug	D2	COP falls as outdoor temperature rises in the heating band when the Carnot flow correction is on
+D2-02	weakened	low	bug	D2	tariff.window_factors walks the wall clock while the plan walks UTC, so DST days label windows with the wrong hour
+D2-03	verified	high	bug	D2	A drifting room sensor lands in the identified heat-loss coefficient, and the adoption gate rewards the drift
+D7-01	weakened	medium	bug	D7	The sysid step experiment is sized by a one-state model of a two-state plant and adopts nothing
+D7-02	weakened	low	hygiene	D7	A regression guard asserts over an empty set and cannot catch the class of defect it is named for
+D7-03	weakened	medium	bug	D7	The frequency map is folded during reverse-cycle cooling and inherited when a user switches to control mode
+D9-01	refuted	info	hygiene	D9	(refuted - no issue) multi-start redundancy is within its own permutation null
+D9-02	weakened	low	bug	D9	The fuse advisor's weekly rate limit is memory-only, so every restart re-runs its shadow solve
+D9-03	weakened	low	bug	D9	The in-process solve fallback holds the GIL for ~90% of the solve, with no cap on how long an install stays there
+D9-04	weakened	low	hygiene	D9	The solve worker is released only at Home Assistant shutdown, and nothing measures its cost honestly
+D8-01	verified	medium	bug	D8	The wood night advisor is gated on a value nothing supplies, though the tree already computes it
+D8-02	weakened	low	hygiene	D8	One enabled-by-default sensor renders Unknown where its siblings render Unavailable, and no rule prevents the next one
+D8-03	weakened	low	hygiene	D8	Entity display names mix leading and trailing nouns, so an alphabetical sort splits families
+D11-01	verified	critical	bug	D11	main's ruleset cannot require a review from any actor, and the one merging identity bypasses every rule
+D11-02	verified	high	bug	D11	record is a required context whose job cannot run on a pull request, so it gates nothing and only fails after the merge
+D11-03	verified	high	bug	D11	The owner-approval section is required only when the author's own title starts with policy:
+D11-04	weakened	low	hygiene	D11	No SECURITY.md advertises the private vulnerability channel that is already enabled
+D11-05	verified	medium	hygiene	D11	Five dispatch prompts read GitHub free text while holding merge authority, and no rule says that text is data
+D3-01	weakened	medium	hygiene	D3	15 of 34 single-line production mutants survive the fast gate and the differential golden gate
+D3-02	weakened	medium	hygiene	D3	A sensor can be made to return None for every state and the gate stays green
+D3-03	weakened	medium	hygiene	D3	The price-shape isfinite guard is unpinned, and one NaN hour poisons the whole weekday profile
+D3-04	verified	medium	hygiene	D3	Disabling the irradiance fallback is caught only by a ratchet that calls it an improvement
+D3-05	verified	low	hygiene	D3	Line deletion is the wrong operator for the end-to-end solver scripts
+D3-FLAKE	verified	medium	bug	D3	A wall-clock lower bound in the #525 null control makes ~15% of features.py runs red at random
+D5-01	weakened	low	hygiene	D5	12 of 180 adjudicated (finder's 10 is CONSERVATIVE: 3 substring accidents added, price_surcharge over-fire removed); severity low - 13/13 fields carry substantive in-flow help, chain ends at an advisory-only diagnostic sensor
+D5-02	weakened	low	hygiene	D5	2 of 739 (0.27%) unresolvable; 12 sites resolve by dropping the underscore, 5 via the rename table IN THE TREE at docs/plan-card-decomposition.md:157-168, 1 has no counterpart; gloss inflates the actionable population 13x
+D5-03	verified	low	hygiene	D5	1 broken anchor of 338 links / 98 md files; also 1 of 6 README same-doc anchors and 1 of 3 in the :194 sentence
+D5-04	verified	low	hygiene	D5	1 supersession pair, BOTH halves broken; the two metrics move INDEPENDENTLY so they are two separable defects
+D6-01	verified	medium	hygiene	D6	21 offered / 6 top / 15 advanced / 20 editable vs 13 documented; 8 advanced with no row; per-page contents wrong by -7/+8/-13; LOO dropping the advanced cell still leaves 5 false claims about FIRST-MENU pages
+D6-02	verified	low	hygiene	D6	74 = 59+5+4+4+1+1 by two independent rules; 5 false census sentences across 2 docs; 0 gate scripts open either file; production-side arm decisive
+D6-03	weakened	low	hygiene	D6	16/4/5 vs documented 11/3/3 holds, but 0 of 69 service fields lack a name+description in strings.json and both translations - "documented-nowhere capability" REFUTED; incomplete doc reference only
+D6-04	verified	low	hygiene	D6	12 constructed / 10 listed / 2 undocumented; repair is GATE-BLOCKED - tests/entities.py:796-818 uses vars() so away/boost are structurally invisible; check is ok at baseline and FAILS with the README fix
+D0-01	weakened	low	hygiene	D0	ONE DEFECT WITH D0-02 (same cell is the maximum for both arms on both grids). Unfair comparison; residual start-selection value 0.0004% after LOO; not actionable
+D0-02	weakened	low	hygiene	D0	the actionable half of the same defect; price-shape qualifier is a band-17 artefact; 8.7x cheaper per point recovered
+D10-01	weakened	low	hygiene	D10	3 not 4 (double-counts D10-02); totals line refuted by two seats
+D10-02	verified	low	hygiene	D10	1 of 270 / 3 of 810, ruler-robust
+D10-03	weakened	low	hygiene	D10	67 is the only ruler-invariant number; 578 fails the repo's own construction guard; py.typed refuted
+D10-04	weakened	low	hygiene	D10	stated mechanism refuted from two directions; zero user-visible effect at every shipped version

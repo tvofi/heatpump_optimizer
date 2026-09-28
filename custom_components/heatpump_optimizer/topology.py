@@ -1,0 +1,986 @@
+"""One description of the configured system, shared by every picture of it.
+
+Items 32 and 33. The config flow's setup overview and the card's setup page
+both draw the same system — house, zones, tanks, valves, furnace, and every
+sensor at its physical place. Two renderers with two ideas of the topology
+would diverge the first time a sensor is added, so the description is built
+here, once, and both consume it.
+
+Everything is derived from configuration the integration already has — the
+backlog is explicit that this needs no new options. The derived facts
+(two-zone, DHW, valve mode, whether the tank is a store) come from
+``ThermalParameters.from_config`` itself, so a picture can never disagree
+with what the model actually believes.
+
+**A slot that is empty is shown empty.** A diagram that silently omits an
+unconfigured sensor looks complete, and "looks complete" is worse than no
+diagram — the whole point is to reveal what is missing.
+
+Kept free of Home Assistant imports so it can be unit-tested directly, like
+`manual_plan`, `mixing_valve` and `external_heat`.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace as dataclass_replace
+from typing import Any, Final
+
+import numpy as np
+
+from . import mixing_valve
+from .tariff import metering_windows
+from .const import (
+    CONF_TOPOLOGY_POSITIONS,
+    TOPOLOGY_NO_VALVE,
+    TOPOLOGY_SINGLE_TANK_VALVE,
+    TOPOLOGY_SLAB_SHUNT,
+    TOPOLOGY_TWO_TANK_4WAY,
+    TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
+    topology_layout_valid,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_DHW_WOOD_COIL_ENABLED,
+    CONF_ENERGY_ENTITY,
+    CONF_EXTERNAL_HEAT_ENABLED,
+    CONF_EXTERNAL_HEAT_ENTITY,
+    CONF_WOOD_FURNACE_ENABLED,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
+    CONF_HOUSE_POWER_ENTITY,
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_MIXING_VALVE_TARGET,
+    CONF_MIXING_VALVE_TARGET_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_POWER_ENTITY,
+    CONF_PV_PRODUCTION_ENTITY,
+    CONF_SOLAR_RADIATION_ENTITY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_WOOD_TANK_BOTTOM_ENTITY,
+    CONF_WOOD_TANK_TOP_ENTITY,
+    CONF_WOOD_TANK_VOLUME,
+    DEFAULT_WOOD_TANK_VOLUME,
+    HOUSE_HEAT_LOSS_SCALE_MAX,
+    HOUSE_HEAT_LOSS_SCALE_MIN,
+    LOWER_FLOOR_LOSS_RATIO_MAX,
+    LOWER_FLOOR_LOSS_RATIO_MIN,
+    buffer_cooling_rate_bounds,
+)
+from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+
+# Every sensor slot the diagram can show: (config key, place, label).
+# Places are stable ids both renderers key their drawing off; adding a place
+# here without teaching the renderers about it is harmless — unknown places
+# land in the "elsewhere" group rather than vanishing.
+# The domains each slot accepts, so the card's picker and the assign service
+# agree about what may go where. Assigning a switch to a temperature slot is
+# the mistake a clickable diagram makes easy, and the one that produces a
+# model quietly planning against nonsense rather than an error.
+_TEMP = ("sensor", "number", "input_number")
+# What the pump reports about itself. A flag may plausibly arrive as a
+# binary_sensor, as a switch (some integrations expose writable DPs that way),
+# as an input_boolean mirroring one, or as a plain sensor carrying the raw
+# code — so all four are accepted and `inputs.parse_bool` reconciles them.
+#: Public because the options flow needs the same four domains for the
+#: electric-heat and night-mode slots, which are options-only and so have no
+#: row in ``_SLOTS`` to read them from. One tuple, not two spellings of one:
+#: a picker that offers what the assign service would refuse is the defect
+#: this table exists to prevent.
+FLAG_DOMAINS: tuple[str, ...] = (
+    "binary_sensor",
+    "switch",
+    "input_boolean",
+    "sensor",
+)
+_FLAG = FLAG_DOMAINS
+_MODE = ("select", "sensor", "input_select")
+
+# What a slot is asking for, where the answer is narrower than the domains it
+# accepts. ``sensor`` covers every reading a house produces, so on an install
+# with hundreds of them the card's picker ranks a matching device class to the
+# top of the list: the probe the slot is for is near the top before a single
+# character is typed. RANKING ONLY -- nothing is hidden by it, because plenty
+# of working sensors carry no device class at all, and a picker that hid those
+# would hide the very probe the user came to assign.
+#
+# It lives here, in the same row as the domains, rather than in a second table
+# inside the card: two descriptions of one slot are two things to keep in step,
+# and the card's copy was reachable by no test at all.
+_TEMPERATURE = "temperature"
+_POWER = "power"
+_ENERGY = "energy"
+_IRRADIANCE = "irradiance"
+_SLOTS: tuple[tuple[str, str, str, tuple[str, ...], str | None], ...] = (
+    (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature", _TEMP,
+     _TEMPERATURE),
+    (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation", _TEMP,
+     _IRRADIANCE),
+    (CONF_PV_PRODUCTION_ENTITY, "outdoor", "PV production", _TEMP, _POWER),
+    (CONF_INDOOR_TEMP_ENTITY, "upper_zone", "Indoor temperature", _TEMP,
+     _TEMPERATURE),
+    (CONF_LOWER_FLOOR_TEMP_ENTITY, "lower_zone", "Lower floor temperature",
+     _TEMP, _TEMPERATURE),
+    (CONF_FLOOR_RETURN_TEMP_ENTITY, "floor_loop", "Floor loop return", _TEMP,
+     _TEMPERATURE),
+    (CONF_HEAT_PUMP_SWITCH_ENTITY, "heat_pump", "Heat pump switch",
+     ("switch", "input_boolean", "climate"), None),
+    (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP, _POWER),
+    (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP, _ENERGY),
+    (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP, _POWER),
+    # v5.3.0: what the pump says about itself. All optional, all read-only,
+    # all at the heat pump because that is the device they describe. None of
+    # them has a device class worth ranking on: a mode is a select, and the
+    # three flags arrive as whichever of four domains the integration chose.
+    (CONF_HEAT_PUMP_MODE_ENTITY, "heat_pump", "Operating mode", _MODE, None),
+    (CONF_HEAT_PUMP_DEFROST_ENTITY, "heat_pump", "Defrosting", _FLAG, None),
+    (CONF_HEAT_PUMP_ONLINE_ENTITY, "heat_pump", "Online status", _FLAG, None),
+    (CONF_HEAT_PUMP_FAULT_ENTITY, "heat_pump", "Fault alarm", _FLAG, None),
+    (CONF_BUFFER_TANK_TEMP_ENTITY, "buffer_tank", "Buffer tank temperature",
+     _TEMP, _TEMPERATURE),
+    (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target", _TEMP,
+     _TEMPERATURE),
+    (CONF_DHW_TEMP_ENTITY, "dhw_tank", "Hot water temperature", _TEMP,
+     _TEMPERATURE),
+    # A stove sensor is a thermometer on some installs and a contact on
+    # others, which is why it accepts four domains; ranking one of them would
+    # push the other three down for no reason.
+    (CONF_EXTERNAL_HEAT_ENTITY, "wood_tank", "Stove or flue sensor",
+     ("sensor", "binary_sensor", "switch", "input_boolean"), None),
+    (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top", _TEMP,
+     _TEMPERATURE),
+    (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom", _TEMP,
+     _TEMPERATURE),
+    # "wood_valve" is a slot id, not a drawn place: the wood-side blending
+    # valve was a box of its own until v4.0.0, when the user's #40 feedback
+    # (item 3) had it removed — it modelled nothing, could not be deleted,
+    # and drew a device nobody owns. ``describe_setup`` re-homes this slot
+    # onto the 4-way valve in the two-tank layout and onto the wood tank
+    # everywhere else.
+    (CONF_VALVE_OUTLET_TEMP_ENTITY, "wood_valve", "Valve outlet temperature",
+     _TEMP, _TEMPERATURE),
+)
+
+#: Every config key a diagram may assign, and the domains it accepts. The one
+#: source for the card's picker and the ``assign_entity`` service, so what the
+#: diagram offers and what the service accepts cannot drift apart.
+ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
+    key: domains for key, _place, _label, domains, _class in _SLOTS
+}
+
+
+def _slot_extras(key: str, config: dict[str, Any]) -> dict[str, Any]:
+    """Fields the card needs on one slot that the table row does not carry.
+
+    The indoor °C a dumb mixing valve holds lives on the config, not on an
+    entity. Publishing it here is what lets the picker edit the number
+    without inventing a fake sensor.
+    """
+    if key != CONF_MIXING_VALVE_TARGET_ENTITY:
+        return {}
+    return {
+        "manual_setpoint": float(config.get(CONF_MIXING_VALVE_TARGET) or 0.0)
+    }
+
+
+def _place_home(place: str, *, two_tank: bool) -> str:
+    """Where a slot named for ``place`` actually lives on this topology.
+
+    The "wood valve" stopped being a drawn place in v4.0.0 (#40 feedback,
+    item 3): in the two-tank layout the 4-way valve is the one physical
+    device the outlet probe sits on, and in the single-tank abstraction the
+    probe belongs with the wood tank whose blended output it measures — a
+    separate box modelled nothing and could not be removed.
+    """
+    if place == "wood_valve":
+        return "mixing_valve" if two_tank else "wood_tank"
+    return place
+
+
+#: Every place a sensor slot can be homed at, under either re-homing. A box
+#: on the setup page is a titled list of those slots, so this is also every
+#: place the diagram can draw a box for — and therefore every place a saved
+#: box position may be filed under. ``apply_topology`` validates its
+#: ``positions`` argument against it.
+#:
+#: Derived from ``_SLOTS`` rather than listed beside it, because the listed
+#: version WAS the defect (#546): ``positions`` used to be validated against
+#: ``PLACE_LABELS``, a hand-kept map of English names for the endpoints of
+#: drawn edges, which has no ``outdoor`` in it. The card sends the positions
+#: the user moved, unfiltered, so dragging the Outside box made the setup
+#: page unsaveable — and the layout change rides the same call, so nothing on
+#: the page could be saved at all. That map went with the fix: the schema was
+#: its only reader, and the card's rejection line labels places from its own
+#: translation keys. A drawn box missing from this set now needs a box that
+#: holds no slots, which ``tests/features.py`` refuses.
+POSITION_PLACES: frozenset[str] = frozenset(
+    _place_home(place, two_tank=two_tank)
+    for _key, place, _label, _domains, _class in _SLOTS
+    for two_tank in (False, True)
+)
+
+# ---------------------------------------------------------------------------
+# The layout catalog (v3.16.0, issue #40)
+# ---------------------------------------------------------------------------
+#
+# The root-cause fix for "the diagram lies about the physics": one catalog
+# of named hydronic layouts that the editor validates against, the drawing
+# derives its edges FROM, and the model dispatches on
+# (`ThermalParameters.topology_layout`). Free-form graphs are never stored:
+# the editor snaps a drawn edge set to a catalog key or rejects it with an
+# explanation naming the nearest supported layout.
+
+
+@dataclass(frozen=True)
+class Layout:
+    """One supported (or known-but-unmodelled) hydronic arrangement."""
+
+    key: str
+    label: str
+    description: str
+    #: What the configuration must have for this key to be storable — the
+    #: prose half of `const.topology_layout_valid`, shown when a selection
+    #: is rejected.
+    requirement: str
+    #: False = drawable in explanations, selectable never, because no model
+    #: variant exists — promising physics nobody wrote is the exact failure
+    #: this catalog ends.
+    selectable: bool = True
+
+
+LAYOUTS: dict[str, Layout] = {
+    layout.key: layout
+    for layout in (
+        Layout(
+            TOPOLOGY_NO_VALVE,
+            "No mixing valve",
+            "Everything the pump makes reaches the emitters; the tank is a "
+            "pass-through with a standing loss.",
+            "no throttling mixing valve configured",
+        ),
+        Layout(
+            TOPOLOGY_SINGLE_TANK_VALVE,
+            "One tank behind a valve",
+            "The valve regulates one shared flow to every circuit; wood "
+            "heat, if any, is folded into the heat-pump tank.",
+            "a throttling mixing valve",
+        ),
+        Layout(
+            TOPOLOGY_TWO_TANK_4WAY,
+            "Two tanks, one 4-way valve",
+            "A wood tank beside the heat-pump tank; the valve draws "
+            "wood-first while usable and feeds both floors in parallel.",
+            "a throttling valve, two zones and a wood-tank top probe",
+        ),
+        Layout(
+            TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
+            "Valve on the radiators, slab fed direct",
+            "Only the radiator circuit sits behind the valve; the slab "
+            "drinks raw tank water.",
+            "a throttling valve, two zones, and no wood-tank probe (no "
+            "model exists for two tanks with a direct-fed slab)",
+        ),
+        Layout(
+            TOPOLOGY_SLAB_SHUNT,
+            "Separate slab shunt",
+            "A second shunt on the slab circuit. Recorded as a known "
+            "layout; not selectable until physics exists for it.",
+            "not selectable: no model variant exists yet",
+            selectable=False,
+        ),
+    )
+}
+
+def layout_edges(
+    key: str,
+    *,
+    two_zone: bool,
+    wood: bool,
+    dhw_coil: bool = False,
+    dhw: bool = False,
+) -> list[tuple[str, str]]:
+    """The drawn edge set of a layout under this configuration's flags.
+
+    Place-name pairs, source to sink. The flags matter because the same
+    layout draws differently on different houses — a one-zone house has no
+    lower-floor edge, a house without a furnace has no wood chain — and
+    both the drawing and the editor's matching must agree on the composed
+    set, so it is composed here, once.
+    """
+    edges: list[tuple[str, str]] = [("heat_pump", "buffer_tank")]
+    # The single-tank wood chain: the furnace tank's heat folded into the HP
+    # tank. Drawn tank-to-tank since v4.0.0 — the wood-side blending valve
+    # used to be a box of its own, which modelled nothing, could not be
+    # removed, and drew a device nobody owns (#40 feedback, item 3). Only
+    # two_tank_4way replaces this chain.
+    wood_chain = [("wood_tank", "buffer_tank")]
+    if key == TOPOLOGY_NO_VALVE:
+        edges.append(("buffer_tank", "upper_zone"))
+        if two_zone:
+            edges.append(("buffer_tank", "lower_zone"))
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_SINGLE_TANK_VALVE:
+        edges.extend(
+            [("buffer_tank", "mixing_valve"), ("mixing_valve", "upper_zone")]
+        )
+        if two_zone:
+            edges.append(("mixing_valve", "lower_zone"))
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_TWO_TANK_4WAY:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("wood_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("mixing_valve", "lower_zone"),
+            ]
+        )
+        if dhw_coil:
+            edges.append(("wood_tank", "dhw_tank"))
+    elif key == TOPOLOGY_VALVE_UPPER_DIRECT_SLAB:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("buffer_tank", "lower_zone"),
+            ]
+        )
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_SLAB_SHUNT:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("buffer_tank", "slab_shunt"),
+                ("slab_shunt", "lower_zone"),
+            ]
+        )
+    else:
+        raise KeyError(f"unknown layout {key!r}")
+    # Electric hot water rides every layout: the heat pump heats the DHW tank
+    # whenever hot water is modelled at all. The diagram used to omit this
+    # pipe entirely, leaving the tank floating unconnected (#40 feedback,
+    # item 2) — with a coil, the only pipe shown was the wood one, which
+    # implied the tank had no electric heat source at all.
+    if dhw:
+        edges.append(("heat_pump", "dhw_tank"))
+    return edges
+
+
+def _wood_tank_shown(config: dict[str, Any]) -> bool:
+    """Wood tank on the picture: explicit flag, else the leftover-entity trio."""
+    if CONF_WOOD_FURNACE_ENABLED in config:
+        return bool(config[CONF_WOOD_FURNACE_ENABLED])
+    return bool(
+        config.get(CONF_EXTERNAL_HEAT_ENABLED)
+        or config.get(CONF_WOOD_TANK_TOP_ENTITY)
+        or config.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
+        or config.get(CONF_VALVE_OUTLET_TEMP_ENTITY)
+        or config.get(CONF_EXTERNAL_HEAT_ENTITY)
+    )
+
+
+def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
+    """The configured system as one structured description.
+
+    Pure over the config dict. The ``slots`` list includes empty slots for
+    every place the configured topology has, each entry
+    ``{key, label, place, entity}`` with ``entity`` ``None`` when nothing is
+    assigned.
+    """
+    p = ThermalParameters.from_config(config)
+    valve = mixing_valve.is_throttling(p.mixing_valve_mode)
+    # Whether the wood tank is simulated as its own store, or folded into the
+    # heat-pump tank. Read from the model, never re-derived here, so a picture
+    # cannot claim physics the model does not run (issue #40).
+    two_tank = p.two_tank_modelled
+    wood = _wood_tank_shown(config)
+    present = {
+        "outdoor": True,
+        "upper_zone": True,
+        "heat_pump": True,
+        "buffer_tank": True,
+        "lower_zone": p.two_zone_enabled,
+        "floor_loop": p.two_zone_enabled,
+        "dhw_tank": p.dhw_enabled,
+        "mixing_valve": valve,
+        "wood_tank": wood,
+    }
+    slots = [
+        {
+            "key": key,
+            "label": label,
+            "place": _place_home(place, two_tank=two_tank),
+            "entity": config.get(key) or None,
+            # Carried so the card's picker offers only what the service will
+            # accept for this slot -- one list, not two that can disagree.
+            "domains": list(domains),
+            # ...and what the slot is actually asking for within those
+            # domains, which the picker ranks by. None where the slot has no
+            # narrower answer than its domains already give.
+            "device_class": device_class,
+            **_slot_extras(key, config),
+        }
+        for key, place, label, domains, device_class in _SLOTS
+        if present.get(_place_home(place, two_tank=two_tank), True)
+    ]
+    # The active layout's drawn edges, composed from the catalog — the card
+    # draws these rather than hardcoding pipes, so drawing and physics can
+    # no longer diverge (v3.16.0). The editor matches edited edge sets
+    # against `catalog`, whose entries carry each layout's edges under THIS
+    # configuration's flags, plus whether the configuration could store it.
+    active_edges = layout_edges(
+        p.topology_layout,
+        two_zone=p.two_zone_enabled,
+        wood=wood,
+        dhw_coil=p.dhw_coil_active,
+        dhw=p.dhw_enabled,
+    )
+    catalog = [
+        {
+            "key": layout.key,
+            "label": layout.label,
+            "description": layout.description,
+            # The prose half of the validity predicate. The card renders it
+            # when a drawing matches a layout the configuration cannot store;
+            # omitting it was the "needs: undefined" bug (#40 feedback,
+            # item 5) — the one message meant to say exactly what is missing
+            # said nothing at all.
+            "requirement": layout.requirement,
+            "selectable": layout.selectable,
+            "valid": layout.selectable
+            and topology_layout_valid(
+                layout.key,
+                two_zone=p.two_zone_enabled,
+                throttling=valve,
+                wood_probe=p.wood_tank_configured,
+            ),
+            "edges": [list(e) for e in layout_edges(
+                layout.key,
+                two_zone=p.two_zone_enabled,
+                wood=wood,
+                dhw_coil=p.dhw_coil_active,
+                dhw=p.dhw_enabled,
+            )],
+        }
+        for layout in LAYOUTS.values()
+    ]
+    positions = config.get(CONF_TOPOLOGY_POSITIONS) or {}
+    return {
+        "two_zone": p.two_zone_enabled,
+        "dhw": p.dhw_enabled,
+        "valve_mode": p.mixing_valve_mode,
+        # Additive (issue #40): the layout key the model resolved to, and
+        # whether it runs the two-tank physics. Both renderers key off these
+        # rather than re-deriving "is there a wood tank" for themselves.
+        "layout": p.topology_layout,
+        "two_tank_modelled": two_tank,
+        # Additive (v3.16.0): the drawing and the editor's material.
+        "edges": [list(e) for e in active_edges],
+        "catalog": catalog,
+        "positions": dict(positions) if isinstance(positions, dict) else {},
+        # Additive (v3.15.1): the DHW tank refills through a coil in the wood
+        # tank. Read from the model's own gate rather than re-derived, so the
+        # coil is drawn only when it can actually preheat anything — the
+        # option alone, without hot water and a modelled wood tank, changes
+        # no physics and must therefore change no picture.
+        "dhw_wood_coil": p.dhw_coil_active,
+        "buffer": {
+            "volume_l": p.buffer_tank_volume,
+            "is_store": p.buffer_is_store,
+            "max_temp": p.buffer_max_temp,
+        },
+        "wood": {
+            "present": wood,
+            "volume_l": float(
+                config.get(CONF_WOOD_TANK_VOLUME) or DEFAULT_WOOD_TANK_VOLUME
+            ),
+        },
+        "slots": slots,
+        "sensor_gaps": rank_sensor_gaps(config),
+    }
+
+
+def _slot_lines(setup: dict[str, Any], place: str) -> list[str]:
+    lines = []
+    for slot in setup["slots"]:
+        if slot["place"] != place:
+            continue
+        mark = "*" if slot["entity"] else "-"
+        if not slot["entity"] and slot.get("manual_setpoint") is not None:
+            value = f"{slot['manual_setpoint']:g} °C"
+        else:
+            value = slot["entity"] or "not configured"
+        lines.append(f"  {mark} {slot['label']}: {value}")
+    return lines
+
+
+def _sensor_gap_lines(setup: dict[str, Any]) -> list[str] | None:
+    gaps = setup.get("sensor_gaps") or []
+    ranked = [g for g in gaps if float(g.get("sek_per_month") or 0) > 0]
+    if not ranked:
+        return None
+    # Currency-neutral on purpose (round-5 D8-03, #1228): the figures below
+    # are priced in the instance's own currency (``coordinator.currency``,
+    # SEK where nothing is configured), so the panel names none of its own.
+    lines = ["Sensor-gap cost (empty slots, estimated extra / month)"]
+    for gap in ranked[:5]:
+        lines.append(f"  - {gap['label']}: {gap['sek_per_month']:.0f}")
+    return lines
+
+
+def render_text_summary(setup: dict[str, Any]) -> str:
+    """The read-only overview for the config flow, as monospaced markdown.
+
+    Item 32's recommended staging: a picture of what is configured so far,
+    with the empty slots visible. Home Assistant renders flow descriptions
+    as markdown, and a fenced block is the one drawing surface that needs no
+    endpoint, no authentication story and no frontend support beyond what
+    every install already has.
+    """
+    valve = mixing_valve.is_throttling(setup["valve_mode"])
+    # Absent on descriptions captured before issue #40, and false is the
+    # right answer for those: the single-tank abstraction is what they ran.
+    two_tank = bool(setup.get("two_tank_modelled"))
+    parts: list[str] = []
+
+    house = ["House: two zones" if setup["two_zone"] else "House: one zone"]
+    house += _slot_lines(setup, "upper_zone")
+    if setup["two_zone"]:
+        house += _slot_lines(setup, "lower_zone")
+        house += _slot_lines(setup, "floor_loop")
+    parts.append("\n".join(house))
+
+    hp = ["Heat pump"]
+    hp += _slot_lines(setup, "heat_pump")
+    parts.append("\n".join(hp))
+
+    buf = setup["buffer"]
+    tank = [
+        # With a second modelled store the bare word "buffer" stops
+        # identifying which tank is meant, so name it by what fills it.
+        ("Heat pump tank" if two_tank else "Buffer tank")
+        + f": {buf['volume_l']:.0f} L"
+        + (
+            f", used as a store up to {buf['max_temp']:.0f} °C"
+            if buf["is_store"]
+            else (", too small to store" if valve else "")
+        )
+    ]
+    if valve:
+        tank.append(f"  * Mixing valve: {setup['valve_mode']}")
+        tank += _slot_lines(setup, "mixing_valve")
+    else:
+        tank.append("  - Mixing valve: none (delivery is not throttled)")
+    tank += _slot_lines(setup, "buffer_tank")
+    parts.append("\n".join(tank))
+
+    if setup["dhw"]:
+        dhw = ["Hot water tank"]
+        # Absent on descriptions captured before v3.15.1, and absent is the
+        # right rendering for those: no coil, so nothing to say. Placed like
+        # the wood tank's caption, immediately under the heading it qualifies.
+        if setup.get("dhw_wood_coil"):
+            dhw.append("  (refilled through a coil in the wood tank)")
+        dhw += _slot_lines(setup, "dhw_tank")
+        parts.append("\n".join(dhw))
+
+    if setup["wood"]["present"]:
+        # Two tanks or one: the caption is the honest difference. Without the
+        # two-tank model the separate tank is drawn but its heat is folded
+        # into the heat-pump tank, and the summary must admit that; with it,
+        # the tank is a store in its own right and the caption would lie.
+        wood = [
+            f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"
+            + (", modelled as its own store" if two_tank else "")
+        ]
+        if not two_tank:
+            wood.append("  (modelled as heat into the heat-pump tank)")
+        # The valve-outlet probe's slot lives on the wood tank here (or on
+        # the 4-way valve in the two-tank layout, rendered above) — there is
+        # no separate wood-valve section since v4.0.0.
+        wood += _slot_lines(setup, "wood_tank")
+        parts.append("\n".join(wood))
+
+    outside = ["Outside"]
+    outside += _slot_lines(setup, "outdoor")
+    parts.append("\n".join(outside))
+
+    gap_lines = _sensor_gap_lines(setup)
+    if gap_lines:
+        parts.append("\n".join(gap_lines))
+
+    body = "\n\n".join(parts)
+    return f"```\n{body}\n```"
+
+
+def _window_peak(
+    series: Sequence[float], window_minutes: int, dt_hours: float
+) -> float:
+    if not series:
+        return 0.0
+    windows = metering_windows(
+        np.asarray(list(series), dtype=float), int(window_minutes), float(dt_hours)
+    )
+    if windows.size == 0:
+        return 0.0
+    return float(windows.max())
+
+
+def peak_miss_sek(
+    house_kw: Sequence[float],
+    hp_kw: Sequence[float],
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float = 0.25,
+    count: int = 3,
+) -> float:
+    """Monthly cost the peak term misses when the house meter is absent."""
+    true_peak = _window_peak(house_kw, window_minutes, dt_hours)
+    blind_peak = _window_peak(hp_kw, window_minutes, dt_hours)
+    return max(0.0, (true_peak - blind_peak) * float(price_per_kw) / max(int(count), 1))
+
+
+def outdoor_cop_miss_sek(
+    load_kw: float,
+    hours: float,
+    price: float,
+    cop_true: float,
+    cop_guess: float,
+) -> float:
+    """Cost from a COP miss when the outdoor probe is absent."""
+    if cop_true <= 0.0 or cop_guess <= 0.0:
+        return 0.0
+    extra_kwh = float(load_kw) * float(hours) * (1.0 / cop_guess - 1.0 / cop_true)
+    return max(0.0, extra_kwh * float(price))
+
+
+def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
+    """Cost from extra DHW reheat when the tank probe is absent."""
+    return max(0.0, float(extra_kwh) * float(price))
+
+
+def rank_sensor_gaps(
+    config: Mapping[str, Any],
+    *,
+    house_kw: Sequence[float] = (),
+    hp_kw: Sequence[float] = (),
+    peak_price: float = 45.0,
+    peak_window: int = 60,
+    peak_count: int = 3,
+    outdoor_load_kw: float = 0.0,
+    outdoor_hours: float = 0.0,
+    outdoor_price: float = 0.0,
+    cop_true: float = 3.2,
+    cop_guess: float = 2.6,
+    dhw_extra_kwh: float = 0.0,
+    dhw_price: float = 0.0,
+) -> list[dict[str, Any]]:
+    """Rank empty topology slots by estimated extra cost per month (#699).
+
+    A configured slot ranks 0. Peak costs come from ``metering_windows``.
+    """
+    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    rows = (
+        (
+            CONF_HOUSE_POWER_ENTITY,
+            0.0
+            if config.get(CONF_HOUSE_POWER_ENTITY)
+            else peak_miss_sek(
+                house_kw, hp_kw, peak_price, peak_window, count=peak_count
+            ),
+        ),
+        (
+            CONF_OUTDOOR_TEMP_ENTITY,
+            0.0
+            if config.get(CONF_OUTDOOR_TEMP_ENTITY)
+            else outdoor_cop_miss_sek(
+                outdoor_load_kw,
+                outdoor_hours,
+                outdoor_price,
+                cop_true,
+                cop_guess,
+            ),
+        ),
+        (
+            CONF_DHW_TEMP_ENTITY,
+            0.0
+            if config.get(CONF_DHW_TEMP_ENTITY)
+            else dhw_coast_miss_sek(dhw_extra_kwh, dhw_price),
+        ),
+    )
+    ranked: list[dict[str, Any]] = [
+        {
+            "key": key,
+            "label": labels.get(key, key),
+            "sek_per_month": round(float(sek), 2),
+            "empty": not bool(config.get(key)),
+        }
+        for key, sek in rows
+    ]
+    ranked.sort(key=lambda row: float(row["sek_per_month"]), reverse=True)
+    return ranked
+
+
+def looks_like_pulse_power(
+    entity_id: str,
+    *,
+    name: str = "",
+    unique_id: str = "",
+    manufacturer: str = "",
+    device_class: str | None = None,
+    domain: str = "",
+) -> bool:
+    """Whether this looks like Tibber Pulse live power (#703)."""
+    resolved_domain = domain or (entity_id.split(".", 1)[0] if "." in entity_id else "")
+    if resolved_domain != "sensor":
+        return False
+    if str(device_class or "").lower() != "power":
+        return False
+    blob = " ".join(
+        part.lower()
+        for part in (entity_id, name, unique_id, manufacturer)
+        if part
+    )
+    if "price" in blob:
+        return False
+    return "pulse" in blob or ("tibber" in blob and "power" in blob)
+
+
+def suggest_house_power_entity(
+    current: str | None,
+    candidates: Sequence[Mapping[str, Any]],
+) -> str | None:
+    """Keep a set house-power entity; otherwise propose Pulse live power."""
+    if current:
+        return current
+    for candidate in candidates:
+        entity_id = str(candidate.get("entity_id") or "")
+        if not entity_id:
+            continue
+        if looks_like_pulse_power(
+            entity_id,
+            name=str(candidate.get("name") or ""),
+            unique_id=str(candidate.get("unique_id") or ""),
+            manufacturer=str(candidate.get("manufacturer") or ""),
+            device_class=candidate.get("device_class"),
+            domain=str(candidate.get("domain") or ""),
+        ):
+            return entity_id
+    return None
+
+
+# ---------------------------------------------------------------------------
+# The sensor advisor (#1269): the value of ADDING an unconfigured sensor
+# ---------------------------------------------------------------------------
+
+#: The optional temperature slots the setup wizard's optional page offers
+#: (`_user_sensors_fields`): the candidate set the issue defines, minus
+#: whatever the entry already configures.
+_ADVISOR_CANDIDATES: tuple[str, ...] = (
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+)
+
+#: Why a candidate this proxy cannot price is still listed: the row the card
+#: renders is honest about the proxy's scope instead of silently omitting a
+#: sensor the user knows is real.
+_ADVISOR_UNPRICED: dict[str, str] = {
+    # The model still gets an outdoor temperature from the weather entity,
+    # and an unconfigured slot does not freeze learning (``_learning_frozen``
+    # ignores slots with no entity), so no clamped scalar is unreachable
+    # without it -- its value is weather-versus-probe accuracy, which this
+    # proxy has no structural measurement for.
+    CONF_OUTDOOR_TEMP_ENTITY: "weather_backed",
+    # Feeds ``update_slab_from_return_temp`` -- a state estimate, not a
+    # learned parameter with a clamp band.
+    CONF_FLOOR_RETURN_TEMP_ENTITY: "state_estimate",
+    # The DHW learners fit the draw profile and coast hours, neither of
+    # which is a ``ThermalParameters`` scalar with a published band.
+    CONF_DHW_TEMP_ENTITY: "no_clamped_parameter",
+}
+
+#: One replay's shape. 48 steps at the learner's own 0.25 h interval is a
+#: 12 h window -- two of the learner's maximum sample intervals, long enough
+#: that every band below has visibly separated the trajectories. The power
+#: is the install's own measured mean where history exists, and half the
+#: configured maximum otherwise: the duty a plan actually holds over an
+#: evening, not the nameplate.
+_ADVISOR_REPLAY_STEPS: Final = 48
+_ADVISOR_DUTY_FRACTION: Final = 0.5
+
+#: The state variables the spread is measured over: every temperature the
+#: model predicts about this install. The max over them is the candidate's
+#: weight -- "how far apart the model's own predictions sit across the band
+#: this sensor would pin down" -- one number in one unit, comparable across
+#: lanes because every lane's parameter multiplies one of these terms.
+_ADVISOR_SPREAD_FIELDS: tuple[str, ...] = (
+    "room_temperature",
+    "slab_temperature",
+    "upper_floor_temperature",
+    "lower_floor_temperature",
+    "buffer_tank_temperature",
+    "dhw_temperature",
+)
+
+
+def _advisor_replay(
+    params: ThermalParameters, electrical_power: float
+) -> ThermalState:
+    """One canonical cold-window replay through the production model.
+
+    Starts from ``ThermalState``'s own defaults -- the model's canonical
+    house, not a invented one -- and applies a constant power for
+    ``_ADVISOR_REPLAY_STEPS`` steps. Deterministic: the same config and the
+    same power produce the same end state bit for bit.
+    """
+    model = ThermalModel(params)
+    state = ThermalState()
+    for _ in range(_ADVISOR_REPLAY_STEPS):
+        state = model.simulate_step(
+            state, electrical_power, state.outdoor_temperature
+        )
+    return state
+
+
+def _advisor_edge_params(
+    params: ThermalParameters, field: str, value: float
+) -> ThermalParameters:
+    """One band edge as its own ``ThermalParameters`` instance.
+
+    Named per field rather than splatted from a dict: the lanes table names
+    exactly these three scalars, and an explicit keyword per field is what
+    keeps the pinned mypy census able to see the types at all. ``replace``
+    re-runs ``__post_init__``'s clamp, so a band edge a future field floor
+    disagrees with is corrected rather than smuggled past the boundary
+    every learner already goes through.
+    """
+    if field == "house_heat_loss_scale":
+        return dataclass_replace(params, house_heat_loss_scale=value)
+    if field == "lower_floor_loss_ratio":
+        return dataclass_replace(params, lower_floor_loss_ratio=value)
+    return dataclass_replace(params, buffer_cooling_rate=value)
+
+
+def _advisor_spread_c(
+    params: ThermalParameters, field: str, low: float, high: float, power: float
+) -> float:
+    """The predicted-temperature spread between one band's two edges."""
+    ends = [
+        _advisor_replay(_advisor_edge_params(params, field, value), power)
+        for value in (low, high)
+    ]
+    return max(
+        abs(
+            float(getattr(ends[0], name)) - float(getattr(ends[1], name))
+        )
+        for name in _ADVISOR_SPREAD_FIELDS
+    )
+
+
+def rank_sensor_advisor(
+    config: Mapping[str, Any], *, hp_kw: Sequence[float] = ()
+) -> dict[str, Any] | None:
+    """Rank unconfigured optional temperature sensors by model spread (#1269).
+
+    The inverse of `rank_sensor_gaps`: that prices what the absence of a
+    CONFIGURED sensor costs per month; this says how much the thermal
+    model's own predictions would tighten if each UNCONFIGURED optional
+    temperature sensor were added. The proxy is structural, and honest
+    about being a prior rather than a measurement: for every candidate
+    whose learner cannot run without the sensor, the learned scalar's
+    clamp band is swept through ``ThermalModel.simulate_step`` and the
+    spread between the band's edges -- in the temperatures the model
+    predicts -- is the candidate's weight. An upper bound by construction:
+    the configured prior may already be right, which is why the card
+    labels every row an estimate.
+
+    Returns ``None`` when nothing can be ranked (every optional temperature
+    slot configured), so a fully wired install publishes no attribute at
+    all -- the #1260 absence pattern.
+    """
+    candidates = [key for key in _ADVISOR_CANDIDATES if not config.get(key)]
+    if not candidates:
+        return None
+    params = ThermalParameters.from_config(dict(config))
+    samples = [float(v) for v in hp_kw if isinstance(v, (int, float))]
+    power = (
+        sum(samples) / len(samples)
+        if samples
+        else params.max_electrical_power * _ADVISOR_DUTY_FRACTION
+    )
+    # Each priced lane names the clamped scalar its learner fits and the
+    # band it may move within; the gates are the learners' own preconditions
+    # in the coordinator, cited per row.
+    lanes: dict[str, tuple[str, float, float]] = {
+        # ``_async_learn_house_heat_loss`` needs the OBSERVED indoor
+        # temperature; without the entity no independent measurement
+        # exists and the scale sits at its prior.
+        CONF_INDOOR_TEMP_ENTITY: (
+            "house_heat_loss_scale",
+            HOUSE_HEAT_LOSS_SCALE_MIN,
+            HOUSE_HEAT_LOSS_SCALE_MAX,
+        ),
+        # Hard gate: ``if not ctx._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY):
+        # return`` -- the ratio only ever moves with a real sensor.
+        CONF_LOWER_FLOOR_TEMP_ENTITY: (
+            "lower_floor_loss_ratio",
+            LOWER_FLOOR_LOSS_RATIO_MIN,
+            LOWER_FLOOR_LOSS_RATIO_MAX,
+        ),
+        # ``_async_learn_buffer_cooling`` runs only on a live buffer
+        # reading; the band is the tank's own insulation bounds.
+        CONF_BUFFER_TANK_TEMP_ENTITY: (
+            "buffer_cooling_rate",
+            *buffer_cooling_rate_bounds(params.buffer_tank_volume),
+        ),
+    }
+    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    rows: list[dict[str, Any]] = []
+    for key in candidates:
+        lane = lanes.get(key)
+        if lane is None:
+            rows.append(
+                {
+                    "key": key,
+                    "label": labels.get(key, key),
+                    "priced": False,
+                    "reason": _ADVISOR_UNPRICED[key],
+                }
+            )
+            continue
+        field, low, high = lane
+        rows.append(
+            {
+                "key": key,
+                "label": labels.get(key, key),
+                "priced": True,
+                "parameters": [field],
+                "spread_c": round(
+                    _advisor_spread_c(params, field, low, high, power), 2
+                ),
+            }
+        )
+    rows.sort(
+        key=lambda row: (
+            not row["priced"],
+            -float(row.get("spread_c") or 0.0),
+            row["key"],
+        )
+    )
+    return {
+        # The history arm: the replay was driven by the install's own
+        # measured delivery, not by configured defaults.
+        "basis": "history" if samples else "config",
+        "candidates": rows,
+    }

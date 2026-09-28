@@ -1,0 +1,14 @@
+# The branch's own remote branch carries a commit this head does not. An autofix
+# commit is exactly this shape: the bot pushes, the branch's own head stops being
+# the pull request's head, and `## Head` now names a SHA no push will ever make
+# current -- there is nothing to push.
+#
+# THE PRECONDITION THIS ARM NEEDS, stated because the first version of it did
+# not state it and was wrong for exactly that reason: a fresh local commit
+# leaves HEAD ahead and never behind ONLY when the compared ref is the branch's
+# own remote branch. Compared against `@{u}`, which on a branch cut from
+# `origin/main` names main, `behind` counts main's own new commits and this
+# arm fires on a healthy branch. See main-tracking.case.
+#
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+own-branch origin 9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 1 0 1 origin/own-branch a remote branch ahead of this head is refused

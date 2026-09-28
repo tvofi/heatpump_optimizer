@@ -1,0 +1,65 @@
+---
+description: Post a comment with the poster that reads it back, and never end a post without a read-back
+globs: .claude/workflows/gh_comment.py,.claude/workflows/web-fragments.md,.claude/skills/steward/SKILL.md,.github/PULL_REQUEST_TEMPLATE.md
+alwaysApply: true
+---
+# Posting a comment, and proving it landed
+
+**Post an issue or pull-request comment by running the poster, and read back
+what landed.** The read-back is the obligation; the poster is how you get it
+without doing anything extra.
+
+```
+python3 .claude/workflows/gh_comment.py post   --repo O/R --issue N   --body-file F
+python3 .claude/workflows/gh_comment.py patch  --repo O/R --comment I --body-file F
+python3 .claude/workflows/gh_comment.py verify --repo O/R --comment I --body-file F
+```
+
+`post` and `patch` write, then fetch the comment off the API and exit non-zero
+unless what is on the record is byte-identical to the file. `verify` is the
+read-back on its own, for a comment written some other way — a client's own
+comment verb, or the mapping in `.claude/workflows/web-fragments.md` for a seat
+with no such binary. Either route is fine. Ending without a read-back is not.
+
+## Why this prescribes rather than prohibits
+
+The defect it replaces is a field flag whose two spellings differ by the case of
+one letter. The wrong one sends the literal string `@FILE` as the body, exits 0,
+and returns a well-formed comment object carrying an id and a URL, so nothing
+between typing it and believing it worked carries a signal.
+
+Four instances in one day. Three were in seats whose dispatch carried a
+specific, correct, written warning naming that exact flag, and none of the three
+complied — **0 of 3**. Across the same seats on the same day, the instruction
+*read your comment back* was complied with **4 of 4**. The root-cause seat
+(#541 comment 5625671141) attributes the gap to what compliance leaves behind: a
+warning is discharged inside one seat's head, while a read-back prints a line
+some other seat can read, and refuses to print a pass when it could not look.
+
+So "never write that flag" is the shape already measured at 0 of 3, and a fifth
+copy of it would be a fifth copy of the thing that did not work. What is
+required here is the artifact instead: a posted comment with a read-back beside
+it. Which flag you avoided is between you and your shell.
+
+## What a read-back is
+
+- **Byte-identity against the file you sent.** Not "the API returned an
+  object", not an id, not a URL: the defect returns all three, and a comparison
+  against them passes it.
+- **A read-back that could not run is a refusal, never a pass.** The secondary
+  rate limit does not appear in a rate-limit query, so a refused fetch is
+  indistinguishable from a clean one unless the exit status is read. Treating
+  one as a pass is the same defect one level up, reached through its own
+  countermeasure.
+- **The body comes from a file.** A body composed inline is a body nothing can
+  be compared against afterwards, and it is where the wrong flag gets reached
+  for in the first place.
+
+## What it does not cover
+
+The poster addresses issue comments and pull-request conversation comments,
+which share one API surface. A **pull-request body** is not one of them: that
+belongs to `tools/audit/push.sh`, which sequences the body against the commit it
+names and is where a body's own read-back is owed. Review comments and review
+bodies are a third surface with no wrapper here — read those back by fetching
+them and comparing, and say in the pull request that you did.

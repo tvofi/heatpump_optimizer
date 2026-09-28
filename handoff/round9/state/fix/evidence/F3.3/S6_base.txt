@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/config_flow.py:2394:            resolution = device_prefill.resolve_with_fallback(records)
+custom_components/heatpump_optimizer/config_flow.py:3798:                resolution = device_prefill.resolve_with_fallback(records)
+custom_components/heatpump_optimizer/open_meteo.py:231:    resolution = timedelta(seconds=min(gaps))
+custom_components/heatpump_optimizer/prefill_offer.py:100:        resolution = device_prefill.resolve_with_fallback(devices[device_id])

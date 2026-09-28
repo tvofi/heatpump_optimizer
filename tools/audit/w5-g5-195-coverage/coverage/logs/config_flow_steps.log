@@ -1,0 +1,231 @@
+
+=== Initial config flow, walked end to end ===
+
+-- user: the same plant twice, a second pump once
+  ok   a valid first screen proceeds to the temperature step
+  ok   and carries the plant identity as the flow's unique id
+  ok   the same answers a second time abort as already_configured
+  ok   a second heat pump on the same account proceeds (null control)
+
+-- user: refused and unreachable tokens, required fields
+  ok   a 401 re-shows the first screen with invalid_tibber_token
+  ok   a refused token stores nothing
+  ok   a connect failure shows cannot_connect, not invalid_tibber_token
+  ok   an HTTP 500 is cannot_connect, not invalid_tibber_token
+  ok   a server fault stores nothing
+  ok   an errors payload on HTTP 200 is an invalid token too
+  ok   the first-screen schema requires the token and the weather entity
+
+-- walk 1 (questionnaire): user through create_entry
+  ok   the accepted first screen lands on temperature
+  ok   a valid comfort band opens the building menu
+  ok   the band answers are accumulated
+  ok   the questionnaire proceeds to the heat pump extras
+  ok   the answers are stored and the physics derived from them
+  ok   a fresh questionnaire derives a single-zone model (no zone keys)
+  ok   the nameplate numbers proceed to hot water
+  ok   an unparseable window spec is invalid_dhw_windows
+  ok   a window shorter than one planning step is dhw_window_too_short
+  ok   a minimum with no deadband below the setpoint is dhw_min_too_close
+  ok   a valid hot-water page proceeds to weather sensitivity
+  ok   a legionella cycle above the charge limit proceeds with a warning
+  ok   the last page creates the entry under the chosen name
+  ok   the entry carries one answer from every page it walked
+
+-- walk 2 (expert): thermal values and zones
+  ok   a modulation floor above the ceiling is min_power_above_max
+  ok   the thermal page refuses the same inverted power pair
+  ok   hand-typed thermal values proceed to the optional zones page
+  ok   zone answers proceed to hot water
+  ok   and the zone keys are accumulated
+  ok   hot water without a legionella cycle proceeds too
+  ok   the expert path creates its entry with the thermal values
+
+-- temperature: every comfort-band contradiction
+  ok   comfort band: min_above_target re-shows the page with exactly that error
+  ok   comfort band: min_above_target stores nothing
+  ok   comfort band: max_below_target re-shows the page with exactly that error
+  ok   comfort band: max_below_target stores nothing
+  ok   comfort band: night_above_day re-shows the page with exactly that error
+  ok   comfort band: night_above_day stores nothing
+  ok   comfort band: day_window_empty re-shows the page with exactly that error
+  ok   comfort band: day_window_empty stores nothing
+  ok   comfort band: comfort_outside_band (day) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (day) stores nothing
+  ok   comfort band: comfort_outside_band (night) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (night) stores nothing
+
+-- reauth: refused, unreachable, then fixed
+  ok   the reauth flow opens on a one-field confirm form
+  ok   the refused old token is invalid_tibber_token, not a network error
+  ok   an unreachable Tibber is cannot_connect on the confirm form too
+  ok   a new token is written through, the entry reloads, reauth_successful
+
+-- options: the two menus
+  ok   the top menu offers the revisited pages plus Advanced, in order
+  ok   the advanced menu lists the set-once pages, in order
+
+-- options walk: six top pages, every save through async_update_entry
+  ok   the setup overview renders the configured system as text
+  ok   leaving the overview returns to the menu and saves nothing
+  ok   a valid comfort page saves and returns to the top menu
+  ok   a valid hot-water page saves and warns about the legionella pair
+  ok   the DHW set-point entity round-trips on the hot_water page
+  ok   clearing the DHW set-point entity writes None
+  ok   cleared entity slots on split pages are written back as None
+  ok   the tuning page saves and returns to the top menu
+  ok   the grid page saves, converting the window dropdown to minutes
+  ok   the away page no longer offers helper fields
+  ok   the away page saves temperatures and keeps an optional person
+  ok   five saved top pages accumulate on the entry, not replace each other
+  ok   'close' merges this page into every page saved before it
+
+-- options: the advanced pages
+  ok   a changed but refused token re-shows the entities page as invalid_tibber_token
+  ok   an unreachable Tibber is cannot_connect on the entities page too
+  ok   an unchanged token skips the probe and cleared slots stick as None
+  ok   other pages' entities survive an entities-page save
+  ok   the space set-point entity and unit round-trip on the entities page
+  ok   clearing the space set-point entity writes None
+  ok   a changed token that validates is written to the options
+  ok   the building page saves to the advanced menu, clearing its entity slots
+  ok   the 'indoor' write-target kind round-trips through the page (#398)
+  ok   'flow' without the two-zone model is refused, not saved (#398)
+  ok   'flow' with the two-zone model configured saves cleanly (#398)
+  ok   empty building schema is toggle-only for wood
+  ok   a stored top probe infers the wood block on
+  ok   500 L volume alone stays toggle-only
+  ok   submitting the toggle on persists it
+  ok   toggle on shows probes, detection, type, packing, price, efficiency
+  ok   learning schema has no external_heat detection keys
+  ok   re-submitting the derived values as they are keeps the preset armed
+  ok   editing a derived number disarms the questionnaire
+  ok   enabling the preset derives physics from the answers
+  ok   a disabled preset saves the answers without deriving physics
+  ok   the solar page saves, clearing an absent production entity
+  ok   the learning page saves its watchdogs and does not carry detection
+  ok   the heat curve page saves its MQTT wiring
+
+-- options: the stored-value arm, on the four pages that had none
+  ok   an unconfigured entities page offers its entity fields undefaulted
+  ok   the entities page re-renders every stored entity as that field's default
+  ok   an unconfigured comfort page offers its entity fields undefaulted
+  ok   the comfort page re-renders every stored entity as that field's default
+  ok   an unconfigured hot_water page offers its entity fields undefaulted
+  ok   the hot_water page re-renders every stored entity as that field's default
+  ok   an unconfigured building page offers its entity fields undefaulted
+  ok   the building page re-renders every stored entity as that field's default
+
+-- golden capture: section() nesting, added and removed fields
+  ok   the section stub matches HA: a vol.Schema, options not config, collapsed defaulting False, validating through the inner schema
+  ok   grouping a page into a section keeps every field in the fingerprint
+  ok   removing a field from inside a section moves the fingerprint
+  ok   adding a field inside a section moves the fingerprint
+  ok   rewriting a selector's bounds inside a section moves the fingerprint
+  ok   a section that silently changes its collapsed state moves the fingerprint
+  ok   the option seed still reaches every field nested inside a section
+  ok   an ungrouped page gains nothing: no marker outside a section nests
+
+-- options: every page's validation errors
+  ok   an inverted comfort band re-shows the page with min_above_target
+  ok   and stores nothing
+  ok   an unparseable window spec is invalid_dhw_windows on this page too
+  ok   a minimum with no deadband below the setpoint is dhw_min_too_close here too
+  ok   an inverted power pair is min_power_above_max on the thermal page
+  ok   a submitted floor above the STORED ceiling is caught too
+  ok   an unparseable month mask on the grid page is invalid_peak_months
+  ok   an unparseable hours mask on the grid page is invalid_peak_hours
+  ok   an unparseable fee rule is invalid_grid_fee_rules
+  ok   a negative fee rate is grid_fee_rules_negative
+  ok   the documented peak-hours form saves and reaches the coordinator's mask
+  ok   an uncoercible peak window falls back to the default, not the string
+  ok   a coercible peak window is converted to int, not defaulted
+
+-- options: pages re-rendered over configuration already stored
+  ok   the entities_metering page re-renders its stored entities as defaults
+  ok   the entities_metering page carries no entity default when nothing is stored
+  ok   the hot_water_tank page re-renders its stored entities as defaults
+  ok   the hot_water_tank page carries no entity default when nothing is stored
+  ok   the hot_water_pumps page re-renders its stored entities as defaults
+  ok   the hot_water_pumps page carries no entity default when nothing is stored
+  ok   the grid_fees page re-renders its stored entities as defaults
+  ok   the grid_fees page carries no entity default when nothing is stored
+  ok   the solar_pv page re-renders its stored entities as defaults
+  ok   the solar_pv page carries no entity default when nothing is stored
+  ok   the away page re-renders its stored entities as defaults
+  ok   the away page carries no entity default when nothing is stored
+  ok   a configured solar location is kept, not replaced by the HA home point
+  ok   with no configured location the map falls back to the HA home point
+
+-- schema widening: what must NOT move a field's bounds
+  ok   a default that raises is skipped, the suggested value still read
+  ok   a default that works is read alongside the suggested value
+  ok   an unbounded number field is never rewritten
+  ok   a non-numeric stored value leaves a bounded field's range alone
+  ok   None stored value leaves a bounded field's range alone
+  ok   NaN stored value leaves a bounded field's range alone
+  ok   +inf stored value leaves a bounded field's range alone
+  ok   -inf stored value leaves a bounded field's range alone
+  ok   a finite out-of-range value widens the bound to exactly itself
+  ok   None data_schema is returned untouched, with nothing widened
+  ok   a non-schema data_schema is returned untouched, with nothing widened
+  ok   a schema holding an out-of-range default is widened and named
+
+-- options: menu labels, translated and not
+  ok   a failed translation lookup still renders every menu label
+  ok   a resolved translation replaces that entry's label and no other
+  ok   a translation from the other flow's category is not used
+  ok   an empty translation keeps the built-in label, not a blank row
+
+-- reconfigure: the first screen reopened over the entry it changes
+  ok   reconfigure reopens the first screen, prefilled with this entry's answers
+  ok   a refused token mid-reconfigure shows invalid_tibber_token, changing nothing
+  ok   an unreachable Tibber is cannot_connect mid-reconfigure too
+  ok   re-submitting this entry's own identity reconfigures it instead of aborting
+  ok   a rotated token is written through and the entry keeps its other settings
+  ok   reconfiguring into another entry's plant is refused
+  ok   a slot the user cleared is dropped, not silently kept
+
+RESULT flow_checks_covered=153/153 checks
+RESULT step_user happy=3/3 error_branches=8/8
+RESULT step_user_sensors happy=0/0 error_branches=0/0
+RESULT step_temperature happy=2/2 error_branches=12/12
+RESULT step_building happy=1/1 error_branches=0/0
+RESULT step_building_describe happy=3/3 error_branches=0/0
+RESULT step_building_extras happy=1/1 error_branches=1/1
+RESULT step_thermal happy=1/1 error_branches=1/1
+RESULT step_zones happy=2/2 error_branches=0/0
+RESULT step_dhw happy=2/2 error_branches=4/4
+RESULT step_weather_sensitivity happy=3/3 error_branches=0/0
+RESULT step_reauth_confirm happy=2/2 error_branches=2/2
+RESULT step_opt_init happy=3/3 error_branches=3/3
+RESULT step_opt_advanced happy=1/1 error_branches=0/0
+RESULT step_opt_setup_overview happy=2/2 error_branches=0/0
+RESULT step_opt_entities happy=7/7 error_branches=2/2
+RESULT step_opt_entities_metering happy=4/4 error_branches=0/0
+RESULT step_opt_entities_pump happy=0/0 error_branches=0/0
+RESULT step_opt_comfort happy=3/3 error_branches=2/2
+RESULT step_opt_hot_water happy=6/6 error_branches=2/2
+RESULT step_opt_hot_water_tank happy=2/2 error_branches=0/0
+RESULT step_opt_hot_water_pumps happy=2/2 error_branches=0/0
+RESULT step_opt_building happy=10/10 error_branches=1/1
+RESULT step_opt_thermal_model happy=2/2 error_branches=2/2
+RESULT step_opt_thermal_model_zones happy=0/0 error_branches=0/0
+RESULT step_opt_tuning happy=2/2 error_branches=0/0
+RESULT step_opt_heat_curve happy=1/1 error_branches=0/0
+RESULT step_opt_building_preset happy=2/2 error_branches=0/0
+RESULT step_opt_grid happy=4/4 error_branches=2/2
+RESULT step_opt_grid_connection happy=0/0 error_branches=0/0
+RESULT step_opt_grid_fees happy=2/2 error_branches=2/2
+RESULT step_opt_solar_pv happy=3/3 error_branches=0/0
+RESULT step_opt_away happy=4/4 error_branches=0/0
+RESULT step_opt_learning happy=2/2 error_branches=0/0
+RESULT step_opt_learning_features happy=0/0 error_branches=0/0
+RESULT options_steps_covered=19/23 pages
+RESULT step_reconfigure happy=4/4 error_branches=3/3
+RESULT reauth_round_trips=1
+RESULT reconfigure_round_trips=1
+RESULT options_close_round_trips=1
+RESULT duplicate_aborts=1
+
+ALL 153 checks PASSED

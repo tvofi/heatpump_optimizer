@@ -1,0 +1,56 @@
+CELL winter_typical|winter_cold J none=58.188559 prod=58.188559 aligned=58.188559 | warm-cand refined prod=58.188559 aligned=58.188559 struct_best=58.188559 | pre prod=59.2186 aligned=58.1886 | win prod=0 aligned=0 | cost 23.280 vs 23.280
+CELL winter_typical|winter_mild J none=23.253544 prod=23.253544 aligned=23.253544 | warm-cand refined prod=23.343974 aligned=23.398807 struct_best=23.253544 | pre prod=24.1303 aligned=25.0268 | win prod=3 aligned=3 | cost 17.320 vs 17.320
+CELL winter_typical|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL winter_typical|summer_cool J none=3.137212 prod=3.137212 aligned=3.137212 | warm-cand refined prod=3.421135 aligned=3.308088 struct_best=3.137212 | pre prod=3.4330 aligned=3.5680 | win prod=1 aligned=1 | cost 1.098 vs 1.098
+CELL winter_typical|shoulder J none=6.487738 prod=6.471129 aligned=6.435165 | warm-cand refined prod=6.471129 aligned=6.435165 struct_best=6.487738 | pre prod=6.8491 aligned=7.6941 | win prod=0 aligned=0 | cost 4.843 vs 4.609
+CELL winter_extreme|winter_cold J none=78.146211 prod=78.146211 aligned=78.146211 | warm-cand refined prod=78.146211 aligned=78.146211 struct_best=78.146211 | pre prod=80.9516 aligned=78.1462 | win prod=0 aligned=0 | cost 41.400 vs 41.400
+CELL winter_extreme|winter_mild J none=32.988447 prod=32.988447 aligned=32.988447 | warm-cand refined prod=33.141357 aligned=33.635000 struct_best=32.988447 | pre prod=36.2860 aligned=33.7543 | win prod=3 aligned=3 | cost 25.369 vs 25.369
+CELL winter_extreme|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL winter_extreme|summer_cool J none=4.019503 prod=4.019503 aligned=4.019503 | warm-cand refined prod=4.260269 aligned=4.422567 struct_best=4.019503 | pre prod=5.0949 aligned=4.6922 | win prod=4 aligned=4 | cost 1.602 vs 1.602
+CELL winter_extreme|shoulder J none=8.602826 prod=8.602826 aligned=8.589234 | warm-cand refined prod=8.648739 aligned=8.589234 struct_best=8.602826 | pre prod=9.2794 aligned=9.9002 | win prod=3 aligned=0 | cost 5.587 vs 5.816
+CELL summer_typical|winter_cold J none=18.861210 prod=18.861210 aligned=18.861210 | warm-cand refined prod=18.861210 aligned=18.861212 struct_best=18.861210 | pre prod=19.6469 aligned=18.9367 | win prod=1 aligned=1 | cost 12.542 vs 12.542
+CELL summer_typical|winter_mild J none=7.674884 prod=7.673166 aligned=7.666453 | warm-cand refined prod=7.673166 aligned=7.666453 struct_best=7.674884 | pre prod=8.4264 aligned=7.6889 | win prod=0 aligned=0 | cost 6.103 vs 6.213
+CELL summer_typical|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL summer_typical|summer_cool J none=1.672324 prod=1.672324 aligned=1.670977 | warm-cand refined prod=1.674617 aligned=1.670977 struct_best=1.672324 | pre prod=2.3248 aligned=1.6923 | win prod=3 aligned=0 | cost 0.595 vs 0.585
+CELL summer_typical|shoulder J none=2.695454 prod=2.695454 aligned=2.695454 | warm-cand refined prod=2.697278 aligned=2.704438 struct_best=2.695454 | pre prod=3.5429 aligned=2.7641 | win prod=4 aligned=4 | cost 1.598 vs 1.598
+CELL summer_negative|winter_cold J none=12.382436 prod=12.375158 aligned=12.347701 | warm-cand refined prod=12.375158 aligned=12.347701 struct_best=12.382436 | pre prod=14.4625 aligned=12.3918 | win prod=0 aligned=0 | cost 10.312 vs 10.349
+CELL summer_negative|winter_mild J none=0.771313 prod=0.771313 aligned=0.771275 | warm-cand refined prod=0.773468 aligned=0.771275 struct_best=0.771313 | pre prod=2.0619 aligned=0.8420 | win prod=4 aligned=0 | cost -0.685 vs -0.631
+CELL summer_negative|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL summer_negative|summer_cool J none=0.736111 prod=0.733130 aligned=0.735699 | warm-cand refined prod=0.733130 aligned=0.735699 struct_best=0.736111 | pre prod=1.0614 aligned=0.7442 | win prod=0 aligned=0 | cost -0.623 vs -0.626
+CELL summer_negative|shoulder J none=0.488445 prod=0.475898 aligned=0.465941 | warm-cand refined prod=0.475898 aligned=0.465941 struct_best=0.488445 | pre prod=1.2460 aligned=0.4963 | win prod=0 aligned=0 | cost -1.534 vs -1.534
+CELL shoulder|winter_cold J none=47.784271 prod=47.784271 aligned=47.784271 | warm-cand refined prod=48.167640 aligned=47.897378 struct_best=47.784271 | pre prod=52.0027 aligned=48.8040 | win prod=2 aligned=2 | cost 40.048 vs 40.048
+CELL shoulder|winter_mild J none=18.356601 prod=18.356601 aligned=18.356601 | warm-cand refined prod=18.535249 aligned=18.357447 struct_best=18.356601 | pre prod=19.2674 aligned=18.4883 | win prod=2 aligned=2 | cost 14.963 vs 14.963
+CELL shoulder|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL shoulder|summer_cool J none=3.006204 prod=2.974156 aligned=2.980571 | warm-cand refined prod=2.974156 aligned=2.980571 struct_best=3.006204 | pre prod=3.2660 aligned=3.3173 | win prod=0 aligned=0 | cost 1.924 vs 1.878
+CELL shoulder|shoulder J none=5.809948 prod=5.809948 aligned=5.809948 | warm-cand refined prod=5.862820 aligned=5.879261 struct_best=5.809948 | pre prod=6.1642 aligned=5.8906 | win prod=3 aligned=3 | cost 4.834 vs 4.834
+CELL winter_narrow|winter_cold J none=100.157859 prod=100.157859 aligned=100.121414 | warm-cand refined prod=100.198960 aligned=100.121414 struct_best=100.157859 | pre prod=101.7112 aligned=101.4395 | win prod=4 aligned=0 | cost 72.581 vs 72.840
+CELL winter_narrow|winter_mild J none=45.587011 prod=45.587011 aligned=45.587011 | warm-cand refined prod=45.726142 aligned=45.592266 struct_best=45.587011 | pre prod=45.9690 aligned=45.6294 | win prod=2 aligned=2 | cost 29.751 vs 29.751
+CELL winter_narrow|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL winter_narrow|summer_cool J none=5.242352 prod=5.242352 aligned=5.242352 | warm-cand refined prod=5.284254 aligned=5.285796 struct_best=5.242352 | pre prod=5.2867 aligned=5.7257 | win prod=4 aligned=4 | cost 2.509 vs 2.509
+CELL winter_narrow|shoulder J none=11.753171 prod=11.753171 aligned=11.753171 | warm-cand refined prod=11.771031 aligned=11.760298 struct_best=11.753171 | pre prod=11.7839 aligned=13.6727 | win prod=2 aligned=2 | cost 7.058 vs 7.058
+CELL winter_moderate|winter_cold J none=73.644700 prod=73.644700 aligned=73.644700 | warm-cand refined prod=73.644700 aligned=73.644700 struct_best=73.644700 | pre prod=75.2113 aligned=73.6447 | win prod=0 aligned=0 | cost 41.100 vs 41.100
+CELL winter_moderate|winter_mild J none=32.337165 prod=32.324771 aligned=32.337165 | warm-cand refined prod=32.324771 aligned=32.455629 struct_best=32.337165 | pre prod=33.5454 aligned=32.5061 | win prod=0 aligned=4 | cost 23.490 vs 24.005
+CELL winter_moderate|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL winter_moderate|summer_cool J none=3.909670 prod=3.909670 aligned=3.909670 | warm-cand refined prod=4.022982 aligned=3.921297 struct_best=3.909670 | pre prod=4.0256 aligned=4.3587 | win prod=4 aligned=4 | cost 1.701 vs 1.701
+CELL winter_moderate|shoulder J none=8.496741 prod=8.496741 aligned=8.496741 | warm-cand refined prod=8.636112 aligned=8.511648 struct_best=8.496741 | pre prod=8.6479 aligned=9.4051 | win prod=3 aligned=3 | cost 4.602 vs 4.602
+CELL flat|winter_cold J none=80.032045 prod=80.014928 aligned=79.924041 | warm-cand refined prod=80.014928 aligned=79.924041 struct_best=80.032045 | pre prod=80.6295 aligned=80.1750 | win prod=0 aligned=0 | cost 67.846 vs 67.609
+CELL flat|winter_mild J none=37.663445 prod=37.608860 aligned=37.659771 | warm-cand refined prod=37.608860 aligned=37.659771 struct_best=37.663445 | pre prod=37.6825 aligned=37.6804 | win prod=0 aligned=0 | cost 30.189 vs 29.141
+CELL flat|summer_warm J none=6739.560478 prod=6739.560478 aligned=6739.560478 | warm-cand refined prod=6739.560478 aligned=6739.560478 struct_best=6739.560478 | pre prod=6739.5605 aligned=6739.5605 | win prod=0 aligned=0 | cost 0.000 vs 0.000
+CELL flat|summer_cool J none=4.539632 prod=4.538627 aligned=4.539632 | warm-cand refined prod=4.538627 aligned=4.548692 struct_best=4.539632 | pre prod=4.5400 aligned=4.7861 | win prod=0 aligned=4 | cost 2.736 vs 2.585
+CELL flat|shoulder J none=9.813064 prod=9.813064 aligned=9.813064 | warm-cand refined prod=9.829781 aligned=9.843896 struct_best=9.813064 | pre prod=9.8384 aligned=10.6183 | win prod=3 aligned=3 | cost 7.454 vs 7.454
+RESULT cells=40 count
+RESULT warm_misaligned=32 count
+RESULT warm_prescore_worse_cells=21 count
+RESULT warm_prescore_worse_median=1.3691e-01 objective_units
+RESULT warm_refined_worse_cells_gt_1e-4=16 count
+RESULT warm_wins_prod=21 count
+RESULT warm_wins_aligned=23 count
+RESULT shipped_gap_cells_gt_1e-4=8 count
+RESULT shipped_gap_cells_lt_-1e-4=5 count
+RESULT shipped_gap_max=2.0923e-02 ratio
+RESULT shipped_gap_min=-3.5043e-03 ratio
+RESULT shipped_gap_mean=6.4722e-04 ratio
+RESULT shipped_gap_mean_drop_best=1.2735e-04 ratio
+RESULT thread_factor=1.000
+RESULT load1=21.88
+RESULT swapins=0

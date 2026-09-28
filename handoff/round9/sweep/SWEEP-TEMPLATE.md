@@ -1,0 +1,38 @@
+# Round 9, Phase D: class sweep thread {S} — classes {CLASSES}
+
+Model: sonnet. This is sweep enumeration, per tvofi's 12:21Z model-routing rule. Escalate to the orchestrator if a class needs a design judgement.
+
+## First
+Read CLAUDE.md, every file in .claude/rules/, tools/audit/briefs/D14.md (method steps 3–4 and "After the judge"), COMMON.md, root-cause.md and defect-root-cause.md. Also read PLAN §7 at /mnt/project-files/audit-r9/PLAN.md. Follow them.
+
+## Standing rules
+- Call the owner "tvofi", never "Tim".
+- Heavy D3 scripts: minimise them (tvofi, 11:37Z and 13:41Z). Run no mutation pre-screens, pools, full gate or quiet window. A D3-class seam of medium severity or higher gets one light sanity check: apply the mutant in memory and call the production symbol.
+- This is a cloud seat. Never open, approve or merge PRs, never comment on GitHub, never file issues, never run gh.
+- Report every milestone to the orchestrator (session_01WgT4h2uvK9kbxQbWc5MJis): each class's enumerator done, and the thread done.
+- Do not fix anything. The sweep only enumerates and dispositions. Its probes become the fixers' failing tests.
+
+## Inputs
+- JUDGE.json on `handoff/audit-r9-judge`. It gives the canonical findings, their verdicts and classes, `merged` ids and seam rules.
+- The evidence and harnesses are on `handoff/audit-r9-evidence` at `tools/audit/round9/`. The baseline is 1936d5ca (v6.7.1).
+- Measure at baseline 1936d5ca. Also note whether each seam still exists on origin/main, which has since merged #1641, #1642 and #1643.
+- The class ledger is `tools/audit/bugclasses.json`. Use it for historical instances and barriers.
+
+## Per class (D14.md steps 3–4, PLAN §7)
+1. **Enumerator.** Write a harness under `tools/audit/round9/D14/sweep/<class>/` that lists every seam of the class across the whole package. Start from the findings' seam rules and widen them.
+2. **Positive control.** It must re-find every round-9 finding in the class, and the ledger's historical instances at their pre-fix commits where possible.
+3. **Null control.** It must find 0 on a clean fixture. **Perturbation:** it must move under a one-line re-introduction.
+4. **Disposition every seam** as one of:
+   - `instance`, with a probe that fails on it;
+   - `guarded`, naming the guard;
+   - `not applicable`, with the reason.
+5. **Count.** N = verified findings + confirmed sweep instances. Set `rca: true` if N ≥ 3 or if the class is already barriered.
+
+## Output
+- Push to the branch `handoff/audit-r9-sweep-{s}`, cut from `handoff/audit-r9-judge`. It holds `tools/audit/round9/D14/sweep/<class>/` (the enumerator, probes and SWEEP.md) and `tools/audit/round9/D14/sweep/{S}.json`.
+- `{S}.json` has one entry per class with these fields: class, N, rca, seams (a list of {path:line, disposition, probe, note}), barrier_proposal and gate_seconds.
+- Copy the JSON and each SWEEP.md to /mnt/project-files/audit-r9/sweep/.
+- Message the orchestrator with the commit and the per-class N and rca values.
+
+## Classes for this thread
+{CLASS_TABLE}

@@ -1,0 +1,263 @@
+{
+ "dimension": "D1",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D1/s4/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D1.M1",
+   "depth": "spot",
+   "evidence": "worker_protocol.py drives process_worker.run_worker over its real pipes with ok/raising/unpicklable/stdout-writing/SystemExit/garbage jobs (framing + follow-up job). The coordinator-side lifecycle (setup/reload/unload mid-solve) lives in coordinator.py/__init__.py, D1-s2's cells; not measured here. No earlier-round evidence (tools/audit/round3..round8) was read."
+  },
+  {
+   "step": "D1.M2",
+   "depth": "deep",
+   "evidence": "store_fuzz.py: 250 seeded mutants per arm of the DefrostDerate store (all keys; duty-targeted; factors-targeted sibling; 250 one-bad-cell v2 payloads) and 250 of the FlowCurveBias store, loaded through the real from_dict, then 24 healthy folds per bucket. thermal_model/optimizer persist nothing themselves (ThermalParameters.clamp covers the divisor fields)."
+  },
+  {
+   "step": "D1.M3",
+   "depth": "deep",
+   "evidence": "defrost_clock.py: DefrostWindow over 9 cases (DST fall-back/spring-forward in Europe/Stockholm, 1 h back jump, 5 h forward jump, unavailable mid-interval, naive/aware mix, future stamp): bad=0; the as_utc perturbation moves it to 3. optimizer._utc_step_starts read, not separately harnessed."
+  },
+  {
+   "step": "D1.M4",
+   "depth": "deep",
+   "evidence": "snapshot_race.py: 6 solves on a real ThreadPoolExecutor from _solve_snapshot while the main thread rewrote live params, state, config and the live DefrostDerate ~6000-9000 times: torn=0; identity-deepcopy perturbation: torn=6. Process route pickles the deep copies, warm seed is .copy()'d."
+  },
+  {
+   "step": "D1.M5",
+   "depth": "deep",
+   "evidence": "solve_guard.py (L-BFGS-B blow-up injected, observed through the real coordinator.async_run_optimization, plus a 15-cell non-finite-input grid) and guard_sites.py (DHW cost LP raising -> greedy fallback, clean). Finding D1-s4-02."
+  },
+  {
+   "step": "D1.M6",
+   "depth": "spot",
+   "evidence": "No parser in these five files reads an external payload directly; the nearest are flow_lift.read_water_temps (delegates to inputs.InputReader, D1-s5) and FlowCurveBias.observe_temps/observe: flow_inputs.py drives 300 hostile readings -> raised=0, out_of_clamp=0. The optimizer's reaction to non-finite horizon inputs is in solve_guard.py (9/15 cells return a failed plan)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D1.M1",
+   "what": "The real-loop setup -> reload mid-solve -> unload mid-solve cycle is coordinator/__init__ territory (D1-s2); from this seat only the worker's own framing was driven. Left: whether HA stop's _shutdown_process_pool can reap a worker whose solve is in flight (it takes _PROCESS_LOCK, which _run_in_process holds for the whole solve) -- recorded as a lead."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D1-s4-01",
+   "scope": "D1-s4",
+   "step": "D1.M2",
+   "title": "DefrostDerate.from_dict admits non-finite/out-of-range duty; the bucket pins at DERATE_MIN and never recovers",
+   "severity": "medium",
+   "claim": "A stored defrost duty cell that is non-finite (the strings \"nan\"/\"inf\" pass float()) or outside [0, 1] is loaded unchanged, silently, and pins that bucket's derate at DERATE_MIN=0.55 for the life of the process: 200 healthy zero-duty folds leave it at 0.5500 where a healthy bucket reaches 1.0000.",
+   "mechanism": "_grid_of(\"duty\", float) only casts; the factors grid beside it is re-clamped to [DERATE_MIN, DERATE_MAX] on load but duty is not. derate_from_duty maps NaN/huge duty to the 0.55 floor, and observe_duty's EWMA (0.9*current + 0.1*duty) keeps NaN/inf forever and needs thousands of folds to bring 1e300 below the 0.30 cap. No log line is emitted.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "harness_path": "tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": 53,
+    "unit": "mutants of 250 (duty-targeted) still holding an unreachable duty cell after 24 healthy folds per bucket; 42 pinned at 0.55, 53 silent",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 6.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.from_dict",
+   "perturbation": {
+    "change": "--perturb: from_dict wrapped to sanitise duty on load (non-finite -> 0.0, clip to [0, 1]) -- the one-line fix shape _grid_of('duty', ...) with a bounded cast",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 250 seeded mutants of a healthy DefrostDerate payload, count whose loaded duty grid still holds a non-finite or out-of-[0,1] cell after 24 healthy zero-duty folds per bucket.",
+   "phenomenon_property": "Every grid DefrostDerate.from_dict restores is bounded on load to the range its own learner can produce (duty in [0,1] and finite, counts >= 0), so no stored value can put a bucket where observe/observe_duty cannot move it back.",
+   "seam_rule": "grep -n '_grid_of(\"' custom_components/heatpump_optimizer/defrost.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": "sibling_factors_stuck=0; healthy_null_control_stuck=0",
+    "note": "the same 250 mutation draws aimed at the re-clamped factors grid leave nothing stuck; the healthy payload loads clean"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py  # duty_targeted_stuck=53, nan_bucket_factor_after_200_zero_folds=0.5500",
+    "... store_fuzz.py --perturb  # every stuck count 0, nan bucket 1.0000"
+   ],
+   "proposed_fix_scope": "defrost.py DefrostDerate.from_dict: cast duty cells through a finite, [0,1]-clamped cast (as factors already are); optionally counts through max(0, int).",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1"
+  },
+  {
+   "id": "D1-s4-02",
+   "scope": "D1-s4",
+   "step": "D1.M5",
+   "title": "A failed solve is returned as a plan with status 'failed (...)', so the coordinator counts it a success",
+   "severity": "medium",
+   "claim": "When every L-BFGS-B start raises (or a single non-finite horizon input makes every start score non-finite), HeatPumpOptimizer's guards return a normal OptimizationResult whose status is 'failed (...)'; async_run_optimization publishes it as the plan, resets _solve_failures to 0 and never raises the solve_failures repair issue -- 0 failures and 0 issues after 3 such cycles, against 3 and 1 when the same fault is raised outside the guard.",
+   "mechanism": "The try/except in _optimize_space_only (optimizer.py ~4025) and _solve_space (~3496) log ERROR and fall back to the initial heuristic power with status f'failed ({e})'. The coordinator decides 'the solve failed' by exception only, so it adopts the fallback, logs 'Optimization complete', and clears the failure streak and notice. One fact (did the solve fail) decided by two predicates.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "harness_path": "tools/audit/round9/D1/s4/solve_guard.py",
+    "value": 0,
+    "unit": "coordinator _solve_failures after 3 consecutive cycles whose every L-BFGS-B run raised (both coord_minimal and coord_dhw); 3 of 3 failed plans published; 0 repair issues",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 6.34,
+    "thread_factor": 1.002
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_space_only (guard fed through optimizer:_scoped_minimize), observed at coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+   "perturbation": {
+    "change": "--perturb: HeatPumpOptimizer.optimize raises when its own status starts 'failed' (the one-line fix shape at the guard)",
+    "expected_direction": "up",
+    "observed_value": "solve_failures 0 -> 3, issues 0 -> 1, failed_plans_published 3 -> 0; non-finite grid returned_failed_plan 9 -> 0"
+   },
+   "metric_definition": "After 3 consecutive cycles with every L-BFGS-B run raising, the coordinator's own _solve_failures counter and count of solve_failures repair issues.",
+   "phenomenon_property": "Every path by which optimize() fails to solve surfaces to the caller as a failure (an exception or an explicit flag the coordinator's failure accounting reads), never as a plan it will adopt.",
+   "seam_rule": "grep -n 'f\"failed (' custom_components/heatpump_optimizer/optimizer.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "value": "null_control.solve_failures=3, solve_failures_issues=1 (both configs)",
+    "note": "the same RuntimeError raised from _forecast_arrays, outside the optimizer's guard, is counted and noticed as designed"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "... solve_guard.py --perturb"
+   ],
+   "proposed_fix_scope": "optimizer.py: the two f'failed ({e})' guards either re-raise or mark the result so the coordinator's failure branch (coordinator.py async_run_optimization) treats it as a failed solve; which side owns it is the fixer's call (the coordinator side is D1-s2's cell).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D1-s4-03",
+   "scope": "D1-s4",
+   "step": "D1.M2",
+   "title": "One unreadable cell in a v2 defrost store voids all 12 measured buckets and is labelled a pre-v5.3.0 upgrade",
+   "severity": "low",
+   "claim": "A version-2 DefrostDerate payload with a single malformed duty or duty_counts cell loads with every bucket's measured duty discarded and migrated=True, logging 'a pre-v5.3.0 store was upgraded' -- 226 of 250 one-bad-cell payloads, 2712 measured buckets discarded.",
+   "mechanism": "_grid_of returns None for the whole grid on one failed cast, and the else-branch sets migrated from the presence of factors without looking at version, so a corrupt v2 store is reported as a v1 upgrade (published in diagnostics) instead of a quarantined bucket.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "harness_path": "tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": 226,
+    "unit": "v2 payloads of 250 flagged migrated after one bad cell",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 6.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.from_dict",
+   "perturbation": {
+    "change": "--perturb-label: a payload whose version is 2 is never marked migrated",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 250 v2 payloads with one malformed duty/duty_counts cell, count loaded with migrated=True (the pre-v5.3.0 upgrade label and log line).",
+   "phenomenon_property": "A corrupt cell in a current-version store is quarantined at its bucket and reported as corruption, never as a schema upgrade.",
+   "seam_rule": "grep -n 'migrated' custom_components/heatpump_optimizer/defrost.py",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "... store_fuzz.py --perturb-label"
+   ],
+   "proposed_fix_scope": "defrost.py from_dict: per-cell cast with a per-bucket reset, and set migrated only for a payload without version 2.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "FlowCurveBias.from_dict rejects every malformed/non-finite/negative mutant and re-clamps the bias",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+   "value": "flow_bias_load_exceptions=0, flow_bias_bad=0 of 250"
+  },
+  {
+   "claim": "DefrostDerate.from_dict never raises and the factors grid is re-clamped on load",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+   "value": "load_exceptions=0 of 250; sibling_factors_stuck=0 of 250"
+  },
+  {
+   "claim": "DefrostWindow measures UTC elapsed across DST both ways, declines naive/aware mixes, and an unreadable flag disqualifies the interval",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/defrost_clock.py",
+   "value": "bad=0 of 9 (perturbed as_utc: 3)"
+  },
+  {
+   "claim": "A backwards clock jump yields seconds=0; the settle path rejects it (0.25..3x interval window, coordinator._settle_defrost) -- not measured there, D1-s2's cell",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/defrost_clock.py",
+   "value": "jump_back_1h seconds=0 observed=True"
+  },
+  {
+   "claim": "_solve_snapshot's deep copies isolate the in-process (fallback) solve from loop-side writes to params, state, config and the live defrost learner",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/snapshot_race.py",
+   "value": "torn=0 of 6 with ~6000 writes (identity-deepcopy perturbation: 6 of 6)"
+  },
+  {
+   "claim": "process_worker answers a raising job and an unpicklable result with a well-formed err frame and keeps serving; a garbage frame gets load-err and a clean exit",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/worker_protocol.py",
+   "value": "ok/raises/unpicklable well_formed=1 answers_next=1; garbage well_formed=1 rc=0 (raw-dump perturbation: unpicklable 0, rc=1)"
+  },
+  {
+   "claim": "stdout is the reply channel, so a job that prints corrupts the frame; no print() exists in the package, so no production path reaches it at baseline (hazard, not a finding)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/worker_protocol.py",
+   "value": "prints well_formed=0 (UnpicklingError); grep -l 'print(' custom_components/heatpump_optimizer/*.py -> none"
+  },
+  {
+   "claim": "The DHW cost-LP guard degrades to the greedy planner cleanly, at DEBUG",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/guard_sites.py",
+   "value": "linprog_dhw.degrades_cleanly=1, error_logs=0"
+  },
+  {
+   "claim": "Hostile supply/return readings (nan, inf, +-1e308, 5000, None, float32 max) never raise and never move the flow bias past its clamp",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/flow_inputs.py",
+   "value": "raised=0, out_of_clamp=0 of 300 (clip removed: 174)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D1/s4/store_fuzz.py",
+  "tools/audit/round9/D1/s4/solve_guard.py",
+  "tools/audit/round9/D1/s4/snapshot_race.py",
+  "tools/audit/round9/D1/s4/defrost_clock.py",
+  "tools/audit/round9/D1/s4/worker_protocol.py",
+  "tools/audit/round9/D1/s4/worker_jobs.py",
+  "tools/audit/round9/D1/s4/guard_sites.py",
+  "tools/audit/round9/D1/s4/flow_inputs.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "thermal-learning load of internal_gains_profile (~3018-3023) and _learn_internal_gains (~8550)",
+   "what": "[float(g) for g in raw_gains] admits the strings 'nan'/'inf'; np.clip keeps NaN, so it never washes out. Handed to ThermalModel.internal_gains_at (unguarded float()), a NaN profile makes every optimizer start non-finite: a scratch probe gave status 'failed (no usable starting point)' with non-finite trajectories -- which D1-s4-02 then publishes as a plan."
+  },
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_shutdown_process_pool / _run_in_process",
+   "what": "_run_in_process holds _PROCESS_LOCK for the whole solve and pickle.load has no timeout; _shutdown_process_pool takes the same lock before it can terminate the worker, so HA stop waits out an in-flight (or hung) solve on the executor."
+  },
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_forecast_arrays",
+   "what": "The optimizer has no input guard: one nan/inf step in prices, outdoor, solar (and -inf wind) yields a 'failed' plan, nan/inf wind raises ValueError/OverflowError at an int() cast (solve_guard.py second section: 9 failed, 2 raised of 15). Worth confirming every non-finite forecast value is neutralised before the solve."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/hastub/homeassistant/helpers/storage.py",
+   "symbol": "Store.async_save/async_load",
+   "what": "The stub round-trips through stdlib json, which writes and reads NaN; Home Assistant's Store serialises with orjson, which writes NaN as null. A NaN learner cell therefore survives a save/load in the stub but becomes null in production (for DefrostDerate that voids the whole duty grid on the next load, D1-s4-03's path). P11-shaped."
+  }
+ ]
+}

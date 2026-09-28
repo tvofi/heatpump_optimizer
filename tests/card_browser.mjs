@@ -1,0 +1,1577 @@
+// The real-browser layout lane (issue #96).
+//
+// card.mjs proves the card builds the right DOM against a hand-written
+// stub whose getBoundingClientRect is a constant 900x400 -- so it cannot
+// see anything about position, size or visibility. Three layout defects
+// reached a user that way: the zoom-limited editing trap (v4.0.5),
+// tooltip text overflowing its box (two causes: inherited nowrap plus a
+// left-edge-only clamp), and legend chips 0.33px apart that read as one
+// chip hiding three traces.
+//
+// This lane runs the real card in real Chromium and asserts geometry:
+// boxes at coordinates, overlaps, contained edges, scroll vs client
+// width. It consumes the same plan payload card.mjs does (run
+// tests/plan_view.py first; this file resolves the same default).
+//
+// Own CI job, not a run.sh lane: it needs a browser the other lanes do
+// not install, and it is excluded from the closures roster in
+// tests/closure.py's NOT_A_TEST for exactly that reason -- the closures
+// job would have to install Chromium to record it, which buys nothing:
+// its dependency closure is the card source, the payload and itself.
+//
+// B12 (#558): this lane also takes the README hero. CI never writes the
+// committed PNG (Chromium raster is not bit-stable across machines).
+// Regenerate after a card change that should move the picture:
+//
+//   HPO_HERO_OUT=docs/img/card-plan-chart.png node tests/card_browser.mjs
+import { strict as assert } from "node:assert";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// createRequire, not a static import: the lane must resolve playwright
+// from wherever the CI job or developer put it (a bare `import` would
+// demand node_modules inside the repository, which this repo does not
+// have and should not grow for one lane).
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repo = path.join(__dirname, "..");
+
+// Same plan-payload resolution as tests/card.mjs: argv, HPO_PLANDATA,
+// then the per-checkout default plan_view.py writes.
+const testsDir = __dirname;
+const defaultPath = path.join(
+  "/tmp",
+  `plandata-${createHash("sha256").update(testsDir).digest("hex").slice(0, 12)}.json`
+);
+let planPath = process.argv[2] || process.env.HPO_PLANDATA || defaultPath;
+if (!existsSync(planPath)) {
+  console.error(`FAIL: plan payload ${planPath} not found — run tests/plan_view.py first`);
+  process.exit(1);
+}
+const plan = JSON.parse(readFileSync(planPath, "utf8"));
+
+const CARD_SRC = path.join(repo, "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js");
+const SOLAR_ID = "sensor.heat_pump_optimizer_solar_irradiance";
+const SPACE_ID = "sensor.heat_pump_optimizer_plan_space_heating";
+const DHW_ID = "sensor.heat_pump_optimizer_plan_dhw_heating";
+
+let fails = 0;
+function check(name, cond, detail = "") {
+  console.log((cond ? "  ok  " : "  FAIL") + "  " + name);
+  if (!cond) { if (detail) console.log("        " + detail); fails += 1; }
+}
+
+const solarForecast = plan.space_plan.forecast.map((p, i) => ({
+  t: p.t,
+  ghi: Math.max(0, 400 * Math.sin((i / plan.space_plan.forecast.length) * Math.PI)),
+}));
+
+// The setup page's diagram payload: what `describe_setup` publishes for a
+// two-zone, two-tank house with a throttling valve and a wood furnace --
+// the same shape tests/card.mjs builds, so the editor hits are the ones a
+// fully-configured install offers.
+const TEMP_DOMAINS = ["sensor", "number", "input_number"];
+const setupTopology = {
+  two_zone: true, dhw: true, valve_mode: "manual",
+  buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+  wood: { present: true, volume_l: 500 },
+  edges: [
+    ["heat_pump", "buffer_tank"],
+    ["buffer_tank", "mixing_valve"],
+    ["mixing_valve", "upper_zone"],
+    ["mixing_valve", "lower_zone"],
+    ["wood_tank", "buffer_tank"],
+    ["heat_pump", "dhw_tank"],
+  ],
+  slots: [
+    { key: "indoor_temp_entity", label: "Indoor temperature",
+      place: "upper_zone", entity: "sensor.livingroom", domains: TEMP_DOMAINS },
+    { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: TEMP_DOMAINS },
+    { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+      place: "buffer_tank", entity: "sensor.tank", domains: TEMP_DOMAINS },
+    { key: "wood_tank_top_entity", label: "Wood tank top",
+      place: "wood_tank", entity: null, domains: TEMP_DOMAINS },
+    { key: "outdoor_temp_entity", label: "Outdoor temperature",
+      place: "outdoor", entity: "sensor.outside", domains: TEMP_DOMAINS },
+    { key: "heat_pump_switch_entity", label: "Heat pump switch",
+      place: "heat_pump", entity: null,
+      domains: ["switch", "input_boolean", "climate"] },
+  ],
+};
+const states = {
+  [SOLAR_ID]: { state: "120", attributes: {
+    forecast: solarForecast, source: "open_meteo", friendly_name: "Solar Irradiance",
+    plan_kind: "solar" } },
+  [SPACE_ID]: { state: "3 slots planned", attributes: {
+    forecast: plan.space_plan.forecast, slots: plan.space_plan.slots,
+    total_energy_kwh: plan.space_plan.total_energy_kwh,
+    total_cost: plan.space_plan.total_cost,
+    active_now: plan.space_plan.active_now,
+    friendly_name: "Space Heating Plan", plan_kind: "space",
+    setup_topology: setupTopology } },
+  [DHW_ID]: { state: "4 slots planned", attributes: {
+    forecast: plan.dhw_plan.forecast, slots: plan.dhw_plan.slots,
+    total_energy_kwh: plan.dhw_plan.total_energy_kwh,
+    total_cost: plan.dhw_plan.total_cost,
+    active_now: plan.dhw_plan.active_now,
+    friendly_name: "DHW Heating Plan", plan_kind: "dhw" } },
+  "sensor.livingroom": { state: "21.3", attributes: { unit_of_measurement: "°C" } },
+  "sensor.tank": { state: "47.5", attributes: { unit_of_measurement: "°C" } },
+  "sensor.outside": { state: "unavailable", attributes: {} },
+};
+
+const browser = await chromium.launch();
+try {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 800 } });
+  page.on("pageerror", (err) => {
+    console.log(`  page error: ${err.message}`);
+  });
+  await page.goto("about:blank");
+  await page.addScriptTag({ path: CARD_SRC });
+
+  // The card, on a dashboard-sized tile: the host gets the panel width
+  // Home Assistant would give it and a sane font, so every measurement
+  // below is of the card as a user sees it, not of a collapsed div.
+  await page.evaluate(([st]) => {
+    const style = document.createElement("style");
+    style.textContent = `
+      body { margin: 0; font-family: -apple-system, "Segoe UI", sans-serif; }
+      heatpump-optimizer-card { display: block; width: 900px; min-height: 400px; }
+    `;
+    document.head.appendChild(style);
+    const card = document.createElement("heatpump-optimizer-card");
+    document.body.appendChild(card);
+    card.setConfig({ type: "custom:heatpump-optimizer-card" });
+    card.hass = { states: st };
+    window.__card = card;
+  }, [states]);
+  await page.waitForTimeout(200);
+
+  // --- 1. The card really rendered, with real geometry --------------------
+  // The largest svg in the shadow root, not the first: the card also
+  // draws small inline icons as svg, and an 18x18 icon would make every
+  // measurement below nonsense.
+  const cardBox = await page.evaluate(() => {
+    const card = window.__card;
+    const svgs = card.shadowRoot ? [...card.shadowRoot.querySelectorAll("svg")] : [];
+    let best = null;
+    for (const svg of svgs) {
+      const b = svg.getBoundingClientRect();
+      if (!best || b.width * b.height > best.w * best.h) {
+        best = { w: b.width, h: b.height, left: b.left, top: b.top };
+      }
+    }
+    return best ? { ...best, cardW: card.getBoundingClientRect().width } : null;
+  });
+  check("the card renders an svg with real size on a dashboard tile",
+    cardBox !== null && cardBox.w > 600 && cardBox.h > 200,
+    cardBox ? `${cardBox.w.toFixed(0)}x${cardBox.h.toFixed(0)} px` : "no svg");
+
+  // --- 2. Legend chips: distinct, not stacked into one --------------------
+  // The shipped defect: three chips 0.33px apart on a 65k axis read as
+  // one chip and hid three traces at once. Chips must be pairwise
+  // separated by a visible gap, and every chip label must fit its box.
+  const chips = await page.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    return [...root.querySelectorAll(".legend-chip, .chip")].map((el) => {
+      const b = el.getBoundingClientRect();
+      return { x: b.x, y: b.y, w: b.width, h: b.height,
+               text: (el.textContent || "").trim(),
+               overflow: el.scrollWidth > el.clientWidth + 1 };
+    });
+  });
+  check("legend chips exist for the rendered traces", chips.length >= 2,
+    `${chips.length} chip(s): ${chips.map((c) => c.text).join(" | ")}`);
+  let overlapPairs = [];
+  for (let i = 0; i < chips.length; i++) {
+    for (let j = i + 1; j < chips.length; j++) {
+      const a = chips[i], b = chips[j];
+      const gapX = Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w));
+      const gapY = Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h));
+      if (gapX < 2 && gapY < 2) overlapPairs.push(`${a.text}~${b.text} (${gapX.toFixed(2)}px apart)`);
+    }
+  }
+  check("no two legend chips overlap or nearly touch", overlapPairs.length === 0,
+    overlapPairs.slice(0, 4).join("; "));
+  check("every legend chip's label fits inside it",
+    chips.every((c) => !c.overflow && c.w > 4 && c.h > 8),
+    chips.filter((c) => c.overflow).map((c) => c.text).join("; "));
+
+  // --- 3. The tooltip: contained on BOTH edges, text inside its box ------
+  // Hover across the whole chart width -- including the far left and far
+  // right, where the two shipped causes lived: a clamp on the left edge
+  // only, and inherited white-space:nowrap that made max-width inert
+  // (scrollWidth > clientWidth). The exercised count guards against the
+  // vacuous pass: a lane where no tooltip ever appeared must not report
+  // "stays inside" about nothing.
+  if (cardBox) {
+    const contained = [];
+    const overflows = [];
+    let measured = 0;
+    for (let frac of [0.02, 0.25, 0.5, 0.75, 0.98]) {
+      const x = cardBox.left + cardBox.w * frac;
+      const y = cardBox.top + cardBox.h * 0.35;
+      await page.mouse.move(x, y);
+      await page.waitForTimeout(120);
+      const m = await page.evaluate(() => {
+        const root = window.__card.shadowRoot;
+        const tt = root && root.querySelector(".tooltip");
+        if (!tt || !tt.textContent.trim()) return null;
+        const card = window.__card.getBoundingClientRect();
+        const b = tt.getBoundingClientRect();
+        return {
+          left: b.left - card.left, right: card.right - b.right,
+          top: b.top - card.top, bottom: card.bottom - b.bottom,
+          textFits: tt.scrollWidth <= tt.clientWidth + 1,
+          w: b.width, h: b.height,
+        };
+      });
+      if (!m) continue;
+      measured += 1;
+      if (m.left < -0.5 || m.right < -0.5 || m.top < -0.5 || m.bottom < -0.5) {
+        contained.push(`x=${frac}: edges L${m.left.toFixed(0)} R${m.right.toFixed(0)}`);
+      }
+      if (!m.textFits) overflows.push(`x=${frac}`);
+    }
+    check("hovering the chart actually shows tooltips (the lane is not vacuous)",
+      measured >= 2, `${measured}/5 hover positions produced a tooltip`);
+    check("the tooltip stays inside the card on both edges, everywhere hovered",
+      measured >= 2 && contained.length === 0, contained.join("; "));
+    check("and its text fits its box (no inherited-nowrap overflow)",
+      measured >= 2 && overflows.length === 0, overflows.join("; "));
+  }
+
+  // --- #936 (D4-03): the zoom pair clears SC 2.5.8 under a fine pointer ----
+  // The shipped defect, measured by the audit in this same Chromium: the
+  // HTML target floor lived only inside @media (pointer: coarse), so under
+  // this page's own default fine pointer the zoom pair rendered at
+  // 20.22x20.22 px with 22.22 px between centres -- under the 24 px minimum
+  // and inside the spacing exception's 24 px circle at once, which is why
+  // the exception rescued nothing. The floor is pointer-independent now
+  // (card.mjs pins its emission); this lane is the one that can prove the
+  // real rendered geometry, at both ends of the tile range the card ships
+  // for. The buttons sit at opacity 0 until .chartwrap:hover, which hides
+  // nothing here: opacity never removed hit-testing, and getBoundingClientRect
+  // measures an invisible box as exactly as a visible one.
+  const zoomAt = async (width) => page.evaluate(async (w) => {
+    const card = window.__card;
+    card.style.width = w;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._render();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return [...card.shadowRoot.querySelectorAll(".viewctl button")].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { cls: b.className, w: r.width, h: r.height,
+               cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+    });
+  }, width);
+  for (const [label, width] of [["dashboard tile", "900px"], ["phone tile", "287px"]]) {
+    const btns = await zoomAt(width);
+    check(`the zoom controls render under a fine pointer (${label})`,
+      btns.length >= 2, `${btns.length} button(s)`);
+    if (btns.length) {
+      const under = btns.filter((b) => Math.min(b.w, b.h) < 24 - 0.05);
+      check(`every zoom button clears 24 px on both sides (${label})`,
+        under.length === 0,
+        under.map((b) => `${b.cls} ${b.w.toFixed(2)}x${b.h.toFixed(2)}`).join(", "));
+      const tight = [];
+      for (let i = 0; i < btns.length; i++) {
+        for (let j = i + 1; j < btns.length; j++) {
+          const d = Math.hypot(btns[i].cx - btns[j].cx, btns[i].cy - btns[j].cy);
+          if (d < 24 - 0.05) tight.push(`${btns[i].cls}~${btns[j].cls} ${d.toFixed(2)}px`);
+        }
+      }
+      check(`and the 24 px spacing circle fits between neighbours (${label})`,
+        tight.length === 0, tight.join(", "));
+    }
+  }
+  // Leave the card as the later sections found it.
+  await zoomAt("900px");
+
+  // --- 4. The setup editor: hit targets a pointer can actually hit -------
+  // The zoom-limited editing trap (v4.0.5): at real rendered sizes the
+  // draggable hit rects must be big enough to click, and inside the svg
+  // they belong to.
+  const setup = await page.evaluate(() => {
+    const card = window.__card;
+    // Open the dialog first, exactly as card.mjs does: the setup page
+    // renders inside it, and setting _dialogPage alone leaves the dialog
+    // closed and the svg absent.
+    card._onCardClick({});
+    card.dialog.page = "setup";
+    card._render();
+    const svg = card.shadowRoot && card.shadowRoot.querySelector("svg.setup-svg");
+    if (!svg) return null;
+    const sb = svg.getBoundingClientRect();
+    const hits = [...svg.querySelectorAll("rect.setup-hit")].map((r) => {
+      const b = r.getBoundingClientRect();
+      return { w: b.width, h: b.height,
+               inside: b.left >= sb.left - 0.5 && b.right <= sb.right + 0.5
+                     && b.top >= sb.top - 0.5 && b.bottom <= sb.bottom + 0.5,
+               key: r.getAttribute("data-key") || "" };
+    });
+    return { hits, svgW: sb.width, svgH: sb.height };
+  });
+  check("the setup page renders its svg", setup !== null && setup.svgW > 300,
+    setup ? `${setup.svgW.toFixed(0)}x${setup.svgH.toFixed(0)} px` : "no setup svg");
+  if (setup) {
+    const tiny = setup.hits.filter((h) => h.w < 8 || h.h < 8);
+    const outside = setup.hits.filter((h) => !h.inside);
+    check("every setup hit target is at least 8x8 px at real size",
+      setup.hits.length > 0 && tiny.length === 0,
+      `${setup.hits.length} hit(s); tiny: ${tiny.map((h) => `${h.key}:${h.w.toFixed(1)}x${h.h.toFixed(1)}`).join(", ")}`);
+    check("and every hit target sits inside the setup svg",
+      outside.length === 0,
+      outside.map((h) => h.key).join(", "));
+  }
+
+  // --- D4-01: the compact chart's text at phone width ----------------------
+  // The shipped defect, measured by the audit on a 287 px tile: axis text
+  // at 3.19 px glyph height -- outlines gone. The card now floors the
+  // rendered font (the viewBox-unit font grows as the tile narrows), and
+  // the only honest place to prove it is a real layout engine: shrink the
+  // host, re-render, and measure ON-SCREEN sizes. getComputedStyle is
+  // useless here -- it reports the font-size attribute in user units,
+  // with no viewBox scaling -- so the screen size is reconstructed from
+  // the svg's own rect, the one transform that actually applies.
+  const phoneFont = await page.evaluate(async () => {
+    const card = window.__card;
+    card.style.width = "287px";
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._render();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const root = card.shadowRoot;
+    if (!root) return null;
+    const chart = root.querySelector(".chartwrap svg");
+    if (!chart) return null;
+    const svgRect = chart.getBoundingClientRect();
+    const scale = svgRect.width / 900;
+    const labels = [...chart.querySelectorAll("text")]
+      .filter((t) => (t.getAttribute("font-size") || "").length > 0);
+    if (!labels.length) return null;
+    const sizes = labels.map((t) => {
+      const attr = Number(t.getAttribute("font-size"));
+      const bbox = t.getBBox ? t.getBBox() : { height: 0 };
+      return {
+        screenFontPx: attr * scale,
+        glyphScreenPx: bbox.height * scale,
+        text: (t.textContent || "").trim().slice(0, 12),
+      };
+    });
+    return {
+      hostW: card.getBoundingClientRect().width,
+      maxScreenFont: Math.max(...sizes.map((s) => s.screenFontPx)),
+      maxGlyph: Math.max(...sizes.map((s) => s.glyphScreenPx)),
+      n: sizes.length,
+    };
+  });
+  check("a phone-width tile renders axis text at or above the 8 px floor",
+    phoneFont !== null && phoneFont.maxScreenFont >= 8 - 0.05,
+    phoneFont
+      ? `host ${phoneFont.hostW.toFixed(0)} px, ${phoneFont.n} labels, ` +
+        `largest on-screen font ${phoneFont.maxScreenFont.toFixed(2)} px, ` +
+        `largest glyph box ${phoneFont.maxGlyph.toFixed(2)} px`
+      : "no chart labels found");
+  check("and the glyphs have real outlines again (height > 5 px)",
+    phoneFont !== null && phoneFont.maxGlyph > 5,
+    phoneFont ? `largest glyph ${phoneFont.maxGlyph.toFixed(2)} px on screen` : "none");
+
+  // --- D4-01 / D4-02 / D4-04 (#256, #257, #259) ---------------------------
+  // The audit's finding was not that the floor was wrong but that it never
+  // applied: the card rendered at 3.70 px on a 359 px phone tile in the
+  // order Lovelace mounts a card, and nothing re-rendered afterwards. The
+  // checks above could not see it -- they call `card._render()` by hand
+  // after resizing, and they read the LARGEST font in the chart. Everything
+  // below mounts the card the way a dashboard does, touches nothing, and
+  // reads the SMALLEST axis font, which is what the axis is actually drawn
+  // at.
+  //
+  // A fresh page per scenario: a card that has already been laid out once
+  // has a width, and the whole point of the Lovelace order is that the
+  // first paint does not.
+  const PHONE_TILE = 359;
+  // <ha-card> is a Home Assistant element the card renders INSIDE its own
+  // shadow root, where a page-level rule cannot reach it. Undefined, it is an
+  // inline unknown element and its padding never shapes the chart -- which is
+  // exactly the 26 px the shipped floor divided by the wrong width over
+  // (#256). This is the frontend's own :host rule set.
+  await page.evaluate(() => {
+    if (customElements.get("ha-card")) return;
+    customElements.define("ha-card", class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" }).innerHTML =
+          "<style>:host{background:var(--card-background-color,white);" +
+          "box-sizing:border-box;border-radius:12px;border-width:1px;" +
+          "border-style:solid;border-color:var(--divider-color,#e0e0e0);" +
+          "display:block;position:relative;}</style><slot></slot>";
+      }
+    });
+  });
+  const mountScript = (order, tile, opts) => async ([st, ord, w, o]) => {
+    document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+    document.body.innerHTML = "";
+    const style = document.createElement("style");
+    style.className = "hpo-test";
+    style.textContent = `
+      body { margin: 0; font-family: -apple-system, "Segoe UI", sans-serif; }
+      heatpump-optimizer-card { display: block; width: ${w}px; }
+    `;
+    document.head.appendChild(style);
+    const card = document.createElement("heatpump-optimizer-card");
+    const cfg = Object.assign({ type: "custom:heatpump-optimizer-card" }, o || {});
+    if (ord === "lovelace") {
+      // What hui-card does: the element is configured and given its data
+      // BEFORE it is placed, so its first paint has no width at all.
+      card.setConfig(cfg);
+      card.hass = { states: st };
+      document.body.appendChild(card);
+    } else {
+      document.body.appendChild(card);
+      card.setConfig(cfg);
+      card.hass = { states: st };
+    }
+    window.__card = card;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 60));
+  };
+  const mount = async (order, tile, opts) =>
+    page.evaluate(mountScript(order, tile, opts), [states, order, tile, opts || null]);
+
+  // The on-screen size of the axis text: the font-size attribute is in
+  // viewBox units, so only the svg's own rect turns it into pixels.
+  const axisFont = () => page.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const svgs = [...root.querySelectorAll(".chartwrap svg")];
+    const out = [];
+    for (const svg of svgs) {
+      const r = svg.getBoundingClientRect();
+      if (!r.width) continue;
+      const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
+      const scale = r.width / (Number(vb[2]) || 900);
+      // The axis and its annotations -- and, since #935 (R4-D4-01), the
+      // lane strip's own labels: they used to be filtered out here because
+      // they were drawn at 0.8x with no floor of their own, which put them
+      // at 6.4 px wherever this floor bound. The card now floors them
+      // through the same chartFontUnits pass (0.8 em base), so this check
+      // reads them like every other chart text.
+      const sizes = [...svg.querySelectorAll("text")]
+        .filter((t) => (t.getAttribute("font-size") || "").length > 0)
+        .filter((t) => (t.textContent || "").trim().length > 0)
+        .map((t) => Number(t.getAttribute("font-size")) * scale);
+      if (sizes.length) {
+        out.push({ svgW: r.width, min: Math.min(...sizes), n: sizes.length });
+      }
+    }
+    return out;
+  });
+
+  for (const order of ["lovelace", "attached"]) {
+    await mount(order, PHONE_TILE);
+    const f = await axisFont();
+    check(`the ${order} mount order paints the axis at the 8 px floor on a phone tile`,
+      f.length === 1 && f[0].min >= 8 - 0.05,
+      f.length ? `svg ${f[0].svgW.toFixed(1)} px wide, smallest axis text ${f[0].min.toFixed(2)} px (${f[0].n} labels)`
+               : "no chart text found");
+  }
+
+  // The ResizeObserver has to RE-RENDER, not just refresh a cached rect:
+  // nothing else corrects the font, and the plan sensor that would is on a
+  // 30-minute schedule by default.
+  await mount("lovelace", PHONE_TILE);
+  const resized = await page.evaluate(async () => {
+    const card = window.__card;
+    let renders = 0;
+    const real = card._render.bind(card);
+    card._render = (...a) => { renders += 1; return real(...a); };
+    card.style.width = "300px";
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+    const svg = card.shadowRoot.querySelector(".chartwrap svg");
+    const rect = svg.getBoundingClientRect();
+    const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
+    const scale = rect.width / (Number(vb[2]) || 900);
+    const sizes = [...svg.querySelectorAll("text")]
+      .filter((t) => (t.getAttribute("font-size") || "").length > 0)
+      .filter((t) => (t.textContent || "").trim().length > 0)
+      .map((t) => Number(t.getAttribute("font-size")) * scale);
+    return { renders, svgW: rect.width, min: Math.min(...sizes) };
+  });
+  check("narrowing the tile re-renders the chart and holds the floor",
+    resized.renders >= 1 && resized.min >= 8 - 0.05,
+    `${resized.renders} render(s) on resize, svg ${resized.svgW.toFixed(1)} px, smallest axis text ${resized.min.toFixed(2)} px`);
+
+  // The expanded dialog is not a wide chart just because it is a dialog: on
+  // a phone it is 360 px across, and it had no floor at all.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mount("lovelace", PHONE_TILE, { what_if: true });
+  await page.evaluate(async () => {
+    window.__card.dialog.open();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  });
+  const dlgFont = await axisFont();
+  check("the expanded dialog holds the 8 px floor on a phone too",
+    dlgFont.length === 2 && dlgFont[1].min >= 8 - 0.05,
+    dlgFont.length === 2
+      ? `dialog svg ${dlgFont[1].svgW.toFixed(1)} px wide, smallest axis text ${dlgFont[1].min.toFixed(2)} px`
+      : `${dlgFont.length} chart(s) measured`);
+
+  // The editable slots are the ones still in the future, and the payload's
+  // day is fixed while the wall clock is not: against the real clock every
+  // slot is already locked, no `.slot-hit` is drawn at all, and a check on
+  // slot targets measures an empty set. Freeze six hours into the captured
+  // day, as tests/card.mjs does, which always leaves both a locked past and
+  // an editable future.
+  await page.evaluate(([frozen]) => {
+    const Real = Date;
+    class Frozen extends Real {
+      constructor(...a) { super(...(a.length ? a : [frozen])); }
+      static now() { return frozen; }
+    }
+    window.Date = Frozen;
+  }, [Date.parse(plan.dhw_plan.forecast[0].t) + 6 * 3600 * 1000]);
+  await mount("lovelace", PHONE_TILE, { what_if: true });
+  await page.evaluate(async () => {
+    window.__card.dialog.open();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  });
+
+  // D4-02: what a pointer or a Tab can land on, and how big it is. The
+  // compact tile is a preview -- tapping it opens the dialog -- so it must
+  // offer no lane or slot targets at all; the dialog's must clear 24 px.
+  const targets = await page.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const svgs = [...root.querySelectorAll(".chartwrap svg")];
+    const read = (svg) =>
+      [...svg.querySelectorAll("rect")]
+        .filter((r) => r.hasAttribute("tabindex") || r.getAttribute("role") === "button")
+        .map((r) => {
+          const b = r.getBoundingClientRect();
+          return { cls: r.getAttribute("class"), w: b.width, h: b.height };
+        });
+    return { tile: read(svgs[0]), dialog: svgs[1] ? read(svgs[1]) : [] };
+  });
+  check("the compact tile offers no lane or slot target at all",
+    targets.tile.length === 0,
+    targets.tile.slice(0, 4).map((t) => `${t.cls} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", "));
+  const tooSmall = targets.dialog.filter((t) => Math.min(t.w, t.h) < 24 - 0.05);
+  const dialogSlots = targets.dialog.filter((t) => /slot-hit/.test(t.cls || ""));
+  check("the dialog really offers editable slot targets to measure",
+    dialogSlots.length > 0,
+    `${targets.dialog.length} target(s), ${dialogSlots.length} of them slots`);
+  check("every lane and slot target in the dialog clears 24 px on both sides",
+    targets.dialog.length > 0 && tooSmall.length === 0,
+    `${targets.dialog.length} target(s); smallest ` +
+    (targets.dialog.length
+      ? targets.dialog
+          .map((t) => `${t.cls} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`)
+          .sort()[0]
+      : "none") +
+    (tooSmall.length ? `; under: ${tooSmall.slice(0, 4).map((t) => `${t.cls} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}` : ""));
+
+  // D4-02 (#262): HTML controls under a coarse pointer must also clear 24 px.
+  // Isolated page so coarse media does not leak into later ink checks.
+  const coarsePage = await browser.newPage({ viewport: { width: 1024, height: 800 } });
+  coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await coarsePage.goto("about:blank");
+  // Headless Chromium is pointer:fine, and nothing here makes it coarse for
+  // CSS: Playwright 1.49's emulateMedia has no `pointer`, and CDP
+  // Emulation.setEmulatedMedia leaves BOTH matchMedia("(pointer: coarse)")
+  // false and an `@media (pointer: coarse)` block unmatched -- measured on a
+  // minimal page in this job's own Chromium (R5-D4-03, #1320). What is coarse
+  // on this page is the in-page matchMedia stub below, which is the card's
+  // own predicate (_coarsePointer()). So the card's HTML floor keys on that
+  // predicate rather than on a CSS media query, and this check measures the
+  // floor the card actually applies under it.
+  const coarseCdp = await coarsePage.context().newCDPSession(coarsePage);
+  await coarseCdp.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "pointer", value: "coarse" }],
+  });
+  await coarsePage.addScriptTag({ path: CARD_SRC });
+  await coarsePage.evaluate(() => {
+    const orig = window.matchMedia.bind(window);
+    window.matchMedia = (q) => {
+      if (q === "(pointer: coarse)") {
+        return {
+          matches: true, media: q, onchange: null,
+          addEventListener() {}, removeEventListener() {},
+          addListener() {}, removeListener() {},
+          dispatchEvent() { return true; },
+        };
+      }
+      return orig(q);
+    };
+  });
+  await coarsePage.evaluate(
+    mountScript("lovelace", PHONE_TILE, { what_if: true }),
+    [states, "lovelace", PHONE_TILE, { what_if: true }],
+  );
+  await coarsePage.evaluate(async () => {
+    window.__card.dialog.open();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  });
+  const htmlTargets = await coarsePage.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const sel = [
+      "button", ".chip", "input[type='range']", "input[type='time']",
+      "select", ".dlg-tab",
+    ].join(", ");
+    return [...root.querySelectorAll(sel)]
+      .filter((el) => {
+        const st = getComputedStyle(el);
+        return st.display !== "none" && st.visibility !== "hidden" && !el.disabled;
+      })
+      .map((el) => {
+        const b = el.getBoundingClientRect();
+        return {
+          tag: el.className || el.tagName.toLowerCase(),
+          w: b.width, h: b.height,
+        };
+      });
+  });
+  const htmlSmall = htmlTargets.filter((t) => Math.min(t.w, t.h) < 24 - 0.05);
+  check("every HTML control in the dialog clears 24 px under a coarse pointer",
+    htmlTargets.length > 0 && htmlSmall.length === 0,
+    `${htmlTargets.length} control(s); smallest ` +
+    (htmlTargets.length
+      ? htmlTargets
+          .map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`)
+          .sort((a, b) => Math.min(a.w, a.h) - Math.min(b.w, b.h))[0]
+      : "none") +
+    (htmlSmall.length
+      ? `; under: ${htmlSmall.slice(0, 4).map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}`
+      : ""));
+  // R5-D4-03 (#1320): the 44 px touch floor is owed to the HTML surface too,
+  // not only to the SVG-drawn lane/slot rects _targetMinPx() sizes. Under a
+  // coarse pointer the card's HTML target floor is the same 44 px the drawn
+  // geometry already gets, so no control a finger can land on lays out under
+  // it. The survivors, if any, are the SVG lane rects this selector cannot
+  // name -- those are _targetMinPx()'s own arm, checked above.
+  const htmlSmall44 = htmlTargets.filter((t) => Math.min(t.w, t.h) < 44 - 0.05);
+  check("every HTML control in the dialog clears 44 px under a coarse pointer",
+    htmlTargets.length > 0 && htmlSmall44.length === 0,
+    `${htmlTargets.length} control(s); ${htmlSmall44.length} under 44 px` +
+    (htmlSmall44.length
+      ? `: ${htmlSmall44.slice(0, 6).map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}`
+      : ""));
+  await coarsePage.close();
+
+  // --- R7 D4-01 / D4-02 (#1454, #1455) ------------------------------------
+  // The dialog painted content whose intrinsic width exceeded its own box and
+  // then hid the overflow, so the ink could not be reached by any gesture:
+  // the savings table's `%` column (a `width:100%` table whose min-content
+  // width is wider than `.dlg-body`, right-aligned so the hidden strip is
+  // exactly the digits) and the Swedish tab row (`Rådgivare`). card.mjs
+  // cannot see either -- its stub's getBoundingClientRect is a constant --
+  // and neither could the checks above, which read the chart. What is
+  // measured here is the FINDER's metric, in the lane that runs on every
+  // pull request: the pixels by which a text run's ink extends past the right
+  // edge of the nearest clipping ancestor, MINUS what that ancestor (or the
+  // document) can scroll to reveal. Anything positive is text a phone user
+  // cannot reach at all.
+  //
+  // The grid is the three phone widths in both languages on both dialog
+  // pages, plus 1280 px as the null control: a wide dialog has no
+  // min-content overflow to hide, so a metric that read positive there would
+  // be measuring something other than reachability.
+  const clipPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  clipPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await clipPage.goto("about:blank");
+  await clipPage.addScriptTag({ path: CARD_SRC });
+  // The savings page only draws a table when the savings sensor publishes
+  // months, and this lane's fixture has none: without these the savings arms
+  // measure an empty page and pass for the wrong reason. Twelve months of
+  // realistic figures, because the table's width is data-driven.
+  const clipStates = {
+    ...states,
+    "sensor.heat_pump_optimizer_monthly_savings": {
+      state: "246.91",
+      attributes: {
+        unit_of_measurement: "SEK",
+        savings_months: Array.from({ length: 12 }, (_, m) => ({
+          month: `2026-${String(m + 1).padStart(2, "0")}`,
+          baseline_sek: 1234.56 + m * 17,
+          actual_sek: 987.65 + m * 9,
+          savings_sek: 246.91 + m * 8,
+          savings_pct: 20 + m,
+          estimated: m % 4 === 3,
+        })),
+      },
+    },
+  };
+  const unreachableInk = async (w, lang, dlgPage) => {
+    await clipPage.setViewportSize({ width: w, height: 812 });
+    return clipPage.evaluate(async ([st, w2, lang2, pg]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      // The same font stack the other measurements here use: a table's
+      // min-content width is font-dependent.
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:${w2}px}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: lang2 };
+      document.body.appendChild(card);
+      card._onCardClick({});
+      card.dialog.page = pg;
+      card._render();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 140));
+      // The dialog is the surface under test: the compact card behind it is
+      // not what a phone user is reading here.
+      const dlg = card.shadowRoot.querySelector("dialog.expanded");
+      if (!dlg) return { over: -1, who: "no dialog", runs: 0 };
+      // The reachable extra of a clipping ancestor: `hidden`/`clip` reaches
+      // none of its overflow, `auto`/`scroll` reaches all of it -- which is
+      // what the fix buys.
+      const clipOf = (el) => {
+        let n = el.parentElement;
+        while (n) {
+          const ox = getComputedStyle(n).overflowX;
+          if (ox === "hidden" || ox === "clip") {
+            return { rect: n.getBoundingClientRect(), extra: 0,
+                     who: String(n.className || n.tagName) };
+          }
+          if (ox === "auto" || ox === "scroll") {
+            const extra = Math.max(0, n.scrollWidth - n.clientWidth);
+            if (extra > 0) {
+              return { rect: n.getBoundingClientRect(), extra,
+                       who: String(n.className || n.tagName) };
+            }
+          }
+          n = n.parentElement;
+        }
+        const de = document.documentElement;
+        return { rect: de.getBoundingClientRect(),
+                 extra: Math.max(0, de.scrollWidth - de.clientWidth),
+                 who: "document" };
+      };
+      let worst = null;
+      let runs = 0;
+      let tableRuns = 0;
+      for (const el of dlg.querySelectorAll("*")) {
+        if (!el.getClientRects().length) continue;
+        const cs = getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility === "hidden") continue;
+        const direct = [...el.childNodes].filter((x) => x.nodeType === 3)
+          .map((x) => x.textContent).join("").trim();
+        if (!direct) continue;
+        const rg = document.createRange();
+        rg.selectNodeContents(el);
+        const ink = rg.getBoundingClientRect();
+        if (ink.width < 1 || ink.height < 1) continue;
+        runs += 1;
+        if (el.closest(".savings-table")) tableRuns += 1;
+        const c = clipOf(el);
+        const over = +(ink.right - (c.rect.right + c.extra)).toFixed(1);
+        if (over > 0.5 && (!worst || over > worst.over)) {
+          worst = { over, clip: c.who, cls: String(el.className || el.tagName).slice(0, 24),
+                    txt: direct.slice(0, 24) };
+        }
+      }
+      return worst ? { ...worst, runs, tableRuns } : { over: -1, who: "none", runs, tableRuns };
+    }, [clipStates, w, lang, dlgPage]);
+  };
+
+  const clipCells = [];
+  for (const w of [375, 360, 320, 1280]) {
+    for (const lang of ["en", "sv-SE"]) {
+      for (const pg of ["savings", "plan"]) {
+        clipCells.push({ w, lang, pg, ...(await unreachableInk(w, lang, pg)) });
+      }
+    }
+  }
+  const unreachable = clipCells.filter((c) => c.over > 0.5);
+  check("no dialog text is painted outside a box a gesture can reach",
+    unreachable.length === 0,
+    unreachable.length
+      ? unreachable.map((c) =>
+          `${c.w}px ${c.lang}/${c.pg}: ${c.over}px "${c.txt}" clipped by ${c.clip}`).join("; ")
+      : `${clipCells.length} cell(s) clean; worst ink reach ` +
+        `${Math.max(...clipCells.map((c) => c.over)).toFixed(1)} px`);
+  // The control on the metric itself: a walk that found no text run would
+  // report no unreachable text for the wrong reason, and the savings arms
+  // only measure the defect if the table actually rendered.
+  check("and the walk really measured the dialog's text",
+    clipCells.every((c) => c.runs > 0) &&
+      clipCells.filter((c) => c.pg === "savings").every((c) => c.tableRuns > 0),
+    `${Math.min(...clipCells.map((c) => c.runs))} text run(s) in the thinnest cell, ` +
+    `${Math.min(...clipCells.filter((c) => c.pg === "savings").map((c) => c.tableRuns))} ` +
+    `in the thinnest savings table`);
+  await clipPage.close();
+
+  // #258: axis unit labels must not ink-collide with their top tick once the
+  // D4-01 font floor engages. Rasterize each text alone and pair units with
+  // the top tick on the same axis (same x band); positive overlap in both
+  // dimensions is a failure. deviceScaleFactor 4 matches the judge probe.
+  const inkPage = await browser.newPage({
+    viewport: { width: 500, height: 700 },
+    deviceScaleFactor: 4,
+  });
+  inkPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await inkPage.goto("about:blank");
+  await inkPage.addScriptTag({ path: CARD_SRC });
+  await inkPage.evaluate(() => {
+    if (customElements.get("ha-card")) return;
+    customElements.define("ha-card", class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" }).innerHTML =
+          "<style>:host{background:var(--card-background-color,white);" +
+          "box-sizing:border-box;border-radius:12px;border-width:1px;" +
+          "border-style:solid;border-color:var(--divider-color,#e0e0e0);" +
+          "display:block;position:relative;}</style><slot></slot>";
+      }
+    });
+  });
+  await inkPage.evaluate(async ([st, w]) => {
+    document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+    document.body.innerHTML = "";
+    const style = document.createElement("style");
+    style.className = "hpo-test";
+    style.textContent =
+      `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+      `heatpump-optimizer-card{display:block;width:${w}px;}`;
+    document.head.appendChild(style);
+    const card = document.createElement("heatpump-optimizer-card");
+    card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+    card.hass = { states: st };
+    document.body.appendChild(card);
+    window.__card = card;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._onCardClick({});
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  }, [states, PHONE_TILE]);
+  const inkStats = await inkPage.evaluate(async () => {
+    const root = window.__card.shadowRoot;
+    const svg = [...root.querySelectorAll(".chartwrap svg")].pop();
+    if (!svg) return { pairs: -1, topRow: -1, detail: "no chart svg" };
+    const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
+    const W = Number(vb[2]) || 900;
+    const H = Number(vb[3]) || 380;
+    const unitPat = /^(°C|kW|kr\/kWh|öre\/kWh|W\/m²)$/;
+    const tickPat = /^-?\d[\d.,]*$/;
+    const texts = [...svg.querySelectorAll("text")]
+      .filter((t) => (t.textContent || "").trim().length > 0);
+    async function inkOf(el) {
+      const mini = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      mini.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      mini.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      mini.setAttribute("width", String(W));
+      mini.setAttribute("height", String(H));
+      const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bg.setAttribute("width", "100%");
+      bg.setAttribute("height", "100%");
+      bg.setAttribute("fill", "white");
+      mini.appendChild(bg);
+      mini.appendChild(el.cloneNode(true));
+      const url = "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(new XMLSerializer().serializeToString(mini));
+      const img = new Image();
+      await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = url; });
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const { data } = ctx.getImageData(0, 0, W, H);
+      let r0 = H, r1 = -1, c0 = W, c1 = -1;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const i = (y * W + x) * 4;
+          if (data[i + 3] > 8 && data[i] + data[i + 1] + data[i + 2] < 740) {
+            r0 = Math.min(r0, y); r1 = Math.max(r1, y);
+            c0 = Math.min(c0, x); c1 = Math.max(c1, x);
+          }
+        }
+      }
+      return r1 < 0 ? null : { rows: [r0, r1], cols: [c0, c1] };
+    }
+    const axisBand = (el) => Math.round(Number(el.getAttribute("x") || 0) / 40);
+    const unitEls = texts.filter((t) => unitPat.test((t.textContent || "").trim()));
+    let topRowUnits = 0;
+    let pairs = 0;
+    const detail = [];
+    for (const u of unitEls) {
+      const uInk = await inkOf(u);
+      if (!uInk) continue;
+      if (uInk.rows[0] <= 0) topRowUnits += 1;
+      const band = axisBand(u);
+      const ticks = texts.filter(
+        (t) => tickPat.test((t.textContent || "").trim()) && axisBand(t) === band
+      );
+      if (!ticks.length) continue;
+      const topTick = ticks.reduce(
+        (a, b) => (Number(a.getAttribute("y")) < Number(b.getAttribute("y")) ? a : b)
+      );
+      const tInk = await inkOf(topTick);
+      if (!tInk) continue;
+      const vOv = Math.min(uInk.rows[1], tInk.rows[1]) - Math.max(uInk.rows[0], tInk.rows[0]) + 1;
+      const hOv = Math.min(uInk.cols[1], tInk.cols[1]) - Math.max(uInk.cols[0], tInk.cols[0]) + 1;
+      if (vOv > 0 && hOv > 0) {
+        pairs += 1;
+        detail.push(`${(u.textContent || "").trim()}/${(topTick.textContent || "").trim()} v${vOv} h${hOv}`);
+      }
+    }
+    return { pairs, topRow: topRowUnits, detail: detail.join("; ") };
+  });
+  check("axis unit labels carry no ink on the svg's top row",
+    inkStats.topRow === 0,
+    `${inkStats.topRow} unit(s) with row-0 ink`);
+  check("axis unit labels do not ink-collide with their top tick",
+    inkStats.pairs === 0,
+    `${inkStats.pairs} colliding pair(s)${inkStats.detail ? `: ${inkStats.detail}` : ""}`);
+  await inkPage.close();
+
+  // A target that falls short of the floor has to be BOXED IN, not merely
+  // clipped on one side. The first review of this fix found every residual
+  // target sitting next to 84-258 px of empty lane: the deficit was split in
+  // half and each half clipped at its own constraint, so the half a
+  // neighbour refused was thrown away instead of offered to the free side.
+  // For each target this measures the span between the two things it may not
+  // cross -- the nearest neighbouring INK on each side, else the plot edge --
+  // and requires that a small target had nowhere to grow.
+  const residual = await page.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const svgs = [...root.querySelectorAll(".chartwrap svg")];
+    const svg = svgs[svgs.length - 1];
+    if (!svg) return null;
+    const r = svg.getBoundingClientRect();
+    const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
+    const perUnit = r.width / (Number(vb[2]) || 900);
+    const num = (el, a) => Number(el.getAttribute(a));
+    const inks = [...svg.querySelectorAll("rect.slot")].map((e) => ({
+      x1: num(e, "x"), x2: num(e, "x") + num(e, "width"), y: num(e, "y"),
+    }));
+    const out = [];
+    for (const hit of svg.querySelectorAll("rect.slot-hit")) {
+      const b = hit.getBoundingClientRect();
+      const hx1 = num(hit, "x"), hx2 = hx1 + num(hit, "width"), hy = num(hit, "y");
+      const mine = inks.find((i) => i.y === hy && i.x1 >= hx1 - 0.01 && i.x2 <= hx2 + 0.01);
+      let limitL = -Infinity, limitR = Infinity;
+      let covers = 0;
+      for (const ink of inks) {
+        if (ink.y !== hy) continue;
+        if (mine && ink.x1 === mine.x1 && ink.x2 === mine.x2) continue;
+        // The invariant: a target may never cover another slot's ink.
+        if (hx1 < ink.x2 - 0.01 && hx2 > ink.x1 + 0.01) covers += 1;
+        if (mine && ink.x2 <= mine.x1) limitL = Math.max(limitL, ink.x2);
+        if (mine && ink.x1 >= mine.x2) limitR = Math.min(limitR, ink.x1);
+      }
+      out.push({
+        w: b.width, h: b.height, covers,
+        // Room the target could occupy without covering anything, in px.
+        available: mine
+          ? (Math.min(limitR, Number(vb[2])) - Math.max(limitL, 0)) * perUnit
+          : b.width,
+      });
+    }
+    return out;
+  });
+  const covering = (residual || []).filter((t) => t.covers > 0);
+  check("no slot target covers another slot's ink",
+    residual !== null && covering.length === 0,
+    `${covering.length} of ${(residual || []).length} target(s) overlap a neighbour's ink`);
+  const roomLeft = (residual || []).filter(
+    (t) => Math.min(t.w, t.h) < 24 - 0.05 && t.available > 24 + 1);
+  check("a slot target under the floor is boxed in, not merely clipped on one side",
+    residual !== null && roomLeft.length === 0,
+    roomLeft.slice(0, 4).map((t) =>
+      `target ${t.w.toFixed(1)} px with ${t.available.toFixed(1)} px available`).join("; ")
+    || `${(residual || []).length} target(s), all at or above the floor`);
+
+  // D4-04: the empty state, which is what the dashboard card picker previews
+  // before anything is configured. Its entity ids used to paint up to 47 px
+  // outside the card and give the document 40 px of horizontal scroll.
+  await page.evaluate(async ([w]) => {
+    document.body.innerHTML = "";
+    document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+    const style = document.createElement("style");
+    style.className = "hpo-test";
+    style.textContent =
+      `body { margin: 0; } heatpump-optimizer-card { display: block; width: ${w}px; }`;
+    document.head.appendChild(style);
+    const card = document.createElement("heatpump-optimizer-card");
+    card.setConfig({ type: "custom:heatpump-optimizer-card" });
+    card.hass = { states: {} };
+    document.body.appendChild(card);
+    window.__card = card;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }, [PHONE_TILE]);
+  const spill = await page.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const box = root.querySelector("ha-card") || window.__card;
+    const cb = box.getBoundingClientRect();
+    let worst = 0, who = "";
+    const walk = (node) => {
+      for (const el of node.querySelectorAll("*")) {
+        if (!el.getClientRects().length) continue;
+        const b = el.getBoundingClientRect();
+        const out = Math.max(cb.left - b.left, b.right - cb.right, 0);
+        if (out > worst) { worst = out; who = el.tagName.toLowerCase(); }
+      }
+    };
+    walk(root);
+    return {
+      worst, who,
+      hScroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      text: (root.querySelector(".empty") || {}).textContent ? 1 : 0,
+    };
+  });
+  check("the empty state's entity ids stay inside the card box on a phone tile",
+    spill.text === 1 && spill.worst <= 1,
+    `worst overflow ${spill.worst.toFixed(1)} px (${spill.who || "none"}), document h-scroll ${spill.hScroll} px`);
+  check("and the empty state gives the document no horizontal scroll",
+    spill.hScroll <= 0, `${spill.hScroll} px of h-scroll`);
+
+  // D4-05 / D4-06: text contrast in real Chromium against HA's default light
+  // theme and again with every HA token stripped (card fallbacks only).
+  //
+  // ---- Carried forward from #558 C1, for whoever extends this witness ----
+  //
+  // C1 fixed four GRAPHICAL objects and left this lane alone deliberately.
+  // Three findings constrain the extension, each measured by resolving the
+  // card's own tokens against HA's default themes (light #ffffff card /
+  // dark #1c1c1c card) and compositing in sRGB; the control on each is the
+  // perturbation named beside it.
+  //
+  // 1. NO FIXED COLOUR CLEARS 4.5:1 AGAINST BOTH #ffffff AND #1c1c1c. The
+  //    constraints have no overlap: 4.5:1 on white needs relative luminance
+  //    <= 0.1833, on #1c1c1c it needs >= 0.2273. So a dark-theme text lane
+  //    cannot be satisfied by choosing a better constant ANYWHERE -- only by
+  //    a theme token. Control: the same arithmetic at 3:1 does have an
+  //    overlap (0.1348..0.3000), which is why the SERIES palette can be
+  //    fixed constants and text cannot.
+  //
+  // 2. C4 retargeted the text sites C1 did not own. Re-derived at the
+  //    merge base, not carried: ACCENT_READABLE had 7 non-definition
+  //    references (#026aa8, 5.79:1 light / 2.95:1 dark); MUTED_READABLE
+  //    had 2 (#666666, 5.74:1 / 2.97:1). Five CSS text colours plus the
+  //    lane-more fill now use --primary-text-color. ACCENT_READABLE
+  //    remains only on .wi-save's filled border/background (white on
+  //    #026aa8). MUTED_READABLE is gone. Control: restore .chip.off to
+  //    #666666 and the dark text check fails under 4.5:1.
+  //
+  // 3. THE FALLBACKS-ONLY LANE ALREADY FAILS 4.5:1 ON TEXT if extended past
+  //    the four REQUIRED names. The failing set is a RULE, not a list: every
+  //    <text> the chart emits whose fill is var(--secondary-text-color,#888).
+  //    Re-derive it. At this head that rule returns the axis tick labels, the
+  //    unit titles, the estimated-prices label AND the .lane-label runs --
+  //    the last of which the three-instance list this line used to carry did
+  //    not name. #888 on white is 3.54:1. With the token present it is 4.81:1
+  //    light and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
+  //
+  // And one thing this witness must NOT assert. Gridlines are deliberately
+  // below 3:1 -- .grid is --secondary-text-color at opacity 0.3, which is
+  // 1.472:1 light and 1.698:1 dark. WCAG 1.4.11 asks 3:1 of graphics
+  // REQUIRED to understand content; the values are carried by the axis
+  // labels, and a grid at 3:1 drowns the series it exists to help read.
+  // Asserting 3:1 on .grid would red the lane for a measured design choice.
+  // The hooks C1 left for this lane: .now, .now-label, .estimated-edge,
+  // .grid.grid-v, .grid.grid-h, and .series[data-key]. That last selector is
+  // deliberately NOT path-qualified: a one-point series draws a <circle
+  // class="series">, so path.series[data-key] silently drops it.
+  const HA_LIGHT = `
+    --primary-text-color:#212121; --secondary-text-color:#727272;
+    --text-primary-color:#fff; --primary-color:#03a9f4;
+    --card-background-color:#fff; --divider-color:rgba(0,0,0,.12);
+  `;
+  // Same tokens tests/card.mjs C1 uses. A dark lane cannot be a second
+  // constant: 4.5:1 on #ffffff and on #1c1c1c have no overlapping luminance.
+  const HA_DARK = `
+    --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b;
+    --text-primary-color:#fff; --primary-color:#03a9f4;
+    --card-background-color:#1c1c1c; --divider-color:rgba(225,225,225,.12);
+  `;
+  const contrastOf = async (themeCss, dlgPage) => {
+    await page.evaluate(async ([st, theme, tab]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: "en" };
+      document.body.appendChild(card);
+      window.__card = card;
+      card._onCardClick({});
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 80));
+      if (tab === "setup") {
+        card.dialog.page = "setup";
+        card._render();
+      } else {
+        const chip = card.shadowRoot.querySelector(".chip[data-key='price']");
+        if (chip) chip.click();
+      }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }, [states, themeCss, dlgPage]);
+    return page.evaluate((tab) => {
+      const hex = (h) => {
+        const n = parseInt(h.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      const parse = (s) => {
+        if (!s || s === "transparent") return null;
+        const m = s.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return [+m[1], +m[2], +m[3]];
+        if (s.startsWith("#")) return hex(s.length === 4
+          ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}` : s);
+        return null;
+      };
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+      };
+      const ratio = (a, b) => {
+        const la = lum(a), lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      };
+      const bgOf = (el) => {
+        for (let n = el; n; n = n.parentElement || (n.getRootNode().host || null)) {
+          const bg = parse(getComputedStyle(n).backgroundColor);
+          if (bg) return bg;
+        }
+        return [255, 255, 255];
+      };
+      const root = window.__card.shadowRoot;
+      const out = [];
+      if (tab !== "setup") {
+        const htmlSel = [
+          [".whatif .wi-apply", "wi-apply"],
+          [".whatif .wi-save", "wi-save"],
+          [".chip.off", "chip-off"],
+        ];
+        for (const [sel, name] of htmlSel) {
+          const el = root.querySelector(sel);
+          if (!el) { out.push({ name, missing: true }); continue; }
+          const fg = parse(getComputedStyle(el).color);
+          const r = fg ? ratio(fg, bgOf(el)) : 0;
+          out.push({ name, ratio: +r.toFixed(2), missing: false });
+        }
+      } else {
+        const empty = root.querySelector("text.setup-slot.empty");
+        if (empty) {
+          const raw = empty.getAttribute("fill") || "";
+          const fg = parse(raw.startsWith("#") ? raw : getComputedStyle(empty).fill);
+          const rawBg = getComputedStyle(window.__card)
+            .getPropertyValue("--card-background-color").trim();
+          const cardBg = parse(rawBg) || [255, 255, 255];
+          out.push({
+            name: "setup-slot.empty",
+            ratio: fg ? +ratio(fg, cardBg).toFixed(2) : 0,
+            missing: false,
+          });
+        } else {
+          out.push({ name: "setup-slot.empty", missing: true });
+        }
+      }
+      return out;
+    }, dlgPage);
+  };
+  const REQUIRED = ["wi-apply", "wi-save", "setup-slot.empty", "chip-off"];
+  for (const [label, theme] of [
+    ["HA light theme", HA_LIGHT],
+    ["HA dark theme", HA_DARK],
+    ["card fallbacks only", ""],
+  ]) {
+    const planRows = await contrastOf(theme, "plan");
+    const setupRows = await contrastOf(theme, "setup");
+    const rows = [...planRows, ...setupRows];
+    const reqMissing = REQUIRED.filter((n) => rows.some((r) => r.name === n && r.missing));
+    const bad = rows.filter((r) => REQUIRED.includes(r.name) && !r.missing && r.ratio < 4.5);
+    check(`D4-05/D4-06 action and setup text clears 4.5:1 (${label})`,
+      reqMissing.length === 0 && bad.length === 0,
+      `${bad.map((r) => `${r.name} ${r.ratio}:1`).join("; ") || `${rows.length} site(s) measured`}` +
+      (reqMissing.length ? `; missing: ${reqMissing.join(", ")}` : ""));
+  }
+
+  // C4: Chromium composites of the C1 hooks, light and dark. Gridlines are
+  // perceptible only (1.3:1), never 3:1 — that would drown the series.
+  const graphicStates = {
+    ...states,
+    [SPACE_ID]: {
+      ...states[SPACE_ID],
+      attributes: {
+        ...states[SPACE_ID].attributes,
+        forecast: plan.space_plan.forecast.map((p, i) => ({
+          ...p,
+          price_known: i < Math.floor(plan.space_plan.forecast.length / 2),
+        })),
+      },
+    },
+  };
+  const graphicsOf = async (themeCss) => {
+    await page.evaluate(async ([st, theme]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: "en" };
+      document.body.appendChild(card);
+      window.__card = card;
+      card._onCardClick({});
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 80));
+    }, [graphicStates, themeCss]);
+    return page.evaluate(() => {
+      const hex = (h) => {
+        const n = parseInt(h.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      const parse = (s) => {
+        if (!s || s === "transparent" || s === "none") return null;
+        const m = s.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return [+m[1], +m[2], +m[3]];
+        if (s.startsWith("#")) return hex(s.length === 4
+          ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}` : s);
+        return null;
+      };
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+      };
+      const ratio = (a, b) => {
+        const la = lum(a), lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      };
+      const over = (fg, bg, a) => fg.map((v, i) => Math.round(a * v + (1 - a) * bg[i]));
+      const host = window.__card;
+      const rawBg = getComputedStyle(host).getPropertyValue("--card-background-color").trim();
+      const bg = parse(rawBg) || parse(getComputedStyle(host).backgroundColor) || [255, 255, 255];
+      const root = host.shadowRoot;
+      const against = (el, prop, floor) => {
+        if (!el) return { missing: true, ratio: 0, floor };
+        const cs = getComputedStyle(el);
+        const color = parse(cs[prop]) || parse(el.getAttribute(prop));
+        const op = Number(cs.opacity);
+        if (!color || !Number.isFinite(op)) return { missing: true, ratio: 0, floor };
+        const r = ratio(over(color, bg, op), bg);
+        return { missing: false, ratio: +r.toFixed(3), floor, ok: r >= floor };
+      };
+      const series = [...root.querySelectorAll(".series[data-key]")];
+      const seriesWorst = series.reduce((w, el) => {
+        const cs = getComputedStyle(el);
+        const prop = (cs.stroke && cs.stroke !== "none") ? "stroke" : "fill";
+        const m = against(el, prop, 3);
+        return (!m.missing && m.ratio < w.ratio) ? { ...m, n: (w.n || 0) + 1 } : { ...w, n: (w.n || 0) + 1 };
+      }, { ratio: Infinity, missing: series.length === 0, floor: 3, n: 0 });
+      return {
+        now: against(root.querySelector("line.now"), "stroke", 3),
+        nowLabel: against(root.querySelector("text.now-label"), "fill", 4.5),
+        estimatedEdge: against(root.querySelector("line.estimated-edge"), "stroke", 3),
+        gridV: against(root.querySelector("line.grid.grid-v"), "stroke", 1.3),
+        gridH: against(root.querySelector("line.grid.grid-h"), "stroke", 1.3),
+        series: { ...seriesWorst, missing: series.length === 0 },
+      };
+    });
+  };
+  for (const [label, theme] of [["HA light theme", HA_LIGHT], ["HA dark theme", HA_DARK]]) {
+    const g = await graphicsOf(theme);
+    check(`C4 now marker clears 3:1 (${label})`,
+      !g.now.missing && g.now.ok, g.now.missing ? "missing .now" : `${g.now.ratio}:1`);
+    check(`C4 now label clears 4.5:1 (${label})`,
+      !g.nowLabel.missing && g.nowLabel.ok,
+      g.nowLabel.missing ? "missing .now-label" : `${g.nowLabel.ratio}:1`);
+    check(`C4 estimated-price edge clears 3:1 (${label})`,
+      !g.estimatedEdge.missing && g.estimatedEdge.ok,
+      g.estimatedEdge.missing ? "missing .estimated-edge" : `${g.estimatedEdge.ratio}:1`);
+    check(`C4 vertical gridline is perceptible, not 3:1 (${label})`,
+      !g.gridV.missing && g.gridV.ok && g.gridV.ratio < 3,
+      g.gridV.missing ? "missing .grid.grid-v" : `${g.gridV.ratio}:1`);
+    check(`C4 horizontal gridline is perceptible, not 3:1 (${label})`,
+      !g.gridH.missing && g.gridH.ok && g.gridH.ratio < 3,
+      g.gridH.missing ? "missing .grid.grid-h" : `${g.gridH.ratio}:1`);
+    check(`C4 every .series[data-key] clears 3:1 (${label})`,
+      !g.series.missing && g.series.ok,
+      g.series.missing ? "no .series[data-key]" : `worst ${g.series.ratio}:1`);
+  }
+
+  // --- R8 D4-01 (#1522): keyboard reading order ---------------------------
+  // The rules above each read a selector list, and a control no list names is
+  // a control no rule measures. Tab reaches every control by construction, so
+  // this arm walks real Tab presses through every view -- the tile and each
+  // dialog page -- at the three required viewports, and refuses a step whose
+  // target sits more than ROW_TOL of a row ABOVE the previous stop while not
+  // starting to the right of that stop's right edge: a jump back up the
+  // screen, rather than a wrap to the next row or a move to the top of the
+  // next column. Positions are read after the walk, with every scroller
+  // reset, so a focus that scrolled the body is not a jump. A positive
+  // tabindex would satisfy the walk by overriding the DOM order a screen
+  // reader still follows, so it is refused outright.
+  const ROW_TOL = 0.6;
+  const orderPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  orderPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await orderPage.goto("about:blank");
+  await orderPage.addScriptTag({ path: CARD_SRC });
+  await orderPage.evaluate(([frozen]) => {
+    const Real = Date;
+    class Frozen extends Real {
+      constructor(...a) { super(...(a.length ? a : [frozen])); }
+      static now() { return frozen; }
+    }
+    window.Date = Frozen;
+  }, [Date.parse(plan.dhw_plan.forecast[0].t) + 6 * 3600 * 1000]);
+  const tabWalk = async () => {
+    await orderPage.evaluate(() => {
+      window.__stops = [];
+      if (document.activeElement) document.activeElement.blur();
+    });
+    for (let i = 0; i < 200; i++) {
+      await orderPage.keyboard.press("Tab");
+      const more = await orderPage.evaluate(() => {
+        let el = document.activeElement;
+        while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
+        if (!el || el === document.body) return false;
+        const s = window.__stops;
+        if (s.length && s[0] === el) return false;
+        // A time input takes one Tab per field: one control, one stop.
+        if (s[s.length - 1] !== el) s.push(el);
+        return true;
+      });
+      if (!more) break;
+    }
+    return orderPage.evaluate(() => {
+      window.scrollTo(0, 0);
+      const scrollers = (n) => {
+        const out = [];
+        for (; n; n = n.parentNode || n.host) {
+          if (n.nodeType === 1 && (n.scrollTop || n.scrollLeft)) out.push(n);
+        }
+        return out;
+      };
+      for (const el of window.__stops) for (const n of scrollers(el)) { n.scrollTop = 0; n.scrollLeft = 0; }
+      const root = window.__card ? window.__card.shadowRoot : document;
+      return {
+        positive: [...root.querySelectorAll("[tabindex]")].filter((e) => e.tabIndex > 0).length,
+        stops: window.__stops.map((el) => {
+          const r = el.getBoundingClientRect();
+          const cls = el.getAttribute("class") || "";
+          return { who: `${el.tagName.toLowerCase()}.${cls.split(" ")[0]}`,
+                   x: r.left, y: r.top, w: r.width, h: r.height };
+        }).filter((s) => s.w > 0 && s.h > 0),
+      };
+    });
+  };
+  const backward = (stops) => {
+    const out = [];
+    for (let i = 1; i < stops.length; i++) {
+      const a = stops[i - 1], b = stops[i];
+      const row = Math.max(a.h, b.h, 16);
+      if (a.y - b.y > ROW_TOL * row && b.x <= a.x + a.w) {
+        out.push(`${a.who}@(${a.x.toFixed(0)},${a.y.toFixed(0)}) -> ${b.who}@(${b.x.toFixed(0)},${b.y.toFixed(0)})`);
+      }
+    }
+    return out;
+  };
+  // The positive control: a hand-built row whose DOM order runs against its
+  // painted order, and its null twin -- the rule must fire on the first and
+  // only the first, or it is measuring something other than reading order.
+  const handBuilt = async (dir) => {
+    await orderPage.evaluate((d) => {
+      window.__card = null;
+      document.body.innerHTML =
+        `<div style="display:flex;flex-direction:${d};gap:12px;padding:12px">` +
+        `<button>first</button><button>second</button><button>third</button></div>`;
+    }, dir);
+    return backward((await tabWalk()).stops);
+  };
+  const reversed = await handBuilt("column-reverse");
+  const straight = await handBuilt("column");
+  check("R8 D4-01 the reading-order rule fires on a hand-built out-of-order row",
+    reversed.length === 2 && straight.length === 0,
+    `reversed ${reversed.length}, straight ${straight.length} backward step(s)`);
+
+  // Every view the card draws: the tile (and its score breakdown), and each
+  // dialog page -- the plan page twice, the second with every optional
+  // control the what-if panel and the zoom row can add, and the setup page
+  // twice, the second with its entity picker open.
+  const ORDER_VIEWS = [
+    { name: "tile" }, { name: "tile_score", score: true },
+    { name: "plan", page: "plan" }, { name: "plan_busy", page: "plan", busy: true },
+    { name: "setup", page: "setup" },
+    { name: "setup_picker", page: "setup", open: "dialog rect.setup-hit" },
+    { name: "savings", page: "savings" },
+    { name: "advisor", page: "advisor" },
+  ];
+  const orderCells = [];
+  for (const [w, h] of [[375, 812], [768, 1024], [1280, 800]]) {
+    await orderPage.setViewportSize({ width: w, height: h });
+    for (const view of ORDER_VIEWS) {
+      await orderPage.evaluate(async ([st0, w2, v]) => {
+        const st = JSON.parse(JSON.stringify(st0));
+        if (v.score) {
+          // The headline stats, whose score pill is a control and opens a
+          // breakdown panel.
+          st["sensor.heat_pump_optimizer_predicted_savings"] = {
+            state: "12.34", attributes: { unit_of_measurement: "SEK" } };
+          st["sensor.heat_pump_optimizer_savings_percentage"] = { state: "8.2", attributes: {} };
+          st["sensor.heat_pump_optimizer_optimization_score"] = {
+            state: "82", attributes: { envelope: 90, machine: 75 } };
+        }
+        if (v.busy) {
+          // Every optional what-if control drawn at once: DHW windows (a
+          // select, two times and a remove each) and the override's
+          // back-to-automatic button.
+          st["sensor.heat_pump_optimizer_plan_dhw_heating"].attributes.dhw_windows_spec =
+            "weekdays 06:00-08:30, weekend 08:00-09:30";
+          st["sensor.heat_pump_optimizer_plan_space_heating"].attributes.manual_override = {
+            active: true, expires_at: new Date(Date.now() + 5 * 3600e3).toISOString(),
+            space_slots: [], dhw_slots: [], released_space: [], released_dhw: [] };
+        }
+        document.body.innerHTML =
+          `<style>body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+          `heatpump-optimizer-card{display:block;width:${Math.min(w2 - 16, 500)}px;margin:8px}</style>`;
+        const card = document.createElement("heatpump-optimizer-card");
+        card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+        card.hass = { states: st, language: "en" };
+        document.body.appendChild(card);
+        window.__card = card;
+        const settle = async () => {
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+          await new Promise((r) => setTimeout(r, 120));
+        };
+        if (v.score) {
+          card._scoreOpen = true;
+          card._render();
+        }
+        if (v.page) {
+          card._onCardClick({});
+          card.dialog.page = v.page;
+          card._render();
+        }
+        await settle();
+        // The setup picker, opened from the keyboard as a user would: focus
+        // a diagram row, press Enter. It overlays the diagram.
+        if (v.open) {
+          const hit = card.shadowRoot.querySelector(v.open);
+          hit.focus();
+          hit.dispatchEvent(new KeyboardEvent("keydown",
+            { key: "Enter", bubbles: true, composed: true }));
+          await settle();
+        }
+        // Zoomed in, the view's reset button is enabled and joins the walk.
+        if (v.busy) {
+          card.shadowRoot.querySelector("dialog .vc-in").click();
+          await settle();
+        }
+      }, [clipStates, w, view]);
+      const walk = await tabWalk();
+      orderCells.push({ w, h, view: view.name, n: walk.stops.length, positive: walk.positive,
+                        back: backward(walk.stops) });
+    }
+  }
+  await orderPage.close();
+  console.log(`        tab stops: ${orderCells.map((c) => `${c.w} ${c.view}=${c.n}`).join(", ")}`);
+  const jumps = orderCells.filter((c) => c.back.length);
+  check("R8 D4-01 no Tab step jumps back up the screen, on any view at 375, 768 or 1280",
+    jumps.length === 0,
+    jumps.length
+      ? jumps.map((c) => `${c.w}x${c.h} ${c.view}: ${c.back.join(" | ")}`).join("; ")
+      : `${orderCells.length} cell(s), ${orderCells.reduce((s, c) => s + c.n, 0)} stop(s)`);
+  check("R8 D4-01 and no control reorders Tab with a positive tabindex",
+    orderCells.every((c) => c.positive === 0),
+    orderCells.filter((c) => c.positive).map((c) => `${c.w} ${c.view}: ${c.positive}`).join(", "));
+  // The walk's own control: a view that yielded a handful of stops would pass
+  // the rule above for having nothing to order.
+  check("R8 D4-01 and the walk reached the controls of every view",
+    orderCells.every((c) => c.n >= 3) &&
+      orderCells.filter((c) => c.view === "plan").every((c) => c.n >= 20),
+    orderCells.map((c) => `${c.w} ${c.view}=${c.n}`).join(", "));
+
+  // B12: the README hero is a screenshot of this lane, not the card_rig
+  // SVG B4 committed as an interim. Frozen at the payload's first sample
+  // so the plot is the full horizon (same instant make_card_figures.mjs
+  // uses). A committed PNG is not bit-stable across Chromium builds, so
+  // CI never writes it; HPO_HERO_OUT is the generator. The check is that
+  // this lane can take the picture: PNG magic, and a box the first
+  // layout check already proved is a real tile.
+  const heroAt = Date.parse(plan.space_plan.forecast[0].t);
+  const heroPage = await browser.newPage({
+    viewport: { width: 1024, height: 800 },
+    deviceScaleFactor: 2,
+  });
+  try {
+    await heroPage.goto("about:blank");
+    await heroPage.addScriptTag({ path: CARD_SRC });
+    await heroPage.evaluate(([st, theme, frozen]) => {
+      const Real = Date;
+      class Frozen extends Real {
+        constructor(...a) { super(...(a.length ? a : [frozen])); }
+        static now() { return frozen; }
+      }
+      window.Date = Frozen;
+      const style = document.createElement("style");
+      style.textContent =
+        `body{margin:0;background:#fff;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `.hero{padding:16px;background:#fff;display:inline-block}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const wrap = document.createElement("div");
+      wrap.className = "hero";
+      const card = document.createElement("heatpump-optimizer-card");
+      wrap.appendChild(card);
+      document.body.appendChild(wrap);
+      card.setConfig({ type: "custom:heatpump-optimizer-card" });
+      card.hass = { states: st, language: "en" };
+      window.__card = card;
+    }, [states, HA_LIGHT, heroAt]);
+    await heroPage.waitForTimeout(250);
+    const heroBox = await heroPage.evaluate(() => {
+      const card = window.__card;
+      const svgs = card.shadowRoot ? [...card.shadowRoot.querySelectorAll("svg")] : [];
+      let best = null;
+      for (const svg of svgs) {
+        const b = svg.getBoundingClientRect();
+        if (!best || b.width * b.height > best.w * best.h) {
+          best = { w: b.width, h: b.height };
+        }
+      }
+      return best;
+    });
+    check("B12 hero card renders an svg with real size",
+      heroBox !== null && heroBox.w > 600 && heroBox.h > 200,
+      heroBox ? `${heroBox.w.toFixed(0)}x${heroBox.h.toFixed(0)} px` : "no svg");
+    const shot = await heroPage.locator(".hero").screenshot({ type: "png" });
+    check("B12 hero screenshot is a PNG of the dashboard tile",
+      shot[0] === 0x89 && shot[1] === 0x50 && shot[2] === 0x4e && shot[3] === 0x47
+        && shot.length > 20_000,
+      `${shot.length} bytes`);
+    const out = process.env.HPO_HERO_OUT;
+    if (out) {
+      writeFileSync(out, shot);
+      console.log(`  wrote hero ${shot.length} bytes -> ${out}`);
+    }
+  } finally {
+    await heroPage.close();
+  }
+} finally {
+  await browser.close();
+}
+
+console.log(fails ? `\n${fails} BROWSER CHECK(S) FAILED` : "\nALL BROWSER CHECKS PASSED");
+process.exit(fails ? 1 : 0);

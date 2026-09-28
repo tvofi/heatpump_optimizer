@@ -1,0 +1,272 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "away_mode": {
+        "default": "mdi:home-export-outline"
+      },
+      "external_heat_source": {
+        "default": "mdi:fire"
+      },
+      "input_problem": {
+        "default": "mdi:alert-decagram-outline"
+      },
+      "mold_floor_breach": {
+        "default": "mdi:water-alert"
+      },
+      "open_window_detected": {
+        "default": "mdi:window-open-variant"
+      },
+      "wood_cheaper": {
+        "default": "mdi:pine-tree"
+      }
+    },
+    "button": {
+      "diagnose_last_interval": {
+        "default": "mdi:stethoscope"
+      },
+      "learning_reset_comfort_weight": {
+        "default": "mdi:restore"
+      },
+      "learning_run_system_identification": {
+        "default": "mdi:flask-outline"
+      },
+      "optimize_now": {
+        "default": "mdi:play-circle-outline"
+      }
+    },
+    "sensor": {
+      "buffer_tank_temperature_model": {
+        "default": "mdi:water-boiler"
+      },
+      "compressor_frequency_advisor": {
+        "default": "mdi:pump"
+      },
+      "compressor_starts": {
+        "default": "mdi:counter"
+      },
+      "cost_baseline": {
+        "default": "mdi:currency-usd-off"
+      },
+      "cost_contract_comparison": {
+        "default": "mdi:file-compare"
+      },
+      "cost_current_electricity_price": {
+        "default": "mdi:flash"
+      },
+      "cost_monthly_peak_power": {
+        "default": "mdi:chart-bell-curve"
+      },
+      "cost_power_headroom": {
+        "default": "mdi:transmission-tower"
+      },
+      "cost_predicted": {
+        "default": "mdi:currency-usd"
+      },
+      "cost_total_heating": {
+        "default": "mdi:cash-multiple"
+      },
+      "dhw_cost": {
+        "default": "mdi:cash"
+      },
+      "dhw_energy": {
+        "default": "mdi:water-boiler"
+      },
+      "dhw_heating_cost": {
+        "default": "mdi:cash-minus"
+      },
+      "plan_dhw_heating": {
+        "default": "mdi:water-boiler"
+      },
+      "dhw_heating_schedule": {
+        "default": "mdi:water-boiler-auto"
+      },
+      "dhw_heavy_day_demand": {
+        "default": "mdi:chart-box-outline"
+      },
+      "dhw_mixed_water": {
+        "default": "mdi:shower-head"
+      },
+      "dhw_setpoint_advisor": {
+        "default": "mdi:thermometer-check"
+      },
+      "dhw_temperature": {
+        "default": "mdi:water-thermometer"
+      },
+      "ecl110_displace": {
+        "default": "mdi:tune-vertical"
+      },
+      "ecl110_effective_displace": {
+        "default": "mdi:chart-bell-curve"
+      },
+      "floor_heating_return_temperature": {
+        "default": "mdi:pipe-valve"
+      },
+      "heat_pump_action": {
+        "default": "mdi:heat-pump",
+        "state": {
+          "boost": "mdi:rocket-launch",
+          "comfort": "mdi:sofa",
+          "eco": "mdi:leaf",
+          "hot_water": "mdi:water-boiler",
+          "idle": "mdi:sleep",
+          "normal": "mdi:radiator",
+          "off": "mdi:radiator-off",
+          "pre_heat": "mdi:clock-fast",
+          "system_identification": "mdi:flask-outline",
+          "unknown": "mdi:help-circle-outline"
+        }
+      },
+      "indoor_temperature_optimizer": {
+        "default": "mdi:home-thermometer"
+      },
+      "last_optimization": {
+        "default": "mdi:clock-check-outline"
+      },
+      "learning_comfort_weight": {
+        "default": "mdi:scale-balance"
+      },
+      "learning_estimated_cop": {
+        "default": "mdi:gauge"
+      },
+      "learning_observed_cop": {
+        "default": "mdi:gauge-full"
+      },
+      "lower_floor_temperature": {
+        "default": "mdi:home-floor-0"
+      },
+      "measured_power": {
+        "default": "mdi:meter-electric"
+      },
+      "next_optimization": {
+        "default": "mdi:clock-outline"
+      },
+      "optimal_setpoint": {
+        "default": "mdi:thermometer-lines"
+      },
+      "optimization_mode": {
+        "default": "mdi:cog-outline",
+        "state": {
+          "auto": "mdi:autorenew",
+          "boost": "mdi:rocket-launch",
+          "comfort": "mdi:sofa",
+          "economy": "mdi:leaf",
+          "off": "mdi:power-off",
+          "unknown": "mdi:help-circle-outline"
+        }
+      },
+      "optimization_schedule": {
+        "default": "mdi:calendar-clock"
+      },
+      "optimization_schedule_steps": {
+        "default": "mdi:format-list-numbered"
+      },
+      "optimization_status": {
+        "default": "mdi:check-circle-outline"
+      },
+      "outdoor_temperature_optimizer": {
+        "default": "mdi:sun-thermometer"
+      },
+      "plan_monthly_savings": {
+        "default": "mdi:calendar-month"
+      },
+      "plan_narrative": {
+        "default": "mdi:text-long",
+        "state": {
+          "cheap_price": "mdi:cash-clock",
+          "comfort_floor": "mdi:home-thermometer",
+          "dhw_preheat": "mdi:water-boiler-auto",
+          "dhw_ready": "mdi:water-check",
+          "dhw_window": "mdi:calendar-clock",
+          "idle": "mdi:sleep",
+          "legionella": "mdi:bacteria-outline",
+          "manual_plan": "mdi:account-edit",
+          "preheat_weather": "mdi:weather-partly-cloudy",
+          "pump_mode": "mdi:heat-pump",
+          "scheduled": "mdi:calendar-check",
+          "solar_surplus": "mdi:solar-power-variant",
+          "terminal_value": "mdi:flag-checkered",
+          "untagged": "mdi:help-circle-outline"
+        }
+      },
+      "plan_optimization_score": {
+        "default": "mdi:speedometer"
+      },
+      "plan_predicted_savings": {
+        "default": "mdi:piggy-bank-outline"
+      },
+      "plan_savings_percentage": {
+        "default": "mdi:percent"
+      },
+      "prediction_accuracy": {
+        "default": "mdi:target"
+      },
+      "predictive_optimization_insight": {
+        "default": "mdi:crystal-ball"
+      },
+      "recommended_power": {
+        "default": "mdi:lightning-bolt"
+      },
+      "sensor_gap_advisor": {
+        "default": "mdi:gauge-empty"
+      },
+      "slab_temperature_estimated": {
+        "default": "mdi:floor-plan"
+      },
+      "solar_heat_gain": {
+        "default": "mdi:solar-power"
+      },
+      "solar_irradiance": {
+        "default": "mdi:weather-sunny"
+      },
+      "solar_surplus_forecast": {
+        "default": "mdi:solar-power-variant"
+      },
+      "space_heating_cost": {
+        "default": "mdi:cash"
+      },
+      "space_heating_energy": {
+        "default": "mdi:radiator"
+      },
+      "plan_space_heating": {
+        "default": "mdi:radiator"
+      },
+      "thermal_battery_charge": {
+        "default": "mdi:home-battery"
+      },
+      "thermal_battery_energy": {
+        "default": "mdi:battery-charging"
+      },
+      "total_energy": {
+        "default": "mdi:counter"
+      },
+      "upper_floor_temperature": {
+        "default": "mdi:home-floor-1"
+      },
+      "valve_target_recommendation": {
+        "default": "mdi:valve"
+      },
+      "wood_burn_advisor": {
+        "default": "mdi:fireplace"
+      }
+    },
+    "switch": {
+      "away": {
+        "default": "mdi:walk"
+      },
+      "dhw_boost": {
+        "default": "mdi:water-boiler"
+      },
+      "boost_space": {
+        "default": "mdi:radiator"
+      },
+      "optimizer_active": {
+        "default": "mdi:robot"
+      }
+    },
+    "datetime": {
+      "away_return": {
+        "default": "mdi:calendar-end"
+      }
+    }
+  }
+}

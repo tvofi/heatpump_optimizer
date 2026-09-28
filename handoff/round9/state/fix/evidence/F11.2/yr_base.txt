@@ -1,0 +1,72 @@
+RESULT window_merges=201
+RESULT first_parent_commits=267
+RESULT api_multi_row_commits=0
+RESULT subject_only_numbers=52
+RESULT api_only_numbers=0
+RESULT brief_merges_with_verdict=188
+RESULT brief_first_verdict_yield=0.915 (172/188)
+RESULT brief_rounds_mean=1.271 verdicts/merge
+RESULT brief_rounds_max=4
+RESULT verdict_lines_outside_or_wave_refused=2
+  outside: #1551 (comment, brief-parsable, wave-refused): Fix review: blocked cf89b64410d2551c181976f01a820c0d58325606
+  outside: #1287 (comment, brief-parsable, wave-refused): Fix review: blocked bc8365f43f020024a67218fb56106a25a7ad5ef5
+STATS COVERAGE: 188 of 201 merged pull request(s) in the window carried a parsable verdict; 13 carried none (#1573 #1554 #1503 #1445 #1442 #1423 #1439 #1436 #1430 #1358 +3 more); the histogram's verdict denominator is 188, not the window's merge count
+STATS ROUNDS: over the 188 merged pull request(s) carrying a parsable verdict, first-verdict yield 172/188 = 0.915 (the first verdict was `merge`), one-round yield 154/188 = 0.819 (merged on that one verdict, no later parsable one). Of the 49 parsable verdict(s) after a pull request's first, by the verdict before each: 22 re-verified a head that moved after a `merge` (18 PR(s), the "head-moved" row), 21 repaired after a `blocked`, 6 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 237; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
+RESULT prod_coverage_verdict_prs=188
+RESULT prod_no_verdict=13
+RESULT prod_first_verdict_yield=0.915 (172/188)
+RESULT prod_one_round_yield=0.819 (154/188)
+RESULT prod_unclassified=2
+  prod unclassified: #1551 (issue comment): Fix review: blocked cf89b64410d2551c181976f01a820c0d58325606 register 
+  prod unclassified: #1287 (issue comment): Fix review: blocked bc8365f43f020024a67218fb56106a25a7ad5ef5 class-c-l
+RESULT prod_endpoint_issue_comment=237
+RESULT m2_bot_cycle_merges=2
+RESULT m2_bot_cycle_no_verdict=1
+  m2 bot cycle: 1/2 no verdict; authors {"hpo-approver[bot]":1}; exempt by: (no rule); e.g. #1257
+RESULT m2_fix_feature_merges=57
+RESULT m2_fix_feature_no_verdict=2
+  m2 fix/feature: 2/57 no verdict; authors {"hpo-author[bot]":2}; exempt by: (no rule); e.g. #1445 #1423
+RESULT m2_other_lane_merges=89
+RESULT m2_other_lane_no_verdict=3
+  m2 other lane: 3/89 no verdict; authors {"hpo-author[bot]":3}; exempt by: (no rule); e.g. #1573 #1554 #1362
+RESULT m2_record_chore_merges=36
+RESULT m2_record_chore_no_verdict=6
+  m2 record/chore: 6/36 no verdict; authors {"hpo-author[bot]":6}; exempt by: (no rule); e.g. #1503 #1442 #1436 #1430 #1358 #1261
+RESULT m2_untitled_(merge_subject)_merges=17
+RESULT m2_untitled_(merge_subject)_no_verdict=1
+  m2 untitled (merge subject): 1/17 no verdict; authors {"hpo-author[bot]":1}; exempt by: (no rule); e.g. #1439
+RESULT m3_blocked_verdicts=21
+  m3 class root-cause-unanswered: 6 (#1560 #1563 #1559 #1559 #1561 #1418)
+  m3 class red-check [UNTAUGHT]: 2 (#1562 #1563)
+  m3 class wrong-input [UNTAUGHT]: 1 (#1497)
+  m3 class harness: 1 (#1562)
+  m3 class vacuous [UNTAUGHT]: 1 (#1577)
+  m3 class mutation [UNTAUGHT]: 1 (#1578)
+  m3 class readme-numbering [UNTAUGHT]: 1 (#1560)
+  m3 class dirty [UNTAUGHT]: 1 (#1567)
+  m3 class measurement [UNTAUGHT]: 1 (#1565)
+  m3 class class-open: 1 (#1564)
+  m3 class closures-unrepaired [UNTAUGHT]: 1 (#1508)
+  m3 class carry-missing: 1 (#1551)
+  m3 class carry-incomplete [UNTAUGHT]: 1 (#1551)
+  m3 class product-tradeoff-regression: 1 (#1429)
+  m3 class claims: 1 (#1349)
+RESULT m3_bucket_engineering=7
+RESULT m3_bucket_orchestration=2
+RESULT m3_bucket_record-and-body=12
+RESULT m3_body_answer_blocks=8
+RESULT m3_max_engineering_class=1
+RESULT reverify_rounds=22
+RESULT reverify_blocked=0
+RESULT reverify_moved_by_merges_only=11
+RESULT reverify_moved_by_ci_bot_only=1
+RESULT reverify_moved_by_branch_content=10
+RESULT reverify_heads_missing_locally=0
+RESULT prod_reverify_entries=22
+RESULT prod_repair_entries=21
+RESULT prod_repeat_entries=6
+RESULT api_failures=0
+RESULT load1=0.12
+RESULT thread_factor=1
+RESULT baseline_sha=1936d5ca72a06556eeed4e8e5bf3dea520e517e1
