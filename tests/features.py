@@ -6535,6 +6535,9 @@ class _FakeLearnStore:
     async def async_load(self):
         return self.saved
 
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
+
 
 from heatpump_optimizer.drift import Cusum as _Cusum
 
@@ -14171,6 +14174,9 @@ class _FuseStore:
 
     async def async_load(self):
         return dict(_persist_payload)
+
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 _cad_persist._ledger_store = _FuseStore()
@@ -37842,6 +37848,9 @@ class _T3SavingStore:
 
     async def async_save(self, data):
         self.saved.append(data)
+
+    async def async_wait_for_read(self) -> None:
+        """The fake never holds a read in flight (D1-s2-52's wait)."""
 
 
 class _T3FullStore:
