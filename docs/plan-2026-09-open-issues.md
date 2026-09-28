@@ -96,6 +96,7 @@ handoff/audit-r9-fixplan (66 groups).
 | #1758 | **scheduled — R9-F10.7** (instrument-first: the v6.6.0 freeze undiagnosed; tvofi runs the host profiler) |
 | #1759 | **scheduled — R9-EG-R0** (register v2 data, tvofi reviews the move list) **then R9-EG-R1** (the fold; owner-gated policy clauses) |
 | #1760 | **scheduled — R9-F7.4** (declared entity families + one contiguity check; after F7.2) |
+| P2/I5 catch-all split | **deferred to round 10, pre-study first** (register decision 3, tvofi 2026-09-29): the detectors miss most members, so the split follows what a detector can check; the reclassification machinery (build_v2.py / rows_v2.tsv) is live by then, EG-B1's typed payload will have landed, and R1's permanent fold supplies the data. The round-10 pre-study measures detector candidates against both classes' members before any rows move. |
 | #1070 (row correction) | the row's "root-cause seat in flight" was false: no seat ran, and the band landed as #1124. Corrected in this PR. |
 
 ## Delivery status
