@@ -54,10 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.8
+# claims-for: 6.7.9
 #
-# v6.7.8: Round-9 fixes: coordinator clock seams, stores, inputs and sysid, solver coupled stability (2.3x faster plant step), and the verdict-carry rule. The stamp empties the list; the
+# v6.7.9: Round-9 wave: F1.2 coordinator fixes, kernel-stable optimality check, verdict-carry rule, handover pointers, may-drift stamp countermeasure. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+#
 
 # R9 F1.2 (D12-s3-01, round 9; re-claimed by hand at the 6.7.8 absorb): this
 # branch claims exactly one fixture. The wizard's dhw and zones pages ask
