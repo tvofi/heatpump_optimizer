@@ -77,9 +77,15 @@ never avoided by a worse shape.
   re-defined the metric.
 - **R9-EG-B7 is a measured go/no-go.** Where a seam's cut does not fall, record the halt on #1744 with
   the numbers.
-- **EG PRs are pure refactors.** They claim no golden drift, and a moved golden means the PR is not pure.
-  Each names its null control in the body (the issue states it). B1 and B5 carry the principle-3 check:
-  a three-dot diff plus a whole-file comparison at every merge from main.
+- **EG PRs are pure refactors, except R9-EG-B8.** The refactors claim no golden drift, and a moved golden
+  means the PR is not pure. Each names its null control in the body (the issue states it). B1 and B5 carry
+  the principle-3 check: a three-dot diff plus a whole-file comparison at every merge from main.
+- **R9-EG-B8 (#1747) is a behaviour fix**, under the normal fix protocol:
+  - failing test first (the -2.0 arm of `alt/evidence/b8_replan_blocked.py`);
+  - mutation proof;
+  - the Root cause section on #1747, which is owed because the defect reached released versions
+    (`defect-root-cause.md` trigger 1).
+  It lands after R9-F2.4 and before R9-EG-B5.
 - **Raises.** Any budget raise, including #1738 arm (c)'s re-definition of `classes_over_300` inside
   R9-F10.4, needs tvofi's confirmation before the push, and merges on his approving review
   (budget-raise-gate, 0013).
