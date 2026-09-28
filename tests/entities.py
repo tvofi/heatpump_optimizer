@@ -2946,6 +2946,24 @@ R.check(
     "two entities carrying one number look like corroboration until one owns up",
 )
 
+# D8-s3-03, class N-dup-entity (Fixes #1669): Upper Floor Temperature has
+# always published the indoor reading (the two-zone convention, stated in
+# its docstring), so an enabled-by-default byte duplicate shipped on every
+# install — single-zone ones included, where there is no upper floor. Its
+# registry default now follows the duplicate: off until the user asks for
+# it, which needs no registry migration (existing entries keep their
+# state). Null control: the indoor sensor it duplicates stays enabled.
+R.check(
+    "the upper floor ships disabled by default (#1669)",
+    not registry_default(sensor.UpperFloorTempSensor(_blind_fake, ENTRY)),
+    "a duplicate of Indoor Temperature is not on by default on every install",
+)
+R.check(
+    "the indoor sensor it duplicates stays enabled (#1669 control)",
+    registry_default(sensor.IndoorTempSensor(_blind_fake, ENTRY)),
+    "the move is the duplicate's default, not the pair's",
+)
+
 # Wire the thermometers up and the same entities come back to life, with the
 # sensors' values rather than the defaults.
 _sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
@@ -9303,6 +9321,58 @@ R.check(
     "no enabled entity ships dead on the ordinary install (#1335)",
     not _ord_shipped_dead,
     f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+# D8-s3-61, class P2 (#1644): Valve Target Recommendation kept a static
+# disabled default while its payload key exists only when a throttling
+# mixing-valve mode is configured — disabled where the user HAS the valve
+# (the recommendation is computed and thrown away), available-but-unknown
+# where they have none. Default and availability now follow
+# mixing_valve.is_throttling(mixing_valve_mode), the gate its sibling
+# opt-in readouts take (ConfiguredInputMixin / DHWEntityMixin shape).
+class _ThrottleMode:
+    mixing_valve_mode = "manual"
+
+
+_valve_lit = sensor.ValveTargetRecommendationSensor(
+    FakeCoordinator(
+        {**DATA, "valve_target_recommendation": {"target": 23.0, "reason": "r"}},
+        _thermal_params=_ThrottleMode(),
+    ),
+    ENTRY,
+)
+R.check(
+    "the valve readout is on and available where a throttling valve is configured (#1644)",
+    registry_default(_valve_lit) and _valve_lit.available
+    and _valve_lit.native_value == 23.0,
+    f"default={registry_default(_valve_lit)} "
+    f"available={_valve_lit.available} value={_valve_lit.native_value!r}",
+)
+_valve_off = sensor.ValveTargetRecommendationSensor(
+    FakeCoordinator(DATA),
+    ENTRY,
+)
+R.check(
+    "and off and unavailable where none is (#1644)",
+    not registry_default(_valve_off) and not _valve_off.available,
+    "available-but-unknown was the defect's second half",
+)
+class _NoneMode:
+    mixing_valve_mode = "none"
+
+
+R.check(
+    "a configured non-throttling mode gates the same as none (#1644 control)",
+    not registry_default(
+        sensor.ValveTargetRecommendationSensor(
+            FakeCoordinator(
+                DATA,
+                _thermal_params=_NoneMode(),
+            ),
+            ENTRY,
+        )
+    ),
+    "the move is keyed on the mode, not unconditional",
 )
 
 # #1542 / #1527 widened (R8-P2): the hot-water gate above is one instance of
@@ -19600,11 +19670,19 @@ R.check(
     repr(_dhw_one.native_value),
 )
 _dhw_two = sensor.DHWScheduleSensor(
-    FakeCoordinator({"dhw_schedule": [{"dhw_power": 1.0}, {"dhw_power": 1.0}]}),
+    FakeCoordinator(
+        {
+            "dhw_schedule": [
+                {"dhw_power": 1.0},
+                {"dhw_power": 0.0},
+                {"dhw_power": 1.0},
+            ]
+        }
+    ),
     ENTRY,
 )
 R.check(
-    "two DHW heating steps keep the plural (#284)",
+    "two DHW heating periods keep the plural (#284)",
     _dhw_two.native_value == "2 heating periods",
     repr(_dhw_two.native_value),
 )
@@ -19642,6 +19720,47 @@ R.check(
     "two plan slots keep the plural (#284)",
     _plan_two.native_value == "2 slots planned",
     repr(_plan_two.native_value),
+)
+
+# D8-s1-02, class P2 (#1644): DHW Heating Schedule counted every 15-minute
+# step above 0.1 kW as a "heating period", while DHW Heating Plan merges
+# consecutive steps above its own 0.05 kW threshold into one slot — one
+# schedule published as two disagreeing counts. The schedule sensor now
+# reads the plan's own slot list, so the two cannot diverge. Null control:
+# the #284 checks above, whose single-step periods agree at both countings.
+_multi_run_payload = {
+    "dhw_schedule": [
+        {"dhw_power": 2.0},
+        {"dhw_power": 1.5},
+        {"dhw_power": 0.0},
+        {"dhw_power": 1.0},
+    ],
+    # What the coordinator itself builds for this schedule: a three-step
+    # run collapses to one slot, the trailing step is a second (coordinator
+    # _plan_slots, threshold 0.05).
+    "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
+}
+_dhw_sched_vs_plan = sensor.DHWScheduleSensor(
+    FakeCoordinator(_multi_run_payload), ENTRY
+)
+_dhw_plan_count = sensor.DHWHeatingPlanSensor(
+    FakeCoordinator(_multi_run_payload), ENTRY
+)
+R.check(
+    "DHW Heating Schedule's period count is DHW Heating Plan's slot count (#1644)",
+    _dhw_sched_vs_plan.native_value == "2 heating periods"
+    and _dhw_plan_count.extra_state_attributes["slot_count"] == 2,
+    f"schedule={_dhw_sched_vs_plan.native_value!r} "
+    f"slot_count={_dhw_plan_count.extra_state_attributes['slot_count']!r}",
+)
+R.check(
+    "and the schedule sensor still answers for a schedule with no plan dict (#1644)",
+    sensor.DHWScheduleSensor(
+        FakeCoordinator({"dhw_schedule": [{"dhw_power": 2.0}, {"dhw_power": 1.5}]}),
+        ENTRY,
+    ).native_value
+    == "1 heating period",
+    "the fallback counts the same contiguous runs the plan builder merges",
 )
 
 R.section("#558 D3 enumerated sensor states")
