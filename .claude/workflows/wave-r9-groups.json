@@ -1416,11 +1416,11 @@
     "R9-F7.1"
    ],
    "resume": {
-    "stage": "fix",
+    "stage": "done",
     "branch": "handoff/r9-f5-config-text-2",
-    "commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
-    "last_step": "sonnet fixer seat dispatched from main 12b0df68 on handoff/r9-f5-config-text-2",
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "8ff6827a9c2219bc6a32e81f47d0776ecdd94ecb",
+    "last_step": "MERGED as #1732 at 8ff6827a; fixes[] #1679 and #1685 confirmed closed, nothing else -- #1644 and #1651 stay open as Part-of",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F5.2.md on handoff/r9-f5-config-text-2",
     "review_branch": "handoff/r9-f5-config-text-2-review",
     "review_note_file": "handoff/round9/fix/resume/F5.2-review.md on handoff/r9-f5-config-text-2-review",
