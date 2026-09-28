@@ -4025,8 +4025,25 @@ _EVERY_INPUT = {
         *sensor.ECL110_TOPIC_SLOTS,
     )
 }
-_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT)
-_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT)
+
+
+class _AllGates:
+    """The thermal params _healthy needs for every gate to read open.
+
+    dhw_enabled lights the hot-water gate; mixing_valve_mode at a
+    throttling mode lights the valve gate (#1644). A new opt-in
+    readout's gate belongs here too -- the payload that "satisfies every
+    gate" must satisfy this one, or the availability sweep below can no
+    longer distinguish a forgotten `super().available and` from a gate
+    doing its job.
+    """
+
+    dhw_enabled = True
+    mixing_valve_mode = "manual"
+
+
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -8907,7 +8924,9 @@ R.section("Sensor metadata")
 # first solve's prices and forecast) cannot light it: opt-in hardware,
 # opt-in probes and opt-in meters publish nothing until configured, and an
 # enabled entity that is unavailable from the first hour is list noise a
-# fresh install cannot tell from a defect. Every other sensor must stay
+# fresh install cannot tell from a defect. A compatibility duplicate of
+# another enabled sensor belongs here too (#1669): the install cannot
+# distinguish it from the entity it copies. Every other sensor must stay
 # enabled, because flipping one silently hides it from every fresh install
 # (#1335 widened this from the six machinery sensors to the whole gate).
 _expected_disabled = {
@@ -8935,6 +8954,12 @@ _expected_disabled = {
     "lower_floor_temp",
     "buffer_tank_temp",
     "slab_temp",
+    # #1669: the upper floor IS the indoor reading (the stated two-zone
+    # convention), so the entity ships as a compatibility duplicate of
+    # Indoor Temperature -- off until the user asks for it. Second
+    # membership class beside the opt-in rules above: the ordinary
+    # install cannot distinguish it from the sensor it duplicates.
+    "upper_floor_temp",
 }
 _actually_disabled = {
     s._key
@@ -9297,10 +9322,16 @@ def _ord_state(e):
 # sensor flipped without one fails here. The ECL110 pair used to be the one
 # exception, available with no ECL110 topic stored and publishing a 0.0
 # placeholder; it now takes the configured-input gate, so it has none.
+# upper_floor_temp joins as the second named exception, the #1669 class:
+# it is alive (it follows the indoor reading) but ships off as a
+# compatibility duplicate, not for deadness -- its measured cause is
+# redundancy, the roster comment's second membership class.
+_ord_gate_exceptions = {"upper_floor_temp"}
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
+    and e._key not in _ord_gate_exceptions
     and e.available
     and _ord_state(e) is not None
 )
@@ -9309,6 +9340,18 @@ R.check(
     " the ECL110 pair included (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
+)
+R.check(
+    "the alive-while-disabled exception is the duplicate, not a dead sensor (#1669)",
+    _ord_gate_exceptions
+    and not [
+        e._key
+        for e in _ord_entities
+        if not _ord_default_on(e)
+        and e._key in _ord_gate_exceptions
+        and (_ord_state(e) is None or not e.available)
+    ],
+    "an exception must be alive: deadness there would want a gate, not an off switch",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -9394,14 +9437,19 @@ _INPUT_GATE_EXCEPTIONS = {
     "WoodBurnAdvisorSensor": "evidence: the wood fuel model's readiness",
     # Feature opt-ins keyed on an options-page choice rather than an input
     # entity slot; their default is #1335's static off, not yet ruled to
-    # follow the choice (R8-P2 hand-back).
+    # follow the choice (R8-P2 hand-back). ValveTargetRecommendationSensor
+    # was the fourth: its rule landed (#1644) as sensor._MixingValveGate,
+    # so it left this list for the gated set below.
     "MonthlyPeakSensor": "opt-in: capacity tariff choice",
     "PowerHeadroomSensor": "opt-in: capacity tariff or main fuse",
     "PVSurplusSensor": "opt-in: PV enabled flag",
-    "ValveTargetRecommendationSensor": "opt-in: mixing-valve mode choice",
     "WoodCheaperBinarySensor": "opt-in: wood furnace flag",
     "MeasuredPowerSensor": "opt-in: measured power entity (#1335 roster)",
     "CompressorStartsSensor": "opt-in: measured power entity (#1335 roster)",
+    # Not an input gate at all: the default is #1669's compatibility
+    # duplicate -- off because it republishes Indoor Temperature, and the
+    # roster's second membership class beside the opt-in rules.
+    "UpperFloorTempSensor": "duplicate: off as a compatibility duplicate (#1669)",
 }
 _input_population = {}
 for _e in _ord_entities:
@@ -9419,7 +9467,9 @@ R.check(
 _ungated = sorted(
     n for n, e in _input_population.items()
     if n not in _INPUT_GATE_EXCEPTIONS
-    and not isinstance(e, (_InputGate, _DHWGate))
+    and not isinstance(
+        e, (_InputGate, _DHWGate, sensor._MixingValveGate)
+    )
 )
 R.check(
     "every entity whose default should follow a configured input takes the gate",
