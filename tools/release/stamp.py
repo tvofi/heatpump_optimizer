@@ -45,6 +45,19 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      instrument's own pending list, so the merges a stamp orphans are named in
      its log rather than only in a later window that cannot see them.
 
+     A RECORD-CLASS merge is exempt, and is named in the gate's output rather
+     than counted: one whose three-dot diff (its first parent .. the merge
+     commit) touched only the record's own files -- `docs/delivery/*.md`,
+     `.claude/workflows/carry-*.json`, `docs/plan-*.md`, and nothing else. The
+     record pull request that writes the window's rows otherwise stood unrowed
+     in the very window it closed, and every stamp paid for it with
+     --allow-rowless (v6.7.9, then v6.7.10 for #1749), deferring the row to the
+     next record pull request forever. A record-class merge IS the record being
+     written; demanding its row demands a record to record the record. Any
+     other path in the diff -- one code file beside the delivery row -- breaks
+     the class, and the merge owes its row exactly as before. `--allow-rowless`
+     is unchanged for everything that is not exempt.
+
   6. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
   7. (rule "claims") The stamp commit passes `tests/env_drift.py --claims-only
@@ -966,6 +979,146 @@ def self_test() -> int:
     check("rows gate: main() hands the verdict to the driven decision, and refuses it",
           "rows_gate_decision(" in _r5 and 'raise Refuse("rows"' in _r5)
 
+    # THE RECORD-CLASS PREDICATE (the recursion fix). A record pull request
+    # merges to add the window's delivery rows and then ITSELF stands unrowed
+    # in the window it just closed, so every stamp bought its way past this
+    # gate with --allow-rowless (v6.7.9, v6.7.10 for #1749) and deferred the
+    # row to the next record pull request forever. The classifier is driven
+    # purely first, both ways: the three record path classes pass, ONE code
+    # file beside a delivery row breaks the class, an empty diff fails closed,
+    # and each class is exact rather than a prefix.
+    check("record-class: the three record path classes together classify",
+          record_class_paths(["docs/delivery/1749.md", ".claude/workflows/carry-1646.json",
+                              "docs/plan-2026-09-open-issues.md"]))
+    check("record-class: each class alone classifies",
+          record_class_paths(["docs/delivery/1746.md"])
+          and record_class_paths([".claude/workflows/carry-1646.json"])
+          and record_class_paths(["docs/plan-2026-09-open-issues.md"]))
+    check("record-class: one code file beside a delivery row breaks the class",
+          not record_class_paths(["docs/delivery/1746.md",
+                                  "custom_components/heatpump_optimizer/some_other_module.py"]))
+    check("record-class: an empty diff fails closed and keeps owing its row",
+          not record_class_paths([]))
+    check("record-class: the classes are exact, not prefixes",
+          not record_class_paths(["docs/delivery/1746.md.bak"])
+          and not record_class_paths(["docs/plan.md"])
+          and not record_class_paths([".claude/workflows/carry.json"])
+          and not record_class_paths(["docs/plan-2026-09-open-issues.md/extra.md"]))
+
+    # The instrument's rowless lines, parsed. A line read as none that the
+    # instrument meant as a merge is the silent zero this gate exists to
+    # refuse, so a malformed rowless line refuses by name.
+    _rl_out = ("DELIVERY STATUS OK — 0 rowed, 1 pending, 0 overdue\n"
+               "  pending  #1749 38dffe3 0 commit(s) since — the record wave\n")
+    check("rows: the instrument's pending line parses to pr and sha",
+          parse_rowless(_rl_out) == [("1749", "38dffe3")])
+    check("rows: an overdue line parses the same way",
+          parse_rowless("  overdue  #1301 0abc123 12 commit(s) since — an old one\n")
+          == [("1301", "0abc123")])
+    check("rows: the verdict line, the skip marker and prose parse to nothing",
+          parse_rowless("DELIVERY STATUS UNCHECKED — 0 rowed, 0 pending, 0 overdue\n"
+                        "  skip     merge-collection      1 merge commit(s) ...\n"
+                        "  the window since the last release tag holds no merge\n") == [])
+    try:
+        parse_rowless("  pending  a line the instrument no longer writes\n")
+        check("rows: a malformed rowless line refuses, it is not read as none", False)
+    except Refuse as _prl:
+        check("rows: a malformed rowless line refuses, it is not read as none",
+              "cannot read" in str(_prl))
+
+    # The driven decision, extended. All four arms around the new exemption:
+    # the record-class-only window proceeds and names what it skipped; the
+    # mixed window still refuses; an unreadable rowless list (nothing parsed)
+    # refuses as before, so a parse that went blind cannot carve; and the
+    # override still warns when the exemption does not apply.
+    _rc_rowless = [("1749", "38dffe3")]
+    _rc_only = rows_gate_decision(cleared=False, allow_rowless=False, last_tag="v6.7.10",
+                                  output=_rl_out, rowless=_rc_rowless,
+                                  self_disposing=_rc_rowless)
+    check("rows gate: a window whose only rowless merge is record-class proceeds, naming it",
+          _rc_only[0] is False and "self-disposing" in _rc_only[1]
+          and "#1749 (38dffe3)" in _rc_only[1])
+    check("rows gate: a rowless merge that is not record-class still refuses",
+          rows_gate_decision(cleared=False, allow_rowless=False, last_tag="v6.7.10",
+                             output=_rl_out, rowless=[("1749", "38dffe3"), ("1735", "686239d")],
+                             self_disposing=[("1749", "38dffe3")])[0] is True)
+    check("rows gate: a rowless list that parsed to nothing refuses as before",
+          rows_gate_decision(cleared=False, allow_rowless=False, last_tag="v6.7.10",
+                             output=_rl_out, rowless=[], self_disposing=[])[0] is True
+          and "v6.7.10..origin/main" in rows_gate_decision(
+              cleared=False, allow_rowless=False, last_tag="v6.7.10",
+              output=_rl_out, rowless=[], self_disposing=[])[1])
+    _rc_warn = rows_gate_decision(cleared=False, allow_rowless=True, last_tag="v6.7.10",
+                                  output=_rl_out, rowless=[("1749", "38dffe3")],
+                                  self_disposing=[])
+    check("rows gate: --allow-rowless still warns when nothing is exempt",
+          _rc_warn[0] is False and "WARNING" in _rc_warn[1] and "#1749" in _rc_warn[1])
+    check("rows gate: a cleared window proceeds quietly, as before",
+          rows_gate_decision(cleared=True, allow_rowless=False, last_tag="v6.7.10",
+                             output="DELIVERY STATUS OK — 3 rowed\n  a detail line",
+                             rowless=[], self_disposing=[])
+          == (False, "disposition gate: DELIVERY STATUS OK — 3 rowed"))
+
+    # The git-backed half, against a real throwaway repository: a record-only
+    # merge classifies, a code merge does not, and a sha git cannot resolve
+    # fails closed. Both arms are the null controls of each other.
+    with tempfile.TemporaryDirectory() as _rd2:
+        _rp = Path(_rd2)
+        _genv2 = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                  "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+                  "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+        for _k in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+            _genv2.pop(_k, None)
+
+        def _rg(*a, **kw):
+            return subprocess.run(a, cwd=_rp, text=True, capture_output=True,
+                                  check=True, env=_genv2).stdout
+
+        def _commit(msg: str) -> str:
+            _rg("git", "add", "-A")
+            return _rg("git", "commit", "-q", "-m", msg).strip() or _rg("git", "rev-parse", "HEAD").strip()
+
+        _rg("git", "init", "-q")
+        (_rp / "README.md").write_text("base\n")
+        _commit("base")
+        _base_branch = _rg("git", "rev-parse", "--abbrev-ref", "HEAD").strip()
+        _rg("git", "checkout", "-q", "-b", "record")
+        (_rp / "docs" / "delivery").mkdir(parents=True)
+        (_rp / "docs" / "delivery" / "1750.md").write_text("- [#1750](x/pull/1750) merged\n")
+        _commit("the record row")
+        (_rp / ".claude" / "workflows").mkdir(parents=True)
+        (_rp / ".claude" / "workflows" / "carry-1646.json").write_text("{}\n")
+        _commit("the carry ledger")
+        _rg("git", "checkout", "-q", _base_branch)
+        _rg("git", "merge", "--no-ff", "--no-edit", "-q",
+            "-m", "Merge pull request #1750 from tvofi/record", "record")
+        _rec_merge = _rg("git", "rev-parse", "HEAD").strip()
+        check("record-class: a record-only merge classifies, from real git objects",
+              merge_is_record_class(_rec_merge, runner=_rg))
+        _rg("git", "checkout", "-q", "-b", "code")
+        (_rp / "coordinator.py").write_text("x = 1\n")
+        _commit("one code file")
+        _rg("git", "checkout", "-q", _base_branch)
+        _rg("git", "merge", "--no-ff", "--no-edit", "-q",
+            "-m", "Merge pull request #1751 from tvofi/code", "code")
+        _code_merge = _rg("git", "rev-parse", "HEAD").strip()
+        check("record-class: a code merge beside its delivery row does not classify",
+              not merge_is_record_class(_code_merge, runner=_rg))
+        check("record-class: a sha git cannot resolve fails closed, not crashes",
+              not merge_is_record_class("deadbee0", runner=_rg))
+
+    # Where main() classifies. Every pure piece above is correct while the call
+    # site never parses, cross-checks or hands the partition over -- which is
+    # exactly the tree before this change -- so rule 5's region is read again.
+    _r5b = _r4_src[_r4_src.rindex("# Rule 5: the window"):]
+    _r5b = _r5b[:_r5b.index("# Rule 6:")]
+    check("rows gate: main() parses the rowless list and classifies each merge",
+          "parse_rowless(" in _r5b and "merge_is_record_class(" in _r5b)
+    check("rows gate: main() cross-checks the parse against rule 4's window",
+          "window_prs" in _r5b and "the two enumerations disagree" in _r5b)
+    check("rows gate: main() hands the partition to the driven decision",
+          "rowless=rowless" in _r5b and "self_disposing=self_disposing" in _r5b)
+
     # Rule "register". The stamp re-records the D6 register through its own
     # generator -- the header's command, from ROOT, with the stub on
     # PYTHONPATH -- and a generator that fails refuses rather than ship the
@@ -1277,7 +1430,8 @@ def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
 
 
 def rows_gate_decision(*, cleared: bool, allow_rowless: bool, last_tag: str | None,
-                       output: str) -> tuple[bool, str]:
+                       output: str, rowless: list[tuple[str, str]] | None = None,
+                       self_disposing: list[tuple[str, str]] | None = None) -> tuple[bool, str]:
     """(refuse, message): what rule "rows" does with `disposition_gate`'s verdict.
 
     An uncleared window with no `--allow-rowless` is a refusal; uncleared with
@@ -1288,10 +1442,28 @@ def rows_gate_decision(*, cleared: bool, allow_rowless: bool, last_tag: str | No
     behaviour. The first pass's two `_r5` checks stayed green while
     `if not args.allow_rowless:` was `if not True:` -- the refusal unreachable,
     `--allow-rowless` and `raise Refuse("rows"` still present in the text, and
-    no stamp ever refused (#1303's review)."""
+    no stamp ever refused (#1303's review).
+
+    `rowless` is what the instrument's output names without a row
+    (`parse_rowless`), and `self_disposing` the record-class subset of those.
+    A window whose EVERY rowless merge is record-class proceeds, loudly: those
+    merges are the record being written, and the exemption is printed so a
+    reader sees what was skipped, exactly as `--allow-rowless` prints what it
+    defers. An empty `rowless` on an uncleared window refuses as before --
+    that is the UNCHECKED shape, and a carve-out that parsed nothing must not
+    carve."""
+    rowless = rowless or []
+    self_disposing = self_disposing or []
     if cleared:
         return False, (f"disposition gate: "
                        f"{output.splitlines()[0] if output.splitlines() else output}")
+    if rowless and not [r for r in rowless if r not in self_disposing]:
+        named = ", ".join(f"#{pr} ({sha})" for pr, sha in rowless)
+        return False, ("disposition gate: every merge in the window without a row is "
+                       "record-class -- its own diff touched only the record's own files "
+                       "(docs/delivery/*.md, .claude/workflows/carry-*.json, "
+                       "docs/plan-*.md), so it is the record being written and is "
+                       f"self-disposing: {named}. The instrument said:\n" + output)
     if not allow_rowless:
         return True, ("the window this tag would close holds a merged pull request "
                       "with no disposition. Tagging moves "
@@ -1302,6 +1474,89 @@ def rows_gate_decision(*, cleared: bool, allow_rowless: bool, last_tag: str | No
                       "the instrument said:\n" + output)
     return False, ("WARNING: stamping over a window with undispositioned merges "
                    f"(--allow-rowless): {output}")
+
+
+# --- the record-class predicate (the recursion fix) --------------------------
+#
+# The instrument above refuses every unrowed merge, including the record pull
+# request that WRITES the window's rows -- which then stood unrowed in the very
+# window it closed, and every stamp paid for the recursion with
+# --allow-rowless (v6.7.9, then v6.7.10 for #1749), each time deferring the row
+# to the NEXT record pull request, which re-created the debt forever. A merge
+# whose own three-dot diff (first parent .. merge commit -- for a pull-request
+# merge, exactly `git diff <merge>^1 <merge>`) touched only the record's own
+# files IS the record being written, so it is exempt and named, not counted.
+#
+# THE THREE PATH CLASSES ARE THE WHOLE PREDICATE and each is exact, not a
+# prefix: a stray file under docs/delivery that is not a row, a `docs/plan.md`
+# with no wave dash, a `carry.json` without the dash -- any of them breaks the
+# class, and ANY other path in the diff (one code file beside the delivery row)
+# breaks it, which is the null control that keeps this from becoming a blanket
+# carve-out. THE PREDICATE FAILS CLOSED: an empty diff, and a diff git will not
+# answer for, classify as NOT record-class and keep owing their row.
+#
+# THE COPY. `.claude/workflows/policy_lint.mjs` (`RECORD_CLASS_RES`, beside its
+# `checkRecord`) carries the same three regexes, and its acceptance reads this
+# file and refuses when the copies drift. They are duplicated on purpose: node
+# and python with no import graph between them, and a shared source file would
+# need a new tracked file classified into a measured closure for ten lines.
+RECORD_CLASS_RES = (
+    re.compile(r"^docs/delivery/[^/]+\.md$"),
+    re.compile(r"^\.claude/workflows/carry-[^/]+\.json$"),
+    re.compile(r"^docs/plan-[^/]+\.md$"),
+)
+
+
+def record_class_paths(paths: list[str]) -> bool:
+    """True when every changed path is one of the three record classes, and
+    there is at least one. Pure over its input, so --self-test drives it with
+    no git object."""
+    paths = [p for p in (paths or []) if p]
+    if not paths:
+        return False
+    return all(any(rx.match(p) for rx in RECORD_CLASS_RES) for p in paths)
+
+
+def merge_is_record_class(sha: str, runner=None) -> bool:
+    """The git-backed half: a merge's own diff, read from the object database
+    with no network. A merge the diff cannot be read for is NOT record-class,
+    which leaves it under the ordinary row bar -- the fail-closed direction."""
+    run = runner or sh
+    try:
+        out = run("git", "diff", "--name-only", f"{sha}^1", sha)
+    except subprocess.CalledProcessError:
+        return False
+    return record_class_paths(out.splitlines())
+
+
+# The instrument's non-rowed lines: `  {state:<8} #{number} {sha7} {n} commit(s)
+# since — {title}`, state pending or overdue -- the two `--require-rows`
+# refuses on. `rowed` lines are never printed. The sha is the merge commit's,
+# abbreviated, and is what `merge_is_record_class` classifies.
+ROWLESS_LINE_RE = re.compile(r"^  (?:pending|overdue)\s+#(\d+)\s+([0-9a-f]+)\s")
+
+
+def parse_rowless(output: str) -> list[tuple[str, str]]:
+    """(pr, sha) per merge the instrument lists without a row, or a refusal.
+
+    A line the instrument prints as a rowless merge that this gate cannot read
+    is REFUSED, not read as none: reading it as none would stamp over a merge
+    the instrument named -- the exact silent-zero shape `parse_window` refuses
+    on, one window over. Lines that are not rowless lines (the verdict line,
+    the skip marker, the trailing prose) parse to nothing, which is correct:
+    an UNCHECKED window prints no rowless lines and is refused by the decision
+    below as before."""
+    rows: list[tuple[str, str]] = []
+    for line in output.splitlines():
+        if not line.startswith("  pending") and not line.startswith("  overdue"):
+            continue
+        found = ROWLESS_LINE_RE.match(line)
+        if not found:
+            raise Refuse("rows", f"the disposition instrument printed a rowless-merge "
+                                 f"line this gate cannot read: {line!r}. Reading it as "
+                                 f"none would stamp over a merge the instrument named.")
+        rows.append((found.group(1), found.group(2)))
+    return rows
 
 
 def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) -> None:
@@ -1467,9 +1722,36 @@ def main() -> int:
     # a dry run says whether the stamp would be refused, which is most of what
     # a dry run is for.
     cleared, why = disposition_gate(last_tag)
+    # The record-class partition. The instrument's rowless merges are parsed
+    # from its own output, cross-checked against rule 4's window (both read the
+    # same first-parent line, so a number or sha one names and the other does
+    # not is a drift between enumerations, and the stamp refuses rather than
+    # classify from either), then each is classified against its own three-dot
+    # diff. `rowless` stays empty on a cleared window, on an empty rule-4
+    # window (no tag yet: there is nothing to cross-check against, so no
+    # carve), and when nothing parsed -- all three leave the ordinary refusal
+    # and --allow-rowless exactly as they were.
+    rowless = parse_rowless(why) if (not cleared and window) else []
+    if rowless:
+        window_prs = merged_prs([s for _, _, s in window])
+        for pr, sha7 in rowless:
+            if pr not in window_prs:
+                raise Refuse("rows", f"the disposition instrument lists #{pr} without a "
+                                     f"row, but rule 4's window does not name that pull "
+                                     f"request; the two enumerations disagree, so the "
+                                     f"stamp refuses rather than classify from either")
+            if not any(sha.startswith(sha7) for sha, _, _ in window):
+                raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
+                                     f"{sha7}, which no commit in rule 4's window names; "
+                                     f"the two enumerations disagree, so the stamp "
+                                     f"refuses rather than classify from either")
+    self_disposing = [(pr, sha7) for pr, sha7 in rowless
+                      if merge_is_record_class(sha7)]
     refuse, message = rows_gate_decision(cleared=cleared,
                                          allow_rowless=args.allow_rowless,
-                                         last_tag=last_tag, output=why)
+                                         last_tag=last_tag, output=why,
+                                         rowless=rowless,
+                                         self_disposing=self_disposing)
     if refuse:
         raise Refuse("rows", message)
     print(message)
