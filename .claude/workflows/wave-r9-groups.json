@@ -920,11 +920,11 @@
     "R9-F2.3"
    ],
    "resume": {
-    "stage": "fix",
+    "stage": "done",
     "branch": "handoff/r9-f2-solver-5",
-    "commit": "388402306037a85e1a715e6748b8e9b3769dfc68",
-    "last_step": "opus fixer seat dispatched 2026-09-27 ~19:2xZ from main 2eef524d on handoff/r9-f2-solver-5; still in flight at 38840230",
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "31394964bb13029da6bbcd3163fc8cf402c0020f",
+    "last_step": "MERGED as #1734 at 31394964; fixes[] empty, so it closes nothing outright -- Part of #1653 only, which stays open for the other F2 PRs",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F2.5.md on handoff/r9-f2-solver-5",
     "review_branch": "handoff/r9-f2-solver-5-review",
     "review_note_file": "handoff/round9/fix/resume/F2.5-review.md on handoff/r9-f2-solver-5-review",
@@ -1939,11 +1939,11 @@
     "R9-F5.2"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-f8-docs-3",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "cdbca706798937047b21b3e5b10f7753b3a5835d",
+    "last_step": "MERGED as #1733 at cdbca706; fixes[] #1668 confirmed closed -- #1645 and #1649 stay open as Part-of",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F8.3.md on handoff/r9-f8-docs-3",
     "review_branch": "handoff/r9-f8-docs-3-review",
     "review_note_file": "handoff/round9/fix/resume/F8.3-review.md on handoff/r9-f8-docs-3-review",
