@@ -41,7 +41,7 @@ carries a reason code you can read off the card.
 **Learns your house.** The heat-loss scale, tank cooling rates, the COP curve and
 its defrost derate, the solar aperture, internal gains, how the loss splits
 between floors, your hot-water draw statistics, your revealed comfort preference,
-and a cool-only heat-curve correction of at most 0.5 K per week are all estimated
+and a cool-only heat-curve correction are all estimated
 from your own house. Every learner is snapshotted weekly (the last eight are
 kept), and a drift watchdog can roll them back to the last healthy snapshot.
 
@@ -449,8 +449,9 @@ and history are unaffected by the language.
 
 ### Sensors (59 total)
 
-`CUR` is your Home Assistant instance currency (SEK when the instance has none
-configured).
+`CUR` is your Home Assistant instance currency. The code's own fallback is SEK,
+used only where no currency is readable — a normal Home Assistant instance always
+has one, defaulting to EUR.
 
 The groups below are for reading. Home Assistant knows nothing about them:
 every sensor is created on every install regardless of which group it is in.
@@ -492,9 +493,9 @@ every sensor is created on every install regardless of which group it is in.
 | DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
 | Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
 | Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
-| Space Heating Cost (lifetime) | CUR | Accumulating cost | |
+| Lifetime Space Heating Cost | CUR | Accumulating cost | |
 | DHW Cost (lifetime) | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
-| Cost Total Heating (lifetime) | CUR | Accumulating cost | |
+| Lifetime Total Heating Cost | CUR | Accumulating cost | |
 
 #### The temperatures the optimizer works in
 
@@ -516,9 +517,9 @@ every sensor is created on every install regardless of which group it is in.
 | Learning Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
-| Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| Lifetime Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
 | DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
-| Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
 | Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; disabled by default; needs measured power |
@@ -589,7 +590,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Optimize Now | Force an optimization run. Unavailable while one is in flight |
 | Learning Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
 | Learning Reset Comfort Weight | Undo the revealed-preference tuning |
-| Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
+| Prediction Accuracy Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
 ### Switches, climate and datetime entities
 
@@ -894,7 +895,7 @@ sensor. Solar anticipation needs irradiance, and wind and rain anticipation need
 **Something looks wrong in the numbers.** Check **Input Problem** first — a stale
 sensor freezes the learners and is the usual cause, and its `problem_messages`
 attribute says which entity and why (e.g. `sensor.tank: stale (last report 600
-min)`). Then press **Diagnose Last Interval** and read the attribution on
+min)`). Then press **Prediction Accuracy Diagnose Last Interval** and read the attribution on
 **Prediction Accuracy**.
 
 ## ECL110 heat-curve control

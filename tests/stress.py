@@ -209,14 +209,24 @@ from heatpump_optimizer import pv as pv_model
 #: the branch at 886x-1106x. Three consecutive clean sweeps at the #1208
 #: head (this box, load1 5-10, thread factor 1.000) measured the dearest
 #: scenario, shoulder/tariff+pv+cycle, at 1106.2x / 965.9x / 1071.7x its
-#: beside-it reference -- mean 1047.93x. Applying this file's own rule,
+#: beside-it reference -- mean 1047.93x, so the floor was 1482.00.
+#:
+#: RE-DERIVED again for R9 F2.5, which made the dearest scenarios 5-6x
+#: cheaper by batching the capacity-tariff twin (the plan is bit-identical
+#: everywhere, 0 of 51 scenarios re-planned). The 1482.00 floor then stood
+#: at 8x the dearest observed cost -- the same quiet-blindness shape that
+#: replaced 1400 above -- and the 2x-detection check refused it. Three
+#: sweeps at the F2.5 head (hpo-ci Linux container, CPython 3.14, one of
+#: them under the closure recorder's audit hook) measured the dearest
+#: scenario, shoulder/tariff+cycle, at 185.4x / 160.9x / 171.4x its
+#: beside-it reference -- mean 172.58x. Applying this file's own rule,
 #: sqrt(DETECTION_TARGET) x the measured mean, the floor is
-#: 1.41421 x 1047.93 = 1482.00: 48 % over the mean sample and 32 % under
-#: a doubled one, the same ratio-margin the 782.11 derivation held. The
-#: budget table is re-recorded in the same change (its recorded worst was
-#: 546.76, and the wobble cap below requires the live ceiling to stay
-#: under 2x the DEAREST RECORDED ratio, which the #1208 costs now set).
-SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "1482.00"))
+#: 1.41421 x 172.58 = 244.07: 41 % over the mean sample and 29 % under a
+#: doubled one. The budget table is re-recorded in the same change (its
+#: dearest recorded ratio is now 185.44, and the wobble cap below requires
+#: the live ceiling, 244.07 x 1.10 = 268.5x, to stay under 2 x 185.44,
+#: which it does).
+SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "244.07"))
 
 #: The reference solve (96-element L-BFGS) does not scale with a real
 #: ``optimize()`` call. On CI ubuntu-latest that inflates the observed
@@ -264,7 +274,11 @@ def live_solve_budget_ratio() -> float:
 #: -- but it does bake that regression into the baseline, which is why #291
 #: is tracked separately and must be judged on its own evidence, not on
 #: this file's silence.
-SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "134.32"))
+#: Re-derived with R9 F2.5's budget table by the same rule: the table's
+#: mean recorded ratio is 37.08x, so 1.41421 x 37.08 = 52.44 keeps the
+#: same margin over the mean sample the 134.32 derivation held over its
+#: 94.98.
+SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "52.44"))
 
 #: Backstop only: a solve this slow is pathological whatever the machine is
 #: doing -- a non-converging objective, not a busy box.
@@ -2751,11 +2765,19 @@ if __name__ == "__main__":
     # shoulder/tariff+pv+cycle at 775.5x (pass, ref 52.3 ms) vs 808.2x /
     # 817.7x (fail, ref 42.7-43.7 ms) against the 782.11 M1 ceiling.
     # The ruler and a real optimize() do not scale together; 817.7 is that
-    # expansion, not a slower plan (solver-work 51/51, 0 re-planned).
+    # expansion, not a slower plan (solver-work 51/51, 0 re-planned). That
+    # absolute ratio belongs to the pre-F2.5 costs; R9 F2.5 made the dearest
+    # scenario 5.6x cheaper, and this floor moved with it (see
+    # SOLVE_BUDGET_RATIO). The transferable part of the measurement is the
+    # expansion FACTOR -- 817.7/782.11 = 1.0455 of the dev-derived ceiling --
+    # so the re-derived bound is this tree's ceiling times the same factor:
+    # 244.07 x 1.0455 = 255.2, which 268.5 (the live ceiling) covers. The
+    # next CI observation of the dearest scenario re-measures this the way
+    # 817.7 itself was measured.
     R.check(
         "the live ceiling covers the measured CI ruler-vs-real expansion",
-        live_solve_budget_ratio() >= 817.7,
-        f"{live_solve_budget_ratio():.2f}x vs measured 817.7x",
+        live_solve_budget_ratio() >= 255.2,
+        f"{live_solve_budget_ratio():.2f}x vs measured 255.2x",
     )
     _wobble_recorded = [
         float(entry["ratio"])

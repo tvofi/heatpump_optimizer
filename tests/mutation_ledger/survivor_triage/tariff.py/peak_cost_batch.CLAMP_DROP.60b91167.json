@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch CLAMP_DROP 60b91167",
+  "old": "    k = max(1, min(int(peaks_averaged), chargeable.shape[1]))",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the top-k clamp against the day count. The min side: `sorted[:, -k:]` with k past the end takes the whole row (numpy slice semantics), and a k-or-more slice of every element sums to the same value the clamped k produces whenever k >= width, so the min-drop answers identically (the n_at_peak comparison is equally ordered either way at these widths). The max side: peaks_averaged comes from the config floor (>= 1) and the default 3, so `min` alone can never produce a k <= 0 on a reachable input. Measured: no driver detects either drop. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

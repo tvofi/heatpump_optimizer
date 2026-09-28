@@ -36,6 +36,7 @@ from typing import Any, Callable
 import numpy as np
 
 from .accuracy import HISTORY_LENGTH
+from .batchmath import row_sums
 from .dhw_schedule import Window, hour_in_windows
 
 _LOGGER = logging.getLogger(__name__)
@@ -733,6 +734,57 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     return float(np.sum(w * x))
 
 
+def _smooth_topk_sum_batch(values: np.ndarray, k: int, tau: float) -> np.ndarray:
+    """``_smooth_topk_sum`` for each row of a [B, m] matrix, bit for bit.
+
+    The bisection is elementwise across the rows -- ``mid``, ``lo`` and
+    ``hi`` are per-row vectors, ``z``/``w`` per-row matrices -- and both
+    float reductions (``count`` and the final weighted sum) go through
+    ``row_sums``, numpy's own scalar summation order, so a row is the
+    scalar bisection on that row's values to the bit. A row whose root is
+    found early is frozen (``np.where`` keeps its ``mid``); the scalar
+    ``break`` left that row's ``mid`` where it converged, which is the
+    same thing. Rows with nothing positive return 0.0, as the scalar guard
+    does (R9 F2.5, RC-rca1: this replaced the per-row re-entry of the
+    scalar helper inside ``peak_cost_batch``'s row loop, 18k entries per
+    capacity-tariff solve at the round-9 RCA's baseline).
+    """
+    n_rows, m = values.shape
+    out = np.zeros(n_rows)
+    if m == 0 or k <= 0:
+        return out
+    k = max(1, min(int(k), m))
+    positive = np.flatnonzero(np.any(values > 0, axis=1))
+    if positive.size == 0:
+        return out
+    x = values[positive]
+    peak = np.max(x, axis=1)
+    scale = np.maximum(tau * peak, 1e-9)
+    # See _smooth_topk_sum for the bracket: padded by the temperature
+    # itself, so the tie root stays inside as the peak moves (#925).
+    pad = 40.0 * scale
+    lo = np.min(x, axis=1) - 1.0 - pad
+    hi = peak + 1.0 + pad
+    mid = 0.5 * (lo + hi)
+    done = np.zeros(positive.size, dtype=bool)
+    for _ in range(64):
+        z = np.clip((x - mid[:, None]) / scale[:, None], -60.0, 60.0)
+        w = 1.0 / (1.0 + np.exp(-z))
+        count = row_sums(w)
+        close = np.abs(count - k) < 1e-6
+        done = done | close
+        if done.all():
+            break
+        over = count > k
+        lo = np.where(done | ~over, lo, mid)
+        hi = np.where(done | over, hi, mid)
+        mid = np.where(done, mid, 0.5 * (lo + hi))
+    z = np.clip((x - mid[:, None]) / scale[:, None], -60.0, 60.0)
+    w = 1.0 / (1.0 + np.exp(-z))
+    out[positive] = row_sums(w * x)
+    return out
+
+
 def _peak_excess(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -745,8 +797,9 @@ def _peak_excess(
 ) -> np.ndarray | None:
     """The per-window excess above the threshold both peak charges share.
 
-    One helper so the exact and the smooth charge (and only those two -- the
-    batch twin keeps its verbatim per-row body, #948) cannot drift on the
+    One helper so the exact and the smooth charge (and only those two --
+    the batch twin replicates this scaffolding columnwise, #948/R9 F2.5)
+    cannot drift on the
     scaffolding: same guards, same window means, same billed-equivalent
     factors (#13), same order of operations, so both scalars are bit-for-bit
     what they were when each carried its own copy. ``None`` is the shared
@@ -820,8 +873,8 @@ def _peak_charge(
     everything else -- the guards, the window means, the billed-equivalent
     factors, the k clamp, the final multiply -- is shared here once, in one
     order of operations, so the two scalars stay bit-for-bit comparable on
-    every input. The batch twin keeps its own verbatim per-row body (#948)
-    and does not go through this.
+    every input. The batch twin replicates this scaffolding columnwise
+    (#948; batched at R9 F2.5) and does not go through this.
     """
     excess = _peak_excess(
         total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
@@ -946,6 +999,101 @@ def peak_cost_smooth(
     )
 
 
+def _block_means_batch(block: np.ndarray) -> np.ndarray:
+    """``np.mean`` of each row of a [B, m] block, numpy's own sum order.
+
+    A row's mean is ``row_sums``' replication of that row's scalar
+    ``np.sum`` followed by the same single division ``np.mean`` applies, so
+    the two agree to the bit (validated beside the scalar twins at the
+    widths either side of the pairwise block edges, R9 F2.5). A one-column
+    block is its own mean: ``np.mean`` of one element never performs an
+    addition, and ``row_sums``' signed-zero normalisation must not either.
+    """
+    m = block.shape[1]
+    if m == 1:
+        return block[:, 0]
+    return row_sums(block) / float(m)
+
+
+def _window_means_batch(
+    houses: np.ndarray,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int,
+) -> np.ndarray:
+    """``metering_windows`` for every row of a [B, n] matrix of plans.
+
+    The window partition is a property of the clocks, not of the row, so
+    every row shares it: the same head/tail partial windows, the same
+    per-window element count. Each window's mean is ``_block_means_batch``
+    on that window's columns -- bit for bit the per-row ``metering_windows``
+    the scalar ``peak_cost_smooth`` runs, which is what the twin owes it
+    (R9 F2.5, RC-rca1). The ``per_window <= 1`` fast path returns the per
+    step series unwindowed, exactly as the scalar does.
+    """
+    n = houses.shape[1]
+    if n == 0:
+        return houses
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    if per_window <= 1:
+        return houses
+    head_steps = int(offset_steps) % per_window
+    pieces: list[np.ndarray] = []
+    if head_steps:
+        pieces.append(
+            _block_means_batch(houses[:, :head_steps])[:, None]
+        )
+    rest = houses[:, head_steps:]
+    full = rest.shape[1] // per_window
+    if full:
+        blocks = rest[:, : full * per_window].reshape(-1, per_window)
+        pieces.append(
+            _block_means_batch(blocks).reshape(-1, full)
+        )
+    tail = rest[:, full * per_window:]
+    if tail.shape[1]:
+        pieces.append(_block_means_batch(tail)[:, None])
+    return np.concatenate(pieces, axis=1)
+
+
+def _day_peaks_batch(
+    excess: np.ndarray,
+    window_days: np.ndarray | None,
+    window_minutes: int,
+) -> np.ndarray:
+    """``_day_peaks`` with ``_plateau_aware_day_max`` for a [B, W] batch.
+
+    A day's run is the same contiguous slice of windows for every row, so
+    each day is one pass: the max and the tie count are exact (no rounding
+    to differ by), and only the rows whose windows tie at the day's peak
+    take the smooth top-1 -- the batched bisection on those rows alone,
+    which is bit for bit the scalar ``_plateau_aware_day_max`` on each
+    (its float reductions run over arrays the arithmetic itself freshly
+    allocates, so a row view in and a fresh array in give the same bits).
+    """
+    size = excess.shape[1]
+    if window_days is None:
+        days = np.arange(size) * int(window_minutes) // (24 * 60)
+    else:
+        days = np.asarray(window_days)[:size]
+    edges = np.flatnonzero(np.diff(days)) + 1
+    bounds = [0, *(edges.tolist()), size]
+    out = np.empty((excess.shape[0], len(bounds) - 1))
+    for d, (s, e) in enumerate(zip(bounds, bounds[1:])):
+        run = excess[:, s:e]
+        day_max = np.max(run, axis=1)
+        n_tied = np.sum(
+            run >= day_max[:, None] - _PEAK_TIE_BAND, axis=1
+        )
+        out[:, d] = day_max
+        plateau = np.flatnonzero(n_tied > 1)
+        if plateau.size:
+            out[plateau, d] = _smooth_topk_sum_batch(
+                run[plateau], 1, _PEAK_SMOOTH_TAU
+            )
+    return out
+
+
 def peak_cost_batch(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -962,57 +1110,75 @@ def peak_cost_batch(
     """``peak_cost_smooth`` for a [B, n] batch of plans, one entry per row (#948).
 
     The solver's batched objective used to CALL the scalar capacity term once
-    per batch row; the per-row re-entry -- not the arithmetic -- is the
-    recomputation round 4 (D9-05) counted, and this twin is what the
-    recomputation-count pin reads. Each row runs the scalar body verbatim
-    on its own freshly allocated per-row arrays (``house``, the window
-    means through ``metering_windows``, the factors multiply, ``excess``,
-    the sort and the top-k slice sum, and the scalar ``_smooth_topk_sum``
-    on a plateau), so a row is bit-for-bit ``peak_cost_smooth`` on that
-    row's plan on EVERY numpy backend -- not by measurement on one. The
-    twin's scalar is the SOLVER's smooth surrogate (the gradient pathway,
-    #232/#1210), which is what the batched objective exists to serve; the
-    billed figure ``peak_cost`` is exact and has no batch twin, because
-    nothing batches it. The body is
-    held against drift by the unit row-parity grid in tests/features.py
-    (#948 section: offsets, window lengths, billing factors, plateaus),
-    because it cannot call the function it mirrors without re-entering it.
+    per batch row; #985 replaced the re-entry with a per-row loop running the
+    scalar body verbatim -- which met the recomputation count it was accepted
+    on and left the work: 62 % of a winter capacity-tariff solve at the
+    round-9 RCA's baseline, 74 % re-measured at R9 F2.5's merge base, because
+    the metering windows, the day peaks and the smooth top-k bisection were
+    re-entered as Python per row (RC-rca1). This twin now runs each stage as
+    one pass over the batch: the elementwise stages as elementwise ufuncs,
+    and every float reduction -- the window means, the top-k slice sum, the
+    bisection's weight counts -- through ``batchmath.row_sums``, which is
+    numpy's own scalar summation order reproduced as column arithmetic. A
+    row is therefore ``peak_cost_smooth`` on that row's plan to the bit on
+    every numpy backend, by construction rather than by measurement on one
+    (``fixer.md`` step 15: batch only what is elementwise end to end, and
+    replicate the order of anything that is not). The unit row-parity grid
+    in tests/features.py (#948 and R9-F2.5 sections: offsets, window
+    lengths, billing factors, plateaus, the k+1 tie and a NaN window, C-
+    and Fortran-order batches, widths 8 to 192) holds the twin against the
+    scalar it mirrors, because the twin no longer calls it. The twin's
+    scalar is the SOLVER's smooth surrogate (the gradient pathway,
+    #232/#1210); the billed figure ``peak_cost`` is exact everywhere and
+    has no batch twin, because nothing batches it.
     """
     matrix = np.asarray(total_power_kw, dtype=float)
     n_rows = matrix.shape[0]
     if price_per_kw <= 0 or not np.isfinite(threshold_kw):
         return np.zeros(n_rows)
     baseline = np.asarray(baseline_load_kw, dtype=float)
-    out = np.empty(n_rows)
-    for b in range(n_rows):
-        house = matrix[b] + baseline
-        windows = metering_windows(
-            house, window_minutes, dt_hours, offset_steps
-        )
-        if window_factors is not None and window_factors.size:
-            # Billed-equivalent kW (#13); see ``peak_cost``.
-            factors = window_factors[: windows.size]
-            if factors.size < windows.size:
-                factors = np.concatenate(
-                    [factors, np.ones(windows.size - factors.size)]
-                )
-            windows = windows * factors
-        excess = np.maximum(0.0, windows - threshold_kw)
-        if not np.any(excess > 0):
-            out[b] = 0.0
-            continue
-        if distinct_days:
-            excess = _day_peaks(
-                excess, window_days, window_minutes, _plateau_aware_day_max
+    houses = matrix + baseline
+    windows = _window_means_batch(
+        houses, window_minutes, dt_hours, offset_steps
+    )
+    if window_factors is not None and window_factors.size:
+        # Billed-equivalent kW (#13); see ``peak_cost``.
+        factors = window_factors[: windows.shape[1]]
+        if factors.size < windows.shape[1]:
+            factors = np.concatenate(
+                [factors, np.ones(windows.shape[1] - factors.size)]
             )
-        k = max(1, min(int(peaks_averaged), excess.size))
-        peak = float(np.max(excess))
-        n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
-        if n_at_peak > k:
-            top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
-        else:
-            top_sum = float(np.sum(np.sort(excess)[-k:]))
-        out[b] = float(price_per_kw * top_sum)
+        windows = windows * factors
+    excess = np.maximum(0.0, windows - threshold_kw)
+    out = np.zeros(n_rows)
+    above = np.flatnonzero(np.any(excess > 0, axis=1))
+    if above.size == 0:
+        return out
+    chargeable = excess[above]
+    if distinct_days:
+        chargeable = _day_peaks_batch(
+            chargeable, window_days, window_minutes
+        )
+    k = max(1, min(int(peaks_averaged), chargeable.shape[1]))
+    peak = np.max(chargeable, axis=1)
+    n_at_peak = np.sum(
+        chargeable >= peak[:, None] - _PEAK_TIE_BAND, axis=1
+    )
+    top_sums = np.empty(chargeable.shape[0])
+    smooth = np.flatnonzero(n_at_peak > k)
+    if smooth.size:
+        top_sums[smooth] = _smooth_topk_sum_batch(
+            chargeable[smooth], k, _PEAK_SMOOTH_TAU
+        )
+    exact = np.flatnonzero(n_at_peak <= k)
+    if exact.size:
+        # np.sort along the row is value-exact, and the top-k slice sum is
+        # ``row_sums`` over the last k columns: the scalar's np.sum of the
+        # sorted array's tail, in its own order.
+        top_sums[exact] = row_sums(
+            np.sort(chargeable[exact], axis=1)[:, -k:]
+        )
+    out[above] = price_per_kw * top_sums
     return out
 
 

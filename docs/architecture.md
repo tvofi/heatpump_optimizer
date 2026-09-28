@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 66 modules, of which 24 import the
+knows nothing about Home Assistant: 67 modules, of which 24 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -69,6 +69,7 @@ custom_components/heatpump_optimizer/
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
@@ -176,7 +177,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-24 of the 66 modules import `homeassistant` at module level: `__init__`,
+24 of the 67 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `away`, `boost`, `currency`, `defrost`,
@@ -185,7 +186,7 @@ and the supporting modules `away`, `boost`, `currency`, `defrost`,
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 41 modules are deliberately free of it, so each can be driven
+The other 42 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
