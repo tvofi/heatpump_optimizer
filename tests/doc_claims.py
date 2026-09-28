@@ -1221,6 +1221,342 @@ def check_quality_scale() -> None:
         R.check(f"{label} has an exceptions entry for every raised key", not absent, repr(absent))
 
 
+# ---------------------------------------------------------------------------
+# Round 9 F8.3: quick-setup storage promises vs the answers (D5-s1-02),
+# the card-version banner vs the stamp (D5-s1-03), the curve-bias weekly
+# bound (D6-s2-03), the currency fallback claim (D6-s1-81), and the Services
+# paragraphs vs the registered schemas (the I5 barrier arm, landed early per
+# F8.1's carry). Each arm derives both sides and carries an anchor.
+# ---------------------------------------------------------------------------
+
+_STORAGE_PROMISE = re.compile(r"stores cheap heat|two-tank physics")
+_VALVE_GUARD = re.compile(r"mixing valve|valve mode", re.I)
+
+
+def quick_setup_storage_facts() -> tuple[bool, bool, bool, bool]:
+    """(buffer_is_store, two_tank_modelled) for the all-yes quick setup, then
+    the same two with a throttling mixing-valve mode added.
+
+    The five-question page never asks about the mixing valve, but
+    ``thermal_model`` gates both properties on one: ``buffer_is_store``
+    requires a throttling valve as well as a store-sized tank, and
+    ``two_tank_modelled`` requires the four-way topology, which the same
+    valve enables. The second pair is the control that the predicates
+    distinguish a throttling install from the quick setup's default valve.
+    """
+    from heatpump_optimizer import const, mixing_valve, quick_setup
+    from heatpump_optimizer.thermal_model import ThermalParameters
+
+    answers = {
+        quick_setup.FIELD_TWO_ZONE: True,
+        quick_setup.FIELD_BUFFER_TANK: True,
+        quick_setup.FIELD_DHW_TANK: True,
+        quick_setup.FIELD_WOOD_FURNACE: True,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_bottom",
+    }
+    cfg = quick_setup.derive(dict(answers))
+    p = ThermalParameters.from_config(cfg)
+    throttle = sorted(mixing_valve.THROTTLING_MODES)[0]
+    c = ThermalParameters.from_config({**cfg, const.CONF_MIXING_VALVE_MODE: throttle})
+    return p.buffer_is_store, p.two_tank_modelled, c.buffer_is_store, c.two_tank_modelled
+
+
+def _storage_unguarded(section: str) -> list[str]:
+    """The promise lines in a five-questions section that name no precondition."""
+    return [
+        line
+        for line in section.splitlines()
+        if _STORAGE_PROMISE.search(line) and not _VALVE_GUARD.search(line)
+    ]
+
+
+def check_quick_setup_promises() -> None:
+    R.section("quick-setup storage promises vs what the answers build (D5-s1-02)")
+    bis, ttm, cbis, cttm = quick_setup_storage_facts()
+    R.check(
+        "the all-yes quick setup builds neither a store nor the two-tank model",
+        not bis and not ttm,
+        f"buffer_is_store={bis} two_tank_modelled={ttm}",
+    )
+    R.check(
+        "with a throttling valve configured both properties turn on (control)",
+        cbis and cttm,
+        f"buffer_is_store={cbis} two_tank_modelled={cttm}",
+    )
+    section_m = re.search(r"### The five house questions\n(.*?)\n### ", DOCS["setup.md"], re.S)
+    section = section_m.group(1) if section_m else ""
+    R.check("the five-questions section is still there (anchor)", bool(section))
+    R.check(
+        "the section still says what the tank answers switch on (anchor)",
+        bool(_STORAGE_PROMISE.search(section)),
+    )
+    unguarded = _storage_unguarded(section)
+    R.check(
+        "every storage promise names its mixing-valve precondition",
+        not unguarded,
+        repr(unguarded),
+    )
+    # Null control: the pre-fix rows promised the store and the two-tank
+    # switch outright; the detector must fire on that shape, not merely pass
+    # on the fixed one.
+    pre_fix_section = (
+        "| Buffer tank | off | A tank between the heat pump and the heating "
+        "circuits. On stores cheap heat and releases it during expensive "
+        "hours. |\n"
+        "| Wood buffer tank | off | A second tank the wood furnace heats. "
+        "The two probes below it are what actually switch the two-tank "
+        "physics on. |\n"
+    )
+    fired = _storage_unguarded(pre_fix_section)
+    R.check(
+        "the pre-fix promise rows fire the precondition guard (null control)",
+        len(fired) == 2,
+        f"{len(fired)} of 2 rows fired",
+    )
+
+
+def stamp_tracks_card() -> tuple[str, float]:
+    """(card version now, share of simulated stamps that rewrite the banner).
+
+    Five successive patch releases of VERSION stamped over the real card
+    bytes with ``tools/release/stamp.py:rewrite_card_version`` -- the call
+    every stamp makes. The doc's old model (the banner "moves only when the
+    card file changes") predicts a share of 0.0; the stamp makes it 1.0.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "f83-stamp", ROOT / "tools" / "release" / "stamp.py"
+    )
+    stamp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(stamp)
+    card = (PKG / "www" / "heatpump-optimizer-card.js").read_text()
+    cur_m = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', card)
+    version = (ROOT / "VERSION").read_text().strip()
+    major, minor, patch = (int(x) for x in version.split("."))
+    text, tracks = card, 0
+    n = 5
+    for k in range(1, n + 1):
+        nxt = f"{major}.{minor}.{patch + k}"
+        text, _old = stamp.rewrite_card_version(text, nxt)
+        got = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', text)
+        tracks += int(got is not None and got.group(1) == nxt)
+    return cur_m.group(1) if cur_m else "", tracks / n
+
+
+_CARD_LAGS = re.compile(
+    r"often lower than the integration version|not against the integration version itself"
+)
+
+
+def check_card_version_tracks_stamp() -> None:
+    R.section("the card-version banner vs what a stamp writes (D5-s1-03)")
+    cur, share = stamp_tracks_card()
+    R.check("the bundled card carries a version (anchor)", bool(cur), cur)
+    R.check(
+        "every simulated stamp rewrites the card version (share == 1.0)",
+        share == 1.0,
+        f"card now {cur}, share {share}",
+    )
+    doc = DOCS["dashboard-card.md"]
+    m = re.search(r"heatpump-optimizer-card\s+v(\d+\.\d+\.\d+)", doc)
+    R.check("the banner section still shows an example version (anchor)", m is not None)
+    stale = _CARD_LAGS.findall(doc)
+    R.check(
+        "the doc no longer says the banner lags the integration version",
+        not stale,
+        repr(stale),
+    )
+    # Null control: re-inserting the pre-fix sentences must fire the claim scan.
+    mutated = doc.replace(
+        "That is the card's own version.",
+        "That is the card's own version. It moves only when the card file "
+        "changes, so it is often lower than the integration version -- "
+        "compare it against the card version named in the release notes, "
+        "not against the integration version itself.",
+    )
+    R.check(
+        "re-inserting the pre-fix banner claim fires the scan (null control)",
+        len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
+        f"{len(_CARD_LAGS.findall(doc))} -> {len(_CARD_LAGS.findall(mutated))}",
+    )
+
+
+def curve_bias_facts() -> tuple[float, int, float]:
+    """(bias after one cycle at a +2 K residual, its sample count, and the
+    per-fold step a settled fold takes at a +10 K residual).
+
+    The doc's old claim bounded the learner at "0.5 K per week". Both
+    regimes the code actually runs exceed 0.5 K within a single cycle: the
+    first residual is folded whole, and the settled EWMA takes
+    ``FLOW_BIAS_ALPHA`` of each new residual per cycle.
+    """
+    from heatpump_optimizer.flow_lift import FLOW_BIAS_MIN_SAMPLES, FlowCurveBias
+
+    one = FlowCurveBias()
+    one.observe(42.0, 40.0)
+    ewma = FlowCurveBias()
+    for _ in range(FLOW_BIAS_MIN_SAMPLES):
+        ewma.observe(50.0, 40.0)
+    prev = ewma.bias_k
+    ewma.observe(40.0, 40.0)
+    step = abs(ewma.bias_k - prev)
+    return one.bias_k, one.samples, step
+
+
+def check_curve_bias_no_weekly_bound() -> None:
+    R.section("the curve-bias learner against a weekly bound (D6-s2-03)")
+    first_k, samples, ewma_step = curve_bias_facts()
+    R.check(
+        "one cycle folds a full residual into the bias",
+        samples == 1 and first_k > 0.5,
+        f"{samples} sample(s), bias {first_k} K",
+    )
+    R.check(
+        "a settled fold tracks a changed residual by more than 0.5 K per cycle",
+        ewma_step > 0.5,
+        f"{ewma_step} K per fold",
+    )
+    hits = {
+        name: found
+        for name, text in CORPUS.items()
+        if (found := re.findall(r"0\.5 K per week|half a degree per week", text))
+    }
+    R.check(
+        "no reader doc bounds the curve-bias learner by a weekly amount",
+        not hits,
+        repr(hits),
+    )
+    R.check(
+        "the corpus still documents the heat-curve correction (anchor)",
+        any("heat-curve correction" in text for text in CORPUS.values()),
+    )
+    # Null control: re-adding the pre-fix bound to a README copy must fire.
+    mutated = README.replace(
+        "a cool-only heat-curve correction",
+        "a cool-only heat-curve correction of at most 0.5 K per week",
+    )
+    R.check(
+        "re-adding the weekly bound fires the scan (null control)",
+        bool(re.search(r"0\.5 K per week", mutated)),
+    )
+
+
+def currency_facts() -> tuple[str, str]:
+    """(resolve_currency under a real configured instance, under no config).
+
+    A normal Home Assistant instance always has a currency (defaulting to
+    EUR); the SEK fallback is what the code returns only when nothing is
+    readable. README's old parenthetical claimed the fallback is what an
+    unconfigured instance shows.
+    """
+    from heatpump_optimizer.currency import resolve_currency
+
+    class _EurConfig:
+        currency = "EUR"
+
+    class _Hass:
+        config = _EurConfig()
+
+    return resolve_currency(_Hass()), resolve_currency(object())
+
+
+_CURRENCY_FALSE_CLAIM = r"SEK when the instance has none configured"
+
+
+def check_readme_currency_claim() -> None:
+    R.section("README's currency fallback claim vs resolve_currency (D6-s1-81)")
+    real, fallback = currency_facts()
+    R.check("a configured instance currency is returned as-is", real == "EUR", real)
+    R.check("with nothing readable the code falls back to SEK", fallback == "SEK", fallback)
+    hits = re.findall(_CURRENCY_FALSE_CLAIM, README)
+    R.check(
+        "README no longer claims SEK for an unconfigured instance",
+        not hits,
+        repr(hits),
+    )
+    R.check("README still documents the instance currency (anchor)", "instance currency" in README)
+    mutated = README.replace(
+        "`CUR` is your Home Assistant instance currency",
+        "`CUR` is your Home Assistant instance currency "
+        "(SEK when the instance has none configured)",
+    )
+    R.check(
+        "re-adding the pre-fix claim fires the scan (null control)",
+        bool(re.findall(_CURRENCY_FALSE_CLAIM, mutated)),
+    )
+
+
+def registered_service_fields() -> dict[str, set[str]]:
+    """Service name -> the keys its registered voluptuous schema accepts."""
+    from harness import FakeHass
+    from heatpump_optimizer import services
+
+    hass = FakeHass()
+    services.async_register_services(hass)
+    out: dict[str, set[str]] = {}
+    for (_, name), schema in hass.services._schemas.items():
+        while schema is not None and not hasattr(schema, "schema"):
+            schema = next((v for v in getattr(schema, "validators", ()) if hasattr(v, "schema")), None)
+        out[name] = {str(getattr(k, "schema", k)) for k in (schema.schema if schema else {})}
+    return out
+
+
+def _service_paragraphs(doc: str) -> dict[str, str]:
+    """Service name -> the text of its `**`name`**` paragraph."""
+    return {
+        m.group(1): m.group(2)
+        for m in re.finditer(
+            r"^\*\*`(\w+)`\*\*(.*?)(?=^\*\*`\w+`\*\*|^#|\Z)", doc, re.M | re.S
+        )
+    }
+
+
+def _service_field_problems(
+    fields: dict[str, set[str]], paras: dict[str, str]
+) -> dict[str, str]:
+    """Paragraphs whose field list or count disagrees with the schema."""
+    wrong: dict[str, str] = {}
+    for name, keys in fields.items():
+        text = paras.get(name)
+        if text is None:
+            continue
+        stated = re.search(r"\b(?:All )?(\d+) fields\b", text)
+        named = set(re.findall(r"`(\w+)`", text)) & keys
+        if stated and int(stated.group(1)) != len(keys - {"entry_id"}):
+            wrong[name] = f"says {stated.group(1)} fields, schema has {len(keys - {'entry_id'})}"
+        elif not stated and len(named) > 1 and keys - named - {"entry_id"}:
+            wrong[name] = f"lists {len(named)}, omits {sorted(keys - named - {'entry_id'})}"
+    return wrong
+
+
+def check_service_fields() -> None:
+    R.section("service paragraphs vs the registered schemas (I5)")
+    doc = DOCS["configuration.md"]
+    fields = registered_service_fields()
+    paras = _service_paragraphs(doc)
+    R.check(
+        "the registry and the Services paragraphs are both there (anchor)",
+        bool(fields) and bool(set(fields) & set(paras)),
+        f"{sorted(fields)} / {sorted(paras)}",
+    )
+    wrong = _service_field_problems(fields, paras)
+    R.check(
+        "every service paragraph that lists or counts fields matches its schema",
+        not wrong,
+        repr(wrong),
+    )
+    # Null control: deleting a listed field name from a paragraph must make
+    # the comparison fire again (a no-op while the field is missing, so the
+    # control is honest both before and after the fix).
+    mutated_doc = doc.replace("`manual_setpoint`", "", 1)
+    R.check(
+        "removing a listed field from a paragraph fires the comparison "
+        "(null control)",
+        bool(_service_field_problems(fields, _service_paragraphs(mutated_doc))),
+    )
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
@@ -1235,6 +1571,11 @@ def main() -> int:
     check_multistart_starting_points()
     check_census_self_test()
     check_quality_scale()
+    check_quick_setup_promises()
+    check_card_version_tracks_stamp()
+    check_curve_bias_no_weekly_bound()
+    check_readme_currency_claim()
+    check_service_fields()
     return R.close("checks")
 
 
