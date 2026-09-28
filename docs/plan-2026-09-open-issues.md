@@ -79,6 +79,25 @@ with a reason, or refused. Source: ALT-ENDGAME-PLAN.md on handoff/audit-r9-alt
 | #1747 | **scheduled — R9-EG-B8** (behaviour fix under the normal fix protocol, after F2.4 and before EG-B5; root-cause section owed on the issue) |
 | #1748 | **scheduled — carry into R9-F10.3** (the per-site ratchet is blind to a move; the carry must be in the tree before F10.3 starts) |
 
+## Round-9 ALT rev-2 dispositions (2026-09-29)
+
+Per `delivery-status-tracking.md` step 5. Source: ALT-ENDGAME-PLAN.md rev 2 on
+handoff/audit-r9-alt @065bd69a (tvofi-approved); roster v2 adopted at
+handoff/audit-r9-fixplan (66 groups).
+
+| issue | disposition |
+|---|---|
+| #1752 | **scheduled — R9-EG-B9** (sev:high behaviour fix; in the F1 serial slot after F1.5, before F1.6; normal fix protocol + Root cause on the issue) |
+| #1753 | **scheduled — R9-EG-B9** (the tile/advisor stop borrowing the what-if cache; same PR) |
+| #1754 | **scheduled — R9-EG-B10** (dropped re-solve; after EG-B9 + F1.6) |
+| #1755 | **scheduled — R9-EG-B10** (per-entry fallback streak; same PR) |
+| #1756 | **scheduled — R9-F10.1c** (new, tests only: config + straddle arms for the P7 tracer) |
+| #1757 | **scheduled — R9-F11.7** (new: governance graders under graders-head-copy; #1721 trigger 2) |
+| #1758 | **scheduled — R9-F10.7** (instrument-first: the v6.6.0 freeze undiagnosed; tvofi runs the host profiler) |
+| #1759 | **scheduled — R9-EG-R0** (register v2 data, tvofi reviews the move list) **then R9-EG-R1** (the fold; owner-gated policy clauses) |
+| #1760 | **scheduled — R9-F7.4** (declared entity families + one contiguity check; after F7.2) |
+| #1070 (row correction) | the row's "root-cause seat in flight" was false: no seat ran, and the band landed as #1124. Corrected in this PR. |
+
 ## Delivery status
 
 Updated as the program lands; each row names the release that carried it.
@@ -1299,8 +1318,12 @@ states its window or it states nothing.
   discoverability fix is deferred; both are in `docs/HANDOVER.md` under *Owed
   from #1116*. Its key also still measures over threshold in the filing window.
 - **[#1070](https://github.com/tvofi/heatpump_optimizer/issues/1070)
-  (`ratchet-budgets.md`) — DEFERRED**, root-cause seat in flight on corpus-cap
-  headroom. The reason is that the cause is the object being established: a cap
+  (`ratchet-budgets.md`) — DEFERRED**; the "root-cause seat in flight" this row
+  once claimed is corrected (2026-09-29): **no seat ran**, and the corpus-cap
+  band the row described landed as
+  [#1124](https://github.com/tvofi/heatpump_optimizer/issues/1124) — the
+  disposition reads through that issue, not through a seat that never
+  existed. The reason is that the cause is the object being established: a cap
   sitting at its measured value makes every subsequent record pull request pay
   or ask, and whether that is the ratchet working or the friction is the
   question the seat answers.
