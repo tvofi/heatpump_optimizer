@@ -11,25 +11,12 @@ SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
 GATE_JOBS=1 ./tests/run.sh   # one script at a time, streaming, for watching a failure
 ```
 
-`run.sh` runs the suite in lanes rather than in one long line: the unit-style
-scripts, the characterization gate and the end-to-end scripts go in parallel,
-then `stress.py` runs **alone** on an otherwise idle box, because its
-solve-time guard measures this machine while it solves and the rest of the
-suite must not be part of what it measures. `plan_view.py` writes the payload
-`card.mjs` reads, so those two stay in one lane in that order. A script that is
-wired into `run.sh` but that no lane executes fails the run, which the
-older "is it mentioned?" grep could not see. Output is captured per script and
-replayed whole, one script at a time, once the lanes finish; `GATE_JOBS=1` puts
-it back to one script at a time with streaming output, which is what to reach
-for when a failure needs watching as it happens.
-
-CI runs the same `run.sh` on every push and pull request
-(`.github/workflows/tests.yml`), with one difference: `GOLDEN_MODE=drift`
-replaces the exact golden-fixture comparison with a same-environment
-comparison against the PR's merge-base (see `env_drift.py` below), because
-solver floats recorded on one machine do not reproduce bit-exactly on
-another. The `SLOW=1` closed-loop simulation runs nightly and on manual
-dispatch.
+`run.sh`'s own header states the lane shape and why (stress alone after the
+others, the plan_view/card ordering, wired-but-never-executed failing the
+run, per-script replayed output). CI runs the same `run.sh` on every push and
+pull request with `GOLDEN_MODE=drift` — the same-environment comparison
+against the merge-base, for the reason `run.sh`'s header and `env_drift.py`
+below state; the `SLOW=1` closed-loop runs nightly and on manual dispatch.
 
 ## The scoped gate
 
@@ -276,6 +263,19 @@ the mutation has to be made in. If the answer is the test file, the assertion
 is measuring itself. Ask which **operator**: line deletion killed 0 of 8 on
 `validate.py` and `optimality.py`; arithmetic killed 2 of 2 on `optimality.py`.
 Sample arithmetic and off-by-one; delete nothing.
+
+## A knife-edge optimizer comparison must be measured across BLAS kernels
+
+Before a check races two independent solves, measure each arm per kernel
+and key the verdict on what does not move (#1725: the ftol check's loosened arm
+read 60.54-63.48 SEK across four BLAS kernels (same tree and wheels)
+against a 0.1% bound, while the production arm held 61.24-61.28: a bound
+set from two environments). Instrument:
+`tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
+`OPENBLAS_CORETYPE`; the AVX-512 point is CI's own green logs. Prefer a
+same-run quantity whose basin choice cancels (`env_drift.py`'s capture-twice)
+or an arm measured bit-stable across kernels. `run.sh` prints the kernel class each run, so a red coinciding with a pool
+change reads off the log's first block.
 
 ## The two guards
 
