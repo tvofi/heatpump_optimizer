@@ -37,4 +37,4 @@ Measured at origin/main `3490cb16`.
 
 ## Disposition
 
-Scheduled: **R9-EG-R0**, in the next record PR, then **R9-EG-R1** after R9-F11.4 (`audit-find.js`/`audit-verify.js` are code-owned; F11.4 is the lane's driver fix).
+Scheduled: **R9-EG-R0**, its own data PR once tvofi has reviewed the flag list (no after-edge, so it can land in wave 0), then **R9-EG-R1** after R9-F11.4 (`audit-find.js`/`audit-verify.js` are code-owned; F11.4 is the lane's driver fix).

@@ -1,0 +1,10 @@
+# 3490cb16: 75 published entity names
+  SPLIT KEY/en 'away': 3 members in 2 runs: ['Away', 'Away Mode', 'Expected Return']
+  SPLIT KEY/en 'cost': 7 members in 2 runs: ['Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'Lifetime Total Heating Cost']
+RESULT key_families_split_en=2 (of 13 families; extra_runs=2)
+  SPLIT KEY/sv 'away': 3 members in 2 runs: ['Borta', 'Bortaläge', 'Förväntad hemkomst']
+  SPLIT KEY/sv 'compressor': 2 members in 2 runs: ['Kompressorstarter', 'Rådgivare för kompressorfrekvens']
+  SPLIT KEY/sv 'cost': 7 members in 2 runs: ['Ackumulerad total uppvärmningskostnad', 'Kostnad aktuellt elpris', 'Kostnad avtalsjämförelse', 'Kostnad effektmarginal', 'Kostnad månadens effekttopp', 'Kostnad prognos', 'Kostnad referens']
+RESULT key_families_split_sv=3 (of 13 families; extra_runs=3)
+RESULT trail_families_split_en=13 (of 16 families; extra_runs=19)
+RESULT trail_families_split_sv=15 (of 16 families; extra_runs=20)

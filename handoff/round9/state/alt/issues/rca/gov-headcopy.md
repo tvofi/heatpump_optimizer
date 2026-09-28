@@ -1,4 +1,4 @@
-**Source:** the owed trigger-2 RCA for #1721 in [RCA-BULK-3.md](https://github.com/tvofi/heatpump_optimizer/blob/handoff/audit-r9-alt/handoff/round9/state/alt/rca/RCA-BULK-3.md) §1. PR #1721's own "Red checks" section said the cheaper detector was "owed to a root-cause seat", and none had been conducted. Measured at origin/main `3490cb16`. The demonstration is in [rca/bulk3/demo_1721.txt](https://github.com/tvofi/heatpump_optimizer/tree/handoff/audit-r9-alt/handoff/round9/state/alt/rca/bulk3/demo_1721.txt).
+**Source:** the owed trigger-2 RCA for #1721 in [RCA-BULK-3.md](https://github.com/tvofi/heatpump_optimizer/blob/handoff/audit-r9-alt/handoff/round9/state/alt/rca/RCA-BULK-3.md) §1. PR #1721's own "Red checks" section said the cheaper detector was "owed to a root-cause seat", and none had been conducted. Measured at origin/main `3490cb16`. The demonstration is in [rca/bulk3/demo_1721.txt](https://github.com/tvofi/heatpump_optimizer/blob/handoff/audit-r9-alt/handoff/round9/state/alt/rca/bulk3/demo_1721.txt).
 
 ## What
 

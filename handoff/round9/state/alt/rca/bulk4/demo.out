@@ -1,0 +1,37 @@
+### A #1334 pre/post
+  FAIL en 'boost' 2 runs: ['Boost Space Heating', 'DHW Boost']
+  FAIL sv 'boost' 2 runs: ['Forcera rumsvärme', 'Varmvattenboost']
+  FAIL sv 'dhw' 2 runs: ['Varmvatten blandat', 'Varmvatten börvärdesrådgivare', 'Varmvattenbehov tunga dagar', 'Varmvattenenergi (totalt)', 'Varmvattenkostnad (nästa 24 h)', 'Varmvattenkostnad (totalt)', 'Varmvattenplan (nästa 24 h)', 'Varmvattenschema', 'Varmvattentemperatur']
+  FAIL sv 'solar' 2 runs: ['Prognos för solöverskott', 'Solinstrålning', 'Solvärmetillskott']
+  FAIL sv 'space' 2 runs: ['Uppvärmningsenergi (totalt)', 'Uppvärmningskostnad (totalt)', 'Värmeplan (nästa 24 h)']
+9af8a477^1: FAIL (73 names, 13 families, overrides=0, allow=['away', 'compressor'])
+rc=1
+9af8a477: PASS (73 names, 12 families, overrides=0, allow=['away', 'compressor'])
+rc=0
+### B #1668 pre/post (declaration r9)
+  FAIL en 'lifetime' 3 runs: ['Cost Total Heating (lifetime)', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Total Energy (lifetime)']
+  FAIL en 'prediction' 2 runs: ['Diagnose Last Interval', 'Prediction Accuracy']
+  FAIL sv 'lifetime' 3 runs: ['Kostnad total uppvärmning (totalt)', 'Total energi (totalt)', 'Uppvärmningsenergi (totalt)', 'Uppvärmningskostnad (totalt)']
+  FAIL sv 'prediction' 2 runs: ['Diagnostisera senaste intervallet', 'Prognosnoggrannhet']
+37fe3f63^1: FAIL (75 names, 14 families, overrides=5, allow=['away', 'compressor'])
+rc=1
+37fe3f63: PASS (75 names, 14 families, overrides=5, allow=['away', 'compressor'])
+rc=0
+### C #1733 without declaring the move
+  FAIL en 'cost' 2 runs: ['Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'Lifetime Total Heating Cost']
+  FAIL sv 'cost' 2 runs: ['Ackumulerad total uppvärmningskostnad', 'Kostnad aktuellt elpris', 'Kostnad avtalsjämförelse', 'Kostnad effektmarginal', 'Kostnad månadens effekttopp', 'Kostnad prognos', 'Kostnad referens']
+37fe3f63: FAIL (75 names, 13 families, overrides=0, allow=['away', 'compressor'])
+rc=1
+### main, allow nothing
+  FAIL en 'away' 2 runs: ['Away', 'Away Mode', 'Expected Return']
+  FAIL sv 'away' 2 runs: ['Borta', 'Bortaläge', 'Förväntad hemkomst']
+  FAIL sv 'compressor' 2 runs: ['Kompressorstarter', 'Rådgivare för kompressorfrekvens']
+3490cb16: FAIL (75 names, 14 families, overrides=5, allow=[])
+rc=1
+### null (names led by declared family)
+3490cb16: PASS (75 names, 14 families, overrides=5, allow=[])
+rc=0
+### anti-skip (empty roster)
+  FAIL ANCHOR roster=0 families=0
+EMPTY: FAIL (0 names, 0 families, overrides=0, allow=[])
+rc=1
