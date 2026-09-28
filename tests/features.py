@@ -879,6 +879,10 @@ def _r9f13_press(reason):
             out = getattr(err, "translation_key", None) or "raised:plain"
         except TimeoutError:
             out = "hung"
+        # One yield: 3.12's wait_for awaits the inner coroutine inline, so
+        # the refresh task the press scheduled has not started yet here;
+        # without this the `requested` read races the interpreter version.
+        await _r9f13_aio.sleep(0)
         for task in _r9f13_aio.all_tasks() - {_r9f13_aio.current_task()}:
             task.cancel()
         return out, bool(requested)
