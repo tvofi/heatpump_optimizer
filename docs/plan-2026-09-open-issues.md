@@ -58,6 +58,27 @@ Five principles decide it, each a measured fact rather than a preference.
    base is named because the window grows with every merge — an earlier draft
    said 30, which was already stale when it was written.
 
+## Round-9 endgame dispositions (2026-09-28, ALT plan adoption)
+
+Per `delivery-status-tracking.md` step 5 — every open issue scheduled, deferred
+with a reason, or refused. Source: ALT-ENDGAME-PLAN.md on handoff/audit-r9-alt
+(tvofi-approved 2026-09-28); roster adopted at handoff/audit-r9-fixplan.
+
+| issue | disposition |
+|---|---|
+| #1736 | **scheduled — R9-EG-B0 (root-cause seat, now) then R9-EG-B1** (per-solve immutable inputs; after the fix stamp) |
+| #1737 | **scheduled — R9-EG-B3** (typed payload contract; after F10.4 and EG-B2) |
+| #1738 | **scheduled — carry A1 into R9-F10.4** (the ratchet re-prices decomposition; arm (c) is a raise needing tvofi's confirmation before the push) |
+| #1739 | **scheduled — R9-EG-B2** (surface identity, after F1.11) **and R9-EG-B6** (collaborator interfaces, after EG-B1) |
+| #1740 | **scheduled — carry A4 into R9-F10.1b** (store versions, P11) **and R9-EG-B4** (the version seam) |
+| #1741 | **scheduled — carry A2 into R9-F1.10** (the step-start clock defined twice; the 8-site ambient literal) |
+| #1742 | **scheduled — R9-EG-B2** (identity pinned at 9 constructors; two private config copies) |
+| #1743 | **scheduled — R9-EG-B5a then R9-EG-B5** (the DHW planner split, tvofi opted in 2026-09-28; preconditions in alt/EG-B5-DESIGN.md §7) |
+| #1744 | **scheduled — R9-EG-B7**, measured go/no-go after EG-B1 and EG-B6 (where a seam's cut does not fall, the halt is recorded on #1744 with the numbers) |
+| #1745 | **deferred to round 10** (typed configuration, after EG-B1; the 281 `.get(CONF_…)` reads are the enumerator) |
+| #1747 | **scheduled — R9-EG-B8** (behaviour fix under the normal fix protocol, after F2.4 and before EG-B5; root-cause section owed on the issue) |
+| #1748 | **scheduled — carry into R9-F10.3** (the per-site ratchet is blind to a move; the carry must be in the tree before F10.3 starts) |
+
 ## Delivery status
 
 Updated as the program lands; each row names the release that carried it.
