@@ -180,11 +180,11 @@
     "R9-F1.2"
    ],
    "resume": {
-    "stage": "fix",
+    "stage": "done",
     "branch": "handoff/r9-f1-coordinator-3",
-    "commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
-    "last_step": "opus fixer seat dispatched from main 12b0df68 on handoff/r9-f1-coordinator-3",
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "3bae92d9620a3104c80cfd1631015d42796249ca",
+    "last_step": "MERGED as #1731 at 3bae92d9; fixes[] empty, so it closes nothing outright -- class issue #1644 (P2) stays open and closes on the later F1 PR that holds it; code-owned tests/harness.py approved under the mandate",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F1.3.md on handoff/r9-f1-coordinator-3",
     "review_branch": "handoff/r9-f1-coordinator-3-review",
     "review_note_file": "handoff/round9/fix/resume/F1.3-review.md on handoff/r9-f1-coordinator-3-review",
