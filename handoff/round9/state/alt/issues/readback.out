@@ -1,0 +1,11 @@
+1736 i1.md [R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the l READ-BACK OK (body = sent less the server-stripped footer)
+1737 i2.md [R9-EG-TYPED-PAYLOAD] The coordinator's payload has no typed READ-BACK OK (body = sent less the server-stripped footer)
+1738 i3.md [R9-EG-RATCHET-DECOMPOSITION] The structural ratchet mispric READ-BACK OK (body = sent less the server-stripped footer)
+1739 i4.md [R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coo READ-BACK OK (body = sent less the server-stripped footer)
+1740 i5.md [R9-EG-STORE-VERSION] No store can change its version: no mi READ-BACK OK (body = sent less the server-stripped footer)
+1741 i6.md [R9-EG-PLANT-FACT-COPIES] The step-start clock is defined tw READ-BACK OK (body = sent less the server-stripped footer)
+1742 i7.md [R9-EG-SURFACE-IDENTITY] Entity identity is pinned at 9 cons READ-BACK OK (body = sent less the server-stripped footer)
+1743 i8.md [R9-EG-DHW-PLANNER] Extract the 2,237-line DHW planner from  READ-BACK OK (body = sent less the server-stripped footer)
+1744 i9.md [R9-EG-COORDINATOR-SEAMS] Re-measure the coordinator's dhw a READ-BACK OK (body = sent less the server-stripped footer)
+1745 i10.md [R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per si READ-BACK OK (body = sent less the server-stripped footer)
+1740 READ-BACK OK after correction

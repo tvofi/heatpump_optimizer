@@ -1,0 +1,13 @@
+producer keys, union of tests/golden/coord_*.json 'data': 162
+distinct top-level keys read by the surfaces: 120; read sites: 212
+top-level keys read but absent from every golden: 7
+  'horizon_hours' read at ['sensor.py:1515', 'sensor.py:1482']; literal occurrences in non-surface modules: 0
+  'last_optimization' read at ['sensor.py:799']; literal occurrences in non-surface modules: 2
+  'manual_plan' read at ['sensor.py:1563', 'sensor.py:1449']; literal occurrences in non-surface modules: 4
+  'mixing_valve_mode' read at ['sensor.py:2144']; literal occurrences in non-surface modules: 5
+  'next_optimization' read at ['sensor.py:784']; literal occurrences in non-surface modules: 1
+  'solve_time_ms' read at ['sensor.py:415']; literal occurrences in non-surface modules: 2
+  'valve_target_recommendation' read at ['sensor.py:2132', 'sensor.py:2138']; literal occurrences in non-surface modules: 1
+golden keys no surface reads at top level: 49 (card / nested / diagnostics may consume)
+TypedDict in package: 0
+coordinator class line: class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):

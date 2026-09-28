@@ -1,0 +1,4 @@
+stub, saved v1 loaded v2 (a major bump): returned {'learned': 42}
+stub, saved v1 loaded v1 (null control): returned {'learned': 42}
+_async_migrate_func overrides in the package: 0
+Home Assistant's Store on a major mismatch with no override: raises NotImplementedError (homeassistant/helpers/storage.py, dev branch, _async_load_data: 'except NotImplementedError: if data["version"] != self.version: raise')
