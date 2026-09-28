@@ -1,9 +1,0 @@
--- P1/P2/N-min-gap — the defrost, price-shape and peak stores and the feed parsers (D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04)
-  FAIL a stored defrost duty outside [0, 1] restarts only its own bucket unmeasured, with a warning; a healthy store loads as written (D1-s4-01)  [duty=[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]] counts=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]] warnings=0/0]
-  FAIL one unreadable cell in a v2 defrost store costs one bucket and is not labelled migrated; a v1 store is (D1-s4-03)  [migrated=True/True counts=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]]
-  FAIL a stored price shape, quarter factor or variance outside what the learner writes is brought back into its domain; a learned model loads as written (D1-s5-02)  [tail 0..1.47e+300 days=[7, 7] warnings=0/0]
-  FAIL a negative stored peak is dropped and an out-of-domain open window restarts empty; a real tracker loads as written (D1-s5-02)  [peaks=[4.25, -50.0] threshold=4.25 billed=4.25 warnings=0/0]
-  FAIL a huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)  [{'entity': 'OverflowError', 'tibber': 'OverflowError', 'adjusted': 'OverflowError', 'irradiance': 'OverflowError'}]
-  FAIL one off-grid stamp does not shrink Open-Meteo's inferred resolution, and one missing sample does not double it (D1-s5-04)  [{'stray_1min': datetime.timedelta(seconds=60), 'stray_30min': datetime.timedelta(seconds=1800), 'missing': datetime.timedelta(seconds=3600)}]
-
-6 of 6 F33 FAILED

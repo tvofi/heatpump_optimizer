@@ -1,7 +1,0 @@
-  skip     required-contexts     the GitHub API is unreachable (the fixture or the API failed: spawnSync gh ENOENT); the live required-context set is UNCHECKED this run, not confirmed
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 40 policy file(s)
-
-FIXTURE VACUOUS: the 'filetokens' budget comparison produced nothing against a zero budget, so deleting it would change no output. Every cap is false on a healthy corpus and therefore has no witness unless one is driven.

@@ -1,3 +1,0 @@
-  REFUSED  ruleset: the unperturbed the live main-protect-checks ruleset object is red, so nothing is measured
-RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=0.1
-FIELD COVERAGE REFUSED: a field of a governance check's input is read by no check and ignored by no reason

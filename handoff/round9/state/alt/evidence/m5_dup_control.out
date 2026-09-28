@@ -1,4 +1,0 @@
-copied function: tariff.py _window_slot lines 45-76
-BASE: RESULT duplication_blocks=14 count
-ARM A (copy into another module, sysid.py):   ok   duplication_blocks 14 <= 14
-ARM B (control, copy into the same module, tariff.py): FAIL duplication_blocks 16 > 14 (+2)
