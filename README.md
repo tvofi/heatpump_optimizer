@@ -437,10 +437,11 @@ Every field and its range is documented in
 All entities are created on every install. Where a feature is not configured, the
 entity is either disabled by default or reports itself unavailable — waiting for
 its configuration or its first evidence, and saying which — so nothing appears
-and disappears under your dashboards. Nineteen entities (eighteen sensors and
+and disappears under your dashboards. Twenty entities (nineteen sensors and
 the wood binary sensor) are disabled by default because the ordinary install
 cannot light them: optional probes and meters, the capacity tariff, PV, the
-wood furnace, and niche hardware. They can be enabled from the entity registry,
+wood furnace, niche hardware, and the one compatibility duplicate (#1669).
+They can be enabled from the entity registry,
 and an entity enabled later starts collecting from that moment.
 
 Since v5.0.0 the display names are translated (English and Swedish) and follow
@@ -503,7 +504,7 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
 | Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
-| Upper Floor Temperature | °C | The radiator zone | |
+| Upper Floor Temperature | °C | The radiator zone | Compatibility duplicate of Indoor Temperature — the stated two-zone convention makes the indoor thermometer the upper floor, so this ships disabled by default; enable it only to keep an existing card, and its `source` attribute names what it reads |
 | Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default unless the floor-return probe is configured at setup; unavailable without it |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default unless the floor-return probe is configured at setup; unavailable until it feeds the model |
@@ -551,7 +552,7 @@ every sensor is created on every install regardless of which group it is in.
 | Learning Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
-| Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
+| Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default and unavailable until a throttling mixing-valve mode is configured (manual, smart read or smart write) — a valve-less install gets neither a hidden sensor nor one stuck at unknown |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 
@@ -560,12 +561,15 @@ Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
 Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
 ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
 Lower Floor Temperature, Measured Power, Slab Temperature (Estimated), Solar
-Surplus Forecast, Valve Target Recommendation, Wood-Burn Night Advisor and
-Wood Cheaper Than Heat Pump.
+Surplus Forecast, Upper Floor Temperature, Valve Target Recommendation,
+Wood-Burn Night Advisor and Wood Cheaper Than Heat Pump.
 
 Since #1335 that list is every entity the ordinary install cannot light — the
 machinery advisories, the optional probes and meters, the capacity tariff, PV
 and the wood furnace — not only the six niche-hardware sensors it used to be.
+It also carries the one compatibility duplicate (#1669): Upper Floor
+Temperature republishes Indoor Temperature, so it ships off even though the
+ordinary install can produce its number.
 That list assumes hot water itself is configured. Without a hot water tank
 (Finish setup now, or Quick setup with no tank) six more are disabled by
 default too, there being no hot-water plan, cost or schedule to report: DHW
