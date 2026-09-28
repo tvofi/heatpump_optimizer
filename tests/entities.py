@@ -3504,9 +3504,14 @@ R.check(
 )
 R.check(
     "and the reported charge drops the non-store buffer from its denominator",
-    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 88.0,
+    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 72.9,
     "a 35 L tank with no valve is not a store, so it no longer pads the SOC; "
-    "the tank is out of the denominator too (R9 D12-s3-01)",
+    "the tank is out of the denominator too (R9 D12-s3-01). 72.9, not the "
+    "88.0 this block pinned before F1.5: the two-store denominator is priced "
+    "at the outdoor state, which D2-s1-51's producer fix now seeds from the "
+    "forecast (-5.0) instead of the 5.0 constructor default the plan never "
+    "saw -- the same correction the COP check above already made at its own "
+    "reader",
 )
 R.check(
     "the energy sensor carries the same disclosure in its own attributes",
