@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 9.2,
+   "seconds": 5.1,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -2018,6 +2018,7 @@
   ],
   "tests/doc_claims.py": [
    "README.md",
+   "VERSION",
    "blueprints/automation/charge_ev_from_grid_headroom.yaml",
    "blueprints/automation/economy_mode_on_price_peak.yaml",
    "blueprints/automation/notify_on_manual_plan.yaml",
@@ -2092,6 +2093,7 @@
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
+   "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "docs/architecture.md",
    "docs/automations.md",
    "docs/configuration.md",
@@ -2139,7 +2141,8 @@
    "tests/plan_view.py",
    "tests/profiles.py",
    "tests/stress.py",
-   "tests/structure.py"
+   "tests/structure.py",
+   "tools/release/stamp.py"
   ],
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",

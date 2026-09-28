@@ -1764,7 +1764,7 @@
         "name": "Kostnad prognos"
       },
       "cost_total_heating": {
-        "name": "Kostnad total uppvärmning (totalt)"
+        "name": "Ackumulerad total uppvärmningskostnad"
       },
       "dhw_cost": {
         "name": "Varmvattenkostnad (totalt)"
@@ -1923,10 +1923,10 @@
         "name": "Solöverskott (prognos)"
       },
       "space_heating_cost": {
-        "name": "Uppvärmningskostnad (totalt)"
+        "name": "Ackumulerad uppvärmningskostnad"
       },
       "space_heating_energy": {
-        "name": "Uppvärmningsenergi (totalt)"
+        "name": "Ackumulerad uppvärmningsenergi"
       },
       "plan_space_heating": {
         "name": "Plan värme (nästa 24 h)"
@@ -1938,7 +1938,7 @@
         "name": "Termiskt batteri – lagrad energi"
       },
       "total_energy": {
-        "name": "Total energi (totalt)"
+        "name": "Ackumulerad total energi"
       },
       "upper_floor_temperature": {
         "name": "Temperatur övervåning"
@@ -1972,7 +1972,7 @@
     },
     "button": {
       "diagnose_last_interval": {
-        "name": "Diagnostisera senaste intervallet"
+        "name": "Prognosnoggrannhet diagnostisera senaste intervallet"
       },
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"

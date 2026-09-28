@@ -813,7 +813,7 @@ opt-in learners are on **Advanced learning features**.
 | Plan within measured heat pump capacity | off | on/off | Learns how much heat the pump has actually delivered at each outdoor temperature. It can only trim optimism — at least 60 % of nameplate always stays available. |
 | Learn how much sun the windows really admit | off | on/off | Scales solar gain against sunny-hour prediction errors, clamped between 0.3× and 2× the configured value. |
 | Learn the household's daily heat rhythm | off | on/off | Learns a per-hour internal-gains profile from dark-hour prediction errors, tethered to the configured value. |
-| Learn a correction to the heat curve | off | on/off | Learns a standing correction from days that held comfort with room to spare — at most half a degree per week, snapping back to the installer's curve on any comfort miss. It can only cool an over-hot curve, never heat. |
+| Learn a correction to the heat curve | off | on/off | Learns a standing correction from days that held comfort with room to spare — clamped, and snapping back to the installer's curve on any comfort miss. It can only cool an over-hot curve, never heat. |
 
 ### Fuse and peak guards
 
@@ -1028,13 +1028,18 @@ the 21 assignable configuration keys (`outdoor_temp_entity`,
 `buffer_tank_temp_entity`, `mixing_valve_target_entity`,
 `dhw_temp_entity`, `external_heat_entity`, `wood_tank_top_entity`,
 `wood_tank_bottom_entity`, `valve_outlet_temp_entity`) and `entity_id` is the
-entity to put there — an empty string clears the slot. The entity must exist
-and its domain must be one the slot accepts. This is what clicking a sensor on
-the card's Setup tab calls; it writes exactly what the options pages write.
+entity to put there — an empty string clears the slot. `manual_setpoint` is an
+optional number, 0–30, stored as the valve's indoor target when the slot is
+`mixing_valve_target_entity` and ignored on any other slot. The entity must
+exist and its domain must be one the slot accepts. This is what clicking a
+sensor on the card's Setup tab calls; it writes exactly what the options pages
+write.
 
 **`apply_topology`** stores the hydronic layout the setup editor snapped to:
 `layout` is one of the four selectable catalog keys above, and `positions` is an
-optional `{place: [x, y]}` map of cosmetic box coordinates. Free-form edge sets
+optional `{place: [x, y]}` map of cosmetic box coordinates. `dhw` and `wood`
+are optional booleans that set the hot-water and wood-furnace toggles alongside
+the layout. Free-form edge sets
 are never stored — the editor matches a drawing against the catalog and saves
 only the key.
 
