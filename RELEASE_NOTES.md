@@ -1,5 +1,17 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.10
+
+round-9 wave: the config flow speaks the frontend's language and stops re-offering finished paths (#1668), the solver's recompute lanes are vectorised (the winter capacity-tariff solve runs 2.9x faster with a bit-identical objective), and restart durability is fixed at the payload level — a racing startup save can no longer overwrite persisted learned state, with the barrier now reading the restart after the race (#1662, #1681).
+
+- #1731 — fix: cycle outcome — covering quarter, fenced steps, failed solves, an honest press (round-9 F1.3)
+- #1732 — fix(R9-F5.2): the config flow speaks the frontend's language, and its menus stop re-offering a finished path
+- #1733 — fix(R9-F8.3): config-flow text and menus (closes #1668)
+- #1734 — fix: solver recompute lanes (round-9 F2.5)
+- #1735 — fix: restart durability, store-race barrier, manual-plan window, bounded sample counts (round-9 F1.4; closes #1662, #1681)
+- #1746 — record: delivery rows for the v6.7.10 wave (+ the owed #1730 row)
+- #1749 — record: ALT endgame adoption — carries and dispositions (#1736-#1745, #1747, #1748)
+
 ## v6.7.9
 
 round-9 wave: the F1.2 coordinator fixes (presence answers, solve seed, canonical predicates), the solver's F2.3 merged earlier in v6.7.8's window plus this wave's kernel-stability work — the optimality ftol check now gives the same verdict on every BLAS kernel (with the architecture printed on every test run), a fix-review verdict carries across main-only head moves, the round-9 state branches are discoverable from the handover, and the v6.7.8 stamp's may-drift omission is repaired with a standing countermeasure that refuses a stamp owing an entry back.
