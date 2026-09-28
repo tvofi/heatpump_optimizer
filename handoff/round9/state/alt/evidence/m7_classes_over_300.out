@@ -1,0 +1,17 @@
+M7: classes_over_300 counts an extraction of a sound class out of the god class as a regression.
+
+Definition (tests/structure.py at 31394964):
+    classes_over_300            classes whose source span (ClassDef lineno to
+                                end_lineno) is more than 300 lines
+    attrbag_classes_over_30     classes assigning more than 30 distinct
+                                ``self.*`` attributes anywhere in their methods
+    methods_over_200 /          functions (methods included, nested included)
+    methods_over_150            whose span is more than 200 / 150 lines
+  structure.py:1161  "classes_over_300": len(god_classes)
+
+Measured precedent (docs/plan-2026-09-open-issues.md at 31394964):
+  300:| **W5-G9** | #193 follow-on | Opus 5 | — | The dhw profile/draws learner leaves the coordinator for one class in a new module: the only candidate under which every ratchet row falls, `cross_seam_fraction` included. `classes_over_300` rises by one (owner-approved). **Merged as #750 (`6978107`).** Leaves #193 closed; no closing keyword |
+  576:- [#750](https://github.com/tvofi/heatpump_optimizer/pull/750) — **row written before the merge**, and it is this pull request: **W5-G9**, the dhw profile/draws learner leaves the coordinator for one class in a new module. Thirteen methods and nine constants move verbatim under a stated substitution table (provenance residual: the boundary edits only); thirteen call sites re-pointed; the pump map goes to the runtime init; about forty `features.py` sites migrate to the learner's API. Every ratchet row falls or
+
+Arithmetic: a detachable seam is >=480 lines (integration-prestudy: smallest detachable coordinator cluster, dhw), so every
+extraction leaves the coordinator >300 and adds a class >300: +1 per move while coordinator_loc/max_class_loc fall.

@@ -1,0 +1,39 @@
+async_run_optimization (coordinator.py:4864): 19 write sites
+_prepare_dhw_inputs (coordinator.py:2634): 7 write sites
+distinct hub fields written on the solve path: 23
+  _current_state.external_heat_active  @ [5027]
+  _current_state.peak_guard_active  @ [5030]
+  _opt_config.baseline_load_kw  @ [4948]
+  _opt_config.cycling_cost  @ [4951]
+  _opt_config.holiday_dates  @ [4961]
+  _opt_config.peak_count  @ [4938]
+  _opt_config.peak_distinct_days  @ [4939]
+  _opt_config.peak_hours  @ [4941]
+  _opt_config.peak_months  @ [4940]
+  _opt_config.peak_offpeak_factor  @ [4943]
+  _opt_config.peak_price_per_kw  @ [4926]
+  _opt_config.peak_threshold_kw  @ [4928, 4936]
+  _opt_config.peak_weekdays_only  @ [4942]
+  _opt_config.peak_window_minutes  @ [4937]
+  _opt_config.price_risk_lambda  @ [4944]
+  _opt_config.pv_export_price  @ [4955]
+  _thermal_params.dhw_hourly_draw_pattern  @ [2647]
+  _thermal_params.dhw_inlet_current  @ [2656]
+  _thermal_params.dhw_legionella_price_ceiling  @ [2687, 2714]
+  _thermal_params.dhw_ready_margin_c  @ [2681]
+  _thermal_params.dhw_window_ready_energy  @ [2664, 2677]
+  _thermal_params.internal_gains_profile  @ [5021]
+  _thermal_params.solar_aperture_scale  @ [5009]
+fields the finally restores (away.restore_setback, away.py _OPT_FIELDS/_DHW_FIELDS): 6 ['comfort_temp_day', 'comfort_temp_night', 'dhw_idle_min_temp', 'dhw_min_temp', 'min_temp', 'target_temp']
+finally blocks in async_run_optimization: [(5224, 5229)]
+written and NOT restored: 23
+control: restored fields all seen as written by the solve path or by apply_setback: True
+all in-place hub writes anywhere in coordinator.py: 65 sites, 50 fields
+thermal_model.py:185 ThermalParameters: decorators=['dataclass'] annotated fields=81
+optimizer.py:1253 OptimizationConfig: decorators=['dataclass'] annotated fields=33
+thermal_model.py:1105 ThermalState: decorators=['dataclass'] annotated fields=15
+coordinator.py note '#240: ``replace`` copies': lines [10736]
+coordinator.py note 'never this object \\(#1529\\)': lines [10135]
+coordinator.py note "never a solve's away setback \\(D1-s3-04\\)": lines [2579]
+coordinator.py note 'The cap is the CONFIGURED target, never the live one': lines [8346]
+away.py #1517 notes: lines [300]
