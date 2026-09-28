@@ -576,6 +576,351 @@ for _r9f41_key in _r9f41_quiet:
     )
 
 
+# --- R9 P2 (#1644): the cycle's own outcome ----------------------------------
+R.section(
+    "R9 P2: the cycle's own outcome -- covering quarter, fenced steps, "
+    "failed solves, an honest press "
+    "(D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)"
+)
+
+# One fact, one owner (the P2 shape) applied to the cycle itself: the
+# covering quarter is read the way the plan's own step grid reads it, each
+# best-effort step owns its own failure, a solve whose status says "failed"
+# is a failed solve, and the optimize-now press answers with the same
+# refusal the run_optimization action raises instead of reporting success.
+import asyncio as _r9f13_aio  # noqa: E402
+from unittest import mock as _r9f13_mock  # noqa: E402
+
+from harness import FakeEntry as _r9f13_entry  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError as _r9f13_err  # noqa: E402
+from homeassistant.util import dt as _r9f13_dt  # noqa: E402
+from heatpump_optimizer import button as _r9f13_button  # noqa: E402
+from heatpump_optimizer import const as _r9f13_const  # noqa: E402
+from heatpump_optimizer import coordinator as _r9f13_cmod  # noqa: E402
+from heatpump_optimizer import optimizer as _r9f13_omod  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _r9f13_arb  # noqa: E402
+from heatpump_optimizer.optimizer import optimize_in_process as _r9f13_solve  # noqa: E402
+
+_R9F13_NOW = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
+_R9F13_GUARDED = (
+    "_command_frequency",
+    "_async_drive_pumps",
+    "_async_save_accuracy",
+    "_async_save_energy_totals",
+    "_async_watch_learning_drift",
+)
+
+
+def _r9f13_make(entry_id: str, extra: dict | None = None):
+    """One coordinator on injected series, its three fetches no-ops.
+
+    The same rig the round-9 leads harness built: deterministic hourly
+    prices and flat weather, so a cycle runs a real solve without the
+    network. The caller freezes the clock.
+    """
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.0"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    entry = _r9f13_entry(
+        data={
+            _r9f13_const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            _r9f13_const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+            **(extra or {}),
+        },
+        entry_id=entry_id,
+    )
+    coord = Coord(hass, entry)
+    coord._prices = [
+        {
+            "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+            "starts_at": (_R9F13_NOW + timedelta(hours=h - 2)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(50)
+    ]
+    coord._weather_forecast = [
+        {
+            "datetime": (_R9F13_NOW + timedelta(hours=h)).isoformat(),
+            "temperature": -5.0,
+            "wind_speed": 3.0,
+            "precipitation": 0.0,
+            "humidity": 85.0,
+        }
+        for h in range(48)
+    ]
+
+    async def _r9f13_noop(*_a, **_k):
+        return None
+
+    coord._fetch_tibber_prices = _r9f13_noop
+    coord._fetch_weather_forecast = _r9f13_noop
+    coord._fetch_solar_forecast = _r9f13_noop
+    return hass, entry, coord
+
+
+async def _r9f13_inline(hass, optimizer, state, *positional, **keywords):
+    """The #511 in-process fallback, forced: a patched optimizer must be
+    the one that solves, which the worker process would re-import."""
+    return _r9f13_solve(optimizer, state, positional, keywords)
+
+
+# D2-s3-01: an entry covers [start, next start) on the step grid already;
+# the "current" reader must answer the same entry the plan's own step 0
+# reads, not the first entry that started within the last hour.
+_r9f13_dt.freeze(_R9F13_NOW)
+_, _, _r9f13_quarters = _r9f13_make("f13_quarters")
+_r9f13_quarters._prices = [
+    {
+        "total": 0.1 + 0.01 * i,
+        "starts_at": (_R9F13_NOW + timedelta(minutes=15 * i)).isoformat(),
+        "level": "NORMAL",
+    }
+    for i in range(96)
+]
+_r9f13_wrong = []
+for _r9f13_i in range(96):
+    _r9f13_start = _R9F13_NOW + timedelta(minutes=15 * _r9f13_i)
+    _r9f13_dt.freeze(_r9f13_start + timedelta(minutes=7))
+    _r9f13_got = _r9f13_quarters._current_spot_price()
+    if (
+        _r9f13_got != 0.1 + 0.01 * _r9f13_i
+        or _r9f13_got != _r9f13_quarters._known_prices_for([_r9f13_start])[0]
+    ):
+        _r9f13_wrong.append((_r9f13_i, round(_r9f13_got, 3)))
+R.check(
+    "D2-s3-01: under quarter-hour entries the current price is the covering "
+    "quarter's, agreeing with the plan's own step-0 reader on every quarter",
+    not _r9f13_wrong,
+    f"{len(_r9f13_wrong)} of 96 quarters disagree, first {_r9f13_wrong[:3]}",
+)
+_r9f13_quarters._prices = [
+    {
+        "total": 0.2 + 0.1 * h,
+        "starts_at": (_R9F13_NOW + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(24)
+]
+_r9f13_hourly_wrong = []
+for h in range(24):
+    _r9f13_dt.freeze(_R9F13_NOW + timedelta(hours=h, minutes=13))
+    if _r9f13_quarters._current_spot_price() != 0.2 + 0.1 * h:
+        _r9f13_hourly_wrong.append(h)
+R.check(
+    "D2-s3-01: hourly entries (the null control) still read their own hour",
+    not _r9f13_hourly_wrong,
+    f"hours wrong: {_r9f13_hourly_wrong}",
+)
+_r9f13_dt.freeze(_R9F13_NOW)
+
+
+# D1-s2-51 (the arbiter half) and D1-s2-91: every best-effort step on the
+# cycle path owns its own failure. A raise inside any of them used to fail
+# the whole update and skip every step after it.
+async def _r9f13_fenced_cycle(entry_id, fault):
+    """Run one full cycle with ``fault`` patched in; report what ran."""
+    hass, entry, coord = _r9f13_make(entry_id)
+    ran = []
+    for name in _R9F13_GUARDED:
+        real = getattr(coord, name)
+
+        async def _spy(*_a, _n=name, _r=real, **_k):
+            ran.append(_n)
+            return await _r(*_a, **_k)
+
+        setattr(coord, name, _spy)
+
+    async def _boom(*_a, **_k):
+        raise RuntimeError("injected best-effort fault")
+
+    def _boom_sync(*_a, **_k):
+        raise RuntimeError("injected best-effort fault")
+
+    patches = []
+    if fault == "arbiter":
+        patches.append(_r9f13_mock.patch.object(_r9f13_arb, "apply", _boom))
+    else:
+        coord._record_accuracy = _boom_sync
+        coord._track_realised_peak = _boom_sync
+    out = {}
+    try:
+        for p in patches:
+            p.start()
+        try:
+            out["data"] = await coord._async_update_data()
+            out["ok"] = True
+        except Exception:  # noqa: BLE001 - the defect is the raise itself
+            out["ok"] = False
+    finally:
+        for p in patches:
+            p.stop()
+    out["ran"] = sorted(set(ran))
+    return out
+
+
+_r9f13_arb_out = _r9f13_aio.run(_r9f13_fenced_cycle("f13_arbiter", "arbiter"))
+R.check(
+    "D1-s2-51: an arbiter raise fails neither the cycle nor the steps after it",
+    _r9f13_arb_out["ok"]
+    and isinstance(_r9f13_arb_out["data"], dict)
+    and _r9f13_arb_out["ran"] == sorted(_R9F13_GUARDED),
+    f"ok={_r9f13_arb_out['ok']} ran={_r9f13_arb_out['ran']} "
+    f"(want all of {sorted(_R9F13_GUARDED)})",
+)
+_r9f13_acc_out = _r9f13_aio.run(_r9f13_fenced_cycle("f13_accuracy", "accuracy"))
+R.check(
+    "D1-s2-91: a raise in the accuracy pipeline fails neither the cycle nor "
+    "the saves after it",
+    _r9f13_acc_out["ok"]
+    and isinstance(_r9f13_acc_out["data"], dict)
+    and _r9f13_acc_out["ran"] == sorted(_R9F13_GUARDED),
+    f"ok={_r9f13_acc_out['ok']} ran={_r9f13_acc_out['ran']}",
+)
+
+
+# D1-s2-51 (the learner half, via the production learner the harness used):
+# a comfort-learner raise inside the solve is the solve's best-effort tail,
+# not a failed solve.
+def _r9f13_quiet_learner():
+    _, _, coord = _r9f13_make(
+        "f13_quiet", {_r9f13_const.CONF_COMFORT_LEARNING_ENABLED: True}
+    )
+    orig = ComfortLearner.record_quiet_period
+
+    def _boom(self, *_a, **_k):
+        raise RuntimeError("injected learner fault")
+
+    ComfortLearner.record_quiet_period = _boom
+    try:
+        reason = _r9f13_aio.run(coord.async_run_optimization())
+    finally:
+        ComfortLearner.record_quiet_period = orig
+    return reason, coord._optimization_result is not None, coord._solve_failures
+
+
+_r9f13_reason, _r9f13_published, _r9f13_failures = _r9f13_quiet_learner()
+R.check(
+    "D1-s2-51: a quiet-period learner raise is not a failed solve -- the "
+    "plan stays published and the failure counter untouched",
+    _r9f13_reason is None and _r9f13_published and _r9f13_failures == 0,
+    f"reason={_r9f13_reason!r} published={_r9f13_published} "
+    f"failures={_r9f13_failures}",
+)
+
+
+# D1-s4-02: the optimizer's own guard turns a solver blow-up into a plan
+# whose status says "failed (...)". Publishing it counted the cycle a
+# success and zeroed the failure counter; the coordinator's failure branch
+# must treat that status as the failure it reports.
+def _r9f13_solve_status(faulted):
+    _, _, coord = _r9f13_make(f"f13_status_{int(faulted)}")
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("injected L-BFGS-B blow-up")
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _r9f13_inline):
+        if faulted:
+            with _r9f13_mock.patch.object(_r9f13_omod, "_scoped_minimize", _boom):
+                reason = _r9f13_aio.run(coord.async_run_optimization())
+        else:
+            reason = _r9f13_aio.run(coord.async_run_optimization())
+    return reason, coord._optimization_result, coord._solve_failures
+
+
+_r9f13_ctrl = _r9f13_solve_status(False)
+_r9f13_bad = _r9f13_solve_status(True)
+R.check(
+    "D1-s4-02 (control): the inline transport solves and publishes",
+    _r9f13_ctrl[0] is None and _r9f13_ctrl[1] is not None,
+    f"reason={_r9f13_ctrl[0]!r} result={_r9f13_ctrl[1]!r}",
+)
+R.check(
+    "D1-s4-02: a returned plan whose status starts 'failed' is a failed "
+    "solve -- refused, counted, and never published",
+    _r9f13_bad[0] == "solve_failed"
+    and _r9f13_bad[1] is None
+    and _r9f13_bad[2] == 1,
+    f"reason={_r9f13_bad[0]!r} "
+    f"status={getattr(_r9f13_bad[1], 'status', None)!r} "
+    f"failures={_r9f13_bad[2]}",
+)
+
+
+# D10-s1-02: the press owes the caller the same refusal the action raises.
+class _R9F13Hass(FakeHass):
+    """Upstream's background task: a real task, left pending for the caller."""
+
+    def async_create_task(self, coro):
+        return _r9f13_aio.get_running_loop().create_task(coro)
+
+
+def _r9f13_press(reason):
+    """Press the button with the coordinator refusing `reason`; `None` runs."""
+    hass, entry, coord = _r9f13_make(f"f13_press_{reason}")
+    requested = []
+
+    async def _solve():
+        return reason
+
+    async def _refresh():
+        requested.append(True)
+        await _r9f13_aio.Event().wait()
+
+    coord.async_run_optimization = _solve
+    coord.async_request_refresh = _refresh
+    ent = _r9f13_button.ForceOptimizationButton(coord, entry)
+    ent.hass = _R9F13Hass()
+
+    async def _scenario():
+        try:
+            await _r9f13_aio.wait_for(ent.async_press(), timeout=5.0)
+            out = "returned"
+        except _r9f13_err as err:
+            out = getattr(err, "translation_key", None) or "raised:plain"
+        except TimeoutError:
+            out = "hung"
+        # One yield: 3.12's wait_for awaits the inner coroutine inline, so
+        # the refresh task the press scheduled has not started yet here;
+        # without this the `requested` read races the interpreter version.
+        await _r9f13_aio.sleep(0)
+        for task in _r9f13_aio.all_tasks() - {_r9f13_aio.current_task()}:
+            task.cancel()
+        return out, bool(requested)
+
+    return _r9f13_aio.run(_scenario())
+
+
+_r9f13_press_refused = _r9f13_press("no_prices")
+_r9f13_press_ran = _r9f13_press(None)
+R.check(
+    "D10-s1-02: the press raises the action's own no-prices refusal when the "
+    "solve did not run",
+    _r9f13_press_refused == ("run_optimization_no_prices", True),
+    f"got {_r9f13_press_refused} (want ('run_optimization_no_prices', True))",
+)
+R.check(
+    "D10-s1-02: the press returns normally when the solve ran, still off "
+    "the refresh it asked for",
+    _r9f13_press_ran == ("returned", True),
+    f"got {_r9f13_press_ran} (want ('returned', True))",
+)
+_r9f13_press_solve_failed = _r9f13_press("solve_failed")
+R.check(
+    "D10-s1-02: the press raises the action's solve-failed refusal when the "
+    "solve died (the reason-is-not-None arm of the same refusal -- the "
+    "mutation survivor at button.py's second guard)",
+    _r9f13_press_solve_failed == ("run_optimization_solve_failed", True),
+    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', True))",
+)
+R.check(
+    "D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, "
+    "the v6.6.12 bug 5 mechanism)",
+    _r9f13_button.PARALLEL_UPDATES == 0,
+    f"PARALLEL_UPDATES is {_r9f13_button.PARALLEL_UPDATES!r}",
+)
+_r9f13_dt.freeze(None)
+
+
 # --- R9 P2 (#1644): presence answers, not key presence ----------------------
 R.section("R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)")
 
@@ -34784,6 +35129,7 @@ from heatpump_optimizer import switch as _rc2_switch  # noqa: E402
 import re as _rc2_re  # noqa: E402
 from operator import attrgetter as _rc2_attrgetter  # noqa: E402
 from datetime import datetime as _rc2_datetime, timedelta as _rc2_td  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError as _rc2_hae  # noqa: E402
 from homeassistant.util import dt as _rc2_dt_util  # noqa: E402
 
 _RC2_ACTIONS = ("async_turn_on", "async_turn_off", "async_press",
@@ -34912,6 +35258,12 @@ async def _rc2_row(n, cls, action, args, before, after):
         returned = True
     except TimeoutError:
         returned = False
+    except _rc2_hae:
+        # F1.3 (#1644, D10-s1-02): the optimize-now press completes by
+        # raising the same refusal the action raises; a synchronous refusal
+        # is a returned action, and the hang the row exists to catch is not
+        # it. The press still must not await the never-completing refresh.
+        returned = True
     for task in _asyncio.all_tasks() - {_asyncio.current_task()}:
         task.cancel()  # the restart: pending refreshes die unfinished
     fresh = cls(await _rc2_boot(entry), entry)
@@ -38660,23 +39012,41 @@ R.check(
 
 
 # -- the three service entry points, and what each one costs ---------------
+def _t4_count_solve_work(coord):
+    """Count the solve's first act, so a dropped request is a count of 0."""
+    coord._t4_solve_work = 0
+    real = coord._forecast_arrays
+
+    def _counted(now):
+        coord._t4_solve_work += 1
+        return real(now)
+
+    coord._forecast_arrays = _counted
+
+
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
+_t4_count_solve_work(_t4_force_busy)
 _t4_force_busy._optimization_running = True
-_t4_drive(_t4_force_busy, "async_force_optimization")
+_t4_drive(_t4_force_busy, "async_run_optimization")
 _t4_force_idle = _t4_coord()
 _t4_count_refresh(_t4_force_idle)
+_t4_count_solve_work(_t4_force_idle)
 _t4_force_idle._optimization_running = False
-_t4_drive(_t4_force_idle, "async_force_optimization")
+_t4_drive(_t4_force_idle, "async_run_optimization")
 R.check(
-    "forcing an optimization while one runs is dropped, not queued",
-    _t4_force_busy._t4_refreshes == 0
-    and _t4_force_idle._t4_refreshes == 1
+    "forcing an optimization while one runs is dropped, not queued "
+    "(the solve entry point the press and the service share, F1.3 #1644)",
+    _t4_force_busy._t4_solve_work == 0
+    and _t4_force_idle._t4_solve_work >= 1
     and _t4_force_busy._t4_escaped is None,
-    f"running -> {_t4_force_busy._t4_refreshes} refreshes, idle -> "
-    f"{_t4_force_idle._t4_refreshes} -- the solve runs in a process pool, so "
-    "a queued second request is a second pool job for a plan the first is "
-    "already computing",
+    f"running -> {_t4_force_busy._t4_solve_work} solve attempts, idle -> "
+    f"{_t4_force_idle._t4_solve_work} -- the solve runs in a process pool, "
+    "so a queued second request is a second pool job for a plan the first "
+    "is already computing. F1.3 (#1644): the refresh that used to close "
+    "the idle arm moved to the button's press; the method's contract is "
+    "the solve reason alone, so the count here is the solve's own first "
+    "act",
 )
 
 # The option is EDITED after construction, which is the only way to see the

@@ -16,6 +16,7 @@ import bisect
 import copy
 import functools
 import hashlib
+import inspect
 import json
 import logging
 import math
@@ -590,6 +591,57 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     if ts.tzinfo is not None and reference.tzinfo is None:
         return dt_util.as_local(ts).replace(tzinfo=None)
     return ts
+
+
+async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None:
+    """Run one best-effort cycle step, logging -- never raising -- its fault.
+
+    #1644 (D1-s2-51/D1-s2-91): a learner, arbiter or accuracy step on the
+    cycle path owns its own failure; one raising used to fail the whole
+    cycle and skip every step after it. One fence, one call site.
+    """
+    try:
+        out = step()
+        if inspect.isawaitable(out):
+            await out
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug(message, err)
+
+
+def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -> None:
+    """Count a failed solve and raise the repair issue at its threshold.
+
+    Module level like the fences beside it: it reads the coordinator but
+    owns none of its state, and the failure branch it serves must stay one
+    screen (#1644, D1-s4-02 moved its third caller into it).
+    """
+    _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+    coord._solve_failures += 1
+    if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
+        # Exactly-at, not at-or-above: the issue is idempotent to
+        # re-create, but re-raising it every cycle would refresh its
+        # timestamp and bury when the failures started. Persistent: the
+        # stale plan survives a restart (it is simply re-solved — or not),
+        # so the notice must too.
+        _create_issue(
+            coord.hass,
+            DOMAIN,
+            "solve_failures",
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="solve_failures",
+            translation_placeholders={
+                "count": str(coord._solve_failures),
+                "last_success": (
+                    coord._last_optimization.isoformat(
+                        sep=" ", timespec="minutes"
+                    )
+                    if coord._last_optimization
+                    else "—"
+                ),
+            },
+        )
 
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
@@ -4696,12 +4748,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Pump scheduling skipped: %s", err)
 
-            # Close the loop: pair the previous interval's prediction with what
-            # actually happened, accumulate energy, and train the derate.
-            self._record_accuracy()
-            self._track_realised_peak()
-            await self._async_save_accuracy()
-            await self._async_save_energy_totals()
+            # Close the loop: pair the previous interval's prediction with
+            # what actually happened, accumulate energy, and train the
+            # derate. #1644 (D1-s2-91): each step owns its own failure.
+            await _best_effort_cycle_step(
+                self._record_accuracy, "Accuracy pairing skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._track_realised_peak, "Realised-peak tracking skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._async_save_accuracy, "Accuracy save skipped: %s"
+            )
+            await _best_effort_cycle_step(
+                self._async_save_energy_totals, "Energy-total save skipped: %s"
+            )
 
             # T4a #42: the learners' insurance — weekly snapshot, daily
             # bias check, and the rollback when drift proves itself on
@@ -5089,6 +5150,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
 
+            # #1644 (D1-s4-02): the optimizer's guard returns a blown solve
+            # as a plan whose status says "failed (...)"; publishing it
+            # counted the cycle a success, so the failure branch below sees
+            # it instead.
+            if str(result.status).startswith("failed"):
+                raise RuntimeError(
+                    f"solver returned a failed plan: {result.status}"
+                )
+
             self._record_manual_release(result)
 
             self._optimization_result = result
@@ -5123,7 +5193,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Price tile skipped: %s", err)
 
-            self._record_quiet_comfort_period()
+            # #1644 (D1-s2-51): the quiet learner is the solve's own
+            # best-effort tail, not a failed solve.
+            await _best_effort_cycle_step(
+                self._record_quiet_comfort_period,
+                "Quiet comfort learning skipped: %s",
+            )
 
             # smart_write: command the valve's controller to the target the
             # plan was just built against. After the solve rather than before,
@@ -5143,33 +5218,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
 
         except Exception as err:
-            _LOGGER.error("Optimization failed: %s", err, exc_info=True)
-            self._solve_failures += 1
-            if self._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
-                # Exactly-at, not at-or-above: the issue is idempotent to
-                # re-create, but re-raising it every cycle would refresh
-                # its timestamp and bury when the failures started.
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "solve_failures",
-                    is_fixable=False,
-                    # Persistent: the stale plan survives a restart (it is
-                    # simply re-solved — or not), so the notice must too.
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="solve_failures",
-                    translation_placeholders={
-                        "count": str(self._solve_failures),
-                        "last_success": (
-                            self._last_optimization.isoformat(
-                                sep=" ", timespec="minutes"
-                            )
-                            if self._last_optimization
-                            else "—"
-                        ),
-                    },
-                )
+            _note_solve_failure(self, err)
             return "solve_failed"
         finally:
             if away_original is not None:
@@ -6348,24 +6397,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._current_spot_price() + self._current_grid_fee(dt_util.now())
 
     def _current_spot_price(self) -> float:
-        """The current spot price alone, exactly as Tibber bills it."""
+        """The current spot price alone: the entry whose [start, next start)
+        covers now, the coverage ``_known_prices_for`` reads (#1644,
+        D2-s3-01 -- a one-hour span read a quarter up to 45 min stale)."""
         if not self._prices:
             return 0.0
-
         now = dt_util.now()
-        for price_entry in self._prices:
-            starts_at = price_entry.get("starts_at", "")
-            if starts_at:
-                try:
-                    ts = datetime.fromisoformat(starts_at)
-                    if ts.tzinfo is None:
-                        ts = ts.replace(tzinfo=timezone.utc)
-                    if ts <= now < ts + timedelta(hours=1):
-                        return _raw_value(price_entry) or 0.0
-                except (ValueError, TypeError):
-                    continue
-
-        return _raw_value(self._prices[0]) or 0.0
+        entries: list[tuple[datetime, float | None]] = []
+        for entry in self._prices:
+            ts = _comparable_ts(entry.get("starts_at"), now)
+            if ts is not None:
+                entries.append((ts, _raw_value(entry)))
+        entries.sort(key=lambda item: item[0])
+        idx = bisect_right([ts for ts, _ in entries], now) - 1 if entries else -1
+        if idx < 0:
+            # Before the first entry, or no timestamps at all: the list's
+            # head, the positional assumption the step grid also keeps.
+            return _raw_value(self._prices[0]) or 0.0
+        return entries[idx][1] or 0.0
 
     # ------------------------------------------------------------------
     # The grid-fee layer (v4.0.0 T1, #1)
@@ -6703,7 +6752,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
-        await pump_arbiter.apply(self)
+        # #1644 (D1-s2-51): best-effort like the steps beside it -- an
+        # arbiter raise used to fail the whole cycle and skip everything.
+        await _best_effort_cycle_step(
+            lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
+        )
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -10642,13 +10695,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     @property
     def optimization_running(self) -> bool:
         return self._optimization_running
-
-    async def async_force_optimization(self) -> None:
-        """Run the optimization now, ignoring the schedule."""
-        if self._optimization_running:
-            _LOGGER.debug("Optimization already running; ignoring the request")
-            return
-        await self.async_request_refresh()
 
     async def async_simulate(
         self, overrides: dict[str, Any]

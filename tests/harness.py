@@ -398,8 +398,11 @@ class FakeCoordinator:
         """The topology the plan sensors publish for the card's setup page."""
         return {"two_zone": False, "dhw": False, "slots": []}
 
-    async def async_force_optimization(self):
+    async def async_run_optimization(self):
+        """The press's solve: the fake's answer is that it ran (#1644,
+        D10-s1-02 -- the button calls the action's own entry point)."""
         self.pressed.append("force_optimization")
+        return None
 
     async def async_arm_system_identification(self):
         self.pressed.append("system_identification")

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_spot_price RETURN_DEL 74ecf314",
+  "killed_by": "tests/features.py",
+  "old": "        return entries[idx][1] or 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 12b0df6807d6071ae728f8a25aa0368532b8eec4: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

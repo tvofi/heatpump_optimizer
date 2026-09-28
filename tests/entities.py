@@ -219,10 +219,14 @@ for name in ("binary_sensor", "button"):
 # that drops the line fails here rather than silently taking Home
 # Assistant's default. The two coordinator-fed read-only platforms declare
 # 0 -- the coordinator already serialises the inbound refresh and nothing
-# outbound exists to throttle. The three that act (a button press, the mode
-# switch, the thermostat's setpoint and mode) declare 1: every action lands
-# on the coordinator, which commands one heat pump, and two of them racing
-# is two commands to one machine.
+# outbound exists to throttle. The buttons declare 0 too (#1644,
+# D10-s1-02): the optimize-now press awaits its solve to answer the tap,
+# and under a held slot that wait queues the other presses behind it -- the
+# v6.6.12 bug-5 shape. The coordinator's own _optimization_running guard
+# is what serialises two racing taps, not the semaphore. The two that act
+# (the mode switch, the thermostat's setpoint and mode) declare 1: every
+# action lands on the coordinator, which commands one heat pump, and two
+# of them racing is two commands to one machine.
 from heatpump_optimizer import climate as _climate_platform
 from heatpump_optimizer import entity as _entity_base
 from heatpump_optimizer import datetime as datetime_mod
@@ -231,7 +235,7 @@ from heatpump_optimizer import switch as _switch_platform
 for _module, _expected in (
     (sensor, 0),
     (binary_sensor, 0),
-    (button, 1),
+    (button, 0),
     (_climate_platform, 1),
     (_switch_platform, 1),
     (datetime_mod, 1),
