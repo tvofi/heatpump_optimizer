@@ -191,7 +191,6 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
-config_flow # R9 F5.2: box-mode number fields take step "any" (#1679) and the finished quick-setup path is dropped from the finish_setup menu (#1685), so the flow-walk capture's rendered selector.config steps move (structure only, float-free; no solver input moved; the captured menus are identical in the fixture -- the menu fix is behavioural, below the capture's leaves)
 
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
