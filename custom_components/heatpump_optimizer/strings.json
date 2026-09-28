@@ -1764,7 +1764,7 @@
         "name": "Cost Predicted"
       },
       "cost_total_heating": {
-        "name": "Cost Total Heating (lifetime)"
+        "name": "Lifetime Total Heating Cost"
       },
       "dhw_cost": {
         "name": "DHW Cost (lifetime)"
@@ -1923,10 +1923,10 @@
         "name": "Solar Surplus Forecast"
       },
       "space_heating_cost": {
-        "name": "Space Heating Cost (lifetime)"
+        "name": "Lifetime Space Heating Cost"
       },
       "space_heating_energy": {
-        "name": "Space Heating Energy (lifetime)"
+        "name": "Lifetime Space Heating Energy"
       },
       "plan_space_heating": {
         "name": "Plan Space Heating (next 24 h)"
@@ -1938,7 +1938,7 @@
         "name": "Thermal Battery Energy"
       },
       "total_energy": {
-        "name": "Total Energy (lifetime)"
+        "name": "Lifetime Total Energy"
       },
       "upper_floor_temperature": {
         "name": "Upper Floor Temperature"
@@ -1972,7 +1972,7 @@
     },
     "button": {
       "diagnose_last_interval": {
-        "name": "Diagnose Last Interval"
+        "name": "Prediction Accuracy Diagnose Last Interval"
       },
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"

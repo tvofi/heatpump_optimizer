@@ -1968,12 +1968,12 @@ R.check(
 for name in (
     "Measured Power",
     "Learning Observed COP",
-    "Space Heating Energy (lifetime)",
+    "Lifetime Space Heating Energy",
     "DHW Energy (lifetime)",
-    "Total Energy (lifetime)",
-    "Space Heating Cost (lifetime)",
+    "Lifetime Total Energy",
+    "Lifetime Space Heating Cost",
     "DHW Cost (lifetime)",
-    "Cost Total Heating (lifetime)",
+    "Lifetime Total Heating Cost",
     "Prediction Accuracy",
     "Cost Monthly Peak Power",
     "Solar Surplus Forecast",
@@ -1998,9 +1998,9 @@ R.check("observed COP is published", by_name["Learning Observed COP"].native_val
 # The Energy dashboard only picks up TOTAL_INCREASING. A MEASUREMENT here would
 # silently keep every one of these out of it, with no error anywhere.
 for name in (
-    "Space Heating Energy (lifetime)",
+    "Lifetime Space Heating Energy",
     "DHW Energy (lifetime)",
-    "Total Energy (lifetime)",
+    "Lifetime Total Energy",
 ):
     R.check(
         f"{name} is TOTAL_INCREASING",
@@ -2010,9 +2010,9 @@ for name in (
 # device class MONETARY, and long-term statistics need a currency unit.
 # TOTAL_INCREASING here (as previously pinned) made HA reject the statistics.
 for name in (
-    "Space Heating Cost (lifetime)",
+    "Lifetime Space Heating Cost",
     "DHW Cost (lifetime)",
-    "Cost Total Heating (lifetime)",
+    "Lifetime Total Heating Cost",
 ):
     R.check(
         f"{name} is a TOTAL in a currency",
@@ -2022,15 +2022,15 @@ for name in (
 R.check(
     "the DHW/space split is described rather than implied",
     "apportioned"
-    in by_name["Space Heating Energy (lifetime)"].extra_state_attributes["split_method"],
+    in by_name["Lifetime Space Heating Energy"].extra_state_attributes["split_method"],
     "one meter cannot separate two circuits, and pretending otherwise is worse",
 )
 R.check(
     "the energy split reconciles with the total",
     abs(
-        by_name["Space Heating Energy (lifetime)"].native_value
+        by_name["Lifetime Space Heating Energy"].native_value
         + by_name["DHW Energy (lifetime)"].native_value
-        - by_name["Total Energy (lifetime)"].native_value
+        - by_name["Lifetime Total Energy"].native_value
     )
     < 1e-6,
 )
@@ -5030,7 +5030,7 @@ for name in (
     "Optimize Now",
     "Learning Run System Identification",
     "Learning Reset Comfort Weight",
-    "Diagnose Last Interval",
+    "Prediction Accuracy Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
 
@@ -10275,7 +10275,11 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "cost_monthly_peak_power": "Cost ",
         "cost_power_headroom": "Cost ",
         "cost_predicted": "Cost ",
-        "cost_total_heating": "Cost ",
+        # D8-s3-01 (#1668): the lifetime meters left the Cost family — their
+        # display names lead with the lifetime family's own token so the
+        # name sort keeps the energy meters in one run; entity id and
+        # translation key are untouched.
+        "cost_total_heating": "Lifetime ",
         "learning_comfort_weight": "Learning ",
         "learning_estimated_cop": "Learning ",
         "learning_observed_cop": "Learning ",
@@ -10313,6 +10317,94 @@ for _plat, _key in (
         ),
         _split_name,
     )
+
+# --- D8-s3-01 (#1668): an entity family sorts as one run under the name sort
+#
+# The D8 harness measured the accuracy family (the sensor plus its button)
+# and the lifetime energy meters split across the whole-roster name sort, in
+# both languages: half of a family under one letter, the rest under another.
+# #945 gave Cost/Plan/Learning name prefixes for the same reason; these two
+# families never got theirs. The names now lead with the family token (en)
+# or its sv counterpart, while the entity ids and translation keys stay put
+# (existing installs keep their ids through the registry). Both sides are
+# derived: the families from the production classes, the order from the
+# shipped translation files. Members homed in another family (the DHW pair
+# in the meters) are transparent, as the D8 harness counted them.
+_R83_SV = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
+_R83_FAMILIES = {
+    "accuracy": lambda e: isinstance(
+        e, (sensor.PredictionAccuracySensor, button.DiagnoseIntervalButton)
+    ),
+    "energy_meters": lambda e: isinstance(e, sensor._AccumulatingSensor),
+    # The second family whose members are transparent in the meters' runs.
+    "dhw": lambda e: isinstance(e, (_entity_base.DHWEntityMixin, sensor.DHWHeavyDaySensor)),
+}
+_r83_rows: list[dict] = []
+for _p in integration.PLATFORM_LIST:
+    _plat = str(_p)
+    _mod = _importlib.import_module(f"heatpump_optimizer.{_plat}")
+    for _e in collect(_mod):
+        _key = getattr(_e, "_attr_translation_key", None)
+        _r83_rows.append({
+            "e": _e,
+            "en": _ENTITY_STRINGS.get(_plat, {}).get(_key, {}).get("name", ""),
+            "sv": _R83_SV.get(_plat, {}).get(_key, {}).get("name", ""),
+        })
+R.check("the name-sort roster is populated (anchor)", len(_r83_rows) > 10,
+        f"{len(_r83_rows)} entities")
+_r83_members = {
+    fam: [i for i, r in enumerate(_r83_rows) if pred(r["e"])]
+    for fam, pred in _R83_FAMILIES.items()
+}
+R.check("the accuracy family is the sensor plus the button (anchor)",
+        len(_r83_members["accuracy"]) == 2, repr(_r83_members["accuracy"]))
+
+
+def _r83_runs(order: list[int], members: list[int]) -> int:
+    """Contiguous runs of ``members`` across ``order`` (the D8 counting)."""
+    pos = sorted(order.index(i) for i in members)
+    if len(pos) < 2:
+        return 0
+    return 1 + sum(1 for a, b in zip(pos, pos[1:]) if b != a + 1)
+
+
+def _r83_own_runs(fam: str, field: str) -> int:
+    """The family's own runs: shared members transparent, as D8 counted."""
+    members = _r83_members[fam]
+    shared = {
+        i
+        for i in members
+        for f2, m2 in _r83_members.items()
+        if f2 != fam and i in m2
+    }
+    own = [i for i in members if i not in shared]
+    order = sorted(range(len(_r83_rows)), key=lambda i: _r83_rows[i][field].casefold())
+    return _r83_runs([i for i in order if i not in shared], own)
+
+
+for _fam in ("accuracy", "energy_meters"):
+    for _field in ("en", "sv"):
+        R.check(
+            f"the {_fam} family sorts as one run by its {_field} name (#1668)",
+            _r83_own_runs(_fam, _field) == 1,
+            f"{_r83_own_runs(_fam, _field)} runs over "
+            f"{sorted(_r83_rows[i][_field] for i in _r83_members[_fam])}",
+        )
+# Null control: undoing the button's rename must re-split the accuracy
+# family -- the check measures the sort, it does not pass because the files
+# were touched.
+_R83_MUTATED = [dict(r) for r in _r83_rows]
+for _row in _R83_MUTATED:
+    if isinstance(_row["e"], button.DiagnoseIntervalButton):
+        _row["en"] = "Diagnose Last Interval"
+_mut_order = sorted(range(len(_R83_MUTATED)), key=lambda i: _R83_MUTATED[i]["en"].casefold())
+_mut_members = [i for i, r in enumerate(_R83_MUTATED)
+                if isinstance(r["e"], (sensor.PredictionAccuracySensor, button.DiagnoseIntervalButton))]
+R.check(
+    "undoing the rename re-splits the accuracy family (null control)",
+    _r83_runs(_mut_order, _mut_members) == 2,
+    f"{_r83_runs(_mut_order, _mut_members)} runs on the pre-fix name",
+)
 
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration
 # suggested-object-id mechanism, used verbatim at first registration only.
@@ -10433,7 +10525,7 @@ for _display, _new_id, _uid in (
     ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
     ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
     ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
-    ("Cost Total Heating (lifetime)", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
     ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
     ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
     ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),

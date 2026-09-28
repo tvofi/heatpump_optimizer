@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_means_batch GUARD_OFF b30ff583",
+  "killed_by": "tests/features.py",
+  "old": "    if head_steps:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2eef524d55376a06a5a807a4f2bf67e9e6d19dc4: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

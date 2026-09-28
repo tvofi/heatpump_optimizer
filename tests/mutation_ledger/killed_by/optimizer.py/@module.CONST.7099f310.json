@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST 7099f310",
-  "killed_by": "tests/features.py",
-  "old": "_PAIRWISE_BLOCK = 128",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: CONST (`_PAIRWISE_BLOCK = 256`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}
