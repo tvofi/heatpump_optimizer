@@ -8,13 +8,16 @@ directing it in session. Measured at origin/main `31394964` (#1734). The handoff
   origin/main with the round-9 evidence refs fetched. The live roster on `handoff/audit-r9-fixplan` is untouched.
 - **Evidence:** `alt/evidence/` (commit `a163db90`). Every lead has a measured arm and a null control; its
   README indexes them.
-- **Carry drafts:** `alt/carries/`, all linted in-tree.
-- **Issues:** #1736 to #1745, each body read back against the file sent (`alt/issues/readback.out`).
+- **Carry drafts:** `alt/carries/`, all four linted in-tree against main `686239d2`.
+- **EG-B5 design spec:** `alt/EG-B5-DESIGN.md`. It covers the DHW planner split tvofi opted in to: two mapping seats and one skeptic seat, with every correction applied.
+- **Issues:** #1736 to #1745, #1747 and #1748, each body read back against the file sent (`alt/issues/readback.out`).
+- **Branch:** this plan lives on `handoff/audit-r9-alt`. `handoff/audit-r9-plan` carries only the resume doc (owner, 2026-09-28).
 
 **Owner direction this plan applies:**
 - The deliverable is a per-wave, per-PR plan sequenced with the running programme, plus the roster.
 - Every new fix is filed as an issue.
 - B1 goes in, after F10.4.
+- **B5, the DHW planner split, goes in** (2026-09-28). Its design spec sequences it after F10.4 and before B1, preceded by the EG-B8 fix and the EG-B5a dedupe (§4).
 - "The ratchets are not set in stone and not inherently perfect; the end goal is optimal architecture." See §3.
 
 ## 0. The verdict on each draft item
@@ -25,7 +28,7 @@ directing it in session. Measured at origin/main `31394964` (#1734). The handoff
 | EG-0b symbol-anchor 19 line pins | **drop** | The 14 "pins" are `last_measured.*.survivor_lines` in `tests/mutation_budgets.json`, a record of one run that no check reads against the tree. The ledger is already content-anchored. carry-1645's anchors are prose the carry itself tells readers not to trust. It would also have collided with F10.3/F10.5/F10.6 on `mutation_table.py` (principle 2). | none |
 | EG-S1 surfaces identity core | **keep, re-scoped and re-timed** | In W3 it collides with the `sensor.py` borrows of F1.7, F6.4 and F1.11. A merged-config helper in `entity.py` would make the core import the surface layer. The surfaces already have `coordinator.effective_config`. It had no identity null control. | **EG-B2** (#1742) |
 | EG-C1 clock/helper dedup | **shrink and re-home** | Not F1.6's files (`optimizer.py` is F2's). The "70 raw clock sites" are the P7 behaviour surface, not a dedup (72 real calls by AST). The rounding lead is refuted (§2.2). | Carry **A2 → R9-F1.10** (#1741) |
-| EG-O1 `optimizer_dhw.py` | **keep, redesigned and re-sequenced** | In W2 it lands before the optimizer borrows of F1.7, F1.10 and F10.4 (principle 3) and before the F10.4 instrument (principle 1). It is unpriced: 178 test lines call private DHW methods, and a per-module duplication detector would score the move as an improvement. | **EG-B5** (#1743) |
+| EG-O1 `optimizer_dhw.py` | **keep, redesigned and re-sequenced** | In W2 it lands before the optimizer borrows of F1.7, F1.10 and F10.4 (principle 3) and before the F10.4 instrument (principle 1). It is unpriced: 178 test lines call private DHW methods, and a per-module duplication detector would score the move as an improvement. | **EG-B5a then EG-B5** (#1743), opted in; **EG-B8** (#1747) first |
 | EG-X1 closures.json split | **drop** | `.gitattributes:24` already routes `tests/closures.json` to the `ledgermerge` driver: key-by-key merge, 60 conflicts to 0 on its own replay. Neither pre-study mentions it. | none |
 | EG-X2 features.py split | **defer, round-10 pre-study** | Five premises fail (§1.1). | §5 |
 | EG-S2 availability rule | **defer** | Unknown versus unavailable is a product ruling (the A3(e)/C15 precedent), and D8-s3-61 is F7.2's to fix. | §5 |
@@ -37,6 +40,8 @@ directing it in session. Measured at origin/main `31394964` (#1734). The handoff
 - **A1 → F10.4** (#1738): the ratchet misprices decomposition.
 - **EG-B2 and EG-B6** (#1739): collaborator interfaces.
 - **A4 → F10.1b and EG-B4** (#1740): store versions.
+- **EG-B8** (#1747): the DHW-block replan defect, found while designing B5.
+- **Carry → R9-F10.3** (#1748): the per-site ratchet is blind to a move.
 - **Deferred:** #1745, typed configuration.
 
 ## 1. Review of the draft
@@ -75,7 +80,7 @@ directing it in session. Measured at origin/main `31394964` (#1734). The handoff
 
 ### 1.5 The draft's open questions, answered
 
-1. **EG-O1 against F10.2:** a non-question. F10.2 owns `stress.py`, `stress_budgets.json` and `replay.py`, and a pure move changes no solve CPU. The real constraints are the optimizer borrows of F1.7, F1.10 and F10.4, the F10.4 instrument, and B1's interface, so EG-B5 goes after B1.
+1. **EG-O1 against F10.2:** a non-question. F10.2 owns `stress.py`, `stress_budgets.json` and `replay.py`, and a pure move changes no solve CPU. The real constraints are the optimizer borrows of F1.7, F1.10 and F10.4, the F10.4 instrument, and B1's interface, so EG-B5 goes after F10.4. The design spec showed B1 is not a prerequisite, so B5 goes before B1.
 2. **EG-X2's window:** neither. Round 10, behind a pre-study (§5).
 3. **EG-N opt-in:** replaced by EG-B7, a measured go/no-go after B1.
 4. **Reviewer seats for EG items:** yes, all of them. That means `fix-review.md` from a detached worktree at the head SHA with the finder's enumerator at both ends. EG-B0 is a `root-cause.md` seat.
@@ -92,8 +97,10 @@ directing it in session. Measured at origin/main `31394964` (#1734). The handoff
 | **#1740** | No store can change version: there is no migration hook, and the stub drops `version`. On a bump, `legionella.py` would re-stamp its last cycle. | `m4_store_version.*`, `ha_storage_dev.py.txt` | Carry **A4 → R9-F10.1b** (P11, `Fixes #1649`); **EG-B4** |
 | **#1741** | The step-start clock is defined twice, and the 20 °C tank-room ambient is a literal at 8 sites. | `m6a_step_starts.*` | Carry **A2 → R9-F1.10** |
 | **#1742** | Identity is pinned at 9 constructors, and two platforms keep private config copies. | (the grep in the issue) | **EG-B2** |
-| **#1743** | The DHW planner is about 2,237 lines inside the 5,453-line `HeatPumpOptimizer`. | (the pre-study, re-checked) | **EG-B5**, opt-in |
+| **#1743** | The DHW planner core is 19 methods, 1,851 lines, inside the 5,453-line `HeatPumpOptimizer`, and calls no other optimizer method. | `alt/EG-B5-DESIGN.md` | **EG-B5a**, then **EG-B5** (opted in) |
 | **#1744** | The coordinator seams should be re-measured once the hubs stop being written per solve. | `tests/structure.py` | **EG-B7**, conditional |
+| **#1747** | `_co_optimize`'s replan omits the DHW block. With mostly negative prices it ships DHW heat while blocked and masks the tank-floor breach: 9.22 kWh at a -2.0 shift, against 0 in the control. | `b8_replan_blocked.*` | **EG-B8**, before EG-B5 |
+| **#1748** | R9-F10.3's per-site mutation ratchet keys a site by file, so a move counts every moved unpinned site as added. | the prototype at `8eda51a2`; a skeptic simulation | Carry → **R9-F10.3** |
 | **#1745** | Configuration is read per site: 281 `.get(CONF_…)` reads of 149 keys in 20 modules, each with its own default and coercion. | (the enumerator in the issue) | **Deferred to round 10** |
 
 ### 2.1 Already scheduled, so not filed
@@ -128,41 +135,42 @@ Generated from `ALT-ROSTER.json`. The `wave` is the dependency depth over open g
 
 | wave | PR | lane | open after-edges | issues (**Fixes**) | owner gate | carry in | what | stage |
 |---|---|---|---|---|---|---|---|---|
-| 1 | F1.4 | F1 | — | #1647, **#1662**, **#1681** | — | — | Restart durability (barriered class) and store bounds | in-review |
+| 1 | F1.5 | F1 | — | #1644, #1651, **#1670**, **#1676**, **#1682** | — | — | Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold | not-started |
 | 1 | EG-B0 | EG | — | #1736 | — | — | Root-cause seat: solve-scoped hub writes (not a PR) | not-started |
 | 1 | F7.2 | F7 | — | #1644, **#1669** | — | — | Sensors: schedule count, duplicate entity, valve recommendation | not-started |
-| 2 | F1.5 | F1 | F1.4 | #1644, #1651, **#1670**, **#1676**, **#1682** | — | — | Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold | not-started |
-| 3 | F1.6 | F1 | F1.5 | #1647, **#1659** | — | — | Plausibility bounds and the P1 load-layer barrier | not-started |
-| 4 | F2.4 | F2 | F1.6, F7.2 | #1644, **#1664** | — | — | On/off pump threshold at both seams; multi-start seeds | not-started |
-| 4 | F9.3 | F9 | F1.6 | **#1647** | — | — | P1 declared-domain barrier: stored fields held to their writers' domains | not-started |
-| 5 | F1.7 | F1 | F1.6, F2.4 | #1644, #1649, **#1658** | — | — | Coordinator readers across lanes: loop CPU, auth, settlement scale | not-started |
-| 6 | F1.8 | F1 | F1.7 | #1644, **#1657** | — | — | Currency and unit (P8) and entry identity | not-started |
-| 6 | F10.1b | F10 | F1.7 | **#1649**, #1740 | — | A4 #1740 | Aware-default Home Assistant stub clock | not-started |
-| 7 | F1.9 | F1 | F1.8 | **#1660** | — | — | Persisted future instants: the outage decision and the coordinator regressions | not-started |
-| 7 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | stress.py code-owned; budget rows (B1, B2) | — | CPU gate blind spots; per-solve CPU budget | not-started |
-| 7 | F6.3 | F6 | F1.8 | **#1652** | card_browser.mjs code-owned | — | P9 class barrier in the browser lane | not-started |
-| 8 | F1.10 | F1 | F1.9, F2.4 | #1645, **#1654**, #1741 | — | A2 #1741 | P3 class barrier: one floor per thermal parameter; comment drift; the fourth on-threshold copy | not-started |
-| 8 | F10.3 | F10 | F10.2 | **#1646**, **#1663** | gate scripts code-owned | — | Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 barrier | not-started |
-| 8 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | — | Language-aware setup text; raw-thermometer source for staleness gaps | not-started |
-| 9 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | — | Class barriers P2 and P6; horizon_hours and the boost test hook | not-started |
-| 10 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | — | Surface identity and public accessors | not-started |
-| 10 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, #1738 | B5 raise if honest re-record raises; #1738 arm (c) re-definition | A1 #1738 | Structural ratchet truth: dead members and uncounted helpers; I5 barrier | not-started |
-| 11 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | — | Typed payload contract | not-started |
-| 11 | F10.5 | F10 | F10.4 | — | new writer identity (0011); code-owned | — | Nightly mutation-kill ledger writer | not-started |
-| 11 | F11.4 | F11 | F10.4 | **#1650** | audit-find.js code-owned | — | Class roster readers agree (I4 barrier); owed driver fixes | not-started |
-| 12 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | — | Store version seam | not-started |
-| 12 | F10.6 | F10 | F10.5 | — | mutation_table.py code-owned | — | Comparison-bound mutation operator | not-started |
-| 12 | F11.5 | F11 | F11.4 | — | policy text (A1-A9) | — | Round-9 RCA policy text | not-started |
-| 13 | EG-B1 | EG | F10.4, F2.4, F10.6, F11.5, EG-B0, EG-B4 | **#1736** | any raise asked before push | — | Per-solve immutable inputs | not-started |
-| 14 | EG-B5 | EG | EG-B1 | **#1743** | opt-in; classes_over_300 unless re-defined | — | DHW planner extraction (opt-in) | not-started |
-| 14 | EG-B6 | EG | EG-B1 | **#1739** | — | — | Collaborator interfaces | not-started |
-| 15 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | classes_over_300 unless re-defined | — | Coordinator seams, measured go/no-go | not-started |
+| 2 | F1.6 | F1 | F1.5 | #1647, **#1659** | — | — | Plausibility bounds and the P1 load-layer barrier | not-started |
+| 3 | F2.4 | F2 | F1.6, F7.2 | #1644, **#1664** | — | — | On/off pump threshold at both seams; multi-start seeds | not-started |
+| 3 | F9.3 | F9 | F1.6 | **#1647** | — | — | P1 declared-domain barrier: stored fields held to their writers' domains | not-started |
+| 4 | F1.7 | F1 | F1.6, F2.4 | #1644, #1649, **#1658** | — | — | Coordinator readers across lanes: loop CPU, auth, settlement scale | not-started |
+| 4 | EG-B8 | EG | F2.4 | **#1747** | — | — | DHW block ignored by the co-optimisation replan | not-started |
+| 5 | F1.8 | F1 | F1.7 | #1644, **#1657** | — | — | Currency and unit (P8) and entry identity | not-started |
+| 5 | F10.1b | F10 | F1.7 | **#1649**, #1740 | — | A4 #1740 | Aware-default Home Assistant stub clock | not-started |
+| 6 | F1.9 | F1 | F1.8 | **#1660** | — | — | Persisted future instants: the outage decision and the coordinator regressions | not-started |
+| 6 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | stress.py code-owned; budget rows (B1, B2) | — | CPU gate blind spots; per-solve CPU budget | not-started |
+| 6 | F6.3 | F6 | F1.8 | **#1652** | card_browser.mjs code-owned | — | P9 class barrier in the browser lane | not-started |
+| 7 | F1.10 | F1 | F1.9, F2.4 | #1645, **#1654**, #1741 | — | A2 #1741 | P3 class barrier: one floor per thermal parameter; comment drift; the fourth on-threshold copy | not-started |
+| 7 | F10.3 | F10 | F10.2 | **#1646**, **#1663**, #1748 | gate scripts code-owned | #1748 | Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 barrier | not-started |
+| 7 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | — | Language-aware setup text; raw-thermometer source for staleness gaps | not-started |
+| 8 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | — | Class barriers P2 and P6; horizon_hours and the boost test hook | not-started |
+| 9 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | — | Surface identity and public accessors | not-started |
+| 9 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, #1738 | B5 raise if honest re-record raises; #1738 arm (c) re-definition | A1 #1738 | Structural ratchet truth: dead members and uncounted helpers; I5 barrier | not-started |
+| 10 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | — | Typed payload contract | not-started |
+| 10 | EG-B5a | EG | F2.4, F10.4 | #1743 | downward re-record | — | One builder for the duplicated solve closures | not-started |
+| 10 | F10.5 | F10 | F10.4 | — | new writer identity (0011); code-owned | — | Nightly mutation-kill ledger writer | not-started |
+| 10 | F11.4 | F11 | F10.4 | **#1650** | audit-find.js code-owned | — | Class roster readers agree (I4 barrier); owed driver fixes | not-started |
+| 11 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | — | Store version seam | not-started |
+| 11 | EG-B5 | EG | EG-B5a, EG-B8, F1.10, F10.4 | **#1743**, #1748 | opted in; classes_over_300 unless re-defined | — | DHW planner extraction (opted in) | not-started |
+| 11 | F10.6 | F10 | F10.5 | — | mutation_table.py code-owned | — | Comparison-bound mutation operator | not-started |
+| 11 | F11.5 | F11 | F11.4 | — | policy text (A1-A9) | — | Round-9 RCA policy text | not-started |
+| 12 | EG-B1 | EG | F10.4, F2.4, F10.6, F11.5, EG-B0, EG-B4, EG-B5 | **#1736** | any raise asked before push | — | Per-solve immutable inputs | not-started |
+| 13 | EG-B6 | EG | EG-B1 | **#1739** | — | — | Collaborator interfaces | not-started |
+| 14 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | classes_over_300 unless re-defined | — | Coordinator seams, measured go/no-go | not-started |
 
 ### 4.2 Threads
 
 The lanes run as they do today. The EG lane is new and owns no file until its after-edges merge.
 
-- **F1, the critical path:** F1.4 (#1735, in review) → F1.5 → F1.6 → *(F2.4)* → F1.7 → F1.8 → F1.9 → F1.10 (+A2) → F1.11.
+- **F1, the critical path:** F1.4 (merged as #1735) → F1.5 → F1.6 → *(F2.4)* → F1.7 → F1.8 → F1.9 → F1.10 (+A2) → F1.11.
 - **F7 / F2 / F9:** **F7.2 starts now.** Both its edges are merged, and it gates F2.4. Then F2.4 (after F1.6) and F9.3 (after F1.6).
 - **F6:** F6.3 (after F1.8) → F6.4.
 - **F10:** F10.1b (+A4; after F1.7) → F10.2 → F10.3 → F10.4 (+A1; after F1.11) → F10.5 → F10.6.
@@ -170,39 +178,43 @@ The lanes run as they do today. The EG lane is new and owns no file until its af
 - **EG:**
   - EG-B0 now; it is a seat, not a PR.
   - EG-B2 after F1.11.
+  - EG-B8 right after F2.4.
   - EG-B3, then EG-B4, after F10.4.
-  - EG-B1 after the fix stamp.
-  - Then EG-B6 and EG-B5, and last EG-B7.
-  - EG-B1, EG-B5 and EG-B7 are all structure-budget writers, and never two in flight at once (principle 2).
+  - EG-B5a (after F2.4 and F10.4), then EG-B5 (after EG-B5a, EG-B8, F1.10 and F10.4). The preconditions are
+    in `alt/EG-B5-DESIGN.md` §7.
+  - EG-B1 after the fix stamp and EG-B5.
+  - Then EG-B6, and last EG-B7.
+  - EG-B5a, EG-B5, EG-B1 and EG-B7 are all structure-budget writers, and never two in flight at once
+    (principle 2).
 
 ### 4.3 Critical path
 
 - **Fix programme:** F1.4 → F1.5 → F1.6 → F2.4 → F1.7 → F1.8 → F1.9 → F1.10 → F1.11 → F10.4 → F10.5 → F10.6, twelve serial PRs.
-- **With the EG lane:** EG-B1 → EG-B6 → EG-B7 adds three.
+- **With the EG lane:** EG-B1 → EG-B6 → EG-B7 adds three after the stamp. EG-B5a → EG-B5 runs beside F10.5 and F10.6 and adds nothing to the chain.
 - **Calendar time** is the sum of each of those PRs' fix, review and merge cycles. The draft's 0.8 PR/h is a throughput figure and does not shorten this chain.
 
 ### 4.4 Windows
 
 **W0, now, inside the mandate:**
-- Re-review and merge F1.4 (#1735).
+- F1.4 merged as #1735 (`686239d2`). F1.5's branch is cut.
 - Start F7.2.
 - Dispatch the EG-B0 seat.
 - Do the gen.py resume carry-forward (§6 step 2).
-- Land the record PR carrying the three carry files and the dispositions of #1736 to #1745 (§6 step 3).
+- Land the record PR carrying the four carry files and the dispositions of #1736 to #1745, #1747 and #1748 (§6 step 3). The #1748 carry must be in the tree before F10.3 starts.
 - Post on #201.
 
 **W1 to W6:**
 - **W1:** F1.5 → F1.6. That is stamp point (b) in FIX-PLAN, after the P1 barrier.
-- **W2:** F2.4 ‖ F9.3.
+- **W2:** F2.4 ‖ F9.3, then EG-B8.
 - **W3:** F1.7, then F1.8 ‖ F10.1b.
 - **W4:** F1.9 ‖ F6.3 ‖ F10.2, then F1.10 ‖ F6.4 ‖ F10.3.
 - **W5:** F1.11, then F10.4 ‖ EG-B2.
-- **W6:** F10.5 ‖ F11.4 ‖ EG-B3, then F10.6 ‖ F11.5 ‖ EG-B4.
+- **W6:** F10.5 ‖ F11.4 ‖ EG-B3 ‖ EG-B5a, then F10.6 ‖ F11.5 ‖ EG-B4 ‖ EG-B5. EG-B5 may ship in v6.8.0; it does not gate the stamp.
 - **Stamp v6.8.0:** stamp point (c). It releases the round's fixes before any structural refactor lands.
 
 **W7, the structural window:**
 - EG-B1.
-- Then EG-B6, and EG-B5 if opted in (not in flight together with B1 or B7).
+- Then EG-B6.
 - Then EG-B7.
 - Then a stamp.
 
@@ -240,12 +252,12 @@ The EG PRs claim nothing. Byte-identical goldens are their null control, and a g
 1. **Approval.** tvofi approves or amends this file and `ALT-ROSTER.json`.
 2. **The roster.**
    - Replace `.claude/workflows/wave-r9-groups.json` on `handoff/audit-r9-fixplan` with `ALT-ROSTER.json`.
-   - If the live file moved in the meantime, apply ALT's three deltas to it instead: the truthed `resume` fields, the carries into R9-F1.10, R9-F10.1b and R9-F10.4, and lane EG.
+   - If the live file moved in the meantime, apply ALT's three deltas to it instead: the truthed `resume` fields, the carries into R9-F1.10, R9-F10.1b, R9-F10.3 and R9-F10.4, and lane EG.
    - Before any regeneration, make gen.py carry each group's existing `resume` forward. Otherwise it wipes them again, which is the EG-0a bug; alternatively, stop regenerating.
    - Re-run `brief_lint.mjs` on the result.
 3. **The record PR** (by the `hpo-author` App, via `tools/audit/app_push.sh`):
-   - add `alt/carries/carry-1686.json` and `alt/carries/carry-1654.json` under `.claude/workflows/`;
+   - add `alt/carries/carry-1686.json`, `carry-1654.json` and `carry-1646.json` under `.claude/workflows/`;
    - append `alt/carries/carry-1649.entry-to-append.json` to the existing `carry-1649.json` (a full copy made at `31394964` is beside it; copy it over only if main's file is unchanged);
-   - disposition #1736 to #1745 in the plan of record (`delivery-status-tracking.md` step 5).
+   - disposition #1736 to #1745, #1747 and #1748 in the plan of record (`delivery-status-tracking.md` step 5).
 4. **#201.** One comment, posted with `gh_comment.py` and read back.
 5. **Dispatch** per §4. EG PRs follow `fixer.md` / `fix-review.md` like any fix PR, and EG-B0 follows `root-cause.md`.

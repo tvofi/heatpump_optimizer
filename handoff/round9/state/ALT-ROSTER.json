@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "ALT roster (2026-09-28): the live round-9 roster from handoff/audit-r9-fixplan with (1) every merged group's resume truthed from origin/main's merge commits at 31394964 and F1.4 at PR #1735; (2) three verified endgame carries folded into R9-F1.10 (#1741), R9-F10.1b (#1740) and R9-F10.4 (#1738); (3) lane EG appended: R9-EG-B0 (root-cause seat) and R9-EG-B1..B7. `wave` is recomputed over open groups only (1 = startable now). Plan: handoff/round9/state/ALT-ENDGAME-PLAN.md on handoff/audit-r9-plan.",
+    "ALT roster (2026-09-28): the live round-9 roster from handoff/audit-r9-fixplan with (1) every merged group's resume truthed from origin/main's merge commits (31394964; F1.4 merged as #1735 at 686239d2); (2) four verified endgame carries folded into R9-F1.10 (#1741), R9-F10.1b (#1740), R9-F10.3 (#1748) and R9-F10.4 (#1738); (3) lane EG appended: R9-EG-B0 (root-cause seat), R9-EG-B1..B8 and R9-EG-B5a. `wave` is recomputed over open groups only (1 = startable now). Plan: handoff/round9/state/ALT-ENDGAME-PLAN.md on handoff/audit-r9-alt; EG-B5 design: handoff/round9/state/alt/EG-B5-DESIGN.md there (tvofi opted in to B5, 2026-09-28).",
     "Round-9 fix wave: 145 surviving findings in 46 classes (judge 2f97b0a, CLASSES-DRAFT.json at bad458a3) plus 17 counted instances beyond them (Phase D sweeps S1-S7 and the RCA fold) and 2 latent seams, clustered into 48 PRs in 11 lanes.",
     "One entry per PR. `lane` is the cloud fixer thread that owns the PR's files; lanes own disjoint file sets, and a PR that must edit another lane's file lists it under Borrowed in its brief and carries an `after` edge on that lane's last PR on it.",
     "`wave` is the dependency depth (1 = startable now). `owner_gate` names why tvofi must approve; those PRs are kept apart so nothing else waits on them.",
@@ -219,7 +219,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-restart,N-service-clamp,P1",
-      "wave": 1,
+      "wave": 6,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -248,11 +248,11 @@
         "R9-F9.1"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f1-coordinator-4",
-        "commit": "923ab589",
-        "last_step": "round 2 pushed on PR #1735 at head 923ab589 against the review's block (RESUME.md 2026-09-28T17:15Z)",
-        "next_step": "re-review at the head SHA; merge on a merge verdict",
+        "commit": "686239d26d8c40b17d0aefb8d8af5f2559810a4b",
+        "last_step": "merged as #1735 (merge commit 686239d2 on main)",
+        "next_step": "none: merged",
         "note_file": "handoff/round9/fix/resume/F1.4.md on handoff/r9-f1-coordinator-4",
         "review_branch": "handoff/r9-f1-coordinator-4-review",
         "review_note_file": "handoff/round9/fix/resume/F1.4-review.md on handoff/r9-f1-coordinator-4-review",
@@ -290,7 +290,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-debug-swallow,N-late-try,N-reap-lock,P6,P2",
-      "wave": 2,
+      "wave": 1,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -350,7 +350,7 @@
         "P1-rca2"
       ],
       "class": "N-plausibility,P1",
-      "wave": 3,
+      "wave": 2,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -416,7 +416,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-loop-cpu,P11,P2",
-      "wave": 5,
+      "wave": 4,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -477,7 +477,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P8,P2",
-      "wave": 6,
+      "wave": 5,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -538,7 +538,7 @@
         "FI-rca1"
       ],
       "class": "N-future-instant",
-      "wave": 7,
+      "wave": 6,
       "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
@@ -596,7 +596,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P3,I5",
-      "wave": 8,
+      "wave": 7,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -657,7 +657,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P6",
-      "wave": 9,
+      "wave": 8,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -957,7 +957,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P2,P4",
-      "wave": 4,
+      "wave": 3,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -1570,7 +1570,7 @@
         "P9-f61c"
       ],
       "class": "P9",
-      "wave": 7,
+      "wave": 6,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -1629,7 +1629,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-language",
-      "wave": 8,
+      "wave": 7,
       "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
@@ -2091,7 +2091,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P1",
-      "wave": 4,
+      "wave": 3,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2207,7 +2207,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "P11",
-      "wave": 6,
+      "wave": 5,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2267,7 +2267,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-cpu-gate-blind",
-      "wave": 7,
+      "wave": 6,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2320,7 +2320,8 @@
       "lane": "F10",
       "issues": [
         1646,
-        1663
+        1663,
+        1748
       ],
       "fixes": [
         1646,
@@ -2335,7 +2336,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "I1,I2",
-      "wave": 8,
+      "wave": 7,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2376,7 +2377,7 @@
         "pickup_local": "the same commands from the Mac checkout, reading the plan and the log from git alone (handoff/audit-r9-fixplan and handoff/audit-r9-plan); a Mac seat appends its milestone lines to the mirror only, and the orchestrator copies them into the /mnt log at its next pass",
         "note": "Final at E2 with the Phase D sweeps, the round-9 RCA results and tvofi's resumability and model-routing rules folded in (2026-09-26). The seat's resume note on its branch outranks this entry for in-flight state; the orchestrator (or a sonnet record seat) updates stage, commit, last_step and next_step here at each hand-off and merge. issues[] and fixes[] are from the Phase E issue map (2026-09-26)."
       },
-      "brief": "Round-9 fix PR F10.3 (Gate, stub and ratchet infrastructure lane). Models: fixer opus (a class barrier carrying an RCA prototype (I1) in code-owned gate scripts); reviewer opus in another session; RCA and judge opus; runner work (scoped-gate and stress re-runs, closure and budget re-records, report rendering) goes to a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md line, delivery row) may go to sonnet. Findings: D7-s1-02 (low, class I1); D14-s5-02 (medium, class I1); D14-s5-01 (medium, class I2). Class barrier landing here: I1 (RCA seat reported, process state (c)). Form: a per-site mutation ratchet: refuse any unpinned site the diff added, by content (a multiset difference on file, operator and stripped text), not only a grown total; and widen the inventory to every single-line guard and clamp shape. The sweep's non-UTC lane was refused (the Europe/Stockholm suite already runs inside tests/features.py). Prototype handoff/r9-rca-i1@8eda51a2; cherry-pick the tests/mutation_table.py hunk of 8eda51a2 only; its evidence under tools/audit/round9/rca/i1 stays out of the tree. Lines: 0 production; about 76 changed lines in tests/mutation_table.py (+66/-10); about 40 test lines in tests/entities.py pinning the per-site refusal and its wiring. Ownership: code-owned (tests/mutation_table.py); no policy file. Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, and silent on a healthy tree, as the RCA's own runs did; set the class's entry in tools/audit/bugclasses.json (detector, barrier, status) in this PR. D14-s5-02 (the invisible guard shapes) is half of the I1 barrier: the widened single-line inventory. The other half, the per-site refusal, is what would have refused the round's instances (the RCA: 12 of 12 re-introduced with a trade refused, against 0 of 12 under the count rule). No local mutation pools: count the inventory with its list mode, check one mutant in memory, and let CI's mutation lane evaluate. Ordering hazard (I1 RCA): once this merges, every later round-9 PR that adds or edits a guard (F10.4, F11.x) is refused until mutation-autofix pins it or a seat triages it; pure deletions add nothing. The mutation-autofix job's trigger and the tests/entities.py string pins match the kept refusal line; keep it. D7-s1-02 is weakened: lift the verdict loops into functions and pin them; note scenario_budget ran zero times under both drivers. D14-s5-01: record Python closures with strace on Linux as node already is; never run a full derive_closures.sh off Linux (gate-scoping.md). Not now (tvofi's card C7): the single-line mutant format is not extended to multi-line tests, clamps or ternaries; record the 101 multi-line if tests, 99 clamps and the TERN gap as the barrier's residual in the body, re-derived at the head. The comparison-bound operator is F10.6 and the kill-ledger writer F10.5 (cards C6, C5), both after this PR. Waits on F9.2 (the last I1 pin PR) because the I1 barrier lands here. The P11 barrier moved to F10.1 at the RCA fold, so this PR no longer edits tests/ha_contract.py and no longer waits on F1.7 or F8.3. Finder harnesses (evidence commit 79aa98ec): tools/audit/round9/D14/s5/closure_divergence.py, tools/audit/round9/D14/s5/guard_inventory.py, tools/audit/round9/D7/s1/train_mutations.py. Class sweeps (Phase D, final): I1: N 11 (judge 11), rca yes, sweep S3 at 053c4869ad, enumerator tools/audit/round9/D14/sweep/I1/enumerator.py, seams 12 instance, all listed in tools/audit/round9/D14/sweep/S3.json; I2: N 1 (judge 1), rca no, sweep S7 at 1152a74346, enumerator tools/audit/round9/D14/sweep/I2/closure_divergence.py, seams 2 instance, all listed in tools/audit/round9/D14/sweep/S7.json. The enumerator is the fixer.md step-8 rule: run it at the merge base and the head and put every seam it returns in Figures against its disposition (closed here, already guarded, or a distinct finding or instance by id). An instance seam of these classes that this PR's findings do not own belongs to the PR the plan names for it. Needs tvofi: tests/env_drift.py, tests/stress.py, tests/mutation_table.py, tests/closure.py and tests/derive_closures.sh are code-owned; the I1 prototype derives its counts at both ends and raises no mutation_budgets.json entry. Class issues, in the body exactly as written here: Fixes #1646 (I1); Fixes #1663 (I2). Fixes #N only where this entry says so, because this PR follows every other PR holding that class; everything else is Part of #N. Standing: read CLAUDE.md, every .claude/rules file and tools/audit/briefs/fixer.md first; call the owner tvofi. Cloud seat: no PRs, no GitHub comments, no issues, no gh; hand the branch and body off on handoff/r9-f10-gate-infra-3 and the Mac orchestrator pushes as the hpo-author App via tools/audit/app_push.sh; hpo-approver approves a non-code-owned PR, tvofi reviews a code-owned one (decision 0011). No heavy D3 (tvofi): no mutation pools, pre-screens or quiet windows; a D3-class mutation proof is one mutant applied in memory against the production symbol. Findings were measured at baseline 1936d5ca; main has since merged #1641, #1642 and #1643, so re-measure each finding at your merge base before fixing. Harnesses are at evidence commit 79aa98ec: run them from that export, before and after, and cite the path with its sha1 (fixer.md step 3). Every figure is re-derived at your own merge base. Run python3 tests/structure.py before every hand-off; a budget raise is tvofi's, asked before the push (CLAUDE.md rule 2). Tests go in a class-named block in sorted position in tests/features.py or tests/entities.py, never at end of file; install both merge drivers before the first commit; re-record closures and budgets once, at the hand-off. Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary (failing test written, fix green, body drafted) and at least every 30 minutes of work, never holding unpushed work across a long run; with every push update the resume note named in this entry's resume field (last completed step, next step, branch at commit, open questions); at each milestone append one dated line to the round-9 resume log and its git mirror, as the resume field says. A crashed seat is restarted from its branch and note, not from scratch. Class issues: write Fixes #N only for an issue this entry marks Fixes, Part of #N for every other listed issue. Touch the claim files only to claim measured drift. No VERSION, manifest version or notes-heading edits. Part of #201."
+      "brief": "Round-9 fix PR F10.3 (Gate, stub and ratchet infrastructure lane). Models: fixer opus (a class barrier carrying an RCA prototype (I1) in code-owned gate scripts); reviewer opus in another session; RCA and judge opus; runner work (scoped-gate and stress re-runs, closure and budget re-records, report rendering) goes to a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md line, delivery row) may go to sonnet. Findings: D7-s1-02 (low, class I1); D14-s5-02 (medium, class I1); D14-s5-01 (medium, class I2). Class barrier landing here: I1 (RCA seat reported, process state (c)). Form: a per-site mutation ratchet: refuse any unpinned site the diff added, by content (a multiset difference on file, operator and stripped text), not only a grown total; and widen the inventory to every single-line guard and clamp shape. The sweep's non-UTC lane was refused (the Europe/Stockholm suite already runs inside tests/features.py). Prototype handoff/r9-rca-i1@8eda51a2; cherry-pick the tests/mutation_table.py hunk of 8eda51a2 only; its evidence under tools/audit/round9/rca/i1 stays out of the tree. Lines: 0 production; about 76 changed lines in tests/mutation_table.py (+66/-10); about 40 test lines in tests/entities.py pinning the per-site refusal and its wiring. Ownership: code-owned (tests/mutation_table.py); no policy file. Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, and silent on a healthy tree, as the RCA's own runs did; set the class's entry in tools/audit/bugclasses.json (detector, barrier, status) in this PR. D14-s5-02 (the invisible guard shapes) is half of the I1 barrier: the widened single-line inventory. The other half, the per-site refusal, is what would have refused the round's instances (the RCA: 12 of 12 re-introduced with a trade refused, against 0 of 12 under the count rule). No local mutation pools: count the inventory with its list mode, check one mutant in memory, and let CI's mutation lane evaluate. Ordering hazard (I1 RCA): once this merges, every later round-9 PR that adds or edits a guard (F10.4, F11.x) is refused until mutation-autofix pins it or a seat triages it; pure deletions add nothing. The mutation-autofix job's trigger and the tests/entities.py string pins match the kept refusal line; keep it. D7-s1-02 is weakened: lift the verdict loops into functions and pin them; note scenario_budget ran zero times under both drivers. D14-s5-01: record Python closures with strace on Linux as node already is; never run a full derive_closures.sh off Linux (gate-scoping.md). Not now (tvofi's card C7): the single-line mutant format is not extended to multi-line tests, clamps or ternaries; record the 101 multi-line if tests, 99 clamps and the TERN gap as the barrier's residual in the body, re-derived at the head. The comparison-bound operator is F10.6 and the kill-ledger writer F10.5 (cards C6, C5), both after this PR. Waits on F9.2 (the last I1 pin PR) because the I1 barrier lands here. The P11 barrier moved to F10.1 at the RCA fold, so this PR no longer edits tests/ha_contract.py and no longer waits on F1.7 or F8.3. Finder harnesses (evidence commit 79aa98ec): tools/audit/round9/D14/s5/closure_divergence.py, tools/audit/round9/D14/s5/guard_inventory.py, tools/audit/round9/D7/s1/train_mutations.py. Class sweeps (Phase D, final): I1: N 11 (judge 11), rca yes, sweep S3 at 053c4869ad, enumerator tools/audit/round9/D14/sweep/I1/enumerator.py, seams 12 instance, all listed in tools/audit/round9/D14/sweep/S3.json; I2: N 1 (judge 1), rca no, sweep S7 at 1152a74346, enumerator tools/audit/round9/D14/sweep/I2/closure_divergence.py, seams 2 instance, all listed in tools/audit/round9/D14/sweep/S7.json. The enumerator is the fixer.md step-8 rule: run it at the merge base and the head and put every seam it returns in Figures against its disposition (closed here, already guarded, or a distinct finding or instance by id). An instance seam of these classes that this PR's findings do not own belongs to the PR the plan names for it. Needs tvofi: tests/env_drift.py, tests/stress.py, tests/mutation_table.py, tests/closure.py and tests/derive_closures.sh are code-owned; the I1 prototype derives its counts at both ends and raises no mutation_budgets.json entry. Class issues, in the body exactly as written here: Fixes #1646 (I1); Fixes #1663 (I2). Fixes #N only where this entry says so, because this PR follows every other PR holding that class; everything else is Part of #N. Standing: read CLAUDE.md, every .claude/rules file and tools/audit/briefs/fixer.md first; call the owner tvofi. Cloud seat: no PRs, no GitHub comments, no issues, no gh; hand the branch and body off on handoff/r9-f10-gate-infra-3 and the Mac orchestrator pushes as the hpo-author App via tools/audit/app_push.sh; hpo-approver approves a non-code-owned PR, tvofi reviews a code-owned one (decision 0011). No heavy D3 (tvofi): no mutation pools, pre-screens or quiet windows; a D3-class mutation proof is one mutant applied in memory against the production symbol. Findings were measured at baseline 1936d5ca; main has since merged #1641, #1642 and #1643, so re-measure each finding at your merge base before fixing. Harnesses are at evidence commit 79aa98ec: run them from that export, before and after, and cite the path with its sha1 (fixer.md step 3). Every figure is re-derived at your own merge base. Run python3 tests/structure.py before every hand-off; a budget raise is tvofi's, asked before the push (CLAUDE.md rule 2). Tests go in a class-named block in sorted position in tests/features.py or tests/entities.py, never at end of file; install both merge drivers before the first commit; re-record closures and budgets once, at the hand-off. Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary (failing test written, fix green, body drafted) and at least every 30 minutes of work, never holding unpushed work across a long run; with every push update the resume note named in this entry's resume field (last completed step, next step, branch at commit, open questions); at each milestone append one dated line to the round-9 resume log and its git mirror, as the resume field says. A crashed seat is restarted from its branch and note, not from scratch. Class issues: write Fixes #N only for an issue this entry marks Fixes, Part of #N for every other listed issue. Touch the claim files only to claim measured drift. No VERSION, manifest version or notes-heading edits. Part of #201. Carry (endgame review, #1748, verified before filing): the per-site ratchet this PR lands identifies a site by file, kind and stripped text (added_unpinned in tests/mutation_table.py at 8eda51a2), and its base enumerates only files that exist at the base, so a site moved unchanged into another module counts as newly added and unpinned; the docstring's promise that a moved site is the base's holds within one file only. Measured by a skeptic seat on the DHW planner move (#1743) with its ledger correctly re-keyed: the prototype reports the whole moved cluster as added (every unpinned site in the new module plus one helper's). Count a site as moved, not added, when its kind and stripped text leave one file and reappear unchanged in another in the same diff; restrict the match to files the diff removes lines from and adds lines to, and to the same trailing scope name, so a generic line such as a bare return cannot launder a new guard. Demonstrate it on the #1743 move simulation (refused at the base, passing on the fixed ratchet) and on a genuinely new unpinned guard inside a moved file (still refused). R9-EG-B5 does not start until this lands."
     },
     {
       "group": "R9-F10.4",
@@ -2403,7 +2404,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "N-dead-member,I4,N-structure-blind",
-      "wave": 10,
+      "wave": 9,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2457,7 +2458,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "",
-      "wave": 11,
+      "wave": 10,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2506,7 +2507,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "",
-      "wave": 12,
+      "wave": 11,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2786,7 +2787,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "I4",
-      "wave": 11,
+      "wave": 10,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2840,7 +2841,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "",
-      "wave": 12,
+      "wave": 11,
       "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
@@ -2918,11 +2919,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B0.md on handoff/r9-eg-solve-inputs-rca",
         "review_branch": null,
         "review_note_file": null,
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame seat EG-B0 (lane EG, architecture: root cause of the solve-scoped hub writes). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Not a pull request: a root-cause seat under tools/audit/briefs/root-cause.md, beside R9-EG-B1 and never inside it. Issue #1736: each solve writes its inputs into the live hub objects the coordinator shares (custom_components/heatpump_optimizer/coordinator.py async_run_optimization and _prepare_dhw_inputs; only the setback fields are unwound by away.restore_setback), and four closed issues fixed one reader each (#240, #1517, #1529, #1683). Owed: the named cause; the process state (a-d) with its evidence, testing (c) against (b) explicitly because each per-site fix was correct; the cost test in wall-clock per occurrence over a release cycle; and the countermeasure, which tvofi has scheduled as R9-EG-B1. Also measure the two measure-first leads in #1736 with their null controls: async_simulate against the live solve on identical inputs, with and without a setback active (control: setback inactive, identical plans); and the published comfort floor against the one the plan was solved with while a setback is active. Report each as established or refuted; an established parity gap goes to tvofi as a product decision, never into R9-EG-B1. Enumerator: handoff/round9/state/alt/evidence/m1_hub_writes.py at a163db90. Write the Root cause section on #1736 and read it back byte-for-byte."
+      "brief": "Round-9 endgame seat EG-B0 (lane EG, architecture: root cause of the solve-scoped hub writes). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Not a pull request: a root-cause seat under tools/audit/briefs/root-cause.md, beside R9-EG-B1 and never inside it. Issue #1736: each solve writes its inputs into the live hub objects the coordinator shares (custom_components/heatpump_optimizer/coordinator.py async_run_optimization and _prepare_dhw_inputs; only the setback fields are unwound by away.restore_setback), and four closed issues fixed one reader each (#240, #1517, #1529, #1683). Owed: the named cause; the process state (a-d) with its evidence, testing (c) against (b) explicitly because each per-site fix was correct; the cost test in wall-clock per occurrence over a release cycle; and the countermeasure, which tvofi has scheduled as R9-EG-B1. Also measure the two measure-first leads in #1736 with their null controls: async_simulate against the live solve on identical inputs, with and without a setback active (control: setback inactive, identical plans); and the published comfort floor against the one the plan was solved with while a setback is active. Report each as established or refuted; an established parity gap goes to tvofi as a product decision, never into R9-EG-B1. Enumerator: handoff/round9/state/alt/evidence/m1_hub_writes.py at a163db90. Write the Root cause section on #1736 and read it back byte-for-byte."
     },
     {
       "group": "R9-EG-B2",
@@ -2939,7 +2940,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 10,
+      "wave": 9,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -2969,11 +2970,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B2.md on handoff/r9-eg-surface-identity",
         "review_branch": "handoff/r9-eg-surface-identity-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B2-review.md on handoff/r9-eg-surface-identity-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B2 (lane EG, architecture: surface identity and public accessors). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issues #1742 (Fixes) and #1739 (Part of: the surface half). Scope: custom_components/heatpump_optimizer/entity.py, custom_components/heatpump_optimizer/sensor.py, custom_components/heatpump_optimizer/binary_sensor.py, custom_components/heatpump_optimizer/button.py, custom_components/heatpump_optimizer/switch.py, custom_components/heatpump_optimizer/climate.py, custom_components/heatpump_optimizer/datetime.py, custom_components/heatpump_optimizer/diagnostics.py. (1) Pin unique_id, translation key and entity_id once in the entity.py base beside ConfiguredInputMixin and DHWEntityMixin; entity.py keeps importing nothing from the package, so the core never imports the surface layer. (2) climate.py and binary_sensor.py read coordinator.effective_config instead of their own merged copy of the entry's data and options. (3) Surface reads of coordinator private members move to the existing public accessors (effective_config, mode, optimization_running), or to a new read-only property where none exists; entity.py's two getattr reaches are in scope. (4) The payload accessor moves onto the base. Null control, in the body: a before/after snapshot of every (platform, unique_id, entity_id, translation_key) with en and sv loaded, byte-identical; tests/entities.py passes unchanged. Out of scope: config_flow.py and services.py (the doc_claims arms read them). After R9-F1.11, the last round-9 PR that borrows sensor.py and the F1-owned button.py."
+      "brief": "Round-9 endgame PR EG-B2 (lane EG, architecture: surface identity and public accessors). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issues #1742 (Fixes) and #1739 (Part of: the surface half). Scope: custom_components/heatpump_optimizer/entity.py, custom_components/heatpump_optimizer/sensor.py, custom_components/heatpump_optimizer/binary_sensor.py, custom_components/heatpump_optimizer/button.py, custom_components/heatpump_optimizer/switch.py, custom_components/heatpump_optimizer/climate.py, custom_components/heatpump_optimizer/datetime.py, custom_components/heatpump_optimizer/diagnostics.py. (1) Pin unique_id, translation key and entity_id once in the entity.py base beside ConfiguredInputMixin and DHWEntityMixin; entity.py keeps importing nothing from the package, so the core never imports the surface layer. (2) climate.py and binary_sensor.py read coordinator.effective_config instead of their own merged copy of the entry's data and options. (3) Surface reads of coordinator private members move to the existing public accessors (effective_config, mode, optimization_running), or to a new read-only property where none exists; entity.py's two getattr reaches are in scope. (4) The payload accessor moves onto the base. Null control, in the body: a before/after snapshot of every (platform, unique_id, entity_id, translation_key) with en and sv loaded, byte-identical; tests/entities.py passes unchanged. Out of scope: config_flow.py and services.py (the doc_claims arms read them). After R9-F1.11, the last round-9 PR that borrows sensor.py and the F1-owned button.py."
     },
     {
       "group": "R9-EG-B3",
@@ -2989,7 +2990,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 11,
+      "wave": 10,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -3020,11 +3021,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B3.md on handoff/r9-eg-typed-payload",
         "review_branch": "handoff/r9-eg-typed-payload-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B3-review.md on handoff/r9-eg-typed-payload-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B3 (lane EG, architecture: typed payload contract). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1737 (Fixes). A total=False TypedDict describing the published payload (the producer set R9-F1.11's P6 barrier registers; the coordinator's _build_data_dict and its views), with the coordinator's DataUpdateCoordinator type parameter set to it, and the hand-written payload shape in tests/entities.py derived from it. Measure the typing-census delta first with HPO_TYPING_PYTHON (gate-scoping.md); a read with no producer then becomes a census error, which is the point. No runtime change; goldens identical. If the type lands in a new module, classify it (the tests/entities.py orphan check) and record its closure with --single. After R9-F10.4 and R9-EG-B2."
+      "brief": "Round-9 endgame PR EG-B3 (lane EG, architecture: typed payload contract). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1737 (Fixes). A total=False TypedDict describing the published payload (the producer set R9-F1.11's P6 barrier registers; the coordinator's _build_data_dict and its views), with the coordinator's DataUpdateCoordinator type parameter set to it, and the hand-written payload shape in tests/entities.py derived from it. Measure the typing-census delta first with HPO_TYPING_PYTHON (gate-scoping.md); a read with no producer then becomes a census error, which is the point. No runtime change; goldens identical. If the type lands in a new module, classify it (the tests/entities.py orphan check) and record its closure with --single. After R9-F10.4 and R9-EG-B2."
     },
     {
       "group": "R9-EG-B4",
@@ -3040,7 +3041,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 12,
+      "wave": 11,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -3072,11 +3073,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B4.md on handoff/r9-eg-store-version",
         "review_branch": "handoff/r9-eg-store-version-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B4-review.md on handoff/r9-eg-store-version-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B4 (lane EG, architecture: store version seam). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1740 (Fixes). (1) One version constant per store: DHW_PROFILE_STORE_VERSION serves the profile, draws and legionella stores today, and the snapshot and ledger stores use a literal. (2) QuarantiningStore in custom_components/heatpump_optimizer/store.py gains Home Assistant's migration hook with a default that surfaces a failed migration (WARNING plus a repair issue through setpoint_check.create_issue), where the loaders now log at DEBUG and reset (custom_components/heatpump_optimizer/legionella.py re-stamps its last cycle on any load failure). (3) Demonstrate against R9-F10.1b's version-honouring stub: bump one store's version on a scratch branch; the gate fails at the base and passes at the head. After R9-F10.1b, R9-F10.4 and R9-EG-B3."
+      "brief": "Round-9 endgame PR EG-B4 (lane EG, architecture: store version seam). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1740 (Fixes). (1) One version constant per store: DHW_PROFILE_STORE_VERSION serves the profile, draws and legionella stores today, and the snapshot and ledger stores use a literal. (2) QuarantiningStore in custom_components/heatpump_optimizer/store.py gains Home Assistant's migration hook with a default that surfaces a failed migration (WARNING plus a repair issue through setpoint_check.create_issue), where the loaders now log at DEBUG and reset (custom_components/heatpump_optimizer/legionella.py re-stamps its last cycle on any load failure). (3) Demonstrate against R9-F10.1b's version-honouring stub: bump one store's version on a scratch branch; the gate fails at the base and passes at the head. After R9-F10.1b, R9-F10.4 and R9-EG-B3."
     },
     {
       "group": "R9-EG-B1",
@@ -3092,7 +3093,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 13,
+      "wave": 12,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -3116,7 +3117,8 @@
         "R9-F10.6",
         "R9-F11.5",
         "R9-EG-B0",
-        "R9-EG-B4"
+        "R9-EG-B4",
+        "R9-EG-B5"
       ],
       "resume": {
         "stage": "not-started",
@@ -3127,11 +3129,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B1.md on handoff/r9-eg-solve-inputs",
         "review_branch": "handoff/r9-eg-solve-inputs-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B1-review.md on handoff/r9-eg-solve-inputs-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B1 (lane EG, architecture: per-solve immutable inputs). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1736 (Fixes). The configured hub objects (the coordinator's _opt_config, _thermal_params and _current_state) stop being written per solve. Each solve builds one per-solve input record consumed by the live solve, the fuse advisor, the price tiles and async_simulate; HeatPumpOptimizer.optimize takes it keyword-only instead of its positional arrays (its own comment in custom_components/heatpump_optimizer/optimizer.py concedes a transposition would be silent). The setback becomes a value in the record, so away.apply_setback, away.restore_setback and the compare-and-restore envelope are deleted, not extended. Pure refactor: goldens byte-identical at the merge base, claim files untouched. Null control: handoff/round9/state/alt/evidence/m1_hub_writes.py at a163db90 reports no hub writes on the solve path at the head and the base count at the base. Keep the record under the attrbag_classes_over_30 threshold by grouping, not flattening. Expect coordinator_loc to fall; re-record with the reason in the commit message. R9-EG-B0 reports first; its parity findings are tvofi's product decisions, not riders. Structure-budget writer: never in flight with R9-EG-B5 or R9-EG-B7 (plan principle 2). Lands after the round's fix stamp (after R9-F10.6 and R9-F11.5) so a refactor cannot hold the fixes' release; the fixer may prepare the branch earlier and merge origin/main before hand-off."
+      "brief": "Round-9 endgame PR EG-B1 (lane EG, architecture: per-solve immutable inputs). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1736 (Fixes). The configured hub objects (the coordinator's _opt_config, _thermal_params and _current_state) stop being written per solve. Each solve builds one per-solve input record consumed by the live solve, the fuse advisor, the price tiles and async_simulate; HeatPumpOptimizer.optimize takes it keyword-only instead of its positional arrays (its own comment in custom_components/heatpump_optimizer/optimizer.py concedes a transposition would be silent). The setback becomes a value in the record, so away.apply_setback, away.restore_setback and the compare-and-restore envelope are deleted, not extended. Pure refactor: goldens byte-identical at the merge base, claim files untouched. Null control: handoff/round9/state/alt/evidence/m1_hub_writes.py at a163db90 reports no hub writes on the solve path at the head and the base count at the base. Keep the record under the attrbag_classes_over_30 threshold by grouping, not flattening. Expect coordinator_loc to fall; re-record with the reason in the commit message. R9-EG-B0 reports first; its parity findings are tvofi's product decisions, not riders. Structure-budget writer: never in flight with R9-EG-B5 or R9-EG-B7 (plan principle 2); it lands after R9-EG-B5, whose planner takes its inputs at construction, so B1 changes at most that construction site. Lands after the round's fix stamp (after R9-F10.6 and R9-F11.5) so a refactor cannot hold the fixes' release; the fixer may prepare the branch earlier and merge origin/main before hand-off."
     },
     {
       "group": "R9-EG-B6",
@@ -3147,7 +3149,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 14,
+      "wave": 13,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -3177,17 +3179,117 @@
         "note_file": "handoff/round9/fix/resume/EG-B6.md on handoff/r9-eg-collaborator-interfaces",
         "review_branch": "handoff/r9-eg-collaborator-interfaces-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B6-review.md on handoff/r9-eg-collaborator-interfaces-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B6 (lane EG, architecture: collaborator interfaces). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1739 (Fixes, with R9-EG-B2's surface half). custom_components/heatpump_optimizer/pump_arbiter.py, custom_components/heatpump_optimizer/boost.py, custom_components/heatpump_optimizer/away.py, custom_components/heatpump_optimizer/wood_fuel.py, custom_components/heatpump_optimizer/diagnostics.py, custom_components/heatpump_optimizer/setpoint_check.py, custom_components/heatpump_optimizer/services.py and custom_components/heatpump_optimizer/__init__.py stop reaching coordinator private members: each receives explicit inputs (the per-solve record from R9-EG-B1, or a narrow read-only view the coordinator publishes). The three writes (boost.apply setting the running action; the reload-handover and skip-once flags set from __init__.py) become coordinator methods. One module per commit; goldens byte-identical. Enumerator: handoff/round9/state/alt/evidence/m3_reach.py at a163db90 reports none at the head (control: the base count at the base). If R9-F10.4 priced out-of-class reach per #1738 arm (b), the re-record shows the drop; say which drops are real. After R9-EG-B1."
+      "brief": "Round-9 endgame PR EG-B6 (lane EG, architecture: collaborator interfaces). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1739 (Fixes, with R9-EG-B2's surface half). custom_components/heatpump_optimizer/pump_arbiter.py, custom_components/heatpump_optimizer/boost.py, custom_components/heatpump_optimizer/away.py, custom_components/heatpump_optimizer/wood_fuel.py, custom_components/heatpump_optimizer/diagnostics.py, custom_components/heatpump_optimizer/setpoint_check.py, custom_components/heatpump_optimizer/services.py and custom_components/heatpump_optimizer/__init__.py stop reaching coordinator private members: each receives explicit inputs (the per-solve record from R9-EG-B1, or a narrow read-only view the coordinator publishes). The three writes (boost.apply setting the running action; the reload-handover and skip-once flags set from __init__.py) become coordinator methods. One module per commit; goldens byte-identical. Enumerator: handoff/round9/state/alt/evidence/m3_reach.py at a163db90 reports none at the head (control: the base count at the base). If R9-F10.4 priced out-of-class reach per #1738 arm (b), the re-record shows the drop; say which drops are real. After R9-EG-B1."
+    },
+    {
+      "group": "R9-EG-B8",
+      "lane": "EG",
+      "issues": [
+        1747
+      ],
+      "fixes": [
+        1747
+      ],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "architecture",
+      "wave": 4,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "a behaviour fix in the solver's DHW replan, with a root-cause section owed (trigger 1)",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F2.4"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-eg-dhw-block-replan",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "note_file": "handoff/round9/fix/resume/EG-B8.md on handoff/r9-eg-dhw-block-replan",
+        "review_branch": "handoff/r9-eg-dhw-block-replan-review",
+        "review_note_file": "handoff/round9/fix/resume/EG-B8-review.md on handoff/r9-eg-dhw-block-replan-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
+      },
+      "brief": "Round-9 endgame PR EG-B8 (lane EG, architecture: the DHW block ignored by the co-optimisation replan). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1747 (Fixes). _co_optimize in custom_components/heatpump_optimizer/optimizer.py rebuilds the DHW requirements without the block that _optimize_with_dhw's own _build_dhw_requirements call receives (blocked from the horizon's dhw_blocked), so with DHW mode-blocked and mostly negative prices the replan is adopted and ships DHW heat, masking the tank-floor breach the plan exists to report. Probe at 22921612e10b: handoff/round9/state/alt/evidence/b8_replan_blocked.py runs the tests/golden.py wood_coil scenario blocked with prices shifted; as-is ships DHW at the deepest shifts, the control arm (the replan given the block) ships none at every shift and reports the breach. Fix: pass the block into the replan, or skip the replan while DHW is blocked. fixer.md: failing test first (the probe's shifted arm), mutation proof, and the Root cause section on #1747 (defect-root-cause.md trigger 1: it reached released versions). Claims stay empty unless drift is measured: no golden scenario is blocked. Lands before R9-EG-B5, which rewrites this call site (plan principle 3)."
+    },
+    {
+      "group": "R9-EG-B5a",
+      "lane": "EG",
+      "issues": [
+        1743
+      ],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "architecture",
+      "wave": 10,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "a pure refactor of the two solve paths' duplicated closures",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": "a structure-budget re-record (downward) with the reason in the commit message",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F2.4",
+        "R9-F10.4"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-eg-dhw-closure-dedupe",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "note_file": "handoff/round9/fix/resume/EG-B5a.md on handoff/r9-eg-dhw-closure-dedupe",
+        "review_branch": "handoff/r9-eg-dhw-closure-dedupe-review",
+        "review_note_file": "handoff/round9/fix/resume/EG-B5a-review.md on handoff/r9-eg-dhw-closure-dedupe-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
+      },
+      "brief": "Round-9 endgame PR EG-B5a (lane EG, architecture: one builder for the duplicated solve closures). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1743 (Part of). The nested _space_traj, objective and objective_batch closures are duplicated between _optimize_space_only and _optimize_with_dhw in custom_components/heatpump_optimizer/optimizer.py: _space_traj is identical after dedent, and the other two differ only by an optional DHW power term added to the space power. Replace them with one optimizer method that builds all three from the horizon and an optional DHW plan power; with none, the arithmetic is the space-only path's. Pure refactor: tests/env_drift.py --all at the merge base must be byte-identical, and the claim files stay untouched. Expect duplication_blocks and max_method_loc to fall (measured by simulation in the EG-B5 design spec on the handoff/audit-r9-alt branch); re-record with the reason. After R9-F2.4, which edits _optimize_space_only's seeds, and R9-F10.4, the instrument. Structure-budget writer: never in flight with R9-EG-B5, R9-EG-B1 or R9-EG-B7."
     },
     {
       "group": "R9-EG-B5",
       "lane": "EG",
       "issues": [
-        1743
+        1743,
+        1748
       ],
       "fixes": [
         1743
@@ -3197,12 +3299,12 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 14,
+      "wave": 11,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
-        "fixer_why": "extraction of the optimizer's largest detachable cluster",
+        "fixer_why": "extraction of the optimizer's DHW planner core into its own class",
         "reviewer": "opus",
         "rca": null,
         "runner": "haiku",
@@ -3210,13 +3312,16 @@
       },
       "effort": "high",
       "fixture": false,
-      "owner_gate": "tvofi opt-in; a classes_over_300 increase, unless R9-F10.4 re-defined it per #1738 arm (c), needs tvofi's confirmation before the push",
+      "owner_gate": "tvofi opted in (2026-09-28); a classes_over_300 increase, unless R9-F10.4 re-defined it per #1738 arm (c), needs tvofi's confirmation before the push",
       "rca": false,
       "barrier": [],
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-EG-B1"
+        "R9-EG-B5a",
+        "R9-EG-B8",
+        "R9-F1.10",
+        "R9-F10.4"
       ],
       "resume": {
         "stage": "not-started",
@@ -3227,11 +3332,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B5.md on handoff/r9-eg-dhw-planner",
         "review_branch": "handoff/r9-eg-dhw-planner-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B5-review.md on handoff/r9-eg-dhw-planner-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B5 (lane EG, architecture: DHW planner extraction, opt-in). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1743 (Fixes). The DHW and legionella planning methods of HeatPumpOptimizer in custom_components/heatpump_optimizer/optimizer.py (from _dhw_planning_prices through _optimize_with_dhw, with the module-level DHW helpers they use) move into one class that owns its inputs, the per-solve record from R9-EG-B1: not a mixin, and not module functions over the optimizer (docs/HANDOVER.md refuses that shape as a decomposition). First dedupe the _space_traj and objective_batch pairs that span the boundary, so duplication_blocks falls for a real reason. Migrate the call sites in tests/features.py and tests/finite_boundary.py to the new class; no delegating shims. Ledger: tests/mutation_table.py --normalize with nothing unmapped. Plan principle 3: three-dot diff and a whole-file comparison at every merge from main. Goldens byte-identical. Structure-budget writer: never in flight with R9-EG-B1 or R9-EG-B7. If tvofi declines it, set resume.stage to done with the refusal in last_step."
+      "brief": "Round-9 endgame PR EG-B5 (lane EG, architecture: DHW planner extraction, opted in). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1743 (Fixes). The design spec is the EG-B5 design spec on the handoff/audit-r9-alt branch; this brief is its summary and the spec wins where they differ. Move the nineteen DHW planner core methods of HeatPumpOptimizer in custom_components/heatpump_optimizer/optimizer.py (from _dhw_planning_prices and _baseline_dhw_economics through _build_dhw_requirements, _plan_dhw_min_cost, _repair_dhw_floor, _clamp_dhw_to_capacity, _apply_dhw_min_run and _plan_dhw_cheapest_first) into one planner class in a new module, built once per solve in optimize from explicit inputs (the model, the PV export price, the per-solve surplus and price-known mask) and passed down; it writes no attribute. _optimize_with_dhw, _solve_space and _co_optimize stay on the optimizer as orchestration: moving them would need a back-reference, the shape docs/HANDOVER.md refuses. _build_dhw_requirements returns the plan and the requirement; the optimizer keeps _dhw_requirement, assigned where the stash was written (last-writer-wins preserved), and _dhw_legionella_step is deleted (tests read it through a spy on the last build). DhwPlan keeps exactly its published fields: tests/features.py pins them. Shared helpers move without a cycle: _step_humidity and _mean_humidity to custom_components/heatpump_optimizer/thermal_model.py, _pin_is_free to custom_components/heatpump_optimizer/manual_plan.py; the horizon parameter is typed by a Protocol in the new module, never by a TYPE_CHECKING import, which would add an equivalent guard today's count ratchet refuses. Tests: retarget the direct calls, class-level monkeypatches and captures in tests/features.py and the call in tests/guard_pins.py, with no delegating shims; add the new module to _P3_FILES in tests/features.py or the humidity rule silently stops covering the moved code. Ledger: re-key the moved rows (the planner's, the module constant's and the two humidity helpers') by path, scope and directory with their digests unchanged; tests/mutation_table.py --normalize does not do it; carry the survivor-triage row as it is. Closures: the new module makes the gate FULL; wait for the closures-autofix commit. Null controls: tests/env_drift.py --all byte-identical at the merge base, a whole-file provenance comparison under a stated substitution table, an AST check that the planner writes no attribute, and a three-dot diff at every merge from main (plan principle 3). Preconditions: R9-F10.3 carries #1748 (moved, not added), R9-EG-B8 has fixed #1747, and R9-EG-B5a has landed. Structure-budget writer: never in flight with R9-EG-B5a, R9-EG-B1 or R9-EG-B7."
     },
     {
       "group": "R9-EG-B7",
@@ -3247,7 +3352,7 @@
       "cap_exception": null,
       "sweep_instances": [],
       "class": "architecture",
-      "wave": 15,
+      "wave": 14,
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "model": {
@@ -3278,11 +3383,11 @@
         "note_file": "handoff/round9/fix/resume/EG-B7.md on handoff/r9-eg-coordinator-seams",
         "review_branch": "handoff/r9-eg-coordinator-seams-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B7-review.md on handoff/r9-eg-coordinator-seams-review",
-        "plan": "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
-      "brief": "Round-9 endgame PR EG-B7 (lane EG, architecture: coordinator seams, conditional). Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1744. After R9-EG-B1 and R9-EG-B6, re-measure cut_dhw, cut_views, cross_seam_edges and the hub-read counts at the merge base (tests/structure.py over tests/seam_map.json). Where a seam's cut falls, extract it as a class that owns its attributes, one seam per pull request, on the W5-G9 precedent (#750): goldens byte-identical, the seam map re-keyed in the same commit, the ledger re-keyed with --normalize, any raise asked before the push. Where it does not fall, record the halt on #1744 with the numbers and set this group done. Structure-budget writer: never in flight with R9-EG-B1 or R9-EG-B5."
+      "brief": "Round-9 endgame PR EG-B7 (lane EG, architecture: coordinator seams, conditional). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1744. After R9-EG-B1 and R9-EG-B6, re-measure cut_dhw, cut_views, cross_seam_edges and the hub-read counts at the merge base (tests/structure.py over tests/seam_map.json). Where a seam's cut falls, extract it as a class that owns its attributes, one seam per pull request, on the W5-G9 precedent (#750): goldens byte-identical, the seam map re-keyed in the same commit, the ledger re-keyed with --normalize, any raise asked before the push. Where it does not fall, record the halt on #1744 with the numbers and set this group done. Structure-budget writer: never in flight with R9-EG-B1 or R9-EG-B5."
     }
   ]
 }

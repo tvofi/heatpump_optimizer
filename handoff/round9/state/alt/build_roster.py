@@ -7,7 +7,7 @@ G = collections.OrderedDict((g["group"], g) for g in d["groups"])
 P = "custom_components/heatpump_optimizer/"
 EV = "handoff/round9/state/alt/evidence"
 EVSHA = "a163db90"
-PLAN = "handoff/audit-r9-plan: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json"
+PLAN = "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md"
 
 # --- 1. truth resume for merged groups (merge commits on origin/main, first parent) ---
 MERGED = {
@@ -30,10 +30,10 @@ for gid, (pr, sha) in MERGED.items():
     r["stage"] = "done"; r["commit"] = full(sha)
     r["last_step"] = f"merged as #{pr} (merge commit {sha} on main)"
     r["next_step"] = "none: merged"
+MERGED["R9-F1.4"] = (1735, "686239d2")
 r = G["R9-F1.4"]["resume"]
-r["stage"] = "in-review"; r["commit"] = "923ab589"
-r["last_step"] = "round 2 pushed on PR #1735 at head 923ab589 against the review's block (RESUME.md 2026-09-28T17:15Z)"
-r["next_step"] = "re-review at the head SHA; merge on a merge verdict"
+r["stage"] = "done"; r["commit"] = full("686239d2")
+r["last_step"] = "merged as #1735 (merge commit 686239d2 on main)"; r["next_step"] = "none: merged"
 
 # --- 2. carries folded into the stage briefs (finding-propagation.md) ---
 CARRY = {
@@ -44,6 +44,11 @@ CARRY = {
   "(c) classes_over_300 scores the extraction of a sound class from the coordinator as the one regression (#750, W5-G9). "
   "Price (a) and (b) in tests/structure.py beside D7-s1-01; for (c) propose a definition under which an extraction that shrinks the god class is not a regression (for example lines above the threshold summed over classes) and ask tvofi before the push, because it changes a budget key. "
   "Demonstrate each arm failing on its probe at the base and passing on the fixed instrument. All three land before any R9-EG move (R9-EG-B5, R9-EG-B7)."),
+ "R9-F10.3": (1748,
+  " Carry (endgame review, #1748, verified before filing): the per-site ratchet this PR lands identifies a site by file, kind and stripped text (added_unpinned in tests/mutation_table.py at 8eda51a2), and its base enumerates only files that exist at the base, so a site moved unchanged into another module counts as newly added and unpinned; the docstring's promise that a moved site is the base's holds within one file only. "
+  "Measured by a skeptic seat on the DHW planner move (#1743) with its ledger correctly re-keyed: the prototype reports the whole moved cluster as added (every unpinned site in the new module plus one helper's). "
+  "Count a site as moved, not added, when its kind and stripped text leave one file and reappear unchanged in another in the same diff; restrict the match to files the diff removes lines from and adds lines to, and to the same trailing scope name, so a generic line such as a bare return cannot launder a new guard. "
+  "Demonstrate it on the #1743 move simulation (refused at the base, passing on the fixed ratchet) and on a genuinely new unpinned guard inside a moved file (still refused). R9-EG-B5 does not start until this lands."),
  "R9-F1.10": (1741,
   f" Carry (endgame review, #1741, verified before filing): unify the two step-start clocks, coordinator._utc_step_starts and optimizer._utc_step_starts, into one function taking a timedelta step and an offset ({P}silent_mode.py, tests/dst_checks.py and tests/features.py import them; the coordinator bridge is _horizon_step_starts); and give the tank-room ambient, held as a literal in {P}thermal_model.py (_simulate_step_two_zone and simulate_trajectory_batch), {P}sysid.py and {P}optimizer.py, one name. "
   f"Measured at {EVSHA} ({EV}/m6a_step_starts.py): the clocks agree on every reachable grid because dt_hours is time_step_minutes over 60; a step that is not a whole number of minutes disagrees (the control), so the agreement is held by the config surface, not by one definition. "
@@ -85,7 +90,7 @@ def group(pid, slug, issues, fixes, after, why, gate, brief, seat=False, effort=
     g["after"] = after; g["resume"] = resume(slug, pid, seat); g["brief"] = brief
     return g
 HDR = lambda pid, what: (f"Round-9 endgame {'seat' if pid == 'EG-B0' else 'PR'} {pid} (lane EG, architecture: {what}). "
-                         "Added by the endgame review (the ALT endgame plan beside the draft on the handoff/audit-r9-plan branch); the lane owns no file until its after-edges merge, then borrows what its scope names. ")
+                         "Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. ")
 EG = [
  group("EG-B0", "solve-inputs-rca", [1736], [], [], "root-cause seat for a five-instance recurring class", None,
   HDR("EG-B0", "root cause of the solve-scoped hub writes") +
@@ -114,25 +119,42 @@ EG = [
   f"Issue #1740 (Fixes). (1) One version constant per store: DHW_PROFILE_STORE_VERSION serves the profile, draws and legionella stores today, and the snapshot and ledger stores use a literal. "
   f"(2) QuarantiningStore in {P}store.py gains Home Assistant's migration hook with a default that surfaces a failed migration (WARNING plus a repair issue through setpoint_check.create_issue), where the loaders now log at DEBUG and reset ({P}legionella.py re-stamps its last cycle on any load failure). "
   "(3) Demonstrate against R9-F10.1b's version-honouring stub: bump one store's version on a scratch branch; the gate fails at the base and passes at the head. After R9-F10.1b, R9-F10.4 and R9-EG-B3."),
- group("EG-B1", "solve-inputs", [1736], [1736], ["R9-F10.4", "R9-F2.4", "R9-F10.6", "R9-F11.5", "R9-EG-B0", "R9-EG-B4"], "a coordinator and optimizer refactor across the solve boundary", "any structure-budget raise needs tvofi's confirmation before the push (CLAUDE.md rule 2)",
+ group("EG-B1", "solve-inputs", [1736], [1736], ["R9-F10.4", "R9-F2.4", "R9-F10.6", "R9-F11.5", "R9-EG-B0", "R9-EG-B4", "R9-EG-B5"], "a coordinator and optimizer refactor across the solve boundary", "any structure-budget raise needs tvofi's confirmation before the push (CLAUDE.md rule 2)",
   HDR("EG-B1", "per-solve immutable inputs") +
   f"Issue #1736 (Fixes). The configured hub objects (the coordinator's _opt_config, _thermal_params and _current_state) stop being written per solve. Each solve builds one per-solve input record consumed by the live solve, the fuse advisor, the price tiles and async_simulate; HeatPumpOptimizer.optimize takes it keyword-only instead of its positional arrays (its own comment in {P}optimizer.py concedes a transposition would be silent). "
   "The setback becomes a value in the record, so away.apply_setback, away.restore_setback and the compare-and-restore envelope are deleted, not extended. "
   f"Pure refactor: goldens byte-identical at the merge base, claim files untouched. Null control: {EV}/m1_hub_writes.py at {EVSHA} reports no hub writes on the solve path at the head and the base count at the base. "
   "Keep the record under the attrbag_classes_over_30 threshold by grouping, not flattening. Expect coordinator_loc to fall; re-record with the reason in the commit message. "
-  "R9-EG-B0 reports first; its parity findings are tvofi's product decisions, not riders. Structure-budget writer: never in flight with R9-EG-B5 or R9-EG-B7 (plan principle 2). "
+  "R9-EG-B0 reports first; its parity findings are tvofi's product decisions, not riders. Structure-budget writer: never in flight with R9-EG-B5 or R9-EG-B7 (plan principle 2); it lands after R9-EG-B5, whose planner takes its inputs at construction, so B1 changes at most that construction site. "
   "Lands after the round's fix stamp (after R9-F10.6 and R9-F11.5) so a refactor cannot hold the fixes' release; the fixer may prepare the branch earlier and merge origin/main before hand-off."),
  group("EG-B6", "collaborator-interfaces", [1739], [1739], ["R9-EG-B1"], "every collaborator module's access to coordinator state", None,
   HDR("EG-B6", "collaborator interfaces") +
   f"Issue #1739 (Fixes, with R9-EG-B2's surface half). {P}pump_arbiter.py, {P}boost.py, {P}away.py, {P}wood_fuel.py, {P}diagnostics.py, {P}setpoint_check.py, {P}services.py and {P}__init__.py stop reaching coordinator private members: each receives explicit inputs (the per-solve record from R9-EG-B1, or a narrow read-only view the coordinator publishes). "
   "The three writes (boost.apply setting the running action; the reload-handover and skip-once flags set from __init__.py) become coordinator methods. One module per commit; goldens byte-identical. "
   f"Enumerator: {EV}/m3_reach.py at {EVSHA} reports none at the head (control: the base count at the base). If R9-F10.4 priced out-of-class reach per #1738 arm (b), the re-record shows the drop; say which drops are real. After R9-EG-B1."),
- group("EG-B5", "dhw-planner", [1743], [1743], ["R9-EG-B1"], "extraction of the optimizer's largest detachable cluster", "tvofi opt-in; a classes_over_300 increase, unless R9-F10.4 re-defined it per #1738 arm (c), needs tvofi's confirmation before the push",
-  HDR("EG-B5", "DHW planner extraction, opt-in") +
-  f"Issue #1743 (Fixes). The DHW and legionella planning methods of HeatPumpOptimizer in {P}optimizer.py (from _dhw_planning_prices through _optimize_with_dhw, with the module-level DHW helpers they use) move into one class that owns its inputs, the per-solve record from R9-EG-B1: not a mixin, and not module functions over the optimizer (docs/HANDOVER.md refuses that shape as a decomposition). "
-  "First dedupe the _space_traj and objective_batch pairs that span the boundary, so duplication_blocks falls for a real reason. Migrate the call sites in tests/features.py and tests/finite_boundary.py to the new class; no delegating shims. "
-  "Ledger: tests/mutation_table.py --normalize with nothing unmapped. Plan principle 3: three-dot diff and a whole-file comparison at every merge from main. Goldens byte-identical. "
-  "Structure-budget writer: never in flight with R9-EG-B1 or R9-EG-B7. If tvofi declines it, set resume.stage to done with the refusal in last_step."),
+ group("EG-B8", "dhw-block-replan", [1747], [1747], ["R9-F2.4"], "a behaviour fix in the solver's DHW replan, with a root-cause section owed (trigger 1)", None,
+  HDR("EG-B8", "the DHW block ignored by the co-optimisation replan") +
+  f"Issue #1747 (Fixes). _co_optimize in {P}optimizer.py rebuilds the DHW requirements without the block that _optimize_with_dhw's own _build_dhw_requirements call receives (blocked from the horizon's dhw_blocked), so with DHW mode-blocked and mostly negative prices the replan is adopted and ships DHW heat, masking the tank-floor breach the plan exists to report. "
+  f"Probe at 22921612e10b: {EV}/b8_replan_blocked.py runs the tests/golden.py wood_coil scenario blocked with prices shifted; as-is ships DHW at the deepest shifts, the control arm (the replan given the block) ships none at every shift and reports the breach. "
+  "Fix: pass the block into the replan, or skip the replan while DHW is blocked. fixer.md: failing test first (the probe's shifted arm), mutation proof, and the Root cause section on #1747 (defect-root-cause.md trigger 1: it reached released versions). "
+  "Claims stay empty unless drift is measured: no golden scenario is blocked. Lands before R9-EG-B5, which rewrites this call site (plan principle 3)."),
+ group("EG-B5a", "dhw-closure-dedupe", [1743], [], ["R9-F2.4", "R9-F10.4"], "a pure refactor of the two solve paths' duplicated closures", "a structure-budget re-record (downward) with the reason in the commit message",
+  HDR("EG-B5a", "one builder for the duplicated solve closures") +
+  f"Issue #1743 (Part of). The nested _space_traj, objective and objective_batch closures are duplicated between _optimize_space_only and _optimize_with_dhw in {P}optimizer.py: _space_traj is identical after dedent, and the other two differ only by an optional DHW power term added to the space power. "
+  "Replace them with one optimizer method that builds all three from the horizon and an optional DHW plan power; with none, the arithmetic is the space-only path's. "
+  "Pure refactor: tests/env_drift.py --all at the merge base must be byte-identical, and the claim files stay untouched. Expect duplication_blocks and max_method_loc to fall (measured by simulation in the EG-B5 design spec on the handoff/audit-r9-alt branch); re-record with the reason. "
+  "After R9-F2.4, which edits _optimize_space_only's seeds, and R9-F10.4, the instrument. Structure-budget writer: never in flight with R9-EG-B5, R9-EG-B1 or R9-EG-B7."),
+ group("EG-B5", "dhw-planner", [1743, 1748], [1743], ["R9-EG-B5a", "R9-EG-B8", "R9-F1.10", "R9-F10.4"], "extraction of the optimizer's DHW planner core into its own class", "tvofi opted in (2026-09-28); a classes_over_300 increase, unless R9-F10.4 re-defined it per #1738 arm (c), needs tvofi's confirmation before the push",
+  HDR("EG-B5", "DHW planner extraction, opted in") +
+  f"Issue #1743 (Fixes). The design spec is the EG-B5 design spec on the handoff/audit-r9-alt branch; this brief is its summary and the spec wins where they differ. "
+  f"Move the nineteen DHW planner core methods of HeatPumpOptimizer in {P}optimizer.py (from _dhw_planning_prices and _baseline_dhw_economics through _build_dhw_requirements, _plan_dhw_min_cost, _repair_dhw_floor, _clamp_dhw_to_capacity, _apply_dhw_min_run and _plan_dhw_cheapest_first) into one planner class in a new module, built once per solve in optimize from explicit inputs (the model, the PV export price, the per-solve surplus and price-known mask) and passed down; it writes no attribute. "
+  "_optimize_with_dhw, _solve_space and _co_optimize stay on the optimizer as orchestration: moving them would need a back-reference, the shape docs/HANDOVER.md refuses. "
+  "_build_dhw_requirements returns the plan and the requirement; the optimizer keeps _dhw_requirement, assigned where the stash was written (last-writer-wins preserved), and _dhw_legionella_step is deleted (tests read it through a spy on the last build). DhwPlan keeps exactly its published fields: tests/features.py pins them. "
+  f"Shared helpers move without a cycle: _step_humidity and _mean_humidity to {P}thermal_model.py, _pin_is_free to {P}manual_plan.py; the horizon parameter is typed by a Protocol in the new module, never by a TYPE_CHECKING import, which would add an equivalent guard today's count ratchet refuses. "
+  "Tests: retarget the direct calls, class-level monkeypatches and captures in tests/features.py and the call in tests/guard_pins.py, with no delegating shims; add the new module to _P3_FILES in tests/features.py or the humidity rule silently stops covering the moved code. "
+  "Ledger: re-key the moved rows (the planner's, the module constant's and the two humidity helpers') by path, scope and directory with their digests unchanged; tests/mutation_table.py --normalize does not do it; carry the survivor-triage row as it is. "
+  "Closures: the new module makes the gate FULL; wait for the closures-autofix commit. Null controls: tests/env_drift.py --all byte-identical at the merge base, a whole-file provenance comparison under a stated substitution table, an AST check that the planner writes no attribute, and a three-dot diff at every merge from main (plan principle 3). "
+  "Preconditions: R9-F10.3 carries #1748 (moved, not added), R9-EG-B8 has fixed #1747, and R9-EG-B5a has landed. Structure-budget writer: never in flight with R9-EG-B5a, R9-EG-B1 or R9-EG-B7."),
  group("EG-B7", "coordinator-seams", [1744], [1744], ["R9-EG-B1", "R9-EG-B6"], "a measured go/no-go on the coordinator's cheapest seams", "a classes_over_300 increase, unless R9-F10.4 re-defined it, needs tvofi's confirmation before the push",
   HDR("EG-B7", "coordinator seams, conditional") +
   "Issue #1744. After R9-EG-B1 and R9-EG-B6, re-measure cut_dhw, cut_views, cross_seam_edges and the hub-read counts at the merge base (tests/structure.py over tests/seam_map.json). "
@@ -158,7 +180,7 @@ for k, g in G.items():
         assert a in G, f"{k}: after {a} not in file"
 d["groups"] = list(G.values())
 d["_comment"] = [
- "ALT roster (2026-09-28): the live round-9 roster from handoff/audit-r9-fixplan with (1) every merged group's resume truthed from origin/main's merge commits at 31394964 and F1.4 at PR #1735; (2) three verified endgame carries folded into R9-F1.10 (#1741), R9-F10.1b (#1740) and R9-F10.4 (#1738); (3) lane EG appended: R9-EG-B0 (root-cause seat) and R9-EG-B1..B7. `wave` is recomputed over open groups only (1 = startable now). Plan: handoff/round9/state/ALT-ENDGAME-PLAN.md on handoff/audit-r9-plan.",
+ "ALT roster (2026-09-28): the live round-9 roster from handoff/audit-r9-fixplan with (1) every merged group's resume truthed from origin/main's merge commits (31394964; F1.4 merged as #1735 at 686239d2); (2) four verified endgame carries folded into R9-F1.10 (#1741), R9-F10.1b (#1740), R9-F10.3 (#1748) and R9-F10.4 (#1738); (3) lane EG appended: R9-EG-B0 (root-cause seat), R9-EG-B1..B8 and R9-EG-B5a. `wave` is recomputed over open groups only (1 = startable now). Plan: handoff/round9/state/ALT-ENDGAME-PLAN.md on handoff/audit-r9-alt; EG-B5 design: handoff/round9/state/alt/EG-B5-DESIGN.md there (tvofi opted in to B5, 2026-09-28).",
 ] + list(d["_comment"])
 json.dump(d, open(OUT, "w"), indent=2, ensure_ascii=False)
 open(OUT, "a").write("\n")
