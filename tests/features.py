@@ -35370,11 +35370,14 @@ def _f14_learn(c):
 async def _f14_race(marker, writer):
     """Seed the disk, then restart against a read held in flight.
 
-    Returns (what the restarted coordinator holds once every load has
-    landed, what the racing writer raised): with the writer waiting for
-    its store's read, the load installs the learned state before the save
-    runs, and the marker survives; without the wait the save lands first
-    and the marker reads back as the fresh default.
+    Returns (the racing coordinator's own marker, what the racing writer
+    raised, what a THIRD clean restart reads off the disk, the seeded
+    marker). The third readout is the finding's harm sentence made
+    measurable: the payload snapshots memory, so a writer that builds it
+    while the read is in flight writes the fresh defaults over the
+    persisted learned state even when the WRITE itself waits (round 1's
+    shape did exactly that -- memory survived, the disk did not), and it
+    is what the next restart after the race actually loads.
     """
     entry_id = f"f14_race_{marker}"
     seed = HeatPumpOptimizerCoordinator(
@@ -35404,11 +35407,17 @@ async def _f14_race(marker, writer):
         await _asyncio.sleep(0)  # the writer reaches its read-wait, or saves
         gate.set()
         await _asyncio.wait({save, *coord._background_tasks}, timeout=5)
-        return _f14_markers(coord)[marker], save.exception(), want[marker]
+        raced = _f14_markers(coord)[marker]
     finally:
         _f14_storage.Store.async_load = orig_load
-        for key in [k for k in _f14_storage._DISK if entry_id in k]:
-            del _f14_storage._DISK[key]
+    # The restart AFTER the race: a clean boot, no gate, no writer, reading
+    # the disk the racing writer left behind.
+    third = HeatPumpOptimizerCoordinator(
+        _RC2Hass(), FakeEntry(data=dict(_T1_DATA), entry_id=entry_id))
+    await _asyncio.wait(set(third._background_tasks), timeout=5)
+    for key in [k for k in _f14_storage._DISK if entry_id in k]:
+        del _f14_storage._DISK[key]
+    return raced, save.exception(), _f14_markers(third)[marker], want[marker]
 
 
 _f14_raced = {
@@ -35416,17 +35425,24 @@ _f14_raced = {
 }
 _f14_lost = [
     f"{m}: {want!r} -> {got!r}"
-    for m, (got, exc, want) in _f14_raced.items() if got != want
+    for m, (got, exc, third, want) in _f14_raced.items() if got != want
 ]
-_f14_raised = [m for m, (_g, exc, _w) in _f14_raced.items() if exc]
+_f14_raised = [m for m, (_g, exc, _t, _w) in _f14_raced.items() if exc]
+_f14_disk_lost = [
+    f"{m}: {want!r} -> {third!r}"
+    for m, (_g, _e, third, want) in _f14_raced.items() if third != want
+]
 R.check(
     "a store writer that races the startup read waits for it, so the "
     "persisted learned state survives the restart (D1-s2-52)",
-    not _f14_lost and not _f14_raised,
-    f"lost: {_f14_lost}; writer raised: {_f14_raised} -- each of the five "
-    "cycle writers saves its whole payload from memory, and one that runs "
-    "before its store's startup read lands replaces months of learned "
-    "state with the fresh defaults the read is about to install",
+    not _f14_lost and not _f14_raised and not _f14_disk_lost,
+    f"lost in the raced coordinator: {_f14_lost}; writer raised: "
+    f"{_f14_raised}; lost on the disk a third restart reads: "
+    f"{_f14_disk_lost} -- each of the five cycle writers saves a payload "
+    "snapshotted from memory, so one built before its store's startup read "
+    "lands replaces months of learned state with the fresh defaults, and "
+    "the write waiting is not enough: only waiting before the payload is "
+    "BUILT closes it",
 )
 
 # D1-s2-53: one field per schema key, each set alone, then a restart on the
