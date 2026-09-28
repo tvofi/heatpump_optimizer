@@ -26,6 +26,9 @@
 // maintains the corpus is still running. These read merged history, so none of
 // them runs on a pull request (see the `record` job in governance.yml):
 //   record      every merged pull request has a disposition somewhere  (refuses)
+//               -- except a RECORD-CLASS merge (delivery rows, carry ledgers,
+//               plan files, nothing else), which is the record being written
+//               and is listed as `self-disposing (record-class)` instead
 //   stats       verdict and friction histograms, and what they would open
 //   sunset      rules that have outlived the reason they were written
 //
@@ -405,6 +408,11 @@ const LOOP_CHECK_NAMES = [
   // acceptance drives its SHAPE and both ends of it -- and the reason it exists
   // is that this class's zero was the one print in the corpus that a reader
   // could not tell from a measurement (#1469, D11-03).
+  // The record-class predicate. Pure over a path list, so emptying it is the
+  // mutation that turns every merge back into an unrowed one -- the recursion
+  // this exists to end -- and the acceptance arms beneath the record region
+  // pins drive it both ways, so the emptied form refuses.
+  { name: 'recordClassPaths', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'sunsetMarkerLine', file: 'policy_lint.mjs', kind: 'return' },
 ]
 
@@ -2220,6 +2228,92 @@ function speaksFor(line) {
   const set = new Set()
   for (const m of line.matchAll(TABLE_PULL_LINK_RE)) if (m[1] === m[2]) set.add(m[1])
   return set.size ? set : null
+}
+
+// ---------------------------------------------------------------------------
+// THE RECORD-CLASS PREDICATE. A merge is record-class when its three-dot diff
+// (its first parent .. the merge commit, which for a pull-request merge is
+// exactly `git diff <merge>^1 <merge>`) touches ONLY the record's own files:
+// delivery rows, the wave carry ledgers, and the plan of record. Both consumers
+// of record's row bar -- this mode and the release stamp's rule "rows" -- were
+// hitting the same recursion on every stamp: the record pull request merges to
+// add the window's delivery rows, and then ITSELF stands unrowed in the window
+// it just closed, so `--record` reported it and every stamp had to buy its way
+// past rule "rows" with --allow-rowless (measured: v6.7.9 for the merges
+// #1730 closed over, v6.7.10 for #1749, each time deferring the row to the
+// NEXT record pull request, which re-created the debt forever). A record-class
+// merge disposes of itself: it IS the record being written, so demanding its
+// row demands a record to record the record.
+//
+// THE PATH CLASSES ARE THE WHOLE PREDICATE, and every one of the three is
+// exact, not a prefix: a stray file under docs/delivery that is not a row
+// (`1746.md.bak`), a `docs/plan.md` with no wave suffix, or a
+// `.claude/workflows/carry.json` without the dash breaks the class. ANY other
+// path -- a line of code, a test, a closure measurement -- breaks it, which is
+// the null control that keeps this from becoming a blanket carve-out: a pull
+// request that adds one code file beside its delivery row is an ordinary merge
+// and owes its row exactly as before.
+//
+// IT FAILS CLOSED. An empty diff (a merge that changed nothing readable) and a
+// diff git will not answer for classify as NOT record-class and keep demanding
+// the row. A carve-out that cannot read its own evidence must refuse to
+// carve, never carve blindly -- the same direction as every guard in this file.
+//
+// WHERE IT LIVES. Pure over the path list, so the acceptance drives it with no
+// git object and no network (`recordClassPaths`); `mergeRecordClass` is the
+// thin git wrapper the mode calls, and it is deliberately NOT where the
+// decision could hide: emptying `recordClassPaths` breaks the wrapper too, and
+// the wiring arm in `assertAcceptance` holds that the mode reaches the wrapper
+// before it counts a merge as unrowed. The stamp carries its own ~10-line copy
+// of the same three regexes (`tools/release/stamp.py`, `RECORD_CLASS_RES`):
+// node and python with no import between them, and a shared source file would
+// need a new tracked file classified into a measured closure for ten lines.
+// The acceptance arm names the copy, so the two drifting apart is visible.
+const RECORD_CLASS_RES = [
+  /^docs\/delivery\/[^/]+\.md$/,
+  /^\.claude\/workflows\/carry-[^/]+\.json$/,
+  /^docs\/plan-[^/]+\.md$/,
+]
+
+// True when every changed path is one of the three record classes above, and
+// there is at least one. Pure over its input: the acceptance hands it fixture
+// path lists both ways, and the stamp's copy is pinned to agree with it.
+function recordClassPaths(paths) {
+  const list = (paths ?? []).filter(Boolean)
+  if (!list.length) return false
+  return list.every((p) => RECORD_CLASS_RES.some((re) => re.test(p)))
+}
+
+// The git-backed half: a merge's own diff, read from the object database with
+// no network. A merge the diff cannot be read for (a shallow clone that
+// grafts the parents away, a rewritten object) is NOT record-class, which
+// leaves it under the ordinary row bar -- the fail-closed direction, stated
+// above.
+//
+// `mergeDiffSource` is swappable for the same reason `rowFileSource` and
+// `rowFreezeSource` are: every piece above is pure and correct while the
+// wrapper never reads git at all, which is exactly the mutation that returns
+// the recursion with the acceptance green. The acceptance drives it with
+// fixture diffs, both ways, and puts the production default back.
+let mergeDiffSource = null
+
+function mergeRecordClass(sha) {
+  const out = mergeDiffSource
+    ? mergeDiffSource(sha)
+    : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
+  if (!out) return false
+  return recordClassPaths(out.split('\n'))
+}
+
+// The human title of a merged pull request, which is not in its subject: a
+// merge subject names a BRANCH, and GitHub puts the pull request's title on
+// the first non-blank line of the commit body -- the same convention
+// `tests/delivery_status.py`'s `subject_title` reads for the pending list, so
+// the two listings name a merge the same way.
+function mergeTitle(sha, subject) {
+  const body = git(['log', '-1', '--format=%b', String(sha)], { allowFail: true })
+  for (const line of String(body).split('\n')) if (line.trim()) return line.trim()
+  return subject
 }
 
 function checkRecord(prs, dispositionText) {
@@ -4092,6 +4186,77 @@ function assertAcceptance(derived) {
   rowFileSource = () => [['9125.md', () => '- [#9125](x/pull/9125) r\n'], ['9126.txt', () => '- [#9126](x/pull/9126) r\n']]
   if (checkRecord([{ pr: '9125', subject: 's' }, { pr: '9126', subject: 's' }], recordRegionOverTree().region).length !== 1) regFail.push('the wired record region does not read the row files')
   rowFileSource = liveRows
+  // THE RECORD-CLASS PREDICATE, both ways. The positive arms pin the three
+  // path classes the recursion fix carves out -- a record pull request's own
+  // diff, measured on main, is exactly these (v6.7.10's window: #1749's merge
+  // touched carry-*.json, docs/delivery/*.md and docs/plan-*.md and nothing
+  // else) -- and the negative arms are the null controls that keep the carve
+  // out from widening: ONE code file beside the delivery row breaks the class,
+  // an empty or unreadable diff fails closed, and each class is exact rather
+  // than a prefix (a .bak under docs/delivery, a plan file without its wave
+  // dash, a carry file without the dash, a path escaping into a subdirectory).
+  pins += 17
+  const rcFail = []
+  if (!recordClassPaths(['docs/delivery/1749.md'])) rcFail.push('a delivery row alone did not classify as record-class')
+  if (!recordClassPaths(['.claude/workflows/carry-1646.json'])) rcFail.push('a carry ledger alone did not classify as record-class')
+  if (!recordClassPaths(['docs/plan-2026-09-open-issues.md'])) rcFail.push('the plan of record alone did not classify as record-class')
+  if (!recordClassPaths(['docs/delivery/1746.md', '.claude/workflows/carry-1686.json', 'docs/plan-2026-09-open-issues.md'])) rcFail.push('the three record path classes together did not classify as record-class')
+  if (recordClassPaths(['docs/delivery/1746.md', 'custom_components/heatpump_optimizer/some_other_module.py'])) rcFail.push('a code file beside a delivery row did not break the record class')
+  if (recordClassPaths([])) rcFail.push('an empty diff classified as record-class; one that cannot be read must keep demanding the row')
+  if (recordClassPaths(['docs/delivery/1746.md.bak'])) rcFail.push('a non-row file under docs/delivery classified as a record path')
+  if (recordClassPaths(['docs/plan.md'])) rcFail.push('a plan file without the wave dash classified as a record path')
+  if (recordClassPaths(['.claude/workflows/carry.json'])) rcFail.push('a carry file without the dash classified as a record path')
+  if (recordClassPaths(['docs/plan-2026-09-open-issues.md/extra.md'])) rcFail.push('a path escaping a record class into a subdirectory classified')
+  // AND THE GIT-BACKED WRAPPER, driven through a swapped diff source with no
+  // repository: it must read the merge's diff, must exempt only what the pure
+  // classifier exempts, and must fail closed on a diff it could not read.
+  // Without this arm the wrapper could stop reading git at all -- returning
+  // the recursion -- with every pure arm above still green.
+  const liveDiff = mergeDiffSource
+  mergeDiffSource = () => 'docs/delivery/1749.md\n.claude/workflows/carry-1646.json\n'
+  if (!mergeRecordClass('0'.repeat(40))) rcFail.push('the git-backed wrapper stopped reading its diff source, or stopped exempting a record-class diff')
+  mergeDiffSource = () => 'docs/delivery/1749.md\ncustom_components/heatpump_optimizer/some_other_module.py\n'
+  if (mergeRecordClass('0'.repeat(40))) rcFail.push('the git-backed wrapper exempted a merge whose diff carries a code file')
+  mergeDiffSource = () => ''
+  if (mergeRecordClass('0'.repeat(40))) rcFail.push('the git-backed wrapper exempted a merge whose diff it could not read')
+  mergeDiffSource = liveDiff
+  if (rcFail.length) {
+    console.log(`\nFIXTURE VACUOUS: recordClassPaths ${JSON.stringify(rcFail)}. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.`)
+    return 1
+  }
+  // AND THE PARTITION IS WIRED. The classifier above is correct while
+  // `cmdRecordDispositions` still hands `checkRecord` the whole window -- which
+  // is exactly the tree before the fix -- so the mode's own text is read: it
+  // must reach the git-backed wrapper before it counts, and the exempt merges
+  // must be listed rather than silently dropped (an invisible exemption is a
+  // widened bar nobody can audit).
+  const rcWired = fs.readFileSync(path.join(HERE, 'policy_lint.mjs'), 'utf8')
+  const rcMode = rcWired.slice(rcWired.lastIndexOf('function cmdRecordDispositions'))
+  const rcModeEnd = rcMode.indexOf('\nfunction ', 10)
+  const rcBody = rcModeEnd < 0 ? rcMode : rcMode.slice(0, rcModeEnd)
+  if (!/mergeRecordClass\(p\.sha\)/.test(rcBody)) rcFail.push('the record mode does not classify merges through mergeRecordClass')
+  if (!/checkRecord\(ordinary, region\)/.test(rcBody)) rcFail.push('the record mode still hands checkRecord the whole window instead of the non-record-class partition')
+  if (!/self-disposing \(record-class\)/.test(rcBody)) rcFail.push('the record mode exempts a record-class merge without listing it as self-disposing (record-class)')
+  // THE STAMP'S COPY. tools/release/stamp.py carries its own ~10-line copy of
+  // the same three regexes (node and python with no import between them); the
+  // copy is named here so the two drifting apart is a visible edit a reviewer
+  // reads, not a silent divergence.
+  const stampSrc = fs.readFileSync(path.join(ROOT, 'tools', 'release', 'stamp.py'), 'utf8')
+  for (const re of RECORD_CLASS_RES) {
+    // A regex literal keeps the backslash of an escaped `/` in `.source`, so
+    // the node form reads `\/` where the python raw string writes `/`; the
+    // slash is normalised away before the comparison or the arm refuses on
+    // spelling rather than on drift.
+    const py = `r"${re.source.replaceAll('\\/', '/')}"`
+    if (!stampSrc.includes(py)) {
+      rcFail.push(`the stamp's RECORD_CLASS_RES copy is missing or has drifted from ${py}; the two predicates must move together`)
+      break
+    }
+  }
+  if (rcFail.length) {
+    console.log(`\nFIXTURE VACUOUS: recordClassPaths ${JSON.stringify(rcFail)}. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.`)
+    return 1
+  }
   // AND `--record` REFUSES TO RUN WITH NO TOKEN. Driven as a SUBPROCESS, which
   // is not ceremony: `requireToken` ends in `process.exit`, so an in-process
   // assertion would take this acceptance down with it, and the property being
@@ -6274,9 +6439,20 @@ function cmdRecordDispositions(since) {
   // is the marker, not a silent green.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N from" subject after /commits/<sha>/pulls answered []`)
+  // THE RECORD-CLASS PARTITION. The bar (`checkRecord`, unchanged) is applied
+  // to the ordinary merges only; a record-class merge is listed, with its
+  // number and title, and is not counted as `without a disposition`. The
+  // listing is the whole of the visibility: an exemption nobody can see is a
+  // widened bar waiting to be relied on, so each exempt merge prints on its
+  // own line in the same shape the pending list uses. `checkRecord` itself is
+  // untouched -- the fixture acceptance still drives it over EVERY merge, and
+  // the partition lives here, where the git evidence is.
+  const rcByPr = new Map(prs.map((p) => [p.pr, mergeRecordClass(p.sha)]))
+  const recordClass = prs.filter((p) => rcByPr.get(p.pr))
+  const ordinary = prs.filter((p) => !rcByPr.get(p.pr))
   const { region, sectionFound } = recordRegionOverTree()
   const all = sectionFound
-    ? checkRecord(prs, region)
+    ? checkRecord(ordinary, region)
     : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
          message: `no \`## ${RECORD_SECTION}\` section, so the record has no region to read and every merge in the window would report as undispositioned. Restore the heading, or change RECORD_SECTION with it.` }]
   const applied = applyKnownBad(all, RECORD_KEY)
@@ -6310,6 +6486,10 @@ function cmdRecordDispositions(since) {
     return acc
   }, { tables: 0, rows: 0, lists: 0, items: 0 })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(', ')} or ${ROW_DIR}/`)
+  for (const p of recordClass) {
+    console.log(`  self-disposing (record-class)  #${p.pr}  ${mergeTitle(p.sha, p.subject).slice(0, 72)}`)
+  }
+  console.log(`RECORD_CLASS: ${recordClass.length} record-class merge(s) self-disposing (record-class), listed above and not counted; ${ordinary.length} merge(s) under the disposition bar`)
   console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
   console.log(`CAPS: ${caps.length} stated cap(s) disagreeing with policy_budgets.json across ${DISPOSITION_FILES.length} disposition document(s)`)
   console.log(`RENDER: ${rCounts.tables} table(s), ${rCounts.rows} row(s), ${rCounts.lists} list(s), ${rCounts.items} item(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
