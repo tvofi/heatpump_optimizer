@@ -77,7 +77,12 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     # The device's main feature: a device-named entity (name None) takes the
     # device's own name, which is what the old literal "Heat Pump Optimizer"
     # resolved to after registry deduplication — same display, idiomatically.
+    # The translation key keeps that display (the catalogues name the entity)
+    # and gives the frontend a place to translate the entity's own preset
+    # states (#1651 P6): auto and economy are this integration's own words;
+    # comfort and boost are Home Assistant's and need no entry.
     _attr_name = None
+    _attr_translation_key = "heat_pump_optimizer"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
     _attr_supported_features = (

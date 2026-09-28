@@ -190,7 +190,7 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
-config_flow # R9 F1.2 (D12-s3-01): the wizard's presence questions move the flow-walk capture (structure only, float-free)
+config_flow # R9 F5.2: box-mode number fields take step "any" (#1679) and the finished quick-setup path is dropped from the finish_setup menu (#1685), so the flow-walk capture's rendered selector.config steps and its post-quick-setup menu_options move (structure only, float-free; no solver input moved)
 
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

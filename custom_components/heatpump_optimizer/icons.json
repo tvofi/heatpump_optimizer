@@ -1,5 +1,18 @@
 {
   "entity": {
+    "climate": {
+      "heat_pump_optimizer": {
+        "default": "mdi:thermometer",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "mdi:autorenew",
+              "economy": "mdi:leaf"
+            }
+          }
+        }
+      }
+    },
     "binary_sensor": {
       "away_mode": {
         "default": "mdi:home-export-outline"
