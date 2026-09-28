@@ -131,10 +131,10 @@ sensible value you can refine later in Options.
 | Question | Default | What "yes" means |
 |---|---|---|
 | Two-zone house | off | The house has two separately heated floors. The optimizer then balances the slab-heated lower floor against the upper floor instead of treating the house as one room. |
-| Buffer tank | off | A tank between the heat pump and the heating circuits, large enough to store heat. "Yes" records a store-sized tank (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). On stores cheap heat and releases it during expensive hours. |
+| Buffer tank | off | A tank between the heat pump and the heating circuits, large enough to store heat. "Yes" records a store-sized tank (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). The tank is only treated as a store — holding cheap heat and releasing it during expensive hours — if your heating system page also has a throttling mixing valve. |
 | Hot water tank | **on** | A tank the heat pump keeps full of domestic hot water. Leave it on if your heat pump makes hot water; turning it off removes hot water from the plan entirely. |
 | Wood furnace | off | A wood furnace heating the same water loop. The optimizer factors its heat in and stands the pump down while the fire is lit. |
-| Wood buffer tank | off | A second tank the wood furnace heats, separate from the heat pump's buffer. "Yes" records the tank's volume — and the two probes below it are what actually switch the two-tank physics on. |
+| Wood buffer tank | off | A second tank the wood furnace heats, separate from the heat pump's buffer. "Yes" records the tank's volume — and together with a throttling mixing valve, the two probes below it switch the two-tank physics on. |
 
 The two probe pickers under the wood questions are the wood buffer's own
 gate — the volume alone changes nothing the model reads:

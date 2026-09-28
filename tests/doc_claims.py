@@ -1369,11 +1369,12 @@ def check_card_version_tracks_stamp() -> None:
     )
     # Null control: re-inserting the pre-fix sentences must fire the claim scan.
     mutated = doc.replace(
-        "That is the card's own version.",
+        "That is the card's own version",
         "That is the card's own version. It moves only when the card file "
         "changes, so it is often lower than the integration version -- "
         "compare it against the card version named in the release notes, "
-        "not against the integration version itself.",
+        "not against the integration version itself",
+        1,
     )
     R.check(
         "re-inserting the pre-fix banner claim fires the scan (null control)",
@@ -1546,14 +1547,15 @@ def check_service_fields() -> None:
         not wrong,
         repr(wrong),
     )
-    # Null control: deleting a listed field name from a paragraph must make
-    # the comparison fire again (a no-op while the field is missing, so the
-    # control is honest both before and after the fix).
-    mutated_doc = doc.replace("`manual_setpoint`", "", 1)
+    # Null control: deleting a listed field name from the assign_entity
+    # paragraph must make the comparison fire again (a no-op while the field
+    # is missing, so the control is honest both before and after the fix).
+    para = paras.get("assign_entity", "")
+    mutated = {**paras, "assign_entity": para.replace("`manual_setpoint`", "", 1)}
     R.check(
         "removing a listed field from a paragraph fires the comparison "
         "(null control)",
-        bool(_service_field_problems(fields, _service_paragraphs(mutated_doc))),
+        bool(_service_field_problems(fields, mutated)),
     )
 
 

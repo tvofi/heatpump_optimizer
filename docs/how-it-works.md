@@ -1152,7 +1152,7 @@ fit degrades to the historical two-column form and reports no gains figure.
 | Capacity envelope (opt-in) | Heat actually delivered at each outdoor temperature | Can only trim optimism; at least 60% of nameplate stays available |
 | Solar aperture (opt-in) | Sunny-hour prediction errors | Clamped to [0.3, 2.0]; scales window area × SHGC, the only observable product |
 | Per-hour internal gains (opt-in) | Dark-hour prediction errors | Ridge-tethered to the configured constant |
-| Heat-curve correction (opt-in) | Days that held comfort with margin | Cool-only, ≤0.5 K per week, resets to the installer's curve on any comfort miss |
+| Heat-curve correction (opt-in) | Days that held comfort with margin | Cool-only, clamped, resets to the installer's curve on any comfort miss |
 | Comfort weight (opt-in) | Your own temperature overrides | Moves slowly, needs consistent evidence, own sensor and reset button |
 | DHW draw quantiles | Observed tank temperature drops per frame | Weekday/weekend split; blend ramps with occurrence count |
 | Price shape | Observed prices | Weekday/weekend, damped below 5 days, factors guard-railed |
@@ -1234,7 +1234,7 @@ forecast. Everything below is built on those codes:
 | **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English or Swedish |
 | **Cost Contract Comparison** sensor | The closed month as an itemised receipt, reason by reason, with the reason lines summing to the metered spot line by construction |
 | **Plan Optimization Score** sensor | Envelope, machine and operation graded separately — how good is the house, how healthy is the machine, how well is it driven — with the operation grade replaying each day's kWh against that day's prices |
-| **Diagnose Last Interval** button | The last interval's temperature error attributed input by input: the interval is re-run swapping realised inputs in one at a time, each charged the share of the error it explains |
+| **Prediction Accuracy Diagnose Last Interval** button | The last interval's temperature error attributed input by input: the interval is re-run swapping realised inputs in one at a time, each charged the share of the error it explains |
 | **Prediction Accuracy** sensor | How far off the model is right now, including the signed bias |
 | **Thermal Battery** sensors | The house as a store: state of charge, capacity and rates, for other automations to use |
 
