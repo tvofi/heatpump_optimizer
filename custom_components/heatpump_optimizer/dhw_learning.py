@@ -38,6 +38,7 @@ from .const import (
     DOMAIN,
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
+from .inputs import plausible_c
 from .thermal_model import DHW_AMBIENT_TEMP, ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)
@@ -329,6 +330,17 @@ class DhwProfileLearner:
         """
         now = dt_util.now()
         heating = bool(self._heating_active())
+
+        # The DHW thermometer's plausibility window (round-9 D1-s1-03, class
+        # N-plausibility), the same window the inputs module holds the tank
+        # entity's own readings to: a sensor-fault sample (-127 C, a 1e6
+        # spike) is not a draw, and booked as one it inflated the published
+        # p90 by orders of magnitude. Refused here rather than only at the
+        # entity read, because a sample that crosses this seam is one the
+        # interval's whole temp_drop is derived from -- it must not become
+        # the next interval's baseline either.
+        if not plausible_c(CONF_DHW_TEMP_ENTITY, dhw_temp):
+            return "dhw_sample_implausible"
 
         previous_temp = self.last_temp_sample
         previous_time = self.last_sample_time

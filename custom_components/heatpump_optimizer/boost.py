@@ -222,7 +222,11 @@ async def restore(coord: Any) -> None:
         if not isinstance(payload, Mapping):
             continue
         parsed = _parse_until(payload.get("until"))
-        if parsed is not None and parsed > now:
+        # Both sides through as_utc (#1299's rule): the loader keeps a naive
+        # stamp naive when no zone is configured (F3.1's recorded decision),
+        # and comparing it straight against an aware now is the TypeError the
+        # store boundary exists to make unreachable.
+        if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):
             held.until[channel] = parsed
 
 

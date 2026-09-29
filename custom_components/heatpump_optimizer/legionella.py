@@ -621,7 +621,9 @@ class LegionellaGuard:
         """
         last = self.last_cycle
         attempt = self.attempt
-        if attempt is not None and (last is None or attempt > last):
+        if attempt is not None and (
+            last is None or dt_util.as_utc(attempt) > dt_util.as_utc(last)
+        ):
             last = attempt
         if last is None:
             return None

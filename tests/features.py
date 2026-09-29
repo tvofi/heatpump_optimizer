@@ -49776,10 +49776,10 @@ R.check(
         for entry in (list(_f14b_counts._cop_baseline.values())
                       + list(_f14b_counts._capacity_envelope.values()))),
     f"cop_baseline={_f14b_counts._cop_baseline} capacity_envelope="
-    f"{_f14b_counts._capacity_envelope} -- 1e20 and 1e308 are finite, so "
-    "the store's scrub hands them to the loader as they are, and the "
-    "published state's np.isfinite(count) raises on any Python int past "
-    "int64: the wedge survived every restart because the parse accepted it",
+    f"{_f14b_counts._capacity_envelope} -- since F1.6 the store's scrub "
+    "quarantines a magnitude >= 1e15 before the loader sees it, and the "
+    "loader's own int64 refusal (F1.4) stands under it for any spelling "
+    "below that bound a future writer might produce",
 )
 for _f14b_k in [k for k in _f14_storage._DISK if "f14b_" in k]:
     del _f14_storage._DISK[_f14b_k]
