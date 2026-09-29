@@ -1,5 +1,6 @@
 {
   "_comment": [
+    "REV-2 SNAPSHOT — superseded by roster rev 3.1 on handoff/audit-r9-fixplan @692da932 (73 groups); do NOT read its stage fields as live (LIVE-STATUS.md disagreement 2: six stages stale at 4d33b25c).",
     "Round-9 fix wave: 145 surviving findings in 46 classes (judge 2f97b0a, CLASSES-DRAFT.json at bad458a3) plus 17 counted instances beyond them (Phase D sweeps S1-S7 and the RCA fold) and 2 latent seams, clustered into 48 PRs in 11 lanes.",
     "One entry per PR. `lane` is the cloud fixer thread that owns the PR's files; lanes own disjoint file sets, and a PR that must edit another lane's file lists it under Borrowed in its brief and carries an `after` edge on that lane's last PR on it.",
     "`wave` is the dependency depth (1 = startable now). `owner_gate` names why tvofi must approve; those PRs are kept apart so nothing else waits on them.",
