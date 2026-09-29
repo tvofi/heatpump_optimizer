@@ -1465,7 +1465,8 @@ fixer.md	tools/audit/briefs/fixer.md
   here, for the same reason as #1127. #1087's own disposition (DELIVERED by
   #1118, above) is unchanged by this entry.
 
-**Round-9 window, dispositions taken 2026-09-29 on branch `fix/r9-frictions`.**
+**Round-9 window, dispositions taken 2026-09-29 on PR
+[#1768](https://github.com/tvofi/heatpump_optimizer/pull/1768).**
 Four more `[policy] recurring friction:` issues, filed by the cron over
 `v6.7.0`-era windows; all four are below the threshold in the live window
 (`v6.7.10..origin/main` at `3defa2d5` prints no row for any of them — the
