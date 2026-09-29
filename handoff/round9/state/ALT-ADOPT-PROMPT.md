@@ -47,7 +47,7 @@ Before step 1, read the plan's §2.4, §4, §4.6, §6 and §7, and the pre-study
    - Re-lint with `handoff/audit-r9-alt` and the evidence refs fetched: `TOTAL: 0 error(s)`.
 
 2. **Adopt roster rev 3.1** on `handoff/audit-r9-fixplan`: replace `.claude/workflows/wave-r9-groups.json` with `ALT-ROSTER.json`.
-   - If the live file moved after `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` and replace `92b3ecc9` in the output.
+   - If the live file moved after `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` and replace the literal placeholder string for the pre-study commit in its output with 92b3ecc9.
    - Assert that every merged group reads `done` at its merge SHA, and that every open issue has a closing group (`alt/gen_coverage_rev31.py`).
    - Find out why the live file kept F1.6 `not-started`, with an empty commit, through two review rounds, and fix that. The record moves at each state change (`delivery-status-tracking.md`).
 
