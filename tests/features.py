@@ -53718,9 +53718,12 @@ _r9egb9_null_dhw_nb = _r9egb9_boost_arm(
 
 R.check(
     "#1752 null control: a never-boosted no_prices cycle keeps the plan's "
-    "own action -- no boost keys, and the displace is the plan's own, not "
-    "the boost overlay's maximum",
+    "own action -- off, 0 kW, the plan's own displace, pump off, no boost "
+    "keys (the values a dropped base registration would have to fake)",
     _r9egb9_null["cycle2"] == "no_prices"
+    and _r9egb9_null["mode"] == "off"
+    and _r9egb9_null["power_kw"] == 0.0
+    and _r9egb9_null["switch"] == ["turn_off"]
     and _r9egb9_null["boost_space"] is None
     and _r9egb9_null["boost_dhw"] is None
     and _r9egb9_null["switch_reads_off"]
