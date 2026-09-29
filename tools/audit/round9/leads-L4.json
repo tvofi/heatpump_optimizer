@@ -1,0 +1,403 @@
+{
+ "report_path": "tools/audit/round9/LEADS-L4.md",
+ "findings": [
+  {
+   "id": "D2-s2-81",
+   "scope": "D2-s2",
+   "step": "D2.M3",
+   "title": "Two-zone comfort penalty halves each zone's floor price; shipped plans sit up to 0.46 K below min_temp",
+   "severity": "medium",
+   "claim": "On the stock two-zone house (tests/golden.py:make, winter_cold) the shipped plan's upper zone falls below min_temp 17.0 by 2.467 degree-steps summed over 12 price x DHW cells (1.314 in two|dhw|winter_typical, coldest 16.54 C), while the same house single-zone breaches 0.147 and every flat-price cell 0.",
+   "mechanism": "_comfort_terms (and _comfort_terms_batch) average the two zones' penalties with 0.5 x (...), which also halves each zone's quadratic floor term and its _COMFORT_FLOOR_L1 linear term; the constant's own comment says 2.0 is the smallest L1 that removes residual floor violations, so each zone of a two-zone house gets half of it and the solver buys the breach back where prices reward it (two|dhw|winter_typical: holding the floor costs 70.52 vs 67.50 SEK).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "harness_path": "tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "value": 2.4672,
+    "unit": "degree-steps (K x 15-min steps), 12 two-zone cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact on one BLAS build; +-0.05 degree-steps across builds",
+    "load1": 1.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (shipped upper/lower_temp_trajectory), via optimizer:HeatPumpOptimizer._comfort_terms / _comfort_terms_batch and the module constant _COMFORT_FLOOR_L1",
+   "perturbation": {
+    "change": "--perturb: optimizer._COMFORT_FLOOR_L1 2.0 -> 4.0 in memory (each zone gets the single-zone linear floor price)",
+    "expected_direction": "down",
+    "observed_value": 0.8574
+   },
+   "metric_definition": "sum over steps and zones of max(0, min_temp - T_zone) of the shipped two-zone trajectories, over 6 price profiles x DHW on/off at winter_cold, 24 h",
+   "phenomenon_property": "Each zone of a two-zone plan pays the same price per degree-step below min_temp as a single-zone room does, so the floor the L1 term exists to pin holds per zone.",
+   "seam_rule": "grep -n \"0.5 \\* weight\\|_COMFORT_FLOOR_L1\" custom_components/heatpump_optimizer/optimizer.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "value": "single_zone_floor_deg_steps_sum=0.1471 (1 of 12 cells); two_zone_flat_sum=0.0000",
+    "note": "same house single-zone and the flat-price cells; the breach is price-bought and two-zone-specific"
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": 0.0,
+    "max": 1.3144,
+    "drop_most_favourable": 0.1048
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py --perturb"
+   ],
+   "proposed_fix_scope": "optimizer.py _comfort_terms/_comfort_terms_batch: keep the two-zone average for the pull and the overshoot, but price each zone's undershoot (quadratic and L1) at the single-zone weight; pin with a two-zone winter_typical floor check.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [
+    "winter_two_zone_dhw",
+    "winter_two_zone_no_dhw"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P3"
+  },
+  {
+   "id": "D4-s2-81",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Setup overview page and setup diagram publish English slot text on a Swedish install",
+   "severity": "medium",
+   "claim": "With the Swedish translation active, 22 of the 23 text lines the setup_overview flow page renders, all 16 slot labels describe_setup publishes (setup_topology, drawn verbatim by the card) and all 3 sensor_advisor labels are byte-identical to the English install's, while the narrative on the same plan sensors is Swedish (0 of 1 identical).",
+   "mechanism": "topology._SLOTS holds English literal labels and render_text_summary English headings; describe_setup, render_text_summary and rank_sensor_advisor take no language, so config_flow._setup_overview_form fills the sv template's {setup_summary} with English and the plan sensors publish English labels; narrative.render, by contrast, picks TEMPLATES[language].",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "harness_path": "tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "value": 41,
+    "unit": "published strings identical en/sv (22 page lines + 16 slot labels + 3 advisor labels)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.19,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_setup_overview_form; heatpump_optimizer.topology:describe_setup / render_text_summary / rank_sensor_advisor",
+   "perturbation": {
+    "change": "--perturb: the three topology functions wrapped in memory to pass every published literal through a Swedish table when the language is sv (the narrative.render pattern)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "published setup strings (rendered setup_overview lines, setup_topology slot labels, sensor_advisor labels) byte-identical between an en and an sv install",
+   "phenomenon_property": "Every user-facing string the backend publishes for the setup diagram and the sensor advisor follows the instance language, as the narrative does.",
+   "seam_rule": "grep -n \"describe_setup\\|render_text_summary\\|rank_sensor_advisor\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "value": "null_narrative_lines_identical_to_en=0 of 1",
+    "note": "narrative.render on the same sensors follows the language"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py --perturb"
+   ],
+   "proposed_fix_scope": "topology.py: slot labels and summary headings keyed by translation key (resolved from strings/translations by hass.config.language in the flow, or published as keys the card translates); config_flow/sensor call sites pass the language.",
+   "files": [
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s4-81",
+   "scope": "D2-s4",
+   "step": "D2.M5",
+   "title": "sysid cannot adopt its own exact noise-free fit on 43 of 80 preset houses, yet arms on all 80",
+   "severity": "medium",
+   "claim": "Driving the production step experiment on a plant exactly equal to the declared one with a noise-free reading, over every BuildingPreset structure x era x emitter at 3.5 and 6 kW, 19 of 80 cells complete and are refused by adoption_decision (heat-loss half-width 0.096-0.234 against the ln 1.10 = 0.0953 bar, fit error 0.0000) and 24 abort as 'fitted parameters outside plausible bounds'; all 80 arm.",
+   "mechanism": "The adoption bar keys on slab_ua_adoption_halfwidth, which at zero noise is set by the prior and window design, not by the fit's error, so light, radiator-heated and low-energy houses never reach it; separately the fit's plausibility box (tau 0.1-200 h, UA 0.01-5) rejects exact-data fits on masonry, low-energy and slab-floor cells (not separated here: true parameters outside the box versus a fit that misses them).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "harness_path": "tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "value": 19,
+    "unit": "cells of 80 refused at zero bias (plus 24 plausibility aborts)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.32,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sysid:SystemIdentification.arm/step/_finish, sysid:adoption_decision, sysid:slab_ua_adoption_halfwidth",
+   "perturbation": {
+    "change": "--perturb: sysid.UA_ADOPTION_HALFWIDTH_BAR ln(1.10) -> ln(1.20) in memory",
+    "expected_direction": "down",
+    "observed_value": 2
+   },
+   "metric_definition": "preset cells whose exact-plant, noise-free sysid experiment completes and adoption_decision refuses (80 = 4 structures x 5 eras x 2 emitters x 2 pump sizes)",
+   "phenomenon_property": "A sysid experiment the tree arms on a declared plant can adopt its own exact answer: at zero bias and zero noise the gate admits and the plausibility box contains the fit.",
+   "seam_rule": "grep -n \"UA_ADOPTION_HALFWIDTH_BAR\\|plausible bounds\\|def adoption_decision\" custom_components/heatpump_optimizer/sysid.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "value": "null_admitted=37 of 80",
+    "note": "the same drive admits exact fits on 37 cells (e.g. heavier pre-1980 houses), so the drive can admit"
+   },
+   "leave_one_out": {
+    "cells": 80,
+    "min": 0,
+    "max": 1,
+    "drop_most_favourable": 18
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py --perturb",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py (D14-s3's light_new rows: hw 0.1446 at every zero-bias source)"
+   ],
+   "proposed_fix_scope": "sysid.py: arm only where the declared plant's zero-noise half-width clears the bar and its parameters lie in the plausibility box (refuse at arm time with a reason), or size the window/step so they do; widen the box to the presets' own range.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P5"
+  },
+  {
+   "id": "D12-s3-81",
+   "scope": "D12-s3",
+   "step": "D12.M4",
+   "title": "Grid-fee bounds are SEK numbers: a 0.05 EUR/kWh fee is unenterable in HUF, ISK, JPY and KRW",
+   "severity": "medium",
+   "claim": "A 0.05 EUR/kWh transfer fee converted into each of 12 instance currencies draws 8 blocking verdicts across 4 currencies (HUF, ISK, JPY, KRW): the rules text is refused as implausible (HUF, KRW), the fixed-fee field's selector caps it at 5 in any currency (all four), and an entity-mode fee raises the grid_fee_magnitude repair (HUF, KRW); SEK, EUR, NOK and DKK draw 0.",
+   "mechanism": "grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0 (read by spec_problem and coordinator._audit_grid_fee) and the grid_fee_fixed NumberSelector max 5 are fixed numbers sized for SEK, while the same widget's unit and the repair text follow hass.config.currency.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "harness_path": "tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "value": 8,
+    "unit": "blocking verdicts (3 seams x 12 currencies); 4 currencies",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact given the stated exchange-rate table",
+    "load1": 2.07,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.grid_fee:spec_problem; heatpump_optimizer.config_flow:_page_schema (grid_fees page, grid_fee_fixed selector); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._audit_grid_fee",
+   "perturbation": {
+    "change": "--perturb: IMPLAUSIBLE_FEE_SEK_PER_KWH 10 -> 1e6 in memory (grid_fee and the coordinator's imported copy)",
+    "expected_direction": "down",
+    "observed_value": 4
+   },
+   "metric_definition": "seam verdicts refusing or capping a 0.05 EUR/kWh fee expressed in each of 12 currencies at a stated rate table (rules refusal, fixed selector max, repair raised)",
+   "phenomenon_property": "Every magnitude bound on a money field scales with the instance currency the field is labelled in, so a fee that is ordinary in that currency is accepted without a repair.",
+   "seam_rule": "grep -n \"IMPLAUSIBLE_FEE_SEK_PER_KWH\\|_number(0, 5, 0.01\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "value": "null_blocked=0 of 4 (SEK, EUR, NOK, DKK)",
+    "note": "the currencies the constants were sized for"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --perturb",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --fee 0.03"
+   ],
+   "proposed_fix_scope": "grid_fee.py/config_flow.py/coordinator.py: derive the implausibility bound and the fixed-fee selector max from the instance currency (a per-currency scale, or a bound relative to the published spot prices) rather than SEK constants.",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8"
+  },
+  {
+   "id": "D6-s1-81",
+   "scope": "D6-s1",
+   "step": "D6.M1",
+   "title": "README's SEK currency fallback is unreachable under Home Assistant core, which defaults Config.currency to EUR",
+   "severity": "low",
+   "claim": "README.md says money is labelled 'SEK when the instance has none', but resolve_currency returns FALLBACK_CURRENCY for 0 of 2 Home Assistant core versions (2025.2.0, hacs.json's minimum, and 2026.2.3): core's Config.__init__ sets currency 'EUR', so an instance that never chose a currency is labelled EUR; only the test stub (FakeHass, currency 'SEK') produces SEK.",
+   "mechanism": "currency.resolve_currency falls back only on a falsy hass.config.currency; HA core initialises it to 'EUR' and validates a configured value, so the fallback and the README/docstring rationale describe the test double, not the counterpart.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+    "harness_path": "tools/audit/round9/D6/leads/l4_currency_fallback.py",
+    "value": 0,
+    "unit": "HA core versions (of 2) reaching the SEK fallback",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "reads HA core wheels fetched with pip download --no-deps into a mktemp root (or --wheels DIR)",
+    "tolerance": "exact",
+    "load1": 1.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.currency:resolve_currency, fed HA core homeassistant/core_config.py:Config.__init__'s currency default (AST-read from the wheel)",
+   "perturbation": {
+    "change": "--perturb: currency.resolve_currency replaced in memory by lambda hass: FALLBACK_CURRENCY",
+    "expected_direction": "up",
+    "observed_value": 2
+   },
+   "metric_definition": "HA core versions for which resolve_currency on core's own Config.currency default returns FALLBACK_CURRENCY",
+   "phenomenon_property": "What the README and currency.py say an unconfigured instance shows is what Home Assistant core delivers, not what the test stub pins.",
+   "seam_rule": "grep -n \"FALLBACK_CURRENCY\\|SEK when the instance\" README.md custom_components/heatpump_optimizer/currency.py tests/harness.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+    "value": "stub_resolves_to=SEK",
+    "note": "tests/harness.py FakeHass pins currency SEK itself; the SEK label comes from the stub, not the fallback"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py --perturb"
+   ],
+   "proposed_fix_scope": "README.md line 450 and currency.py's docstring: state that the label is hass.config.currency (EUR on an instance that never set one); keep or drop the dead fallback deliberately.",
+   "files": [
+    "README.md",
+    "custom_components/heatpump_optimizer/currency.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "P11"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "(lead D0-s2, _comfort_terms, owner D2-s2) The plan-independent summer_warm overshoot constant (6435 single-zone, 10598 two-zone) does not cost the solver anything: production's plan is already a fixed point of a ftol 1e-12 polish in every summer_warm cell, priced and flat.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 24 --prices summer_typical,shoulder,flat --weather summer_warm --tz 0,1 --dhw 0,1  (D0-s2's harness, origin/handoff/audit-r9-find-B2; log tools/audit/round9/D2/leads/l4_summer_warm_polish.log)",
+   "value": "gap 0.0000 % and 0.0000 SEK in 12 of 12 cells (f 6435.62 / 10597.97 at 0 kWh space heating)"
+  },
+  {
+   "claim": "(lead D1-s2, async_diagnose_interval docstring, owner D5-s2) The docstring holds on the production transport: _diagnose_payload hands the live record over by reference, but _await_process pickles it into the worker, so a job's writes never reach the coordinator's record.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/leads/l4_diag_copy.py [--perturb]",
+   "value": "payload_is_live_record=1, leaked_writes=0 (in-thread transport perturbation: 1)"
+  },
+  {
+   "claim": "(lead D2-s1, forecast_free_heat NaN, owner D1-s5) No non-finite value reaches the free-heat forecast: nan/inf/-inf in any of 9 observation fields with a fire active yields a finite forecast; the scalar max() in _update_displacement is what absorbs a NaN demand. _space_demand_kw returns inf only for inf room/outdoor state, which InputReader never delivers (D1-s5 parsers_sweep: 0 non-finite of 102 hostile states).",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/l4_free_heat_nan.py [--perturb]",
+   "value": "nonfinite_forecast_cells=0 of 27 (NaN-propagating max perturbation: 1); space_demand_nonfinite=2 of 6 (inf inputs only)"
+  },
+  {
+   "claim": "(lead D14-s2, quick_setup.stored_answers, owner D4-s2) The buffer-tank read-back is the exact inverse of derive (a 'yes' writes 500 L and no valve), so keying it on buffer_is_store as the lead suggests would break it.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_quick_roundtrip.py [--perturb]",
+   "value": "roundtrip_mismatch=0 of 32 answer combos (store-keyed perturbation: 16, all buffer)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D2/leads/l4_zone_floor.py",
+  "tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+  "tools/audit/round9/D4/leads/l4_setup_labels.py",
+  "tools/audit/round9/D4/leads/l4_quick_roundtrip.py",
+  "tools/audit/round9/D5/leads/l4_diag_copy.py",
+  "tools/audit/round9/D1/leads/l4_free_heat_nan.py",
+  "tools/audit/round9/D12/leads/l4_fee_bound.py",
+  "tools/audit/round9/D6/leads/l4_currency_fallback.py"
+ ],
+ "converted": [
+  {
+   "raised_by": "D0-s1",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._comfort_terms",
+   "finding_id": "D2-s2-81"
+  },
+  {
+   "raised_by": "D4-s1",
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "describe_setup slots / rank_sensor_advisor labels",
+   "finding_id": "D4-s2-81"
+  },
+  {
+   "raised_by": "D14-s3",
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "SystemIdentification (light_new preset)",
+   "finding_id": "D2-s4-81"
+  },
+  {
+   "raised_by": "D14-s2",
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "grid_fee:IMPLAUSIBLE_FEE_SEK_PER_KWH",
+   "finding_id": "D12-s3-81"
+  },
+  {
+   "raised_by": "D14-s2",
+   "file": "custom_components/heatpump_optimizer/currency.py",
+   "symbol": "currency:FALLBACK_CURRENCY",
+   "finding_id": "D6-s1-81"
+  }
+ ],
+ "closed": [
+  {
+   "raised_by": "D0-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._comfort_terms",
+   "why": "owner D2-s2 (objective shape, D2.M3). Measured, non-finding: the constant costs nothing -- polish gap 0.0000 % in 12 summer_warm cells (see non_findings)."
+  },
+  {
+   "raised_by": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._terminal_cost",
+   "why": "owner D2-s2 already measured the terminal credit's sign and magnitude against a re-simulated continuation: ratio 0.997-1.123 over 6 cells including shoulder, 0 sign disagreements (D2-s2 non-finding, terminal_continuation.py)."
+  },
+  {
+   "raised_by": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._warm_start_starts docstring / coordinator._warm_seeded",
+   "why": "done by L1: D5-s2-51"
+  },
+  {
+   "raised_by": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "OptimizationResult.predicted_cost",
+   "why": "owner D2-s2 measured predicted_cost == sum(price*(P_space+P_dhw)*dt) on all 50 golden scenarios (cost_err 0, D2-s2 non-finding); README.md:488 claims only 'Cost of the optimized 24 h plan', which that identity verifies, not the executed day. The 23.28 vs 38.61 SEK day gap is receding-horizon realisation (D0-s3's own M6 non-finding: the loop buys 0.6-1.0 K of warmth the objective values)."
+  },
+  {
+   "raised_by": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "async_diagnose_interval / _diagnose_payload",
+   "why": "owner D5-s2 (comment accuracy). Measured, non-finding: the worker does get copies on the production transport, leaked_writes=0 (see non_findings)."
+  },
+  {
+   "raised_by": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "symbol": "ExternalHeatDetector.forecast_free_heat / optimizer.py HeatPumpOptimizer.optimize (np.clip of external_heat_kw)",
+   "why": "owner D1-s5 (external-input parsers). Measured, non-finding: nonfinite_forecast_cells=0 of 27; InputReader delivers no non-finite value (D1-s5 non-finding) (see non_findings)."
+  },
+  {
+   "raised_by": "D8-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "Optimizer._idle_action",
+   "why": "owner D8-s2 (climate recommended_power_kw via entity.commanded_power_kw). Covered by D8-s1-03: its property ('No entity attributes a power draw to the pump at a step the same action declares off') and fix scope (commanded_power_kw gates on heat_pump_on, shared with the climate attribute) include the idle action's power=min_electrical_power with heat_pump_on False; the fixer should add this seam to that finding's enumeration."
+  },
+  {
+   "raised_by": "D9-s2",
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "HeatPumpOptimizerSensorBase.__init_subclass__ scrub (_finite)",
+   "why": "owner D9-s2, who bounds it already: its non-findings put loop-thread work outside the advisor at entity_read 5.89 ms per read and 0.617 reference solves per cycle, and the retained series the scrub walks are bounded (accuracy deque maxlen 672); the scrub is a subset of that bounded read, so no cost finding exists above the owner's bound."
+  },
+  {
+   "raised_by": "D12-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "why": "owner D12-s2. Covered by D12-s2-03: its property ('power_normalized stay in [0,1] ... on every compressor kind') and fix scope (clamp to [0,1]) include the modulating -0.2, which its own null arm measured (minimum -0.2)."
+  },
+  {
+   "raised_by": "D12-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._idle_action",
+   "why": "owner D1-s2 (coordinator consumers). Not converted: the idle branch is reachable in production only when the wall clock steps back more than one step between _solve_anchor (now floored to the forecast grid) and get_current_action's only caller (coordinator.py:5074, right after the solve); the entity side of the same fact is D8-s1-03's property. Not measured here."
+  },
+  {
+   "raised_by": "D12-s3",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._build_data_dict",
+   "why": "owner D1-s2. Not converted: every published surface of these three keys gates on reading_ok (the dhw/buffer/slab sensors' _reading_key, climate._measured, battery.label_measured #282), reading_ok is published in the same data dict, and the card reads entity states only; the lead names no reader that shows them unflagged. Not measured here."
+  },
+  {
+   "raised_by": "D14-s2",
+   "file": "custom_components/heatpump_optimizer/quick_setup.py",
+   "symbol": "quick_setup:stored_answers",
+   "why": "owner D4-s2. Measured, non-finding: derive/stored_answers round-trip mismatch 0 of 32 (see non_findings)."
+  },
+  {
+   "raised_by": "D14-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_multi_start_minimize / _lbfgsb_restart",
+   "why": "owner D0-s1. Not a production claim: the ABNORMAL terminations are a challenger's at ftol 1e-12; production runs ftol 1e-6, whose stop-rule residue is D0-s2-01's finding and D0-s1's stoprule_ab non-finding (not price-attributable in aggregate)."
+  }
+ ]
+}

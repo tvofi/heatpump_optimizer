@@ -1,0 +1,137 @@
+# Round 9 — D7-s3 (D7)
+
+Rendered by the box B5 thread from the JSON the seat returned (`tools/audit/round9/reports-B5.json`), because the seat's own write of this file was refused by its harness. The content is the seat's; nothing was added, verified or judged.
+
+- baseline: `1936d5ca72a06556eeed4e8e5bf3dea520e517e1`
+- exposure: none: no docs/ and no GitHub was read
+
+## Method and coverage
+
+### D7.M6 — deep
+
+All 66 production files of the D7-s3 cell were covered. reach.py builds an AST reachability census from HA roots over 2649 nodes (functions, classes, constants, methods, @property getters): 9 unreached, 0 dead functions, 0 dead constants. sentinel.py wraps the candidates and 6 live sibling controls, then drives 6 scenarios (12 full _async_update_data cycles, solved in-process, 450 entities, 2808 entity-attribute reads): 10 dead members with 0 production calls, 6 of 6 live controls fire, and --perturb moves the count 0->1. screen.py measures structure.py dead_methods at 0, then 5 / 1 / 11 under its two rule perturbations. unreachable_stmts.py counts 0 unreachable statements and 0 constant-false tests; --inject raises the count to 1.
+
+## Findings
+
+### D7-s3-01 — 10 class members are reached by no production code; 9 are kept only by tests that pin them
+
+- step: D7.M6; severity: low; class: hygiene; class_guess: new
+- instrumented symbol: `heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.next_optimization (plus the other 9 members; the reachability census reads every production module's AST)`
+- metric: Members that no load inside HA-rooted live production code reaches (reach.py), and the dead candidates whose immediate caller frame is under custom_components/ during the drive (sentinel.py).
+
+At 1936d5ca, 10 class members in custom_components/heatpump_optimizer are unreachable from any live production code path, and no production frame calls them across 12 full coordinator cycles plus every entity attribute read. The 10: HeatPumpOptimizerCoordinator.last_optimization, next_optimization, current_action and floor_return_temp; DefrostDerate.measured and samples; InputHealth.healthy; IrradianceSeries.start; OpenMeteoSolar.last_success; _Horizon.weather.
+
+```json
+{
+  "id": "D7-s3-01",
+  "scope": "D7-s3",
+  "step": "D7.M6",
+  "title": "10 class members are reached by no production code; 9 are kept only by tests that pin them",
+  "severity": "low",
+  "claim": "At 1936d5ca, 10 class members in custom_components/heatpump_optimizer are unreachable from any live production code path, and no production frame calls them across 12 full coordinator cycles plus every entity attribute read. The 10: HeatPumpOptimizerCoordinator.last_optimization, next_optimization, current_action and floor_return_temp; DefrostDerate.measured and samples; InputHealth.healthy; IrradianceSeries.start; OpenMeteoSolar.last_success; _Horizon.weather.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/reach.py --list && PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/sentinel.py",
+    "harness_path": "tools/audit/round9/D7/s3/reach.py",
+    "value": "dead_reachability_total=9; sentinel dead_members_called_from_production=0 of 10 (live_controls_called=6 of 6, update_cycles_completed=12)",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B5 cloud container (linux), venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the numbers are counts and contention does not affect them",
+    "tolerance": "exact",
+    "load1": 1.55,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.next_optimization (plus the other 9 members; the reachability census reads every production module's AST)",
+  "perturbation": {
+    "change": "One-line production edit: sensor.NextOptimizationSensor.native_value returns _as_datetime(self.coordinator.next_optimization), compiled under sensor.py's filename (sentinel.py --perturb). The static twin is reach.py --perturb-live next_optimization, which appends a live module-level load.",
+    "expected_direction": "up",
+    "observed_value": "sentinel dead_members_called_from_production 0 -> 1 (12 production calls); reach.py dead_reachability_total 9 -> 8 (-> 7 with --perturb-live measured as well)"
+  },
+  "metric_definition": "Members that no load inside HA-rooted live production code reaches (reach.py), and the dead candidates whose immediate caller frame is under custom_components/ during the drive (sentinel.py).",
+  "phenomenon_property": "Every class member defined in the integration is reached from a Home Assistant entry point by production code. A member that only tests read is dead production code, and the test that pins it pins nothing a user can observe.",
+  "seam_rule": "tools/audit/round9/D7/s3/reach.py --list (lists 9 of the 10; DefrostDerate.samples is kept alive in every name-based view by the AccuracyTracker.samples field collision, and only sentinel.py shows it dead)",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/features.py",
+    "tests/open_meteo.py"
+  ],
+  "proposed_fix_scope": "Delete the 10 members (44 lines). Delete or retarget their test pins: the 4 coordinator properties in features.py _T6_PROPERTY_PAIRS, whose comment claims each property fronts an attribute for an entity or a service, which is false for these four; the DefrostDerate.measured/samples checks, InputHealth.healthy at features.py:271, and open_meteo.py:253/431. Where a test needs the value, it can read the backing attribute or the published data key. Alternatively, wire a real production reader."
+}
+```
+
+### D7-s3-02 — structure.py dead_methods reads 0 while 9 members are dead: properties are skipped and bare-name loads count as references
+
+- step: D7.M6; severity: low; class: hygiene; class_guess: I4
+- instrumented symbol: `tests/structure.py:measure (dead_methods via is_property_getter and module_references)`
+- metric: structure.measure()['metrics']['dead_methods'], the ratchet's budgeted count of class-body functions whose name is never referenced in the package.
+
+tests/structure.py's budgeted dead_methods is 0 at 1936d5ca while the reachability census finds 9 dead members. Two rules hide them: is_property_getter excludes every @property (5 members hidden), and module_references counts bare Name loads, such as the local variable `measured` (17 loads), as references to a method (1 member hidden). The ratchet therefore cannot hold these members at zero.
+
+```json
+{
+  "id": "D7-s3-02",
+  "scope": "D7-s3",
+  "step": "D7.M6",
+  "title": "structure.py dead_methods reads 0 while 9 members are dead: properties are skipped and bare-name loads count as references",
+  "severity": "low",
+  "claim": "tests/structure.py's budgeted dead_methods is 0 at 1936d5ca while the reachability census finds 9 dead members. Two rules hide them: is_property_getter excludes every @property (5 members hidden), and module_references counts bare Name loads, such as the local variable `measured` (17 loads), as references to a method (1 member hidden). The ratchet therefore cannot hold these members at zero.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/screen.py [--no-property-exclusion] [--attribute-only]",
+    "harness_path": "tools/audit/round9/D7/s3/screen.py",
+    "value": "dead_methods=0 baseline; 5 with --no-property-exclusion; 1 with --attribute-only; 11 with both (reach.py's 9 plus climate hvac_mode/preset_mode, HA-read properties that HA_CONVENTION_METHODS does not list)",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B5 cloud container (linux), venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the numbers are counts and contention does not affect them",
+    "tolerance": "exact",
+    "load1": 1.58,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "tests/structure.py:measure (dead_methods via is_property_getter and module_references)",
+  "perturbation": {
+    "change": "In memory, mock.patch.object(structure, 'is_property_getter', lambda n: False) and/or patch structure.module_references to count only Attribute loads and getattr literals",
+    "expected_direction": "up",
+    "observed_value": "0 -> 5 / 1 / 11"
+  },
+  "metric_definition": "structure.measure()['metrics']['dead_methods'], the ratchet's budgeted count of class-body functions whose name is never referenced in the package.",
+  "phenomenon_property": "The ratchet's dead-member count equals the number of class members that no production load can reach. A member reached only by a same-named local variable, or a @property that nothing reads, must count as dead.",
+  "seam_rule": "tools/audit/round9/D7/s3/screen.py --no-property-exclusion --attribute-only",
+  "stop_rule_class": "hygiene",
+  "class_guess": "I4",
+  "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+  ],
+  "proposed_fix_scope": "In structure.py's method screen: count only Attribute loads, getattr literals and import names for members, not bare Name loads; and screen @property getters too, adding the HA-read property names (hvac_mode, preset_mode, available, device_info and the like) to HA_CONVENTION_METHODS. Land this after or together with D7-s3-01's deletions so dead_methods stays at 0."
+}
+```
+
+## Non-findings
+
+- No dead top-level functions or constants under reachability from HA roots, in agreement with the ratchet's dead_top_level_symbols=0. — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/reach.py` → dead_func=0, dead_const=0
+- Only 3 top-level symbols are kept alive solely by bound_references' untyped x.N arm (async_register_worker_shutdown, async_register_frontend, async_register_services), and all 3 are genuinely reached through _async_lazy module handles. — `scratch check: structure.bound_references with the arm-4 line removed, compared against the unmodified set` → 3 symbols, all live
+- No statement follows a return/raise/continue/break in the same block, and no if/while/ifexp tests a falsy literal, anywhere in the integration. The detector fires under --inject. — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/unreachable_stmts.py [--inject]` → unreachable_statements=0, constant_false_tests=0 (--inject: 1)
+- The dynamic getattr(const, f'CONF_{..}') / f'DEFAULT_{..}' tables in thermal_model.py leave no CONF_/DEFAULT_ constant dead once the literal tables are resolved. — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s3/reach.py` → dead_const=0
+
+## Harnesses
+
+- `tools/audit/round9/D7/s3/reach.py`
+- `tools/audit/round9/D7/s3/sentinel.py`
+- `tools/audit/round9/D7/s3/screen.py`
+- `tools/audit/round9/D7/s3/unreachable_stmts.py`
+
+## Unfinished
+
+None.
+
+## Leads
+
+- owner unknown: `tests/nightly_ha.py` `line 1274 (return inside finally, A4 recovery block)` — A `return` inside a `finally` block (SyntaxWarning on Python 3.14) swallows any exception still in flight from the try, including CancelledError, whenever the recovery refresh raises. The nightly A4 check can then end without re-raising a failure.

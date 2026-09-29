@@ -1,0 +1,357 @@
+{
+ "inventory_per_module": {
+  "defrost": 72,
+  "flow_lift": 15,
+  "grid_fee": 62,
+  "optimizer": 522,
+  "price_model": 109,
+  "sysid": 182,
+  "tariff": 94,
+  "thermal_model": 227
+ },
+ "inventory_size": 1283,
+ "kind_weights": {
+  "BOOLOP": 2.0,
+  "CLAMP_DROP": 3.0,
+  "CONST": 2.0,
+  "EXCEPT_RAISE": 2.0,
+  "GUARD_OFF": 2.0,
+  "NP_CLIP": 3.0,
+  "RAISE_DEL": 2.0,
+  "RETURN_DEL": 1.5
+ },
+ "module_weights": {
+  "defrost": 2.0,
+  "flow_lift": 2.0,
+  "grid_fee": 2.5,
+  "optimizer": 3.0,
+  "price_model": 2.5,
+  "sysid": 2.0,
+  "tariff": 3.0,
+  "thermal_model": 3.0
+ },
+ "per_module": 4,
+ "pool": [
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "id": "M01",
+   "kind": "GUARD_OFF",
+   "line": 877,
+   "module": "optimizer",
+   "new": "    if False:",
+   "old": "    if n_steps == 0:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "id": "M02",
+   "kind": "GUARD_OFF",
+   "line": 6410,
+   "module": "optimizer",
+   "new": "        if False:",
+   "old": "        if hi <= lo:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "id": "M03",
+   "kind": "BOOLOP",
+   "line": 3739,
+   "module": "optimizer",
+   "new": "                if two_zone or result.upper_temp_trajectory",
+   "old": "                if two_zone and result.upper_temp_trajectory",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "id": "M04",
+   "kind": "GUARD_OFF",
+   "line": 816,
+   "module": "optimizer",
+   "new": "    if False:",
+   "old": "    if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "id": "M05",
+   "kind": "CLAMP_DROP",
+   "line": 2132,
+   "module": "thermal_model",
+   "new": "            design_power = p.max_electrical_power * (p.cop_nominal)",
+   "old": "            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)",
+   "weight": 9.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "id": "M06",
+   "kind": "RETURN_DEL",
+   "line": 1737,
+   "module": "thermal_model",
+   "new": "        pass",
+   "old": "        return self.params.dhw_draw_power * pattern[hour_idx]",
+   "weight": 4.5
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "id": "M07",
+   "kind": "NP_CLIP",
+   "line": 1360,
+   "module": "thermal_model",
+   "new": "        np.asarray(target)",
+   "old": "        np.clip(target, current - trust_region, current + trust_region)",
+   "weight": 9.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "id": "M08",
+   "kind": "CLAMP_DROP",
+   "line": 1904,
+   "module": "thermal_model",
+   "new": "                (floor - new_temp) * C_dhw / (dt_hours)",
+   "old": "                (floor - new_temp) * C_dhw / max(dt_hours, 1e-6)",
+   "weight": 9.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "id": "M09",
+   "kind": "GUARD_OFF",
+   "line": 246,
+   "module": "tariff",
+   "new": "        if False:",
+   "old": "        if key != self._window_key:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "id": "M10",
+   "kind": "RETURN_DEL",
+   "line": 125,
+   "module": "tariff",
+   "new": "        pass",
+   "old": "        return self.price_per_kw / float(self.peaks_averaged)",
+   "weight": 4.5
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "id": "M11",
+   "kind": "CLAMP_DROP",
+   "line": 313,
+   "module": "tariff",
+   "new": "        del ranked[(tariff.peaks_averaged * 2):]",
+   "old": "        del ranked[max(tariff.peaks_averaged * 2, 6):]",
+   "weight": 9.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "id": "M12",
+   "kind": "BOOLOP",
+   "line": 136,
+   "module": "tariff",
+   "new": "        if self.weekdays_only or when.weekday() >= 5:",
+   "old": "        if self.weekdays_only and when.weekday() >= 5:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "id": "M13",
+   "kind": "RETURN_DEL",
+   "line": 202,
+   "module": "grid_fee",
+   "new": "    pass",
+   "old": "    return FeeRule(rate=rate, months=months, days=days, hours=hours)",
+   "weight": 3.75
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "id": "M14",
+   "kind": "GUARD_OFF",
+   "line": 324,
+   "module": "grid_fee",
+   "new": "        if False:",
+   "old": "        if self.mode == MODE_ENTITY:",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "id": "M15",
+   "kind": "RETURN_DEL",
+   "line": 356,
+   "module": "grid_fee",
+   "new": "    pass",
+   "old": "    return worst, source",
+   "weight": 3.75
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "id": "M16",
+   "kind": "GUARD_OFF",
+   "line": 157,
+   "module": "grid_fee",
+   "new": "        if False:",
+   "old": "        if self.hours is not None:",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "id": "M17",
+   "kind": "BOOLOP",
+   "line": 355,
+   "module": "price_model",
+   "new": "        if isinstance(qdays, list) or len(qdays) == 2:",
+   "old": "        if isinstance(qdays, list) and len(qdays) == 2:",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "id": "M18",
+   "kind": "GUARD_OFF",
+   "line": 622,
+   "module": "price_model",
+   "new": "            if False:",
+   "old": "            if not isinstance(row, dict):",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "id": "M19",
+   "kind": "GUARD_OFF",
+   "line": 415,
+   "module": "price_model",
+   "new": "    if False:",
+   "old": "    if known_count >= n_steps:",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "id": "M20",
+   "kind": "EXCEPT_RAISE",
+   "line": 371,
+   "module": "price_model",
+   "new": "                raise",
+   "old": "                pass",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "id": "M21",
+   "kind": "GUARD_OFF",
+   "line": 1175,
+   "module": "sysid",
+   "new": "            if False:",
+   "old": "            if price > cutoff:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "id": "M22",
+   "kind": "GUARD_OFF",
+   "line": 1657,
+   "module": "sysid",
+   "new": "        if False:",
+   "old": "        if sigma2 > 0.0:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "id": "M23",
+   "kind": "GUARD_OFF",
+   "line": 1302,
+   "module": "sysid",
+   "new": "            if False:",
+   "old": "            if sized is None:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "id": "M24",
+   "kind": "CLAMP_DROP",
+   "line": 1563,
+   "module": "sysid",
+   "new": "        prior_sd = 0.5 / (self.config.thermal_mass_prior)",
+   "old": "        prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1)",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "id": "M25",
+   "kind": "BOOLOP",
+   "line": 722,
+   "module": "defrost",
+   "new": "            observed=self._observed or not self._dark,",
+   "old": "            observed=self._observed and not self._dark,",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "id": "M26",
+   "kind": "BOOLOP",
+   "line": 660,
+   "module": "defrost",
+   "new": "            if delta is not None or delta > 0:",
+   "old": "            if delta is not None and delta > 0:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "id": "M27",
+   "kind": "BOOLOP",
+   "line": 480,
+   "module": "defrost",
+   "new": "        if duty is not None or duty_counts is not None:",
+   "old": "        if duty is not None and duty_counts is not None:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "id": "M28",
+   "kind": "EXCEPT_RAISE",
+   "line": 475,
+   "module": "defrost",
+   "new": "                    raise",
+   "old": "                    return None",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "id": "M29",
+   "kind": "RETURN_DEL",
+   "line": 110,
+   "module": "flow_lift",
+   "new": "    pass",
+   "old": "    return curve if np.isfinite(curve) else None",
+   "weight": 3.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "id": "M30",
+   "kind": "GUARD_OFF",
+   "line": 107,
+   "module": "flow_lift",
+   "new": "    if False:",
+   "old": "    if not np.isfinite(outdoor_temp) or not np.isfinite(indoor_target):",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "id": "M31",
+   "kind": "GUARD_OFF",
+   "line": 210,
+   "module": "flow_lift",
+   "new": "        if False:",
+   "old": "        if not np.isfinite(bias) or samples < 0:",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "id": "M32",
+   "kind": "NP_CLIP",
+   "line": 179,
+   "module": "flow_lift",
+   "new": "            np.asarray(blended)",
+   "old": "            np.clip(blended, -FLOW_BIAS_CLAMP_K, FLOW_BIAS_CLAMP_K)",
+   "weight": 6.0
+  }
+ ],
+ "seed": 90302
+}
