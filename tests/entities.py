@@ -10443,92 +10443,153 @@ for _plat, _key in (
         _split_name,
     )
 
-# --- D8-s3-01 (#1668): an entity family sorts as one run under the name sort
+# --- N-name-sort barrier (#1760): one declared family list, one check -------
 #
-# The D8 harness measured the accuracy family (the sensor plus its button)
-# and the lifetime energy meters split across the whole-roster name sort, in
-# both languages: half of a family under one letter, the rest under another.
-# #945 gave Cost/Plan/Learning name prefixes for the same reason; these two
-# families never got theirs. The names now lead with the family token (en)
-# or its sv counterpart, while the entity ids and translation keys stay put
-# (existing installs keep their ids through the registry). Both sides are
-# derived: the families from the production classes, the order from the
-# shipped translation files. Members homed in another family (the DHW pair
-# in the meters) are transparent, as the D8 harness counted them.
-_R83_SV = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
-_R83_FAMILIES = {
-    "accuracy": lambda e: isinstance(
-        e, (sensor.PredictionAccuracySensor, button.DiagnoseIntervalButton)
-    ),
-    "energy_meters": lambda e: isinstance(e, sensor._AccumulatingSensor),
-    # The second family whose members are transparent in the meters' runs.
-    "dhw": lambda e: isinstance(e, (_entity_base.DHWEntityMixin, sensor.DHWHeavyDaySensor)),
+# RCA-BULK-4: entity family membership was declared nowhere in production, so
+# each round's finder invented its own family list and each fix pinned exactly
+# that list. Eight instances: #174, R2 D8-04, #797, #945, #1227, #1333, #1334
+# and #1668. Fixes split families another list held together (#945 took
+# key-family splits in English from 1 to 6, which became #1227; #1733 split
+# `cost` and edited a test table to accept the split), and families nobody
+# listed stayed split (`away` 36 releases, sv `compressor` 105).
+#
+# The declaration is production's (const.ENTITY_FAMILY_OVERRIDES): a family is
+# a translation key's lead token -- the token the suggested object id is
+# already built from -- plus explicit overrides for members homed elsewhere.
+# This one check replaces the per-finder name-sort contiguity pins: every
+# declared family of two or more members forms ONE contiguous run in the
+# English and Swedish name sorts, each language under one collation (sv sorts
+# a-ring < a-umlaut < o-umlaut after z; a raw codepoint sort puts ä before
+# å). It reads the declared table, not a roster supplied here, and the
+# anchors refuse a vacuous pass.
+_FAM_ROWS = [
+    (
+        _plat,
+        _key,
+        _ENTITY_STRINGS[_plat][_key]["name"],
+        _sv_entities.get(_plat, {}).get(_key, {}).get("name", f"~{_key}"),
+    )
+    for _plat, _ents in _ENTITY_STRINGS.items()
+    for _key in _ents
+]
+_FAM_SV_TAIL = str.maketrans({"å": "z\u0001", "ä": "z\u0002", "ö": "z\u0003"})
+_FAM_COLLATION = {
+    "en": lambda _n: _n.casefold(),
+    "sv": lambda _n: _n.casefold().translate(_FAM_SV_TAIL),
 }
-_r83_rows: list[dict] = []
-for _p in integration.PLATFORM_LIST:
-    _plat = str(_p)
-    _mod = _importlib.import_module(f"heatpump_optimizer.{_plat}")
-    for _e in collect(_mod):
-        _key = getattr(_e, "_attr_translation_key", None)
-        _r83_rows.append({
-            "e": _e,
-            "en": _ENTITY_STRINGS.get(_plat, {}).get(_key, {}).get("name", ""),
-            "sv": _R83_SV.get(_plat, {}).get(_key, {}).get("name", ""),
-        })
-R.check("the name-sort roster is populated (anchor)", len(_r83_rows) > 10,
-        f"{len(_r83_rows)} entities")
-_r83_members = {
-    fam: [i for i, r in enumerate(_r83_rows) if pred(r["e"])]
-    for fam, pred in _R83_FAMILIES.items()
-}
-R.check("the accuracy family is the sensor plus the button (anchor)",
-        len(_r83_members["accuracy"]) == 2, repr(_r83_members["accuracy"]))
-
-
-def _r83_runs(order: list[int], members: list[int]) -> int:
-    """Contiguous runs of ``members`` across ``order`` (the D8 counting)."""
-    pos = sorted(order.index(i) for i in members)
-    if len(pos) < 2:
-        return 0
-    return 1 + sum(1 for a, b in zip(pos, pos[1:]) if b != a + 1)
-
-
-def _r83_own_runs(fam: str, field: str) -> int:
-    """The family's own runs: shared members transparent, as D8 counted."""
-    members = _r83_members[fam]
-    shared = {
-        i
-        for i in members
-        for f2, m2 in _r83_members.items()
-        if f2 != fam and i in m2
-    }
-    own = [i for i in members if i not in shared]
-    order = sorted(range(len(_r83_rows)), key=lambda i: _r83_rows[i][field].casefold())
-    return _r83_runs([i for i in order if i not in shared], own)
-
-
-for _fam in ("accuracy", "energy_meters"):
-    for _field in ("en", "sv"):
-        R.check(
-            f"the {_fam} family sorts as one run by its {_field} name (#1668)",
-            _r83_own_runs(_fam, _field) == 1,
-            f"{_r83_own_runs(_fam, _field)} runs over "
-            f"{sorted(_r83_rows[i][_field] for i in _r83_members[_fam])}",
-        )
-# Null control: undoing the button's rename must re-split the accuracy
-# family -- the check measures the sort, it does not pass because the files
-# were touched.
-_R83_MUTATED = [dict(r) for r in _r83_rows]
-for _row in _R83_MUTATED:
-    if isinstance(_row["e"], button.DiagnoseIntervalButton):
-        _row["en"] = "Diagnose Last Interval"
-_mut_order = sorted(range(len(_R83_MUTATED)), key=lambda i: _R83_MUTATED[i]["en"].casefold())
-_mut_members = [i for i, r in enumerate(_R83_MUTATED)
-                if isinstance(r["e"], (sensor.PredictionAccuracySensor, button.DiagnoseIntervalButton))]
+_FAM_OVERRIDES = const.ENTITY_FAMILY_OVERRIDES
+_FAM_UNKNOWN = sorted(
+    _key for _key in _FAM_OVERRIDES if _key not in {k for _, k, _, _ in _FAM_ROWS}
+)
 R.check(
-    "undoing the rename re-splits the accuracy family (null control)",
-    _r83_runs(_mut_order, _mut_members) == 2,
-    f"{_r83_runs(_mut_order, _mut_members)} runs on the pre-fix name",
+    "every family override names a shipped translation key (anchor)",
+    not _FAM_UNKNOWN,
+    ", ".join(_FAM_UNKNOWN),
+)
+
+
+def _fam_token(_key: str) -> str:
+    """The declared family of a translation key: override, else lead token."""
+    return _FAM_OVERRIDES.get(_key, _key.split("_")[0])
+
+
+def _fam_runs(order: list, members: set) -> int:
+    """Contiguous runs of ``members`` across ``order`` (the D8 counting)."""
+    _pos = [i for i, _row in enumerate(order) if _row in members]
+    if len(_pos) < 2:
+        return 0
+    return 1 + sum(1 for _a, _b in zip(_pos, _pos[1:]) if _b != _a + 1)
+
+
+_FAM_MEMBERS: dict[str, set] = {}
+for _plat, _key, _en, _sv in _FAM_ROWS:
+    _FAM_MEMBERS.setdefault(_fam_token(_key), set()).add((_plat, _key))
+_FAM_FAMILIES = {_t: _m for _t, _m in _FAM_MEMBERS.items() if len(_m) >= 2}
+R.check(
+    "the family-check roster is populated (anchor)",
+    len(_FAM_ROWS) >= 60,
+    f"{len(_FAM_ROWS)} names",
+)
+R.check(
+    "the declaration resolves to a real roster of families (anchor)",
+    len(_FAM_FAMILIES) >= 10,
+    f"{len(_FAM_FAMILIES)} families of 2 or more",
+)
+R.check(
+    "the prediction family is the accuracy sensor plus its button (anchor)",
+    _FAM_FAMILIES.get("prediction")
+    == {("sensor", "prediction_accuracy"), ("button", "diagnose_last_interval")},
+    str(sorted(_FAM_FAMILIES.get("prediction", ()))),
+)
+# The production classes agree with the declaration: every accumulating
+# sensor sits in a declared family, so a new meter must be declared somewhere
+# rather than landing in an undeclared singleton this check would never see.
+# The declaration is authoritative; this anchor stops the classes from
+# drifting away from it.
+_FAM_ACC_OUTSIDE = sorted(
+    s._attr_translation_key
+    for s in sensors
+    if isinstance(s, sensor._AccumulatingSensor)
+    and s._attr_translation_key
+    not in {k for _m in _FAM_FAMILIES.values() for _p, k in _m}
+)
+R.check(
+    "every accumulating sensor sits in a declared family (#1668's classes)",
+    not _FAM_ACC_OUTSIDE,
+    ", ".join(_FAM_ACC_OUTSIDE),
+)
+
+# (language, family token) the shipped roster sorts split. Two are live and
+# neither was ever ruled on: `away` in both languages (split 36 releases) and
+# sv `compressor` (105). #1760's open owner gate asks tvofi to rename or
+# allow them; until that lands these entries preserve the shipped names. The
+# key is language and token together, so a split in any other family, or in
+# either of these in its other language, still fails -- and a rename by the
+# owner deletes its entry and the check starts pinning contiguity there.
+_FAM_SPLIT_ALLOWED = frozenset(
+    {("en", "away"), ("sv", "away"), ("sv", "compressor")}
+)
+_FAM_SPLIT = []
+for _lang in ("en", "sv"):
+    _name_at = 2 if _lang == "en" else 3
+    _order = [
+        (_p, _k)
+        for _p, _k, *_ in sorted(
+            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_r[_name_at])
+        )
+    ]
+    for _tok, _m in sorted(_FAM_FAMILIES.items()):
+        _runs_n = _fam_runs(_order, _m)
+        if _runs_n > 1 and (_lang, _tok) not in _FAM_SPLIT_ALLOWED:
+            _names = sorted(
+                _r[_name_at] for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
+            )
+            _FAM_SPLIT.append(f"{_lang} {_tok!r}: {_runs_n} runs: {_names}")
+R.check(
+    "every declared family sorts as one contiguous run in en and sv (#1760)",
+    not _FAM_SPLIT,
+    "; ".join(_FAM_SPLIT),
+)
+# Null control: the counter measures the sort, not the files' mtime. Renaming
+# one family member in memory must re-split its family -- the same perturbation
+# the RCA measured (en key-family splits 2 -> 3).
+_FAM_PERTURBED = [
+    (_p, _k, "Observed COP" if _en == "Learning Observed COP" else _en, _sv)
+    for _p, _k, _en, _sv in _FAM_ROWS
+]
+_FAM_PERT_ORDER = [
+    (_p, _k)
+    for _p, _k, *_ in sorted(
+        _FAM_PERTURBED, key=lambda _r: _FAM_COLLATION["en"](_r[2])
+    )
+]
+_FAM_PERT_LEARNING = {
+    (_p, _k) for _p, _k, _en, _sv in _FAM_ROWS if _fam_token(_k) == "learning"
+}
+R.check(
+    "renaming one member re-splits its family (null control)",
+    _fam_runs(_FAM_PERT_ORDER, _FAM_PERT_LEARNING) > 1,
+    f"{_fam_runs(_FAM_PERT_ORDER, _FAM_PERT_LEARNING)} runs on the perturbed roster",
 )
 
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration
@@ -10824,72 +10885,6 @@ for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
         f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
         len(_lead_token(_prefix_names)) >= 3,
         f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
-    )
-
-# A lead token is necessary, not sufficient: the finding's claim is a BLOCK
-# count (`families_split_name_sv` 4 against en 1), and the capacity-tariff
-# pair splits without ever losing a token -- its spot price, "Kostnad elpris
-# (nu)", shares the "Kostnad " lead but sorts BETWEEN the pair ("Kostnad
-# effektmarginal" < "Kostnad elpris (nu)" < "Kostnad månatligt toppeffekt").
-# "Kostnad aktuellt elpris" sorts ahead of both, so the pair stays whole.
-# Reproduce the harness's own block rule -- a family is whole when its
-# members occupy one contiguous run of the name-sorted view -- over the same
-# roster, with the harness's own families (PREFIX_FAMILIES plus the two the
-# claim names by hand: the card's plan family and this tariff_pair).
-_sv_rows = sorted(
-    (_body["name"], _plat, _key)
-    for _plat, _ents in _sv_entities.items()
-    for _key, _body in _ents.items()
-)
-_sv_seq = [(_plat, _key) for _name, _plat, _key in _sv_rows]
-
-
-def _runs(_members):
-    """Runs _members fall into in the sv name order -- the harness's blocks."""
-    _pos = [i for i, _row in enumerate(_sv_seq) if _row in _members]
-    if len(_pos) < 2:
-        return 0
-    _runs_n = 1
-    for _a, _b in zip(_pos, _pos[1:]):
-        if _b != _a + 1:
-            _runs_n += 1
-    return _runs_n
-
-
-for _label, _members in (
-    (
-        "card's plan family",
-        tuple(
-            ("sensor", _k)
-            for _k, _prefix in _CLUSTER_PREFIXES["sensor"].items()
-            if _prefix == "Plan "
-        ),
-    ),
-    (
-        "capacity-tariff pair",
-        (("sensor", "cost_monthly_peak_power"), ("sensor", "cost_power_headroom")),
-    ),
-    *(
-        (
-            f"{_key_prefix}* family",
-            tuple(
-                sorted(
-                    (_plat, _key)
-                    for _plat, _ents in _sv_entities.items()
-                    for _key in _ents
-                    if _key.startswith(_key_prefix)
-                )
-            ),
-        )
-        for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_")
-    ),
-):
-    if len(set(_members)) < 2:
-        continue
-    R.check(
-        f"the Swedish {_label} keeps its members in one name-sorted run (#1334)",
-        _runs(set(_members)) == 1,
-        f"{_runs(set(_members))} run(s)",
     )
 
 # Belt-and-braces for the future: the four headline sensors advertise a

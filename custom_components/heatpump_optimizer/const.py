@@ -1530,3 +1530,27 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
     CONF_EXTERNAL_HEAT_ENTITY: FLUE_RANGE_C,
 }
 
+
+# --- Entity families (N-name-sort barrier, #1760) ---------------------------
+#
+# A family is a translation key's lead token -- the token the suggested
+# object id is already built from -- plus the explicit overrides below for
+# members homed elsewhere. tests/entities.py holds the one check this
+# declaration feeds: every family of two or more members must form one
+# contiguous run in the English and Swedish name sorts. Before this table
+# existed, family membership was declared nowhere, and eight fixes (#174,
+# R2 D8-04, #797, #945, #1227, #1333, #1334, #1668) each pinned its finder's
+# own list; two of them split a family another list held together. Moving an
+# entity between families is now a visible edit to this one table.
+ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {
+    # The accuracy readout sorts with its prediction sensor (#1668), not
+    # among the diagnose buttons' other neighbours.
+    "diagnose_last_interval": "prediction",
+    # The four lifetime meters left the Cost family: their names lead with
+    # the meters' own token so the name sort keeps them in one run (#1668);
+    # entity ids and translation keys are untouched.
+    "cost_total_heating": "lifetime",
+    "space_heating_cost": "lifetime",
+    "space_heating_energy": "lifetime",
+    "total_energy": "lifetime",
+}
