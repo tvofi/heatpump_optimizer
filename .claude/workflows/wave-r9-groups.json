@@ -380,11 +380,11 @@
     "R9-EG-B9"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-f1-coordinator-6",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+    "commit": "f88e6af8b609c674ae7fa87838b9f13cf50aaecb",
+    "last_step": "MERGED as #1767 at f88e6af8; fixes[] #1659 confirmed closed (P1 barrier census 95->0; round-2 head 929e5aa0 after the in-tree-S3/forecast-window repairs -- enumerator-run-from-export was an empty-set artifact)",
+    "next_step": "none; #1647 stays open as Part-of",
     "note_file": "handoff/round9/fix/resume/F1.6.md on handoff/r9-f1-coordinator-6",
     "review_branch": "handoff/r9-f1-coordinator-6-review",
     "review_note_file": "handoff/round9/fix/resume/F1.6-review.md on handoff/r9-f1-coordinator-6-review",
