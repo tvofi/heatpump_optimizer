@@ -1764,11 +1764,11 @@
         "R9-F8.3"
       ],
       "resume": {
-        "stage": "fixing",
+        "stage": "done",
         "branch": "handoff/r9-f7-entities-2",
-        "commit": "028630ac",
-        "last_step": "failing test pushed at 84d99a9b; fix commit 028630ac (the valve gate typed as a sensor-base subclass) on handoff/r9-f7-entities-2",
-        "next_step": "fixer.md steps 4-8 at the head, then the hand-off; R9-F7.4 follows its merge",
+        "commit": "4f8088e8f0099d0981712e62f9afa523a0c3ff0d",
+        "last_step": "MERGED as #1764 at 4f8088e8; fixes[] #1669 confirmed closed -- closed manually, the body's Fixes keyword sat in a code span; the close comment corrects the SHA",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F7.2.md on handoff/r9-f7-entities-2",
         "review_branch": "handoff/r9-f7-entities-2-review",
         "review_note_file": "handoff/round9/fix/resume/F7.2-review.md on handoff/r9-f7-entities-2-review",
@@ -3430,11 +3430,11 @@
         "R9-F1.5"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-eg-action-copy",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "5395394da9d8ee96ec256895504d2ae3f09d10fa",
+        "last_step": "MERGED as #1765 at 5395394d; fixes[] #1752 and #1753 confirmed closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/EG-B9.md on handoff/r9-eg-action-copy",
         "review_branch": "handoff/r9-eg-action-copy-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B9-review.md on handoff/r9-eg-action-copy-review",
