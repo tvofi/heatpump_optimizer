@@ -325,10 +325,10 @@ _readme_disabled = sorted(
     re.search(r"Disabled by default: (.*?)\.\n", README, re.S).group(1)
     .replace("\n", " ").replace(" and ", ", ").split(",") if x.strip()
 )
-eq("C6", "README.md:Entities", "Nineteen entities are disabled by default, and these are they (#1335)",
+eq("C6", "README.md:Entities", "Twenty entities are disabled by default, and these are they (#1335)",
    CMD, _readme_disabled, _disabled)
-eq("C7", "README.md:Entities", "exactly nineteen entities are disabled by default (#1335)", CMD,
-   19, len(_disabled))
+eq("C7", "README.md:Entities", "exactly twenty entities are disabled by default (#1335)", CMD,
+   20, len(_disabled))
 
 # README sensor table: name set and unit column against the constructed sensors
 _sensor_block = re.search(

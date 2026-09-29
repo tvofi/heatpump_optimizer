@@ -44,6 +44,7 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
+from .mixing_valve import is_throttling
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -939,9 +940,17 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     that belongs to a release that can announce it, not to an availability
     pass. Giving it a genuinely distinct source needs a new configuration
     entity and a config-flow page for it.
+
+    Kept but shipped disabled (#1669, D8-s3-03): an enabled-by-default byte
+    duplicate of Indoor Temperature lights up on every install, single-zone
+    ones included, where there is no upper floor. It stays opt-in — the
+    registry keeps existing entries' state, so no migration is needed —
+    and ``source`` above still names what a re-enabled card is reading.
     """
 
     _reading_key = "upper_floor_temperature"
+    # #1669: the duplicate ships off until the user asks for it.
+    _attr_entity_registry_enabled_default = False
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -1181,8 +1190,28 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
         if self.coordinator.data:
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
-                active_steps = sum(1 for s in schedule if s.get("dhw_power", 0) > 0.1)
-                return f"{active_steps} heating period{'s' if active_steps != 1 else ''}"
+                # #1644 (D8-s1-02): count periods the way the plan does.
+                # The plan view merges consecutive steps above 0.05 kW
+                # into one slot (coordinator _plan_slots), so a period of
+                # several steps made this step-count disagree with the
+                # plan's slot count. Read the plan's own slot list when it
+                # is published; a payload without the plan dict still
+                # answers, by merging the same contiguous runs at the
+                # same threshold.
+                plan = self.coordinator.data.get("dhw_plan")
+                if isinstance(plan, dict) and isinstance(plan.get("slots"), list):
+                    periods = len(plan["slots"])
+                else:
+                    periods = sum(
+                        1
+                        for i, s in enumerate(schedule)
+                        if s.get("dhw_power", 0) > 0.05
+                        and (
+                            i == 0
+                            or schedule[i - 1].get("dhw_power", 0) <= 0.05
+                        )
+                    )
+                return f"{periods} heating period{'s' if periods != 1 else ''}"
             return "no schedule"
         return "no schedule"
 
@@ -2103,7 +2132,44 @@ class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBas
 # ---------------------------------------------------------------------------
 
 
-class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
+def valve_throttling(coordinator: Any) -> bool:
+    """Whether a throttling mixing valve is configured on this install.
+
+    The configured mode via ``_thermal_params``, because the registry asks
+    before the first refresh; the payload's copy where a test double has
+    only that — ``has_hot_water``'s two paths. ``is_throttling`` answers
+    false for no valve and for the passive ``none`` mode alike, so "no
+    readout" is one state both ways.
+    """
+    params = getattr(coordinator, "_thermal_params", None)
+    if params is not None:
+        return is_throttling(getattr(params, "mixing_valve_mode", None))
+    return is_throttling(
+        (getattr(coordinator, "data", None) or {}).get("mixing_valve_mode")
+    )
+
+
+class _MixingValveGate(HeatPumpOptimizerSensorBase):
+    """A mixing-valve readout, gated on a throttling valve being configured.
+
+    On and available exactly where ``is_throttling`` holds (#1644,
+    D8-s3-61): the recommendation is computed only under such a mode, so
+    the static disabled default this sensor carried kept it hidden from the
+    very installs that had the valve, while installs without one got an
+    available sensor parked at unknown. The same two-sided shape
+    ConfiguredInputMixin and DHWEntityMixin give their opt-in readouts.
+    """
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        return valve_throttling(self.coordinator)
+
+    @property
+    def available(self) -> bool:
+        return bool(super().available and self.entity_registry_enabled_default)
+
+
+class ValveTargetRecommendationSensor(_MixingValveGate, HeatPumpOptimizerSensorBase):
     """What to set a dumb mixing valve to, and why.
 
     Item 29 asks the integration to *recommend* a setting for a valve it
@@ -2117,9 +2183,6 @@ class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    # Unknown unless a mixing valve mode is configured, and a mixing valve is
-    # opt-in plumbing; disabled rather than eternally-unknown by default.
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(

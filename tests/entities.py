@@ -2946,6 +2946,24 @@ R.check(
     "two entities carrying one number look like corroboration until one owns up",
 )
 
+# D8-s3-03, class N-dup-entity (Fixes #1669): Upper Floor Temperature has
+# always published the indoor reading (the two-zone convention, stated in
+# its docstring), so an enabled-by-default byte duplicate shipped on every
+# install — single-zone ones included, where there is no upper floor. Its
+# registry default now follows the duplicate: off until the user asks for
+# it, which needs no registry migration (existing entries keep their
+# state). Null control: the indoor sensor it duplicates stays enabled.
+R.check(
+    "the upper floor ships disabled by default (#1669)",
+    not registry_default(sensor.UpperFloorTempSensor(_blind_fake, ENTRY)),
+    "a duplicate of Indoor Temperature is not on by default on every install",
+)
+R.check(
+    "the indoor sensor it duplicates stays enabled (#1669 control)",
+    registry_default(sensor.IndoorTempSensor(_blind_fake, ENTRY)),
+    "the move is the duplicate's default, not the pair's",
+)
+
 # Wire the thermometers up and the same entities come back to life, with the
 # sensors' values rather than the defaults.
 _sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
@@ -4012,8 +4030,25 @@ _EVERY_INPUT = {
         *sensor.ECL110_TOPIC_SLOTS,
     )
 }
-_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT)
-_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT)
+
+
+class _AllGates:
+    """The thermal params _healthy needs for every gate to read open.
+
+    dhw_enabled lights the hot-water gate; mixing_valve_mode at a
+    throttling mode lights the valve gate (#1644). A new opt-in
+    readout's gate belongs here too -- the payload that "satisfies every
+    gate" must satisfy this one, or the availability sweep below can no
+    longer distinguish a forgotten `super().available and` from a gate
+    doing its job.
+    """
+
+    dhw_enabled = True
+    mixing_valve_mode = "manual"
+
+
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -8894,7 +8929,9 @@ R.section("Sensor metadata")
 # first solve's prices and forecast) cannot light it: opt-in hardware,
 # opt-in probes and opt-in meters publish nothing until configured, and an
 # enabled entity that is unavailable from the first hour is list noise a
-# fresh install cannot tell from a defect. Every other sensor must stay
+# fresh install cannot tell from a defect. A compatibility duplicate of
+# another enabled sensor belongs here too (#1669): the install cannot
+# distinguish it from the entity it copies. Every other sensor must stay
 # enabled, because flipping one silently hides it from every fresh install
 # (#1335 widened this from the six machinery sensors to the whole gate).
 _expected_disabled = {
@@ -8922,6 +8959,12 @@ _expected_disabled = {
     "lower_floor_temp",
     "buffer_tank_temp",
     "slab_temp",
+    # #1669: the upper floor IS the indoor reading (the stated two-zone
+    # convention), so the entity ships as a compatibility duplicate of
+    # Indoor Temperature -- off until the user asks for it. Second
+    # membership class beside the opt-in rules above: the ordinary
+    # install cannot distinguish it from the sensor it duplicates.
+    "upper_floor_temp",
 }
 _actually_disabled = {
     s._key
@@ -9284,10 +9327,16 @@ def _ord_state(e):
 # sensor flipped without one fails here. The ECL110 pair used to be the one
 # exception, available with no ECL110 topic stored and publishing a 0.0
 # placeholder; it now takes the configured-input gate, so it has none.
+# upper_floor_temp joins as the second named exception, the #1669 class:
+# it is alive (it follows the indoor reading) but ships off as a
+# compatibility duplicate, not for deadness -- its measured cause is
+# redundancy, the roster comment's second membership class.
+_ord_gate_exceptions = {"upper_floor_temp"}
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
+    and e._key not in _ord_gate_exceptions
     and e.available
     and _ord_state(e) is not None
 )
@@ -9296,6 +9345,18 @@ R.check(
     " the ECL110 pair included (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
+)
+R.check(
+    "the alive-while-disabled exception is the duplicate, not a dead sensor (#1669)",
+    _ord_gate_exceptions
+    and not [
+        e._key
+        for e in _ord_entities
+        if not _ord_default_on(e)
+        and e._key in _ord_gate_exceptions
+        and (_ord_state(e) is None or not e.available)
+    ],
+    "an exception must be alive: deadness there would want a gate, not an off switch",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -9308,6 +9369,58 @@ R.check(
     "no enabled entity ships dead on the ordinary install (#1335)",
     not _ord_shipped_dead,
     f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+# D8-s3-61, class P2 (#1644): Valve Target Recommendation kept a static
+# disabled default while its payload key exists only when a throttling
+# mixing-valve mode is configured — disabled where the user HAS the valve
+# (the recommendation is computed and thrown away), available-but-unknown
+# where they have none. Default and availability now follow
+# mixing_valve.is_throttling(mixing_valve_mode), the gate its sibling
+# opt-in readouts take (ConfiguredInputMixin / DHWEntityMixin shape).
+class _ThrottleMode:
+    mixing_valve_mode = "manual"
+
+
+_valve_lit = sensor.ValveTargetRecommendationSensor(
+    FakeCoordinator(
+        {**DATA, "valve_target_recommendation": {"target": 23.0, "reason": "r"}},
+        _thermal_params=_ThrottleMode(),
+    ),
+    ENTRY,
+)
+R.check(
+    "the valve readout is on and available where a throttling valve is configured (#1644)",
+    registry_default(_valve_lit) and _valve_lit.available
+    and _valve_lit.native_value == 23.0,
+    f"default={registry_default(_valve_lit)} "
+    f"available={_valve_lit.available} value={_valve_lit.native_value!r}",
+)
+_valve_off = sensor.ValveTargetRecommendationSensor(
+    FakeCoordinator(DATA),
+    ENTRY,
+)
+R.check(
+    "and off and unavailable where none is (#1644)",
+    not registry_default(_valve_off) and not _valve_off.available,
+    "available-but-unknown was the defect's second half",
+)
+class _NoneMode:
+    mixing_valve_mode = "none"
+
+
+R.check(
+    "a configured non-throttling mode gates the same as none (#1644 control)",
+    not registry_default(
+        sensor.ValveTargetRecommendationSensor(
+            FakeCoordinator(
+                DATA,
+                _thermal_params=_NoneMode(),
+            ),
+            ENTRY,
+        )
+    ),
+    "the move is keyed on the mode, not unconditional",
 )
 
 # #1542 / #1527 widened (R8-P2): the hot-water gate above is one instance of
@@ -9329,14 +9442,19 @@ _INPUT_GATE_EXCEPTIONS = {
     "WoodBurnAdvisorSensor": "evidence: the wood fuel model's readiness",
     # Feature opt-ins keyed on an options-page choice rather than an input
     # entity slot; their default is #1335's static off, not yet ruled to
-    # follow the choice (R8-P2 hand-back).
+    # follow the choice (R8-P2 hand-back). ValveTargetRecommendationSensor
+    # was the fourth: its rule landed (#1644) as sensor._MixingValveGate,
+    # so it left this list for the gated set below.
     "MonthlyPeakSensor": "opt-in: capacity tariff choice",
     "PowerHeadroomSensor": "opt-in: capacity tariff or main fuse",
     "PVSurplusSensor": "opt-in: PV enabled flag",
-    "ValveTargetRecommendationSensor": "opt-in: mixing-valve mode choice",
     "WoodCheaperBinarySensor": "opt-in: wood furnace flag",
     "MeasuredPowerSensor": "opt-in: measured power entity (#1335 roster)",
     "CompressorStartsSensor": "opt-in: measured power entity (#1335 roster)",
+    # Not an input gate at all: the default is #1669's compatibility
+    # duplicate -- off because it republishes Indoor Temperature, and the
+    # roster's second membership class beside the opt-in rules.
+    "UpperFloorTempSensor": "duplicate: off as a compatibility duplicate (#1669)",
 }
 _input_population = {}
 for _e in _ord_entities:
@@ -9354,7 +9472,9 @@ R.check(
 _ungated = sorted(
     n for n, e in _input_population.items()
     if n not in _INPUT_GATE_EXCEPTIONS
-    and not isinstance(e, (_InputGate, _DHWGate))
+    and not isinstance(
+        e, (_InputGate, _DHWGate, sensor._MixingValveGate)
+    )
 )
 R.check(
     "every entity whose default should follow a configured input takes the gate",
@@ -19605,11 +19725,19 @@ R.check(
     repr(_dhw_one.native_value),
 )
 _dhw_two = sensor.DHWScheduleSensor(
-    FakeCoordinator({"dhw_schedule": [{"dhw_power": 1.0}, {"dhw_power": 1.0}]}),
+    FakeCoordinator(
+        {
+            "dhw_schedule": [
+                {"dhw_power": 1.0},
+                {"dhw_power": 0.0},
+                {"dhw_power": 1.0},
+            ]
+        }
+    ),
     ENTRY,
 )
 R.check(
-    "two DHW heating steps keep the plural (#284)",
+    "two DHW heating periods keep the plural (#284)",
     _dhw_two.native_value == "2 heating periods",
     repr(_dhw_two.native_value),
 )
@@ -19647,6 +19775,47 @@ R.check(
     "two plan slots keep the plural (#284)",
     _plan_two.native_value == "2 slots planned",
     repr(_plan_two.native_value),
+)
+
+# D8-s1-02, class P2 (#1644): DHW Heating Schedule counted every 15-minute
+# step above 0.1 kW as a "heating period", while DHW Heating Plan merges
+# consecutive steps above its own 0.05 kW threshold into one slot — one
+# schedule published as two disagreeing counts. The schedule sensor now
+# reads the plan's own slot list, so the two cannot diverge. Null control:
+# the #284 checks above, whose single-step periods agree at both countings.
+_multi_run_payload = {
+    "dhw_schedule": [
+        {"dhw_power": 2.0},
+        {"dhw_power": 1.5},
+        {"dhw_power": 0.0},
+        {"dhw_power": 1.0},
+    ],
+    # What the coordinator itself builds for this schedule: a three-step
+    # run collapses to one slot, the trailing step is a second (coordinator
+    # _plan_slots, threshold 0.05).
+    "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
+}
+_dhw_sched_vs_plan = sensor.DHWScheduleSensor(
+    FakeCoordinator(_multi_run_payload), ENTRY
+)
+_dhw_plan_count = sensor.DHWHeatingPlanSensor(
+    FakeCoordinator(_multi_run_payload), ENTRY
+)
+R.check(
+    "DHW Heating Schedule's period count is DHW Heating Plan's slot count (#1644)",
+    _dhw_sched_vs_plan.native_value == "2 heating periods"
+    and _dhw_plan_count.extra_state_attributes["slot_count"] == 2,
+    f"schedule={_dhw_sched_vs_plan.native_value!r} "
+    f"slot_count={_dhw_plan_count.extra_state_attributes['slot_count']!r}",
+)
+R.check(
+    "and the schedule sensor still answers for a schedule with no plan dict (#1644)",
+    sensor.DHWScheduleSensor(
+        FakeCoordinator({"dhw_schedule": [{"dhw_power": 2.0}, {"dhw_power": 1.5}]}),
+        ENTRY,
+    ).native_value
+    == "1 heating period",
+    "the fallback counts the same contiguous runs the plan builder merges",
 )
 
 R.section("#558 D3 enumerated sensor states")

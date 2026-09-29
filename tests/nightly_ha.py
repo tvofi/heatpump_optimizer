@@ -2224,8 +2224,10 @@ def _check_entities(checks: Checks, hass, entry) -> None:
 
     registry = er.async_get(hass)
     registered = er.async_entries_for_config_entry(registry, entry.entry_id)
-    # Nineteen entities set _attr_entity_registry_enabled_default = False
-    # (the six machinery sensors plus the #1335 ordinary-install-dead set).
+    # The disabled-by-default roster (tests/entities.py's
+    # _expected_disabled: the six machinery sensors, the #1335
+    # ordinary-install-dead set, and #1669's compatibility duplicate) all
+    # set _attr_entity_registry_enabled_default = False.
     # A disabled registry entry has no state object at all, which is the
     # same shape as an entity that failed to add -- so they are excluded
     # here rather than tolerated below, and an ENABLED entity with no state
