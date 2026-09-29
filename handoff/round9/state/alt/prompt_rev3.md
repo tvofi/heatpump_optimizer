@@ -17,10 +17,10 @@ They are all on branch `handoff/audit-r9-alt`:
   - §4: the schedule regenerated from roster rev 3, with expected ΔS per PR;
   - §6: adoption;
   - §7: the decisions R3-1 to R3-6, with rev 2's still-open decisions.
-- `handoff/round9/state/ALT-ROSTER.json`: roster rev 3, commit ebdab471.
+- `handoff/round9/state/ALT-ROSTER.json`: roster rev 3, commit ROSTER_COMMIT.
   - It is the live roster plus the deltas in `alt/build_roster_rev3.py`.
   - 70 groups, acyclic, and `brief_lint` prints `TOTAL: 0 error(s)`.
-- `handoff/round9/state/alt/archscore/`: the pre-study, commit 92b3ecc9.
+- `handoff/round9/state/alt/archscore/`: the pre-study, commit PRESTUDY_COMMIT.
   - `PRE-STUDY.md`;
   - its evidence: `a1/` (metric perturbations), `a2/` (the historical corpus), `a3/` (nine new metrics),
     `b/` (score, weights, calibration, gate variants, sensitivity, trajectory, 2× arithmetic) and `redteam/`;
@@ -37,14 +37,14 @@ rev 2 and the ratchet stance (§3) stand.
    - Apply each merge to roster rev 3's `resume` fields.
    - If a merge touched a file a rev-3 carry cites (`away.py`, `boost.py`, `pump_arbiter.py`, `sensor.py`,
      `thermal_model.py`, `config_flow.py`, `optimizer.py`, `tests/structure.py`), re-measure that carry's figure with
-     the prototype at 92b3ecc9 and correct the figure, not the citation.
+     the prototype at PRESTUDY_COMMIT and correct the figure, not the citation.
    - Re-lint with `handoff/audit-r9-alt` and the evidence refs fetched:
      `node .claude/workflows/brief_lint.mjs <roster>` must print `TOTAL: 0 error(s)`.
 
 2. **Adopt roster rev 3** on `handoff/audit-r9-fixplan`: replace `.claude/workflows/wave-r9-groups.json` with
    `ALT-ROSTER.json`.
    - If the live file moved after `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` instead, and replace
-     `92b3ecc9` in its output with the pre-study commit. It applies:
+     `PRESTUDY_COMMIT` in its output with the pre-study commit. It applies:
      - F1.6's resume truthing (done at `f88e6af8`);
      - the carries into F10.4, EG-B1, B2, B3, B5, B6 and B7;
      - the new groups EG-A1, EG-A2, EG-A3 and F7.5.
