@@ -1,0 +1,24 @@
+# units >= 10.0 ms of GIL-holding CPU, by thread and innermost production frame:
+# executor jobs: func jobs max_loop_gap_during_job_ms max_job_cpu_ms
+#  _run_in_process jobs=12 max_gap_ms=9.9 cpu_ms_max=1.5
+RESULT executor_funcs_starving_loop=0 count []
+RESULT arm=worker
+RESULT config=fixture
+RESULT cycles=12 count
+RESULT cycle_failures=0 count
+RESULT hold_ms=10.0
+RESULT seams=0 count
+RESULT loop_thread_seams=0 count
+RESULT executor_thread_seams=0 count
+RESULT max_unit_cpu_ms=0.0 ms provisional
+RESULT max_loop_unit_cpu_ms=0.0 ms provisional
+RESULT starved_share=0.0673 ratio provisional
+RESULT null_idle_starved_share=0.0000 ratio provisional
+RESULT max_gap_ms=9.9 ms provisional
+RESULT null_idle_max_gap_ms=2.0 ms provisional
+RESULT executor_cpu_s=0.01 s provisional
+RESULT deliberate_thread_cpu_s=0.15 s provisional (executor jobs + sampler)
+RESULT thread_factor=0.882
+RESULT wall_s=3.2 s provisional
+RESULT load1=2.31
+RESULT swapins=0

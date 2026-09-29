@@ -1,0 +1,19 @@
+one|0|winter_typical|winter_cold  E24tail   0.00 kWh  E48tail  11.47 kWh  ratio  0.000  end_room -1.97 K  end_slab -5.83 K
+one|0|winter_typical|shoulder     E24tail   0.00 kWh  E48tail   0.00 kWh  ratio    nan  end_room -0.02 K  end_slab -0.02 K
+one|0|winter_extreme|winter_cold  E24tail   0.00 kWh  E48tail  21.71 kWh  ratio  0.000  end_room -1.48 K  end_slab -7.70 K
+one|0|winter_extreme|shoulder     E24tail   0.00 kWh  E48tail   0.00 kWh  ratio    nan  end_room +0.00 K  end_slab +0.00 K
+one|0|winter_moderate|winter_cold  E24tail   0.00 kWh  E48tail  24.00 kWh  ratio  0.000  end_room -1.64 K  end_slab -8.36 K
+one|0|winter_moderate|shoulder     E24tail   0.00 kWh  E48tail   0.00 kWh  ratio    nan  end_room +0.00 K  end_slab +0.00 K
+one|0|shoulder|winter_cold  E24tail   0.00 kWh  E48tail  23.56 kWh  ratio  0.000  end_room -2.20 K  end_slab -9.30 K
+one|0|shoulder|shoulder     E24tail   0.00 kWh  E48tail   0.00 kWh  ratio    nan  end_room -0.00 K  end_slab -0.00 K
+one|0|summer_negative|winter_cold  E24tail   0.00 kWh  E48tail  18.00 kWh  ratio  0.000  end_room -2.15 K  end_slab -7.94 K
+one|0|summer_negative|shoulder     E24tail   0.00 kWh  E48tail   0.00 kWh  ratio    nan  end_room +0.95 K  end_slab +1.30 K
+one|0|flat|winter_cold  E24tail   0.00 kWh  E48tail  23.88 kWh  ratio  0.000  end_room -2.78 K  end_slab -12.13 K
+one|0|flat|shoulder     E24tail   0.00 kWh  E48tail   1.94 kWh  ratio  0.000  end_room -0.13 K  end_slab -1.22 K
+RESULT tail_ratio_mean_priced=0.0000
+RESULT tail_ratio_min_priced=0.0000
+RESULT tail_ratio_max_priced=0.0000
+RESULT tail_ratio_cells_priced=5
+RESULT tail_ratio_mean_flat=0.0000
+RESULT thread_factor=1.000
+RESULT load1=6.79

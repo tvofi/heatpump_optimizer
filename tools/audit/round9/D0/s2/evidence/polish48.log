@@ -1,0 +1,63 @@
+CELL one|nodhw|summer_typical|winter_cold|h48       f  35.07947 ->  35.07942 gap +0.0001% (+0.0000) viol 0.0000->0.0000 step0 6.00->6.00 energySEK 27.726->27.726 prod_nit 128
+CELL one|dhw|summer_typical|winter_cold|h48         f  41.13954 ->  41.13915 gap +0.0009% (+0.0004) viol 0.0000->0.0000 step0 1.20->1.20 energySEK 33.212->33.214 prod_nit 158
+CELL two|nodhw|summer_typical|winter_cold|h48       f  48.02425 ->  48.02425 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 2.91->2.91 energySEK 37.466->37.466 prod_nit 112
+CELL two|dhw|summer_typical|winter_cold|h48         f  55.32744 ->  54.96744 gap +0.6507% (+0.3600) viol 0.0000->0.0000 step0 0.99->0.93 energySEK 45.042->44.427 prod_nit 96
+CELL one|nodhw|summer_typical|shoulder|h48          f   4.49052 ->   4.49052 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 2.253->2.253 prod_nit 119
+CELL one|dhw|summer_typical|shoulder|h48            f   7.99650 ->   7.99650 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 5.762->5.762 prod_nit 174
+CELL two|nodhw|summer_typical|shoulder|h48          f   6.12056 ->   6.12046 gap +0.0016% (+0.0001) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 3.773->3.773 prod_nit 365
+CELL two|dhw|summer_typical|shoulder|h48            f   9.62033 ->   9.62027 gap +0.0006% (+0.0001) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 7.265->7.268 prod_nit 254
+CELL one|nodhw|summer_negative|winter_cold|h48      f  21.71361 ->  21.71361 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 6.00->6.00 energySEK 18.442->18.442 prod_nit 112
+CELL one|dhw|summer_negative|winter_cold|h48        f  26.69452 ->  26.69448 gap +0.0001% (+0.0000) viol 0.0000->0.0000 step0 1.20->1.20 energySEK 23.376->23.376 prod_nit 121
+CELL two|nodhw|summer_negative|winter_cold|h48      f  32.18325 ->  32.18325 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.07->0.07 energySEK 27.762->27.762 prod_nit 109
+CELL two|dhw|summer_negative|winter_cold|h48        f  37.25765 ->  37.25765 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 32.799->32.799 prod_nit 175
+CELL one|nodhw|summer_negative|shoulder|h48         f   0.17547 ->   0.17547 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK -2.309->-2.309 prod_nit 80
+CELL one|dhw|summer_negative|shoulder|h48           f   1.85516 ->   1.85516 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK -0.616->-0.616 prod_nit 114
+CELL two|nodhw|summer_negative|shoulder|h48         f   0.21646 ->   0.21646 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK -2.809->-2.809 prod_nit 197
+CELL two|dhw|summer_negative|shoulder|h48           f   1.92603 ->   1.92603 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK -1.131->-1.131 prod_nit 162
+CELL one|nodhw|shoulder|winter_cold|h48             f  85.73522 ->  85.73522 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 1.99->1.99 energySEK 77.105->77.105 prod_nit 73
+CELL one|dhw|shoulder|winter_cold|h48               f  98.77195 ->  98.77147 gap +0.0005% (+0.0005) viol 0.0000->0.0000 step0 6.00->6.00 energySEK 88.094->88.100 prod_nit 77
+CELL two|nodhw|shoulder|winter_cold|h48             f 111.75934 -> 111.75934 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 100.515->100.515 prod_nit 156
+CELL two|dhw|shoulder|winter_cold|h48               f 125.05706 -> 125.00486 gap +0.0417% (+0.0522) viol 0.0000->0.0000 step0 2.27->2.27 energySEK 113.621->113.487 prod_nit 158
+CELL one|nodhw|shoulder|shoulder|h48                f   7.97275 ->   7.97275 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 6.708->6.708 prod_nit 71
+CELL one|dhw|shoulder|shoulder|h48                  f  14.74223 ->  14.74223 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 13.490->13.490 prod_nit 81
+CELL two|nodhw|shoulder|shoulder|h48                f  11.31129 ->  11.31128 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 9.076->9.076 prod_nit 163
+CELL two|dhw|shoulder|shoulder|h48                  f  18.04350 ->  18.04350 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 15.776->15.776 prod_nit 119
+CELL one|nodhw|flat|winter_cold|h48                 f 147.80801 -> 147.80801 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 6.00->6.00 energySEK 129.557->129.557 prod_nit 105
+CELL one|dhw|flat|winter_cold|h48                   f 165.18245 -> 165.18244 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 1.20->1.20 energySEK 146.884->146.884 prod_nit 80
+CELL two|nodhw|flat|winter_cold|h48                 f 190.53622 -> 190.53597 gap +0.0001% (+0.0002) viol 0.0000->0.0000 step0 4.53->4.53 energySEK 176.637->176.636 prod_nit 211
+CELL two|dhw|flat|winter_cold|h48                   f 207.02019 -> 206.97227 gap +0.0231% (+0.0479) viol 0.0001->0.0000 step0 1.20->1.20 energySEK 192.906->192.827 prod_nit 151
+CELL one|nodhw|flat|shoulder|h48                    f  16.07809 ->  16.07809 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 11.947->11.947 prod_nit 56
+CELL one|dhw|flat|shoulder|h48                      f  26.07558 ->  26.07548 gap +0.0004% (+0.0001) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 22.373->22.374 prod_nit 82
+CELL two|nodhw|flat|shoulder|h48                    f  23.21446 ->  23.21446 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 17.447->17.447 prod_nit 105
+CELL two|dhw|flat|shoulder|h48                      f  33.21666 ->  33.21666 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 28.015->28.015 prod_nit 76
+RESULT summer_typical_cells=8 count
+RESULT summer_typical_gap_max=0.6507 %
+RESULT summer_typical_gap_min=0.0000 %
+RESULT summer_typical_gap_mean=0.0817 %
+RESULT summer_typical_gap_mean_drop_most_favourable=0.0005 %
+RESULT summer_typical_gap_abs_max=0.3600 SEK
+RESULT summer_typical_cells_over_0p1pct=1 count
+RESULT summer_negative_cells=8 count
+RESULT summer_negative_gap_max=0.0001 %
+RESULT summer_negative_gap_min=0.0000 %
+RESULT summer_negative_gap_mean=0.0000 %
+RESULT summer_negative_gap_mean_drop_most_favourable=0.0000 %
+RESULT summer_negative_gap_abs_max=0.0000 SEK
+RESULT summer_negative_cells_over_0p1pct=0 count
+RESULT shoulder_cells=8 count
+RESULT shoulder_gap_max=0.0417 %
+RESULT shoulder_gap_min=0.0000 %
+RESULT shoulder_gap_mean=0.0053 %
+RESULT shoulder_gap_mean_drop_most_favourable=0.0001 %
+RESULT shoulder_gap_abs_max=0.0522 SEK
+RESULT shoulder_cells_over_0p1pct=0 count
+RESULT flat_cells=8 count
+RESULT flat_gap_max=0.0231 %
+RESULT flat_gap_min=0.0000 %
+RESULT flat_gap_mean=0.0030 %
+RESULT flat_gap_mean_drop_most_favourable=0.0001 %
+RESULT flat_gap_abs_max=0.0479 SEK
+RESULT flat_cells_over_0p1pct=0 count
+RESULT thread_factor=1.000
+RESULT load1=5.23
+RESULT swapins=0

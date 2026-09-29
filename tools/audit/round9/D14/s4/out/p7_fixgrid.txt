@@ -1,0 +1,39 @@
+RESULT spring_grid_skewed_cycles=0_of_48 count
+RESULT spring_grid_skew_max_min=0 minutes
+RESULT spring_cycles=48 count
+RESULT spring_cycle_errors=0 count
+RESULT spring_wrong_sites=7 count
+RESULT autumn_grid_skewed_cycles=0_of_48 count
+RESULT autumn_grid_skew_max_min=0 minutes
+RESULT autumn_cycles=48 count
+RESULT autumn_cycle_errors=0 count
+RESULT autumn_wrong_sites=8 count
+RESULT plain_grid_skewed_cycles=0_of_48 count
+RESULT plain_grid_skew_max_min=0 minutes
+RESULT plain_cycles=48 count
+RESULT plain_cycle_errors=0 count
+RESULT plain_wrong_sites=0 count
+# every arithmetic site reached (file:line func kind hits crossing wrong max_err_s):
+#  accuracy.py:182 score_lead_predictions aware-shared-zone hits=18496 crossing=258 wrong=258 max_err_s=3600 WRONG
+#  coordinator.py:3169 close add-shared-zone hits=24 crossing=0 wrong=0 max_err_s=0 
+#  coordinator.py:4684 _async_update_data add-shared-zone hits=144 crossing=2 wrong=2 max_err_s=3600 WRONG
+#  coordinator.py:9205 _record_accuracy aware-shared-zone hits=141 crossing=2 wrong=2 max_err_s=3600 WRONG
+#  coordinator.py:9405 _file_dhw_lead_predictions add-shared-zone hits=720 crossing=42 wrong=42 max_err_s=3600 WRONG
+#  coordinator.py:9445 _file_lead_predictions add-shared-zone hits=720 crossing=42 wrong=42 max_err_s=3600 WRONG
+#  dhw_learning.py:347 async_learn_dynamics aware-shared-zone hits=141 crossing=2 wrong=2 max_err_s=3600 WRONG
+#  external_heat.py:206 _rate aware-shared-zone hits=282 crossing=4 wrong=4 max_err_s=3600 WRONG
+#  tariff.py:58 _window_slot add-shared-zone hits=288 crossing=164 wrong=164 max_err_s=3600 WRONG
+RESULT clock=zoneinfo
+RESULT arm=base
+RESULT reintroduce=0
+RESULT sites_reached=9 count
+RESULT wrong_sites=8 count
+RESULT wrong_sites_aware-shared-zone=4 count
+RESULT wrong_sites_naive=0 count
+RESULT wrong_sites_add-shared-zone=4 count
+RESULT wrong_sites_add-naive=0 count
+RESULT untraced_note=plain-plain_arithmetic_on_production_built_datetimes_not_seen
+RESULT wall_s=15.8 s provisional
+RESULT thread_factor=0.992
+RESULT load1=2.86
+RESULT swapins=0

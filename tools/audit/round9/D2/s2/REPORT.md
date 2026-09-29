@@ -1,0 +1,234 @@
+# Round 9 — D2-s2 (D2)
+
+Rendered by the box B5 thread from the JSON the seat returned (`tools/audit/round9/reports-B5.json`), because the seat's own write of this file was refused by its harness. The content is the seat's; nothing was added, verified or judged.
+
+- baseline: `1936d5ca72a06556eeed4e8e5bf3dea520e517e1`
+- exposure: none recorded
+
+## Method and coverage
+
+### D2.M2 — deep
+
+cop_sweep.py swept ThermalModel.compute_cop over outdoor -30..40 C in 0.05 K steps and flow 20..80 C, across 11 arms (plain 1/2-zone, flow_curve_cop with and without bias, Carnot/valve at 5 flows, cop_scale). It also swept compute_cop_dhw in both branches and DefrostDerate.factor on a seeded random learned table (bounds, and continuity with a 1e-7 probe), plus derate_from_duty and flow_lift_factor. Result: 0 monotonicity violations, 0 derate values outside [0.55,1], max jump 1.3e-8. flow_bias_clamp.py drove the #1067 lift through FlowCurveBias.observe; that is finding D2-s2-02. capacity_reason.py tested cap*COP against the demand at the comfort minimum over 12 cells (see unfinished). The 'Carnot fraction band' has no stated band in the tree.
+
+### D2.M3 — deep
+
+objective_identities.py ran all 50 golden scenarios: cost_err 0, savings_err 0, and end_mismatch 6 stores in 1 scenario (finding D2-s2-03). price_weight_scaling.py: homog_err 2.1e-16 over 10 scenarios x 5 points. terminal_continuation.py: terminal cost against a 24 h continuation simulated by the production baseline controller, ratio 0.997-1.123 over 6 cells, 0 sign disagreements. gradient_fd.py: _batch_fd_gradient against a central difference, relative error at most 8.7e-6 over 8 scenarios x 4 points. slab_cap_scale.py and slab_cap_plan.py: the settlement caps against the dynamics (finding D2-s2-01).
+
+## Findings
+
+### D2-s2-01 — Settlement caps (slab_settlement_cap, hold_demand_kw) ignore the learned house_heat_loss_scale the dynamics apply
+
+- step: D2.M3; severity: high; class: bug; class_guess: P2
+- instrumented symbol: `optimizer:slab_settlement_cap (also optimizer:hold_demand_kw, judged by thermal_model:ThermalModel.simulate_step)`
+- metric: (room after one 1-min simulate_step, pump off, room at target, slab at slab_settlement_cap) - target, per hour; swept over scale {0.3..3} x out {-15,-5,0,5} x {1-zone,2-zone}
+
+optimizer.slab_settlement_cap and optimizer.hold_demand_kw size the steady-state demand from the raw zone losses. simulate_step multiplies those losses by house_heat_loss_scale (via effective_heat_loss_coefficient), and the sibling _buffer_charge_ceiling does the same. So at any learned scale other than 1, the 'sustaining' slab cap does not sustain the target: the room drifts at up to 1.44 K/h, the cap sits up to 13.5 K low (67.5 kWh of slab heat the terminal cost cannot see), and published predicted_savings are overstated by up to 13.4 currency at scale 2.
+
+```json
+{
+  "id": "D2-s2-01",
+  "scope": "D2-s2",
+  "step": "D2.M3",
+  "title": "Settlement caps (slab_settlement_cap, hold_demand_kw) ignore the learned house_heat_loss_scale the dynamics apply",
+  "severity": "high",
+  "claim": "optimizer.slab_settlement_cap and optimizer.hold_demand_kw size the steady-state demand from the raw zone losses. simulate_step multiplies those losses by house_heat_loss_scale (via effective_heat_loss_coefficient), and the sibling _buffer_charge_ceiling does the same. So at any learned scale other than 1, the 'sustaining' slab cap does not sustain the target: the room drifts at up to 1.44 K/h, the cap sits up to 13.5 K low (67.5 kWh of slab heat the terminal cost cannot see), and published predicted_savings are overstated by up to 13.4 currency at scale 2.",
+  "mechanism": "slab_settlement_cap: q_demand = u*(target-out) - gains, with u = heat_loss_coefficient or lower_floor_heat_loss_learned and no house_heat_loss_scale. hold_demand_kw has the same omission. Both feed _settlement_caps, which feeds _terminal_cost (the objective) and _deferred_energy_cost (the published savings). The dynamics and _buffer_charge_ceiling (the latter explicitly: 'a learned-leaky house that omitted it here got an optimistic ceiling') apply the scale.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/slab_cap_scale.py",
+    "harness_path": "tools/audit/round9/D2/s2/slab_cap_scale.py",
+    "value": 1.44,
+    "unit": "K/h room drift at slab = production cap (max |drift|, 48 cells, s != 1); cap_gap_max 13.5 K; slab_kwh_unseen_max 67.5 kWh",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux 4-core, py3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic arithmetic; other finder seats sharing the box",
+    "tolerance": "exact (deterministic, 1e-6)",
+    "load1": 0.71,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "optimizer:slab_settlement_cap (also optimizer:hold_demand_kw, judged by thermal_model:ThermalModel.simulate_step)",
+  "perturbation": {
+    "change": "--perturb: in memory, slab_settlement_cap and hold_demand_kw receive params whose heat_loss_coefficient, upper_floor_heat_loss and lower_floor_heat_loss are multiplied by house_heat_loss_scale (the one-factor fix)",
+    "expected_direction": "to_zero",
+    "observed_value": "drift_max_abs 0.0000 K/h, cap_gap 0.000 K, hold_ratio 1.0000"
+  },
+  "metric_definition": "(room after one 1-min simulate_step, pump off, room at target, slab at slab_settlement_cap) - target, per hour; swept over scale {0.3..3} x out {-15,-5,0,5} x {1-zone,2-zone}",
+  "phenomenon_property": "Every steady-state demand the optimizer's settlement and valuation compute must use the same effective heat-loss coefficient the dynamics simulate: raw losses x house_heat_loss_scale (and x wind/rain where applicable).",
+  "seam_rule": "grep -n \"heat_loss_coefficient\\b\\|\\.upper_floor_heat_loss\\b\\|lower_floor_heat_loss_learned\" custom_components/heatpump_optimizer/optimizer.py | grep -v \"effective_heat_loss_coefficient\\|house_heat_loss_scale\"",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/slab_cap_scale.py (s = 1.0 rows) and tools/audit/round9/D2/s2/slab_cap_plan.py 1.0",
+    "value": "null_drift_max_abs 0.00 K/h, null_cap_gap 1.34e-12 K; plan-level deltas at s=1 all 0.000",
+    "note": "At scale 1 the identity holds exactly, so the defect is the missing scale factor alone."
+  },
+  "leave_one_out": {
+    "cells": 6,
+    "min": 0.393,
+    "max": 13.427,
+    "drop_most_favourable": 12.127
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/slab_cap_scale.py  -> drift_max_abs_Kph=1.4400 cap_gap_max_K=13.500 slab_kwh_unseen_max=67.500 cap_gap_max_drop_worst_K=9.750 hold_ratio 0.3043..5.0000",
+    "... slab_cap_scale.py --perturb -> all 0",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/slab_cap_plan.py 2.0 -> savings overstated by 0.393..13.427 currency across 6 golden scenarios at scale 2 (winter_single_no_dhw 60.175 published vs 49.376 with the fix); end slab +0.015..+4.598 K",
+    "... slab_cap_plan.py 1.0 -> all deltas 0.000"
+  ],
+  "proposed_fix_scope": "Multiply u_eff by params.house_heat_loss_scale in slab_settlement_cap (both branches) and hold_demand_kw, as _buffer_charge_ceiling does, or route them through ThermalModel.effective_heat_loss_coefficient. Expect golden drift only where a fixture sets the scale (default 1.0 leaves every fixture byte-identical).",
+  "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "expected_golden_drift": [],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}
+```
+
+### D2-s2-02 — #1067 flow-lift bias clamp (15 K) cannot reach real supply: model curve tops out at 27.9 C, COP overstated up to 37%
+
+- step: D2.M2; severity: medium; class: bug; class_guess: new
+- instrumented symbol: `flow_lift:FlowCurveBias.observe -> thermal_model:ThermalModel.compute_cop (curve via flow_lift:curve_supply_temp)`
+- metric: max over outdoor -25..10 C of compute_cop(out) [flow_curve_cop on, bias learned by FlowCurveBias from a plant at SUPPLY_C] / _cop_law(out, None, SUPPLY_C) - 1
+
+With flow_curve_cop enabled, ThermalModel.compute_cop prices the direct-plant lift at curve_flow_temp + flow_curve_bias. The model's own curve never exceeds 27.9 C on the default houses, because emitter UA is derived from pump nameplate at a fixed 15 K, while the bias is clamped at FLOW_BIAS_CLAMP_K = 15 K. So a plant running at 40/45/50 C pins the bias at the clamp in every cell, and the priced COP exceeds the COP at the real supply by up to 8.4% / 22.8% / 36.8%.
+
+```json
+{
+  "id": "D2-s2-02",
+  "scope": "D2-s2",
+  "step": "D2.M2",
+  "title": "#1067 flow-lift bias clamp (15 K) cannot reach real supply: model curve tops out at 27.9 C, COP overstated up to 37%",
+  "severity": "medium",
+  "claim": "With flow_curve_cop enabled, ThermalModel.compute_cop prices the direct-plant lift at curve_flow_temp + flow_curve_bias. The model's own curve never exceeds 27.9 C on the default houses, because emitter UA is derived from pump nameplate at a fixed 15 K, while the bias is clamped at FLOW_BIAS_CLAMP_K = 15 K. So a plant running at 40/45/50 C pins the bias at the clamp in every cell, and the priced COP exceeds the COP at the real supply by up to 8.4% / 22.8% / 36.8%.",
+  "mechanism": "flow_lift.FLOW_BIAS_CLAMP_K is justified in its comment against a 35 C curve ('a fixed-setpoint plant running 45 C against a curve asking 35 C is 10 K out'). But curve_supply_temp -> flow_target_for_indoor -> mixing_valve.flow_setpoint uses emitter_ua = max_electrical_power*cop_nominal/emitter_design_delta_t (15 K, not configurable), which gives 22-28 C curves. Residuals of 17-27 K are real installation offsets against this curve, but the clamp truncates them.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/flow_bias_clamp.py",
+    "harness_path": "tools/audit/round9/D2/s2/flow_bias_clamp.py",
+    "value": 0.3683,
+    "unit": "max relative COP overstatement (compute_cop / _cop_law at the real supply - 1); fixed45 arm 0.2282 max / 0.1056 mean; fixed40 0.0836; curve_flow_max 27.921 C; clamp-bound cells 142/142 per arm",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux 4-core, py3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "ratio",
+    "contention_note": "deterministic arithmetic; other finder seats sharing the box",
+    "tolerance": "exact (deterministic, 1e-4)",
+    "load1": 1.13,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "flow_lift:FlowCurveBias.observe -> thermal_model:ThermalModel.compute_cop (curve via flow_lift:curve_supply_temp)",
+  "perturbation": {
+    "change": "--perturb: flow_lift.FLOW_BIAS_CLAMP_K = 40.0 (in memory)",
+    "expected_direction": "down",
+    "observed_value": "cop_overstatement_max 0.0169 (clamp-bound cells 0); the residual is one constant bias against a sloping curve"
+  },
+  "metric_definition": "max over outdoor -25..10 C of compute_cop(out) [flow_curve_cop on, bias learned by FlowCurveBias from a plant at SUPPLY_C] / _cop_law(out, None, SUPPLY_C) - 1",
+  "phenomenon_property": "The priced direct-plant supply (curve + learned bias) must be able to reach the measured supply for any real plant: the bias clamp must be sized against the model's own curve, not an assumed 35 C one.",
+  "seam_rule": "grep -n \"FLOW_BIAS_CLAMP_K\\|curve_supply_temp(\\|emitter_design_delta_t\" custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/flow_bias_clamp.py (arm null_curve_plus10)",
+    "value": "overstatement 0.0, clamp-bound cells 0/142",
+    "note": "A plant within the clamp (curve + 10 K) is priced exactly, so only the clamp's reach matters."
+  },
+  "leave_one_out": {
+    "cells": 6,
+    "min": 0.0836,
+    "max": 0.3683,
+    "drop_most_favourable": 0.2282
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/flow_bias_clamp.py -> fixed50 0.3683, fixed45 0.2282, fixed40 0.0836, null 0.0",
+    "... --perturb -> 0.0169"
+  ],
+  "proposed_fix_scope": "Size FLOW_BIAS_CLAMP_K (or make it relative) against curve_supply_temp's actual range, e.g. clamp the priced flow to a plausible absolute supply band instead of a 15 K offset, or make emitter_design_delta_t configurable so the curve matches radiator plants. The flag is off by default, so no golden fixture moves except direct_flow_carnot if it enables the curve.",
+  "files": [
+    "custom_components/heatpump_optimizer/flow_lift.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}
+```
+
+### D2-s2-03 — DHW-path savings settle-up replays space schedule without the DHW coil: end state differs from published trajectory
+
+- step: D2.M3; severity: low; class: bug; class_guess: P2
+- instrumented symbol: `optimizer:HeatPumpOptimizer._deferred_energy_cost (its optimized_end argument), fed by optimizer:HeatPumpOptimizer._replay_end_state`
+- metric: count of stores where the ThermalState _deferred_energy_cost settles differs by >1e-6 K from OptimizationResult.*_trajectory[-1] of the same solve, over the 50 golden scenarios
+
+In _optimize_with_dhw, the optimized_end passed to _deferred_energy_cost comes from _replay_end_state(optimal_space), a space-only replay. The published trajectory comes from simulate_trajectory_with_dhw, where the DHW coil draws on the wood tank. In the wood_coil golden scenario the settled end state is 0.42 K warmer in the wood tank (plus 0.06-0.09 K in room, upper, lower, slab and buffer), and published predicted_savings are overstated by 0.48 (0.31% of baseline).
+
+```json
+{
+  "id": "D2-s2-03",
+  "scope": "D2-s2",
+  "step": "D2.M3",
+  "title": "DHW-path savings settle-up replays space schedule without the DHW coil: end state differs from published trajectory",
+  "severity": "low",
+  "claim": "In _optimize_with_dhw, the optimized_end passed to _deferred_energy_cost comes from _replay_end_state(optimal_space), a space-only replay. The published trajectory comes from simulate_trajectory_with_dhw, where the DHW coil draws on the wood tank. In the wood_coil golden scenario the settled end state is 0.42 K warmer in the wood tank (plus 0.06-0.09 K in room, upper, lower, slab and buffer), and published predicted_savings are overstated by 0.48 (0.31% of baseline).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/objective_identities.py",
+    "harness_path": "tools/audit/round9/D2/s2/objective_identities.py",
+    "value": 6,
+    "unit": "count of (scenario, store) with |settled end - published trajectory end| > 1e-6 K over 50 golden scenarios (all in wood_coil; max 0.419558 K); savings_overstatement_max 0.4816 currency",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux 4-core, py3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "deterministic count; other finder seats sharing the box",
+    "tolerance": "exact",
+    "load1": 1.52,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "optimizer:HeatPumpOptimizer._deferred_energy_cost (its optimized_end argument), fed by optimizer:HeatPumpOptimizer._replay_end_state",
+  "perturbation": {
+    "change": "--perturb: in memory, _replay_end_state returns the end of the last simulate_trajectory_with_dhw run (space + DHW) on the DHW path",
+    "expected_direction": "to_zero",
+    "observed_value": "end_mismatch 0, savings_overstatement 0.0000"
+  },
+  "metric_definition": "count of stores where the ThermalState _deferred_energy_cost settles differs by >1e-6 K from OptimizationResult.*_trajectory[-1] of the same solve, over the 50 golden scenarios",
+  "phenomenon_property": "The end state the savings settle-up values must be the end state of the plan the result publishes, including every coupling of the DHW plan to the space and wood stores.",
+  "seam_rule": "grep -n \"_replay_end_state(\" custom_components/heatpump_optimizer/optimizer.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/objective_identities.py",
+    "value": "49 of 50 scenarios (every one without the wood DHW coil) show 0 mismatches",
+    "note": "The mismatch needs the coil coupling; space-only and non-coil DHW paths settle exactly."
+  },
+  "proposed_fix_scope": "On the DHW path, build optimized_end from the simulate_trajectory_with_dhw end state (it already returns room/slab/upper/lower/dhw/buffer/wood), or replay with the DHW schedule and draw rates. Golden drift is expected in wood_coil's predicted_savings / deferred_energy_cost.",
+  "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "expected_golden_drift": [
+    "wood_coil"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}
+```
+
+## Non-findings
+
+- predicted_cost == sum(price*(P_space+P_dhw)*dt), minus the PV piecewise credit where a surplus exists, on all 50 golden scenarios — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/objective_identities.py` → cost_err=0.000e+00
+- Savings identity predicted_savings == baseline_cost - predicted_cost - deferred_energy_cost on all 50 golden scenarios — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/objective_identities.py` → savings_err=0.000e+00
+- Every currency term of the solver objective (energy, cycling, capacity, terminal) is homogeneous of degree 1 in price_weight, and comfort terms do not scale, on both the space-only and DHW paths — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/price_weight_scaling.py` → homog_err=2.131e-16 over 10 scenarios x 5 points (the perturbation, terminal refill unscaled, gives 1.875e-01)
+- The terminal cost's sign and magnitude match a 24 h continuation re-simulated with the production baseline controller, priced at the same p25 refill price — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/terminal_continuation.py` → sign_disagree=0; ratio 0.997..1.123, median 1.035 over 6 cells (the perturbation, refill x2, gives 2.155..2.374)
+- The solver gradient (_batch_fd_gradient, forward, eps 1e-4) agrees with a central finite difference at random interior points — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/gradient_fd.py` → rel_err_max=8.655e-06 (winter_two_zone_no_dhw), 9.283e-07 with the worst cell dropped, over 8 scenarios x 4 points; 2.1e-06 at eps 1e-7
+- compute_cop is non-decreasing in outdoor temperature (no defrost learned) across plain, flow-curve, valve/Carnot and cop_scale arms; non-increasing in flow; compute_cop_dhw is non-increasing in tank temperature in both branches — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/cop_sweep.py` → mono_outdoor_viol=0, mono_flow_viol=0, dhw_mono_viol=0
+- With flow_curve_cop on, hot water at or above the curve flow is never priced at a higher COP than space heating — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/cop_sweep.py` → cross_mode_viol=0 of 16653 cells (the curve never exceeds 35 C, see D2-s2-02)
+- DefrostDerate.factor stays within [DERATE_MIN, 1] and is continuous (bilinear between centres); derate_from_duty stays within [0.55, 1]; flow_lift_factor stays within [0.25, 1] — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/cop_sweep.py` → derate_out_of_band=0, derate_max_jump=1.345e-08 per 1e-7 probe, duty derate 0.55..1.0, flow_lift 0.4396..1.0
+
+## Harnesses
+
+- `tools/audit/round9/D2/s2/cop_sweep.py`
+- `tools/audit/round9/D2/s2/flow_bias_clamp.py`
+- `tools/audit/round9/D2/s2/capacity_reason.py`
+- `tools/audit/round9/D2/s2/objective_identities.py`
+- `tools/audit/round9/D2/s2/price_weight_scaling.py`
+- `tools/audit/round9/D2/s2/terminal_continuation.py`
+- `tools/audit/round9/D2/s2/gradient_fd.py`
+- `tools/audit/round9/D2/s2/slab_cap_scale.py`
+- `tools/audit/round9/D2/s2/slab_cap_plan.py`
+
+## Unfinished
+
+- D2.M2: 'Capacity envelope never below demand-at-derate without a reason code': capacity_reason.py shows that none of the 13 optimizer.REASON_* codes names capacity. In one of 12 cells (two-zone, winter_cold, ceiling 0.6 x nameplate), 29 steps have cap*COP below the demand at the comfort minimum; they are labelled cheap_price 11, comfort_floor 8, scheduled 6, idle 4. The other 11 cells show 0, so leave-one-out drops the count to 0. Removing the ceiling (--perturb) gives 0. There are not enough cells to carry a finding; a colder-weather or outdoor-offset sweep is still needed. The brief's 'Carnot fraction within the stated band' has no band stated anywhere in the tree; I measured the flow_lift_factor range instead (0.44-1.0).
+
+## Leads
+
+None.
