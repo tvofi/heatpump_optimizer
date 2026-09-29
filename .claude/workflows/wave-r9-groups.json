@@ -3778,11 +3778,11 @@
     "R9-F7.2"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-f7-entities-4",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+    "commit": "3defa2d58879ba969b4f87bfd77dc0e580ef5874",
+    "last_step": "MERGED as #1766 at 3defa2d5; fixes[] #1760 confirmed closed -- the N-name-sort barrier (declared families + contiguity check) landed",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/F7.4.md on handoff/r9-f7-entities-4",
     "review_branch": "handoff/r9-f7-entities-4-review",
     "review_note_file": "handoff/round9/fix/resume/F7.4-review.md on handoff/r9-f7-entities-4-review",
