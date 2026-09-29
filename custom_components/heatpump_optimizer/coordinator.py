@@ -1705,10 +1705,16 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     (#1513): the temperature in degC, 5.0 when it will not parse, and the
     wind in m/s. The wind used to be scaled here and again in
     ``_forecast_arrays``, so a km/h entity was planned at 1/3.6 of it.
+
+    Windowed like a fetched forecast too (round-9 D1-s2-02): these rows are
+    built from a live entity's attributes, the same class of input, so an
+    absurd one drops to ``None`` here and takes the fallback below -- 5.0 C
+    for the temperature, the consumers' 0.0 for the wind -- instead of
+    reaching the solve.
     """
     attrs = getattr(state, "attributes", None) or {}
     start = dt_util.now()
-    rows = _forecast_in_model_units(state, [
+    rows = _plausible_forecast_rows(_forecast_in_model_units(state, [
         {
             "datetime": (start + timedelta(hours=i)).isoformat(),
             "temperature": temperature_c(attrs.get("temperature"), None),
@@ -1716,7 +1722,7 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
             "precipitation": 0.0,
         }
         for i in range(48)
-    ])
+    ]))
     return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 

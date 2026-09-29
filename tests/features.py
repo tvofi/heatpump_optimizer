@@ -593,6 +593,34 @@ R.check(
     f"{_np_wire._weather_forecast!r}",
 )
 
+# The sibling seam the fetch pin cannot reach (fix review, round 1): a failed
+# FIRST fetch plans on rows fabricated from the weather entity's CURRENT
+# attributes, which is the same class of live input and was not windowed.
+# Driven on the production symbol; the metric is what the rows hand
+# _forecast_arrays, i.e. the series the solve receives (D1-s2-02's count key).
+from heatpump_optimizer.coordinator import _fabricated_forecast  # noqa: E402
+
+def _np_fab(**attrs):
+    return _fabricated_forecast(
+        FakeState("sunny", attributes=dict({"temperature_unit": "°C"}, **attrs))
+    )
+
+_np_fab_t = _np_fab(temperature=1e308, wind_speed=3.0)
+_np_fab_w = _np_fab(temperature=-5.0, wind_speed=1e6)
+_np_fab_ok = _np_fab(temperature=-5.0, wind_speed=3.0)
+R.check(
+    "a fabricated forecast windows its source attributes too: an absurd "
+    "temperature falls to the 5.0 C fallback and an absurd wind to the "
+    "consumers' 0.0, while a healthy entity fabricates unchanged (D1-s2-02)",
+    len(_np_fab_t) == len(_np_fab_w) == len(_np_fab_ok) == 48
+    and {r["temperature"] for r in _np_fab_t} == {5.0}
+    and {r["wind_speed"] for r in _np_fab_w} == {None}
+    and {r["temperature"] for r in _np_fab_ok} == {-5.0}
+    and {r["wind_speed"] for r in _np_fab_ok} == {3.0},
+    f"absurd T {_np_fab_t[0]!r}; absurd wind {_np_fab_w[0]!r}; "
+    f"healthy {_np_fab_ok[0]!r}",
+)
+
 # D1-s2-02, the ECL110 family: a state displace outside the window the
 # integration itself commands is not a measurement, and never lands.
 _np_ecl = Coord(FakeHass(), _np_entry(data={"tibber_token": "x"}))
