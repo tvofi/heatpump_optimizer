@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 441.7,
+   "seconds": 387.6,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -106,7 +106,7 @@
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 21.2,
+   "seconds": 36.9,
    "rc": 0
   },
   "tests/md_tables.mjs": {
