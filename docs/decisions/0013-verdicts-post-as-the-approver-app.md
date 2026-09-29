@@ -99,6 +99,14 @@ second pull request's CODEOWNERS, 6 of those 17 would touch no owned path.
 
 ## Consequences
 
+- A pinned grader that pins the shape of the artifact it grades makes any
+  change to that shape **two pull requests** — the grader first, the artifact
+  second, so the second's base already runs the first's grader (#1633, #1635,
+  #1636, #1639). Noted 2026-09-29 after friction issue #1640 counted four
+  seats each re-deriving that sequencing: the cost is deliberate — the
+  alternative is a branch grading its own changed grader — and a pinned
+  instrument's new `--self-test` cases likewise first run in CI after the
+  merge, because the grading jobs restore the base's copy (#1637).
 - The reviewer seat hands verdict text to the orchestrator, who posts it
   with `tools/audit/app_comment.sh` (`fix-review.md`); `orchestrator.md`
   section 5's identity line names the App for verdicts.
