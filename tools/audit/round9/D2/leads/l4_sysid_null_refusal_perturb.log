@@ -1,0 +1,91 @@
+CELL timber_crawlspace|pre_1960|floor|3.5kW           admitted hw=0.0479 err=+0.0000 why=adopted
+CELL timber_crawlspace|pre_1960|floor|6.0kW           admitted hw=0.0479 err=+0.0000 why=adopted
+CELL timber_crawlspace|pre_1960|radiators|3.5kW       admitted hw=0.0499 err=+0.0000 why=adopted
+CELL timber_crawlspace|pre_1960|radiators|6.0kW       admitted hw=0.0499 err=+0.0000 why=adopted
+CELL timber_crawlspace|1960_1980|floor|3.5kW          admitted hw=0.0649 err=+0.0000 why=adopted
+CELL timber_crawlspace|1960_1980|floor|6.0kW          admitted hw=0.0649 err=+0.0000 why=adopted
+CELL timber_crawlspace|1960_1980|radiators|3.5kW      admitted hw=0.0675 err=-0.0000 why=adopted
+CELL timber_crawlspace|1960_1980|radiators|6.0kW      admitted hw=0.0675 err=+0.0000 why=adopted
+CELL timber_crawlspace|1980_2005|floor|3.5kW          admitted hw=0.0942 err=+0.0000 why=adopted
+CELL timber_crawlspace|1980_2005|floor|6.0kW          admitted hw=0.0942 err=+0.0000 why=adopted
+CELL timber_crawlspace|1980_2005|radiators|3.5kW      admitted hw=0.0979 err=+0.0000 why=adopted
+CELL timber_crawlspace|1980_2005|radiators|6.0kW      admitted hw=0.0979 err=+0.0000 why=adopted
+CELL timber_crawlspace|post_2005|floor|3.5kW          admitted hw=0.1392 err=-0.0000 why=adopted
+CELL timber_crawlspace|post_2005|floor|6.0kW          admitted hw=0.1392 err=+0.0000 why=adopted
+CELL timber_crawlspace|post_2005|radiators|3.5kW      admitted hw=0.1446 err=-0.0000 why=adopted
+CELL timber_crawlspace|post_2005|radiators|6.0kW      admitted hw=0.1446 err=-0.0000 why=adopted
+CELL timber_crawlspace|low_energy|floor|3.5kW         aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_crawlspace|low_energy|floor|6.0kW         aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_crawlspace|low_energy|radiators|3.5kW     REFUSED  hw=0.2339 err=+0.0000 why=heat-loss interval (+-26 %) is wider than the +-20 % adoption bar
+CELL timber_crawlspace|low_energy|radiators|6.0kW     REFUSED  hw=0.2339 err=+0.0000 why=heat-loss interval (+-26 %) is wider than the +-20 % adoption bar
+CELL timber_slab|pre_1960|floor|3.5kW                 admitted hw=0.0474 err=+0.0000 why=adopted
+CELL timber_slab|pre_1960|floor|6.0kW                 admitted hw=0.0462 err=+0.0000 why=adopted
+CELL timber_slab|pre_1960|radiators|3.5kW             admitted hw=0.0500 err=-0.0000 why=adopted
+CELL timber_slab|pre_1960|radiators|6.0kW             admitted hw=0.0500 err=+0.0000 why=adopted
+CELL timber_slab|1960_1980|floor|3.5kW                admitted hw=0.0632 err=+0.0000 why=adopted
+CELL timber_slab|1960_1980|floor|6.0kW                admitted hw=0.0627 err=+0.0000 why=adopted
+CELL timber_slab|1960_1980|radiators|3.5kW            admitted hw=0.0679 err=-0.0000 why=adopted
+CELL timber_slab|1960_1980|radiators|6.0kW            admitted hw=0.0679 err=+0.0000 why=adopted
+CELL timber_slab|1980_2005|floor|3.5kW                admitted hw=0.0913 err=+0.0000 why=adopted
+CELL timber_slab|1980_2005|floor|6.0kW                admitted hw=0.0913 err=+0.0000 why=adopted
+CELL timber_slab|1980_2005|radiators|3.5kW            admitted hw=0.0989 err=+0.0000 why=adopted
+CELL timber_slab|1980_2005|radiators|6.0kW            admitted hw=0.0989 err=-0.0000 why=adopted
+CELL timber_slab|post_2005|floor|3.5kW                aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_slab|post_2005|floor|6.0kW                aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_slab|post_2005|radiators|3.5kW            admitted hw=0.1461 err=-0.0000 why=adopted
+CELL timber_slab|post_2005|radiators|6.0kW            admitted hw=0.1461 err=-0.0000 why=adopted
+CELL timber_slab|low_energy|floor|3.5kW               aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_slab|low_energy|floor|6.0kW               aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_slab|low_energy|radiators|3.5kW           aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL timber_slab|low_energy|radiators|6.0kW           aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|pre_1960|floor|3.5kW               admitted hw=0.0488 err=+0.0000 why=adopted
+CELL concrete_slab|pre_1960|floor|6.0kW               admitted hw=0.0476 err=+0.0000 why=adopted
+CELL concrete_slab|pre_1960|radiators|3.5kW           admitted hw=0.0502 err=+0.0000 why=adopted
+CELL concrete_slab|pre_1960|radiators|6.0kW           admitted hw=0.0502 err=+0.0000 why=adopted
+CELL concrete_slab|1960_1980|floor|3.5kW              admitted hw=0.0661 err=+0.0000 why=adopted
+CELL concrete_slab|1960_1980|floor|6.0kW              admitted hw=0.0651 err=+0.0000 why=adopted
+CELL concrete_slab|1960_1980|radiators|3.5kW          admitted hw=0.0682 err=+0.0000 why=adopted
+CELL concrete_slab|1960_1980|radiators|6.0kW          admitted hw=0.0682 err=+0.0000 why=adopted
+CELL concrete_slab|1980_2005|floor|3.5kW              admitted hw=0.0962 err=+0.0000 why=adopted
+CELL concrete_slab|1980_2005|floor|6.0kW              admitted hw=0.0953 err=+0.0000 why=adopted
+CELL concrete_slab|1980_2005|radiators|3.5kW          admitted hw=0.0992 err=+0.0000 why=adopted
+CELL concrete_slab|1980_2005|radiators|6.0kW          admitted hw=0.0992 err=-0.0000 why=adopted
+CELL concrete_slab|post_2005|floor|3.5kW              aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|post_2005|floor|6.0kW              aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|post_2005|radiators|3.5kW          admitted hw=0.1464 err=-0.0000 why=adopted
+CELL concrete_slab|post_2005|radiators|6.0kW          admitted hw=0.1464 err=-0.0000 why=adopted
+CELL concrete_slab|low_energy|floor|3.5kW             aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|low_energy|floor|6.0kW             aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|low_energy|radiators|3.5kW         aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL concrete_slab|low_energy|radiators|6.0kW         aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|pre_1960|floor|3.5kW                     admitted hw=0.0499 err=+0.0000 why=adopted
+CELL masonry|pre_1960|floor|6.0kW                     admitted hw=0.0497 err=-0.0000 why=adopted
+CELL masonry|pre_1960|radiators|3.5kW                 admitted hw=0.0503 err=+0.0000 why=adopted
+CELL masonry|pre_1960|radiators|6.0kW                 admitted hw=0.0503 err=+0.0000 why=adopted
+CELL masonry|1960_1980|floor|3.5kW                    admitted hw=0.0679 err=+0.0000 why=adopted
+CELL masonry|1960_1980|floor|6.0kW                    admitted hw=0.0678 err=+0.0000 why=adopted
+CELL masonry|1960_1980|radiators|3.5kW                admitted hw=0.0683 err=+0.0000 why=adopted
+CELL masonry|1960_1980|radiators|6.0kW                admitted hw=0.0683 err=+0.0000 why=adopted
+CELL masonry|1980_2005|floor|3.5kW                    aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|1980_2005|floor|6.0kW                    aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|1980_2005|radiators|3.5kW                admitted hw=0.0993 err=-0.0000 why=adopted
+CELL masonry|1980_2005|radiators|6.0kW                admitted hw=0.0993 err=+0.0000 why=adopted
+CELL masonry|post_2005|floor|3.5kW                    aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|post_2005|floor|6.0kW                    aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|post_2005|radiators|3.5kW                aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|post_2005|radiators|6.0kW                aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|low_energy|floor|3.5kW                   aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|low_energy|floor|6.0kW                   aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|low_energy|radiators|3.5kW               aborted  hw=na err=na why=fitted parameters outside plausible bounds
+CELL masonry|low_energy|radiators|6.0kW               aborted  hw=na err=na why=fitted parameters outside plausible bounds
+RESULT cells=80 count
+RESULT null_refused=2 count
+RESULT null_admitted=54 count
+RESULT null_aborted=24 count
+RESULT unarmed=0 count
+RESULT null_refused_by_structure={'timber_crawlspace': 2, 'timber_slab': 0, 'concrete_slab': 0, 'masonry': 0}
+RESULT null_refused_drop_worst_structure=0 count
+RESULT bar=0.1823 log-units perturbed=1
+RESULT thread_factor=1.000
+RESULT load1=1.86
+RESULT swapins=0

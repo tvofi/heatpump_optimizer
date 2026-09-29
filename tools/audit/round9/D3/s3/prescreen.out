@@ -1,0 +1,39 @@
+baseline tests/deployment_shape.py        rc=0 failed=0    7.4s
+baseline tests/doc_claims.py              rc=0 failed=0   12.0s
+baseline tests/config_flow_steps.py       rc=0 failed=0   51.9s
+baseline tests/entities.py                rc=0 failed=0  251.7s
+baseline tests/features.py                rc=0 failed=0  901.9s
+baseline tests/finite_boundary.py         rc=0 failed=0   15.8s
+baseline tests/guard_pins.py              rc=0 failed=0    1.0s
+baseline tests/manual_plan.py             rc=0 failed=0   10.8s
+baseline tests/open_meteo.py              rc=0 failed=0    0.3s
+baseline tests/env_drift.py               rc=0 failed=0 1241.9s
+baseline tests/plan_view.py               rc=0 failed=0    1.4s
+baseline tests/solar_alignment.py         rc=0 failed=0    1.0s
+baseline tests/structure.py               rc=0 failed=0    3.2s
+baseline tests/typing_ruler.py            rc=0 failed=0    0.3s
+baseline tests/validate.py                rc=0 failed=0   74.7s
+baseline tests/wood_advisor.py            rc=0 failed=0    1.3s
+baseline tests/optimality.py              rc=0 failed=0  284.3s
+Traceback (most recent call last):
+  File "/home/claude/audit-r9-D3-s3/tools/audit/round9/D3/s3/prescreen.py", line 294, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/claude/audit-r9-D3-s3/tools/audit/round9/D3/s3/prescreen.py", line 214, in main
+    mt._share(a.workers, work_base)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D3-s3/tests/mutation_table.py", line 1689, in _share
+    fut.result()
+    ~~~~~~~~~~^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py", line 395, in __get_result
+    raise self._exception
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D3-s3/tools/audit/round9/D3/s3/prescreen.py", line 199, in work_base
+    mut = dict(null, id="NULL")
+TypeError: 'NoneType' object is not iterable

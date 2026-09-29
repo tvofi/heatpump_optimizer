@@ -1,0 +1,6 @@
+tests/features.py: base rc=0 failed=0; mutant rc=1 failed=3; checks=["a non-finite draw occurrence resets to 0 kWh; finite events and labels survive  [open_kwh 1000000000.0 / 1000000000.0, reservoirs {'06:00-08:30': [8.0]}]", "a draw reservoir keeps its finite numbers and drops the rest, event by event  [from None -> {}; from a mixed list -> {'06:00-08:30': [1.0, 2.0]}, open_kwh 1000000000.0. The string and the infinity go and the two real draws stay: a reservoir is a quantile estimate, so discarding the whole window over one bad event throws away the history that makes the estimate worth anything]"]
+RESULT features_py_killed=1
+RESULT kills=1 scripts
+RESULT load1=2.02
+RESULT thread_factor=1.00 (counts only; drivers run in subprocesses)
+RESULT swapins=0

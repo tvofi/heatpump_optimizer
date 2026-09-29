@@ -1,0 +1,266 @@
+{
+ "dimension": "D14",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D14/s2/REPORT.md",
+ "exposure": "Read under the D14 exception: tools/audit/bugclasses.json; git log/messages and diffs of 56cb0027 and 4a19c425 (R8 P8 unit fixes, #1513), 57a6e19f (R7-D4-03 card), 7df2ce55, a97681b5, c6a19759, 2c135037 (earlier currency fixes), f0e38526/3602b6ca/0f8d9a4f (R7-D12-01), 06ec54b5, 5b83e369/d62195ad (R6-D12-01), 99212150 (R5-D7-03/04), 9eaa284c, d571cb79, 8d731d77, 5b367a63 (D13/D11 instrument fixes); pre-fix trees via git show at 3602b6ca^ (package), 57a6e19f^ (card), 8d731d77^ (audit-find.js, briefs list). No file under tools/audit/round3..round8 was read (the host removed them mid-run; none had been opened). Also read docs/dashboard-card.md's currency lines (grep) to establish the card's documented precedence. No gh, no GitHub.",
+ "coverage": [
+  {
+   "step": "D14.M1",
+   "depth": "deep",
+   "evidence": "bugclasses.json read in full; P2, P8, I4 all status open, detector null; instance commits for each class located by git log --grep and read (see exposure)."
+  },
+  {
+   "step": "D14.M2",
+   "depth": "deep",
+   "evidence": "The seat's axis fixes the classes (P2, P8, I4); P2 has 28 instances over rounds 1-7, P8 7 over 5 rounds, I4 14 over 4 rounds."
+  },
+  {
+   "step": "D14.M3",
+   "depth": "deep",
+   "evidence": "Three detectors committed: p2_facts.py (--seams AST rule over the package, --ref for pre-fix commits, --selftest clean 0 / re-introduced 1, dynamic boundary probes), p8_currency.py (+p8_card.mjs; --seams static rule, three dynamic seam families), i4_roster.py (--seams, --dims <ref>, executed intake). Each re-finds one listed instance at its pre-fix commit (R7-D12-01 at 3602b6ca^, R7-D4-03 at 57a6e19f^, R7-INSTR-01 at 8d731d77^) and moves under an in-memory one-line re-introduction or fix."
+  },
+  {
+   "step": "D14.M4",
+   "depth": "deep",
+   "evidence": "One finding per class (D14-s2-01 P2, -02 P8, -03 I4), each with its property, seam rule, every seam the rule lists at baseline and a proposed barrier; the P2 rule's 29 baseline seams are dispositioned in REPORT.md."
+  },
+  {
+   "step": "D14.M5",
+   "depth": "spot",
+   "evidence": "Barrier location and form proposed per class with the detector's measured wall cost (provisional: p2 --seams 1.30 s, p8 --seams 1.30 s, p8 full 2.74 s incl. plan_view+node, i4 0.24 s; load1 1.5, box shared); no barrier implemented (finder seat)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D14.M3",
+   "what": "Each detector re-finds one ledger instance at a pre-fix commit, not every one: P2's rule covers presence-inferred config facts only (R6-D12-01's proxy was a ThermalState field, outside it; the other 26 P2 instances were not replayed); P8's currency rule does not replay the unit instances (R4/R5 D12-01, R4 D2-04), which #1513's tests/entities.py float() barrier guards; I4's rule covers identifier rosters and the finding grammar, not the verdict-grammar readers of R5/R6 D13."
+  },
+  {
+   "step": "D14.M5",
+   "what": "Barriers are proposed and costed from detector wall time only; their gate-seconds inside tests/entities.py (shared AST parse) are not measured, and none is demonstrated failing/passing as a check, which the after-judge sweep owes."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D14-s2-01",
+   "scope": "D14-s2",
+   "step": "D14.M4",
+   "title": "P2: the two-zone and wood-furnace facts are re-derived from a proxy key at three seams beside their canonical predicate",
+   "severity": "medium",
+   "claim": "On 40 boundary configurations, config_flow._derive_preset disagrees with ThermalParameters.from_config(...).two_zone_enabled on 20 and modbus_prefill.infer offers a flow target the pre-fill save refuses (or misses one it would accept) on 20; on 21 wood configurations topology.describe_setup's wood tank disagrees with wood_fuel.wood_furnace_on on 2; each drops to 0 when the proxy read is replaced by the canonical predicate.",
+   "mechanism": "ThermalParameters.from_config decides two_zone_enabled from the explicit two_zone_mode override first and the presence of any of four zone keys second; wood_fuel.wood_furnace_on decides the furnace from its flag first and a fixed inferred-key set second. Three seams decide the same fact themselves: _derive_preset (config_flow.py:1125) and modbus_prefill._plant (modbus_prefill.py:212) test bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)), ignoring the mode key, the other three presence keys and a present-but-0.0 value; topology._wood_tank_shown (topology.py:376) re-derives the furnace from a different inferred-key set (adds valve_outlet_temp_entity, drops dhw_wood_coil_enabled). The R7-D12-01 fix (3602b6ca) moved the flow-target guard and the pre-fill save guard to the canonical predicate and left these siblings. Consequence: a two_zone_mode=off install whose zone keys survive in entry.data gets two-zone questionnaire physics written into a single-zone model (house_thermal_mass 0.267x the canonical preset's on the probe house); two_zone_mode=on without an upper-mass key gets single-zone physics (3.75x); the GCHV pre-fill offers a flow write target its own save then refuses; the setup diagram draws a wood tank the model does not run, or hides one it does.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py",
+    "harness_path": "tools/audit/round9/D14/s2/p2_facts.py",
+    "value": 20,
+    "unit": "cells of 40 (derive_preset_disagree); prefill_refused_or_missed=20 of 40; wood_picture_vs_model_disagree=2 of 21",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B8 (4 cores, 15 GB, Linux 6.18, CPython 3.14.0rc2, node v22.22.2)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy D14 seats (s1, s3) shared the box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.17,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_derive_preset; heatpump_optimizer.modbus_prefill:infer (via _plant); heatpump_optimizer.config_flow:_prefill_errors; heatpump_optimizer.topology:describe_setup; heatpump_optimizer.thermal_model:ThermalParameters.from_config; heatpump_optimizer.wood_fuel:wood_furnace_on",
+   "perturbation": {
+    "change": "in memory (recompiled function, no file edit): config_flow.py:1125 two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)) -> ThermalParameters.from_config(dict(current)).two_zone_enabled; modbus_prefill.py:212 current.get(CONF_UPPER_FLOOR_THERMAL_MASS) -> ThermalParameters.from_config(dict(current)).two_zone_enabled; topology.py:403 wood = _wood_tank_shown(config) -> wood = wood_furnace_on(config)",
+    "expected_direction": "to_zero",
+    "observed_value": "derive_preset_disagree 20 -> 0; prefill_refused_or_missed 20 -> 0; wood_picture_vs_model_disagree 2 -> 0"
+   },
+   "metric_definition": "Boundary configs on which a seam's delivered output (zone split in derived dict; refused/missed suggestion; wood.present) disagrees with the canonical predicate on the saved config.",
+   "phenomenon_property": "Every decision about a presence-inferred configuration fact (two_zone_enabled, dhw_enabled, wood_furnace_on) is made by that fact's canonical predicate (ThermalParameters.from_config / _dhw_enabled_from_config / wood_furnace_on), never by reading one of its proxy keys in a test context outside the predicate.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams   (AST: proxy keys extracted from the canonical predicates; lists every decision-context read of them outside the predicate; --ref <sha> runs it at any commit)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py",
+    "value": "null_control_disagree=0 of 20",
+    "note": "the 20 grid cells where upper-key presence and the canonical verdict coincide; both counts vanish there, so the count is the divergence, not the grid"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 3,
+    "max": 5,
+    "drop_most_favourable": 15
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams --ref 3602b6ca^   (positive control: two_zone seams 3, the R7-D12-01 flow-target guard re-found at config_flow.py:3400)",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --selftest   (clean fixture 0, one-line re-introduction 1)"
+   ],
+   "proposed_fix_scope": "Route the three seams through the canonical predicates: _derive_preset and modbus_prefill._plant through ThermalParameters.from_config(...).two_zone_enabled (or a thin two_zone_enabled(config) helper in thermal_model beside _dhw_enabled_from_config), topology.describe_setup through wood_furnace_on (and decide separately whether valve_outlet_temp_entity should join wood_furnace_inferred). Barrier: a tests/entities.py check running the seam rule with a disposition table for the 21 guarded/not-applicable reads, refusing any new decision-context proxy read.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/modbus_prefill.py",
+    "custom_components/heatpump_optimizer/topology.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D14-s2-02",
+   "scope": "D14-s2",
+   "step": "D14.M4",
+   "title": "P8: a money figure's currency comes from the label source, never from the price feed that denominates it",
+   "severity": "medium",
+   "claim": "Over 12 feed-unit x instance-currency cells the current-price sensor publishes the feed's number under hass.config.currency in all 8 cells where the price entity declares a different ISO code, with no repair issue in any; the firewood price widget is the only one of 4 currency-labelled option widgets that ignores the instance currency; and the card names two currencies on one screen for un-converted figures when card-config currency is set (price axis and what-if delta off the install's currency -- 3 counted surfaces, the axis counted as computed and as drawn; 4 before R7-D4-03, the savings table too).",
+   "mechanism": "inputs.normalize_price_per_kwh parses a price entity's <money>/<energy> unit for its scale and discards the money code ('The currency itself is never converted'); coordinator.currency is currency.resolve_currency(hass), i.e. hass.config.currency, and every money sensor's native_unit_of_measurement and the plan sensors' currency attribute come from it; _audit_price_units only flags an unparseable unit. So an EUR/kWh Nord Pool entity on an SEK instance publishes 0.10 as 0.10 SEK/kWh. The config flow resolves three money widgets through resolve_currency(hass) but CONF_WOOD_PRICE_SEK_M3's widget hard-codes 'SEK/m³' (config_flow.py:1645; also the simulate_plan service description in strings.json/en/sv), and wood_fuel compares that price directly with the plan's electricity prices. The card resolves currency twice: PlanSource.currency() lets card-config currency lead (price axis, what-if delta), savingsUnit() lets the savings sensor's declared unit lead (headline, savings table) -- R7-D4-03 moved only the savings table.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py",
+    "harness_path": "tools/audit/round9/D14/s2/p8_currency.py",
+    "value": 8,
+    "unit": "cells of 12 (A_unflagged_mismatch); B_money_widgets_off_instance[EUR]=1 of 4; card_surfaces_not_install_currency[card_cfg_EUR]=3",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B8 (4 cores, 15 GB, Linux 6.18, CPython 3.14.0rc2, node v22.22.2)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy D14 seats (s1, s3) shared the box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.18,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.currency; heatpump_optimizer.sensor:CurrentPriceSensor.native_unit_of_measurement; heatpump_optimizer.coordinator:_audit_price_units; heatpump_optimizer.coordinator:_entity_price; heatpump_optimizer.config_flow:_OPTION_FIELDS (_ByHass.of); www/heatpump-optimizer-card.js:PlanSource.currency, savingsUnit, ManualPlan.deltaHtml, PlanSource.priceUnit",
+   "perturbation": {
+    "change": "(A) mock.patch.object(coordinator, 'resolve_currency', <returns the feed's declared ISO code>); (B) hass.config.currency EUR -> SEK; (C) the card source string in memory with `this.config.currency ||` dropped from PlanSource.currency()",
+    "expected_direction": "to_zero",
+    "observed_value": "A 8 -> 0; B 1 -> 0; C distinct tokens 2 -> 1, off-install surfaces 3 -> 0"
+   },
+   "metric_definition": "Money surfaces whose delivered currency token (sensor unit, widget unit, rendered card text) differs from the currency the figure is denominated in, with no repair issue naming it.",
+   "phenomenon_property": "Every surface that labels a money figure resolves its currency through one function whose inputs include the currency the number actually arrives in (the price feed's declared code); a mismatch between the feed and the instance is either adopted or raised as a repair issue, never silently relabelled; no money unit is a literal.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py --seams   (every resolve_currency call, every .currency read, every price-unit parse that drops the money code, every literal currency unit and untemplated currency word in strings/translations, every card currency resolver)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py",
+    "value": "A: 0 on the 4 cells where feed code == instance currency; B_money_widgets_off_instance[SEK]=0; card no_cfg arm distinct=1, off-install=0",
+    "note": "the arms where label source and number source coincide"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 1,
+    "max": 2,
+    "drop_most_favourable": 6
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py   (runs plan_view.py into a private HPO_PLANDATA and the card arms through node)",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py --seams",
+    "positive control inside the same run: [pre_R7_D4_03] card at 57a6e19f^ -> 4 off-install surfaces (savings_table included) against 3 at baseline"
+   ],
+   "proposed_fix_scope": "coordinator: keep the price feed's declared money code (price entity unit, or Tibber's priceInfo currency) beside coordinator.currency and raise a repair issue when they differ (or adopt the feed's, with the statistics-orphan cost currency.py documents); config_flow: the firewood price widget through _ByHass(resolve_currency) and the service description through a {currency} placeholder; card: one resolver for every un-converted money surface (the what-if delta and price axis follow savingsUnit's precedence, or the savings surfaces follow the override -- one rule either way). Barrier: the seam rule as a tests/entities.py check (no literal currency unit in a selector or translation string; every money surface through the one resolver) plus p8_card.mjs's one-screen-one-currency assertion in tests/card.mjs, replacing the card.mjs check that pins 'an explicit card setting still wins' for the delta alone.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8"
+  },
+  {
+   "id": "D14-s2-03",
+   "scope": "D14-s2",
+   "step": "D14.M4",
+   "title": "I4: class roster and finding grammar have disagreeing readers (P11 on no D14 seat; intake admits schema-refused ids)",
+   "severity": "low",
+   "claim": "bugclasses.json has 16 class ids but scopes.json's D14 axis has 15, so P11 is held by no D14 seat while check_scopes.check() reports D14 ok; and audit-find.js's intake, executed on 22 boundary findings, admits 11 that finding.schema.json refuses (class ids P0/P12/P99/I0/I6/P011 and ids D14-s2-1/-001/-xx/-/-01a), 0 after it is rebuilt from the ledger and the schema's id pattern.",
+   "mechanism": "The class roster is written in four places: the ledger (bugclasses.json), the schema enum (held equal to the ledger by check-wave-script.mjs), the D14 axis in scopes.json (held equal to nothing), and audit-find.js's CLASS_GUESS = /^([PI][0-9]+|new)$/ plus a reportSchema whose class_guess is {type: 'string'}. P11 was added to the ledger and the schema (v6.6.12 root cause) but not to the D14 axis, and check_scopes.py proves completeness against the dimension's own axis, which is the stale list. The intake's id rule is f.id.startsWith(`${seat}-`), not the schema's ^D..(-s[0-9]+)?-[0-9]{2}$. check-wave-script.mjs's intake test uses X9 as its unknown class, a case both readers already agree on.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py",
+    "harness_path": "tools/audit/round9/D14/s2/i4_roster.py",
+    "value": 11,
+    "unit": "boundary findings of 22 admitted by intake and refused by the schema; ledger_ids_no_d14_seat=1 (P11)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B8 (4 cores, 15 GB, Linux 6.18, CPython 3.14.0rc2, node v22.22.2)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy D14 seats (s1, s3) shared the box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.57,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/check_scopes.py:check; .claude/workflows/audit-find.js:CLASS_GUESS and the intake loop it gates (executed in a node vm)",
+   "perturbation": {
+    "change": "(a) scopes.json D14 axis.class set to the ledger ids in memory; (b) the intake block's CLASS_GUESS replaced by the ledger-built alternation and its id rule by the schema's id pattern",
+    "expected_direction": "to_zero",
+    "observed_value": "(a) check_scopes_D14_ok True -> False with 5 unowned P11 lines; (b) intake_admits_schema_refuses 11 -> 0"
+   },
+   "metric_definition": "(reader, boundary case) verdicts differing from the ledger+schema verdict, plus ledger class ids held by no D14 seat.",
+   "phenomenon_property": "Each audit identifier (class id, finding id, dimension, seat, step) has one definition, and every reader either loads it from that definition or is held equal to it by a check that exercises the cases where the readers could differ.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --seams   (every class_guess/CLASS_GUESS/bugclasses.json/axis reader under tools/audit and .claude/workflows); PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --dims <ref>... for the dimension roster",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py",
+    "value": "null_control_disagree=0 of 17 (every ledger id plus 'new' with a well-formed id)",
+    "note": "and the dimension roster at HEAD: 0 of 4 readers disagree"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --dims HEAD 8d731d77^   (positive control: at 8d731d77^ audit-find.js DIMS is missing D13 -- R7-INSTR-01 re-found; 0 at HEAD)"
+   ],
+   "proposed_fix_scope": "Add P11 to scopes.json's D14 axis and to a seat; make check-wave-script.mjs (or check_scopes.py) assert the D14 axis equals the ledger ids; build the intake's class and id checks from finding.schema.json (the enum and the id pattern), or pass the schema into the intake; extend check-wave-script.mjs's intake test with P99 and D1-s2-1 cases.",
+   "files": [
+    "tools/audit/scopes.json",
+    "tools/audit/check_scopes.py",
+    ".claude/workflows/audit-find.js",
+    ".claude/workflows/check-wave-script.mjs"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I4"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The dimension roster agrees across every reader at baseline (briefs, audit-find.js DIMS, scopes.json, rotation.json, schema dimension pattern)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --dims HEAD",
+   "value": "dim_roster_readers_disagreeing[HEAD]=0 of 4 (1 of 2 at 8d731d77^)"
+  },
+  {
+   "claim": "finding.schema.json's class_guess enum equals the ledger ids plus 'new'",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py",
+   "value": "schema_enum_equals_ledger=True"
+  },
+  {
+   "claim": "The config-flow money widgets that do carry a currency unit follow the instance currency, the firewood price excepted",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py",
+   "value": "B_money_widgets[SEK]=4, off_instance[SEK]=0; [EUR] 1 of 4 (wood_price_sek_m3 only)"
+  },
+  {
+   "claim": "Every Python money sensor reads one currency (coordinator.currency); the narrative's per-render resolve_currency is the documented deliberate exception (narrative.render docstring: statistics orphaning)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py --seams",
+   "value": "12 sensor.py sites all coordinator.currency; 1 narrative site resolve_currency(hass)"
+  },
+  {
+   "claim": "The two_zone fact's guard seams that R7-D12-01 repaired stay on the canonical predicate",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams",
+   "value": "config_flow.py:3425 and :2039 not listed (use from_config); two_zone seams 2 at baseline vs 3 at 3602b6ca^"
+  },
+  {
+   "claim": "Of the 29 decision-context proxy reads the P2 rule lists, 21 are guarded or not applicable (the other 8 are the 3 instance seams) (reads combined with the canonical predicate, answer read-backs, probe-presence and data reads)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams",
+   "value": "seams dhw_enabled=11 (all n/a), wood_furnace_on=16 (topology._wood_tank_shown's 6 reads = 1 instance; 10 guarded/n-a), two_zone_enabled=2 (both instances)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D14/s2/p2_facts.py",
+  "tools/audit/round9/D14/s2/p8_currency.py",
+  "tools/audit/round9/D14/s2/p8_card.mjs",
+  "tools/audit/round9/D14/s2/i4_roster.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "grid_fee:IMPLAUSIBLE_FEE_SEK_PER_KWH",
+   "what": "The 10-per-kWh fee plausibility bound (config-flow refusal and repair notice) is one number for every currency; a high-denomination currency (HUF, JPY) fee would be refused as implausible. Not measured."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/currency.py",
+   "symbol": "currency:FALLBACK_CURRENCY",
+   "what": "Real Home Assistant always sets hass.config.currency (core default EUR), so the SEK fallback the module and README describe fires only under stubs; an unconfigured instance labels in EUR, not SEK. Not measured against HA core."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/quick_setup.py",
+   "symbol": "quick_setup:stored_answers",
+   "what": "The buffer-tank answer is read back as volume >= BUFFER_STORE_MIN_VOLUME while ThermalParameters.buffer_is_store also requires a throttling valve; read here as an answer read-back (not applicable to P2), left for a D12/D8 seat to judge."
+  }
+ ]
+}

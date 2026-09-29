@@ -1,0 +1,274 @@
+{
+ "group": "G3",
+ "unit": "leads",
+ "ids": [
+  "D2-s1-51",
+  "D9-s1-71",
+  "D9-s2-71",
+  "D2-s2-81",
+  "D2-s4-81"
+ ],
+ "findings": [
+  {
+   "step": "D2.M2",
+   "severity": "low",
+   "title": "DHW setpoint advisor prices candidates at the 5.0 degC ThermalState default when no outdoor thermometer is mapped",
+   "claim": "On a hot-water install without an outdoor thermometer, _dhw_setpoint_sweep prices all 7 candidates at outdoor 5.0 degC (the constructor default) instead of the forecast the plan uses, so the published cost_per_day is off by more than 5 % on 7 of 7 candidates at a -15 degC forecast (worst 52.7 %) and at -5 degC (worst 26.5 %); the recommended setpoint is unchanged.",
+   "mechanism": "_dhw_setpoint_sweep reads float(ctx._current_state.outdoor_temperature), which _update_current_state only overwrites from an ok outdoor-thermometer reading; without one it stays ThermalState's 5.0 default, and compute_cop_dhw(5.0, t) overstates the COP. forecast_outdoor_now and sensor._effective_outdoor exist for exactly this case and the outdoor sensor already uses them.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+    "harness_path": "tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+    "value": 14,
+    "unit": "candidates of 14 (two cold forecasts x 7) whose published cost_per_day is off by more than 5 %",
+    "load1": 0.14,
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+    "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+    "tolerance": "exact",
+    "thread_factor": 1.0,
+    "cpu_or_wall": "count"
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+   "perturbation": {
+    "change": "--forecast: the sweep's outdoor input set to forecast_outdoor_now (the fix's input)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Candidates of the DHW setpoint sweep whose cost_per_day differs by more than 5 % from the sweep priced at the forecast's current outdoor temperature.",
+   "phenomenon_property": "No consumer of ThermalState.outdoor_temperature uses the 5.0 degC constructor default as a measurement: without a thermometer every consumer falls back to the forecast's current step (or reports unknown).",
+   "seam_rule": "grep -n '_current_state.outdoor_temperature\\|state.outdoor_temperature' custom_components/heatpump_optimizer/*.py; harness: tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+    "value": "F+5: off=0 of 7",
+    "note": "a forecast equal to the default gives identical prices"
+   },
+   "proposed_fix_scope": "coordinator._dhw_setpoint_sweep: use the outdoor thermometer while it reads, else forecast_outdoor_now(self._weather_forecast, now), else skip pricing.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "class_guess": "P6",
+   "id": "D2-s1-51",
+   "scope": "D2-s1",
+   "stop_rule_class": "bug",
+   "seat": "D2-s1",
+   "from_lead": true,
+   "leads_seat": "L1"
+  },
+  {
+   "id": "D9-s1-71",
+   "scope": "D9-s1",
+   "step": "D9.M1",
+   "title": "Constant DHW parameter helpers recomputed ~15-45k times per solve; a per-solve cache saves 3-17 % of CPU",
+   "severity": "low",
+   "claim": "ThermalParameters.dhw_tank_heat_loss_coefficient, dhw_inlet_reference and effective_dhw_draw_pattern are recomputed 4k-11k, 12k-33k and ~98 times per DHW solve for values constant within the solve; memoising them per instance leaves 5 of 5 plans bitwise identical and cuts the capture's thread CPU by 0.026-0.174 (mean 0.094) against a null arm of -0.030..+0.050 (mean -0.001).",
+   "mechanism": "The DHW step reads the tank loss coefficient (an np.clip on a scalar each call), the inlet reference and, per horizon build, the windowed draw pattern (24 overlap_fraction calls) through properties/methods that recompute from unchanged parameters on every simulated step.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py",
+    "harness_path": "tools/audit/round9/D9/leads/l3_dhw_helpers.py",
+    "value": 0.094,
+    "unit": "mean share of golden.capture thread CPU saved by the per-solve cache over 5 DHW cells (RESULT saved_share_mean)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+    "cpu_or_wall": "cpu",
+    "contention_note": "PROVISIONAL: fan-out CPU on a shared box with other leads seats; interleaved plain/memo arms, ratio metric; re-take in the quiet window",
+    "tolerance": "\u00b10.05 (null arm band)",
+    "load1": 1.79,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.dhw_tank_heat_loss_coefficient (with .dhw_inlet_reference and .effective_dhw_draw_pattern), driven through HeatPumpOptimizer.optimize",
+   "perturbation": {
+    "change": "per-instance memoisation of the three helpers (in memory); the null arm installs the same wrapper layer without caching",
+    "expected_direction": "down",
+    "observed_value": "CPU ratio memo/plain 0.826-0.974 vs null 0.950-1.030"
+   },
+   "metric_definition": "1 - (thread CPU of golden.capture with the three helpers memoised per ThermalParameters instance / plain), interleaved x2 per cell; plus helper calls per solve.",
+   "phenomenon_property": "A value that is constant within a solve is computed once per solve, not once per simulated step.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py  (seams = ThermalParameters properties/methods called from simulate_dhw_step and the DHW planners; count calls per solve)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py --null",
+    "value": "saved_share_min=-0.0302 max=0.0497 mean=-0.0006",
+    "note": "same wrapper layer, no cache: the band the memo arm must exceed"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 0.0259,
+    "max": 0.1742,
+    "drop_most_favourable": 0.0745
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "proposed_fix_scope": "Hoist the three values once per solve (a cached_property invalidated on parameter change, or locals in simulate_dhw_step's caller); scalar math instead of np.clip in dhw_tank_heat_loss_coefficient.",
+   "seat": "D9-s1",
+   "from_lead": true,
+   "leads_seat": "L3"
+  },
+  {
+   "id": "D9-s2-71",
+   "scope": "D9-s2",
+   "step": "D9.M2",
+   "title": "stress.py samples 0 of 51 throttling-valve plants; a valve adds 1.3-2.7x solve CPU the gate never sees",
+   "severity": "medium",
+   "claim": "None of tests/stress.py's 51 sweep cases builds a plant with a throttling mixing valve (0 of 51, keyed on the params handed to optimize()), while on four golden valve plants the valve itself multiplies optimize() CPU by 1.30-2.70 against the same plant with mixing_valve_mode='none' (smart_write 2.70x: 2x the step-equivalents), so a regression confined to the valve path is unsampled by the only per-PR CPU gate.",
+   "mechanism": "sweep_combinations() crosses season x zones x DHW and tariff/pv/cycling on house() defaults, which leave mixing_valve_mode at none; build_case takes no valve argument. The valve branches of the simulate kernels (_simulate_step_two_zone, simulate_trajectory_batch) and smart_write's larger search therefore contribute no row to the budget table, the same UNSAMPLED shape build_case's docstring records for #287's zero-range bounds.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py",
+    "harness_path": "tools/audit/round9/D9/leads/l3_valve_solve.py",
+    "value": 0,
+    "unit": "of 51 stress sweep cases with a throttling valve (RESULT stress_sweep_valve_cases); valve/no-valve CPU 1.30-2.70x",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+    "cpu_or_wall": "count",
+    "contention_note": "the coverage count is exact; CPU ratios are fan-out numbers on a shared box (thread_factor 1.000), re-take in the quiet window",
+    "tolerance": "exact (count); CPU ratios provisional",
+    "load1": 1.83,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/stress.py:sweep_combinations/build_case (plant handed to heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize), metered with tests/stress.py:SolverWork",
+   "perturbation": {
+    "change": "--perturb novalve: mixing_valve_mode='none' on the four valve cells (config change)",
+    "expected_direction": "down",
+    "observed_value": "valve cells' CPU/reference 131-285 -> 101-116; smart_write step-equivalents 9,426,048 -> 4,852,896"
+   },
+   "metric_definition": "Stress sweep cases whose built ThermalParameters throttle; and per golden valve plant, optimize() thread CPU / reference_solve with the valve vs mixing_valve_mode='none'.",
+   "phenomenon_property": "Every plant topology the integration supports that changes the solve's kernel or search is sampled by at least one stress.py budget row.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py  (topology axes = const TOPOLOGY_* and mixing_valve modes; count sweep cases per axis value)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py --perturb novalve",
+    "value": "control cells (winter_two_zone_no_dhw, shoulder_two_zone) step-equivalents unchanged exactly (4,219,488; 3,507,029); CPU/reference 84.7->92.6, 71.7->74.7",
+    "note": "the no-valve controls do not move under the perturbation beyond CPU noise; only valve cells do"
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "I1",
+   "files": [
+    "tests/stress.py",
+    "tests/stress_budgets.json"
+   ],
+   "proposed_fix_scope": "Add at least one manual and one smart_write two-zone valve case (and valve_upper_direct_slab / two_tank_4way where their kernels differ) to sweep_combinations via a build_case config, record their budget rows (a budget-table re-record, owner-approved).",
+   "reproduction_steps": [
+    "valve arm: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py",
+    "no-valve arm: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py --perturb novalve"
+   ],
+   "seat": "D9-s2",
+   "from_lead": true,
+   "leads_seat": "L3"
+  },
+  {
+   "id": "D2-s2-81",
+   "scope": "D2-s2",
+   "step": "D2.M3",
+   "title": "Two-zone comfort penalty halves each zone's floor price; shipped plans sit up to 0.46 K below min_temp",
+   "severity": "medium",
+   "claim": "On the stock two-zone house (tests/golden.py:make, winter_cold) the shipped plan's upper zone falls below min_temp 17.0 by 2.467 degree-steps summed over 12 price x DHW cells (1.314 in two|dhw|winter_typical, coldest 16.54 C), while the same house single-zone breaches 0.147 and every flat-price cell 0.",
+   "mechanism": "_comfort_terms (and _comfort_terms_batch) average the two zones' penalties with 0.5 x (...), which also halves each zone's quadratic floor term and its _COMFORT_FLOOR_L1 linear term; the constant's own comment says 2.0 is the smallest L1 that removes residual floor violations, so each zone of a two-zone house gets half of it and the solver buys the breach back where prices reward it (two|dhw|winter_typical: holding the floor costs 70.52 vs 67.50 SEK).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "harness_path": "tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "value": 2.4672,
+    "unit": "degree-steps (K x 15-min steps), 12 two-zone cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact on one BLAS build; +-0.05 degree-steps across builds",
+    "load1": 1.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (shipped upper/lower_temp_trajectory), via optimizer:HeatPumpOptimizer._comfort_terms / _comfort_terms_batch and the module constant _COMFORT_FLOOR_L1",
+   "perturbation": {
+    "change": "--perturb: optimizer._COMFORT_FLOOR_L1 2.0 -> 4.0 in memory (each zone gets the single-zone linear floor price)",
+    "expected_direction": "down",
+    "observed_value": 0.8574
+   },
+   "metric_definition": "sum over steps and zones of max(0, min_temp - T_zone) of the shipped two-zone trajectories, over 6 price profiles x DHW on/off at winter_cold, 24 h",
+   "phenomenon_property": "Each zone of a two-zone plan pays the same price per degree-step below min_temp as a single-zone room does, so the floor the L1 term exists to pin holds per zone.",
+   "seam_rule": "grep -n \"0.5 \\* weight\\|_COMFORT_FLOOR_L1\" custom_components/heatpump_optimizer/optimizer.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "value": "single_zone_floor_deg_steps_sum=0.1471 (1 of 12 cells); two_zone_flat_sum=0.0000",
+    "note": "same house single-zone and the flat-price cells; the breach is price-bought and two-zone-specific"
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": 0.0,
+    "max": 1.3144,
+    "drop_most_favourable": 0.1048
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py --perturb"
+   ],
+   "proposed_fix_scope": "optimizer.py _comfort_terms/_comfort_terms_batch: keep the two-zone average for the pull and the overshoot, but price each zone's undershoot (quadratic and L1) at the single-zone weight; pin with a two-zone winter_typical floor check.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [
+    "winter_two_zone_dhw",
+    "winter_two_zone_no_dhw"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P3",
+   "seat": "D2-s2",
+   "from_lead": true,
+   "leads_seat": "L4"
+  },
+  {
+   "id": "D2-s4-81",
+   "scope": "D2-s4",
+   "step": "D2.M5",
+   "title": "sysid cannot adopt its own exact noise-free fit on 43 of 80 preset houses, yet arms on all 80",
+   "severity": "medium",
+   "claim": "Driving the production step experiment on a plant exactly equal to the declared one with a noise-free reading, over every BuildingPreset structure x era x emitter at 3.5 and 6 kW, 19 of 80 cells complete and are refused by adoption_decision (heat-loss half-width 0.096-0.234 against the ln 1.10 = 0.0953 bar, fit error 0.0000) and 24 abort as 'fitted parameters outside plausible bounds'; all 80 arm.",
+   "mechanism": "The adoption bar keys on slab_ua_adoption_halfwidth, which at zero noise is set by the prior and window design, not by the fit's error, so light, radiator-heated and low-energy houses never reach it; separately the fit's plausibility box (tau 0.1-200 h, UA 0.01-5) rejects exact-data fits on masonry, low-energy and slab-floor cells (not separated here: true parameters outside the box versus a fit that misses them).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "harness_path": "tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "value": 19,
+    "unit": "cells of 80 refused at zero bias (plus 24 plausibility aborts)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.32,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sysid:SystemIdentification.arm/step/_finish, sysid:adoption_decision, sysid:slab_ua_adoption_halfwidth",
+   "perturbation": {
+    "change": "--perturb: sysid.UA_ADOPTION_HALFWIDTH_BAR ln(1.10) -> ln(1.20) in memory",
+    "expected_direction": "down",
+    "observed_value": 2
+   },
+   "metric_definition": "preset cells whose exact-plant, noise-free sysid experiment completes and adoption_decision refuses (80 = 4 structures x 5 eras x 2 emitters x 2 pump sizes)",
+   "phenomenon_property": "A sysid experiment the tree arms on a declared plant can adopt its own exact answer: at zero bias and zero noise the gate admits and the plausibility box contains the fit.",
+   "seam_rule": "grep -n \"UA_ADOPTION_HALFWIDTH_BAR\\|plausible bounds\\|def adoption_decision\" custom_components/heatpump_optimizer/sysid.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "value": "null_admitted=37 of 80",
+    "note": "the same drive admits exact fits on 37 cells (e.g. heavier pre-1980 houses), so the drive can admit"
+   },
+   "leave_one_out": {
+    "cells": 80,
+    "min": 0,
+    "max": 1,
+    "drop_most_favourable": 18
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py --perturb",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py (D14-s3's light_new rows: hw 0.1446 at every zero-bias source)"
+   ],
+   "proposed_fix_scope": "sysid.py: arm only where the declared plant's zero-noise half-width clears the bar and its parameters lie in the plausibility box (refuse at arm time with a reason), or size the window/step so they do; widen the box to the presets' own range.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P5",
+   "seat": "D2-s4",
+   "from_lead": true,
+   "leads_seat": "L4"
+  }
+ ]
+}

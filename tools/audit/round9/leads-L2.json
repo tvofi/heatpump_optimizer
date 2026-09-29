@@ -1,0 +1,239 @@
+{
+ "report_path": "tools/audit/round9/LEADS-L2.md",
+ "findings": [
+  {
+   "id": "D8-s3-61",
+   "scope": "D8-s3",
+   "step": "D8.M4",
+   "title": "Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is",
+   "severity": "low",
+   "claim": "In 5 of 5 golden topologies with mixing_valve_mode=manual, Valve Target Recommendation publishes a target (23.0 °C) and its reason while its registry default is off; in the same 5 topologies without a valve it is available with state unknown.",
+   "mechanism": "ValveTargetRecommendationSensor keeps a static _attr_entity_registry_enabled_default=False and the base availability, while the payload key it reads (coordinator._mixing_valve_view) exists only when mixing_valve.is_throttling(mode). Its sibling opt-in readouts take default and availability from the configured feature: ConfiguredInputMixin (ECL110, probes; #1302/#1542) and DHWEntityMixin (#1398). The class docstring's reason ('disabled rather than eternally-unknown') covers only the no-valve install, where the entity is nevertheless available.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only D",
+    "harness_path": "tools/audit/round9/D8/leads/l2_d8_leads.py",
+    "value": 5,
+    "unit": "topologies (of 5) with a throttling valve where the entity publishes a value while enabled_default is False",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "leads box L2: 4-core Linux cloud container, /home/claude/venv314 CPython",
+    "cpu_or_wall": "count",
+    "contention_note": "leads fan-out: seats L1/L3/L4 on the same box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 1.94,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:ValveTargetRecommendationSensor (entity_registry_enabled_default, available, native_value) over heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._mixing_valve_view",
+   "perturbation": {
+    "change": "--perturb valve: entity_registry_enabled_default follows mixing_valve.is_throttling(config mixing_valve_mode) (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Topologies (of the 5 golden coordinator scenarios) with mixing_valve_mode=manual where the entity's native_value is not None and entity_registry_enabled_default is False.",
+   "phenomenon_property": "An entity whose value exists only under an opt-in configuration feature takes its registry default and its availability from that feature being configured, never from a static class attribute.",
+   "seam_rule": "grep -n '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/binary_sensor.py  (each hit checked against the payload gate its value needs)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "README.md"
+   ],
+   "proposed_fix_scope": "Gate ValveTargetRecommendationSensor's default and availability on mixing_valve.is_throttling(mode) in the ConfiguredInputMixin shape; update README.md:551/:560 and the disabled-set pins in tests/entities.py. Existing registry entries keep their state."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Heat Pump Action and Recommended Power publish the actuated action, not the optimizer's mode label, when mode is off and a space or DHW boost runs the pump (lead D8-s2 -> D8-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only A",
+   "value": "boost_off_mismatch=0 of 7 arms (control at mode auto 0); --perturb label -> 7"
+  },
+  {
+   "claim": "Losing the indoor reading hides only measurement-gated sensors (the thermometer's own _reading_key entities and the thermal-battery 'a store is sensed' gate); no plan, money or advisory sensor goes with it, unlike the climate in D8-s2-01 (lead D8-s2 -> D8-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only B",
+   "value": "non_measured_hidden=0 (indoor_hidden_measured=20 over 5 topologies); --perturb gate -> 5"
+  },
+  {
+   "claim": "DHW Heavy Day Demand is unavailable and off by default on every no-hot-water topology, and tests/entities.py names it in _DHW_GATE_EXCEPTIONS with its reason (lead D8-s3 -> D8-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only C",
+   "value": "heavy_day_on_no_dhw=0 of 3 no-DHW topologies"
+  },
+  {
+   "claim": "The plan narrative follows Home Assistant's configured language (hass.config.language), sv-SE folding to sv and an untabled language to en; per-viewer UI language cannot be followed by a single-state sensor (lead D4-s1 -> D8-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only E",
+   "value": "narrative_language_mismatch=0 of 4 (en, sv, sv-SE, de); --perturb narrative -> 2"
+  },
+  {
+   "claim": "Solar Irradiance publishes the Open-Meteo coordinate at 5 dp as recorded attributes while diagnostics.py coarsens to 1 dp; not a defect: it is hass.config's own home coordinate, which stays inside the instance, and the coarsening exists because the diagnostics file leaves it (lead D10-s2 -> D8-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only F",
+   "value": "solar_attr_coordinate_places=5, diagnostics_coordinate_places=1, latitude not in _unrecorded_attributes"
+  },
+  {
+   "claim": "docs/setup.md 'the original eleven-page wizard' and 'Quick setup arrived in v6.6.5' hold: the pre-Quick-setup wizard shows 10 screens (8 forms + 2 menus) on either building route, 11 with the opt-in device pre-fill page; #1251 sits under the v6.6.5 heading (lead D5-s1 -> D6-s2)",
+   "command": "HPO_BASELINE_GIT=/home/claude/heatpump_optimizer PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l2_wizard_pages.py",
+   "value": "screens_describe/thermal = 10 at v6.6.4 and at baseline; --with-offer -> 11; quick_setup_pr1251_release=v6.6.5"
+  },
+  {
+   "claim": "The wood-vs-pump comparison (Wood Cheaper, Wood-Burn Night Advisor) is currency-agnostic: correct in any instance currency when the wood price is typed in that currency; the published keys price_sek_m3/sek_per_kwh still say SEK, and a EUR install that types the price in SEK as the form's unit asks (D4-s2-02) is told wood is never cheaper (lead D4-s2 -> D12-s1)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l2_wood_currency.py",
+   "value": "factors_changing_count=0 of 6 currency scales; eur_install_wood_typed_in_sek_cheaper_steps=0 vs 60; --perturb convert -> 4"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D8/leads/l2_d8_leads.py",
+  "tools/audit/round9/D6/leads/l2_wizard_pages.py",
+  "tools/audit/round9/D12/leads/l2_wood_currency.py"
+ ],
+ "converted": [
+  {
+   "raised_by": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ValveTargetRecommendationSensor",
+   "finding_id": "D8-s3-61"
+  }
+ ],
+ "closed": [
+  {
+   "raised_by": "D1-s3",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "away-strip data-away-return change handler",
+   "why": "Same phenomenon as D1-s3-01, which names the card's datetime-local value as a seam (tz-less return_time; every later cycle raises until away is switched off). Card side (owner D4-s1 by check_scopes) is a seam of that finding, not a second one."
+  },
+  {
+   "raised_by": "D4-s1",
+   "file": "custom_components/heatpump_optimizer (plan narrative sensor)",
+   "symbol": "plan_narrative attributes.language",
+   "why": "Owner D8-s1 by check_scopes (sensor.py, D8.M2 attributes). Measured, holds: narrative_language_mismatch=0 of 4 hass.config.language arms (l2_d8_leads.py --only E; perturbation -> 2). The backend follows HA's configured language; a single-state sensor cannot follow each viewer's UI language."
+  },
+  {
+   "raised_by": "D8-s3",
+   "file": "README.md",
+   "symbol": "Entities > temperatures table, Upper Floor Temperature row",
+   "why": "Owner D6-s1 (README.md). Seam of D8-s3-03, which measured Upper Floor Temperature = Indoor Temperature on all 5 topologies including single-zone installs with no upper floor; README:503's 'The radiator zone' is true only under the two-zone convention the sensor docstring states. The README row is carried with that finding's fix."
+  },
+  {
+   "raised_by": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SolarIrradianceSensor.extra_state_attributes / open_meteo.OpenMeteoSolar.diagnostics",
+   "why": "Owner D8-s1 by check_scopes (sensor.py attributes). Measured: 5 dp recorded vs diagnostics' 1 dp (l2_d8_leads.py --only F). Not a defect: the value is hass.config's own home coordinate inside the instance; diagnostics coarsens because that file leaves it."
+  },
+  {
+   "raised_by": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/icons.json",
+   "symbol": "services section",
+   "why": "Owner D4-s2 by check_scopes (icons.json); measured by D4-s2-08 (12 of 12 services without an icon)."
+  },
+  {
+   "raised_by": "D11-s1",
+   "file": "docs/decisions/0011-app-authored-identity.md",
+   "symbol": "Context: 'about eleven of its merged pull requests now return 404'",
+   "why": "No seat owns it: check_scopes --seat for every D11/D5/D6 seat lists no docs/decisions/** cell (D11's universe is .github/.claude/.cursor/tools/CLAUDE.md/AGENTS.md; D5/D6 name specific docs files), although D11.md M3 names 'status lines in docs/decisions/'. Scope gap for the orchestrator to route; the executed 52-of-253 count is D11-s1's (its exposure line). Not measured here: it needs GitHub API reads."
+  },
+  {
+   "raised_by": "D11-s1",
+   "file": "docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md",
+   "symbol": "step 3(d) dismiss_stale_reviews_on_push: true",
+   "why": "Measured by D11-s1-01, whose claim names decisions 0008 3(d) and 0009 step 6 against live ruleset 23698884 (dismiss_stale_reviews_on_push=false)."
+  },
+  {
+   "raised_by": "D4-s2",
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "symbol": "wood_fuel_ready / cheaper_hour_count (CONF_WOOD_PRICE_SEK_M3)",
+   "why": "Owner D12-s1. Measured (l2_wood_currency.py): the comparison is currency-agnostic, factors_changing_count=0 of 6. The harm is D4-s2-02's form label: a EUR install typing the price in SEK as the unit asks gets 0 cheaper steps vs 60. Seam evidence for D4-s2-02; the SEK-named keys price_sek_m3/sek_per_kwh belong to the same fix."
+  },
+  {
+   "raised_by": "D5-s1",
+   "file": "custom_components/heatpump_optimizer/translations/en.json",
+   "symbol": "config.step.quick_setup.data_description.buffer_tank / wood_buffer_tank",
+   "why": "Seam of D5-s1-02 (same mechanism: quick_setup.derive never sets a throttling mixing valve, so buffer_is_store and two_tank_modelled stay off). The form text at translations/en.json:312/:315 (strings.json same keys) is a second place the claim shows; carry it to that finding's seams."
+  },
+  {
+   "raised_by": "D6-s2",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "options ... data_description.curve_learning_enabled (line 1333)",
+   "why": "Seam of D6-s2-03 (curve bias moves 0.6 K in 7 days against 'at most 0.5 K per week'); strings.json/en.json:1333 carries the same figure as 'at most half a degree per week'."
+  },
+  {
+   "raised_by": "D12-s1",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerConfigFlow.async_step_dhw",
+   "why": "Seam of D12-s1-02 (an untouched hot-water page stores dhw_windows/dhw_tank_volume and turns DHW planning on); its harness phantom_dhw.py already drives the wizard_dhw_step seam (HeatPumpOptimizerConfigFlow.async_step_dhw). The missing 'no tank' answer is that finding's fix surface."
+  },
+  {
+   "raised_by": "D5-s1",
+   "file": "README.md",
+   "symbol": "Entities: 'Nineteen entities (eighteen sensors and the wood binary sensor) are disabled by default'",
+   "why": "Owner D6-s1 measured it: D6-s1-03 (26 disabled on a no-hot-water install, six DHW sensors unlisted) and NF C08/C09 (19 on a hot-water install, list matches); D8-s3's NF agrees (19 + 7 DHW-gated)."
+  },
+  {
+   "raised_by": "D6-s2",
+   "file": "README.md",
+   "symbol": "line 44",
+   "why": "Owner D6-s1 measured it as a non-finding (claims.py C27-C48, 'curve 0.5 K/week' equal to the constant). That check reads the constant; D6-s2-03 measures the behaviour at 0.6 K in 7 days. The judge reconciles the two; README:44 is a seam of D6-s2-03's phenomenon."
+  },
+  {
+   "raised_by": "D5-s1",
+   "file": "docs/setup.md",
+   "symbol": "'the original eleven-page wizard'; 'Quick setup arrived in v6.6.5'",
+   "why": "Owner D6-s2; measured here, holds: 10 screens at v6.6.4 on either building route (8 forms + 2 menus), 11 with the opt-in device pre-fill page; #1251 under the v6.6.5 heading (l2_wizard_pages.py; --with-offer -> 11)."
+  },
+  {
+   "raised_by": "D5-s1",
+   "file": "docs/ecl110.md",
+   "symbol": "## Sensors: 'on an install whose topics were configured at setup they are enabled'",
+   "why": "Owner D6-s2. Stale wording, not a false instruction: no initial-flow page offers an ECL110 topic (D6-s1 NF C49/C50), and ecl110.md:113-114 prescribes the only reachable route (topics added in Options, enable from the device page); 'configured at setup' describes only pre-v4.1.0 entries, which the same doc states at :88. README:549-550 is the same wording."
+  },
+  {
+   "raised_by": "D5-s1",
+   "file": "docs/configuration.md",
+   "symbol": "Services table: simulate_plan '16 optional comfort and wood fields'",
+   "why": "Owner D6-s2 measured it as D6-s2-05 (the paragraph lists 11 of the schema's 16 fields); D5-s1-06 carries the structure half."
+  },
+  {
+   "raised_by": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "commanded_power_kw (climate recommended_power_kw)",
+   "why": "Seam of D8-s1-03: climate.py:232 publishes recommended_power_kw from entity.commanded_power_kw, the symbol D8-s1-03 instruments (whose docstring lists the climate among its four readers)."
+  },
+  {
+   "raised_by": "D8-s2",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "IndoorTempSensor.available",
+   "why": "Owner D8-s1; measured, holds: non_measured_hidden=0 over 5 topologies; the 20 hidden entities are the thermometer's own and the thermal-battery 'store sensed' gate (l2_d8_leads.py --only B; perturbation gate -> 5)."
+  },
+  {
+   "raised_by": "D8-s2",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "Heat Pump Action / operating-state sensors",
+   "why": "Owner D8-s1; measured, holds: boost_off_mismatch=0 of 7 mode-off boost arms, control 0; Heat Pump Action reads the actuated action's mode (boost / hot_water) (l2_d8_leads.py --only A; perturbation label -> 7)."
+  },
+  {
+   "raised_by": "D8-s3",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWHeavyDaySensor",
+   "why": "Owner D8-s1; measured, holds: heavy_day_on_no_dhw=0 of 3 no-DHW topologies, and tests/entities.py _DHW_GATE_EXCEPTIONS names it with its reason (l2_d8_leads.py --only C)."
+  },
+  {
+   "raised_by": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "config-flow-test-coverage / test-coverage rows",
+   "why": "Owner D10-s2 measured D10.M3 as a non-finding: every module above 95 % statement coverage (min 95.12 %), which decides both coverage rows."
+  },
+  {
+   "raised_by": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "exceptions section",
+   "why": "Owner D10-s2 NF exception-translations: raise_without_key=0 at baseline. The keys owed by fixes of D10-s1-02/-03 are a constraint on those fixers, not a baseline defect."
+  },
+  {
+   "raised_by": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/quality_scale.yaml",
+   "symbol": "manifest quality_scale: platinum",
+   "why": "Not a separate mechanism: the declared tier stands or falls with D10-s1's Bronze/Silver findings; D10-s2's gold/platinum rows are non-findings except D10-s2-01."
+  },
+  {
+   "raised_by": "D14-s4",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "slot-hit rect (TARGET_MIN_PX_COARSE)",
+   "why": "Owner D4-s1 NF: every HTML control clears 24 px (44 px coarse); lane slot targets are recorded there as the boxed-in residue by design."
+  }
+ ]
+}

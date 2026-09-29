@@ -5,8 +5,8 @@ production lines. You work in your own worktree branched from `origin/main`.
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
-   merge. The rule is keyed on the manifest's `version` field, not the file:
-   an edit leaving it unchanged is allowed; the command is `prepr.sh` step 5's.
+   merge. The rule is keyed on the manifest's `version` field, not the file;
+   the command is `prepr.sh` step 5's.
    Compare three-dot, never two-dot, which reports `main`'s own newer commits
    as the branch's (#399, `tests/closures.json`).
 2. **Failing test first**, importing the production symbol (a test that
@@ -16,6 +16,9 @@ production lines. You work in your own worktree branched from `origin/main`.
    not the tail**: a line appended past a script's own return changes nothing,
    and a vacuous mutation reads exactly like a passing check — `exit 3` on the
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
+   A mutant run from a `git archive` copy fails the #363 `recorded_at` check
+   on every mutant, baseline included — the M0 null run attributes it to
+   the runner (#1713, #1723).
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
@@ -56,10 +59,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    keep the handoff body outside the worktree `app_push.sh` refuses when dirty.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally and the body passes `tools/audit/prepr.sh` before anything leaves
-   this machine. Seats are LOCAL-ONLY (decision 0011,
-   `docs/decisions/0011-app-authored-identity.md`): hand the branch and body
-   off locally; the orchestrator pushes and opens the pull request as the
+   locally and the body passes `tools/audit/prepr.sh`. Seats are LOCAL-ONLY
+   (decision 0011, `docs/decisions/0011-app-authored-identity.md`): hand the
+   branch and body off locally; the orchestrator pushes and opens the pull
+   request as the
    `hpo-author` App, whose key files (`~/.zcode/hpo-author.*`) it alone holds
    and never prints. `fix-review.md`'s posting line is the reviewer's.
 
@@ -85,8 +88,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    it**: a head that moves mid-review invalidates measurements already taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    If your branch goes stale while a review is in flight, say so and hand it
-   back; do not merge it yourself. Moving it anyway is a verdict the reviewer
-   may return against you — **Re-read the head before you post**, in
+   back; do not merge it yourself — **re-read the head before you post**, in
    `fix-review.md`.
 
    Landing a PR is never yours — that is the **orchestrator's**, the
@@ -157,9 +159,9 @@ production lines. You work in your own worktree branched from `origin/main`.
     divergent, simplified, unverified, or a holder — and runs its contracts
     against both the stub and, nightly, the real package. **Before asserting
     that a test proves a production property, check whether the stub is what
-    satisfied it.** Four separate seats hit this in one day: the stub had no
-    loop protection, no `section`, no `state` property on `SensorEntity`, and a
-    `NumberSelector` that validated nothing.
+    satisfied it.** Four seats hit this in one day: no loop protection, no
+    `section`, no `state` on `SensorEntity`, a `NumberSelector` that
+    validated nothing.
 
     If your work depends on a symbol's upstream behaviour, add or read its
     contract rather than assuming; if you must extend the stub, argue the
