@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 125.2,
+   "seconds": 107.4,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -22,7 +22,7 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 44.6,
+   "seconds": 36.4,
    "rc": 0
   },
   "tests/entities.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 441.7,
+   "seconds": 387.6,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -54,8 +54,8 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 211.7,
-   "rc": 1
+   "seconds": 213.5,
+   "rc": 0
   },
   "tests/plan_view.py": {
    "seconds": 1.5,
@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 538.4,
+   "seconds": 452.0,
    "rc": 0
   },
   "tests/structure.py": {
@@ -74,7 +74,7 @@
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 33.1,
+   "seconds": 35.9,
    "rc": 0
   },
   "tests/deployment_shape.py": {
@@ -106,7 +106,7 @@
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 21.2,
+   "seconds": 36.9,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -122,6 +122,7 @@
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -430,6 +431,7 @@
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1208,6 +1210,7 @@
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1388,6 +1391,7 @@
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1491,6 +1495,7 @@
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",

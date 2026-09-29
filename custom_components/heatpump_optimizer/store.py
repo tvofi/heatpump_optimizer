@@ -12,10 +12,11 @@ store dict stayed open. The fifth seam of #1296/#1345 (``apply_cooling_rate``,
 sibling (``DefrostDerate.from_dict``'s ``duty`` grid) are the round-6 instances.
 
 This module closes the class by construction instead of one more guard: every
-store is a ``QuarantiningStore``, whose ``async_load`` scrubs non-finite numeric
-leaves to ``None`` — the loaders' own absent-data default — so a poisoned leaf
-is quarantined at the one persistence boundary and no per-seam guard can be
-forgotten, because no seam decides finiteness any more.
+store is a ``QuarantiningStore``, whose ``async_load`` scrubs poisoned numeric
+leaves (non-finite, or of a magnitude no writer produces) to ``None`` — the
+loaders' own absent-data default — so a poisoned leaf is quarantined at the
+one persistence boundary and no per-seam guard can be forgotten, because no
+seam decides finiteness or magnitude any more.
 
 The rule that a store must be this type is enforced, not remembered: the
 standing sweep ``tests/finite_boundary.py`` derives the boundary set from the
@@ -41,35 +42,49 @@ _LOGGER = logging.getLogger(__name__)
 _StorePayload = TypeVar("_StorePayload", bound=Mapping[str, Any] | Sequence[Any])
 
 
-def _sanitize(value: Any) -> Any:
-    """Recursively scrub non-finite numeric leaves to ``None``.
+#: No writer stores a number this large (an epoch in ms is 1.8e12), so one that
+#: is -- ``2**64``, ``1e300``, a key of that size -- is a corrupt leaf, and is
+#: quarantined here exactly as a non-finite one is (round-9 class P1).
+ABSURD = 1e15
 
-    A leaf is poisoned when it is a ``float`` that is not finite, or a ``str``
-    that coerces to one (``"NaN"``, ``"Infinity"``, ``"-Infinity"`` …): those
-    are the spellings ``float()`` turns into a non-finite number without
-    raising, which is exactly what the loaders' coercion guards cannot see.
-    Anything else — including a finite-but-large float such as ``1e308``, and a
-    non-numeric string the loader will refuse on its own — passes through
-    untouched, so the boundary refuses only what is non-finite and never
-    rewrites a healthy payload.
+
+def _poisoned(value: Any) -> bool:
+    """A leaf no writer produces: non-finite, or of magnitude ``ABSURD`` or more.
+
+    A ``str`` counts by what ``float()`` makes of it (``"NaN"``, ``"Infinity"``,
+    ``"1e300"`` …): those are the spellings a loader's coercion turns into a
+    poisoned number without raising, which its ``(TypeError, ValueError)``
+    guard cannot see. ``bool`` is an ``int`` to Python and never poisoned.
     """
     if isinstance(value, bool):
-        return value
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
+        return False
     if isinstance(value, str):
         try:
-            parsed = float(value)
+            value = float(value)
         except (TypeError, ValueError, OverflowError):
-            return value
-        return value if math.isfinite(parsed) else None
+            return False
+    if isinstance(value, int):
+        return abs(value) >= ABSURD
+    if isinstance(value, float):
+        return not math.isfinite(value) or abs(value) >= ABSURD
+    return False
+
+
+def _sanitize(value: Any) -> Any:
+    """Recursively scrub poisoned numeric leaves (``_poisoned``) to ``None``.
+
+    A dict entry whose key is poisoned is dropped. Anything else -- a finite
+    number below ``ABSURD``, a non-numeric string the loader will refuse on its
+    own -- passes through untouched, so the boundary never rewrites a healthy
+    payload.
+    """
     if isinstance(value, dict):
-        return {key: _sanitize(child) for key, child in value.items()}
+        return {k: _sanitize(v) for k, v in value.items() if not _poisoned(k)}
     if isinstance(value, list):
         return [_sanitize(child) for child in value]
     if isinstance(value, tuple):
         return tuple(_sanitize(child) for child in value)
-    return value
+    return None if _poisoned(value) else value
 
 
 def _bound_instants(
@@ -113,13 +128,13 @@ def _bound_instants(
 
 
 class QuarantiningStore(Store[_StorePayload]):
-    """A ``Store`` whose ``async_load`` scrubs non-finite numeric leaves.
+    """A ``Store`` whose ``async_load`` scrubs poisoned numeric leaves.
 
-    The finiteness property lives here, at the single persistence boundary,
-    instead of at each loader seam. A corrupted store reaches a loader already
-    sanitized, so a non-finite leaf becomes that loader's own absent-data
-    default and nothing non-finite is reachable from the live model — whatever
-    store, field or class the poison arrived in.
+    The finiteness and magnitude properties live here, at the single
+    persistence boundary, instead of at each loader seam. A corrupted store
+    reaches a loader already sanitized, so a poisoned leaf becomes that
+    loader's own absent-data default and nothing poisoned is reachable from
+    the live model — whatever store, field or class the poison arrived in.
     """
 
     #: The read in flight, kept until the next one.

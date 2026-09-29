@@ -29,6 +29,10 @@ from typing import Any, Deque
 
 import numpy as np
 
+from homeassistant.util import dt as dt_util
+
+from .drift import stored_instant
+
 _LOGGER = logging.getLogger(__name__)
 
 # How many intervals to keep. At the default 30-minute optimization interval
@@ -74,9 +78,13 @@ class AccuracySample:
         raw = data.get("t")
         if not raw:
             return None
-        try:
-            when = datetime.fromisoformat(str(raw))
-        except ValueError:
+        # The stored-instant rule (F3.1): a sample's stamp loads aware, or
+        # the sample is dropped -- a naive one held live is a naive-vs-aware
+        # TypeError waiting in whichever consumer next diffs it (P1-rca1).
+        # The loader runs under the coordinator, which sees Home Assistant's
+        # configured zone; a pure caller with no clock reads naive as UTC.
+        when = stored_instant(str(raw), dt_util.DEFAULT_TIME_ZONE)
+        if when is None:
             return None
 
         def num(key: str) -> float | None:

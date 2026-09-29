@@ -30,7 +30,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
 
 import aiohttp
 import numpy as np
@@ -312,6 +312,7 @@ from .const import (
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
     TEMPERATURE_UNIT_TO_C,
+    OUTDOOR_AIR_RANGE_C,
 )
 from .inputs import (
     UNBOUNDED,
@@ -384,7 +385,7 @@ from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import resolve_currency
-from .drift import Cusum
+from .drift import Cusum, stored_instant
 from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
 from .wear import StartCounter, wear_price_per_start
 from . import narrative
@@ -534,14 +535,20 @@ def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
     return guarded
 
 
-def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
+def _parse_ecl110_state(
+    payload: Any, displace_window: tuple[float, float] | None = None
+) -> tuple[float | None, float | None]:
     """(displace, effective_displace) from an ECL110 MQTT state payload.
 
     Four shapes arrive: the legacy dict, a nested ``command`` dict, a bare JSON
     number, and bytes of either. Raises TypeError/ValueError/OverflowError, or
     RecursionError on deep nesting, for a malformed payload, and ValueError on
     NaN or +-inf: ``json.loads`` accepts ``NaN``/``Infinity`` and overflows
-    ``1e999``, and neither is a measurement.
+    ``1e999``, and neither is a measurement. ``displace_window``, the (lo, hi)
+    the integration itself commands, is a plausibility bound (round-9
+    D1-s2-02): a finite value outside it is not a measurement this
+    integration could produce, and comes back ``None`` -- refused, not
+    raised, like an implausible input reading.
     """
     if isinstance(payload, bytes):
         payload = payload.decode("utf-8", errors="ignore")
@@ -557,7 +564,15 @@ def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
     parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]
     if not all(v is None or math.isfinite(v) for v in parsed):
         raise ValueError(f"non-finite value in {parsed!r}")
+    if displace_window is not None:
+        parsed = [_within_window(v, displace_window) for v in parsed]
     return parsed[0], parsed[1]
+
+
+def _within_window(value: float | None, window: tuple[float, float]) -> float | None:
+    """``value`` inside ``window``, else ``None``: refused, not raised."""
+    lo, hi = window
+    return value if value is None or lo <= value <= hi else None
 
 
 #: Resolution the optimizer plans at, and therefore the resolution every
@@ -1596,6 +1611,93 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
     return rows
 
 
+#: The physical window of each numeric forecast field, in the model units
+#: ``_forecast_in_model_units`` leaves them in. The weather feed is live
+#: external input (round-9 class N-plausibility, D1-s2-02): a finite but
+#: absurd row -- ``1e308`` degrees, a negative wind -- reached the solve
+#: unbounded and failed plans. The temperature window is the same one the
+#: inputs module holds the outdoor *entity* to, so the boundary a forecast
+#: row crosses is the boundary a current-conditions reading crosses; a value
+#: outside its window is dropped to ``None`` and the consumer's own fallback
+#: applies, exactly as for a value that will not parse.
+_FORECAST_FIELD_RANGE: Final[dict[str, tuple[float, float]]] = {
+    "temperature": OUTDOOR_AIR_RANGE_C,
+    "wind_speed": (0.0, 100.0),
+    "precipitation": (0.0, 1000.0),
+    "humidity": (0.0, 100.0),
+    "solar_irradiance": (0.0, 2000.0),
+    "native_solar_irradiance": (0.0, 2000.0),
+}
+
+
+def _plausible_forecast_rows(forecast: Any) -> list[dict[str, Any]]:
+    """The forecast's dict rows with every out-of-window field value dropped.
+
+    A row that is not a dict -- the string, number, list or ``None`` a broken
+    integration or a hostile feed puts among the rows -- is dropped whole:
+    every reader of a stored row calls ``.get`` on it, so one such row raised
+    on this cycle and, read as entry 0 by the humidity reader on the next,
+    wedged every later cycle too. A numeric field outside its window in
+    :data:`_FORECAST_FIELD_RANGE` becomes ``None``: the parse consumers'
+    fallbacks (a missing temperature is 5.0 C, wind and rain 0.0) already
+    exist and stay the reader's own.
+    """
+    if not isinstance(forecast, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for entry in forecast:
+        if not isinstance(entry, dict):
+            continue  # raised on this cycle and wedged the next (D1-s2-02)
+        for key, (lo, hi) in _FORECAST_FIELD_RANGE.items():
+            raw = entry.get(key)
+            if raw is None or isinstance(raw, bool):
+                continue
+            try:
+                value = float(raw)
+            except (TypeError, ValueError, OverflowError):
+                continue  # a non-numeric field is the parse consumer's problem
+            if not math.isfinite(value) or not lo <= value <= hi:
+                entry[key] = None
+        rows.append(entry)
+    return rows
+
+
+def _aware_instant_iso(values: list[Any]) -> list[str]:
+    """The stored-instant rule over a list of leaves: aware ISO strings.
+
+    A naive leaf is read in the loader's zone (Home Assistant's, where the
+    coordinator runs), garbage drops, and only the last 20 are kept -- the
+    same cap the writer holds. No naive instant is held live, so no consumer
+    diff can raise on one (round-9 P1-rca2).
+    """
+    out: list[str] = []
+    for value in values[-20:]:
+        when = stored_instant(value, dt_util.DEFAULT_TIME_ZONE)
+        if when is not None:
+            out.append(when.isoformat())
+    return out
+
+
+async def _stored_fuse_advisor(
+    store: QuarantiningStore[dict[str, Any]],
+) -> tuple[dict[str, Any], datetime | None] | None:
+    """(advisor, stamp) from the ledger store; ``None`` when it holds neither.
+
+    The stamp loads through the stored-instant rule (F3.1), aware or dropped,
+    so the weekly age check never subtracts a naive stamp off an aware now;
+    the subtraction itself runs through as_utc on both sides (#1299), so a
+    naive stamp kept naive under an unconfigured zone cannot raise either
+    (round-9 D14-s1-01). ``None`` -- absent data -- displaces nothing live.
+    """
+    try:
+        stored = await store.async_load() or {}
+        return dict(stored["fuse_advisor"]), stored_instant(
+            stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
+        )
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     """48 constant hourly rows from a weather entity's current attributes.
 
@@ -1603,10 +1705,16 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     (#1513): the temperature in degC, 5.0 when it will not parse, and the
     wind in m/s. The wind used to be scaled here and again in
     ``_forecast_arrays``, so a km/h entity was planned at 1/3.6 of it.
+
+    Windowed like a fetched forecast too (round-9 D1-s2-02): these rows are
+    built from a live entity's attributes, the same class of input, so an
+    absurd one drops to ``None`` here and takes the fallback below -- 5.0 C
+    for the temperature, the consumers' 0.0 for the wind -- instead of
+    reaching the solve.
     """
     attrs = getattr(state, "attributes", None) or {}
     start = dt_util.now()
-    rows = _forecast_in_model_units(state, [
+    rows = _plausible_forecast_rows(_forecast_in_model_units(state, [
         {
             "datetime": (start + timedelta(hours=i)).isoformat(),
             "temperature": temperature_c(attrs.get("temperature"), None),
@@ -1614,7 +1722,7 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
             "precipitation": 0.0,
         }
         for i in range(48)
-    ])
+    ]))
     return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 
@@ -2616,7 +2724,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
         ctx = getattr(self, "_ctx", self)
         try:
-            displace, effective = _parse_ecl110_state(msg.payload)
+            window = self._ecl110_displace_min, self._ecl110_displace_max
+            displace, effective = _parse_ecl110_state(msg.payload, window)
         except (TypeError, ValueError, OverflowError, RecursionError) as err:
             _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
             return
@@ -3108,7 +3217,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     continue
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
-            self._immersion_events = [str(e) for e in raw_events[-20:]]
+            self._immersion_events = _aware_instant_iso(raw_events)
         try:
             self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
         except (TypeError, ValueError, OverflowError):
@@ -5949,12 +6058,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
                 if forecast_data:
-                    self._weather_forecast = _forecast_in_model_units(
-                        self.hass.states.get(weather_entity), forecast_data)
+                    self._weather_forecast = _plausible_forecast_rows(
+                        _forecast_in_model_units(
+                            self.hass.states.get(weather_entity), forecast_data))
 
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
-                    for fc in forecast_data:
+                    for fc in self._weather_forecast:
                         # A non-numeric irradiance is refused by _as_float, not thrown (R5-D1-07).
                         sr = fc.get("solar_irradiance") or fc.get(
                             "native_solar_irradiance", 0.0
@@ -8167,14 +8277,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if smaller is None:
             return
         if self._fuse_advisor_at is None:
-            try:
-                stored = await self._ledger_store.async_load() or {}
-                self._fuse_advisor = dict(stored["fuse_advisor"])
-                self._fuse_advisor_at = datetime.fromisoformat(
-                    str(stored["fuse_advisor_at"])
-                )
-            except Exception:  # noqa: BLE001
-                pass
+            if (loaded := await _stored_fuse_advisor(self._ledger_store)) is not None:
+                self._fuse_advisor, self._fuse_advisor_at = loaded
         # A blocked channel is not evidence about the house's real demand.
         if self._pump_signals.space_blocked or self._pump_signals.dhw_blocked:
             _LOGGER.debug(
@@ -8187,7 +8291,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         if (
             self._fuse_advisor_at is not None
-            and (now - self._fuse_advisor_at).total_seconds() < 7 * 24 * 3600.0
+            and (dt_util.as_utc(now) - dt_util.as_utc(self._fuse_advisor_at)
+            ).total_seconds() < 7 * 24 * 3600.0
             and self._fuse_advisor.get("month") == month_key(now)
         ):
             return
@@ -8847,6 +8952,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
         ctx = getattr(self, "_ctx", self)
+        if not isinstance(learners, dict):  # persisted state: absent, not a raise
+            return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
             for setter, key in (

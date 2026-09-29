@@ -531,6 +531,138 @@ R.check(
     f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
 )
 
+# --- R9 N-plausibility (#1659): a live input meets its physical window ------
+R.section("R9 N-plausibility: live inputs meet their physical window (D1-s2-02, D1-s1-03)")
+import asyncio as _np_aio  # noqa: E402
+from types import SimpleNamespace as _np_ns  # noqa: E402
+from harness import FakeEntry as _np_entry  # noqa: E402
+from heatpump_optimizer.coordinator import _plausible_forecast_rows  # noqa: E402
+
+# D1-s2-02, the weather family: the boundary is the validation at the storage
+# point, driven here directly. The first row is the null control -- a healthy
+# row comes back byte-identical, so the boundary is not a rewrite.
+_np_rows = _plausible_forecast_rows([
+    {"datetime": "2026-01-15T12:00:00+01:00", "temperature": -5.0,
+     "wind_speed": 3.0, "precipitation": 0.5, "humidity": 80.0},
+    {"datetime": "2026-01-15T13:00:00+01:00", "temperature": 1e308,
+     "wind_speed": -2.0, "precipitation": 5.0},
+    "x", None, 5,
+])
+R.check(
+    "a forecast row's out-of-window field is dropped to its consumer's "
+    "fallback and a non-dict row is not stored at all (D1-s2-02)",
+    _np_rows[0] == {"datetime": "2026-01-15T12:00:00+01:00", "temperature": -5.0,
+                    "wind_speed": 3.0, "precipitation": 0.5, "humidity": 80.0}
+    and _np_rows[1] == {"datetime": "2026-01-15T13:00:00+01:00", "temperature": None,
+                        "wind_speed": None, "precipitation": 5.0}
+    and len(_np_rows) == 2,
+    f"{_np_rows!r}",
+)
+R.check(
+    "a forecast that is not a list of rows stores nothing (D1-s2-02)",
+    _plausible_forecast_rows("x") == [] and _plausible_forecast_rows(None) == [],
+    f"{_plausible_forecast_rows('x')!r} {_plausible_forecast_rows(None)!r}",
+)
+
+# The wiring, through the real fetch: one poisoned field, one non-dict row
+# and one healthy row on the wire; what the coordinator STORES is validated.
+# A pin on the helper alone would stay green if the storage call came off.
+_np_wire = Coord(
+    FakeHass(), _np_entry(data={"tibber_token": "x", "weather_entity": "weather.home"})
+)
+
+async def _np_forecast_payload(call):
+    return {"weather.home": {"forecast": [
+        {"datetime": "2026-01-15T12:00:00+01:00", "temperature": 1e308,
+         "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0},
+        "x",
+        {"datetime": "2026-01-15T13:00:00+01:00", "temperature": -5.0,
+         "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0},
+    ]}}
+
+_np_wire.hass.services.async_register(
+    "weather", "get_forecasts", _np_forecast_payload
+)
+_np_aio.run(_np_wire._fetch_weather_forecast())
+R.check(
+    "the stored forecast is the validated one: an out-of-window field is "
+    "None and a non-dict row never reaches storage (D1-s2-02)",
+    len(_np_wire._weather_forecast) == 2
+    and _np_wire._weather_forecast[0]["temperature"] is None
+    and _np_wire._weather_forecast[1]["temperature"] == -5.0,
+    f"{_np_wire._weather_forecast!r}",
+)
+
+# The sibling seam the fetch pin cannot reach (fix review, round 1): a failed
+# FIRST fetch plans on rows fabricated from the weather entity's CURRENT
+# attributes, which is the same class of live input and was not windowed.
+# Driven on the production symbol; the metric is what the rows hand
+# _forecast_arrays, i.e. the series the solve receives (D1-s2-02's count key).
+from heatpump_optimizer.coordinator import _fabricated_forecast  # noqa: E402
+
+def _np_fab(**attrs):
+    return _fabricated_forecast(
+        FakeState("sunny", attributes=dict({"temperature_unit": "°C"}, **attrs))
+    )
+
+_np_fab_t = _np_fab(temperature=1e308, wind_speed=3.0)
+_np_fab_w = _np_fab(temperature=-5.0, wind_speed=1e6)
+_np_fab_ok = _np_fab(temperature=-5.0, wind_speed=3.0)
+R.check(
+    "a fabricated forecast windows its source attributes too: an absurd "
+    "temperature falls to the 5.0 C fallback and an absurd wind to the "
+    "consumers' 0.0, while a healthy entity fabricates unchanged (D1-s2-02)",
+    len(_np_fab_t) == len(_np_fab_w) == len(_np_fab_ok) == 48
+    and {r["temperature"] for r in _np_fab_t} == {5.0}
+    and {r["wind_speed"] for r in _np_fab_w} == {None}
+    and {r["temperature"] for r in _np_fab_ok} == {-5.0}
+    and {r["wind_speed"] for r in _np_fab_ok} == {3.0},
+    f"absurd T {_np_fab_t[0]!r}; absurd wind {_np_fab_w[0]!r}; "
+    f"healthy {_np_fab_ok[0]!r}",
+)
+
+# D1-s2-02, the ECL110 family: a state displace outside the window the
+# integration itself commands is not a measurement, and never lands.
+_np_ecl = Coord(FakeHass(), _np_entry(data={"tibber_token": "x"}))
+_np_ecl._async_handle_ecl110_state_message(_np_ns(payload=b'{"displace": 1e308}'))
+_np_refused = (
+    _np_ecl._ecl110_current_displace,
+    _np_ecl._current_state.ecl110_displace_command,
+    _np_ecl._current_state.ecl110_effective_displace,
+)
+_np_ecl._async_handle_ecl110_state_message(_np_ns(payload=b'{"displace": -2.5}'))
+R.check(
+    "an ECL110 displace outside the commanded window never lands; an "
+    "in-window one still does (D1-s2-02)",
+    _np_refused == (0.0, 0.0, 0.0)
+    and _np_ecl._ecl110_current_displace == -2.5
+    and _np_ecl._current_state.ecl110_displace_command == -2.5,
+    f"refused={_np_refused!r} accepted={_np_ecl._ecl110_current_displace!r}",
+)
+
+# D1-s1-03: the DHW learner refuses a tank sample outside the DHW window
+# before any state it owns moves -- the sample is not booked as a draw and
+# does not become the next interval's baseline. The in-window sample beside
+# it is the null control: learning proceeds exactly as before.
+_np_dhw = DhwProfileLearner(
+    FakeHass(), "np", ThermalParameters(),
+    frozen=lambda *a: None, heating_active=lambda: False,
+    external_heat_active=lambda: False,
+)
+_np_refusal = _np_aio.run(_np_dhw.async_learn_dynamics(-127.0))
+_np_accepted = _np_aio.run(_np_dhw.async_learn_dynamics(55.0))
+R.check(
+    "an out-of-window DHW sample is refused before any learner state moves, "
+    "and an in-window one is learned as before (D1-s1-03)",
+    _np_refusal == "dhw_sample_implausible"
+    and _np_accepted is None
+    and _np_dhw.last_temp_sample == 55.0
+    and not any(_np_dhw.draw_stats.reservoirs.values()),
+    f"refusal={_np_refusal!r} accepted={_np_accepted!r} "
+    f"last={_np_dhw.last_temp_sample!r} "
+    f"reservoirs={_np_dhw.draw_stats.reservoirs!r}",
+)
+
 # --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
 R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")
 
@@ -49776,10 +49908,10 @@ R.check(
         for entry in (list(_f14b_counts._cop_baseline.values())
                       + list(_f14b_counts._capacity_envelope.values()))),
     f"cop_baseline={_f14b_counts._cop_baseline} capacity_envelope="
-    f"{_f14b_counts._capacity_envelope} -- 1e20 and 1e308 are finite, so "
-    "the store's scrub hands them to the loader as they are, and the "
-    "published state's np.isfinite(count) raises on any Python int past "
-    "int64: the wedge survived every restart because the parse accepted it",
+    f"{_f14b_counts._capacity_envelope} -- since F1.6 the store's scrub "
+    "quarantines a magnitude >= 1e15 before the loader sees it, and the "
+    "loader's own int64 refusal (F1.4) stands under it for any spelling "
+    "below that bound a future writer might produce",
 )
 for _f14b_k in [k for k in _f14_storage._DISK if "f14b_" in k]:
     del _f14_storage._DISK[_f14b_k]
@@ -49936,6 +50068,36 @@ R.check(
     "(D1-s3-05); unstepped it still runs the full two",
     _si_live == {0: 2.0, 1: 2.0, 24: 2.0},
     f"hours left after the step: {_si_live}",
+)
+
+# D14-s1-01, the fuse advisor's store read (F1.6): the stored stamp loads
+# through the stored-instant rule, aware in the loader's zone, and the
+# weekly age check subtracts through as_utc on both sides -- a naive stamp
+# kept naive off an aware now was the wedge. The stamp is one hour old and
+# the month matches, so the advisor returns fresh at the age check and the
+# weekly what-if itself does not run here.
+_si_zone1 = dt_util.DEFAULT_TIME_ZONE
+dt_util.DEFAULT_TIME_ZONE = _SI_STHLM
+dt_util.freeze(_SI_NOW)
+try:
+    _si_f = _t2_coord(main_fuse_amperes=35)
+    _si_storage._DISK[_si_f._ledger_store._key] = _si_json.dumps(
+        {"fuse_advisor": {"month": "2026-06"},
+         "fuse_advisor_at": "2026-06-20T11:00:00"}
+    )
+    _si_fuse_err = _si_raises(lambda: _si_aio.run(_si_f._maybe_run_fuse_advisor()))
+    _si_f_at, _si_f_month = _si_f._fuse_advisor_at, _si_f._fuse_advisor.get("month")
+finally:
+    dt_util.DEFAULT_TIME_ZONE = _si_zone1
+    dt_util.freeze(None)
+    _si_storage._DISK.clear()
+R.check(
+    "the fuse advisor loads a naive stored stamp aware in the loader's zone "
+    "and ages it without raising, holding the stored verdict (D14-s1-01)",
+    _si_fuse_err is None
+    and _si_f_at is not None and _si_f_at.tzinfo is not None
+    and _si_f_month == "2026-06",
+    f"err={_si_fuse_err!r} at={_si_f_at!r} month={_si_f_month!r}",
 )
 
 # ---------------------------------------------------------------------------
@@ -50280,9 +50442,14 @@ _f33_good = _f33_pmh.as_dict()
 _f33_corrupt = _si_json.loads(_si_json.dumps(_f33_good))
 _f33_corrupt["shapes"][0][3] = 0
 _f33_corrupt["shapes"][0][7] = -2.0
-_f33_corrupt["shapes"][1][9] = 1e300
-_f33_corrupt["quarter_factors"][0][40] = 1e300
-_f33_corrupt["residual_var"][0][10] = 1e300
+# F1.6 note: the 1e300 spellings this pin once seeded are the store
+# boundary's now (a magnitude >= 1e15 leaf is quarantined before the loader,
+# pinned in tests/finite_boundary.py's class arm), so the LOADER's own domain
+# check is pinned here with values inside the magnitude bound and outside the
+# learner's domain -- the only spellings that still reach it.
+_f33_corrupt["shapes"][1][9] = 50.0
+_f33_corrupt["quarter_factors"][0][40] = 50.0
+_f33_corrupt["residual_var"][0][10] = 300.0
 _f33_corrupt["days"] = [-3, 7]
 _f33_corrupt["quarter_days"] = [7, -2]
 _f33_pmc, _f33_pmw = _f33_load(PriceShapeModel.from_dict, _f33_corrupt)
