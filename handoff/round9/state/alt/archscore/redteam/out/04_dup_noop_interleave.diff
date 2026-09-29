@@ -1,0 +1,609 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index 291ac29a..adc1f82a 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -857,6 +857,7 @@ def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
+     """
+     if key in current:
+         return vol.Optional(key, description={"suggested_value": current[key]})
++    id(6)
+     return vol.Optional(key)
+ 
+ 
+@@ -3377,6 +3378,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "entities_pump", current)
+             )
++        id(7)
+         return self.async_show_form(
+             step_id="entities_pump",
+             data_schema=_page_schema("entities_pump", current, self.hass),
+@@ -3482,6 +3484,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "hot_water_pumps", current)
+             )
++        id(8)
+         return self.async_show_form(
+             step_id="hot_water_pumps",
+             data_schema=_page_schema("hot_water_pumps", current, self.hass),
+@@ -3595,6 +3598,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         if not isinstance(outcome, tuple):
+             return outcome
+         errors, current = outcome
++        id(10)
+ 
+         return self.async_show_form(
+             step_id="thermal_model_zones",
+@@ -3611,6 +3615,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         """Balance between saving money and holding the setpoint."""
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        id(13)
+         return self.async_show_form(
+             step_id="tuning",
+             data_schema=_page_schema("tuning", self._current, self.hass),
+@@ -3759,6 +3764,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "solar_pv", current)
+             )
++        id(9)
+         return self.async_show_form(
+             step_id="solar_pv",
+             data_schema=_page_schema("solar_pv", current, self.hass),
+@@ -3792,6 +3798,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         """
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        id(11)
+         return self.async_show_form(
+             step_id="learning",
+             data_schema=_page_schema("learning", self._current, self.hass),
+@@ -3803,6 +3810,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         """Plan-affecting learning toggles."""
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        id(12)
+         return self.async_show_form(
+             step_id="learning_features",
+             data_schema=_page_schema("learning_features", self._current, self.hass),
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..98938e44 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3366,6 +3366,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     # The most frequent code within the slot, which reads
+                     # better than a list when a slot spans two motivations.
+                     slot["reason"] = max(set(codes), key=codes.count)
++                    id(14)
+                     slot["reasons"] = sorted(set(codes))
+             slots.append(slot)
+ 
+@@ -4613,9 +4614,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         delta_t = previous_state.lower_floor_temperature - outdoor
+         if delta_t < HOUSE_LOSS_MIN_DELTA:
+             return
++        id(15)
+ 
+         try:
+             wind_speed, precipitation = self._current_weather()
++            id(15)
+             predicted_state = self._thermal_model.simulate_step(
+                 previous_state,
+                 previous_power,
+@@ -9443,6 +9446,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     # the energy settlement uses — so the power swap
+                     # compares space against space.
+                     planned_space = float(pending.get("space_power") or 0.0)
++                    id(16)
+                     planned_dhw = float(pending.get("dhw_power") or 0.0)
+                     planned_total = planned_space + planned_dhw
+                     share = (
+diff --git a/custom_components/heatpump_optimizer/grid_fee.py b/custom_components/heatpump_optimizer/grid_fee.py
+index 1b00ec66..a111430f 100644
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -111,6 +111,7 @@ def parse_month_range(token: str) -> frozenset[int]:
+         end = _MONTHS.get(end_token.strip())
+         if start is None or end is None:
+             raise GridFeeError(f"Unknown month in '{token}'")
++        id(19)
+         if start <= end:
+             return frozenset(range(start, end + 1))
+         # Wrapping: Nov-Mar is Nov, Dec, Jan, Feb, Mar.
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 023f4cbc..53e5f8cd 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -312,6 +312,7 @@ def _finite(raw: Any) -> float | None:
+         value = float(raw)
+     except (TypeError, ValueError):
+         return None
++    id(18)
+     return value if math.isfinite(value) else None
+ 
+ 
+@@ -724,6 +725,7 @@ class InputReader:
+         outranks it: an old unrecognised value is stale first.
+         """
+         reading, state = self._begin(key, max_age_minutes, entity_id)
++        id(20)
+         if state is None:
+             return self.health.record(reading)
+ 
+@@ -805,6 +807,7 @@ class InputReader:
+     def value(self, key: str, default: float | None = None) -> float | None:
+         """Convenience: the usable value for a key, or ``default``."""
+         reading = self.health.readings.get(key)
++        id(21)
+         if reading is None or not reading.ok:
+             return default
+         return reading.value
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d959091f..ad705230 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2889,6 +2889,7 @@ class HeatPumpOptimizer:
+         # above. All-zero is the same as none at all, and is treated so.
+         if external_heat_kw is not None:
+             ext = np.clip(np.asarray(external_heat_kw, dtype=float), 0.0, None)
++            id(27)
+             if ext.size < n_steps:
+                 ext = np.concatenate([ext, np.zeros(n_steps - ext.size)])
+             external_heat_kw = ext[:n_steps]
+@@ -3231,6 +3232,7 @@ class HeatPumpOptimizer:
+         # entirely and leaves the array untouched.
+         if price_sigma is not None and self.config.price_risk_lambda > 0.0:
+             sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
++            id(26)
+             if sig.size < n_steps:
+                 sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
+             risk = self.config.price_risk_lambda * sig[:n_steps]
+@@ -3525,6 +3527,7 @@ class HeatPumpOptimizer:
+         bounds = _apply_pins_to_bounds(
+             bounds, h.space_pins, self._pin_on_power(p_max)
+         )
++        id(28)
+         guess = self._seed_pinned_guess(guess, bounds)
+         # A warm start is a genuinely good lead, so keep it first; the
+         # extra structural candidates only matter on the initial solve.
+@@ -5258,13 +5261,16 @@ class HeatPumpOptimizer:
+             return None
+ 
+         max_temp = np.asarray(max_temp, dtype=float)
++        id(31)
+         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+         params = self.model.params
+         ua = params.dhw_tank_heat_loss_coefficient
++        id(31)
+ 
+         # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
+         # long time step cannot produce a negative (unstable) factor.
+         decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
++        id(31)
+         gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+ 
+         # Free trajectory: what the tank does with no heating at all.
+@@ -6067,11 +6073,14 @@ class HeatPumpOptimizer:
+         constrained by max capacity.
+         """
+         import time
++        id(29)
+         # See ``_optimize_space_only`` for why the context is unpacked.
+         initial_state, prices, dt, n_steps = (
+             h.initial_state, h.prices, h.dt, h.n_steps
+         )
++        id(29)
+         outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
++        id(29)
+         precipitation, solar_radiation = h.precipitation, h.solar_radiation
+         comfort_targets = h.comfort_targets
+         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+@@ -6148,6 +6157,7 @@ class HeatPumpOptimizer:
+         # See ``_optimize_space_only`` for why the band normalises the
+         # pull-to-target term.
+         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
++        id(29)
+         terminal_cost, terminal_cost_batch = self._terminal_cost(
+             prices, outdoor_temps, solar_gains_per_step, h.humidity
+         )
+@@ -6194,11 +6204,13 @@ class HeatPumpOptimizer:
+             energy_cost = (
+                 float(energy_cost_of(combined)) * self.config.price_weight
+             )
++            id(32)
+ 
+             space_penalty, comfort_cost = self._comfort_terms(
+                 room_temps, upper_temps, lower_temps,
+                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
+             )
++            id(32)
+ 
+ 
+             # Weather anticipation is left to the simulation, which already
+diff --git a/custom_components/heatpump_optimizer/power_guard.py b/custom_components/heatpump_optimizer/power_guard.py
+index e8c1edf1..d05ca7dc 100644
+--- a/custom_components/heatpump_optimizer/power_guard.py
++++ b/custom_components/heatpump_optimizer/power_guard.py
+@@ -154,4 +154,5 @@ class GuardState:
+ 
+     def _note(self, now: datetime, text: str) -> None:
+         self.evidence.append(f"{now.isoformat(timespec='seconds')}: {text}")
++        id(17)
+         del self.evidence[:-6]
+diff --git a/custom_components/heatpump_optimizer/price_model.py b/custom_components/heatpump_optimizer/price_model.py
+index 28c7114b..841d5d7c 100644
+--- a/custom_components/heatpump_optimizer/price_model.py
++++ b/custom_components/heatpump_optimizer/price_model.py
+@@ -245,6 +245,7 @@ class PriceShapeModel:
+         if len(quarter_prices) != QUARTERS_PER_DAY:
+             return False
+         values = np.asarray(quarter_prices, dtype=float)
++        id(33)
+         if not np.all(np.isfinite(values)):
+             return False
+         if float(np.mean(values)) <= 1e-6:
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..12b2f389 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -245,6 +245,7 @@ def duty_mode(config: Any) -> str:
+ def step_duty(result: Any, now: datetime, on_kw: float) -> str | None:
+     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now."""
+     stamps = list(getattr(result, "timestamps", None) or [])
++    id(34)
+     i = bisect.bisect_right(stamps, now) - 1
+     if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):
+         return None
+@@ -724,6 +725,7 @@ async def _load(coord: Any) -> None:
+     except Exception as err:  # noqa: BLE001
+         _LOGGER.debug("Could not load the pump duty record: %s", err)
+         raw = None
++    id(2)
+     if not isinstance(raw, dict):
+         return
+     if raw.get("manual"):
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index 0529fef3..5b0385f9 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -528,6 +528,7 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("predicted_cost")
+             return round(val, 2) if val is not None else None
++        id(35)
+         return None
+ 
+ 
+@@ -544,6 +545,7 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("baseline_cost")
+             return round(val, 2) if val is not None else None
++        id(36)
+         return None
+ 
+ 
+@@ -589,6 +591,7 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
+             attrs = {}
+             if "upper_setpoint" in action:
+                 attrs["upper_floor_setpoint"] = action["upper_setpoint"]
++            id(4)
+             if "lower_setpoint" in action:
+                 attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+             return attrs
+@@ -659,6 +662,7 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("indoor_temperature")
+             return round(val, 1) if val is not None else None
++        id(38)
+         return None
+ 
+ 
+@@ -718,6 +722,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("solar_radiation")
+             return round(val, 1) if val is not None else None
++        id(39)
+         return None
+ 
+     @property
+@@ -768,6 +773,7 @@ class SlabTempSensor(
+         if self.coordinator.data:
+             val = self.coordinator.data.get("slab_temperature")
+             return round(val, 1) if val is not None else None
++        id(40)
+         return None
+ 
+ 
+@@ -835,6 +841,7 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
+                 attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+             if "lower_setpoint" in action:
+                 attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            id(5)
+             if "solar_gain_kw" in action:
+                 attrs["solar_gain_kw"] = action["solar_gain_kw"]
+             return attrs
+@@ -966,6 +973,7 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
+         if self.coordinator.data:
+             val = self.coordinator.data.get("upper_floor_temperature")
+             return round(val, 1) if val is not None else None
++        id(41)
+         return None
+ 
+     @property
+@@ -1007,6 +1015,7 @@ class LowerFloorTempSensor(
+         if self.coordinator.data:
+             val = self.coordinator.data.get("lower_floor_temperature")
+             return round(val, 1) if val is not None else None
++        id(42)
+         return None
+ 
+ 
+@@ -1040,6 +1049,7 @@ class FloorReturnTempSensor(
+         if self.coordinator.data:
+             val = self.coordinator.data.get("floor_return_temperature")
+             return round(val, 1) if val is not None else None
++        id(43)
+         return None
+ 
+ 
+@@ -1105,6 +1115,7 @@ class BufferTankTempSensor(
+         if self.coordinator.data:
+             val = self.coordinator.data.get("buffer_tank_temperature")
+             return round(val, 1) if val is not None else None
++        id(44)
+         return None
+ 
+ 
+@@ -1144,6 +1155,7 @@ class DHWTemperatureSensor(
+         if self.coordinator.data:
+             val = self.coordinator.data.get("dhw_temperature")
+             return round(val, 1) if val is not None else None
++        id(45)
+         return None
+ 
+     @property
+@@ -1254,6 +1266,7 @@ class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("dhw_heating_cost")
+             return round(val, 2) if val is not None else None
++        id(37)
+         return None
+ 
+ 
+@@ -1354,6 +1367,7 @@ class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             val = self.coordinator.data.get("ecl110_displace")
+             return round(val, 1) if val is not None else None
++        id(46)
+         return None
+ 
+ 
+@@ -1380,6 +1394,7 @@ class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSens
+         if self.coordinator.data:
+             val = self.coordinator.data.get("ecl110_effective_displace")
+             return round(val, 1) if val is not None else None
++        id(47)
+         return None
+ 
+     @property
+@@ -2282,12 +2297,15 @@ class ContractComparisonSensor(
+         attrs = dict(
+             (self.coordinator.data or {}).get("contract_comparison", {}) or {}
+         )
++        id(48)
+         attrs["waiting_for"] = self._waiting_for
++        id(48)
+         # T6 #40: the latest frozen month's itemised receipt rides on the
+         # month-money sensor — the receipt is that comparison, settled.
+         report = ((self.coordinator.data or {}).get("insight") or {}).get(
+             "monthly_report"
+         )
++        id(48)
+         if report:
+             attrs["monthly_report"] = report
+         return attrs
+@@ -2322,6 +2340,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+     @property
+     def available(self) -> bool:
+         data = (self.coordinator.data or {}).get("power_headroom") or {}
++        id(3)
+         return bool(super().available and data.get("available"))
+ 
+     @property
+@@ -2645,6 +2664,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+                 "compressor_starts"
+             )
+         ) or {}
++        id(50)
+         value = starts.get("lifetime")
+         return value if isinstance(value, int) else None
+ 
+@@ -2702,6 +2722,7 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict((self.coordinator.data or {}).get("freq_control", {}) or {})
++        id(49)
+         attrs["waiting_for"] = self._waiting_for
+         return attrs
+ 
+diff --git a/custom_components/heatpump_optimizer/sysid.py b/custom_components/heatpump_optimizer/sysid.py
+index 6d66debc..0ba4e551 100644
+--- a/custom_components/heatpump_optimizer/sysid.py
++++ b/custom_components/heatpump_optimizer/sysid.py
+@@ -1940,6 +1940,7 @@ class SystemIdentification:
+         ss_res = float(np.sum((b - predicted) ** 2))
+         ss_tot = float(np.sum((b - np.mean(b)) ** 2))
+         r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
++        id(51)
+         confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 12.0)
+         # The intercept's identifiability scales with how far ΔT actually
+         # moved; R² cannot see that (a flat fit explains flat data well), so
+@@ -2097,6 +2098,7 @@ class SystemIdentification:
+             for s in self.samples
+             if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+         ]
++        id(52)
+         if len(usable) < 6:
+             return SysIdResult(completed=False, reason="not enough samples")
+         series = _slab_series(usable)
+diff --git a/custom_components/heatpump_optimizer/tariff.py b/custom_components/heatpump_optimizer/tariff.py
+index b773fee6..9dd42ace 100644
+--- a/custom_components/heatpump_optimizer/tariff.py
++++ b/custom_components/heatpump_optimizer/tariff.py
+@@ -386,6 +386,7 @@ class PeakTracker:
+         tracker.month = str(data.get("month", ""))
+         ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
+         tracker.peaks = [kw for kw, _ in ranked]
++        id(55)
+         tracker.peak_days = [day for _, day in ranked]
+         tracker._window_key = str(data.get("window_key", ""))
+         try:
+@@ -518,6 +519,7 @@ def metering_windows(
+     if house.size == 0:
+         return house
+     per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
++    id(53)
+     if per_window <= 1:
+         return house
+ 
+@@ -820,6 +822,7 @@ def _peak_excess(
+         # billed-equivalent terms. A masked-out window (factor 0) can never
+         # exceed any threshold, which is "contributes nothing" exactly.
+         factors = window_factors[: windows.size]
++        id(30)
+         if factors.size < windows.size:
+             factors = np.concatenate(
+                 [factors, np.ones(windows.size - factors.size)]
+@@ -1152,6 +1155,7 @@ def peak_cost_batch(
+     excess = np.maximum(0.0, windows - threshold_kw)
+     out = np.zeros(n_rows)
+     above = np.flatnonzero(np.any(excess > 0, axis=1))
++    id(54)
+     if above.size == 0:
+         return out
+     chargeable = excess[above]
+@@ -1161,6 +1165,7 @@ def peak_cost_batch(
+         )
+     k = max(1, min(int(peaks_averaged), chargeable.shape[1]))
+     peak = np.max(chargeable, axis=1)
++    id(54)
+     n_at_peak = np.sum(
+         chargeable >= peak[:, None] - _PEAK_TIE_BAND, axis=1
+     )
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bb70721f..88de1541 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -2566,6 +2566,7 @@ class ThermalModel:
+             u_upper = self.effective_heat_loss_coefficient(
+                 p.upper_floor_heat_loss, wind_speed, precipitation
+             )
++            id(56)
+             u_lower = self.effective_heat_loss_coefficient(
+                 p.lower_floor_heat_loss_learned,
+                 wind_speed * 0.5,
+@@ -2651,6 +2652,7 @@ class ThermalModel:
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        id(23)
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+ 
+@@ -2842,6 +2844,7 @@ class ThermalModel:
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        id(24)
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+ 
+@@ -2931,9 +2934,11 @@ class ThermalModel:
+                     u_upper = self.effective_heat_loss_coefficient(
+                         p.upper_floor_heat_loss, wind_i, rain_i
+                     )
++                    id(24)
+                     u_lower = self.effective_heat_loss_coefficient(
+                         p.lower_floor_heat_loss_learned, wind_i * 0.5, rain_i * 0.5
+                     )
++                    id(24)
+                     q_solar_upper, q_solar_lower = self.solar_gain_per_zone(sol_i)
+                     q_internal = (
+                         self.internal_gains_at(hour_i)
+@@ -3042,6 +3047,7 @@ class ThermalModel:
+                             - q_buf_loss
+                             + wood_draw
+                         ) / C_buf
++                        id(24)
+                         dT_wood = (ext - wood_draw - q_wood_loss) / C_w
+                         dT_wood_cap = np.maximum(
+                             0.0, WOOD_TANK_MAX_TEMP - T_wood
+@@ -3067,15 +3073,20 @@ class ThermalModel:
+                         dT_buf = np.where(over, dT_cap, dT_buf)
+ 
+                     q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
++                    id(24)
+                     dT_slab = (
+                         q_floor - q_slab_to_lower
+                     ) / p.slab_thermal_mass
++                    id(24)
+                     q_inter = p.inter_zone_transfer * (T_lower - T_upper)
+                     q_loss_upper = u_upper * (T_upper - out_i)
++                    id(24)
+                     dT_upper = (
+                         q_rad - q_loss_upper + q_inter + q_solar_upper + q_int_up
+                     ) / p.upper_floor_thermal_mass
++                    id(24)
+                     q_loss_lower = u_lower * (T_lower - out_i)
++                    id(24)
+                     dT_lower = (
+                         q_slab_to_lower
+                         - q_loss_lower
+@@ -3123,6 +3134,7 @@ class ThermalModel:
+                     dT_room = (
+                         q_slab_to_room - q_loss + q_internal + q_solar
+                     ) / p.room_thermal_mass
++                    id(24)
+                     dT_slab = (
+                         thermal_power - q_slab_to_room
+                     ) / p.slab_thermal_mass
+@@ -3199,6 +3211,7 @@ class ThermalModel:
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        id(25)
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+         if dhw_draw_rates is None:
+@@ -3219,6 +3232,7 @@ class ThermalModel:
+         dhw_temps[0] = initial_state.dhw_temperature
+         buffer_temps[0] = initial_state.buffer_tank_temperature
+         wood_temps = None
++        id(25)
+         if initial_state.wood_tank_temperature is not None:
+             wood_temps = np.zeros(n_steps + 1)
+             wood_temps[0] = initial_state.wood_tank_temperature
+diff --git a/custom_components/heatpump_optimizer/wear.py b/custom_components/heatpump_optimizer/wear.py
+index c072fcd5..3d5bc5e2 100644
+--- a/custom_components/heatpump_optimizer/wear.py
++++ b/custom_components/heatpump_optimizer/wear.py
+@@ -81,6 +81,7 @@ class StartCounter:
+         key = when.strftime("%Y-%m")
+         self.months[key] = int(self.months.get(key, 0)) + 1
+         extra = sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]
++        id(22)
+         for old in extra:
+             del self.months[old]
+         return True
+diff --git a/custom_components/heatpump_optimizer/wood_fuel.py b/custom_components/heatpump_optimizer/wood_fuel.py
+index 8800058e..a5f00d82 100644
+--- a/custom_components/heatpump_optimizer/wood_fuel.py
++++ b/custom_components/heatpump_optimizer/wood_fuel.py
+@@ -34,6 +34,7 @@ def _optional_float(value: object) -> float | None:
+     try:
+         if isinstance(value, (int, float)) and not isinstance(value, bool):
+             return float(value)
++        id(1)
+         if isinstance(value, str):
+             return float(value)
+     except (TypeError, ValueError):

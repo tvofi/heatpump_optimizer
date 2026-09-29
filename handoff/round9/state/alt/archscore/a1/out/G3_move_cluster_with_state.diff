@@ -1,0 +1,564 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..08698217 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -303,12 +303,6 @@ from .const import (
+     DEFAULT_PRICE_TILES_ENABLED,
+     SCORE_ALPHA,
+     SCORE_FREE_SPAN_RESET,
+-    CONF_COMPRESSOR_FREQ_ENTITY,
+-    CONF_COMPRESSOR_FREQ_SENSOR,
+-    CONF_COMPRESSOR_FREQ_MIN_HZ,
+-    CONF_COMPRESSOR_FREQ_MAX_HZ,
+-    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+-    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
+     CONF_FREQ_CONTROL_MODE,
+     DEFAULT_FREQ_CONTROL_MODE,
+     TEMPERATURE_UNIT_TO_C,
+@@ -389,16 +383,8 @@ from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
+ from .wear import StartCounter, wear_price_per_start
+ from . import narrative
+ from . import diagnosis
+-from .freq_control import (
+-    FREQ_MODE_CONTROL,
+-    FREQ_MODE_OBSERVE,
+-    FREQ_SOURCE_NUMBER,
+-    FREQ_WRITE_EPSILON_HZ,
+-    FREQ_WRITE_MIN_INTERVAL_S,
+-    FrequencyMap,
+-    FrequencyWatchdog,
+-    resolve_reading,
+-)
++from .freq_seat import FrequencyControl
++from .freq_control import FREQ_MODE_CONTROL, FrequencyMap
+ from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
+ from .power_guard import GuardState, project_window_mean
+ from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
+@@ -2414,16 +2400,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # Observe learns; control actuates only on explicit opt-in, and the
+         # watchdog's stand-down latch survives restarts via the thermal
+         # learning store.
+-        self._freq_map = FrequencyMap()
++        self._freq = FrequencyControl(
++            self.hass, lambda: getattr(self, "_ctx", self)._config)
+         # #1067's learner rides this init and the same store: it is the
+         # other thing read off the machine rather than off the house.
+         self._flow_bias = FlowCurveBias()
+-        self._freq_watchdog = FrequencyWatchdog()
+-        self._freq_fallback = False
+-        # Stamped at init rather than None: the rate limit is in-memory,
+-        # and a crash-looping HA restarting every minute must not get a
+-        # fresh write per boot. Costs one 5-minute delay after any start.
+-        self._freq_last_write: datetime | None = dt_util.now()
+ 
+     def _init_features(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
+         """Away mode, accuracy tracking, learning experiments and totals."""
+@@ -3135,8 +3116,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # `is True`, not truthiness: corrupt store garbage silently
+         # latching a stand-down that never happened would disable control
+         # with no repair issue and no visible cause.
+-        self._freq_fallback = stored.get("freq_fallback") is True
+-        if self._freq_fallback and (
++        self._freq.fallback = stored.get("freq_fallback") is True
++        if self._freq.fallback and (
+             str(
+                 getattr(self, "_ctx", self)._config.get(
+                     CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
+@@ -3195,7 +3176,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # parser (from_dict is its own corruption barrier).
+         raw_freq = stored.get("freq_map")
+         if isinstance(raw_freq, dict):
+-            self._freq_map = FrequencyMap.from_dict(raw_freq)
++            self._freq.map = FrequencyMap.from_dict(raw_freq)
+         # #1067: the supply-vs-curve bias, through the same one parser, so
+         # the store load and the snapshot restore cannot drift apart.
+         raw_flow = stored.get("flow_bias")
+@@ -3274,8 +3255,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             "curve_learner": self._curve_learner.as_dict(),
+             # T7 #61 — the kW-per-Hz map (a learner) and the watchdog's
+             # stand-down latch (a safety fact, exempt from rollback).
+-            "freq_map": self._freq_map.as_dict(),
+-            "freq_fallback": bool(self._freq_fallback),
++            "freq_map": self._freq.map.as_dict(),
++            "freq_fallback": bool(self._freq.fallback),
+             # #1067 — the supply-vs-curve bias. ADDITIVE, which is why the
+             # store version is NOT bumped: an older build ignores the key and
+             # this build finds it absent and stays inert, so a version bump
+@@ -4825,7 +4806,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # failed write can never block the primary actuation, and
+             # never allowed to break the cycle.
+             await _best_effort_cycle_step(
+-                self._command_frequency, "Frequency command skipped: %s")
++                lambda: self._freq.command(
++                    self._commanded_power() or 0.0, self._mode == MODE_OFF),
++                "Frequency command skipped: %s")
+ 
+             await _best_effort_cycle_step(
+                 self._async_drive_pumps, "Pump scheduling skipped: %s")
+@@ -7301,7 +7284,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # T6: narrative, scores, starts, receipts, tiles and the last
+         # diagnosis — one additive block, present even while everything in
+         # it is gated off (it reads as empty/inert).
+-        data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
++        data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq.view(self._commanded_power() or 0.0), self.currency
+         data["wood_fuel"] = wood_fuel_from_coordinator(self, result)
+         # Only surface the manual-plan key while an override is actually active,
+         # so a plan-free solve (the golden fixtures included) is byte-for-byte
+@@ -8876,7 +8859,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # T7: the frequency map rolls back with its fellow learners; a
+             # pre-T7 snapshot restores it to inert. The fallback latch does
+             # NOT ride this path — see _async_load_thermal_learning.
+-            self._freq_map = FrequencyMap()
++            self._freq.map = FrequencyMap()
+             # #1067: and the flow-curve bias, for exactly the reason above.
+             # A snapshot from before this feature carries no ``flow_bias``
+             # key, so without this reset the restore would silently keep the
+@@ -9332,7 +9315,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._observe_compressor_start(now)
+         # T7 #61: and one frequency sample for the kW-per-Hz map (plus the
+         # control watchdog, when that stage is armed).
+-        self._observe_frequency(now)
++        if self._freq.observe(
++            self._commanded_power(),
++            self._measured_power,
++            bool(self._immersion_active or _freq_fold_blocked(self)),
++        ):
++            self._spawn(self._async_save_thermal_learning())
+         # #1067: and one supply-vs-curve residual, on the same cycle and from
+         # the same timestamp. Inert until a supply slot is mapped.
+         _fold_flow_lift(self, now)
+@@ -10320,196 +10308,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     # Inverter frequency (v4.0.0 T7 #61)
+     # ==================================================================
+ 
+-    def _freq_entity_reading(self) -> tuple[float | None, float, float, str | None]:
+-        """(reported Hz, range min, range max, source) for #61; the rules are
+-        ``freq_control.resolve_reading``'s."""
+-        cfg = getattr(self, "_ctx", self)._config
+-        return resolve_reading(
+-            cfg.get(CONF_COMPRESSOR_FREQ_ENTITY),
+-            cfg.get(CONF_COMPRESSOR_FREQ_SENSOR),
+-            self.hass.states.get,
+-            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ), DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
+-            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ), DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
+-        )
+-    def _freq_mode(self) -> str:
+-        """The stage actually in force, not the one merely configured.
+-
+-        Control requires ALL of: the number entity, the explicit opt-in,
+-        and a watchdog that has not stood the controller down. Everything
+-        else is observe -- a frequency sensor alone is enough to observe
+-        (#1067) -- and with neither there is nothing to observe.
+-        """
+-        ctx = getattr(self, "_ctx", self)
+-        number = ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+-        if not number and not ctx._config.get(CONF_COMPRESSOR_FREQ_SENSOR):
+-            return "unconfigured"
+-        configured = str(
+-            ctx._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
+-        )
+-        if number and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+-            return FREQ_MODE_CONTROL
+-        return FREQ_MODE_OBSERVE
+-    def _observe_frequency(self, now: datetime) -> None:
+-        """One cycle of #61: watchdog first, then the kW-per-Hz fold.
+-
+-        The learning fold skips immersion intervals (#11 owns resistive
+-        draw — folding it would teach the map that some frequency draws
+-        the element's kilowatts), but the watchdog never skips: divergence
+-        evidence is about the write path, not about what the meter reads.
+-        """
+-        ctx = getattr(self, "_ctx", self)
+-        configured = str(
+-            ctx._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
+-        )
+-        if (
+-            configured != FREQ_MODE_CONTROL
+-            or not ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+-        ) and self._freq_fallback:
+-            # The user switched back to observe — or removed the entity
+-            # entirely, which unconfigures the feature just as explicitly.
+-            # Either is the acknowledgement that re-arms the latch and
+-            # retires its repair issue; a restart alone never clears it,
+-            # and without this clause a cleared entity would orphan both
+-            # forever behind a mode selector nothing renders any more.
+-            self._freq_fallback = False
+-            self._freq_watchdog.reset()
+-            ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
+-            self._spawn(self._async_save_thermal_learning())
+-        reported, hz_min, hz_max, source = self._freq_entity_reading()
+-        if reported is None:
+-            return
+-        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+-            # Divergence is only meaningful while the plan is actually
+-            # asking for the compressor AND the reading is in its running
+-            # range: an idle pump reading 0 Hz overnight, or one pausing
+-            # for a defrost, is an operating point at rest, not a write
+-            # path that stopped listening — three cycles of routine MPC
+-            # idle must not stand control down.
+-            watch_active = (
+-                self._commanded_power() > 0.05 and reported >= hz_min
+-            )
+-            if self._freq_watchdog.note_report(reported, active=watch_active):
+-                # Three consecutive divergent ticks: the hardware is not
+-                # actually listening (wrong register, protective mode, a
+-                # write path that silently drops). Stand down and say so;
+-                # the latch survives restarts.
+-                self._freq_fallback = True
+-                self._spawn(self._async_save_thermal_learning())
+-                entity_id = str(
+-                    ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY) or ""
+-                )
+-                _LOGGER.warning(
+-                    "Compressor frequency control stood down: %s reports "
+-                    "%.1f Hz against a commanded %.1f Hz for %d ticks",
+-                    entity_id,
+-                    reported,
+-                    self._freq_watchdog.commanded or 0.0,
+-                    self._freq_watchdog.strikes,
+-                )
+-                _create_issue(
+-                    self.hass,
+-                    DOMAIN,
+-                    "freq_watchdog",
+-                    is_fixable=False,
+-                    is_persistent=True,
+-                    severity=ir.IssueSeverity.WARNING,
+-                    translation_key="freq_watchdog",
+-                    translation_placeholders={"entity": entity_id},
+-                )
+-        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
+-            return
+-        self._freq_map.observe(
+-            reported, float(self._measured_power), hz_min, hz_max
+-        )
+-    async def _command_frequency(self) -> None:
+-        """The control stage's single write path — every rail in one place.
+ 
+-        Rate-limited to one write per five minutes, clamped to the
+-        entity's own range, deduplicated against the last command, and a
+-        map with no evidence writes NOTHING: None is never a frequency.
+-        """
+-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
+-            return
+-        _reported, hz_min, hz_max, _source = self._freq_entity_reading()
+-        target = self._freq_map.recommend(
+-            self._commanded_power() or 0.0, hz_min, hz_max
+-        )
+-        if target is None:
+-            return
+-        target = float(np.clip(target, hz_min, hz_max))
+-        now = dt_util.now()
+-        if (
+-            self._freq_last_write is not None
+-            and (now - self._freq_last_write).total_seconds()
+-            < FREQ_WRITE_MIN_INTERVAL_S
+-        ):
+-            return
+-        if (
+-            self._freq_watchdog.commanded is not None
+-            and abs(target - self._freq_watchdog.commanded)
+-            < FREQ_WRITE_EPSILON_HZ
+-        ):
+-            return
+-        try:
+-            await self.hass.services.async_call(
+-                "number",
+-                "set_value",
+-                {"entity_id": entity_id, "value": round(target, 1)},
+-                blocking=True,
+-            )
+-        except Exception as err:  # noqa: BLE001 - never break the cycle
+-            _LOGGER.error("Error commanding compressor frequency: %s", err)
+-            return
+-        self._freq_last_write = now
+-        self._freq_watchdog.note_command(target)
+-        _LOGGER.info(
+-            "Commanded compressor frequency %.1f Hz via %s", target, entity_id
+-        )
+-
+-    def _freq_view(self) -> dict[str, Any]:
+-        """#61's publication: the map, the stage, and what control WOULD do.
+-
+-        The recommendation publishes in observe mode too — that is the
+-        observe stage's entire product: evidence for the user's go/no-go
+-        before any wire is touched.
+-        """
+-        reported, hz_min, hz_max, source = self._freq_entity_reading()
+-        mode = self._freq_mode()
+-        recommended = None
+-        exhausted = False
+-        if mode != "unconfigured":
+-            target = self._commanded_power() or 0.0
+-            recommended = self._freq_map.recommend(target, hz_min, hz_max)
+-            # "Running flat out on faith" must be visible: the flat-out
+-            # answer above the map's evidence is deliberate, but the user
+-            # deserves to see when it is extrapolation, not knowledge.
+-            exhausted = self._freq_map.evidence_exhausted(
+-                target, hz_min, hz_max
+-            )
+-        view = {
+-            "mode": mode,
+-            "fallback_active": bool(self._freq_fallback),
+-            "reported_hz": reported,
+-            "recommended_hz": recommended,
+-            "evidence_exhausted": exhausted,
+-            "commanded_hz": self._freq_watchdog.commanded,
+-            "range_hz": (
+-                [round(hz_min, 1), round(hz_max, 1)]
+-                if mode != "unconfigured"
+-                else None
+-            ),
+-            "map": (
+-                self._freq_map.summary(hz_min, hz_max)
+-                if mode != "unconfigured"
+-                else {}
+-            ),
+-        }
+-        if source is not None:
+-            # Only a configured view gains the key, so the unconfigured
+-            # dict every install without either entity publishes is unchanged.
+-            view["source"] = source
+-        return view
+ 
+     # ==================================================================
+     # Revealed-preference comfort tuning (item 19)
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..bc49c10b 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -54,7 +54,6 @@
+   "_capture_diagnosis_inputs": "core",
+   "_check_pump_mode_expired": "core",
+   "_close_score_day": "core",
+-  "_command_frequency": "core",
+   "_command_valve_target": "core",
+   "_commanded_power": "grid",
+   "_commanded_split": "core",
+@@ -95,9 +94,6 @@
+   "_fold_solar_aperture": "fetch",
+   "_forecast_arrays": "core",
+   "_freeze_month_report": "core",
+-  "_freq_entity_reading": "core",
+-  "_freq_mode": "core",
+-  "_freq_view": "views",
+   "_fuse_kw": "grid",
+   "_get_current_price": "fetch",
+   "_grid_fee_schedule": "grid",
+@@ -138,7 +134,6 @@
+   "_narrative_view": "views",
+   "_observe_compressor_start": "core",
+   "_observe_cop_health": "learning",
+-  "_observe_frequency": "core",
+   "_on_defrost_event": "core",
+   "_on_power_event": "grid",
+   "_outage_dhw_hold": "dhw",
+diff --git a/custom_components/heatpump_optimizer/freq_seat.py b/custom_components/heatpump_optimizer/freq_seat.py
+new file mode 100644
+index 00000000..fd648945
+--- /dev/null
++++ b/custom_components/heatpump_optimizer/freq_seat.py
+@@ -0,0 +1,202 @@
++"""Inverter frequency control (#61): a collaborator that owns its own state."""
++from __future__ import annotations
++
++import logging
++from collections.abc import Callable, Mapping
++from datetime import datetime
++from typing import Any
++
++import numpy as np
++from homeassistant.core import HomeAssistant
++from homeassistant.helpers import issue_registry as ir
++from homeassistant.util import dt as dt_util
++
++from .const import (
++    CONF_COMPRESSOR_FREQ_ENTITY,
++    CONF_COMPRESSOR_FREQ_MAX_HZ,
++    CONF_COMPRESSOR_FREQ_MIN_HZ,
++    CONF_COMPRESSOR_FREQ_SENSOR,
++    CONF_FREQ_CONTROL_MODE,
++    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
++    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
++    DEFAULT_FREQ_CONTROL_MODE,
++    DOMAIN,
++)
++from .freq_control import (
++    FREQ_MODE_CONTROL,
++    FREQ_MODE_OBSERVE,
++    FREQ_SOURCE_NUMBER,
++    FREQ_WRITE_EPSILON_HZ,
++    FREQ_WRITE_MIN_INTERVAL_S,
++    FrequencyMap,
++    FrequencyWatchdog,
++    resolve_reading,
++)
++from .setpoint_check import create_issue as _create_issue
++
++_LOGGER = logging.getLogger(__name__)
++
++
++def _finite(value: Any, default: float) -> float:
++    """A finite float or ``default`` (the coordinator's ``_as_float`` rule)."""
++    try:
++        result = float(value)
++    except (TypeError, ValueError):
++        return default
++    return result if np.isfinite(result) else default
++
++
++class FrequencyControl:
++    """The kW-per-Hz map, the write watchdog, its stand-down latch, the write clock."""
++
++    def __init__(self, hass: HomeAssistant, config: Callable[[], Mapping[str, Any]]) -> None:
++        self._hass = hass
++        self._config = config
++        self.map = FrequencyMap()
++        self.fallback = False
++        self._watchdog = FrequencyWatchdog()
++        # Stamped at init: a crash-looping HA must not get a fresh write per boot.
++        self._last_write: datetime | None = dt_util.now()
++
++    def reading(self) -> tuple[float | None, float, float, str | None]:
++        """(reported Hz, range min, range max, source); ``resolve_reading``'s rules."""
++        cfg = self._config()
++        return resolve_reading(
++            cfg.get(CONF_COMPRESSOR_FREQ_ENTITY),
++            cfg.get(CONF_COMPRESSOR_FREQ_SENSOR),
++            self._hass.states.get,
++            _finite(cfg.get(CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ), DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
++            _finite(cfg.get(CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ), DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
++        )
++
++    def mode(self) -> str:
++        """The stage in force: control needs entity, opt-in and an armed watchdog."""
++        cfg = self._config()
++        number = cfg.get(CONF_COMPRESSOR_FREQ_ENTITY)
++        if not number and not cfg.get(CONF_COMPRESSOR_FREQ_SENSOR):
++            return "unconfigured"
++        configured = str(cfg.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE))
++        if number and configured == FREQ_MODE_CONTROL and not self.fallback:
++            return FREQ_MODE_CONTROL
++        return FREQ_MODE_OBSERVE
++
++    def observe(self, commanded_kw: float, measured_kw: float | None, fold_blocked: bool) -> bool:
++        """One cycle: watchdog first, then the kW-per-Hz fold.
++
++        Returns True when the stand-down latch changed, which the owner persists.
++        """
++        changed = False
++        cfg = self._config()
++        configured = str(cfg.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE))
++        if (
++            configured != FREQ_MODE_CONTROL
++            or not cfg.get(CONF_COMPRESSOR_FREQ_ENTITY)
++        ) and self.fallback:
++            # The user's acknowledgement re-arms the latch and retires its issue.
++            self.fallback = False
++            self._watchdog.reset()
++            ir.async_delete_issue(self._hass, DOMAIN, "freq_watchdog")
++            changed = True
++        reported, hz_min, hz_max, source = self.reading()
++        if reported is None:
++            return changed
++        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self.fallback:
++            # Divergence only counts while the plan asks for the compressor
++            # and the reading is in its running range.
++            watch_active = commanded_kw > 0.05 and reported >= hz_min
++            if self._watchdog.note_report(reported, active=watch_active):
++                self.fallback = True
++                changed = True
++                entity_id = str(cfg.get(CONF_COMPRESSOR_FREQ_ENTITY) or "")
++                _LOGGER.warning(
++                    "Compressor frequency control stood down: %s reports "
++                    "%.1f Hz against a commanded %.1f Hz for %d ticks",
++                    entity_id,
++                    reported,
++                    self._watchdog.commanded or 0.0,
++                    self._watchdog.strikes,
++                )
++                _create_issue(
++                    self._hass,
++                    DOMAIN,
++                    "freq_watchdog",
++                    is_fixable=False,
++                    is_persistent=True,
++                    severity=ir.IssueSeverity.WARNING,
++                    translation_key="freq_watchdog",
++                    translation_placeholders={"entity": entity_id},
++                )
++        if measured_kw is None or fold_blocked:
++            return changed
++        self.map.observe(reported, float(measured_kw), hz_min, hz_max)
++        return changed
++
++    async def command(self, commanded_kw: float, off: bool) -> None:
++        """The control stage's single write path: rate-limited, clamped, deduplicated."""
++        entity_id = self._config().get(CONF_COMPRESSOR_FREQ_ENTITY)
++        if not entity_id or self.mode() != FREQ_MODE_CONTROL or off:
++            return
++        _reported, hz_min, hz_max, _source = self.reading()
++        target = self.map.recommend(commanded_kw, hz_min, hz_max)
++        if target is None:
++            return
++        target = float(np.clip(target, hz_min, hz_max))
++        now = dt_util.now()
++        if (
++            self._last_write is not None
++            and (now - self._last_write).total_seconds()
++            < FREQ_WRITE_MIN_INTERVAL_S
++        ):
++            return
++        if (
++            self._watchdog.commanded is not None
++            and abs(target - self._watchdog.commanded)
++            < FREQ_WRITE_EPSILON_HZ
++        ):
++            return
++        try:
++            await self._hass.services.async_call(
++                "number",
++                "set_value",
++                {"entity_id": entity_id, "value": round(target, 1)},
++                blocking=True,
++            )
++        except Exception as err:  # noqa: BLE001 - never break the cycle
++            _LOGGER.error("Error commanding compressor frequency: %s", err)
++            return
++        self._last_write = now
++        self._watchdog.note_command(target)
++        _LOGGER.info(
++            "Commanded compressor frequency %.1f Hz via %s", target, entity_id
++        )
++
++    def view(self, commanded_kw: float) -> dict[str, Any]:
++        """The map, the stage, and what control WOULD do (published in observe too)."""
++        reported, hz_min, hz_max, source = self.reading()
++        mode = self.mode()
++        recommended = None
++        exhausted = False
++        if mode != "unconfigured":
++            recommended = self.map.recommend(commanded_kw, hz_min, hz_max)
++            exhausted = self.map.evidence_exhausted(commanded_kw, hz_min, hz_max)
++        view = {
++            "mode": mode,
++            "fallback_active": bool(self.fallback),
++            "reported_hz": reported,
++            "recommended_hz": recommended,
++            "evidence_exhausted": exhausted,
++            "commanded_hz": self._watchdog.commanded,
++            "range_hz": (
++                [round(hz_min, 1), round(hz_max, 1)]
++                if mode != "unconfigured"
++                else None
++            ),
++            "map": (
++                self.map.summary(hz_min, hz_max)
++                if mode != "unconfigured"
++                else {}
++            ),
++        }
++        if source is not None:
++            view["source"] = source
++        return view

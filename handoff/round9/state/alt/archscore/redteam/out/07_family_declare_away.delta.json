@@ -1,0 +1,10 @@
+{
+ "admissible": true,
+ "dS": 10.9319,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "family_splits": 10.9319
+ },
+ "verdict": "IMPROVES"
+}

@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..90601cb2 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -754,6 +754,11 @@ def diagnostics_view(coord: Any) -> dict[str, Any]:
+     held = state_for(coord)
+     return {
+         "duty_mode": duty_mode(coord._config),
++        "measured_power": coord._measured_power,
++        "freq_fallback": coord._freq_fallback,
++        "learner_freeze": coord._learner_freeze_reason,
++        "solve_failures": coord._solve_failures,
++        "outage_until": str(coord._outage_recovery_until),
+         "last_duty": held.last_duty,
+         "misses": dict(held.misses),
+         "retrying": sorted(held.retry),

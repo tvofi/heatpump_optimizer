@@ -1,0 +1,2467 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..81cc3445 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -48,271 +48,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
+ from .store import QuarantiningStore
+ from homeassistant.util import dt as dt_util
+ 
+-from .const import (
+-    DOMAIN,
+-    CONF_TIBBER_TOKEN,
+-    CONF_PRICE_ENTITY,
+-    CONF_PRICE_SOURCE,
+-    DEFAULT_PRICE_SOURCE,
+-    PRICE_SOURCE_ENTITY,
+-    CONF_HOLIDAY_CALENDAR_ENTITY,
+-    CONF_WEATHER_ENTITY,
+-    CONF_INDOOR_TEMP_ENTITY,
+-    CONF_OUTDOOR_TEMP_ENTITY,
+-    CONF_HEAT_PUMP_DEFROST_ENTITY,
+-    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+-    CONF_HEAT_PUMP_SWITCH_ENTITY,
+-    CONF_SOLAR_RADIATION_ENTITY,
+-    CONF_FLOOR_RETURN_TEMP_ENTITY,
+-    CONF_LOWER_FLOOR_TEMP_ENTITY,
+-    CONF_MIXING_VALVE_TARGET_ENTITY,
+-    CONF_MIXING_VALVE_WRITE_ENTITY,
+-    CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+-    MIXING_VALVE_WRITE_EPSILON,
+-    CONF_DHW_TEMP_ENTITY,
+-    CONF_DHW_SCHEDULE_ENABLED,
+-    CONF_DHW_WINDOWS,
+-    CONF_DHW_IDLE_MIN_TEMP,
+-    CONF_DHW_COOLING_RATE,
+-    CONF_DHW_LEGIONELLA_ENABLED,
+-    CONF_DHW_LEGIONELLA_TEMP,
+-    CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+-    CONF_ECL110_COMMAND_TOPIC,
+-    CONF_ECL110_DISPLACE_SET_TOPIC,
+-    CONF_ECL110_STATE_TOPIC,
+-    CONF_ECL110_QOS,
+-    CONF_ECL110_RETAIN,
+-    CONF_ECL110_DISPLACE_MIN,
+-    CONF_ECL110_DISPLACE_MAX,
+-    CONF_TARGET_TEMP,
+-    CONF_MIN_TEMP,
+-    CONF_MAX_TEMP,
+-    CONF_COMFORT_TEMP_DAY,
+-    CONF_COMFORT_TEMP_NIGHT,
+-    CONF_DAY_START_HOUR,
+-    CONF_DAY_END_HOUR,
+-    CONF_OPTIMIZATION_INTERVAL,
+-    CONF_PRICE_WEIGHT,
+-    CONF_COMFORT_WEIGHT,
+-    DEFAULT_TARGET_TEMP,
+-    DEFAULT_MIN_TEMP,
+-    DEFAULT_MAX_TEMP,
+-    DEFAULT_COMFORT_TEMP_DAY,
+-    DEFAULT_COMFORT_TEMP_NIGHT,
+-    DEFAULT_DAY_START_HOUR,
+-    DEFAULT_DAY_END_HOUR,
+-    DEFAULT_OPTIMIZATION_INTERVAL,
+-    DEFAULT_PRICE_WEIGHT,
+-    DEFAULT_COMFORT_WEIGHT,
+-    BUFFER_COOLING_RATE_MAX,
+-    BUFFER_COOLING_RATE_MIN,
+-    buffer_cooling_rate_bounds,
+-    default_buffer_cooling_rate,
+-    CONF_BUFFER_COOLING_RATE,
+-    CONF_BUFFER_TANK_TEMP_ENTITY,
+-    DEFAULT_HOUSE_HEAT_LOSS_SCALE,
+-    HOUSE_HEAT_LOSS_SCALE_MAX,
+-    HOUSE_HEAT_LOSS_SCALE_MIN,
+-    DEFAULT_LOWER_FLOOR_LOSS_RATIO,
+-    LOWER_FLOOR_LOSS_RATIO_MAX,
+-    LOWER_FLOOR_LOSS_RATIO_MIN,
+-    DHW_COOLING_REFERENCE_DELTA,
+-    DEFAULT_ECL110_QOS,
+-    DEFAULT_ECL110_RETAIN,
+-    DEFAULT_ECL110_DISPLACE_MIN,
+-    DEFAULT_ECL110_DISPLACE_MAX,
+-    MODE_AUTO,
+-    MODE_COMFORT,
+-    ECONOMY_MIN_TEMP_WIDENING,
+-    MODE_ECONOMY,
+-    MODE_LAST_GOOD_MAX_AGE_MINUTES,
+-    OPERATION_MODES,
+-    MODE_OFF,
+-    MODE_BOOST,
+-    CONF_SOLAR_FORECAST_SOURCE,
+-    CONF_SOLAR_LOCATION,
+-    DEFAULT_SOLAR_FORECAST_SOURCE,
+-    SOLAR_SOURCE_OPEN_METEO,
+-    CONF_POWER_ENTITY,
+-    CONF_ENERGY_ENTITY,
+-    CONF_HOUSE_POWER_ENTITY,
+-    CONF_COP_SCALE,
+-    COP_SCALE_MAX,
+-    COP_SCALE_MIN,
+-    COP_TRACKING_ERROR_GATE,
+-    DEFAULT_COP_SCALE,
+-    CONF_STALENESS_ENABLED,
+-    CONF_STALENESS_SCALE,
+-    DEFAULT_STALENESS_ENABLED,
+-    DEFAULT_STALENESS_SCALE,
+-    CONF_EXTERNAL_HEAT_ENABLED,
+-    CONF_EXTERNAL_HEAT_ENTITY,
+-    CONF_EXTERNAL_HEAT_MIN_RISE,
+-    CONF_EXTERNAL_HEAT_DECAY_MINUTES,
+-    DEFAULT_EXTERNAL_HEAT_ENABLED,
+-    DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+-    DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+-    CONF_VALVE_OUTLET_TEMP_ENTITY,
+-    CONF_WOOD_TANK_TOP_ENTITY,
+-    CONF_WOOD_TANK_BOTTOM_ENTITY,
+-    CONF_WOOD_TANK_VOLUME,
+-    DEFAULT_WOOD_TANK_VOLUME,
+-    CONF_PRICE_PRIOR_ENABLED,
+-    DEFAULT_PRICE_PRIOR_ENABLED,
+-    PRICE_MODEL_STORE_VERSION,
+-    CONF_PEAK_TARIFF_ENABLED,
+-    CONF_PEAK_TARIFF_PRICE,
+-    CONF_PEAK_TARIFF_COUNT,
+-    CONF_PEAK_TARIFF_WINDOW,
+-    DEFAULT_PEAK_TARIFF_ENABLED,
+-    DEFAULT_PEAK_TARIFF_PRICE,
+-    DEFAULT_PEAK_TARIFF_COUNT,
+-    DEFAULT_PEAK_TARIFF_WINDOW,
+-    CONF_GRID_FEE_MODE,
+-    DEFAULT_GRID_FEE_MODE,
+-    CONF_GRID_FEE_RULES,
+-    DEFAULT_GRID_FEE_RULES,
+-    CONF_GRID_FEE_ENTITY,
+-    CONF_GRID_FEE_FIXED,
+-    DEFAULT_GRID_FEE_FIXED,
+-    CONF_PEAK_TARIFF_MONTHS,
+-    DEFAULT_PEAK_TARIFF_MONTHS,
+-    CONF_PEAK_TARIFF_HOURS,
+-    DEFAULT_PEAK_TARIFF_HOURS,
+-    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+-    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+-    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+-    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+-    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+-    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
+-    CONF_PRICE_RISK_LAMBDA,
+-    DEFAULT_PRICE_RISK_LAMBDA,
+-    CONF_CONTRACT_FIXED_PRICE,
+-    DEFAULT_CONTRACT_FIXED_PRICE,
+-    CONF_MAIN_FUSE_A,
+-    DEFAULT_MAIN_FUSE_A,
+-    CONF_MAIN_FUSE_PHASES,
+-    DEFAULT_MAIN_FUSE_PHASES,
+-    CONF_FUSE_GUARD_ENABLED,
+-    DEFAULT_FUSE_GUARD_ENABLED,
+-    CONF_PEAK_GUARD_ENABLED,
+-    DEFAULT_PEAK_GUARD_ENABLED,
+-    CONF_PEAK_GUARD_MARGIN_KW,
+-    DEFAULT_PEAK_GUARD_MARGIN_KW,
+-    CONF_OUTAGE_RECOVERY_ENABLED,
+-    DEFAULT_OUTAGE_RECOVERY_ENABLED,
+-    FUSE_LADDER_A,
+-    PEAK_GUARD_DISPLACE_NUDGE_C,
+-    OUTAGE_GAP_MINUTES,
+-    OUTAGE_RECOVERY_HOURS,
+-    OUTAGE_DHW_DELAY_MINUTES,
+-    CONF_CYCLING_COST,
+-    DEFAULT_CYCLING_COST,
+-    CONF_PV_ENABLED,
+-    CONF_PV_PEAK_KW,
+-    CONF_PV_EFFICIENCY,
+-    CONF_PV_EXPORT_PRICE,
+-    CONF_PV_EXPORT_PRICE_ENTITY,
+-    CONF_PV_PRODUCTION_ENTITY,
+-    DEFAULT_PV_ENABLED,
+-    DEFAULT_PV_PEAK_KW,
+-    DEFAULT_PV_EFFICIENCY,
+-    DEFAULT_PV_EXPORT_PRICE,
+-    CONF_SYSID_ENABLED,
+-    DEFAULT_SYSID_ENABLED,
+-    CONF_COMFORT_LEARNING_ENABLED,
+-    DEFAULT_COMFORT_LEARNING_ENABLED,
+-    ACCURACY_STORE_VERSION,
+-    ENERGY_STORE_VERSION,
+-    MANUAL_PLAN_STORE_VERSION,
+-    MANUAL_PLAN_WINDOW_HOURS,
+-    SIMULATE_MIN_INTERVAL_SECONDS,
+-    CONF_DHW_INLET_ENTITY,
+-    CONF_DHW_QUANTILE_TARGETS_ENABLED,
+-    DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+-    CONF_DHW_FREE_DISINFECTION_ENABLED,
+-    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+-    DEFAULT_DHW_LEGIONELLA_TEMP,
+-    DEFAULT_DHW_SETPOINT,
+-    CONF_SHOWER_FLOW_LPM,
+-    DEFAULT_SHOWER_FLOW_LPM,
+-    CONF_VVC_PUMP_ENTITY,
+-    CONF_VVC_LEAD_MINUTES,
+-    DEFAULT_VVC_LEAD_MINUTES,
+-    CONF_SPACE_PUMP_ENTITY,
+-    DHW_LEGIONELLA_BOOST_MAX_HOURS,
+-    DHW_LEGIONELLA_HOLD_MINUTES,
+-    SPACE_PUMP_FLOOR_MARGIN_C,
+-    CONF_OPEN_WINDOW_RELAX_ENABLED,
+-    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+-    CONF_IMMERSION_FEEDBACK_ENABLED,
+-    DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+-    VENT_CUSUM_THRESHOLD_C,
+-    VENT_CUSUM_DRIFT_C,
+-    VENT_CUSUM_CLIP_C,
+-    VENT_CUSUM_STARVE_HOURS,
+-    OPEN_WINDOW_RELAX_C,
+-    IMMERSION_FACTOR,
+-    COP_BASELINE_MIN_SAMPLES,
+-    COP_BASELINE_ALPHA,
+-    COP_HEALTH_THRESHOLD,
+-    COP_HEALTH_DRIFT,
+-    CONF_PRECIP_TYPE_ENABLED,
+-    DEFAULT_PRECIP_TYPE_ENABLED,
+-    CONF_SNOW_ROOF_FACTOR_ENABLED,
+-    DEFAULT_SNOW_ROOF_FACTOR_ENABLED,
+-    SNOW_CM_PER_MM_WATER,
+-    SNOW_HEAVY_CM,
+-    SNOW_ROOF_DAMPING,
+-    SNOW_ROOF_DAYS,
+-    CONF_CAPACITY_CURVE_ENABLED,
+-    DEFAULT_CAPACITY_CURVE_ENABLED,
+-    CAPACITY_MIN_SAMPLES,
+-    CAPACITY_FLOOR_FRACTION,
+-    CAPACITY_FORGET,
+-    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+-    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+-    SOLAR_APERTURE_MIN,
+-    SOLAR_APERTURE_MAX,
+-    SOLAR_APERTURE_MIN_IRRADIANCE,
+-    SOLAR_APERTURE_ALPHA,
+-    SOLAR_APERTURE_MIN_SAMPLES,
+-    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+-    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+-    INTERNAL_GAINS_ALPHA,
+-    INTERNAL_GAINS_RIDGE,
+-    INTERNAL_GAINS_MAX_FACTOR,
+-    CONF_CURVE_LEARNING_ENABLED,
+-    DEFAULT_CURVE_LEARNING_ENABLED,
+-    CONF_CONFIDENCE_MARGINS_ENABLED,
+-    DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+-    CONFIDENCE_MARGIN_CAP_C,
+-    CONF_MOLD_GUARD_ENABLED,
+-    DEFAULT_MOLD_GUARD_ENABLED,
+-    CONF_INDOOR_HUMIDITY_ENTITY,
+-    CONF_THERMAL_BRIDGE_FRSI,
+-    DEFAULT_THERMAL_BRIDGE_FRSI,
+-    MOLD_SURFACE_RH_LIMIT,
+-    CONF_COMPRESSOR_REPLACEMENT_COST,
+-    DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+-    CONF_COMPRESSOR_RATED_STARTS,
+-    DEFAULT_COMPRESSOR_RATED_STARTS,
+-    CONF_WEAR_AUTOTUNE_ENABLED,
+-    DEFAULT_WEAR_AUTOTUNE_ENABLED,
+-    CONF_PRICE_TILES_ENABLED,
+-    DEFAULT_PRICE_TILES_ENABLED,
+-    SCORE_ALPHA,
+-    SCORE_FREE_SPAN_RESET,
+-    CONF_COMPRESSOR_FREQ_ENTITY,
+-    CONF_COMPRESSOR_FREQ_SENSOR,
+-    CONF_COMPRESSOR_FREQ_MIN_HZ,
+-    CONF_COMPRESSOR_FREQ_MAX_HZ,
+-    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+-    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
+-    CONF_FREQ_CONTROL_MODE,
+-    DEFAULT_FREQ_CONTROL_MODE,
+-    TEMPERATURE_UNIT_TO_C,
+-)
++from . import const
++from .const import DOMAIN, MODE_LAST_GOOD_MAX_AGE_MINUTES
+ from .inputs import (
+     UNBOUNDED,
+     InputHealth,
+@@ -662,7 +399,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
+         # so the notice must too.
+         _create_issue(
+             coord.hass,
+-            DOMAIN,
++            const.DOMAIN,
+             "solve_failures",
+             is_fixable=False,
+             is_persistent=True,
+@@ -834,7 +571,7 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
+     commanded = coord._commanded_power()
+     if commanded < max(0.3 * params.max_electrical_power, 0.2):
+         return
+-    if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None:
++    if coord._learning_frozen(const.CONF_OUTDOOR_TEMP_ENTITY) is not None:
+         return
+     if _cop_fold_blocked(coord):
+         return
+@@ -886,7 +623,7 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
+     ctx = getattr(coord, "_ctx", coord)
+     if dhw_curve or not ctx._thermal_params.flow_curve_cop:
+         return 1.0, bool(dhw_curve)
+-    if not ctx._config.get(CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY):
++    if not ctx._config.get(const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY):
+         return 1.0, False
+     supply = coord._flow_bias.last_supply_c
+     if supply is None:
+@@ -909,7 +646,7 @@ def _freq_fold_blocked(coord: Any) -> bool:
+         return True
+     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
+         return True
+-    frozen = coord._learning_frozen(CONF_POWER_ENTITY)
++    frozen = coord._learning_frozen(const.CONF_POWER_ENTITY)
+     return bool(frozen and ":" in frozen)
+ 
+ #: Which configured entity backs each published temperature -- the table
+@@ -921,23 +658,23 @@ def _freq_fold_blocked(coord: Any) -> bool:
+ READING_SOURCES: dict[str, str] = {
+     # The indoor thermometer is the upper zone, by the two-zone convention
+     # `_update_current_state` states and applies.
+-    "upper_floor_temperature": CONF_INDOOR_TEMP_ENTITY,
++    "upper_floor_temperature": const.CONF_INDOOR_TEMP_ENTITY,
+     # Only a real lower-floor thermometer; the room-temperature fallback is
+     # a modelling stand-in, not a second measurement.
+-    "lower_floor_temperature": CONF_LOWER_FLOOR_TEMP_ENTITY,
+-    "floor_return_temperature": CONF_FLOOR_RETURN_TEMP_ENTITY,
++    "lower_floor_temperature": const.CONF_LOWER_FLOOR_TEMP_ENTITY,
++    "floor_return_temperature": const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+     # The slab is never sensed. It is integrated from the floor return, so
+     # it is a live estimate exactly while that sensor reads and a one-off
+     # `room + 1.0` seed otherwise.
+-    "slab_temperature": CONF_FLOOR_RETURN_TEMP_ENTITY,
+-    "buffer_tank_temperature": CONF_BUFFER_TANK_TEMP_ENTITY,
++    "slab_temperature": const.CONF_FLOOR_RETURN_TEMP_ENTITY,
++    "buffer_tank_temperature": const.CONF_BUFFER_TANK_TEMP_ENTITY,
+     # Published by `_dhw_view`; the freshness of every temperature this
+     # integration publishes belongs in one map.
+-    "dhw_temperature": CONF_DHW_TEMP_ENTITY,
++    "dhw_temperature": const.CONF_DHW_TEMP_ENTITY,
+     # The one this map was missing. Without an outdoor thermometer the 5.0
+     # default is what the Outdoor sensor, the climate attribute and the
+     # modelled COP all read, every cycle, forever -- and nothing said so.
+-    "outdoor_temperature": CONF_OUTDOOR_TEMP_ENTITY,
++    "outdoor_temperature": const.CONF_OUTDOOR_TEMP_ENTITY,
+ }
+ 
+ # Age limits for the optional sensors read outside InputReader. Humidity
+@@ -1286,7 +1023,7 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
+     _WORKER_FALLBACK_CAUSE = cause
+     _create_issue(
+         hass,
+-        DOMAIN,
++        const.DOMAIN,
+         "solve_worker_fallback",
+         is_fixable=False,
+         # Persistent: a worker that cannot start is a property of the install,
+@@ -1305,7 +1042,7 @@ def _clear_worker_fallback(hass: HomeAssistant) -> None:
+     if _WORKER_FALLBACK_CAUSE is None:
+         return
+     _WORKER_FALLBACK_CAUSE = None
+-    ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
++    ir.async_delete_issue(hass, const.DOMAIN, "solve_worker_fallback")
+ 
+ 
+ def _worker_fallback_streak(hass: HomeAssistant) -> int:
+@@ -1487,7 +1224,7 @@ def _hub(name: str) -> property:
+ 
+ def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
+     """The live fee entity's value per kWh, in its own unit (#1513)."""
+-    return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))
++    return _entity_price(hass, config.get(const.CONF_GRID_FEE_ENTITY))
+ 
+ 
+ def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
+@@ -1505,18 +1242,18 @@ def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
+     slot is emptied.
+     """
+     for slot, entity_id in (
+-        ("price", config.get(CONF_PRICE_ENTITY)),
+-        ("export", config.get(CONF_PV_EXPORT_PRICE_ENTITY)),
+-        ("grid_fee", config.get(CONF_GRID_FEE_ENTITY)),
++        ("price", config.get(const.CONF_PRICE_ENTITY)),
++        ("export", config.get(const.CONF_PV_EXPORT_PRICE_ENTITY)),
++        ("grid_fee", config.get(const.CONF_GRID_FEE_ENTITY)),
+     ):
+         state = hass.states.get(entity_id) if entity_id else None
+         unit = state_unit(state)
+         if state is None or normalize_price_per_kwh(1.0, unit) is not None:
+-            ir.async_delete_issue(hass, DOMAIN, f"price_unit_{slot}")
++            ir.async_delete_issue(hass, const.DOMAIN, f"price_unit_{slot}")
+             continue
+         _create_issue(
+             hass,
+-            DOMAIN,
++            const.DOMAIN,
+             f"price_unit_{slot}",
+             is_fixable=False,
+             severity=ir.IssueSeverity.WARNING,
+@@ -1577,7 +1314,7 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
+     pressure, visibility and the other forecast fields are read by nothing.
+     """
+     unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
+-    to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
++    to_c = const.TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
+     wind = _wind_speed_scale_of(state)
+     rain = _unit_scale_of(state, "precipitation_unit", _PRECIPITATION_UNIT_TO_MM)
+     if not to_c and wind == 1.0 and rain == 1.0:
+@@ -1649,7 +1386,7 @@ def _liquid_fraction(
+     rain vs Open-Meteo snow) and a dry step is defined as fully
+     liquid so it multiplies to zero either way.
+     """
+-    snow_water = np.asarray(snow_array, dtype=float) / SNOW_CM_PER_MM_WATER
++    snow_water = np.asarray(snow_array, dtype=float) / const.SNOW_CM_PER_MM_WATER
+     precip = np.asarray(precip_array, dtype=float)
+     with np.errstate(divide="ignore", invalid="ignore"):
+         return np.where(
+@@ -1802,7 +1539,7 @@ def _ecl110_legacy_payload(
+     coupling stood. Same rule as ``_solve_anchor`` and ``_liquid_fraction``.
+     """
+     return {
+-        "source": DOMAIN,
++        "source": const.DOMAIN,
+         "reason": reason,
+         "timestamp": dt_util.now().isoformat(),
+         "command": {
+@@ -1901,11 +1638,11 @@ def _effective_house_heat_loss(
+ 
+ 
+ def _entity_price_source(cfg: dict[str, Any]) -> bool:
+-    return str(cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)) == PRICE_SOURCE_ENTITY
++    return str(cfg.get(const.CONF_PRICE_SOURCE, const.DEFAULT_PRICE_SOURCE)) == const.PRICE_SOURCE_ENTITY
+ 
+ 
+ def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:
+-    entity_id = cfg.get(CONF_PRICE_ENTITY)
++    entity_id = cfg.get(const.CONF_PRICE_ENTITY)
+     if not entity_id:
+         return None
+     return hass.states.get(entity_id)
+@@ -1971,9 +1708,9 @@ def _space_pump_to_drive(coord: Any) -> str | None:
+     The VVC's half of the same method is not held: it follows the user's DHW
+     window schedule, which cannot go stale.
+     """
+-    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():
++    if coord._mode in (const.MODE_AUTO, const.MODE_ECONOMY) and coord._plan_is_stale():
+         return None
+-    entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
++    entity = getattr(coord, "_ctx", coord)._config.get(const.CONF_SPACE_PUMP_ENTITY)
+     return str(entity) if entity else None
+ 
+ 
+@@ -1996,10 +1733,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         super().__init__(
+             hass,
+             _LOGGER,
+-            name=DOMAIN, config_entry=entry,
++            name=const.DOMAIN, config_entry=entry,
+             update_interval=timedelta(
+                 minutes=config.get(
+-                    CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                    const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+                 )
+             ),
+         )
+@@ -2088,8 +1825,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # #26: an open window shows as sustained colder-than-predicted
+         # residuals in the heat-loss learner's replay.
+         self._vent_cusum = Cusum(
+-            threshold=VENT_CUSUM_THRESHOLD_C,
+-            drift=VENT_CUSUM_DRIFT_C,
++            threshold=const.VENT_CUSUM_THRESHOLD_C,
++            drift=const.VENT_CUSUM_DRIFT_C,
+             side=-1,
+         )
+         # #11: the immersion element announces itself as measured power
+@@ -2153,7 +1890,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     def _init_runtime_state(self) -> None:
+         """What the current update cycle is working with."""
+-        self._mode: str = MODE_AUTO
++        self._mode: str = const.MODE_AUTO
+         # #6: last commanded pump states, so actuation is transitions-only.
+         # Initialised here since W5-G9: it is core state and was misplaced in
+         # the dhw init, which is the S5 finding once more.
+@@ -2243,7 +1980,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             entry.entry_id,
+             ctx._thermal_params,
+             ctx._config,
+-            action=lambda: {} if self._mode == MODE_OFF else planned(),  # off writes nothing
++            action=lambda: {} if self._mode == const.MODE_OFF else planned(),  # off writes nothing
+             disinfect=_disinfection_switch(hass, ctx._config),
+             dhw_blocked=lambda: self._pump_signals.dhw_blocked,
+         )
+@@ -2258,7 +1995,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # from the tank's own size rather than from a 35 L tank's number.
+         self._buffer_cooling_rate: float = float(
+             ctx._thermal_params.buffer_cooling_rate
+-            or default_buffer_cooling_rate(
++            or const.default_buffer_cooling_rate(
+                 ctx._thermal_params.buffer_tank_volume
+             )
+         )
+@@ -2275,7 +2012,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._house_heat_loss_samples: int = 0
+         self._last_house_sample: ThermalState | None = None
+         self._last_house_sample_time: datetime | None = None
+-        self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
++        self._lower_floor_loss_ratio: float = const.DEFAULT_LOWER_FLOOR_LOSS_RATIO
+         self._lower_floor_loss_samples: int = 0
+ 
+         self._thermal_learning_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+@@ -2299,7 +2036,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # ordinary plan shape rather than an edge case.
+         self._cop_baseline: dict[tuple[int, bool | str], list[float]] = {}
+         self._cop_health_cusum = Cusum(
+-            threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
++            threshold=const.COP_HEALTH_THRESHOLD, drift=const.COP_HEALTH_DRIFT, side=1
+         )
+     def _init_measurements(self) -> None:
+         """Optional measured inputs and the COP correction they feed."""
+@@ -2311,7 +2048,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # Learned correction to the modelled COP, from measured input against
+         # modelled thermal output. Only moves when a power entity exists.
+         self._cop_scale: float = float(
+-            getattr(self, "_ctx", self)._config.get(CONF_COP_SCALE, DEFAULT_COP_SCALE)
++            getattr(self, "_ctx", self)._config.get(const.CONF_COP_SCALE, const.DEFAULT_COP_SCALE)
+         )
+         self._cop_samples: int = 0
+         #: Walking measured/commanded ratio; the COP fold judges outliers
+@@ -2341,7 +2078,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._price_known_steps: int = 0
+         self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+-            PRICE_MODEL_STORE_VERSION,
++            const.PRICE_MODEL_STORE_VERSION,
+             f"{DOMAIN}_{entry.entry_id}_price_model",
+         )
+ 
+@@ -2451,7 +2188,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._dhw_accuracy = AccuracyTracker()
+         self._pending_prediction: dict[str, Any] | None = None
+         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+-            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
++            hass, const.ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
+             lead=timedelta(hours=max(LEAD_BUCKETS)),
+         )
+         # Serialized form of the last payload each store accepted, keyed by
+@@ -2506,7 +2243,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._energy_totals_since: str | None = None
+         self._energy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+-            ENERGY_STORE_VERSION,
++            const.ENERGY_STORE_VERSION,
+             f"{DOMAIN}_{entry.entry_id}_energy",
+         )
+ 
+@@ -2517,15 +2254,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # the day it was set for.
+         self._manual_override: ManualOverride | None = None
+         self._manual_plan_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+-            hass, MANUAL_PLAN_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_manual_plan",
+-            lead=timedelta(hours=MANUAL_PLAN_WINDOW_HOURS),  # D1-s2-54: build_override clamps every expiry to this window
++            hass, const.MANUAL_PLAN_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_manual_plan",
++            lead=timedelta(hours=const.MANUAL_PLAN_WINDOW_HOURS),  # D1-s2-54: build_override clamps every expiry to this window
+         )
+ 
+         # --- Active system identification (item 18) ------------------------
+         self._sysid = SystemIdentification(
+             SysIdConfig(
+                 enabled=bool(
+-                    ctx._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
++                    ctx._config.get(const.CONF_SYSID_ENABLED, const.DEFAULT_SYSID_ENABLED)
+                 ),
+                 # The fit's intercept ridge pulls toward the CONFIGURED
+                 # gains and mass — the only priors the experiment may use
+@@ -2539,7 +2276,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+         # --- Revealed-preference comfort tuning (item 19) ------------------
+         configured_weight = _as_float(
+-            ctx._config.get(CONF_COMFORT_WEIGHT), DEFAULT_COMFORT_WEIGHT
++            ctx._config.get(const.CONF_COMFORT_WEIGHT), const.DEFAULT_COMFORT_WEIGHT
+         )
+         self._comfort_learner = ComfortLearner(
+             configured_weight=configured_weight,
+@@ -2554,21 +2291,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """MQTT heat-curve control state."""
+         ctx = getattr(self, "_ctx", self)
+         self._ecl110_command_topic: str = _ecl110_topic(
+-            ctx._config, CONF_ECL110_COMMAND_TOPIC
++            ctx._config, const.CONF_ECL110_COMMAND_TOPIC
+         )
+         self._ecl110_displace_set_topic: str = _ecl110_topic(
+-            ctx._config, CONF_ECL110_DISPLACE_SET_TOPIC
++            ctx._config, const.CONF_ECL110_DISPLACE_SET_TOPIC
+         )
+         self._ecl110_state_topic: str = _ecl110_topic(
+-            ctx._config, CONF_ECL110_STATE_TOPIC
++            ctx._config, const.CONF_ECL110_STATE_TOPIC
+         )
+-        self._ecl110_qos: int = int(ctx._config.get(CONF_ECL110_QOS, DEFAULT_ECL110_QOS))
+-        self._ecl110_retain: bool = bool(ctx._config.get(CONF_ECL110_RETAIN, DEFAULT_ECL110_RETAIN))
++        self._ecl110_qos: int = int(ctx._config.get(const.CONF_ECL110_QOS, const.DEFAULT_ECL110_QOS))
++        self._ecl110_retain: bool = bool(ctx._config.get(const.CONF_ECL110_RETAIN, const.DEFAULT_ECL110_RETAIN))
+         self._ecl110_displace_min: float = float(
+-            ctx._config.get(CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN)
++            ctx._config.get(const.CONF_ECL110_DISPLACE_MIN, const.DEFAULT_ECL110_DISPLACE_MIN)
+         )
+         self._ecl110_displace_max: float = float(
+-            ctx._config.get(CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX)
++            ctx._config.get(const.CONF_ECL110_DISPLACE_MAX, const.DEFAULT_ECL110_DISPLACE_MAX)
+         )
+         self._ecl110_current_displace: float = 0.0
+         self._ecl110_last_payload: dict[str, Any] = {}
+@@ -2641,7 +2378,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         it is present at the floor; ``DeviceInfo`` has no ``config_entry``.
+         """
+         return DeviceInfo(
+-            identifiers={(DOMAIN, self.entry.entry_id)},
++            identifiers={(const.DOMAIN, self.entry.entry_id)},
+             name="Heat Pump Optimizer",
+             manufacturer="tvofi", model="MPC Optimizer",
+             sw_version=self.integration_version,
+@@ -2663,7 +2400,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     @property
+     def target_temperature(self) -> float:
+         """The user's configured target: never a solve's away setback (D1-s3-04)."""
+-        return float({**self.entry.data, **self.entry.options}.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP))
++        return float({**self.entry.data, **self.entry.options}.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP))
+ 
+     async def async_set_target_temperature(self, temperature: float) -> None:
+         """Change the comfort target and persist it across restarts.
+@@ -2682,12 +2419,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         found = comfort_band.violations(
+-            {CONF_TARGET_TEMP: float(temperature)}, ctx._config
++            {const.CONF_TARGET_TEMP: float(temperature)}, ctx._config
+         )
+         if found:
+             raise ServiceValidationError(
+                 comfort_band.describe(found),
+-                translation_domain=DOMAIN,
++                translation_domain=const.DOMAIN,
+                 translation_key="set_temperature_comfort_band_violation",
+                 translation_placeholders={
+                     "violations": comfort_band.describe(found)
+@@ -2696,7 +2433,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx._opt_config.target_temp = temperature
+         self.hass.config_entries.async_update_entry(
+             self.entry,
+-            options={**self.entry.options, CONF_TARGET_TEMP: temperature},
++            options={**self.entry.options, const.CONF_TARGET_TEMP: temperature},
+         )
+     @property
+     def prices(self) -> list[dict[str, Any]]:
+@@ -2736,7 +2473,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+         # The inlet: live sensor wins, then the seasonal model, whose
+         # default amplitude of zero keeps it at the configured mean.
+-        inlet = _dhw_inlet_c(self.hass, ctx._config.get(CONF_DHW_INLET_ENTITY))
++        inlet = _dhw_inlet_c(self.hass, ctx._config.get(const.CONF_DHW_INLET_ENTITY))
+         if inlet is None:
+             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
+         params.dhw_inlet_current = inlet
+@@ -2750,8 +2487,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         params.dhw_window_ready_energy = None
+         if params.dhw_enabled and params.dhw_windows_active and bool(
+             ctx._config.get(
+-                CONF_DHW_QUANTILE_TARGETS_ENABLED,
+-                DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
++                const.CONF_DHW_QUANTILE_TARGETS_ENABLED,
++                const.DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+             )
+         ):
+             table: dict[str, tuple[float, int]] = {}
+@@ -2820,7 +2557,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         litres = (
+             params.dhw_tank_volume * max(0.0, float(tank) - inlet) / (40.0 - inlet)
+         )
+-        flow = _as_float(ctx._config.get(CONF_SHOWER_FLOW_LPM), DEFAULT_SHOWER_FLOW_LPM)
++        flow = _as_float(ctx._config.get(const.CONF_SHOWER_FLOW_LPM), const.DEFAULT_SHOWER_FLOW_LPM)
+         out = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
+         if flow > 0:
+             out["shower_minutes"] = round(litres / flow, 1)
+@@ -2925,7 +2662,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         each is commanded exactly once per state change.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        vvc_entity = ctx._config.get(CONF_VVC_PUMP_ENTITY)
++        vvc_entity = ctx._config.get(const.CONF_VVC_PUMP_ENTITY)
+         space_entity = _space_pump_to_drive(self)
+         if not vvc_entity and not space_entity:
+             return
+@@ -2945,8 +2682,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 now.hour + now.minute / 60.0,
+                 windows,
+                 _as_float(
+-                    ctx._config.get(CONF_VVC_LEAD_MINUTES),
+-                    DEFAULT_VVC_LEAD_MINUTES,
++                    ctx._config.get(const.CONF_VVC_LEAD_MINUTES),
++                    const.DEFAULT_VVC_LEAD_MINUTES,
+                 ),
+             )
+             await self._async_set_pump(vvc_entity, on, reason)
+@@ -2989,7 +2726,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self, entity_id: str, on: bool, reason: str
+     ) -> None:
+         previous = self._pump_commanded.get(entity_id)
+-        if self._mode == MODE_OFF or (previous is not None and previous == on):  # off writes nothing
++        if self._mode == const.MODE_OFF or (previous is not None and previous == on):  # off writes nothing
+             return
+         service = "turn_on" if on else "turn_off"
+         try:
+@@ -3139,7 +2876,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if self._freq_fallback and (
+             str(
+                 getattr(self, "_ctx", self)._config.get(
+-                    CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
++                    const.CONF_FREQ_CONTROL_MODE, const.DEFAULT_FREQ_CONTROL_MODE
+                 )
+             )
+             == FREQ_MODE_CONTROL
+@@ -3177,8 +2914,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._solar_aperture["scale"] = float(
+                 np.clip(
+                     self._solar_aperture["scale"],
+-                    SOLAR_APERTURE_MIN,
+-                    SOLAR_APERTURE_MAX,
++                    const.SOLAR_APERTURE_MIN,
++                    const.SOLAR_APERTURE_MAX,
+                 )
+             )
+         raw_gains = stored.get("internal_gains_profile")
+@@ -3642,7 +3379,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         could actually have been made.
+         """
+         commanded_space, dhw_share = self._commanded_split()
+-        if not getattr(self, "_ctx", self)._config.get(CONF_POWER_ENTITY):
++        if not getattr(self, "_ctx", self)._config.get(const.CONF_POWER_ENTITY):
+             return commanded_space
+         # #1067: the pump's own heaters join the immersion latch, for the
+         # reason the latch exists. ``capacity_limited`` deliberately does
+@@ -3675,7 +3412,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if (
+             abs(float(self._measured_power) - commanded_total)
+             / max(commanded_total, 0.5)
+-            > COP_TRACKING_ERROR_GATE
++            > const.COP_TRACKING_ERROR_GATE
+         ):
+             return None
+         return max(0.0, float(self._measured_power) - dhw_share)
+@@ -3685,37 +3422,37 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         interval_hours = (
+             ctx._config.get(
+-                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+             )
+             / 60.0
+         )
+         return ExternalHeatConfig(
+             enabled=wood_furnace_on(ctx._config) and bool(
+                 ctx._config.get(
+-                    CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED
++                    const.CONF_EXTERNAL_HEAT_ENABLED, const.DEFAULT_EXTERNAL_HEAT_ENABLED
+                 )
+             ),
+             min_rise_c_per_h=_as_float(
+-                ctx._config.get(CONF_EXTERNAL_HEAT_MIN_RISE),
+-                DEFAULT_EXTERNAL_HEAT_MIN_RISE,
++                ctx._config.get(const.CONF_EXTERNAL_HEAT_MIN_RISE),
++                const.DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+             ),
+             decay_minutes=_as_float(
+-                ctx._config.get(CONF_EXTERNAL_HEAT_DECAY_MINUTES),
+-                DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
++                ctx._config.get(const.CONF_EXTERNAL_HEAT_DECAY_MINUTES),
++                const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+             ),
+             # Samples arrive once per update cycle, so the window has to
+             # outlast the interval or every pair is rejected and the detector
+             # is blind at exactly the 60-minute setting it appears to support.
+             max_sample_hours=max(1.0, 1.5 * interval_hours),
+             wood_tank_volume_l=_as_float(
+-                ctx._config.get(CONF_WOOD_TANK_VOLUME),
+-                DEFAULT_WOOD_TANK_VOLUME,
++                ctx._config.get(const.CONF_WOOD_TANK_VOLUME),
++                const.DEFAULT_WOOD_TANK_VOLUME,
+             ),
+         )
+     @_refuses_non_finite
+     def _apply_cop_scale(self, scale: float) -> None:
+         """Clamp the learned COP correction and push it to the model."""
+-        self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))
++        self._cop_scale = float(np.clip(scale, const.COP_SCALE_MIN, const.COP_SCALE_MAX))
+         getattr(self, "_ctx", self)._thermal_params.cop_scale = self._cop_scale
+ 
+     def _max_pump_rise(self, tank: str) -> float | None:
+@@ -3779,7 +3516,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # A numeric read applies the horizon from INPUT_MAX_AGE_MINUTES and
+         # rejects a word as ``not_numeric``, so this one call both classifies
+         # the entity and gates the probe case.
+-        probe = reader.read(CONF_EXTERNAL_HEAT_ENTITY)
++        probe = reader.read(const.CONF_EXTERNAL_HEAT_ENTITY)
+         if probe.ok and probe.value is not None:
+             self._external_probe_stale_warned = False
+             return probe.value > 30.0
+@@ -3806,7 +3543,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # not_configured, missing_entity or unavailable: nothing to read.
+             return None
+         reading = reader.read_state(
+-            CONF_EXTERNAL_HEAT_ENTITY, max_age_minutes=UNBOUNDED
++            const.CONF_EXTERNAL_HEAT_ENTITY, max_age_minutes=UNBOUNDED
+         )
+         if not reading.ok or reading.text is None:
+             return None
+@@ -3834,17 +3571,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._config,
+             enabled=bool(
+                 ctx._config.get(
+-                    CONF_STALENESS_ENABLED, DEFAULT_STALENESS_ENABLED
++                    const.CONF_STALENESS_ENABLED, const.DEFAULT_STALENESS_ENABLED
+                 )
+             ),
+             scale=_as_float(
+-                ctx._config.get(CONF_STALENESS_SCALE),
+-                DEFAULT_STALENESS_SCALE,
++                ctx._config.get(const.CONF_STALENESS_SCALE),
++                const.DEFAULT_STALENESS_SCALE,
+             ),
+         )
+-        outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
+-        wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+-        wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
++        outlet = reader.read(const.CONF_VALVE_OUTLET_TEMP_ENTITY)
++        wood_top = reader.read(const.CONF_WOOD_TANK_TOP_ENTITY)
++        wood_bottom = reader.read(const.CONF_WOOD_TANK_BOTTOM_ENTITY)
+         observation = ExternalHeatObservation(
+             now=dt_util.now(),
+             dhw_temp=ctx._current_state.dhw_temperature,
+@@ -3969,7 +3706,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if self._measured_power is None:
+             return
+-        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
++        if self._learning_frozen(const.CONF_POWER_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY):
+             return
+ 
+         commanded = self._commanded_power()
+@@ -4026,7 +3763,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # not: that is what lets a genuine persistent shift unlock.
+         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
+         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
+-        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
++        if abs(ratio - ewma) / max(ewma, 1e-6) > const.COP_TRACKING_ERROR_GATE:
+             _LOGGER.debug(
+                 "Skipping COP sample: commanded %.2f kW vs measured %.2f kW "
+                 "deviates from the running ratio %.2f — a tracking blip, "
+@@ -4141,7 +3878,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         17 W/K when a real one is nearer 2, so the learner could never reach
+         the truth however long it ran.
+         """
+-        return buffer_cooling_rate_bounds(
++        return const.buffer_cooling_rate_bounds(
+             getattr(self, "_ctx", self)._thermal_params.buffer_tank_volume
+         )
+ 
+@@ -4155,13 +3892,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     @_refuses_non_finite
+     def _apply_house_heat_loss_scale(self, scale: float) -> None:
+         """Clamp the house heat loss correction and push it to the model."""
+-        self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))
++        self._house_heat_loss_scale = float(np.clip(scale, const.HOUSE_HEAT_LOSS_SCALE_MIN, const.HOUSE_HEAT_LOSS_SCALE_MAX))
+         getattr(self, "_ctx", self)._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
+ 
+     @_refuses_non_finite
+     def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+         """Clamp the learned zone split and push it to the model."""
+-        self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))
++        self._lower_floor_loss_ratio = float(np.clip(ratio, const.LOWER_FLOOR_LOSS_RATIO_MIN, const.LOWER_FLOOR_LOSS_RATIO_MAX))
+         getattr(self, "_ctx", self)._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
+ 
+     def _house_heat_loss_anchor(self) -> float:
+@@ -4235,8 +3972,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         effective = (1.0 - phi) * current + phi * measured_ua
+         new_scale = effective / current
+         if (
+-            new_scale < HOUSE_HEAT_LOSS_SCALE_MIN
+-            or new_scale > HOUSE_HEAT_LOSS_SCALE_MAX
++            new_scale < const.HOUSE_HEAT_LOSS_SCALE_MIN
++            or new_scale > const.HOUSE_HEAT_LOSS_SCALE_MAX
+         ):
+             _LOGGER.warning(
+                 "Learned house heat loss scale %.3f (fitted against "
+@@ -4248,7 +3985,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 self._house_heat_loss_samples,
+                 current,
+             )
+-            self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
++            self._apply_house_heat_loss_scale(const.DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+             self._house_heat_loss_samples = 0
+             return True
+         _LOGGER.info(
+@@ -4289,7 +4026,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # like an outlier — it looks like a tank that cooled unusually slowly,
+         # and BUFFER_COOLING_ALPHA_UP absorbs it rather than rejecting it. So
+         # this learner in particular has to be told, not left to infer.
+-        frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
++        frozen = self._learning_frozen(const.CONF_BUFFER_TANK_TEMP_ENTITY)
+         if frozen:
+             self._learner_freeze_reason = frozen
+             return
+@@ -4323,7 +4060,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             return
+ 
+         observed = float(
+-            -np.log(end_delta / start_delta) / dt_h * DHW_COOLING_REFERENCE_DELTA
++            -np.log(end_delta / start_delta) / dt_h * const.DHW_COOLING_REFERENCE_DELTA
+         )
+         if not np.isfinite(observed):
+             return
+@@ -4395,7 +4132,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._last_house_sample_time = now
+ 
+         frozen = self._learning_frozen(
+-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
++            const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY
+         )
+         # "ventilation" is the one freeze reason this method must look
+         # past: the ventilation detector below is what CLEARS it, and it
+@@ -4480,7 +4217,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # sensor glitch cannot trip it alone. On a trip every learner
+         # freezes with reason "ventilation" until the residuals recover.
+         vent_changed = self._vent_cusum.update(
+-            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
++            now, float(np.clip(residual, -const.VENT_CUSUM_CLIP_C, const.VENT_CUSUM_CLIP_C))
+         )
+         if vent_changed:
+             _LOGGER.info(
+@@ -4586,13 +4323,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # A configured sensor is the whole precondition. `_update_current_state`
+         # falls back to the return-temp estimate when it is missing or stale, and
+         # that estimate carries no information about this coefficient.
+-        if not ctx._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY):
++        if not ctx._config.get(const.CONF_LOWER_FLOOR_TEMP_ENTITY):
+             return
+ 
+         frozen = self._learning_frozen(
+-            CONF_INDOOR_TEMP_ENTITY,
+-            CONF_OUTDOOR_TEMP_ENTITY,
+-            CONF_LOWER_FLOOR_TEMP_ENTITY,
++            const.CONF_INDOOR_TEMP_ENTITY,
++            const.CONF_OUTDOOR_TEMP_ENTITY,
++            const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+         )
+         if frozen:
+             self._learner_freeze_reason = frozen
+@@ -4688,7 +4425,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._pump_mode_expired_notice = expired
+         if not expired:
+             try:
+-                ir.async_delete_issue(self.hass, DOMAIN, "pump_mode_unreadable")
++                ir.async_delete_issue(self.hass, const.DOMAIN, "pump_mode_unreadable")
+             except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                 _LOGGER.debug("Could not clear the mode notice: %s", err)
+             return
+@@ -4696,14 +4433,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             "The heat pump's operating mode entity has been unreadable for "
+             "over %.0f min; the mode it last reported (%s) has stopped "
+             "acting and the plan is back to assuming full capability",
+-            MODE_LAST_GOOD_MAX_AGE_MINUTES,
++            const.MODE_LAST_GOOD_MAX_AGE_MINUTES,
+             self._pump_mode_last_good.label
+             if self._pump_mode_last_good is not None
+             else "unknown",
+         )
+         _create_issue(
+             self.hass,
+-            DOMAIN,
++            const.DOMAIN,
+             "pump_mode_unreadable",
+             is_fixable=False,
+             # Derived from the live reading, so it is re-raised for as long
+@@ -4779,9 +4516,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             await self._async_learn_price_shape()
+ 
+             # Run optimization if in auto mode
+-            if self._mode in (MODE_AUTO, MODE_ECONOMY):
++            if self._mode in (const.MODE_AUTO, const.MODE_ECONOMY):
+                 await self.async_run_optimization()
+-            elif self._mode == MODE_COMFORT:
++            elif self._mode == const.MODE_COMFORT:
+                 boost.adopt_plan(self, {
+                     "power": self._thermal_model.params.max_electrical_power * 0.7,
+                     "setpoint": ctx._opt_config.target_temp,
+@@ -4790,7 +4527,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     "heat_pump_on": True,
+                     "displace_value": min(4.0, self._ecl110_displace_max),
+                 })
+-            elif self._mode == MODE_BOOST:
++            elif self._mode == const.MODE_BOOST:
+                 boost.adopt_plan(self, {
+                     "power": self._thermal_model.params.max_electrical_power,
+                     "setpoint": ctx._opt_config.max_temp,
+@@ -4799,7 +4536,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     "heat_pump_on": True,
+                     "displace_value": self._ecl110_displace_max,
+                 })
+-            elif self._mode == MODE_OFF:
++            elif self._mode == const.MODE_OFF:
+                 boost.adopt_plan(self, {
+                     "power": 0.0,
+                     "setpoint": ctx._opt_config.min_temp,
+@@ -4808,7 +4545,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     "heat_pump_on": False,
+                     "displace_value": self._ecl110_displace_min,
+                 })
+-            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
++            if self._mode in (const.MODE_COMFORT, const.MODE_BOOST, const.MODE_OFF):
+                 self._current_action["price"] = self._get_current_price()
+ 
+             # #237: everything below writes to the world, and a plan cut
+@@ -4854,7 +4591,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+             self._next_optimization = utc_shift(dt_util.now(), timedelta(
+                 minutes=ctx._config.get(
+-                    CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                    const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+                 )
+             ))
+ 
+@@ -5022,8 +4759,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._opt_config.peak_weekdays_only = tariff.weekdays_only
+             ctx._opt_config.peak_offpeak_factor = tariff.offpeak_factor
+             ctx._opt_config.price_risk_lambda = _as_float(
+-                ctx._config.get(CONF_PRICE_RISK_LAMBDA),
+-                DEFAULT_PRICE_RISK_LAMBDA,
++                ctx._config.get(const.CONF_PRICE_RISK_LAMBDA),
++                const.DEFAULT_PRICE_RISK_LAMBDA,
+             )
+             ctx._opt_config.baseline_load_kw = self._baseline_house_load(
+                 len(prices)
+@@ -5040,7 +4777,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._resolve_away()
+             ctx._opt_config.holiday_dates = away_mode.holiday_dates(
+                 self.hass,
+-                ctx._config.get(CONF_HOLIDAY_CALENDAR_ENTITY),
++                ctx._config.get(const.CONF_HOLIDAY_CALENDAR_ENTITY),
+                 dt_util.now(),
+             )
+             away_original = away_mode.apply_setback(
+@@ -5057,9 +4794,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # below unwinds it. `min_temp` is otherwise written only at
+             # `_init_model()`, so a widening applied anywhere earlier would
+             # persist into every later solve and outlive the mode itself.
+-            if self._mode == MODE_ECONOMY:
++            if self._mode == const.MODE_ECONOMY:
+                 away_mode.lower_floor(
+-                    away_original, ctx._opt_config, ECONOMY_MIN_TEMP_WIDENING
++                    away_original, ctx._opt_config, const.ECONOMY_MIN_TEMP_WIDENING
+                 )
+ 
+             # #26 (gated): while a window is detected open, holding the
+@@ -5068,12 +4805,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # relaxation can never outlive the window.
+             if self._vent_cusum.tripped and bool(
+                 ctx._config.get(
+-                    CONF_OPEN_WINDOW_RELAX_ENABLED,
+-                    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
++                    const.CONF_OPEN_WINDOW_RELAX_ENABLED,
++                    const.DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+                 )
+             ):
+                 away_mode.lower_floor(
+-                    away_original, ctx._opt_config, OPEN_WINDOW_RELAX_C
++                    away_original, ctx._opt_config, const.OPEN_WINDOW_RELAX_C
+                 )
+ 
+             # T4b (#36 #53, gated): the learned solar aperture and internal
+@@ -5082,20 +4819,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # off — 1.0 / None are the byte-inert defaults.
+             aperture_on = bool(
+                 ctx._config.get(
+-                    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+-                    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
++                    const.CONF_SOLAR_APERTURE_LEARNING_ENABLED,
++                    const.DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+                 )
+             )
+             ctx._thermal_params.solar_aperture_scale = (
+                 float(self._solar_aperture["scale"])
+                 if aperture_on
+-                and self._solar_aperture["n"] >= SOLAR_APERTURE_MIN_SAMPLES
++                and self._solar_aperture["n"] >= const.SOLAR_APERTURE_MIN_SAMPLES
+                 else 1.0
+             )
+             gains_on = bool(
+                 ctx._config.get(
+-                    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+-                    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
++                    const.CONF_INTERNAL_GAINS_LEARNING_ENABLED,
++                    const.DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+                 )
+             )
+             ctx._thermal_params.internal_gains_profile = (
+@@ -5126,7 +4863,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # pump power at what the fuse leaves after the rest of the house.
+             caps_extra = None
+             if ctx._config.get(
+-                CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED
++                const.CONF_FUSE_GUARD_ENABLED, const.DEFAULT_FUSE_GUARD_ENABLED
+             ):
+                 fuse_kw = self._fuse_kw()
+                 if fuse_kw is not None:
+@@ -5244,7 +4981,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._optimization_result = result
+             self._last_optimization = dt_util.now()
+             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
+-                ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
++                ir.async_delete_issue(self.hass, const.DOMAIN, "solve_failures")
+             self._solve_failures = 0
+             # T5 #16: file this plan's promises at each lead bucket, to be
+             # scored when their moment arrives. Anchored to the instant
+@@ -5307,7 +5044,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Set the operation mode, once a startup load has landed (R6)."""
+         await self._accuracy_store.async_wait_for_read()
+         self._mode = mode
+-        if mode not in (MODE_AUTO, MODE_ECONOMY):
++        if mode not in (const.MODE_AUTO, const.MODE_ECONOMY):
+             # The plan stops being what runs, so its unmatured promises
+             # (T5 #16) are void: scoring them against a room now driven by
+             # fixed-rule comfort/boost/off would charge the model with
+@@ -5360,22 +5097,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # over from "trust the configuration". The save below records
+             # the anchor just applied, so the restart pairs this reset with
+             # the options (#86: 0.80x wrong from an in-memory-only change).
+-            self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
++            self._apply_house_heat_loss_scale(const.DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+             self._house_heat_loss_samples = 0
+ 
+-        if CONF_BUFFER_COOLING_RATE in params:
+-            self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
++        if const.CONF_BUFFER_COOLING_RATE in params:
++            self._apply_buffer_cooling_rate(float(params[const.CONF_BUFFER_COOLING_RATE]))
+             self._buffer_cooling_samples = 0
+ 
+         # One write for either reset: a call with both used to save twice.
+-        if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
++        if "house_heat_loss_coefficient" in params or const.CONF_BUFFER_COOLING_RATE in params:
+             await self._async_save_thermal_learning()
+ 
+-        if CONF_DHW_COOLING_RATE in params:
++        if const.CONF_DHW_COOLING_RATE in params:
+             # An explicit value replaces the learned one and resets its
+             # sample count, so the learner starts from it again.
+             await self._dhw_learner.async_set_cooling_rate(
+-                float(params[CONF_DHW_COOLING_RATE])
++                float(params[const.CONF_DHW_COOLING_RATE])
+             )
+ 
+         # The displace limits are mirrored for the MQTT publisher, which
+@@ -5388,26 +5125,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 setattr(ctx._thermal_params, name, params[name])
+                 setattr(self, attribute, params[name])
+ 
+-        if CONF_DHW_SCHEDULE_ENABLED in params:
++        if const.CONF_DHW_SCHEDULE_ENABLED in params:
+             ctx._thermal_params.dhw_schedule_enabled = bool(
+-                params[CONF_DHW_SCHEDULE_ENABLED]
++                params[const.CONF_DHW_SCHEDULE_ENABLED]
+             )
+-        if CONF_DHW_WINDOWS in params:
++        if const.CONF_DHW_WINDOWS in params:
+             try:
+                 ctx._thermal_params.dhw_windows = parse_windows(
+-                    params[CONF_DHW_WINDOWS]
++                    params[const.CONF_DHW_WINDOWS]
+                 )
+                 # One parse gives both views (#3), which can never disagree.
+                 ctx._thermal_params.dhw_weekly_windows = parse_weekly_windows(
+-                    params[CONF_DHW_WINDOWS]
++                    params[const.CONF_DHW_WINDOWS]
+                 )
+             except DHWWindowError as err:
+                 _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
+         for key, attribute, convert in (
+-            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+-            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+-            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+-            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
++            (const.CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
++            (const.CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
++            (const.CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
++            (const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+         ):
+             if key in params:
+                 setattr(ctx._thermal_params, attribute, convert(params[key]))
+@@ -5481,23 +5218,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self.hass,
+             ctx._config,
+             enabled=bool(
+-                ctx._config.get(CONF_STALENESS_ENABLED, DEFAULT_STALENESS_ENABLED)
++                ctx._config.get(const.CONF_STALENESS_ENABLED, const.DEFAULT_STALENESS_ENABLED)
+             ),
+             scale=_as_float(
+-                ctx._config.get(CONF_STALENESS_SCALE, DEFAULT_STALENESS_SCALE),
+-                DEFAULT_STALENESS_SCALE,
++                ctx._config.get(const.CONF_STALENESS_SCALE, const.DEFAULT_STALENESS_SCALE),
++                const.DEFAULT_STALENESS_SCALE,
+             ),
+         )
+ 
+         # Indoor temperature
+-        indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
++        indoor = reader.read(const.CONF_INDOOR_TEMP_ENTITY)
+         if indoor.ok:
+             ctx._current_state.room_temperature = indoor.value
+             # For two-zone: indoor sensor is typically upper floor
+             ctx._current_state.upper_floor_temperature = indoor.value
+ 
+         # Outdoor temperature
+-        outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
++        outdoor = reader.read(const.CONF_OUTDOOR_TEMP_ENTITY)
+         if outdoor.ok:
+             ctx._current_state.outdoor_temperature = outdoor.value
+         elif (forecast_outdoor := forecast_outdoor_now(
+@@ -5509,7 +5246,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._current_state.outdoor_temperature = forecast_outdoor
+ 
+         # Floor heating return temperature sensor
+-        floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
++        floor_return = reader.read(const.CONF_FLOOR_RETURN_TEMP_ENTITY)
+         if floor_return.ok:
+             self._floor_return_temp = floor_return.value
+             ctx._current_state.floor_return_temperature = self._floor_return_temp
+@@ -5533,7 +5270,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # with no lower-floor thermometer the honest stand-in is the room
+         # temperature, the last-resort seed further down, and a repair issue
+         # says so rather than letting a wrong number pass for a measurement.
+-        lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
++        lower_floor = reader.read(const.CONF_LOWER_FLOOR_TEMP_ENTITY)
+         if lower_floor.ok:
+             ctx._current_state.lower_floor_temperature = lower_floor.value
+         elif floor_return.ok:
+@@ -5546,26 +5283,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # A smart valve's target, when the integration can see it: where the
+         # valve regulates to is what tells the model whether it is throttling
+         # — and so whether surplus heat can reach the tank at all.
+-        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
++        valve_target = reader.read(const.CONF_MIXING_VALVE_TARGET_ENTITY)
+         if valve_target.ok and (valve_value := valve_target.value) is not None:
+             ctx._thermal_params.mixing_valve_target = float(valve_value)
+ 
+         # Measured electrical draw. Optional, and everything downstream has to
+         # degrade cleanly without it, because most installs will not have one.
+-        power_reading = reader.read_power_kw(CONF_POWER_ENTITY)
++        power_reading = reader.read_power_kw(const.CONF_POWER_ENTITY)
+         self._measured_power = power_reading.value if power_reading.ok else None
+-        house_power = reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
++        house_power = reader.read_power_kw(const.CONF_HOUSE_POWER_ENTITY)
+         self._measured_house_power = house_power.value if house_power.ok else None
+         # #11: draw beyond what the compressor can pull means the immersion
+         # element is running — a different appliance wearing the pump's meter.
+         self._detect_immersion()
+-        energy_reading = reader.read(CONF_ENERGY_ENTITY)
++        energy_reading = reader.read(const.CONF_ENERGY_ENTITY)
+         self._measured_energy = energy_reading.value if energy_reading.ok else None
+ 
+         # Solar radiation: a local pyranometer measures this house, so it
+         # wins over any remote estimate; Open-Meteo fills in when no sensor
+         # is configured or the sensor is not reporting.
+-        solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
++        solar = reader.read(const.CONF_SOLAR_RADIATION_ENTITY)
+         solar_from_sensor = False
+         if solar.ok and (solar_value := solar.value) is not None:
+             self._solar_radiation = solar_value
+@@ -5582,7 +5319,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # from the previous plan's own trajectory (open-loop propagation,
+         # R9 D12-s1-01); the 55 °C dataclass default reached every solve
+         # otherwise, so every plan believed the tank was just charged.
+-        dhw = reader.read(CONF_DHW_TEMP_ENTITY)
++        dhw = reader.read(const.CONF_DHW_TEMP_ENTITY)
+         if dhw.ok:
+             self._dhw_temperature = dhw.value
+             ctx._current_state.dhw_temperature = self._dhw_temperature
+@@ -5594,7 +5331,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._current_state.dhw_temperature = seed
+ 
+         # Buffer tank temperature sensor (optional; enables cooling learning)
+-        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
++        buffer_reading = reader.read(const.CONF_BUFFER_TANK_TEMP_ENTITY)
+         if buffer_reading.ok:
+             ctx._current_state.buffer_tank_temperature = buffer_reading.value
+ 
+@@ -5604,8 +5341,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # falls back to the single-tank abstraction (free heat into the HP
+         # tank) rather than a stalled hot probe; logged per transition.
+         if ctx._thermal_params.two_tank_modelled:
+-            wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+-            wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
++            wood_top = reader.read(const.CONF_WOOD_TANK_TOP_ENTITY)
++            wood_bottom = reader.read(const.CONF_WOOD_TANK_BOTTOM_ENTITY)
+             wood_mean = wood_mean_temperature(
+                 wood_top.value if wood_top.ok else None,
+                 wood_bottom.value if wood_bottom.ok else None,
+@@ -5932,7 +5669,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         nothing better exists -- a first fetch failure with no prior
+         forecast -- and it is stale from birth.
+         """
+-        weather_entity = getattr(self, "_ctx", self)._config.get(CONF_WEATHER_ENTITY)
++        weather_entity = getattr(self, "_ctx", self)._config.get(const.CONF_WEATHER_ENTITY)
+         if not weather_entity:
+             self._weather_fetch_failed("No weather entity configured")
+             return
+@@ -6031,7 +5768,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Configured irradiance source."""
+         return str(
+             getattr(self, "_ctx", self)._config.get(
+-                CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
++                const.CONF_SOLAR_FORECAST_SOURCE, const.DEFAULT_SOLAR_FORECAST_SOURCE
+             )
+         )
+ 
+@@ -6042,7 +5779,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         without picking a point on the map; a heat pump is nearly always at
+         the same place as the installation it belongs to.
+         """
+-        location = getattr(self, "_ctx", self)._config.get(CONF_SOLAR_LOCATION)
++        location = getattr(self, "_ctx", self)._config.get(const.CONF_SOLAR_LOCATION)
+         if isinstance(location, dict):
+             lat = location.get("latitude")
+             lon = location.get("longitude")
+@@ -6062,7 +5799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     async def _fetch_solar_forecast(self) -> None:
+         """Refresh Open-Meteo irradiance when that source is selected."""
+-        if self._solar_forecast_source() != SOLAR_SOURCE_OPEN_METEO:
++        if self._solar_forecast_source() != const.SOLAR_SOURCE_OPEN_METEO:
+             self._open_meteo = None
+             return
+ 
+@@ -6405,7 +6142,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # optimizer sees is what carries the physics, so with the flag off
+         # it is byte-for-byte the raw precipitation.
+         if bool(
+-            ctx._config.get(CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED)
++            ctx._config.get(const.CONF_PRECIP_TYPE_ENABLED, const.DEFAULT_PRECIP_TYPE_ENABLED)
+         ) and np.any(snow_array > 0.0):
+             precip_array = precip_array * _liquid_fraction(
+                 precip_array, snow_array
+@@ -6415,7 +6152,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # #30 (gated): a roof under fresh snow admits far less sun. Crude by
+         # design — a factor and a holding period, not a melt model.
+         if self._update_snow_memory(now, snow_array):
+-            solar_list = [s * SNOW_ROOF_DAMPING for s in solar_list]
++            solar_list = [s * const.SNOW_ROOF_DAMPING for s in solar_list]
+ 
+         solar_array = np.array(solar_list, dtype=float)
+         surplus = self._pv_surplus_series(solar_array, n_steps)
+@@ -6443,7 +6180,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         if not bool(
+             getattr(self, "_ctx", self)._config.get(
+-                CONF_SNOW_ROOF_FACTOR_ENABLED, DEFAULT_SNOW_ROOF_FACTOR_ENABLED
++                const.CONF_SNOW_ROOF_FACTOR_ENABLED, const.DEFAULT_SNOW_ROOF_FACTOR_ENABLED
+             )
+         ):
+             return False
+@@ -6458,12 +6195,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._snow_accum_cm *= math.exp(-dt_true / 24.0)
+             self._snow_accum_cm += rate_now * min(dt_true, 6.0)
+         self._snow_accum_last = now
+-        if self._snow_accum_cm >= SNOW_HEAVY_CM:
++        if self._snow_accum_cm >= const.SNOW_HEAVY_CM:
+             self._last_heavy_snow = now
+         if self._last_heavy_snow is None:
+             return False
+         return (now - self._last_heavy_snow).total_seconds() < (
+-            SNOW_ROOF_DAYS * 86400.0
++            const.SNOW_ROOF_DAYS * 86400.0
+         )
+ 
+     def _get_current_price(self) -> float:
+@@ -6504,9 +6241,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """The parsed fee schedule, re-parsed only when its config changes."""
+         ctx = getattr(self, "_ctx", self)
+         key = (
+-            ctx._config.get(CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE),
+-            ctx._config.get(CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES),
+-            ctx._config.get(CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED),
++            ctx._config.get(const.CONF_GRID_FEE_MODE, const.DEFAULT_GRID_FEE_MODE),
++            ctx._config.get(const.CONF_GRID_FEE_RULES, const.DEFAULT_GRID_FEE_RULES),
++            ctx._config.get(const.CONF_GRID_FEE_FIXED, const.DEFAULT_GRID_FEE_FIXED),
+         )
+         cache = self._grid_fee_cache
+         if cache is None or cache[0] != key:
+@@ -6548,7 +6285,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             if self._grid_fee_issue_value != worst:
+                 _create_issue(
+                     self.hass,
+-                    DOMAIN,
++                    const.DOMAIN,
+                     "grid_fee_magnitude",
+                     is_fixable=False,
+                     # Persistent: the configuration survives a restart
+@@ -6569,7 +6306,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # which reloads the entry, which resets this flag to None -- so
+             # gating the delete on it left a corrected installation showing a
+             # persistent warning about a value it no longer has.
+-            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
++            ir.async_delete_issue(self.hass, const.DOMAIN, "grid_fee_magnitude")
+             self._grid_fee_issue_value = None
+ 
+         lowest, sign_source = grid_fee_min_component(schedule, entity_value)
+@@ -6577,7 +6314,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             if self._grid_fee_sign_issue_value != lowest:
+                 _create_issue(
+                     self.hass,
+-                    DOMAIN,
++                    const.DOMAIN,
+                     "grid_fee_sign",
+                     is_fixable=False,
+                     is_persistent=True,
+@@ -6591,7 +6328,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 )
+                 self._grid_fee_sign_issue_value = lowest
+         else:
+-            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_sign")
++            ir.async_delete_issue(self.hass, const.DOMAIN, "grid_fee_sign")
+             self._grid_fee_sign_issue_value = None
+ 
+     def _audit_lower_floor_sensor(self) -> None:
+@@ -6611,13 +6348,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         wanted = bool(
+             ctx._thermal_params.two_zone_enabled
+-            and not ctx._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY)
++            and not ctx._config.get(const.CONF_LOWER_FLOOR_TEMP_ENTITY)
+         )
+         if wanted:
+             if not self._lower_floor_issue_raised:
+                 _create_issue(
+                     self.hass,
+-                    DOMAIN,
++                    const.DOMAIN,
+                     "lower_floor_modelled",
+                     is_fixable=False,
+                     # Persistent: the missing sensor survives a restart, so
+@@ -6638,7 +6375,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # for exactly this reason; `_audit_grid_fee` did not, and had the
+             # same defect until v5.1.7.) Deleting an issue that is not there
+             # is a no-op.
+-            ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
++            ir.async_delete_issue(self.hass, const.DOMAIN, "lower_floor_modelled")
+             self._lower_floor_issue_raised = False
+     def _audit_comfort_band(self) -> None:
+         """Say so when the STORED comfort band contradicts itself.
+@@ -6662,7 +6399,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             if self._band_issue_problem != problem:
+                 _create_issue(
+                     self.hass,
+-                    DOMAIN,
++                    const.DOMAIN,
+                     "comfort_band_contradiction",
+                     is_fixable=False,
+                     # Persistent: stored configuration survives a restart.
+@@ -6677,7 +6414,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # reloads the entry and resets this flag, so a guarded delete
+             # could never fire.
+             ir.async_delete_issue(
+-                self.hass, DOMAIN, "comfort_band_contradiction"
++                self.hass, const.DOMAIN, "comfort_band_contradiction"
+             )
+             self._band_issue_problem = None
+ 
+@@ -6700,7 +6437,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # hand would apply it. Never positive: the bias may only cool.
+         if bool(
+             getattr(self, "_ctx", self)._config.get(
+-                CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED
++                const.CONF_CURVE_LEARNING_ENABLED, const.DEFAULT_CURVE_LEARNING_ENABLED
+             )
+         ):
+             displace_value = displace_value + self._curve_learner.bias
+@@ -6728,7 +6465,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
+         """Publish MQTT command for the currently selected optimizer action."""
+-        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
++        if not (action := self._current_action) or self._mode == const.MODE_OFF:  # off writes nothing
+             return
+         await self.async_publish_ecl110_command(
+             displace_value=float(action.get("displace_value", 0.0)),
+@@ -6747,9 +6484,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         params = ctx._thermal_params
+-        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF:
++        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == const.MODE_OFF:
+             return
+-        entity_id = ctx._config.get(CONF_MIXING_VALVE_WRITE_ENTITY)
++        entity_id = ctx._config.get(const.CONF_MIXING_VALVE_WRITE_ENTITY)
+         if not entity_id:
+             _LOGGER.debug(
+                 "smart_write selected but no valve write entity configured"
+@@ -6763,9 +6500,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         planned = (self._current_action or {}).get("valve_target")
+         if planned is not None:
+             target = float(planned)
+-        kind = ctx._config.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
++        kind = ctx._config.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+         if kind not in mixing_valve.WRITE_TARGET_KINDS:  # #398: caught, not trusted
+-            kind = DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND
++            kind = const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND
+         if kind == mixing_valve.WRITE_TARGET_FLOW:
+             if not params.two_zone_enabled:
+                 _LOGGER.error("mixing_valve_write_target_kind=flow needs two-zone")
+@@ -6775,7 +6512,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if (
+             self._valve_commanded_target is not None
+             and abs(target - self._valve_commanded_target)
+-            < MIXING_VALVE_WRITE_EPSILON
++            < const.MIXING_VALVE_WRITE_EPSILON
+         ):
+             return
+         domain = entity_id.split(".", 1)[0]
+@@ -6825,7 +6562,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             return False
+         interval = float(
+             getattr(self, "_ctx", self)._config.get(
+-                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+             )
+         )
+         return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+@@ -6837,9 +6574,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         await _best_effort_cycle_step(
+             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
+         )
+-        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
++        if not self._current_action or self._mode == const.MODE_OFF:  # off writes nothing
+             return
+-        if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
++        if self._mode in (const.MODE_AUTO, const.MODE_ECONOMY) and self._plan_is_stale():
+             # The action was cut from a plan whose horizon has slid out from
+             # under it — its "cheap hour" may be the current peak. Stop
+             # actuating, exactly as when no plan exists: the pump's own
+@@ -6868,7 +6605,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         skip_off = (not heat_pump_on) and (
+             both_blocked or self._pump_signals.mode.cooling
+         )
+-        switch_entity = getattr(self, "_ctx", self)._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
++        switch_entity = getattr(self, "_ctx", self)._config.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY)
+         if switch_entity and not skip_off:
+             try:
+                 await self.hass.services.async_call(
+@@ -7051,7 +6788,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # full resolution at all.
+             "defrost_measured_samples": self._defrost.measured_samples,
+             "defrost_flag_configured": bool(
+-                ctx._config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
++                ctx._config.get(const.CONF_HEAT_PUMP_DEFROST_ENTITY)
+             ),
+             "defrost_store_migrated": self._defrost.migrated,
+             "defrost_buckets": self._defrost.summary(),
+@@ -7073,7 +6810,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 "watched_buckets": sum(
+                     1
+                     for entry in self._cop_baseline.values()
+-                    if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
++                    if np.isfinite(entry[1]) and int(entry[1]) >= const.COP_BASELINE_MIN_SAMPLES
+                 ),
+                 "alarm": self._cop_health_cusum.tripped,
+                 "evidence": list(self._cop_health_cusum.evidence),
+@@ -7155,7 +6892,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
+             "peak_month": self._peak_tracker.month,
+             "pv_enabled": bool(
+-                getattr(self, "_ctx", self)._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
++                getattr(self, "_ctx", self)._config.get(const.CONF_PV_ENABLED, const.DEFAULT_PV_ENABLED)
+             ),
+             "pv": self._pv_summary,
+             "savings_months": self._ledger.savings_months(dt_util.now()),
+@@ -7440,11 +7177,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx._thermal_params.defrost_derate = self._defrost
+         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
+         stored_mode = stored.get("mode")
+-        if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
++        if isinstance(stored_mode, str) and stored_mode in const.OPERATION_MODES:
+             self._mode = stored_mode
+         self._comfort_learner = ComfortLearner.from_dict(
+             stored.get("comfort"),
+-            _as_float(ctx._config.get(CONF_COMFORT_WEIGHT), DEFAULT_COMFORT_WEIGHT),
++            _as_float(ctx._config.get(const.CONF_COMFORT_WEIGHT), const.DEFAULT_COMFORT_WEIGHT),
+         )
+         self._apply_comfort_weight()
+     async def _async_save_if_changed(
+@@ -7708,7 +7445,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     async def _async_learn_price_shape(self) -> None:
+         """Fold any newly complete price days into the learned shape."""
+         if not getattr(self, "_ctx", self)._config.get(
+-            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
++            const.CONF_PRICE_PRIOR_ENABLED, const.DEFAULT_PRICE_PRIOR_ENABLED
+         ):
+             return
+         days = hourly_from_entries(self._prices)
+@@ -7740,7 +7477,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     def _price_prior(self) -> PriceShapeModel | None:
+         if not getattr(self, "_ctx", self)._config.get(
+-            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
++            const.CONF_PRICE_PRIOR_ENABLED, const.DEFAULT_PRICE_PRIOR_ENABLED
+         ):
+             return None
+         return self._price_model
+@@ -7754,42 +7491,42 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         cfg = ctx._config
+         return CapacityTariff(
+             enabled=bool(
+-                cfg.get(CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED)
++                cfg.get(const.CONF_PEAK_TARIFF_ENABLED, const.DEFAULT_PEAK_TARIFF_ENABLED)
+             ),
+             price_per_kw=_as_float(
+-                ctx._config.get(CONF_PEAK_TARIFF_PRICE),
+-                DEFAULT_PEAK_TARIFF_PRICE,
++                ctx._config.get(const.CONF_PEAK_TARIFF_PRICE),
++                const.DEFAULT_PEAK_TARIFF_PRICE,
+             ),
+             peaks_averaged=int(
+                 _as_float(
+-                    ctx._config.get(CONF_PEAK_TARIFF_COUNT),
+-                    DEFAULT_PEAK_TARIFF_COUNT,
++                    ctx._config.get(const.CONF_PEAK_TARIFF_COUNT),
++                    const.DEFAULT_PEAK_TARIFF_COUNT,
+                 )
+             ),
+             window_minutes=int(
+                 _as_float(
+-                    ctx._config.get(CONF_PEAK_TARIFF_WINDOW),
+-                    DEFAULT_PEAK_TARIFF_WINDOW,
++                    ctx._config.get(const.CONF_PEAK_TARIFF_WINDOW),
++                    const.DEFAULT_PEAK_TARIFF_WINDOW,
+                 )
+             ),
+             months=self._tariff_months(),
+             peak_hours=self._tariff_hours(),
+             weekdays_only=bool(
+                 ctx._config.get(
+-                    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+-                    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
++                    const.CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
++                    const.DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+                 )
+             ),
+-            distinct_days=bool(cfg.get(CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS)),
++            distinct_days=bool(cfg.get(const.CONF_PEAK_TARIFF_DISTINCT_DAYS, const.DEFAULT_PEAK_TARIFF_DISTINCT_DAYS)),
+             offpeak_factor=_as_float(
+-                ctx._config.get(CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
+-                DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
++                ctx._config.get(const.CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
++                const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+             ),
+         )
+     def _tariff_months(self) -> frozenset[int]:
+         """The #13 month mask, empty (= every month) when unset or broken."""
+         spec = str(
+-            getattr(self, "_ctx", self)._config.get(CONF_PEAK_TARIFF_MONTHS, DEFAULT_PEAK_TARIFF_MONTHS)
++            getattr(self, "_ctx", self)._config.get(const.CONF_PEAK_TARIFF_MONTHS, const.DEFAULT_PEAK_TARIFF_MONTHS)
+         ).strip()
+         if not spec:
+             return frozenset()
+@@ -7812,7 +7549,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     def _tariff_hours(self) -> tuple[Any, ...]:
+         """The #13 peak-hour windows, empty (= every hour) when unset."""
+         spec = str(
+-            getattr(self, "_ctx", self)._config.get(CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS)
++            getattr(self, "_ctx", self)._config.get(const.CONF_PEAK_TARIFF_HOURS, const.DEFAULT_PEAK_TARIFF_HOURS)
+         ).strip()
+         if not spec:
+             return ()
+@@ -7862,7 +7599,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         would sample the flag at one instant and settle a real defrost as a
+         confident duty of zero. Each source sees what the other cannot.
+         """
+-        entity = getattr(self, "_ctx", self)._config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
++        entity = getattr(self, "_ctx", self)._config.get(const.CONF_HEAT_PUMP_DEFROST_ENTITY)
+         # #236: released means the entry is gone; registering now would leak.
+         if not entity or self._entry_released:
+             return
+@@ -7903,11 +7640,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         # #236's latch as well -- see ``_release_registrations``.
+         if self._entry_released or not ctx._config.get(
+-            CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED
++            const.CONF_PEAK_GUARD_ENABLED, const.DEFAULT_PEAK_GUARD_ENABLED
+         ):
+             return
+-        entity = ctx._config.get(CONF_HOUSE_POWER_ENTITY) or ctx._config.get(
+-            CONF_POWER_ENTITY
++        entity = ctx._config.get(const.CONF_HOUSE_POWER_ENTITY) or ctx._config.get(
++            const.CONF_POWER_ENTITY
+         )
+         if not entity:
+             _LOGGER.warning(
+@@ -7971,8 +7708,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         )
+         projection = project_window_mean(mean, elapsed, kw, tariff.window_minutes)
+         margin = _as_float(
+-            ctx._config.get(CONF_PEAK_GUARD_MARGIN_KW),
+-            DEFAULT_PEAK_GUARD_MARGIN_KW,
++            ctx._config.get(const.CONF_PEAK_GUARD_MARGIN_KW),
++            const.DEFAULT_PEAK_GUARD_MARGIN_KW,
+         )
+         # Two independent lines can be crossed, each in its own currency.
+         # The tariff bills this window's kW scaled by the #13 masks, so the
+@@ -8035,7 +7772,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         discretionary-suppression gate external heat uses, at the next
+         solve — no solve happens here.
+         """
+-        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
++        if not (action := self._current_action) or self._mode == const.MODE_OFF:  # off writes nothing
+             self.async_update_listeners()
+             return
+         if self._peak_guard.suppressing:
+@@ -8043,7 +7780,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 displace_value=float(
+                     action.get("displace_value", 0.0)
+                 )
+-                - PEAK_GUARD_DISPLACE_NUDGE_C,
++                - const.PEAK_GUARD_DISPLACE_NUDGE_C,
+                 heat_pump_on=bool(
+                     action.get("heat_pump_on", False)
+                 ),
+@@ -8057,14 +7794,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """The main fuse's continuous capacity, or None when unconfigured."""
+         ctx = getattr(self, "_ctx", self)
+         amps = _as_float(
+-            ctx._config.get(CONF_MAIN_FUSE_A), DEFAULT_MAIN_FUSE_A
++            ctx._config.get(const.CONF_MAIN_FUSE_A), const.DEFAULT_MAIN_FUSE_A
+         )
+         if amps <= 0:
+             return None
+         phases = int(
+             _as_float(
+-                ctx._config.get(CONF_MAIN_FUSE_PHASES),
+-                DEFAULT_MAIN_FUSE_PHASES,
++                ctx._config.get(const.CONF_MAIN_FUSE_PHASES),
++                const.DEFAULT_MAIN_FUSE_PHASES,
+             )
+         )
+         return amps * max(1, phases) * 230.0 / 1000.0
+@@ -8159,10 +7896,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if fuse is None:
+             return
+         amps = _as_float(
+-            ctx._config.get(CONF_MAIN_FUSE_A), DEFAULT_MAIN_FUSE_A
++            ctx._config.get(const.CONF_MAIN_FUSE_A), const.DEFAULT_MAIN_FUSE_A
+         )
+         smaller = max(
+-            (a for a in FUSE_LADDER_A if a < amps), default=None
++            (a for a in const.FUSE_LADDER_A if a < amps), default=None
+         )
+         if smaller is None:
+             return
+@@ -8194,8 +7931,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+         phases = int(
+             _as_float(
+-                ctx._config.get(CONF_MAIN_FUSE_PHASES),
+-                DEFAULT_MAIN_FUSE_PHASES,
++                ctx._config.get(const.CONF_MAIN_FUSE_PHASES),
++                const.DEFAULT_MAIN_FUSE_PHASES,
+             )
+         )
+         candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
+@@ -8263,7 +8000,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     def _detect_outage(self, last_tick_iso: str | None) -> None:
+         """Open the staggered-recovery window after a real gap (#22)."""
+         if not getattr(self, "_ctx", self)._config.get(
+-            CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED
++            const.CONF_OUTAGE_RECOVERY_ENABLED, const.DEFAULT_OUTAGE_RECOVERY_ENABLED
+         ):
+             return
+         if not last_tick_iso:
+@@ -8276,21 +8013,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if last.tzinfo is None and now.tzinfo is not None:
+             last = last.replace(tzinfo=now.tzinfo)
+         gap_minutes = _utc_age_seconds(now, last) / 60.0
+-        if gap_minutes <= OUTAGE_GAP_MINUTES:
++        if gap_minutes <= const.OUTAGE_GAP_MINUTES:
+             return
+         self._outage_recovery_until = utc_shift(now, timedelta(
+-            hours=OUTAGE_RECOVERY_HOURS
++            hours=const.OUTAGE_RECOVERY_HOURS
+         ))
+         self._outage_dhw_until = utc_shift(now, timedelta(
+-            minutes=OUTAGE_DHW_DELAY_MINUTES
++            minutes=const.OUTAGE_DHW_DELAY_MINUTES
+         ))
+         _LOGGER.warning(
+             "Update gap of %.0f minutes reads as an outage; staggered "
+             "recovery active for %.1f h (hot water queued %.0f min behind "
+             "space heating)",
+             gap_minutes,
+-            OUTAGE_RECOVERY_HOURS,
+-            OUTAGE_DHW_DELAY_MINUTES,
++            const.OUTAGE_RECOVERY_HOURS,
++            const.OUTAGE_DHW_DELAY_MINUTES,
+         )
+ 
+     # ==================================================================
+@@ -8319,7 +8056,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         over = (
+             measured is not None
+             and nameplate > 0.1
+-            and measured > nameplate * IMMERSION_FACTOR
++            and measured > nameplate * const.IMMERSION_FACTOR
+             and self._commanded_power() > 0.1
+         )
+         now = dt_util.now()
+@@ -8371,8 +8108,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+             ctx._config.get(
+-                CONF_CONFIDENCE_MARGINS_ENABLED,
+-                DEFAULT_CONFIDENCE_MARGINS_ENABLED,
++                const.CONF_CONFIDENCE_MARGINS_ENABLED,
++                const.DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+             )
+         ):
+             return None
+@@ -8384,7 +8121,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             [
+                 min(
+                     self._accuracy.sigma((i + 1) * dt_h) * damp,
+-                    CONFIDENCE_MARGIN_CAP_C,
++                    const.CONFIDENCE_MARGIN_CAP_C,
+                 )
+                 for i in range(n_steps)
+             ],
+@@ -8393,7 +8130,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         return margins if bool(np.any(margins > 1e-9)) else None
+     def _indoor_humidity_value(self) -> float | None:
+         """The measured indoor relative humidity, %, or None."""
+-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_INDOOR_HUMIDITY_ENTITY)
++        entity_id = getattr(self, "_ctx", self)._config.get(const.CONF_INDOOR_HUMIDITY_ENTITY)
+         if not entity_id:
+             return None
+         state = self.hass.states.get(entity_id)
+@@ -8435,7 +8172,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+-            ctx._config.get(CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED)
++            ctx._config.get(const.CONF_MOLD_GUARD_ENABLED, const.DEFAULT_MOLD_GUARD_ENABLED)
+         ):
+             return None
+         rh = self._indoor_humidity_value()
+@@ -8443,13 +8180,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if rh is None or room is None or not np.isfinite(room):
+             return None
+         frsi = _as_float(
+-            ctx._config.get(CONF_THERMAL_BRIDGE_FRSI),
+-            DEFAULT_THERMAL_BRIDGE_FRSI,
++            ctx._config.get(const.CONF_THERMAL_BRIDGE_FRSI),
++            const.DEFAULT_THERMAL_BRIDGE_FRSI,
+         )
+         floors = np.array(
+             [
+                 mold_safe_room_floor(
+-                    float(room), rh, float(t), frsi, MOLD_SURFACE_RH_LIMIT
++                    float(room), rh, float(t), frsi, const.MOLD_SURFACE_RH_LIMIT
+                 )
+                 for t in outdoor
+             ],
+@@ -8459,7 +8196,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             float(target_cap)
+             if target_cap is not None
+             else _as_float(
+-                ctx._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
++                ctx._config.get(const.CONF_TARGET_TEMP), const.DEFAULT_TARGET_TEMP
+             )
+         )
+         return np.asarray(np.minimum(floors, cap))
+@@ -8474,7 +8211,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+             ctx._config.get(
+-                CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED
++                const.CONF_CURVE_LEARNING_ENABLED, const.DEFAULT_CURVE_LEARNING_ENABLED
+             )
+         ):
+             return
+@@ -8486,7 +8223,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # the curve's doing. No evidence is collected on such days.
+         if self._away_state.active or self._away_state.recovery_active:
+             return
+-        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
++        if self._learning_frozen(const.CONF_INDOOR_TEMP_ENTITY) is not None:
+             return
+         hour = now.hour + now.minute / 60.0
+         try:
+@@ -8533,8 +8270,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         if not bool(
+             getattr(self, "_ctx", self)._config.get(
+-                CONF_IMMERSION_FEEDBACK_ENABLED,
+-                DEFAULT_IMMERSION_FEEDBACK_ENABLED,
++                const.CONF_IMMERSION_FEEDBACK_ENABLED,
++                const.DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+             )
+         ):
+             return 0.0
+@@ -8570,7 +8307,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+             ctx._config.get(
+-                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED
++                const.CONF_CAPACITY_CURVE_ENABLED, const.DEFAULT_CAPACITY_CURVE_ENABLED
+             )
+         ):
+             return
+@@ -8589,7 +8326,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if entry is None:
+             self._capacity_envelope[bucket] = [thermal_kw, 1]
+             return
+-        entry[0] = max(thermal_kw, float(entry[0]) * CAPACITY_FORGET)
++        entry[0] = max(thermal_kw, float(entry[0]) * const.CAPACITY_FORGET)
+         entry[1] = int(entry[1]) + 1
+     def _capacity_caps(self, outdoor_temps: np.ndarray, humidity: Any = None) -> np.ndarray | None:
+         """#17's per-step electrical ceiling from the learned envelope.
+@@ -8604,17 +8341,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         if not bool(ctx._config.get(
+-                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED)):
++                const.CONF_CAPACITY_CURVE_ENABLED, const.DEFAULT_CAPACITY_CURVE_ENABLED)):
+             return None
+         p_max = float(ctx._thermal_params.max_electrical_power)
+         if p_max <= 0.1:
+             return None
+-        floor = CAPACITY_FLOOR_FRACTION * p_max
++        floor = const.CAPACITY_FLOOR_FRACTION * p_max
+         caps = np.full(len(outdoor_temps), p_max, dtype=float)
+         any_cap = False
+         for i, outdoor in enumerate(outdoor_temps):
+             entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
+-            if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
++            if entry is None or int(entry[1]) < const.CAPACITY_MIN_SAMPLES:
+                 continue
+             has_hum = humidity is not None and i < len(humidity)
+             hum = float(humidity[i]) if has_hum else None
+@@ -8637,13 +8374,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+             ctx._config.get(
+-                CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+-                DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
++                const.CONF_SOLAR_APERTURE_LEARNING_ENABLED,
++                const.DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+             )
+         ):
+             return
+         irradiance = float(previous_state.solar_radiation or 0.0)
+-        if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE:
++        if irradiance < const.SOLAR_APERTURE_MIN_IRRADIANCE:
+             return
+         capacity = (
+             ctx._thermal_params.upper_floor_thermal_mass
+@@ -8656,7 +8393,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         y = residual * capacity / dt_h  # implied surplus power, kW
+         if x <= 1e-6 or not np.isfinite(y):
+             return
+-        a = SOLAR_APERTURE_ALPHA
++        a = const.SOLAR_APERTURE_ALPHA
+         m = self._solar_aperture
+         m["n"] += 1.0
+         dx = x - m["mx"]
+@@ -8666,12 +8403,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # EWMA covariance/variance about the running means.
+         m["cov"] += a * (dx * (y - m["my"]) - m["cov"])
+         m["var"] += a * (dx * (x - m["mx"]) - m["var"])
+-        if m["n"] >= SOLAR_APERTURE_MIN_SAMPLES and m["var"] > 1e-6:
++        if m["n"] >= const.SOLAR_APERTURE_MIN_SAMPLES and m["var"] > 1e-6:
+             m["scale"] = float(
+                 np.clip(
+                     m["scale"] + m["cov"] / m["var"],
+-                    SOLAR_APERTURE_MIN,
+-                    SOLAR_APERTURE_MAX,
++                    const.SOLAR_APERTURE_MIN,
++                    const.SOLAR_APERTURE_MAX,
+                 )
+             )
+             # The step has been taken into the standing scale; the moments
+@@ -8694,8 +8431,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         if not bool(
+             ctx._config.get(
+-                CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+-                DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
++                const.CONF_INTERNAL_GAINS_LEARNING_ENABLED,
++                const.DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+             )
+         ):
+             return
+@@ -8718,9 +8455,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if not np.isfinite(y):
+             return
+         g = self._internal_gains_profile[hour]
+-        g += INTERNAL_GAINS_ALPHA * y - INTERNAL_GAINS_RIDGE * (g - g0)
++        g += const.INTERNAL_GAINS_ALPHA * y - const.INTERNAL_GAINS_RIDGE * (g - g0)
+         self._internal_gains_profile[hour] = float(
+-            np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
++            np.clip(g, 0.0, const.INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
+         )
+     def _observe_cop_health(
+         self, observed_cop: float, dhw_curve: bool = False
+@@ -8754,21 +8491,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._cop_baseline[bucket] = [float(observed_cop), 1]
+             return
+         baseline, count = float(entry[0]), int(entry[1])
+-        if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5:
++        if count >= const.COP_BASELINE_MIN_SAMPLES and baseline > 0.5:
+             shortfall = (baseline - float(observed_cop)) / baseline
+             changed = self._cop_health_cusum.update(dt_util.now(), shortfall)
+             if changed:
+                 if self._cop_health_cusum.tripped:
+                     self._raise_cop_issue(baseline * lift)
+                 else:
+-                    ir.async_delete_issue(self.hass, DOMAIN, "cop_degradation")
++                    ir.async_delete_issue(self.hass, const.DOMAIN, "cop_degradation")
+         # While the watch is tripped the baseline stops absorbing samples:
+         # otherwise the EWMA re-anchors to the degraded level within weeks
+         # and a permanent fault "recovers" on its own, clearing the issue
+         # the user was told clears only when efficiency does.
+         if self._cop_health_cusum.tripped:
+             return
+-        if count < COP_BASELINE_MIN_SAMPLES:
++        if count < const.COP_BASELINE_MIN_SAMPLES:
+             # A plain mean while young: seeding the EWMA with a single
+             # first sample lets one outlier interval distort the baseline
+             # for its first fifty folds — and the watch starts judging
+@@ -8776,8 +8513,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             entry[0] = (baseline * count + float(observed_cop)) / (count + 1)
+         else:
+             entry[0] = (
+-                (1.0 - COP_BASELINE_ALPHA) * baseline
+-                + COP_BASELINE_ALPHA * float(observed_cop)
++                (1.0 - const.COP_BASELINE_ALPHA) * baseline
++                + const.COP_BASELINE_ALPHA * float(observed_cop)
+             )
+         entry[1] = count + 1
+ 
+@@ -8813,7 +8550,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         )
+         _create_issue(
+             self.hass,
+-            DOMAIN,
++            const.DOMAIN,
+             "cop_degradation",
+             is_fixable=False,
+             # Persistent: the tripped watch survives a restart in the
+@@ -8930,9 +8667,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     def _inputs_healthy(self) -> bool:
+         return (
+             self._learning_frozen(
+-                CONF_INDOOR_TEMP_ENTITY,
+-                CONF_OUTDOOR_TEMP_ENTITY,
+-                CONF_POWER_ENTITY,
++                const.CONF_INDOOR_TEMP_ENTITY,
++                const.CONF_OUTDOOR_TEMP_ENTITY,
++                const.CONF_POWER_ENTITY,
+             )
+             is None
+         )
+@@ -8950,10 +8687,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # residuals, which stop entirely in mild weather. A latch nothing
+         # can feed must time out, or the "ventilation" freeze (and the
+         # gated relax) would outlive the window by weeks.
+-        if self._vent_cusum.release_if_starved(now, VENT_CUSUM_STARVE_HOURS):
++        if self._vent_cusum.release_if_starved(now, const.VENT_CUSUM_STARVE_HOURS):
+             _LOGGER.info(
+                 "Open-window detector released: no residuals for %.0f h",
+-                VENT_CUSUM_STARVE_HOURS,
++                const.VENT_CUSUM_STARVE_HOURS,
+             )
+             await self._async_save_thermal_learning()
+ 
+@@ -8989,7 +8726,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 await self._async_save_snapshots()
+             return
+         if not self._snapshot_ring.alarmed:
+-            ir.async_delete_issue(self.hass, DOMAIN, "accuracy_drift")
++            ir.async_delete_issue(self.hass, const.DOMAIN, "accuracy_drift")
+             self._rollback_done_for_alarm = False
+             await self._async_save_snapshots()
+             return
+@@ -9018,7 +8755,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 await self._async_save_accuracy()
+         _create_issue(
+             self.hass,
+-            DOMAIN,
++            const.DOMAIN,
+             "accuracy_drift",
+             is_fixable=False,
+             # Persistent: the alarm state survives a restart in the
+@@ -9090,25 +8827,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     def _pv_config(self) -> pv_model.PVConfig:
+         ctx = getattr(self, "_ctx", self)
+         return pv_model.PVConfig(
+-            enabled=bool(ctx._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)),
++            enabled=bool(ctx._config.get(const.CONF_PV_ENABLED, const.DEFAULT_PV_ENABLED)),
+             peak_kw=_as_float(
+-                ctx._config.get(CONF_PV_PEAK_KW), DEFAULT_PV_PEAK_KW
++                ctx._config.get(const.CONF_PV_PEAK_KW), const.DEFAULT_PV_PEAK_KW
+             ),
+             system_efficiency=_as_float(
+-                ctx._config.get(CONF_PV_EFFICIENCY), DEFAULT_PV_EFFICIENCY
++                ctx._config.get(const.CONF_PV_EFFICIENCY), const.DEFAULT_PV_EFFICIENCY
+             ),
+             export_price=self._pv_export_price(),
+-            export_price_entity=ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY),
+-            production_entity=ctx._config.get(CONF_PV_PRODUCTION_ENTITY),
++            export_price_entity=ctx._config.get(const.CONF_PV_EXPORT_PRICE_ENTITY),
++            production_entity=ctx._config.get(const.CONF_PV_PRODUCTION_ENTITY),
+         )
+     def _pv_export_price(self) -> float:
+         """Export compensation, preferring a live entity over the static value."""
+         ctx = getattr(self, "_ctx", self)
+-        entity_id = ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY)
++        entity_id = ctx._config.get(const.CONF_PV_EXPORT_PRICE_ENTITY)
+         live = _entity_price(self.hass, entity_id) if entity_id else None
+         if live is not None:
+             return live
+-        return _as_float(ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE)
++        return _as_float(ctx._config.get(const.CONF_PV_EXPORT_PRICE), const.DEFAULT_PV_EXPORT_PRICE)
+     def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
+         """Live production in kW from the configured entity, if readable."""
+         entity_id = config.production_entity
+@@ -9296,8 +9033,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # be meaningless and a duty computed from it would be too.
+             interval_s = (
+                 _as_float(
+-                    getattr(self, "_ctx", self)._config.get(CONF_OPTIMIZATION_INTERVAL),
+-                    DEFAULT_OPTIMIZATION_INTERVAL,
++                    getattr(self, "_ctx", self)._config.get(const.CONF_OPTIMIZATION_INTERVAL),
++                    const.DEFAULT_OPTIMIZATION_INTERVAL,
+                 )
+                 * 60.0
+             )
+@@ -9346,13 +9083,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # measurement, and an EWMA poisoned by one persists for weeks.
+         interval_h = (
+             _as_float(
+-                ctx._config.get(CONF_OPTIMIZATION_INTERVAL),
+-                DEFAULT_OPTIMIZATION_INTERVAL,
++                ctx._config.get(const.CONF_OPTIMIZATION_INTERVAL),
++                const.DEFAULT_OPTIMIZATION_INTERVAL,
+             )
+             / 60.0
+         )
+         actual_now = ctx._current_state.room_temperature
+-        indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
++        indoor_frozen = self._learning_frozen(const.CONF_INDOOR_TEMP_ENTITY)
+         if actual_now is not None and indoor_frozen is None:
+             self._accuracy.score_lead_predictions(
+                 now, float(actual_now), window_hours=interval_h
+@@ -9475,7 +9212,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 # can support, while the learners are not frozen for some
+                 # other reason — "defrosting" alone is exempted, because
+                 # that interval is the derate's own evidence (#944).
+-                if self._learning_frozen(CONF_POWER_ENTITY) in (None, "defrosting"):
++                if self._learning_frozen(const.CONF_POWER_ENTITY) in (None, "defrosting"):
+                     self._settle_defrost(sample, defrost_window)
+ 
+         self._pending_prediction = {
+@@ -9534,7 +9271,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+            the learner's ``async_learn_dynamics`` uses, so the accuracy record and the
+            tank's own learners admit exactly the same intervals.
+         """
+-        if not getattr(self, "_ctx", self)._config.get(CONF_DHW_TEMP_ENTITY):
++        if not getattr(self, "_ctx", self)._config.get(const.CONF_DHW_TEMP_ENTITY):
+             return None
+         raw = self._dhw_temperature
+         if raw is None:
+@@ -9545,7 +9282,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             return None
+         if not np.isfinite(value):
+             return None
+-        if self._learning_frozen(CONF_DHW_TEMP_ENTITY) is not None:
++        if self._learning_frozen(const.CONF_DHW_TEMP_ENTITY) is not None:
+             return None
+         return value
+ 
+@@ -9583,7 +9320,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         score will use reads the upper floor.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        if self._mode not in (MODE_AUTO, MODE_ECONOMY):
++        if self._mode not in (const.MODE_AUTO, const.MODE_ECONOMY):
+             return
+         if self._sysid.active:
+             # A step-response experiment overrides the plan for its
+@@ -9623,7 +9360,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         would charge the model with errors it never made.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        if self._mode not in (MODE_AUTO, MODE_ECONOMY):
++        if self._mode not in (const.MODE_AUTO, const.MODE_ECONOMY):
+             return None
+         result = self._optimization_result
+         if result is None or not result.room_temp_trajectory:
+@@ -9633,7 +9370,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             int(
+                 round(
+                     ctx._config.get(
+-                        CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                        const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+                     )
+                     / max(ctx._opt_config.time_step_minutes, 1.0)
+                 )
+@@ -9834,8 +9571,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 mean_spot - spot_cost / kwh, 4
+             )
+         fixed_price = _as_float(
+-            getattr(self, "_ctx", self)._config.get(CONF_CONTRACT_FIXED_PRICE),
+-            DEFAULT_CONTRACT_FIXED_PRICE,
++            getattr(self, "_ctx", self)._config.get(const.CONF_CONTRACT_FIXED_PRICE),
++            const.DEFAULT_CONTRACT_FIXED_PRICE,
+         )
+         if kwh > 0 and fixed_price > 0:
+             fixed_cost = kwh * fixed_price
+@@ -9854,13 +9591,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ctx = getattr(self, "_ctx", self)
+         return wear_price_per_start(
+             _as_float(
+-                ctx._config.get(CONF_COMPRESSOR_REPLACEMENT_COST),
+-                DEFAULT_COMPRESSOR_REPLACEMENT_COST,
++                ctx._config.get(const.CONF_COMPRESSOR_REPLACEMENT_COST),
++                const.DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+             ),
+             int(
+                 _as_float(
+-                    ctx._config.get(CONF_COMPRESSOR_RATED_STARTS),
+-                    DEFAULT_COMPRESSOR_RATED_STARTS,
++                    ctx._config.get(const.CONF_COMPRESSOR_RATED_STARTS),
++                    const.DEFAULT_COMPRESSOR_RATED_STARTS,
+                 )
+             ),
+         )
+@@ -9875,11 +9612,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         cost = _as_float(
+-            ctx._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
++            ctx._config.get(const.CONF_CYCLING_COST), const.DEFAULT_CYCLING_COST
+         )
+         if bool(
+             ctx._config.get(
+-                CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED
++                const.CONF_WEAR_AUTOTUNE_ENABLED, const.DEFAULT_WEAR_AUTOTUNE_ENABLED
+             )
+         ):
+             cost = max(cost, self._wear_price())
+@@ -10082,14 +9819,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # on a summer date, and the streak rides the day book.
+             streak = _as_float(book.get("free_streak"), 0.0) + 1.0
+             self._score_day = {"free_streak": streak}
+-            if streak >= SCORE_FREE_SPAN_RESET:
++            if streak >= const.SCORE_FREE_SPAN_RESET:
+                 self._operation_score = None
+         else:
+             paid_mean = _as_float(book.get("sek"), 0.0) / kwh
+             saved_fraction = 1.0 - paid_mean / mean_spot
+             sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+             if self._operation_score is not None:
+-                sample = (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
++                sample = (1.0 - const.SCORE_ALPHA) * self._operation_score + const.SCORE_ALPHA * sample
+             self._operation_score = sample
+         self._schedule_ledger_save()
+ 
+@@ -10118,7 +9855,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         watched = sum(
+             1
+             for entry in self._cop_baseline.values()
+-            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
++            if int(entry[1]) >= const.COP_BASELINE_MIN_SAMPLES
+         )
+         if watched:
+             # 100 while the COP watch (#12) accumulates no shortfall; the
+@@ -10127,7 +9864,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 1.0
+                 - float(
+                     np.clip(
+-                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
++                        self._cop_health_cusum.stat / const.COP_HEALTH_THRESHOLD,
+                         0.0,
+                         1.0,
+                     )
+@@ -10269,7 +10006,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         solve is answered fresh and keeps its answer and slot afterwards.
+         """
+         if not bool(
+-            getattr(self, "_ctx", self)._config.get(CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED)
++            getattr(self, "_ctx", self)._config.get(const.CONF_PRICE_TILES_ENABLED, const.DEFAULT_PRICE_TILES_ENABLED)
+         ):
+             # Gate off means gone: stale what-if money left published
+             # would outlive the user's decision to stop paying for it.
+@@ -10325,11 +10062,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         ``freq_control.resolve_reading``'s."""
+         cfg = getattr(self, "_ctx", self)._config
+         return resolve_reading(
+-            cfg.get(CONF_COMPRESSOR_FREQ_ENTITY),
+-            cfg.get(CONF_COMPRESSOR_FREQ_SENSOR),
++            cfg.get(const.CONF_COMPRESSOR_FREQ_ENTITY),
++            cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR),
+             self.hass.states.get,
+-            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ), DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
+-            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ), DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
++            _as_float(cfg.get(const.CONF_COMPRESSOR_FREQ_MIN_HZ, const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ), const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
++            _as_float(cfg.get(const.CONF_COMPRESSOR_FREQ_MAX_HZ, const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ), const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
+         )
+     def _freq_mode(self) -> str:
+         """The stage actually in force, not the one merely configured.
+@@ -10340,11 +10077,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         (#1067) -- and with neither there is nothing to observe.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        number = ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+-        if not number and not ctx._config.get(CONF_COMPRESSOR_FREQ_SENSOR):
++        number = ctx._config.get(const.CONF_COMPRESSOR_FREQ_ENTITY)
++        if not number and not ctx._config.get(const.CONF_COMPRESSOR_FREQ_SENSOR):
+             return "unconfigured"
+         configured = str(
+-            ctx._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
++            ctx._config.get(const.CONF_FREQ_CONTROL_MODE, const.DEFAULT_FREQ_CONTROL_MODE)
+         )
+         if number and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+             return FREQ_MODE_CONTROL
+@@ -10359,11 +10096,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         configured = str(
+-            ctx._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
++            ctx._config.get(const.CONF_FREQ_CONTROL_MODE, const.DEFAULT_FREQ_CONTROL_MODE)
+         )
+         if (
+             configured != FREQ_MODE_CONTROL
+-            or not ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
++            or not ctx._config.get(const.CONF_COMPRESSOR_FREQ_ENTITY)
+         ) and self._freq_fallback:
+             # The user switched back to observe — or removed the entity
+             # entirely, which unconfigures the feature just as explicitly.
+@@ -10373,7 +10110,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # forever behind a mode selector nothing renders any more.
+             self._freq_fallback = False
+             self._freq_watchdog.reset()
+-            ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
++            ir.async_delete_issue(self.hass, const.DOMAIN, "freq_watchdog")
+             self._spawn(self._async_save_thermal_learning())
+         reported, hz_min, hz_max, source = self._freq_entity_reading()
+         if reported is None:
+@@ -10396,7 +10133,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 self._freq_fallback = True
+                 self._spawn(self._async_save_thermal_learning())
+                 entity_id = str(
+-                    ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY) or ""
++                    ctx._config.get(const.CONF_COMPRESSOR_FREQ_ENTITY) or ""
+                 )
+                 _LOGGER.warning(
+                     "Compressor frequency control stood down: %s reports "
+@@ -10408,7 +10145,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 )
+                 _create_issue(
+                     self.hass,
+-                    DOMAIN,
++                    const.DOMAIN,
+                     "freq_watchdog",
+                     is_fixable=False,
+                     is_persistent=True,
+@@ -10428,8 +10165,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         entity's own range, deduplicated against the last command, and a
+         map with no evidence writes NOTHING: None is never a frequency.
+         """
+-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
++        entity_id = getattr(self, "_ctx", self)._config.get(const.CONF_COMPRESSOR_FREQ_ENTITY)
++        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == const.MODE_OFF:
+             return
+         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
+         target = self._freq_map.recommend(
+@@ -10519,7 +10256,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Push the learned comfort weight into the optimizer configuration."""
+         ctx = getattr(self, "_ctx", self)
+         if not ctx._config.get(
+-            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
++            const.CONF_COMFORT_LEARNING_ENABLED, const.DEFAULT_COMFORT_LEARNING_ENABLED
+         ):
+             ctx._opt_config.comfort_weight = self._comfort_learner.configured_weight
+             return
+@@ -10533,7 +10270,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """
+         ctx = getattr(self, "_ctx", self)
+         if not ctx._config.get(
+-            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
++            const.CONF_COMFORT_LEARNING_ENABLED, const.DEFAULT_COMFORT_LEARNING_ENABLED
+         ):
+             return
+         planned = float(self._current_action.get("setpoint", requested))
+@@ -10568,12 +10305,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Feed the learner the "nobody complained" half of the signal."""
+         ctx = getattr(self, "_ctx", self)
+         if not ctx._config.get(
+-            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
++            const.CONF_COMFORT_LEARNING_ENABLED, const.DEFAULT_COMFORT_LEARNING_ENABLED
+         ):
+             return
+         # The shared freeze discipline its sibling ``_track_curve_comfort``
+         # consults: a defrost or a dead indoor sensor fakes a flat plan (#1332).
+-        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
++        if self._learning_frozen(const.CONF_INDOOR_TEMP_ENTITY) is not None:
+             return
+         result = self._optimization_result
+         if result is None or not result.room_temp_trajectory:
+@@ -10607,7 +10344,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         )
+         interval_days = (
+             ctx._config.get(
+-                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
++                const.CONF_OPTIMIZATION_INTERVAL, const.DEFAULT_OPTIMIZATION_INTERVAL
+             )
+             / 1440.0
+         )
+@@ -10633,7 +10370,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     async def async_arm_system_identification(self) -> None:
+         """Arm a step-response experiment for the next suitable moment."""
+         self._sysid.config.enabled = bool(
+-            getattr(self, "_ctx", self)._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
++            getattr(self, "_ctx", self)._config.get(const.CONF_SYSID_ENABLED, const.DEFAULT_SYSID_ENABLED)
+         )
+         if self._sysid.arm(
+             dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
+@@ -10662,7 +10399,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         why = (
+             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
+             if self._pump_signals.space_blocked
+-            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
++            else self._learning_frozen(const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY)
+         )
+         if why is not None:
+             self._sysid.abort(why)
+@@ -10798,7 +10535,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if limited and (
+             self._last_simulation is not None
+             and (now - self._last_simulation).total_seconds()
+-            < SIMULATE_MIN_INTERVAL_SECONDS
++            < const.SIMULATE_MIN_INTERVAL_SECONDS
+         ):
+             return {
+                 **self._simulation_cache,
+@@ -11012,7 +10749,7 @@ def _raise_update_failed(
+     """
+     raise UpdateFailed(
+         message,
+-        translation_domain=DOMAIN,
++        translation_domain=const.DOMAIN,
+         translation_key=key,
+         translation_placeholders=placeholders,
+     ) from cause

@@ -1,0 +1,10 @@
+{
+ "admissible": true,
+ "dS": 1.9461,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "hub_solve_writes": 1.9461
+ },
+ "verdict": "IMPROVES"
+}

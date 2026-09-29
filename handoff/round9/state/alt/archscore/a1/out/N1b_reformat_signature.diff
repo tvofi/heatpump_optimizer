@@ -1,0 +1,25 @@
+diff --git a/custom_components/heatpump_optimizer/tariff.py b/custom_components/heatpump_optimizer/tariff.py
+index b773fee6..0922ebdb 100644
+--- a/custom_components/heatpump_optimizer/tariff.py
++++ b/custom_components/heatpump_optimizer/tariff.py
+@@ -957,16 +957,10 @@ def peak_cost(
+ 
+ 
+ def peak_cost_smooth(
+-    total_power_kw: np.ndarray,
+-    baseline_load_kw: np.ndarray,
+-    threshold_kw: float,
+-    price_per_kw: float,
+-    window_minutes: int,
+-    dt_hours: float,
+-    peaks_averaged: int = 3,
+-    offset_steps: int = 0,
+-    window_factors: np.ndarray | None = None,
+-    window_days: np.ndarray | None = None,
++    total_power_kw: np.ndarray, baseline_load_kw: np.ndarray, threshold_kw: float,
++    price_per_kw: float, window_minutes: int, dt_hours: float,
++    peaks_averaged: int = 3, offset_steps: int = 0,
++    window_factors: np.ndarray | None = None, window_days: np.ndarray | None = None,
+     distinct_days: bool = True,
+ ) -> float:
+     """The solver's capacity term: exact off plateaus, smooth on them.

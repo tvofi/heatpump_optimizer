@@ -1,0 +1,21 @@
+{
+ "base": "5a2a62ff",
+ "main": "4d33b25c",
+ "unaffiliated_merges": {
+  "1761": "d9d5e9f1",
+  "1762": "f74e981a",
+  "1768": "ee13f67e",
+  "1770": "acf5264d",
+  "1769": "b2fadf6e",
+  "1772": "7952d8f9",
+  "1771": "4d33b25c"
+ },
+ "affiliated": {
+  "1751": "R9-F1.5",
+  "1763": "R9-EG-R0",
+  "1764": "R9-F7.2",
+  "1765": "R9-EG-B9",
+  "1766": "R9-F7.4"
+ },
+ "note": "details in LIVE-STATUS.md"
+}

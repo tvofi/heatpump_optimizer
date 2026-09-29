@@ -1,0 +1,24 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..0b987a01 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1977,7 +1977,7 @@ def _space_pump_to_drive(coord: Any) -> str | None:
+     return str(entity) if entity else None
+ 
+ 
+-class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
++class _CoordinatorBody(DataUpdateCoordinator):
+     """Coordinator for Heat Pump Cost Optimizer."""
+ 
+     _config = _hub("_config")
+@@ -10989,6 +10989,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._simulation_cache = payload
+         return payload
+ 
++
++class HeatPumpOptimizerCoordinator(_CoordinatorBody):
++    """Coordinator for Heat Pump Cost Optimizer."""
++
+ # The typed config entry (runtime-data, Bronze): ``entry.runtime_data`` is the
+ # entry's coordinator from ``async_setup_entry`` until Home Assistant unloads
+ # the entry. Platforms and service handlers annotate with this and read the

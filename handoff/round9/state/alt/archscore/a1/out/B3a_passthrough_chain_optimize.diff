@@ -1,0 +1,34 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d959091f..a3da2d2e 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2870,6 +2870,9 @@ class HeatPumpOptimizer:
+             initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
+         )
+ 
++        return self._optimize_part1(dhw_blocked, dhw_pins, dt, external_heat_kw, humidity, initial_state, min_temp_floors, min_temp_margins, n_steps, outdoor_temps, power_caps_extra, precipitation, prices, solar_radiation, space_blocked, space_pins, start_time, t_start, wind_speeds)
++
++    def _optimize_part1(self, dhw_blocked, dhw_pins, dt, external_heat_kw, humidity, initial_state, min_temp_floors, min_temp_margins, n_steps, outdoor_temps, power_caps_extra, precipitation, prices, solar_radiation, space_blocked, space_pins, start_time, t_start, wind_speeds):  # type: ignore[no-untyped-def]
+         # Forecast humidity (#21), normalised to horizon length; short
+         # series pad with NaN, which the model reads as "unknown, use the
+         # ambient value" — never as 0 % humidity. An all-NaN series is the
+@@ -2968,6 +2971,9 @@ class HeatPumpOptimizer:
+             n_steps, power_caps_extra, space_blocked
+         )
+ 
++        return self._optimize_part2(caps_extra_arr, comfort_targets, dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, forecast_heat_loss_factors, holiday_flags, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, solar_gains_per_step, solar_radiation, space_blocked, space_pins, start_time, step_hours, step_weekdays, t_start, temp_max_bounds, temp_min_bounds, throttling, wind_speeds)
++
++    def _optimize_part2(self, caps_extra_arr, comfort_targets, dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, forecast_heat_loss_factors, holiday_flags, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, solar_gains_per_step, solar_radiation, space_blocked, space_pins, start_time, step_hours, step_weekdays, t_start, temp_max_bounds, temp_min_bounds, throttling, wind_speeds):  # type: ignore[no-untyped-def]
+         # Per-step valve target schedule, set by the hold-candidate pass below
+         # and read by every solve and re-simulation through the closure.
+         valve_targets: np.ndarray | None = None
+@@ -3138,6 +3144,9 @@ class HeatPumpOptimizer:
+                 else:
+                     valve_targets = None
+ 
++        return self._optimize_part3(_solve, dhw_blocked, dhw_pins, dt, external_heat_kw, forecast_analysis, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, result, solar_radiation, space_blocked, space_pins, step_hours, temp_min_bounds, throttling, valve_targets, wind_speeds)
++
++    def _optimize_part3(self, _solve, dhw_blocked, dhw_pins, dt, external_heat_kw, forecast_analysis, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, result, solar_radiation, space_blocked, space_pins, step_hours, temp_min_bounds, throttling, valve_targets, wind_speeds):  # type: ignore[no-untyped-def]
+         if power_caps is not None and throttling:
+             result = self._repair_throttled_buffer_caps(
+                 result, power_caps, initial_state, outdoor_temps,

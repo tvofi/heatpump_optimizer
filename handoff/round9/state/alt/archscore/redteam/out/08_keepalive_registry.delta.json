@@ -1,0 +1,11 @@
+{
+ "admissible": true,
+ "dS": 5.6148,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "dead_by_reachability": 2.8074,
+  "public_unused": 2.8074
+ },
+ "verdict": "IMPROVES"
+}

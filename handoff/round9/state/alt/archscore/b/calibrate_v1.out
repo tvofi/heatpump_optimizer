@@ -1,0 +1,114 @@
+case                                         set      label    verdict   adm         dS  ok  rises / top terms
+8827452e                                     corpus   BAD      WORSENS   n      -0.6459  ok  untyped_payload_keys 37->38; coord_footprint_v1 264->304; a1_coord_writers_multi 21->24  [missing: family_splits]
+5f6ada5e                                     corpus   BAD      WORSENS   n     -33.0308  ok  hub_solve_writes 0->19; shared_inplace_writes 1->3; dup_pairs_v1 89->91  [missing: family_splits]
+c27a6d32                                     corpus   BAD      WORSENS   n       1.6764  ok  hub_solve_writes 20->23; coord_footprint_v1 1008->1089; private_reach 4->7  [missing: family_splits]
+f2d7a502                                     corpus   BAD      WORSENS   n      -4.0363  ok  hub_solve_writes 32->34; shared_inplace_writes 4->6; dup_pairs_v1 100->102  [missing: family_splits]
+9ac2d02c                                     corpus   BAD      WORSENS   n      -4.8295  ok  hub_solve_writes 34->40; shared_inplace_writes 6->9; untyped_payload_keys 128->132  [missing: family_splits]
+2e0d3d96                                     corpus   BAD      WORSENS   n      -3.2845  ok  shared_inplace_writes 10->14; dup_pairs_v1 103->107; untyped_payload_keys 142->143  [missing: family_splits]
+364d9b41                                     corpus   BAD      WORSENS   n      -0.5676  ok  dup_pairs_v1 90->91; untyped_payload_keys 113->114; coord_footprint_v1 919->955  [missing: family_splits]
+ca711b56                                     corpus   BAD      NULL      y       0.0000  XX    [missing: family_splits]
+07bdc557                                     corpus   BAD      WORSENS   n      -3.1841  ok  shared_inplace_writes 26->38; coord_footprint_v1 2539->2564; private_reach 36->44
+a1bdb11c                                     corpus   BAD      NULL      y       0.0000  XX  
+546b4924                                     corpus   BAD      NULL      y       0.0000  XX  
+3b320405                                     corpus   BAD      WORSENS   n      -0.8328  ok  dup_pairs_v1 122->124; coord_footprint_v1 2355->2472; private_reach 48->71
+3e5aba6a                                     corpus   BAD      WORSENS   n     -26.9377  ok  shared_inplace_writes 0->1; dup_pairs_v1 10->36; untyped_payload_keys 17->24  [missing: family_splits]
+aa2677ba                                     corpus   BAD      WORSENS   n      -2.7350  ok  untyped_payload_keys 152->153; family_splits 4->6; coord_footprint_v1 2451->2463
+e4bc3756                                     corpus   NEUTRAL  WORSENS   n      -5.9851  ok  shared_inplace_writes 17->26; untyped_payload_keys 157->159; family_splits 5->7
+9a0d4c5e                                     corpus   NEUTRAL  WORSENS   n       0.0187  ok  untyped_payload_keys 146->147; coord_footprint_v1 2186->2188  [missing: family_splits]
+c5fcfb17                                     corpus   NEUTRAL  WORSENS   n      -0.6337  ok  hub_solve_writes 23->25; coord_footprint_v1 1104->1108  [missing: family_splits]
+97dc04f2                                     corpus   NEUTRAL  IMPROVES  y       0.9280  XX  hub_solve_writes+0.925, coord_footprint_v1+0.003
+44a6351d                                     corpus   NEUTRAL  WORSENS   n      -0.0244  ok  coord_footprint_v1 2540->2550; a1_coord_writers_multi 152->154
+c197b018                                     corpus   NEUTRAL  WORSENS   n      -0.0006  ok  coord_footprint_v1 2573->2574
+7d47e80e                                     corpus   NEUTRAL  NULL      y       0.0000  ok  
+ca937daa                                     corpus   GOOD     IMPROVES  y       0.7946  ok  dup_pairs_v1+0.795
+4a7bdb69                                     corpus   GOOD     WORSENS   n      -0.2065  XX  a1_params_over_10 12->14
+4b6e0765                                     corpus   GOOD     NULL      y       0.0000  XX  
+67e1cf33                                     corpus   GOOD     WORSENS   n       0.4236  XX  dup_pairs_v1 97->98; coord_footprint_v1 2574->2602
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  ok  coord_footprint_v1+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  ok  coord_footprint_v1+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  ok  coord_footprint_v1+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.0039  ok  coord_footprint_v1+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  ok  coord_footprint_v1+0.009
+52d38d95                                     corpus   GOOD     NULL      y       0.0000  XX  
+8bc4c661                                     corpus   GOOD     NULL      y       0.0000  XX  
+0323c5b8                                     corpus   GOOD     WORSENS   n      -3.0036  XX  dup_pairs_v1 98->124
+69781076                                     corpus   GOOD     IMPROVES  y       0.7099  ok  shared_inplace_writes+0.413, a1_coord_writers_multi+0.119, dup_pairs_v1+0.099
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1841  ok  a1_coord_writers_multi+0.107, coord_footprint_v1+0.077
+137b6d59                                     corpus   GOOD     NULL      y       0.0000  XX  
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  ok  coord_footprint_v1+0.001
+043ed159                                     corpus   GOOD     WORSENS   n      -0.0641  XX  a1_params_over_10 21->22
+56cb0027                                     corpus   GOOD     WORSENS   n      -0.1002  XX  dup_pairs_v1 121->122
+2a451021                                     corpus   GOOD     NULL      y       0.0000  XX  
+3e9f1878                                     corpus   GOOD     WORSENS   n      -0.1926  XX  dead_by_reachability 6->7
+ff30236d                                     corpus   GOOD     NULL      y       0.0000  XX  
+3bae92d9                                     corpus   GOOD     WORSENS   n      -0.0017  XX  coord_footprint_v1 2517->2520
+c2a0448d                                     corpus   GOOD     IMPROVES  y       0.0017  ok  coord_footprint_v1+0.002
+5395394d                                     corpus   GOOD     WORSENS   n       4.1363  XX  private_reach 91->92
+a1_B1_copy_cross_module                      planted  BAD      WORSENS   n      -0.1051  ok  dup_pairs_v1 121->122
+a1_B1c_copy_same_module_control              planted  BAD      WORSENS   n      -0.1051  ok  dup_pairs_v1 121->122
+a1_B2_private_reach                          planted  BAD      WORSENS   n      -0.0756  ok  private_reach 92->97
+a1_B3a_passthrough_chain_optimize            planted  BAD      WORSENS   n      -0.1420  ok  a1_params_over_10 28->31
+a1_B3b_passthrough_chain_coordinator         planted  BAD      NULL      y       0.0000  XX  
+a1_B3c_passthrough_chain_greedy              planted  BAD      WORSENS   n      -0.2713  ok  a1_params_over_10 28->34
+a1_B4a_inplace_write_shared_dict             planted  BAD      WORSENS   n      -0.6559  ok  shared_inplace_writes 22->24; coord_footprint_v1 2512->2514
+a1_B4b_inplace_write_new_attr                planted  BAD      WORSENS   n      -0.0121  ok  coord_footprint_v1 2512->2514; a1_coord_writers_multi 130->131
+a1_B4c_inplace_write_via_helper              planted  BAD      WORSENS   n      -0.0006  ok  coord_footprint_v1 2512->2513
+a1_B5a_dead_method                           planted  BAD      WORSENS   n      -0.1932  ok  dead_by_reachability 6->7; coord_footprint_v1 2512->2513
+a1_B5b_dead_property                         planted  BAD      WORSENS   n      -0.0006  ok  coord_footprint_v1 2512->2513
+a1_B5c_dead_method_common_name               planted  BAD      WORSENS   n      -0.0006  ok  coord_footprint_v1 2512->2513
+a1_B5d_dead_method_selfcalled                planted  BAD      WORSENS   n      -0.3637  ok  dead_by_reachability 6->8; coord_footprint_v1 2512->2514
+a1_B5e_dead_top_level                        planted  BAD      WORSENS   n      -0.1926  ok  dead_by_reachability 6->7
+a1_B6_cyclic_import                          planted  BAD      WORSENS   n      -1.5850  ok  import_cycle_modules_v1 0->2
+a1_B6b_cyclic_import_local                   planted  BAD      WORSENS   n      -1.5850  ok  import_cycle_modules_v1 0->2
+a1_B7_god_helper_module                      planted  BAD      WORSENS   n      -0.3989  ok  coord_footprint_v1 2512->2513; private_reach 92->142
+a1_B8_star_import_const                      planted  BAD      WORSENS   n      -2.8074  ok  public_unused 6->48
+a1_G1_extract_block                          planted  GOOD     NULL      y       0.0000  XX  
+a1_G2_dedupe                                 planted  GOOD     IMPROVES  y       0.1060  ok  dup_pairs_v1+0.106
+a1_G3_move_cluster_with_state                planted  GOOD     IMPROVES  y       0.0518  ok  coord_footprint_v1+0.030, a1_coord_writers_multi+0.022
+a1_G4a_public_accessor_existing              planted  GOOD     IMPROVES  y       0.3692  ok  private_reach+0.369
+a1_G4b_public_accessor_new                   planted  GOOD     WORSENS   n       0.0628  XX  coord_footprint_v1 2512->2513
+a1_G5_frozen_record_arg                      planted  GOOD     IMPROVES  y       0.0111  ok  a1_coord_writers_multi+0.011
+a1_N1_rename_local                           planted  NULL     NULL      y       0.0000  ok  
+a1_N1b_reformat_signature                    planted  NULL     NULL      y       0.0000  ok  
+a1_N1c_reformat_explode_call                 planted  NULL     NULL      y       0.0000  ok  
+a1_N2_docstring                              planted  NULL     NULL      y       0.0000  ok  
+a1_N3_seam_relabel                           planted  NULL     NULL      y       0.0000  ok  
+a1_N4_const_namespace_import                 planted  NULL     WORSENS   n      -0.1040  XX  dup_pairs_v1 121->122
+a3_dead_by_reachability_control              planted  BAD      WORSENS   n      -0.3626  ok  dead_by_reachability 6->8
+a3_dead_by_reachability_fix                  planted  GOOD     IMPROVES  y       0.2224  ok  dead_by_reachability+0.222
+a3_dead_by_reachability_null                 planted  NULL     NULL      y       0.0000  ok  
+a3_family_splits_control                     planted  BAD      WORSENS   n      -1.7597  ok  family_splits 3->4
+a3_family_splits_fix                         planted  GOOD     IMPROVES  y       2.2686  ok  family_splits+2.269
+a3_family_splits_null                        planted  NULL     NULL      y       0.0000  ok  
+a3_hub_solve_writes_control                  planted  BAD      WORSENS   n      -0.1892  ok  hub_solve_writes 40->41
+a3_hub_solve_writes_fix                      planted  GOOD     IMPROVES  y       0.1945  ok  hub_solve_writes+0.194, coord_footprint_v1+0.001
+a3_hub_solve_writes_null                     planted  NULL     NULL      y       0.0000  ok  
+a3_import_cycles_control                     planted  BAD      WORSENS   n      -3.3219  ok  import_cycle_modules_v1 0->9
+a3_import_cycles_fix                         planted  GOOD     IMPROVES  y       3.3219  ok  import_cycle_modules_v1+3.322
+a3_import_cycles_null                        planted  NULL     NULL      y       0.0000  ok  
+a3_private_reach_control                     planted  BAD      WORSENS   n      -0.0913  ok  coord_footprint_v1 2512->2514; private_reach 92->98
+a3_private_reach_control_write               planted  BAD      WORSENS   n      -0.0469  ok  coord_footprint_v1 2512->2514; private_reach 92->95
+a3_private_reach_fix                         planted  GOOD     IMPROVES  y       0.0156  ok  private_reach+0.016
+a3_private_reach_null                        planted  NULL     NULL      y       0.0000  ok  
+a3_public_surface_control                    planted  BAD      WORSENS   n      -0.3852  ok  dead_by_reachability 6->7; public_unused 6->7
+a3_public_surface_fix                        planted  GOOD     NULL      y       0.0000  XX  
+a3_public_surface_null                       planted  NULL     NULL      y       0.0000  ok  
+a3_shared_inplace_writes_control             planted  BAD      WORSENS   n      -3.3117  ok  shared_inplace_writes 22->34; private_reach 92->93
+a3_shared_inplace_writes_fix                 planted  GOOD     IMPROVES  y       0.3491  ok  shared_inplace_writes+0.349
+a3_shared_inplace_writes_null                planted  NULL     NULL      y       0.0000  ok  
+a3_untyped_payload_keys_control              planted  BAD      WORSENS   n      -0.0602  ok  untyped_payload_keys 164->165
+a3_untyped_payload_keys_fix                  planted  GOOD     IMPROVES  y       0.1215  ok  untyped_payload_keys+0.121
+a3_untyped_payload_keys_null                 planted  NULL     NULL      y       0.0000  ok  
+a3_xmodule_duplication_control               planted  BAD      WORSENS   n      -0.2977  ok  dup_pairs_v1 121->122; dead_by_reachability 6->7
+a3_xmodule_duplication_fix                   planted  GOOD     NULL      y       0.0000  XX  
+a3_xmodule_duplication_null                  planted  NULL     NULL      y       0.0000  ok  
+
+CALIBRATION 79/103 correct; misclassified: ca711b56, a1bdb11c, 546b4924, 97dc04f2, 4a7bdb69, 4b6e0765, 67e1cf33, 52d38d95, 8bc4c661, 0323c5b8, 137b6d59, 043ed159, 56cb0027, 2a451021, 3e9f1878, ff30236d, 3bae92d9, 5395394d, a1_B3b_passthrough_chain_coordinator, a1_G1_extract_block, a1_G4b_public_accessor_new, a1_N4_const_namespace_import, a3_public_surface_fix, a3_xmodule_duplication_fix
+  planted  GOOD      11/15  blind  3  wrong-way  1
+  planted  BAD       27/28  blind  1  wrong-way  0
+  planted  NULL      14/15  blind  0  wrong-way  1
+  corpus   GOOD      10/24  blind  6  wrong-way  8
+  corpus   BAD       11/14  blind  3  wrong-way  0
+  corpus   NEUTRAL    6/7   blind  0  wrong-way  1
+version v1; metrics: hub_solve_writes, shared_inplace_writes, dup_pairs_v1, untyped_payload_keys, dead_by_reachability, family_splits, coord_footprint_v1, a1_coord_writers_multi, private_reach, import_cycle_modules_v1, public_unused, a1_params_over_10
+weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978

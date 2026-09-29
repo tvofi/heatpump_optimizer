@@ -1,0 +1,34 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..262604af 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6818,6 +6818,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             0.0, _utc_age_seconds(dt_util.now(), self._last_optimization) / 60.0
+         )
+ 
++    def _plan_age_hours_unused(self) -> float | None:
++        """Plan age in hours (only the island below calls this)."""
++        minutes = self._plan_age_minutes()
++        return None if minutes is None else minutes / 60.0
++
++    def _plan_age_label_unused(self) -> str:
++        """Plan age as text (only the island above ... nothing calls this one either)."""
++        hours = self._plan_age_hours_unused()
++        return "never" if hours is None else f"{hours:.1f} h"
++
+     def _plan_is_stale(self) -> bool:
+         """True when the plan is older than three solve cycles (min 90 min)."""
+         age = self._plan_age_minutes()
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..796d5fc6 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -143,6 +143,8 @@
+   "_on_power_event": "grid",
+   "_outage_dhw_hold": "dhw",
+   "_outage_recovery_active": "grid",
++  "_plan_age_hours_unused": "core",
++  "_plan_age_label_unused": "core",
+   "_plan_age_minutes": "core",
+   "_plan_is_stale": "core",
+   "_plan_slots": "core",

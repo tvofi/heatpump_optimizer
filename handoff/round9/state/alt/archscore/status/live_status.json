@@ -1,0 +1,1892 @@
+{
+ "R9-F1.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "2d71759ee90d6a1f81bbcbbcdb64aa6ef93cb2ad",
+  "lane": "F1",
+  "after": [
+   "R9-F2.1",
+   "R9-F10.1",
+   "R9-F3.1",
+   "R9-F7.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1646,
+   1649,
+   1665,
+   1683
+  ],
+  "fixes": [
+   1665,
+   1683
+  ],
+  "pr": 1722,
+  "sha": "2d71759ee90d6a1f81bbcbbcdb64aa6ef93cb2ad",
+  "live": "merged",
+  "evidence": [
+   "git: 2d71759e \"Merge pull request #1722 from tvofi/fix/r9-f1-1-jbqcyd\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1722",
+   "fixes[] [1665, 1683] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F1.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
+  "lane": "F1",
+  "after": [
+   "R9-F1.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1651
+  ],
+  "fixes": [],
+  "pr": 1724,
+  "sha": "12b0df6807d6071ae728f8a25aa0368532b8eec4",
+  "live": "merged",
+  "evidence": [
+   "git: 12b0df68 \"Merge pull request #1724 from tvofi/fix/r9-f1-2-f12hk\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1724",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F1.3": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "3bae92d9620a3104c80cfd1631015d42796249ca",
+  "lane": "F1",
+  "after": [
+   "R9-F1.2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644
+  ],
+  "fixes": [],
+  "pr": 1731,
+  "sha": "3bae92d9620a3104c80cfd1631015d42796249ca",
+  "live": "merged",
+  "evidence": [
+   "git: 3bae92d9 \"Merge pull request #1731 from tvofi/fix/r9-f1-coordinator-3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1731",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F1.4": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "686239d26d8c40b17d0aefb8d8af5f2559810a4b",
+  "lane": "F1",
+  "after": [
+   "R9-F1.3",
+   "R9-F9.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1647,
+   1662,
+   1681
+  ],
+  "fixes": [
+   1662,
+   1681
+  ],
+  "pr": 1735,
+  "sha": "686239d26d8c40b17d0aefb8d8af5f2559810a4b",
+  "live": "merged",
+  "evidence": [
+   "git: 686239d2 \"Merge pull request #1735 from tvofi/fix/r9-f1-coordinator-4\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1735",
+   "fixes[] [1662, 1681] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F1.5": {
+  "rev2": "in-review",
+  "live_roster_stage": "done",
+  "live_roster_commit": "c2a0448d076e1f861bf4eb5ff7ea9abdefc0efe8",
+  "lane": "F1",
+  "after": [
+   "R9-F1.4"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1651,
+   1670,
+   1676,
+   1682
+  ],
+  "fixes": [
+   1670,
+   1676,
+   1682
+  ],
+  "pr": 1751,
+  "sha": "c2a0448d076e1f861bf4eb5ff7ea9abdefc0efe8",
+  "live": "merged",
+  "evidence": [
+   "git: c2a0448d \"Merge pull request #1751 from tvofi/fix/r9-f1-coordinator-5\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1751",
+   "merged after 5a2a62ff; listed in #201 state batch https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5896576410",
+   "live roster (handoff/audit-r9-fixplan c5af8f3a) resume.stage=done: MERGED as #1751 at c2a0448d; fixes[] #1670, #1676 and #1682 confirmed closed",
+   "fixes[] [1670, 1676, 1682] all closed on GitHub"
+  ],
+  "disagreement": [
+   "rev-2 roster (and main copy tools/audit/round9/prestudy/ALT-ROSTER.json, landed by #1771) says in-review; merged as #1751 c2a0448d"
+  ]
+ },
+ "R9-F1.6": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.5",
+   "R9-F3.3",
+   "R9-F4.1",
+   "R9-F9.1",
+   "R9-EG-B9"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1647,
+   1659
+  ],
+  "fixes": [
+   1659
+  ],
+  "pr": 1767,
+  "sha": "929e5aa0fa81760339b56a24bcdb03f101358ee6",
+  "live": "in-review (round 2)",
+  "evidence": [
+   "https://github.com/tvofi/heatpump_optimizer/pull/1767 open, draft, author hpo-author[bot], head handoff/r9-f1-coordinator-6 @929e5aa0 (pushed 2026-09-29 23:18 +0200); branch absorbed main at 7952d8f9 (c9a403fa), not 4d33b25c",
+   "PR #1767 check-runs at 929e5aa0 (read 2026-09-29): 34 runs, 0 failure; mutation still in_progress; no GitHub reviews posted",
+   "RESUME.md (handoff/audit-r9-plan 4c613d8c) 2026-09-29T21Z: review round 1 BLOCKED (harness + one real seam _fabricated_forecast); round 2 pushed at 929e5aa0, awaiting re-review",
+   "#201 newest comment https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5899374096: \"In flight: F1.6 round 2 (#1767) -- its merge opens F2.4 || F9.3 || EG-B10\""
+  ],
+  "disagreement": [
+   "live roster on handoff/audit-r9-fixplan still says stage=not-started with empty commit/last_step, while PR #1767 has been open since 2026-09-29T14:45Z (dispatched 05:23Z per RESUME.md) and #201 newest comment says round 2 in flight",
+   "rev-2 roster (and its copy on main, tools/audit/round9/prestudy/ALT-ROSTER.json) says not-started"
+  ]
+ },
+ "R9-F1.7": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.6",
+   "R9-F2.4",
+   "R9-F4.2",
+   "R9-F5.2",
+   "R9-F10.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1649,
+   1658
+  ],
+  "fixes": [
+   1658
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f1-coordinator-7 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.6",
+   "R9-F2.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F1.8": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.7",
+   "R9-F5.2",
+   "R9-F6.2",
+   "R9-F3.3"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1657
+  ],
+  "fixes": [
+   1657
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f1-coordinator-8 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.7"
+  ],
+  "ready": "waits"
+ },
+ "R9-F1.9": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.8",
+   "R9-F3.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1660
+  ],
+  "fixes": [
+   1660
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f1-coordinator-9 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.8"
+  ],
+  "ready": "waits"
+ },
+ "R9-F1.10": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.9",
+   "R9-F2.4"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1654,
+   1741
+  ],
+  "fixes": [
+   1654
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f1-coordinator-10 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.9",
+   "R9-F2.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F1.11": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F1",
+  "after": [
+   "R9-F1.10",
+   "R9-F6.4"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1651
+  ],
+  "fixes": [
+   1644,
+   1651
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f1-coordinator-11 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.10",
+   "R9-F6.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F2.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "058e89f1fddb96a4383c224c207df4132925f6ba",
+  "lane": "F2",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1654,
+   1665,
+   1666
+  ],
+  "fixes": [
+   1666
+  ],
+  "pr": 1694,
+  "sha": "058e89f1fddb96a4383c224c207df4132925f6ba",
+  "live": "merged",
+  "evidence": [
+   "git: 058e89f1 \"Merge pull request #1694 from tvofi/fix/r9-f2-solver-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1694",
+   "fixes[] [1666] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F2.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "9c6b923f2614936aad89e1408dabca8ddd721322",
+  "lane": "F2",
+  "after": [
+   "R9-F2.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1653
+  ],
+  "fixes": [],
+  "pr": 1713,
+  "sha": "9c6b923f2614936aad89e1408dabca8ddd721322",
+  "live": "merged",
+  "evidence": [
+   "git: 9c6b923f \"Merge pull request #1713 from tvofi/fix/r9-f2-2-k1w278-v3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1713",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F2.3": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "2eef524d55376a06a5a807a4f2bf67e9e6d19dc4",
+  "lane": "F2",
+  "after": [
+   "R9-F2.2",
+   "R9-F4.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1645,
+   1671
+  ],
+  "fixes": [
+   1671
+  ],
+  "pr": 1723,
+  "sha": "2eef524d55376a06a5a807a4f2bf67e9e6d19dc4",
+  "live": "merged",
+  "evidence": [
+   "git: 2eef524d \"Merge pull request #1723 from tvofi/fix/r9-f2-solver-3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1723",
+   "fixes[] [1671] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F2.5": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "31394964bb13029da6bbcd3163fc8cf402c0020f",
+  "lane": "F2",
+  "after": [
+   "R9-F2.2",
+   "R9-F3.3",
+   "R9-F2.3"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1653
+  ],
+  "fixes": [],
+  "pr": 1734,
+  "sha": "31394964bb13029da6bbcd3163fc8cf402c0020f",
+  "live": "merged",
+  "evidence": [
+   "git: 31394964 \"Merge pull request #1734 from tvofi/fix/r9-f2-solver-5\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1734",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F2.4": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F2",
+  "after": [
+   "R9-F2.5",
+   "R9-F2.3",
+   "R9-F1.6",
+   "R9-F7.2",
+   "R9-F5.2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1664
+  ],
+  "fixes": [
+   1664
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f2-solver-4 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.6"
+  ],
+  "ready": "ready when F1.6 merges"
+ },
+ "R9-F3.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "917f16c2bb5dc55ef9c8fc687effa6e453891add",
+  "lane": "F3",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1647,
+   1660
+  ],
+  "fixes": [],
+  "pr": 1691,
+  "sha": "917f16c2bb5dc55ef9c8fc687effa6e453891add",
+  "live": "merged",
+  "evidence": [
+   "git: 917f16c2 \"Merge pull request #1691 from tvofi/fix/r9-f3-stores-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1691",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F3.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "ba60afab25eeda8e5a9c44578d1fb6bd6605d661",
+  "lane": "F3",
+  "after": [
+   "R9-F3.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1647,
+   1660
+  ],
+  "fixes": [],
+  "pr": 1707,
+  "sha": "ba60afab25eeda8e5a9c44578d1fb6bd6605d661",
+  "live": "merged",
+  "evidence": [
+   "git: ba60afab \"Merge pull request #1707 from tvofi/fix/r9-f3-stores-2-bmwr8c\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1707",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F3.3": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "49fc8bbed4be507ac57b8450f8daf0e32268d2f8",
+  "lane": "F3",
+  "after": [
+   "R9-F3.2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1647,
+   1680
+  ],
+  "fixes": [
+   1680
+  ],
+  "pr": 1717,
+  "sha": "49fc8bbed4be507ac57b8450f8daf0e32268d2f8",
+  "live": "merged",
+  "evidence": [
+   "git: 49fc8bbe \"Merge pull request #1717 from tvofi/fix/r9-f3-stores-3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1717",
+   "fixes[] [1680] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F4.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6",
+  "lane": "F4",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1673,
+   1684
+  ],
+  "fixes": [
+   1673,
+   1684
+  ],
+  "pr": 1704,
+  "sha": "0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6",
+  "live": "merged",
+  "evidence": [
+   "git: 0c9c4000 \"Merge pull request #1704 from tvofi/fix/r9-f4-inputs-sysid-1c\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1704",
+   "fixes[] [1673, 1684] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F4.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "fab176199f8ff94a169eb085dd6681b34fdb65c4",
+  "lane": "F4",
+  "after": [
+   "R9-F4.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1655,
+   1672
+  ],
+  "fixes": [
+   1655,
+   1672
+  ],
+  "pr": 1718,
+  "sha": "fab176199f8ff94a169eb085dd6681b34fdb65c4",
+  "live": "merged",
+  "evidence": [
+   "git: fab17619 \"Merge pull request #1718 from tvofi/fix/r9-f4-inputs-sysid-2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1718",
+   "fixes[] still open on GitHub: [1655]",
+   "#1655 in fixes[] deliberately left open (free-heat half carried to F1 lane) -- recorded in roster last_step, not a disagreement"
+  ],
+  "disagreement": []
+ },
+ "R9-F5.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "5abd5f9d1ff4c3c654486ae926fb793ba3c524b9",
+  "lane": "F5",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1668,
+   1675,
+   1688
+  ],
+  "fixes": [
+   1675,
+   1688
+  ],
+  "pr": 1698,
+  "sha": "5abd5f9d1ff4c3c654486ae926fb793ba3c524b9",
+  "live": "merged",
+  "evidence": [
+   "git: 5abd5f9d \"Merge pull request #1698 from tvofi/fix/r9-f5-config-text-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1698",
+   "fixes[] [1675, 1688] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F5.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "8ff6827a9c2219bc6a32e81f47d0776ecdd94ecb",
+  "lane": "F5",
+  "after": [
+   "R9-F5.1",
+   "R9-F1.2",
+   "R9-F7.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1651,
+   1679,
+   1685
+  ],
+  "fixes": [
+   1679,
+   1685
+  ],
+  "pr": 1732,
+  "sha": "8ff6827a9c2219bc6a32e81f47d0776ecdd94ecb",
+  "live": "merged",
+  "evidence": [
+   "git: 8ff6827a \"Merge pull request #1732 from tvofi/handoff/r9-f5-config-text-2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1732",
+   "fixes[] [1679, 1685] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F6.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "7428d87af49bf0f1d827feedc7f1a4a953b179ff",
+  "lane": "F6",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1652
+  ],
+  "fixes": [],
+  "pr": 1699,
+  "sha": "7428d87af49bf0f1d827feedc7f1a4a953b179ff",
+  "live": "merged",
+  "evidence": [
+   "git: 7428d87a \"Merge pull request #1699 from tvofi/fix/r9-f6-card-1-v2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1699",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F6.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "92bce7c452dd36dfb239953af7f29e1f2348050b",
+  "lane": "F6",
+  "after": [
+   "R9-F6.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1652,
+   1677
+  ],
+  "fixes": [
+   1677
+  ],
+  "pr": 1709,
+  "sha": "92bce7c452dd36dfb239953af7f29e1f2348050b",
+  "live": "merged",
+  "evidence": [
+   "git: 92bce7c4 \"Merge pull request #1709 from tvofi/fix/r9-f6-card-2-v2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1709",
+   "fixes[] [1677] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F6.3": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F6",
+  "after": [
+   "R9-F6.2",
+   "R9-F1.8"
+  ],
+  "owner_gate": "tests/card_browser.mjs is code-owned",
+  "blocked_on": null,
+  "issues": [
+   1652
+  ],
+  "fixes": [
+   1652
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f6-card-3 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.8"
+  ],
+  "ready": "waits"
+ },
+ "R9-F6.4": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F6",
+  "after": [
+   "R9-F6.3",
+   "R9-F1.8"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1687
+  ],
+  "fixes": [
+   1687
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f6-card-4 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F6.3",
+   "R9-F1.8"
+  ],
+  "ready": "waits"
+ },
+ "R9-F7.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "cbb8a2712fef67b4719309fa01396706e66148bc",
+  "lane": "F7",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1683
+  ],
+  "fixes": [],
+  "pr": 1690,
+  "sha": "cbb8a2712fef67b4719309fa01396706e66148bc",
+  "live": "merged",
+  "evidence": [
+   "git: cbb8a271 \"Merge pull request #1690 from tvofi/fix/r9-f7-entities-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1690",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F7.2": {
+  "rev2": "fixing",
+  "live_roster_stage": "done",
+  "live_roster_commit": "4f8088e8f0099d0981712e62f9afa523a0c3ff0d",
+  "lane": "F7",
+  "after": [
+   "R9-F7.1",
+   "R9-F8.3"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1644,
+   1669
+  ],
+  "fixes": [
+   1669
+  ],
+  "pr": 1764,
+  "sha": "4f8088e8f0099d0981712e62f9afa523a0c3ff0d",
+  "live": "merged",
+  "evidence": [
+   "git: 4f8088e8 \"Merge pull request #1764 from tvofi/fix/r9-f7-entities-2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1764",
+   "merged after 5a2a62ff; listed in #201 state batch https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5896576410",
+   "live roster (handoff/audit-r9-fixplan c5af8f3a) resume.stage=done: MERGED as #1764 at 4f8088e8; fixes[] #1669 confirmed closed -- closed manually, the body's Fixes keyword sat in a code span; the close comment corrects the SHA",
+   "fixes[] [1669] all closed on GitHub"
+  ],
+  "disagreement": [
+   "rev-2 roster (and main copy tools/audit/round9/prestudy/ALT-ROSTER.json, landed by #1771) says fixing; merged as #1764 4f8088e8"
+  ]
+ },
+ "R9-F8.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "62933b187186b6ace4088f698531716fa7b7a03c",
+  "lane": "F8",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1674
+  ],
+  "fixes": [
+   1674
+  ],
+  "pr": 1696,
+  "sha": "62933b187186b6ace4088f698531716fa7b7a03c",
+  "live": "merged",
+  "evidence": [
+   "git: 62933b18 \"Merge pull request #1696 from tvofi/fix/r9-f8-docs-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1696",
+   "fixes[] [1674] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F8.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "a67f4d40b7a70c8b027696067da9874fb6e50ff0",
+  "lane": "F8",
+  "after": [
+   "R9-F8.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645
+  ],
+  "fixes": [],
+  "pr": 1703,
+  "sha": "a67f4d40b7a70c8b027696067da9874fb6e50ff0",
+  "live": "merged",
+  "evidence": [
+   "git: a67f4d40 \"Merge pull request #1703 from tvofi/fix/r9-f8-docs-2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1703",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F8.3": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "cdbca706798937047b21b3e5b10f7753b3a5835d",
+  "lane": "F8",
+  "after": [
+   "R9-F8.2",
+   "R9-F5.1",
+   "R9-F5.2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1649,
+   1668
+  ],
+  "fixes": [
+   1668
+  ],
+  "pr": 1733,
+  "sha": "cdbca706798937047b21b3e5b10f7753b3a5835d",
+  "live": "merged",
+  "evidence": [
+   "git: cdbca706 \"Merge pull request #1733 from tvofi/fix/r9-f8-docs-3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1733",
+   "fixes[] [1668] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F9.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "48b696c19761a7f5f0a440891a932c87fa509515",
+  "lane": "F9",
+  "after": [
+   "R9-F3.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1646
+  ],
+  "fixes": [],
+  "pr": 1702,
+  "sha": "48b696c19761a7f5f0a440891a932c87fa509515",
+  "live": "merged",
+  "evidence": [
+   "git: 48b696c1 \"Merge pull request #1702 from tvofi/fix/r9-f9-1-qei682\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1702",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F9.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "624db889e539679c430f430b87e95bcb11e6adac",
+  "lane": "F9",
+  "after": [
+   "R9-F9.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1646,
+   1678
+  ],
+  "fixes": [
+   1678
+  ],
+  "pr": 1714,
+  "sha": "624db889e539679c430f430b87e95bcb11e6adac",
+  "live": "merged",
+  "evidence": [
+   "git: 624db889 \"Merge pull request #1714 from tvofi/fix/r9-f9-test-pins-2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1714",
+   "fixes[] [1678] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F9.3": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F9",
+  "after": [
+   "R9-F9.2",
+   "R9-F1.6"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1647
+  ],
+  "fixes": [
+   1647
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f9-test-pins-3 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.6"
+  ],
+  "ready": "ready when F1.6 merges"
+ },
+ "R9-F10.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "1ef6a805009f7c0d52952bdf955a200ef2c5f236",
+  "lane": "F10",
+  "after": [
+   "R9-F3.1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1649
+  ],
+  "fixes": [],
+  "pr": 1693,
+  "sha": "1ef6a805009f7c0d52952bdf955a200ef2c5f236",
+  "live": "merged",
+  "evidence": [
+   "git: 1ef6a805 \"Merge pull request #1693 from tvofi/fix/r9-f10-gate-infra-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1693",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F10.1b": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F3.1",
+   "R9-F10.1",
+   "R9-F1.7"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1649,
+   1740
+  ],
+  "fixes": [
+   1649
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-1b absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.7"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.2": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.1b",
+   "R9-F1.1",
+   "R9-F2.5"
+  ],
+  "owner_gate": "tests/stress.py is code-owned; the loop_cpu_ratio entry and the valve rows are allowed (cards B1, B2) and still merge only on tvofi's approving review (budget-raise-gate)",
+  "blocked_on": null,
+  "issues": [
+   1653,
+   1656
+  ],
+  "fixes": [
+   1653,
+   1656
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-2 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.1b"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.3": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.2",
+   "R9-F9.2"
+  ],
+  "owner_gate": "tests/env_drift.py, tests/stress.py, tests/mutation_table.py, tests/closure.py and tests/derive_closures.sh are code-owned; the I1 prototype derives its counts at both ends and raises no mutation_budgets.json entry",
+  "blocked_on": null,
+  "issues": [
+   1646,
+   1663,
+   1748
+  ],
+  "fixes": [
+   1646,
+   1663
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-3 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.2"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.4": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.3",
+   "R9-F1.11",
+   "R9-F11.3"
+  ],
+  "owner_gate": "D7-s1-01 prices coordinator state reached through module-level helpers; tvofi allowed raising the coordinator structure budgets if the honest re-record raises them (card B5), to the measured value, and the raise merges only on tvofi's approving review",
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1650,
+   1661,
+   1686,
+   1738
+  ],
+  "fixes": [
+   1645,
+   1661,
+   1686
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-4 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.3",
+   "R9-F1.11"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.5": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.4",
+   "R9-F11.2"
+  ],
+  "owner_gate": "tvofi chose to build it (card C5); it needs a new writer identity under decision 0011, whose App and credential are a Mac/tvofi action, and tests.yml, tests/mutation_table.py and the decision are code-owned",
+  "blocked_on": "the new ledger-writer App identity and its credential, a Mac/tvofi setup action under decision 0011 (card C5); the fixer's work does not wait on it, the writer's first real push does",
+  "issues": [],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-5 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.6": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.5"
+  ],
+  "owner_gate": "tvofi commissioned it (card C6); tests/mutation_table.py is code-owned, and any mutation_budgets.json change merges only on tvofi's approving review",
+  "blocked_on": null,
+  "issues": [],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-6 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.5"
+  ],
+  "ready": "waits"
+ },
+ "R9-F11.1": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "b5501cca442af48e8c287100f3658a2fce648c73",
+  "lane": "F11",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1648,
+   1650
+  ],
+  "fixes": [],
+  "pr": 1697,
+  "sha": "b5501cca442af48e8c287100f3658a2fce648c73",
+  "live": "merged",
+  "evidence": [
+   "git: b5501cca \"Merge pull request #1697 from tvofi/fix/r9-f11-governance-1\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1697",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F11.2": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "399ef171e4fa6777a2c0648d1d49ae756e1125b1",
+  "lane": "F11",
+  "after": [
+   "R9-F11.1"
+  ],
+  "owner_gate": "workflows, CODEOWNERS and budget_raise_gate.py are code-owned",
+  "blocked_on": null,
+  "issues": [
+   1648
+  ],
+  "fixes": [],
+  "pr": 1701,
+  "sha": "399ef171e4fa6777a2c0648d1d49ae756e1125b1",
+  "live": "merged",
+  "evidence": [
+   "git: 399ef171 \"Merge pull request #1701 from tvofi/fix/r9-f11-governance-2-e9ywjb\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1701",
+   "fixes[] empty"
+  ],
+  "disagreement": []
+ },
+ "R9-F11.3": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "87d780c7822093a617c20f0056e86cef323e8b47",
+  "lane": "F11",
+  "after": [
+   "R9-F11.2"
+  ],
+  "owner_gate": "policy (CLAUDE.md, .claude/rules) and governance.yml are code-owned",
+  "blocked_on": null,
+  "issues": [
+   1645,
+   1648
+  ],
+  "fixes": [
+   1648
+  ],
+  "pr": 1715,
+  "sha": "87d780c7822093a617c20f0056e86cef323e8b47",
+  "live": "merged",
+  "evidence": [
+   "git: 87d780c7 \"Merge pull request #1715 from tvofi/fix/r9-f11-governance-3\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1715",
+   "fixes[] [1648] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F11.6": {
+  "rev2": "done",
+  "live_roster_stage": "done",
+  "live_roster_commit": "2d01240646b76e531aea62fbd409282b62366c6b",
+  "lane": "F11",
+  "after": [
+   "R9-F11.3"
+  ],
+  "owner_gate": "tvofi chose to build it (card C18); fix-review.md is policy and web-fix-wave.js is code-owned",
+  "blocked_on": null,
+  "issues": [
+   1667
+  ],
+  "fixes": [
+   1667
+  ],
+  "pr": 1720,
+  "sha": "2d01240646b76e531aea62fbd409282b62366c6b",
+  "live": "merged",
+  "evidence": [
+   "git: 2d012406 \"Merge pull request #1720 from tvofi/fix/r9-f11-governance-6-v2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1720",
+   "fixes[] [1667] all closed on GitHub"
+  ],
+  "disagreement": []
+ },
+ "R9-F11.4": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F11",
+  "after": [
+   "R9-F11.6",
+   "R9-F11.3",
+   "R9-F10.4"
+  ],
+  "owner_gate": "audit-find.js is code-owned",
+  "blocked_on": null,
+  "issues": [
+   1650
+  ],
+  "fixes": [
+   1650
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f11-governance-4 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F11.5": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F11",
+  "after": [
+   "R9-F11.4"
+  ],
+  "owner_gate": "policy: tools/audit/briefs, .claude/rules and tests/README.md are code-owned; tvofi approved all nine drafts (cards A1-A9) and reviews the PR at its head before it merges",
+  "blocked_on": null,
+  "issues": [],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f11-governance-5 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F11.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B0": {
+  "rev2": "rca-done",
+  "live_roster_stage": "rca-done",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1736
+  ],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "rca-done (no PR; RCA-1736 posted on #1736 comment 5877263448)",
+  "evidence": [
+   "roster last_step unchanged since rev 2; its obligations carried into R9-EG-B1"
+  ],
+  "disagreement": []
+ },
+ "R9-EG-B2": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F1.11"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1739,
+   1742
+  ],
+  "fixes": [
+   1742
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-surface-identity absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.11"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B3": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F10.4",
+   "R9-EG-B2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1737
+  ],
+  "fixes": [
+   1737
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-typed-payload absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.4",
+   "R9-EG-B2"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B4": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F10.1b",
+   "R9-F10.4",
+   "R9-EG-B3"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1740
+  ],
+  "fixes": [
+   1740
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-store-version absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.1b",
+   "R9-F10.4",
+   "R9-EG-B3"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B1": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F10.4",
+   "R9-F2.4",
+   "R9-F10.6",
+   "R9-F11.5",
+   "R9-EG-B0",
+   "R9-EG-B4",
+   "R9-EG-B5",
+   "R9-EG-B9",
+   "R9-EG-B10"
+  ],
+  "owner_gate": "any structure-budget raise needs tvofi's confirmation before the push (CLAUDE.md rule 2)",
+  "blocked_on": null,
+  "issues": [
+   1736
+  ],
+  "fixes": [
+   1736
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-solve-inputs absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.4",
+   "R9-F2.4",
+   "R9-F10.6",
+   "R9-F11.5",
+   "R9-EG-B4",
+   "R9-EG-B5",
+   "R9-EG-B10"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B6": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-EG-B1"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1739
+  ],
+  "fixes": [
+   1739
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-collaborator-interfaces absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-EG-B1"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B8": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F2.4"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1747
+  ],
+  "fixes": [
+   1747
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-dhw-block-replan absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F2.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B5a": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F2.4",
+   "R9-F10.4"
+  ],
+  "owner_gate": "a structure-budget re-record (downward) with the reason in the commit message",
+  "blocked_on": null,
+  "issues": [
+   1743
+  ],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-dhw-closure-dedupe absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F2.4",
+   "R9-F10.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B5": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-EG-B5a",
+   "R9-EG-B8",
+   "R9-F1.10",
+   "R9-F10.4"
+  ],
+  "owner_gate": "tvofi opted in (2026-09-28); a classes_over_300 increase, unless R9-F10.4 re-defined it per #1738 arm (c), needs tvofi's confirmation before the push",
+  "blocked_on": null,
+  "issues": [
+   1743,
+   1748
+  ],
+  "fixes": [
+   1743
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-dhw-planner absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-EG-B5a",
+   "R9-EG-B8",
+   "R9-F1.10",
+   "R9-F10.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B7": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-EG-B1",
+   "R9-EG-B6"
+  ],
+  "owner_gate": "a classes_over_300 increase, unless R9-F10.4 re-defined it, needs tvofi's confirmation before the push",
+  "blocked_on": null,
+  "issues": [
+   1744
+  ],
+  "fixes": [
+   1744
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-coordinator-seams absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-EG-B1",
+   "R9-EG-B6"
+  ],
+  "ready": "waits"
+ },
+ "R9-EG-B9": {
+  "rev2": "not-started",
+  "live_roster_stage": "done",
+  "live_roster_commit": "5395394da9d8ee96ec256895504d2ae3f09d10fa",
+  "lane": "EG",
+  "after": [
+   "R9-F1.5"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1752,
+   1753
+  ],
+  "fixes": [
+   1752,
+   1753
+  ],
+  "pr": 1765,
+  "sha": "5395394da9d8ee96ec256895504d2ae3f09d10fa",
+  "live": "merged",
+  "evidence": [
+   "git: 5395394d \"Merge pull request #1765 from tvofi/handoff/r9-eg-action-copy\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1765",
+   "merged after 5a2a62ff; listed in #201 state batch https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5896576410",
+   "live roster (handoff/audit-r9-fixplan c5af8f3a) resume.stage=done: MERGED as #1765 at 5395394d; fixes[] #1752 and #1753 confirmed closed",
+   "fixes[] [1752, 1753] all closed on GitHub"
+  ],
+  "disagreement": [
+   "rev-2 roster (and main copy tools/audit/round9/prestudy/ALT-ROSTER.json, landed by #1771) says not-started; merged as #1765 5395394d"
+  ]
+ },
+ "R9-EG-B10": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-EG-B9",
+   "R9-F1.6"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1754,
+   1755
+  ],
+  "fixes": [
+   1754,
+   1755
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-solve-lifecycle absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F1.6"
+  ],
+  "ready": "ready when F1.6 merges"
+ },
+ "R9-EG-R0": {
+  "rev2": "not-started",
+  "live_roster_stage": "done",
+  "live_roster_commit": "89d1ddf58197cefbb3ba82521a47b912927e6118",
+  "lane": "EG",
+  "after": [],
+  "owner_gate": "tvofi reviews the register v2 move list and REGISTER-V2.md's open questions before merge",
+  "blocked_on": null,
+  "issues": [
+   1759
+  ],
+  "fixes": [],
+  "pr": 1763,
+  "sha": "89d1ddf58197cefbb3ba82521a47b912927e6118",
+  "live": "merged",
+  "evidence": [
+   "git: 89d1ddf5 \"Merge pull request #1763 from tvofi/fix/eg-r0-register-v2\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1763",
+   "merged after 5a2a62ff; listed in #201 state batch https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5896576410",
+   "live roster (handoff/audit-r9-fixplan c5af8f3a) resume.stage=done: MERGED as #1763 at 89d1ddf5; fixes[] empty (data PR), so it closes nothing outright -- #1759 stays open as Part-of",
+   "fixes[] empty"
+  ],
+  "disagreement": [
+   "rev-2 roster (and main copy tools/audit/round9/prestudy/ALT-ROSTER.json, landed by #1771) says not-started; merged as #1763 89d1ddf5"
+  ]
+ },
+ "R9-EG-R1": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "EG",
+  "after": [
+   "R9-F11.4",
+   "R9-EG-R0"
+  ],
+  "owner_gate": "policy (judge.md, defect-root-cause.md) and code-owned audit-verify.js: tvofi's confirmation before the push and approving review at the head",
+  "blocked_on": null,
+  "issues": [
+   1759
+  ],
+  "fixes": [
+   1759
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-eg-register-fold absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F11.4"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.1c": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.1b"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1756
+  ],
+  "fixes": [
+   1756
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-gate-infra-1c absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.1b"
+  ],
+  "ready": "waits"
+ },
+ "R9-F10.7": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F10",
+  "after": [
+   "R9-F10.6"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1758
+  ],
+  "fixes": [],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f10-loop-heartbeat absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F10.6"
+  ],
+  "ready": "waits"
+ },
+ "R9-F11.7": {
+  "rev2": "not-started",
+  "live_roster_stage": "not-started",
+  "live_roster_commit": null,
+  "lane": "F11",
+  "after": [
+   "R9-F11.5"
+  ],
+  "owner_gate": "tests.yml is code-owned: merges on tvofi's approving review",
+  "blocked_on": null,
+  "issues": [
+   1757
+  ],
+  "fixes": [
+   1757
+  ],
+  "pr": null,
+  "sha": null,
+  "live": "not started",
+  "evidence": [
+   "live roster stage=not-started; no open PR; branch handoff/r9-f11-governance-7 absent on origin"
+  ],
+  "disagreement": [],
+  "open_after": [
+   "R9-F11.5"
+  ],
+  "ready": "waits"
+ },
+ "R9-F7.4": {
+  "rev2": "not-started",
+  "live_roster_stage": "done",
+  "live_roster_commit": "3defa2d58879ba969b4f87bfd77dc0e580ef5874",
+  "lane": "F7",
+  "after": [
+   "R9-F7.2"
+  ],
+  "owner_gate": null,
+  "blocked_on": null,
+  "issues": [
+   1760
+  ],
+  "fixes": [
+   1760
+  ],
+  "pr": 1766,
+  "sha": "3defa2d58879ba969b4f87bfd77dc0e580ef5874",
+  "live": "merged",
+  "evidence": [
+   "git: 3defa2d5 \"Merge pull request #1766 from tvofi/handoff/r9-f7-entities-4\" is first-parent on origin/main 4d33b25c",
+   "https://github.com/tvofi/heatpump_optimizer/pull/1766",
+   "merged after 5a2a62ff; listed in #201 state batch https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5896576410",
+   "live roster (handoff/audit-r9-fixplan c5af8f3a) resume.stage=done: MERGED as #1766 at 3defa2d5; fixes[] #1760 confirmed closed -- the N-name-sort barrier (declared families + contiguity check) landed",
+   "fixes[] [1760] all closed on GitHub"
+  ],
+  "disagreement": [
+   "rev-2 roster (and main copy tools/audit/round9/prestudy/ALT-ROSTER.json, landed by #1771) says not-started; merged as #1766 3defa2d5"
+  ]
+ }
+}

@@ -1,0 +1,88 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..55b1546a 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5598,33 +5598,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if buffer_reading.ok:
+             ctx._current_state.buffer_tank_temperature = buffer_reading.value
+ 
+-        # Wood tank temperature (issue #40): re-read from the physical tank
+-        # each cycle through the same stale-aware reader — the model never
+-        # extrapolates yesterday's fire. Staleness maps to absence, which
+-        # falls back to the single-tank abstraction (free heat into the HP
+-        # tank) rather than a stalled hot probe; logged per transition.
+-        if ctx._thermal_params.two_tank_modelled:
+-            wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+-            wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
+-            wood_mean = wood_mean_temperature(
+-                wood_top.value if wood_top.ok else None,
+-                wood_bottom.value if wood_bottom.ok else None,
+-            )
+-            had = ctx._current_state.wood_tank_temperature is not None
+-            if wood_mean is None and had:
+-                _LOGGER.warning(
+-                    "Wood tank probe stale or missing; falling back to the "
+-                    "single-tank abstraction until it recovers"
+-                )
+-            elif wood_mean is not None and not had:
+-                _LOGGER.info(
+-                    "Two-tank model active: wood tank at %.1f °C", wood_mean
+-                )
+-            ctx._current_state.wood_tank_temperature = wood_mean
+-        elif ctx._current_state.wood_tank_temperature is not None:
+-            # Reconfigured away mid-session: drop the state so nothing
+-            # simulates a tank the parameters no longer model.
+-            ctx._current_state.wood_tank_temperature = None
++        self._read_wood_tank_temperature(reader, ctx)
+ 
+         # The pump's own supply and return water (#1067; the reader's rules
+         # are in ``flow_lift.read_water_temps``). Written every cycle
+@@ -5756,6 +5730,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 ctx._current_state.lower_floor_temperature = (
+                     ctx._current_state.room_temperature
+                 )
++
++    def _read_wood_tank_temperature(self, reader: InputReader, ctx: Any) -> None:
++        """Wood tank mean from its two probes, stale-aware (issue #40)."""
++        # Wood tank temperature (issue #40): re-read from the physical tank
++        # each cycle through the same stale-aware reader — the model never
++        # extrapolates yesterday's fire. Staleness maps to absence, which
++        # falls back to the single-tank abstraction (free heat into the HP
++        # tank) rather than a stalled hot probe; logged per transition.
++        if ctx._thermal_params.two_tank_modelled:
++            wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
++            wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
++            wood_mean = wood_mean_temperature(
++                wood_top.value if wood_top.ok else None,
++                wood_bottom.value if wood_bottom.ok else None,
++            )
++            had = ctx._current_state.wood_tank_temperature is not None
++            if wood_mean is None and had:
++                _LOGGER.warning(
++                    "Wood tank probe stale or missing; falling back to the "
++                    "single-tank abstraction until it recovers"
++                )
++            elif wood_mean is not None and not had:
++                _LOGGER.info(
++                    "Two-tank model active: wood tank at %.1f °C", wood_mean
++                )
++            ctx._current_state.wood_tank_temperature = wood_mean
++        elif ctx._current_state.wood_tank_temperature is not None:
++            # Reconfigured away mid-session: drop the state so nothing
++            # simulates a tank the parameters no longer model.
++            ctx._current_state.wood_tank_temperature = None
+     def _learning_frozen(self, *keys: str) -> str | None:
+         """Why learning should be skipped this interval, or ``None``.
+ 
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..90976315 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -158,6 +158,7 @@
+   "_pv_measured_production": "core",
+   "_pv_surplus_series": "core",
+   "_raise_cop_issue": "learning",
++  "_read_wood_tank_temperature": "core",
+   "_reading_ok": "core",
+   "_reanchor_house_heat_loss_scale": "learning",
+   "_record_accuracy": "core",

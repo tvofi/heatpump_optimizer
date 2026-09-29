@@ -1,0 +1,104 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..0e50e158 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -4434,25 +4434,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if delta_t < HOUSE_LOSS_MIN_DELTA:
+             return
+ 
+-        try:
+-            wind_speed, precipitation = self._current_weather()
+-            predicted_state = self._thermal_model.simulate_step(
+-                previous_state,
+-                previous_power,
+-                outdoor,
+-                wind_speed=wind_speed,
+-                precipitation=precipitation,
+-                solar_radiation=previous_state.solar_radiation,
+-                dt_hours=dt_h,
+-                # #53: the replay must predict with the learned per-hour
+-                # profile, or its residuals never re-centre and the gains
+-                # learner becomes an open-loop integrator converging to
+-                # α/ridge times the true correction. None-profile (flag
+-                # off, nothing learned) makes this byte-inert.
+-                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
+-            )
+-        except Exception as err:
+-            _LOGGER.debug("House heat loss learning simulation failed: %s", err)
++        predicted_state = self._replay_interval(
++            previous_state, previous_power, outdoor, previous_time, dt_h, "House heat loss")
++        if predicted_state is None:
+             return
+ 
+         # Compare like with like. `observed` is the indoor sensor, which in
+@@ -4614,21 +4598,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if delta_t < HOUSE_LOSS_MIN_DELTA:
+             return
+ 
+-        try:
+-            wind_speed, precipitation = self._current_weather()
+-            predicted_state = self._thermal_model.simulate_step(
+-                previous_state,
+-                previous_power,
+-                outdoor,
+-                wind_speed=wind_speed,
+-                precipitation=precipitation,
+-                solar_radiation=previous_state.solar_radiation,
+-                dt_hours=dt_h,
+-                # Same physics as the solve when #53 is on; inert when off.
+-                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
+-            )
+-        except Exception as err:
+-            _LOGGER.debug("Lower floor loss learning simulation failed: %s", err)
++        predicted_state = self._replay_interval(
++            previous_state, previous_power, outdoor, previous_time, dt_h, "Lower floor loss")
++        if predicted_state is None:
+             return
+ 
+         residual = observed - predicted_state.lower_floor_temperature
+@@ -4670,6 +4642,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if self._lower_floor_loss_samples % 10 == 0:
+             await self._async_save_thermal_learning()
+ 
++    def _replay_interval(
++        self, previous_state: ThermalState, previous_power: float, outdoor: float,
++        previous_time: datetime, dt_h: float, label: str,
++    ) -> ThermalState | None:
++        """Replay the elapsed interval through the solver's own model.
++
++        #53: the replay predicts with the learned per-hour profile, or its
++        residuals never re-centre and the gains learner becomes an open-loop
++        integrator. None-profile (flag off, nothing learned) is byte-inert.
++        None = the simulation failed; the caller skips the sample.
++        """
++        try:
++            wind_speed, precipitation = self._current_weather()
++            return self._thermal_model.simulate_step(
++                previous_state,
++                previous_power,
++                outdoor,
++                wind_speed=wind_speed,
++                precipitation=precipitation,
++                solar_radiation=previous_state.solar_radiation,
++                dt_hours=dt_h,
++                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
++            )
++        except Exception as err:
++            _LOGGER.debug("%s learning simulation failed: %s", label, err)
++            return None
++
+     def _check_pump_mode_expired(self) -> None:
+         """Say so when the mode entity has gone quiet long enough to stop acting.
+ 
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..f8622c8c 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -164,6 +164,7 @@
+   "_record_manual_release": "core",
+   "_record_quiet_comfort_period": "learning",
+   "_release_registrations": "core",
++  "_replay_interval": "learning",
+   "_resolve_away": "core",
+   "_roll_month": "core",
+   "_run_system_identification": "core",

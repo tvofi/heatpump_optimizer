@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..fa95e7bc 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -4977,6 +4977,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             solve_now = _solve_anchor(now)
+             horizon = self._forecast_arrays(now)
+             prices = horizon.prices
++            self._current_action["solve_started_at"] = now.isoformat()
++            self._current_action["solve_prices"] = list(prices)
+ 
+             if len(prices) < 4:
+                 _LOGGER.warning(

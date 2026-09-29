@@ -1,0 +1,10 @@
+{
+ "admissible": true,
+ "dS": 2.7318,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "private_reach": 2.7318
+ },
+ "verdict": "IMPROVES"
+}

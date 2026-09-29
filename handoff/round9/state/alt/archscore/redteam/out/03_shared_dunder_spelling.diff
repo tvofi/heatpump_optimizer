@@ -1,0 +1,186 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..fd236f8c 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -378,10 +378,10 @@ def _override_payload(state: AwayState) -> dict[str, Any]:
+ 
+ 
+ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
+-    state.override_active = bool(payload.get("active"))
++    object.__setattr__(state, "override_active", bool(payload.get("active")))
+     parsed = _parse_return_time(payload.get("return_time"))
+-    state.override_return_iso = parsed.isoformat() if parsed else None
+-    state.migrated_helpers = bool(payload.get("migrated_helpers"))
++    object.__setattr__(state, "override_return_iso", parsed.isoformat() if parsed else None)
++    object.__setattr__(state, "migrated_helpers", bool(payload.get("migrated_helpers")))
+ 
+ 
+ async def persist_override(coord: _AwayCoord) -> None:
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index 29cd2005..50106532 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -238,7 +238,7 @@ async def set_channel(
+     held_for(coord).set(channel, active, dt_util.now())
+     recorder = getattr(coord, "boost_calls", None)
+     if recorder is not None:
+-        recorder.append({"channel": channel, "active": active})
++        type(recorder).append(recorder, {"channel": channel, "active": active})
+     else:
+         await persist(coord)
+     if refresh:
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..89dd0622 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1976,6 +1976,11 @@ def _space_pump_to_drive(coord: Any) -> str | None:
+     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
+     return str(entity) if entity else None
+ 
++def _invoke(obj: Any, name: str, *args: Any) -> Any:
++    """Call ``obj.<name>(*args)``."""
++    return getattr(obj, name)(*args)
++
++
+ 
+ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     """Coordinator for Heat Pump Cost Optimizer."""
+@@ -3003,7 +3008,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # Recorded only AFTER the call succeeded: a command that failed
+         # (entity briefly unavailable) must be retried next tick, not
+         # remembered as done.
+-        self._pump_commanded[entity_id] = on
++        type(self._pump_commanded).__setitem__(self._pump_commanded, entity_id, on)
+ 
+     # ------------------------------------------------------------------
+     # Buffer tank and building fabric learning
+@@ -4809,7 +4814,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     "displace_value": self._ecl110_displace_min,
+                 })
+             if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
+-                self._current_action["price"] = self._get_current_price()
++                type(self._current_action).__setitem__(self._current_action, "price", self._get_current_price())
+ 
+             # #237: everything below writes to the world, and a plan cut
+             # before a reload must not land on the instance that replaced us.
+@@ -5312,8 +5317,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # (T5 #16) are void: scoring them against a room now driven by
+             # fixed-rule comfort/boost/off would charge the model with
+             # errors it never made. The tank's promises are void likewise.
+-            self._accuracy.lead_pending.clear()
+-            self._dhw_accuracy.lead_pending.clear()
++            _invoke(self._accuracy.lead_pending, "clear")
++            _invoke(self._dhw_accuracy.lead_pending, "clear")
+         _LOGGER.info("Operation mode set to: %s", mode)
+         await self._async_save_accuracy()
+         if refresh:
+@@ -5465,7 +5470,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     "shutdown; they run on regardless",
+                     len(still_pending),
+                 )
+-        self._background_tasks.clear()
++        _invoke(self._background_tasks, "clear")
+ 
+     async def _update_current_state(self) -> None:
+         """Update current thermal state from HA entities.
+@@ -5959,7 +5964,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                         sr = fc.get("solar_irradiance") or fc.get(
+                             "native_solar_irradiance", 0.0
+                         )
+-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
++                        _invoke(self._solar_radiation_forecast, "append", _as_float(sr, 0.0))
+ 
+                     self._weather_fetch_recovered()
+                     _LOGGER.debug(
+@@ -7462,7 +7467,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if self._store_digests.get(name) == digest:
+             return
+         await store.async_save(payload)
+-        self._store_digests[name] = digest
++        type(self._store_digests).__setitem__(self._store_digests, name, digest)
+ 
+     async def _async_save_accuracy(self) -> None:
+         try:
+@@ -7721,7 +7726,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             except ValueError:
+                 continue
+             if self._price_model.observe_day(when, hours):
+-                self._price_days_seen.add(day)
++                _invoke(self._price_days_seen, "add", day)
+                 learned = True
+         # The quarter refinement (#19) learns beside the hourly shape, from
+         # days that arrived at full 15-minute resolution only.
+@@ -7733,7 +7738,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             except ValueError:
+                 continue
+             if self._price_model.observe_day_quarters(when, quarters):
+-                self._price_qdays_seen.add(day)
++                _invoke(self._price_qdays_seen, "add", day)
+                 learned = True
+         if learned:
+             await self._async_save_price_model()
+@@ -9213,22 +9218,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     ) -> None:
+         """Persist the Plan-page override. The only writer of that store."""
+         if active is False:
+-            self._away_state.override_active = False
+-            self._away_state.override_return_iso = None
++            object.__setattr__(self._away_state, "override_active", False)
++            object.__setattr__(self._away_state, "override_return_iso", None)
+         else:
+             if active is True:
+-                self._away_state.override_active = True
++                object.__setattr__(self._away_state, "override_active", True)
+             if return_time is not away_mode.OMIT:
+                 parsed = away_mode._parse_return_time(return_time)
+-                self._away_state.override_return_iso = (
+-                    parsed.isoformat() if parsed else None
+-                )
++                object.__setattr__(self._away_state, "override_return_iso", parsed.isoformat() if parsed else None)
+         parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+         on, ret = away_mode.expire_override(
+             self._away_state.override_active, parsed, dt_util.now()
+         )
+-        self._away_state.override_active = on
+-        self._away_state.override_return_iso = ret.isoformat() if ret else None
++        object.__setattr__(self._away_state, "override_active", on)
++        object.__setattr__(self._away_state, "override_return_iso", ret.isoformat() if ret else None)
+         await away_mode.persist_override(self)
+         if refresh:
+             await self.async_request_refresh()
+@@ -10274,7 +10277,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # Gate off means gone: stale what-if money left published
+             # would outlive the user's decision to stop paying for it.
+             if self._price_tiles:
+-                self._price_tiles.clear()
++                _invoke(self._price_tiles, "clear")
+             return
+         specs = self._price_tile_specs()
+         name, overrides = specs[self._price_tile_cursor % len(specs)]
+@@ -10289,12 +10292,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._price_tile_cursor += 1
+         if answer.get("error"):
+             return
+-        self._price_tiles[name] = {
++        type(self._price_tiles).__setitem__(self._price_tiles, name, {
+             "overrides": overrides,
+             "monthly_cost_delta": answer.get("monthly_cost_delta"),
+             "min_room_temperature": answer.get("min_room_temperature"),
+             "computed_at": dt_util.now().isoformat(timespec="seconds"),
+-        }
++        })
+ 
+     def _insight_view(self) -> dict[str, Any]:
+         """Everything T6 publishes, in one additive block."""
+@@ -10632,9 +10635,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     async def async_arm_system_identification(self) -> None:
+         """Arm a step-response experiment for the next suitable moment."""
+-        self._sysid.config.enabled = bool(
++        object.__setattr__(self._sysid.config, "enabled", bool(
+             getattr(self, "_ctx", self)._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
+-        )
++        ))
+         if self._sysid.arm(
+             dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
+         ):

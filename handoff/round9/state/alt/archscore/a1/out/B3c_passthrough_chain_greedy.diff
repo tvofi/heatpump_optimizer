@@ -1,0 +1,173 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..9d93fd8d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5553,6 +5553,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # Measured electrical draw. Optional, and everything downstream has to
+         # degrade cleanly without it, because most installs will not have one.
+         power_reading = reader.read_power_kw(CONF_POWER_ENTITY)
++        return await self._update_current_state_frag1(ctx, floor_return, lower_floor, power_reading, reader)
++
++    async def _update_current_state_frag1(self, ctx, floor_return, lower_floor, power_reading, reader):  # type: ignore[no-untyped-def]
+         self._measured_power = power_reading.value if power_reading.ok else None
+         house_power = reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
+         self._measured_house_power = house_power.value if house_power.ok else None
+@@ -5562,6 +5565,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         energy_reading = reader.read(CONF_ENERGY_ENTITY)
+         self._measured_energy = energy_reading.value if energy_reading.ok else None
+ 
++        return await self._update_current_state_frag2(ctx, floor_return, lower_floor, reader)
++
++    async def _update_current_state_frag2(self, ctx, floor_return, lower_floor, reader):  # type: ignore[no-untyped-def]
+         # Solar radiation: a local pyranometer measures this house, so it
+         # wins over any remote estimate; Open-Meteo fills in when no sensor
+         # is configured or the sensor is not reporting.
+@@ -5578,6 +5584,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 self._solar_radiation = observed
+                 ctx._current_state.solar_radiation = observed
+ 
++        return await self._update_current_state_frag3(ctx, floor_return, lower_floor, reader)
++
++    async def _update_current_state_frag3(self, ctx, floor_return, lower_floor, reader):  # type: ignore[no-untyped-def]
+         # DHW temperature sensor. Without an ok reading the tank is seeded
+         # from the previous plan's own trajectory (open-loop propagation,
+         # R9 D12-s1-01); the 55 °C dataclass default reached every solve
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d959091f..3ac377a3 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2929,6 +2929,9 @@ class HeatPumpOptimizer:
+             step_datetimes, self.config.holiday_dates
+         )
+ 
++        return self._optimize_frag1(dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, holiday_flags, humidity, initial_state, min_temp_floors, min_temp_margins, n_steps, outdoor_temps, power_caps_extra, precipitation, prices, solar_radiation, space_blocked, space_pins, start_time, step_datetimes, step_hours, step_weekdays, t_start, wind_speeds)
++
++    def _optimize_frag1(self, dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, holiday_flags, humidity, initial_state, min_temp_floors, min_temp_margins, n_steps, outdoor_temps, power_caps_extra, precipitation, prices, solar_radiation, space_blocked, space_pins, start_time, step_datetimes, step_hours, step_weekdays, t_start, wind_speeds):  # type: ignore[no-untyped-def]
+         comfort_targets, temp_min_bounds, temp_max_bounds = (
+             self._build_comfort_bounds(
+                 step_hours, n_steps, min_temp_margins, min_temp_floors,
+@@ -2968,6 +2971,9 @@ class HeatPumpOptimizer:
+             n_steps, power_caps_extra, space_blocked
+         )
+ 
++        return self._optimize_frag2(caps_extra_arr, comfort_targets, dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, forecast_heat_loss_factors, holiday_flags, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, solar_gains_per_step, solar_radiation, space_blocked, space_pins, start_time, step_hours, step_weekdays, t_start, temp_max_bounds, temp_min_bounds, throttling, wind_speeds)
++
++    def _optimize_frag2(self, caps_extra_arr, comfort_targets, dhw_blocked, dhw_enabled, dhw_pins, dt, external_heat_kw, forecast_analysis, forecast_heat_loss_factors, holiday_flags, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, solar_gains_per_step, solar_radiation, space_blocked, space_pins, start_time, step_hours, step_weekdays, t_start, temp_max_bounds, temp_min_bounds, throttling, wind_speeds):  # type: ignore[no-untyped-def]
+         # Per-step valve target schedule, set by the hold-candidate pass below
+         # and read by every solve and re-simulation through the closure.
+         valve_targets: np.ndarray | None = None
+@@ -3138,6 +3144,9 @@ class HeatPumpOptimizer:
+                 else:
+                     valve_targets = None
+ 
++        return self._optimize_frag5(_solve, dhw_blocked, dhw_pins, dt, external_heat_kw, forecast_analysis, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, result, solar_radiation, space_blocked, space_pins, step_hours, temp_min_bounds, throttling, valve_targets, wind_speeds)
++
++    def _optimize_frag5(self, _solve, dhw_blocked, dhw_pins, dt, external_heat_kw, forecast_analysis, humidity, initial_state, n_steps, outdoor_temps, power_caps, power_caps_extra, precipitation, prices, released_dhw, released_space, result, solar_radiation, space_blocked, space_pins, step_hours, temp_min_bounds, throttling, valve_targets, wind_speeds):  # type: ignore[no-untyped-def]
+         if power_caps is not None and throttling:
+             result = self._repair_throttled_buffer_caps(
+                 result, power_caps, initial_state, outdoor_temps,
+@@ -3146,8 +3155,14 @@ class HeatPumpOptimizer:
+                 humidity, _solve,
+             )
+ 
++        return self._optimize_frag4(dhw_blocked, dhw_pins, forecast_analysis, n_steps, power_caps_extra, released_dhw, released_space, result, space_blocked, space_pins, temp_min_bounds)
++
++    def _optimize_frag4(self, dhw_blocked, dhw_pins, forecast_analysis, n_steps, power_caps_extra, released_dhw, released_space, result, space_blocked, space_pins, temp_min_bounds):  # type: ignore[no-untyped-def]
+         result.manual_pins_active = space_pins is not None or dhw_pins is not None
+         result.manual_released_space = sorted(released_space)
++        return self._optimize_frag3(dhw_blocked, forecast_analysis, n_steps, power_caps_extra, released_dhw, result, space_blocked, temp_min_bounds)
++
++    def _optimize_frag3(self, dhw_blocked, forecast_analysis, n_steps, power_caps_extra, released_dhw, result, space_blocked, temp_min_bounds):  # type: ignore[no-untyped-def]
+         result.manual_released_dhw = sorted(released_dhw)
+         result.mode_blocked_space = bool(space_blocked)
+         result.mode_blocked_dhw = bool(dhw_blocked)
+@@ -7132,6 +7147,9 @@ class HeatPumpOptimizer:
+         # 15-minute step read as 75 and the autumn fold matched the wrong step.
+         now_s = current_time.timestamp()
+         starts = [ts.timestamp() for ts in result.timestamps]
++        return self._get_current_action_frag1(now_s, result, starts)
++
++    def _get_current_action_frag1(self, now_s, result, starts):  # type: ignore[no-untyped-def]
+         if now_s < starts[0]:
+             # A pre-horizon clock (NTP step back, restored stale plan) would
+             # fall through the loop below to the LAST step — the 24h-ahead
+@@ -7240,11 +7258,17 @@ class HeatPumpOptimizer:
+             action["baseline_kw"] = float(result.baseline_power_schedule[i])
+         if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):
+             action["dhw_temperature"] = round(result.dhw_temp_trajectory[i], 1)
++        return self._get_current_action_frag3(action, result)
++
++    def _get_current_action_frag3(self, action, result):  # type: ignore[no-untyped-def]
+         if result.predictive_info.get("dhw_target_temperature") is not None:
+             action["dhw_target_temperature"] = result.predictive_info.get(
+                 "dhw_target_temperature"
+             )
+ 
++        return self._get_current_action_frag2(action, result)
++
++    def _get_current_action_frag2(self, action, result):  # type: ignore[no-untyped-def]
+         # Add predictive info
+         if result.predictive_info:
+             action["solar_reduction_factor"] = round(
+diff --git a/custom_components/heatpump_optimizer/sysid.py b/custom_components/heatpump_optimizer/sysid.py
+index 6d66debc..b4ed4b7c 100644
+--- a/custom_components/heatpump_optimizer/sysid.py
++++ b/custom_components/heatpump_optimizer/sysid.py
+@@ -1718,6 +1718,9 @@ class SystemIdentification:
+         a = np.asarray(rows, dtype=float)
+         b = np.asarray(targets, dtype=float)
+         dts = np.asarray(row_dts, dtype=float)
++        return self._identify_frag1(a, b, dts, rows, usable)
++
++    def _identify_frag1(self, a, b, dts, rows, usable):  # type: ignore[no-untyped-def]
+         # Centre the drift column: uncentred it is strongly correlated with
+         # the intercept, and the ΔT/intercept pair is already the collinear
+         # one this fit has to survive. The centring is undone in the
+@@ -2001,6 +2004,9 @@ class SystemIdentification:
+         snr = signal_spread / max(s_noise, 1e-9)
+         confidence *= float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+ 
++        return self._identify_frag2(capacity, confidence, drift_c_per_h, gains_kw, tau, ua, ua_profile_halfwidth, usable)
++
++    def _identify_frag2(self, capacity, confidence, drift_c_per_h, gains_kw, tau, ua, ua_profile_halfwidth, usable):  # type: ignore[no-untyped-def]
+         if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
+             return SysIdResult(
+                 completed=False, reason="fitted parameters outside plausible bounds"
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bb70721f..6bdf9886 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -2857,6 +2857,9 @@ class ThermalModel:
+             wood[:, 0] = initial_state.wood_tank_temperature
+         room[:, 0] = initial_state.room_temperature
+         slab[:, 0] = initial_state.slab_temperature
++        return self._simulate_trajectory_batch_frag1(buf, dt_hours, external_heat_kw, humidity, initial_state, lower, n_steps, outdoor_temps, p, power_matrix, precipitation, refused, room, slab, solar_radiation, start_hour, upper, valve_targets, wind_speeds, wood)
++
++    def _simulate_trajectory_batch_frag1(self, buf, dt_hours, external_heat_kw, humidity, initial_state, lower, n_steps, outdoor_temps, p, power_matrix, precipitation, refused, room, slab, solar_radiation, start_hour, upper, valve_targets, wind_speeds, wood):  # type: ignore[no-untyped-def]
+         upper[:, 0] = initial_state.upper_floor_temperature
+         lower[:, 0] = initial_state.lower_floor_temperature
+         buf[:, 0] = initial_state.buffer_tank_temperature
+@@ -2876,6 +2879,9 @@ class ThermalModel:
+         C_buf = p.buffer_tank_thermal_mass
+         if C_buf < 1e-6:
+             C_buf = 0.04
++        return self._simulate_trajectory_batch_frag2(C_buf, buf, dt_hours, external_heat_kw, hours_matter, humidity, lower, n_steps, outdoor_temps, p, power_matrix, precipitation, refused, room, slab, solar_radiation, start_hour, throttled, two_tank, upper, valve_targets, wind_speeds, wood)
++
++    def _simulate_trajectory_batch_frag2(self, C_buf, buf, dt_hours, external_heat_kw, hours_matter, humidity, lower, n_steps, outdoor_temps, p, power_matrix, precipitation, refused, room, slab, solar_radiation, start_hour, throttled, two_tank, upper, valve_targets, wind_speeds, wood):  # type: ignore[no-untyped-def]
+         rad_fraction = p.radiator_power_fraction
+         area_ratio = p.upper_floor_area_ratio
+         q_internal_upper_base = None
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..3c1766cc 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -186,6 +186,9 @@
+   "_track_curve_comfort": "learning",
+   "_track_realised_peak": "grid",
+   "_update_current_state": "core",
++  "_update_current_state_frag1": "core",
++  "_update_current_state_frag2": "core",
++  "_update_current_state_frag3": "core",
+   "_update_external_heat_detection": "core",
+   "_update_snow_memory": "core",
+   "_wear_price": "fetch",

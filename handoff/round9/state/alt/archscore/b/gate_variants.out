@@ -1,0 +1,3 @@
+G-strict corpus/BAD 11/14 (wrong-way 0)  corpus/GOOD 10/24 (wrong-way 8)  corpus/NEUTRAL 6/7 (wrong-way 1)  planted/BAD 27/28 (wrong-way 0)  planted/GOOD 11/15 (wrong-way 1)  planted/NULL 14/15 (wrong-way 1)
+G-class corpus/BAD 11/14 (wrong-way 0)  corpus/GOOD 11/24 (wrong-way 7)  corpus/NEUTRAL 6/7 (wrong-way 1)  planted/BAD 27/28 (wrong-way 0)  planted/GOOD 12/15 (wrong-way 0)  planted/NULL 14/15 (wrong-way 1)
+G-none corpus/BAD 10/14 (wrong-way 1)  corpus/GOOD 12/24 (wrong-way 6)  corpus/NEUTRAL 5/7 (wrong-way 2)  planted/BAD 27/28 (wrong-way 0)  planted/GOOD 12/15 (wrong-way 0)  planted/NULL 14/15 (wrong-way 1)

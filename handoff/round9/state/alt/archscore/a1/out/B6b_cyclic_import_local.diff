@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..b9416538 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -275,7 +275,10 @@ def migrate_helper_override(
+ 
+ 
+ def empty_override() -> dict[str, Any]:
+-    return {"active": False, "return_time": None, "migrated_helpers": False}
++    from . import boost
++
++    return {"active": False, "return_time": None, "migrated_helpers": False,
++            "boost_channels": list(boost.CHANNELS)}
+ 
+ 
+ def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:

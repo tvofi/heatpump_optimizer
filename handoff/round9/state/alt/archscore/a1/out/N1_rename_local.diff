@@ -1,0 +1,145 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..cf9d23dd 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5477,7 +5477,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         that are then persisted.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        reader = InputReader(
++        input_reader = InputReader(
+             self.hass,
+             ctx._config,
+             enabled=bool(
+@@ -5490,14 +5490,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         )
+ 
+         # Indoor temperature
+-        indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
++        indoor = input_reader.read(CONF_INDOOR_TEMP_ENTITY)
+         if indoor.ok:
+             ctx._current_state.room_temperature = indoor.value
+             # For two-zone: indoor sensor is typically upper floor
+             ctx._current_state.upper_floor_temperature = indoor.value
+ 
+         # Outdoor temperature
+-        outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
++        outdoor = input_reader.read(CONF_OUTDOOR_TEMP_ENTITY)
+         if outdoor.ok:
+             ctx._current_state.outdoor_temperature = outdoor.value
+         elif (forecast_outdoor := forecast_outdoor_now(
+@@ -5509,7 +5509,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._current_state.outdoor_temperature = forecast_outdoor
+ 
+         # Floor heating return temperature sensor
+-        floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
++        floor_return = input_reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
+         if floor_return.ok:
+             self._floor_return_temp = floor_return.value
+             ctx._current_state.floor_return_temperature = self._floor_return_temp
+@@ -5533,7 +5533,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # with no lower-floor thermometer the honest stand-in is the room
+         # temperature, the last-resort seed further down, and a repair issue
+         # says so rather than letting a wrong number pass for a measurement.
+-        lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
++        lower_floor = input_reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
+         if lower_floor.ok:
+             ctx._current_state.lower_floor_temperature = lower_floor.value
+         elif floor_return.ok:
+@@ -5546,26 +5546,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # A smart valve's target, when the integration can see it: where the
+         # valve regulates to is what tells the model whether it is throttling
+         # — and so whether surplus heat can reach the tank at all.
+-        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
++        valve_target = input_reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
+         if valve_target.ok and (valve_value := valve_target.value) is not None:
+             ctx._thermal_params.mixing_valve_target = float(valve_value)
+ 
+         # Measured electrical draw. Optional, and everything downstream has to
+         # degrade cleanly without it, because most installs will not have one.
+-        power_reading = reader.read_power_kw(CONF_POWER_ENTITY)
++        power_reading = input_reader.read_power_kw(CONF_POWER_ENTITY)
+         self._measured_power = power_reading.value if power_reading.ok else None
+-        house_power = reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
++        house_power = input_reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
+         self._measured_house_power = house_power.value if house_power.ok else None
+         # #11: draw beyond what the compressor can pull means the immersion
+         # element is running — a different appliance wearing the pump's meter.
+         self._detect_immersion()
+-        energy_reading = reader.read(CONF_ENERGY_ENTITY)
++        energy_reading = input_reader.read(CONF_ENERGY_ENTITY)
+         self._measured_energy = energy_reading.value if energy_reading.ok else None
+ 
+         # Solar radiation: a local pyranometer measures this house, so it
+         # wins over any remote estimate; Open-Meteo fills in when no sensor
+         # is configured or the sensor is not reporting.
+-        solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
++        solar = input_reader.read(CONF_SOLAR_RADIATION_ENTITY)
+         solar_from_sensor = False
+         if solar.ok and (solar_value := solar.value) is not None:
+             self._solar_radiation = solar_value
+@@ -5582,7 +5582,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # from the previous plan's own trajectory (open-loop propagation,
+         # R9 D12-s1-01); the 55 °C dataclass default reached every solve
+         # otherwise, so every plan believed the tank was just charged.
+-        dhw = reader.read(CONF_DHW_TEMP_ENTITY)
++        dhw = input_reader.read(CONF_DHW_TEMP_ENTITY)
+         if dhw.ok:
+             self._dhw_temperature = dhw.value
+             ctx._current_state.dhw_temperature = self._dhw_temperature
+@@ -5594,7 +5594,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             ctx._current_state.dhw_temperature = seed
+ 
+         # Buffer tank temperature sensor (optional; enables cooling learning)
+-        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
++        buffer_reading = input_reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
+         if buffer_reading.ok:
+             ctx._current_state.buffer_tank_temperature = buffer_reading.value
+ 
+@@ -5604,8 +5604,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # falls back to the single-tank abstraction (free heat into the HP
+         # tank) rather than a stalled hot probe; logged per transition.
+         if ctx._thermal_params.two_tank_modelled:
+-            wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+-            wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
++            wood_top = input_reader.read(CONF_WOOD_TANK_TOP_ENTITY)
++            wood_bottom = input_reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
+             wood_mean = wood_mean_temperature(
+                 wood_top.value if wood_top.ok else None,
+                 wood_bottom.value if wood_bottom.ok else None,
+@@ -5630,7 +5630,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # are in ``flow_lift.read_water_temps``). Written every cycle
+         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
+         # not given, and a fresh supply reading gates the flow-bias fold.
+-        self._flow_bias.observe_temps(*read_water_temps(reader))
++        self._flow_bias.observe_temps(*read_water_temps(input_reader))
+ 
+         # The four heat-pump signals (v5.3.0), read through the same reader
+         # as everything else, so all four appear in this cycle's health with
+@@ -5648,7 +5648,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # ``previous``: this attribute still holds last cycle's result
+         # until the assignment lands, which is all the rising edge needs.
+         self._pump_signals = pump_arbiter.own(self, pump_signals.read(
+-            reader,
++            input_reader,
+             last_good=self._pump_mode_last_good,
+             last_good_age_minutes=_last_good_age,
+             previous=self._pump_signals,
+@@ -5663,7 +5663,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+         # The health snapshot has to be complete before any learner runs, since
+         # each one consults it to decide whether to freeze.
+-        self._input_health = reader.health
++        self._input_health = input_reader.health
+         self._learner_freeze_reason = None
+ 
+         # The defrost derate's humidity bucket is resolved from this, so it has
+@@ -5684,7 +5684,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 self._learner_freeze_reason = frozen
+             await self._legionella.async_track(dhw_value)
+ 
+-        self._legionella.disinfect.observe(reader)
++        self._legionella.disinfect.observe(input_reader)
+         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
+         # reset path there was, and it cannot run without a tank reading —
+         # while the countdown below advances on the clock regardless. That

@@ -1,0 +1,46 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..92abe619 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -321,19 +321,6 @@ def apply_setback(
+     """Temporarily lower comfort targets while away. Returns the originals."""
+     original = SetbackRecord(_setback_fields(opt_config, thermal_params))
+     original.written = dict(original)
+-    if not state.active or state.recovery_active:
+-        return original
+-    target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+-    opt_config.target_temp = min(original["target_temp"], target)
+-    opt_config.min_temp = min(original["min_temp"], target)
+-    opt_config.comfort_temp_day = target
+-    opt_config.comfort_temp_night = target
+-    dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+-    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+-    thermal_params.dhw_idle_min_temp = min(
+-        original["dhw_idle_min_temp"], dhw_floor
+-    )
+-    original.written = _setback_fields(opt_config, thermal_params)
+     return original
+ 
+ 
+@@ -344,8 +331,7 @@ def lower_floor(record: SetbackRecord, opt_config: _SetbackConfig, by: float) ->
+     and rely on its unwind; recording the value here is what lets the
+     compare-and-restore take it back off.
+     """
+-    opt_config.min_temp = max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by)
+-    record.written["min_temp"] = opt_config.min_temp
++    return None
+ 
+ 
+ def restore_setback(
+@@ -354,10 +340,7 @@ def restore_setback(
+     thermal_params: _SetbackThermal,
+ ) -> None:
+     """Compare-and-restore, by identity: undo what the envelope still holds."""
+-    for obj, names in ((opt_config, _OPT_FIELDS), (thermal_params, _DHW_FIELDS)):
+-        for name in names:
+-            if getattr(obj, name) is original.written[name]:
+-                setattr(obj, name, original[name])
++    return None
+ 
+ 
+ def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:

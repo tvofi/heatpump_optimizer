@@ -1,0 +1,751 @@
+perturbation	class	metric	base	after	delta	expected	verdict	targeted
+G1_extract_block	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G1_extract_block	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G1_extract_block	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G1_extract_block	GOOD	coordinator_attrs	153	153	+0	<=0	OK	
+G1_extract_block	GOOD	coordinator_loc	9011	9015	+4	<=0	WRONG	
+G1_extract_block	GOOD	coordinator_methods	224	225	+1	<=0	WRONG	
+G1_extract_block	GOOD	coordinator_multiassigned_attrs	115	115	+0	<=0	OK	
+G1_extract_block	GOOD	cross_seam_edges	131	131	+0	<=0	OK	
+G1_extract_block	GOOD	cut_dhw	73	73	+0	<=0	OK	
+G1_extract_block	GOOD	cut_fetch	118	118	+0	<=0	OK	
+G1_extract_block	GOOD	cut_grid	183	183	+0	<=0	OK	
+G1_extract_block	GOOD	cut_learning	283	283	+0	<=0	OK	
+G1_extract_block	GOOD	cut_views	109	109	+0	<=0	OK	
+G1_extract_block	GOOD	dead_methods	0	0	+0	<=0	OK	
+G1_extract_block	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G1_extract_block	GOOD	duplication_blocks	14	14	+0	<=0	OK	
+G1_extract_block	GOOD	functions_cc_over_15	34	34	+0	<0	MISS	y
+G1_extract_block	GOOD	functions_cc_over_25	8	8	+0	<0	MISS	y
+G1_extract_block	GOOD	internal_call_edges	307	308	+1	<=0	WRONG	
+G1_extract_block	GOOD	local_imports	7	7	+0	<=0	OK	
+G1_extract_block	GOOD	max_cc	48	48	+0	<0	MISS	y
+G1_extract_block	GOOD	max_class_loc	9011	9015	+4	<=0	WRONG	
+G1_extract_block	GOOD	max_method_loc	386	386	+0	<0	MISS	y
+G1_extract_block	GOOD	methods_over_150	18	18	+0	<0	MISS	y
+G1_extract_block	GOOD	methods_over_200	11	11	+0	<0	MISS	y
+G2_dedupe	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G2_dedupe	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G2_dedupe	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G2_dedupe	GOOD	coordinator_attrs	153	153	+0	<=0	OK	
+G2_dedupe	GOOD	coordinator_loc	9011	9010	-1	<=0	OK	
+G2_dedupe	GOOD	coordinator_methods	224	225	+1	<=0	WRONG	
+G2_dedupe	GOOD	coordinator_multiassigned_attrs	115	115	+0	<=0	OK	
+G2_dedupe	GOOD	cross_seam_edges	131	130	-1	<=0	OK	
+G2_dedupe	GOOD	cut_dhw	73	73	+0	<=0	OK	
+G2_dedupe	GOOD	cut_fetch	118	117	-1	<=0	OK	
+G2_dedupe	GOOD	cut_grid	183	183	+0	<=0	OK	
+G2_dedupe	GOOD	cut_learning	283	281	-2	<=0	OK	
+G2_dedupe	GOOD	cut_views	109	109	+0	<=0	OK	
+G2_dedupe	GOOD	dead_methods	0	0	+0	<=0	OK	
+G2_dedupe	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G2_dedupe	GOOD	duplication_blocks	14	12	-2	<0	OK	y
+G2_dedupe	GOOD	functions_cc_over_15	34	34	+0	<=0	OK	
+G2_dedupe	GOOD	functions_cc_over_25	8	8	+0	<=0	OK	
+G2_dedupe	GOOD	internal_call_edges	307	308	+1	<=0	WRONG	
+G2_dedupe	GOOD	local_imports	7	7	+0	<=0	OK	
+G2_dedupe	GOOD	max_cc	48	48	+0	<=0	OK	
+G2_dedupe	GOOD	max_class_loc	9011	9010	-1	<=0	OK	
+G2_dedupe	GOOD	max_method_loc	386	386	+0	<=0	OK	
+G2_dedupe	GOOD	methods_over_150	18	18	+0	<=0	OK	
+G2_dedupe	GOOD	methods_over_200	11	11	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	coordinator_attrs	153	150	-3	<0	OK	y
+G3_move_cluster_with_state	GOOD	coordinator_loc	9011	8824	-187	<0	OK	y
+G3_move_cluster_with_state	GOOD	coordinator_methods	224	219	-5	<0	OK	y
+G3_move_cluster_with_state	GOOD	coordinator_multiassigned_attrs	115	112	-3	<0	OK	y
+G3_move_cluster_with_state	GOOD	cross_seam_edges	131	128	-3	<0	OK	y
+G3_move_cluster_with_state	GOOD	cut_dhw	73	73	+0	<0	MISS	y
+G3_move_cluster_with_state	GOOD	cut_fetch	118	118	+0	<0	MISS	y
+G3_move_cluster_with_state	GOOD	cut_grid	183	183	+0	<0	MISS	y
+G3_move_cluster_with_state	GOOD	cut_learning	283	275	-8	<0	OK	y
+G3_move_cluster_with_state	GOOD	cut_views	109	103	-6	<0	OK	y
+G3_move_cluster_with_state	GOOD	dead_methods	0	0	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	duplication_blocks	14	14	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	functions_cc_over_15	34	34	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	functions_cc_over_25	8	8	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	internal_call_edges	307	298	-9	<=0	OK	
+G3_move_cluster_with_state	GOOD	local_imports	7	7	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	max_cc	48	48	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	max_class_loc	9011	8824	-187	<=0	OK	
+G3_move_cluster_with_state	GOOD	max_method_loc	386	386	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	methods_over_150	18	18	+0	<=0	OK	
+G3_move_cluster_with_state	GOOD	methods_over_200	11	11	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	coordinator_attrs	153	153	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	coordinator_loc	9011	9011	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	coordinator_methods	224	224	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	coordinator_multiassigned_attrs	115	115	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	cross_seam_edges	131	131	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	cut_dhw	73	73	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	cut_fetch	118	118	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	cut_grid	183	183	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	cut_learning	283	283	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	cut_views	109	109	+0	<0	MISS	y
+G4a_public_accessor_existing	GOOD	dead_methods	0	0	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	duplication_blocks	14	14	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	functions_cc_over_15	34	34	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	functions_cc_over_25	8	8	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	internal_call_edges	307	307	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	local_imports	7	7	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	max_cc	48	48	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	max_class_loc	9011	9011	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	max_method_loc	386	386	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	methods_over_150	18	18	+0	<=0	OK	
+G4a_public_accessor_existing	GOOD	methods_over_200	11	11	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	coordinator_attrs	153	153	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	coordinator_loc	9011	9015	+4	<=0	WRONG	
+G4b_public_accessor_new	GOOD	coordinator_methods	224	225	+1	<=0	WRONG	
+G4b_public_accessor_new	GOOD	coordinator_multiassigned_attrs	115	115	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	cross_seam_edges	131	131	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	cut_dhw	73	73	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	cut_fetch	118	118	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	cut_grid	183	183	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	cut_learning	283	283	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	cut_views	109	109	+0	<0	MISS	y
+G4b_public_accessor_new	GOOD	dead_methods	0	0	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	duplication_blocks	14	14	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	functions_cc_over_15	34	34	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	functions_cc_over_25	8	8	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	internal_call_edges	307	307	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	local_imports	7	7	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	max_cc	48	48	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	max_class_loc	9011	9015	+4	<=0	WRONG	
+G4b_public_accessor_new	GOOD	max_method_loc	386	386	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	methods_over_150	18	18	+0	<=0	OK	
+G4b_public_accessor_new	GOOD	methods_over_200	11	11	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	attrbag_classes_over_30	1	1	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	classes_over_300	11	11	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	const_modules_over_50	3	3	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	coordinator_attrs	153	152	-1	<0	OK	y
+G5_frozen_record_arg	GOOD	coordinator_loc	9011	9005	-6	<=0	OK	
+G5_frozen_record_arg	GOOD	coordinator_methods	224	224	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	coordinator_multiassigned_attrs	115	114	-1	<0	OK	y
+G5_frozen_record_arg	GOOD	cross_seam_edges	131	131	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	cut_dhw	73	73	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	cut_fetch	118	118	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	cut_grid	183	183	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	cut_learning	283	284	+1	<=0	WRONG	
+G5_frozen_record_arg	GOOD	cut_views	109	109	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	dead_methods	0	0	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	dead_top_level_symbols	1	1	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	duplication_blocks	14	14	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	functions_cc_over_15	34	34	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	functions_cc_over_25	8	8	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	internal_call_edges	307	307	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	local_imports	7	7	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	max_cc	48	48	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	max_class_loc	9011	9005	-6	<=0	OK	
+G5_frozen_record_arg	GOOD	max_method_loc	386	386	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	methods_over_150	18	18	+0	<=0	OK	
+G5_frozen_record_arg	GOOD	methods_over_200	11	11	+0	<=0	OK	
+B1_copy_cross_module	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B1_copy_cross_module	BAD	classes_over_300	11	11	+0	>=0	OK	
+B1_copy_cross_module	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B1_copy_cross_module	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B1_copy_cross_module	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B1_copy_cross_module	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B1_copy_cross_module	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B1_copy_cross_module	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B1_copy_cross_module	BAD	cut_dhw	73	73	+0	>=0	OK	
+B1_copy_cross_module	BAD	cut_fetch	118	118	+0	>=0	OK	
+B1_copy_cross_module	BAD	cut_grid	183	183	+0	>=0	OK	
+B1_copy_cross_module	BAD	cut_learning	283	283	+0	>=0	OK	
+B1_copy_cross_module	BAD	cut_views	109	109	+0	>=0	OK	
+B1_copy_cross_module	BAD	dead_methods	0	0	+0	>=0	OK	
+B1_copy_cross_module	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B1_copy_cross_module	BAD	duplication_blocks	14	14	+0	>0	MISS	y
+B1_copy_cross_module	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B1_copy_cross_module	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B1_copy_cross_module	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B1_copy_cross_module	BAD	local_imports	7	7	+0	>=0	OK	
+B1_copy_cross_module	BAD	max_cc	48	48	+0	>=0	OK	
+B1_copy_cross_module	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B1_copy_cross_module	BAD	max_method_loc	386	386	+0	>=0	OK	
+B1_copy_cross_module	BAD	methods_over_150	18	18	+0	>=0	OK	
+B1_copy_cross_module	BAD	methods_over_200	11	11	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	classes_over_300	11	11	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cut_dhw	73	73	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cut_fetch	118	118	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cut_grid	183	183	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cut_learning	283	283	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	cut_views	109	109	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	dead_methods	0	0	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	duplication_blocks	14	16	+2	>0	OK	y
+B1c_copy_same_module_control	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	local_imports	7	7	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	max_cc	48	48	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	max_method_loc	386	386	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	methods_over_150	18	18	+0	>=0	OK	
+B1c_copy_same_module_control	BAD	methods_over_200	11	11	+0	>=0	OK	
+B2_private_reach	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B2_private_reach	BAD	classes_over_300	11	11	+0	>=0	OK	
+B2_private_reach	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B2_private_reach	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B2_private_reach	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B2_private_reach	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B2_private_reach	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B2_private_reach	BAD	cross_seam_edges	131	131	+0	>0	MISS	y
+B2_private_reach	BAD	cut_dhw	73	73	+0	>0	MISS	y
+B2_private_reach	BAD	cut_fetch	118	118	+0	>0	MISS	y
+B2_private_reach	BAD	cut_grid	183	183	+0	>0	MISS	y
+B2_private_reach	BAD	cut_learning	283	283	+0	>0	MISS	y
+B2_private_reach	BAD	cut_views	109	109	+0	>0	MISS	y
+B2_private_reach	BAD	dead_methods	0	0	+0	>=0	OK	
+B2_private_reach	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B2_private_reach	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B2_private_reach	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B2_private_reach	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B2_private_reach	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B2_private_reach	BAD	local_imports	7	7	+0	>=0	OK	
+B2_private_reach	BAD	max_cc	48	48	+0	>=0	OK	
+B2_private_reach	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B2_private_reach	BAD	max_method_loc	386	386	+0	>=0	OK	
+B2_private_reach	BAD	methods_over_150	18	18	+0	>=0	OK	
+B2_private_reach	BAD	methods_over_200	11	11	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	classes_over_300	11	11	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cut_dhw	73	73	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cut_fetch	118	118	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cut_grid	183	183	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cut_learning	283	283	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	cut_views	109	109	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	dead_methods	0	0	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	functions_cc_over_15	34	34	+0	>0	MISS	y
+B3a_passthrough_chain_optimize	BAD	functions_cc_over_25	8	8	+0	>0	MISS	y
+B3a_passthrough_chain_optimize	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	local_imports	7	7	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	max_cc	48	47	-1	>0	WRONG	y
+B3a_passthrough_chain_optimize	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B3a_passthrough_chain_optimize	BAD	max_method_loc	386	386	+0	>0	MISS	y
+B3a_passthrough_chain_optimize	BAD	methods_over_150	18	18	+0	>0	MISS	y
+B3a_passthrough_chain_optimize	BAD	methods_over_200	11	10	-1	>0	WRONG	y
+B3b_passthrough_chain_coordinator	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	classes_over_300	11	11	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	coordinator_loc	9011	9020	+9	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	coordinator_methods	224	227	+3	>0	OK	y
+B3b_passthrough_chain_coordinator	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cut_dhw	73	73	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cut_fetch	118	118	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cut_grid	183	183	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cut_learning	283	283	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	cut_views	109	109	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	dead_methods	0	0	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	functions_cc_over_15	34	34	+0	>0	MISS	y
+B3b_passthrough_chain_coordinator	BAD	functions_cc_over_25	8	8	+0	>0	MISS	y
+B3b_passthrough_chain_coordinator	BAD	internal_call_edges	307	310	+3	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	local_imports	7	7	+0	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	max_cc	48	48	+0	>0	MISS	y
+B3b_passthrough_chain_coordinator	BAD	max_class_loc	9011	9020	+9	>=0	OK	
+B3b_passthrough_chain_coordinator	BAD	max_method_loc	386	386	+0	>0	MISS	y
+B3b_passthrough_chain_coordinator	BAD	methods_over_150	18	18	+0	>0	MISS	y
+B3b_passthrough_chain_coordinator	BAD	methods_over_200	11	10	-1	>0	WRONG	y
+B3c_passthrough_chain_greedy	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	classes_over_300	11	11	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	coordinator_loc	9011	9020	+9	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	coordinator_methods	224	227	+3	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cut_dhw	73	73	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cut_fetch	118	118	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cut_grid	183	183	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cut_learning	283	283	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	cut_views	109	109	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	dead_methods	0	0	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	functions_cc_over_15	34	34	+0	>0	MISS	y
+B3c_passthrough_chain_greedy	BAD	functions_cc_over_25	8	8	+0	>0	MISS	y
+B3c_passthrough_chain_greedy	BAD	internal_call_edges	307	310	+3	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	local_imports	7	7	+0	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	max_cc	48	34	-14	>0	WRONG	y
+B3c_passthrough_chain_greedy	BAD	max_class_loc	9011	9020	+9	>=0	OK	
+B3c_passthrough_chain_greedy	BAD	max_method_loc	386	386	+0	>0	MISS	y
+B3c_passthrough_chain_greedy	BAD	methods_over_150	18	18	+0	>0	MISS	y
+B3c_passthrough_chain_greedy	BAD	methods_over_200	11	9	-2	>0	WRONG	y
+B4a_inplace_write_shared_dict	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	classes_over_300	11	11	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	coordinator_attrs	153	153	+0	>0	MISS	y
+B4a_inplace_write_shared_dict	BAD	coordinator_loc	9011	9013	+2	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	coordinator_multiassigned_attrs	115	115	+0	>0	MISS	y
+B4a_inplace_write_shared_dict	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	cut_dhw	73	73	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	cut_fetch	118	118	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	cut_grid	183	183	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	cut_learning	283	283	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	cut_views	109	109	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	dead_methods	0	0	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	local_imports	7	7	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	max_cc	48	48	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	max_class_loc	9011	9013	+2	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	max_method_loc	386	386	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	methods_over_150	18	18	+0	>=0	OK	
+B4a_inplace_write_shared_dict	BAD	methods_over_200	11	11	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	classes_over_300	11	11	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	coordinator_attrs	153	154	+1	>0	OK	y
+B4b_inplace_write_new_attr	BAD	coordinator_loc	9011	9013	+2	>=0	OK	
+B4b_inplace_write_new_attr	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	coordinator_multiassigned_attrs	115	116	+1	>0	OK	y
+B4b_inplace_write_new_attr	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	cut_dhw	73	73	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	cut_fetch	118	118	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	cut_grid	183	183	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	cut_learning	283	283	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	cut_views	109	109	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	dead_methods	0	0	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	local_imports	7	7	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	max_cc	48	48	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	max_class_loc	9011	9013	+2	>=0	OK	
+B4b_inplace_write_new_attr	BAD	max_method_loc	386	386	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	methods_over_150	18	18	+0	>=0	OK	
+B4b_inplace_write_new_attr	BAD	methods_over_200	11	11	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	classes_over_300	11	11	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	coordinator_attrs	153	153	+0	>0	MISS	y
+B4c_inplace_write_via_helper	BAD	coordinator_loc	9011	9012	+1	>=0	OK	
+B4c_inplace_write_via_helper	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	coordinator_multiassigned_attrs	115	115	+0	>0	MISS	y
+B4c_inplace_write_via_helper	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	cut_dhw	73	73	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	cut_fetch	118	118	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	cut_grid	183	183	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	cut_learning	283	283	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	cut_views	109	109	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	dead_methods	0	0	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	local_imports	7	7	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	max_cc	48	48	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	max_class_loc	9011	9012	+1	>=0	OK	
+B4c_inplace_write_via_helper	BAD	max_method_loc	386	386	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	methods_over_150	18	18	+0	>=0	OK	
+B4c_inplace_write_via_helper	BAD	methods_over_200	11	11	+0	>=0	OK	
+B5a_dead_method	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B5a_dead_method	BAD	classes_over_300	11	11	+0	>=0	OK	
+B5a_dead_method	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B5a_dead_method	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B5a_dead_method	BAD	coordinator_loc	9011	9016	+5	>=0	OK	
+B5a_dead_method	BAD	coordinator_methods	224	225	+1	>=0	OK	
+B5a_dead_method	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B5a_dead_method	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B5a_dead_method	BAD	cut_dhw	73	73	+0	>=0	OK	
+B5a_dead_method	BAD	cut_fetch	118	118	+0	>=0	OK	
+B5a_dead_method	BAD	cut_grid	183	183	+0	>=0	OK	
+B5a_dead_method	BAD	cut_learning	283	283	+0	>=0	OK	
+B5a_dead_method	BAD	cut_views	109	109	+0	>=0	OK	
+B5a_dead_method	BAD	dead_methods	0	1	+1	>0	OK	y
+B5a_dead_method	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B5a_dead_method	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B5a_dead_method	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B5a_dead_method	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B5a_dead_method	BAD	internal_call_edges	307	308	+1	>=0	OK	
+B5a_dead_method	BAD	local_imports	7	7	+0	>=0	OK	
+B5a_dead_method	BAD	max_cc	48	48	+0	>=0	OK	
+B5a_dead_method	BAD	max_class_loc	9011	9016	+5	>=0	OK	
+B5a_dead_method	BAD	max_method_loc	386	386	+0	>=0	OK	
+B5a_dead_method	BAD	methods_over_150	18	18	+0	>=0	OK	
+B5a_dead_method	BAD	methods_over_200	11	11	+0	>=0	OK	
+B5b_dead_property	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B5b_dead_property	BAD	classes_over_300	11	11	+0	>=0	OK	
+B5b_dead_property	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B5b_dead_property	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B5b_dead_property	BAD	coordinator_loc	9011	9017	+6	>=0	OK	
+B5b_dead_property	BAD	coordinator_methods	224	225	+1	>=0	OK	
+B5b_dead_property	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B5b_dead_property	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B5b_dead_property	BAD	cut_dhw	73	73	+0	>=0	OK	
+B5b_dead_property	BAD	cut_fetch	118	118	+0	>=0	OK	
+B5b_dead_property	BAD	cut_grid	183	183	+0	>=0	OK	
+B5b_dead_property	BAD	cut_learning	283	283	+0	>=0	OK	
+B5b_dead_property	BAD	cut_views	109	109	+0	>=0	OK	
+B5b_dead_property	BAD	dead_methods	0	0	+0	>0	MISS	y
+B5b_dead_property	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B5b_dead_property	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B5b_dead_property	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B5b_dead_property	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B5b_dead_property	BAD	internal_call_edges	307	308	+1	>=0	OK	
+B5b_dead_property	BAD	local_imports	7	7	+0	>=0	OK	
+B5b_dead_property	BAD	max_cc	48	48	+0	>=0	OK	
+B5b_dead_property	BAD	max_class_loc	9011	9017	+6	>=0	OK	
+B5b_dead_property	BAD	max_method_loc	386	386	+0	>=0	OK	
+B5b_dead_property	BAD	methods_over_150	18	18	+0	>=0	OK	
+B5b_dead_property	BAD	methods_over_200	11	11	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	classes_over_300	11	11	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	coordinator_loc	9011	9015	+4	>=0	OK	
+B5c_dead_method_common_name	BAD	coordinator_methods	224	225	+1	>=0	OK	
+B5c_dead_method_common_name	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cut_dhw	73	73	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cut_fetch	118	118	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cut_grid	183	183	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cut_learning	283	283	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	cut_views	109	109	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	dead_methods	0	0	+0	>0	MISS	y
+B5c_dead_method_common_name	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	internal_call_edges	307	308	+1	>=0	OK	
+B5c_dead_method_common_name	BAD	local_imports	7	7	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	max_cc	48	48	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	max_class_loc	9011	9015	+4	>=0	OK	
+B5c_dead_method_common_name	BAD	max_method_loc	386	386	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	methods_over_150	18	18	+0	>=0	OK	
+B5c_dead_method_common_name	BAD	methods_over_200	11	11	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	classes_over_300	11	11	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	coordinator_loc	9011	9021	+10	>=0	OK	
+B5d_dead_method_selfcalled	BAD	coordinator_methods	224	226	+2	>=0	OK	
+B5d_dead_method_selfcalled	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cut_dhw	73	73	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cut_fetch	118	118	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cut_grid	183	183	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cut_learning	283	283	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	cut_views	109	109	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	dead_methods	0	1	+1	>0	OK	y
+B5d_dead_method_selfcalled	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	internal_call_edges	307	309	+2	>=0	OK	
+B5d_dead_method_selfcalled	BAD	local_imports	7	7	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	max_cc	48	48	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	max_class_loc	9011	9021	+10	>=0	OK	
+B5d_dead_method_selfcalled	BAD	max_method_loc	386	386	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	methods_over_150	18	18	+0	>=0	OK	
+B5d_dead_method_selfcalled	BAD	methods_over_200	11	11	+0	>=0	OK	
+B5e_dead_top_level	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B5e_dead_top_level	BAD	classes_over_300	11	11	+0	>=0	OK	
+B5e_dead_top_level	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B5e_dead_top_level	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B5e_dead_top_level	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B5e_dead_top_level	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B5e_dead_top_level	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B5e_dead_top_level	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B5e_dead_top_level	BAD	cut_dhw	73	73	+0	>=0	OK	
+B5e_dead_top_level	BAD	cut_fetch	118	118	+0	>=0	OK	
+B5e_dead_top_level	BAD	cut_grid	183	183	+0	>=0	OK	
+B5e_dead_top_level	BAD	cut_learning	283	283	+0	>=0	OK	
+B5e_dead_top_level	BAD	cut_views	109	109	+0	>=0	OK	
+B5e_dead_top_level	BAD	dead_methods	0	0	+0	>=0	OK	
+B5e_dead_top_level	BAD	dead_top_level_symbols	1	2	+1	>0	OK	y
+B5e_dead_top_level	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B5e_dead_top_level	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B5e_dead_top_level	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B5e_dead_top_level	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B5e_dead_top_level	BAD	local_imports	7	7	+0	>=0	OK	
+B5e_dead_top_level	BAD	max_cc	48	48	+0	>=0	OK	
+B5e_dead_top_level	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B5e_dead_top_level	BAD	max_method_loc	386	386	+0	>=0	OK	
+B5e_dead_top_level	BAD	methods_over_150	18	18	+0	>=0	OK	
+B5e_dead_top_level	BAD	methods_over_200	11	11	+0	>=0	OK	
+B6_cyclic_import	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B6_cyclic_import	BAD	classes_over_300	11	11	+0	>=0	OK	
+B6_cyclic_import	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B6_cyclic_import	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B6_cyclic_import	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B6_cyclic_import	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B6_cyclic_import	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B6_cyclic_import	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B6_cyclic_import	BAD	cut_dhw	73	73	+0	>=0	OK	
+B6_cyclic_import	BAD	cut_fetch	118	118	+0	>=0	OK	
+B6_cyclic_import	BAD	cut_grid	183	183	+0	>=0	OK	
+B6_cyclic_import	BAD	cut_learning	283	283	+0	>=0	OK	
+B6_cyclic_import	BAD	cut_views	109	109	+0	>=0	OK	
+B6_cyclic_import	BAD	dead_methods	0	0	+0	>=0	OK	
+B6_cyclic_import	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B6_cyclic_import	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B6_cyclic_import	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B6_cyclic_import	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B6_cyclic_import	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B6_cyclic_import	BAD	local_imports	7	7	+0	>0	MISS	y
+B6_cyclic_import	BAD	max_cc	48	48	+0	>=0	OK	
+B6_cyclic_import	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B6_cyclic_import	BAD	max_method_loc	386	386	+0	>=0	OK	
+B6_cyclic_import	BAD	methods_over_150	18	18	+0	>=0	OK	
+B6_cyclic_import	BAD	methods_over_200	11	11	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	classes_over_300	11	11	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cut_dhw	73	73	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cut_fetch	118	118	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cut_grid	183	183	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cut_learning	283	283	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	cut_views	109	109	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	dead_methods	0	0	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	local_imports	7	8	+1	>0	OK	y
+B6b_cyclic_import_local	BAD	max_cc	48	48	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	max_method_loc	386	386	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	methods_over_150	18	18	+0	>=0	OK	
+B6b_cyclic_import_local	BAD	methods_over_200	11	11	+0	>=0	OK	
+B7_god_helper_module	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B7_god_helper_module	BAD	classes_over_300	11	11	+0	>=0	OK	
+B7_god_helper_module	BAD	const_modules_over_50	3	3	+0	>=0	OK	
+B7_god_helper_module	BAD	coordinator_attrs	153	153	+0	>0	MISS	y
+B7_god_helper_module	BAD	coordinator_loc	9011	8823	-188	>0	WRONG	y
+B7_god_helper_module	BAD	coordinator_methods	224	219	-5	>0	WRONG	y
+B7_god_helper_module	BAD	coordinator_multiassigned_attrs	115	114	-1	>=0	WRONG	
+B7_god_helper_module	BAD	cross_seam_edges	131	124	-7	>0	WRONG	y
+B7_god_helper_module	BAD	cut_dhw	73	73	+0	>0	MISS	y
+B7_god_helper_module	BAD	cut_fetch	118	118	+0	>0	MISS	y
+B7_god_helper_module	BAD	cut_grid	183	180	-3	>0	WRONG	y
+B7_god_helper_module	BAD	cut_learning	283	270	-13	>0	WRONG	y
+B7_god_helper_module	BAD	cut_views	109	101	-8	>0	WRONG	y
+B7_god_helper_module	BAD	dead_methods	0	0	+0	>=0	OK	
+B7_god_helper_module	BAD	dead_top_level_symbols	1	1	+0	>=0	OK	
+B7_god_helper_module	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B7_god_helper_module	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B7_god_helper_module	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B7_god_helper_module	BAD	internal_call_edges	307	293	-14	>=0	WRONG	
+B7_god_helper_module	BAD	local_imports	7	7	+0	>=0	OK	
+B7_god_helper_module	BAD	max_cc	48	48	+0	>=0	OK	
+B7_god_helper_module	BAD	max_class_loc	9011	8823	-188	>=0	WRONG	
+B7_god_helper_module	BAD	max_method_loc	386	386	+0	>=0	OK	
+B7_god_helper_module	BAD	methods_over_150	18	18	+0	>=0	OK	
+B7_god_helper_module	BAD	methods_over_200	11	11	+0	>=0	OK	
+B8_star_import_const	BAD	attrbag_classes_over_30	1	1	+0	>=0	OK	
+B8_star_import_const	BAD	classes_over_300	11	11	+0	>=0	OK	
+B8_star_import_const	BAD	const_modules_over_50	3	2	-1	>0	WRONG	y
+B8_star_import_const	BAD	coordinator_attrs	153	153	+0	>=0	OK	
+B8_star_import_const	BAD	coordinator_loc	9011	9011	+0	>=0	OK	
+B8_star_import_const	BAD	coordinator_methods	224	224	+0	>=0	OK	
+B8_star_import_const	BAD	coordinator_multiassigned_attrs	115	115	+0	>=0	OK	
+B8_star_import_const	BAD	cross_seam_edges	131	131	+0	>=0	OK	
+B8_star_import_const	BAD	cut_dhw	73	73	+0	>=0	OK	
+B8_star_import_const	BAD	cut_fetch	118	118	+0	>=0	OK	
+B8_star_import_const	BAD	cut_grid	183	183	+0	>=0	OK	
+B8_star_import_const	BAD	cut_learning	283	283	+0	>=0	OK	
+B8_star_import_const	BAD	cut_views	109	109	+0	>=0	OK	
+B8_star_import_const	BAD	dead_methods	0	0	+0	>=0	OK	
+B8_star_import_const	BAD	dead_top_level_symbols	1	43	+42	>=0	OK	
+B8_star_import_const	BAD	duplication_blocks	14	14	+0	>=0	OK	
+B8_star_import_const	BAD	functions_cc_over_15	34	34	+0	>=0	OK	
+B8_star_import_const	BAD	functions_cc_over_25	8	8	+0	>=0	OK	
+B8_star_import_const	BAD	internal_call_edges	307	307	+0	>=0	OK	
+B8_star_import_const	BAD	local_imports	7	7	+0	>=0	OK	
+B8_star_import_const	BAD	max_cc	48	48	+0	>=0	OK	
+B8_star_import_const	BAD	max_class_loc	9011	9011	+0	>=0	OK	
+B8_star_import_const	BAD	max_method_loc	386	386	+0	>=0	OK	
+B8_star_import_const	BAD	methods_over_150	18	18	+0	>=0	OK	
+B8_star_import_const	BAD	methods_over_200	11	11	+0	>=0	OK	
+N1_rename_local	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N1_rename_local	NULL	classes_over_300	11	11	+0	0	OK	
+N1_rename_local	NULL	const_modules_over_50	3	3	+0	0	OK	
+N1_rename_local	NULL	coordinator_attrs	153	153	+0	0	OK	
+N1_rename_local	NULL	coordinator_loc	9011	9011	+0	0	OK	
+N1_rename_local	NULL	coordinator_methods	224	224	+0	0	OK	
+N1_rename_local	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N1_rename_local	NULL	cross_seam_edges	131	131	+0	0	OK	
+N1_rename_local	NULL	cut_dhw	73	73	+0	0	OK	
+N1_rename_local	NULL	cut_fetch	118	118	+0	0	OK	
+N1_rename_local	NULL	cut_grid	183	183	+0	0	OK	
+N1_rename_local	NULL	cut_learning	283	283	+0	0	OK	
+N1_rename_local	NULL	cut_views	109	109	+0	0	OK	
+N1_rename_local	NULL	dead_methods	0	0	+0	0	OK	
+N1_rename_local	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N1_rename_local	NULL	duplication_blocks	14	14	+0	0	OK	
+N1_rename_local	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N1_rename_local	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N1_rename_local	NULL	internal_call_edges	307	307	+0	0	OK	
+N1_rename_local	NULL	local_imports	7	7	+0	0	OK	
+N1_rename_local	NULL	max_cc	48	48	+0	0	OK	
+N1_rename_local	NULL	max_class_loc	9011	9011	+0	0	OK	
+N1_rename_local	NULL	max_method_loc	386	386	+0	0	OK	
+N1_rename_local	NULL	methods_over_150	18	18	+0	0	OK	
+N1_rename_local	NULL	methods_over_200	11	11	+0	0	OK	
+N1b_reformat_signature	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N1b_reformat_signature	NULL	classes_over_300	11	11	+0	0	OK	
+N1b_reformat_signature	NULL	const_modules_over_50	3	3	+0	0	OK	
+N1b_reformat_signature	NULL	coordinator_attrs	153	153	+0	0	OK	
+N1b_reformat_signature	NULL	coordinator_loc	9011	9011	+0	0	OK	
+N1b_reformat_signature	NULL	coordinator_methods	224	224	+0	0	OK	
+N1b_reformat_signature	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N1b_reformat_signature	NULL	cross_seam_edges	131	131	+0	0	OK	
+N1b_reformat_signature	NULL	cut_dhw	73	73	+0	0	OK	
+N1b_reformat_signature	NULL	cut_fetch	118	118	+0	0	OK	
+N1b_reformat_signature	NULL	cut_grid	183	183	+0	0	OK	
+N1b_reformat_signature	NULL	cut_learning	283	283	+0	0	OK	
+N1b_reformat_signature	NULL	cut_views	109	109	+0	0	OK	
+N1b_reformat_signature	NULL	dead_methods	0	0	+0	0	OK	
+N1b_reformat_signature	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N1b_reformat_signature	NULL	duplication_blocks	14	12	-2	0	WRONG	
+N1b_reformat_signature	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N1b_reformat_signature	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N1b_reformat_signature	NULL	internal_call_edges	307	307	+0	0	OK	
+N1b_reformat_signature	NULL	local_imports	7	7	+0	0	OK	
+N1b_reformat_signature	NULL	max_cc	48	48	+0	0	OK	
+N1b_reformat_signature	NULL	max_class_loc	9011	9011	+0	0	OK	
+N1b_reformat_signature	NULL	max_method_loc	386	386	+0	0	OK	
+N1b_reformat_signature	NULL	methods_over_150	18	18	+0	0	OK	
+N1b_reformat_signature	NULL	methods_over_200	11	11	+0	0	OK	
+N1c_reformat_explode_call	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N1c_reformat_explode_call	NULL	classes_over_300	11	11	+0	0	OK	
+N1c_reformat_explode_call	NULL	const_modules_over_50	3	3	+0	0	OK	
+N1c_reformat_explode_call	NULL	coordinator_attrs	153	153	+0	0	OK	
+N1c_reformat_explode_call	NULL	coordinator_loc	9011	9011	+0	0	OK	
+N1c_reformat_explode_call	NULL	coordinator_methods	224	224	+0	0	OK	
+N1c_reformat_explode_call	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N1c_reformat_explode_call	NULL	cross_seam_edges	131	131	+0	0	OK	
+N1c_reformat_explode_call	NULL	cut_dhw	73	73	+0	0	OK	
+N1c_reformat_explode_call	NULL	cut_fetch	118	118	+0	0	OK	
+N1c_reformat_explode_call	NULL	cut_grid	183	183	+0	0	OK	
+N1c_reformat_explode_call	NULL	cut_learning	283	283	+0	0	OK	
+N1c_reformat_explode_call	NULL	cut_views	109	109	+0	0	OK	
+N1c_reformat_explode_call	NULL	dead_methods	0	0	+0	0	OK	
+N1c_reformat_explode_call	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N1c_reformat_explode_call	NULL	duplication_blocks	14	14	+0	0	OK	
+N1c_reformat_explode_call	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N1c_reformat_explode_call	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N1c_reformat_explode_call	NULL	internal_call_edges	307	307	+0	0	OK	
+N1c_reformat_explode_call	NULL	local_imports	7	7	+0	0	OK	
+N1c_reformat_explode_call	NULL	max_cc	48	48	+0	0	OK	
+N1c_reformat_explode_call	NULL	max_class_loc	9011	9011	+0	0	OK	
+N1c_reformat_explode_call	NULL	max_method_loc	386	424	+38	0	WRONG	
+N1c_reformat_explode_call	NULL	methods_over_150	18	18	+0	0	OK	
+N1c_reformat_explode_call	NULL	methods_over_200	11	11	+0	0	OK	
+N2_docstring	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N2_docstring	NULL	classes_over_300	11	11	+0	0	OK	
+N2_docstring	NULL	const_modules_over_50	3	3	+0	0	OK	
+N2_docstring	NULL	coordinator_attrs	153	153	+0	0	OK	
+N2_docstring	NULL	coordinator_loc	9011	9016	+5	0	WRONG	
+N2_docstring	NULL	coordinator_methods	224	224	+0	0	OK	
+N2_docstring	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N2_docstring	NULL	cross_seam_edges	131	131	+0	0	OK	
+N2_docstring	NULL	cut_dhw	73	73	+0	0	OK	
+N2_docstring	NULL	cut_fetch	118	118	+0	0	OK	
+N2_docstring	NULL	cut_grid	183	183	+0	0	OK	
+N2_docstring	NULL	cut_learning	283	283	+0	0	OK	
+N2_docstring	NULL	cut_views	109	109	+0	0	OK	
+N2_docstring	NULL	dead_methods	0	0	+0	0	OK	
+N2_docstring	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N2_docstring	NULL	duplication_blocks	14	14	+0	0	OK	
+N2_docstring	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N2_docstring	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N2_docstring	NULL	internal_call_edges	307	307	+0	0	OK	
+N2_docstring	NULL	local_imports	7	7	+0	0	OK	
+N2_docstring	NULL	max_cc	48	48	+0	0	OK	
+N2_docstring	NULL	max_class_loc	9011	9016	+5	0	WRONG	
+N2_docstring	NULL	max_method_loc	386	390	+4	0	WRONG	
+N2_docstring	NULL	methods_over_150	18	18	+0	0	OK	
+N2_docstring	NULL	methods_over_200	11	11	+0	0	OK	
+N3_seam_relabel	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N3_seam_relabel	NULL	classes_over_300	11	11	+0	0	OK	
+N3_seam_relabel	NULL	const_modules_over_50	3	3	+0	0	OK	
+N3_seam_relabel	NULL	coordinator_attrs	153	153	+0	0	OK	
+N3_seam_relabel	NULL	coordinator_loc	9011	9011	+0	0	OK	
+N3_seam_relabel	NULL	coordinator_methods	224	224	+0	0	OK	
+N3_seam_relabel	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N3_seam_relabel	NULL	cross_seam_edges	131	129	-2	0	WRONG	
+N3_seam_relabel	NULL	cut_dhw	73	73	+0	0	OK	
+N3_seam_relabel	NULL	cut_fetch	118	118	+0	0	OK	
+N3_seam_relabel	NULL	cut_grid	183	183	+0	0	OK	
+N3_seam_relabel	NULL	cut_learning	283	262	-21	0	WRONG	
+N3_seam_relabel	NULL	cut_views	109	109	+0	0	OK	
+N3_seam_relabel	NULL	dead_methods	0	0	+0	0	OK	
+N3_seam_relabel	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N3_seam_relabel	NULL	duplication_blocks	14	14	+0	0	OK	
+N3_seam_relabel	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N3_seam_relabel	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N3_seam_relabel	NULL	internal_call_edges	307	307	+0	0	OK	
+N3_seam_relabel	NULL	local_imports	7	7	+0	0	OK	
+N3_seam_relabel	NULL	max_cc	48	48	+0	0	OK	
+N3_seam_relabel	NULL	max_class_loc	9011	9011	+0	0	OK	
+N3_seam_relabel	NULL	max_method_loc	386	386	+0	0	OK	
+N3_seam_relabel	NULL	methods_over_150	18	18	+0	0	OK	
+N3_seam_relabel	NULL	methods_over_200	11	11	+0	0	OK	
+N4_const_namespace_import	NULL	attrbag_classes_over_30	1	1	+0	0	OK	
+N4_const_namespace_import	NULL	classes_over_300	11	11	+0	0	OK	
+N4_const_namespace_import	NULL	const_modules_over_50	3	2	-1	0	WRONG	
+N4_const_namespace_import	NULL	coordinator_attrs	153	153	+0	0	OK	
+N4_const_namespace_import	NULL	coordinator_loc	9011	9011	+0	0	OK	
+N4_const_namespace_import	NULL	coordinator_methods	224	224	+0	0	OK	
+N4_const_namespace_import	NULL	coordinator_multiassigned_attrs	115	115	+0	0	OK	
+N4_const_namespace_import	NULL	cross_seam_edges	131	131	+0	0	OK	
+N4_const_namespace_import	NULL	cut_dhw	73	73	+0	0	OK	
+N4_const_namespace_import	NULL	cut_fetch	118	118	+0	0	OK	
+N4_const_namespace_import	NULL	cut_grid	183	183	+0	0	OK	
+N4_const_namespace_import	NULL	cut_learning	283	283	+0	0	OK	
+N4_const_namespace_import	NULL	cut_views	109	109	+0	0	OK	
+N4_const_namespace_import	NULL	dead_methods	0	0	+0	0	OK	
+N4_const_namespace_import	NULL	dead_top_level_symbols	1	1	+0	0	OK	
+N4_const_namespace_import	NULL	duplication_blocks	14	14	+0	0	OK	
+N4_const_namespace_import	NULL	functions_cc_over_15	34	34	+0	0	OK	
+N4_const_namespace_import	NULL	functions_cc_over_25	8	8	+0	0	OK	
+N4_const_namespace_import	NULL	internal_call_edges	307	307	+0	0	OK	
+N4_const_namespace_import	NULL	local_imports	7	7	+0	0	OK	
+N4_const_namespace_import	NULL	max_cc	48	48	+0	0	OK	
+N4_const_namespace_import	NULL	max_class_loc	9011	9011	+0	0	OK	
+N4_const_namespace_import	NULL	max_method_loc	386	386	+0	0	OK	
+N4_const_namespace_import	NULL	methods_over_150	18	18	+0	0	OK	
+N4_const_namespace_import	NULL	methods_over_200	11	11	+0	0	OK	

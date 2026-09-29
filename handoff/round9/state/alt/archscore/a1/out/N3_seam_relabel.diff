@@ -1,0 +1,13 @@
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..c188b3b9 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -40,7 +40,7 @@
+   "_async_setup_ecl110_state_subscription": "core",
+   "_async_setup_peak_guard": "grid",
+   "_async_update_data": "core",
+-  "_async_watch_learning_drift": "learning",
++  "_async_watch_learning_drift": "core",
+   "_audit_comfort_band": "learning",
+   "_audit_grid_fee": "grid",
+   "_audit_lower_floor_sensor": "core",

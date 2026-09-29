@@ -1,0 +1,40 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..5640f127 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -497,6 +497,26 @@ def _as_float(value: Any, default: float) -> float:
+     return result
+ 
+ 
++def _as_float_copy(value: Any, default: float) -> float:
++    """Coerce a forecast/sensor value to a finite float.
++
++    Weather integrations are free to report a key as ``None`` (Home Assistant's
++    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
++    through produces a ``TypeError`` on the next comparison, or a silent NaN
++    that poisons the whole optimization horizon, so anything that is not a
++    finite number falls back to ``default``.
++    """
++    if value is None:
++        return default
++    try:
++        result = float(value)
++    except (TypeError, ValueError):
++        return default
++    if not np.isfinite(result):
++        return default
++    return result
++
++
+ def _storable_sample_count(raw: Any) -> int:
+     """A stored sample count a fold could have written (D1-s2-03).
+ 
+@@ -721,7 +741,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
+         # `_weather_series` falls back to, which starts the series at now.
+         entry = forecast[0]
+     temperature = entry.get("temperature")
+-    return None if temperature is None else _as_float(temperature, 5.0)
++    return None if temperature is None else _as_float_copy(temperature, 5.0)
+ 
+ 
+ # A failed solve keeps the last good plan published — deliberately, a solver

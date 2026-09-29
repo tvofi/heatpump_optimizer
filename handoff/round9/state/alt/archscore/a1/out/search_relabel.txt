@@ -1,0 +1,6 @@
+1120 single relabels; 100 lower the cut table
+(-23, '_async_watch_learning_drift', 'learning', 'core', {'cut_learning': -21}, -2)
+(-21, '_init_dhw_learning', 'dhw', 'core', {'cut_dhw': -20}, -1)
+(-19, '_thermal_view', 'views', 'core', {'cut_views': -18}, -1)
+(-17, '_build_data_dict', 'views', 'core', {'cut_views': -15}, -2)
+(-15, '_async_learn_price_shape', 'learning', 'fetch', {'cut_learning': -8, 'cut_fetch': -6}, -1)

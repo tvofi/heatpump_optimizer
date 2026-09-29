@@ -1,0 +1,63 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..c181a3b1 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2589,6 +2589,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     @property
+     def current_action(self) -> dict[str, Any]:
+         return self._current_action
++
++    @property
++    def current_state(self) -> ThermalState:
++        return getattr(self, "_ctx", self)._current_state
+     async def _async_setup_ecl110_state_subscription(self) -> None:
+         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
+         if not self._ecl110_state_topic:
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..ed09c424 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -341,7 +341,7 @@ def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
+         return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
+     if duty is not None:
+         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
+-    outdoor = float(coord._current_state.outdoor_temperature)
++    outdoor = float(coord.current_state.outdoor_temperature)
+     curve = coord._thermal_model.curve_flow_temp(outdoor)
+     hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+     return _bounded(state, hold, FLOW_GATE_C)
+@@ -441,11 +441,11 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
+         held.dhw_since = None
+         return duty
+     held.dhw_since = held.dhw_since or now
+-    cold = float(coord._current_state.outdoor_temperature) < COLD_RAIL_C
++    cold = float(coord.current_state.outdoor_temperature) < COLD_RAIL_C
+     cap = COLD_LEASE_MINUTES if cold else LEASE_MINUTES
+     if now - held.dhw_since <= timedelta(minutes=cap):
+         return duty
+-    room = getattr(coord._current_state, "room_temperature", None)
++    room = getattr(coord.current_state, "room_temperature", None)
+     planned = _planned_room(getattr(coord, "_optimization_result", None), now)
+     warm = room is not None and planned is not None and float(room) >= float(planned)
+     return duty if warm else None
+@@ -555,7 +555,7 @@ def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
+     """Fold this pass into the current step's ledger row; close the last one."""
+     held.last_duty = duty
+     start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+-    tank = getattr(coord._current_state, "dhw_temperature", None)
++    tank = getattr(coord.current_state, "dhw_temperature", None)
+     row = held.step
+     if row is None or row["start"] != start:
+         if row is not None:
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index 25608d14..1b226e4f 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -209,6 +209,7 @@
+   "async_update_thermal_params": "core",
+   "configured_dhw_windows": "dhw",
+   "current_action": "core",
++  "current_state": "core",
+   "describe_setup": "core",
+   "device_info": "core",
+   "dhw_temperature": "dhw",

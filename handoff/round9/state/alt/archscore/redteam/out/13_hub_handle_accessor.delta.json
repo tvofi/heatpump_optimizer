@@ -1,0 +1,13 @@
+{
+ "admissible": false,
+ "dS": 11.0729,
+ "missing": [],
+ "rises": [
+  "coord_footprint_v1 2512->2524"
+ ],
+ "terms": {
+  "coord_footprint_v1": -0.0069,
+  "hub_solve_writes": 11.0798
+ },
+ "verdict": "WORSENS"
+}

@@ -1,0 +1,22 @@
+merge              S        dS verdict   rises
+5b90334458   -3.8958
+3bae92d962   -3.8975   -0.0017 WORSENS   coord_footprint_v1 2517->2520
+8ff6827a9c   -3.8975   +0.0000 NULL      
+cdbca70679   -7.0949   -3.1974 WORSENS   family_splits 3->5
+31394964bb   -7.0949   +0.0000 NULL      
+686239d26d   -7.0954   -0.0006 WORSENS   coord_footprint_v1 2520->2521
+c54b20d27d   -7.0954   +0.0000 NULL      
+38dffe367d   -7.0954   +0.0000 NULL      
+3490cb16ec   -7.0954   +0.0000 NULL      
+5a2a62ff10   -7.0954   +0.0000 NULL      
+d9d5e9f1de   -7.0954   +0.0000 NULL      
+c2a0448d07   -7.0937   +0.0017 IMPROVES  
+89d1ddf581   -7.0937   +0.0000 NULL      
+f74e981a0e   -7.0937   +0.0000 NULL      
+4f8088e8f0   -7.1112   -0.0175 WORSENS   coord_footprint_v1 2518->2521; private_reach 90->91
+5395394da9   -2.9750   +4.1363 WORSENS   private_reach 91->92
+3defa2d588    0.0000   +2.9750 WORSENS   public_unused 5->6
+ee13f67e01    0.0000   +0.0000 NULL      
+acf5264d14    0.0000   +0.0000 NULL      
+b2fadf6e0b    0.0000   +0.0000 NULL      
+7952d8f9e4    0.0000   +0.0000 NULL      

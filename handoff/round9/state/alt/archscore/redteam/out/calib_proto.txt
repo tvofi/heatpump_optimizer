@@ -1,0 +1,48 @@
+case      label    v1             dS1  proto          dS2  rises(proto)
+8827452e  BAD      WORSENS     -0.646  WORSENS     -0.646  untyped_payload_keys_v2 37->38; coord_footprint_v1 264->304; a1_coord_writers_multi 21->24  ok 1->1
+5f6ada5e  BAD      WORSENS    -33.031  WORSENS    -33.294  hub_solve_writes 0->19; shared_inplace_writes 1->3; dup_pairs_v2 89->91; untyped_payload_k  ok 1->1
+c27a6d32  BAD      WORSENS      1.676  WORSENS      1.770  hub_solve_writes 20->23; coord_footprint_v1 1008->1089; private_reach_v2 5->8  ok 1->1
+f2d7a502  BAD      WORSENS     -4.036  WORSENS     -4.036  hub_solve_writes 32->34; shared_inplace_writes 4->6; dup_pairs_v2 100->102; untyped_payloa  ok 1->1
+9ac2d02c  BAD      WORSENS     -4.830  WORSENS     -4.830  hub_solve_writes 34->40; shared_inplace_writes 6->9; untyped_payload_keys_v2 128->132; dea  ok 1->1
+2e0d3d96  BAD      WORSENS     -3.284  WORSENS     -3.284  shared_inplace_writes 10->14; dup_pairs_v2 103->107; untyped_payload_keys_v2 142->143; coo  ok 1->1
+364d9b41  BAD      WORSENS     -0.568  WORSENS     -0.568  dup_pairs_v2 90->91; untyped_payload_keys_v2 113->114; coord_footprint_v1 919->955; a1_coo  ok 1->1
+ca711b56  BAD      NULL         0.000  NULL         0.000    ok 0->0
+07bdc557  BAD      WORSENS     -3.184  WORSENS     -3.177  shared_inplace_writes 26->38; coord_footprint_v1 2539->2564; private_reach_v2 37->45  ok 1->1
+a1bdb11c  BAD      NULL         0.000  NULL         0.000    ok 0->0
+546b4924  BAD      NULL         0.000  NULL         0.000    ok 0->0
+3b320405  BAD      WORSENS     -0.833  WORSENS     -0.824  dup_pairs_v2 122->124; coord_footprint_v1 2355->2472; private_reach_v2 49->72; computed_at  ok 1->1
+3e5aba6a  BAD      WORSENS    -26.938  WORSENS    -26.938  shared_inplace_writes 0->1; dup_pairs_v2 10->36; untyped_payload_keys_v2 17->24; dead_by_r  ok 1->1
+aa2677ba  BAD      WORSENS     -2.735  WORSENS     -2.735  untyped_payload_keys_v2 152->153; family_splits 4->6; coord_footprint_v1 2451->2463; a1_co  ok 1->1
+e4bc3756  NEUTRAL  WORSENS     -5.985  WORSENS     -5.967  shared_inplace_writes 17->26; untyped_payload_keys_v2 157->159; family_splits 5->7; coord_  ok 1->1
+9a0d4c5e  NEUTRAL  WORSENS      0.019  WORSENS      0.019  untyped_payload_keys_v2 146->147; coord_footprint_v1 2186->2188  ok 1->1
+c5fcfb17  NEUTRAL  WORSENS     -0.634  WORSENS     -0.634  hub_solve_writes 23->25; coord_footprint_v1 1104->1108  ok 1->1
+97dc04f2  NEUTRAL  IMPROVES     0.928  WORSENS      0.928  reflective_writes 14->15; computed_attr_access 24->28  <-- changed  ok 0->1
+44a6351d  NEUTRAL  WORSENS     -0.024  WORSENS     -0.024  coord_footprint_v1 2540->2550; a1_coord_writers_multi 152->154; reflective_writes 10->11;   ok 1->1
+c197b018  NEUTRAL  WORSENS     -0.001  WORSENS     -0.001  coord_footprint_v1 2573->2574  ok 1->1
+7d47e80e  NEUTRAL  NULL         0.000  NULL         0.000    ok 1->1
+ca937daa  GOOD     IMPROVES     0.795  IMPROVES     0.795    ok 1->1
+4a7bdb69  GOOD     WORSENS     -0.206  WORSENS     -0.206  params_over_10_v2 12->14  ok 0->0
+4b6e0765  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+67e1cf33  GOOD     WORSENS      0.424  WORSENS      0.462  dup_pairs_v2 97->98; coord_footprint_v1 2574->2602; reflective_writes 11->13; computed_att  ok 0->0
+d979110c  GOOD     IMPROVES     0.002  IMPROVES     0.002    ok 1->1
+5a4e6ff9  GOOD     IMPROVES     0.008  IMPROVES     0.008    ok 1->1
+8281f544  GOOD     IMPROVES     0.002  IMPROVES     0.002    ok 1->1
+d04ed89f  GOOD     IMPROVES     0.004  IMPROVES     0.004    ok 1->1
+0f9eb71a  GOOD     IMPROVES     0.009  IMPROVES     0.009    ok 1->1
+52d38d95  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+8bc4c661  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+0323c5b8  GOOD     WORSENS     -3.004  WORSENS     -3.004  dup_pairs_v2 98->124  ok 0->0
+69781076  GOOD     IMPROVES     0.710  IMPROVES     0.710    ok 1->1
+ec263d82  GOOD     IMPROVES     0.184  IMPROVES     0.184    ok 1->1
+137b6d59  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+33cedffa  GOOD     IMPROVES     0.001  IMPROVES     0.001    ok 1->1
+043ed159  GOOD     WORSENS     -0.064  WORSENS     -0.064  params_over_10_v2 21->22  ok 0->0
+56cb0027  GOOD     WORSENS     -0.100  WORSENS     -0.100  dup_pairs_v2 121->122  ok 0->0
+2a451021  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+3e9f1878  GOOD     WORSENS     -0.193  WORSENS     -0.193  dead_by_reachability 6->7  ok 0->0
+ff30236d  GOOD     NULL         0.000  NULL         0.000    ok 0->0
+3bae92d9  GOOD     WORSENS     -0.002  WORSENS     -0.002  coord_footprint_v1 2517->2520  ok 0->0
+c2a0448d  GOOD     IMPROVES     0.002  IMPROVES     0.002    ok 1->1
+5395394d  GOOD     WORSENS      4.136  WORSENS      4.137  private_reach_v2 98->99  ok 0->0
+
+45 corpus cases; verdict changed on 1: 97dc04f2

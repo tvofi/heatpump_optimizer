@@ -1,0 +1,163 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..6d1a94f4 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -266,7 +266,7 @@ def own(coord: Any, signals: Any) -> Any:
+     rewritten within a tick. With the optimizer off the reading blocks
+     again, since the pump is the person's then.
+     """
+-    if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:
++    if duty_mode(coord.effective_config) != DUTY_CONTROL or coord.mode == MODE_OFF:
+         return signals
+     if signals.mode.key not in _OWN_MODES:
+         return signals
+@@ -274,7 +274,7 @@ def own(coord: Any, signals: Any) -> Any:
+ 
+ 
+ def _slot_state(coord: Any, slot: str) -> Any:
+-    entity = _entities(coord._config)[slot]
++    entity = _entities(coord.effective_config)[slot]
+     return coord.hass.states.get(entity) if entity else None
+ 
+ 
+@@ -307,7 +307,7 @@ def _planned_room(result: Any, now: datetime) -> float | None:
+ def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> float | None:
+     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+     state = _slot_state(coord, "space_setpoint")
+-    if _flow_unit(coord._config):
++    if _flow_unit(coord.effective_config):
+         return _flow_target(coord, state, duty)
+     room = _planned_room(result, now)
+     low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
+@@ -318,7 +318,7 @@ def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> f
+         _LOGGER.warning(
+             "Pump duty: %s is declared an indoor set-point but its minimum is "
+             "%.1f degC; set its unit to Flow temperature. Not writing it.",
+-            _entities(coord._config)["space_setpoint"], low,
++            _entities(coord.effective_config)["space_setpoint"], low,
+         )
+         return None
+     return _bounded(state, room)
+@@ -376,7 +376,7 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
+         return PumpCommand(both, dhw, space)
+     if _option_for(mode_state, pump_mode.MODE_DHW):
+         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
+-    if _flow_unit(coord._config):
++    if _flow_unit(coord.effective_config):
+         return PumpCommand(both, dhw, space)
+     return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
+ 
+@@ -410,11 +410,11 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
+     wants the other duty too. The global boost mode plans no hot water, so
+     it is ``both``: the heating flow, not the baseline's hold.
+     """
+-    if coord._mode == MODE_BOOST:
++    if coord.mode == MODE_BOOST:
+         return "both"
+-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
++    if coord.mode not in (MODE_AUTO, MODE_ECONOMY):
+         return None
+-    if (coord._current_action or {}).get("mode") == "system_identification":
++    if (coord.current_action or {}).get("mode") == "system_identification":
+         return None
+     held = boost.held_for(coord)
+     result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
+@@ -462,7 +462,7 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
+ 
+ def _observed(coord: Any, slot: str) -> Any:
+     """The reading, or ``None`` when there is none: an unavailable select is not a mode."""
+-    entity = _entities(coord._config)[slot]
++    entity = _entities(coord.effective_config)[slot]
+     if slot == "mode":
+         raw = getattr(coord.hass.states.get(entity) if entity else None, "state", None)
+         return raw if pump_mode.resolve(raw) is not None else None
+@@ -488,7 +488,7 @@ def hold(coord: Any, now: datetime) -> None:
+         del held.written[slot]
+         held.misses[slot] = held.misses.get(slot, 0) + 1
+         if held.misses[slot] > 1:
+-            entity = _entities(coord._config)[slot]
++            entity = _entities(coord.effective_config)[slot]
+             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
+ 
+ 
+@@ -520,7 +520,7 @@ def _forget(held: ArbiterState) -> None:
+ 
+ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
+     held = state_for(coord)
+-    state, entity = _slot_state(coord, slot), _entities(coord._config)[slot]
++    state, entity = _slot_state(coord, slot), _entities(coord.effective_config)[slot]
+     recorded = held.written.get(slot)
+     if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
+         return
+@@ -595,7 +595,7 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
+     """One arbitration pass; safe to call from the cycle and from the tick."""
+     now = now or dt_util.now()
+     held = state_for(coord)
+-    mode = duty_mode(coord._config)
++    mode = duty_mode(coord.effective_config)
+     if mode == DUTY_OFF:
+         release_listeners(coord)
+         return
+@@ -608,7 +608,7 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
+ 
+ 
+ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
+-    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
++    if coord.mode == MODE_OFF or mode != DUTY_CONTROL:
+         # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
+         # pump is the person's the moment the optimizer lets go of it.
+         if held.written or held.retry:
+@@ -616,7 +616,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
+             _forget(held)
+             _clear(coord, ISSUE_IGNORED)
+             await _persist(coord)
+-        if coord._mode == MODE_OFF:
++        if coord.mode == MODE_OFF:
+             return
+     duty = _leased(coord, held, _planned_duty(coord, now), now)
+     _observe(coord, held, duty, now)
+@@ -634,7 +634,7 @@ def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
+     A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
+     """
+     held = boost.held_for(coord)
+-    if (duty != "both" or coord._mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
++    if (duty != "both" or coord.mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
+             or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
+         return duty
+     result = coord._optimization_result
+@@ -655,7 +655,7 @@ def _pump_off(coord: Any) -> bool:
+     degC), so nothing is compared or written until it is on again; then a
+     reset that is still there is rewritten like any other difference.
+     """
+-    entity = coord._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
++    entity = coord.effective_config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
+     power = coord.hass.states.get(entity) if entity else None
+     return bool(getattr(power, "state", None) == "off")
+ 
+@@ -664,7 +664,7 @@ async def release(coord: Any) -> None:
+     """Unload: write the baseline over anything still owned, then let go."""
+     release_listeners(coord)
+     held = state_for(coord)
+-    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:
++    if held.written and duty_mode(coord.effective_config) == DUTY_CONTROL and coord.mode != MODE_OFF:
+         await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
+ 
+ 
+@@ -688,7 +688,7 @@ def _listen(coord: Any) -> None:
+         hass.async_create_task(apply(coord))
+ 
+     held.unsubs.append(async_track_time_interval(hass, _tick, _TICK))
+-    entities = [e for e in _entities(coord._config).values() if e]
++    entities = [e for e in _entities(coord.effective_config).values() if e]
+     if entities:
+         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
+ 
+@@ -753,7 +753,7 @@ def diagnostics_view(coord: Any) -> dict[str, Any]:
+     """The diagnostics view."""
+     held = state_for(coord)
+     return {
+-        "duty_mode": duty_mode(coord._config),
++        "duty_mode": duty_mode(coord.effective_config),
+         "last_duty": held.last_duty,
+         "misses": dict(held.misses),
+         "retrying": sorted(held.retry),

@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..96192b25 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -229,6 +229,11 @@ def _flow_unit(config: Any) -> bool:
+     return bool(config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow")
+ 
+ 
++def _duty_label_unused(duty: str | None) -> str:
++    """Human label for a duty (nothing calls this)."""
++    return "none" if duty is None else duty.replace("_", " ")
++
++
+ def state_for(coord: Any) -> ArbiterState:
+     held = _STATES.get(coord)
+     if held is None:

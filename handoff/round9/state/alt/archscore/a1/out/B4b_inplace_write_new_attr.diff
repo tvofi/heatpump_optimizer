@@ -1,0 +1,20 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..9e6bc442 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2168,6 +2168,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # says so" — the staleness flag, the actuation fallback and the
+         # repair issue all key off it and off the last success time.
+         self._solve_failures: int = 0
++        self._solve_prices: list[float] = []
+         self._next_optimization: datetime | None = None
+         self._prices: list[dict[str, Any]] = []
+         self._weather_forecast: list[dict[str, Any]] = []
+@@ -4977,6 +4978,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             solve_now = _solve_anchor(now)
+             horizon = self._forecast_arrays(now)
+             prices = horizon.prices
++            self._solve_prices = list(prices)
+ 
+             if len(prices) < 4:
+                 _LOGGER.warning(

@@ -1,0 +1,24 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..833c4892 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -645,6 +645,11 @@ async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None
+             _LOGGER.debug(message, err)
+ 
+ 
++def _note_solve_prices(coord: "HeatPumpOptimizerCoordinator", prices: Any) -> None:
++    """Remember this solve's price vector on the coordinator."""
++    coord._solve_prices = list(prices)
++
++
+ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -> None:
+     """Count a failed solve and raise the repair issue at its threshold.
+ 
+@@ -4977,6 +4982,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             solve_now = _solve_anchor(now)
+             horizon = self._forecast_arrays(now)
+             prices = horizon.prices
++            _note_solve_prices(self, prices)
+ 
+             if len(prices) < 4:
+                 _LOGGER.warning(

@@ -1,0 +1,49 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..e47f0db1 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -111,6 +111,8 @@ from collections import Counter, deque
+ from dataclasses import dataclass, field, replace
+ from datetime import datetime, timedelta
+ from typing import Any
++
++import numpy as np
+ from weakref import WeakKeyDictionary
+ 
+ from homeassistant.core import callback
+@@ -229,6 +231,26 @@ def _flow_unit(config: Any) -> bool:
+     return bool(config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow")
+ 
+ 
++def _as_float(value: Any, default: float) -> float:
++    """Coerce a forecast/sensor value to a finite float.
++
++    Weather integrations are free to report a key as ``None`` (Home Assistant's
++    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
++    through produces a ``TypeError`` on the next comparison, or a silent NaN
++    that poisons the whole optimization horizon, so anything that is not a
++    finite number falls back to ``default``.
++    """
++    if value is None:
++        return default
++    try:
++        result = float(value)
++    except (TypeError, ValueError):
++        return default
++    if not np.isfinite(result):
++        return default
++    return result
++
++
+ def state_for(coord: Any) -> ArbiterState:
+     held = _STATES.get(coord)
+     if held is None:
+@@ -392,7 +414,7 @@ def dhw_gated(coord: Any, reading: float | None) -> bool:
+     written = state_for(coord).written.get("dhw_setpoint")
+     if reading is None or written is None or _differs("dhw_setpoint", reading, written[0]):
+         return False
+-    configured = float(coord._thermal_params.dhw_setpoint)
++    configured = _as_float(coord._thermal_params.dhw_setpoint, 55.0)
+     return bool(written[0] < configured - SETPOINT_TOLERANCE)
+ 
+ 

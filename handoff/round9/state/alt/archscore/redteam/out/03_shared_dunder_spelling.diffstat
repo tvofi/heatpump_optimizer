@@ -1,0 +1,3 @@
+ custom_components/heatpump_optimizer/boost.py      |  2 +-
+ .../heatpump_optimizer/coordinator.py              | 47 ++++++++++++----------
+ 3 files changed, 29 insertions(+), 26 deletions(-)

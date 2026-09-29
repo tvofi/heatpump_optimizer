@@ -1,0 +1,259 @@
+{
+ "baseline": {
+  "hub_solve_writes": 40,
+  "shared_inplace_writes": 22,
+  "private_reach": 92,
+  "untyped_payload_keys": 164,
+  "xmodule_duplication": 5,
+  "import_cycles": 0,
+  "public_surface": 515,
+  "dead_by_reachability": 6,
+  "family_splits": 3
+ },
+ "arms": {
+  "hub_solve_writes": {
+   "control": {
+    "desc": "away.lower_floor also writes max_temp through its parameter (m1 could not see away.py)",
+    "ref": 40,
+    "value": 41,
+    "delta": 1,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "the solve stops writing peak_offpeak_factor into the live config",
+    "ref": 40,
+    "value": 39,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "rename the hub alias `params` -> `hub_params` in _prepare_dhw_inputs, and `ctx` -> `c2` in async_run_optimization",
+    "ref": 40,
+    "value": 40,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "shared_inplace_writes": {
+   "control": {
+    "desc": "re-plant #1752: boost.apply overlays the LIVE _current_action instead of a copy",
+    "ref": 22,
+    "value": 34,
+    "delta": 12,
+    "other_metrics_moved": {
+     "private_reach": 1
+    }
+   },
+   "fix": {
+    "desc": "the fixed-mode price stamp rebinds instead of mutating the published action",
+    "ref": 22,
+    "value": 21,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "spell the price-tile write through a local alias (tiles = self._price_tiles; tiles[name] = ...)",
+    "ref": 22,
+    "value": 22,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "private_reach": {
+   "control": {
+    "desc": "m3 arm A: six private coordinator reads inside pump_arbiter.state_for",
+    "ref": 92,
+    "value": 98,
+    "delta": 6,
+    "other_metrics_moved": {}
+   },
+   "control_write": {
+    "desc": "one foreign write: pump_arbiter.state_for sets coord._skip_solve_once",
+    "ref": 92,
+    "value": 95,
+    "delta": 3,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "diagnostics reads the public mode, not getattr(coord, '_mode')",
+    "ref": 92,
+    "value": 91,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "rename every `coord` in pump_arbiter.py to `owner` (the roles must come from the call sites)",
+    "ref": 92,
+    "value": 92,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "untyped_payload_keys": {
+   "control": {
+    "desc": "_build_data_dict publishes one more literal key",
+    "ref": 164,
+    "value": 165,
+    "delta": 1,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "a TypedDict contract on the producer's dict declares two keys (mode, plan_stale)",
+    "ref": 164,
+    "value": 162,
+    "delta": -2,
+    "other_metrics_moved": {
+     "public_surface": 1
+    }
+   },
+   "null": {
+    "desc": "rename the producer's local `data` -> `payload` in _build_data_dict",
+    "ref": 164,
+    "value": 164,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "xmodule_duplication": {
+   "control": {
+    "desc": "m5 arm A: tariff._window_slot (32 lines) copied into sysid.py",
+    "ref": 5,
+    "value": 7,
+    "delta": 2,
+    "other_metrics_moved": {
+     "dead_by_reachability": 1
+    }
+   },
+   "fix": {
+    "desc": "button/binary_sensor base __init__ pin their identity through one entity.pin_identity helper",
+    "ref": 5,
+    "value": 3,
+    "delta": -2,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "comments and blank lines inserted inside both duplicated __init__ bodies; a local renamed in tariff._window_slot",
+    "ref": 5,
+    "value": 5,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "import_cycles": {
+   "control": {
+    "desc": "drift.py imports the coordinator module at module level (coordinator imports drift)",
+    "ref": 0,
+    "value": 9,
+    "delta": 9,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "[on top of control] the planted import moves under `if TYPE_CHECKING:`",
+    "ref": 9,
+    "value": 0,
+    "delta": -9,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "swap two intra-package import lines in coordinator.py",
+    "ref": 0,
+    "value": 0,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "public_surface": {
+   "control": {
+    "desc": "a new public helper in tariff.py nothing imports",
+    "ref": 515,
+    "value": 516,
+    "delta": 1,
+    "other_metrics_moved": {
+     "dead_by_reachability": 1
+    }
+   },
+   "fix": {
+    "desc": "boost.overlay, used only inside boost.py, becomes _overlay",
+    "ref": 515,
+    "value": 514,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "boost.held_for renamed held_state_for in every package module (a consistent rename of a cross-module name)",
+    "ref": 515,
+    "value": 515,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "dead_by_reachability": {
+   "control": {
+    "desc": "two new Cusum methods, _probe_a calling _probe_b, nothing calling _probe_a",
+    "ref": 6,
+    "value": 8,
+    "delta": 2,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "delete Cusum.reset (reached by no production root)",
+    "ref": 6,
+    "value": 5,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "rename boost.held_for -> held_state_for everywhere; blank lines in drift.py",
+    "ref": 6,
+    "value": 6,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  },
+  "family_splits": {
+   "control": {
+    "desc": "en 'Cost Predicted' -> 'Predicted Cost' (splits the cost family in en)",
+    "ref": 3,
+    "value": 4,
+    "delta": 1,
+    "other_metrics_moved": {}
+   },
+   "fix": {
+    "desc": "en 'Expected Return' -> 'Away Expected Return' (joins the away run in en)",
+    "ref": 3,
+    "value": 2,
+    "delta": -1,
+    "other_metrics_moved": {}
+   },
+   "null": {
+    "desc": "en 'Away Mode' -> 'Away mode' (case only; the sort casefolds)",
+    "ref": 3,
+    "value": 3,
+    "delta": 0,
+    "other_metrics_moved": {}
+   }
+  }
+ },
+ "history pre #1752/#1753 (47353326)": {
+  "hub_solve_writes": 40,
+  "shared_inplace_writes": 38,
+  "private_reach": 90,
+  "untyped_payload_keys": 164,
+  "xmodule_duplication": 5,
+  "import_cycles": 0,
+  "public_surface": 513,
+  "dead_by_reachability": 6,
+  "family_splits": 5
+ },
+ "history post (ac65f2aa)": {
+  "hub_solve_writes": 40,
+  "shared_inplace_writes": 22,
+  "private_reach": 91,
+  "untyped_payload_keys": 164,
+  "xmodule_duplication": 5,
+  "import_cycles": 0,
+  "public_surface": 513,
+  "dead_by_reachability": 6,
+  "family_splits": 5
+ }
+}

@@ -1,0 +1,31 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..9770cc04 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7465,6 +7465,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._store_digests[name] = digest
+ 
+     async def _async_save_accuracy(self) -> None:
++        """Persist the accuracy history.
++
++        Called on the store cadence;
++        the load side is ``_async_load_accuracy``.
++        """
+         try:
+             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
+             await self._async_save_if_changed(
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d959091f..f64f07ad 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -6065,6 +6065,10 @@ class HeatPumpOptimizer:
+         Decision variables: [P_space[0..n-1], P_dhw[0..n-1]]
+         The heat pump can allocate power to space OR DHW, with total
+         constrained by max capacity.
++
++        Reading order: requirements, bounds, the solve, then the report;
++        each
++        stage is documented where it starts.
+         """
+         import time
+         # See ``_optimize_space_only`` for why the context is unpacked.
