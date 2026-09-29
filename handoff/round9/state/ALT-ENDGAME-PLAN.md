@@ -1,9 +1,10 @@
-# Round 9 endgame, re-planned (rev 3): the architecture score, its 2× plan, and the programme where it stands
+# Round 9 endgame, re-planned (rev 3.1): the architecture score, its 2× plan, every open issue, and the programme where it stands
 
 **Status.**
 - **Rev 1** was adopted on 2026-09-28 (roster `0f1f5263`/`27049219`, record PR #1749).
 - **Rev 2** was adopted after that. The live roster on `handoff/audit-r9-fixplan` (`c5af8f3a`) carries its 66 groups. EG-R0 (#1763), EG-B9 (#1765) and F7.4 (#1766) have merged.
-- **Rev 3** is for tvofi's decision and is not dispatched.
+- **Rev 3** was pushed at `25c6151f`.
+- **Rev 3.1** applies tvofi's decisions of 2026-09-29 and covers every open issue (§4.6). tvofi extended the programme mandate to programme completion, so **no step waits for a human decision**. What remains for tvofi's hands is mechanical, not a decision (§7): approving reviews on code-owned merges, and repository-settings changes.
 
 Rev 3 was written 2026-09-29 by the same cloud review seat. It is measured at origin/main `7952d8f9` and re-based to `f88e6af8`:
 - #1771 (register tranche 2) touches no production file.
@@ -13,19 +14,22 @@ tvofi asked:
 - whether the ratchet numbers could make a weighted score that a programme raises only by improving the architecture;
 - then for a pre-study (a metric review, new metrics, a calibrated prototype, a wave-plan sketch);
 - then for a plan to improve that score 2× honestly, and how to schedule it against round 9;
-- then for this revision of the plan, roster and prompt.
+- then for this revision of the plan, roster and prompt;
+- then (rev 3.1) to file all issues and make the plan cover every open issue, with the 30 legacy issues re-measured and closed inside the plan, not now.
 
-**What rev 3 adds:**
+**What rev 3 and 3.1 add:**
 - **The pre-study:** `alt/archscore/PRE-STUDY.md` (commit `92b3ecc9`). Its evidence sits beside it:
   - `a1/`: 30 perturbations of the 24 structure metrics, with nulls;
   - `a2/`: 45 labelled historical commits measured on both sides;
   - `a3/`: nine new metrics, each with a control, a fix and a null;
   - `b/`: the score, its frozen weights, calibration v0/v1, gate variants, sensitivity, the trajectory, and the 2× arithmetic;
   - `redteam/`.
-- **Roster rev 3:** `ALT-ROSTER.json` (commit `ebdab471`).
+- **Roster rev 3:** `ALT-ROSTER.json` (commit `6a60e08a`).
   - It is the live roster plus the deltas in `alt/build_roster_rev3.py`: F1.6 truthed to done at `f88e6af8` (#1767); score carries into F10.4, EG-B1, B2, B3, B5, B6 and B7; new groups EG-A1, EG-A2, EG-A3 and F7.5.
+  - Rev 3.1 adds EG-L0 (re-measure and close the 30 legacy issues, and disposition #1655), EG-B11 (#1745, typed entry configuration) and EG-A4 (the score becomes a required check, R3-6). It also adds the decision carries (§7) and a closing group for every open issue.
   - No edge was added to a planned group.
-  - 70 groups, acyclic, and `brief_lint.mjs` prints `TOTAL: 0 error(s)`.
+  - 73 groups, acyclic, and `brief_lint.mjs` prints `TOTAL: 0 error(s)`.
+- **Issues filed and read back:** #1774 (score, EG-A1 then EG-A4), #1775 (EG-A2), #1776 (EG-A3) and #1777 (F7.5). #1738 carries the addendum of eleven metric defects (comment `5901009400`).
 - **Live status:** `alt/archscore/status/LIVE-STATUS.md`.
   - Measured at `4d33b25c`: 33 groups merged, 1 in review (F1.6), 31 not started, and EG-B0 `rca-done`.
   - F1.6 has since merged (#1767, `f88e6af8`), so **34 are merged and 31 are open, plus the 4 new groups.**
@@ -198,7 +202,7 @@ The index is AI = 100·D_ref/D, where D is the weighted log-debt: 212.8 at `7952
   - The counters change no GOOD holdout verdict, and correct one NEUTRAL (#1563).
   - **So S is a report and a review trigger, never a target**, and every ΔS is measured with the counters.
 
-**Use:** report-only, as a review trigger with a calibration self-check (**EG-A1**). Whether "ΔS ≥ 0, or an explained rise" becomes a required check is a round-10 owner decision.
+**Use:** report-only, as a review trigger with a calibration self-check (**EG-A1**, #1774). tvofi decided (R3-6) that "ΔS ≥ 0 with the counters, or an explained rise" becomes a required check after one wave of report-only data. That is **EG-A4**, the programme's last PR.
 
 **The 2× plan** (`b/plan2x.out`):
 
@@ -244,14 +248,15 @@ How robust the 2× is:
 Generated from roster rev 3 (`ALT-ROSTER.json`) by `alt/gen_table_rev3.py`:
 - The `wave` is the dependency depth over open groups; 1 means startable now.
 - **Bold** issues are ones the PR fixes (`Fixes #N`); the rest are `Part of #N`.
-- Expected ΔS is the pre-study's §8 figure under the frozen weights.
-- 35 groups are open.
+- Expected ΔS is the pre-study's §8 figure under the frozen weights. The score does not price EG-L0, EG-B11 or EG-A4.
+- 38 groups are open.
 
 | wave | PR | lane | open after-edges | issues (**Fixes**) | owner gate | carry in | what | expected ΔS | stage |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | EG-B10 | EG | — | **#1754**, **#1755** | — | — | Solve lifecycle: dropped re-solve, override identity, per-entry fallback streak | — | not-started |
+| 1 | EG-L0 | EG | — | **#1167**, **#1168**, **#1170**, **#1171**, **#1173**, **#1174**, **#1175**, **#1176**, **#1177**, **#1178**, **#1179**, **#1180**, **#1181**, **#1182**, **#1183**, **#1184**, **#1185**, **#1187**, **#1188**, **#1189**, **#1190**, **#1191**, **#1193**, **#1196**, **#1197**, **#1198**, **#1199**, **#1200**, **#1201**, **#1204**, #1655 | settings changes are tvofi's hand | — | Re-measure and close the 30 legacy round-5 issues; disposition #1655 | — | not-started |
 | 1 | F2.4 | F2 | — | #1644, **#1664** | — | P4 refusal | On/off pump threshold at both seams; multi-start seeds | — | not-started |
-| 1 | F7.5 | F7 | — | — (filed on adoption) | rename or keep, per split | — | The three recorded family splits (en/sv away, sv compressor) | +10.9 | not-started |
+| 1 | F7.5 | F7 | — | **#1777** | — | — | The three recorded family splits renamed (en/sv away, sv compressor) | +10.9 | not-started |
 | 1 | F9.3 | F9 | — | **#1647** | — | — | P1 declared-domain barrier: stored fields held to their writers' domains | — | not-started |
 | 2 | F1.7 | F1 | F2.4 | #1644, #1649, **#1658** | — | P10 barrier | Coordinator readers across lanes: loop CPU, auth, settlement scale | — | not-started |
 | 2 | EG-B8 | EG | F2.4 | **#1747** | — | — | DHW block ignored by the co-optimisation replan | — | not-started |
@@ -267,7 +272,7 @@ Generated from roster rev 3 (`ALT-ROSTER.json`) by `alt/gen_table_rev3.py`:
 | 6 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | — | Class barriers P2 and P6; horizon_hours and the boost test hook | — | not-started |
 | 7 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | — | Surface identity and public accessors | +3.8 | not-started |
 | 7 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, #1738 | B5 raise if honest re-record raises; #1738 arm (c) re-definition | A1 #1738; N-structure-blind; #1545; metric review (retire/merge/modify, 11 defects) | Structural ratchet truth: dead members and uncounted helpers; I5 barrier | +5.6 | not-started |
-| 8 | EG-A1 | EG | F10.4 | #1738 | PR template line (policy) | — | Architecture score, report-only, with its calibration self-check | — | not-started |
+| 8 | EG-A1 | EG | F10.4 | #1774, #1738 | code-owned merge review | — | Architecture score, report-only, with its calibration self-check | — | not-started |
 | 8 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | — | Typed payload contract | +50.9 | not-started |
 | 8 | EG-B5a | EG | F2.4, F10.4 | #1743 | downward re-record | — | One builder for the duplicated solve closures | — | not-started |
 | 8 | F10.5 | F10 | F10.4 | — | new writer identity (0011); code-owned | — | Nightly mutation-kill ledger writer | — | not-started |
@@ -277,50 +282,54 @@ Generated from roster rev 3 (`ALT-ROSTER.json`) by `alt/gen_table_rev3.py`:
 | 9 | EG-R1 | EG | F11.4 | **#1759** | policy clauses; audit-verify.js code-owned | — | Deterministic register fold and its check | — | not-started |
 | 9 | F10.6 | F10 | F10.5 | — | mutation_table.py code-owned | — | Comparison-bound mutation operator | — | not-started |
 | 9 | F11.5 | F11 | F11.4 | — | policy text (A1-A9) | — | Round-9 RCA policy text | — | not-started |
-| 10 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | — (filed on adoption) | — | — | One copy per formula and helper (P2/P3 clones; dup_pairs_v1 121 → ≤40) | +14.1 | not-started |
+| 10 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | **#1775** | — | — | One copy per formula and helper (P2/P3 clones; dup_pairs_v1 121 → ≤40) | +14.1 | not-started |
 | 10 | EG-B1 | EG | F10.4, F2.4, F10.6, F11.5, EG-B4, EG-B5, EG-B10 | **#1736** | any raise asked before push | H1-H4, P12 (#1736) | Per-solve immutable inputs | +29.5 | not-started |
 | 10 | F10.7 | F10 | F10.6 | #1758 | host Profiler run (tvofi) | — | nightly-ha loop-stall heartbeat (v6.6.0 freeze diagnosis) | — | not-started |
 | 10 | F11.7 | F11 | F11.5 | **#1757** | tests.yml code-owned | — | graders-head-copy governance arm under the Actions token | — | not-started |
-| 11 | EG-A3 | EG | EG-B1, EG-B5 | — (filed on adoption) | — | — | Parameter objects for solver and planner signatures | +0.6 | not-started |
+| 11 | EG-A3 | EG | EG-B1, EG-B5 | **#1776** | — | — | Parameter objects for solver and planner signatures | +0.6 | not-started |
 | 11 | EG-B6 | EG | EG-B1 | **#1739** | — | — | Collaborator interfaces | +4.2 | not-started |
+| 12 | EG-B11 | EG | EG-B1, EG-A3 | **#1745** | — | — | Typed entry configuration, read once per entry (#1745) | — | not-started |
 | 12 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | classes_over_300 unless re-defined | — | Coordinator seams, measured go/no-go | +5.2 | not-started |
+| 13 | EG-A4 | EG | EG-A1, EG-B7, EG-A2, EG-A3, EG-B11 | **#1774** | ruleset required context is tvofi's hand | — | Architecture score becomes a required check | — | not-started |
 
 ### 4.2 Threads
 
-- **F1, the critical path:** F1.6 merged (#1767) → *(F2.4)* → F1.7 (+P10 barrier) → F1.8 (+P8) → F1.9 → F1.10 → F1.11.
+- **F1, the critical path:** F1.6 merged (#1767) → *(F2.4)* → F1.7 (+P10 barrier) → F1.8 (+P8, currency per D6) → F1.9 → F1.10 (+#1741) → F1.11.
 - **F2 / F9 / EG-B10:** startable now. **EG-B8** follows F2.4.
-- **F7:** **F7.5** whenever tvofi rules. It is names only, and it closes with no code if tvofi keeps the splits.
+- **F7:** **F7.5** is startable now. It renames the three family splits (R3-4).
+- **EG-L0:** startable now, in W0. It re-measures and closes the 30 legacy issues, dispositions #1655, and carries anything still live into the owning group's brief before that group starts.
 - **F6:** F6.3 (after F1.8) → F6.4.
-- **F10:** F10.1b (after F1.7) → F10.1c ‖ F10.2 → F10.3 (+I2) → F10.4 (+N-structure-blind, #1545, **the metric review**) → F10.5 → F10.6 → F10.7.
-- **F11:** F11.4 (after F10.4) → F11.5 → F11.7.
+- **F10:** F10.1b (after F1.7) → F10.1c (fix, D9) ‖ F10.2 → F10.3 (+I2, +#1748) → F10.4 (+N-structure-blind, #1545, **the metric review**, R3-2, closes #1738) → F10.5 → F10.6 → F10.7 (closes #1758).
+- **F11:** F11.4 (after F10.4; builds the N-silent-zero barrier, D8) → F11.5 → F11.7.
 - **EG:**
   - EG-B2 after F1.11.
   - After F10.4: **EG-A1** ‖ EG-B3 ‖ EG-B5a, then EG-B4 and EG-B5.
   - **EG-A2** after EG-A1, EG-B3 and EG-B5.
-  - EG-R1 after F11.4.
+  - EG-R1 after F11.4 (clauses per D5).
   - EG-B1 after F10.6, F11.5, EG-B4, EG-B5 and EG-B10.
-  - Then **EG-A3** ‖ EG-B6, then EG-B7.
-- **Structure-budget writers are serialised** (principle 2): EG-B5a, EG-B5, EG-B1, EG-B7, and now **EG-A2**, which moves optimizer and thermal-model code and may claim golden drift. EG-A1 and F7.5 write no production budget.
+  - Then **EG-A3** ‖ EG-B6, then EG-B7 ‖ **EG-B11** (#1745).
+  - **EG-A4** closes the programme after EG-B7, EG-B11, EG-A2 and EG-A3.
+- **Structure-budget writers are serialised** (principle 2): EG-B5a, EG-B5, EG-B1, EG-B7, EG-A2 and EG-B11.
 
 ### 4.3 Critical path
 
-- **Critical path:** F2.4 → F1.7 → F1.8 → F1.9 → F1.10 → F1.11 → F10.4 → F10.5 → F10.6 → EG-B1 → EG-B6 → EG-B7. That is 12 serial PRs from here.
-- **The rev-3 groups add nothing to it.** EG-A1 runs at depth 8 beside EG-B3, EG-A2 at 10 beside EG-B1, and EG-A3 at 11 beside EG-B6.
+- **Critical path:** F2.4 → F1.7 → F1.8 → F1.9 → F1.10 → F1.11 → F10.4 → F10.5 → F10.6 → EG-B1 → EG-B6 → EG-B7 → EG-A4. That is 13 serial PRs from here.
+  - EG-A4 is rev 3.1's only addition to the chain.
+  - EG-A1, A2, A3, EG-L0, F7.5 and EG-B11 all run beside it.
 - **Duration** (pre-study §9, measured from the 34 merges):
   - the serial F1 steps took 5.6–11.1 h each, a mean of 8.2 h; F1.6 took about 17 h with two review rounds;
-  - 12 steps is about 67–133 h, **about 4 days at the mean** of continuous operation, and 5–7 days realistically;
-  - owner-gated waits come on top;
-  - AI passes 200 when EG-A2 merges, at depth 10 of 12.
+  - 13 steps is about 73–144 h, **about 4½ days at the mean** of continuous operation, and 5–7 days realistically;
+  - add the time tvofi takes to click approving reviews on code-owned merges, the only waits left;
+  - AI passes 200 when EG-A2 merges, at depth 10 of 13.
 
 ### 4.4 Windows
 
-**W0, now.** The 2026-09-29T18:15Z mandate has expired, so owner-gated work waits for renewal.
-- **Stamp v6.7.11 now.** EG-B9 (#1765, sev:high) and F1.6 (#1767) are unstamped; #201 already promises this stamp.
-- Apply roster rev 3 (§6 step 2).
-- Land the record PR (§6 step 3).
+**W0, now.**
+- **Stamp v6.7.11.** EG-B9 (#1765, sev:high) and F1.6 (#1767) are unstamped.
+- Apply roster rev 3.1 (§6 step 1).
+- Land the record PR (§6 step 2).
 - Post on #201.
-- Dispatch **F2.4 ‖ F9.3 ‖ EG-B10**.
-- tvofi's F7.5 ruling can come at any time.
+- Dispatch **F2.4 ‖ F9.3 ‖ EG-B10 ‖ F7.5 ‖ EG-L0**.
 
 **W1 to W4:**
 - **W1:** EG-B8 ‖ F1.7, then F1.8 ‖ F10.1b.
@@ -334,14 +343,101 @@ Generated from roster rev 3 (`ALT-ROSTER.json`) by `alt/gen_table_rev3.py`:
 **W5:**
 - EG-B1 ‖ **EG-A2**. EG-A2 needs EG-B5 and must not run beside it. It can run beside EG-B1 only if the two do not share a file; the orchestrator checks the scopes and otherwise serialises.
 - Then EG-B6 ‖ **EG-A3**.
-- Then EG-B7, with F10.7 and F11.7 beside.
+- Then EG-B7 ‖ **EG-B11**, with F10.7 and F11.7 beside.
+- Then **EG-A4**.
 - Then a stamp.
 
-**Endgame, as in rev 2**, plus one step: the round-10 decision on the score (§7, decision R3-6).
+**Endgame, as in rev 2:**
+- friction dispositions;
+- #1730's row;
+- the register PR;
+- the stamp;
+- the branch prune.
 
 ### 4.5 Stamps and fixtures
 
 Unchanged from rev 1. The remaining fixture movers are F1.7, F1.10 and F2.4. The EG refactors claim nothing. EG-B9, EG-B10 and F7.4 move no golden: goldens never boost, never swap an override mid-solve, and do not publish names.
+
+### 4.6 Every open issue and the group that closes it
+
+Generated from roster rev 3.1 and GitHub's open issues (tracking #201 excluded) by `alt/gen_coverage_rev31.py`.
+- Every open issue has a closing group.
+- #1655 is dispositioned by EG-L0, which closes it with R9-F4.2's record or schedules the remainder into its owning group.
+
+| issue | title | closed by | also part of |
+|---|---|---|---|
+| #1777 | [R9-F7-FAMILY-SPLITS] Three declared entity families still split under the name sort | F7.5 | — |
+| #1776 | [R9-EG-PARAM-OBJECTS] 28 functions take more than ten parameters | EG-A3 | — |
+| #1775 | [R9-EG-ONE-COPY] 121 AST-identical clone pairs, incl. scalar and batch thermal physics | EG-A2 | — |
+| #1774 | [R9-EG-ARCH-SCORE] Architecture score: report-only, then a required check | EG-A4 | EG-A1 |
+| #1759 | [R9-REGISTER-FOLD] Register never received rounds 8-9; nothing folds a round in | EG-R1 | — |
+| #1758 | [R9-FREEZE-INSTRUMENT] v6.6.0 options-flow freeze never diagnosed: loop-stall heartbeat | F10.7 | — |
+| #1757 | [R9-GOV-HEADCOPY-PRINCIPAL] graders-head-copy omits the governance graders | F11.7 | — |
+| #1756 | [R9-P7-TRACER-BLIND] DST tracer catches 1 of P7's 3 historical members | F10.1c | — |
+| #1755 | [R9-EG-FALLBACK-STREAK] Worker-fallback streak shared across config entries | EG-B10 | — |
+| #1754 | [R9-EG-INFLIGHT-REFRESH] Refresh requested while a solve is in flight is dropped | EG-B10 | — |
+| #1748 | [R9-EG-RATCHET-MOVE-BLIND] Per-site mutation ratchet counts a moved site as new | F10.3 | EG-B5 |
+| #1747 | [R9-EG-DHW-BLOCK-REPLAN] Co-optimisation replan ignores a DHW mode block | EG-B8 | — |
+| #1745 | [R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per site | EG-B11 | — |
+| #1744 | [R9-EG-COORDINATOR-SEAMS] Re-measure and extract the coordinator's dhw and views seams | EG-B7 | — |
+| #1743 | [R9-EG-DHW-PLANNER] Extract the DHW planner core from HeatPumpOptimizer | EG-B5 | EG-B5a |
+| #1742 | [R9-EG-SURFACE-IDENTITY] Entity identity pinned at 9 constructors | EG-B2 | — |
+| #1741 | [R9-EG-PLANT-FACT-COPIES] Step-start clock twice; 20 C tank-room ambient at 8 sites | F1.10 | — |
+| #1740 | [R9-EG-STORE-VERSION] No store can change its version | EG-B4 | F10.1b |
+| #1739 | [R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coordinator internals | EG-B6 | EG-B2 |
+| #1738 | [R9-EG-RATCHET-DECOMPOSITION] Structural ratchet misprices decomposition | F10.4 | EG-A1 |
+| #1737 | [R9-EG-TYPED-PAYLOAD] Coordinator payload has no typed contract | EG-B3 | — |
+| #1736 | [R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the live hub objects | EG-B1 | — |
+| #1687 | [R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER] | F6.4 | — |
+| #1686 | [R9-STRUCTURE-METRIC-BLIND-TO-SHAPE] | F10.4 | — |
+| #1664 | [R9-P4] Optimizer seed set or stop tolerance does not bracket the optimum | F2.4 | — |
+| #1663 | [R9-I2] Measured closure diverges from the real dependency graph | F10.3 | — |
+| #1661 | [R9-PRODUCTION-MEMBER-NO-CALLER] | F10.4 | — |
+| #1660 | [R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] | F1.9 | — |
+| #1658 | [R9-CPU-WORK-INLINE-ON-THE-EVENT-LOOP] | F1.7 | — |
+| #1657 | [R9-P8] Currency or unit resolved by divergent precedence | F1.8 | — |
+| #1656 | [R9-CPU-GATE-BLIND] | F10.2 | — |
+| #1655 | [R9-P5] Sysid/adoption gate keyed on a quantity other than the bias it gates | — | EG-L0 |
+| #1654 | [R9-P3] Capacity floor or divisor applied inconsistently | F1.10 | — |
+| #1653 | [R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] | F10.2 | — |
+| #1652 | [R9-P9] Card UI: clipping ancestor, colour token, hit target | F6.3 | — |
+| #1651 | [R9-P6] Consumer reads a key no producer writes | F1.11 | — |
+| #1650 | [R9-I4] Two parsers or definitions of one concept disagree | F11.4 | F10.4 |
+| #1649 | [R9-P11] The only oracle for an external counterpart is a self-written double | F10.1b | F1.7 |
+| #1647 | [R9-P1] Non-finite or malformed value crosses a persisted-store boundary | F9.3 | — |
+| #1646 | [R9-I1] Mutation kill miscounted, or a guard deletable with the gate green | F10.3 | — |
+| #1645 | [R9-I5] Docs, comments or checklist drift stale | F10.4 | F1.10 |
+| #1644 | [R9-P2] One fact decided twice by divergent predicates | F1.11 | F1.7, F1.8, F2.4 |
+| #1204 | [D8-01-followup] Sensor-Gap Advisor probe terms have no upstream data source | EG-L0 | — |
+| #1201 | [D13-04] Carried GOV set understates governance cost by 7% | EG-L0 | — |
+| #1200 | [D13-03] Verdict histogram emits one key | EG-L0 | — |
+| #1199 | [D13-02] 16 of 30 blocked verdicts outside the wave grammar | EG-L0 | — |
+| #1198 | [D13-01] Friction histogram's top row is PR trailers | EG-L0 | — |
+| #1197 | [D12-01] No-DHW plant still publishes dhw attributes | EG-L0 | — |
+| #1196 | [D11-06] dismiss_stale_reviews_on_push=false contradicts 0008 | EG-L0 | — |
+| #1193 | [D11-03] Reviewer != author not enforced | EG-L0 | — |
+| #1191 | [D11-01] hpo-stamp deploy key bypass is 'always' | EG-L0 | — |
+| #1190 | [D9-02] _apply_dhw_min_run re-simulates per weak slot | EG-L0 | — |
+| #1189 | [D9-01] Stress gate work meter misses single-scenario cost regressions | EG-L0 | — |
+| #1188 | [D8-03] 'Euro' advisor publishes the instance currency | EG-L0 | — |
+| #1187 | [D8-02] Entity-id sort splits families into 13 runs | EG-L0 | — |
+| #1185 | [D7-01] Mutation gate default driver list omits the module's own test | EG-L0 | — |
+| #1184 | [D5-03] Two 'How the pieces fit' diagrams drifted | EG-L0 | — |
+| #1183 | [D5-02] __init__ '40 modules' note is stale | EG-L0 | — |
+| #1182 | [D5-01] Platform docstrings undercount entity rosters | EG-L0 | — |
+| #1181 | [D4-03] Card sv missing stats.delta_detail_same | EG-L0 | — |
+| #1180 | [D4-02] Picker .sp-filter input under the floor | EG-L0 | — |
+| #1179 | [D4-01] Setup click-to-assign rows under the 24px floor | EG-L0 | — |
+| #1178 | [D3-08] deployment_shape closure is 74/74 | EG-L0 | — |
+| #1177 | [D3-07] Equivalent mutants not separated | EG-L0 | — |
+| #1176 | [D3-06] Sysid plausible-bounds refusal untested | EG-L0 | — |
+| #1175 | [D3-05] StartCounter early return untested | EG-L0 | — |
+| #1174 | [D3-04] cheaper_hour_count non-positive-COP guard untested | EG-L0 | — |
+| #1173 | [D3-03] flow_setpoint emitter-UA floor untested | EG-L0 | — |
+| #1171 | [D3-01] Mutation instrument's driver set is not the gate's | EG-L0 | — |
+| #1170 | [D2-01] Capacity term's soft top-k under-charges the peak | EG-L0 | — |
+| #1168 | [D0-02] Polish runs on only one candidate | EG-L0 | — |
+| #1167 | [D0-01] Solver polish <2% discarded | EG-L0 | — |
 
 ## 5. Deferred and dropped
 
@@ -352,57 +448,77 @@ Unchanged from rev 1. The remaining fixture movers are F1.7, F1.10 and F2.4. The
   - the cost of re-attributing the 352 `killed_by` pins;
   - `run.sh` wiring and the `tests/README.md` policy edit.
   Candidate shape: about ten files, grouped by lane-owned module, not one per class.
-- **#1745, typed configuration.** After EG-B1.
+- **#1745, typed configuration:** moved into round 9 as **EG-B11** (rev 3.1).
 - **EG-S2.** Only after the owner rules on unknown versus unavailable.
 - **The 121 `getattr(self, "_ctx", self)` sites** beside the `_hub` facade (`coordinator.py:1382`). Measure their effect on the cut metrics (#510, `docs/HANDOVER.md:316`) after #1738 has landed.
 
 **Dropped:** EG-0b, EG-X1, and the 70-site clock migration.
 
-## 6. Adopting rev 3
+## 6. Adopting rev 3.1
 
-Rev 2 is adopted. Rev 3 needs:
+tvofi's decisions are given (§7), so nothing waits for approval. The orchestrator:
 
-1. **Approval.** tvofi approves or amends this file, roster rev 3, `alt/archscore/PRE-STUDY.md`, and the §7 decisions.
-
-2. **The roster.** Replace `.claude/workflows/wave-r9-groups.json` on `handoff/audit-r9-fixplan` with `ALT-ROSTER.json`.
-   - If the live file has moved since `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` on it instead. That applies:
-     - (a) F1.6's resume, truthed to done at `f88e6af8` (#1767);
-     - (b) the carries into F10.4, EG-B1, B2, B3, B5, B6 and B7;
-     - (c) the new groups EG-A1, EG-A2, EG-A3 and F7.5.
-   - Replace the placeholder with the pre-study commit (`92b3ecc9`); `ALT-ROSTER.json` already has it.
+1. **The roster.** Replaces `.claude/workflows/wave-r9-groups.json` on `handoff/audit-r9-fixplan` with `ALT-ROSTER.json`.
+   - If the live file has moved since `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` on it, then replace the placeholder with the pre-study commit (`92b3ecc9`). Its sections 1–6 apply:
+     - F1.6 truthing;
+     - the carries;
+     - the rev 3 groups;
+     - the rev 3.1 decisions, the mandate text, EG-L0, EG-B11, EG-A4, and one closing group per open issue.
    - Assert that all 34 merged groups read `done` at their merge SHAs.
-   - Lint with `handoff/audit-r9-alt` fetched: `TOTAL: 0 error(s)`.
+   - Assert that every open issue has a closing group (`alt/gen_coverage_rev31.py`).
+   - Lint: `TOTAL: 0 error(s)`.
 
-3. **The record PR** (the `hpo-author` App, via `tools/audit/app_push.sh`) corrects what `alt/archscore/status/LIVE-STATUS.md` found:
-   - the disposition rows for #1752/#1753, #1759, #1760 and #1736 in `docs/plan-2026-09-open-issues.md` still say "scheduled", but their groups have merged or are done;
-   - `docs/delivery/1771.md` says "open", but #1771 merged as `4d33b25c`;
-   - `tools/audit/round9/fixplan/standing.md` lacks the "Enumerators run INSIDE the tree" rule that `c5af8f3a` added on the branch;
-   - `tools/audit/round9/prestudy/ALT-ROSTER.json` is rev 2's roster copied onto main. Label it "rev 2 snapshot, not the live roster", or remove it.
-   - It adds no budget and no `VERSION` edit.
-   - Carries live in not-started briefs, so no carry file is owed.
+2. **The record PR** (the `hpo-author` App, via `tools/audit/app_push.sh`) corrects what `alt/archscore/status/LIVE-STATUS.md` found:
+   - the disposition rows for #1752/#1753, #1759, #1760 and #1736 in `docs/plan-2026-09-open-issues.md`;
+   - `docs/delivery/1771.md`;
+   - `tools/audit/round9/fixplan/standing.md`, which lacks the "Enumerators run INSIDE the tree" rule;
+   - `tools/audit/round9/prestudy/ALT-ROSTER.json`: label it a rev-2 snapshot or remove it.
 
-4. **#1738** gains one comment listing the eleven verified metric defects, posted with `gh_comment.py` and read back. They go into F10.4's brief, and no further issue is filed.
+   It also adds disposition rows for #1774 to #1777 and for every legacy issue, as "EG-L0: re-measure then close". It adds no budget and no `VERSION` edit.
 
-5. **Issues for EG-A2 and EG-A3**, and for F7.5 if tvofi chooses renames, are filed **after** tvofi approves the groups. Each is filed with its evidence from the pre-study, deduped with `search_issues`, and read back.
+3. **Already done by the review seat:** #1774 to #1777 are filed and read back, and the #1738 addendum is posted (comment `5901009400`).
 
-6. **#201.** One comment, posted with `gh_comment.py` and read back.
+4. **#201.** One comment, posted with `gh_comment.py` and read back.
 
-7. **Dispatch** per §4.
+5. **Dispatch** per §4, starting with W0.
 
-## 7. Owner decisions rev 3 needs
+## 7. Decisions, all given 2026-09-29, and what remains for tvofi's hands
 
-**Rev 2's decisions:**
-- 1–4 (register v2) were settled at EG-R0's merge (#1763, and #1762's deferral of the P2/I5 split).
-- 10 was settled at F7.4's merge (#1766), which recorded the three splits. **F7.5 re-opens it** as a rename question.
-- 5–9, 11 and 12 stand as rev 2 listed them.
+**The mandate.** tvofi extended the programme mandate to programme completion. No step waits for a human decision.
+- **A budget raise an honest re-record requires** is confirmed by the mandate. The orchestrator posts the measured value and reason on #201 before the push (CLAUDE.md rule 2).
 
-**New in rev 3:**
+**Rev 3 decisions:**
 
-| # | decision | where it gates |
-|---|---|---|
-| R3-1 | Adopt the architecture score as **report-only** (EG-A1), with an optional "Architecture score" line in the PR template. The template is policy. | EG-A1 merge |
-| R3-2 | The F10.4 retirement list: 4 rows retired, 7 moved out of the architecture view, 7 merged into 2. **A retired row is a loosening.** | F10.4, before the push |
-| R3-3 | The weights: accept the register-cost basis frozen in `b/weights.json` (hash in `b/weights.sha256`), or amend it before EG-A1 lands. A later change is a policy change. | EG-A1 |
-| R3-4 | F7.5: rename or keep, for each of en `away`, sv `away` and sv `compressor`. | F7.5 |
-| R3-5 | File issues for EG-A2 and EG-A3 and schedule them in round 9, or move them to round 10. | adoption |
-| R3-6 | **Round 10:** after one wave of report-only data, does "ΔS ≥ 0, or a gate rise explained like a budget raise" become a required check? v2 of the metrics (§10 of the pre-study) is evaluated then, on a fresh holdout. | round 10 |
+| # | decision | given | carried in |
+|---|---|---|---|
+| R3-1 | adopt the score as report-only, with the PR-template line | **adopt** | EG-A1 (#1774) |
+| R3-2 | F10.4 retirement list: 4 rows retired, 7 moved out of the architecture view, 7 merged into 2 | **approve**; this also settles #1738 arm (c) by retiring `classes_over_300` | F10.4 |
+| R3-3 | the weights | **the seat's recommendation: accept the frozen register-cost basis unchanged** (hash in `b/weights.sha256`) | EG-A1 |
+| R3-4 | F7.5, rename or keep | **rename** all three: display strings only, no `translation_key`, `unique_id` or entity id | F7.5 (#1777) |
+| R3-5 | EG-A2/A3 issues | **file, round 9** (#1775, #1776) | EG-A2, EG-A3 |
+| R3-6 | the score becomes a required check | **yes**, after one wave of report-only data | EG-A4 (#1774) |
+
+**Why R3-3 is "accept":**
+- Classification is invariant to the weights: ×0.5, ×2 and all-equal each give the identical 79/103.
+- The 2× target is reached under all three weightings (242, 213, 204).
+- Every amendment was recorded before the first calibration run.
+- Changing the weights now would be fitting them to the results.
+
+**Rev 2's open decisions, given under the mandate by the seat's default.** Each is written into its group's brief:
+
+| # | question | default | group |
+|---|---|---|---|
+| D5 | the four policy clauses | adopt as specified in RCA-BULK-2 §3.4 | EG-R1 |
+| D6 | displayed currency | follows the feed's currency where the feed declares one; the configured currency otherwise | F1.8 |
+| D7 | the P4 refusal | record it on #1664 and in the body | F2.4 |
+| D8 | the N-silent-zero barrier | build it (the refusal was overturned on cost) | F11.4 |
+| D9 | the 20 h override that lasts 21 h | fix it: the stated length in absolute time | F10.1c |
+| D11 | the host Profiler run | optional; F10.7 does not wait for it | F10.7 |
+| D12 | EG-H2 | judge quiet periods against the configured band | EG-B1 |
+
+tvofi may override any default by saying so. Rev 2's decisions 1–4 and 10 are settled (§2.4).
+
+**What remains for tvofi's hands.** These are mechanical, not decisions:
+- **Approving reviews.** Every code-owned or budget-raising merge (branch protection and budget-raise-gate): F6.3, F10.2, F10.3, F10.4, F10.5, F10.6, F11.4, F11.5, F11.7, EG-R1, EG-A1, EG-A4, and any raise.
+- **Repository settings only the admin can change.** Any the legacy governance issues prove (EG-L0: #1191, #1193, #1196), and EG-A4's required context. The orchestrator records each exact setting on #201.
+- **F10.5's writer identity.** A new App and credential under decision 0011 are a Mac/tvofi action.

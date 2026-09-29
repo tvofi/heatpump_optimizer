@@ -23,10 +23,10 @@ Everything is on branch `handoff/audit-r9-alt`:
   - §4.6: every open issue and its closing group;
   - §6: adoption;
   - §7: the decisions as given, and what is left for tvofi's hands.
-- **`handoff/round9/state/ALT-ROSTER.json`:** roster rev 3.1, commit 6a60e08a.
+- **`handoff/round9/state/ALT-ROSTER.json`:** roster rev 3.1, commit ROSTER_COMMIT.
   - 73 groups, acyclic, and `brief_lint` prints `TOTAL: 0 error(s)`.
   - `alt/build_roster_rev3.py` rebuilds it from the live file.
-- **`handoff/round9/state/alt/archscore/`** (pre-study commit 92b3ecc9):
+- **`handoff/round9/state/alt/archscore/`** (pre-study commit PRESTUDY_COMMIT):
   - `PRE-STUDY.md`;
   - evidence in `a1/`, `a2/`, `a3/`, `b/` and `redteam/` (the counters are in `redteam/counters/`);
   - `status/LIVE-STATUS.md`.
@@ -43,11 +43,11 @@ Before step 1, read the plan's §2.4, §4, §4.6, §6 and §7, and the pre-study
 
 1. **Re-base.** List every merge on origin/main since `f88e6af8`.
    - Apply each to roster rev 3.1's `resume` fields.
-   - If a merge touched a file a rev-3 carry cites (`away.py`, `boost.py`, `pump_arbiter.py`, `sensor.py`, `thermal_model.py`, `config_flow.py`, `optimizer.py`, `tests/structure.py`), re-measure that figure with the prototype at 92b3ecc9 and correct the figure, never the citation.
+   - If a merge touched a file a rev-3 carry cites (`away.py`, `boost.py`, `pump_arbiter.py`, `sensor.py`, `thermal_model.py`, `config_flow.py`, `optimizer.py`, `tests/structure.py`), re-measure that figure with the prototype at PRESTUDY_COMMIT and correct the figure, never the citation.
    - Re-lint with `handoff/audit-r9-alt` and the evidence refs fetched: `TOTAL: 0 error(s)`.
 
 2. **Adopt roster rev 3.1** on `handoff/audit-r9-fixplan`: replace `.claude/workflows/wave-r9-groups.json` with `ALT-ROSTER.json`.
-   - If the live file moved after `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` and replace `92b3ecc9` in the output.
+   - If the live file moved after `c5af8f3a`, run `alt/build_roster_rev3.py <live> <out>` and replace `PRESTUDY_COMMIT` in the output.
    - Assert that every merged group reads `done` at its merge SHA, and that every open issue has a closing group (`alt/gen_coverage_rev31.py`).
    - Find out why the live file kept F1.6 `not-started`, with an empty commit, through two review rounds, and fix that. The record moves at each state change (`delivery-status-tracking.md`).
 
