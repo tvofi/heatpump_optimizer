@@ -10531,6 +10531,154 @@ R.check(
     f"{_r83_runs(_mut_order, _mut_members)} runs on the pre-fix name",
 )
 
+# --- N-name-sort barrier (#1760): one declared family list, one check -------
+#
+# RCA-BULK-4: entity family membership was declared nowhere in production, so
+# each round's finder invented its own family list and each fix pinned exactly
+# that list. Eight instances: #174, R2 D8-04, #797, #945, #1227, #1333, #1334
+# and #1668. Fixes split families another list held together (#945 took
+# key-family splits in English from 1 to 6, which became #1227; #1733 split
+# `cost` and edited a test table to accept the split), and families nobody
+# listed stayed split (`away` 36 releases, sv `compressor` 105).
+#
+# The declaration is production's (const.ENTITY_FAMILY_OVERRIDES): a family is
+# a translation key's lead token -- the token the suggested object id is
+# already built from -- plus explicit overrides for members homed elsewhere.
+# This one check replaces the per-finder name-sort contiguity pins: every
+# declared family of two or more members forms ONE contiguous run in the
+# English and Swedish name sorts, each language under one collation (sv sorts
+# a-ring < a-umlaut < o-umlaut after z; a raw codepoint sort puts ä before
+# å). It reads the declared table, not a roster supplied here, and the
+# anchors refuse a vacuous pass.
+_FAM_ROWS = [
+    (
+        _plat,
+        _key,
+        _ENTITY_STRINGS[_plat][_key]["name"],
+        _sv_entities.get(_plat, {}).get(_key, {}).get("name", f"~{_key}"),
+    )
+    for _plat, _ents in _ENTITY_STRINGS.items()
+    for _key in _ents
+]
+_FAM_SV_TAIL = str.maketrans({"å": "z\u0001", "ä": "z\u0002", "ö": "z\u0003"})
+_FAM_COLLATION = {
+    "en": lambda _n: _n.casefold(),
+    "sv": lambda _n: _n.casefold().translate(_FAM_SV_TAIL),
+}
+_FAM_OVERRIDES = const.ENTITY_FAMILY_OVERRIDES
+_FAM_UNKNOWN = sorted(
+    _key for _key in _FAM_OVERRIDES if _key not in {k for _, k, _, _ in _FAM_ROWS}
+)
+R.check(
+    "every family override names a shipped translation key (anchor)",
+    not _FAM_UNKNOWN,
+    ", ".join(_FAM_UNKNOWN),
+)
+
+
+def _fam_token(_key: str) -> str:
+    """The declared family of a translation key: override, else lead token."""
+    return _FAM_OVERRIDES.get(_key, _key.split("_")[0])
+
+
+def _fam_runs(order: list, members: set) -> int:
+    """Contiguous runs of ``members`` across ``order`` (the D8 counting)."""
+    _pos = [i for i, _row in enumerate(order) if _row in members]
+    if len(_pos) < 2:
+        return 0
+    return 1 + sum(1 for _a, _b in zip(_pos, _pos[1:]) if _b != _a + 1)
+
+
+_FAM_MEMBERS: dict[str, set] = {}
+for _plat, _key, _en, _sv in _FAM_ROWS:
+    _FAM_MEMBERS.setdefault(_fam_token(_key), set()).add((_plat, _key))
+_FAM_FAMILIES = {_t: _m for _t, _m in _FAM_MEMBERS.items() if len(_m) >= 2}
+R.check(
+    "the family-check roster is populated (anchor)",
+    len(_FAM_ROWS) >= 60,
+    f"{len(_FAM_ROWS)} names",
+)
+R.check(
+    "the declaration resolves to a real roster of families (anchor)",
+    len(_FAM_FAMILIES) >= 10,
+    f"{len(_FAM_FAMILIES)} families of 2 or more",
+)
+R.check(
+    "the prediction family is the accuracy sensor plus its button (anchor)",
+    _FAM_FAMILIES.get("prediction")
+    == {("sensor", "prediction_accuracy"), ("button", "diagnose_last_interval")},
+    str(sorted(_FAM_FAMILIES.get("prediction", ()))),
+)
+# The production classes agree with the declaration: every accumulating
+# sensor sits in a declared family, so a new meter must be declared somewhere
+# rather than landing in an undeclared singleton this check would never see.
+# The declaration is authoritative; this anchor stops the classes from
+# drifting away from it.
+_FAM_ACC_OUTSIDE = sorted(
+    s._key
+    for s in sensors
+    if isinstance(s, sensor._AccumulatingSensor)
+    and s._key not in {k for _m in _FAM_FAMILIES.values() for _p, k in _m}
+)
+R.check(
+    "every accumulating sensor sits in a declared family (#1668's classes)",
+    not _FAM_ACC_OUTSIDE,
+    ", ".join(_FAM_ACC_OUTSIDE),
+)
+
+# (language, family token) the shipped roster sorts split. Two are live and
+# neither was ever ruled on: `away` in both languages (split 36 releases) and
+# sv `compressor` (105). #1760's open owner gate asks tvofi to rename or
+# allow them; until that lands these entries preserve the shipped names. The
+# key is language and token together, so a split in any other family, or in
+# either of these in its other language, still fails -- and a rename by the
+# owner deletes its entry and the check starts pinning contiguity there.
+_FAM_SPLIT_ALLOWED = frozenset(
+    {("en", "away"), ("sv", "away"), ("sv", "compressor")}
+)
+_FAM_SPLIT = []
+for _lang in ("en", "sv"):
+    _name_at = 2 if _lang == "en" else 3
+    _order = [
+        (_p, _k)
+        for _p, _k, *_ in sorted(
+            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_r[_name_at])
+        )
+    ]
+    for _tok, _m in sorted(_FAM_FAMILIES.items()):
+        _runs_n = _fam_runs(_order, _m)
+        if _runs_n > 1 and (_lang, _tok) not in _FAM_SPLIT_ALLOWED:
+            _names = sorted(
+                _r[_name_at] for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
+            )
+            _FAM_SPLIT.append(f"{_lang} {_tok!r}: {_runs_n} runs: {_names}")
+R.check(
+    "every declared family sorts as one contiguous run in en and sv (#1760)",
+    not _FAM_SPLIT,
+    "; ".join(_FAM_SPLIT),
+)
+# Null control: the counter measures the sort, not the files' mtime. Renaming
+# one family member in memory must re-split its family -- the same perturbation
+# the RCA measured (en key-family splits 2 -> 3).
+_FAM_PERTURBED = [
+    (_p, _k, "Observed COP" if _en == "Learning Observed COP" else _en, _sv)
+    for _p, _k, _en, _sv in _FAM_ROWS
+]
+_FAM_PERT_ORDER = [
+    (_p, _k)
+    for _p, _k, *_ in sorted(
+        _FAM_PERTURBED, key=lambda _r: _FAM_COLLATION["en"](_r[2])
+    )
+]
+_FAM_PERT_LEARNING = {
+    (_p, _k) for _p, _k, _en, _sv in _FAM_ROWS if _fam_token(_k) == "learning"
+}
+R.check(
+    "renaming one member re-splits its family (null control)",
+    _fam_runs(_FAM_PERT_ORDER, _FAM_PERT_LEARNING) > 1,
+    f"{_fam_runs(_FAM_PERT_ORDER, _FAM_PERT_LEARNING)} runs on the perturbed roster",
+)
+
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration
 # suggested-object-id mechanism, used verbatim at first registration only.
 # It must reproduce exactly the object ids v4.x generated from the English
