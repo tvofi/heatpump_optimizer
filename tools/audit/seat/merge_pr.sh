@@ -19,7 +19,16 @@ fi
 sleep 45
 for i in $(seq 1 60); do n=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs[] | select(.status!="completed")] | length'); [ "$n" = 0 ] && break; sleep 60; done
 red=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs | group_by(.name)[] | sort_by(.started_at) | last | select(.conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out") | .name] | join(",")')
-[ -z "$red" ] || { echo "RED: $red"; exit 1; }
+if [ -n "$red" ]; then
+  # mergeStateStatus already encodes the ruleset's REQUIRED contexts: UNSTABLE/CLEAN =
+  # only optional checks fail or are pending (e.g. the non-required CodeQL umbrella on
+  # frozen evidence alerts, #1769). Exit only when GitHub itself says BLOCKED/BEHIND/UNKNOWN.
+  mss=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus)
+  case "$mss" in
+    UNSTABLE|CLEAN|HAS_HOOKS) echo "OPTIONAL-RED, proceeding (mergeState=$mss): $red" ;;
+    *) echo "RED: $red"; exit 1 ;;
+  esac
+fi
 [ "$(gh pr view $PR --json isDraft --jq .isDraft)" = true ] && gh pr ready $PR >/dev/null
 sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
