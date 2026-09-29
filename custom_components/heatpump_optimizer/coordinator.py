@@ -535,14 +535,20 @@ def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
     return guarded
 
 
-def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
+def _parse_ecl110_state(
+    payload: Any, displace_window: tuple[float, float] | None = None
+) -> tuple[float | None, float | None]:
     """(displace, effective_displace) from an ECL110 MQTT state payload.
 
     Four shapes arrive: the legacy dict, a nested ``command`` dict, a bare JSON
     number, and bytes of either. Raises TypeError/ValueError/OverflowError, or
     RecursionError on deep nesting, for a malformed payload, and ValueError on
     NaN or +-inf: ``json.loads`` accepts ``NaN``/``Infinity`` and overflows
-    ``1e999``, and neither is a measurement.
+    ``1e999``, and neither is a measurement. ``displace_window``, the (lo, hi)
+    the integration itself commands, is a plausibility bound (round-9
+    D1-s2-02): a finite value outside it is not a measurement this
+    integration could produce, and comes back ``None`` -- refused, not
+    raised, like an implausible input reading.
     """
     if isinstance(payload, bytes):
         payload = payload.decode("utf-8", errors="ignore")
@@ -558,7 +564,15 @@ def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
     parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]
     if not all(v is None or math.isfinite(v) for v in parsed):
         raise ValueError(f"non-finite value in {parsed!r}")
+    if displace_window is not None:
+        parsed = [_within_window(v, displace_window) for v in parsed]
     return parsed[0], parsed[1]
+
+
+def _within_window(value: float | None, window: tuple[float, float]) -> float | None:
+    """``value`` inside ``window``, else ``None``: refused, not raised."""
+    lo, hi = window
+    return value if value is None or lo <= value <= hi else None
 
 
 #: Resolution the optimizer plans at, and therefore the resolution every
@@ -1633,7 +1647,7 @@ def _plausible_forecast_rows(forecast: Any) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for entry in forecast:
         if not isinstance(entry, dict):
-            continue
+            continue  # raised on this cycle and wedged the next (D1-s2-02)
         for key, (lo, hi) in _FORECAST_FIELD_RANGE.items():
             raw = entry.get(key)
             if raw is None or isinstance(raw, bool):
@@ -1646,6 +1660,42 @@ def _plausible_forecast_rows(forecast: Any) -> list[dict[str, Any]]:
                 entry[key] = None
         rows.append(entry)
     return rows
+
+
+def _aware_instant_iso(values: list[Any]) -> list[str]:
+    """The stored-instant rule over a list of leaves: aware ISO strings.
+
+    A naive leaf is read in the loader's zone (Home Assistant's, where the
+    coordinator runs), garbage drops, and only the last 20 are kept -- the
+    same cap the writer holds. No naive instant is held live, so no consumer
+    diff can raise on one (round-9 P1-rca2).
+    """
+    out: list[str] = []
+    for value in values[-20:]:
+        when = stored_instant(value, dt_util.DEFAULT_TIME_ZONE)
+        if when is not None:
+            out.append(when.isoformat())
+    return out
+
+
+async def _stored_fuse_advisor(
+    store: QuarantiningStore[dict[str, Any]],
+) -> tuple[dict[str, Any], datetime | None] | None:
+    """(advisor, stamp) from the ledger store; ``None`` when it holds neither.
+
+    The stamp loads through the stored-instant rule (F3.1), aware or dropped,
+    so the weekly age check never subtracts a naive stamp off an aware now;
+    the subtraction itself runs through as_utc on both sides (#1299), so a
+    naive stamp kept naive under an unconfigured zone cannot raise either
+    (round-9 D14-s1-01). ``None`` -- absent data -- displaces nothing live.
+    """
+    try:
+        stored = await store.async_load() or {}
+        return dict(stored["fuse_advisor"]), stored_instant(
+            stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
+        )
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
@@ -2668,29 +2718,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
         ctx = getattr(self, "_ctx", self)
         try:
-            displace, effective = _parse_ecl110_state(msg.payload)
+            window = self._ecl110_displace_min, self._ecl110_displace_max
+            displace, effective = _parse_ecl110_state(msg.payload, window)
         except (TypeError, ValueError, OverflowError, RecursionError) as err:
             _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
             return
-        # The displace window the integration itself commands (live external
-        # input, round-9 class N-plausibility): a state value outside it is
-        # not a measurement this integration could produce, and is refused
-        # the way an implausible input reading is.
-        lo, hi = self._ecl110_displace_min, self._ecl110_displace_max
-        if effective is not None and lo <= effective <= hi:
+        if effective is not None:
             ctx._current_state.ecl110_effective_displace = effective
-        elif effective is not None:
-            _LOGGER.debug(
-                "Ignoring ECL110 effective displace %s outside [%s, %s]",
-                effective, lo, hi,
-            )
-        if displace is not None and lo <= displace <= hi:
+        if displace is not None:
             self._ecl110_current_displace = displace
             ctx._current_state.ecl110_displace_command = displace
-        elif displace is not None:
-            _LOGGER.debug(
-                "Ignoring ECL110 displace %s outside [%s, %s]", displace, lo, hi,
-            )
     @property
     def device_info(self) -> DeviceInfo:
         """Device registry entry shared by every platform of this entry.
@@ -3174,17 +3211,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     continue
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
-            # The stored-instant rule (F3.1), so no naive event string is
-            # held live: the one consumer normalises on read, which a live
-            # hold makes the store's business, not the consumer's (P1-rca2).
-            self._immersion_events = [
-                when.isoformat()
-                for when in (
-                    stored_instant(e, dt_util.DEFAULT_TIME_ZONE)
-                    for e in raw_events[-20:]
-                )
-                if when is not None
-            ]
+            self._immersion_events = _aware_instant_iso(raw_events)
         try:
             self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
         except (TypeError, ValueError, OverflowError):
@@ -6025,13 +6052,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
                 if forecast_data:
-                    # Validated where it is stored: a non-dict row or an
-                    # out-of-window field value that crossed this boundary
-                    # raised on this cycle and wedged the next (D1-s2-02).
                     self._weather_forecast = _plausible_forecast_rows(
                         _forecast_in_model_units(
-                            self.hass.states.get(weather_entity), forecast_data)
-                    )
+                            self.hass.states.get(weather_entity), forecast_data))
 
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
@@ -8248,19 +8271,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if smaller is None:
             return
         if self._fuse_advisor_at is None:
-            try:
-                stored = await self._ledger_store.async_load() or {}
-                advisor = stored["fuse_advisor"]
-                if isinstance(advisor, dict):
-                    self._fuse_advisor = dict(advisor)
-                # The stored-instant rule (F3.1): a stamp loads aware or not
-                # at all, so the weekly age check below never subtracts a
-                # naive stamp off an aware clock (D14-s1-01).
-                self._fuse_advisor_at = stored_instant(
-                    stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
-                )
-            except Exception:  # noqa: BLE001
-                pass
+            if (loaded := await _stored_fuse_advisor(self._ledger_store)) is not None:
+                self._fuse_advisor, self._fuse_advisor_at = loaded
         # A blocked channel is not evidence about the house's real demand.
         if self._pump_signals.space_blocked or self._pump_signals.dhw_blocked:
             _LOGGER.debug(
@@ -8273,7 +8285,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         if (
             self._fuse_advisor_at is not None
-            and (now - self._fuse_advisor_at).total_seconds() < 7 * 24 * 3600.0
+            and (dt_util.as_utc(now) - dt_util.as_utc(self._fuse_advisor_at)
+            ).total_seconds() < 7 * 24 * 3600.0
             and self._fuse_advisor.get("month") == month_key(now)
         ):
             return
@@ -8933,10 +8946,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
         ctx = getattr(self, "_ctx", self)
-        # A store-read seam (D14-s1-01): the payload is persisted state, so
-        # "learners" is whatever the store holds; a non-mapping one is absent
-        # data, not a raise out of the restore service.
-        if not isinstance(learners, dict):
+        if not isinstance(learners, dict):  # persisted state: absent, not a raise
             return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
