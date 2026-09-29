@@ -1465,6 +1465,94 @@ fixer.md	tools/audit/briefs/fixer.md
   here, for the same reason as #1127. #1087's own disposition (DELIVERED by
   #1118, above) is unchanged by this entry.
 
+**Round-9 window, dispositions taken 2026-09-29 on branch `fix/r9-frictions`.**
+Four more `[policy] recurring friction:` issues, filed by the cron over
+`v6.7.0`-era windows; all four are below the threshold in the live window
+(`v6.7.10..origin/main` at `3defa2d5` prints no row for any of them — the
+friction is older than the window, which is why each still owes this
+disposition rather than having aged out). Every count below was re-derived
+with `GITHUB_TOKEN=… node .claude/workflows/policy_lint.mjs --stats --since
+v6.7.0` at `3defa2d5`, and every per-occasion cause was read from the pull
+request's own commit timeline and verdict comments, not from the entry text
+alone.
+
+- **[#1640](https://github.com/tvofi/heatpump_optimizer/issues/1640)
+  (`decision-0013`) — REFUSED as inherent; the consequence is now stated.**
+  Its five pull requests (#1633, #1635, #1636, #1637, #1639) record one
+  cost: a base-pinned grader that pins the shape of the artifact it grades
+  makes any change to that shape **two pull requests**, grader first (#1637
+  adds the twin: a pinned instrument's new `--self-test` cases first run in
+  CI after the merge, because the grading jobs restore the base's copy).
+  That is decision 0013 working — the alternative is a branch grading its
+  own changed grader, the self-confirmation hole the decision closed — so no
+  countermeasure is built. The rediscovery cost was real (four seats each
+  re-derived the sequencing), and `docs/decisions/0013-verdicts-post-as-the-approver-app.md`'s
+  Consequences now state it, so the next seat reads
+  procedure instead of re-deriving it. Closing is the orchestrator's; the
+  count is correct under its keying and the mechanism is deliberate.
+- **[#1700](https://github.com/tvofi/heatpump_optimizer/issues/1700)
+  (`.claude/rules/gate-scoping.md`) — ADDRESSED in part, REFUSED in part.**
+  Eight entries over `v6.7.0..origin/main`, four classes:
+  - *Environment failures (3: #1693, #1699, #1704) — FIXED in
+    `gate-scoping.md`.* A shallow clone reddens `entities.py`'s history
+    checks (`git fetch --unshallow origin main` clears it) and a long-lived
+    checkout's cached `origin/main` can sit behind the tip mid-session
+    (fetch before the first gate command). Paid inside the file: 61/61
+    lines, 751/794 tokens against the per-file caps.
+  - *MODE: FULL from a closures re-record in the diff (1: #1691) —
+    intended*, already dispositioned by #1614: a closure cannot scope its
+    own correction (CLAUDE.md rule 1).
+  - *Closure omissions (3: #1713, #1722, #1723) — inherent to measured
+    closures.* A closure that misses a module a harness imports is a data
+    defect the `UNDER-SCOPED` autofix and the closures programme own;
+    `gate-scoping.md`'s `--single` repair route is already the text answer,
+    and a rule sentence cannot fix a recording.
+  - *A throwaway mutant runner's cwd (1: #1702) — no countermeasure
+    buildable*: the script is untracked by design, and the entry itself is
+    the propagation the seat owed.
+- **[#1706](https://github.com/tvofi/heatpump_optimizer/issues/1706)
+  (`head-moved`, verdict class) — REFUSED as inherent.** Nine PRs / eleven
+  entries over `v6.7.0..origin/main`; every movement between a first `merge`
+  verdict and its re-verification is either an orchestrator `origin/main`
+  sync that `fixer.md` step 6 sanctions (#1703, #1704, #1708, #1717, #1720,
+  #1723) or a post-verdict fix / gate-repair commit re-reviewed before the
+  merge (#1691, #1694, #1696; #1703 and #1723 carry one beside their sync).
+  These are #1498's process states (c) and (d), whose countermeasures that
+  disposition already refused on the cost test; nothing escaped and every
+  moved head was re-verified first. No verdict in the window uses the word
+  `head-moved` (checked over every `hpo-approver` comment on the window's
+  merges), so no `fix-review.md` step-12 breach is being counted. The
+  dispatch's S10 hypothesis was checked and is **not supported**: no head in
+  this set moved by a body patch pushed after a verdict, so the one
+  countermeasure-text-for-two-issues move has no evidence to stand on.
+  #1501's owner question — should the rework arm print without proposing, as
+  the `merge` row does — stands and is not this seat's to answer.
+- **[#1712](https://github.com/tvofi/heatpump_optimizer/issues/1712)
+  (`tools/audit/briefs/fixer.md`) — ADDRESSED in part, REFUSED in part.**
+  Eleven entries, five classes:
+  - *MODE: FULL from hand-off notes tracked on the branch (3: #1693, #1694,
+    #1713's step 5) — FIXED* by classifying `handoff/` INERT in
+    `tests/closure.py`: seat notes are prose no gate script reads — the
+    `docs/` class — and three seats derived their scope on scratch commits
+    without them. Failing first at `3defa2d5`: a tracked
+    `handoff/round9/fix/note.md` printed `MODE: FULL — no recorded closure
+    mentions handoff/round9/fix/note.md -- an unmeasured file is not a safe
+    skip`; with the entry the same diff scopes, and deleting the entry (the
+    mutation) returns the FULL. Null control: an unclassified
+    `seatnotes/x.md` still forces FULL with the entry present, and `docs/`
+    and production paths behave identically at both arms.
+  - *`git archive` mutants failing the #363 `recorded_at` check (2: #1713,
+    #1723) — FIXED* as one clause in `fixer.md` step 2 (4585/4585 tokens,
+    paid inside the file).
+  - *Stale finder harnesses (4: #1704, #1714, #1718, #1723's step 8) —
+    inherent.* A round's throwaway harnesses rot by nature; step 3's
+    companion-instrument route (#1601) is the standing countermeasure and
+    each of these seats used it.
+  - *Stub fidelity (3: #1638, #1691, #1707) — inherent.* Step 13 exists for
+    exactly this class and names the contract record to check before
+    trusting a green test.
+  - *BLAS kernel split (1: #1711) — inherent*, step 15's documented class.
+
 ## Carried findings awaiting a stage
 
 - **An input-side carrier for `_optimize_space_only`, from #224's stage-5 brief

@@ -248,6 +248,13 @@ INERT = (
     # opens every tools/audit/round*/D*/*.py, so those files are read by
     # the gate and `_is_header_corpus` below takes them out of this claim.
     "tools/audit/",
+    # Seat hand-off notes (`handoff/<round>/...`), tracked on a fix branch
+    # and read by no gate script -- prose for seats, the docs/ class. They
+    # are not on main, so this prefix covers nothing until a branch carries
+    # them; when one did, the unmeasured-file rule forced MODE: FULL and
+    # three seats (#1691, #1693, #1694, #1713's step-5 entry) derived their
+    # scope on a scratch commit without the notes instead.
+    "handoff/",
     # Everything below is here for one reason: a file that is neither in a
     # closure nor on this list forces the WHOLE suite, because an unmeasured
     # file is not a safe skip. That rule is right, and it was quietly costing
