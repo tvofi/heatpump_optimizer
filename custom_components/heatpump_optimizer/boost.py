@@ -104,7 +104,7 @@ _STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
 _PLAN_BASES: WeakKeyDictionary[Any, dict[str, Any]] = WeakKeyDictionary()
 
 
-def adopt_plan(coord: _BoostCoord, action: dict[str, Any]) -> dict[str, Any]:
+def adopt_plan(coord: _BoostCoord, action: dict[str, Any]) -> None:
     """Adopt ``action`` as the plan base the cycle overlays onto (#1752).
 
     Every whole-dict writer of ``_current_action`` -- the solve, the fixed
@@ -115,7 +115,6 @@ def adopt_plan(coord: _BoostCoord, action: dict[str, Any]) -> dict[str, Any]:
     """
     _PLAN_BASES[coord] = action
     coord._current_action = action
-    return action
 
 
 def held_for(coord: Any) -> BoostState:

@@ -23129,6 +23129,7 @@ async def _whatif_scratch_params():
     await coord.async_run_optimization()
     coord._thermal_params.internal_gains_profile = [0.3] * 24
     captured = []
+    captured_cfg = []
     real_model = _coord_mod.ThermalModel
     real_init = real_model.__init__
 
@@ -23137,19 +23138,50 @@ async def _whatif_scratch_params():
         return real_init(self, params, *a, **k)
 
     real_model.__init__ = _spy_init
+    real_opt = _coord_mod.HeatPumpOptimizer
+    real_opt_init = real_opt.__init__
+
+    def _spy_opt_init(self, model, config, *a, **k):
+        captured_cfg.append(config)
+        return real_opt_init(self, model, config, *a, **k)
+
+    real_opt.__init__ = _spy_opt_init
     try:
         coord._last_simulation = None
         payload = await coord.async_simulate({"target_temp": 20.5})
+        # A second what-if on the parameter side of the override table, so
+        # both override loops are pinned, not just the config one.
+        coord._last_simulation = None
+        await coord.async_simulate({"max_temp": 21.5})
     finally:
         real_model.__init__ = real_init
-    return coord, captured[-1] if captured else None, payload
+        real_opt.__init__ = real_opt_init
+    return coord, captured[-1] if captured else None, captured_cfg, payload
 
 
-_wi_coord, _wi_params, _wi_payload = _asyncio.run(_whatif_scratch_params())
+_wi_coord, _wi_params, _wi_cfgs, _wi_payload = _asyncio.run(_whatif_scratch_params())
 R.check(
     "the what-if actually reached a solve (else the sharing check is vacuous)",
     _wi_params is not None and "cost_delta" in _wi_payload,
     f"payload keys: {sorted(_wi_payload)[:5]}",
+)
+R.check(
+    "the what-if's scratch config carries the override the user asked for "
+    "-- a dropped override guard would answer a question nobody asked",
+    len(_wi_cfgs) == 2
+    and _wi_cfgs[0] is not _wi_coord._opt_config
+    and _wi_cfgs[0].target_temp == 20.5
+    and _wi_cfgs[1].max_temp == 21.5,
+    f"scratch targets: {[getattr(c, 'target_temp', None) for c in _wi_cfgs]} "
+    f"max: {[getattr(c, 'max_temp', None) for c in _wi_cfgs]}",
+)
+R.check(
+    "and the parameter override reaches the model: an asked comfort "
+    "ceiling moves the scratch ceiling the valve's default target follows "
+    "(21.5, away from the parameter's own 23.0 default, so a dropped "
+    "guard cannot pass as the default)",
+    _wi_params.comfort_ceiling == 21.5,
+    f"scratch comfort_ceiling: {_wi_params.comfort_ceiling!r}",
 )
 _wi_shared = [
     _name
