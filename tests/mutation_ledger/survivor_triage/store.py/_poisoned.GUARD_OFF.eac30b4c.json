@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_poisoned GUARD_OFF eac30b4c",
+  "old": "    if isinstance(value, bool):",
+  "reason": "Void mutant, the same shape the deleted _sanitize row measured (8e5d1ace, #1425; rewritten into _poisoned by F1.6): `if isinstance(value, bool):` -> `if False:` falls through to the int arm, and a bool IS an int there -- abs(True) >= 1e15 and abs(False) >= 1e15 are both False -- so _poisoned answers False for every bool exactly as the guard does. No input distinguishes them; no check can kill it. Measured: survived every driver in play in the F1.6 pin-killed drive at ab725224 (19 drivers, stress.py deferred, no mutant survived a shared driver), 2026-09-29.",
+  "verdict": "equivalent"
+}

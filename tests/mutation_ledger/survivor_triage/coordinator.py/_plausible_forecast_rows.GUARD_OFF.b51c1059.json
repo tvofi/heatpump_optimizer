@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_plausible_forecast_rows GUARD_OFF b51c1059",
+  "old": "            if raw is None or isinstance(raw, bool):",
+  "reason": "Void mutant for the None half and a no-window-difference for the bool half: with the guard off, `raw is None` falls to `float(None)`, which raises TypeError inside the try the very next line opens, and the except answers `continue` -- the same skip the guard made. A bool coerces to 1.0, which every window in _FORECAST_FIELD_RANGE admits, so a stored True/False field value would load as 1.0 rather than being dropped; no driver in play seeds a bool forecast field, so nothing distinguishes them. Measured: survived every driver in play in the F1.6 pin-killed drive at ab725224 (19 drivers, stress.py deferred), 2026-09-29.",
+  "verdict": "equivalent"
+}

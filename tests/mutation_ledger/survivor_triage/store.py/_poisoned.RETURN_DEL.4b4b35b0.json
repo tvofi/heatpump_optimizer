@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_poisoned RETURN_DEL 4b4b35b0",
+  "old": "    return False",
+  "reason": "Void mutant: the tail `return False` deleted returns None instead, and every reader of _poisoned's answer uses it as a truth value (`if not _poisoned(k)` in the dict-key drop, `None if _poisoned(value) else value` in _sanitize) -- None is as falsy as False, so no input distinguishes them. Measured: survived every driver in play in the F1.6 pin-killed drive at ab725224 (19 drivers, stress.py deferred), 2026-09-29.",
+  "verdict": "equivalent"
+}
