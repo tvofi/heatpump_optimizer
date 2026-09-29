@@ -14231,7 +14231,7 @@ _adv_calls = []
 def _advisor_coord(payload_extra=None, **cfg):
     c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
 
-    async def _fake_simulate(overrides):
+    async def _fake_simulate(overrides, limited=True):
         _adv_calls.append(overrides)
         return {
             "overrides": overrides,
@@ -14310,14 +14310,16 @@ R.check(
     f"got {_cad3._fuse_advisor}",
 )
 
-# A rate-limited answer is the card's cached payload, not this what-if:
-# it must be discarded, retried tomorrow, and never displace a real verdict.
+# A what-if that could not run is not evidence: it must be discarded,
+# retried tomorrow, and never displace a real verdict. (#1753: the
+# advisor now solves user-limit-free, so the rate-limited shape this
+# check used is no longer reachable; the error arm is the surviving one.)
 _adv_calls.clear()
-_cad4 = _advisor_coord(payload_extra={"rate_limited": True})
+_cad4 = _advisor_coord(payload_extra={"error": "no_prices"})
 _cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
 _asyncio.run(_cad4._maybe_run_fuse_advisor())
 R.check(
-    "a rate-limited what-if keeps last month's real verdict",
+    "an errored what-if keeps last month's real verdict",
     _cad4._fuse_advisor == {"candidate_kw": 11.04, "feasible": True}
     and _cad4._fuse_advisor_at is not None,
     f"got {_cad4._fuse_advisor}",
@@ -18201,7 +18203,7 @@ R.check(
 _ctile = _t2_coord()
 
 
-async def _fake_sim(overrides):
+async def _fake_sim(overrides, limited=True):
     return {
         "monthly_cost_delta": -42.0,
         "min_room_temperature": 19.1,
@@ -18226,16 +18228,27 @@ R.check(
 )
 
 
-async def _fake_sim_limited(overrides):
-    return {"rate_limited": True}
+# #1753: the tile no longer consults the user limiter at all, so there is
+# no "the user dragged first" arm here -- the tile always spends its turn,
+# and a drag during it is answered fresh (the S2 arms prove that at the
+# real seam). What this check pins is the route: the tile must reach the
+# solve through the user-limit-free entry.
+_ctile2_limited_seen = {}
 
 
-_ctile2.async_simulate = _fake_sim_limited
+async def _fake_sim_route(overrides, limited=True):
+    _ctile2_limited_seen["limited"] = limited
+    return {"rate_limited": False}
+
+
+_ctile2.async_simulate = _fake_sim_route
 _asyncio.run(_ctile2._maybe_refresh_price_tile())
 R.check(
-    "the card's rate budget wins: a limited answer leaves the rotation alone",
-    _ctile2._price_tile_cursor == 1 and len(_ctile2._price_tiles) == 1,
-    "tiles wait for the next interval instead of stealing the user's solve",
+    "#1753: the tile solves through the user-limit-free path, so its turn "
+    "is always spent",
+    _ctile2_limited_seen.get("limited") is False
+    and _ctile2._price_tile_cursor == 2,
+    str(_ctile2_limited_seen),
 )
 R.check(
     "the tile set is fixed at three perturbations",
@@ -18400,19 +18413,22 @@ R.check(
     "simulate_step writes per-call scratch on the model instance",
 )
 
-# The tile borrows the card's harness without spending its budget: the
-# rate-limit stamp and the cache are snapshot-restored, so a drag right
-# after a solve neither rate-limits nor reads the tile's payload back.
+# #1753: the tile's solve used to snapshot-restore the card's rate budget
+# and cache around the borrow. That envelope is deleted: the tile asks for
+# the user-limit-free path (limited=False) and async_simulate itself writes
+# the limiter and cache only for user callers, so there is nothing left to
+# restore. The S2 arms above hold the real seam to its promise; this check
+# pins the route the tile now takes.
 _ctile3 = _t2_coord(price_tiles_enabled=True)
 _marker3 = {"marker": True}
 _stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
 _ctile3._simulation_cache = _marker3
 _ctile3._last_simulation = _stamp3
+_ctile3_route = {}
 
 
-async def _fake_sim_poison(overrides, _c=_ctile3):
-    _c._last_simulation = datetime(2026, 3, 2, tzinfo=UTC)
-    _c._simulation_cache = {"poison": True}
+async def _fake_sim_poison(overrides, limited=True, _c=_ctile3):
+    _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
         "min_room_temperature": 19.0,
@@ -18423,11 +18439,12 @@ async def _fake_sim_poison(overrides, _c=_ctile3):
 _ctile3.async_simulate = _fake_sim_poison
 _asyncio.run(_ctile3._maybe_refresh_price_tile())
 R.check(
-    "a tile run leaves the card's rate budget and cache exactly as found",
-    _ctile3._simulation_cache is _marker3
+    "#1753: the tile takes the limited=False path -- no borrow to restore",
+    _ctile3_route.get("limited") is False
+    and _ctile3._simulation_cache is _marker3
     and _ctile3._last_simulation == _stamp3
     and _ctile3._price_tiles,
-    "the fuse advisor's own rule: borrow the harness, never the slot",
+    f"route={_ctile3_route}",
 )
 
 # The target tiles perturb the LIVE target: during an away setback the
@@ -18445,7 +18462,7 @@ R.check(
 _ctile4 = _t2_coord(price_tiles_enabled=True)
 
 
-async def _fake_sim_err(overrides):
+async def _fake_sim_err(overrides, limited=True):
     return {"error": "boom", "rate_limited": False}
 
 
@@ -22069,7 +22086,10 @@ R.check(
 
 
 async def _fr_plan() -> None:
-    _fr_coord._current_action = {"mode": "plan", "price": 0.123}
+    # #1752: a plan action enters through adopt_plan, which is also what
+    # the solve does -- writing ``_current_action`` directly would never
+    # reach the base the cycle overlays onto.
+    boost_mod.adopt_plan(_fr_coord, {"mode": "plan", "price": 0.123})
 
 
 # ... and only a fixed-rule one: the plan's action keeps the price it planned.
@@ -38329,7 +38349,7 @@ def _t3_tile(answer, **config):
     """Run one tile refresh against a stubbed simulation."""
     c = _t3_coord(price_tiles_enabled=True, **config)
 
-    async def simulate(overrides):
+    async def simulate(overrides, limited=True):
         if isinstance(answer, Exception):
             raise answer
         return answer
@@ -38349,15 +38369,9 @@ R.check(
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
 )
-_t3_tile_limited = _t3_tile({"rate_limited": True})
-R.check(
-    "a rate-limited tile leaves the cursor put, so its turn is not consumed",
-    _t3_tile_limited._price_tile_cursor == 0
-    and dict(_t3_tile_limited._price_tiles) == {},
-    f"cursor {_t3_tile_limited._price_tile_cursor} -- the user dragging the "
-    "card wins the slot, and this tile simply waits for the next interval "
-    "rather than losing its place in the rotation",
-)
+# #1753 removed the rate-limited arm: the tile solves user-limit-free
+# (limited=False), so a rate-limited answer can no longer reach it and its
+# turn is always spent -- no "leaves the cursor put" arm remains.
 _t3_tile_error = _t3_tile({"error": "no solution"})
 _t3_tile_good = _t3_tile(
     {"monthly_cost_delta": -12.5, "min_room_temperature": 20.1}

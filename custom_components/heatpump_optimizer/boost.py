@@ -9,7 +9,8 @@ selecting the global boost mode does.
 
 State lives in a Store next to the away override, and in a weak map keyed
 by coordinator so the coordinator class does not grow another attribute.
-The coordinator only restores, overlays, and lets the switches call in.
+The coordinator adopts each cycle's plan action here, the overlay is
+applied to a copy of it, and the switches call in.
 """
 from __future__ import annotations
 
@@ -95,6 +96,27 @@ class BoostState:
 
 _STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
 
+# The last plan action, kept pristine for re-overlay (#1752). The overlay
+# used to mutate ``_current_action`` in place, so a cycle that kept the plan
+# (``no_prices``, ``solve_failed``, busy) also kept the boost: after a
+# cancel the pump ran at nameplate power and maximum displace until the
+# plan-stale gate. The same weak-map discipline as ``_STATES``.
+_PLAN_BASES: WeakKeyDictionary[Any, dict[str, Any]] = WeakKeyDictionary()
+
+
+def adopt_plan(coord: _BoostCoord, action: dict[str, Any]) -> dict[str, Any]:
+    """Adopt ``action`` as the plan base the cycle overlays onto (#1752).
+
+    Every whole-dict writer of ``_current_action`` -- the solve, the fixed
+    modes, the sysid override -- routes through here. The live action is
+    the base unchanged until ``apply`` lays the overlay on a copy of it,
+    so a cancelled or expired boost disappears on the next cycle whatever
+    that cycle's solve outcome is.
+    """
+    _PLAN_BASES[coord] = action
+    coord._current_action = action
+    return action
+
 
 def held_for(coord: Any) -> BoostState:
     """In-memory boost state for this coordinator, created on first use."""
@@ -134,7 +156,13 @@ def overlay(
 
 
 def apply(coord: _BoostCoord) -> None:
-    """Expire, then overlay the live action the cycle is about to write."""
+    """Expire, then lay the overlay on a COPY of the plan base (#1752).
+
+    The published and actuated action is rebuilt every cycle from the base
+    the solve or mode block last adopted, never carried forward from the
+    previous cycle's overlaid dict, so a boost that is no longer live is
+    gone from the action whatever kept the plan.
+    """
     now = dt_util.now()
     held = held_for(coord)
     held.expire(now)
@@ -142,10 +170,7 @@ def apply(coord: _BoostCoord) -> None:
         # No tank to heat: a DHW boost set or restored anyway is dropped here,
         # the one place it could reach the action (#1527).
         held.until.pop(CHANNEL_DHW, None)
-    action = coord._current_action
-    if not action:
-        coord._current_action = {}
-        action = coord._current_action
+    action = dict(_PLAN_BASES.get(coord) or {})
     ctx: Any = getattr(coord, "_ctx", coord)
     overlay(
         action,
@@ -154,6 +179,7 @@ def apply(coord: _BoostCoord) -> None:
         max_temp=float(ctx._opt_config.max_temp),
         ecl_max=float(coord._ecl110_displace_max),
     )
+    coord._current_action = action
 
 
 def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
