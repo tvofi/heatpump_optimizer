@@ -14231,7 +14231,7 @@ _adv_calls = []
 def _advisor_coord(payload_extra=None, **cfg):
     c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
 
-    async def _fake_simulate(overrides):
+    async def _fake_simulate(overrides, limited=True):
         _adv_calls.append(overrides)
         return {
             "overrides": overrides,
@@ -14310,14 +14310,16 @@ R.check(
     f"got {_cad3._fuse_advisor}",
 )
 
-# A rate-limited answer is the card's cached payload, not this what-if:
-# it must be discarded, retried tomorrow, and never displace a real verdict.
+# A what-if that could not run is not evidence: it must be discarded,
+# retried tomorrow, and never displace a real verdict. (#1753: the
+# advisor now solves user-limit-free, so the rate-limited shape this
+# check used is no longer reachable; the error arm is the surviving one.)
 _adv_calls.clear()
-_cad4 = _advisor_coord(payload_extra={"rate_limited": True})
+_cad4 = _advisor_coord(payload_extra={"error": "no_prices"})
 _cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
 _asyncio.run(_cad4._maybe_run_fuse_advisor())
 R.check(
-    "a rate-limited what-if keeps last month's real verdict",
+    "an errored what-if keeps last month's real verdict",
     _cad4._fuse_advisor == {"candidate_kw": 11.04, "feasible": True}
     and _cad4._fuse_advisor_at is not None,
     f"got {_cad4._fuse_advisor}",
@@ -18201,7 +18203,7 @@ R.check(
 _ctile = _t2_coord()
 
 
-async def _fake_sim(overrides):
+async def _fake_sim(overrides, limited=True):
     return {
         "monthly_cost_delta": -42.0,
         "min_room_temperature": 19.1,
@@ -18226,16 +18228,27 @@ R.check(
 )
 
 
-async def _fake_sim_limited(overrides):
-    return {"rate_limited": True}
+# #1753: the tile no longer consults the user limiter at all, so there is
+# no "the user dragged first" arm here -- the tile always spends its turn,
+# and a drag during it is answered fresh (the S2 arms prove that at the
+# real seam). What this check pins is the route: the tile must reach the
+# solve through the user-limit-free entry.
+_ctile2_limited_seen = {}
 
 
-_ctile2.async_simulate = _fake_sim_limited
+async def _fake_sim_route(overrides, limited=True):
+    _ctile2_limited_seen["limited"] = limited
+    return {"rate_limited": False}
+
+
+_ctile2.async_simulate = _fake_sim_route
 _asyncio.run(_ctile2._maybe_refresh_price_tile())
 R.check(
-    "the card's rate budget wins: a limited answer leaves the rotation alone",
-    _ctile2._price_tile_cursor == 1 and len(_ctile2._price_tiles) == 1,
-    "tiles wait for the next interval instead of stealing the user's solve",
+    "#1753: the tile solves through the user-limit-free path, so its turn "
+    "is always spent",
+    _ctile2_limited_seen.get("limited") is False
+    and _ctile2._price_tile_cursor == 2,
+    str(_ctile2_limited_seen),
 )
 R.check(
     "the tile set is fixed at three perturbations",
@@ -18400,19 +18413,22 @@ R.check(
     "simulate_step writes per-call scratch on the model instance",
 )
 
-# The tile borrows the card's harness without spending its budget: the
-# rate-limit stamp and the cache are snapshot-restored, so a drag right
-# after a solve neither rate-limits nor reads the tile's payload back.
+# #1753: the tile's solve used to snapshot-restore the card's rate budget
+# and cache around the borrow. That envelope is deleted: the tile asks for
+# the user-limit-free path (limited=False) and async_simulate itself writes
+# the limiter and cache only for user callers, so there is nothing left to
+# restore. The S2 arms above hold the real seam to its promise; this check
+# pins the route the tile now takes.
 _ctile3 = _t2_coord(price_tiles_enabled=True)
 _marker3 = {"marker": True}
 _stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
 _ctile3._simulation_cache = _marker3
 _ctile3._last_simulation = _stamp3
+_ctile3_route = {}
 
 
-async def _fake_sim_poison(overrides, _c=_ctile3):
-    _c._last_simulation = datetime(2026, 3, 2, tzinfo=UTC)
-    _c._simulation_cache = {"poison": True}
+async def _fake_sim_poison(overrides, limited=True, _c=_ctile3):
+    _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
         "min_room_temperature": 19.0,
@@ -18423,11 +18439,12 @@ async def _fake_sim_poison(overrides, _c=_ctile3):
 _ctile3.async_simulate = _fake_sim_poison
 _asyncio.run(_ctile3._maybe_refresh_price_tile())
 R.check(
-    "a tile run leaves the card's rate budget and cache exactly as found",
-    _ctile3._simulation_cache is _marker3
+    "#1753: the tile takes the limited=False path -- no borrow to restore",
+    _ctile3_route.get("limited") is False
+    and _ctile3._simulation_cache is _marker3
     and _ctile3._last_simulation == _stamp3
     and _ctile3._price_tiles,
-    "the fuse advisor's own rule: borrow the harness, never the slot",
+    f"route={_ctile3_route}",
 )
 
 # The target tiles perturb the LIVE target: during an away setback the
@@ -18445,7 +18462,7 @@ R.check(
 _ctile4 = _t2_coord(price_tiles_enabled=True)
 
 
-async def _fake_sim_err(overrides):
+async def _fake_sim_err(overrides, limited=True):
     return {"error": "boom", "rate_limited": False}
 
 
@@ -22069,7 +22086,10 @@ R.check(
 
 
 async def _fr_plan() -> None:
-    _fr_coord._current_action = {"mode": "plan", "price": 0.123}
+    # #1752: a plan action enters through adopt_plan, which is also what
+    # the solve does -- writing ``_current_action`` directly would never
+    # reach the base the cycle overlays onto.
+    boost_mod.adopt_plan(_fr_coord, {"mode": "plan", "price": 0.123})
 
 
 # ... and only a fixed-rule one: the plan's action keeps the price it planned.
@@ -23109,6 +23129,7 @@ async def _whatif_scratch_params():
     await coord.async_run_optimization()
     coord._thermal_params.internal_gains_profile = [0.3] * 24
     captured = []
+    captured_cfg = []
     real_model = _coord_mod.ThermalModel
     real_init = real_model.__init__
 
@@ -23117,19 +23138,50 @@ async def _whatif_scratch_params():
         return real_init(self, params, *a, **k)
 
     real_model.__init__ = _spy_init
+    real_opt = _coord_mod.HeatPumpOptimizer
+    real_opt_init = real_opt.__init__
+
+    def _spy_opt_init(self, model, config, *a, **k):
+        captured_cfg.append(config)
+        return real_opt_init(self, model, config, *a, **k)
+
+    real_opt.__init__ = _spy_opt_init
     try:
         coord._last_simulation = None
         payload = await coord.async_simulate({"target_temp": 20.5})
+        # A second what-if on the parameter side of the override table, so
+        # both override loops are pinned, not just the config one.
+        coord._last_simulation = None
+        await coord.async_simulate({"max_temp": 21.5})
     finally:
         real_model.__init__ = real_init
-    return coord, captured[-1] if captured else None, payload
+        real_opt.__init__ = real_opt_init
+    return coord, captured[-1] if captured else None, captured_cfg, payload
 
 
-_wi_coord, _wi_params, _wi_payload = _asyncio.run(_whatif_scratch_params())
+_wi_coord, _wi_params, _wi_cfgs, _wi_payload = _asyncio.run(_whatif_scratch_params())
 R.check(
     "the what-if actually reached a solve (else the sharing check is vacuous)",
     _wi_params is not None and "cost_delta" in _wi_payload,
     f"payload keys: {sorted(_wi_payload)[:5]}",
+)
+R.check(
+    "the what-if's scratch config carries the override the user asked for "
+    "-- a dropped override guard would answer a question nobody asked",
+    len(_wi_cfgs) == 2
+    and _wi_cfgs[0] is not _wi_coord._opt_config
+    and _wi_cfgs[0].target_temp == 20.5
+    and _wi_cfgs[1].max_temp == 21.5,
+    f"scratch targets: {[getattr(c, 'target_temp', None) for c in _wi_cfgs]} "
+    f"max: {[getattr(c, 'max_temp', None) for c in _wi_cfgs]}",
+)
+R.check(
+    "and the parameter override reaches the model: an asked comfort "
+    "ceiling moves the scratch ceiling the valve's default target follows "
+    "(21.5, away from the parameter's own 23.0 default, so a dropped "
+    "guard cannot pass as the default)",
+    _wi_params.comfort_ceiling == 21.5,
+    f"scratch comfort_ceiling: {_wi_params.comfort_ceiling!r}",
 )
 _wi_shared = [
     _name
@@ -38329,7 +38381,7 @@ def _t3_tile(answer, **config):
     """Run one tile refresh against a stubbed simulation."""
     c = _t3_coord(price_tiles_enabled=True, **config)
 
-    async def simulate(overrides):
+    async def simulate(overrides, limited=True):
         if isinstance(answer, Exception):
             raise answer
         return answer
@@ -38349,15 +38401,9 @@ R.check(
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
 )
-_t3_tile_limited = _t3_tile({"rate_limited": True})
-R.check(
-    "a rate-limited tile leaves the cursor put, so its turn is not consumed",
-    _t3_tile_limited._price_tile_cursor == 0
-    and dict(_t3_tile_limited._price_tiles) == {},
-    f"cursor {_t3_tile_limited._price_tile_cursor} -- the user dragging the "
-    "card wins the slot, and this tile simply waits for the next interval "
-    "rather than losing its place in the rotation",
-)
+# #1753 removed the rate-limited arm: the tile solves user-limit-free
+# (limited=False), so a rate-limited answer can no longer reach it and its
+# turn is always spent -- no "leaves the cursor put" arm remains.
 _t3_tile_error = _t3_tile({"error": "no solution"})
 _t3_tile_good = _t3_tile(
     {"monthly_cost_delta": -12.5, "min_room_temperature": 20.1}
@@ -53495,5 +53541,405 @@ R.check(
     and all(w for _, a, w in _r9p5_live if a),
     [(n, a) for n, a, _ in _r9p5_live],
 )
+
+# R9-EG-B9 (#1752, #1753): the boost overlay acts on a copy of the plan's
+# own base action, and the price tile and fuse advisor stop borrowing the
+# user what-if's limiter and cache. Probes ported from the #1736 shape
+# screen (handoff/round9/state/alt/evidence/screen/S1.py, S2.py at 8061ec9b):
+# probe arms against null arms, real coordinator, real in-process solves.
+import asyncio as _r9egb9_aio  # noqa: E402
+from unittest import mock as _r9egb9_mock  # noqa: E402
+
+from harness import FakeEntry as _r9egb9_entry  # noqa: E402
+from homeassistant.util import dt as _r9egb9_dt  # noqa: E402
+from heatpump_optimizer import const as _r9egb9_const  # noqa: E402
+from heatpump_optimizer import coordinator as _r9egb9_cmod  # noqa: E402
+from heatpump_optimizer.optimizer import optimize_in_process as _r9egb9_solve  # noqa: E402
+
+_R9EGB9_NOW = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
+
+
+class _R9EGB9Hass(FakeHass):
+    """Swallow construction-time spawns; run the cycle's own for real."""
+
+    spawn_real = False
+
+    def async_create_task(self, coro, name=None, eager_start=None):
+        if not self.spawn_real:
+            coro.close()
+            return None
+        try:
+            loop = _r9egb9_aio.get_running_loop()
+        except RuntimeError:
+            coro.close()
+            return None
+        return loop.create_task(coro)
+
+
+class _R9EGB9Gate:
+    """The probe transport: every solve in-process, the next one(s) holdable
+    behind an Event (the S2 borrow window) or failable (S1's solve_failed)."""
+
+    calls = 0
+    fail = False
+    hold = 0
+    entered = None
+    release = None
+
+    @classmethod
+    def arm_hold(cls, count=1):
+        cls.entered = _r9egb9_aio.Event()
+        cls.release = _r9egb9_aio.Event()
+        cls.hold = count
+
+    @classmethod
+    def disarm(cls):
+        cls.hold = 0
+        cls.fail = False
+
+
+async def _r9egb9_transport(hass, optimizer, state, *positional, **keywords):
+    _R9EGB9Gate.calls += 1
+    if _R9EGB9Gate.fail:
+        raise RuntimeError("r9egb9-injected solve failure")
+    if _R9EGB9Gate.hold > 0:
+        _R9EGB9Gate.hold -= 1
+        _R9EGB9Gate.entered.set()
+        await _R9EGB9Gate.release.wait()
+    return _r9egb9_solve(optimizer, state, positional, keywords)
+
+
+def _r9egb9_series(anchor):
+    """Expensive now, cheap from +4 h: the plan's own current-step action is
+    to hold off, so the null arms publish off/0/min-displace and any boost
+    residue in a probe arm stands out (S1's null table)."""
+    prices = [
+        {
+            "total": 1.5 if h < 6 else 0.2,
+            "starts_at": (anchor + timedelta(hours=h - 2)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(50)
+    ]
+    weather = [
+        {
+            "datetime": (anchor + timedelta(hours=h)).isoformat(),
+            "temperature": -5.0,
+            "wind_speed": 3.0,
+            "precipitation": 0.0,
+            "humidity": 85.0,
+        }
+        for h in range(48)
+    ]
+    return prices, weather
+
+
+def _r9egb9_make(entry_id, extra=None, anchor=None):
+    """One auto-mode coordinator on injected series, fetches no-ops (S1's
+    rig, the features.py _r9f13_make pattern): a cycle runs a real solve."""
+    hass = _R9EGB9Hass({
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+        "switch.heat_pump": FakeState("on"),
+    })
+    coord = Coord(hass, _r9egb9_entry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "heat_pump_switch_entity": "switch.heat_pump",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "ecl110_displace_set_topic": "ecl_r9egb9/set",
+        "ecl110_command_topic": "ecl_r9egb9/command",
+        **(extra or {}),
+    }, entry_id=entry_id))
+    hass.spawn_real = True
+    coord._skip_solve_once = False
+    coord._prices, coord._weather_forecast = _r9egb9_series(
+        anchor or _R9EGB9_NOW
+    )
+
+    async def _r9egb9_noop(*_a, **_k):
+        return None
+
+    coord._fetch_tibber_prices = _r9egb9_noop
+    coord._fetch_weather_forecast = _r9egb9_noop
+    coord._fetch_solar_forecast = _r9egb9_noop
+    return coord
+
+
+# -- #1752: a cancelled boost must not survive a cycle that keeps the plan --
+def _r9egb9_boost_arm(name, *, channel, boosted, outcome):
+    """Cycle 1 solves (boost per arm), the switch's own cancel path runs,
+    cycle 2 ends as `outcome` says. Returns what cycle 2 published and
+    actuated, plus the boost switch's own state at that moment."""
+    from heatpump_optimizer import boost as _r9egb9_boost
+
+    async def _scenario():
+        _r9egb9_dt.freeze(_R9EGB9_NOW)
+        coord = _r9egb9_make(
+            f"r9egb9_{name}",
+            extra={"dhw_enabled": True} if channel == "dhw" else None,
+        )
+        reasons = []
+        orig_run = coord.async_run_optimization
+
+        async def _run():
+            reason = await orig_run()
+            reasons.append(reason)
+            return reason
+
+        coord.async_run_optimization = _run
+        if boosted:
+            await _r9egb9_boost.set_channel(coord, channel, True, refresh=False)
+        await coord._async_update_data()
+        if boosted:
+            await _r9egb9_boost.set_channel(coord, channel, False, refresh=False)
+        if outcome == "no_prices":
+            coord._prices = []
+        elif outcome == "solve_failed":
+            _R9EGB9Gate.fail = True
+        n0 = len(coord.hass.services.calls)
+        data = await coord._async_update_data()
+        _R9EGB9Gate.fail = False
+        acts = coord.hass.services.calls[n0:]
+        action = coord._current_action or {}
+        return {
+            "cycle2": reasons[-1] if reasons else None,
+            "mode": action.get("mode"),
+            "power_kw": round(float(action.get("power") or 0.0), 2),
+            "displace": action.get("displace_value"),
+            "boost_space": action.get("boost_space"),
+            "boost_dhw": action.get("boost_dhw"),
+            "dhw_power": action.get("dhw_power"),
+            "dhw_heating_active": action.get("dhw_heating_active"),
+            "switch": [s for d, s, _x in acts if d == "switch"],
+            "ecl_displace": [
+                x.get("payload") for d, s, x in acts
+                if d == "mqtt" and str(x.get("topic", "")).endswith("/set")
+            ],
+            "data_mode": (data.get("current_action") or {}).get("mode"),
+            "switch_reads_off": not _r9egb9_boost.held_for(coord).active(
+                channel, _r9egb9_dt.now()
+            ),
+        }
+
+    with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
+        return _r9egb9_aio.run(_scenario())
+
+
+def _r9egb9_acted(arm):
+    """An arm's outcome minus its cycle-2 reason, which is the arm's own
+    label: the published action is what must not differ between arms."""
+    return {k: v for k, v in arm.items() if k != "cycle2"}
+
+
+_r9egb9_null = _r9egb9_boost_arm(
+    "null_no_boost", channel="space", boosted=False, outcome="no_prices")
+_r9egb9_probe_np = _r9egb9_boost_arm(
+    "probe_no_prices", channel="space", boosted=True, outcome="no_prices")
+_r9egb9_probe_sf = _r9egb9_boost_arm(
+    "probe_solve_failed", channel="space", boosted=True, outcome="solve_failed")
+_r9egb9_null_ok = _r9egb9_boost_arm(
+    "null_solve_ok", channel="space", boosted=True, outcome="ok")
+_r9egb9_probe_dhw = _r9egb9_boost_arm(
+    "probe_dhw_no_prices", channel="dhw", boosted=True, outcome="no_prices")
+_r9egb9_null_dhw = _r9egb9_boost_arm(
+    "null_dhw_solve_ok", channel="dhw", boosted=True, outcome="ok")
+_r9egb9_null_dhw_nb = _r9egb9_boost_arm(
+    "null_dhw_no_boost", channel="dhw", boosted=False, outcome="no_prices")
+
+R.check(
+    "#1752 null control: a never-boosted no_prices cycle keeps the plan's "
+    "own action -- off, 0 kW, the plan's own displace, pump off, no boost "
+    "keys (the values a dropped base registration would have to fake)",
+    _r9egb9_null["cycle2"] == "no_prices"
+    and _r9egb9_null["mode"] == "off"
+    and _r9egb9_null["power_kw"] == 0.0
+    and _r9egb9_null["switch"] == ["turn_off"]
+    and _r9egb9_null["boost_space"] is None
+    and _r9egb9_null["boost_dhw"] is None
+    and _r9egb9_null["switch_reads_off"]
+    and _r9egb9_null["displace"] != 20.0,
+    str(_r9egb9_null),
+)
+R.check(
+    "#1752 probe/no_prices: a cancelled space boost does not survive a "
+    "no_prices cycle -- what cycle 2 publishes, actuates and sends to the "
+    "ECL is exactly the never-boosted null's",
+    _r9egb9_acted(_r9egb9_probe_np) == _r9egb9_acted(_r9egb9_null),
+    f"probe={_r9egb9_probe_np} null={_r9egb9_null}",
+)
+R.check(
+    "#1752 probe/solve_failed: a cancelled space boost does not survive a "
+    "failed solve either -- the probe arm's outcome equals the null arm's",
+    _r9egb9_probe_sf["cycle2"] == "solve_failed"
+    and _r9egb9_acted(_r9egb9_probe_sf) == _r9egb9_acted(_r9egb9_null),
+    f"probe={_r9egb9_probe_sf} null={_r9egb9_null}",
+)
+R.check(
+    "#1752 null control: a cancelled boost followed by a SUCCESSFUL solve "
+    "also reads as the null (the solve replaces the action)",
+    _r9egb9_null_ok["cycle2"] is None
+    and _r9egb9_acted(_r9egb9_null_ok) == _r9egb9_acted(_r9egb9_null),
+    f"null_ok={_r9egb9_null_ok} null={_r9egb9_null}",
+)
+R.check(
+    "#1752 probe/dhw: a cancelled DHW boost does not survive a no_prices "
+    "cycle -- the whole outcome equals the never-boosted DHW null's, not "
+    "max hot water",
+    _r9egb9_probe_dhw["cycle2"] == "no_prices"
+    and _r9egb9_acted(_r9egb9_probe_dhw) == _r9egb9_acted(_r9egb9_null_dhw_nb),
+    f"probe={_r9egb9_probe_dhw} null={_r9egb9_null_dhw_nb}",
+)
+R.check(
+    "#1752 null/dhw control: a cancelled DHW boost followed by a successful "
+    "solve clears the DHW boost keys, and the never-boosted DHW null keeps "
+    "the plan's own action",
+    _r9egb9_null_dhw["cycle2"] is None
+    and _r9egb9_null_dhw["boost_dhw"] is None
+    and _r9egb9_acted(_r9egb9_null_dhw) == _r9egb9_acted(_r9egb9_null_dhw_nb),
+    f"null_ok={_r9egb9_null_dhw} null={_r9egb9_null_dhw_nb}",
+)
+
+
+def _r9egb9_persistence():
+    """S1's persistence arm: cancel, then a price outage with the clock
+    stepped 30 min per cycle. What does each cycle publish and write?"""
+    from heatpump_optimizer import boost as _r9egb9_boost
+
+    async def _scenario():
+        _r9egb9_dt.freeze(_R9EGB9_NOW)
+        coord = _r9egb9_make("r9egb9_persist")
+        await _r9egb9_boost.set_channel(coord, "space", True, refresh=False)
+        await coord._async_update_data()
+        await _r9egb9_boost.set_channel(coord, "space", False, refresh=False)
+        coord._prices = []
+        rows = []
+        for k in (1, 2, 3):
+            _r9egb9_dt.freeze(_R9EGB9_NOW + timedelta(minutes=30 * k))
+            n0 = len(coord.hass.services.calls)
+            data = await coord._async_update_data()
+            acts = coord.hass.services.calls[n0:]
+            rows.append((
+                (data.get("current_action") or {}).get("mode"),
+                [s for d, s, _x in acts if d == "switch"],
+            ))
+        return rows
+
+    with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
+        return _r9egb9_aio.run(_scenario())
+
+
+_r9egb9_persist_rows = _r9egb9_persistence()
+R.check(
+    "#1752 persistence: through a price outage a cancelled boost never "
+    "actuates -- every cycle publishes the plan's own mode and writes the "
+    "pump command that mode commands, never a boost's turn_on",
+    all(
+        mode != "boost" and "turn_on" not in cmds
+        for mode, cmds in _r9egb9_persist_rows
+    ),
+    str(_r9egb9_persist_rows),
+)
+
+
+# -- #1753: the tile and advisor must not touch the user's limiter/cache --
+def _r9egb9_ov(answer):
+    if not isinstance(answer, dict):
+        return answer
+    return (
+        (answer.get("overrides") or {}).get("target_temp"),
+        bool(answer.get("rate_limited")),
+        answer.get("error"),
+    )
+
+
+def _r9egb9_borrow_arm(borrower, kind):
+    """S2's arms, one borrower at a time. U0 seeds the card cache; the
+    borrower's solve is held open (kind a: U1 lands straight away, kind b:
+    the limiter stamp is first backdated past the window so U1 runs and
+    finishes inside it); null: no overlap at all."""
+    async def _scenario():
+        _r9egb9_dt.freeze(None)  # the limiter measures the real clock
+        coord = _r9egb9_make(
+            f"r9egb9_s2_{borrower}_{kind}",
+            extra={"price_tiles_enabled": True,
+                   "main_fuse_amperes": 20, "main_fuse_phases": 3},
+            anchor=_r9egb9_dt.now().replace(minute=0, second=0, microsecond=0),
+        )
+        # Neither borrower may run inside the seeding solve: the arm itself
+        # is the only borrow window under measurement.
+        coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = False
+        coord._fuse_advisor_at = _r9egb9_dt.now()
+        await coord.async_run_optimization()
+        coord._last_simulation = None
+        u0 = await coord.async_simulate({"target_temp": 20.0})
+        coord._last_simulation = coord._last_simulation - timedelta(seconds=10)
+        u0_stamp = coord._last_simulation
+        if borrower == "tile":
+            coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = True
+            call = coord._maybe_refresh_price_tile
+        else:
+            coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
+            call = coord._maybe_run_fuse_advisor
+        out = {"U0": _r9egb9_ov(u0)}
+        if kind == "null":
+            await call()
+        else:
+            _R9EGB9Gate.arm_hold(1)
+            task = _r9egb9_aio.get_running_loop().create_task(call())
+            await _r9egb9_aio.wait_for(_R9EGB9Gate.entered.wait(), 60)
+            if kind == "b":
+                # The window has now been open past the 3 s limiter (S2 held
+                # it 3.2 s of real time; the stamp is the same knob).
+                coord._last_simulation = coord._last_simulation - timedelta(seconds=4)
+            u1 = await coord.async_simulate({"target_temp": 22.0})
+            u1_stamp = coord._last_simulation
+            out["U1"] = _r9egb9_ov(u1)
+            _R9EGB9Gate.release.set()
+            await task
+            _R9EGB9Gate.disarm()
+            # The unconditional restore is the defect: it reverts the cache
+            # to U0's answer and the stamp to U0's slot.
+            out["stamp_is_u1"] = coord._last_simulation == u1_stamp
+        out["cache_target"] = (
+            coord._simulation_cache.get("overrides") or {}
+        ).get("target_temp")
+        out["stamp_is_u0"] = coord._last_simulation == u0_stamp
+        return out
+
+    with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
+        return _r9egb9_aio.run(_scenario())
+
+
+_r9egb9_s2 = {
+    (b, k): _r9egb9_borrow_arm(b, k)
+    for b in ("tile", "fuse")
+    for k in ("a", "b", "null")
+}
+for _r9egb9_b in ("tile", "fuse"):
+    R.check(
+        f"#1753 null/{_r9egb9_b} control: with no overlap a user what-if is "
+        "answered and cached",
+        _r9egb9_s2[(_r9egb9_b, "null")]["U0"][0] == 20.0
+        and _r9egb9_s2[(_r9egb9_b, "null")]["cache_target"] == 20.0,
+        str(_r9egb9_s2[(_r9egb9_b, "null")]),
+    )
+    R.check(
+        f"#1753 probe(a)/{_r9egb9_b}: a user what-if issued inside the "
+        f"{_r9egb9_b} solve window is answered with its own target, not "
+        "rate-limited with the previous answer",
+        _r9egb9_s2[(_r9egb9_b, "a")]["U1"] == (22.0, False, None),
+        str(_r9egb9_s2[(_r9egb9_b, "a")]),
+    )
+    R.check(
+        f"#1753 probe(b)/{_r9egb9_b}: a user what-if that runs and finishes "
+        f"inside the {_r9egb9_b} window keeps its answer and its limiter "
+        "slot -- the cache is not reverted and the stamp is not reset",
+        _r9egb9_s2[(_r9egb9_b, "b")]["U1"] == (22.0, False, None)
+        and _r9egb9_s2[(_r9egb9_b, "b")]["cache_target"] == 22.0
+        and not _r9egb9_s2[(_r9egb9_b, "b")]["stamp_is_u0"],
+        str(_r9egb9_s2[(_r9egb9_b, "b")]),
+    )
 
 sys.exit(R.close("FEATURE CHECKS"))

@@ -20355,20 +20355,32 @@ for _tree in _PKG_TREES.values():
         for _node in ast.walk(_fn):
             # Assign covers ``self._current_action = ...``; AnnAssign covers the
             # annotated first binding in the coordinator's state init, which an
-            # Assign-only scan misses entirely.
+            # Assign-only scan misses entirely; and since #1752 the whole-dict
+            # writers route their value through ``boost.adopt_plan(self,
+            # <value>)``, so a call on that route is a write the same way the
+            # assignment it replaced was.
             if isinstance(_node, ast.Assign):
-                _targets = _node.targets
+                _targets, _value = _node.targets, _node.value
             elif isinstance(_node, (ast.AnnAssign, ast.AugAssign)):
-                _targets = [_node.target]
+                _targets, _value = [_node.target], _node.value
+            elif (
+                isinstance(_node, ast.Call)
+                and isinstance(_node.func, ast.Attribute)
+                and _node.func.attr == "adopt_plan"
+                and len(_node.args) > 1
+            ):
+                # adopt_plan(coord, value): the value is the second argument.
+                _targets, _value = [_node.func], _node.args[1]
             else:
                 continue
             if not any(
-                isinstance(_t, ast.Attribute) and _t.attr == "_current_action"
+                isinstance(_t, ast.Attribute)
+                and _t.attr in ("_current_action", "adopt_plan")
                 for _t in _targets
             ):
                 continue
             _action_producers.add(_fn.name)
-            if (_c := _callee_name(_node.value)) is not None:
+            if (_c := _callee_name(_value)) is not None:
                 _pending.append(_c)
 while _pending:
     _name = _pending.pop()

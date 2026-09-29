@@ -1062,6 +1062,25 @@ _PROCESS_ATEXIT = False
 _WORKER_FALLBACK_CAUSE: str | None = None
 _WORKER_FALLBACK_STREAK = f"{DOMAIN}_worker_fallback_streak"
 
+# The what-if's override spelling: config fields by cast (the schedule
+# hours are integers because they index hours), and the parameter fields
+# whose scratch name differs from the override key.
+_SIM_OVERRIDE_CONFIG_CASTS: tuple[tuple[str, Any], ...] = (
+    ("target_temp", float),
+    ("min_temp", float),
+    ("max_temp", float),
+    ("comfort_temp_day", float),
+    ("comfort_temp_night", float),
+    ("comfort_weight", float),
+    ("day_start_hour", int),
+    ("day_end_hour", int),
+)
+_SIM_OVERRIDE_PARAM_FIELDS: tuple[tuple[str, str], ...] = (
+    ("max_temp", "comfort_ceiling"),
+    ("dhw_setpoint", "dhw_setpoint"),
+    ("dhw_min_temperature", "dhw_min_temp"),
+)
+
 
 class ProcessWorkerUnavailable(RuntimeError):
     """The process route could not carry the job: spawn, transport or unpickle.
@@ -4763,32 +4782,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
             elif self._mode == MODE_COMFORT:
-                self._current_action = {
+                boost.adopt_plan(self, {
                     "power": self._thermal_model.params.max_electrical_power * 0.7,
                     "setpoint": ctx._opt_config.target_temp,
                     "mode": "comfort",
                     "power_normalized": 0.7,
                     "heat_pump_on": True,
                     "displace_value": min(4.0, self._ecl110_displace_max),
-                }
+                })
             elif self._mode == MODE_BOOST:
-                self._current_action = {
+                boost.adopt_plan(self, {
                     "power": self._thermal_model.params.max_electrical_power,
                     "setpoint": ctx._opt_config.max_temp,
                     "mode": "boost",
                     "power_normalized": 1.0,
                     "heat_pump_on": True,
                     "displace_value": self._ecl110_displace_max,
-                }
+                })
             elif self._mode == MODE_OFF:
-                self._current_action = {
+                boost.adopt_plan(self, {
                     "power": 0.0,
                     "setpoint": ctx._opt_config.min_temp,
                     "mode": "off",
                     "power_normalized": 0.0,
                     "heat_pump_on": False,
                     "displace_value": self._ecl110_displace_min,
-                }
+                })
             if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
                 self._current_action["price"] = self._get_current_price()
 
@@ -5232,8 +5251,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # the trajectory was built from, not to "after the solve".
             self._file_lead_predictions(result, solve_now)
 
-            self._current_action = solve_optimizer.get_current_action(
-                result, dt_util.now()
+            boost.adopt_plan(
+                self, solve_optimizer.get_current_action(result, dt_util.now())
             )
 
             # A step-response experiment overrides the plan for its duration.
@@ -8182,19 +8201,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
-        # Borrow simulate; do not spend its rate-limit or poison the card cache.
-        cache_snapshot = (self._last_simulation, self._simulation_cache)
-        try:
-            simulated = await self.async_simulate({"power_cap_kw": cap_kw})
-        finally:
-            self._last_simulation, self._simulation_cache = cache_snapshot
+        # Solve on the card's harness, never on its budget (#1753): with
+        # ``limited=False`` this neither spends the what-if's rate-limit
+        # slot nor writes its answer into the card cache.
+        simulated = await self.async_simulate(
+            {"power_cap_kw": cap_kw}, limited=False
+        )
         echoed = (simulated.get("overrides") or {}).get("power_cap_kw")
-        if (
-            "error" in simulated
-            or simulated.get("rate_limited")
-            or echoed != cap_kw
-        ):
-            # Failed / rate-limited what-if: retry tomorrow, keep last verdict.
+        if "error" in simulated or echoed != cap_kw:
+            # Failed what-if: retry tomorrow, keep last verdict. (A
+            # rate-limited answer can no longer reach here: the advisor
+            # solves user-limit-free, #1753.)
             self._fuse_advisor_at = now - timedelta(days=6)
             if "candidate_kw" not in self._fuse_advisor:
                 self._fuse_advisor = {
@@ -10245,13 +10262,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         One per solve, rotating, so the whole set costs at most one extra
         solve per interval — and through ``async_simulate``'s own solve
-        path and executor, never a second one. The tile borrows the card's
-        harness the way the fuse advisor does: rate-limit slot and cache
-        snapshot-restored, so a card drag right after a solve neither gets
-        rate-limited by the tile nor reads the tile's payload back as its
-        own answer. When the limiter says no (the user dragged first), the
-        tile waits for the next interval; the card's budget wins in both
-        directions.
+        path and executor, never a second one. The tile solves on the
+        card's harness but never on its budget (``limited=False``, #1753):
+        it neither spends the user what-if's rate-limit slot nor writes
+        its answer into the card cache, so a card drag overlapping a tile
+        solve is answered fresh and keeps its answer and slot afterwards.
         """
         if not bool(
             getattr(self, "_ctx", self)._config.get(CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED)
@@ -10263,18 +10278,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         specs = self._price_tile_specs()
         name, overrides = specs[self._price_tile_cursor % len(specs)]
-        cache_snapshot = (self._last_simulation, self._simulation_cache)
         try:
-            answer = await self.async_simulate(dict(overrides))
+            answer = await self.async_simulate(dict(overrides), limited=False)
         except Exception as err:  # noqa: BLE001 - tiles are decoration
             _LOGGER.debug("Price tile %s failed: %s", name, err)
             # A consistently failing spec must not block the other tiles:
             # move on and retry it on the rotation's next pass.
             self._price_tile_cursor += 1
-            return
-        finally:
-            self._last_simulation, self._simulation_cache = cache_snapshot
-        if answer.get("rate_limited"):
             return
         self._price_tile_cursor += 1
         if answer.get("error"):
@@ -10678,7 +10688,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if override is None:
             return
-        self._current_action = {
+        # The override rides the plan base (#1752), so a later cycle that
+        # keeps the plan still actuates the experiment's own command.
+        boost.adopt_plan(self, {
             **self._current_action,
             "power": float(override),
             "power_normalized": float(
@@ -10692,7 +10704,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # claim for this step.
             "space_reason": None,
             "dhw_reason": None,
-        }
+        })
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment.
 
@@ -10764,21 +10776,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._optimization_running
 
     async def async_simulate(
-        self, overrides: dict[str, Any]
+        self, overrides: dict[str, Any], *, limited: bool = True
     ) -> dict[str, Any]:
         """Price a hypothetical comfort choice against the current forecast.
 
-        Backs the card's what-if simulator. Two things matter here:
+        Backs the card's what-if simulator. Three things matter here:
 
         * it runs off a **copy** of the configuration, so an exploratory drag
           can never disturb actual operation;
-        * it is **rate-limited**, because a full solve is seconds of CPU and
-          dragging a slider would otherwise trigger one per pixel. The slot
-          is spent when a solve starts, so the failing arm is limited (#1448).
+        * it is **rate-limited** for user callers, because a full solve is
+          seconds of CPU and dragging a slider would otherwise trigger one
+          per pixel. The slot is spent when a solve starts, so the failing
+          arm is limited (#1448). ``limited=False`` is the background
+          callers' path — the price tile and the fuse advisor (#1753): it
+          neither reads nor writes the user limiter or the card cache, so
+          a card drag overlapping a background solve is answered fresh and
+          keeps its answer and slot.
         """
         ctx = getattr(self, "_ctx", self)
         now = dt_util.now()
-        if (
+        if limited and (
             self._last_simulation is not None
             and (now - self._last_simulation).total_seconds()
             < SIMULATE_MIN_INTERVAL_SECONDS
@@ -10804,31 +10821,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # so the what-if carried the LIVE learner, draw pattern and windows
         # into the executor, where ``observe`` could write them mid-solve.
         scratch_config = copy.deepcopy(ctx._opt_config)
-        for key in (
-            "target_temp",
-            "min_temp",
-            "max_temp",
-            "comfort_temp_day",
-            "comfort_temp_night",
-            "comfort_weight",
-        ):
+        for key, cast in _SIM_OVERRIDE_CONFIG_CASTS:
             if key in overrides:
-                setattr(scratch_config, key, float(overrides[key]))
-        # The heating schedule: which hours count as "day" and therefore get
-        # the day comfort temperature. Integers, because they index hours.
-        for key in ("day_start_hour", "day_end_hour"):
-            if key in overrides:
-                setattr(scratch_config, key, int(overrides[key]))
+                setattr(scratch_config, key, cast(overrides[key]))
 
         scratch_params = copy.deepcopy(ctx._thermal_params)
-        if "max_temp" in overrides:
-            # The valve's default target is the comfort ceiling, so a
-            # simulated ceiling change has to reach the model too.
-            scratch_params.comfort_ceiling = float(overrides["max_temp"])
-        if "dhw_setpoint" in overrides:
-            scratch_params.dhw_setpoint = float(overrides["dhw_setpoint"])
-        if "dhw_min_temperature" in overrides:
-            scratch_params.dhw_min_temp = float(overrides["dhw_min_temperature"])
+        # max_temp reaches the model's comfort ceiling: the valve's default
+        # target follows it, so a simulated ceiling change moves both.
+        for key, attr in _SIM_OVERRIDE_PARAM_FIELDS:
+            if key in overrides:
+                setattr(scratch_params, attr, float(overrides[key]))
         if "dhw_windows" in overrides:
             spec = str(overrides["dhw_windows"]).strip()
             if not spec:
@@ -10869,7 +10871,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return {"error": wood_err, "rate_limited": False}
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
-        self._last_simulation = now
+        if limited:  # the slot is spent when a solve starts (#1448, #1753)
+            self._last_simulation = now
         try:
             simulated = await _await_optimize(
                 self.hass,
@@ -10982,7 +10985,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "overrides": overrides,
             "rate_limited": False,
         }
-        self._simulation_cache = payload
+        if limited:
+            self._simulation_cache = payload
         return payload
 
 # The typed config entry (runtime-data, Bronze): ``entry.runtime_data`` is the
