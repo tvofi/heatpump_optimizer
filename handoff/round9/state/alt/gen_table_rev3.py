@@ -30,10 +30,13 @@ def d(k):
 
 
 NEW = {
-    'R9-EG-A1': dict(gate='PR template line (policy)', carry='—', what='Architecture score, report-only, with its calibration self-check'),
+    'R9-EG-A1': dict(gate='code-owned merge review', carry='—', what='Architecture score, report-only, with its calibration self-check'),
     'R9-EG-A2': dict(gate='—', carry='—', what='One copy per formula and helper (P2/P3 clones; dup_pairs_v1 121 → ≤40)'),
     'R9-EG-A3': dict(gate='—', carry='—', what='Parameter objects for solver and planner signatures'),
-    'R9-F7.5': dict(gate='rename or keep, per split', carry='—', what='The three recorded family splits (en/sv away, sv compressor)'),
+    'R9-F7.5': dict(gate='—', carry='—', what='The three recorded family splits renamed (en/sv away, sv compressor)'),
+    'R9-EG-L0': dict(gate='settings changes are tvofi\'s hand', carry='—', what='Re-measure and close the 30 legacy round-5 issues; disposition #1655'),
+    'R9-EG-B11': dict(gate='—', carry='—', what='Typed entry configuration, read once per entry (#1745)'),
+    'R9-EG-A4': dict(gate='ruleset required context is tvofi\'s hand', carry='—', what='Architecture score becomes a required check'),
 }
 DS = {'R9-EG-B1': '+29.5', 'R9-EG-B3': '+50.9', 'R9-EG-B6': '+4.2', 'R9-EG-B2': '+3.8', 'R9-EG-B7': '+5.2',
       'R9-F10.4': '+5.6', 'R9-EG-A2': '+14.1', 'R9-F7.5': '+10.9', 'R9-EG-A3': '+0.6', 'R9-EG-B5': '≈0 (limit)'}
