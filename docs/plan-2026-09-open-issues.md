@@ -1530,7 +1530,9 @@ alone.
   the `merge` row does — stands and is not this seat's to answer.
 - **[#1712](https://github.com/tvofi/heatpump_optimizer/issues/1712)
   (`tools/audit/briefs/fixer.md`) — ADDRESSED in part, REFUSED in part.**
-  Eleven entries, five classes:
+  Thirteen entries over the fixer key family, eleven pull requests; the exact
+  key prints `9/11` and its two siblings `fixer 1/1` and `fixer-step-13 1/1`
+  carry the rest, all thirteen reconciled real. Five classes:
   - *MODE: FULL from hand-off notes tracked on the branch (3: #1693, #1694,
     #1713's step 5) — FIXED* by classifying `handoff/` INERT in
     `tests/closure.py`: seat notes are prose no gate script reads — the

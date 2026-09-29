@@ -252,7 +252,7 @@ INERT = (
     # and read by no gate script -- prose for seats, the docs/ class. They
     # are not on main, so this prefix covers nothing until a branch carries
     # them; when one did, the unmeasured-file rule forced MODE: FULL and
-    # three seats (#1691, #1693, #1694, #1713's step-5 entry) derived their
+    # three seats (#1693, #1694, #1713's step-5 entry) derived their
     # scope on a scratch commit without the notes instead.
     "handoff/",
     # Everything below is here for one reason: a file that is neither in a

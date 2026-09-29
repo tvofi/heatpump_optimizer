@@ -14,7 +14,7 @@ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) 
 
 **A shallow clone or a stale cached `origin/main` is the environment, not the
 tree.** `tests/entities.py`'s history checks go red on a shallow clone; `git
-fetch --unshallow origin/main` clears it (#1693, #1704), and a long-lived
+fetch --unshallow origin main` clears it (#1693, #1704), and a long-lived
 checkout's cached ref can sit behind the tip: fetch first (#1699).
 
 `/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
