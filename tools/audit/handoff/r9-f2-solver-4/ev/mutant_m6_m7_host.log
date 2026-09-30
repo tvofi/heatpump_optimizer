@@ -1,0 +1,2 @@
+REFUSED: uncommitted changes in ['custom_components/heatpump_optimizer/thermal_model.py']; a mutant restores with git checkout and would erase them
+REFUSED: uncommitted changes in ['custom_components/heatpump_optimizer/thermal_model.py']; a mutant restores with git checkout and would erase them

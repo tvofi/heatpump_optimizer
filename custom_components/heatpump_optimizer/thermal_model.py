@@ -1135,7 +1135,12 @@ def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
         if dhw_kw is None
         else np.asarray(dhw_kw, dtype=float)
     )
-    return ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
+    # The annotated local, not a bare `return ...tolist()`: numpy's stub types
+    # ``tolist()`` as ``Any``, so returning it directly is a ``no-any-return``
+    # the typing ruler ratchets. This is the shape the optimizer's own copy of
+    # this comparison had before the owner existed.
+    on_steps: list[bool] = ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
+    return on_steps
 
 def planned_draw_runs(space_kw: float, dhw_kw: float = 0.0) -> bool:
     """``planned_draws_run`` for one step, in plain floats.

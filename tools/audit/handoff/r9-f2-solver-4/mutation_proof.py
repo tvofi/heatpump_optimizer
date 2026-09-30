@@ -1,4 +1,4 @@
-"""R9-F2.4 mutation proof: seven mutants, each one seam of the fix restored to base.
+"""R9-F2.4 mutation proof: eight mutants, each one seam of the fix restored to base.
 
 fixer.md step 2 asks for the fix's production lines deleted, the closure run,
 and the failing check names pasted. Each mutant below is one seam put back the
@@ -113,6 +113,18 @@ MUTANTS = [
              "RETURN_DEL site the ledger leaves unpinned)",
         file=PKG / "thermal_model.py",
         old="    return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW\n",
+        new="",
+        runner=BLOCK_RUNNER,
+    ),
+    dict(
+        # The batch form's return, re-anchored by the annotated local the typing
+        # ruler's no-any-return ratchet asks for. The second of the two sites
+        # this diff leaves unpinned, measured killable for the same reason.
+        id="M7",
+        what="the owner's batch form returns nothing (the RETURN_DEL site the "
+             "annotated local re-anchored)",
+        file=PKG / "thermal_model.py",
+        old="    return on_steps\n",
         new="",
         runner=BLOCK_RUNNER,
     ),
