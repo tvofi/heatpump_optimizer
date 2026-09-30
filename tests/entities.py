@@ -10539,16 +10539,14 @@ R.check(
     ", ".join(_FAM_ACC_OUTSIDE),
 )
 
-# (language, family token) the shipped roster sorts split. Two are live and
-# neither was ever ruled on: `away` in both languages (split 36 releases) and
-# sv `compressor` (105). #1760's open owner gate asks tvofi to rename or
-# allow them; until that lands these entries preserve the shipped names. The
-# key is language and token together, so a split in any other family, or in
-# either of these in its other language, still fails -- and a rename by the
-# owner deletes its entry and the check starts pinning contiguity there.
-_FAM_SPLIT_ALLOWED = frozenset(
-    {("en", "away"), ("sv", "away"), ("sv", "compressor")}
-)
+# (language, family token) the shipped roster sorts split: EMPTY since #1777.
+# The three entries this list held -- en/sv `away` (split 36 releases) and sv
+# `compressor` (105) -- were #1760's owner gate, and tvofi chose rename for all
+# three (decision R3-4, 2026-09-29), so the names now lead with their family
+# token and the check pins every family in both languages. The key stays
+# language and token together, so a split introduced later -- in any family, or
+# in either of these again -- still fails until its owner rules on it here.
+_FAM_SPLIT_ALLOWED = frozenset()
 _FAM_SPLIT = []
 for _lang in ("en", "sv"):
     _name_at = 2 if _lang == "en" else 3
