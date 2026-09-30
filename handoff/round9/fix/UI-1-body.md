@@ -9,7 +9,7 @@ After: the eight-file Home Assistant brand set (`icon`, `logo`, `dark_icon`, `da
 
 ## Head
 
-1b029045 (code head; this body sits in a commit above it touching only `handoff/` paths).
+1b02904523fca54f96c185262cbbcd5cbb174b12 (code head; this body sits in a commit above it touching only `handoff/` paths).
 
 ## Mutation proof
 
