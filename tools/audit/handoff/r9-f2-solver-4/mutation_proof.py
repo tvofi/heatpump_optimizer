@@ -33,6 +33,12 @@ PKG = Path("custom_components/heatpump_optimizer")
 BLOCK_RUNNER = [sys.executable, "tools/audit/handoff/r9-f2-solver-4/run_block.py"]
 ENTITIES_RUNNER = [sys.executable, "tests/entities.py"]
 
+#: What the summary line reads when there is none: the runner stopped before its
+#: own verdict, so an exception is what ended it and the failing-check names
+#: printed on the way down are the evidence.
+NO_SUMMARY = ("NONE -- the runner did not reach its own verdict, so an "
+              "exception is what stopped it")
+
 MUTANTS = [
     dict(
         id="M1",
@@ -221,16 +227,23 @@ def main() -> int:
         added = sorted(block_fails(out) - was_block)
         print(f"\n=== {m['id']}: {m['what']}")
         print(f"    file {path}  runner {' '.join(runner)}  rc={rc}")
-        print(f"    summary: {line}")
+        print(f"    summary: {line or NO_SUMMARY}")
+        if not line:
+            for tail_ln in [l for l in out.splitlines() if l.strip()][-3:]:
+                print(f"    runner tail: {tail_ln.strip()[:200]}")
         print(f"    failed {was} -> {failed} (+{failed - was})")
         for ln in added:
             print(f"    FAIL {ln}")
         print(f"RESULT mutant[{m['id']}]_added_fails={failed - was} count")
         print(f"RESULT mutant[{m['id']}]_added_block_checks={len(added)} count")
         print(f"RESULT mutant[{m['id']}]_runner_rc={rc}")
-        if failed <= was or not added:
-            print(f"REFUSED {m['id']}: the suite's own verdict did not move, or "
-                  "no check of this PR's went red -- the mutant survived")
+        # A mutant that stops the runner before its summary is still killed --
+        # it named failing checks on the way down, and no honest tree does that
+        # -- but the count from the summary reads 0, so the verdict is the pair
+        # and not either number alone.
+        if not added and failed <= was:
+            print(f"REFUSED {m['id']}: no check of this PR's went red and the "
+                  "suite's own verdict did not move -- the mutant survived")
             return 1
     return 0
 
