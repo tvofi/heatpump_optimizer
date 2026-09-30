@@ -4095,10 +4095,10 @@
       "blocked_on": null,
       "after": [],
       "resume": {
-        "stage": "fixing",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-l0",
-        "commit": null,
-        "last_step": "opus seat dispatched 2026-09-30T00:0xZ; carries must land before destination groups start; reviewer at push",
+        "commit": "172c814d48e42037a4267c7e7ffc94af739fe441",
+        "last_step": "PR #1780 opened at 172c814d (all 31 legacy issues dispositioned, 29 closed + #1196 not_planned + #1655 open-into-F1.7 carry at fixplan 9817d63f); reviewer dispatched; #201 settings record 5902383542 awaits tvofi",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-L0.md on handoff/r9-eg-legacy-close",
         "review_branch": "handoff/r9-eg-legacy-close-review",
