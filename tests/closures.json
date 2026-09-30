@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.7,
+   "seconds": 2.1,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -1540,8 +1540,14 @@
    "custom_components/heatpump_optimizer/battery.py",
    "custom_components/heatpump_optimizer/binary_sensor.py",
    "custom_components/heatpump_optimizer/boost.py",
+   "custom_components/heatpump_optimizer/brand/dark_icon.png",
+   "custom_components/heatpump_optimizer/brand/dark_icon@2x.png",
+   "custom_components/heatpump_optimizer/brand/dark_logo.png",
+   "custom_components/heatpump_optimizer/brand/dark_logo@2x.png",
    "custom_components/heatpump_optimizer/brand/icon.png",
+   "custom_components/heatpump_optimizer/brand/icon@2x.png",
    "custom_components/heatpump_optimizer/brand/logo.png",
+   "custom_components/heatpump_optimizer/brand/logo@2x.png",
    "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
