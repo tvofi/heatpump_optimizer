@@ -1,6 +1,9 @@
-# Round 9 endgame, re-planned (rev 4.1): lane UI and lane UX folded into the live programme
+# Round 9 endgame, re-planned (rev 4.2): lane UI, lane UX and the product page folded into the live programme
 
 **Status.**
+- **Rev 4.2** (2026-09-30, section R6) adds lane WEB: the product page tvofi asked for, built from the reader docs and
+  pinned to them by a test, then served by GitHub Pages. It is re-based to origin/main `aac8fb77` and the live roster at
+  `9e63d2a3`, where rev 4.1 is applied (#1795).
 - **Rev 4.1** (2026-09-30, section R5) adds lane UX, seven feature groups for tvofi's UX decisions, re-based to
   origin/main `5dfa6684` and the live roster at `1c3558f0`, where rev 4 is applied; item 5 is deferred as #1793.
 - **Rev 4** was written 2026-09-30 by the same cloud review seat. It is measured at origin/main `48786f65` (v6.7.12,
@@ -416,6 +419,201 @@ EG-A4 chain (11): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5
 - A second run is refused.
 - `brief_lint` from origin/main prints `TOTAL: 0 error(s)`, and a planted bad path and a planted bad symbol in UX-4 each
   raise an error.
+
+---
+
+## R6 Rev 4.2: lane WEB (the product page, pinned to the master documentation)
+
+Written 2026-09-30 by the same cloud review seat. It is measured at origin/main `aac8fb77` (after #1794, which touched
+no reader document) against the live roster on `handoff/audit-r9-fixplan` at `9e63d2a3`, where rev 4.1 is applied and
+lane UX is Part of #1795.
+
+### R6.1 What tvofi asked and decided
+
+tvofi asked: "Design a full product web page, based on the user facing documentation in the repo, in the same design
+language as the showcase page, then make a rev 4.2 of the plan where implementation of this page and pining it to the
+master documentation is added."
+
+| # | decision (2026-09-30) | where it lands |
+|---|---|---|
+| W1 | pinning is test-pinned and linked: every claim carries a source anchor into the README or a reader doc, a test refuses drift, and the README links the page | WEB-1 |
+| W2 | the page is served by GitHub Pages through a workflow | WEB-2 |
+| S3 | a design decision, open to tvofi: no savings percentage, because the docs call the only one a one-off measurement on the author's house | the page; DESIGN-SITE.md |
+
+The master documentation is `README.md`: `hacs.json` renders it as the integration's page, and its Documentation
+table indexes every reader doc. Nothing in the tree is a web page today: there is no HTML, no Pages setup and no
+`CNAME`.
+
+### R6.2 The design
+
+`alt/design/site/` (commit `2b5031bf`):
+- `index.html`: the page, in the showcase's identity (frost, ink, fjord, ember; Outfit and Source Sans 3, self-hosted;
+  the dusk mark). Its sections are the hero with the plan chart, four tiles, nine features, how it works, the card
+  gallery, works with, get started, known limitations, written with AI, documentation, and the footer.
+- Every sentence of fact is quoted from a README or reader-doc section and carries that section's GitHub heading slug
+  in `data-src`.
+- `check_site.py`: the pin prototype. It derives the claim set from the page and the fact set from the documents at a
+  git ref, and every arm has an anchor.
+  - It is green at `5dfa6684` and `aac8fb77`.
+  - `controls.py` plants each refusal: a wrong number, a reworded quote, a dead slug, a dropped feature, an extra or
+    missing docs row, a number outside a claim, a version literal, a missing image, an external script, a
+    third-party stylesheet or font URL, a README sentence changed under an unchanged page, and both anchors. Each
+    turns it red (`SITE-CHECKS.txt`).
+- `CONTRAST.json`: every colour pair passes in both themes.
+- `shots/`: renders at 1280 and 390 px, light and dark, with no horizontal overflow.
+- `DESIGN-SITE.md`: decisions S1–S6, the claim rules, the implementation map, the hosting design and the gallery
+  slots.
+- Published for review as a private artifact; the showcase gains a "Product page" section.
+
+### R6.3 Lane WEB in the schedule
+
+| group | scope | after | depth | gates | owner gate |
+|---|---|---|---|---|---|
+| **WEB-1** page and pin | the page as `index.html` at the root of `docs/` with its fonts; one new arm in `tests/doc_claims.py` ported from `check_site.py`; the README link row; `INERT_EXCEPT`; one `tests/layout.json` glob | UI-2, UI-4, F10.4 | 6 | RO-2 | `tests/closure.py`, `tests/layout.json` |
+| **WEB-2** Pages deploy | one workflow under `.github/workflows`: on a `v*` tag and on dispatch; stages the page and every png and svg under `docs/`, never a `.md`; runs no repository script; the README row switches to the served URL | WEB-1 | 7 | RO-3 | `.github/workflows`; tvofi enables Pages once |
+
+Why these edges:
+- UI-2 lands the mark masters, the how-it-works figure and the README table.
+- UI-4 lands the concept-A chart at the README hero path the page shows.
+- F10.4 is the sole owner of `tests/doc_claims.py` until it merges (the I5 barrier).
+- RO-2 follows WEB-1 because both edit `tests/layout.json` and `tests/closure.py`.
+- RO-3 follows WEB-2 because it moves the images the page references, and the pin refuses a dead reference.
+
+Chain arithmetic:
+- WEB-1 at depth 6 and WEB-2 at depth 7 sit under RO-2 (9) and RO-3 (10), with slack.
+- The longest open chain stays 12, and EG-A4's stays 11. The build script asserts both.
+- WEB-1 does not edit `tests/README.md`, which is code-owned and in the F11.4/F11.5 lane. If `tests/entities.py`
+  demands a line there, WEB-1 orders after F11.5 (depth 8, still under RO-2's 9).
+
+Carries:
+- **RO-3** moves the page's image references with the images. The workflow stages by pattern, so it needs no edit.
+- **RO-4**: archiving `docs/backlog.md` removes its README row, and the pin makes the page follow in the same PR.
+- **RO-9** keeps the layout glob in its enforcement.
+- **UX-1, 2, 3, 5, 6, 7**: a card page whose screenshot the PR regenerates takes its gallery slot on the page (U5
+  extended). A README feature paragraph is forced onto the page by the pin.
+
+### R6.4 Schedule (from ALT-ROSTER.json rev 4.2, `alt/gen_table_rev4.py`)
+
+Open groups: 56 of 99. Longest open chain (12): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → SW-1 → UX-5 → UX-7 → RO-9.
+EG-A4 chain (11): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → EG-B6 → EG-B7 → EG-A4.
+
+| depth | PR | lane | open after-edges | issues (**Fixes**) | owner gate | fixer / reviewer | stage |
+|---|---|---|---|---|---|---|---|
+| 1 | F1.8 | F1 | — | #1644, **#1657** | — | opus / opus | not-started |
+| 1 | F10.1b | F10 | — | **#1649**, #1740 | — | sonnet / opus | not-started |
+| 1 | UI-1 | UI | — | #1791 | yes | sonnet / opus | not-started |
+| 2 | F1.9 | F1 | F1.8 | **#1660** | — | sonnet / opus | not-started |
+| 2 | F10.1c | F10 | F10.1b | **#1756** | — | sonnet / opus | not-started |
+| 2 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | yes | opus / opus | not-started |
+| 2 | F6.3 | F6 | F1.8 | **#1652** | yes | sonnet / opus | not-started |
+| 2 | UI-2 | UI | UI-1 | #1791 | yes | sonnet / opus | not-started |
+| 3 | F1.10 | F1 | F1.9 | #1645, **#1654**, **#1741** | — | opus / opus | not-started |
+| 3 | F10.3 | F10 | F10.2 | **#1646**, **#1663**, **#1748** | yes | opus / opus | not-started |
+| 3 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | sonnet / opus | not-started |
+| 4 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | opus / opus | not-started |
+| 4 | UI-3 | UI | F6.4 | #1791 | yes | opus / opus | not-started |
+| 5 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | opus / opus | not-started |
+| 5 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, **#1738** | yes | opus / opus | not-started |
+| 5 | UI-4 | UI | UI-3 | #1791 | yes | opus / opus | not-started |
+| 6 | EG-A1 | EG | F10.4 | #1774, #1738 | yes | sonnet / opus | not-started |
+| 6 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | sonnet / opus | not-started |
+| 6 | EG-B5a | EG | F10.4 | #1743 | yes | opus / opus | not-started |
+| 6 | F10.5 | F10 | F10.4 | — | yes | opus / opus | not-started |
+| 6 | F11.4 | F11 | F10.4 | **#1650** | yes | sonnet / opus | not-started |
+| 6 | UX-1 | UX | UI-4 | #1795 | yes | sonnet / opus | not-started |
+| 6 | WEB-1 | WEB | UI-2, UI-4, F10.4 | — | yes | sonnet / opus | not-started |
+| 7 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | opus / opus | not-started |
+| 7 | EG-B5 | EG | EG-B5a, F1.10, F10.4 | **#1743**, #1748 | yes | opus / opus | not-started |
+| 7 | EG-R1 | EG | F11.4 | **#1759** | yes | sonnet / opus | not-started |
+| 7 | F10.6 | F10 | F10.5 | — | yes | opus / opus | not-started |
+| 7 | F11.5 | F11 | F11.4 | — | yes | sonnet / opus | not-started |
+| 7 | UX-2 | UX | UX-1 | #1795 | yes | sonnet / opus | not-started |
+| 7 | UX-4 | UX | EG-B3 | #1795 | yes | sonnet / opus | not-started |
+| 7 | WEB-2 | WEB | WEB-1 | — | yes | sonnet / opus | not-started |
+| 8 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | **#1775** | — | opus / opus | not-started |
+| 8 | EG-B1 | EG | F10.4, F10.6, F11.5, EG-B4, EG-B5 | **#1736** | yes | opus / opus | not-started |
+| 8 | F10.7 | F10 | F10.6 | **#1758** | — | opus / opus | not-started |
+| 8 | F11.7 | F11 | F11.5 | **#1757** | yes | opus / opus | not-started |
+| 8 | UX-3 | UX | UX-2 | #1795 | yes | sonnet / opus | not-started |
+| 9 | EG-A3 | EG | EG-B1, EG-B5 | **#1776** | — | sonnet / opus | not-started |
+| 9 | EG-B6 | EG | EG-B1 | **#1739** | — | sonnet / opus | not-started |
+| 9 | RO-2 | RO | F10.7, F11.7, EG-R1, F11.5, F6.4, UI-2, UI-4, UX-1, UX-2, UX-3, UX-4, WEB-1 | — | yes | opus / opus | not-started |
+| 9 | SW-1 | SW | EG-B1, F1.10, F10.1c | — | yes | opus / opus | not-started |
+| 10 | EG-B11 | EG | EG-B1, EG-A3 | **#1745** | — | opus / opus | not-started |
+| 10 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | yes | opus / opus | not-started |
+| 10 | RO-3 | RO | RO-2, WEB-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-4 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-5 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-6 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-7 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | SW-2 | SW | SW-1, EG-B6 | — | yes | opus / opus | not-started |
+| 10 | SW-3 | SW | SW-1, F6.4, UI-4 | — | yes | sonnet / opus | not-started |
+| 10 | SW-4 | SW | SW-1 | — | yes | sonnet / opus | not-started |
+| 10 | UX-5 | UX | EG-B6, SW-1, EG-B5, EG-B1, EG-A2, UX-3 | #1795 | yes | opus / opus | not-started |
+| 11 | EG-A4 | EG | EG-A1, EG-B7, EG-A2, EG-A3, EG-B11 | **#1774** | — | sonnet / opus | not-started |
+| 11 | RO-8 | RO | RO-7 | — | yes | opus / opus | not-started |
+| 11 | UX-6 | UX | EG-B7, EG-B11, UX-5 | #1795 | yes | opus / opus | not-started |
+| 11 | UX-7 | UX | EG-B6, EG-B11, UX-5 | #1795 | yes | opus / opus | not-started |
+| 12 | RO-9 | RO | RO-3, RO-4, RO-5, RO-6, RO-8, EG-A4, SW-4, UX-5, UX-6, UX-7 | — | yes | sonnet / opus | not-started |
+
+### R6.5 Every open issue and the group that closes it
+
+The list is the 37 open issues listed on GitHub at the time of writing (#201 excluded; `alt/open_issues_rev42.json`).
+#1793 is uncovered on purpose (deferred, U3). The lane WEB feature issue does not exist yet: the orchestrator files it
+on adoption, and it then covers WEB-1 and WEB-2.
+
+| issue | title | closed by | also part of |
+|---|---|---|---|
+| #1795 | Lane UX: explanations, advisor inbox, receipts and notifications, health (round-9 rev 4.1) | — | UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7 |
+| #1793 | [FEATURE] Shared household power budget: publish the heat pump's planned load and flexibil | — | — |
+| #1791 | Lane UI: new identity, card visual system, plan chart concept A and README graphics | — | UI-1, UI-2, UI-3, UI-4 |
+| #1776 | [R9-EG-PARAM-OBJECTS] 28 functions take more than ten parameters | EG-A3 | — |
+| #1775 | [R9-EG-ONE-COPY] Formulas and helpers exist in several copies | EG-A2 | — |
+| #1774 | [R9-EG-ARCH-SCORE] Land the architecture score | EG-A4 | EG-A1 |
+| #1759 | [R9-REGISTER-FOLD] Register never received rounds 8–9 | EG-R1 | — |
+| #1758 | [R9-FREEZE-INSTRUMENT] The v6.6.0 options-flow freeze was never diagnosed | F10.7 | — |
+| #1757 | [R9-GOV-HEADCOPY-PRINCIPAL] graders-head-copy omits the governance .mjs graders | F11.7 | — |
+| #1756 | [R9-P7-TRACER-BLIND] F1.1's DST tracer catches 1 of P7's 3 members | F10.1c | — |
+| #1748 | [R9-EG-RATCHET-MOVE-BLIND] mutation ratchet counts a moved site as new | F10.3 | EG-B5 |
+| #1745 | [R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per site | EG-B11 | — |
+| #1744 | [R9-EG-COORDINATOR-SEAMS] Re-measure the coordinator's dhw and views seams | EG-B7 | — |
+| #1743 | [R9-EG-DHW-PLANNER] Extract the DHW planner core | EG-B5 | EG-B5a |
+| #1742 | [R9-EG-SURFACE-IDENTITY] Entity identity pinned at 9 constructors | EG-B2 | — |
+| #1741 | [R9-EG-PLANT-FACT-COPIES] Step-start clock defined twice; 20 °C literal at 8 sites | F1.10 | — |
+| #1740 | [R9-EG-STORE-VERSION] No store can change its version | EG-B4 | F10.1b |
+| #1739 | [R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coordinator internals | EG-B6 | EG-B2 |
+| #1738 | [R9-EG-RATCHET-DECOMPOSITION] The structural ratchet misprices decomposition | F10.4 | EG-A1 |
+| #1737 | [R9-EG-TYPED-PAYLOAD] The coordinator's payload has no typed contract | EG-B3 | — |
+| #1736 | [R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the live hub objects | EG-B1 | — |
+| #1687 | [R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER] | F6.4 | — |
+| #1686 | [R9-STRUCTURE-METRIC-BLIND-TO-SHAPE] | F10.4 | — |
+| #1663 | [R9-I2] A measured closure diverges from the dependency graph | F10.3 | — |
+| #1661 | [R9-PRODUCTION-MEMBER-NO-CALLER] | F10.4 | — |
+| #1660 | [R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] | F1.9 | — |
+| #1657 | [R9-P8] Currency or unit resolved by divergent precedence | F1.8 | — |
+| #1656 | [R9-CPU-GATE-BLIND] | F10.2 | — |
+| #1654 | [R9-P3] A capacity floor applied inconsistently | F1.10 | — |
+| #1653 | [R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] | F10.2 | — |
+| #1652 | [R9-P9] Card UI: clipping ancestor, colour token, hit target | F6.3 | — |
+| #1651 | [R9-P6] A consumer reads a key no producer writes | F1.11 | — |
+| #1650 | [R9-I4] Two parsers of one concept disagree | F11.4 | F10.4 |
+| #1649 | [R9-P11] The only oracle for an external counterpart is a self-written double | F10.1b | — |
+| #1646 | [R9-I1] A mutation kill miscounted | F10.3 | — |
+| #1645 | [R9-I5] Docs or comments drift stale against the code | F10.4 | F1.10 |
+| #1644 | [R9-P2] One fact decided twice by divergent predicates | F1.11 | F1.8 |
+
+### R6.6 Asserted diff against the live roster
+
+- 99 groups (97 + 2).
+- Changed:
+  - the two new groups;
+  - RO-2's and RO-3's `after`;
+  - appended carries on the briefs of RO-3, RO-4, RO-9, UX-1, UX-2, UX-3, UX-5, UX-6 and UX-7;
+  - one `_comment`.
+- No stage, no wave outside the new groups, and no issue changes.
+- The build script refuses a roster without rev 4.1 and a second run.
+- `brief_lint` from origin/main prints `TOTAL: 0 error(s)`, and the live file does too. Four planted errors in WEB-1
+  (a bad path at the cited SHA, a bad path, a bad path:line and a bad symbol) are each reported.
 
 ---
 

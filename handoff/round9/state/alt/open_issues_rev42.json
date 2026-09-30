@@ -1,0 +1,150 @@
+[
+[
+1795,
+"Lane UX: explanations, advisor inbox, receipts and notifications, health (round-9 rev 4.1)"
+],
+[
+1793,
+"[FEATURE] Shared household power budget: publish the heat pump's planned load and flexibility; accept EV/battery plans and demand-response signals"
+],
+[
+1791,
+"Lane UI: new identity, card visual system, plan chart concept A and README graphics"
+],
+[
+1776,
+"[R9-EG-PARAM-OBJECTS] 28 functions take more than ten parameters"
+],
+[
+1775,
+"[R9-EG-ONE-COPY] Formulas and helpers exist in several copies"
+],
+[
+1774,
+"[R9-EG-ARCH-SCORE] Land the architecture score"
+],
+[
+1759,
+"[R9-REGISTER-FOLD] Register never received rounds 8\u20139"
+],
+[
+1758,
+"[R9-FREEZE-INSTRUMENT] The v6.6.0 options-flow freeze was never diagnosed"
+],
+[
+1757,
+"[R9-GOV-HEADCOPY-PRINCIPAL] graders-head-copy omits the governance .mjs graders"
+],
+[
+1756,
+"[R9-P7-TRACER-BLIND] F1.1's DST tracer catches 1 of P7's 3 members"
+],
+[
+1748,
+"[R9-EG-RATCHET-MOVE-BLIND] mutation ratchet counts a moved site as new"
+],
+[
+1745,
+"[R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per site"
+],
+[
+1744,
+"[R9-EG-COORDINATOR-SEAMS] Re-measure the coordinator's dhw and views seams"
+],
+[
+1743,
+"[R9-EG-DHW-PLANNER] Extract the DHW planner core"
+],
+[
+1742,
+"[R9-EG-SURFACE-IDENTITY] Entity identity pinned at 9 constructors"
+],
+[
+1741,
+"[R9-EG-PLANT-FACT-COPIES] Step-start clock defined twice; 20 \u00b0C literal at 8 sites"
+],
+[
+1740,
+"[R9-EG-STORE-VERSION] No store can change its version"
+],
+[
+1739,
+"[R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coordinator internals"
+],
+[
+1738,
+"[R9-EG-RATCHET-DECOMPOSITION] The structural ratchet misprices decomposition"
+],
+[
+1737,
+"[R9-EG-TYPED-PAYLOAD] The coordinator's payload has no typed contract"
+],
+[
+1736,
+"[R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the live hub objects"
+],
+[
+1687,
+"[R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER]"
+],
+[
+1686,
+"[R9-STRUCTURE-METRIC-BLIND-TO-SHAPE]"
+],
+[
+1663,
+"[R9-I2] A measured closure diverges from the dependency graph"
+],
+[
+1661,
+"[R9-PRODUCTION-MEMBER-NO-CALLER]"
+],
+[
+1660,
+"[R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND]"
+],
+[
+1657,
+"[R9-P8] Currency or unit resolved by divergent precedence"
+],
+[
+1656,
+"[R9-CPU-GATE-BLIND]"
+],
+[
+1654,
+"[R9-P3] A capacity floor applied inconsistently"
+],
+[
+1653,
+"[R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION]"
+],
+[
+1652,
+"[R9-P9] Card UI: clipping ancestor, colour token, hit target"
+],
+[
+1651,
+"[R9-P6] A consumer reads a key no producer writes"
+],
+[
+1650,
+"[R9-I4] Two parsers of one concept disagree"
+],
+[
+1649,
+"[R9-P11] The only oracle for an external counterpart is a self-written double"
+],
+[
+1646,
+"[R9-I1] A mutation kill miscounted"
+],
+[
+1645,
+"[R9-I5] Docs or comments drift stale against the code"
+],
+[
+1644,
+"[R9-P2] One fact decided twice by divergent predicates"
+]
+]
