@@ -1,0 +1,49 @@
+diff --git a/README.md b/README.md
+index 1ba4cf53..7e964764 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,5 @@
++![Heat Pump Cost Optimizer: model-predictive heating control for Home Assistant](docs/img/banner.png)
++
+ # Heat Pump Cost Optimizer for Home Assistant
+ 
+ Model-predictive heating control for Home Assistant. It plans your heat pump and
+@@ -6,10 +8,10 @@ forecast, and a thermal model of your own house that it keeps correcting from
+ your own sensors — so the house stays as warm as you asked, bought in better
+ hours.
+ 
+-[![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
+-[![Home Assistant: 2025.2.0+](https://img.shields.io/badge/Home%20Assistant-2025.2.0%2B-41BDF5.svg)](https://www.home-assistant.io)
+-[![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-3776AB.svg)](https://www.python.org)
+-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
++[![HACS: custom](https://img.shields.io/badge/HACS-custom-026aa8.svg)](https://hacs.xyz)
++[![Home Assistant: 2025.2.0+](https://img.shields.io/badge/Home%20Assistant-2025.2.0%2B-026aa8.svg)](https://www.home-assistant.io)
++[![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
++[![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
+ 
+ ![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.png)
+ 
+@@ -30,6 +32,14 @@ the MQTT interface this integration drives. Versions 2.3.0 onward were developed
+ in this fork. Both projects are MIT licensed. The formal attribution is recorded
+ in [NOTICE](NOTICE), and [LICENSE](LICENSE) is kept as the verbatim MIT text.
+ 
++## At a glance
++
++| Plans ahead | Learns your house | Knows what power costs |
++|---|---|---|
++| A 24-hour model-predictive plan, re-solved every interval | Heat loss, tank cooling, COP and more, estimated from your own sensors | Spot prices, grid fees and the capacity tariff |
++| **Handles real plumbing** | **Shows its work** | **You stay in charge** |
++| Buffer tank, mixing valve and wood tank modelled | Every planned slot carries a reason code on the card | Pin exact run slots from the card editor |
++
+ ## What it does
+ 
+ **Plans ahead instead of reacting.** A 24-hour model-predictive plan is re-solved
+@@ -702,6 +712,8 @@ hard-coded to the entity ids the examples assume.
+ 
+ ## How it works
+ 
++![One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published](docs/img/how-it-works.png)
++
+ <details open>
+ <summary><b>One optimization interval</b> — what the coordinator does, in order</summary>
+ 

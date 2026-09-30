@@ -1,0 +1,87 @@
+# today (SERIES_DEFS, one plot), light, all pairs
+  [PASS] Lightness band         all 8 inside L 0.43–0.77
+  [FAIL] Chroma floor           below floor (reads gray): [["#00838f",0.095],["#7d8794",0.023]]
+  [FAIL] CVD separation         worst all-pairs #1a7a52↔#e0544e ΔE 0.4 (protan) · tritan 3.4
+  [FAIL] Normal-vision floor    worst all-pairs #ed6900↔#e0544e ΔE 8.0 (normal) — below 15, hard to tell apart even with full color vision
+  [PASS] Contrast vs surface    all 8 >= 3:1
+  → FAILED — fix the marked checks  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel price, light (surface #ffffff)
+  repo gate  price     #4a3aa7  contrast 8.56 (>= 3)
+  repo gate  solar     #d4561f  contrast 4.08 (>= 3)
+  repo gate  price/solar deuteranope dE 126.5 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 2 inside L 0.43–0.77
+    [PASS] Chroma floor           all 2 >= 0.1
+    [PASS] CVD separation         worst all-pairs #d4561f↔#4a3aa7 ΔE 27.1 (protan) · tritan 33.5
+    [PASS] Normal-vision floor    worst all-pairs #d4561f↔#4a3aa7 ΔE 33.9 (normal)
+    [PASS] Contrast vs surface    all 2 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel price, dark (surface #1c1c1c)
+  repo gate  price     #9085e9  contrast 5.45 (>= 3)
+  repo gate  solar     #d95926  contrast 4.39 (>= 3)
+  repo gate  price/solar deuteranope dE 113.5 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 2 inside L 0.48–0.67
+    [PASS] Chroma floor           all 2 >= 0.1
+    [PASS] CVD separation         worst all-pairs #d95926↔#9085e9 ΔE 26.0 (deutan) · tritan 25.8
+    [PASS] Normal-vision floor    worst all-pairs #d95926↔#9085e9 ΔE 27.0 (normal)
+    [PASS] Contrast vs surface    all 2 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel power, light (surface #ffffff)
+  repo gate  space     #2a78d6  contrast 4.42 (>= 3)
+  repo gate  dhw       #d2403f  contrast 4.62 (>= 3)
+  repo gate  actioned  #008a70  contrast 4.31 (>= 3)
+  repo gate  space/dhw deuteranope dE 105.7 (>= 10; dash if < 20)
+  repo gate  space/actioned deuteranope dE 66.4 (>= 10; dash if < 20)
+  repo gate  dhw/actioned deuteranope dE 40.0 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 3 inside L 0.43–0.77
+    [PASS] Chroma floor           all 3 >= 0.1
+    [PASS] CVD separation         worst all-pairs #008a70↔#d2403f ΔE 9.4 (deutan) · tritan 3.9
+    [PASS] Normal-vision floor    worst all-pairs #008a70↔#2a78d6 ΔE 18.3 (normal)
+    [PASS] Contrast vs surface    all 3 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel power, dark (surface #1c1c1c)
+  repo gate  space     #3987e5  contrast 4.68 (>= 3)
+  repo gate  dhw       #e66767  contrast 5.28 (>= 3)
+  repo gate  actioned  #22a383  contrast 5.38 (>= 3)
+  repo gate  space/dhw deuteranope dE 95.0 (>= 10; dash if < 20)
+  repo gate  space/actioned deuteranope dE 67.7 (>= 10; dash if < 20)
+  repo gate  dhw/actioned deuteranope dE 27.7 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 3 inside L 0.48–0.67
+    [PASS] Chroma floor           all 3 >= 0.1
+    [WARN] CVD separation         worst all-pairs #22a383↔#e66767 ΔE 7.6 (deutan) · tritan 3.9
+    [PASS] Normal-vision floor    worst all-pairs #22a383↔#3987e5 ΔE 19.0 (normal)
+    [PASS] Contrast vs surface    all 3 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel temps, light (surface #ffffff)
+  repo gate  tank      #c2477a  contrast 4.69 (>= 3)
+  repo gate  house     #008300  contrast 4.95 (>= 3)
+  repo gate  outdoor   #3b7dd8  contrast 4.11 (>= 3)
+  repo gate  tank/house deuteranope dE 46.4 (>= 10; dash if < 20)
+  repo gate  tank/outdoor deuteranope dE 64.5 (>= 10; dash if < 20)
+  repo gate  house/outdoor deuteranope dE 109.8 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 3 inside L 0.43–0.77
+    [PASS] Chroma floor           all 3 >= 0.1
+    [PASS] CVD separation         worst all-pairs #008300↔#c2477a ΔE 10.8 (deutan) · tritan 8.4
+    [PASS] Normal-vision floor    worst all-pairs #3b7dd8↔#c2477a ΔE 24.6 (normal)
+    [PASS] Contrast vs surface    all 3 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+# panel temps, dark (surface #1c1c1c)
+  repo gate  tank      #d55181  contrast 4.32 (>= 3)
+  repo gate  house     #1f9d1f  contrast 4.79 (>= 3)
+  repo gate  outdoor   #4b95e8  contrast 5.49 (>= 3)
+  repo gate  tank/house deuteranope dE 43.3 (>= 10; dash if < 20)
+  repo gate  tank/outdoor deuteranope dE 63.5 (>= 10; dash if < 20)
+  repo gate  house/outdoor deuteranope dE 106.2 (>= 10; dash if < 20)
+    [PASS] Lightness band         all 3 inside L 0.48–0.67
+    [PASS] Chroma floor           all 3 >= 0.1
+    [PASS] CVD separation         worst all-pairs #1f9d1f↔#d55181 ΔE 9.1 (deutan) · tritan 7.3
+    [PASS] Normal-vision floor    worst all-pairs #4b95e8↔#d55181 ΔE 25.8 (normal)
+    [PASS] Contrast vs surface    all 3 >= 3:1
+    → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+
+RESULT: every panel passes both

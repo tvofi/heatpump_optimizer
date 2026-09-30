@@ -1,0 +1,98 @@
+[
+ {
+  "name": "pill text light",
+  "fg": "#1c7350",
+  "bg": "#e8f1ed",
+  "ratio": 5.04,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "pill text dark",
+  "fg": "#1fad6b",
+  "bg": "#1c3027",
+  "ratio": 4.83,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat accent light",
+  "fg": "#026aa8",
+  "bg": "#f7f9fb",
+  "ratio": 5.48,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat accent dark",
+  "fg": "#4fb3f0",
+  "bg": "#242a30",
+  "ratio": 6.24,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat label light",
+  "fg": "#727272",
+  "bg": "#f7f9fb",
+  "ratio": 4.56,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat label dark",
+  "fg": "#9b9b9b",
+  "bg": "#242a30",
+  "ratio": 5.21,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat value light",
+  "fg": "#212121",
+  "bg": "#f7f9fb",
+  "ratio": 15.26,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "stat value dark",
+  "fg": "#e1e1e1",
+  "bg": "#242a30",
+  "ratio": 11.08,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "mark line light (graphic)",
+  "fg": "#026aa8",
+  "bg": "#ffffff",
+  "ratio": 5.79,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "name": "mark line dark (graphic)",
+  "fg": "#4fb3f0",
+  "bg": "#1c1c1c",
+  "ratio": 7.34,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "name": "mark heat light (graphic)",
+  "fg": "#d2601f",
+  "bg": "#ffffff",
+  "ratio": 3.87,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "name": "mark heat dark (graphic)",
+  "fg": "#d2601f",
+  "bg": "#1c1c1c",
+  "ratio": 4.41,
+  "need": 3.0,
+  "ok": true
+ }
+]
