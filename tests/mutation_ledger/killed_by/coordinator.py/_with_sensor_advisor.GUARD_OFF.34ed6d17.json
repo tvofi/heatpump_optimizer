@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_with_sensor_advisor GUARD_OFF 34ed6d17",
+  "killed_by": "tests/entities.py",
+  "old": "    if ranking:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 830f84ad7a25453248a7709f4dfd13769b2d9684: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=9."
+}

@@ -469,6 +469,9 @@
     "update_failed": {
       "message": "Error updating data: {error}"
     },
+    "tibber_auth_failed": {
+      "message": "Tibber refused the configured token; reauthenticate the integration: {error}"
+    },
     "tibber_fetch_failed": {
       "message": "Electricity prices could not be fetched: {error}"
     }

@@ -19,7 +19,11 @@ the 2025.2.0 floor it warns and continues, so skipping it changes nothing).
 
 import asyncio
 
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    HomeAssistantError,
+)
 
 REQUEST_REFRESH_DEFAULT_COOLDOWN = 10
 
@@ -179,7 +183,7 @@ class DataUpdateCoordinator:
     async def _async_update_data(self):
         raise NotImplementedError("Update method not implemented")
 
-    async def _async_refresh(self, *, log_failures=True) -> None:
+    async def _async_refresh(self, *, log_failures=True, raise_on_auth_failed=False) -> None:
         """Upstream's reaction chain, minus the scheduler arms."""
         self._debounced_refresh.async_cancel()
         if self._shutdown_requested:
@@ -201,6 +205,21 @@ class DataUpdateCoordinator:
                             "error", "Error fetching %s data: %s", self.name, err
                         )
                 self.last_update_success = False
+        except ConfigEntryAuthFailed as err:
+            # Upstream's auth arm (:428-443): latch the failure, then either
+            # let it escape (the first refresh) or start the entry's reauth.
+            self.last_exception = err
+            if self.last_update_success:
+                if log_failures:
+                    self._log(
+                        "error", "Authentication failed while fetching %s data: %s",
+                        self.name, err,
+                    )
+                self.last_update_success = False
+            if raise_on_auth_failed:
+                raise
+            if self.config_entry:
+                self.config_entry.async_start_reauth(self.hass)
         except NotImplementedError as err:
             # Upstream records and re-raises (:444-446): an unimplemented
             # update method is a programming error, not a failed fetch, so
@@ -230,7 +249,7 @@ class DataUpdateCoordinator:
         await self._async_refresh(log_failures=True)
 
     async def async_config_entry_first_refresh(self) -> None:
-        await self._async_refresh(log_failures=False)
+        await self._async_refresh(log_failures=False, raise_on_auth_failed=True)
         if self.last_update_success:
             return
         ex = ConfigEntryNotReady()

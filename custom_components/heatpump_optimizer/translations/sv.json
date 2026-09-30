@@ -469,6 +469,9 @@
     "update_failed": {
       "message": "Fel vid uppdatering av data: {error}"
     },
+    "tibber_auth_failed": {
+      "message": "Tibber avvisade den konfigurerade token; autentisera integrationen igen: {error}"
+    },
     "tibber_fetch_failed": {
       "message": "Elpriserna kunde inte hämtas: {error}"
     }

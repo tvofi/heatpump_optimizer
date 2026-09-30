@@ -59,11 +59,6 @@
 # v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
-coord_dhw # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
-coord_grid_fee # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
-coord_minimal # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
-coord_two_zone # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

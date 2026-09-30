@@ -82,9 +82,12 @@ CONFIG_DIR_NAME = "custom_components"
 PACKAGE_NAME = "heatpump_optimizer"
 PACKAGE_REL = f"{CONFIG_DIR_NAME}/{PACKAGE_NAME}"
 
-# The two seams that hand an object to the worker child. ``_await_process``
-# takes ``(hass, fn, *args)``; ``_run_in_process`` takes ``(fn, args)``.
-WORKER_SEAMS = {"_await_process": 1, "_run_in_process": 0}
+# The seams that hand an object to the worker child. ``_await_process`` and
+# ``_await_off_loop`` (the P10 route, #1658, which falls back to the executor)
+# take ``(hass, fn, *args)``; ``_run_in_process`` takes ``(fn, args)``. A seam
+# forwarding its own ``fn`` parameter to another is a pass-through: what it
+# ships is judged at the seam's own call sites.
+WORKER_SEAMS = {"_await_process": 1, "_await_off_loop": 1, "_run_in_process": 0}
 
 # A module the package launches by PATH rather than importing runs only inside
 # a child interpreter, so nothing measuring this process can see it. That is
@@ -146,10 +149,20 @@ def _shipped_objects(module: object) -> tuple[list[tuple[int, str, object]], lis
     source = Path(module.__file__).read_text(encoding="utf-8")
     found: list[tuple[int, str, object]] = []
     unresolved: list[str] = []
-    for node in ast.walk(ast.parse(source, module.__file__)):
+    tree = ast.parse(source, module.__file__)
+    forwarded = {
+        (id(call), arg.arg)
+        for fn in ast.walk(tree)
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)) and fn.name in WORKER_SEAMS
+        for call in ast.walk(fn) if isinstance(call, ast.Call)
+        for arg in fn.args.args
+    }
+    for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         dotted = _call_target(node)
+        if (id(node), dotted) in forwarded:
+            continue
         if dotted is None:
             func = node.func
             label = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")

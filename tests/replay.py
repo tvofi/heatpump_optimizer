@@ -934,15 +934,20 @@ def sweep(entities: list, action: dict, errors: list[str], t: datetime) -> list[
 # --- the driver ---------------------------------------------------------------
 
 
-def replay_one(R, path: Path, step_minutes: int | None, inject: str | None) -> dict | None:
-    """One fixture in its own interpreter, BLAS pinned to one thread."""
-    tz = json.loads(path.read_text()).get("time_zone") or "UTC"
+def child_env(tz: str) -> dict[str, str]:
+    """A replay interpreter's environment: the stub, the zone, BLAS on one thread."""
     env = {**os.environ, "HASTUB_TZ": tz,
            "PYTHONPATH": os.pathsep.join(
                [str(ROOT / "tests" / "hastub"), os.environ.get("PYTHONPATH", "")])}
     for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
         env.setdefault(var, "1")
+    return env
+
+
+def replay_one(R, path: Path, step_minutes: int | None, inject: str | None) -> dict | None:
+    """One fixture in its own interpreter, BLAS pinned to one thread."""
+    env = child_env(json.loads(path.read_text()).get("time_zone") or "UTC")
     cmd = [sys.executable, str(Path(__file__).resolve()), "--one", str(path)]
     if step_minutes:
         cmd += ["--step-minutes", str(step_minutes)]
@@ -957,13 +962,213 @@ def replay_one(R, path: Path, step_minutes: int | None, inject: str | None) -> d
     return json.loads(line[len(MARK):])
 
 
+# --- P10 (#1658): model kernels stay off the event loop ---------------------
+#
+# Home Assistant runs the update cycle and every entity property read on the
+# event loop, and gives CPU work no boundary by default; seven rounds found
+# the class again (#199, #290, #783, #1337, #1399, #1658 twice). The rule this
+# barrier holds: on a replayed day, a model kernel called in this interpreter
+# outside ``process_worker.run_worker`` is zero. Counts, not time: no BLAS or
+# load dependence, so an instance present when a budget is recorded is still
+# seen (the ``loop_cpu_ratio`` gap). A kernel is every public
+# ``ThermalModel.simulate_*`` method (derived, not listed) and the sysid
+# experiment's CPU entry points; each call is counted once, at its outermost
+# kernel, and attributed to the route it ran on. FakeHass runs an executor job
+# inline, so the thread-local flags below see the route it was handed to.
+
+#: The sysid experiment's CPU: the fit and the step-time sizing and gate.
+SYSID_KERNELS = ("identify", "identify_slab", "_size_step_power", "_unadoptable")
+#: The arms: ``base`` is the tree as it is; ``fallback`` makes the process
+#: route unusable (the #511 degrade, whose work must land on the executor,
+#: never the loop); ``sysid`` arms an experiment on the replayed night.
+KERNEL_ARMS = {"base": 3.0, "fallback": 3.0, "sysid": 6.0}
+
+
+def kernel_routes(arm: str, hours: float) -> dict:
+    """Kernel calls per route over ``hours`` of the synthetic day, in this process."""
+    import threading
+    from collections import Counter
+
+    import harness
+    from heatpump_optimizer import coordinator as cm
+    from heatpump_optimizer import process_worker as pw
+    from heatpump_optimizer import sysid
+    from heatpump_optimizer import thermal_model as tm
+
+    tl = threading.local()
+    counts: Counter = Counter()
+    sites: Counter = Counter()
+
+    def site() -> str:
+        f = sys._getframe(2)
+        while f is not None:
+            fn = f.f_code.co_filename.replace("\\", "/")
+            if "/heatpump_optimizer/" in fn and not fn.endswith(("thermal_model.py", "sysid.py")):
+                return f"{Path(fn).name}:{f.f_code.co_name}"
+            f = f.f_back
+        return "?"
+
+    def counted(real):
+        def wrap(*a, **k):
+            if not getattr(tl, "inside", 0):
+                route = ("worker" if getattr(tl, "worker", 0)
+                         else "executor" if getattr(tl, "executor", 0) else "loop")
+                counts[route] += 1
+                counts[f"{route}:{real.__name__}"] += 1
+                if route != "worker":
+                    sites[f"{route} {site()} {real.__name__}"] += 1
+            tl.inside = getattr(tl, "inside", 0) + 1
+            try:
+                return real(*a, **k)
+            finally:
+                tl.inside -= 1
+        return wrap
+
+    def flagged(name, real):
+        def wrap(*a, **k):
+            setattr(tl, name, getattr(tl, name, 0) + 1)
+            try:
+                return real(*a, **k)
+            finally:
+                setattr(tl, name, getattr(tl, name) - 1)
+        return wrap
+
+    kernels = [(tm.ThermalModel, n) for n in dir(tm.ThermalModel) if n.startswith("simulate_")]
+    kernels += [(sysid.SystemIdentification, n) for n in SYSID_KERNELS]
+    for owner, name in kernels:
+        setattr(owner, name, counted(getattr(owner, name)))
+    pw.run_worker = flagged("worker", pw.run_worker)
+    real_ex = harness.FakeHass.async_add_executor_job
+
+    async def executor(self, func, *args):
+        tl.executor = getattr(tl, "executor", 0) + 1
+        try:
+            return await real_ex(self, func, *args)
+        finally:
+            tl.executor -= 1
+
+    harness.FakeHass.async_add_executor_job = executor
+    if arm == "fallback":
+        async def unusable(hass, fn, *args):
+            raise cm.ProcessWorkerUnavailable("forced by the P10 fallback arm")
+
+        cm._await_process = unusable
+    elif arm == "sysid":
+        # The night's own gates (the window, cheap prices, a thawed learner, a
+        # mode that heats, the comfort excursion) are the experiment's
+        # business, not this arm's: forced open, so the fit is reached. The
+        # fixture's pump sits in hot-water-only mode, so the mode gate opens
+        # for the experiment alone and the plan keeps its own (and its cost).
+        from heatpump_optimizer import pump_signals
+
+        blocked = pump_signals.PumpSignals.space_blocked
+        pump_signals.PumpSignals.space_blocked = property(
+            lambda self: not getattr(tl, "sysid", 0) and blocked.fget(self))
+        real_run = cm.HeatPumpOptimizerCoordinator._run_system_identification
+
+        if asyncio.iscoroutinefunction(real_run):
+            async def run_sysid(self, prices):
+                tl.sysid = 1
+                try:
+                    return await real_run(self, prices)
+                finally:
+                    tl.sysid = 0
+        else:  # the tree before #1658 stepped the experiment synchronously
+            def run_sysid(self, prices):
+                tl.sysid = 1
+                try:
+                    return real_run(self, prices)
+                finally:
+                    tl.sysid = 0
+
+        cm.HeatPumpOptimizerCoordinator._run_system_identification = run_sysid
+        sysid.SystemIdentification.conditions_met = lambda self, *a, **k: (True, "ready")
+        sysid.SystemIdentification._over_excursion = lambda self, room: False
+        cm.HeatPumpOptimizerCoordinator._learning_frozen = lambda self, *a, **k: None
+        real_update = cm.HeatPumpOptimizerCoordinator._async_update_data
+
+        async def armed(self):
+            if self._sysid.phase == sysid.PHASE_IDLE:
+                self._sysid.config.enabled = True
+                self._sysid.config.min_days_between_runs = 0.0
+                self._sysid.arm(cm.dt_util.now(), plant=self._thermal_params)
+            out = await real_update(self)
+            counts[f"phase:{self._sysid.phase}"] = 1
+            if self._sysid.phase == sysid.PHASE_ABORTED:
+                counts[f"why:{self._sysid.result.reason}"] = 1
+            return out
+
+        cm.HeatPumpOptimizerCoordinator._async_update_data = armed
+    src = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text())
+    start = datetime.fromisoformat(src["window"]["start"])
+    src["window"]["end"] = (start + timedelta(hours=hours)).isoformat()
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "day.json"
+        path.write_text(json.dumps(src))
+        with contextlib.redirect_stdout(io.StringIO()):
+            run = run_fixture(path, 30)
+    return {"arm": arm, "cycles": run["cycles"], "counts": dict(counts),
+            "sites": dict(sites.most_common(8))}
+
+
+def kernel_checks() -> list[tuple[str, bool, str]]:
+    """Each arm in its own interpreter (patches never leak), run side by side."""
+    tz = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text()).get("time_zone") or "UTC"
+    procs = {arm: subprocess.Popen(
+        [sys.executable, str(Path(__file__).resolve()), "--kernels", arm],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        env=child_env(tz), cwd=ROOT) for arm in KERNEL_ARMS}
+    runs: dict[str, dict | None] = {}
+    for arm, proc in procs.items():
+        out, err = proc.communicate()
+        line = next((ln for ln in out.splitlines() if ln.startswith(MARK)), None)
+        runs[arm] = None if line is None else json.loads(line[len(MARK):])
+        if line is None:
+            print(f"  P10 arm {arm}: rc={proc.returncode}: {err.strip()[-600:]}")
+    return kernel_verdicts(runs)
+
+
+def kernel_verdicts(runs: dict[str, dict | None]) -> list[tuple[str, bool, str]]:
+    """The P10 barrier over the three arms' counts (``None``: the arm did not run)."""
+    def got(arm, key):
+        return ((runs.get(arm) or {}).get("counts") or {}).get(key, 0)
+
+    def detail(arm):
+        run = runs.get(arm)
+        return "did not run" if run is None else f"{run['counts']} {run['sites']}"
+
+    return [
+        ("P10: on a replayed day no model kernel runs on the event loop or an "
+         "executor thread; every one runs in the process worker",
+         runs.get("base") is not None and got("base", "worker") > 0
+         and got("base", "loop") == 0 and got("base", "executor") == 0,
+         detail("base")),
+        ("P10: with the process route unusable the kernels land on the executor "
+         "(the #511 trade, counted), never on the loop",
+         runs.get("fallback") is not None and got("fallback", "executor") > 0
+         and got("fallback", "loop") == 0,
+         detail("fallback")),
+        ("P10: an armed system identification sizes, gates and fits its night "
+         "in the process worker, never on the loop",
+         runs.get("sysid") is not None and got("sysid", "phase:done") == 1
+         and got("sysid", "loop") == 0 and got("sysid", "executor") == 0
+         and got("sysid", "worker:identify") + got("sysid", "worker:identify_slab") > 0,
+         detail("sysid")),
+    ]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--fixture", action="append", type=Path)
     ap.add_argument("--step-minutes", type=int)
     ap.add_argument("--one", type=Path, help=argparse.SUPPRESS)
     ap.add_argument("--inject-cost", choices=("cpu", "memory"), help=argparse.SUPPRESS)
+    ap.add_argument("--kernels", choices=tuple(KERNEL_ARMS), help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
+
+    if args.kernels:
+        print(MARK + json.dumps(kernel_routes(args.kernels, KERNEL_ARMS[args.kernels])))
+        return 0
 
     if args.one:
         print(MARK + json.dumps(run_fixture(args.one, args.step_minutes, args.inject_cost)))

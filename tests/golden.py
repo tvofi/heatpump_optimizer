@@ -961,7 +961,10 @@ def capture_coordinator(config: dict) -> dict:
 
 def _capture_coordinator(config: dict) -> dict:
     from harness import FakeEntry, FakeHass
-    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+    from heatpump_optimizer.coordinator import (
+        HeatPumpOptimizerCoordinator,
+        _with_sensor_advisor,
+    )
 
     hass = FakeHass()
     entry = FakeEntry(data=config)
@@ -995,7 +998,10 @@ def _capture_coordinator(config: dict) -> dict:
     data = coord._build_data_dict()
     # Sensors read ``coordinator.data``. Leaving it unset is why a
     # ``native_value`` mutant executed no line while these fixtures built.
-    coord.data = data
+    # They read what a cycle publishes: the built dict (``data`` below, as
+    # recorded) plus the sensor advisor's ranking, which the cycle adds off
+    # the loop (D9-s2-01) and the plan sensors publish.
+    coord.data = asyncio.run(_with_sensor_advisor(coord, dict(data)))
 
     # ``last_optimization``/``next_optimization`` are wall-clock and would make
     # every diff noise; the rest of the dictionary is a pure function of state.
