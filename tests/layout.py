@@ -78,8 +78,8 @@ def glob_re(glob: str) -> re.Pattern[str]:
 
 def ref_re(old: str) -> re.Pattern[str]:
     """`old` as a path token: not the tail of a longer name, and not the head
-    of one (`round5/` is not cited by `round5-fix/`, `docs/setup/` not by
-    `docs/setup.md`). A directory entry is cited with or without its slash."""
+    of one (`round5/` is not cited by `round5-fix/`, `a/b/` not by
+    `a/b.md`). A directory entry is cited with or without its slash."""
     head = r"(?<![\w.-])"
     if old.endswith("/"):
         return re.compile(head + re.escape(old[:-1]) + r"(?=/|\.(?!\w)|[^\w./-]|\Z)")
@@ -159,7 +159,7 @@ def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:
             fh.write(pats)
         try:
             # Historical text: a `historical` prefix, or a retired path the move
-            # map puts under one (docs/delivery/ before it moves), and the
+            # map puts under one (a delivery row before it moves), and the
             # manifest, which has to name what it retires.
             skip = [MANIFEST, *hist, *(r["old"] for r in retired
                                        if r["new"] and any(r["new"].startswith(h) for h in hist))]
