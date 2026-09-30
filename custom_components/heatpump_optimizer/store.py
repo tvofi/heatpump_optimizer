@@ -218,9 +218,11 @@ _ROW = "the update path's cone repair clips and renormalises the whole row (obse
 _PAIR = "an unreadable bin restarts the pair with a warning (_stored_rows/_stored_counts, #922)"
 _PROFILE = "normalize_profile renormalises to mean 1, and quarantines a non-finite profile whole"
 _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
-#: dhw_learning imports this module, so its two bounds are literals here,
-#: held equal to DHW_PROFILE_MIN_INTENSITY / _MAX_INTENSITY by Arm 6.
-_DHW_INTENSITY = Domain("real", 0.2, 3.5, whole=_PROFILE)
+#: The DHW profile: normalize_profile's clip is [0.2, 3.5], but a fresh
+#: install stores the configured draw pattern verbatim (cells of 0.1) until
+#: the first fold, so the writer's floor is zero. dhw_learning imports this
+#: module, so the ceiling is a literal, held equal to its own by Arm 6.
+_DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
@@ -243,8 +245,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "lower_floor_loss_ratio": Domain("real", c.LOWER_FLOOR_LOSS_RATIO_MIN, c.LOWER_FLOOR_LOSS_RATIO_MAX),
         "cop_scale": Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
         **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
-        "vent_cusum/stat": Domain("real", 0.0, c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR),
-        "cop_health_cusum/stat": Domain("real", 0.0, c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR),
+        # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
+        "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
+        "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
         **{f"{k}_cusum/{f}": d for k in ("vent", "cop_health") for f, d in (
             ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
         "cop_baseline/~": _TEXT, "cop_baseline/*/0": Domain("real", _POS),
@@ -303,27 +306,28 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     },
     "ledger": {
         "ledger/months/~": _MONTH, "ledger/months/*/lines/~": _TEXT,
-        "ledger/months/*/lines/*/kwh": _Z, "ledger/months/*/lines/*/sek": _R,
+        # MonthlyLedger.add bounds a line to finite only: its kWh are unsigned.
+        "ledger/months/*/lines/*/kwh": _R, "ledger/months/*/lines/*/sek": _R,
         "ledger/months/*/meta/~": _TEXT, "ledger/months/*/meta/*/sum": _R,
         "ledger/months/*/meta/*/count": Domain("int", 1),
         "starts/lifetime": _COUNT, "starts/months/~": _MONTH,
         "starts/months/*": Domain("int", 1), "starts/running": _FLAG,
         "month_reports/~": _MONTH, "month_reports/*/month": _MONTH,
         **{f"month_reports/*/{k}/~": _TEXT for k in ("lines", "reasons")},
-        **{f"month_reports/*/{k}/*/kwh": _Z for k in ("lines", "reasons")},
+        **{f"month_reports/*/{k}/*/kwh": _R for k in ("lines", "reasons")},
         **{f"month_reports/*/{k}/*/sek": _R for k in ("lines", "reasons")},
-        "month_reports/*/total_kwh": _Z, "month_reports/*/total_sek": _R,
+        "month_reports/*/total_kwh": _R, "month_reports/*/total_sek": _R,
         "month_reports/*/compressor_starts": _COUNT,
         "month_reports/*/reasons_reconcile": Domain("flag", null=True),
         "month_reports/*/mean_spot_price": _R,
         "month_reports/*/contract_comparison/month": _MONTH,
-        "month_reports/*/contract_comparison/kwh": _Z,
+        "month_reports/*/contract_comparison/kwh": _R,
         **{f"month_reports/*/contract_comparison/{k}": _R for k in (
             "hourly_spot_sek", "grid_fee_sek", "monthly_avg_spot_sek", "fixed_sek",
             "load_profile_value_per_kwh")},
         "month_reports/*/contract_comparison/cheapest": Domain(
             "choice", choices=("hourly_spot", "monthly_avg_spot", "fixed")),
-        "score_day/day": _DAY, "score_day/kwh": _Z, "score_day/sek": _R,
+        "score_day/day": _DAY, "score_day/kwh": _R, "score_day/sek": _R,
         "score_day/spot_sum": _R, "score_day/spot_h": _Z, "score_day/free_streak": _Z,
         "operation_score": Domain("real", 0.0, 100.0, null=True),
         "fuse_advisor/month": _MONTH, "fuse_advisor/current_fuse_a": Domain("real", _POS),
@@ -359,7 +363,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "expires_at": _AT, "created_at": _AT0,
     },
     "snapshots": {
-        "snapshots/#/taken_at": _AT, "snapshots/#/healthy": _FLAG,
+        "snapshots/#/taken_at": _AT, "snapshots/#/healthy": _FLAG, "snapshots/#/accuracy": _ABSENT,
         "snapshots/#/alarmed_at_capture": _FLAG,
         "snapshots/#/accuracy/samples": Domain("int", 0, HISTORY_LENGTH),
         "snapshots/#/accuracy/temperature_mae": Domain("real", 0.0, null=True),
@@ -420,6 +424,16 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool, 
     out: list[Any] = []
     _fields(_tries().get(name, {}), payload, (), out)
     return out
+
+
+def admitted(name: str, payload: Any) -> bool:
+    """Whether every field of ``payload`` -- store ``name``'s payload, or a
+    fragment of it from its root -- is declared and inside its declaration.
+
+    For a loader whose stored record is opaque to it (a presentation dict
+    it republishes whole) and that drops the record rather than repair it.
+    """
+    return all(d is not None and in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))
 
 
 def _store_name(key: str) -> str | None:

@@ -191,7 +191,7 @@ class DhwProfileLearner:
             return
         try:
             self.apply_cooling_rate(float(rate))
-            self.cooling_samples = int(stored.get("cooling_samples", 0))
+            self.cooling_samples = max(0, int(stored.get("cooling_samples", 0)))
         except (TypeError, ValueError, OverflowError) as err:
             _LOGGER.debug("Could not load learned DHW cooling rate: %s", err)
             return

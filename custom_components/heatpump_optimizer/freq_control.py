@@ -61,7 +61,7 @@ FREQ_WRITE_EPSILON_HZ = 1.0
 def _finite(value: Any) -> float | None:
     try:
         result = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return result if np.isfinite(result) else None
 

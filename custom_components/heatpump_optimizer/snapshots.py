@@ -37,6 +37,7 @@ from typing import Any
 import numpy as np
 
 from .drift import stored_instant
+from .store import admitted
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -230,6 +231,9 @@ class SnapshotRing:
                 when = stored_instant(snap.get("taken_at"))
                 if when is not None:
                     snap["taken_at"] = when.isoformat()
+                summary = {"snapshots": [{"accuracy": snap.get("accuracy")}]}
+                if isinstance(snap.get("accuracy"), dict) and not admitted("snapshots", summary):
+                    snap["accuracy"] = None  # out of its declared domain: not evaluable for restore
             dropped = len(raw) - len(clean)
             if dropped:
                 _LOGGER.warning(
