@@ -55,3 +55,11 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - Verified: main a15e3e33; fixplan 1ab27f31; F7.5 ef8fc20c; EG-B10 6e062c77; F2.4 b9f86fb5; F9.3 ac66363d.
 - F7.5: the prepr refusal was closures (features.py exit 1 = Mac floats). Opened #1781 with PREPR_SKIP_CLOSURES=1 (CI records); head 9e7fbc3a (ef8fc20c plus the row). Opus reviewer dispatched at 9e7fbc3a.
 - Seats dispatched (opus): EG-B10 mutation disposition (8 sites, hpo-ci); F2.4 resume from its note; F9.3 resume from its note. Seat block: /private/tmp/audit-7/SEAT-BLOCK-r9.md.
+
+## LIVE STATE 2026-09-30T19:35Z (supersedes older live-log lines)
+- Merged this session: #1781 F7.5, #1779 EG-B10, #1782 F2.4, #1784 records, #1785 F9.3, #1786 EG-B8, #1787 RCA-1747, #1790 RO-1. Stamped v6.7.12 (754d2319).
+- Open: #1788 F1.7 (critical path) at a80453d1, round-2 review running; it is code-owned (golden.py, harness.py), so after the verdict and green CI I approve from tvofi's account (mandate plus tvofi's 17:04Z rule) and merge.
+- Roster: handoff/audit-r9-fixplan at 728e5946 (rev 4: lanes UI, SW and RO; 90 groups; brief_lint 0; #1791 is the UI feature issue).
+- Cloud: UI-1 fixer being started. All fixers and reviewers run on cloud threads via the coordinator; the Mac only opens PRs, posts verdicts, merges and stamps. The hpo-ci container is broken since the disk-full event (needs a colima restart if ever needed).
+- Scripts in /private/tmp/audit-7/orchestrator: handoff_push.sh (BODYPATH, BRNAME, PREPR_SKIP_CLOSURES, ISSUES, merge-main, update mode also merges main), remerge_main.sh, merge_pr.sh. Code-owned approvals: gh pr review N --approve --body-file (grounds only), then merge_pr.sh app.
+- Traps this session: zsh doesn't split $VAR, so use bash -c; figure_lint refuses off-tree backticked paths, so write "(off-tree, at <sha>: path)"; brief_lint refuses off-tree paths without a sha, so add "(at <sha> on <branch>)"; bot pin commits don't trigger all workflows, so merge main as the App.
