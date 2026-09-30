@@ -1,0 +1,13 @@
+
+=== Feature modules ===
+  FAIL R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating  [on=[False, False, False, False, False, True, True] for space=[0.0, 0.05, 0.12, 1.0, 2.9, 3.0, 6.0] dhw=[0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0]]
+  ok   R9-F2.4 P2 (null arm): a step the plan books no heat for stays off, on a fixed-speed and on a modulating pump alike
+  FAIL R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off  [on=[False, False, False, False, False, True, True] booked=[0.0, 0.11, 0.12, 1.0, 2.9, 3.0, 6.0] starts=1 transitions=1]
+  FAIL R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor  [0 of 27 pairs on; scalar agrees: True]
+  FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not  [[(False, 'off', 0.0), (False, 'off', 0.15), (False, 'off', 0.0)]]
+  FAIL R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold  [step_duty takes 3 parameters; duties=None]
+  FAIL R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's  [_ran_kw=None on_threshold_kw=None plan_floor=None]
+  FAIL R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone  [optimizer=2 pump_arbiter=1 thermal_model=0 (owner)]
+RESULT block_lines=254 count
+
+7 of 8 R9-F2.4 BLOCK CHECKS FAILED

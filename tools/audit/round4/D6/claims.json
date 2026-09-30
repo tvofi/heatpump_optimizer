@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.7.11' measured='6.7.11'",
+  "result": "documented='6.7.12' measured='6.7.12'",
   "verdict": "true",
   "truth": ""
  },
@@ -686,7 +686,7 @@
  {
   "id": "C77",
   "source": "docs/ecl110.md",
-  "claim": "a step is ON when either circuit clears half the modulation floor, at least 0.1 kW",
+  "claim": "a step is ON when the power the plan books for it, space plus hot water, is above 0.1 kW",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
   "result": "documented=True measured=True",
   "verdict": "true",
