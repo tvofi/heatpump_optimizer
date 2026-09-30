@@ -4924,11 +4924,11 @@
         "R9-UI-1"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-ui-readme",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/state/alt/design/DESIGN.md, then write the failing test",
+        "commit": "0ba354c5ed09dc168a0c55eb5eb4c0978cd00d4a",
+        "last_step": "MERGED as #1801 at 0ba354c5 (head 9b7eddb5 = code 91a4813d on 0723471d + row); opus verdict merge; tests/layout.json approved under the 2026-09-30 mandate",
+        "next_step": "none; tvofi uploads the social preview",
         "note_file": "handoff/round9/fix/resume/UI-2.md on handoff/r9-ui-readme",
         "review_branch": "handoff/r9-ui-readme-review",
         "review_note_file": "handoff/round9/fix/resume/UI-2-review.md on handoff/r9-ui-readme-review",
