@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_ran_kw RETURN_DEL 68f9459a",
+  "killed_by": "tests/structure.py",
+  "old": "    return on_threshold_kw(coord._thermal_model.params)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

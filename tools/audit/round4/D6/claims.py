@@ -959,9 +959,17 @@ eq("C75", "docs/ecl110.md", "All eight settings live on the Heat curve control p
 eq("C76", "docs/ecl110.md", "the peak guard publishes the plan's displace minus 2 °C",
    CMD, 2.0, const.PEAK_GUARD_DISPLACE_NUDGE_C)
 _opt_src = (PKG / "optimizer.py").read_text()
-eq("C77", "docs/ecl110.md", "a step is ON when either circuit clears half the modulation "
-   "floor, at least 0.1 kW", CMD, True,
-   "on_threshold = max(0.1, p.min_electrical_power * 0.5)" in _opt_src)
+# R9-F2.4 (D12-s2-01): this claim's sentence and its evidence moved together.
+# The on decision used to be half the modulation floor, which is the threshold
+# for reading a METER sample; the plan's own running rule is the 0.1 kW floor
+# its solve bounds and its published compressor_starts already used, and
+# thermal_model owns it now, so the evidence reads that owner rather than a line
+# of the optimizer that no longer exists.
+_tm_src = (PKG / "thermal_model.py").read_text()
+eq("C77", "docs/ecl110.md", "a step is ON when the power the plan books for it, "
+   "space plus hot water, is above 0.1 kW", CMD, True,
+   "MIN_RUNNING_DRAW_KW = 0.1" in _tm_src
+   and "((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()" in _tm_src)
 eq("C78", "docs/ecl110.md", "the weather anticipation bias applies over the first eight hours",
    CMD, True, "int(max(1, 8 / self.config.dt_hours))" in _opt_src)
 _coord_src = (PKG / "coordinator.py").read_text()

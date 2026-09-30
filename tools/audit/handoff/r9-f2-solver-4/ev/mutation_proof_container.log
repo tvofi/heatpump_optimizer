@@ -1,0 +1,65 @@
+/Users/timmalmstrom/fix-r9-f2-solver-4/tools/audit/handoff/r9-f2-solver-4/mutation_proof.py:192: SyntaxWarning: 'return' in a 'finally' block
+  return 2
+=== M0 healthy arm: /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py rc=0 failed=0
+    summary: ALL 8 R9-F2.4 BLOCK CHECKS PASSED
+=== M0 healthy arm: /usr/local/bin/python3 tests/entities.py rc=0 failed=0
+    summary: ALL 1990 ENTITY CHECKS PASSED
+
+=== M1: the plan's on schedule decides at half the modulation floor again
+    file custom_components/heatpump_optimizer/optimizer.py  runner /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 3 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 3 (+3)
+    FAIL R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone
+    FAIL R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating
+    FAIL R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off
+RESULT mutant[M1]_added_fails=3 count
+RESULT mutant[M1]_added_block_checks=3 count
+RESULT mutant[M1]_runner_rc=1
+
+=== M2: the published action's fallback and its mode band read the meter's threshold again
+    file custom_components/heatpump_optimizer/optimizer.py  runner /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 2 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 2 (+2)
+    FAIL R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone
+    FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not
+RESULT mutant[M2]_added_fails=2 count
+RESULT mutant[M2]_added_block_checks=2 count
+RESULT mutant[M2]_runner_rc=1
+
+=== M2b: the action's space band reads the meter's threshold again (0.2 kW on the block's 0.4 kW plant)
+    file custom_components/heatpump_optimizer/optimizer.py  runner /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 1 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 1 (+1)
+    FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not
+RESULT mutant[M2b]_added_fails=1 count
+RESULT mutant[M2b]_added_block_checks=1 count
+RESULT mutant[M2b]_runner_rc=1
+
+=== M3: the arbiter's space duty reads the meter's threshold again (0.2 kW on a 0.4 kW plant, the base's caller-supplied value)
+    file custom_components/heatpump_optimizer/pump_arbiter.py  runner /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 1 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 1 (+1)
+    FAIL R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold
+RESULT mutant[M3]_added_fails=1 count
+RESULT mutant[M3]_added_block_checks=1 count
+RESULT mutant[M3]_runner_rc=1
+
+=== M4: the published power stops reading the action's own declaration
+    file custom_components/heatpump_optimizer/entity.py  runner /usr/local/bin/python3 tests/entities.py  rc=1
+    summary: 2 of 1990 ENTITY CHECKS FAILED
+    failed 0 -> 2 (+2)
+    FAIL R9-F2.4 P2: no entity publishes a draw at a step the same action declares off, and one that declares it on still publishes the whole ask (#1499)
+    FAIL R9-F2.4 P2: the idle action's power placeholder is not a draw
+RESULT mutant[M4]_added_fails=2 count
+RESULT mutant[M4]_added_block_checks=2 count
+RESULT mutant[M4]_runner_rc=1
+
+=== M5: the meter's threshold loses its half-floor (the retired _on_kw CLAMP_DROP pin, on the owner now)
+    file custom_components/heatpump_optimizer/thermal_model.py  runner /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 2 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 2 (+2)
+    FAIL R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's
+    FAIL R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone
+RESULT mutant[M5]_added_fails=2 count
+RESULT mutant[M5]_added_block_checks=2 count
+RESULT mutant[M5]_runner_rc=1

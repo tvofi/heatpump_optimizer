@@ -142,6 +142,7 @@ from .inputs import state_unit, temperature_c, temperature_from_c
 from .repairs import _write_setpoint
 from .drift import stored_instant
 from .store import QuarantiningStore
+from .thermal_model import on_threshold_kw, planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -242,16 +243,27 @@ def duty_mode(config: Any) -> str:
     return mode if mode in PUMP_DUTY_MODES else DUTY_OFF
 
 
-def step_duty(result: Any, now: datetime, on_kw: float) -> str | None:
-    """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now."""
+def step_duty(result: Any, now: datetime) -> str | None:
+    """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
+
+    Each circuit's draw is read by the plan's own running rule
+    (``planned_draw_runs``), so the duty the arbiter serves is the duty the
+    plan booked. This used to take the threshold from its caller, which handed
+    it the METER's threshold -- half the pump's modulation floor -- and split
+    the two circuits on two different numbers (R9 D12-s2-01, #1644 P2): on a
+    fixed-speed pump a step the plan priced as 1.0 kW of delivered heat read as
+    no space duty at all, so the arbiter wrote the pump's hot-water mode over
+    it. A caller-supplied threshold is the shape that let them diverge, so the
+    parameter is gone rather than defaulted.
+    """
     stamps = list(getattr(result, "timestamps", None) or [])
     i = bisect.bisect_right(stamps, now) - 1
     if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
-    s_on = i < len(space) and space[i] >= on_kw
-    d_on = i < len(dhw) and dhw[i] > 0.1
+    s_on = i < len(space) and planned_draw_runs(space[i])
+    d_on = i < len(dhw) and planned_draw_runs(dhw[i])
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
@@ -418,7 +430,7 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
         return None
     held = boost.held_for(coord)
     result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
-    duty = None if result is None else step_duty(result, now, _on_kw(coord))
+    duty = None if result is None else step_duty(result, now)
     space = held.active(boost.CHANNEL_SPACE, now)
     dhw = held.active(boost.CHANNEL_DHW, now)
     if not (space or dhw):
@@ -428,8 +440,16 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
     return "both" if space and dhw else "space" if space else "dhw"
 
 
-def _on_kw(coord: Any) -> float:
-    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)
+def _ran_kw(coord: Any) -> float:
+    """The MEASURED draw above which this step's ledger row counts a run.
+
+    The meter's question, owned by ``thermal_model.on_threshold_kw`` and not
+    the plan's: this reads ``coord._measured_power``, so half the modulation
+    floor is the right separator, and the plan's own running rule (which the
+    duty above takes) would count a standby draw as a run. One formula answered
+    both until R9 D12-s2-01; the two names are what keeps them apart.
+    """
+    return on_threshold_kw(coord._thermal_model.params)
 
 
 def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> str | None:
@@ -565,7 +585,7 @@ def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
     power = getattr(coord, "_measured_power", None)
     if power is not None:
         row["measured"] = True
-        row["ran"] = row["ran"] or float(power) >= _on_kw(coord)
+        row["ran"] = row["ran"] or float(power) >= _ran_kw(coord)
     mode = pump_mode.resolve(getattr(_slot_state(coord, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
 

@@ -170,7 +170,14 @@ def run_cell(domain, perturb):
                 eid = (data or {}).get("entity_id")
                 if eid == mode_eid and d != eid.split(".", 1)[0]:
                     misrouted += 1
-            want = pa.desired(coord, pa.step_duty(coord._optimization_result, now, pa._on_kw(coord)), now).mode
+            # R9-F2.4: step_duty takes no threshold any more -- the plan's own
+            # running rule lives inside it, and the value this harness used to
+            # hand it (pa._on_kw, retired to pa._ran_kw) was the METER's. The
+            # metric below reads a write's service domain against its target's,
+            # never the threshold, so the harness measures what it measured;
+            # re-running it at its own Baseline SHA needs the three-argument
+            # form, which git history carries.
+            want = pa.desired(coord, pa.step_duty(coord._optimization_result, now), now).mode
             shown = pump_mode.resolve(hass.states.get(mode_eid).state)
             if want is not None and shown != want:
                 wrong += 1

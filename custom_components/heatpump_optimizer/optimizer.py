@@ -87,11 +87,14 @@ from .batchmath import row_sums
 from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
+    MIN_RUNNING_DRAW_KW,
     ThermalModel,
     ThermalParameters,
     ThermalState,
     dhw_coil_draw_reduction,
     dhw_draw_scale,
+    planned_draw_runs,
+    planned_draws_run,
     wood_share,
 )
 from .tariff import (
@@ -854,13 +857,20 @@ def _power_fraction(power: float, params: ThermalParameters) -> float:
     return float(min(1.0, max(0.0, (power - low) / band)))
 
 
-def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
+def count_compressor_starts(
+    power: np.ndarray, threshold: float = MIN_RUNNING_DRAW_KW
+) -> int:
     """Number of off→on transitions in a schedule.
 
     Measurement first: the backlog note for this feature was explicit that a
     cycling penalty should only be paid for if realistic plans actually
     chatter. This is what the validation harness reports, and it is published
     on the result so the question stays answerable after the fact.
+
+    The default is the plan's own running rule (``MIN_RUNNING_DRAW_KW``, and
+    ``planned_draws_run`` is the same comparison), so the count this publishes
+    and the on schedule beside it on the same result cannot disagree about
+    which steps ran (R9 D12-s2-01).
     """
     running = np.asarray(power, dtype=float) > threshold
     if running.size == 0:
@@ -7092,18 +7102,19 @@ class HeatPumpOptimizer:
         space_power_schedule: np.ndarray,
         dhw_power_schedule: np.ndarray | None = None,
     ) -> list[bool]:
-        """ON/OFF supply-enable decisions: ON when either circuit clears the
-        activation threshold."""
-        p = self.model.params
-        on_threshold = max(0.1, p.min_electrical_power * 0.5)
-        space = np.asarray(space_power_schedule, dtype=float)
-        dhw = (
-            np.zeros_like(space)
-            if dhw_power_schedule is None
-            else np.asarray(dhw_power_schedule, dtype=float)
-        )
-        on_steps: list[bool] = (np.maximum(space, dhw) >= on_threshold).tolist()
-        return on_steps
+        """ON/OFF supply-enable decisions: ON when the step books heat.
+
+        The plan's own running rule, owned by ``planned_draws_run``. This used
+        to decide at half the pump's minimum electrical power -- the threshold
+        a METER reading needs, which ``on_threshold_kw`` still owns -- and on a
+        fixed-speed pump that is half the rating, so the switch path switched
+        off steps whose heat the same plan's trajectory, cost and published
+        savings booked as delivered (R9 D12-s2-01, #1644 P2). A step below the
+        modulation floor is duty cycling within the step, which is what the
+        solve's own bounds say: the pump is commanded on for it and its own
+        thermostat cycles it, while the objective prices the chatter.
+        """
+        return planned_draws_run(space_power_schedule, dhw_power_schedule)
 
     def _idle_action(self) -> dict[str, Any]:
         """The do-nothing action: shared by the empty-plan branch and the
@@ -7160,19 +7171,28 @@ class HeatPumpOptimizer:
             if result.displace_schedule and i < len(result.displace_schedule)
             else 0.0
         )
-        on_threshold = max(0.1, self.model.params.min_electrical_power * 0.5)
+        # The schedule is the authority; the fallback is the same owner on the
+        # same two circuits, for a result built without the field. Both read
+        # the plan's own running rule, never the meter's threshold, so a step
+        # this action declares off is a step the plan booked no heat for
+        # (R9 D12-s2-01).
+        dhw_power_at_i = (
+            result.dhw_power_schedule[i]
+            if result.dhw_power_schedule and i < len(result.dhw_power_schedule)
+            else 0.0
+        )
         heat_pump_on = (
             result.heat_pump_on_schedule[i]
             if result.heat_pump_on_schedule and i < len(result.heat_pump_on_schedule)
-            else power > on_threshold
+            else planned_draw_runs(power, dhw_power_at_i)
         )
 
         p_norm = _power_fraction(power, self.model.params)
 
         # The band is the SPACE circuit's, but "off" means the pump is off
         # (#1499): a space step below the band's first rung still runs, and
-        # a step where only DHW clears the on threshold is hot_water.
-        space_on = power >= on_threshold
+        # a step where only DHW books a draw is hot_water.
+        space_on = planned_draw_runs(power)
         if not heat_pump_on:
             mode = "off"
         elif not space_on:

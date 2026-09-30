@@ -1101,6 +1101,78 @@ def _dhw_enabled_from_config(config: dict[str, Any]) -> bool:
         for key in (const.CONF_DHW_TANK_VOLUME, const.CONF_DHW_TEMP_ENTITY, const.CONF_DHW_WINDOWS)
     )
 
+#: The smallest PLANNED draw that runs the pump, in kW. One fact, one owner
+#: (R9 D12-s2-01, #1644 P2). The solve reads a step below the pump's
+#: modulation floor as duty cycling WITHIN the step -- its bounds start at 0
+#: and ``_compute_baseline_power`` says why flooring them would burn
+#: ``min_electrical_power`` around the clock -- so every watt a plan books
+#: above this floor is heat its trajectory, its cost and its published
+#: savings all count as delivered, and it is what ``count_compressor_starts``
+#: counts as a run. No seam that actuates or reports the plan may call such a
+#: step off. Until this owner existed the switch schedule called it off at
+#: half the modulation floor instead (see ``on_threshold_kw``), which on a
+#: fixed-speed pump -- min == max, a configuration ``_power_errors`` accepts
+#: -- is half the rating: a shoulder day plan trickling 1.0 kW against a 6 kW
+#: rating had 67 % of its booked heat switched off, and the actuated house
+#: ended 17.2 K*h below the trajectory the same plan was priced on.
+MIN_RUNNING_DRAW_KW = 0.1
+
+def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
+    """Which steps of a plan run the pump: the plan's own on schedule.
+
+    The step's whole ask, space plus DHW, against ``MIN_RUNNING_DRAW_KW`` --
+    the same total the plan prices (``_build_result``'s ``total_power``) and
+    the same rule its published ``compressor_starts`` counts, so one result
+    cannot book a start on a step its own on schedule calls off. Elementwise
+    rather than a per-step interpreter call: 96 steps is the
+    N-solve-recompute class's shape. ``planned_draw_runs`` is the same fact for
+    one step, and the pair is pinned equal over a grid that straddles the floor,
+    so writing the comparison twice cannot drift.
+    """
+    space = np.asarray(space_kw, dtype=float)
+    dhw = (
+        np.zeros_like(space)
+        if dhw_kw is None
+        else np.asarray(dhw_kw, dtype=float)
+    )
+    # The annotated local, not a bare `return ...tolist()`: numpy's stub types
+    # ``tolist()`` as ``Any``, so returning it directly is a ``no-any-return``
+    # the typing ruler ratchets. This is the shape the optimizer's own copy of
+    # this comparison had before the owner existed.
+    on_steps: list[bool] = ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
+    return on_steps
+
+def planned_draw_runs(space_kw: float, dhw_kw: float = 0.0) -> bool:
+    """``planned_draws_run`` for one step, in plain floats.
+
+    One circuit's own draw is the same question with the other circuit at
+    zero, which is how the action grades the space circuit and how the
+    pump-duty arbiter splits a step between its two duties. Both are per-call
+    paths -- an action per cycle, a duty per arbiter tick -- so this does NOT
+    build the two one-element arrays the batch form needs: a scalar predicate
+    that allocates is the N-solve-recompute shape one level down, and the
+    stress lane's attributable-RSS arm is sensitive enough to read it. Both
+    forms compare float64 against the one owned constant, so they agree
+    exactly rather than to a tolerance.
+    """
+    return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW
+
+def on_threshold_kw(params: ThermalParameters) -> float:
+    """The MEASURED draw above which the compressor counts as running, in kW.
+
+    Half the pump's minimum electrical power, floored at
+    ``MIN_RUNNING_DRAW_KW``: a running pump draws at least its modulation
+    floor, so half of it separates a run from a standby or circulation draw
+    with the widest margin. This is the meter's question and not the plan's.
+    One formula answered both until R9 D12-s2-01, and the plan lost: reading
+    a meter is asking whether the pump DID run, while reading a plan is
+    asking whether the pump must, and a plan step the solver priced as duty
+    cycling must not be switched off. Readers of a measured draw -- the
+    pump-duty arbiter's ledger, the coordinator's compressor-start counter --
+    take this; readers of the plan take ``planned_draw_runs``.
+    """
+    return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)
+
 @dataclass
 class ThermalState:
     """Current thermal state of the two-zone system with DHW.

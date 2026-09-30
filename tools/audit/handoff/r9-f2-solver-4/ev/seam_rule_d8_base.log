@@ -1,0 +1,6 @@
+### seam_rule_d8
+custom_components/heatpump_optimizer/sensor.py:610:            return commanded_power_kw(self.coordinator.data.get("current_action"))
+custom_components/heatpump_optimizer/sensor.py:827:                "power_kw": commanded_power_kw(action),
+custom_components/heatpump_optimizer/sensor.py:1675:            "recommended_power": commanded_power_kw(data.get("current_action")),
+custom_components/heatpump_optimizer/entity.py:26:def commanded_power_kw(action: Any) -> float | None:
+custom_components/heatpump_optimizer/climate.py:243:            attrs["recommended_power_kw"] = commanded_power_kw(action)

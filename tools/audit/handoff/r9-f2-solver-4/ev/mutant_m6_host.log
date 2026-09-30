@@ -1,0 +1,13 @@
+=== M0 healthy arm: /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py rc=0 failed=0
+    summary: ALL 8 R9-F2.4 BLOCK CHECKS PASSED
+
+=== M6: the owner's scalar form returns nothing (the re-anchored RETURN_DEL site the ledger leaves unpinned)
+    file custom_components/heatpump_optimizer/thermal_model.py  runner /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py  rc=1
+    summary: 3 of 8 R9-F2.4 BLOCK CHECKS FAILED
+    failed 0 -> 3 (+3)
+    FAIL R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold
+    FAIL R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor
+    FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not
+RESULT mutant[M6]_added_fails=3 count
+RESULT mutant[M6]_added_block_checks=3 count
+RESULT mutant[M6]_runner_rc=1

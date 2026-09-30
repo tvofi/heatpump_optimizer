@@ -32,11 +32,23 @@ def commanded_power_kw(action: Any) -> float | None:
     ``power_kw``, Recommended Power, the climate's ``recommended_power_kw``
     and Measured Power's ``recommended_power`` -- reads it here, so they
     cannot disagree. None when the action carries no power at all.
+
+    Zero when the SAME action declares the pump off (``heat_pump_on`` is
+    False): an ask the pump is not switched on for is not a draw, and four
+    entities publishing 0.4 kW beside a state of "off" is the contradiction a
+    user reads as a broken sensor (R9 D8-s1-03, #1644 P2). The gate is here
+    rather than in the plan's on decision because the two are different facts:
+    the plan decides what the pump must do (``planned_draw_runs``), this
+    reports what the step asks of a pump it has already declared off. Only an
+    explicit False gates -- an action that carries no ``heat_pump_on`` at all
+    is a caller's partial dict, not a declaration, and publishes its ask.
     """
     action = action or {}
     space = action.get("power")
     if space is None:
         return None
+    if action.get("heat_pump_on") is False:
+        return 0.0
     return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
 
 
