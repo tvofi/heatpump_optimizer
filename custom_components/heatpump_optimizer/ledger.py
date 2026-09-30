@@ -84,7 +84,7 @@ def _clean_month(value: Any) -> dict[str, Any] | None:
             },
             "meta": {
                 str(name): {"sum": _leaf(e["sum"]), "count": int(_leaf(e["count"]))}
-                for name, e in meta.items()
+                for name, e in meta.items() if int(_leaf(e["count"])) >= 1  # the first fold writes 1
             },
         }
     except (TypeError, ValueError, KeyError, IndexError, OverflowError):

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:admitted BOOLOP b810613a",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    return all(d is not None and in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: BOOLOP (`return all(d is not None or in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2."
+}

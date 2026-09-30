@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for R9-EG-B8 (#1747, the DHW block ignored by the co-optimisation replan), from R9-F9.3 (#1647).",
+    "The round-9 roster's R9-EG-B8 group brief on handoff/audit-r9-fixplan carries the same text (commit 1f02e063); the roster is not on main,",
+    "so this file is the in-tree destination. While the two disagree the newer one is right. Shape: .claude/rules/finding-propagation.md."
+  ],
+  "issue": 1747,
+  "stage": "R9-EG-B8, or any later seat that touches the DHW profile store (the dhw_profile store) or DhwProfileLearner.async_load_profile",
+  "carries": [
+    {
+      "from": "the pull request for R9-F9.3 (#1647, the declared-domain barrier), whose round-1 fix review of #1783 found it as item 1",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control, through the real saver and loader on a fresh coordinator built by tests/finite_boundary.py: a fresh install stores the configured DHW draw pattern verbatim, with cells below DHW_PROFILE_MIN_INTENSITY (three hourly cells of 0.104), and async_load_profile passes it through normalize_profile, which clips and then divides by the mean. That is not idempotent: the first reload changed every hourly cell (largest move 0.0961), the next reloads 0.000761 and then 1.9e-05, converging. Null control: tests/finite_boundary.py Arm 6's dyadic mean-1 profile round-trips unchanged through the same loader and saver (its check 'the healthy rich seed round-trips unchanged through every loader and saver (null control)').",
+      "remeasure": "Do not trust these figures: they were measured at the F9.3 -v5 code head, and a later stage is judged against its own merge base. Build a coordinator as tests/finite_boundary.py does, save the DHW profile with async_save_profile, load it into a fresh coordinator with async_load_profile and save again, and compare the hourly_profile cells; then repeat to see the drift shrink, and run Arm 6 for the null control.",
+      "brief": "The stored DHW profile's writer domain is wider than what normalize_profile admits, so the first restarts rewrite a fresh install's profile. A lane that touches the DHW profile store or its loader must either normalise before the first save, so the stored profile is already a fixed point of the loader, or say why a restart-time rewrite is harmless. No user-visible cost has been measured; do not claim one without measuring it."
+    }
+  ]
+}

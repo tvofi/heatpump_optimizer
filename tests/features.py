@@ -41472,9 +41472,10 @@ R.check(
 
 # -- `_async_load_energy_totals`: accumulators that may not go backwards ---
 # Home Assistant reads a drop in a total_increasing sensor as a meter reset
-# and draws a spurious spike, so a stored value LOWER than the live one is
-# refused rather than trusted.
-_T6_ENERGY_KEY = sorted(_t6_coord()._energy_totals)[0]
+# and draws a spurious spike, so a stored kWh value LOWER than the live one is
+# refused rather than trusted. The cost totals are signed TOTALs and reload as
+# stored (tests/finite_boundary.py Arm 6's below-zero probe pins that side).
+_T6_ENERGY_KEY = sorted(k for k in _t6_coord()._energy_totals if k.endswith("_kwh"))[0]
 
 
 def _t6_energy(payload, *, live=None):
