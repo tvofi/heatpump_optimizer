@@ -53315,6 +53315,42 @@ R.check(
 
 _F24_T0 = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
 
+# The owner's two forms are one fact written twice -- elementwise for a 96-step
+# schedule, plain floats for a per-call path that must not allocate -- so the
+# pair is pinned equal over a grid rather than trusted. The grid straddles the
+# floor at 0.0999 / 0.1 / 0.1000001 and carries a two-circuit row, and the
+# check refuses a grid that is all on or all off, because a grid on one side of
+# the floor would pass whatever the two forms disagreed about. float64 on both
+# sides, so equality is exact and not a tolerance.
+_f24_draws_run = getattr(_f24_tm, "planned_draws_run", None)
+_f24_draw_runs = getattr(_f24_tm, "planned_draw_runs", None)
+_f24_pairs = [
+    (a, b)
+    for a in (0.0, 0.05, 0.0999, 0.1, 0.1000001, 0.15, 0.5, 1.0, 6.0)
+    for b in (0.0, 0.06, 0.2)
+]
+_f24_batched = (
+    _f24_draws_run([a for a, _ in _f24_pairs], [b for _, b in _f24_pairs])
+    if callable(_f24_draws_run)
+    else None
+)
+_f24_scalar = (
+    [_f24_draw_runs(a, b) for a, b in _f24_pairs]
+    if callable(_f24_draw_runs)
+    else None
+)
+R.check(
+    "R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal "
+    "over a grid that straddles the floor",
+    _f24_batched is not None
+    and _f24_scalar is not None
+    and _f24_batched == _f24_scalar
+    and any(_f24_batched)
+    and not all(_f24_batched),
+    f"{sum(_f24_batched or [])} of {len(_f24_pairs)} pairs on; "
+    f"scalar agrees: {_f24_batched == _f24_scalar}",
+)
+
 
 def _f24_result(power, dhw, on=None):
     """A plan of 15-minute steps, with no on schedule unless one is given."""

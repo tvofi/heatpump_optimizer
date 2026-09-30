@@ -7,6 +7,12 @@ way it was at the merge base -- not a random operator -- and the runner is
 between its markers, so the checks that fail are the suite's own bytes. M4's
 checks live in tests/entities.py, so its runner is that script in full.
 
+A mutant is judged on the runner's OWN verdict -- `harness.Results.close`'s
+summary line, which is the one count the suite stands behind -- and not on a
+grep for failure-shaped lines: `tests/entities.py` prints other runs' `FAIL`
+lines as its own evidence, 37 of them in a run whose summary is ALL 1990
+PASSED. The names printed beside each verdict are this PR's own checks.
+
     python3 tools/audit/handoff/r9-f2-solver-4/mutation_proof.py [--only M1] \
         [--features-runner 'python3 tests/features.py']
 
@@ -104,14 +110,37 @@ def sh(argv: list[str]) -> tuple[int, str]:
     return p.returncode, p.stdout + p.stderr
 
 
-def fails_of(out: str) -> set[str]:
-    """The failing check names in a runner's output, without their details."""
+def summary(out: str) -> tuple[int, str]:
+    """The runner's own verdict: (failed checks, the summary line).
+
+    Read from `harness.Results.close` -- the last `ALL n <label> PASSED` or
+    `k of n <label> FAILED` line -- and not by counting lines that look like
+    failures. Both counts are wrong to grep for: `tests/entities.py` prints
+    other runs' `FAIL` lines as its own evidence (37 of them in a run whose
+    summary is ALL 1990 PASSED), and a check NAME can contain the word. The
+    reporter's summary is the one number the suite itself stands behind.
+    """
+    line = ""
+    failed = 0
+    for ln in out.splitlines():
+        s = ln.strip()
+        if s.startswith("ALL ") and s.endswith("PASSED"):
+            failed, line = 0, s
+        elif " FAILED" in s and " of " in s:
+            try:
+                failed, line = int(s.split(" of ")[0]), s
+            except ValueError:
+                continue
+    return failed, line
+
+
+def block_fails(out: str, prefix: str = "R9-F2.4") -> set[str]:
+    """The names of this PR's own checks that the runner reports as failing."""
     names = set()
     for ln in out.splitlines():
-        at = ln.find("FAIL ")
-        if at < 0:
-            continue
-        names.add(ln[at + 5:].split("  [")[0].strip())
+        s = ln.lstrip()
+        if s.startswith("FAIL ") and s[5:].startswith(prefix):
+            names.add(s[5:].split("  [")[0].strip())
     return names
 
 
@@ -130,17 +159,19 @@ def main() -> int:
               "restores with git checkout and would erase them")
         return 2
 
-    # The healthy arm first, per runner: a mutant is judged on the checks it
-    # ADDS to this set, so a red this box already has is not read as a kill.
+    # The healthy arm first, per runner: a mutant is judged on what it ADDS to
+    # this arm's own verdict, so a red this box already has is not read as a
+    # kill and a green box is not asked to be.
     selected = [m for m in MUTANTS if not a.only or m["id"] == a.only]
-    healthy: dict[tuple[str, ...], set[str]] = {}
+    healthy: dict[tuple[str, ...], tuple[int, set[str], str]] = {}
     for runner in {tuple(m["runner"]) for m in selected}:
         rc, out = sh(list(runner))
-        healthy[runner] = fails_of(out)
-        print(f"=== M0 healthy arm: {' '.join(runner)} rc={rc} "
-              f"fails={len(healthy[runner])}")
-        for ln in sorted(healthy[runner]):
-            print(f"    pre-existing FAIL {ln}")
+        failed, line = summary(out)
+        healthy[runner] = (failed, block_fails(out), line)
+        print(f"=== M0 healthy arm: {' '.join(runner)} rc={rc} failed={failed}")
+        print(f"    summary: {line}")
+        for ln in sorted(healthy[runner][1]):
+            print(f"    pre-existing block FAIL {ln}")
 
     for m in MUTANTS:
         if a.only and m["id"] != a.only:
@@ -159,15 +190,21 @@ def main() -> int:
             if not clean(path):
                 print(f"REFUSED {m['id']}: {path} did not restore")
                 return 2
-        added = sorted(fails_of(out) - healthy[runner])
+        was, was_block, _ = healthy[runner]
+        failed, line = summary(out)
+        added = sorted(block_fails(out) - was_block)
         print(f"\n=== {m['id']}: {m['what']}")
         print(f"    file {path}  runner {' '.join(runner)}  rc={rc}")
+        print(f"    summary: {line}")
+        print(f"    failed {was} -> {failed} (+{failed - was})")
         for ln in added:
             print(f"    FAIL {ln}")
-        print(f"RESULT mutant[{m['id']}]_added_fails={len(added)} count")
+        print(f"RESULT mutant[{m['id']}]_added_fails={failed - was} count")
+        print(f"RESULT mutant[{m['id']}]_added_block_checks={len(added)} count")
         print(f"RESULT mutant[{m['id']}]_runner_rc={rc}")
-        if not added:
-            print(f"REFUSED {m['id']}: the mutant added no failing check")
+        if failed <= was or not added:
+            print(f"REFUSED {m['id']}: the suite's own verdict did not move, or "
+                  "no check of this PR's went red -- the mutant survived")
             return 1
     return 0
 

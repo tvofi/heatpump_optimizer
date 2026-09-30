@@ -1125,7 +1125,9 @@ def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
     the same rule its published ``compressor_starts`` counts, so one result
     cannot book a start on a step its own on schedule calls off. Elementwise
     rather than a per-step interpreter call: 96 steps is the
-    N-solve-recompute class's shape.
+    N-solve-recompute class's shape. ``planned_draw_runs`` is the same fact for
+    one step, and the pair is pinned equal over a grid that straddles the floor,
+    so writing the comparison twice cannot drift.
     """
     space = np.asarray(space_kw, dtype=float)
     dhw = (
@@ -1136,13 +1138,19 @@ def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
     return ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
 
 def planned_draw_runs(space_kw: float, dhw_kw: float = 0.0) -> bool:
-    """``planned_draws_run`` for one step, so the comparison lives in one place.
+    """``planned_draws_run`` for one step, in plain floats.
 
     One circuit's own draw is the same question with the other circuit at
     zero, which is how the action grades the space circuit and how the
-    pump-duty arbiter splits a step between its two duties.
+    pump-duty arbiter splits a step between its two duties. Both are per-call
+    paths -- an action per cycle, a duty per arbiter tick -- so this does NOT
+    build the two one-element arrays the batch form needs: a scalar predicate
+    that allocates is the N-solve-recompute shape one level down, and the
+    stress lane's attributable-RSS arm is sensitive enough to read it. Both
+    forms compare float64 against the one owned constant, so they agree
+    exactly rather than to a tolerance.
     """
-    return bool(planned_draws_run([space_kw], [dhw_kw])[0])
+    return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW
 
 def on_threshold_kw(params: ThermalParameters) -> float:
     """The MEASURED draw above which the compressor counts as running, in kW.
