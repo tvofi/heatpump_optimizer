@@ -103,6 +103,12 @@ def tracked(root: Path) -> list[str]:
     return [p for p in git(root, "ls-files", "-z").decode().split("\0") if p]
 
 
+def listed(root: Path) -> int:
+    """`git ls-files | wc -l`, counted apart from `tracked` so the vacuity guard
+    does not compare a reader with itself."""
+    return len(git(root, "ls-files").splitlines())
+
+
 def categories_of(path: str, cats: list[tuple[str, list]]) -> list[str]:
     return [name for name, res in cats if any(r.match(path) for r in res)]
 
@@ -147,17 +153,14 @@ def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:
             else:
                 found["retired"].append(f"planned move not yet made: {p} -> {target(p, retired) or new}")
 
-    def historical(p: str) -> bool:
-        t = target(p, retired)
-        return p == MANIFEST or any(x is not None and x.startswith(h) for x in (p, t) for h in hist)
-
     if retired:
         pats = "\n".join(r["old"].rstrip("/") for r in retired) + "\n"
         with tempfile.NamedTemporaryFile("w", suffix=".pat", delete=False) as fh:
             fh.write(pats)
         try:
-            # Historical text is filtered below anyway; leaving it out of the
-            # grep is what keeps the arm to seconds (round evidence is most bytes).
+            # Historical text: a `historical` prefix, or a retired path the move
+            # map puts under one (docs/delivery/ before it moves), and the
+            # manifest, which has to name what it retires.
             skip = [MANIFEST, *hist, *(r["old"] for r in retired
                                        if r["new"] and any(r["new"].startswith(h) for h in hist))]
             proc = subprocess.run(["git", "grep", "--cached", "-z", "-n", "-I", "-F", "-f", fh.name,
@@ -170,8 +173,6 @@ def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:
         res = [(r, ref_re(r["old"])) for r in retired]
         for rec in proc.stdout.decode(errors="replace").splitlines():
             path, line, text = rec.split("\0", 2)
-            if historical(path):
-                continue
             for r, rx in res:
                 if rx.search(text):
                     use = f"use {r['new']}" if r["new"] else "it is deleted"
@@ -239,6 +240,8 @@ def self_test(root: Path) -> int:
             files.add(r["new"] + ("x" if r["new"].endswith("/") else ""))
     files.discard("")
     moved = next(r for r in retired if r["new"] and not r["old"].endswith("/"))
+    to_hist = next(r for r in retired if r["new"] and r["old"].endswith("/")
+                   and any(r["new"].startswith(h) for h in manifest["historical"]))
     moved_dir = next(r for r in retired if r["new"] and r["old"].endswith("/"))
     user_doc = instance(next(c for c in manifest["categories"] if c["name"] == "docs")["globs"][0])
     cite = f"see `{moved['old']}` for the details\n"
@@ -255,9 +258,14 @@ def self_test(root: Path) -> int:
         ("live citation of a retired path", {user_doc: cite}, None, (0, 0, 1, 0)),
         ("live citation of a retired directory, no slash", {user_doc: f"under {moved_dir['old'][:-1]} now\n"}, None,
          (0, 0, 1, 0)),
+        ("retired target outside every category", {"docs/notes/x.md": ""},
+         lambda m: m["retired"].append({"old": "docs/notes/", "new": "nowhere/", "since": None}), (1, 1, 0, 1)),
+        ("dead retired entry", {}, lambda m: m["retired"].append(
+            {"old": "nothere-a/", "new": "dev/archive/nothere-b/", "since": None}), (0, 0, 0, 1)),
         ("dead category glob", {}, lambda m: m["categories"].append(extra_cat), (0, 0, 0, 1)),
         ("negative: the citation under the archive", {"dev/archive/x.md": cite}, None, (0, 0, 0, 0)),
         ("negative: the citation in a delivery row", {"dev/programme/delivery/9999.md": cite}, None, (0, 0, 0, 0)),
+        ("negative: the citation in a row not yet moved", {to_hist["old"] + "9999.md": cite}, None, (1, 1, 0, 0)),
         ("negative: a longer name that contains it", {user_doc: f"see `{moved['old']}x` and `x{moved['old']}`\n"},
          None, (0, 0, 0, 0)),
         ("negative: the new path cited", {user_doc: f"see `{moved['new']}`\n"}, None, (0, 0, 0, 0)),
@@ -278,10 +286,10 @@ def self_test(root: Path) -> int:
             subprocess.run(["git", "add", "-A"], cwd=tmp, check=True)
             found, n = check(tmp, m)
             got = tuple(len(found[a]) for a in ARMS)
-            listed = len(tracked(tmp))
-            ok = got == want and n == listed and n >= len(files)
+            count = listed(tmp)
+            ok = got == want and n == count and n >= len(files)
             print(f"  {'ok  ' if ok else 'FAIL'} self-test: {name}: counts {got}, want {want}; "
-                  f"enumerated {n} of {listed} listed")
+                  f"enumerated {n} of {count} listed")
             if not ok:
                 failed += 1
                 for arm in ARMS:
@@ -369,9 +377,9 @@ def main() -> int:
     if a.report or a.enforce or run_all:
         found, n = check(ROOT, load(ROOT))
         report(found, n, a.verbose)
-        listed = len(tracked(ROOT))
-        if n != listed:
-            print(f"FAIL: enumerated {n} path(s) but git ls-files lists {listed}")
+        count = listed(ROOT)
+        if n != count:
+            print(f"FAIL: enumerated {n} path(s) but git ls-files lists {count}")
             rc = 1
         if a.enforce and any(found.values()):
             rc = 1
