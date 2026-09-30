@@ -608,13 +608,20 @@ INVENTORY: dict[str, Entry] = {
     "homeassistant.helpers.storage.SAVE_COUNTS": H(
         "a test-facing counter with no upstream counterpart"
     ),
+    "homeassistant.helpers.storage.UnsupportedStorageVersionError": S(
+        "subclasses HomeAssistantError and takes upstream's (key, found "
+        "version, maximum version) arguments; the class is in HA releases "
+        "after the 2025.2.0 floor, so the real-package run cannot compare it"
+    ),
     "homeassistant.helpers.storage.Store": S(
         "an honest in-memory round trip -- keyed by storage key across "
         "instances so a simulated restart loads what an earlier one saved, and "
         "serialised eagerly so a payload the real Store could not write raises "
         "here too; a load decodes with orjson's number rules and moves a "
-        "refused document aside, loading None; a load at another major version "
-        "raises NotImplementedError unless the Store defines _async_migrate_func. "
+        "refused document aside, loading None; a load at a major version "
+        "newer than the code's raises UnsupportedStorageVersionError before any "
+        "migration, and one older raises NotImplementedError unless the Store "
+        "defines _async_migrate_func, whose result is saved back. "
         "Upstream's delayed write, minor versions and atomic replace are not "
         "modelled",
         absent=("async_delay_save", "_async_migrate_func"),
@@ -2109,41 +2116,69 @@ def _store_decode():
 
 @contract(
     "homeassistant.helpers.storage.Store",
-    "a load at a different major version than the save raises NotImplementedError "
-    "with no migration, and runs the migration with the stored version when the "
-    "Store defines one; an equal version returns the data",
-    cite="helpers/storage.py -- _async_load_data: `_async_migrate_func` (default "
-    "raises NotImplementedError) and `if data[\"version\"] != self.version: raise` "
-    "(round-9 #1740)",
+    "a load at a newer major version than the code's raises "
+    "UnsupportedStorageVersionError before any migration; at an older one it "
+    "raises NotImplementedError with no migration, or runs the migration with "
+    "the stored version and saves the result back (the stored version updates, "
+    "a second load does not migrate again); an equal version returns the data",
+    cite="helpers/storage.py -- _async_load_data: `if data[\"version\"] > "
+    "self._max_readable_version: raise UnsupportedStorageVersionError` before "
+    "`_async_migrate_func` (default raises NotImplementedError, re-raised when "
+    "the major versions differ), then `await self.async_save(stored)` "
+    "(round-9 #1740). The error class is in HA releases after the 2025.2.0 "
+    "floor, hence expect=stub",
     expect="stub",
 )
 def _store_version():
     import asyncio
 
+    from homeassistant.exceptions import HomeAssistantError
     from homeassistant.helpers import storage
 
     class Migrating(storage.Store):
         async def _async_migrate_func(self, old_major, old_minor, old_data):
             return {"migrated_from": old_major, **old_data}
 
-    async def arm(cls, save_v, load_v):
+    async def arm(cls, save_v, load_v, loads=1):
+        out = []
         try:
+            storage.SAVE_COUNTS.clear()
             await storage.Store(None, save_v, "contract_version").async_save({"n": 1})
-            return await cls(None, load_v, "contract_version").async_load()
-        except NotImplementedError:
-            return "NotImplementedError"
+            for _ in range(loads):
+                try:
+                    out.append(await cls(None, load_v, "contract_version").async_load())
+                except storage.UnsupportedStorageVersionError:
+                    out.append("Unsupported")
+                except NotImplementedError:
+                    out.append("NotImplementedError")
+            out.append(
+                (
+                    storage._VERSIONS.get("contract_version"),
+                    storage.SAVE_COUNTS.get("contract_version"),
+                )
+            )
+            return out
         finally:
             storage._reset_store_disk()
 
+    assert issubclass(storage.UnsupportedStorageVersionError, HomeAssistantError)
     got = {
         "equal": asyncio.run(arm(storage.Store, 1, 1)),
         "bumped, no migration": asyncio.run(arm(storage.Store, 1, 2)),
-        "bumped, migrated": asyncio.run(arm(Migrating, 1, 2)),
+        "bumped, migrated, twice": asyncio.run(arm(Migrating, 1, 2, 2)),
+        "downgrade, no migration": asyncio.run(arm(storage.Store, 2, 1)),
+        "downgrade, migrating Store": asyncio.run(arm(Migrating, 2, 1)),
     }
     assert got == {
-        "equal": {"n": 1},
-        "bumped, no migration": "NotImplementedError",
-        "bumped, migrated": {"migrated_from": 1, "n": 1},
+        "equal": [{"n": 1}, (1, 1)],
+        "bumped, no migration": ["NotImplementedError", (1, 1)],
+        "bumped, migrated, twice": [
+            {"migrated_from": 1, "n": 1},
+            {"n": 1, "migrated_from": 1},
+            (2, 2),
+        ],
+        "downgrade, no migration": ["Unsupported", (2, 1)],
+        "downgrade, migrating Store": ["Unsupported", (2, 1)],
     }, got
 
 

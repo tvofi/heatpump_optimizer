@@ -29,6 +29,8 @@ from __future__ import annotations
 import json
 from typing import Any, Generic, TypeVar
 
+from homeassistant.exceptions import HomeAssistantError
+
 _T = TypeVar("_T")
 
 # orjson keeps an integer as an int across the i64 and u64 ranges together.
@@ -54,6 +56,16 @@ def _integer(text: str) -> int | float:
 def _loads(text: str) -> Any:
     """Decode as ``homeassistant.util.json.json_loads`` (``orjson.loads``) does."""
     return json.loads(text, parse_constant=_refuse, parse_float=_finite, parse_int=_integer)
+
+class UnsupportedStorageVersionError(HomeAssistantError):
+    """The stored major version is newer than the code can read."""
+
+    def __init__(self, storage_key: str, found_version: int, max_supported_version: int) -> None:
+        super().__init__(
+            f"Storage {storage_key} version {found_version} is newer than the "
+            f"maximum supported version {max_supported_version}"
+        )
+
 
 # Class-level so a fresh Store instance with the same key — the way a restart is
 # simulated in tests — sees what a previous instance persisted.
@@ -87,13 +99,17 @@ class Store(Generic[_T]):
         stored = _VERSIONS.get(self._key)
         if stored is None or stored == self._version:
             return data
+        if stored > self._version:
+            raise UnsupportedStorageVersionError(self._key, stored, self._version)
         migrate = getattr(self, "_async_migrate_func", None)
         if migrate is None:
             raise NotImplementedError(
                 f"store {self._key!r} was saved at version {stored}, loaded at "
                 f"{self._version}, and defines no _async_migrate_func"
             )
-        return await migrate(stored, 1, data)
+        result = await migrate(stored, 1, data)
+        await self.async_save(result)
+        return result
 
     async def async_save(self, data: Any) -> None:
         # Serialise eagerly so a non-serialisable payload fails now, matching the
