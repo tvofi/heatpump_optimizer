@@ -7564,11 +7564,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # the rest of the day; dropping a corrupt day book costs one
             # operation sample, never the loop.
             try:
-                numbers = {
-                    key: float(day.get(key, 0.0))
-                    for key in ("kwh", "sek", "spot_sum", "spot_h", "free_streak")
-                }
-                cleaned = {"day": str(day.get("day") or ""), **numbers}
+                # A day-less book is the free-day close's #908 streak alone.
+                keys = ("kwh", "sek", "spot_sum", "spot_h") if day.get("day") else ()
+                numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
+                cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                 if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
                     self._score_day = cleaned
             except (TypeError, ValueError, OverflowError):
@@ -7675,11 +7674,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         for key in list(self._energy_totals):
             value = stored.get(key)
             if isinstance(value, (int, float)) and np.isfinite(np.float64(value)):
-                # Accumulators must never go backwards, or Home Assistant reads
-                # the drop as a meter reset and creates a spurious spike.
-                self._energy_totals[key] = max(
-                    self._energy_totals[key], float(value)
-                )
+                # The kWh accumulators (TOTAL_INCREASING) must never go backwards,
+                # or HA reads a meter reset; the cost ones are signed TOTALs, and
+                # a floor at zero would book a false step at every restart.
+                floor = self._energy_totals[key] if key.endswith("_kwh") else -np.inf
+                self._energy_totals[key] = max(floor, float(value))
         since = stored.get("since")
         if isinstance(since, str) and since:
             self._energy_totals_since = since
