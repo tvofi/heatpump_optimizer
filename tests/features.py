@@ -23245,6 +23245,110 @@ R.check(
     len(_uc_calls) == 3 and _uc_saves > 0,
     f"calls={_uc_calls}, store writes={_uc_saves}",
 )
+
+# ---------------------------------------------------------------------------
+R.section("#1754 — a refresh during an in-flight solve is honoured, and releases "
+          "land on the override the solve pinned")
+
+# async_run_optimization returned early while a solve was in flight and recorded
+# nothing, so the re-solve an input change asked for (async_apply_manual_plan ->
+# async_request_refresh, and every refresh-now caller) was dropped until the next
+# scheduled cycle -- up to one optimization interval -- while the service
+# response and the sensor already showed the new override as applied. And
+# _record_manual_release wrote the finished solve's safety releases into
+# whatever self._manual_override held AFTER the await, not the override
+# _manual_pins read BEFORE it, so a mid-solve swap landed O1's releases on O2.
+#
+# Real coordinator, real gated solve (the #237 _solve_coord rig). O1 forces
+# space OFF for the whole window (at -5 C the solver must release pinned steps
+# for safety); O2 forces space ON one hour, 2-3 h ahead. The swap arm holds S1
+# on the executor gate, replaces O1 with O2 and issues a second run request --
+# the guard async_request_refresh funnels through -- then releases.
+
+
+from heatpump_optimizer import manual_plan as _g1754_mp  # noqa: E402
+
+
+def _g1754_overrides(now):
+    o1 = _g1754_mp.build_override(
+        dhw_slots=None, space_slots=[],
+        expires_at=now + timedelta(hours=10), now=now)
+    o2 = _g1754_mp.build_override(
+        dhw_slots=None,
+        space_slots=[{"start": (now + timedelta(hours=2)).isoformat(),
+                      "end": (now + timedelta(hours=3)).isoformat()}],
+        expires_at=now + timedelta(hours=10), now=now)
+    return o1, o2
+
+
+async def _g1754_arm(*, swap):
+    coord = _solve_coord()
+    hass = coord.hass
+    hass.entered = _asyncio.Event()
+    hass.release = _asyncio.Event()
+    now = dt_util.now()
+    o1, o2 = _g1754_overrides(now)
+    coord._manual_override = o1
+    seen = []
+    real_pins = coord._manual_pins
+
+    def spy(solve_now, n):
+        o = coord._manual_override
+        seen.append("O1" if o is o1 else "O2" if o is o2 else repr(o))
+        return real_pins(solve_now, n)
+
+    coord._manual_pins = spy
+    task = hass.async_create_task(coord.async_run_optimization())
+    await hass.entered.wait()
+    if swap:
+        coord._manual_override = o2
+        # The in-flight refresh: async_apply_manual_plan's async_request_refresh
+        # funnels a second run here, and the guard is what dropped it (#1754).
+        await coord.async_run_optimization()
+    hass.release.set()
+    await task
+    return seen, o1, o2
+
+
+_g1754_swap_seen, _g1754_swap_o1, _g1754_swap_o2 = _asyncio.run(_g1754_arm(swap=True))
+_g1754_noswap_seen, _g1754_noswap_o1, _ = _asyncio.run(_g1754_arm(swap=False))
+_g1754_steps = lambda o: [r["step"] for r in o.released_space]  # noqa: E731
+
+R.check(
+    "a refresh requested during an in-flight solve re-solves against the new "
+    "override instead of being dropped (#1754)",
+    "O2" in _g1754_swap_seen,
+    f"solves ran against {_g1754_swap_seen}; at the merge base the guard "
+    "returned early and recorded nothing, so only O1 was ever solved and the "
+    "new plan waited for the next scheduled cycle",
+)
+R.check(
+    "the in-flight solve's releases land on the override it pinned (O1), "
+    "identical to an uninterrupted solve (#1754)",
+    _g1754_steps(_g1754_swap_o1) == _g1754_steps(_g1754_noswap_o1)
+    and len(_g1754_steps(_g1754_noswap_o1)) > 0,
+    f"O1-after-swap released {_g1754_steps(_g1754_swap_o1)[:6]} "
+    f"(n={len(_g1754_steps(_g1754_swap_o1))}), O1-no-swap released "
+    f"{_g1754_steps(_g1754_noswap_o1)[:6]} (n={len(_g1754_steps(_g1754_noswap_o1))}); "
+    "at the merge base the swap left O1 empty -- its releases went to O2",
+)
+R.check(
+    "and the new override O2 does not inherit O1's releases (#1754)",
+    _g1754_steps(_g1754_swap_o2) != _g1754_steps(_g1754_noswap_o1),
+    f"O2-after-swap released {_g1754_steps(_g1754_swap_o2)[:6]} "
+    f"(n={len(_g1754_steps(_g1754_swap_o2))}) vs O1's "
+    f"{_g1754_steps(_g1754_noswap_o1)[:6]} "
+    f"(n={len(_g1754_steps(_g1754_noswap_o1))}); at the merge base they were "
+    "byte-identical because _record_manual_release wrote to the post-await "
+    "override",
+)
+R.check(
+    "null control: with no mid-solve swap the solve runs once against O1 and "
+    "O1 keeps its own releases (#1754 -- the guard fires on a swap, not always)",
+    _g1754_noswap_seen == ["O1"] and len(_g1754_steps(_g1754_noswap_o1)) > 0,
+    f"no-swap solves={_g1754_noswap_seen}, "
+    f"O1 released n={len(_g1754_steps(_g1754_noswap_o1))}",
+)
 # ---------------------------------------------------------------------------
 # #240: the what-if's parameters must share no mutable container with the
 # live ones. `dataclasses.replace` copies scalars only, so the shadow solve
@@ -32993,6 +33097,91 @@ R.check(
     and isinstance(_g783_after_out, tuple)
     and _g783_after_out[0] == "in-process",
     f"ok={_g783_ok_err!r}/{_g783_ok_out!r} after={_g783_after_err!r}/{_g783_after_out!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#1755 — the worker-fallback streak and cause are per entry, not per hass")
+
+# The #783 cap counted consecutive in-process fallbacks in
+# hass.data[_WORKER_FALLBACK_STREAK] and latched the repair-issue cause in the
+# module global _WORKER_FALLBACK_CAUSE -- BOTH one per hass. A successful
+# process solve in entry B ran _clear_worker_fallback, which reset entry A's
+# streak and deleted A's issue. With two entries on one hass and a failure
+# specific to A's job, A's cap never engaged: A held the GIL every interval,
+# unbounded, and its issue flapped. Keying both by entry id makes A cap on its
+# own failures while B's successes stay irrelevant to A.
+#
+# Drives the REAL _await_optimize: A's job cannot pickle (_G511LocalOptimizer
+# -> in-process fallback), B's can (_G511Probe -> the child carries it),
+# interleaved on ONE shared hass, each solve tagged with its entry id the way
+# production tags it (the _CURRENT_ENTRY_ID contextvar). At the merge base that
+# contextvar does not exist, so nothing tags the solve and the streak stays per
+# hass: A solves in-process every interval and never caps. The null control
+# (A alone) caps at both ends, so the per-entry key is shown not to weaken
+# #783's single-entry cap.
+
+
+def _g1755_once(coord, optimizer, hass, entry_id):
+    # The production solve sets _CURRENT_ENTRY_ID before _await_optimize so the
+    # fallback streak/cause key per entry; set it the same way here. getattr with
+    # a None default keeps this importable at the merge base, where the contextvar
+    # does not exist: nothing is set, _await_optimize keys per hass, and entry B's
+    # success resets entry A's streak -- the defect, read as a FAILED check below
+    # rather than a crash. The task _asyncio.run creates copies this context, and
+    # the reset keeps the None default the #783 checks above rely on.
+    var = getattr(coord, "_CURRENT_ENTRY_ID", None)
+    token = var.set(entry_id) if var is not None else None
+    try:
+        return None, _asyncio.run(coord._await_optimize(hass, optimizer, "STATE"))
+    except Exception as err:  # noqa: BLE001 - UpdateFailed at the cap
+        return err, None
+    finally:
+        if token is not None:
+            var.reset(token)
+
+
+def _g1755_run(coord, hass, order):
+    """Interleave A (falls back) and B (process route) on one shared hass."""
+    inproc = capped = 0
+    for which in order:
+        opt = _G511LocalOptimizer() if which == "A" else _G511Probe()
+        err, out = _g1755_once(coord, opt, hass, which)
+        if which == "A":
+            if err is None and isinstance(out, tuple) and out[0] == "in-process":
+                inproc += 1
+            if isinstance(err, _G783Failed):
+                capped += 1
+    issue = any(i[1] == "solve_worker_fallback" for i in hass.issues)
+    return inproc, capped, issue
+
+
+_g1755_hass = _G511Hass()
+_g1755_inproc, _g1755_capped, _g1755_issue = _g1755_run(
+    _g511_coord, _g1755_hass, ["A", "B"] * (_g783_cap + 2)
+)
+R.check(
+    "entry A caps at WORKER_FALLBACK_CAP despite entry B's successes on the "
+    "same hass (#1755)",
+    _g1755_inproc == _g783_cap and _g1755_capped == 2,
+    f"A in-process={_g1755_inproc} (cap={_g783_cap}), A refused at cap="
+    f"{_g1755_capped}; at the merge base B's success reset the shared streak, "
+    f"so A solved in-process all {_g783_cap + 2} intervals and never capped",
+)
+R.check(
+    "and A's repair issue survives B's successes rather than flapping (#1755)",
+    _g1755_issue,
+    "the cause latch was per hass, so B's _clear_worker_fallback deleted A's "
+    "issue every interval; keyed by entry, B's clear leaves A's latched",
+)
+_g1755_solo = _G511Hass()
+_g1755_solo_inproc, _g1755_solo_capped, _ = _g1755_run(
+    _g511_coord, _g1755_solo, ["A"] * (_g783_cap + 2)
+)
+R.check(
+    "null control: a single entry still caps at WORKER_FALLBACK_CAP, so the "
+    "per-entry key did not weaken #783 (#1755)",
+    _g1755_solo_inproc == _g783_cap and _g1755_solo_capped == 2,
+    f"solo in-process={_g1755_solo_inproc}, capped={_g1755_solo_capped}",
 )
 
 # ---------------------------------------------------------------------------
