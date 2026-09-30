@@ -30,6 +30,7 @@
    "why": "product documentation, read by users; the page URLs stay stable for users and HACS",
    "globs": [
     "docs/{setup,configuration,automations,dashboard-card,ecl110,how-it-works,architecture}.md",
+    "docs/img/brand/*",
     "docs/img/card/*",
     "docs/img/model/*",
     "docs/img/setup/*",
