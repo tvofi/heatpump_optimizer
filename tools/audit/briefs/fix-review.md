@@ -75,10 +75,10 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     (`changed_lines`). Where the answer turns on it, read the lane's log
     rather than its conclusion.
 
-    **Cite CI; never re-run it** (tvofi, 2026-09-30): cite the head's CI run
-    for the gate and the mutation table, and run only your own targeted
-    mutants and the blocker checks. The merge seat merges only on CI green at
-    a head containing current main; if main moved, it merges main and waits.
+    **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
+    mutation table; cite the head's CI run. Cheap checks (seconds: a lint, one
+    test, claims) and your targeted mutants stay yours. The merge seat merges
+    only on CI green at a head containing current main; if main moved, it merges main and waits.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that
