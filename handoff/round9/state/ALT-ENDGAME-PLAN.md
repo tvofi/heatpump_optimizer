@@ -1,4 +1,224 @@
-# Round 9 endgame, re-planned (rev 3.1): the architecture score, its 2× plan, every open issue, and the programme where it stands
+# Round 9 endgame, re-planned (rev 4): lane UI (identity, card, plan chart, README) folded into the live programme
+
+**Status.**
+- **Rev 4** was written 2026-09-30 by the same cloud review seat. It is measured at origin/main `48786f65` (v6.7.12,
+  after #1790) against the **live** roster rev 3.3 on `handoff/audit-r9-fixplan` at `35800d45`, not against ALT rev 3.1.
+- It adds tvofi's design decisions of 2026-09-30 as a new lane **UI** of four feature groups, two after-edges and four
+  carries, truths four groups that merged on main, and changes nothing else in the live roster (§R4.5 lists the
+  asserted diff).
+- Rev 3.1's text follows as the appendix. Its analysis (§0–§3, §5) stands; its schedule, adoption and decisions
+  (§4, §6, §7) are superseded by §R4.3–§R4.7 wherever they differ, because the fixing session moved the programme on
+  after rev 3.1 was adopted.
+
+## R4.1 What tvofi asked, and decided
+
+On 2026-09-29 tvofi asked for "professional looking graphic design elements for the integration, the card and the
+readme", with a new identity. The proposal is the private showcase page https://claude.ai/artifact/1b27QyporrvqKN6Zjm5NEg
+and the Figma file https://www.figma.com/design/qczGAP3b0RCXHuYJwPsKUL. On 2026-09-30 tvofi decided:
+
+| # | decision | tvofi's words | group |
+|---|---|---|---|
+| D1 | primary mark | "dusk" | UI-1, UI-3 |
+| D2 | plan chart | "A, make sure the plan editor and what-if-simulator still works" | UI-4 |
+| D2b | stat tiles | "include a forth, indoor temperature, stat tile" | UI-3 |
+| D3 | series palette | "adopt" | UI-4 |
+| D4 | colour-vision gate | "agreed" (protanopia and tritanopia beside deuteranopia) | UI-4 |
+| D5 | lock a manual plan for the full horizon, no automatic replanning until it passes or auto mode is toggled | asked, then withdrawn: "didn't know 20h was already locked. If slots can not automatically be changed during that window, no change is needed" | none |
+
+**D5, verified.** A manual plan from the card's editor lasts up to 20 hours (`MANUAL_PLAN_WINDOW_HOURS`; `build_override`
+in custom_components/heatpump_optimizer/manual_plan.py clamps the expiry and refuses later slots). The solver runs each
+cycle, but the pins bound it: a pinned-off step is clamped to zero and a pinned-on step gets a raised lower bound
+(`_apply_pins_to_bounds`), so the slot timing does not move. The exceptions are the power level inside an on-slot, which
+stays the solver's; the safety release (`_safety_release_steps`), which frees an off-pin that would breach the comfort
+floor or the hot-water minimum, legionella included, and reports it on the card; a channel the editor did not send; and
+the hours of the 24-hour horizon beyond the window. A mode change does not end a manual plan; its window or "Back to
+automatic" does. tvofi's condition holds, so no group is added.
+
+## R4.2 The design of record
+
+`alt/design/` (commit `7bca8ab3`): `DESIGN.md` with the decisions, the palette of record, component contrast, the token
+list, the concept-A layout rule and the must-keep-working list; the scripts that render and measure it; and every
+rendered asset (brand PNGs, SVG masters, card before and after with four tiles, chart concepts, README graphics).
+
+**A correction to the proposal page.** The page said every panel's palette passes the dataviz validator. Re-run on
+2026-09-30 (`alt/design/PALETTE-CHECKS.txt`), the temperatures panel failed with outdoor in slate grey (chroma floor;
+protan ΔE 2.3 against the tank colour). Outdoor is now a cold blue that keeps its dash, actioned power has a colour of
+record in the power panel, and the file ends `RESULT: every panel passes both`. Today's eight-series palette fails the
+same validator (protan ΔE 0.4 between house and hot-water heating; chroma floor for the grey and the teal), which the
+repository test misses because it simulates deuteranopia only: that is UI-4's failing test.
+
+**The rule that keeps the plan editor and the what-if simulator working.** The card draws each chart copy as one SVG with
+one plot box, one x-scale and a y-scale per unit. The lane editor, pan, wheel and the inline/dialog indexing use only
+the x mapping; the what-if panel is HTML and calls `simulate_plan` and `apply_schedule`. So concept A draws its three
+panels inside that one SVG with the shared x-scale and the lanes under the bottom panel, and changes only the y side.
+DESIGN.md §4 lists what must keep working; it is a review blocker for UI-4.
+
+## R4.3 Lane UI
+
+| PR | after | fixer / reviewer | what | owner gate |
+|---|---|---|---|---|
+| UI-1 brand | — | sonnet / opus | the dusk icon and logo set in the integration's brand folder (8 files, Home Assistant's spec), the 512 px package icon, the root icon byte-identical to it (RO-4's premise), SVG masters in a new docs/img folder | tests/layout.json (the folder's glob) |
+| UI-2 README | UI-1 | sonnet / opus | banner, recoloured badges with the License link made absolute (the HACS break), "At a glance" table, "how it works" figure and its generator in a new docs/img folder; hero line untouched; social preview uploaded by tvofi | tests/layout.json |
+| UI-3 card visual system | F6.4 | opus / opus | token layer in `cardStyleBlock`, header mark and status pill (including "manual plan until HH:MM"), **four** stat tiles with indoor temperature joining the headline signature, savings and score kept, compact legend, footnote | tests/card_browser.mjs |
+| UI-4 chart concept A | UI-3 | opus / opus | failing protan/tritan test first, then the palette of record and three panels inside the one SVG; plan editor and what-if unchanged; figures, hero and docs regenerated; drift claimed | tests/card_browser.mjs |
+
+- **Edges on existing groups:** SW-3 after UI-4, so the silent-window band is drawn once, in the power panel; RO-2 after
+  UI-2 and UI-4, because the RO lane runs after every code group. Neither costs time: SW-3 already waits on SW-1 (after
+  EG-B1), and RO-2 on F11.7.
+- **Carries:** RO-3 (the two new docs/img folders stay; the regenerated hero and card figures move as planned), RO-4
+  (re-check the two icon blobs are equal before deleting the root copy), SW-3 (tokens for the rows, the band in the power
+  panel, colours under UI-4's gate), F6.3 (write the P9 contrast and reach arms against computed colours, not source
+  literals, so they keep measuring after UI-3).
+- **Why here:** UI-1 and UI-2 have no dependency and dispatch now. UI-3 waits for F6.4 because F6.4 is the card lane's
+  last PR, F1.8 (before it) changes the money units the tiles print, and F6.3 (before it) lands the P9 grid that measures
+  what UI-3 paints. UI-4 follows UI-3 on the same file. No group on either long chain gains an edge, and the lane touches
+  no Python module, so EG-A4's score check and every value-bearing golden are unaffected. No structure metric measures
+  the card, so no budget raise is expected.
+- **Issues:** the four groups start with empty `issues`, the SW and RO convention; the orchestrator files one feature
+  issue at adoption and back-fills it (§R4.6).
+
+## R4.4 The schedule (from ALT-ROSTER.json rev 4, `alt/gen_table_rev4.py`)
+
+Depth counts open groups only (stage other than done and rca-done). Rev 4 truths four groups that merged on main while
+the live roster still showed them open: F2.4 (#1782, `3dfebc16`), F9.3 (#1785, `3d1826b2`), EG-B8 (#1786, `830f84ad`)
+and RO-1 (#1790, `48786f65`). F1.7 is in review as draft #1788 on 2026-09-30; the roster keeps it not-started for the
+orchestrator to truth.
+
+Open groups: 48 of 90. Longest open chain (13): F1.7 → F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → F11.7 → RO-2 → RO-7 → RO-8 → RO-9.
+EG-A4 chain (12): F1.7 → F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → EG-B6 → EG-B7 → EG-A4.
+
+| depth | PR | lane | open after-edges | issues (**Fixes**) | owner gate | fixer / reviewer | stage |
+|---|---|---|---|---|---|---|---|
+| 1 | F1.7 | F1 | — | #1644, #1649, **#1655**, **#1658** | — | opus / opus | not-started |
+| 1 | UI-1 | UI | — | — | yes | sonnet / opus | not-started |
+| 2 | F1.8 | F1 | F1.7 | #1644, **#1657** | — | opus / opus | not-started |
+| 2 | F10.1b | F10 | F1.7 | **#1649**, #1740 | — | sonnet / opus | not-started |
+| 2 | UI-2 | UI | UI-1 | — | yes | sonnet / opus | not-started |
+| 3 | F1.9 | F1 | F1.8 | **#1660** | — | sonnet / opus | not-started |
+| 3 | F10.1c | F10 | F10.1b | **#1756** | — | sonnet / opus | not-started |
+| 3 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | yes | opus / opus | not-started |
+| 3 | F6.3 | F6 | F1.8 | **#1652** | yes | sonnet / opus | not-started |
+| 4 | F1.10 | F1 | F1.9 | #1645, **#1654**, **#1741** | — | opus / opus | not-started |
+| 4 | F10.3 | F10 | F10.2 | **#1646**, **#1663**, **#1748** | yes | opus / opus | not-started |
+| 4 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | sonnet / opus | not-started |
+| 5 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | opus / opus | not-started |
+| 5 | UI-3 | UI | F6.4 | — | yes | opus / opus | not-started |
+| 6 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | opus / opus | not-started |
+| 6 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, **#1738** | yes | opus / opus | not-started |
+| 6 | UI-4 | UI | UI-3 | — | yes | opus / opus | not-started |
+| 7 | EG-A1 | EG | F10.4 | #1774, #1738 | yes | sonnet / opus | not-started |
+| 7 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | sonnet / opus | not-started |
+| 7 | EG-B5a | EG | F10.4 | #1743 | yes | opus / opus | not-started |
+| 7 | F10.5 | F10 | F10.4 | — | yes | opus / opus | not-started |
+| 7 | F11.4 | F11 | F10.4 | **#1650** | yes | sonnet / opus | not-started |
+| 8 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | opus / opus | not-started |
+| 8 | EG-B5 | EG | EG-B5a, F1.10, F10.4 | **#1743**, #1748 | yes | opus / opus | not-started |
+| 8 | EG-R1 | EG | F11.4 | **#1759** | yes | sonnet / opus | not-started |
+| 8 | F10.6 | F10 | F10.5 | — | yes | opus / opus | not-started |
+| 8 | F11.5 | F11 | F11.4 | — | yes | sonnet / opus | not-started |
+| 9 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | **#1775** | — | opus / opus | not-started |
+| 9 | EG-B1 | EG | F10.4, F10.6, F11.5, EG-B4, EG-B5 | **#1736** | yes | opus / opus | not-started |
+| 9 | F10.7 | F10 | F10.6 | **#1758** | — | opus / opus | not-started |
+| 9 | F11.7 | F11 | F11.5 | **#1757** | yes | opus / opus | not-started |
+| 10 | EG-A3 | EG | EG-B1, EG-B5 | **#1776** | — | sonnet / opus | not-started |
+| 10 | EG-B6 | EG | EG-B1 | **#1739** | — | sonnet / opus | not-started |
+| 10 | RO-2 | RO | F10.7, F11.7, EG-R1, F11.5, F6.4, UI-2, UI-4 | — | yes | opus / opus | not-started |
+| 10 | SW-1 | SW | EG-B1, F1.10, F10.1c | — | yes | opus / opus | not-started |
+| 11 | EG-B11 | EG | EG-B1, EG-A3 | **#1745** | — | opus / opus | not-started |
+| 11 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | yes | opus / opus | not-started |
+| 11 | RO-3 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 11 | RO-4 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 11 | RO-5 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 11 | RO-6 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 11 | RO-7 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 11 | SW-2 | SW | SW-1, EG-B6 | — | yes | opus / opus | not-started |
+| 11 | SW-3 | SW | SW-1, F6.4, UI-4 | — | yes | sonnet / opus | not-started |
+| 11 | SW-4 | SW | SW-1 | — | yes | sonnet / opus | not-started |
+| 12 | EG-A4 | EG | EG-A1, EG-B7, EG-A2, EG-A3, EG-B11 | **#1774** | — | sonnet / opus | not-started |
+| 12 | RO-8 | RO | RO-7 | — | yes | opus / opus | not-started |
+| 13 | RO-9 | RO | RO-3, RO-4, RO-5, RO-6, RO-8, EG-A4, SW-4 | — | yes | sonnet / opus | not-started |
+
+**Windows.**
+- **Now:** F1.7 (#1788 in review), UI-1, then UI-2; after F1.7, F1.8 and F10.1b.
+- **Card lane:** F1.8 → F6.3 → F6.4, then UI-3 → UI-4 beside the F1/F10 chain, then SW-3 when SW-1 has merged.
+- **Endgame:** the architecture chain to EG-A4 (12 open PRs) and the RO chain to RO-9 (13 open PRs) are the two long
+  poles, as in rev 3.3; rev 4 lengthens neither.
+
+## R4.5 The asserted diff against the live roster
+
+`alt/build_roster_rev4.py` over `.claude/workflows/wave-r9-groups.json` at `35800d45` gives 90 groups (86 + 4), acyclic,
+no dangling edge, and refuses a second run. Against the live file, exactly these entries differ: F2.4, F9.3, EG-B8 and
+RO-1 (stage done at their merge commits); the four new groups;
+SW-3 (after gains UI-4, wave 15 → 16, carry appended); RO-2 (after gains UI-2 and UI-4); RO-3, RO-4 and F6.3 (carry
+appended); and one `_comment` line. The live waves are not strict depths (several groups sit below one plus their
+after-edges), so rev 4 renumbers nothing else. `brief_lint.mjs` from origin/main prints `TOTAL: 0 error(s)`; a planted
+bad path and a planted bad symbol in UI-1 each raise an error, so the check measured the new briefs.
+
+## R4.6 Every open issue and the group that closes it
+
+36 open issues besides #201 on 2026-09-30 (GitHub, read by this seat); uncovered: none. Lane UI closes no existing issue;
+its feature issue is filed at adoption.
+
+| issue | title | closed by | also part of |
+|---|---|---|---|
+| #1776 | [R9-EG-PARAM-OBJECTS] 28 functions take more than ten parameters | EG-A3 | — |
+| #1775 | [R9-EG-ONE-COPY] Formulas and helpers exist in several copies | EG-A2 | — |
+| #1774 | [R9-EG-ARCH-SCORE] Land the architecture score | EG-A4 | EG-A1 |
+| #1759 | [R9-REGISTER-FOLD] Register never received rounds 8–9 | EG-R1 | — |
+| #1758 | [R9-FREEZE-INSTRUMENT] The v6.6.0 options-flow freeze was never diagnosed | F10.7 | — |
+| #1757 | [R9-GOV-HEADCOPY-PRINCIPAL] graders-head-copy omits the governance .mjs graders | F11.7 | — |
+| #1756 | [R9-P7-TRACER-BLIND] F1.1's DST tracer catches 1 of P7's 3 members | F10.1c | — |
+| #1748 | [R9-EG-RATCHET-MOVE-BLIND] mutation ratchet counts a moved site as new | F10.3 | EG-B5 |
+| #1745 | [R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per site | EG-B11 | — |
+| #1744 | [R9-EG-COORDINATOR-SEAMS] Re-measure the coordinator's dhw and views seams | EG-B7 | — |
+| #1743 | [R9-EG-DHW-PLANNER] Extract the DHW planner core | EG-B5 | EG-B5a |
+| #1742 | [R9-EG-SURFACE-IDENTITY] Entity identity pinned at 9 constructors | EG-B2 | — |
+| #1741 | [R9-EG-PLANT-FACT-COPIES] Step-start clock defined twice; 20 °C literal at 8 sites | F1.10 | — |
+| #1740 | [R9-EG-STORE-VERSION] No store can change its version | EG-B4 | F10.1b |
+| #1739 | [R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coordinator internals | EG-B6 | EG-B2 |
+| #1738 | [R9-EG-RATCHET-DECOMPOSITION] The structural ratchet misprices decomposition | F10.4 | EG-A1 |
+| #1737 | [R9-EG-TYPED-PAYLOAD] The coordinator's payload has no typed contract | EG-B3 | — |
+| #1736 | [R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the live hub objects | EG-B1 | — |
+| #1687 | [R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER] | F6.4 | — |
+| #1686 | [R9-STRUCTURE-METRIC-BLIND-TO-SHAPE] | F10.4 | — |
+| #1663 | [R9-I2] A measured closure diverges from the dependency graph | F10.3 | — |
+| #1661 | [R9-PRODUCTION-MEMBER-NO-CALLER] | F10.4 | — |
+| #1660 | [R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] | F1.9 | — |
+| #1658 | [R9-CPU-WORK-INLINE-ON-THE-EVENT-LOOP] | F1.7 | — |
+| #1657 | [R9-P8] Currency or unit resolved by divergent precedence | F1.8 | — |
+| #1656 | [R9-CPU-GATE-BLIND] | F10.2 | — |
+| #1655 | [R9-P5] A sysid/adoption gate keyed on the wrong quantity | F1.7 | — |
+| #1654 | [R9-P3] A capacity floor applied inconsistently | F1.10 | — |
+| #1653 | [R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] | F10.2 | — |
+| #1652 | [R9-P9] Card UI: clipping ancestor, colour token, hit target | F6.3 | — |
+| #1651 | [R9-P6] A consumer reads a key no producer writes | F1.11 | — |
+| #1650 | [R9-I4] Two parsers of one concept disagree | F11.4 | F10.4 |
+| #1649 | [R9-P11] The only oracle for an external counterpart is a self-written double | F10.1b | F1.7 |
+| #1646 | [R9-I1] A mutation kill miscounted | F10.3 | — |
+| #1645 | [R9-I5] Docs or comments drift stale against the code | F10.4 | F1.10 |
+| #1644 | [R9-P2] One fact decided twice by divergent predicates | F1.11 | F1.7, F1.8 |
+
+## R4.7 Adopting rev 4, and what remains for tvofi's hands
+
+1. Re-base: list every merge on origin/main since `48786f65` and every commit on `handoff/audit-r9-fixplan` since
+   `35800d45`; truth F1.7 (in review, #1788) and anything newer. Rev 4 already truths F2.4, F9.3, EG-B8 and RO-1.
+2. Apply: `python3 handoff/round9/state/alt/build_roster_rev4.py <live> <out> 7bca8ab3`, fetch `handoff/audit-r9-alt`,
+   `handoff/silent-windows-plan` and `handoff/repo-reorg-plan` so every cited commit resolves, lint to
+   `TOTAL: 0 error(s)`, re-run the coverage, and commit the result as the live roster.
+3. File one feature issue for lane UI (the decisions, DESIGN.md at `7bca8ab3`, the four groups), read it back, and write
+   its number into the four groups' `issues`.
+4. One #201 comment with `gh_comment.py`, read back: rev 4 adopted with the roster commit, D1–D5, UI-1 dispatched.
+5. Dispatch UI-1 now and UI-2 after it; UI-3 when F6.4 merges; UI-4 after UI-3.
+
+The mandate of 2026-09-29 stands, and rev 4 needs no new decision. tvofi's hands, mechanical only: approving reviews
+at the head for UI-1 and UI-2 (tests/layout.json) and UI-3 and UI-4 (tests/card_browser.mjs); uploading the social
+preview image under the repository settings after UI-2 merges.
+
+---
+
+# Appendix: rev 3.1 as adopted (superseded where §R4 differs)
+
+## Rev 3.1 title: Round 9 endgame, re-planned (rev 3.1): the architecture score, its 2× plan, every open issue, and the programme where it stands
 
 **Status.**
 - **Rev 1** was adopted on 2026-09-28 (roster `0f1f5263`/`27049219`, record PR #1749).
