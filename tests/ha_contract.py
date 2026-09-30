@@ -678,11 +678,10 @@ INVENTORY: dict[str, Entry] = {
         "returns None; nothing here reads a manifest through the loader"
     ),
     # -- util.dt ------------------------------------------------------------
-    "homeassistant.util.dt.DEFAULT_TIME_ZONE": D(
-        "None unless HASTUB_TZ is set, where upstream always carries the "
-        "instance's configured zone. Opt-in because every golden fixture was "
-        "recorded against the identity as_local below",
-        issue="#577",
+    "homeassistant.util.dt.DEFAULT_TIME_ZONE": F(
+        "UTC unless HASTUB_TZ names another zone, where upstream carries the "
+        "instance's configured zone and UTC by default, never None (round-9 "
+        "D1-s1-52). as_local below still treats the UTC default as identity"
     ),
     "homeassistant.util.dt.freeze": H(
         "a test-facing clock pin with no upstream counterpart; the clocks "
@@ -2251,7 +2250,6 @@ def _dt_as_utc():
     "homeassistant.util.dt.DEFAULT_TIME_ZONE",
     "a zone is configured without anything being set in the environment",
     cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level",
-    expect="real",
 )
 def _dt_default_zone():
     import os

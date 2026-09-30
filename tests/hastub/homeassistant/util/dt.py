@@ -1,30 +1,32 @@
 """Minimal stand-in for ``homeassistant.util.dt``.
 
 ``now``/``utcnow`` are overridable so tests can freeze the clock. ``utcnow``
-is aware in UTC, as upstream's is; ``now`` is aware in ``DEFAULT_TIME_ZONE``
-when one is configured and in UTC when none is, as upstream's is. The golden
+is aware in UTC, as upstream's is; ``now`` is aware in ``DEFAULT_TIME_ZONE``,
+which is UTC until ``HASTUB_TZ`` names another zone (upstream carries a zone
+from the start too, UTC by default, and never ``None``). The golden
 harness needs that: the coordinator publishes time-derived values such as
 "hours until the next hot water window", and without a fixed clock every
 recorded fixture would differ from every replay by however long the two runs
 were apart.
 
-``as_local`` is the identity by default — the stub predates any timezone
+``as_local`` is the identity while ``DEFAULT_TIME_ZONE`` is that UTC default — the stub predates any timezone
 coverage and every fixture was recorded that way. Set ``HASTUB_TZ`` (e.g.
 ``Europe/Stockholm``) to make it a real conversion, which is what the DST
 regression tests do; the default path must stay the identity or every
 golden fixture would shift by the runner's UTC offset.
 """
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from zoneinfo import ZoneInfo
 
 # When set, both clocks return this instead of the real time.
 _FROZEN: datetime | None = None
 
-# Real timezone behaviour is opt-in per process, mirroring how Home
-# Assistant itself carries one configured zone.
-DEFAULT_TIME_ZONE = (
-    ZoneInfo(os.environ["HASTUB_TZ"]) if os.environ.get("HASTUB_TZ") else None
+# A zone other than UTC is opt-in per process, as it is for Home Assistant's
+# one configured zone (upstream's default is UTC, never None: code that hands
+# the zone to ``replace(tzinfo=...)`` must get an aware result).
+DEFAULT_TIME_ZONE: tzinfo = (
+    ZoneInfo(os.environ["HASTUB_TZ"]) if os.environ.get("HASTUB_TZ") else timezone.utc
 )
 
 
@@ -53,16 +55,16 @@ def now():
     # naive-versus-aware verdict of every stored-stamp comparison).
     if _FROZEN is not None:
         if _FROZEN.tzinfo is not None:
-            return _FROZEN.astimezone(DEFAULT_TIME_ZONE or timezone.utc)
-        return _FROZEN.replace(tzinfo=DEFAULT_TIME_ZONE or timezone.utc)
-    return datetime.now(DEFAULT_TIME_ZONE or timezone.utc)
+            return _FROZEN.astimezone(DEFAULT_TIME_ZONE)
+        return _FROZEN.replace(tzinfo=DEFAULT_TIME_ZONE)
+    return datetime.now(DEFAULT_TIME_ZONE)
 
 
 def utcnow():
     if _FROZEN is not None:
         frozen = _FROZEN
         if frozen.tzinfo is None:
-            frozen = frozen.replace(tzinfo=DEFAULT_TIME_ZONE or timezone.utc)
+            frozen = frozen.replace(tzinfo=DEFAULT_TIME_ZONE)
         return frozen.astimezone(timezone.utc)
     return datetime.now(timezone.utc)
 
@@ -91,7 +93,7 @@ def parse_datetime(v):
 
 
 def as_local(v):
-    if DEFAULT_TIME_ZONE is None:
+    if DEFAULT_TIME_ZONE is timezone.utc:
         return v
     if v.tzinfo is None:
         # Home Assistant treats naive datetimes as already-local.
