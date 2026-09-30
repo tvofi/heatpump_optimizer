@@ -1305,7 +1305,11 @@ def _a6_probes(domain):
     outs = [v for v, ok in ((hi + step, math.isfinite(hi)), (lo - step, math.isfinite(lo))) if ok]
     inside = lo + span * 0.37 if math.isfinite(lo) else hi - 1.37 if math.isfinite(hi) else 1.37
     inside = min(max(round(inside) if domain.kind == "int" else inside, lo), hi)
-    return outs, [inside]
+    # A domain unbounded below admits a negative value, and a loader that
+    # floors it at zero (the signed cost totals, F9.3 review) is refused only
+    # by an in-probe below zero.
+    below = [min(hi, 0.0) - (2 if domain.kind == "int" else 1.37)] if not math.isfinite(lo) else []
+    return outs, [inside] + below
 
 
 def _a6_off(store: str, payload, restored: bool = False) -> list[str]:
@@ -1401,7 +1405,9 @@ def _a6_store(store, seed, savers, out):
                     held = _a6_get(after, path)
                 except (KeyError, IndexError, TypeError):
                     held = "<gone>"
-                if held != sub and held == value:
+                # Back as the seed (never read), or with its sign lost (floored).
+                lost_sign = all(isinstance(x, (int, float)) for x in (held, sub)) and (held < 0) != (sub < 0)
+                if held != sub and (held == value or lost_sign):
                     out["unreached"].add(f"{label} in-domain {sub!r} came back {held!r}")
 
 
@@ -1428,6 +1434,10 @@ def _domain_arm() -> None:
         planted = json.loads(json.dumps(seeds["energy"]))
         planted["zz_planted"] = 1.0
         control = _a6_off("energy", planted)
+        # _close_score_day's free-day branch writes a book with no day, only
+        # the #908 streak; a restart before the next fold must keep it.
+        streak = {**seeds["ledger"], "score_day": {"free_streak": 3.0}}
+        streak_back = (_a6_roundtrip("ledger", streak, savers)[0] or {}).get("score_day")
         for store in sorted(seeds):
             _a6_store(store, seeds[store], savers, out)
     finally:
@@ -1459,6 +1469,11 @@ def _domain_arm() -> None:
         "the healthy rich seed round-trips unchanged through every loader and saver (null control)",
         not roundtrip,
         f"changed={roundtrip}",
+    )
+    R.check(
+        "a day-less score_day book (the free-day close's streak) survives a reload (#908)",
+        streak_back == {"free_streak": 3.0},
+        f"came back {streak_back!r}",
     )
     R.check(
         "the domain sweep drove every bounded field (it cannot go green by skipping)",
