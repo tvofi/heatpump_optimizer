@@ -803,8 +803,8 @@ record lane makes no production edit).
   field compare never reads 22628467), and it contradicts the 2026-09-19 #201
   split record that 22628467 has "no bypass actors". Only tvofi can change a
   ruleset: **ratify and document it** (if the ledger/record lane legitimately
-  pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30;
-  the #1191 close cites this. Neither half is a seat's to decide.
+  pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30 (comment
+  `5902383542`); the #1191 close cites this. Neither half is a seat's to decide.
 
 ## The machine this runs on — measure it, do not read it
 
