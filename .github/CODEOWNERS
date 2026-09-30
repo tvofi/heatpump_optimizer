@@ -110,3 +110,6 @@
 /tests/run.sh                             @tvofi
 /tests/stress.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi
+# The target layout of lane RO (R9-RO-1): a new category, or a retired path
+# dropped, changes what every later pull request may put where.
+/tests/layout.json                        @tvofi

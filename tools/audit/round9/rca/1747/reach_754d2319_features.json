@@ -1,0 +1,1 @@
+RESULT {"blocked": {"adopted_dhw_kwh": 0.0, "co_entered": 2, "replan_adopted": 0, "replan_build_blocked_args": {}, "replan_built": 0, "solves": 2}, "script": "tests/features.py", "unblocked": {"adopted_dhw_kwh": 18.518, "co_entered": 102, "replan_adopted": 3, "replan_build_blocked_args": {"'<omitted>'": 66}, "replan_built": 66, "solves": 179}}
