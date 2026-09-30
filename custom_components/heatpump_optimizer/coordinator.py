@@ -7565,7 +7565,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # operation sample, never the loop.
             try:
                 # A day-less book is the free-day close's #908 streak alone.
-                keys = ("kwh", "sek", "spot_sum", "spot_h") if day.get("day") else ()
+                keys = ("kwh", "sek", "spot_sum", "spot_h") if "day" in day else ()
                 numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
                 cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                 if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
