@@ -1,13 +1,13 @@
 <!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
 _Requested by **tvofi**_
 
-R9-UI-2, lane UI, part of #201 and #1791. Before: the README opens on a title and plain badges, the License badge's relative link puts the badge image inside the HACS rewriter's span, and "How it works" has no figure. After: a dusk banner above the title, fjord badges (License in ember) with an absolute License link, an "At a glance" 3x2 table whose cells restate claims the README already makes, and a figure under "How it works" (mermaid blocks stay). Design of record: handoff/round9/state/alt/design at 7bca8ab3. Only README.md, tests/layout.json and docs/img/readme/ change; no Python module, so every golden and both claim files are untouched.
+R9-UI-2, lane UI, part of #201 and #1791. Before: the README opens on a title and plain badges, the License badge's relative link puts the badge image inside the HACS rewriter's span, and "How it works" has no figure. After: a dusk banner above the title, fjord badges (License in ember) with an absolute License link, an "At a glance" 3x2 table whose cells restate claims the README already makes, and a figure under "How it works" (mermaid blocks stay). Design of record: handoff/round9/state/alt/design at 7bca8ab3. README.md, tests/layout.json, docs/img/readme/ and the regenerated D6 claims pair (tools/audit/round4/D6/claims.json, claims.md; counts only) change; no Python module, so every golden and both claim files are untouched.
 
 The social preview is not tracked: tvofi uploads it under the repository settings from the generator's untracked output (social-preview.png; `HPO_SOCIAL_OUT` names where it lands).
 
 ## Head
 
-0723471d0e5554d7c938ab5b7fb90398c3eb224b
+8a56b5fc7b06b98d6cfef462ac03931dd4581fed
 
 ## Mutation proof
 
@@ -25,12 +25,13 @@ n/a: the diff adds no production line; `python3 tests/mutation_table.py --scope 
 - `python3 tests/doc_claims.py`: ALL 84 checks PASSED
 - `node tests/md_tables.mjs`: doc_orphaned_table_rows=0, doc_misrendered_lines=0
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED (no raise, no re-record)
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: ALL 91 HARNESS HEADER CHECKS PASSED
 - `python3 tests/layout.py`: before/after in Null control
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: MODE: SCOPED, names entities, doc_claims, layout, md_tables
 
 ## Red checks
 
-none
+`fast (3.14)` (head 0723471d): tests/harness_headers.py found the D6 claims pair not regenerated after the README change (C108 90->92, C110 20->22, C111 14->15, no verdict moved). Cheaper detector: `python3 tests/harness_headers.py` locally, which the docs-lane brief already requires; it was skipped here, and is now in Figures. Fixed by regenerating with `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` (output identical to the reviewer's patch on the added/removed lines).
 
 ## Forward-carry
 
