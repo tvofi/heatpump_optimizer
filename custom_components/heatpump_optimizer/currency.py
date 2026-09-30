@@ -10,7 +10,7 @@ statistics for the people the hard-coding happened to fit.
 The instance currency is a label, though, and the numbers are denominated
 by the price feed (#1657): a EUR feed on a SEK instance published EUR
 figures under SEK units. So a published money unit is the feed's own code
-where the feed declares one (:func:`money_currency`), and the instance's
+where the feed declares one (:func:`declared_currency`), and the instance's
 only where it does not.
 """
 from __future__ import annotations
@@ -60,16 +60,6 @@ def declared_currency(unit: Any, attributes: Any = None) -> str | None:
     if code is None and isinstance(attr, str) and len(attr) == 3 and attr.isalpha():
         code = attr.upper()
     return code
-
-
-def money_currency(hass: HomeAssistant, price_entity: Any) -> str:
-    """The currency a money figure is in: the price feed's declared code,
-    else the instance's (:func:`resolve_currency`)."""
-    state = hass.states.get(price_entity) if price_entity else None
-    attrs = getattr(state, "attributes", None) or {}
-    return declared_currency(attrs.get("unit_of_measurement"), attrs) or (
-        resolve_currency(hass)
-    )
 
 
 def money_scale(currency: Any) -> float:

@@ -12719,6 +12719,25 @@ R.check(
     and _ent_assigned["entity_id"] == "sensor.valve_target",
 )
 
+# D10-s1-01 (#1644, P2): twelve assignable slots are identity slots, so the
+# service re-derives the unique id the way the options flow does.
+_svc_hass.states.set("sensor.dhw_probe", FakeState(50.0, unit="°C"))
+_uid_before = _svc_entry.unique_id
+_svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {"key": const.CONF_DHW_TEMP_ENTITY, "entity_id": "sensor.dhw_probe"},
+)
+from heatpump_optimizer.config_flow import entry_identity as _svc_identity  # noqa: E402
+
+R.check(
+    "assign_entity on an identity slot re-derives the entry's unique id "
+    "(D10-s1-01)",
+    _svc_entry.unique_id
+    == _svc_identity({**_svc_entry.data, **_svc_entry.options})
+    != _uid_before,
+    f"unique_id {_uid_before!r} -> {_svc_entry.unique_id!r}",
+)
+
 _man_assigned = _svc_call(
     const.SERVICE_ASSIGN_ENTITY,
     {
@@ -19170,6 +19189,9 @@ class _ReauthEntry:
     def __init__(self):
         self.entry_id = "reauth-1"
         self.data = {_CONF_TOKEN: "expired-token", "name": "HP"}
+        # Every ConfigEntry carries options; reauth reads them to re-derive
+        # the unique id (D10-s1-01).
+        self.options = {}
         self.started = []
 
     def async_start_reauth(self, hass):

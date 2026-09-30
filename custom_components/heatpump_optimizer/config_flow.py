@@ -505,6 +505,29 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
 
 
+def identity_update(
+    entry: Any,
+    *,
+    data: Mapping[str, Any] | None = None,
+    options: Mapping[str, Any] | None = None,
+) -> dict[str, str]:
+    """``unique_id=`` for a write of ``data``/``options`` that changes an
+    identity answer, re-derived as the reconfigure step does (D10-s1-01).
+
+    Empty when no identity answer changes, so an entry keeps the id its
+    setup gave it; a token or entity slot edited anywhere else used to leave
+    the old id, and a fresh setup of the same plant was then accepted.
+    """
+    new = {
+        **(entry.data if data is None else data),
+        **(entry.options if options is None else options),
+    }
+    unique_id = entry_identity(new)
+    if unique_id == entry_identity({**entry.data, **entry.options}):
+        return {}
+    return {"unique_id": unique_id}
+
+
 def _money(
     maximum: float, step: float, hass: HomeAssistant, per: str = ""
 ) -> selector.NumberSelector:
@@ -3053,9 +3076,7 @@ class HeatPumpOptimizerConfigFlow(
                 # The token is identity: a unique id left on the old one let
                 # a fresh setup with the new token add the plant twice.
                 self.hass.config_entries.async_update_entry(
-                    entry,
-                    data=data,
-                    unique_id=entry_identity({**data, **entry.options}),
+                    entry, data=data, **identity_update(entry, data=data)
                 )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
@@ -3125,9 +3146,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page without discarding settings from the other pages."""
         options = {**self._entry.options, **user_input}
-        self.hass.config_entries.async_update_entry(
-            self._entry, unique_id=entry_identity({**self._entry.data, **options})
-        )
+        # The identity half of ``_save_or_menu``'s write (D10-s1-01); the
+        # options themselves are written by the flow manager, as always.
+        if changed := identity_update(self._entry, options=options):
+            self.hass.config_entries.async_update_entry(self._entry, **changed)
         return self.async_create_entry(title="", data=options)
 
     async def _save_or_menu(self, user_input: dict[str, Any]) -> ConfigFlowResult:
@@ -3164,9 +3186,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         # An identity slot edited here is the plant's identity too
         # (D10-s1-01), exactly as the reconfigure step re-derives it.
         self.hass.config_entries.async_update_entry(
-            self._entry,
-            options=options,
-            unique_id=entry_identity({**self._entry.data, **options}),
+            self._entry, options=options, **identity_update(self._entry, options=options)
         )
         step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
         if step_id in self._ADVANCED_MENU:
