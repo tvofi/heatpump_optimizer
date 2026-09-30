@@ -80,6 +80,8 @@ import numpy as np  # noqa: E402
 from harness import Results, FakeHass, FakeEntry, FakeState  # noqa: E402
 from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
+from heatpump_optimizer import coordinator as _coord_mod  # noqa: E402
+from heatpump_optimizer import store as _store  # noqa: E402
 from heatpump_optimizer.store import QuarantiningStore, _sanitize  # noqa: E402
 from homeassistant.util import dt as _dt_util  # noqa: E402
 from homeassistant.helpers import storage as _storage  # noqa: E402
@@ -648,8 +650,11 @@ def _a4_mutants(healthy):
             yield path, sub, mutant
 
 
-def _a4_seed() -> dict[str, dict]:
-    """Every store, every section populated, written by its real saver."""
+def _a4_seed(enrich=None) -> dict[str, dict]:
+    """Every store, every section populated, written by its real saver.
+
+    ``enrich`` (Arm 6) fills what the populated defaults leave uniform or
+    empty, before the savers run."""
     import importlib
     _storage._DISK.clear()
     _storage.SAVE_COUNTS.clear()
@@ -684,6 +689,8 @@ def _a4_seed() -> dict[str, dict]:
                            "candidate_kw": 13.8, "feasible": True, "comfort_shortfall_c": 0.0,
                            "worst_margin_kw": 2.5, "cost_delta_sek_month": -30.0}
     coord._fuse_advisor_at = t0
+    if enrich is not None:
+        enrich(coord, t0)
     coord._snapshot_ring.take(t0, coord._learner_snapshot_payloads(), coord._accuracy.summary(), True)
     for name in sorted(dir(coord)):
         if name.startswith("_async_save_"):
@@ -1076,6 +1083,334 @@ def _instant_arm(by_name) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Arm 6 -- the declared domain (round 9, class P1, card C1)
+# ---------------------------------------------------------------------------
+
+# Arm 4 refuses poison and magnitude; it cannot refuse a finite value outside
+# the domain only the field's writer knows (a duty of 1.5, a decile of 12),
+# nor a loader that drops a whole valid grid for one bad cell. This arm reads
+# each stored field's domain from ``store.DOMAINS`` and measures, through the
+# real loaders and the real savers (what a store holds after a load is what
+# its saver writes from the live model):
+#
+#   * coverage: every leaf and map key the rich seed's savers write has a
+#     declared domain (no allow-list: an undeclared field is refused), and
+#     the seed itself lies in its declarations;
+#   * out/in: every bounded field (and bounded key) substituted just outside
+#     its domain comes back inside it, and substituted with a fresh value
+#     inside it comes back as that value (the probe reaches live state, so a
+#     green out-probe is not a field the loader never read);
+#   * blast radius: one bad cell in a grid costs that cell, not its
+#     neighbours, unless the declaration names the grid ``whole`` and why;
+#   * null control: the healthy seed round-trips unchanged.
+
+def _a6_enrich(coord, t0) -> None:
+    """Arm 6's rich seed: every section a saver can write, with distinct values.
+
+    Direct state sets (the Arm 4 idiom) where a learner's update path would
+    need hours of history; the savers that write them are the real ones.
+    """
+    from heatpump_optimizer.manual_plan import ManualOverride
+    from heatpump_optimizer.comfort_learning import OverrideEvent
+    ld = t0.date().isoformat()
+    grid = [[round(0.05 + 0.1 * i + 0.03 * j, 4) for j in range(2)] for i in range(6)]
+    derate = coord._defrost
+    derate.duty = grid
+    derate.factors = [[round(0.6 + 0.05 * i + 0.02 * j, 4) for j in range(2)] for i in range(6)]
+    for name in ("counts", "duty_counts", "duty_events"):
+        setattr(derate, name, [[i + j + 1 for j in range(2)] for i in range(6)])
+    for day in (1, 2, 5, 6):  # weekdays and a weekend, so both shape rows learn
+        when = t0 - _dt.timedelta(days=day)
+        coord._price_model.observe_day(when, [0.5 + 0.1 * ((h * (day + 3)) % 11) for h in range(24)])
+        coord._price_model.observe_day_quarters(
+            when, [0.5 + 0.05 * ((q * (day + 2)) % 7) for q in range(96)])
+    coord._price_days_seen = {ld, "2026-01-13"}
+    coord._price_qdays_seen = {ld}
+    for decile, kw in ((2, 3.0), (5, 5.5), (8, 8.0)):
+        coord._freq_map.observe(30.0 + 5 * decile, kw, 20.0, 100.0)
+    coord._capacity_envelope[3] = [7.5, 2]
+    coord._cop_baseline[(4, False)] = [3.1, 5]
+    coord._cop_baseline[(4, True)] = [2.4, 3]
+    coord._internal_gains_profile = [round(0.2 + 0.01 * h, 3) for h in range(24)]
+    coord._snow_accum_last = t0
+    coord._last_heavy_snow = t0
+    for cusum in (coord._vent_cusum, coord._cop_health_cusum):
+        cusum.stat = 0.3
+        cusum.evidence = ["a reading"]
+        cusum.last_fed = t0
+    for tracker in (coord._accuracy, coord._dhw_accuracy):
+        tracker.lead_sigma = {3.0: 0.4, 6.0: 0.7}
+        tracker.lead_counts = {3.0: 4, 6.0: 2}
+        tracker.note_lead_prediction(t0 + _dt.timedelta(hours=3), 3.0, 21.5)
+    coord._comfort_learner.record_override(OverrideEvent(
+        when=t0, delta_c=1.0, indoor_temp=20.0, planned_setpoint=21.0, relative_price=0.8))
+    coord._ledger.add(t0 - _dt.timedelta(days=40), "spot", kwh=3.0, sek=4.0)
+    coord._month_reports["2025-12"] = coord._freeze_month_report("2025-12")
+    coord._score_day = {"day": ld, "kwh": 2.0, "sek": 3.0, "spot_sum": 4.0, "spot_h": 2.0,
+                        "free_streak": 1.0}
+    coord._operation_score = 72.0
+    coord._start_counter.months["2026-01"] = 3
+    coord._start_counter.lifetime = 9
+    coord._energy_totals_since = ld
+    coord._legionella.disinfect.owned = ["switch.immersion"]
+    coord._manual_override = ManualOverride(
+        space_slots=[(_A4_NOW + _dt.timedelta(hours=1), _A4_NOW + _dt.timedelta(hours=2))],
+        dhw_slots=None, expires_at=_A4_NOW + _dt.timedelta(hours=6), created_at=t0)
+    coord._away_state.migrated_helpers = True
+    coord._flow_bias.bias_k, coord._flow_bias.samples = 2.5, 4
+    learner = coord._dhw_learner
+    for name, low in (("hourly_profile", 0.5), ("profile_weekday", 0.75), ("profile_weekend", 0.25)):
+        # Dyadic, mean exactly 1: the loader's renormalisation is the identity
+        # on it (an arbitrary learned profile moves an ulp).
+        setattr(learner, name, [low if h % 2 else 2.0 - low for h in range(24)])
+    learner.draw_stats.reservoirs["evening"] = [3.5, 4.5, 2.0]
+
+
+def _a6_savers():
+    import importlib
+
+    def mod(name):
+        return importlib.import_module("heatpump_optimizer." + name)
+
+    return {
+        "thermal_learning": lambda c: c._async_save_thermal_learning(),
+        "price_model": lambda c: c._async_save_price_model(),
+        "ledger": lambda c: c._async_save_ledger(),
+        "accuracy": lambda c: c._async_save_accuracy(),
+        "energy": lambda c: c._async_save_energy_totals(),
+        "manual_plan": lambda c: c._async_save_manual_plan(),
+        "snapshots": lambda c: c._async_save_snapshots(),
+        "dhw_profile": lambda c: c._dhw_learner.async_save_profile(),
+        "dhw_draws": lambda c: c._dhw_learner.async_save_draws(),
+        "dhw_legionella": lambda c: c._legionella.async_save(),
+        "boost": lambda c: mod("boost").persist(c),
+        "away": lambda c: mod("away").persist_override(c),
+        "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
+    }
+
+
+def _a6_roundtrip(store: str, payload, savers) -> tuple[object, list[str]]:
+    """What ``store`` holds after its loader reads ``payload`` and its saver writes."""
+    key = const.DOMAIN + "_" + ENTRY_ID + "_" + store
+    _storage._DISK.clear()
+    _storage._DISK[key] = json.dumps(payload)
+    coord = _build_coord()
+    coord.entry.runtime_data = coord
+    escapes = []
+    try:
+        asyncio.run(LOADERS[store](coord))
+        if store == "ledger":  # the fuse advisor's own reader of this store
+            loaded = asyncio.run(_coord_mod._stored_fuse_advisor(coord._ledger_store))
+            coord._fuse_advisor, coord._fuse_advisor_at = loaded or ({}, None)
+        if store == "snapshots":  # the ring is opaque until a restore reads it
+            asyncio.run(coord.async_restore_learned_snapshot())
+        _storage._DISK.clear()
+        for name in _A6_RESTORED if store == "snapshots" else (store,):
+            asyncio.run(savers[name](coord))
+    except Exception as exc:  # noqa: BLE001 -- the escape is the measurement
+        escapes.append(type(exc).__name__)
+    after = {k.replace(const.DOMAIN + "_" + ENTRY_ID + "_", ""): json.loads(v)
+             for k, v in _storage._DISK.items()}
+    _storage._DISK.clear()
+    if store == "snapshots":
+        return after, escapes
+    return after.get(store), escapes
+
+
+#: What a snapshot restore writes back: the ring, and every learner store it
+#: restores (a snapshot's learner payloads are opaque in the ring by design).
+_A6_RESTORED = ("snapshots", "thermal_learning", "dhw_profile", "dhw_draws", "price_model",
+                "accuracy")
+
+
+def _a6_probes(domain):
+    """(out, in) substitutes for a bounded domain: just outside, freshly inside."""
+    if domain.kind == "choice" and domain.choices and all(isinstance(x, float) for x in domain.choices):
+        return [max(domain.choices) + 1.0], list(domain.choices[:1])
+    if domain.kind == "choice":
+        return ["zz-no-such-choice"], list(domain.choices[-1:])
+    if domain.kind not in ("real", "int"):
+        return [], []
+    lo, hi = domain.lo, domain.hi
+    span = (hi - lo) if math.isfinite(lo) and math.isfinite(hi) else 2.0
+    step = max(1, round(span / 2)) if domain.kind == "int" else span / 2
+    outs = [v for v, ok in ((hi + step, math.isfinite(hi)), (lo - step, math.isfinite(lo))) if ok]
+    inside = lo + span * 0.37 if math.isfinite(lo) else hi - 1.37 if math.isfinite(hi) else 1.37
+    inside = min(max(round(inside) if domain.kind == "int" else inside, lo), hi)
+    return outs, [inside]
+
+
+def _a6_off(store: str, payload, restored: bool = False) -> list[str]:
+    """Fields off their declaration; ``restored``: a snapshot load's write-back."""
+    if restored:
+        return [f"{name}:{o}" for name, held in payload.items()
+                for o in _a6_off(name, held) if not (name == "snapshots" and "/learners/" in o)]
+    return [
+        "/".join(map(str, p)) + ("~" if k else "")
+        for p, k, d, v in _store.stored_fields(store, payload)
+        if d is None or not _store.in_domain(d, v)
+    ]
+
+
+def _a6_get(obj, path):
+    for step in path:
+        obj = obj[step]
+    return obj
+
+
+def _a6_grid(path, seed):
+    """The grid a cell belongs to (its innermost numeric list), or None."""
+    parent = _a6_get(seed, path[:-1]) if path and isinstance(path[-1], int) else None
+    # A grid is a list of more than one number of one type; a mixed
+    # ``[ratio, count]`` pair is one entry, and the entry is the unit a bad
+    # cell may cost.
+    numeric = isinstance(parent, list) and len(parent) > 1 and len({type(x) for x in parent}) == 1 \
+        and type(parent[0]) in (int, float)
+    return path[:-1] if numeric else None
+
+
+def _a6_lost(seed, after, grid, cell) -> int:
+    """Cells of ``grid`` other than ``cell`` that a load changed."""
+    try:
+        before, now = _a6_get(seed, grid), _a6_get(after, grid)
+    except (KeyError, IndexError, TypeError):
+        return len(_a6_get(seed, grid))
+    if not isinstance(now, list):
+        return len(before) - 1
+    if len(now) == len(before):
+        return sum(1 for i, (a, b) in enumerate(zip(before, now)) if i != cell and a != b)
+    # An entry list the loader re-ranks or shortens: count survivors, not places.
+    kept = [x for i, x in enumerate(before) if i != cell]
+    for x in now:
+        if x in kept:
+            kept.remove(x)
+    return len(kept)
+
+
+def _a6_sampled(seed, path) -> bool:
+    """Grid rows and cells first and last only (the P1 RCA's cut): a middle
+    cell is loaded by the same line as its ends."""
+    for i, step in enumerate(path):
+        if isinstance(step, int) and 0 < step < len(_a6_get(seed, path[:i])) - 1:
+            return False
+    return True
+
+
+def _a6_store(store, seed, savers, out):
+    """Drive one store's declared fields; append refusals to ``out``."""
+    for path, is_key, domain, value in _store.stored_fields(store, seed):
+        if domain is None or not _a6_sampled(seed, path):
+            continue
+        outs, ins = _a6_probes(domain)
+        label = f"{store}:{'/'.join('#' if isinstance(p, int) else str(p) for p in path)}"
+        label += "~" if is_key else ""
+        for sub in outs + ins + ([None] if _a6_grid(path, seed) and not is_key else []):
+            mutant = json.loads(json.dumps(seed))
+            if is_key:
+                parent = _a6_get(mutant, path[:-1])
+                text = str(sub) if domain.kind != "int" else str(int(sub))
+                if text in parent:
+                    continue  # the fresh key is already a sibling's
+                parent[text] = parent.pop(path[-1])
+            else:
+                _set_path(mutant, path, sub)
+            after, esc = _a6_roundtrip(store, mutant, savers)
+            out["driven"] += 1
+            if esc:
+                out["refused"].add(f"{label} raised {esc} on {sub!r}")
+                continue
+            off = _a6_off(store, after, store == "snapshots") if after is not None else []
+            after = after.get("snapshots") if store == "snapshots" and after else after
+            if sub in outs and off:
+                out["refused"].add(f"{label} held {sub!r} out of domain: {off[:2]}")
+            grid = _a6_grid(path, seed) if not is_key else None
+            if sub not in ins and grid and not domain.whole:
+                lost = _a6_lost(seed, after, grid, path[-1])
+                if lost:
+                    out["refused"].add(f"{label} bad cell {sub!r} cost {lost} neighbour(s)")
+            if sub in ins and not is_key and not domain.unread:
+                try:
+                    held = _a6_get(after, path)
+                except (KeyError, IndexError, TypeError):
+                    held = "<gone>"
+                if held != sub and held == value:
+                    out["unreached"].add(f"{label} in-domain {sub!r} came back {held!r}")
+
+
+def _domain_arm() -> None:
+    import time
+    from zoneinfo import ZoneInfo
+    t_start = time.monotonic()
+    zone_before = _dt_util.DEFAULT_TIME_ZONE
+    _dt_util.DEFAULT_TIME_ZONE = ZoneInfo("Europe/Stockholm")
+    _dt_util.freeze(_A4_NOW)
+    savers = _a6_savers()
+    out = {"driven": 0, "refused": set(), "unreached": set()}
+    try:
+        disk = _a4_seed(enrich=_a6_enrich)
+        seeds = {k.replace(const.DOMAIN + "_" + ENTRY_ID + "_", ""): v for k, v in disk.items()}
+        undeclared = sorted({o for s, v in seeds.items() for o in _a6_off(s, v)})
+        roundtrip = sorted(s for s, v in seeds.items() if s != "snapshots"
+                           and _a6_roundtrip(s, v, savers) != (v, []))
+        # A restore writes back only what a snapshot carries, so its null is
+        # the ring unchanged and every store it restored inside its domain.
+        restored, esc = _a6_roundtrip("snapshots", seeds["snapshots"], savers)
+        roundtrip += esc + _a6_off("snapshots", restored, True) + (
+            ["snapshots ring"] if restored.get("snapshots") != seeds["snapshots"] else [])
+        planted = json.loads(json.dumps(seeds["energy"]))
+        planted["zz_planted"] = 1.0
+        control = _a6_off("energy", planted)
+        for store in sorted(seeds):
+            _a6_store(store, seeds[store], savers, out)
+    finally:
+        _dt_util.freeze(None)
+        _dt_util.DEFAULT_TIME_ZONE = zone_before
+    fields = sum(len(_store.stored_fields(s, v)) for s, v in seeds.items())
+    for line in sorted(out["refused"]):
+        print(f"  DOMAIN {line}")
+    for line in sorted(out["unreached"]):
+        print(f"  UNREACHED {line}")
+    print(f"RESULT domain_stores={len(seeds)} count")
+    print(f"RESULT domain_fields={fields} count")
+    print(f"RESULT domain_probes={out['driven']} count")
+    print(f"RESULT domain_refused={len(out['refused'])} count")
+    print(f"RESULT domain_unreached={len(out['unreached'])} count")
+    print(f"RESULT domain_arm_seconds={time.monotonic() - t_start:.1f}")
+    R.check(
+        "every store the rich seed writes is seeded, and every field it writes is declared "
+        "in store.DOMAINS and lies in its declaration (no allow-list)",
+        len(seeds) == len(LOADERS) and not undeclared,
+        f"stores={sorted(seeds)} off={undeclared[:6]}",
+    )
+    R.check(
+        "a planted undeclared field is refused (the coverage check's own control)",
+        control == ["zz_planted~", "zz_planted"],
+        f"control={control}",
+    )
+    R.check(
+        "the healthy rich seed round-trips unchanged through every loader and saver (null control)",
+        not roundtrip,
+        f"changed={roundtrip}",
+    )
+    R.check(
+        "the domain sweep drove every bounded field (it cannot go green by skipping)",
+        out["driven"] > 0,
+        f"probes={out['driven']}",
+    )
+    R.check(
+        "no stored field substituted just outside its declared domain is held live, and "
+        "no one bad grid cell costs its neighbours (class P1, card C1)",
+        not out["refused"],
+        f"refused={len(out['refused'])}",
+    )
+    R.check(
+        "every in-domain probe reaches live state (the out-probes are not vacuous)",
+        not out["unreached"],
+        f"unreached={len(out['unreached'])}",
+    )
+
+
+# ---------------------------------------------------------------------------
 # I1 -- deletable-guard pins (round 9, F9.1): five guards whose deletion no
 # closure script notices. Each is one direct call of the production symbol
 # (not a store-boundary sweep), because I1 is mutation-invisibility, not a
@@ -1318,6 +1653,7 @@ def _main() -> int:
     print(f"RESULT refresh_escape_total={refresh_escape} count")
     _instant_arm(by_name)
     _class_arm()
+    _domain_arm()
     _publish_arm()
     _no_rewrap_check()
     _i1_pins_arm()
