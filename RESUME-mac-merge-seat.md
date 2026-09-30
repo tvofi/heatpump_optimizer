@@ -49,3 +49,9 @@ tvofi's mandate ("approve as CODEOWNER/tvofi on policy changes and budget raises
 ## Worktrees/branches at stop
 
 Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-family-splits (maybe — unpushed at stop, check seat messages), handoff/r9-eg-solve-lifecycle (#1779), handoff/r9-f2-solver-4, handoff/r9-f9-test-pins-3, plus fix/row-1767, fix/record-rev31, handoff/r9-eg-l0 (all merged+gc'd). fixplan-adopt2 (/tmp) = disposable scratch clone of fixplan branch.
+
+## SESSION 2026-09-30T07:1xZ (continuation) — live log
+- Mandate: asked tvofi in the fix thread (cmsg_01EL5jLi4rokGBbkaevYXSJV4FTJyQomqknUmb92uUcyXt); answer pending. #201 "session resumed" line is owed once answered.
+- Verified: main a15e3e33; fixplan 1ab27f31; F7.5 ef8fc20c; EG-B10 6e062c77; F2.4 b9f86fb5; F9.3 ac66363d.
+- F7.5: the prepr refusal was closures (features.py exit 1 = Mac floats). Opened #1781 with PREPR_SKIP_CLOSURES=1 (CI records); head 9e7fbc3a (ef8fc20c plus the row). Opus reviewer dispatched at 9e7fbc3a.
+- Seats dispatched (opus): EG-B10 mutation disposition (8 sites, hpo-ci); F2.4 resume from its note; F9.3 resume from its note. Seat block: /private/tmp/audit-7/SEAT-BLOCK-r9.md.
