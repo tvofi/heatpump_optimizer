@@ -1920,11 +1920,11 @@ def _r9p8_hass(instance, unit=None, attributes=None):
 
 R.check(
     "D14-s2-02: the feed's code is read from its unit, an unambiguous symbol, "
-    "or its currency attribute; 'kr' and a bare minor unit name none",
+    "or its currency attribute; 'kr' and a minor unit in any case name none",
     [_r9p8_cur.declared_currency(u, a) for u, a in (
         ("EUR/kWh", None), ("€/MWh", None), ("öre/kWh", {"currency": "SEK"}),
-        ("öre/kWh", None), ("kr/kWh", None), (None, None),
-    )] == ["EUR", "EUR", "SEK", None, None, None],
+        ("öre/kWh", None), ("kr/kWh", None), (None, None), ("ÖRE/kWh", None),
+    )] == ["EUR", "EUR", "SEK", None, None, None, None],
 )
 _r9p8_units = {}
 for _r9p8_inst, _r9p8_unit in (("SEK", "EUR/kWh"), ("SEK", "SEK/kWh"), ("EUR", "öre/kWh")):
