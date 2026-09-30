@@ -5032,7 +5032,9 @@
     {
       "group": "R9-UX-1",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5078,7 +5080,9 @@
     {
       "group": "R9-UX-2",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5124,7 +5128,9 @@
     {
       "group": "R9-UX-3",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5170,7 +5176,9 @@
     {
       "group": "R9-UX-4",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5216,7 +5224,9 @@
     {
       "group": "R9-UX-5",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5267,7 +5277,9 @@
     {
       "group": "R9-UX-6",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
@@ -5315,7 +5327,9 @@
     {
       "group": "R9-UX-7",
       "lane": "UX",
-      "issues": [],
+      "issues": [
+        1795
+      ],
       "fixes": [],
       "findings": [],
       "covers": [],
