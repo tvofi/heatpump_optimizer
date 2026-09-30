@@ -6,7 +6,8 @@
     "`model` routes each role (tvofi 19:05Z): the fixer to the cheapest feasible model with the reason when it is the strongest, reviews and RCA to opus, runners to haiku, record upkeep to sonnet. `resume` names the branch, the resume note on it, and how a cloud or a Mac seat picks the PR up (FIX-PLAN.md sections 11 and 12).",
     "`issues` lists the Phase E class issues (#1644-#1688; #1689 closed as not planned with D8-s2-01) each PR's findings, instances, barrier or covers belong to, and `fixes` the ones it closes, because it follows every other PR holding that class; the body says Fixes #N for those and Part of #N for the rest. `sweep_instances` names the Phase D instances each PR carries beyond its findings (FIX-PLAN.md's instance table). Plan: handoff/round9/FIX-PLAN.md.",
     "rev 2 (2026-09-28, handoff/audit-r9-alt): resume truthing, carries from the RCA-1736 shape screen and register v2 bulk RCAs, groups EG-B9, EG-B10, EG-R0, EG-R1, F10.1c, F10.7, F11.7.",
-    "rev 3 (2026-09-29, handoff/audit-r9-alt): F1.6 truthed to done (#1767, f88e6af8); architecture-score carries into F10.4, EG-B1, B2, B3, B5, B6, B7; groups EG-A1, EG-A2, EG-A3, F7.5."
+    "rev 3 (2026-09-29, handoff/audit-r9-alt): F1.6 truthed to done (#1767, f88e6af8); architecture-score carries into F10.4, EG-B1, B2, B3, B5, B6, B7; groups EG-A1, EG-A2, EG-A3, F7.5.",
+    "rev 3.2 proposal (2026-09-30, handoff/silent-windows-plan): lane SW, four feature groups R9-SW-1..4 for tvofi's silent-windows request (handoff/round9/fix/SW.md), off the critical path: SW-1 after EG-B1, SW-2 after EG-B6, SW-3 after the last card groups, SW-4 after SW-2. blocked_on until tvofi approves the plan; no existing group changes."
   ],
   "fork": "db878b29",
   "fork_note": "origin/main after #1643 (db878b29) at plan time. Findings were measured at baseline 1936d5ca (v6.7.1); re-derive every number at your own merge base. Empty claims unless the group is marked fixture and drift is measured. Do not stamp from a wave seat.",
@@ -4213,6 +4214,196 @@
         "note": "Added by roster rev 3 (the architecture-score pre-study, 2026-09-29). The seat's resume note on its branch outranks this entry for in-flight state."
       },
       "brief": "Round-9 endgame PR EG-A4 (lane EG, the architecture score becomes a required check). Issue #1774 (Fixes). tvofi approved it as decision R3-6 on 2026-09-29. After one wave of report-only data (R9-EG-B1, B2, B3, B6, B7, R9-EG-A2, A3 and B11 each reported a delta-S with the counters), compare every reported delta with its PR's review verdict and write the comparison into the body; any case where the score and the verdict disagree becomes a new planted case in R9-EG-A1's self-check before this PR goes further. Then make \"delta-S >= 0 with the counters, or a gate rise explained in the body like a budget raise\" a required check: a CI job beside the existing ones (tests.yml is code-owned) and the required-context list in the main-protect ruleset, a repository-settings change only tvofi can apply, which the orchestrator requests and records on #201. The weights stay at their recorded hash."
+    },
+    {
+      "group": "R9-SW-1",
+      "lane": "SW",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 13,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "solver change: a per-step off mask and DHW ceiling beside the horizon-wide blocked flags, with goldens byte-identical when unset",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": "tvofi's approval of the silent-windows plan (handoff/round9/fix/SW.md section 5)",
+      "after": [
+        "R9-EG-B1",
+        "R9-F1.10",
+        "R9-F10.1c"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-sw-model",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
+        "note_file": "handoff/round9/fix/resume/SW-1.md on handoff/r9-sw-model",
+        "review_branch": "handoff/r9-sw-model-review",
+        "review_note_file": "handoff/round9/fix/resume/SW-1-review.md on handoff/r9-sw-model-review",
+        "plan": "handoff/audit-r9-fixplan: handoff/round9/fix/SW.md, this roster",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)",
+        "note": "Proposed 2026-09-30 on handoff/silent-windows-plan (tvofi's silent-windows request); issues stay empty until the orchestrator files the feature issue on approval. The seat's resume note on its branch outranks this entry for in-flight state."
+      },
+      "brief": "Round-9 feature PR SW-1 (lane SW, silent windows: model and plan). Models: fixer opus (a per-step solver mask); reviewer opus in another session; runner work goes to a haiku subagent that reports numbers and decides nothing; record upkeep may go to sonnet. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi, in commits, PR bodies, comments and delivery notes; the PR attribution line is _Requested by **tvofi**_. Design of record: handoff/round9/fix/SW.md on handoff/audit-r9-fixplan (the silent-windows plan, requested by tvofi 2026-09-30); where this brief and that file disagree, the newer is right and the other is the bug. This is a new production feature, not a finding: there is no class, no barrier and no RCA. It is inert when unset, so every value-bearing golden stays byte-identical at the head and the claim files stay untouched (CLAUDE.md rule 3); that identity is the null control. Keep tests in tests/features.py (Python) and tests/card.mjs (card); a new test script would need tests/run.sh and tests/derive_closures.sh, which are code-owned. A new production module goes into a measured closure through CI's closures autofix (ci-autofix.md), never onto the INERT list. Structure ratchet (CLAUDE.md rule 2): pay for lines first; a raise for this feature needs tvofi's confirmation before the push (plan decision D3) and merges on tvofi's approving review (budget-raise-gate). Re-measure every metric at your own merge base; carry no number. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main); --max 0 is never proof. Scope: (1) two new option keys, one spec per action (silent, off), each in the unchanged grammar of custom_components/heatpump_optimizer/dhw_schedule.py (parse_windows, parse_weekly_windows, windows_for_day); no grammar change, so its round-trip invariant in tests/features.py stays as it is. (2) A new HA-free module beside custom_components/heatpump_optimizer/silent_mode.py that turns them into a per-step action array on the solver's clock (_utc_step_starts, as unified by R9-F1.10) and composes: a silent step caps electrical power at max(fraction, CAPACITY_FLOOR_FRACTION) times p_max through power_caps_extra by elementwise minimum, as silent_mode.compose does, with the fraction from the existing silent_mode_power_fraction option; an off step allows no space heat and no DHW charge. (3) In custom_components/heatpump_optimizer/optimizer.py: space_blocked and dhw_blocked are horizon-wide booleans, so the off step needs a per-step mask; space can ride a zero entry in the caps array (not floored), DHW needs a per-step DHW ceiling. Check first whether a silent cap already bounds the DHW charge power per step (today power_caps_extra is subtracted from the space headroom in the warm start, not visibly from the DHW plan), and cap it if not. (4) The per-step array is one field of R9-EG-B1's per-solve record; the coordinator's only change is the call site that composes caps today (the silent_mode.compose call), so coordinator_loc should not rise. (5) The apply_schedule, simulate_plan and set_thermal_params services accept both specs and the fraction, with the validation in the plan's section 2.1 (an off window may not overlap a hot-water window on the same day; silent and off may not overlap each other; the too-short rule applies); en and sv service strings. (6) The DHW plan sensor publishes the configured specs and the resolved per-step action, as it does for the hot-water windows, so the card can draw them. (7) Enforcement gate: the plan assumes silent or off only where it will be enforced: never while Optimizer active is off, and silent only where the capacity-limited slot (heat_pump_capacity_limited_entity) is a switch; otherwise no cap, and one warning repair names the missing control (tvofi's default: normal operation with a warning). R9-SW-4 later widens the enforceable set. Tests in tests/features.py: inert when unset (None, and the solve bit for bit as before); silent caps exactly the window's steps and never below the floor; off zeroes space and DHW in exactly its steps and the plan pre-heats before it; DST night; overlap refusals; not-enforced fallback. Borrowed files: custom_components/heatpump_optimizer/services.py (R9-EG-B6 also edits it, other functions; whichever merges second merges main), custom_components/heatpump_optimizer/optimizer.py, custom_components/heatpump_optimizer/coordinator.py (call site only), custom_components/heatpump_optimizer/const.py, custom_components/heatpump_optimizer/strings.json and translations. Not in scope: the arbiter (R9-SW-2), the card (R9-SW-3)."
+    },
+    {
+      "group": "R9-SW-2",
+      "lane": "SW",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 14,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "write safety: a new held slot under the hold rule, the no-writes-when-off rule and its exceptions",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": "tvofi's approval of the silent-windows plan (handoff/round9/fix/SW.md section 5)",
+      "after": [
+        "R9-SW-1",
+        "R9-EG-B6"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-sw-actuation",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
+        "note_file": "handoff/round9/fix/resume/SW-2.md on handoff/r9-sw-actuation",
+        "review_branch": "handoff/r9-sw-actuation-review",
+        "review_note_file": "handoff/round9/fix/resume/SW-2-review.md on handoff/r9-sw-actuation-review",
+        "plan": "handoff/audit-r9-fixplan: handoff/round9/fix/SW.md, this roster",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)",
+        "note": "Proposed 2026-09-30 on handoff/silent-windows-plan (tvofi's silent-windows request); issues stay empty until the orchestrator files the feature issue on approval. The seat's resume note on its branch outranks this entry for in-flight state."
+      },
+      "brief": "Round-9 feature PR SW-2 (lane SW, silent windows: actuation). Models: fixer opus (write safety); reviewer opus in another session; runner haiku; record sonnet. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi, in commits, PR bodies, comments and delivery notes; the PR attribution line is _Requested by **tvofi**_. Design of record: handoff/round9/fix/SW.md on handoff/audit-r9-fixplan (the silent-windows plan, requested by tvofi 2026-09-30); where this brief and that file disagree, the newer is right and the other is the bug. This is a new production feature, not a finding: there is no class, no barrier and no RCA. It is inert when unset, so every value-bearing golden stays byte-identical at the head and the claim files stay untouched (CLAUDE.md rule 3); that identity is the null control. Keep tests in tests/features.py (Python) and tests/card.mjs (card); a new test script would need tests/run.sh and tests/derive_closures.sh, which are code-owned. A new production module goes into a measured closure through CI's closures autofix (ci-autofix.md), never onto the INERT list. Structure ratchet (CLAUDE.md rule 2): pay for lines first; a raise for this feature needs tvofi's confirmation before the push (plan decision D3) and merges on tvofi's approving review (budget-raise-gate). Re-measure every metric at your own merge base; carry no number. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main); --max 0 is never proof. Scope, all in custom_components/heatpump_optimizer/pump_arbiter.py through the explicit inputs R9-EG-B6 gives it: (1) Silent: the capacity-limited slot doubles as the control when its domain is switch (the Tuya fork's night_mode, mute and SilentMdoe switches); it becomes a fourth held slot on the existing machinery: record the write, rewrite a differing reading after ECHO_GRACE_S, raise pump_write_ignored and retry every RETRY_MINUTES. On inside a silent window, off outside, and never written on an install with no silent rows. Inverted switches and silent-as-mode-option selects are out of scope (the select is the mode slot). (2) Off: per plan decision D1 (recommended: gates) an off step is the idle row with both gates, hot water set-point to DHW_GATE_C or the entity minimum and space or flow set-point to FLOW_GATE_C or the room gate, mode unchanged; the power switch is never written, and nothing is compared or written while it reads off, as today. (3) Precedence: a boost overrides a window for its duration; the anti-legionella hard deadline wins over an off window; if the room falls below the comfort minimum by the existing rail margin, an off window yields to the baseline row with a warning repair. (4) Optimizer active off: nothing is written (the #1708 rule; _arbitrate's 'Off writes nothing'), except, per plan decision D2 (recommended: yes), one restore on that transition inside a window: silent switch off and gated set-points back to configured, documented as a third exception beside the disinfection switch and the DHW repair confirm. If tvofi answers no, write nothing and say so in the body. (5) The arbiter's own silent writes are not evidence: a capacity-limited reading the arbiter caused keeps the learners off those intervals, which is correct, and must not reach the plan as an unplanned throttle. Tests in tests/features.py: hold and rewrite on the silent slot; no write with no rows; the power-switch-off silence; boost, legionella and comfort-rail precedence; the optimizer-off transition with and without a window. Borrowed: custom_components/heatpump_optimizer/repairs.py, custom_components/heatpump_optimizer/strings.json and translations. R9-EG-A2 also edits pump_arbiter.py (the store-load prelude shared with boost.restore); no edge, whichever merges second merges main and A2 folds any new copy."
+    },
+    {
+      "group": "R9-SW-3",
+      "lane": "SW",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 15,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "mirrors the existing hot-water window editor row for row; the backend contract is fixed by R9-SW-1",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": "tvofi's approval of the silent-windows plan (handoff/round9/fix/SW.md section 5)",
+      "after": [
+        "R9-SW-1",
+        "R9-F10.6",
+        "R9-F11.5",
+        "R9-F6.4"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-sw-card",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
+        "note_file": "handoff/round9/fix/resume/SW-3.md on handoff/r9-sw-card",
+        "review_branch": "handoff/r9-sw-card-review",
+        "review_note_file": "handoff/round9/fix/resume/SW-3-review.md on handoff/r9-sw-card-review",
+        "plan": "handoff/audit-r9-fixplan: handoff/round9/fix/SW.md, this roster",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)",
+        "note": "Proposed 2026-09-30 on handoff/silent-windows-plan (tvofi's silent-windows request); issues stay empty until the orchestrator files the feature issue on approval. The seat's resume note on its branch outranks this entry for in-flight state."
+      },
+      "brief": "Round-9 feature PR SW-3 (lane SW, silent windows: card and docs). Models: fixer sonnet; reviewer opus in another session; runner haiku; record sonnet. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi, in commits, PR bodies, comments and delivery notes; the PR attribution line is _Requested by **tvofi**_. Design of record: handoff/round9/fix/SW.md on handoff/audit-r9-fixplan (the silent-windows plan, requested by tvofi 2026-09-30); where this brief and that file disagree, the newer is right and the other is the bug. This is a new production feature, not a finding: there is no class, no barrier and no RCA. It is inert when unset, so every value-bearing golden stays byte-identical at the head and the claim files stay untouched (CLAUDE.md rule 3); that identity is the null control. Keep tests in tests/features.py (Python) and tests/card.mjs (card); a new test script would need tests/run.sh and tests/derive_closures.sh, which are code-owned. A new production module goes into a measured closure through CI's closures autofix (ci-autofix.md), never onto the INERT list. Structure ratchet (CLAUDE.md rule 2): pay for lines first; a raise for this feature needs tvofi's confirmation before the push (plan decision D3) and merges on tvofi's approving review (budget-raise-gate). Re-measure every metric at your own merge base; carry no number. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main); --max 0 is never proof. Scope: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js. (1) A Silent windows list directly under the hot-water windows in the what-if usual-schedule section: each row is the hot-water row (daysOptionsHtml day selector, start, end, remove) plus an action select, Silent or Off; add and remove as for hot-water rows; the draft signature, Apply (simulate_plan overrides) and Save as my schedule (apply_schedule) carry both specs. (2) When any row is Silent, the existing silent_mode_power_fraction as a slider (0.6 to 1.0) under the list, pre-filled from the plan sensor, with a note when the fraction is still 1.0. (3) Rows the backend reports as not enforced (no silent control, or Optimizer active off) show that on the row. (4) Validation mirrors the service (off may not overlap a hot-water window on the same day, silent and off may not overlap), refused on the card before any call. (5) The chart draws silent and off steps as a band like the hot-water band, from the plan sensor's resolved actions. (6) en and sv strings for every new label; README and the docs page that explains hot-water windows gain a short silent-windows section; the options page relabels the passive silent_mode_windows field as the pump's own night-mode schedule. Tests in tests/card.mjs (not code-owned; tests/card_browser.mjs is). The doc_claims arms R9-F10.4 landed read service fields and option labels: run tests/doc_claims.py at the head."
+    },
+    {
+      "group": "R9-SW-4",
+      "lane": "SW",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 15,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "one transport added under SW-2's actuation contract; register semantics are stated in the brief",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": "tvofi's approval of the silent-windows plan (handoff/round9/fix/SW.md section 5)",
+      "after": [
+        "R9-SW-2"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-sw-gchv",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
+        "note_file": "handoff/round9/fix/resume/SW-4.md on handoff/r9-sw-gchv",
+        "review_branch": "handoff/r9-sw-gchv-review",
+        "review_note_file": "handoff/round9/fix/resume/SW-4-review.md on handoff/r9-sw-gchv-review",
+        "plan": "handoff/audit-r9-fixplan: handoff/round9/fix/SW.md, this roster",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)",
+        "note": "Proposed 2026-09-30 on handoff/silent-windows-plan (tvofi's silent-windows request); issues stay empty until the orchestrator files the feature issue on approval. The seat's resume note on its branch outranks this entry for in-flight state."
+      },
+      "brief": "Round-9 feature PR SW-4 (lane SW, silent windows on the GCHV Modbus package). Conditional on plan decision D4 (recommended: yes); if tvofi answers later, set this group done with that note. Models: fixer sonnet; reviewer opus; runner haiku; record sonnet. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi, in commits, PR bodies, comments and delivery notes; the PR attribution line is _Requested by **tvofi**_. Design of record: handoff/round9/fix/SW.md on handoff/audit-r9-fixplan (the silent-windows plan, requested by tvofi 2026-09-30); where this brief and that file disagree, the newer is right and the other is the bug. This is a new production feature, not a finding: there is no class, no barrier and no RCA. It is inert when unset, so every value-bearing golden stays byte-identical at the head and the claim files stay untouched (CLAUDE.md rule 3); that identity is the null control. Keep tests in tests/features.py (Python) and tests/card.mjs (card); a new test script would need tests/run.sh and tests/derive_closures.sh, which are code-owned. A new production module goes into a measured closure through CI's closures autofix (ci-autofix.md), never onto the INERT list. Structure ratchet (CLAUDE.md rule 2): pay for lines first; a raise for this feature needs tvofi's confirmation before the push (plan decision D3) and merges on tvofi's approving review (budget-raise-gate). Re-measure every metric at your own merge base; carry no number. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main); --max 0 is never proof. The GCHV package (the generator in tvofi/tuya_heat_pump) has no silent on/off register: night mode is one daily window in holding registers 518 and 519 (start and end as hour*256+minute), exposed as writable time entities, and register 68 reads whether it is active (the capacity-limited slot's binary sensor). Scope: (1) a silent transport in custom_components/heatpump_optimizer/pump_arbiter.py for installs whose capacity-limited slot is that binary sensor and whose night-mode start and end time entities resolve by the package prefix (custom_components/heatpump_optimizer/modbus_prefill.py already resolves the prefix): write start and end to the next silent window of the day, only when that window changes, so at most two writes a day; the hold rule applies to both time entities. (2) One window per day and the same every day: where the silent spec needs more than the pump can hold (two windows on one day, or days that differ), enforce the next window and mark the rest not enforced, so the plan caps only what the pump will do. (3) Outside any silent window with rows configured, hold an empty schedule (start equal to end) only if the package documents that as disabled; otherwise leave the registers and say so in the body. Tests in tests/features.py with a stub package. No change to tvofi/tuya_heat_pump."
     }
   ]
 }
