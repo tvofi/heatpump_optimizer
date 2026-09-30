@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (90 links)",
+  "claim": "every relative link resolves (92 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "90 links, broken=[], of which removed-by-the-export=[]",
+  "result": "92 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -983,16 +983,16 @@
  {
   "id": "C110",
   "source": "README.md + docs/*.md",
-  "claim": "every image the documentation embeds exists (20 images)",
+  "claim": "every image the documentation embeds exists (22 images)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "20 images, missing=[]",
+  "result": "22 images, missing=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C111",
   "source": "README.md + docs/*.md",
-  "claim": "every external link answers 200 to a HEAD request (14 links)",
+  "claim": "every external link answers 200 to a HEAD request (15 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
   "result": "not run: pass --links",
   "verdict": "unverifiable",
