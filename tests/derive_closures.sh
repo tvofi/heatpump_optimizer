@@ -155,6 +155,11 @@ p1=$!
   # way as any script here.
   rec tests/finite_boundary.py
   rec tests/harness_headers.py
+  # R9-RO-1's layout barrier, in run.sh's lane order. run_always there, but a
+  # script the lanes never recorded still fails the closures job on main with
+  # "NO recording this run". It reads the index, not the worktree, so its
+  # closure is the manifest and itself.
+  rec tests/layout.py
   # The deployment-shape lane (#513), in run.sh's lane order. It copies the
   # tracked package into a temporary tree and drives it from a child
   # interpreter, so the audit hook sees the package files it reads plus the

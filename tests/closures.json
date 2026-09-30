@@ -112,6 +112,10 @@
   "tests/md_tables.mjs": {
    "seconds": 0.2,
    "rc": 0
+  },
+  "tests/layout.py": {
+   "seconds": 3.4,
+   "rc": 0
   }
  },
  "closures": {
@@ -2286,6 +2290,10 @@
    "docs/how-it-works.md",
    "docs/setup.md",
    "tests/md_tables.mjs"
+  ],
+  "tests/layout.py": [
+   "tests/layout.json",
+   "tests/layout.py"
   ]
  }
 }
