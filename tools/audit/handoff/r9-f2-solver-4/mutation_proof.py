@@ -1,4 +1,4 @@
-"""R9-F2.4 mutation proof: five mutants, each one seam of the fix restored to base.
+"""R9-F2.4 mutation proof: seven mutants, each one seam of the fix restored to base.
 
 fixer.md step 2 asks for the fix's production lines deleted, the closure run,
 and the failing check names pasted. Each mutant below is one seam put back the
@@ -100,6 +100,20 @@ MUTANTS = [
         file=PKG / "thermal_model.py",
         old="    return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)\n",
         new="    return MIN_RUNNING_DRAW_KW\n",
+        runner=BLOCK_RUNNER,
+    ),
+    dict(
+        # The site the allocation-free rewrite re-anchored, and the one the
+        # ledger leaves unpinned: the ratchet reads 3581 against 3583 at the
+        # base, so it does not refuse, and --pin-killed's fixed cost is a
+        # baseline for all 19 drivers for a single site. This is the
+        # measurement that the site is killable, and by what.
+        id="M6",
+        what="the owner's scalar form returns nothing (the re-anchored "
+             "RETURN_DEL site the ledger leaves unpinned)",
+        file=PKG / "thermal_model.py",
+        old="    return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW\n",
+        new="",
         runner=BLOCK_RUNNER,
     ),
 ]

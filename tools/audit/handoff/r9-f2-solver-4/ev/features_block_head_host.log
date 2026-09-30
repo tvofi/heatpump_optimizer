@@ -3,10 +3,11 @@
   ok   R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating
   ok   R9-F2.4 P2 (null arm): a step the plan books no heat for stays off, on a fixed-speed and on a modulating pump alike
   ok   R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off
+  ok   R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor
   ok   R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not
   ok   R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold
   ok   R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's
   ok   R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone
-RESULT block_lines=218 count
+RESULT block_lines=254 count
 
-ALL 7 R9-F2.4 BLOCK CHECKS PASSED
+ALL 8 R9-F2.4 BLOCK CHECKS PASSED
