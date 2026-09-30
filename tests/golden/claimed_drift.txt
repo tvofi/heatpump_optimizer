@@ -610,3 +610,34 @@
 # origin/main, and `config_flow is byte-identical to origin/main here`
 # (the entity-name renames move no captured leaf; docs and test-only
 # changes otherwise).
+#
+# R9-F2.4 (handoff/r9-f2-solver-4, D12-s2-01, #1644 P2): the plan's on schedule
+# reads the plan's own running rule -- thermal_model.MIN_RUNNING_DRAW_KW, the
+# 0.1 kW floor the solve's bounds already assume for a duty-cycled step and
+# count_compressor_starts already counted a start at -- instead of half the
+# pump's modulation floor, which on a fixed-speed pump (min == max) put the
+# switch at half the rating and switched off steps whose heat the same plan's
+# trajectory, cost and published savings booked as delivered.
+#
+# Direction is one-way by construction: the new floor is at or below the old on
+# every plant (0.1 against max(0.1, min_electrical_power * 0.5)), and the
+# comparison reads the step's whole booked draw, so a step can only gain the
+# pump, never lose it. Every moved leaf is heat_pump_on_schedule[i] and every
+# one goes False -> True; measured over all 56 scenarios in one environment
+# (hpo-ci container, CPython 3.14.7, numpy 2.4.6, OPENBLAS_CORETYPE=Sandybridge,
+# BLAS at 1 thread) against merge base bd79bc9e by
+# tools/audit/handoff/r9-f2-solver-4/drift_leaves.py, whose complete leaf census
+# is in that directory's ev/. The 16 MAY-DRIFT fixtures that also moved are not
+# claimed here -- a name cannot be both -- and the 5 coordinator captures, which
+# are the fixtures carrying a published power, are byte-identical: this PR's D8
+# arm gates entity.commanded_power_kw on the action's own heat_pump_on and moves
+# no published number in any fixture that has one.
+away_setback # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
+capacity_tariff # R9-F2.4 D12-s2-01: 16 leaves, heat_pump_on_schedule False -> True
+dhw_cold_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
+horizon_48h # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
+mild_windy_rain # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
+start_below_band # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
+valve_storage_flat_prices # R9-F2.4 D12-s2-01: 14 leaves, heat_pump_on_schedule False -> True
+valve_storage_low_target # R9-F2.4 D12-s2-01: 7 leaves, heat_pump_on_schedule False -> True
+valve_storage_small_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True

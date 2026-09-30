@@ -1846,3 +1846,376 @@ closure: updated 1 closure(s) in /tmp/tmpu804xwon/closures.json
   ok   two plan slots keep the plural (#284)
   ok   DHW Heating Schedule's period count is DHW Heating Plan's slot count (#1644)
   ok   and the schedule sensor still answers for a schedule with no plan dict (#1644)
+
+-- #558 D3 enumerated sensor states
+  ok   optimization_mode declares the enum device class
+  ok   optimization_mode declares exactly its measured states as options
+  ok   optimization_mode carries no unit of measurement
+  ok   optimization_mode carries no state class
+  ok   heat_pump_action declares the enum device class
+  ok   heat_pump_action declares exactly its measured states as options
+  ok   heat_pump_action carries no unit of measurement
+  ok   heat_pump_action carries no state class
+  ok   plan_narrative declares the enum device class
+  ok   plan_narrative declares exactly its measured states as options
+  ok   plan_narrative carries no unit of measurement
+  ok   plan_narrative carries no state class
+  ok   every declared state survives Home Assistant's own enum validation
+  ok   and an undeclared state raises, so the check above can fail
+  ok   a None native_value is unknown, not an enum violation
+  ok   the mode options are OPERATION_MODES plus the no-data fallback
+  ok   the action options cover every mode its producers actually write
+  ok   and declares nothing beyond them but the no-data fallback
+  ok   every optimizer REASON_ constant has a narrative template
+  ok   every enum option is a legal Home Assistant translation key
+  ok   every enum option has an English and a translated Swedish state name
+  ok   OptimizationStatusSensor stays bare: it embeds SciPy and exception text
+  ok   PredictiveInsightSensor stays bare: it emits 'no forecast', which is not a slug
+  ok   no icons.json state key falls outside its sensor's enum options (#558 D4)
+  ok   and the unbounded status strings really are unbounded
+
+-- #558 D4 icon state translations
+  ok   every enum option has its own icon
+  ok   only the enum sensors carry a state section
+  ok   and no state icon merely repeats its own default
+  ok   and each state section actually distinguishes states
+  ok   production raises repair notices only through the helper that adds the docs link
+  ok   no bound coordinator method is handed to a thread (P12, #1529)
+  ok   the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls
+  ok   the derived producer set covers the four D3 named by hand
+  ok   and the action options cover every mode the derived producers write
+  ok   which is the same answer the named scan gave, so neither is doing it alone
+
+-- #558 D5 service translations
+  ok   every service and field is named and described in all three catalogues
+  ok   and services.yaml keeps structure only, not text
+  ok   the Swedish service text is actually translated
+  ok   the documented services are exactly the registered ones
+  ok   every translation string is a legal format string for hassfest
+
+-- #558 D6 numeric schedule companion
+  ok   the deprecated sensor still publishes exactly what it shipped
+  ok   including the ungrammatical '1 steps', which is shipped and so is frozen
+  ok   the companion publishes the step count as an integer
+  ok   and separates no-data from an empty schedule, which the sentence cannot
+  ok   the two sensors describe the same schedule
+  ok   the companion records no long-term statistics
+  ok   and stays diagnostic, beside the sensor it replaces
+  ok   the deprecated sensor says so, and names its replacement
+  ok   and it is still registered, because removing it is the breaking change D6 was reshaped to avoid
+  ok   every job driving a history-reading script checks out the history
+  ok   the nightly reporter is wired into a job that runs on pull requests
+  ok   and passes it no argument that would pin its answer
+  ok   exactly four jobs override the workflow's read-only floor
+  ok   and the nightly reporter's own widening is read-only
+  ok   the reporter watches exactly the lanes a pull request cannot see
+  ok   the reporter separates failed, passed, still-running and never-ran
+  ok   no run, a stale run and a run whose lanes were skipped are all ABSENT
+  ok   an unrecognised job conclusion is reported, not waved through
+  ok   a newer in-flight run annotates the verdict and does not become it
+  ok   and every state says in the report that it blocks nothing
+  ok   the reporter is classified: NOT_A_TEST, and not on INERT
+  ok   run.sh's two script-accounting exclusion lists name the same scripts
+  ok   every script run.sh skips is one closure.py already refuses to select
+  ok   and a script closure.py will not select is either skipped by run.sh or run by it
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  ok   and when no job failed the report names the run's conclusion as the evidence
+  ok   pick_runs picks the newest concluded and newest in-flight by created_at, not by listing order
+  ok   a run carrying no created_at is UNREADABLE, not a KeyError and not a verdict
+  ok   a jobs page that does not carry every job of the run is UNREADABLE, not a partial answer
+  ok   the staleness boundary is the one the constant's comment defends
+  ok   a rowless merge is PENDING until the threshold, and OVERDUE at it
+  ok   an EMPTY window is its own verdict and is not reported as a pass
+  ok   a row file rows its own pull request and no other
+  ok   both merge-subject conventions are collected, and neither direct push is
+  ok   a merge commit's title comes from its body, not from the branch it names
+  ok   a subject that only MENTIONS a pull request is not taken as being it
+  ok   an unattributable merge is UNCHECKED, loudly, and never EMPTY
+  ok   a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on parents
+  ok   the OVERDUE alarm is reachable from a first-parent LOG, not only from hand-built entries
+  ok   the ledger and the record lane pick the window with the same tag filter
+  ok   --check raises OVERDUE and UNCHECKED, and passes OK and EMPTY
+  ok   --require-rows refuses a PENDING window, and every red --check raises
+  ok   a disposition is matched on the whole number, in both spellings
+  ok   the #201 region is replaced in place, and the issue's own text survives
+  ok   the ledger is wired into a job that runs on pull requests
+  ok   and the pull-request lane passes no --since that would pin its answer
+  ok   exactly three governance jobs override the workflow's read-only floor
+  ok   and the contract lane's widening is the one read it needs
+  ok   the contract lane reads the body off the API at run time, not the payload
+  ok   the contract lane passes the head's red checks to the body check
+  ok   the red-check listing stays fail-closed (pipefail guard, jq filter, output pinned)
+  ok   and a listing with the guard and the RED filter stripped is not (null control)
+  ok   the contract lane refuses a version edit on every pull request
+  ok   the instrument self-test job runs both App identity self-tests
+  ok   and a job with the poster's step removed is not (null control)
+  ok   a `## Friction` opening with `none` that then carries a malformed entry is refused
+  ok   frictionEntries reads the entries after a leading `none`, not an empty section
+  ok   and `none` alone stays zero entries while a stray entry is refused (null controls)
+  ok   a trailer block pasted under `none` is not friction and refuses nothing
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+  ok   and the drop buys no amnesty: junk still refuses, trailer words mid-evidence still parse (null controls)
+  ok   the friction id grammar admits a leading dot, so a repo-relative path parses (#1305)
+  ok   and the leading dot buys no amnesty: `none` is zero entries and a line naming no rule still yields no id (null controls)
+  ok   pr-contract accepts #1107's autofix commits on top of the head the body names
+  ok   and a body naming the real head passes with no autofix line (null control)
+  ok   and refuses every chain that is not purely the bot's own repair
+  ok   and its bot identity, messages and paths are the ones the autofix jobs commit
+  ok   and the publishing lane's grant is the one write it uses
+  ok   the publishing lane writes nothing that lands on main, so its own write cannot re-run it
+  ok   the cron lane's grant is its two reads plus the one owner-approved write
+  ok   the friction filer is the record lane's deliberate filing arm and the informational lanes stay suppressed
+  ok   no step of the record job is skipped by the disposition refusal's failure
+  ok   the record job's summary names every step of its own record
+  ok   the record summary's verdict is not the exit code alone
+  ok   the governance-cost GOV set names only jobs the workflow files define, and every job of every governance workflow file
+  ok   and the split survives: the code gate's own jobs are not governance (null control)
+  ok   a body edit starts a run of the contract job and the budget gate, and of no other job
+  ok   and #1484's shape -- `edited` listed, a second job guarded -- is refused (null control)
+  ok   no required context can be re-reported as skipped by a body edit
+  ok   and #1484's guard reads as skipping under that event (null control)
+  ok   the budget-raise gate is one unguarded job that re-runs on a review and grades with the base's copy of its program
+  ok   and the same file with its restore removed is refused (null control)
+  ok   the gate's stale-verdict re-run fires on a passing review run only, holds `actions: write` and nothing it does not use, and runs the default branch's program
+  ok   and the same file checking out the pull request's head is refused (null control)
+  ok   no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)
+  ok   and the same tests.yml with its restores and token hygiene undone is refused on each of the three autofix jobs (null control)
+  ok   and a report run from the working tree after the push step's pull is refused on each of the three autofix jobs, though the program was restored (null control)
+  ok   and an indented `import a, b` names both modules (null control: the finder's reader missed mutation_table this way)
+  ok   a red that lands after pr-contract ran re-runs it: the follower watches every pull-request workflow but the contract, fires on a red run only, holds `actions: write` and runs the default branch's program (D13-s1-03)
+  ok   and the same file checking out the pull request's head, or missing a pull-request workflow, is refused (null control)
+  ok   the stats histogram reads the wave script's VERDICT_CLASSES as its block-class set
+  ok   and an unreadable grammar yields null rather than a guessed class set (null control)
+  ok   a verdict histogram whose block-class grammar is unreadable withholds the proposal and says why
+  ok   a blocked verdict whose shape the wave refuses is outside the grammar, not folded into `other` (#1304)
+  ok   and the bare blocked verdict still routes to `other` (null control)
+  ok   the stats histogram names the population it saw beside the window's merge count, so a merge carrying no verdict is visible rather than absorbed (#1406)
+  ok   and the coverage line tracks the histogram rather than a constant (null control)
+  ok   the stats histogram classifies exactly the grammar the wave script's own VERDICT_RE parses, over `Fix review:` FIRST LINES (#1472)
+  ok   and it classifies a comment BODY exactly as the wave script's own `parseVerdict` reads it, both readers driven (#1480)
+  ok   and the two shapes the extractions disagreed on are closed in their own directions (#1480)
+  ok   a verdict posted as a pull-request review is counted, and the census names the endpoint it arrived on (#1471)
+  ok   and the same verdict posted as an issue comment, and a window with no reviews at all, are the null controls (#1471)
+  ok   the window reader asks the reviews endpoint and joins what it answers into its map (#1471)
+  ok   and it asks whether or not the window posted a review, with the body and comment reads as the ledger's null control (#1471)
+  ok   the --sunset mode prints the marker census its zero is a zero of, beside the corpus count (#1469)
+  ok   the rework key is the class the wave teaches, so the histogram cannot key a word no reviewer is told to write (#1405)
+  ok   the stats histogram keys a rework round on a moved head as `head-moved`, the class the wave defines for it and the passing verdict hides (#1405)
+  ok   and the rework count tracks the window rather than a constant (null control; the finder's own perturbation)
+  ok   and the passing row is left exactly as it was, so the rework key adds a figure rather than moving one (#1405)
+  ok   and a verdict naming the same head twice, or a first line the grammar refuses, is not rework (null control)
+  ok   the head-moved row counts a re-verification of a head that moved after a `merge` verdict, once per round, and not a repair or a repeat (#1549)
+  ok   and every round after a merge's first is split by the verdict before it: re-verification, repair, repeat (#1549)
+  ok   and the split tracks the verdict before the round rather than a constant (null control: #3's block rewritten as a merge)
+  ok   the stats mode prints the one-round yield beside the first-verdict yield, each named for its rule (#1549)
+  ok   and the one-round yield moves with the window (null control: #3 flipped to a first `merge` raises the first-verdict yield only)
+  ok   the publishing lane runs on main alone, never on a pull request
+  ok   the ledger script is classified: NOT_A_TEST, and not on INERT
+  ok   the by-design-red exclusion list is in-tree, with a reason per job and a citation that resolves (#1303)
+  ok   and the CFR instrument reads that registered artifact, not a copy beside itself (#1303)
+  ok   and the list excludes only what it names (null control)
+  ok   the change-failure instrument reports the merge-keyed AND the PR-head-keyed rate (#1407)
+  ok   the change-failure instrument publishes the rate per check-run NAME at both keyings, so the name that separates them is visible (#1476)
+  ok   and the exclusion artifact records `mutation` as deliberately NOT excluded, with a reason and a citation the tree carries (#1476)
+  ok   the disposition refusal can set the record job's conclusion
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+  ok   the template arm turns the acceptance red on a template that fails its own contract (and the real template keeps it green)
+  ok   `policy-docs` restores its graders from the base commit before it grades
+  ok   the release lane's grant is the owner-approved attestation grant and nothing more
+  ok   the attested subject is the tag's tree, not an artefact that does not exist
+  ok   the coverage ratchet is wired into a job that runs on pull requests
+  ok   and no CI job passes either instrument --record
+  ok   the pull-request lane scopes to what the diff tested, the nightly does not
+  ok   and the scoped lane checks out the history its own diff needs
+  ok   the coverage floor sits at or below its ceiling
+  ok   the pragma cap is not slack: no exemption is pre-authorised
+  ok   both mutation caps are saturable fractions that hold their last measurement
+  ok   the mutation budget defers on no lane the workflow already defines
+  ok   and it refuses the deferral, not the lane's name
+  ok   the kill rule finds a failure count buried under trailing output
+  ok   and reads no failure out of a clean run
+  ok   a structure run that only IMPROVED a metric is not a kill
+  ok   and a structure run that BREACHED a budget still is
+  ok   a status is a kill for no driver unless the output names a failing check
+  ok   the structure ratchet refuses a non-finite or malformed cap by name
+  ok   every grader's copy of the barrier is the original, character for character
+  ok   the mutation table refuses a non-finite or malformed survivor cap
+  ok   the coverage ratchet refuses a non-finite or malformed floor or cap
+  ok   and main() runs it before comparing anything
+  ok   the stress budget table refuses a non-finite or malformed recorded cost
+  ok   and load_budget_table refuses such a table instead of returning it
+  ok   an env_drift refusal before capture is not a kill (#1521)
+  ok   and its drift verdict, its stale fixtures and a crash still are
+  ok   every driver's failing-check form reads as its count
+  ok   a driver printing no failing-check form the rule reads is reported
+  ok   any uncaught exception on a red run is a kill, whatever its class
+  ok   the null control is scored over every driver, never the first kill only
+  ok   the null control edits a whole-line comment and nothing else
+  ok   a run whose null control did not survive is refused
+  ok   the drift cache key takes exactly the tree variables a capture reads
+  ok   and the derivation sees a new read, a prefix read and nothing else
+  ok   a variable no capture reads leaves the key; one it reads moves it
+  ok   every operator fires on a module written to carry one of each
+  ok   and every mutant it generates leaves the module parseable
+  ok   the sole statement of a block is never deleted
+  ok   cap_problems refuses a cap that cannot fail, and passes a saturable one
+  ok   inventory() is deterministic and returns the full candidate set
+  ok   unpinned_sites counts a site unpinned until it carries a disposition
+  ok   ratchet_refusal refuses growth over the base count, and an unreadable base
+  ok   completeness_problems refuses a stale mark and an empty inventory
+  ok   a line shift keeps every disposition; an edit to the pinned text drops it
+  ok   the ledger's canonical form is enforced, and --normalize reaches it
+  ok   an anchor's ordinal counts identical lines within one def, and only there
+  ok   base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent
+  ok   the mutation budget commits no unpinned-site count; the base supplies it
+  ok   the ledger pre-pass runs in the driver before the sampled pool (#1412)
+  ok   --pin-killed drives only the sites the diff added and records the measured kill
+  ok   --pin-killed is wired: new sites from the base's own unpinned list, a pin only from a recorded kill run
+  ok   --pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left
+  ok   mutation-autofix applies only a measured pin whose anchor, text and head this tree still has
+  ok   the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read
+  ok   the row ledger: a deleted row leaves the disk, and a misplaced or non-canonical row is refused
+  ok   the row ledger: --carry-rows refuses a row both sides changed differently, and carries one only the branch changed
+  ok   mutation's measure step grades a run by its own summary, not by the ledger diff
+  ok   mutation-autofix stays quiet exactly on a repair made or none owed
+  ok   every status mutation-autofix's two functions return is classified
+  ok   mutation's measure step runs the base's tool, hidden, and grades by measurement()
+  ok   mutation-autofix runs only after a failed mutation lane on a same-repo pull request
+  ok   a mutant is driven only by the scripts whose closure reaches its file
+  ok   the default driver list can reach tests/manual_plan.py's module (#1225)
+  ok   and the default list still drives nothing into a file no closure reaches
+  ok   the driver net is the recorded gate set minus named exclusions (#1211)
+  ok   the differential golden step is drivable as the gate drives it (#1211)
+  ok   the ref-driven pair skips by the gate's own rule, not a vacuous run (#1211)
+  ok   and ref-driven drivers get run.sh's own resolution (#1211)
+  ok   a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)
+  ok   and only an `equivalent` verdict applies, pinned line text and all (#1217)
+  ok   a triage entry without a verdict, reason or line pin is refused (#1217)
+  ok   the recorded triage marks the D3-07 equivalent, verdict and reason (#1217)
+  ok   and every mark still names a mutant this tree generates, pin and all (#1217)
+  ok   both instruments are classified: NOT_A_TEST, and not on INERT
+  ok   a red baseline on the pull-request scope is INCONCLUSIVE, not a failure
+  ok   and it names the red script, because the report is useless without it
+  ok   and it names each red CHECK, not only the script that carries it (#1134)
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   the nightly scope still refuses with exit 1 on the same baseline
+  ok   a green baseline takes no verdict at either scope; the table proceeds
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   and a passing run yields no failing check name
+  ok   off CI a mutant's stress.py run waits for the gate lease; on a CI runner it runs at once (null control)
+  ok   the baseline drives its drivers over every worker tree at once
+  ok   and the ref-driven shared drivers start first, stress.py last and alone
+  ok   the stress.py baseline shares the runner with no other driver
+  ok   a mutant's stress.py run shares the runner with no other driver, and only a mutant no shared driver killed pays for one
+  ok   a deferred stress.py baseline runs only once a mutant survives every shared driver, once, before that mutant's stress.py run
+  ok   a changed-scope run defers stress.py's baseline, the nightly never does, and main() takes its deferral from that rule
+  ok   a mutant's drivers sweep in the ledger's kill-rate order, every one kept
+  ok   an idle worker helps drive a survivor's remaining drivers
+  ok   a mutant is not LIVES while a helper's driver is still running
+  ok   every verdict is the serial sweep's: killed iff a driver kills it, LIVES only after every driver ran once
+  ok   a changed-scope pool draws only sites on lines the diff modified
+  ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
+  ok   and --scope full still draws from every site
+  ok   the null control is drawn from a file of the line-scoped pool, on a line the diff never touched
+  ok   and an empty pool passes before a null control is sought
+  ok   the null run's tree differs from the baseline tree on exactly the null comment's line, and main() drives it through null_edit
+  ok   the null control runs under every driver in the baseline phase, and its stress.py run shares the runner with nothing
+  .. P8 site ('coordinator.py', '_on_power_event', 'float(raw_state)'): normalize_power_kw
+  .. P8 site ('coordinator.py', '_indoor_humidity_value', 'float(state.state)'): None
+  .. P8 site ('coordinator.py', '_pv_measured_production', 'float(state.state)'): normalize_power_kw
+  ok   every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)
+  ok   null control: a bare read, direct or through a local, is refused
+  ok   const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, not a bare MIN_POWER shorthand
+  ok   optimizer.py names the real min_electrical_power attribute at all (the symbol the comment should point readers at)
+  ok   and optimizer.py's baseline comment itself uses the real name
+  ok   every dependency install in every workflow is hash-pinned (#1548)
+  ok   hash-pin barrier arm: the finder's version-pinned install -> 1 refusal(s)
+  ok   hash-pin barrier arm: a bare package spec beside the flags -> 1 refusal(s)
+  ok   hash-pin barrier arm: a lock generated at run time -> 1 refusal(s)
+  ok   hash-pin barrier arm: an install with no build constraint -> 1 refusal(s)
+  ok   hash-pin barrier arm: a continued npm install and npx -> 2 refusal(s)
+  ok   hash-pin barrier arm: the hashed installs this workflow uses -> 0 refusal(s)
+  ok   hash-pin barrier arm: a hashed install narrowed by --no-deps -> 0 refusal(s)
+  ok   hash-pin barrier arm: an install named only in a comment -> 0 refusal(s)
+  ok   hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   replay control:finite
+  ok   replay control:unit
+  ok   replay control:no_default
+  ok   replay control:agreement:attribute
+  ok   replay control:agreement:plan
+  ok   replay control:agreement:power
+  ok   replay control:agreement:climate
+  ok   replay control:not_frozen
+  ok   replay control:cycle_cost:cpu
+  ok   replay control:cycle_cost:memory
+  ok   replay control:cycle_cost:loose_budget
+  ok   replay control:cycle_cost:unrecorded
+  ok   replay control:cycle_cost:coverage
+  ok   replay sanitised:synthetic-dhw-only.json
+  ok   replay a10_location:synthetic-dhw-only.json
+  ok   replay control:sanitiser_refuses
+  ok   replay control:sanitise_clears
+  ok   replay leak_probe:capital_Latitude:export_drops
+  ok   replay leak_probe:capital_Latitude:check_refuses
+  ok   replay leak_probe:lat_lon_short:export_drops
+  ok   replay leak_probe:lat_lon_short:check_refuses
+  ok   replay leak_probe:coord_list:export_drops
+  ok   replay leak_probe:coord_list:check_refuses
+  ok   replay leak_probe:coord_string:export_drops
+  ok   replay leak_probe:coord_string:check_refuses
+  ok   replay leak_probe:basic_auth_url:export_drops
+  ok   replay leak_probe:basic_auth_url:check_refuses
+  ok   replay leak_probe:apikey_query:export_drops
+  ok   replay leak_probe:apikey_query:check_refuses
+  ok   replay leak_probe:pin_code:export_drops
+  ok   replay leak_probe:pin_code:check_refuses
+  ok   replay leak_probe:psk:export_drops
+  ok   replay leak_probe:psk:check_refuses
+  ok   replay leak_probe:email:export_drops
+  ok   replay leak_probe:email:check_refuses
+  ok   replay leak_probe:serial_mac:export_drops
+  ok   replay leak_probe:serial_mac:check_refuses
+  ok   replay leak_probe:entry_address:export_drops
+  ok   replay leak_probe:entry_address:check_refuses
+  ok   replay leak_probe:entry_url_in_allowed_key:export_drops
+  ok   replay leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   replay leak_probe:state_address:export_drops
+  ok   replay leak_probe:state_address:check_refuses
+  ok   replay leak_probe:n1_options_dict:export_drops
+  ok   replay leak_probe:n1_options_dict:check_refuses
+  ok   replay leak_probe:n2_currency_name:export_drops
+  ok   replay leak_probe:n2_currency_name:check_refuses
+  ok   replay leak_probe:n3_options_address:export_drops
+  ok   replay leak_probe:n3_options_address:check_refuses
+  ok   replay leak_probe:n4_token_in_series:export_drops
+  ok   replay leak_probe:n4_token_in_series:check_refuses
+  ok   replay leak_probe:state_n10_host_path:export_drops
+  ok   replay leak_probe:state_n10_host_path:check_refuses
+  ok   replay leak_probe:n11_host_path_unit:export_drops
+  ok   replay leak_probe:n11_host_path_unit:check_refuses
+  ok   replay leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   replay leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   replay leak_probe:n14_mac_no_colons:export_drops
+  ok   replay leak_probe:n14_mac_no_colons:check_refuses
+  ok   replay synthetic_reproduces
+  ok   the nightly slow job runs the replay lane as its own step
+
+-- Round 9: the judge's batch re-runner
+  ok   judge_batch: a harness whose perturbation moves in the stated direction is reproduced and not void, measured under the gate lease
+  ok   judge_batch: the null control -- a harness whose perturbation does not move is void (judge.md step 2), and one that moves the wrong way is void too
+  ok   judge_batch: no perturbation command is left to the judge by hand, never passed; a number outside the header's tolerance is not reproduced
+  ok   judge_batch: every row carries the harness's load1 and thread_factor, one table row per finding, and the lease is released after the batch
+  ok   judge_batch: to_zero means reaching zero -- 3 -> 1 moves the wrong way and is void; a thread_factor over 1.05 is flagged for a re-take, 1.00 is not
+  ok   judge_batch: a judge_batch override that is not an object is ignored and flagged on its own row, and the batch goes on
+  ok   judge_batch: absolute and relative tolerances hold inside the bound and fail outside it (±0.5: 10.4 yes, 10.6 no; ±5 %: 209 yes, 211 no)
+  ok   judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint shards whose union is the input
+  ok   judge_batch: a perturbation that edits a tracked file is flagged on its row and put back, so the next finding reads the tree it would read alone, and the tree is clean after the batch
+  ok   judge_batch: an edit the command STAGED is restored from HEAD, not from the index it staged, and a new EMPTY file (and its new directory) is noticed and removed; the row says restored only when the re-snapshot agrees
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+
+ALL 1990 ENTITY CHECKS PASSED
