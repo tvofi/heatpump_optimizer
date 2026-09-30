@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:<module> BOOLOP 272065f2",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    \"month\": lambda v, d: len(str(v)) == 7 and _parses(f\"{v}-01\", date.fromisoformat, 10),",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: BOOLOP (`\"month\": lambda v, d: len(str(v)) == 7 or _parses(f\"{v}-01\", date.fromisoformat, 10),`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

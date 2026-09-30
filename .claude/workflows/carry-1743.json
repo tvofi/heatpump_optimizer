@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for round 9's EG-B5 stage (#1743, the DHW planner extraction), from EG-B8 (#1747).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job). The same carry is in the",
+    "R9-EG-B5 brief of the round-9 roster on handoff/audit-r9-fixplan; where the two",
+    "disagree, the newer one is right."
+  ],
+  "issue": 1743,
+  "stage": "round 9's EG-B5 stage: the DHW planner core moves out of HeatPumpOptimizer, and _co_optimize's replan becomes a planner call",
+  "carries": [
+    {
+      "from": "the pull request that lands round 9's EG-B8 (roster group R9-EG-B8: fixes #1747) -- the co-optimisation replan given the DHW mode block, and DhwProfileLearner.normalize_profile made a projection",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. On the tests/golden.py wood_coil scenario, DHW-blocked with its external-heat forecast and prices shifted by -2.0 (68 of 96 steps negative), the replan without the block shipped 9.22 kWh of DHW heat and reported a 0.629 K tank-floor breach; given the block it ships none and reports 20.81 K. The control is the same scenario at a shift of 0.0, where the replan is not adopted and both arms ship none.",
+      "remeasure": "Do not trust these figures: they are measured at EG-B8's head. Re-run tests/features.py at your merge base and read the check \"a DHW-blocked plan ships no hot water when mostly negative prices tempt the co-optimisation replan (#1747)\" and its companion \"and every DHW build that solve made was told the mode is blocked\".",
+      "brief": "When the replan in `_co_optimize` becomes a planner call, it keeps the block the first build receives (`blocked=h.dhw_blocked`): after EG-B8 the only keyword the two `_build_dhw_requirements` calls may differ in is `space_demand`, the space profile the replan exists to price. The class is a second call site omitting a defaulted keyword the first passes; EG-B8's pull-request body carries the AST enumerator it ran over optimizer.py (10 seams at its head, each dispositioned). Run it on the new planner module and on optimizer.py after the move, and disposition every seam it returns."
+    }
+  ]
+}

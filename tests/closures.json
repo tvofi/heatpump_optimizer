@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 107.4,
+   "seconds": 88.6,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 15.7,
+   "seconds": 11.5,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 7.1,
+   "seconds": 4.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 45.7,
+   "seconds": 19.1,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,95 +22,95 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 36.4,
+   "seconds": 28.7,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 247.1,
-   "rc": 1
+   "seconds": 69.4,
+   "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 99.1,
-   "rc": 0
-  },
-  "tests/features.py": {
-   "seconds": 387.6,
-   "rc": 0
-  },
-  "tests/frontend.py": {
-   "seconds": 0.1,
-   "rc": 0
-  },
-  "tests/golden.py": {
-   "seconds": 379.4,
-   "rc": 0
-  },
-  "tests/manual_plan.py": {
-   "seconds": 8.0,
-   "rc": 0
-  },
-  "tests/open_meteo.py": {
-   "seconds": 0.7,
-   "rc": 0
-  },
-  "tests/optimality.py": {
-   "seconds": 213.5,
-   "rc": 0
-  },
-  "tests/plan_view.py": {
-   "seconds": 1.5,
-   "rc": 0
-  },
-  "tests/solar_alignment.py": {
-   "seconds": 1.2,
-   "rc": 0
-  },
-  "tests/stress.py": {
-   "seconds": 452.0,
-   "rc": 0
-  },
-  "tests/structure.py": {
-   "seconds": 4.2,
-   "rc": 0
-  },
-  "tests/validate.py": {
-   "seconds": 35.9,
-   "rc": 0
-  },
-  "tests/deployment_shape.py": {
-   "seconds": 4.9,
-   "rc": 0
-  },
-  "tests/ha_contract.py": {
-   "seconds": 0.3,
-   "rc": 0
-  },
-  "tests/typing_ruler.py": {
    "seconds": 0.4,
    "rc": 0
   },
-  "tests/guard_pins.py": {
-   "seconds": 1.4,
+  "tests/features.py": {
+   "seconds": 361.8,
    "rc": 0
   },
-  "tests/wood_advisor.py": {
-   "seconds": 1.2,
+  "tests/frontend.py": {
+   "seconds": 0.0,
    "rc": 0
   },
-  "tests/harness_headers.py": {
-   "seconds": 208.1,
+  "tests/golden.py": {
+   "seconds": 0.4,
    "rc": 0
   },
-  "tests/doc_claims.py": {
+  "tests/manual_plan.py": {
    "seconds": 5.1,
    "rc": 0
   },
+  "tests/open_meteo.py": {
+   "seconds": 0.2,
+   "rc": 0
+  },
+  "tests/optimality.py": {
+   "seconds": 166.9,
+   "rc": 0
+  },
+  "tests/plan_view.py": {
+   "seconds": 0.8,
+   "rc": 0
+  },
+  "tests/solar_alignment.py": {
+   "seconds": 0.6,
+   "rc": 0
+  },
+  "tests/stress.py": {
+   "seconds": 401.3,
+   "rc": 0
+  },
+  "tests/structure.py": {
+   "seconds": 2.8,
+   "rc": 0
+  },
+  "tests/validate.py": {
+   "seconds": 26.9,
+   "rc": 0
+  },
+  "tests/deployment_shape.py": {
+   "seconds": 1.7,
+   "rc": 0
+  },
+  "tests/ha_contract.py": {
+   "seconds": 0.2,
+   "rc": 0
+  },
+  "tests/typing_ruler.py": {
+   "seconds": 0.2,
+   "rc": 0
+  },
+  "tests/guard_pins.py": {
+   "seconds": 0.6,
+   "rc": 0
+  },
+  "tests/wood_advisor.py": {
+   "seconds": 0.6,
+   "rc": 0
+  },
+  "tests/harness_headers.py": {
+   "seconds": 176.3,
+   "rc": 0
+  },
+  "tests/doc_claims.py": {
+   "seconds": 2.5,
+   "rc": 0
+  },
   "tests/finite_boundary.py": {
-   "seconds": 36.9,
+   "seconds": 46.1,
    "rc": 0
   },
   "tests/md_tables.mjs": {
-   "seconds": 3.4,
+   "seconds": 0.2,
    "rc": 0
   }
  },
@@ -1709,7 +1709,10 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/curve_learning.py",
+   "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",

@@ -54,20 +54,16 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.11
+# claims-for: 6.7.12
 #
 # v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-away_setback # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-capacity_tariff # R9-F2.4 D12-s2-01: 16 leaves, heat_pump_on_schedule False -> True
-dhw_cold_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
-horizon_48h # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-mild_windy_rain # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-start_below_band # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
-valve_storage_flat_prices # R9-F2.4 D12-s2-01: 14 leaves, heat_pump_on_schedule False -> True
-valve_storage_low_target # R9-F2.4 D12-s2-01: 7 leaves, heat_pump_on_schedule False -> True
-valve_storage_small_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
+coord_all_features # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
+coord_dhw # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
+coord_grid_fee # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
+coord_minimal # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
+coord_two_zone # R9-EG-B8: 48 leaves, dhw_usage_profile seeded projected (hours 01-03 up to 0.2, the rest down x0.9878)
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -641,3 +637,15 @@ valve_storage_small_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule Fa
 # are the fixtures carrying a published power, are byte-identical: this PR's D8
 # arm gates entity.commanded_power_kw on the action's own heat_pump_on and moves
 # no published number in any fixture that has one.
+#
+# R9-EG-B8 (#1747's carry from F9.3's review): DhwProfileLearner seeds its
+# hourly profile through normalize_profile, now a projection, instead of
+# holding the shipped DHW_HOURLY_DRAW_PATTERN raw. Every moved leaf is one of
+# the 24 cells of the published dhw_usage_profile, in data and in the
+# predictive_insight sensor's attribute (48 per capture); no plan, cost or
+# power leaf moves. Direction: hours 01-03 rise from 0.103896 to the 0.2 floor
+# and every other hour falls by the same factor (0.207792 -> 0.205263), mean
+# held at 1.0 -- the profile a base install already published after its first
+# restart. Measured against 3dfebc16 by tests/env_drift.py --all with the
+# inherited list emptied (Linux cloud box, CPython 3.14.7, pinned
+# requirements-ci, OPENBLAS_CORETYPE=Haswell, 1 thread).

@@ -159,7 +159,7 @@ class Cusum:
         if not isinstance(data, dict):
             return
         try:
-            self.stat = max(0.0, float(data.get("stat", 0.0)))
+            self.stat = min(max(0.0, float(data.get("stat", 0.0))), self.threshold * STAT_CAP_FACTOR)
         except (TypeError, ValueError, OverflowError):
             self.stat = 0.0
         # `is True`, not truthiness: a corrupt payload ("tripped": "yes")

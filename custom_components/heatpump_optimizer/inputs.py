@@ -310,7 +310,7 @@ def state_unit(state: Any) -> Any:
 def _finite(raw: Any) -> float | None:
     try:
         value = float(raw)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return value if math.isfinite(value) else None
 
