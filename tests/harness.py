@@ -437,9 +437,15 @@ class FakeEntry:
         self._on_unload = []
         # The names of the background tasks handed to the entry, in order.
         self.background_tasks: list[str] = []
+        # Reauth flows the entry was asked to start (D10-s1-03).
+        self.reauth_starts = 0
 
     def add_update_listener(self, listener):
         return lambda: None
+
+    def async_start_reauth(self, hass, context=None, data=None):
+        """Upstream opens the flow once and ignores repeats; this counts calls."""
+        self.reauth_starts += 1
 
     def async_on_unload(self, func):
         self._on_unload.append(func)

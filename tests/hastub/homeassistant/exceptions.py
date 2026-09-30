@@ -56,3 +56,13 @@ class ConfigEntryNotReady(IntegrationError):
     callbacks and nothing else (#236) -- so the stub carries the real class,
     not a look-alike, for a test to exercise the retry path honestly.
     """
+
+
+class ConfigEntryAuthFailed(IntegrationError):
+    """The config entry's credential was refused; reauthenticate.
+
+    Upstream (``exceptions.py:218``): raised from an update, the base class
+    latches the failure and starts the entry's reauth flow on a steady
+    refresh, and lets it escape the first refresh, where setup marks the
+    entry for reauthentication instead of retrying it (D10-s1-03).
+    """

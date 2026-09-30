@@ -6531,10 +6531,24 @@ R.check(
 )
 # The plan sensors publish it beside setup_topology, on both the empty-plan
 # path and the populated one, from the same live power series the #699
-# advisor reads -- the history arm of the replay.
+# advisor reads -- the history arm of the replay. D9-s2-01: the coordinator
+# ranks it once per cycle (``_with_sensor_advisor``, off the loop) and the
+# sensors only read the cached answer, so the data here goes through that
+# helper first, its executor run inline.
+class _AdvHass(FakeHass):
+    async def async_add_executor_job(self, func, *args):
+        return func(*args)
+
+
+def _adv_cycle(data, config):
+    return asyncio.run(coordinator_module._with_sensor_advisor(
+        FakeCoordinator(data, _config=dict(config), hass=_AdvHass()), dict(data)
+    ))
+
+
 def _adv_plan_attrs(data, config):
     return sensor.SpaceHeatingPlanSensor(
-        FakeCoordinator(data, _config=dict(config)), ENTRY
+        FakeCoordinator(_adv_cycle(data, config), _config=dict(config)), ENTRY
     ).extra_state_attributes
 
 _adv_attrs = _adv_plan_attrs({"heat_pump_power_series": [3.0, 3.0]}, _adv_two_zone)
@@ -6553,6 +6567,26 @@ R.check(
     "a fully wired install's plan sensor publishes no advisor key (#1269)",
     "sensor_advisor" not in _adv_plan_attrs({}, _adv_full),
     "the attribute must be absent, not empty, when nothing can be ranked",
+)
+_adv_cached = _adv_cycle({"heat_pump_power_series": [3.0, None, "x", 3.0]}, _adv_two_zone)
+_adv_real_rank, _adv_reads = topology.rank_sensor_advisor, []
+topology.rank_sensor_advisor = lambda *a, **k: _adv_reads.append(1)
+try:
+    _adv_read_attrs = [
+        cls(FakeCoordinator(_adv_cached, _config=dict(_adv_two_zone)), ENTRY)
+        .extra_state_attributes.get("sensor_advisor")
+        for cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor)
+    ]
+finally:
+    topology.rank_sensor_advisor = _adv_real_rank
+R.check(
+    "D9-s2-01: both plan sensors publish the cycle's cached ranking without "
+    "re-ranking it, and the cycle drops the series' holes as the sensor did",
+    not _adv_reads
+    and _adv_read_attrs == [_adv_cached.get("sensor_advisor")] * 2
+    and _adv_cached.get("sensor_advisor")
+    == topology.rank_sensor_advisor(_adv_two_zone, hp_kw=[3.0, 3.0]),
+    f"re-ranked {len(_adv_reads)} time(s); published {_adv_read_attrs!r}",
 )
 R.check(
     "the advisor attribute is unrecorded like its siblings (#1269)",
@@ -9821,8 +9855,12 @@ _ATTR_RICH = {
 
 
 def _attr_coordinator(data):
-    """A ``collect`` coordinator that every publisher can be read through."""
-    coord = FakeCoordinator(data)
+    """A ``collect`` coordinator that every publisher can be read through.
+
+    Its data carries what a cycle publishes for the plan sensors' advisor
+    (D9-s2-01), so the key sets below are the ones a real cycle yields.
+    """
+    coord = FakeCoordinator(_adv_cycle(data, {}))
     coord._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
     # ``SolarHeatGainSensor`` reads ``coordinator._thermal_params`` rather
     # than the published data, so it needs the real object a real
@@ -26818,6 +26856,13 @@ R.check(
     "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
 )
+
+# P10 (#1658): the replayed day's model kernels, counted by the route they ran
+# on, in three arms (the tree, the process route made unusable, a sysid night
+# armed through its fit). Red at 3dfebc16: the sensor-advisor re-simulated on
+# the loop in every arm and the fit ran there in the third.
+for _rp_name, _rp_ok, _rp_detail in _replay.kernel_checks():
+    R.check(_rp_name, _rp_ok, _rp_detail)
 
 
 # --- round 9's judge re-runner (PLAN R3) ---
