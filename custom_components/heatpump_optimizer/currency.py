@@ -30,10 +30,10 @@ _SYMBOL_CODES = {"€": "EUR", "£": "GBP", "zł": "PLN"}
 #: figure is enterable. Order of magnitude only: an absent code is 1, which
 #: leaves every currency near or above the krona exactly as it was.
 _UNITS_PER_SEK = {
-    "ARS": 200.0, "CLP": 100.0, "COP": 500.0, "CZK": 5.0, "HUF": 50.0,
-    "IDR": 2000.0, "INR": 10.0, "ISK": 20.0, "JPY": 20.0, "KRW": 200.0,
-    "KZT": 100.0, "NGN": 200.0, "PHP": 10.0, "PKR": 50.0, "RSD": 20.0,
-    "RUB": 10.0, "THB": 5.0, "TWD": 5.0, "UAH": 5.0, "VND": 5000.0,
+    "ARS": 200, "CLP": 100, "COP": 500, "CZK": 5, "HUF": 50,
+    "IDR": 2000, "INR": 10, "ISK": 20, "JPY": 20, "KRW": 200,
+    "KZT": 100, "NGN": 200, "PHP": 10, "PKR": 50, "RSD": 20,
+    "RUB": 10, "THB": 5, "TWD": 5, "UAH": 5, "VND": 5000,
 }
 
 
@@ -62,6 +62,6 @@ def declared_currency(unit: Any, attributes: Any = None) -> str | None:
     return code
 
 
-def money_scale(currency: Any) -> float:
+def money_scale(currency: Any) -> int:
     """How many of ``currency``'s whole units a SEK-sized bound spans."""
-    return _UNITS_PER_SEK.get(str(currency or "").upper(), 1.0)
+    return _UNITS_PER_SEK.get(str(currency or "").upper(), 1)
