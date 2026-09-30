@@ -986,10 +986,10 @@
         "R9-F5.2"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "fixing",
         "branch": "handoff/r9-f2-solver-4",
         "commit": null,
-        "last_step": null,
+        "last_step": "opus seat in flight since 2026-09-29T23:0xZ (dispatched at F1.6 merge; rev 3.1 mandates relayed 2026-09-29T23:5xZ)",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
         "note_file": "handoff/round9/fix/resume/F2.4.md on handoff/r9-f2-solver-4",
         "review_branch": "handoff/r9-f2-solver-4-review",
@@ -2117,10 +2117,10 @@
         "R9-F1.6"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "fixing",
         "branch": "handoff/r9-f9-test-pins-3",
         "commit": null,
-        "last_step": null,
+        "last_step": "opus seat in flight since 2026-09-29T23:0xZ; rev 3.1 mandates relayed",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
         "note_file": "handoff/round9/fix/resume/F9.3.md on handoff/r9-f9-test-pins-3",
         "review_branch": "handoff/r9-f9-test-pins-3-review",
@@ -3487,10 +3487,10 @@
         "R9-F1.6"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "fixing",
         "branch": "handoff/r9-eg-solve-lifecycle",
         "commit": null,
-        "last_step": null,
+        "last_step": "opus seat in flight since 2026-09-29T23:0xZ; Root-cause sections owed on #1754/#1755 at hand-off",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-B10.md on handoff/r9-eg-solve-lifecycle",
         "review_branch": "handoff/r9-eg-solve-lifecycle-review",
@@ -3986,10 +3986,10 @@
         "R9-F7.4"
       ],
       "resume": {
-        "stage": "not-started",
-        "branch": "handoff/r9-f7-entities-5",
+        "stage": "fixing",
+        "branch": "handoff/r9-f7-family-splits",
         "commit": null,
-        "last_step": null,
+        "last_step": "sonnet seat dispatched 2026-09-30T00:0xZ from origin/main; reviewer dispatch at push",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
         "note_file": "handoff/round9/fix/resume/F7.5.md on handoff/r9-f7-entities-5",
         "review_branch": "handoff/r9-f7-entities-5-review",
@@ -4093,10 +4093,10 @@
       "blocked_on": null,
       "after": [],
       "resume": {
-        "stage": "not-started",
-        "branch": "handoff/r9-eg-legacy-close",
+        "stage": "fixing",
+        "branch": "handoff/r9-eg-l0",
         "commit": null,
-        "last_step": null,
+        "last_step": "opus seat dispatched 2026-09-30T00:0xZ; carries must land before destination groups start; reviewer at push",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-L0.md on handoff/r9-eg-legacy-close",
         "review_branch": "handoff/r9-eg-legacy-close-review",
