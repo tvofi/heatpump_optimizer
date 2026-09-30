@@ -37,22 +37,22 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 79
+records every read, so this lane's recorded closure is the package: all 85
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (78 until R9 F2.5's ``batchmath.py``) -- the only closure in ``tests/closures.json`` that reaches every
+alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+images) -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 70 of the 378 script pairs (28 choose 2) sharing 0.80 or more
-of their production-module closure, all 70 among the 276 pairs whose two
+recording finds 67 of the 378 script pairs (28 choose 2) sharing 0.80 or more
+of their production-module closure, all 67 among the 276 pairs whose two
 scripts each have a non-empty production closure (``tests/ha_contract.py``,
 ``tests/harness_headers.py``, ``tests/layout.py`` and ``tests/md_tables.mjs``
-have none). Fifteen of the pairs sit at
-exactly 1.00 -- structure.py/typing_ruler.py (65 shared production files),
-doc_claims.py/finite_boundary.py, doc_claims.py/structure.py,
-doc_claims.py/typing_ruler.py, finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (65 each), plan_view.py/solar_alignment.py
-(46), the optimality.py/validate.py/edge.py/backtest.py four (11, six pairs),
-golden.py/env_drift.py (75), card.mjs/card_drift.mjs (47) -- and which
+have none). Twelve of the pairs sit at
+exactly 1.00 -- structure.py/typing_ruler.py (67 shared production files),
+finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (67
+each), plan_view.py/solar_alignment.py (50), the optimality.py/validate.py/
+edge.py/backtest.py four (14, six pairs), golden.py/env_drift.py (83),
+card.mjs/card_drift.mjs (51) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here
