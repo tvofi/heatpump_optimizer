@@ -1,5 +1,25 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.11
+
+round-9 waves F1.5 and F1.6 land the coordinator's P1 magnitude boundary — a fabricated forecast can no longer cross the persisted-value barrier (the class census moves 95 to 0 over 4,706 mutants) — with cycle failures, worker spawn and stop, forecast-seeded outdoor state and blocked defrost inference (F1.5); the D8 entity-defect trio (F7.2) and the declared-family contiguity check with its budget raise recorded honestly (F7.4); EG-B9's sev:high copy-before-boost fix; the record-class merge self-disposal that ends the record-PR row recursion (#1750); and the round-9 register completes onto main: evidence tree, round-8 harness salvage, seat tooling, the roster generator and the pre-study plans, with the delivery-row backlog drained (#1773).
+
+- #1750 — fix(governance): record-class merges are self-disposing — ends the record-PR row recursion
+- #1751 — fix: cycle failures, worker spawn and stop, forecast-seeded outdoor state, blocked defrost inference (round-9 F1.5)
+- #1761 — record: ALT rev-2 adoption — dispositions for #1752-#1760; #1070 row corrected
+- #1762 — record: register decision 3 defined — P2/I5 split deferred to round 10, detector-first pre-study (tvofi 2026-09-29)
+- #1763 — data(R9-EG-R0): land register v2 as tools/audit/bugclasses.json, the class RCAs and the widened class_guess enum
+- #1764 — fix: three D8 entity-defect fixes (round-9 F7.2, #1644, #1669)
+- #1765 — fix: boost overlay acts on a copy; tile and advisor stop borrowing the what-if cache (R9-EG-B9)
+- #1766 — ratchet(budgets): raise dead_top_level_symbols 0 -> 1 for the #1760 family declaration
+- #1767 — fix: the P1 magnitude boundary, plausibility windows and store-read seams (round-9 F1.6)
+- #1768 — frictions: dispose #1640/#1700/#1706/#1712
+- #1769 — record: round-9 evidence harnesses and rounds-1–8 salvage keepers (register tranche 1)
+- #1770 — record: delivery rows for the frictions/EG-B9/F7.x stretch + round-8 citation note
+- #1771 — record: seat tooling, the round-9 generator, and the pre-study plans (register tranche 2)
+- #1772 — record: the delivery row for #1769
+- #1773 — record: the delivery row for #1767 (the fixer's hand-off claimed one; none existed — failing-forward fix, governance record lane red at f88e6af8)
+
 ## v6.7.10
 
 round-9 wave: the config flow speaks the frontend's language and stops re-offering finished paths (#1668), the solver's recompute lanes are vectorised (the winter capacity-tariff solve runs 2.9x faster with a bit-identical objective), and restart durability is fixed at the payload level — a racing startup save can no longer overwrite persisted learned state, with the barrier now reading the restart after the race (#1662, #1681).
