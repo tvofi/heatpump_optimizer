@@ -66,16 +66,16 @@ with a reason, or refused. Source: ALT-ENDGAME-PLAN.md on handoff/audit-r9-alt
 
 | issue | disposition |
 |---|---|
-| #1736 | **scheduled — R9-EG-B0 (root-cause seat, now) then R9-EG-B1** (per-solve immutable inputs; after the fix stamp) |
+| #1736 | **open — RCA landed (R9-EG-B0 done: RCA-1736 posted on #1736, comment 5877263448; obligations carried into the fix group)**; fix scheduled — **R9-EG-B1** (per-solve immutable inputs; after F10.6, F11.5, EG-B4, EG-B5, EG-B10) |
 | #1737 | **scheduled — R9-EG-B3** (typed payload contract; after F10.4 and EG-B2) |
-| #1738 | **scheduled — carry A1 into R9-F10.4** (the ratchet re-prices decomposition; arm (c) is a raise needing tvofi's confirmation before the push) |
+| #1738 | **scheduled — carry A1 into R9-F10.4** (the ratchet re-prices decomposition; arm (c) settled by decision R3-2 2026-09-29: `classes_over_300` is RETIRED by the metric review F10.4 lands, so no raise; the eleven-defect addendum is comment 5901009400) |
 | #1739 | **scheduled — R9-EG-B2** (surface identity, after F1.11) **and R9-EG-B6** (collaborator interfaces, after EG-B1) |
 | #1740 | **scheduled — carry A4 into R9-F10.1b** (store versions, P11) **and R9-EG-B4** (the version seam) |
 | #1741 | **scheduled — carry A2 into R9-F1.10** (the step-start clock defined twice; the 8-site ambient literal) |
 | #1742 | **scheduled — R9-EG-B2** (identity pinned at 9 constructors; two private config copies) |
 | #1743 | **scheduled — R9-EG-B5a then R9-EG-B5** (the DHW planner split, tvofi opted in 2026-09-28; preconditions in alt/EG-B5-DESIGN.md §7) |
 | #1744 | **scheduled — R9-EG-B7**, measured go/no-go after EG-B1 and EG-B6 (where a seam's cut does not fall, the halt is recorded on #1744 with the numbers) |
-| #1745 | **deferred to round 10** (typed configuration, after EG-B1; the 281 `.get(CONF_…)` reads are the enumerator) |
+| #1745 | **scheduled — R9-EG-B11** (typed entry configuration, read once per entry; rev 3.1 moved it back from round 10 — after EG-B1 and EG-A3) |
 | #1747 | **scheduled — R9-EG-B8** (behaviour fix under the normal fix protocol, after F2.4 and before EG-B5; root-cause section owed on the issue) |
 | #1748 | **scheduled — carry into R9-F10.3** (the per-site ratchet is blind to a move; the carry must be in the tree before F10.3 starts) |
 
@@ -87,17 +87,63 @@ handoff/audit-r9-fixplan (66 groups).
 
 | issue | disposition |
 |---|---|
-| #1752 | **scheduled — R9-EG-B9** (sev:high behaviour fix; in the F1 serial slot after F1.5, before F1.6; normal fix protocol + Root cause on the issue) |
-| #1753 | **scheduled — R9-EG-B9** (the tile/advisor stop borrowing the what-if cache; same PR) |
+| #1752 | **CLOSED — R9-EG-B9 merged as #1765 at `5395394d`** (sev:high behaviour fix; Root cause on the issue landed with the PR) |
+| #1753 | **CLOSED — R9-EG-B9 merged as #1765 at `5395394d`** (the tile/advisor stop borrowing the what-if cache; same PR) |
 | #1754 | **scheduled — R9-EG-B10** (dropped re-solve; after EG-B9 + F1.6) |
 | #1755 | **scheduled — R9-EG-B10** (per-entry fallback streak; same PR) |
 | #1756 | **scheduled — R9-F10.1c** (new, tests only: config + straddle arms for the P7 tracer) |
 | #1757 | **scheduled — R9-F11.7** (new: governance graders under graders-head-copy; #1721 trigger 2) |
 | #1758 | **scheduled — R9-F10.7** (instrument-first: the v6.6.0 freeze undiagnosed; tvofi runs the host profiler) |
-| #1759 | **scheduled — R9-EG-R0** (register v2 data, tvofi reviews the move list) **then R9-EG-R1** (the fold; owner-gated policy clauses) |
-| #1760 | **scheduled — R9-F7.4** (declared entity families + one contiguity check; after F7.2) |
+| #1759 | **open — R9-EG-R0 merged as #1763 at `89d1ddf5`** (register v2 data landed); fold scheduled — **R9-EG-R1** (policy clauses adopted as specified per decision D5) |
+| #1760 | **CLOSED — R9-F7.4 merged as #1766 at `3defa2d5`** (declared entity families + one contiguity check) |
 | P2/I5 catch-all split | **deferred to round 10, pre-study first** (register decision 3, tvofi 2026-09-29): the detectors miss most members, so the split follows what a detector can check; the reclassification machinery (build_v2.py / rows_v2.tsv) is live by then, EG-B1's typed payload will have landed, and R1's permanent fold supplies the data. The round-10 pre-study measures detector candidates against both classes' members before any rows move. |
 | #1070 (row correction) | the row's "root-cause seat in flight" was false: no seat ran, and the band landed as #1124. Corrected in this PR. |
+
+## Round-9 ALT rev-3.1 dispositions (2026-09-30, adoption)
+
+Per `delivery-status-tracking.md` step 5. Source: ALT-ENDGAME-PLAN.md rev 3.1 on
+handoff/audit-r9-alt @991930ee/8bba3f4a (tvofi's decisions R3-1..R3-6, D5-D12 given;
+the mandate to programme completion). Roster rev 3.1 adopted at
+handoff/audit-r9-fixplan @692da932: 73 groups, acyclic, brief_lint TOTAL 0, every
+open issue has a closing group.
+
+| issue | disposition |
+|---|---|
+| #1774 | **scheduled — R9-EG-A1** (report-only architecture score with its calibration self-check, after F10.4) **then R9-EG-A4** (the required check, decision R3-6, the programme's last PR; the ruleset required-context addition is a tvofi settings action, recorded on #201) |
+| #1775 | **scheduled — R9-EG-A2** (one copy per formula and helper, `dup_pairs_v1` 121 to <=40; after EG-A1, EG-B3, EG-B5; may move solver floats — claim drift with its direction, never re-record) |
+| #1776 | **scheduled — R9-EG-A3** (parameter objects for solver and planner signatures; after EG-B1 and EG-B5) |
+| #1777 | **scheduled — R9-F7.5** (the three recorded family splits renamed — display strings only, no `translation_key`, `unique_id` or entity id, decision R3-4; startable now in W0) |
+| #1655 | **EG-L0: re-measure then close** — closed with R9-F4.2's record or the remainder scheduled into its owning group |
+| #1167 | **EG-L0: re-measure then close** ([D0-01] Solver polish that improves <2% is discarded (up to 6% of a da) |
+| #1168 | **EG-L0: re-measure then close** ([D0-02] Polish runs on only one candidate, others never polished) |
+| #1170 | **EG-L0: re-measure then close** ([D2-01] Capacity term's soft top-k under-charges the peak) |
+| #1171 | **EG-L0: re-measure then close** ([D3-01] Mutation instrument's driver set is not the gate's) |
+| #1173 | **EG-L0: re-measure then close** ([D3-03] flow_setpoint emitter-UA floor untested (ZeroDivisionError)) |
+| #1174 | **EG-L0: re-measure then close** ([D3-04] cheaper_hour_count non-positive-COP guard untested) |
+| #1175 | **EG-L0: re-measure then close** ([D3-05] StartCounter already-running early return untested) |
+| #1176 | **EG-L0: re-measure then close** ([D3-06] SystemIdentification plausible-bounds refusal untested) |
+| #1177 | **EG-L0: re-measure then close** ([D3-07] 2 of 7 mutation survivors are equivalent mutants, not separate) |
+| #1178 | **EG-L0: re-measure then close** ([D3-08] deployment_shape closure is 74/74; 53 script pairs share >=0.8) |
+| #1179 | **EG-L0: re-measure then close** ([D4-01] Setup click-to-assign rows are 11.7-14.6px, under WCAG 24px fl) |
+| #1180 | **EG-L0: re-measure then close** ([D4-02] Picker .sp-filter input is 23.19px, 0.81px under the floor) |
+| #1181 | **EG-L0: re-measure then close** ([D4-03] Card sv is missing stats.delta_detail_same (English leaks to S) |
+| #1182 | **EG-L0: re-measure then close** ([D5-01] Platform docstrings undercount their entity rosters by 7) |
+| #1183 | **EG-L0: re-measure then close** ([D5-02] __init__ '40 modules' note is stale (reach is 45)) |
+| #1184 | **EG-L0: re-measure then close** ([D5-03] Two 'How the pieces fit' diagrams drifted (1 node + 1 edge)) |
+| #1185 | **EG-L0: re-measure then close** ([D7-01] Mutation gate default driver list omits the module's own test ) |
+| #1187 | **EG-L0: re-measure then close** ([D8-02] Entity-id sort splits families into 13 runs) |
+| #1188 | **EG-L0: re-measure then close** ([D8-03] 'Euro' advisor publishes the instance currency (SEK default)) |
+| #1189 | **EG-L0: re-measure then close** ([D9-01] Stress gate's work meter misses single-scenario cost-only regr) |
+| #1190 | **EG-L0: re-measure then close** ([D9-02] _apply_dhw_min_run re-simulates the whole horizon per weak slo) |
+| #1191 | **EG-L0: re-measure then close** ([D11-01] hpo-stamp deploy key bypass is 'always', skipping all 4 main-) |
+| #1193 | **EG-L0: re-measure then close** ([D11-03] Reviewer != author is not enforced; the gate approves the aut) |
+| #1196 | **EG-L0: re-measure then close** ([D11-06] dismiss_stale_reviews_on_push=false contradicts 0008's record) |
+| #1197 | **EG-L0: re-measure then close** ([D12-01] No-DHW plant still publishes dhw_windows/dhw_min_temperature ) |
+| #1198 | **EG-L0: re-measure then close** ([D13-01] Friction histogram's top row is PR trailers, not friction) |
+| #1199 | **EG-L0: re-measure then close** ([D13-02] 16 of 30 blocked verdicts are outside the wave grammar) |
+| #1200 | **EG-L0: re-measure then close** ([D13-03] Verdict histogram emits one key and its note says otherwise) |
+| #1201 | **EG-L0: re-measure then close** ([D13-04] Carried GOV set understates governance cost by 7%) |
+| #1204 | **EG-L0: re-measure then close** ([D8-01-followup] Sensor-Gap Advisor probe terms have no upstream data ) |
 
 ## Delivery status
 
