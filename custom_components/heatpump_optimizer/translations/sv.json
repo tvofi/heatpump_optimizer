@@ -1740,7 +1740,7 @@
         "name": "Ackumulatortankens temperatur (modell)"
       },
       "compressor_frequency_advisor": {
-        "name": "Rådgivare för kompressorfrekvens"
+        "name": "Kompressorfrekvensrådgivare"
       },
       "compressor_starts": {
         "name": "Kompressorstarter"
@@ -2000,7 +2000,7 @@
     },
     "datetime": {
       "away_return": {
-        "name": "Förväntad hemkomst"
+        "name": "Borta förväntad hemkomst"
       }
     }
   },
