@@ -4,7 +4,71 @@ Seat: opus fixer, high effort. Lane EG, group R9-EG-B10, class architecture,
 `rca: false` — the Root-cause sections were posted on the issues by this seat
 (#1754 comment 5902898846, #1755 5902899081).
 
-## State (round 2, current)
+## State (round 3: the mutation lane, current)
+
+- Blocker at 6e062c77: the REQUIRED `mutation` lane refused 8 new unpinned
+  sites (ratchet base a15e3e33); its pin step timed out at 60 min and
+  `mutation-autofix` reported skip-no-measurement, so the human path ran.
+- A replacement fixer seat (the round-2 seat died with its session) did it in
+  hpo-ci (OPENBLAS_CORETYPE=Sandybridge, host lease `eg-b10-mut`):
+  - `8db464b8` merge origin/main (a15e3e33; docs-only: HANDOVER.md, the plan),
+    made by the dead seat and kept. The branch is still a fast-forward over 6e062c77.
+  - `c09615f4` a features.py check (#1755 section): two entries failing on
+    different causes raise the shared notice once per cause. It kills
+    `_note_worker_fallback GUARD_OFF e62e06b9`, which survived every driver
+    because the stub issue registry replaces in place. Test-first: under the
+    mutant, features.py `1 of 3589 FEATURE CHECKS FAILED` (this check only);
+    restored, the pin run's features baseline was rc=0 failed=0.
+  - `2f602e19` ledger: `--pin-killed` over all 8 → `PIN KILLED: 7 pinned, 1 left
+    unpinned`. 7 killed_by rows were written by the tool, all by tests/features.py. The
+    survivor `_worker_fallback_streak GUARD_OFF c1f18a7a` has a hand-written
+    survivor_triage row, `equivalent` (an unreachable guard; its one caller
+    guarantees a dict). Diff probe: 32028 cases, 0 differing; control 18/51.
+  - The dead seat's earlier 6 killed_by files (untracked, no summary line in
+    its log) were moved aside to `/Users/timmalmstrom/eg-b10-mut-scratch/predecessor-pins/`
+    and re-measured, not reused.
+- The 8 sites (anchors in coordinator.py, lines at the round-3 head):
+
+  | line | anchor | status |
+  |---|---|---|
+  | 1317 | `_note_worker_fallback GUARD_OFF e62e06b9` | killing check (c09615f4), pinned killed_by features.py |
+  | 1342 | `_clear_worker_fallback GUARD_OFF 5e16cb51` | pinned, killed_by features.py (rc=1 failed=2) |
+  | 1344 | `_clear_worker_fallback GUARD_OFF eba44586` | pinned, killed_by features.py (rc=1 failed=2) |
+  | 1353 | `_worker_fallback_streak GUARD_OFF c1f18a7a` | triage `equivalent` (unreachable), diff probe |
+  | 1366 | `_bump_worker_fallback GUARD_OFF c1f18a7a` | pinned, killed_by features.py (rc=1 failed=10) |
+  | 1377 | `_reset_worker_fallback_streak GUARD_OFF 324f8163` | pinned, killed_by features.py (rc=1 failed=2) |
+  | 5464 | `async_run_optimization GUARD_OFF 502b669f` | pinned, killed_by features.py (rc=1 failed=2) |
+  | 5464 | `async_run_optimization BOOLOP 502b669f` | pinned, killed_by features.py (rc=124 failed=1: a timeout kill, the `or` makes the rerun loop spin) |
+
+- Commands (host, from the worktree; the lane script is
+  `/Users/timmalmstrom/eg-b10-mut-scratch/lane.sh`, run via `host.sh`):
+  - `python3 tests/gate_lock.py auto-lease --label eg-b10-mut -- docker exec -w <worktree> hpo-ci bash <scratch>/lane.sh`,
+    where lane.sh sets `OPENBLAS_CORETYPE=Sandybridge` and runs:
+    (a) `PYTHONPATH=tests/hastub python tests/features.py` in the mutant worktree
+    `/Users/timmalmstrom/eg-b10-mutA` (line 1317 → `if False:`) → `A-red rc=1`,
+    `1 of 3589 FEATURE CHECKS FAILED`, the new check;
+    (b) `python <scratch>/probe_streak.py <worktree>` → `PROBE: 32028 cases ... 0 differing`,
+    `CONTROL: ... differ in 18 of 51 cases`;
+    (c) `PYTHONPATH=tests/hastub python tests/mutation_table.py --scope changed --base origin/main --pin-killed --jobs 4`
+    → `PIN KILLED: 7 pinned, 1 left unpinned` (PIN_EXIT=1 by design: the survivor), null control survived.
+  - the triage row was written by hand; then `docker exec ... hpo-ci python tests/mutation_table.py --normalize`
+    → `490 disposition(s), 0 retired key(s)`.
+  - native: `PYTHONPATH=tests/hastub python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`;
+    `PYTHONPATH=tests/hastub python3 tests/entities.py` → `ALL 1988 ENTITY CHECKS PASSED`.
+- PENDING (the handoff to a cloud fixer interrupted it): the final
+  `mutation_table.py --scope changed --base origin/main` confirmation run. It was
+  killed after its inventory line, `3581 unpinned site(s) of 4079 candidate sites,
+  3583 at the ratchet base a15e3e33`, which is below the base, so the ratchet would
+  proceed. Its sampled drive and summary line never ran. Re-run it on Linux, and
+  watch CI's `mutation` lane at the pushed head.
+- No production code was touched. structure.py flat: coordinator_loc 9034,
+  max_class_loc 9034 (the round-2 re-record stands).
+- Evidence: `/Users/timmalmstrom/eg-b10-mut-scratch/` (lane.log: A-red run,
+  probe, pin run; A-red.log; probe_streak.py; final-table.log).
+- Mutant worktree for site A: `/Users/timmalmstrom/eg-b10-mutA` (detached,
+  mutated; remove when done).
+
+## State (round 2)
 
 - branch `handoff/r9-eg-solve-lifecycle`, worktree
   `/Users/timmalmstrom/fix-r9-eg-solve-lifecycle` (Mac). PR **#1779** (open,
