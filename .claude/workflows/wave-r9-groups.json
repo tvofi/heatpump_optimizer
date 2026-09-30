@@ -2122,7 +2122,7 @@
         "stage": "fixing",
         "branch": "handoff/r9-f9-test-pins-3",
         "commit": null,
-        "last_step": "seat change: the opus seat died on API input-length 400 after step 1+design (branch ac66363d pushed, resume note current, merge base a15e3e33); fresh opus seat dispatched to execute the recorded design from the note",
+        "last_step": "fresh opus seat (predecessor died on API input-length); executing recorded design from resume note ac66363d: DOMAINS+helpers+_poisoned widening, Arm 6 failing-test-first, loader fixes, 29 float sites",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
         "note_file": "handoff/round9/fix/resume/F9.3.md on handoff/r9-f9-test-pins-3",
         "review_branch": "handoff/r9-f9-test-pins-3-review",
@@ -3988,10 +3988,10 @@
         "R9-F7.4"
       ],
       "resume": {
-        "stage": "fixing",
+        "stage": "in-review",
         "branch": "handoff/r9-f7-family-splits",
-        "commit": null,
-        "last_step": "seat died at watchdog after test-first commits + absorb (local head 50975837); resumed to re-verify at moved main and hand off; then push+reviewer",
+        "commit": "ef8fc20cc2e65f32b8155071c54a92aed0aa383d",
+        "last_step": "hand-off at ef8fc20c (allowances deleted test-first, family_splits 3->0, deltaS +10.9319 admissible WITH counters, mutation M0+3 reverts, 0 old-string readers); app_push running (prepr scoped gate); opus reviewer dispatched at head; seat finding: tests/entities.py is NOT code-owned (verified) — no tvofi review needed; forward-carry question on strings.json/en.json entity pin awaits orchestrator choice",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
         "note_file": "handoff/round9/fix/resume/F7.5.md on handoff/r9-f7-entities-5",
         "review_branch": "handoff/r9-f7-entities-5-review",
