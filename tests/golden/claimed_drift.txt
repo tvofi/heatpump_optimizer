@@ -54,20 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.11
+# claims-for: 6.7.12
 #
-# v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
+# v6.7.12: round 9: solve-lifecycle, solver F2.4, family renames. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-away_setback # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-capacity_tariff # R9-F2.4 D12-s2-01: 16 leaves, heat_pump_on_schedule False -> True
-dhw_cold_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
-horizon_48h # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-mild_windy_rain # R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True
-start_below_band # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
-valve_storage_flat_prices # R9-F2.4 D12-s2-01: 14 leaves, heat_pump_on_schedule False -> True
-valve_storage_low_target # R9-F2.4 D12-s2-01: 7 leaves, heat_pump_on_schedule False -> True
-valve_storage_small_tank # R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

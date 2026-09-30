@@ -1,5 +1,16 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.12
+
+round 9 continues: a refresh requested during a solve is now honoured and the worker-fallback cap is kept per entry (EG-B10); the solver's seed set and stop tolerance bracket the optimum again, with no planned-heat switch-offs in the finder's scenarios (F2.4); the split entity families now lead with their family token in English and Swedish (F7.5); the legacy-programme verdicts and the rev-3.1 record corrections.
+
+- #1778 — record: rev-3.1 adoption corrections — stale plan rows truthied, #1771 row closed, enumerators rule in-tree, prestudy roster labelled rev-2, 31 rev-3.1 disposition rows (1774-1777, 1655, 30 legacy as EG-L0)
+- #1779 — fix(solve-lifecycle): honour a mid-solve refresh; key the worker-fallback cap per entry (#1754, #1755)
+- #1780 — record: the #201 comment id for the hpo-ledger bypass ask
+- #1781 — fix: lead the split entity families' names with their family token (round-9 F7.5)
+- #1782 — fix: the solver lane's round-9 F2.4 fixes (P4 refusal priced in money and CPU)
+- #1784 — record: rows for #1779, #1781 and #1782 merged; drop three seat resume notes that shipped in their code heads
+
 ## v6.7.11
 
 round-9 waves F1.5 and F1.6 land the coordinator's P1 magnitude boundary — a fabricated forecast can no longer cross the persisted-value barrier (the class census moves 95 to 0 over 4,706 mutants) — with cycle failures, worker spawn and stop, forecast-seeded outdoor state and blocked defrost inference (F1.5); the D8 entity-defect trio (F7.2) and the declared-family contiguity check with its budget raise recorded honestly (F7.4); EG-B9's sev:high copy-before-boost fix; the record-class merge self-disposal that ends the record-PR row recursion (#1750); and the round-9 register completes onto main: evidence tree, round-8 harness salvage, seat tooling, the roster generator and the pre-study plans, with the delivery-row backlog drained (#1773).
