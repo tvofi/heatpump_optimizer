@@ -635,7 +635,8 @@ INVENTORY: dict[str, Entry] = {
         "NotImplementedError from the update method is recorded and "
         "re-raised (:444-446), not latched as a failed fetch. A "
         "ConfigEntryAuthFailed latches the failure and starts the entry's "
-        "reauth on a steady refresh, and escapes the first (:428-443). Still "
+        "reauth on a steady refresh (2025.2.0 :428-443; 2026.9.3 :538-554 calls "
+        "async_start_reauth_if_available), and escapes the first. Still "
         "deliberately absent: the loop-driven interval scheduler (no "
         "hass.loop behind the fakes), update_method/setup_method, the "
         "manual-push setters, and the wrong-state report_usage warning "
@@ -1505,8 +1506,12 @@ def _auth_failing_refresh(first: bool):
 
     entry = _first_refresh_entry()
     entry.reauths = 0
+    # 2025.2.0 calls async_start_reauth; 2026.9.3 calls
+    # async_start_reauth_if_available, which gates on the domain's handler.
+    # Either call is one reauth start.
     entry.async_start_reauth = lambda hass, context=None, data=None: setattr(
         entry, "reauths", entry.reauths + 1)
+    entry.async_start_reauth_if_available = entry.async_start_reauth
 
     async def main():
         class C(DataUpdateCoordinator):
@@ -1535,8 +1540,9 @@ def _auth_failing_refresh(first: bool):
     "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
     "an auth failure on a steady refresh latches, does not escape, and starts reauth",
     cite="helpers/update_coordinator.py -- `except ConfigEntryAuthFailed` in "
-    "_async_refresh (:428-443): `if self.config_entry: "
-    "self.config_entry.async_start_reauth(self.hass)`",
+    "_async_refresh: 2025.2.0 (:428-443) `if self.config_entry: "
+    "self.config_entry.async_start_reauth(self.hass)`; 2026.9.3 (:538-554) "
+    "`self.config_entry.async_start_reauth_if_available(self.hass)`",
 )
 def _steady_refresh_auth_failed():
     ok, last, raised, reauths, auth = _auth_failing_refresh(first=False)
