@@ -13,6 +13,7 @@ from __future__ import annotations
 import atexit
 import asyncio
 import bisect
+import contextvars
 import copy
 import functools
 import hashlib
@@ -624,7 +625,7 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
 
 
 #: Each (fence message, cause) pair already surfaced once at WARNING.
-#: Module-level state on ``_WORKER_FALLBACK_CAUSE``'s precedent: the fence
+#: Module-level state on ``_WORKER_FALLBACK_CAUSES``'s precedent: the fence
 #: belongs to the process, not to one coordinator instance, and the set is
 #: bounded by the distinct causes an install actually sees (D1-s2-04).
 _FENCED_CAUSES: set[tuple[str, str]] = set()
@@ -750,10 +751,12 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
 SOLVE_FAILURE_ISSUE_COUNT = 3
-# Consecutive in-process fallbacks on one hass before the GIL solve is
-# skipped and the last plan is kept (#783). The first N still degrade:
-# a slow plan beats none (#511). Counted on hass.data, not a process
-# global, so a later test's new hass is not charged for an earlier one.
+# Consecutive in-process fallbacks before the GIL solve is skipped and the
+# last plan is kept (#783). The first N still degrade: a slow plan beats none
+# (#511). The streak is counted on hass.data and keyed BY CONFIG ENTRY (#1755),
+# not one per hass: a success in entry B must not reset entry A's cap. Still on
+# hass.data, not a process global, so a later test's new hass is not charged
+# for an earlier one.
 WORKER_FALLBACK_CAP = 3
 
 
@@ -1074,8 +1077,20 @@ COP_LEARNING_MAX_STEP = 0.05
 _PROCESS_LOCK = threading.Lock()
 _PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
 _PROCESS_ATEXIT = False
-_WORKER_FALLBACK_CAUSE: str | None = None
+# #1755: the cause latch is keyed by config-entry id, not one per process —
+# entry B's recovery must not withdraw entry A's notice. ``None`` is the key
+# for a caller that does not name an entry (the pre-#1755 per-hass behaviour).
+_WORKER_FALLBACK_CAUSES: dict[Any, str] = {}
 _WORKER_FALLBACK_STREAK = f"{DOMAIN}_worker_fallback_streak"
+# #1755: the config-entry id of the solve in flight, so the worker-fallback
+# streak and cause are keyed per entry. A contextvar (task-scoped): two entries
+# solving concurrently run in separate tasks, so their contexts never mix, and
+# the test doubles that replace ``_await_optimize`` keep the signature they
+# already mimic. The coordinator sets it before each solve; ``_await_optimize``
+# reads it. Default ``None`` is the pre-#1755 per-hass key.
+_CURRENT_ENTRY_ID: contextvars.ContextVar[Any] = contextvars.ContextVar(
+    "hpo_current_entry_id", default=None
+)
 
 # The what-if's override spelling: config fields by cast (the schedule
 # hours are integers because they index hours), and the parameter fields
@@ -1281,24 +1296,27 @@ async def _await_process(hass: HomeAssistant, fn: Callable[..., Any], *args: Any
     return await hass.async_add_executor_job(_run_in_process, fn, args)
 
 
-def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
+def _note_worker_fallback(
+    hass: HomeAssistant, err: BaseException, entry_id: Any = None
+) -> None:
     """Say that the plan came from the slow route, and why (#511).
 
     Silence here is what let a worker that could unpickle nothing ship in
     v6.3.15. The warning repeats every cycle because the log is where the
     cause is read; the notice is raised once per distinct cause so its
     timestamp still says when the failures started, as ``solve_failures`` does.
+    The cause is latched PER ENTRY (#1755): entry B's recovery must not
+    withdraw entry A's notice.
     """
-    global _WORKER_FALLBACK_CAUSE
     cause = f"{type(err).__name__}: {err}"
     _LOGGER.warning(
         "Process-solve worker unusable (%s); solving in this process instead. "
         "The plan is correct, but the solve holds the GIL (#199 #290 #511).",
         cause,
     )
-    if _WORKER_FALLBACK_CAUSE == cause:
+    if _WORKER_FALLBACK_CAUSES.get(entry_id) == cause:
         return
-    _WORKER_FALLBACK_CAUSE = cause
+    _WORKER_FALLBACK_CAUSES[entry_id] = cause
     _create_issue(
         hass,
         DOMAIN,
@@ -1313,40 +1331,51 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
     )
 
 
-def _clear_worker_fallback(hass: HomeAssistant) -> None:
-    """The process route carried a solve again; withdraw the notice."""
-    global _WORKER_FALLBACK_CAUSE
-    _reset_worker_fallback_streak(hass)
-    if _WORKER_FALLBACK_CAUSE is None:
+def _clear_worker_fallback(hass: HomeAssistant, entry_id: Any = None) -> None:
+    """This entry's process route carried a solve again; withdraw its notice.
+
+    Per entry (#1755): reset only ``entry_id``'s streak, and delete the shared
+    repair issue only once NO entry has a latched cause left -- so entry B's
+    success no longer resets entry A's #783 cap or flaps A's notice.
+    """
+    _reset_worker_fallback_streak(hass, entry_id)
+    if _WORKER_FALLBACK_CAUSES.pop(entry_id, None) is None:
         return
-    _WORKER_FALLBACK_CAUSE = None
-    ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
+    if not _WORKER_FALLBACK_CAUSES:
+        ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
 
 
-def _worker_fallback_streak(hass: HomeAssistant) -> int:
+def _worker_fallback_streak(hass: HomeAssistant, entry_id: Any = None) -> int:
     data = getattr(hass, "data", None)
     if not isinstance(data, dict):
         return 0
-    raw = data.get(_WORKER_FALLBACK_STREAK, 0)
+    bag = data.get(_WORKER_FALLBACK_STREAK)
+    if not isinstance(bag, dict):
+        return 0
     try:
-        return int(raw or 0)
+        return int(bag.get(entry_id) or 0)
     except (TypeError, ValueError):
         return 0
 
 
-def _bump_worker_fallback(hass: HomeAssistant) -> int:
+def _bump_worker_fallback(hass: HomeAssistant, entry_id: Any = None) -> int:
     data = getattr(hass, "data", None)
     if not isinstance(data, dict):
         return 1
-    n = _worker_fallback_streak(hass) + 1
-    data[_WORKER_FALLBACK_STREAK] = n
+    bag = data.get(_WORKER_FALLBACK_STREAK)
+    if not isinstance(bag, dict):
+        bag = data[_WORKER_FALLBACK_STREAK] = {}
+    n = _worker_fallback_streak(hass, entry_id) + 1
+    bag[entry_id] = n
     return n
 
 
-def _reset_worker_fallback_streak(hass: HomeAssistant) -> None:
+def _reset_worker_fallback_streak(hass: HomeAssistant, entry_id: Any = None) -> None:
     data = getattr(hass, "data", None)
     if isinstance(data, dict):
-        data.pop(_WORKER_FALLBACK_STREAK, None)
+        bag = data.get(_WORKER_FALLBACK_STREAK)
+        if isinstance(bag, dict):
+            bag.pop(entry_id, None)
 
 
 async def _await_optimize(
@@ -1362,16 +1391,22 @@ async def _await_optimize(
     than to no plan (#511). That re-acquires the GIL the process route exists
     to escape, which is the accepted trade -- a slow plan beats none -- and it
     is never silent, or this class of fault ships again. After
-    ``WORKER_FALLBACK_CAP`` consecutive fallbacks on the same hass the
-    in-process solve is skipped and the last plan stays published (#783).
+    ``WORKER_FALLBACK_CAP`` consecutive fallbacks for the SAME config entry the
+    in-process solve is skipped and the last plan stays published (#783). The
+    streak and cause are keyed by the entry id read off ``_CURRENT_ENTRY_ID``
+    (#1755), so one entry's success no longer resets another's cap; a caller
+    that does not set it (a direct test call) keys on ``None``, the old per-hass
+    behaviour. Read here rather than threaded as a parameter, so the test
+    doubles that replace this function keep the signature they already mimic.
     """
+    entry_id = _CURRENT_ENTRY_ID.get()
     try:
         result = await _await_process(
             hass, optimize_in_process, optimizer, state, positional, keywords
         )
     except ProcessWorkerUnavailable as err:
-        _note_worker_fallback(hass, err)
-        n = _bump_worker_fallback(hass)
+        _note_worker_fallback(hass, err, entry_id)
+        n = _bump_worker_fallback(hass, entry_id)
         if n > WORKER_FALLBACK_CAP:
             _raise_update_failed(
                 "process_worker_unusable", f"process-solve worker unusable for {n} consecutive cycles; "
@@ -1380,7 +1415,7 @@ async def _await_optimize(
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, state, positional, keywords
         )
-    _clear_worker_fallback(hass)
+    _clear_worker_fallback(hass, entry_id)
     return result
 
 
@@ -2165,6 +2200,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         also what every actuation point reads to decline (#237).
         """
         self._entry_released = True
+        # #1755 r1: a released entry drops its worker-fallback latch, so a removed
+        # entry cannot hold the shared repair issue or leak a key after it is gone.
+        _clear_worker_fallback(self.hass, self.entry.entry_id)
         for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
             unsub = getattr(self, name, None)
             setattr(self, name, None)
@@ -2306,6 +2344,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # A run takes seconds, so a user tapping the button repeatedly must not
         # be able to stack solves on top of each other.
         self._optimization_running: bool = False
+        # #1754: a mid-solve refresh is recorded, not dropped; the finally re-runs it.
+        self._optimization_rerun_requested: bool = False
         # Set by ``async_setup_entry`` — and by nothing else — just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
@@ -5053,21 +5093,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_run_optimization(self) -> str | None:
         """Run the MPC optimization.
 
-        Returns ``None`` when a solve ran to completion — or one was already
-        in flight, which is the same outcome for whoever asked — and a short
-        reason code (``"no_prices"``, ``"solve_failed"``) when it could not.
-        The scheduled cycle ignores the answer, but the service handler
-        cannot: its own body is fenced by the ``except Exception`` below, so
-        an exception raised in here never reaches the caller. The status is
-        the one channel through which the handler can learn the run did not
-        happen and raise ``HomeAssistantError`` instead of reporting success
-        (#294, action-exceptions).
+        Returns ``None`` when a solve ran to completion. When one was already
+        in flight it records a re-run the in-flight solve's ``finally`` honours
+        (#1754), so a mid-solve input change is actuated this cycle, not dropped
+        until the next; otherwise a short reason code (``"no_prices"``,
+        ``"solve_failed"``) says it could not run. The scheduled cycle ignores
+        the answer, but the service handler cannot: its body is fenced by the
+        ``except Exception`` below, so an exception never reaches the caller and
+        the status is the one channel through which the handler learns the run
+        did not happen and raises ``HomeAssistantError`` not success (#294).
         """
         ctx = getattr(self, "_ctx", self)
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
 
         if self._optimization_running:
-            _LOGGER.debug("An optimization is already in flight; skipping")
+            # #1754: record the re-run; the in-flight solve's finally honours it.
+            self._optimization_rerun_requested = True
+            _LOGGER.debug("An optimization is already in flight; recording a re-run")
             return None
 
         self._optimization_running = True
@@ -5229,6 +5271,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # horizon this solve will use. ``solve_now`` is the quarter
             # anchor taken above, so the pins land on the same grid as the
             # price array and the timestamps the optimizer will publish.
+            # #1754: the override these pins come from, by identity (release write).
+            pinned_override = self._manual_override
             space_pins, dhw_pins = self._manual_pins(solve_now, len(prices))
 
             # The opt-in fuse guard (#3): a hard per-step ceiling on heat
@@ -5295,6 +5339,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # carry all of them into the process worker.
             solve_state, solve_optimizer = self._solve_snapshot()
             # Process pool: a thread still shares this interpreter's GIL.
+            _CURRENT_ENTRY_ID.set(self.entry.entry_id)  # #1755: per-entry fallback key
             result = await _await_optimize(
                 self.hass,
                 solve_optimizer,
@@ -5348,7 +5393,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     f"solver returned a failed plan: {result.status}"
                 )
 
-            self._record_manual_release(result)
+            self._record_manual_release(result, pinned_override)
 
             self._optimization_result = result
             self._last_optimization = dt_util.now()
@@ -5412,6 +5457,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             self._optimization_running = False
             self.async_update_listeners()
+            # #1754: honour a mid-solve refresh as ONE re-run, now that the flag
+            # is clear so it is not guarded out. Cleared first, so this recurses
+            # only if another refresh arrives during the re-run (a rate the
+            # debouncer bounds); skipped once the entry is released.
+            if self._optimization_rerun_requested and not self._entry_released:
+                self._optimization_rerun_requested = False
+                await self.async_run_optimization()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
@@ -7737,9 +7789,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.array(dhw, dtype=float) if dhw is not None else None,
         )
 
-    def _record_manual_release(self, result: "OptimizationResult") -> None:
-        """Fold the solve's safety releases back onto the override for display."""
-        override = self._manual_override
+    def _record_manual_release(
+        self, result: "OptimizationResult", override: "ManualOverride | None"
+    ) -> None:
+        """Fold the solve's safety releases onto the override it pinned (#1754).
+
+        ``override`` is the one this solve's pins were built from, captured
+        before the await and passed by identity; reading the live
+        ``self._manual_override`` here let a mid-solve swap inherit them.
+        """
         if override is None:
             return
         override.released_space = [
@@ -10981,6 +11039,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if limited:  # the slot is spent when a solve starts (#1448, #1753)
             self._last_simulation = now
         try:
+            _CURRENT_ENTRY_ID.set(self.entry.entry_id)  # #1755: per-entry fallback key
             simulated = await _await_optimize(
                 self.hass,
                 scratch,
