@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_note_worker_fallback GUARD_OFF e62e06b9",
+  "killed_by": "tests/features.py",
+  "old": "    if _WORKER_FALLBACK_CAUSES.get(entry_id) == cause:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
