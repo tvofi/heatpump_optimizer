@@ -2454,6 +2454,9 @@ class HeatPumpOptimizer:
                     if h.power_caps_extra is not None
                     else None
                 ),
+                # The first build's block (#1747): a replan without it plans
+                # hot water the mode cannot make, and masks the breach.
+                blocked=h.dhw_blocked,
                 step_weekdays=h.step_weekdays,
                 holiday_flags=h.holiday_flags,
                 wood_temps=wood_temps,
