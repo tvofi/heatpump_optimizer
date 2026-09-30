@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:planned_draws_run RETURN_DEL d544f1b9",
+  "killed_by": "tests/features.py",
+  "old": "    return ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
