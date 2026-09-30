@@ -196,6 +196,11 @@ def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:
     return found, len(files)
 
 
+def verdict(found: dict[str, list[str]], enforce: bool) -> int:
+    """The exit status a run owes: report mode never fails on findings."""
+    return 1 if enforce and any(found.values()) else 0
+
+
 def report(found: dict[str, list[str]], n: int, verbose: bool) -> None:
     print(f"layout: {n} tracked path(s) enumerated")
     for arm in ARMS:
@@ -243,6 +248,10 @@ def self_test(root: Path) -> int:
     to_hist = next(r for r in retired if r["new"] and r["old"].endswith("/")
                    and any(r["new"].startswith(h) for h in manifest["historical"]))
     moved_dir = next(r for r in retired if r["new"] and r["old"].endswith("/"))
+    single = next(g for c in manifest["categories"] if c["name"] == "docs"
+                  for g in c["globs"] if "*" in g and "**" not in g and "{" not in g)
+    below_star = single.rsplit("/", 1)[0] + "/sub/" + instance(single.rsplit("/", 1)[1])
+    landed = dict(moved, since="#9999")
     user_doc = instance(next(c for c in manifest["categories"] if c["name"] == "docs")["globs"][0])
     cite = f"see `{moved['old']}` for the details\n"
     extra_cat = {"name": "nothere", "globs": ["nothere/**"], "why": "planted"}
@@ -260,6 +269,12 @@ def self_test(root: Path) -> int:
          (0, 0, 1, 0)),
         ("retired target outside every category", {"docs/notes/x.md": ""},
          lambda m: m["retired"].append({"old": "docs/notes/", "new": "nowhere/", "since": None}), (1, 1, 0, 1)),
+        ("moved path re-added after its move landed", {moved["old"]: ""},
+         lambda m: m["retired"].__setitem__(m["retired"].index(moved), landed),
+         (0 if _admitted(moved["old"], manifest) else 1, 1, 0, 0)),
+        ("file one directory below a single-star glob", {below_star: ""}, None, (1, 0, 0, 0)),
+        ("live citation of a retired directory ending a sentence",
+         {user_doc: f"moved from {moved_dir['old'][:-1]}.\n"}, None, (0, 0, 1, 0)),
         ("dead retired entry", {}, lambda m: m["retired"].append(
             {"old": "nothere-a/", "new": "dev/archive/nothere-b/", "since": None}), (0, 0, 0, 1)),
         ("dead category glob", {}, lambda m: m["categories"].append(extra_cat), (0, 0, 0, 1)),
@@ -287,7 +302,12 @@ def self_test(root: Path) -> int:
             found, n = check(tmp, m)
             got = tuple(len(found[a]) for a in ARMS)
             count = listed(tmp)
-            ok = got == want and n == count and n >= len(files)
+            # --enforce fails exactly when some arm has a finding; report never does.
+            ok = (got == want and n == count and n >= len(files)
+                  and verdict(found, True) == (1 if any(want) else 0)
+                  and verdict(found, False) == 0)
+            if name.startswith("moved path re-added"):
+                ok = ok and any(m.startswith("reintroduces moved path") for m in found["retired"])
             print(f"  {'ok  ' if ok else 'FAIL'} self-test: {name}: counts {got}, want {want}; "
                   f"enumerated {n} of {count} listed")
             if not ok:
@@ -381,8 +401,7 @@ def main() -> int:
         if n != count:
             print(f"FAIL: enumerated {n} path(s) but git ls-files lists {count}")
             rc = 1
-        if a.enforce and any(found.values()):
-            rc = 1
+        rc = rc or verdict(found, a.enforce)
         print(f"layout: MODE: {'ENFORCE' if a.enforce else 'REPORT (exit 0 on findings until R9-RO-9)'}")
     if a.self_test or run_all:
         failed = self_test(ROOT)
