@@ -33,6 +33,7 @@
     "docs/img/brand/*",
     "docs/img/card/*",
     "docs/img/model/*",
+    "docs/img/readme/*",
     "docs/img/setup/*",
     "docs/design/*/{design,plan}.md"
    ]
