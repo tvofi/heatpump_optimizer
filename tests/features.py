@@ -33184,6 +33184,55 @@ R.check(
     f"solo in-process={_g1755_solo_inproc}, capped={_g1755_solo_capped}",
 )
 
+# Review round 1, item 3: an entry REMOVED while its worker-fallback cause was
+# latched left the key in _WORKER_FALLBACK_CAUSES forever -- nothing cleared it on
+# unload -- so the shared solve_worker_fallback issue could never be withdrawn by
+# the surviving entries, and one key leaked per removed entry. The "A's issue
+# survives B's successes" check above cannot tell *survives because A still fails*
+# from *survives because A is gone*; this drives the unload path to separate them.
+# A latches, A is released, then a surviving entry B fails and recovers: the issue
+# must withdraw and no key may leak. Uses the harness-spelling module that
+# _solve_coord's Coord is built from, so the latch dict is the one its
+# _release_registrations clears.
+from heatpump_optimizer import coordinator as _g1755leak  # noqa: E402
+
+
+def _g1755_leak():
+    coord = _solve_coord()
+    hass = coord.hass
+    eid = coord.entry.entry_id
+    cm = _g1755leak
+    cm._WORKER_FALLBACK_CAUSES.clear()
+    hass.issues = []
+    # A latches its cause (and the shared issue) on a fallback.
+    cm._note_worker_fallback(hass, cm.ProcessWorkerUnavailable("A boom"), eid)
+    latched = eid in cm._WORKER_FALLBACK_CAUSES
+    # A is REMOVED: the unload path runs (async_on_unload and async_shutdown both
+    # route through _release_registrations).
+    coord._release_registrations()
+    leaked = eid in cm._WORKER_FALLBACK_CAUSES
+    # A surviving entry B fails then recovers; with A's latch dropped the shared
+    # issue must withdraw and no key may remain.
+    cm._note_worker_fallback(hass, cm.ProcessWorkerUnavailable("B boom"), "B")
+    cm._clear_worker_fallback(hass, "B")
+    issue_survives = any(i[1] == "solve_worker_fallback" for i in hass.issues)
+    keys = sorted(map(str, cm._WORKER_FALLBACK_CAUSES))
+    cm._WORKER_FALLBACK_CAUSES.clear()  # leave no residue for later checks
+    return latched, leaked, issue_survives, keys
+
+
+_g1755_latched, _g1755_leaked, _g1755_issue_survives, _g1755_keys = _g1755_leak()
+R.check(
+    "a released entry drops its worker-fallback latch, so a removed entry cannot "
+    "hold the shared issue or leak a key (#1755, review round 1)",
+    _g1755_latched and not _g1755_leaked and not _g1755_issue_survives
+    and _g1755_keys == [],
+    f"A latched={_g1755_latched}; after release A's key leaked={_g1755_leaked}; "
+    f"issue survives all-live-healthy={_g1755_issue_survives}; latched keys="
+    f"{_g1755_keys}. At round-1 head _release_registrations left the latch, so "
+    "A's key leaked and B's recovery could not withdraw the issue.",
+)
+
 # ---------------------------------------------------------------------------
 R.section("#524 — an unpicklable solve RESULT must raise, never become the plan")
 

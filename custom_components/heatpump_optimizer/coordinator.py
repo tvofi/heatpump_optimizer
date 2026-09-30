@@ -2200,6 +2200,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         also what every actuation point reads to decline (#237).
         """
         self._entry_released = True
+        # #1755 r1: a released entry drops its worker-fallback latch, so a removed
+        # entry cannot hold the shared repair issue or leak a key after it is gone.
+        _clear_worker_fallback(self.hass, self.entry.entry_id)
         for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
             unsub = getattr(self, name, None)
             setattr(self, name, None)
