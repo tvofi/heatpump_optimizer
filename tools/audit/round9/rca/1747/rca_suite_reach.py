@@ -13,7 +13,7 @@ __main__, and on exit writes counts per solve kind:
 split by whether the solve had dhw_blocked=True.  The defect needs blocked AND adopted AND
 adopted_dhw_kwh > 0; a suite with zero blocked-and-adopted solves cannot see it.
 """
-import atexit, inspect, json, runpy, sys
+import atexit, functools, inspect, json, runpy, sys
 import numpy as np
 
 script = sys.argv[1]
@@ -34,6 +34,7 @@ def _k():
     return "blocked" if (stack and stack[-1]["blocked"]) else "unblocked"
 
 
+@functools.wraps(_opt)  # keeps inspect.signature(optimize) for tests that bind to it
 def optimize(self, *a, **kw):
     try:
         b = _sig.bind(self, *a, **kw); b.apply_defaults(); blocked = bool(b.arguments.get("dhw_blocked", False))
@@ -47,6 +48,7 @@ def optimize(self, *a, **kw):
         stack.pop()
 
 
+@functools.wraps(_co)
 def co(self, h, **kw):
     k = _k(); C[k]["co_entered"] += 1
     if stack: stack[-1]["in_co"] = True
@@ -60,6 +62,7 @@ def co(self, h, **kw):
     return r
 
 
+@functools.wraps(_build)
 def build(self, *a, **kw):
     if stack and stack[-1]["in_co"]:
         k = _k(); C[k]["replan_built"] += 1
