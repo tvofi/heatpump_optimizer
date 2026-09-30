@@ -3,7 +3,7 @@
  "classes_over_300": 11,
  "const_modules_over_50": 3,
  "coordinator_attrs": 153,
- "coordinator_loc": 9010,
+ "coordinator_loc": 8999,
  "coordinator_methods": 224,
  "coordinator_multiassigned_attrs": 115,
  "cross_seam_edges": 131,
@@ -20,9 +20,9 @@
  "internal_call_edges": 307,
  "local_imports": 7,
  "max_cc": 48,
- "max_class_loc": 9010,
+ "max_class_loc": 8999,
  "max_method_loc": 386,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "5395394da9d8ee96ec256895504d2ae3f09d10fa"
+ "recorded_at": "a15e3e33507bde9e566858ce32b2ded840edfa02"
 }
