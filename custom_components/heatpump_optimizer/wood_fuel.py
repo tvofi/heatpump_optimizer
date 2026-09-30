@@ -296,7 +296,7 @@ def _wood_slots_error(slots: object, stamps: Sequence[datetime]) -> str | None:
             return "invalid_wood_slots"
         try:
             liters = float(slot.get("liters") or 0.0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return "invalid_wood_slots"
         start = _as_dt(slot.get("start"), stamps)
         end = _as_dt(slot.get("end"), stamps)

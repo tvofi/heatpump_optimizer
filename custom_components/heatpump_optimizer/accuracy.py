@@ -87,19 +87,19 @@ class AccuracySample:
         if when is None:
             return None
 
-        def num(key: str) -> float | None:
+        def num(key: str, lo: float = -np.inf) -> float | None:
             value = data.get(key)
             if value is None:
                 return None
             try:
                 value = float(value)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 return None
-            return value if np.isfinite(value) else None
+            return value if np.isfinite(value) and value >= lo else None
 
         return cls(
             when=when,
-            predicted_power_kw=num("predicted_power_kw"),
+            predicted_power_kw=num("predicted_power_kw", 0.0),  # a plan draws no negative power
             actual_power_kw=num("actual_power_kw"),
             predicted_temp=num("predicted_temp"),
             actual_temp=num("actual_temp"),
@@ -435,7 +435,8 @@ class AccuracyTracker:
         if isinstance(raw_counts, dict):
             for key, value in raw_counts.items():
                 try:
-                    tracker.lead_counts[float(key)] = max(0, int(value))
+                    if (count := int(value)) >= 1:  # a scored lead has one sample or more
+                        tracker.lead_counts[float(key)] = count
                 except (TypeError, ValueError, OverflowError):
                     continue
         raw_pending = data.get("lead_pending")

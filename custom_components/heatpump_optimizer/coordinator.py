@@ -45,7 +45,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .store import QuarantiningStore
+from .store import QuarantiningStore, admitted
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -491,7 +491,7 @@ def _as_float(value: Any, default: float) -> float:
         return default
     try:
         result = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
     if not np.isfinite(result):
         return default
@@ -510,6 +510,32 @@ def _storable_sample_count(raw: Any) -> int:
     if not np.isfinite(count) or not 0 <= count <= 2**31:
         raise ValueError(f"sample count {raw!r} is not one a fold wrote")
     return int(raw)
+
+
+def _at_least(raw: Any, lo: float, default: float) -> float:
+    """A stored reading as a finite float no lower than ``lo``, else ``default``.
+
+    The aperture fit's sums of squares and sample weight are never negative
+    as its fold writes them (F9.3); its means and covariance are signed.
+    """
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return value if np.isfinite(value) and value >= lo else default
+
+
+def _learned_pair(entry: Any) -> list[Any]:
+    """A stored ``[value, samples]`` fold, as the fold writes it (F9.3).
+
+    The value is a positive quantity (a COP, a capacity in kW) and a fold
+    writes an entry at its first sample, so a non-positive value or a count
+    below one raises ValueError: the entry is dropped, not installed.
+    """
+    value, count = float(entry[0]), _storable_sample_count(entry[1])
+    if not (np.isfinite(value) and value > 0 and count >= 1):
+        raise ValueError(f"stored fold {entry!r} is not one a fold wrote")
+    return [value, count]
 
 
 def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
@@ -1691,6 +1717,8 @@ async def _stored_fuse_advisor(
     """
     try:
         stored = await store.async_load() or {}
+        if not admitted("ledger", {"fuse_advisor": stored["fuse_advisor"]}):
+            return None  # outside its writer's domain (F9.3): absent, not installed
         return dict(stored["fuse_advisor"]), stored_instant(
             stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
         )
@@ -3130,7 +3158,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if rate is not None:
             try:
                 self._apply_buffer_cooling_rate(float(rate))
-                self._buffer_cooling_samples = int(
+                self._buffer_cooling_samples = _storable_sample_count(
                     stored.get("buffer_cooling_samples", 0)
                 )
                 _LOGGER.info(
@@ -3145,7 +3173,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if scale is not None:
             try:
                 self._apply_house_heat_loss_scale(float(scale))
-                self._house_heat_loss_samples = int(
+                self._house_heat_loss_samples = _storable_sample_count(
                     stored.get("house_heat_loss_samples", 0)
                 )
                 _LOGGER.info(
@@ -3160,7 +3188,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if ratio is not None:
             try:
                 self._apply_lower_floor_loss_ratio(float(ratio))
-                self._lower_floor_loss_samples = int(
+                self._lower_floor_loss_samples = _storable_sample_count(
                     stored.get("lower_floor_loss_samples", 0)
                 )
                 _LOGGER.info(
@@ -3187,7 +3215,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if cop_scale is not None:
             try:
                 self._apply_cop_scale(float(cop_scale))
-                self._cop_samples = int(stored.get("cop_samples", 0))
+                self._cop_samples = _storable_sample_count(stored.get("cop_samples", 0))
                 _LOGGER.info(
                     "Loaded learned COP scale %.3f (%d samples)",
                     self._cop_scale,
@@ -3209,10 +3237,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # "4:lift" the lift-normalised space baseline (#1067).
                     text, _, tag = str(key).partition(":")
                     tags: dict[str, bool | str] = {"": False, "dhw": True, "lift": "lift"}
-                    self._cop_baseline[(int(text), tags[tag])] = [
-                        float(entry[0]),
-                        _storable_sample_count(entry[1]),
-                    ]
+                    self._cop_baseline[(int(text), tags[tag])] = _learned_pair(entry)
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
         raw_events = stored.get("immersion_events")
@@ -3270,19 +3295,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_env, dict):
             for key, entry in raw_env.items():
                 try:
-                    self._capacity_envelope[int(key)] = [
-                        float(entry[0]),
-                        _storable_sample_count(entry[1]),
-                    ]
+                    self._capacity_envelope[int(key)] = _learned_pair(entry)
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
         raw_ap = stored.get("solar_aperture")
         if isinstance(raw_ap, dict):
-            for key in ("n", "mx", "my", "cov", "var", "scale"):
-                try:
-                    self._solar_aperture[key] = v if np.isfinite(v := float(raw_ap.get(key, self._solar_aperture[key]))) else self._solar_aperture[key]
-                except (TypeError, ValueError, OverflowError):
-                    continue
+            for key, lo in (("n", 0.0), ("mx", 0.0), ("my", -np.inf), ("cov", -np.inf), ("var", 0.0), ("scale", -np.inf)):
+                self._solar_aperture[key] = _at_least(raw_ap.get(key), lo, self._solar_aperture[key])
             self._solar_aperture["scale"] = float(
                 np.clip(
                     self._solar_aperture["scale"],
@@ -3293,7 +3312,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         raw_gains = stored.get("internal_gains_profile")
         if isinstance(raw_gains, list) and len(raw_gains) == 24:
             try:
-                self._internal_gains_profile = [float(g) for g in raw_gains]
+                self._internal_gains_profile = [max(0.0, float(g)) for g in raw_gains]
             except (TypeError, ValueError, OverflowError):
                 self._internal_gains_profile = None
         raw_curve = stored.get("curve_learner")
@@ -7484,7 +7503,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._month_reports = {
                 str(key): value
                 for key, value in reports.items()
-                if isinstance(value, dict)
+                if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
             }
         day = stored.get("score_day")
         if isinstance(day, dict):
@@ -7498,9 +7517,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     for key in ("kwh", "sek", "spot_sum", "spot_h", "free_streak")
                 }
                 cleaned = {"day": str(day.get("day") or ""), **numbers}
-                if cleaned["day"] and all(
-                    np.isfinite(v) for v in numbers.values()
-                ):
+                if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
                     self._score_day = cleaned
             except (TypeError, ValueError, OverflowError):
                 pass

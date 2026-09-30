@@ -245,9 +245,10 @@ class ComfortLearner:
         if stored_configured is None or abs(stored_configured - configured_weight) > 1e-6:
             return learner
         try:
-            learner.learned_weight = float(data.get("learned_weight", configured_weight))
+            learner.learned_weight = float(np.clip(  # the update path's own clip
+                float(data.get("learned_weight", configured_weight)), COMFORT_WEIGHT_MIN, COMFORT_WEIGHT_MAX))
             learner.evidence = float(data.get("evidence", 0.0))
-            learner.overrides = int(data.get("overrides", 0))
+            learner.overrides = max(0, int(data.get("overrides", 0)))
         except (TypeError, ValueError, OverflowError):
             return cls(
                 configured_weight=configured_weight, learned_weight=configured_weight

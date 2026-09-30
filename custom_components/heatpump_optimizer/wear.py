@@ -110,7 +110,8 @@ class StartCounter:
         if isinstance(months, dict):
             for key, value in months.items():
                 try:
-                    counter.months[str(key)] = max(0, int(value))
+                    if (starts := int(value)) >= 1:  # a month is written at its first start
+                        counter.months[str(key)] = starts
                 except (TypeError, ValueError, OverflowError):
                     continue
         counter.running = bool(data.get("running", False))

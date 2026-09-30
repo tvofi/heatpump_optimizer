@@ -1408,6 +1408,43 @@ def _domain_arm() -> None:
         not out["unreached"],
         f"unreached={len(out['unreached'])}",
     )
+    from heatpump_optimizer import dhw_learning
+    R.check(
+        "the DHW profile's declared ceiling is dhw_learning's own (a literal, since that "
+        "module imports the store)",
+        _store.DOMAINS["dhw_profile"]["hourly_profile/#"].hi == dhw_learning.DHW_PROFILE_MAX_INTENSITY,
+        f"declared={_store.DOMAINS['dhw_profile']['hourly_profile/#'].hi}",
+    )
+    _overflow_sites()
+
+
+def _overflow_sites() -> None:
+    """The float() sites a Python int past a double reaches in production.
+
+    orjson (storage, config entries, HTTP) never yields such an int and the
+    store boundary scrubs one, so these four are the ones fed by what orjson
+    does not parse: entity attributes and service-call fields (the F3.3 lead,
+    D1-s5-03's shape). Each must refuse it as unreadable, not raise.
+    """
+    from heatpump_optimizer import freq_control, inputs, wood_fuel
+    huge = 10 ** 400
+    got = {}
+    for name, call, want in (
+        ("coordinator._as_float", lambda: _coord_mod._as_float(huge, 1.5), 1.5),
+        ("freq_control._finite", lambda: freq_control._finite(huge), None),
+        ("inputs._finite", lambda: inputs._finite(huge), None),
+        ("wood_fuel._wood_slots_error",
+         lambda: wood_fuel._wood_slots_error([{"liters": huge}], []), "invalid_wood_slots"),
+    ):
+        try:
+            got[name] = call() == want
+        except Exception as exc:  # noqa: BLE001 -- the raise is the defect
+            got[name] = type(exc).__name__
+    R.check(
+        "an int past a double refuses as unreadable at each attribute- or service-fed float() site",
+        all(v is True for v in got.values()),
+        f"{got}",
+    )
 
 
 # ---------------------------------------------------------------------------
