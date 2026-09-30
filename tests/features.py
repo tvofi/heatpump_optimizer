@@ -48805,8 +48805,8 @@ R.check(
 )
 R.check(
     "outside the plan's horizon there is no step, so no duty",
-    _pa.step_duty(_pa_result("dd"), _PA_T0 - timedelta(minutes=1), 0.2) is None
-    and _pa.step_duty(_pa_result("dd"), _PA_T0 + timedelta(minutes=45), 0.2) is None,
+    _pa.step_duty(_pa_result("dd"), _PA_T0 - timedelta(minutes=1)) is None
+    and _pa.step_duty(_pa_result("dd"), _PA_T0 + timedelta(minutes=45)) is None,
 )
 _pa_heat = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_HEAT], mode_observed=True)
 _pa_cool_sig = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_COOL], mode_observed=True)
@@ -49036,7 +49036,7 @@ R.check(
 )
 R.check(
     "the plan step decides the duty: hot water, space, both and idle",
-    [_pa.step_duty(_pa_result("dsb-"), _PA_T0 + timedelta(minutes=15 * i + 1), 0.2)
+    [_pa.step_duty(_pa_result("dsb-"), _PA_T0 + timedelta(minutes=15 * i + 1))
      for i in range(4)] == ["dhw", "space", "both", "idle"],
 )
 
@@ -49766,13 +49766,16 @@ R.check(
     f"{_pa_comfort.writes()} / {_pa_nodis.writes()}",
 )
 _pa_on = _pa_result("ss")
-_pa_on.power_schedule = [0.2, 0.3]
+_pa_on.power_schedule = [0.15, 0.3]
 _pa_on_coord = _PaCoord(_PA_TUYA)
 R.check(
-    "a space draw at half the pump's minimum or more is a space duty",
-    _pa._on_kw(_pa_on_coord) == 0.2
-    and [_pa.step_duty(_pa_on, _PA_T0 + timedelta(minutes=15 * i + 1), _pa._on_kw(_pa_on_coord))
-         for i in range(2)] == ["space", "space"],
+    "a space draw the plan books is a space duty, below half the pump's "
+    "minimum modulation or not (R9-F2.4: the duty reads the plan, and the "
+    "ledger beside it reads a meter)",
+    [_pa.step_duty(_pa_on, _PA_T0 + timedelta(minutes=15 * i + 1))
+     for i in range(2)] == ["space", "space"],
+    f"{_pa_on.power_schedule} on a pump whose floor is "
+    f"{_pa_on_coord._thermal_model.params.min_electrical_power} kW",
 )
 _pa_edge = _PaCoord(_PA_TUYA, duties="d" * 12)
 _pa_settled(_pa_edge, 0)
@@ -53211,6 +53214,211 @@ R.check(
     "as the unvalved two-zone arm",
     _z1524_mis["manual"] >= _z1524_mis[True] > 0,
     f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
+)
+
+# -- R9-F2.4: one owner for "this plan step runs the pump" (D12-s2-01) --------
+# Round 9, fix F2.4 (Part of #1644 P2). Four copies of
+# max(0.1, min_electrical_power * 0.5) answered two different questions:
+# whether a PLAN step must run, and whether a METER sample proves the pump ran.
+# On a fixed-speed pump -- min == max, which config_flow._power_errors accepts
+# -- the plan-side copies put the switch at half the rating, so the switch path
+# switched off steps whose heat the same plan's trajectory, cost and published
+# savings booked as delivered: 67 % of a shoulder day's booked energy, 30
+# end-to-end switch.turn_off calls on steps carrying planned heat, and an
+# actuated house 17.2 K*h below the trajectory the plan was priced on. The plan
+# side now reads the plan's own running rule -- the floor the solve's bounds
+# already assume, a sub-floor step being duty cycling WITHIN the step, and the
+# floor count_compressor_starts already counts -- and the meter side keeps its
+# threshold behind a name that says it reads a meter.
+#
+# This PR's P4 arm (D0-s2-02, #1664) widens no seed set and tightens no
+# tolerance: it is a recorded refusal priced in money and CPU, against which
+# #1294's refusal of the anchor ladder already stands.
+import inspect as _f24_inspect  # noqa: E402
+
+from heatpump_optimizer import pump_arbiter as _f24_pa  # noqa: E402
+from heatpump_optimizer import thermal_model as _f24_tm  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _f24_Opt,
+    OptimizationConfig as _f24_Cfg,
+    OptimizationResult as _f24_Res,
+    count_compressor_starts as _f24_starts,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _f24_Model,
+    ThermalParameters as _f24_Params,
+)
+
+# getattr, never a plain import: at the merge base the owner does not exist yet,
+# and this block owes a recorded failing check there, not an ImportError.
+_f24_floor = getattr(_f24_tm, "MIN_RUNNING_DRAW_KW", None)
+_f24_meter_kw = getattr(_f24_tm, "on_threshold_kw", None)
+_f24_ran_kw = getattr(_f24_pa, "_ran_kw", None)
+
+
+def _f24_opt(min_kw: float, max_kw: float):
+    params = _f24_Params()
+    params.min_electrical_power = min_kw
+    params.max_electrical_power = max_kw
+    return _f24_Opt(_f24_Model(params), _f24_Cfg())
+
+
+# A fixed-speed pump: its "lowest input it can run at without cycling on and
+# off" (strings.json) IS its rating. The modulating twin is the null arm.
+_f24_onoff = _f24_opt(6.0, 6.0)
+_f24_mod = _f24_opt(1.0, 6.0)
+
+# The 0.05 + 0.06 row pins the step's WHOLE ask. The plan prices space + dhw
+# (_build_result's total_power) and counts a compressor start on that sum, so
+# the on schedule reads the same sum; a per-circuit max would leave a step both
+# circuits trickle through switched off while the plan books its heat -- this
+# block's own defect, one floor down. Design choice, stated rather than
+# smuggled: the sum is the draw the plan books, so it is the draw the switch
+# serves.
+_f24_space = [0.0, 0.05, 0.12, 1.0, 2.9, 3.0, 6.0]
+_f24_dhw = [0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0]
+_f24_booked = [s + d for s, d in zip(_f24_space, _f24_dhw)]
+_f24_on = _f24_onoff._power_to_heat_pump_schedule(
+    np.asarray(_f24_space), np.asarray(_f24_dhw)
+)
+R.check(
+    "R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is "
+    "switched on, not off at half the rating",
+    _f24_on == [False, True, True, True, True, True, True],
+    f"on={_f24_on} for space={_f24_space} dhw={_f24_dhw}",
+)
+_f24_quiet = [False, False, False]
+R.check(
+    "R9-F2.4 P2 (null arm): a step the plan books no heat for stays off, on a "
+    "fixed-speed and on a modulating pump alike",
+    _f24_onoff._power_to_heat_pump_schedule(np.asarray([0.0, 0.1, 0.0]), None)
+    == _f24_quiet
+    and _f24_mod._power_to_heat_pump_schedule(np.asarray([0.0, 0.1, 0.0]), None)
+    == _f24_quiet,
+    f"fixed-speed={_f24_onoff._power_to_heat_pump_schedule(np.asarray([0.0, 0.1, 0.0]), None)} "
+    f"modulating={_f24_mod._power_to_heat_pump_schedule(np.asarray([0.0, 0.1, 0.0]), None)}",
+)
+_f24_transitions = sum(
+    1 for i, on in enumerate(_f24_on) if on and not (i and _f24_on[i - 1])
+)
+R.check(
+    "R9-F2.4 P2: one result cannot publish a compressor start on a step its own "
+    "on schedule calls off",
+    _f24_floor == 0.1
+    and _f24_on == [b > _f24_floor for b in _f24_booked]
+    and _f24_starts(np.asarray(_f24_booked)) == _f24_transitions,
+    f"on={_f24_on} booked={_f24_booked} "
+    f"starts={_f24_starts(np.asarray(_f24_booked))} transitions={_f24_transitions}",
+)
+
+_F24_T0 = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
+
+
+def _f24_result(power, dhw, on=None):
+    """A plan of 15-minute steps, with no on schedule unless one is given."""
+    n = len(power)
+    return _f24_Res(
+        power_schedule=list(power),
+        dhw_power_schedule=list(dhw),
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=[_F24_T0 + timedelta(minutes=15 * i) for i in range(n)],
+        prices=[1.0] * n,
+        predicted_cost=0.0,
+        baseline_cost=0.0,
+        predicted_savings=0.0,
+        savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n,
+        status="ok",
+        heat_pump_on_schedule=[] if on is None else list(on),
+    )
+
+
+# The fallback arm of the published action: a result with no on schedule to read
+# must decide by the same owner, on both circuits, or the two arms of one method
+# disagree about the same step -- and the mode band beside it, which is the
+# SPACE circuit's own question, must not inherit the pump's modulation floor.
+_f24_nosched = _f24_result([0.0, 0.4, 0.0], [0.0, 0.0, 0.9])
+_f24_acts = [
+    _f24_mod.get_current_action(_f24_nosched, t + timedelta(minutes=1))
+    for t in _f24_nosched.timestamps
+]
+R.check(
+    "R9-F2.4 P2: with no on schedule to read, the action decides on both "
+    "circuits by the plan's own rule -- a 0.4 kW space step and a 0.9 kW "
+    "hot-water step run, a step booking nothing does not",
+    [a["heat_pump_on"] for a in _f24_acts] == [False, True, True]
+    and [a["mode"] for a in _f24_acts] == ["off", "eco", "hot_water"],
+    f"{[(a['heat_pump_on'], a['mode'], a['power']) for a in _f24_acts]}",
+)
+
+# The pump-duty arbiter: which of its two duties a plan step asks for. This took
+# the threshold from its caller, which handed it the METER's, and split the two
+# circuits on two different numbers -- so on a pump whose floor is 0.4 kW a step
+# the plan booked 0.15 kW of space heat for read as no space duty at all, and
+# the arbiter wrote the pump's hot-water mode over a heating step.
+_f24_trickle = _pa_result("xs")  # x: space 0.15 + dhw 2.0; s: space 1.5
+_f24_duty_arity = len(_f24_inspect.signature(_f24_pa.step_duty).parameters)
+_f24_duties = (
+    [
+        _f24_pa.step_duty(_f24_trickle, _PA_T0 + timedelta(minutes=15 * i + 1))
+        for i in range(2)
+    ]
+    if _f24_duty_arity == 2
+    else None
+)
+R.check(
+    "R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running "
+    "rule, so no caller can hand it a threshold",
+    _f24_duties == ["both", "space"],
+    f"step_duty takes {_f24_duty_arity} parameters; duties={_f24_duties}",
+)
+_f24_metered = _PaCoord(_PA_TUYA)  # its plant's floor is 0.4 kW
+R.check(
+    "R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the "
+    "modulation floor -- and lives behind a name that says it reads a meter",
+    callable(_f24_ran_kw)
+    and _f24_ran_kw(_f24_metered) == 0.2
+    and callable(_f24_meter_kw)
+    and _f24_meter_kw(_f24_metered._thermal_model.params) == 0.2,
+    f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r}",
+)
+_f24_sample = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
+_f24_sample._measured_power = 0.15
+_pa_run(_f24_sample, 1)
+_f24_row = _f24_pa.state_for(_f24_sample).step
+R.check(
+    "R9-F2.4 P2 (null arm): a 0.15 kW meter sample is still not a run, though "
+    "the plan books a 0.15 kW step as one",
+    callable(_f24_ran_kw) and _f24_row is not None and _f24_row["ran"] is False,
+    f"{_f24_row}",
+)
+
+# The class rule, as a pin: the meter's formula lives in the owner alone, in the
+# two files this PR owns or borrows. The rule is a line reading BOTH the
+# attribute and the 0.5 factor, not a fixed operand order -- the sweep's own
+# grep (`min_electrical_power.*\* 0\.5`) missed coordinator.py's fourth copy
+# because its operands are reversed, and a rule blind to one spelling is blind
+# at the site it watches (fixer.md step 14). That copy is F1's to route through
+# the owner and is named in the PR body; it is deliberately NOT asserted here,
+# because an allow-list entry silences everything its key matches.
+def _f24_copies(module: str) -> int:
+    src = _Path(f"custom_components/heatpump_optimizer/{module}.py").read_text()
+    return sum(
+        1
+        for line in src.splitlines()
+        if "min_electrical_power" in line and "0.5" in line
+    )
+
+
+R.check(
+    "R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the "
+    "formula is the owner's alone",
+    _f24_copies("optimizer") == 0
+    and _f24_copies("pump_arbiter") == 0
+    and _f24_copies("thermal_model") == 1,
+    f"optimizer={_f24_copies('optimizer')} pump_arbiter={_f24_copies('pump_arbiter')} "
+    f"thermal_model={_f24_copies('thermal_model')} (owner)",
 )
 
 # -- R9-F2.5: N-solve-recompute -- the twins the sweeps' keying could not see --

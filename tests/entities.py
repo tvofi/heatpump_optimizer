@@ -8438,6 +8438,41 @@ R.check(
     _rkw == [(4.8, 4.8, 4.8), (1.07, 1.07, 1.07), (None, None, None)],
     repr(_rkw),
 )
+# R9-F2.4 (D8-s1-03, #1644 P2): those four read one owner, so the owner is
+# where the step's own declaration gates them. An action that says the pump is
+# off asks nothing of it -- publishing 0.41 kW beside a state of "off" is the
+# contradiction a user reads as a broken sensor. This is a different fact from
+# the plan's on decision, which the same PR moved onto the plan's own running
+# rule: that one decides what the pump MUST do, this reports a step its action
+# has already declared off, so the residue below the plan's floor publishes
+# nothing instead of a sub-threshold draw.
+# Null arms: an action that declares the pump on publishes its whole ask, and
+# one carrying no declaration at all -- a caller's partial dict, not a
+# declaration -- is not gated. Only an explicit False is.
+_f24_off = {"power": 0.41, "dhw_power": 0.0, "mode": "off", "heat_pump_on": False}
+_f24_gated = (_action_power_kw(_f24_off), *_recommended_kw(_f24_off))
+R.check(
+    "R9-F2.4 P2: no entity publishes a draw at a step the same action declares "
+    "off, and one that declares it on still publishes the whole ask (#1499)",
+    _f24_gated == (0.0, 0.0, 0.0, 0.0)
+    and _recommended_kw({"power": 0.41, "mode": "eco", "heat_pump_on": True})
+    == (0.41, 0.41, 0.41)
+    and _action_power_kw({"power": 2.0, "mode": "normal"}) == 2.0,
+    repr(_f24_gated),
+)
+# Disclosed because it moves a published number outside the finding's own grid:
+# the empty plan's idle action carries the modulation floor as its power
+# placeholder and declares the pump off, so an idle pump now publishes 0 kW
+# rather than its own minimum.
+R.check(
+    "R9-F2.4 P2: the idle action's power placeholder is not a draw",
+    _entity_base.commanded_power_kw(
+        {"power": 1.0, "mode": "idle", "heat_pump_on": False}
+    ) == 0.0,
+    repr(_entity_base.commanded_power_kw(
+        {"power": 1.0, "mode": "idle", "heat_pump_on": False}
+    )),
+)
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_OFF,
