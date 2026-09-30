@@ -113,37 +113,37 @@ open issue has a closing group.
 | #1775 | **scheduled — R9-EG-A2** (one copy per formula and helper, `dup_pairs_v1` 121 to <=40; after EG-A1, EG-B3, EG-B5; may move solver floats — claim drift with its direction, never re-record) |
 | #1776 | **scheduled — R9-EG-A3** (parameter objects for solver and planner signatures; after EG-B1 and EG-B5) |
 | #1777 | **scheduled — R9-F7.5** (the three recorded family splits renamed — display strings only, no `translation_key`, `unique_id` or entity id, decision R3-4; startable now in W0) |
-| #1655 | **EG-L0: re-measure then close** — closed with R9-F4.2's record or the remainder scheduled into its owning group |
-| #1167 | **EG-L0: re-measure then close** ([D0-01] Solver polish that improves <2% is discarded (up to 6% of a da) |
-| #1168 | **EG-L0: re-measure then close** ([D0-02] Polish runs on only one candidate, others never polished) |
-| #1170 | **EG-L0: re-measure then close** ([D2-01] Capacity term's soft top-k under-charges the peak) |
-| #1171 | **EG-L0: re-measure then close** ([D3-01] Mutation instrument's driver set is not the gate's) |
-| #1173 | **EG-L0: re-measure then close** ([D3-03] flow_setpoint emitter-UA floor untested (ZeroDivisionError)) |
-| #1174 | **EG-L0: re-measure then close** ([D3-04] cheaper_hour_count non-positive-COP guard untested) |
-| #1175 | **EG-L0: re-measure then close** ([D3-05] StartCounter already-running early return untested) |
-| #1176 | **EG-L0: re-measure then close** ([D3-06] SystemIdentification plausible-bounds refusal untested) |
-| #1177 | **EG-L0: re-measure then close** ([D3-07] 2 of 7 mutation survivors are equivalent mutants, not separate) |
-| #1178 | **EG-L0: re-measure then close** ([D3-08] deployment_shape closure is 74/74; 53 script pairs share >=0.8) |
-| #1179 | **EG-L0: re-measure then close** ([D4-01] Setup click-to-assign rows are 11.7-14.6px, under WCAG 24px fl) |
-| #1180 | **EG-L0: re-measure then close** ([D4-02] Picker .sp-filter input is 23.19px, 0.81px under the floor) |
-| #1181 | **EG-L0: re-measure then close** ([D4-03] Card sv is missing stats.delta_detail_same (English leaks to S) |
-| #1182 | **EG-L0: re-measure then close** ([D5-01] Platform docstrings undercount their entity rosters by 7) |
-| #1183 | **EG-L0: re-measure then close** ([D5-02] __init__ '40 modules' note is stale (reach is 45)) |
-| #1184 | **EG-L0: re-measure then close** ([D5-03] Two 'How the pieces fit' diagrams drifted (1 node + 1 edge)) |
-| #1185 | **EG-L0: re-measure then close** ([D7-01] Mutation gate default driver list omits the module's own test ) |
-| #1187 | **EG-L0: re-measure then close** ([D8-02] Entity-id sort splits families into 13 runs) |
-| #1188 | **EG-L0: re-measure then close** ([D8-03] 'Euro' advisor publishes the instance currency (SEK default)) |
-| #1189 | **EG-L0: re-measure then close** ([D9-01] Stress gate's work meter misses single-scenario cost-only regr) |
-| #1190 | **EG-L0: re-measure then close** ([D9-02] _apply_dhw_min_run re-simulates the whole horizon per weak slo) |
-| #1191 | **EG-L0: re-measure then close** ([D11-01] hpo-stamp deploy key bypass is 'always', skipping all 4 main-) |
-| #1193 | **EG-L0: re-measure then close** ([D11-03] Reviewer != author is not enforced; the gate approves the aut) |
-| #1196 | **EG-L0: re-measure then close** ([D11-06] dismiss_stale_reviews_on_push=false contradicts 0008's record) |
-| #1197 | **EG-L0: re-measure then close** ([D12-01] No-DHW plant still publishes dhw_windows/dhw_min_temperature ) |
-| #1198 | **EG-L0: re-measure then close** ([D13-01] Friction histogram's top row is PR trailers, not friction) |
-| #1199 | **EG-L0: re-measure then close** ([D13-02] 16 of 30 blocked verdicts are outside the wave grammar) |
-| #1200 | **EG-L0: re-measure then close** ([D13-03] Verdict histogram emits one key and its note says otherwise) |
-| #1201 | **EG-L0: re-measure then close** ([D13-04] Carried GOV set understates governance cost by 7%) |
-| #1204 | **EG-L0: re-measure then close** ([D8-01-followup] Sensor-Gap Advisor probe terms have no upstream data ) |
+| #1655 | **EG-L0 dispositioned (2026-09-30)** — R9-F4.2's record re-read (#1718 kept it open deliberately): the free-heat half in `.claude/workflows/carry-1655.json` is scheduled into **R9-F1.7** (roster `handoff/audit-r9-fixplan` @`9817d63f`: brief carry-in, `Fixes #1655` marker, issues/fixes updated; brief_lint TOTAL 0 from main). Stays open; F1.7's PR closes it. |
+| #1167 | **EG-L0 closed FIXED (2026-09-30)** — re-measured at `bd79bc9e`: baseline worst cell 11.338→10.659 SEK/day reproduces; main keeps in-band restart gains (keep-gate 2e-2→2e-5, PR #1291, twin #1207); pin `_d0_restart_keeps_only_a_real_drop` (tests/features.py). |
+| #1168 | **EG-L0 closed FIXED (2026-09-30)** — baseline arm reproduces +1.4023% (summer_negative-single); main polishes every solved candidate inside the loop (PR #1282, twin #1208); pin tests/optimality.py refined-equals-candidates. |
+| #1170 | **EG-L0 closed FIXED (2026-09-30)** — billing arm 297.395→300.000 exact (−0.8683%→0.0000%); smooth surrogate kept only in `peak_cost_smooth` for the solver, per the claim's own remedy (PR #1276, twin #1210); pin tests/features.py mixed-plateau exact-billed check. |
+| #1171 | **EG-L0 closed FIXED (2026-09-30)** — default `--scripts` now derived from tests/closures.json minus three reasoned exclusions; `env_drift.py` is a driver (PR #1254, twin #1211); pin tests/entities.py driver-net checks. |
+| #1173 | **EG-L0 closed FIXED (2026-09-30)** — guard-removal mutant reddens tests/features.py's zero-UA flow-setpoint check at main; 0 baseline tests drove the branch (PR #1247, twin #1213). |
+| #1174 | **EG-L0 closed FIXED (2026-09-30)** — guard-removal mutant reddens tests/wood_advisor.py COP-guard check at main (rc 1), green at baseline (PR #1247, twin #1214). |
+| #1175 | **EG-L0 closed FIXED (2026-09-30)** — streak-reset mutant reddens tests/features.py "a steady running signal restarts the streak"; re-implemented 162-sequence fuzz diverges 66 at both ends (the 219-sequence harness never landed) (PR #1247, twin #1215). |
+| #1176 | **EG-L0 closed FIXED (2026-09-30)** — bounds-refusal mutant reddens tests/features.py "a fit outside the plausible (tau, UA) box is refused" (completed=True at ua≈0.005); baseline grep arm 0 drivers (PR #1247, twin #1216). |
+| #1177 | **EG-L0 closed FIXED (2026-09-30)** — both named sites were the first two equivalent-mutant marks of the survivor_triage mechanism (`ae7e83d8`); the fraction counts unmarked gaps only (PR #1254, twin #1217); pins tests/entities.py #1217 checks incl. the stale-mark refusal. |
+| #1178 | **EG-L0 closed FIXED (2026-09-30)** — observation recorded and pinned: the deployment_shape note re-derives (baseline 74/74 · 53/276 pairs → main 79/79 · 70/351 Jaccard) and tests/entities.py refuses a stale note (PR #1254, twin #1218). Not superseded by #1663 (different mechanism). |
+| #1179 | **EG-L0 closed FIXED (2026-09-30)** — setup-row floor unconditional, converting at the measured draw width: 11.667/14.568 px at baseline → 24.5 px at tiles 375/768/1280 in real Chromium (PR #1253, twin #1219). No pin found; the P9 sweep dispositions setup-hit rects as not-in-class. |
+| #1180 | **EG-L0 closed FIXED (2026-09-30)** — `.sp-filter`/`.sp-select` joined htmlTargetFloor's list: 23.188 px → 24.000 px measured (PR #1253, twin #1220). No pin found (the card.mjs selector-list anchor stops short of the entries). |
+| #1181 | **EG-L0 closed FIXED (2026-09-30)** — STRINGS en/sv 261/260 at baseline → 289/289 at main, `stats.delta_detail_same` present (PR #1252, twin #1221). No pin found (the card L() test drives en only for this key). |
+| #1182 | **EG-L0 closed FIXED (2026-09-30)** — docstring-vs-registration undercount 7 → 0 (4/4, 6/6, 4/4) (PR #1252, twin #1222). No pin found. |
+| #1183 | **EG-L0 closed LIVE-CARRIED (2026-09-30)** — the fix (PR #1252, twin #1223, 40→45) re-drifted: at `bd79bc9e` the note claims 45 while the same import walk measures 50 of 66; no not-started group owns it → HANDOVER owed work (this record PR) names the re-measure and the derive-don't-carry repair. |
+| #1184 | **EG-L0 closed FIXED (2026-09-30)** — the two diagrams' node/edge/style symmetric differences are ∅ at main (baseline: node `weather` + edge (weather,tm)); labels stay audience-specific by the judge's own weakening (PR #1252, twin #1224). No pin found. |
+| #1185 | **EG-L0 closed FIXED (2026-09-30)** — tests/manual_plan.py is in the derived default net (drivers_for → 13 incl. it) and kills the recorded GUARD_OFF mutant (rc 1); baseline: absent from an 8-script default (PR #1254, twin #1225); pin tests/entities.py #1225 driver-reach checks. |
+| #1187 | **EG-L0 closed FIXED (2026-09-30)** — translation keys carry the family prefixes: the four claimed families hold 1 run each under the entity-id sort (baseline 15 runs sensor scope) (PR #1253, twin #1227); pins tests/entities.py #1227 renames + _CLUSTER_PREFIXES (entity-id-sort contiguity itself unpinned — name sorts only). #1777 is name-sort-scoped and does not own this. |
+| #1188 | **EG-L0 closed FIXED (2026-09-30)** — currency-hardcoded shipped names 3 → 0 while the advisor unit still follows coordinator.currency (SEK/EUR arms measured) (PR #1253, twin #1228). No pin found for entity-name wording. |
+| #1189 | **EG-L0 closed FIXED (2026-09-30)** — SolverWork gained simulate-step and kernel-ms channels; work_drift_compare judges three per-scenario channels (PR #1254, twin #1229); pins: tests/stress.py's own cost-only doubling arm and its single-scenario sim=1.99 arm. Successor #1656 (open) names a different seam. |
+| #1190 | **EG-L0 closed FIXED (2026-09-30)** — whole-horizon replay per weak slot gone: simulate_dhw_only pinned at 2 per repair, per-slot cost is the suffix (work counts, not wall time); the finder's recovered solve_cost.py reads 4.0204x → 2.0000x at its seam, ~2.25x on the honest unit at W=16; plans bit-identical 6/6 cells (PR #1285, twin #1230); pins tests/features.py #1230 block incl. the derived suffix ceiling. |
+| #1191 | **EG-L0 closed FIXED (2026-09-30)** — the deploy key no longer bypasses deletion/non-FF: the 2026-09-19 ruleset split (twin #1231) moved checks+PR rules to 23698884 with the documented stamp bypass. New observation recorded on #201 + HANDOVER owed: 22628467's bypass_actors now names Integration 5094721 (`hpo-ledger`) `always`, undocumented and unpinned (fixture covers 23698884 only) — tvofi to ratify+document or remove. |
+| #1193 | **EG-L0 closed FIXED (2026-09-30)** — three-identity model (0011/0013) + PR #1259's evidence-citing verdict gate + ruleset 23698884 (1 approval, code-owner review); measured 10/10 recent merged PRs author≠approver (hpo-author[bot] vs hpo-approver[bot]/tvofi); twin #1233. Residual (which seat's word a verdict carries) accepted in #1233's memo; D11-s1-04's fix landed R9-F11.2. |
+| #1196 | **EG-L0 closed REFUTED-as-defect (2026-09-30)** — fact reproduces (live 23698884 `dismiss_stale_reviews_on_push=false`; 0008 3(d) shows true) but the flip was declined twice by the owner: twin #1236 not_planned 2026-09-19 (#201 comment 5744738061) and round-9 D11-s1-01 card C16 'Leave'; required-contexts.json records false as canonical and counts.mjs pins every non-volatile field. No settings ask filed. |
+| #1197 | **EG-L0 closed FIXED (2026-09-30)** — DHW attribute block gated on the payload's dhw_enabled: hostile no-DHW payload leaks 5 keys at baseline → 0 at main on both plan branches, dhw_enabled=True control publishes all 5 (PR #1253, twin #1237); pin tests/entities.py:2275 + control. |
+| #1198 | **EG-L0 closed FIXED (2026-09-30)** — FRICTION_TRAILER_RE: 13 trailer entries over the original 54-merge corpus → 0; guard-deleted copy returns to 13 (PR #1277, twin #1238); pins tests/entities.py trailer-block checks + policy_lint fixture acceptance. |
+| #1199 | **EG-L0 closed FIXED (2026-09-30)** — blocked routing 14/30 → 23/30 on the same 86-line corpus; the 9 residual refusals are by design and surface as unclassified rows (PR #1277 + #1475, twin #1239); pins check-wave-script.mjs groups 13/13b/13c/13d. Correction recorded: the 13-point yield swing does not reproduce — measured −7.7 points, opposite sign, under D13's own yield rule. |
+| #1200 | **EG-L0 closed FIXED (2026-09-30)** — histogram keys the block class: 0 block-class rows → 15 over the identical 30 blocked verdicts; CLI prints the full grammar; unclassified 9 (PR #1277, twin #1240); pins policy_lint fixture acceptance + tests/entities.py #1240 checks. |
+| #1201 | **EG-L0 closed FIXED (2026-09-30)** — GOV 12 members, 0 phantom, 0 omitted governance jobs (baseline: phantom `record-status`, omitted delivery-status/-publish) (PR #1277 + R9-F11.1 `bed5b81a`, twin #1241); pin tests/entities.py GOV both-ways check. Corrections recorded: on the harness's pinned window the stale set OVERstates the share (+7.03% relative); the claimed understatement reproduces only post-rename (+6.3%/+6.8%). Residual: governance_cost.py's EXPECTED header is stale vs its own output (no lane executes it). |
+| #1204 | **EG-L0 closed FIXED (2026-09-30)** — all three series keys now have producers (`_build_data_dict` via `_power_windows`; `_grid_view` via `tariff.billing_summary`); driven advisor reads 0.0 → 60.0/155.77 when published (PR #1489, #1460); pins tests/entities.py:6321-6336. #1651's instance table never named these keys. |
 
 ## Delivery status
 

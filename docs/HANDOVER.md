@@ -777,6 +777,35 @@ the pinned mypy half locally via `run.sh` — and repairs at those two sites
 `.github/workflows/tests.yml:427`. #1122's own body names this as owed and
 does not claim to have repaired it.
 
+**Owed from the round-9 EG-L0 legacy triage (2026-09-30): two live items with
+no not-started owner, carried here rather than filed** (fix-over-file, and the
+record lane makes no production edit).
+
+- **`__init__.py`'s lazy-import reach note re-drifted** (legacy #1183, closed
+  LIVE-CARRIED to this item). The note carries a hard count — "``coordinator``
+  and ``services`` reach 45 of the integration's modules between them" at
+  `bd79bc9e` — but the same import walk (`sys.modules` under
+  `custom_components.heatpump_optimizer.` after importing coordinator then
+  services, `PYTHONPATH=tests/hastub`) measures **50 of 66**. Its twin #1223's
+  fix (PR #1252) moved the count 40→45; the five modules added since
+  (`batchmath`, `entity`, `pump_arbiter`, `repairs`, `store`) re-staled it. No
+  not-started group owns `__init__.py`, and the I5 barrier's quoted-line pass
+  (R9-F11.3) pins backticked `TAG: text` spans, not a prose count, so nothing
+  reddens on it. Repair: update the count, or better rewrite the note to derive
+  it rather than carry one (`CLAUDE.md`'s derive-don't-carry rule).
+- **Ruleset `main-protect` (22628467) carries an undocumented `always` bypass.**
+  Read live 2026-09-30: `bypass_actors = [{actor_id 5094721, actor_type
+  Integration, bypass_mode always}]`; `~/.zcode/hpo-ledger.appid` = 5094721
+  identifies the `hpo-ledger` App. It bypasses the deletion + non-fast-forward
+  push guards. No decision records it (0009/0011 name only the `hpo-stamp`
+  deploy key's bypass, on the *other* ruleset 23698884), the required-contexts
+  fixture does not cover it (by design it records only 23698884, so `counts.mjs`'s
+  field compare never reads 22628467), and it contradicts the 2026-09-19 #201
+  split record that 22628467 has "no bypass actors". Only tvofi can change a
+  ruleset: **ratify and document it** (if the ledger/record lane legitimately
+  pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30;
+  the #1191 close cites this. Neither half is a seat's to decide.
+
 ## The machine this runs on — measure it, do not read it
 
 A seat's box is not the owner's, and a container seat reading a description of
