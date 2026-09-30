@@ -1,6 +1,8 @@
-# Round 9 endgame, re-planned (rev 4): lane UI (identity, card, plan chart, README) folded into the live programme
+# Round 9 endgame, re-planned (rev 4.1): lane UI and lane UX folded into the live programme
 
 **Status.**
+- **Rev 4.1** (2026-09-30, section R5) adds lane UX, seven feature groups for tvofi's UX decisions, re-based to
+  origin/main `5dfa6684` and the live roster at `1c3558f0`, where rev 4 is applied; item 5 is deferred as #1793.
 - **Rev 4** was written 2026-09-30 by the same cloud review seat. It is measured at origin/main `48786f65` (v6.7.12,
   after #1790) against the **live** roster rev 3.3 on `handoff/audit-r9-fixplan` at `35800d45`, not against ALT rev 3.1.
 - It adds tvofi's design decisions of 2026-09-30 as a new lane **UI** of four feature groups, two after-edges and four
@@ -213,6 +215,207 @@ its feature issue is filed at adoption.
 The mandate of 2026-09-29 stands, and rev 4 needs no new decision. tvofi's hands, mechanical only: approving reviews
 at the head for UI-1 and UI-2 (tests/layout.json) and UI-3 and UI-4 (tests/card_browser.mjs); uploading the social
 preview image under the repository settings after UI-2 merges.
+
+## R5 Rev 4.1: lane UX (explanations, advisor inbox, receipts and notifications, health)
+
+Written 2026-09-30 by the same cloud review seat, at origin/main `5dfa6684` (after #1788, F1.7) against the live roster
+on `handoff/audit-r9-fixplan` at `1c3558f0`, where rev 4 is applied (lane UI, feature issue #1791).
+
+### R5.1 What tvofi asked and decided
+
+tvofi asked for the top five functions that would improve usefulness and user experience, then: "Do a small pre-study
+for items 1-4 and find optimal places for them in the ongoing plan. Defer 5 for later, add it as a feature request
+issue." Then: "prepare the design in the new identity and do plan, roster and handover prompt as per normal".
+
+| # | decision (2026-09-30) | where it lands |
+|---|---|---|
+| U1 | notifications are documented events plus a blueprint; no option fields | UX-4 |
+| U2 | the trust replay is the full day-ahead replay | UX-6 |
+| U3 | item 5, the shared household power budget, is deferred beyond round 9 | #1793, filed and read back |
+| U4 | "the budgets are in place to make sound architectural decisions, they can be raised as a last resort if payment does not yield better code, after codeowner approval" | every UX brief; the mandate does not pre-confirm raises for this lane |
+| U5 | "make sure that the finished card pages gets described with screenshots in the documentation" | UI-3 lands a page-screenshot mode in the browser test; every card group documents its pages in docs/dashboard-card.md with generated screenshots in docs/img/card |
+
+### R5.2 The pre-study and the design
+
+`alt/design/ux/` (commit `1a90e4cb`):
+- **`PRE-STUDY-UX.md`:** the facts, with file and line at `5dfa6684`.
+- **`DESIGN-UX.md`:** per group, the anatomy, copy, states, services and what must keep working.
+- **Mockups in the dusk identity:** 15 renders, light and dark at 964 px, the phone at 390 px, drawn from the repository
+  fixture with examples labelled.
+- **`CONTRAST.json`:** 34 new colour pairs, all passing.
+
+The findings that shape the groups:
+- Four of the five ideas surface data the integration already computes:
+  - six advisors, of which the card reads one;
+  - receipts frozen for 24 months, published only on a sensor that is disabled by default;
+  - a narrative the card cuts to one line;
+  - a learning view that no entity or card reads.
+- **A latent defect:** a monthly receipt's total counts the month's energy up to four times. It sums spot plus the
+  space and hot-water lines that split it, plus both savings lines. It is untested. UX-6 fixes it with the failing test
+  first.
+- **Three setup gaps from the ideation are already fixed on main** (#123; `3110b24d`/`ed2318e6`; #110). The backlog and a
+  coordinator comment are stale, and RO-4 and UX-6 correct them.
+- **Budgets:** every structure metric sits at zero headroom, and no metric measures the card. So the card groups run
+  early, and the backend groups put new logic outside the coordinator:
+  - a notifier module;
+  - the receipt freeze as a pure function in `ledger.py`;
+  - sensors over published data.
+
+### R5.3 Lane UX in the schedule
+
+| PR | after | depth | gates | what |
+|---|---|---|---|---|
+| UX-1 | UI-4 | 6 | RO-2 | why now, why not: all narrative lines, idle-step explanations from published fields |
+| UX-2 | UX-1 | 7 | RO-2 | advisor inbox over enabled advisors, actions through existing services |
+| UX-3 | UX-2 | 8 | RO-2 | Health tab: inputs, plan freshness, waiting reasons, first-plan checklist, diagnostics link |
+| UX-4 | EG-B3 | 7 | RO-2 | notifier module and blueprint, reading the typed payload EG-B3 lands |
+| UX-5 | EG-B6, SW-1, EG-B5, EG-B1, EG-A2, UX-3 | 10 | RO-9 | persistent hot-water setpoint apply; exact idle sub-codes |
+| UX-6 | EG-B7, EG-B11, UX-5 | 11 | RO-9 | receipt defect fixed, receipt freeze into `ledger.py`, capacity line, 24 receipts published, day-ahead snapshot, Savings views |
+| UX-7 | EG-B6, EG-B11, UX-5 | 11 | RO-9 | model-status sensor, recorded next-interval prediction, richer diagnostics with redaction, the learned-model section |
+
+**The arithmetic.** Open chains before and after, asserted by `alt/build_roster_rev41.py`, which refuses the result if
+either grows:
+- the longest open chain stays 12;
+- EG-A4's open chain stays 11.
+
+UX-1..4 sit at depth 8 or less, under RO-2's 9 with zero slack. UX-5..7 end at 11, under RO-9's 12.
+
+**One consequence to watch.** SW-1 → UX-5 → UX-7 → RO-9 now ties the longest chain. SW-1, UX-5, UX-6 and UX-7 have zero
+slack, so a slip in any of them delays the programme's end.
+
+**Siblings and merge order:**
+- UX-6 and UX-7 have no edge between them. Both edit the card and `sensor.py` in different functions, so whichever
+  merges second merges main.
+- UX-1..3 and SW-3 follow the same rule on the card.
+
+**Carries:**
+- **UI-3:** the page-screenshot mode, and document Plan, Setup, Savings and Advisor (U5).
+- **UI-4:** regenerate the Plan screenshots.
+- **SW-3:** merge order with UX-1..3, and screenshots of its section.
+- **RO-3:** do not move `docs/img/card` screenshots.
+- **RO-4:** close the three stale backlog entries with their references.
+- **EG-A4:** UX-5..7 show their delta with the counters, and explain a drop.
+
+**Re-truthing.** Rev 4.1 also corrects EG-B3's two `sensor.py` line numbers that #1788 moved (1511 → 1505, 1544 →
+1539). The live roster fails `brief_lint` on it alone at `5dfa6684`, and rev 4.1 prints `TOTAL: 0 error(s)`.
+
+### R5.4 Schedule (from ALT-ROSTER.json rev 4.1, `alt/gen_table_rev4.py`)
+
+Open groups: 54 of 97. Longest open chain (12): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → SW-1 → UX-5 → UX-7 → RO-9.
+EG-A4 chain (11): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → EG-B6 → EG-B7 → EG-A4.
+
+| depth | PR | lane | open after-edges | issues (**Fixes**) | owner gate | fixer / reviewer | stage |
+|---|---|---|---|---|---|---|---|
+| 1 | F1.8 | F1 | — | #1644, **#1657** | — | opus / opus | not-started |
+| 1 | F10.1b | F10 | — | **#1649**, #1740 | — | sonnet / opus | not-started |
+| 1 | UI-1 | UI | — | #1791 | yes | sonnet / opus | not-started |
+| 2 | F1.9 | F1 | F1.8 | **#1660** | — | sonnet / opus | not-started |
+| 2 | F10.1c | F10 | F10.1b | **#1756** | — | sonnet / opus | not-started |
+| 2 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | yes | opus / opus | not-started |
+| 2 | F6.3 | F6 | F1.8 | **#1652** | yes | sonnet / opus | not-started |
+| 2 | UI-2 | UI | UI-1 | #1791 | yes | sonnet / opus | not-started |
+| 3 | F1.10 | F1 | F1.9 | #1645, **#1654**, **#1741** | — | opus / opus | not-started |
+| 3 | F10.3 | F10 | F10.2 | **#1646**, **#1663**, **#1748** | yes | opus / opus | not-started |
+| 3 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | sonnet / opus | not-started |
+| 4 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | opus / opus | not-started |
+| 4 | UI-3 | UI | F6.4 | #1791 | yes | opus / opus | not-started |
+| 5 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | opus / opus | not-started |
+| 5 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, **#1738** | yes | opus / opus | not-started |
+| 5 | UI-4 | UI | UI-3 | #1791 | yes | opus / opus | not-started |
+| 6 | EG-A1 | EG | F10.4 | #1774, #1738 | yes | sonnet / opus | not-started |
+| 6 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | sonnet / opus | not-started |
+| 6 | EG-B5a | EG | F10.4 | #1743 | yes | opus / opus | not-started |
+| 6 | F10.5 | F10 | F10.4 | — | yes | opus / opus | not-started |
+| 6 | F11.4 | F11 | F10.4 | **#1650** | yes | sonnet / opus | not-started |
+| 6 | UX-1 | UX | UI-4 | — | yes | sonnet / opus | not-started |
+| 7 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | opus / opus | not-started |
+| 7 | EG-B5 | EG | EG-B5a, F1.10, F10.4 | **#1743**, #1748 | yes | opus / opus | not-started |
+| 7 | EG-R1 | EG | F11.4 | **#1759** | yes | sonnet / opus | not-started |
+| 7 | F10.6 | F10 | F10.5 | — | yes | opus / opus | not-started |
+| 7 | F11.5 | F11 | F11.4 | — | yes | sonnet / opus | not-started |
+| 7 | UX-2 | UX | UX-1 | — | yes | sonnet / opus | not-started |
+| 7 | UX-4 | UX | EG-B3 | — | yes | sonnet / opus | not-started |
+| 8 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | **#1775** | — | opus / opus | not-started |
+| 8 | EG-B1 | EG | F10.4, F10.6, F11.5, EG-B4, EG-B5 | **#1736** | yes | opus / opus | not-started |
+| 8 | F10.7 | F10 | F10.6 | **#1758** | — | opus / opus | not-started |
+| 8 | F11.7 | F11 | F11.5 | **#1757** | yes | opus / opus | not-started |
+| 8 | UX-3 | UX | UX-2 | — | yes | sonnet / opus | not-started |
+| 9 | EG-A3 | EG | EG-B1, EG-B5 | **#1776** | — | sonnet / opus | not-started |
+| 9 | EG-B6 | EG | EG-B1 | **#1739** | — | sonnet / opus | not-started |
+| 9 | RO-2 | RO | F10.7, F11.7, EG-R1, F11.5, F6.4, UI-2, UI-4, UX-1, UX-2, UX-3, UX-4 | — | yes | opus / opus | not-started |
+| 9 | SW-1 | SW | EG-B1, F1.10, F10.1c | — | yes | opus / opus | not-started |
+| 10 | EG-B11 | EG | EG-B1, EG-A3 | **#1745** | — | opus / opus | not-started |
+| 10 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | yes | opus / opus | not-started |
+| 10 | RO-3 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-4 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-5 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-6 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-7 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | SW-2 | SW | SW-1, EG-B6 | — | yes | opus / opus | not-started |
+| 10 | SW-3 | SW | SW-1, F6.4, UI-4 | — | yes | sonnet / opus | not-started |
+| 10 | SW-4 | SW | SW-1 | — | yes | sonnet / opus | not-started |
+| 10 | UX-5 | UX | EG-B6, SW-1, EG-B5, EG-B1, EG-A2, UX-3 | — | yes | opus / opus | not-started |
+| 11 | EG-A4 | EG | EG-A1, EG-B7, EG-A2, EG-A3, EG-B11 | **#1774** | — | sonnet / opus | not-started |
+| 11 | RO-8 | RO | RO-7 | — | yes | opus / opus | not-started |
+| 11 | UX-6 | UX | EG-B7, EG-B11, UX-5 | — | yes | opus / opus | not-started |
+| 11 | UX-7 | UX | EG-B6, EG-B11, UX-5 | — | yes | opus / opus | not-started |
+| 12 | RO-9 | RO | RO-3, RO-4, RO-5, RO-6, RO-8, EG-A4, SW-4, UX-5, UX-6, UX-7 | — | yes | sonnet / opus | not-started |
+
+### R5.5 Every open issue and the group that closes it
+
+35 open issues besides #201 on 2026-09-30, read after #1788 closed #1655 and #1658; uncovered: none.
+#1793 (item 5) was filed after this table and is deliberately uncovered: it is deferred beyond round 9.
+
+| issue | title | closed by | also part of |
+|---|---|---|---|
+| #1791 | Lane UI: new identity, card visual system, plan chart concept A and README graphics | — | UI-1, UI-2, UI-3, UI-4 |
+| #1776 | [R9-EG-PARAM-OBJECTS] 28 functions take more than ten parameters | EG-A3 | — |
+| #1775 | [R9-EG-ONE-COPY] Formulas and helpers exist in several copies | EG-A2 | — |
+| #1774 | [R9-EG-ARCH-SCORE] Land the architecture score | EG-A4 | EG-A1 |
+| #1759 | [R9-REGISTER-FOLD] Register never received rounds 8–9 | EG-R1 | — |
+| #1758 | [R9-FREEZE-INSTRUMENT] The v6.6.0 options-flow freeze was never diagnosed | F10.7 | — |
+| #1757 | [R9-GOV-HEADCOPY-PRINCIPAL] graders-head-copy omits the governance .mjs graders | F11.7 | — |
+| #1756 | [R9-P7-TRACER-BLIND] F1.1's DST tracer catches 1 of P7's 3 members | F10.1c | — |
+| #1748 | [R9-EG-RATCHET-MOVE-BLIND] mutation ratchet counts a moved site as new | F10.3 | EG-B5 |
+| #1745 | [R9-EG-ENTRY-CONFIG] Configuration is a raw dict read per site | EG-B11 | — |
+| #1744 | [R9-EG-COORDINATOR-SEAMS] Re-measure the coordinator's dhw and views seams | EG-B7 | — |
+| #1743 | [R9-EG-DHW-PLANNER] Extract the DHW planner core | EG-B5 | EG-B5a |
+| #1742 | [R9-EG-SURFACE-IDENTITY] Entity identity pinned at 9 constructors | EG-B2 | — |
+| #1741 | [R9-EG-PLANT-FACT-COPIES] Step-start clock defined twice; 20 °C literal at 8 sites | F1.10 | — |
+| #1740 | [R9-EG-STORE-VERSION] No store can change its version | EG-B4 | F10.1b |
+| #1739 | [R9-EG-COLLABORATOR-INTERFACES] Collaborators reach into coordinator internals | EG-B6 | EG-B2 |
+| #1738 | [R9-EG-RATCHET-DECOMPOSITION] The structural ratchet misprices decomposition | F10.4 | EG-A1 |
+| #1737 | [R9-EG-TYPED-PAYLOAD] The coordinator's payload has no typed contract | EG-B3 | — |
+| #1736 | [R9-EG-SOLVE-INPUTS] Each solve writes its inputs into the live hub objects | EG-B1 | — |
+| #1687 | [R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER] | F6.4 | — |
+| #1686 | [R9-STRUCTURE-METRIC-BLIND-TO-SHAPE] | F10.4 | — |
+| #1663 | [R9-I2] A measured closure diverges from the dependency graph | F10.3 | — |
+| #1661 | [R9-PRODUCTION-MEMBER-NO-CALLER] | F10.4 | — |
+| #1660 | [R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] | F1.9 | — |
+| #1657 | [R9-P8] Currency or unit resolved by divergent precedence | F1.8 | — |
+| #1656 | [R9-CPU-GATE-BLIND] | F10.2 | — |
+| #1654 | [R9-P3] A capacity floor applied inconsistently | F1.10 | — |
+| #1653 | [R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] | F10.2 | — |
+| #1652 | [R9-P9] Card UI: clipping ancestor, colour token, hit target | F6.3 | — |
+| #1651 | [R9-P6] A consumer reads a key no producer writes | F1.11 | — |
+| #1650 | [R9-I4] Two parsers of one concept disagree | F11.4 | F10.4 |
+| #1649 | [R9-P11] The only oracle for an external counterpart is a self-written double | F10.1b | — |
+| #1646 | [R9-I1] A mutation kill miscounted | F10.3 | — |
+| #1645 | [R9-I5] Docs or comments drift stale against the code | F10.4 | F1.10 |
+| #1644 | [R9-P2] One fact decided twice by divergent predicates | F1.11 | F1.8 |
+
+### R5.6 Asserted diff against the live roster
+
+- 97 groups (90 + 7).
+- Changed:
+  - the seven new groups;
+  - RO-2's and RO-9's `after`;
+  - the briefs of UI-3, UI-4, SW-3, RO-3, RO-4 and EG-A4 (carries), and of EG-B3 (the re-truthed line numbers);
+  - one `_comment`.
+- No stage and no issue changes.
+- A second run is refused.
+- `brief_lint` from origin/main prints `TOTAL: 0 error(s)`, and a planted bad path and a planted bad symbol in UX-4 each
+  raise an error.
 
 ---
 
