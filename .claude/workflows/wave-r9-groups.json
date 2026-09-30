@@ -3489,10 +3489,10 @@
         "R9-F1.6"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "fixing",
         "branch": "handoff/r9-eg-solve-lifecycle",
         "commit": "6e062c77efd3835110695659c09d70ea34b61ce2",
-        "last_step": "round 2 at 6e062c77 (leak closure + C1 re-take + honest raise reason; correction on #201 5903942263 pre-push); reviewer round 2 dispatched; tvofi approve REQUESTED at this head (hold till verdict merge)",
+        "last_step": "round-2 verdict merge at 6e062c77 (posted+approved) BUT mutation lane refuses: 8 unpinned sites; bot reported skip-no-measurement (human-judgment path per ci-autofix); seat resumed to pin/kill/triage in hpo-ci; round-3 review at the new head; tvofi review must re-land at the new head (caps may not have moved — verify)",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-B10.md on handoff/r9-eg-solve-lifecycle",
         "review_branch": "handoff/r9-eg-solve-lifecycle-review",
