@@ -1,0 +1,16 @@
+### enum_p2_probe
+RESULT cells=40 count
+RESULT derive_preset_disagree=0 count
+RESULT prefill_refused_or_missed=0 count
+RESULT null_control_cells=20 count
+RESULT null_control_disagree=0 count
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/fix-r9-f2-solver-4-scratch/base-tree/tools/audit/round9/D14/sweep/P2/enumerator.py", line 329, in <module>
+    main()
+  File "/Users/timmalmstrom/fix-r9-f2-solver-4-scratch/base-tree/tools/audit/round9/D14/sweep/P2/enumerator.py", line 302, in main
+    dp = perturbed(config_flow._derive_preset, "two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),",
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/fix-r9-f2-solver-4-scratch/base-tree/tools/audit/round9/D14/sweep/P2/enumerator.py", line 251, in perturbed
+    assert old in src, (fn.__name__, old)
+           ^^^^^^^^^^
+AssertionError: ('_derive_preset', 'two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),')
