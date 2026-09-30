@@ -1,0 +1,912 @@
+{
+ "_doc": "The target layout of the repository reorganisation (lane RO). Checked by tests/layout.py; the categories are ordered and a path must match exactly one. `retired` is generated with `python3 tests/layout.py --gen-retired <inventory.tsv>`; an entry's `since` names the pull request that made the move, and null means planned. `historical` prefixes keep the paths that were true when they were written (tvofi's D2), matched on a file's path or on where the move map puts it.",
+ "categories": [
+  {
+   "name": "root",
+   "why": "what GitHub, HACS and the release stamp read at the top level",
+   "globs": [
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "DISCLAIMER.md",
+    "SECURITY.md",
+    "RELEASE_NOTES.md",
+    "VERSION",
+    "hacs.json",
+    ".gitignore",
+    ".gitattributes"
+   ]
+  },
+  {
+   "name": "product",
+   "why": "what an installation runs: the integration, and the blueprints whose source_url pins raw .../main/blueprints/",
+   "globs": [
+    "custom_components/**",
+    "blueprints/automation/*.yaml"
+   ]
+  },
+  {
+   "name": "docs",
+   "why": "product documentation, read by users; the page URLs stay stable for users and HACS",
+   "globs": [
+    "docs/{setup,configuration,automations,dashboard-card,ecl110,how-it-works,architecture}.md",
+    "docs/img/card/*",
+    "docs/img/model/*",
+    "docs/img/setup/*",
+    "docs/design/*/{design,plan}.md"
+   ]
+  },
+  {
+   "name": "tests",
+   "why": "the gate: code, fixtures, ledgers and this manifest",
+   "globs": [
+    "tests/**"
+   ]
+  },
+  {
+   "name": "dev/governance",
+   "why": "policy that binds every seat: canonical rules (D1), role contracts, dimension briefs, ADRs, policy-lint config",
+   "globs": [
+    "dev/governance/rules/*.md",
+    "dev/governance/roles/*.md",
+    "dev/governance/dimensions/*.md",
+    "dev/governance/decisions/*.md",
+    "dev/governance/config/*.json"
+   ]
+  },
+  {
+   "name": "dev/programme",
+   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register",
+   "globs": [
+    "dev/programme/HANDOVER.md",
+    "dev/programme/plan-*.md",
+    "dev/programme/delivery/*.md",
+    "dev/programme/carries/carry-*.json",
+    "dev/programme/rosters/*.json",
+    "dev/programme/register/*.md"
+   ]
+  },
+  {
+   "name": "dev/audit",
+   "why": "how findings are produced, and their evidence",
+   "globs": [
+    "dev/audit/README.md",
+    "dev/audit/config/*.json",
+    "dev/audit/rounds/**",
+    "dev/audit/rca/**",
+    "dev/audit/harnesses/**",
+    "dev/audit/waves/**"
+   ]
+  },
+  {
+   "name": "dev/archive",
+   "why": "obsolete but still referenced: read-only, never linted as live",
+   "globs": [
+    "dev/archive/**"
+   ]
+  },
+  {
+   "name": "tools",
+   "why": "executable instruments only, at the depth that keeps ROOT=../..",
+   "globs": [
+    "tools/policy/**",
+    "tools/pr/**",
+    "tools/seat/**",
+    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py}",
+    "tools/coverage/**",
+    "tools/devices/**",
+    "tools/release/**",
+    "tools/merge/**",
+    "tools/replay/**"
+   ]
+  },
+  {
+   "name": "agent-config",
+   "why": "harness-specific files, each where its harness looks: root entry points, the .claude allowlist, generated rule copies",
+   "globs": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".claude/settings.json",
+    ".claude/hooks/*.sh",
+    ".claude/skills/*/SKILL.md",
+    ".claude/rules/*.md",
+    ".claude/workflows/{audit,web}-*.js",
+    ".claude/workflows/web-fragments.md",
+    ".cursor/rules/*.mdc"
+   ]
+  },
+  {
+   "name": "ci",
+   "why": "GitHub reads it only here",
+   "globs": [
+    ".github/**"
+   ]
+  }
+ ],
+ "retired": [
+  {
+   "old": ".abacus.donotdelete",
+   "new": null,
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/brief_lint.mjs",
+   "new": "tools/policy/brief_lint.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/budget_raise_gate.py",
+   "new": "tools/policy/budget_raise_gate.py",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1067.json",
+   "new": "dev/archive/carries/carry-1067.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1295.json",
+   "new": "dev/archive/carries/carry-1295.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1300.json",
+   "new": "dev/archive/carries/carry-1300.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1308.json",
+   "new": "dev/archive/carries/carry-1308.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1320.json",
+   "new": "dev/archive/carries/carry-1320.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1330.json",
+   "new": "dev/archive/carries/carry-1330.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1336.json",
+   "new": "dev/archive/carries/carry-1336.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1395.json",
+   "new": "dev/archive/carries/carry-1395.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1398.json",
+   "new": "dev/archive/carries/carry-1398.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1412.json",
+   "new": "dev/archive/carries/carry-1412.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1454.json",
+   "new": "dev/archive/carries/carry-1454.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1459.json",
+   "new": "dev/archive/carries/carry-1459.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1463.json",
+   "new": "dev/archive/carries/carry-1463.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1617.json",
+   "new": "dev/archive/carries/carry-1617.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1644.json",
+   "new": "dev/programme/carries/carry-1644.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1645.json",
+   "new": "dev/programme/carries/carry-1645.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1646.json",
+   "new": "dev/programme/carries/carry-1646.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1647.json",
+   "new": "dev/programme/carries/carry-1647.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1648.json",
+   "new": "dev/archive/carries/carry-1648.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1649.json",
+   "new": "dev/programme/carries/carry-1649.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1651.json",
+   "new": "dev/programme/carries/carry-1651.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1652.json",
+   "new": "dev/programme/carries/carry-1652.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1653.json",
+   "new": "dev/programme/carries/carry-1653.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1654.json",
+   "new": "dev/programme/carries/carry-1654.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1655.json",
+   "new": "dev/programme/carries/carry-1655.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1659.json",
+   "new": "dev/archive/carries/carry-1659.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1660.json",
+   "new": "dev/programme/carries/carry-1660.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1668.json",
+   "new": "dev/archive/carries/carry-1668.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1686.json",
+   "new": "dev/programme/carries/carry-1686.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-201.json",
+   "new": "dev/programme/carries/carry-201.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-681.json",
+   "new": "dev/archive/carries/carry-681.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-752.json",
+   "new": "dev/archive/carries/carry-752.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-932.json",
+   "new": "dev/archive/carries/carry-932.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-962.json",
+   "new": "dev/archive/carries/carry-962.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/cfr_exclusions.json",
+   "new": "dev/governance/config/cfr_exclusions.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/check-wave-script.mjs",
+   "new": "tools/policy/check-wave-script.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/contract_rerun.py",
+   "new": "tools/pr/contract_rerun.py",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/corpus_excluded.json",
+   "new": "dev/governance/config/corpus_excluded.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/counts.mjs",
+   "new": "tools/policy/counts.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/field_coverage.mjs",
+   "new": "tools/policy/field_coverage.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/figure_census.mjs",
+   "new": "tools/policy/figure_census.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/figure_lint.mjs",
+   "new": "tools/policy/figure_lint.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/fixtures/",
+   "new": "tools/policy/fixtures/",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/fragments_sync.mjs",
+   "new": "tools/policy/fragments_sync.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/friction_issues.mjs",
+   "new": "tools/policy/friction_issues.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/gh_comment.py",
+   "new": "tools/pr/gh_comment.py",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/policy_budgets.json",
+   "new": "dev/governance/config/policy_budgets.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/policy_known_bad.json",
+   "new": "dev/governance/config/policy_known_bad.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/policy_lint.mjs",
+   "new": "tools/policy/policy_lint.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/policy_lint_envmatrix.mjs",
+   "new": "tools/policy/policy_lint_envmatrix.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/policy_lint_mutants.mjs",
+   "new": "tools/policy/policy_lint_mutants.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/render_md.mjs",
+   "new": "tools/policy/render_md.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/rules_sync.mjs",
+   "new": "tools/policy/rules_sync.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/vendor/",
+   "new": "tools/policy/vendor/",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-3l-groups.json",
+   "new": "dev/archive/rosters/wave-3l-groups.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-4-groups.json",
+   "new": "dev/archive/rosters/wave-4-groups.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-5-groups.json",
+   "new": "dev/archive/rosters/wave-5-groups.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-d11-groups.json",
+   "new": "dev/archive/rosters/wave-d11-groups.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-r8-groups.json",
+   "new": "dev/archive/rosters/wave-r8-groups.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/wave-ux-groups.json",
+   "new": "dev/archive/rosters/wave-ux-groups.json",
+   "since": null
+  },
+  {
+   "old": "docs/HANDOVER.md",
+   "new": "dev/programme/HANDOVER.md",
+   "since": null
+  },
+  {
+   "old": "docs/audit-2026-08.md",
+   "new": "dev/archive/audits/audit-2026-08.md",
+   "since": null
+  },
+  {
+   "old": "docs/audit-2026-09.md",
+   "new": "dev/programme/register/audit-2026-09.md",
+   "since": null
+  },
+  {
+   "old": "docs/backlog.md",
+   "new": "dev/archive/backlog.md",
+   "since": null
+  },
+  {
+   "old": "docs/decisions/",
+   "new": "dev/governance/decisions/",
+   "since": null
+  },
+  {
+   "old": "docs/delivery/",
+   "new": "dev/programme/delivery/",
+   "since": null
+  },
+  {
+   "old": "docs/img/card-advisor-page.png",
+   "new": "docs/img/card/card-advisor-page.png",
+   "since": null
+  },
+  {
+   "old": "docs/img/card-dhw-band-weekly.png",
+   "new": "docs/img/model/card-dhw-band-weekly.png",
+   "since": null
+  },
+  {
+   "old": "docs/img/card-plan-chart.png",
+   "new": "docs/img/card/card-plan-chart.png",
+   "since": null
+  },
+  {
+   "old": "docs/img/chart-anatomy.svg",
+   "new": "docs/img/card/chart-anatomy.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/chart-dashed-lines.svg",
+   "new": "docs/img/card/chart-dashed-lines.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/dhw-demand-windows.svg",
+   "new": "docs/img/model/dhw-demand-windows.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/dhw-store-decay.svg",
+   "new": "docs/img/model/dhw-store-decay.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/hydronic-coil.svg",
+   "new": "docs/img/model/hydronic-coil.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/hydronic-single-buffer.svg",
+   "new": "docs/img/model/hydronic-single-buffer.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/hydronic-two-tank.svg",
+   "new": "docs/img/model/hydronic-two-tank.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/make_card_figures.mjs",
+   "new": "docs/img/card/make_card_figures.mjs",
+   "since": null
+  },
+  {
+   "old": "docs/img/make_model_figures.py",
+   "new": "docs/img/model/make_model_figures.py",
+   "since": null
+  },
+  {
+   "old": "docs/img/marginal-cop.svg",
+   "new": "docs/img/model/marginal-cop.svg",
+   "since": null
+  },
+  {
+   "old": "docs/img/options-hot-water-by-day.png",
+   "new": "docs/img/card/options-hot-water-by-day.png",
+   "since": null
+  },
+  {
+   "old": "docs/plan-1067-rotenso-inputs.md",
+   "new": "dev/archive/plans/plan-1067-rotenso-inputs.md",
+   "since": null
+  },
+  {
+   "old": "docs/plan-2026-09-open-issues.md",
+   "new": "dev/programme/plan-2026-09-open-issues.md",
+   "since": null
+  },
+  {
+   "old": "docs/plan-card-decomposition.md",
+   "new": "dev/archive/plans/plan-card-decomposition.md",
+   "since": null
+  },
+  {
+   "old": "docs/plan-open-issues.md",
+   "new": "dev/archive/plans/plan-open-issues.md",
+   "since": null
+  },
+  {
+   "old": "docs/plan-v4.0.0-program.md",
+   "new": "dev/archive/plans/plan-v4.0.0-program.md",
+   "since": null
+  },
+  {
+   "old": "docs/setup/",
+   "new": "docs/img/setup/",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/plans/2026-09-05-away-plan-toggle.md",
+   "new": "docs/design/2026-09-05-away-plan-toggle/plan.md",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/plans/2026-09-05-monthly-savings-history.md",
+   "new": "docs/design/2026-09-05-monthly-savings-history/plan.md",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/plans/2026-09-05-wood-furnace-economics.md",
+   "new": "docs/design/2026-09-05-wood-furnace-economics/plan.md",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md",
+   "new": "docs/design/2026-09-05-away-plan-toggle/design.md",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md",
+   "new": "docs/design/2026-09-05-monthly-savings-history/design.md",
+   "since": null
+  },
+  {
+   "old": "docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md",
+   "new": "docs/design/2026-09-05-wood-furnace-economics/design.md",
+   "since": null
+  },
+  {
+   "old": "icon.png",
+   "new": null,
+   "since": null
+  },
+  {
+   "old": "tools/audit/README.md",
+   "new": "dev/audit/README.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/app_approve.sh",
+   "new": "tools/pr/app_approve.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/app_comment.sh",
+   "new": "tools/pr/app_comment.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/app_push.sh",
+   "new": "tools/pr/app_push.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/approve_held_runs.sh",
+   "new": "tools/pr/approve_held_runs.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/COMMON.md",
+   "new": "dev/governance/roles/COMMON.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D0.md",
+   "new": "dev/governance/dimensions/D0.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D1.md",
+   "new": "dev/governance/dimensions/D1.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D10.md",
+   "new": "dev/governance/dimensions/D10.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D11.md",
+   "new": "dev/governance/dimensions/D11.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D12.md",
+   "new": "dev/governance/dimensions/D12.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D13.md",
+   "new": "dev/governance/dimensions/D13.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D14.md",
+   "new": "dev/governance/dimensions/D14.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D2.md",
+   "new": "dev/governance/dimensions/D2.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D3.md",
+   "new": "dev/governance/dimensions/D3.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D4.md",
+   "new": "dev/governance/dimensions/D4.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D5.md",
+   "new": "dev/governance/dimensions/D5.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D6.md",
+   "new": "dev/governance/dimensions/D6.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D7.md",
+   "new": "dev/governance/dimensions/D7.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D8.md",
+   "new": "dev/governance/dimensions/D8.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/D9.md",
+   "new": "dev/governance/dimensions/D9.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/fix-review.md",
+   "new": "dev/governance/roles/fix-review.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/fixer.md",
+   "new": "dev/governance/roles/fixer.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/judge.md",
+   "new": "dev/governance/roles/judge.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/orchestrator.md",
+   "new": "dev/governance/roles/orchestrator.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/root-cause.md",
+   "new": "dev/governance/roles/root-cause.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/briefs/verifier.md",
+   "new": "dev/governance/roles/verifier.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/bugclasses.json",
+   "new": "dev/audit/config/bugclasses.json",
+   "since": null
+  },
+  {
+   "old": "tools/audit/ci-version-edit/",
+   "new": "dev/audit/harnesses/ci-version-edit/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/finding.schema.json",
+   "new": "dev/audit/config/finding.schema.json",
+   "since": null
+  },
+  {
+   "old": "tools/audit/handoff/r9-f2-solver-4/",
+   "new": "dev/archive/handoff/r9-f2-solver-4/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/handoff/r9-f2-solver-5/",
+   "new": "dev/archive/handoff/r9-f2-solver-5/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/handoff/r9-frictions/",
+   "new": "dev/archive/handoff/r9-frictions/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/handoff/v6612-root-cause.md",
+   "new": "dev/audit/rca/v6612-root-cause.md",
+   "since": null
+  },
+  {
+   "old": "tools/audit/harnesses/",
+   "new": "dev/audit/harnesses/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/ledger-layout/",
+   "new": "dev/archive/experiments/ledger-layout/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/preflight.sh",
+   "new": "tools/pr/preflight.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/prepr.sh",
+   "new": "tools/pr/prepr.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/push.sh",
+   "new": "tools/pr/push.sh",
+   "since": null
+  },
+  {
+   "old": "tools/audit/rca/",
+   "new": "dev/audit/rca/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/record-predicate/",
+   "new": "tools/policy/record-predicate/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/rotation.json",
+   "new": "dev/audit/config/rotation.json",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round3/",
+   "new": "dev/audit/rounds/round3/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round4/",
+   "new": "dev/audit/rounds/round4/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round5-fix/",
+   "new": "dev/audit/rounds/round5-fix/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round5/",
+   "new": "dev/audit/rounds/round5/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round6/",
+   "new": "dev/audit/rounds/round6/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round7-fix/",
+   "new": "dev/audit/rounds/round7-fix/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round7/",
+   "new": "dev/audit/rounds/round7/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round8-fix/",
+   "new": "dev/audit/rounds/round8-fix/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round8/",
+   "new": "dev/audit/rounds/round8/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/round9/",
+   "new": "dev/audit/rounds/round9/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/scopes.json",
+   "new": "dev/audit/config/scopes.json",
+   "since": null
+  },
+  {
+   "old": "tools/audit/seat/",
+   "new": "tools/seat/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/w5-g5-195-coverage/",
+   "new": "dev/audit/waves/w5-g5-195-coverage/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/w5-partition/",
+   "new": "tools/coverage/",
+   "since": null
+  },
+  {
+   "old": "tools/audit/worktree_gc.sh",
+   "new": "tools/seat/worktree_gc.sh",
+   "since": null
+  },
+  {
+   "old": "tools/gen_device_fixtures.py",
+   "new": "tools/devices/gen_device_fixtures.py",
+   "since": null
+  },
+  {
+   "old": "tools/measure_prefill_corpus.py",
+   "new": "tools/devices/measure_prefill_corpus.py",
+   "since": null
+  }
+ ],
+ "historical": [
+  "dev/archive/",
+  "dev/audit/rounds/",
+  "dev/programme/delivery/",
+  "RELEASE_NOTES.md",
+  "tests/golden/",
+  "tests/mutation_ledger/",
+  "tests/closures.json"
+ ]
+}

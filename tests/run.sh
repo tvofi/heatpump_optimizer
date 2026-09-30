@@ -469,6 +469,10 @@ lane_units() {
   run "$PYTHON" tests/finite_boundary.py
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   run_always "$PYTHON" tests/harness_headers.py
+  # R9-RO-1: the repository layout barrier, against the target tree in
+  # tests/layout.json (report mode, exit 0, until R9-RO-9 enforces it). A pure
+  # `git mv` is scoped only by its destination, so this cannot be scoped out.
+  run_always "$PYTHON" tests/layout.py
   # The only lane that runs the shape an installation runs (#513): the tracked
   # package alone, no tests/ sibling, imported as
   # custom_components.heatpump_optimizer.*. Every other script in this
