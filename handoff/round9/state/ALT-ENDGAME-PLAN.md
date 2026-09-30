@@ -1,6 +1,8 @@
-# Round 9 endgame, re-planned (rev 4.2): lane UI, lane UX and the product page folded into the live programme
+# Round 9 endgame, re-planned (rev 4.3): lane UI, lane UX, the product page and its documentation folded into the live programme
 
 **Status.**
+- **Rev 4.3** (2026-09-30, section R7) renders the reader docs as sub-pages of the product page at deploy (R9-WEB-3),
+  with the build as a check. It stacks on rev 4.2, and the prompt applies both.
 - **Rev 4.2** (2026-09-30, section R6) adds lane WEB: the product page tvofi asked for, built from the reader docs and
   pinned to them by a test, then served by GitHub Pages. It is re-based to origin/main `aac8fb77` and the live roster at
   `9e63d2a3`, where rev 4.1 is applied (#1795).
@@ -614,6 +616,156 @@ on adoption, and it then covers WEB-1 and WEB-2.
 - The build script refuses a roster without rev 4.1 and a second run.
 - `brief_lint` from origin/main prints `TOTAL: 0 error(s)`, and the live file does too. Four planted errors in WEB-1
   (a bad path at the cited SHA, a bad path, a bad path:line and a bad symbol) are each reported.
+
+---
+
+## R7 Rev 4.3: the documentation as sub-pages of the product page
+
+Written 2026-09-30 by the same cloud review seat, against the same bases as R6 (origin/main `aac8fb77`, live roster
+`9e63d2a3`). Rev 4.3 stacks on rev 4.2: it builds on a roster where rev 4.2 is applied. Because rev 4.2 had not been
+adopted yet, the prompt applies both in one pass.
+
+### R7.1 What tvofi asked
+
+"The docs should also be adopted to sub pages, if that is not unfeasible."
+
+It is feasible and cheap:
+- The reader docs use a small markdown subset: tables, fenced code, eight mermaid diagrams, one `[!IMPORTANT]`
+  callout, three `<details>` blocks, images and relative links. There is no maths.
+- The repository already vendors markdown-it 14.1.0 (`.claude/workflows/vendor/`, used by `render_md.mjs` and
+  `tests/md_tables.mjs`), so rendering adds no dependency.
+
+### R7.2 The design (`alt/design/site/`, commit `6c539ee3`)
+
+- `docs_build.mjs` renders the README and every row of the README Documentation table except the archive
+  (`docs/backlog.md`) into one page each, in the product page's design. It keeps GitHub heading slugs and turns links
+  to other tracked files into GitHub links.
+- The build is its own check. It fails on:
+  - a dead anchor, on the same page or across pages;
+  - a missing image;
+  - a link to an untracked file;
+  - a README row without a file;
+  - a stale exclusion.
+- At `aac8fb77` it builds 9 pages and verifies 51 page links and 39 anchors (20 images, 8 diagrams).
+  `DOCS-CHECKS.txt`: 8 planted controls red, baseline green.
+- `docs_shots.mjs`: every page at 1280 and 390 px, light and dark, with no overflow, no page error, no broken image
+  and every diagram drawn.
+- The product page's documentation cards link the sub-pages. `check_site.py` refuses a link to a page the build does
+  not produce.
+- Decisions S7–S11:
+  - built at deploy and never committed, so no doc-touching PR owes a regeneration;
+  - GitHub slugs;
+  - the page set derived from the README table, two-sided;
+  - mermaid self-hosted from a lockfile, loaded only where a page draws;
+  - no third-party request (badges render as text).
+- Published beside the product page in its artifact.
+
+### R7.3 In the schedule
+
+| group | scope | after | depth | gates | owner gate |
+|---|---|---|---|---|---|
+| **WEB-3** docs sub-pages | the generator in a site folder under `tools/` with a mermaid lockfile; one `tests/doc_claims.py` arm running the build; product page links to the sub-pages; the layout glob; `/tools/site/` owned in `.github/CODEOWNERS` | WEB-1 | 7 | RO-2, WEB-2 | `tests/layout.json`, `tests/closure.py`, `.github/CODEOWNERS` |
+| **WEB-2** (amended) | the workflow also runs `npm ci` and the generator; the enforcement surface grows by exactly the owned generator | WEB-1, **WEB-3** | 8 | RO-3 | as before |
+
+Placement:
+- WEB-3 follows WEB-1: it reuses the page's fonts and pin arm, and switches the page's links.
+- RO-2 follows WEB-3, because `tests/layout.json`, `tests/closure.py` and `.github/CODEOWNERS` serialise.
+- The `.github/CODEOWNERS` line lands in WEB-3 so that WEB-2 edits no file the RO lane edits. WEB-2 stays at
+  depth 8 with one step of slack under RO-3.
+- If `codeowners_gap.py` reports something unowned when WEB-2 runs, WEB-2 orders before RO-2 instead: depth 8, zero
+  slack, and the chains still do not grow.
+- The longest open chain stays 12 and EG-A4's 11. The build script asserts both.
+
+Carries:
+- **WEB-2**: the workflow runs the generator, which supersedes "runs no repository script".
+- **RO-3**: moves need no generator edit; the build arm fails on anything a rewrite leaves dead.
+- **RO-4**: drop `docs/backlog.md` from `EXCLUDE` when archiving it.
+- **RO-6**: re-point the generator's parser import when the vendor directory moves.
+- **RO-9**: keep the layout glob.
+
+### R7.4 Schedule (from ALT-ROSTER.json rev 4.3, `alt/gen_table_rev4.py`)
+
+Open groups: 57 of 100. Longest open chain (12): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → SW-1 → UX-5 → UX-7 → RO-9.
+EG-A4 chain (11): F1.8 → F6.3 → F6.4 → F1.11 → F10.4 → F11.4 → F11.5 → EG-B1 → EG-B6 → EG-B7 → EG-A4.
+
+| depth | PR | lane | open after-edges | issues (**Fixes**) | owner gate | fixer / reviewer | stage |
+|---|---|---|---|---|---|---|---|
+| 1 | F1.8 | F1 | — | #1644, **#1657** | — | opus / opus | not-started |
+| 1 | F10.1b | F10 | — | **#1649**, #1740 | — | sonnet / opus | not-started |
+| 1 | UI-1 | UI | — | #1791 | yes | sonnet / opus | not-started |
+| 2 | F1.9 | F1 | F1.8 | **#1660** | — | sonnet / opus | not-started |
+| 2 | F10.1c | F10 | F10.1b | **#1756** | — | sonnet / opus | not-started |
+| 2 | F10.2 | F10 | F10.1b | **#1653**, **#1656** | yes | opus / opus | not-started |
+| 2 | F6.3 | F6 | F1.8 | **#1652** | yes | sonnet / opus | not-started |
+| 2 | UI-2 | UI | UI-1 | #1791 | yes | sonnet / opus | not-started |
+| 3 | F1.10 | F1 | F1.9 | #1645, **#1654**, **#1741** | — | opus / opus | not-started |
+| 3 | F10.3 | F10 | F10.2 | **#1646**, **#1663**, **#1748** | yes | opus / opus | not-started |
+| 3 | F6.4 | F6 | F6.3, F1.8 | **#1687** | — | sonnet / opus | not-started |
+| 4 | F1.11 | F1 | F1.10, F6.4 | **#1644**, **#1651** | — | opus / opus | not-started |
+| 4 | UI-3 | UI | F6.4 | #1791 | yes | opus / opus | not-started |
+| 5 | EG-B2 | EG | F1.11 | #1739, **#1742** | — | opus / opus | not-started |
+| 5 | F10.4 | F10 | F10.3, F1.11 | **#1645**, #1650, **#1661**, **#1686**, **#1738** | yes | opus / opus | not-started |
+| 5 | UI-4 | UI | UI-3 | #1791 | yes | opus / opus | not-started |
+| 6 | EG-A1 | EG | F10.4 | #1774, #1738 | yes | sonnet / opus | not-started |
+| 6 | EG-B3 | EG | F10.4, EG-B2 | **#1737** | — | sonnet / opus | not-started |
+| 6 | EG-B5a | EG | F10.4 | #1743 | yes | opus / opus | not-started |
+| 6 | F10.5 | F10 | F10.4 | — | yes | opus / opus | not-started |
+| 6 | F11.4 | F11 | F10.4 | **#1650** | yes | sonnet / opus | not-started |
+| 6 | UX-1 | UX | UI-4 | #1795 | yes | sonnet / opus | not-started |
+| 6 | WEB-1 | WEB | UI-2, UI-4, F10.4 | — | yes | sonnet / opus | not-started |
+| 7 | EG-B4 | EG | F10.1b, F10.4, EG-B3 | **#1740** | — | opus / opus | not-started |
+| 7 | EG-B5 | EG | EG-B5a, F1.10, F10.4 | **#1743**, #1748 | yes | opus / opus | not-started |
+| 7 | EG-R1 | EG | F11.4 | **#1759** | yes | sonnet / opus | not-started |
+| 7 | F10.6 | F10 | F10.5 | — | yes | opus / opus | not-started |
+| 7 | F11.5 | F11 | F11.4 | — | yes | sonnet / opus | not-started |
+| 7 | UX-2 | UX | UX-1 | #1795 | yes | sonnet / opus | not-started |
+| 7 | UX-4 | UX | EG-B3 | #1795 | yes | sonnet / opus | not-started |
+| 7 | WEB-3 | WEB | WEB-1 | — | yes | sonnet / opus | not-started |
+| 8 | EG-A2 | EG | EG-A1, EG-B3, EG-B5 | **#1775** | — | opus / opus | not-started |
+| 8 | EG-B1 | EG | F10.4, F10.6, F11.5, EG-B4, EG-B5 | **#1736** | yes | opus / opus | not-started |
+| 8 | F10.7 | F10 | F10.6 | **#1758** | — | opus / opus | not-started |
+| 8 | F11.7 | F11 | F11.5 | **#1757** | yes | opus / opus | not-started |
+| 8 | UX-3 | UX | UX-2 | #1795 | yes | sonnet / opus | not-started |
+| 8 | WEB-2 | WEB | WEB-1, WEB-3 | — | yes | sonnet / opus | not-started |
+| 9 | EG-A3 | EG | EG-B1, EG-B5 | **#1776** | — | sonnet / opus | not-started |
+| 9 | EG-B6 | EG | EG-B1 | **#1739** | — | sonnet / opus | not-started |
+| 9 | RO-2 | RO | F10.7, F11.7, EG-R1, F11.5, F6.4, UI-2, UI-4, UX-1, UX-2, UX-3, UX-4, WEB-1, WEB-3 | — | yes | opus / opus | not-started |
+| 9 | SW-1 | SW | EG-B1, F1.10, F10.1c | — | yes | opus / opus | not-started |
+| 10 | EG-B11 | EG | EG-B1, EG-A3 | **#1745** | — | opus / opus | not-started |
+| 10 | EG-B7 | EG | EG-B1, EG-B6 | **#1744** | yes | opus / opus | not-started |
+| 10 | RO-3 | RO | RO-2, WEB-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-4 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-5 | RO | RO-2 | — | yes | opus / opus | not-started |
+| 10 | RO-6 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | RO-7 | RO | RO-2 | — | yes | sonnet / opus | not-started |
+| 10 | SW-2 | SW | SW-1, EG-B6 | — | yes | opus / opus | not-started |
+| 10 | SW-3 | SW | SW-1, F6.4, UI-4 | — | yes | sonnet / opus | not-started |
+| 10 | SW-4 | SW | SW-1 | — | yes | sonnet / opus | not-started |
+| 10 | UX-5 | UX | EG-B6, SW-1, EG-B5, EG-B1, EG-A2, UX-3 | #1795 | yes | opus / opus | not-started |
+| 11 | EG-A4 | EG | EG-A1, EG-B7, EG-A2, EG-A3, EG-B11 | **#1774** | — | sonnet / opus | not-started |
+| 11 | RO-8 | RO | RO-7 | — | yes | opus / opus | not-started |
+| 11 | UX-6 | UX | EG-B7, EG-B11, UX-5 | #1795 | yes | opus / opus | not-started |
+| 11 | UX-7 | UX | EG-B6, EG-B11, UX-5 | #1795 | yes | opus / opus | not-started |
+| 12 | RO-9 | RO | RO-3, RO-4, RO-5, RO-6, RO-8, EG-A4, SW-4, UX-5, UX-6, UX-7 | — | yes | sonnet / opus | not-started |
+
+### R7.5 Coverage and the asserted diff
+
+Coverage is unchanged from R6.5: 37 open issues, and only #1793 is uncovered, on purpose (`alt/coverage_rev43.md`).
+The lane WEB feature issue, filed on adoption, covers WEB-1, WEB-2 and WEB-3.
+
+The diff against rev 4.2 applied:
+- 100 groups (99 + 1).
+- Changed:
+  - the new WEB-3;
+  - WEB-2's and RO-2's `after`, and WEB-2's wave (17 to 18);
+  - appended carries on WEB-2, RO-3, RO-4, RO-6 and RO-9;
+  - one `_comment`.
+- No stage and no issue changes.
+
+Checks:
+- The build script refuses a roster without rev 4.2 and a second run.
+- `brief_lint` from origin/main prints `TOTAL: 0 error(s)`.
+- A planted bad path at the cited SHA, a bad path and a bad path:line in WEB-3 are each reported.
 
 ---
 
