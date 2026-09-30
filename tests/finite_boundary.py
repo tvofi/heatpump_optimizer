@@ -447,6 +447,74 @@ def _floats_poisoned(value, bad):
     return value
 
 
+def _kinds_arm() -> None:
+    """The domain predicates and the store-name lookup, pinned one by one.
+
+    Each row is the smallest input on which one conjunct decides the answer
+    alone, so replacing an ``and`` by an ``or`` (or dropping a return or a
+    guard) flips a row: a value the parse accepts but the shape refuses, and
+    a value of the right shape the parse refuses.
+    """
+    dom = _store.Domain
+    rows = [
+        ("int refuses a float inside its range", dom("int", 0, 10), 1.5, False),
+        ("int refuses an integer outside its range", dom("int", 0, 10), 11, False),
+        ("int admits an integer inside its range", dom("int", 0, 10), 5, True),
+        ("instant refuses a parsing value with a foreign separator",
+         dom("instant"), "2026-01-01x10:00:00", False),
+        ("instant refuses a value that does not parse", dom("instant"), "xxxxxxxxxxT", False),
+        ("instant admits the T separator", dom("instant"), "2026-01-01T10:00:00", True),
+        ("day refuses a ten-character value that does not parse",
+         dom("day"), "2026-13-45", False),
+        ("day refuses a compact date of another length", dom("day"), "20260101", False),
+        ("day admits an ISO day", dom("day"), "2026-01-31", True),
+        ("month refuses a seven-character value that does not parse",
+         dom("month"), "2026-13", False),
+        ("month refuses a value of another length", dom("month"), "202601", False),
+        ("month admits an ISO month", dom("month"), "2026-01", True),
+    ]
+    bad = [
+        label for label, domain, value, want in rows
+        if _store.in_domain(domain, value) is not want
+    ]
+    R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
+
+    name = next(iter(_store.DOMAINS))
+    got = _store._store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
+    R.check(
+        "a store key names its DOMAINS entry, and a foreign key names none",
+        got == name and _store._store_name("no_such_entry_key") is None,
+        f"{got!r}",
+    )
+
+    seen: list[str] = []
+
+    class _Tap(logging.Handler):
+        def emit(self, record):
+            seen.append(record.getMessage())
+
+    tap, log = _Tap(), _store._LOGGER
+    old, floor = log.level, logging.root.manager.disable
+    logging.disable(logging.NOTSET)
+    log.addHandler(tap)
+    log.setLevel(logging.DEBUG)
+    try:
+        holder = type("_Holder", (), {"key": f"{const.DOMAIN}_{ENTRY_ID}_thermal_learning"})()
+        _store._log_off_domain(holder, {"cop_scale": 99.0})
+        off_logged = len(seen)
+        _store._log_off_domain(holder, {"cop_scale": 1.0})
+        clean_logged = len(seen) - off_logged
+    finally:
+        log.removeHandler(tap)
+        log.setLevel(old)
+        logging.disable(floor)
+    R.check(
+        "the off-domain diagnostic logs an out-of-domain field and stays silent on a clean one",
+        off_logged == 1 and clean_logged == 0 and "cop_scale" in seen[0],
+        f"off={off_logged} clean={clean_logged} {seen}",
+    )
+
+
 def _publish_arm() -> None:
     """Every float the coordinator publishes set non-finite; every entity of
     every registered platform must still publish finite values in process.
@@ -1691,6 +1759,7 @@ def _main() -> int:
     _instant_arm(by_name)
     _class_arm()
     _domain_arm()
+    _kinds_arm()
     _publish_arm()
     _no_rewrap_check()
     _i1_pins_arm()
