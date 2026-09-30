@@ -601,7 +601,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
 *off* — it never clobbers a comfort or economy mode you selected deliberately.
 
-**Away** turns the away setback on and off, and **Expected Return** is the
+**Away** turns the away setback on and off, and **Away Expected Return** is the
 datetime entity holding when you expect to be back — the optimizer buys the
 recovery heat in the cheapest hours before it. Both are also driven by the
 `set_away` service.

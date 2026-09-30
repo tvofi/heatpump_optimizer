@@ -406,7 +406,7 @@ are on their own advanced pages.
 
 ### Away and holiday mode
 
-This page has four fields. The **Away** switch and the **Expected Return**
+This page has four fields. The **Away** switch and the **Away Expected Return**
 datetime are their own entities, not options — they are on the integration's
 device page and on the card, not here.
 
@@ -962,7 +962,7 @@ required. `active` turns the override on or off; omit it to leave on/off
 unchanged. Turning it off also clears the return time. `return_time` is an ISO
 datetime, or empty to clear; omit it to leave the stored time. Setting a time
 while the override is off stores it without turning away on. The Away switch
-and the Expected Return datetime call this service; they are not a second
+and the Away Expected Return datetime call this service; they are not a second
 store.
 
 **`set_mode`** takes `mode`: `auto` (full optimization), `comfort` (hold the
