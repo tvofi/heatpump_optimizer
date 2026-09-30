@@ -2,7 +2,7 @@
 
 ``now``/``utcnow`` are overridable so tests can freeze the clock. ``utcnow``
 is aware in UTC, as upstream's is; ``now`` is aware in ``DEFAULT_TIME_ZONE``
-when one is configured and naive when none is (upstream: aware in UTC). The golden
+when one is configured and in UTC when none is, as upstream's is. The golden
 harness needs that: the coordinator publishes time-derived values such as
 "hours until the next hot water window", and without a fixed clock every
 recorded fixture would differ from every replay by however long the two runs
@@ -48,19 +48,14 @@ def now():
     # reads one (round-9 D14-s4-02: a fixed-offset freeze was handed out as
     # a ``+01:00`` datetime upstream never returns).
     #
-    # Still naive when no zone is configured, where upstream is aware in UTC
-    # (round-9 D1-s1-52, declared DIVERGENT in tests/ha_contract.py): making
-    # it aware reaches production's handling of a naive stored stamp and the
-    # fixtures that seed one, so it is its own pull request.
+    # Aware in UTC when no zone is configured, as upstream's is (round-9
+    # D1-s1-52: the stub returned a naive datetime there, which inverted the
+    # naive-versus-aware verdict of every stored-stamp comparison).
     if _FROZEN is not None:
         if _FROZEN.tzinfo is not None:
             return _FROZEN.astimezone(DEFAULT_TIME_ZONE or timezone.utc)
-        if DEFAULT_TIME_ZONE is not None:
-            return _FROZEN.replace(tzinfo=DEFAULT_TIME_ZONE)
-        return _FROZEN
-    if DEFAULT_TIME_ZONE is not None:
-        return datetime.now(DEFAULT_TIME_ZONE)
-    return datetime.now()
+        return _FROZEN.replace(tzinfo=DEFAULT_TIME_ZONE or timezone.utc)
+    return datetime.now(DEFAULT_TIME_ZONE or timezone.utc)
 
 
 def utcnow():

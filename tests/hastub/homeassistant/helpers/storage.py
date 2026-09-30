@@ -59,6 +59,9 @@ def _loads(text: str) -> Any:
 # simulated in tests — sees what a previous instance persisted.
 _DISK: dict[str, str] = {}
 
+# The major version each key was saved at, beside the document in ``_DISK``.
+_VERSIONS: dict[str, int] = {}
+
 # Writes per storage key, counted in ``async_save`` itself so a test can prove
 # not just what a store holds but how often it was actually written — a save
 # that should have been skipped leaves the same bytes behind either way.
@@ -68,6 +71,7 @@ SAVE_COUNTS: dict[str, int] = {}
 class Store(Generic[_T]):
     def __init__(self, hass: Any = None, version: int = 1, key: str = "", **kwargs: Any) -> None:
         self._key = key
+        self._version = version
 
     async def async_load(self) -> _T | None:
         if self._key not in _DISK:
@@ -75,21 +79,35 @@ class Store(Generic[_T]):
         # Return a fresh copy so a caller mutating the loaded dict cannot reach
         # back into the "disk", exactly as the real (re-serialised) Store does.
         try:
-            return _loads(_DISK[self._key])
+            data = _loads(_DISK[self._key])
         except ValueError:
             del _DISK[self._key]
+            _VERSIONS.pop(self._key, None)
             return None
+        stored = _VERSIONS.get(self._key)
+        if stored is None or stored == self._version:
+            return data
+        migrate = getattr(self, "_async_migrate_func", None)
+        if migrate is None:
+            raise NotImplementedError(
+                f"store {self._key!r} was saved at version {stored}, loaded at "
+                f"{self._version}, and defines no _async_migrate_func"
+            )
+        return await migrate(stored, 1, data)
 
     async def async_save(self, data: Any) -> None:
         # Serialise eagerly so a non-serialisable payload fails now, matching the
         # real Store, rather than at some later flush the test never sees.
         _DISK[self._key] = json.dumps(data)
+        _VERSIONS[self._key] = self._version
         SAVE_COUNTS[self._key] = SAVE_COUNTS.get(self._key, 0) + 1
 
     async def async_remove(self) -> None:
         _DISK.pop(self._key, None)
+        _VERSIONS.pop(self._key, None)
 
 
 def _reset_store_disk() -> None:
     """Test helper: clear all simulated persistence between cases."""
     _DISK.clear()
+    _VERSIONS.clear()

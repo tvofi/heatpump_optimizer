@@ -613,8 +613,10 @@ INVENTORY: dict[str, Entry] = {
         "instances so a simulated restart loads what an earlier one saved, and "
         "serialised eagerly so a payload the real Store could not write raises "
         "here too; a load decodes with orjson's number rules and moves a "
-        "refused document aside, loading None. Upstream's delayed write, "
-        "migration and atomic replace are not modelled",
+        "refused document aside, loading None; a load at another major version "
+        "raises NotImplementedError unless the Store defines _async_migrate_func. "
+        "Upstream's delayed write, minor versions and atomic replace are not "
+        "modelled",
         absent=("async_delay_save", "_async_migrate_func"),
     ),
     # -- helpers.translation ------------------------------------------------
@@ -686,13 +688,9 @@ INVENTORY: dict[str, Entry] = {
         "a test-facing clock pin with no upstream counterpart; the clocks "
         "normalise what it pins, and HOOKS re-runs their contracts under it"
     ),
-    "homeassistant.util.dt.now": D(
-        "aware in DEFAULT_TIME_ZONE when one is configured, and a frozen value "
-        "is normalised into it; naive when none is, where upstream is aware in "
-        "UTC (round-9 D1-s1-52). Split from F10.1: the aware default reaches "
-        "production's handling of naive stored stamps (D1-s3-01) and the "
-        "features.py fixtures that seed them",
-        issue="#1649",
+    "homeassistant.util.dt.now": F(
+        "aware in DEFAULT_TIME_ZONE, which is UTC when none is configured, as "
+        "upstream; a frozen value is normalised into it (round-9 D1-s1-52)"
     ),
     "homeassistant.util.dt.utcnow": F("returns an aware datetime in UTC, as upstream"),
     "homeassistant.util.dt.parse_datetime": F(
@@ -746,7 +744,7 @@ DROPPED: dict[str, tuple] = {
     "homeassistant.helpers.config_validation.config_entry_only_config_schema": ("domain",),
     "homeassistant.helpers.entity_registry.async_entries_for_device": ("include_disabled_entities",),
     "homeassistant.helpers.event.async_track_time_interval": ("a", "k"),
-    "homeassistant.helpers.storage.Store": ("hass", "version", "kwargs"),
+    "homeassistant.helpers.storage.Store": ("hass", "kwargs"),
     "homeassistant.helpers.translation.async_get_translations": (
         "hass", "language", "category", "integrations",
     ),
@@ -2110,6 +2108,46 @@ def _store_decode():
     assert got_gone == [w is None for w in want]
 
 
+@contract(
+    "homeassistant.helpers.storage.Store",
+    "a load at a different major version than the save raises NotImplementedError "
+    "with no migration, and runs the migration with the stored version when the "
+    "Store defines one; an equal version returns the data",
+    cite="helpers/storage.py -- _async_load_data: `_async_migrate_func` (default "
+    "raises NotImplementedError) and `if data[\"version\"] != self.version: raise` "
+    "(round-9 #1740)",
+    expect="stub",
+)
+def _store_version():
+    import asyncio
+
+    from homeassistant.helpers import storage
+
+    class Migrating(storage.Store):
+        async def _async_migrate_func(self, old_major, old_minor, old_data):
+            return {"migrated_from": old_major, **old_data}
+
+    async def arm(cls, save_v, load_v):
+        try:
+            await storage.Store(None, save_v, "contract_version").async_save({"n": 1})
+            return await cls(None, load_v, "contract_version").async_load()
+        except NotImplementedError:
+            return "NotImplementedError"
+        finally:
+            storage._reset_store_disk()
+
+    got = {
+        "equal": asyncio.run(arm(storage.Store, 1, 1)),
+        "bumped, no migration": asyncio.run(arm(storage.Store, 1, 2)),
+        "bumped, migrated": asyncio.run(arm(Migrating, 1, 2)),
+    }
+    assert got == {
+        "equal": {"n": 1},
+        "bumped, no migration": "NotImplementedError",
+        "bumped, migrated": {"migrated_from": 1, "n": 1},
+    }, got
+
+
 # -- util.dt -----------------------------------------------------------------
 
 @contract(
@@ -2157,7 +2195,6 @@ def _dt_now():
     "returns an aware datetime when no zone has been configured",
     cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level, "
     "read by now()",
-    expect="real",
 )
 def _dt_now_default_aware():
     import os
