@@ -449,11 +449,11 @@
         "R9-F10.1"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f1-coordinator-7",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "5dfa6684f843b96ac6948f0610b6e550185143d1",
+        "last_step": "MERGED as #1788 at 5dfa6684 (PR head a80453d1 = v2 code 94a34b01 + bot pins + main; carry-1644 kept both sides); round-2 verdict merge; code-owned golden.py/harness.py approved under the 2026-09-30 mandate",
+        "next_step": "none; #1655 and #1658 closed; F1.8 and F10.1b dispatched",
         "note_file": "handoff/round9/fix/resume/F1.7.md on handoff/r9-f1-coordinator-7",
         "review_branch": "handoff/r9-f1-coordinator-7-review",
         "review_note_file": "handoff/round9/fix/resume/F1.7-review.md on handoff/r9-f1-coordinator-7-review",
