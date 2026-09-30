@@ -1185,17 +1185,13 @@ def adoption_decision(
     )
 
 
-def night_gains_prior_kw(
-    plant: ThermalParameters, config: SysIdConfig, configured_kw: float
-) -> float:
+def night_gains_prior_kw(plant: ThermalParameters, config: SysIdConfig) -> float:
     """The free-heat prior for a night on ``plant`` (#1655), kW.
 
     The mean of the plant's learned per-hour profile over the configured
-    night window, read through :meth:`ThermalModel.internal_gains_at`; the
-    configured prior where the plant carries no profile.
+    night window, read through :meth:`ThermalModel.internal_gains_at`, which
+    answers the configured constant for a plant with no profile.
     """
-    if plant.internal_gains_profile is None:
-        return float(configured_kw)
     span = (config.end_hour - config.start_hour) % 24 or 24
     model = ThermalModel(plant)
     return float(np.mean([
@@ -1222,9 +1218,6 @@ class SystemIdentification:
 
     def __init__(self, config: SysIdConfig | None = None) -> None:
         self.config = config or SysIdConfig()
-        #: The configured free-heat prior; ``arm`` seeds each night's from the
-        #: plant's learned profile where it has one and returns here where not.
-        self._configured_gains_kw: float = self.config.gains_prior_kw
         self.phase: str = PHASE_IDLE
         self.phase_started: datetime | None = None
         self.samples: list[SysIdSample] = []
@@ -1290,9 +1283,7 @@ class SystemIdentification:
             # own learned free heat over the night window the experiment
             # runs in. An hour the profile never learned reads the configured
             # value (``internal_gains_at``), as does a plant with no profile.
-            self.config.gains_prior_kw = night_gains_prior_kw(
-                plant, self.config, self._configured_gains_kw
-            )
+            self.config.gains_prior_kw = night_gains_prior_kw(plant, self.config)
             self._slab_prior = (
                 float(plant.heat_loss_coefficient)
                 * float(plant.house_heat_loss_scale),
