@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.10
+# claims-for: 6.7.11
 #
-# v6.7.10: Round-9 wave: coordinator cycle outcomes, config-flow language and menus, vectorised solver recompute lanes, restart durability at the payload level. The stamp empties the list; the
+# v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
