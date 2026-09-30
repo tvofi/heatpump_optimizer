@@ -33233,6 +33233,38 @@ R.check(
     "A's key leaked and B's recovery could not withdraw the issue.",
 )
 
+
+# The notice is raised once per distinct cause PER ENTRY. Two entries failing
+# with different causes share ONE issue id, so re-raising on every interval
+# would rewrite its cause placeholder A, B, A, B -- an update event and a store
+# save per interval in real HA -- which is the flap #1755 removed. The stub
+# replaces an issue in place, so count the calls to _create_issue.
+def _g1755_raises():
+    cm, hass, causes = _g1755leak, _G511Hass(), []
+    real = cm._create_issue
+    cm._WORKER_FALLBACK_CAUSES.clear()
+    cm._create_issue = lambda *a, **k: (
+        causes.append(k["translation_placeholders"]["cause"]), real(*a, **k))
+    try:
+        for _ in range(3):
+            for eid in ("A", "B"):
+                err = cm.ProcessWorkerUnavailable(f"{eid} boom")
+                cm._note_worker_fallback(hass, err, eid)
+    finally:
+        cm._create_issue = real
+        cm._WORKER_FALLBACK_CAUSES.clear()
+    return causes
+
+
+_g1755_causes = _g1755_raises()
+R.check(
+    "two failing entries raise the shared notice once per cause, not once per "
+    "interval (#511's latch, keyed per entry by #1755)",
+    _g1755_causes == ["ProcessWorkerUnavailable: A boom",
+                      "ProcessWorkerUnavailable: B boom"],
+    f"_create_issue causes over 3 intervals: {_g1755_causes!r}",
+)
+
 # ---------------------------------------------------------------------------
 R.section("#524 — an unpicklable solve RESULT must raise, never become the plan")
 
