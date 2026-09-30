@@ -777,6 +777,27 @@ the pinned mypy half locally via `run.sh` — and repairs at those two sites
 `.github/workflows/tests.yml:427`. #1122's own body names this as owed and
 does not claim to have repaired it.
 
+**Owed from the round-9 EG-L0 legacy triage (2026-09-30): one live item no
+seat can act on** — a repository setting, which the lane's governance rule
+records here and on #201 rather than fixes. (A second triage item, the
+re-drifted lazy-import reach note in `__init__.py` — legacy #1183 — is a code
+defect with a not-started owner: it was carried into R9-EG-B6's brief on
+`handoff/audit-r9-fixplan` @`c9791e2b`, per `finding-propagation.md`; a
+handover bullet is a record, not a carry.)
+
+- **Ruleset `main-protect` (22628467) carries an undocumented `always` bypass.**
+  Read live 2026-09-30: `bypass_actors = [{actor_id 5094721, actor_type
+  Integration, bypass_mode always}]`; `~/.zcode/hpo-ledger.appid` = 5094721
+  identifies the `hpo-ledger` App. It bypasses the deletion + non-fast-forward
+  push guards. No decision records it (0009/0011 name only the `hpo-stamp`
+  deploy key's bypass, on the *other* ruleset 23698884), the required-contexts
+  fixture does not cover it (by design it records only 23698884, so `counts.mjs`'s
+  field compare never reads 22628467), and it contradicts the 2026-09-19 #201
+  split record that 22628467 has "no bypass actors". Only tvofi can change a
+  ruleset: **ratify and document it** (if the ledger/record lane legitimately
+  pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30 (comment
+  `5902383542`); the #1191 close cites this. Neither half is a seat's to decide.
+
 ## The machine this runs on — measure it, do not read it
 
 A seat's box is not the owner's, and a container seat reading a description of
