@@ -1,0 +1,322 @@
+[
+ {
+  "theme": "light",
+  "pair": "body text on page",
+  "fg": "#0f2233",
+  "bg": "#f3f8fc",
+  "kind": "text",
+  "ratio": 15.15,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "body text on hero top",
+  "fg": "#0f2233",
+  "bg": "#e3eef7",
+  "kind": "text",
+  "ratio": 13.75,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "secondary text on page",
+  "fg": "#4d5d6c",
+  "bg": "#f3f8fc",
+  "kind": "text",
+  "ratio": 6.34,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "secondary text on hero top",
+  "fg": "#4d5d6c",
+  "bg": "#e3eef7",
+  "kind": "text",
+  "ratio": 5.76,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "secondary text on surface",
+  "fg": "#4d5d6c",
+  "bg": "#ffffff",
+  "kind": "text",
+  "ratio": 6.78,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "secondary text on well (note, tabs)",
+  "fg": "#4d5d6c",
+  "bg": "#e8f0f6",
+  "kind": "text",
+  "ratio": 5.88,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "h1 ember phrase on hero top",
+  "fg": "#b4501a",
+  "bg": "#e3eef7",
+  "kind": "large",
+  "ratio": 4.35,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "h1 ember phrase on page",
+  "fg": "#b4501a",
+  "bg": "#f3f8fc",
+  "kind": "large",
+  "ratio": 4.79,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "link and tile value on page",
+  "fg": "#026aa8",
+  "bg": "#f3f8fc",
+  "kind": "text",
+  "ratio": 5.41,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "link on surface (docs cards)",
+  "fg": "#026aa8",
+  "bg": "#ffffff",
+  "kind": "text",
+  "ratio": 5.79,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "primary button label",
+  "fg": "#ffffff",
+  "bg": "#026aa8",
+  "kind": "text",
+  "ratio": 5.79,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "step and list numerals",
+  "fg": "#026aa8",
+  "bg": "#ffffff",
+  "kind": "large",
+  "ratio": 5.79,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "icon on well",
+  "fg": "#026aa8",
+  "bg": "#e8f0f6",
+  "kind": "graphic",
+  "ratio": 5.02,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "limit rule on surface",
+  "fg": "#d2601f",
+  "bg": "#ffffff",
+  "kind": "graphic",
+  "ratio": 3.87,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "focus ring on page",
+  "fg": "#026aa8",
+  "bg": "#f3f8fc",
+  "kind": "graphic",
+  "ratio": 5.41,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "light",
+  "pair": "body text on well (code)",
+  "fg": "#0f2233",
+  "bg": "#e8f0f6",
+  "kind": "text",
+  "ratio": 14.05,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "body text on page",
+  "fg": "#eaf2f8",
+  "bg": "#0b1a28",
+  "kind": "text",
+  "ratio": 15.56,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "body text on hero top",
+  "fg": "#eaf2f8",
+  "bg": "#10263b",
+  "kind": "text",
+  "ratio": 13.62,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "secondary text on page",
+  "fg": "#a9bccb",
+  "bg": "#0b1a28",
+  "kind": "text",
+  "ratio": 9.01,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "secondary text on hero top",
+  "fg": "#a9bccb",
+  "bg": "#10263b",
+  "kind": "text",
+  "ratio": 7.88,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "secondary text on surface",
+  "fg": "#a9bccb",
+  "bg": "#11263a",
+  "kind": "text",
+  "ratio": 7.89,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "secondary text on well (note, tabs)",
+  "fg": "#a9bccb",
+  "bg": "#16304a",
+  "kind": "text",
+  "ratio": 6.91,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "h1 ember phrase on hero top",
+  "fg": "#f08a3c",
+  "bg": "#10263b",
+  "kind": "large",
+  "ratio": 6.17,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "h1 ember phrase on page",
+  "fg": "#f08a3c",
+  "bg": "#0b1a28",
+  "kind": "large",
+  "ratio": 7.05,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "link and tile value on page",
+  "fg": "#4fb3f0",
+  "bg": "#0b1a28",
+  "kind": "text",
+  "ratio": 7.58,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "link on surface (docs cards)",
+  "fg": "#4fb3f0",
+  "bg": "#11263a",
+  "kind": "text",
+  "ratio": 6.64,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "primary button label",
+  "fg": "#0b1a28",
+  "bg": "#4fb3f0",
+  "kind": "text",
+  "ratio": 7.58,
+  "need": 4.5,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "step and list numerals",
+  "fg": "#4fb3f0",
+  "bg": "#11263a",
+  "kind": "large",
+  "ratio": 6.64,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "icon on well",
+  "fg": "#4fb3f0",
+  "bg": "#16304a",
+  "kind": "graphic",
+  "ratio": 5.81,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "limit rule on surface",
+  "fg": "#f08a3c",
+  "bg": "#11263a",
+  "kind": "graphic",
+  "ratio": 6.17,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "focus ring on page",
+  "fg": "#4fb3f0",
+  "bg": "#0b1a28",
+  "kind": "graphic",
+  "ratio": 7.58,
+  "need": 3.0,
+  "pass_": true
+ },
+ {
+  "theme": "dark",
+  "pair": "body text on well (code)",
+  "fg": "#eaf2f8",
+  "bg": "#16304a",
+  "kind": "text",
+  "ratio": 11.93,
+  "need": 4.5,
+  "pass_": true
+ }
+]

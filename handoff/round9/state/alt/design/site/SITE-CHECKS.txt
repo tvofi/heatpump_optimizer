@@ -1,0 +1,17 @@
+baseline: exit 0, 0 FAIL line(s)
+RED  wrong number in a tile: README.md#what-it-does: number 48 is not stated in the section
+RED  reworded quoted claim: README.md#what-it-does: not in the section: "the card's editor pins exact run slots for up to 48 hours and the opti
+RED  dead heading slug: data-src README.md#known-limitation: no heading with slug #known-limitation in README.md (+2 more)
+RED  dropped feature: README 'What it does' lead missing from the page: 'shows its work'
+RED  extra docs entry: page docs entry the README Documentation table does not list: docs/HANDOVER.md
+RED  docs row removed: README Documentation row missing from the page: docs/ecl110.md
+RED  number outside any claim: a number outside any claim: 'saves 40 % a year'
+RED  version literal: a number outside any claim: 'home assistant integration · installs with hacs v6.7.12' (+2 more)
+RED  image not in the tree: image docs/setup/03-menus.png is not in the tree at 5dfa6684 and no earlier group lands it
+RED  external script: external script: https://cdn.example.com/x.js
+RED  fonts from a third party (impl profile): third-party stylesheet: https://fonts.googleapis.com/css2?family=Outfit
+RED  font url() to a third party in CSS: third-party resource in CSS: https://fonts.gstatic.com/s/outfit/x.woff2
+RED  doc side moved: README says 12 hours, page still 20: README.md#what-it-does: key phrase not in section: 'pins exact run slots for up to 20 hours' (+3 more)
+RED  anchor, zero claims: ANCHOR: zero claims found; the check cannot pass by finding nothing
+RED  anchor, no page: ANCHOR: page /nonexistent.html absent
+RESULT: every control red, baseline green
