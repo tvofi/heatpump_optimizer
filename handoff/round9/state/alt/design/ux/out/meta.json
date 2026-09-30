@@ -1,0 +1,18 @@
+{
+ "ux1": {
+  "step": "16:00",
+  "price": 2.85,
+  "dearer_pct": 17,
+  "lines": [
+   "28.6 kWh in the cheapest hours for 17.76 kr",
+   "leaving the house warm past the horizon: 6.0 kWh (4.68 kr)",
+   "hot water needed now: 2.5 kWh (4.32 kr)",
+   "charging the tank while electricity is cheap: 4.0 kWh (3.88 kr)",
+   "space heating idle for 18 h"
+  ]
+ },
+ "ux6": {
+  "dev": 0.14,
+  "cost_over": 3.6
+ }
+}

@@ -1,0 +1,308 @@
+[
+ {
+  "name": "body text on card",
+  "mode": "light",
+  "fg": "#212121",
+  "bg": "#ffffff",
+  "ratio": 16.1,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on card",
+  "mode": "light",
+  "fg": "#727272",
+  "bg": "#ffffff",
+  "ratio": 4.81,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "body text on surface2",
+  "mode": "light",
+  "fg": "#212121",
+  "bg": "#f7f9fb",
+  "ratio": 15.26,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on surface2",
+  "mode": "light",
+  "fg": "#727272",
+  "bg": "#f7f9fb",
+  "ratio": 4.56,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "body text on tip",
+  "mode": "light",
+  "fg": "#212121",
+  "bg": "#ffffff",
+  "ratio": 16.1,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on tip",
+  "mode": "light",
+  "fg": "#727272",
+  "bg": "#ffffff",
+  "ratio": 4.81,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "active tab / link on card",
+  "mode": "light",
+  "fg": "#026aa8",
+  "bg": "#ffffff",
+  "ratio": 5.79,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary button text on row",
+  "mode": "light",
+  "fg": "#026aa8",
+  "bg": "#f7f9fb",
+  "ratio": 5.48,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "primary button text on button",
+  "mode": "light",
+  "fg": "#ffffff",
+  "bg": "#026aa8",
+  "ratio": 5.79,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: ok",
+  "mode": "light",
+  "fg": "#1c7350",
+  "bg": "#e8f1ed",
+  "ratio": 5.04,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: warn",
+  "mode": "light",
+  "fg": "#8a5a00",
+  "bg": "#fbf1de",
+  "ratio": 5.29,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: critical",
+  "mode": "light",
+  "fg": "#b3261e",
+  "bg": "#fbe9e7",
+  "ratio": 5.58,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "checkmark on ok disc (graphic)",
+  "mode": "light",
+  "fg": "#1c7350",
+  "bg": "#e8f1ed",
+  "ratio": 5.04,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "meter / bar fill against track (graphic)",
+  "mode": "light",
+  "fg": "#026aa8",
+  "bg": "#e3e7eb",
+  "ratio": 4.66,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "replay: indoor line on card (graphic)",
+  "mode": "light",
+  "fg": "#008300",
+  "bg": "#ffffff",
+  "ratio": 4.95,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "replay: cost line on card (graphic)",
+  "mode": "light",
+  "fg": "#4a3aa7",
+  "bg": "#ffffff",
+  "ratio": 8.56,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "button outline on row (graphic)",
+  "mode": "light",
+  "fg": "#026aa8",
+  "bg": "#f7f9fb",
+  "ratio": 5.48,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "body text on card",
+  "mode": "dark",
+  "fg": "#e1e1e1",
+  "bg": "#1c1c1c",
+  "ratio": 13.03,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on card",
+  "mode": "dark",
+  "fg": "#9b9b9b",
+  "bg": "#1c1c1c",
+  "ratio": 6.13,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "body text on surface2",
+  "mode": "dark",
+  "fg": "#e1e1e1",
+  "bg": "#242a30",
+  "ratio": 11.08,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on surface2",
+  "mode": "dark",
+  "fg": "#9b9b9b",
+  "bg": "#242a30",
+  "ratio": 5.21,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "body text on tip",
+  "mode": "dark",
+  "fg": "#e1e1e1",
+  "bg": "#262b30",
+  "ratio": 10.92,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary text on tip",
+  "mode": "dark",
+  "fg": "#9b9b9b",
+  "bg": "#262b30",
+  "ratio": 5.14,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "active tab / link on card",
+  "mode": "dark",
+  "fg": "#4fb3f0",
+  "bg": "#1c1c1c",
+  "ratio": 7.34,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "secondary button text on row",
+  "mode": "dark",
+  "fg": "#4fb3f0",
+  "bg": "#242a30",
+  "ratio": 6.24,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "primary button text on button",
+  "mode": "dark",
+  "fg": "#0f2233",
+  "bg": "#4fb3f0",
+  "ratio": 6.97,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: ok",
+  "mode": "dark",
+  "fg": "#1fad6b",
+  "bg": "#1c3027",
+  "ratio": 4.83,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: warn",
+  "mode": "dark",
+  "fg": "#e3b25a",
+  "bg": "#352c1a",
+  "ratio": 7.06,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "status pill: critical",
+  "mode": "dark",
+  "fg": "#f28b82",
+  "bg": "#3b2322",
+  "ratio": 6.06,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "name": "checkmark on ok disc (graphic)",
+  "mode": "dark",
+  "fg": "#1fad6b",
+  "bg": "#1c3027",
+  "ratio": 4.83,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "meter / bar fill against track (graphic)",
+  "mode": "dark",
+  "fg": "#4fb3f0",
+  "bg": "#34383c",
+  "ratio": 5.09,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "replay: indoor line on card (graphic)",
+  "mode": "dark",
+  "fg": "#1f9d1f",
+  "bg": "#1c1c1c",
+  "ratio": 4.79,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "replay: cost line on card (graphic)",
+  "mode": "dark",
+  "fg": "#9085e9",
+  "bg": "#1c1c1c",
+  "ratio": 5.45,
+  "need": 3,
+  "ok": true
+ },
+ {
+  "name": "button outline on row (graphic)",
+  "mode": "dark",
+  "fg": "#4fb3f0",
+  "bg": "#242a30",
+  "ratio": 6.24,
+  "need": 3,
+  "ok": true
+ }
+]
