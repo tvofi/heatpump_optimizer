@@ -12738,6 +12738,28 @@ R.check(
     f"unique_id {_uid_before!r} -> {_svc_entry.unique_id!r}",
 )
 
+# #1799 review B1: an id another entry already holds is left alone, as the
+# reconfigure step aborts on it; two entries indexed under one id is what
+# real Home Assistant logs as an integration error.
+from heatpump_optimizer.config_flow import identity_update as _svc_idupd  # noqa: E402
+import types as _svc_types  # noqa: E402
+
+_svc_next = {**_svc_entry.options, const.CONF_DHW_TEMP_ENTITY: "sensor.dhw_probe2"}
+_svc_free = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
+_svc_holder = _svc_types.SimpleNamespace(
+    domain=const.DOMAIN, entry_id="holder", data={}, options={},
+    unique_id=_svc_identity({**_svc_entry.data, **_svc_next}),
+)
+_svc_hass.config_entries.entries.append(_svc_holder)
+_svc_held = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
+_svc_hass.config_entries.entries.remove(_svc_holder)
+R.check(
+    "an identity edit whose id another entry holds leaves the id alone; a "
+    "free id is still written (#1799 B1)",
+    _svc_held == {} and _svc_free == {"unique_id": _svc_holder.unique_id},
+    f"held={_svc_held!r} free={_svc_free!r}",
+)
+
 _man_assigned = _svc_call(
     const.SERVICE_ASSIGN_ENTITY,
     {

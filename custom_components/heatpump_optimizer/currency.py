@@ -15,6 +15,7 @@ only where it does not.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -54,10 +55,10 @@ def declared_currency(unit: Any, attributes: Any = None) -> str | None:
     """
     money = str(unit or "").partition("/")[0].strip()
     code = _SYMBOL_CODES.get(money)
-    if code is None and len(money) == 3 and money.isalpha() and money.isupper():
+    if code is None and re.fullmatch("[A-Z]{3}", money):  # not "ÖRE"
         code = money
     attr = (attributes or {}).get("currency") if isinstance(attributes, dict) else None
-    if code is None and isinstance(attr, str) and len(attr) == 3 and attr.isalpha():
+    if code is None and isinstance(attr, str) and re.fullmatch("[A-Za-z]{3}", attr):
         code = attr.upper()
     return code
 
