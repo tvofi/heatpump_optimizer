@@ -2,7 +2,7 @@
 
 Requested by tvofi on 2026-09-30 (thread "Silent windows", root message 14:08Z).
 Written against origin/main 3dfebc16 and roster rev 3.1 (handoff/audit-r9-fixplan @1f02e063).
-Status: proposal. The four roster entries are on `handoff/silent-windows-plan`
+Status: decisions answered; awaiting the Mac merge seat to apply the roster. The four roster entries are on `handoff/silent-windows-plan`
 (one commit on top of handoff/audit-r9-fixplan); the Mac merge seat applies them.
 
 ## 1. What exists today
@@ -129,33 +129,24 @@ but only while at least one silent row exists (an install that sets no rows neve
 has the switch written). Nothing is compared or written while the power switch
 reads off, as today.
 
-**Off.** Recommended: an Off step is the arbiter's idle row with both gates: hot
-water set-point to `DHW_GATE_C` (or the entity minimum), space or flow set-point
-to `FLOW_GATE_C` / the room gate, mode unchanged. The pump stays powered, keeps
-its own frost and pump-protection logic, and nothing depends on the power switch.
-Turning the power switch off instead would meet the pump's reset to 25 degC and
-the arbiter's rule to stop comparing while it reads off, so the optimizer could
-not tell its own off from a person's (decision D1).
+**Off (tvofi, 2026-09-30, D1).** An Off window means solely that the plan
+schedules no space heating and no hot-water slots in it. Nothing extra is
+written: those steps are ordinary idle steps, and the arbiter serves them with
+its existing idle row. No gates, no power switch.
 
 **Precedence.** Explicit user actions win for their duration: a boost button
 overrides a Silent or Off window (boost duty as today, silent released for the
-boost). The anti-legionella hard deadline wins over an Off window (the planner
-schedules around Off windows until the deadline). The comfort rail: if the room
-falls below the configured minimum comfort by more than the existing rail margin,
-the Off window yields to the baseline row and a warning repair says why.
+boost). The anti-legionella run is planned outside Off windows like any other slot (D1:
+no slots in an Off window). No comfort override inside an Off
+window: the plan pre-heats before it and prices any shortfall through the soft
+comfort penalty.
 
 ### 2.4 Optimizer off, and silent unavailable
 
-- **Optimizer active off:** quiet windows write nothing, like everything else
-  (#1708). Today turning the optimizer off leaves whatever the arbiter last wrote
-  in place, gates included ("Off writes nothing, not even the baseline", tvofi
-  2026-09-26, in `_arbitrate`). That is harmless for a 15-minute gate but not for
-  a window: switched off inside a Silent window the pump stays silent, and inside
-  an Off window both set-points stay at their gates, with no writer left to undo
-  either. Recommended: on that transition only, restore what the window changed
-  (silent switch off; the two gated set-points back to configured), once, as a
-  third documented exception beside the disinfection switch and the DHW repair
-  confirm (decision D2).
+- **Optimizer active off (tvofi, 2026-09-30, D2):** quiet windows write nothing,
+  like everything else (#1708). A silent switch the optimizer turned on stays as
+  the optimizer left it; there is no restore on that transition and no new
+  exception to the no-writes rule.
 - **Silent unavailable** (no switch, or a read-only entity, and SW-4 not in
   place): normal operation with a warning, as you proposed. The plan is not
   capped, the card marks the rows "not enforced", and one repair issue names the
@@ -174,7 +165,7 @@ measured closure through CI's closures autofix, not onto the INERT list.
 | group | what | fixer | after |
 |---|---|---|---|
 | R9-SW-1 | model and plan: specs, per-step actions, silent cap, per-step off mask and DHW ceiling in the solver, `apply_schedule` / `simulate_plan` / `set_thermal_params` fields, plan-sensor attributes, the not-enforced repair | opus (solver) | R9-EG-B1, R9-F1.10, R9-F10.1c |
-| R9-SW-2 | actuation: silent switch as a held arbiter slot, Off as gated idle, precedence, optimizer-off restore (per D2), repairs | opus (write safety) | R9-SW-1, R9-EG-B6 |
+| R9-SW-2 | actuation: silent switch as a held arbiter slot, boost precedence, repairs (Off needs no actuation, D1) | opus (write safety) | R9-SW-1, R9-EG-B6 |
 | R9-SW-3 | card: silent rows beside hot-water rows, action select, fraction slider, chart band, en/sv strings, README/docs section | sonnet (mirrors the hot-water editor) | R9-SW-1, R9-F10.6, R9-F11.5, R9-F6.4 |
 | R9-SW-4 | GCHV Modbus: silent through night-mode schedule registers 518/519 (per D4) | sonnet | R9-SW-2 |
 
@@ -227,22 +218,16 @@ budgets at the same time (EG-B1/B5/B7 are the structure-budget writers).
 approval the orchestrator files one feature issue so the delivery rows have a
 number; until then `issues` is empty.
 
-## 5. Decisions for tvofi
+## 5. Decisions (answered by tvofi, 2026-09-30T14:21Z)
 
-- **D1. How does an Off window stop the pump?** Gates (recommended): set-points
-  to their gates, power stays on, frost protection intact. Power: the power
-  switch off, which meets the 25 degC reset and the arbiter's stop-while-off rule.
-- **D2. Turning Optimizer active off inside a Silent or Off window: undo what the
-  window changed, once?** Yes (recommended): silent switch off, gated set-points
-  back to configured, a third exception to the no-writes rule. No: the pump stays
-  as the window left it, as today's gates do.
-- **D3. May SW-1..SW-4 raise a structure budget to the measured value if the
-  honest re-record needs it?** Yes (recommended), still merged on your review.
-  No: fixers must pay for every line.
-- **D4. GCHV Modbus silent through the night-mode schedule registers?** Yes
-  (recommended, SW-4): one window per day, written only when the next window
-  changes, at most twice a day. Later: GCHV rows show "not enforced" for now.
+- **D1. Off:** solely no space-heating or hot-water slots planned in the window;
+  no extra writes.
+- **D2. Optimizer switched off inside a window:** nothing is undone; the pump
+  stays where the optimizer left it.
+- **D3. Structure budgets:** yes, a raise to the measured value is confirmed for
+  SW-1..SW-4; it still merges on tvofi's approving review (budget-raise-gate).
+- **D4. GCHV Modbus through the night-mode schedule registers:** yes (SW-4).
 
 Defaults taken without asking: the capacity figure is the configured fraction;
 unavailable silent falls back to normal with a warning; an Off row may not overlap
-a hot-water window; boost and the legionella deadline win over a window.
+a hot-water window; a boost button wins over a window.
