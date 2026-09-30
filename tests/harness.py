@@ -21,6 +21,7 @@ sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers.typing import UNDEFINED
 
 UTC = timezone.utc
 
@@ -244,7 +245,8 @@ class FakeConfigEntries:
         if options is not None:
             kwargs["options"] = options
         for key, value in kwargs.items():
-            setattr(entry, key, value)
+            if value is not UNDEFINED:  # upstream: a keyword left UNDEFINED
+                setattr(entry, key, value)
         self.updated.append(getattr(entry, "entry_id", None))
 
     def async_entries(self, domain=None):

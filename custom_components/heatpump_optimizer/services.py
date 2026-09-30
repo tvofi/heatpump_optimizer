@@ -630,7 +630,7 @@ async def handle_assign_entity(hass: HomeAssistant, call: ServiceCall) -> dict[s
         # A slot can be an identity slot: re-derive the unique id with it,
         # as the options flow does (D10-s1-01).
         hass.config_entries.async_update_entry(
-            entry, options=options, **identity_update(hass, entry, options=options)
+            entry, options=options, unique_id=identity_update(hass, entry, options=options)
         )
 
     _LOGGER.info(

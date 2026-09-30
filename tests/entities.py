@@ -12743,6 +12743,7 @@ R.check(
 # real Home Assistant logs as an integration error.
 from heatpump_optimizer.config_flow import identity_update as _svc_idupd  # noqa: E402
 import types as _svc_types  # noqa: E402
+from homeassistant.helpers.typing import UNDEFINED as _svc_undef  # noqa: E402
 
 _svc_next = {**_svc_entry.options, const.CONF_DHW_TEMP_ENTITY: "sensor.dhw_probe2"}
 _svc_free = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
@@ -12756,7 +12757,7 @@ _svc_hass.config_entries.entries.remove(_svc_holder)
 R.check(
     "an identity edit whose id another entry holds leaves the id alone; a "
     "free id is still written (#1799 B1)",
-    _svc_held == {} and _svc_free == {"unique_id": _svc_holder.unique_id},
+    _svc_held is _svc_undef and _svc_free == _svc_holder.unique_id,
     f"held={_svc_held!r} free={_svc_free!r}",
 )
 
