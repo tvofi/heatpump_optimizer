@@ -8,7 +8,7 @@ Code commits:
 - `5d9b3666`: tests/deployment_shape.py's #1218 note now counts 378 pairs (28 choose 2) and names tests/layout.py (entities.py was red on it).
 - `19f75625`: layout.py's own comments cite no retired path.
 
-Evidence: /mnt/project-files/audit-r9/fix/evidence/RO-1/ holds the full gate log at `f26077a6`, entities at `5d9b3666`, the stress re-run, the mutants at `19f75625`, the layout report, the retired-list regeneration, and codeowners_gap at the base and the head.
+Evidence: /mnt/project-files/audit-r9/fix/evidence/RO-1/ holds the full gate log at `f26077a6`, entities at `5d9b3666`, the stress re-run, the mutants at `19f75625`, the layout report, the retired-list regeneration, and codeowners_gap at the base and the head. `tools/audit/prepr.sh` on the body at `19f75625`: `PRE-PR: 19f75625… 00000000000000000`, no refusal (prepr_19f75625.txt).
 
 Owner gate: tests/run.sh, tests/derive_closures.sh and .github/CODEOWNERS are code-owned, so this needs tvofi's approving review. No workflow file is touched.
 

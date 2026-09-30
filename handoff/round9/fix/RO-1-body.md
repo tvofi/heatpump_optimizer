@@ -102,7 +102,7 @@ In an earlier round, two mutants survived. The Python historical filter duplicat
 
 ## Forward-carry
 
-These findings were measured on this branch, and each changes how a later RO stage must work. Their destination is the R9-RO-2 to R9-RO-9 `brief` strings in `.claude/workflows/wave-r9-groups.json` on `handoff/audit-r9-fixplan`, which is not in main's tree. The orchestrator applies the text in `handoff/round9/fix/resume/RO-1.md` there.
+`tests/layout.py` (its module docstring and `gen_retired`) and `tests/layout.json` (`_doc`) carry items 1, 3 and 5 below, and the `since` rule of item 2, for every later RO seat, since they open these files to read the meter. Items 2, 4 and 5 go in full into the R9-RO-2 to R9-RO-9 `brief` strings of the round-9 roster on `handoff/audit-r9-fixplan`, which is not in main's tree: the orchestrator applies there the text in the RO-1 resume note on the transport commit above the code head. Each item was measured on this branch.
 1. **RO-2 to RO-9:** `tests/layout.py` reads the index. A move is metered only after `git add` or `git mv`, and an unstaged edit reads as if it were not there. The control: re-wording a staged comment left `reference` at 1519 until it was staged, and staging it gave 1518.
 2. **RO-2 to RO-9:** every planned move is already in `retired`, with `since: null`. A move PR sets `since` to its PR number for the entries it lands. It does not add entries. `--gen-retired` keeps `since` when it regenerates. The control: the regenerated list is byte-identical to the committed one.
 3. **RO-5:** `.claude/rules/` is not retired, because the target admits it as D1's generated copy. `--gen-retired` skips any path that a target category admits. So `.claude/rules/*.md` citations are not counted, and the lift to `dev/governance/rules/` is metered only by the category arm going green for the new files.
@@ -113,6 +113,4 @@ These findings were measured on this branch, and each changes how a later RO sta
 
 - fixer.md: cost: step 5's `MODE: FULL` covers a diff that adds one run_always script. The full gate ran about 18 minutes on the cloud box, and in parallel lanes `stress.py`'s CPU arm reads at its budget edge.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-https://claude.ai/code/session_01UqT5TwuvFRR3dxKprGpYTe
+🤖 Generated with [Claude Code](https://claude.com/claude-code) · https://claude.ai/code/session_01UqT5TwuvFRR3dxKprGpYTe
