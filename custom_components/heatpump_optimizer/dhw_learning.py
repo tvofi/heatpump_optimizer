@@ -93,8 +93,11 @@ class DhwProfileLearner:
         self._external_heat_active = external_heat_active
         self.last_temp_sample: float | None = None
         self.last_sample_time: datetime | None = None
-        self.hourly_profile: list[float] = (
-            params.dhw_hourly_draw_pattern.copy()
+        # Seeded through the loader's own projection: the shipped pattern
+        # has hours below the intensity floor, and a raw seed was what the
+        # first restart reshaped (#1747's carry).
+        self.hourly_profile: list[float] = self.normalize_profile(
+            params.dhw_hourly_draw_pattern
         )
         # Self-learned standby cooling of the tank, in °C/h at the reference
         # condition (45 °C tank, 20 °C ambient). Seeded from the configured
@@ -129,26 +132,38 @@ class DhwProfileLearner:
         self.draws_dirty: bool = False
 
     def normalize_profile(self, profile: list[float]) -> list[float]:
-        """Normalize and clamp DHW hourly profile (average ~= 1.0)."""
-        default = self._params.dhw_hourly_draw_pattern.copy()
-        if len(profile) != 24:
-            return default
+        """Project an hourly profile onto the admitted shapes: every hour in
+        [DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY], mean 1.0.
+
+        A projection, so normalising its own output returns it unchanged:
+        the loader keeps exactly what the writer stored, and a restart never
+        reshapes a profile (#1747's carry). One clip-and-divide pass is not
+        one -- the clip after the division moves the mean again -- so where
+        that pass misses mean 1, the scale is solved for instead.
+        """
         try:
             # R5-D1-05 (#1296): ``np.clip`` *clamps* +-inf and propagates
             # NaN, so one non-finite entry in a corrupt store survived
             # into the learned profile and the published payload. The
-            # whole profile quarantines to the default, exactly like the
-            # length mismatch above: one corrupt hour says nothing about
-            # the other 23.
-            if not all(math.isfinite(v) for v in profile):
-                return default
-            cleaned = [float(np.clip(v, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in profile]
-            avg = float(np.mean(cleaned))
+            # whole profile quarantines to the default, exactly like a
+            # length mismatch: one corrupt hour says nothing about the
+            # other 23.
+            usable = len(profile) == 24 and all(math.isfinite(v) for v in profile)
         except (TypeError, ValueError, OverflowError):
-            return default
-        if avg <= 0:
-            return default
-        return [float(np.clip(v / avg, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in cleaned]
+            usable = False
+        lo, hi = DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY
+        raw = np.clip(np.asarray(profile if usable else self._params.dhw_hourly_draw_pattern, dtype=float), lo, hi)
+        avg = float(np.mean(raw))
+        out = raw if abs(avg - 1.0) <= 1e-12 else np.clip(raw / avg, lo, hi)
+        if abs(float(np.mean(out)) - 1.0) > 1e-12:
+            # The mean is monotone in the scale, 0.2 at the low end and 3.5
+            # at the high one, so bisection pins the scale giving mean 1.
+            low, high = lo / float(raw.max()), hi / float(raw.min())
+            for _ in range(100):
+                mid = 0.5 * (low + high)
+                low, high = (mid, high) if np.mean(np.clip(raw * mid, lo, hi)) < 1.0 else (low, mid)
+            out = np.clip(raw * high, lo, hi)
+        return [float(v) for v in out]
 
     async def async_load_profile(self) -> None:
         """Load the persisted DHW usage profile and tank cooling rate."""

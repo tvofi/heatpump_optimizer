@@ -7295,7 +7295,13 @@ R.check("DrawStats.from_dict swallows a huge-int reservoir event", _ok, _detail)
 import math as _nf_math
 
 _nf_learner = _DhwUsage()
-_nf_default = list(ThermalParameters().dhw_hourly_draw_pattern)
+# A real learner's fresh seed: the shipped pattern through its projection
+# (_DhwUsage overwrites its own seed with a flat profile).
+_nf_default = DhwProfileLearner(
+    FakeHass(), "nf", ThermalParameters(),
+    frozen=lambda *a: None, heating_active=lambda: False,
+    external_heat_active=lambda: False,
+).hourly_profile
 _nf_profile = _nf_learner.normalize_profile(
     [1.0] * 6 + [float("nan")] + [1.0] * 17
 )
@@ -26688,6 +26694,57 @@ R.check(
     max(_mb_dhw_pinned.dhw_power_schedule) == 0.0,
 )
 
+# #1747: the co-optimisation replan rebuilt the DHW plan WITHOUT the block the
+# first build received. On the wood-coil golden scenario with prices shifted
+# down by 2.0 (68 of 96 steps negative) the replan scored better and shipped
+# 9.22 kWh of hot water through a heating-only mode, and the tank-floor breach
+# the plan reports read 0.63 K instead of 20.8 K. The spy records the `blocked`
+# every build of the solve receives; production decides whether the replan
+# runs, so the check reads what reached the builder, not which shape the fix took.
+from golden import (
+    make as _rb_mk,
+    SCENARIOS as _RB_SC,
+    START as _RB_START,
+    external_heat_for as _rb_ext,
+)
+import heatpump_optimizer.optimizer as _rb_mod
+
+_rb_real_build = _rb_mod.HeatPumpOptimizer._build_dhw_requirements
+_rb_blocked_args: list = []
+
+
+def _rb_build_spy(self, *a, **k):
+    _rb_blocked_args.append(k.get("blocked", False))
+    return _rb_real_build(self, *a, **k)
+
+
+_rb_b = _rb_mk(**_RB_SC["wood_coil"])
+_rb_mod.HeatPumpOptimizer._build_dhw_requirements = _rb_build_spy
+try:
+    _rb_res = _rb_b["optimizer"].optimize(
+        _rb_b["state"], np.asarray(_rb_b["prices"], dtype=float) - 2.0,
+        _rb_b["outdoor"], _rb_b["wind"], _rb_b["rain"], _rb_b["solar"],
+        _RB_START, None, None,
+        external_heat_kw=_rb_ext(len(_rb_b["prices"])), dhw_blocked=True,
+    )
+finally:
+    _rb_mod.HeatPumpOptimizer._build_dhw_requirements = _rb_real_build
+_rb_breach = _rb_res.predictive_info.get("dhw_floor_breach_c") or 0.0
+R.check(
+    "a DHW-blocked plan ships no hot water when mostly negative prices tempt the co-optimisation replan (#1747)",
+    max(_rb_res.dhw_power_schedule) == 0.0 and _rb_breach > 5.0,
+    f"shipped {float(np.sum(_rb_res.dhw_power_schedule)) * 0.25:.2f} kWh of hot "
+    f"water; floor breach {_rb_breach:.3f} K. The first build is planned "
+    "blocked; a replan that forgets the block plans the tank from nothing, "
+    "scores better on negative prices, and replaces the honest plan -- the "
+    "breach then reads as nearly met while the mode makes no hot water",
+)
+R.check(
+    "and every DHW build that solve made was told the mode is blocked",
+    len(_rb_blocked_args) >= 1 and all(_rb_blocked_args),
+    f"blocked per build: {_rb_blocked_args!r}",
+)
+
 # The null control that protects every golden fixture.
 _mb_null = _mb_run(space_blocked=False, dhw_blocked=False)
 R.check(
@@ -44087,13 +44144,14 @@ _g8_np_peaky = _g8_np_base.normalize_profile(
     [4.0 if h in (7, 8, 19) else 0.5 for h in range(24)])
 R.check(
     "a stored profile is normalised to average one, or refused whole",
-    _g8_np_short == _g8_np_base._params.dhw_hourly_draw_pattern
-    and _g8_np_text == _g8_np_base._params.dhw_hourly_draw_pattern
+    _g8_np_short == _g8_np_base.hourly_profile
+    and _g8_np_text == _g8_np_base.hourly_profile
     and all(abs(v - 1.0) < 1e-9 for v in _g8_np_zero)
     and abs(sum(_g8_np_ok) / 24.0 - 1.0) < 1e-9
-    and 0.9 < sum(_g8_np_peaky) / 24.0 < 1.0
-    and max(_g8_np_peaky) > min(_g8_np_peaky),
-    f"10 hours -> the configured default; text -> the default; all zero -> the "
+    and abs(sum(_g8_np_peaky) / 24.0 - 1.0) < 1e-12
+    and max(_g8_np_peaky) == 3.5 and min(_g8_np_peaky) > 0.5,
+    f"10 hours -> the learner's seed (the configured default, projected); "
+    f"text -> the seed; all zero -> the "
     f"flat 1.0; a flat 2.0 -> mean {sum(_g8_np_ok) / 24.0:.4f}; a peaky day -> "
     f"mean {sum(_g8_np_peaky) / 24.0:.4f}, span "
     f"{min(_g8_np_peaky):.2f}-{max(_g8_np_peaky):.2f}. The profile decides "
@@ -44101,18 +44159,15 @@ R.check(
     "one silently rescales the day's whole volume. The ALL-ZERO arm is the "
     "interesting one and it does not reach the default: every value is "
     "clipped up to DHW_PROFILE_MIN_INTENSITY (0.2) BEFORE the mean is taken, "
-    "so the mean is 0.2, the `avg <= 0` guard below cannot fire, and each "
+    "so the mean is 0.2 and each "
     "hour normalises to 0.2/0.2 = 1.0 -- a flat profile, which is the right "
-    "answer for a day with no information in it. That guard is therefore "
-    "UNREACHABLE while the clamp floor is positive; it is reported in the "
-    "body rather than deleted here, because deleting production code is not "
-    "a test-only tranche's to do. The peaky day lands "
-    "BELOW one and deliberately so: the clamp runs after the division, so an "
-    "hour the normalisation would push past the intensity ceiling is cut back "
-    "and the day's volume falls a little short. Volume preservation is exact "
-    "only while nothing clamps, and where the two rules disagree the clamp "
-    "wins, because an hour drawing four times the mean is more likely a bad "
-    "reading than a real draw",
+    "answer for a day with no information in it (an `avg <= 0` guard that "
+    "floor made unreachable went with #1747's carry). The peaky "
+    "day keeps BOTH rules: its three peaks sit on the intensity ceiling, "
+    "because an hour drawing four times the mean is more likely a bad reading "
+    "than a real draw, and the other hours are scaled so the day still "
+    "budgets its whole volume. Until #1747's carry one clip-and-divide pass "
+    "left this day at mean 0.9375 -- and a restart, normalising again, moved it",
 )
 
 
@@ -44162,7 +44217,7 @@ R.check(
     _g8_l_unread_err is None and _g8_l_unread_draws is None
     and _g8_l_unread.cooling_rate == _G8Params().dhw_cooling_rate
     and _g8_l_unread.cooling_samples == 0
-    and _g8_l_unread.hourly_profile == _G8Params().dhw_hourly_draw_pattern,
+    and _g8_l_unread.hourly_profile == _g8_learner().hourly_profile,
     f"escaped {_g8_l_unread_err!r}/{_g8_l_unread_draws!r}; cooling rate "
     f"{_g8_l_unread.cooling_rate!r} at {_g8_l_unread.cooling_samples!r} "
     "samples. Both loads run during setup, so a raise here is a config entry "
@@ -44196,6 +44251,52 @@ R.check(
     f"{_g8_l_save.draws_dirty!r} -- the dirty flag is cleared only AFTER a "
     "successful save, so a refused write leaves the learner knowing it still "
     "owes one rather than forgetting the draws it just folded in",
+)
+# #1747's carry (F9.3's review): a restart reshaped the DHW profile. The
+# fresh-install seed held the shipped pattern raw -- three hours at 0.10,
+# under DHW_PROFILE_MIN_INTENSITY -- and one clip-and-divide pass is not a
+# projection, so even a profile the learner itself wrote moved on reload.
+# The restart is the real one: the first learner's save, loaded by a second
+# through async_load_profile.
+_g8_dhwl_real_store2 = _g8_dhwl.QuarantiningStore
+try:
+    _g8_dhwl.QuarantiningStore = _G8TwoStore
+    _G8TwoStore.payloads, _G8TwoStore.saves, _G8TwoStore.raise_on = {}, [], set()
+    _g8_rs_fresh = _g8_learner()
+    _t6_call(_asyncio.run, _g8_rs_fresh.async_save_profile())
+    _G8TwoStore.payloads = {"profile": dict(_G8TwoStore.saves[-1][1])}
+    _g8_rs_back = _g8_learner()
+    _t6_call(_asyncio.run, _g8_rs_back.async_load_profile())
+    _g8_rs_learned = _g8_learner()
+    _g8_rs_learned.hourly_profile = _g8_rs_learned.normalize_profile(
+        [4.0 if h in (7, 8, 19) else 0.5 for h in range(24)])
+    _t6_call(_asyncio.run, _g8_rs_learned.async_save_profile())
+    _G8TwoStore.payloads = {"profile": dict(_G8TwoStore.saves[-1][1])}
+    _g8_rs_learned_back = _g8_learner()
+    _t6_call(_asyncio.run, _g8_rs_learned_back.async_load_profile())
+finally:
+    _g8_dhwl.QuarantiningStore = _g8_dhwl_real_store2
+_g8_rs_moved = max(
+    abs(a - b) for a, b in zip(_g8_rs_fresh.hourly_profile, _g8_rs_back.hourly_profile))
+R.check(
+    "a restart loads the DHW profile the learner saved, unchanged",
+    _g8_rs_back.hourly_profile == _g8_rs_fresh.hourly_profile
+    and _g8_rs_learned_back.hourly_profile == _g8_rs_learned.hourly_profile,
+    f"fresh install moved by up to {_g8_rs_moved:.4f} at the first restart "
+    f"(hour 01: {_g8_rs_fresh.hourly_profile[1]:.4f} saved, "
+    f"{_g8_rs_back.hourly_profile[1]:.4f} loaded); a clamped learned profile "
+    f"{'kept' if _g8_rs_learned_back.hourly_profile == _g8_rs_learned.hourly_profile else 'moved'}. "
+    "The loader applies the same projection the writer did, so anything else "
+    "is a profile the solver planned against before the restart and not after",
+)
+R.check(
+    "and the projection keeps the daily volume while respecting the clamp",
+    abs(sum(_g8_rs_learned.hourly_profile) / 24.0 - 1.0) < 1e-12
+    and max(_g8_rs_learned.hourly_profile) <= 3.5
+    and min(_g8_rs_fresh.hourly_profile) >= 0.2,
+    f"learned mean {sum(_g8_rs_learned.hourly_profile) / 24.0!r}, max "
+    f"{max(_g8_rs_learned.hourly_profile)!r}; fresh min "
+    f"{min(_g8_rs_fresh.hourly_profile)!r}",
 )
 _g8_l_payload = _g8_learner()
 _g8_l_payload.apply_payload({
