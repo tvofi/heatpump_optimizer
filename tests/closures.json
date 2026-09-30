@@ -106,7 +106,7 @@
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 36.9,
+   "seconds": 48.2,
    "rc": 0
   },
   "tests/md_tables.mjs": {
