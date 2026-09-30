@@ -53340,14 +53340,17 @@ def _f24_result(power, dhw, on=None):
 # must decide by the same owner, on both circuits, or the two arms of one method
 # disagree about the same step -- and the mode band beside it, which is the
 # SPACE circuit's own question, must not inherit the pump's modulation floor.
-_f24_nosched = _f24_result([0.0, 0.4, 0.0], [0.0, 0.0, 0.9])
+# 0.15 kW on a 1.0 kW plant is the row that separates them: the plan books it,
+# so it runs and grades eco, where the meter's threshold (0.5 kW here) read it
+# as off and the band read it as hot water.
+_f24_nosched = _f24_result([0.0, 0.15, 0.0], [0.0, 0.0, 0.9])
 _f24_acts = [
     _f24_mod.get_current_action(_f24_nosched, t + timedelta(minutes=1))
     for t in _f24_nosched.timestamps
 ]
 R.check(
     "R9-F2.4 P2: with no on schedule to read, the action decides on both "
-    "circuits by the plan's own rule -- a 0.4 kW space step and a 0.9 kW "
+    "circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW "
     "hot-water step run, a step booking nothing does not",
     [a["heat_pump_on"] for a in _f24_acts] == [False, True, True]
     and [a["mode"] for a in _f24_acts] == ["off", "eco", "hot_water"],
