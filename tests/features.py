@@ -7295,8 +7295,13 @@ R.check("DrawStats.from_dict swallows a huge-int reservoir event", _ok, _detail)
 import math as _nf_math
 
 _nf_learner = _DhwUsage()
-# The learner's own fresh seed: the shipped pattern through its projection.
-_nf_default = list(_nf_learner.hourly_profile)
+# A real learner's fresh seed: the shipped pattern through its projection
+# (_DhwUsage overwrites its own seed with a flat profile).
+_nf_default = DhwProfileLearner(
+    FakeHass(), "nf", ThermalParameters(),
+    frozen=lambda *a: None, heating_active=lambda: False,
+    external_heat_active=lambda: False,
+).hourly_profile
 _nf_profile = _nf_learner.normalize_profile(
     [1.0] * 6 + [float("nan")] + [1.0] * 17
 )
