@@ -4341,8 +4341,6 @@
       "blocked_on": null,
       "after": [
         "R9-SW-1",
-        "R9-F10.6",
-        "R9-F11.5",
         "R9-F6.4"
       ],
       "resume": {
@@ -4389,7 +4387,7 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-SW-2"
+        "R9-SW-1"
       ],
       "resume": {
         "stage": "not-started",
@@ -4479,15 +4477,12 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-EG-A4",
+        "R9-RO-1",
         "R9-F10.7",
         "R9-F11.7",
         "R9-EG-R1",
-        "R9-SW-3",
-        "R9-SW-4",
         "R9-F11.5",
-        "R9-F6.4",
-        "R9-RO-1"
+        "R9-F6.4"
       ],
       "resume": {
         "stage": "not-started",
@@ -4579,7 +4574,7 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-RO-3"
+        "R9-RO-2"
       ],
       "resume": {
         "stage": "not-started",
@@ -4625,7 +4620,7 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-RO-4"
+        "R9-RO-2"
       ],
       "resume": {
         "stage": "not-started",
@@ -4671,7 +4666,7 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-RO-5"
+        "R9-RO-2"
       ],
       "resume": {
         "stage": "not-started",
@@ -4717,7 +4712,7 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-RO-6"
+        "R9-RO-2"
       ],
       "resume": {
         "stage": "not-started",
@@ -4809,7 +4804,13 @@
       "barrier_prototype": [],
       "blocked_on": null,
       "after": [
-        "R9-RO-8"
+        "R9-RO-3",
+        "R9-RO-4",
+        "R9-RO-5",
+        "R9-RO-6",
+        "R9-RO-8",
+        "R9-EG-A4",
+        "R9-SW-4"
       ],
       "resume": {
         "stage": "not-started",
