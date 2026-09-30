@@ -1576,7 +1576,7 @@
       ],
       "class": "P9",
       "wave": 12,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -2213,7 +2213,7 @@
       "sweep_instances": [],
       "class": "P11",
       "wave": 11,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -2795,7 +2795,7 @@
       "sweep_instances": [],
       "class": "I4",
       "wave": 16,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -2836,7 +2836,7 @@
         "pickup_local": "the same commands from the Mac checkout, reading the plan and the log from git alone (handoff/audit-r9-fixplan and handoff/audit-r9-plan); a Mac seat appends its milestone lines to the mirror only, and the orchestrator copies them into the /mnt log at its next pass",
         "note": "Final at E2 with the Phase D sweeps, the round-9 RCA results and tvofi's resumability and model-routing rules folded in (2026-09-26). The seat's resume note on its branch outranks this entry for in-flight state; the orchestrator (or a sonnet record seat) updates stage, commit, last_step and next_step here at each hand-off and merge. issues[] and fixes[] are from the Phase E issue map (2026-09-26)."
       },
-      "brief": "Round-9 fix PR F11.4 (Governance tooling and policy lane). Models: fixer opus (a class barrier carrying an RCA prototype (I4) plus the owed driver fixes); reviewer opus in another session; RCA and judge opus; runner work (scoped-gate and stress re-runs, closure and budget re-records, report rendering) goes to a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md line, delivery row) may go to sonnet. Findings: D14-s2-03 (low, class I4). Class barrier landing here: I4 (RCA seat reported, process state (a)). Form: an agreement lane: each registered concept's real readers (imported, never copied) answer one corpus of live instances plus the findings' boundary cases, and any disagreement is refused; plus grammar discovery: a regex source in two or more governance code files must be registered with a disposition, and a stale entry is DEAD. Prototype handoff/r9-rca-i4@06bae072; cherry-pick the agreement program of 06bae072 (.claude/workflows/agreement.mjs), with its fixed-demo.patch as the shape of the instance fixes. Lines: 235 for the barrier plus about 20 registry lines for classifying the shared grammars; instance fixes about +24/-20. Ownership: audit-find.js and the governance.yml step are code-owned; no policy file. Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, and silent on a healthy tree, as the RCA's own runs did; set the class's entry in tools/audit/bugclasses.json (detector, barrier, status) in this PR. The I4 barrier lands here, after every I4 instance: F11.1's parsers and GOV pin, and F10.4's dead_methods census (D7-s3-02). It does not move to F11.1, which precedes F10.4. Form (below): an agreement lane over each registered concept's real readers, plus grammar discovery. The new program evaluates tracked source, so it joins codeowners_gap.py's surface: rules_sync.mjs must be pinned and audit-find.js stays code-owned; tests/entities.py classifies the new file. Its run step goes in a required job: governance.yml (code-owned) or check-wave-script.mjs's wave-script job. tvofi accepted the residual (card C11): a second reader with a different grammar for an unregistered concept stays undetected beyond the A7 and A8 policy text (F11.5). Record it in the body as accepted; build nothing for it. Register the pairs F10.4 and F11.1 record in their bodies: dead_methods against bound_references over methods (D7-s3-02), and tests/entities.py's governance-workflow pin against governance_cost.py's derivation (D11-s1-72). Classify the 20 shared grammars the prototype's discovery lists; the full discovery pass is claimed only once they are. F11.1 forward-carry (branch handoff/r9-f11-governance-1, code head bed5b81a): register the asymmetry between `resolvePrFromCommit`'s per-commit gap recovery, which reads both merge-subject shapes (the squash `(#N)` suffix and the `Merge pull request #N from` prefix), and `enumerateMerges`'s fully-offline `subject` mode, which reads only the squash shape. F11.1 deliberately left the offline mode narrow (its zero is a could-not-enumerate signal, `enumSkipLine`, and widening it would change what that zero means); this PR's agreement lane records the difference as a known, accepted asymmetry, not a third reader to reconcile. F11.3 governance hotfix #1721 review carry (orchestrator, 2026-09-27): two mutants survive. (1) Add a CI pin that drives env-matrix's 'nothing skipped' row with a second, non-token skip line and requires it to fail. (2) Pin the UNCHECKED pattern to bypass_actors. Show each mutant red on its pin. RESUME owed work that shares audit-find.js, folded in by tvofi (card C14, 'Fold in'): the driver-fix PR for the round-9 Prepare defects (rounds interpolation, the earlier-rounds strip, the env_drift warm step, the Chromium path) and the batch patch's defer and judge-flag arguments; tools/audit/README.md naming scopes.json and check_scopes.py; the L2 scope gap (docs/decisions in no seat's scopes). Finder harnesses (evidence commit 79aa98ec): tools/audit/round9/D14/s2/i4_roster.py. Class sweeps (Phase D, final): I4: N 5 (judge 5), rca yes, sweep S4 at b2e3560671, enumerator tools/audit/round9/D14/sweep/I4/enumerate.py, seams 2 guarded, 8 instance, all listed in tools/audit/round9/D14/sweep/S4.json. The enumerator is the fixer.md step-8 rule: run it at the merge base and the head and put every seam it returns in Figures against its disposition (closed here, already guarded, or a distinct finding or instance by id). An instance seam of these classes that this PR's findings do not own belongs to the PR the plan names for it. Needs tvofi: audit-find.js is code-owned. Class issues, in the body exactly as written here: Fixes #1650 (I4). Fixes #N only where this entry says so, because this PR follows every other PR holding that class; everything else is Part of #N. Standing: read CLAUDE.md, every .claude/rules file and tools/audit/briefs/fixer.md first; call the owner tvofi. Cloud seat: no PRs, no GitHub comments, no issues, no gh; hand the branch and body off on handoff/r9-f11-governance-4 and the Mac orchestrator pushes as the hpo-author App via tools/audit/app_push.sh; hpo-approver approves a non-code-owned PR, tvofi reviews a code-owned one (decision 0011). No heavy D3 (tvofi): no mutation pools, pre-screens or quiet windows; a D3-class mutation proof is one mutant applied in memory against the production symbol. Findings were measured at baseline 1936d5ca; main has since merged #1641, #1642 and #1643, so re-measure each finding at your merge base before fixing. Harnesses are at evidence commit 79aa98ec: run them from that export, before and after, and cite the path with its sha1 (fixer.md step 3). Every figure is re-derived at your own merge base. Run python3 tests/structure.py before every hand-off; a budget raise is tvofi's, asked before the push (CLAUDE.md rule 2). Tests go in a class-named block in sorted position in tests/features.py or tests/entities.py, never at end of file; install both merge drivers before the first commit; re-record closures and budgets once, at the hand-off. Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary (failing test written, fix green, body drafted) and at least every 30 minutes of work, never holding unpushed work across a long run; with every push update the resume note named in this entry's resume field (last completed step, next step, branch at commit, open questions); at each milestone append one dated line to the round-9 resume log and its git mirror, as the resume field says. A crashed seat is restarted from its branch and note, not from scratch. Class issues: write Fixes #N only for an issue this entry marks Fixes, Part of #N for every other listed issue. Touch the claim files only to claim measured drift. No VERSION, manifest version or notes-heading edits. Part of #201. Carry (RCA-BULK-3 at c5c32f2b, handoff/round9/state/alt/rca/RCA-BULK-3.md section 5, #1041): the silent-zero refusal is overturned on its re-run cost test. Land merge_shape_guard as a check in agreement.mjs that refuses an item every reader answers null (the prototype is handoff/round9/state/alt/rca/bulk3/merge_shape_guard_lite.py). The class barrier for N-silent-zero, registering count-printing instruments in field_coverage.mjs's perturb-to-red registry (the file lives at 844d14b7 on handoff/r9-rca-i3, not yet merged to main), is tvofi's decision: ask before building it. Mandate (rev 3.1): tvofi extended the programme mandate to programme completion on 2026-09-29, so no step waits for a human decision. A budget raise that an honest re-record requires is confirmed by that mandate: post the measured value and the reason on #201 before the push (CLAUDE.md rule 2), and the raise still merges only on tvofi's approving review at the head (budget-raise-gate), which the orchestrator requests; a code-owned file likewise merges on that review. Decided under the mandate (D8): build the N-silent-zero class barrier, since its refusal was overturned on the re-run cost test. Carry-in (R9-F7.5, measured both arms, fix #1778 hand-off of #1779-era): entity-name READERS diverge — the shipped contiguity check resolves names through strings.json (its entity-name resolver, tests/entities.py) while the archscore family_splits enumerator reads translations/en.json; the only two parity arms in features.py cover the exceptions section only, and hassfest never compares the files values. Close it here as an entity-section parity check inside this barrier\u0027s own mutation proof (route A of the F7.5 hand-off); route B (pointing the contiguity check at en.json) is REFUSED per RCA-BULK-4 section 2, a check edited to agree with one fix."
+      "brief": "Round-9 fix PR F11.4 (Governance tooling and policy lane). Models: fixer opus (a class barrier carrying an RCA prototype (I4) plus the owed driver fixes); reviewer opus in another session; RCA and judge opus; runner work (scoped-gate and stress re-runs, closure and budget re-records, report rendering) goes to a haiku subagent that reports numbers and decides nothing; record upkeep (resume note, RESUME.md line, delivery row) may go to sonnet. Findings: D14-s2-03 (low, class I4). Class barrier landing here: I4 (RCA seat reported, process state (a)). Form: an agreement lane: each registered concept's real readers (imported, never copied) answer one corpus of live instances plus the findings' boundary cases, and any disagreement is refused; plus grammar discovery: a regex source in two or more governance code files must be registered with a disposition, and a stale entry is DEAD. Prototype handoff/r9-rca-i4@06bae072; cherry-pick the agreement program of 06bae072 (.claude/workflows/agreement.mjs), with its fixed-demo.patch as the shape of the instance fixes. Lines: 235 for the barrier plus about 20 registry lines for classifying the shared grammars; instance fixes about +24/-20. Ownership: audit-find.js and the governance.yml step are code-owned; no policy file. Demonstrate it failing on each round-9 instance re-introduced, passing on the fixed tree, and silent on a healthy tree, as the RCA's own runs did; set the class's entry in tools/audit/bugclasses.json (detector, barrier, status) in this PR. The I4 barrier lands here, after every I4 instance: F11.1's parsers and GOV pin, and F10.4's dead_methods census (D7-s3-02). It does not move to F11.1, which precedes F10.4. Form (below): an agreement lane over each registered concept's real readers, plus grammar discovery. The new program evaluates tracked source, so it joins codeowners_gap.py's surface: rules_sync.mjs must be pinned and audit-find.js stays code-owned; tests/entities.py classifies the new file. Its run step goes in a required job: governance.yml (code-owned) or check-wave-script.mjs's wave-script job. tvofi accepted the residual (card C11): a second reader with a different grammar for an unregistered concept stays undetected beyond the A7 and A8 policy text (F11.5). Record it in the body as accepted; build nothing for it. Register the pairs F10.4 and F11.1 record in their bodies: dead_methods against bound_references over methods (D7-s3-02), and tests/entities.py's governance-workflow pin against governance_cost.py's derivation (D11-s1-72). Classify the 20 shared grammars the prototype's discovery lists; the full discovery pass is claimed only once they are. F11.1 forward-carry (branch handoff/r9-f11-governance-1, code head bed5b81a): register the asymmetry between `resolvePrFromCommit`'s per-commit gap recovery, which reads both merge-subject shapes (the squash `(#N)` suffix and the `Merge pull request #N from` prefix), and `enumerateMerges`'s fully-offline `subject` mode, which reads only the squash shape. F11.1 deliberately left the offline mode narrow (its zero is a could-not-enumerate signal, `enumSkipLine`, and widening it would change what that zero means); this PR's agreement lane records the difference as a known, accepted asymmetry, not a third reader to reconcile. F11.3 governance hotfix #1721 review carry (orchestrator, 2026-09-27): two mutants survive. (1) Add a CI pin that drives env-matrix's 'nothing skipped' row with a second, non-token skip line and requires it to fail. (2) Pin the UNCHECKED pattern to bypass_actors. Show each mutant red on its pin. RESUME owed work that shares audit-find.js, folded in by tvofi (card C14, 'Fold in'): the driver-fix PR for the round-9 Prepare defects (rounds interpolation, the earlier-rounds strip, the env_drift warm step, the Chromium path) and the batch patch's defer and judge-flag arguments; tools/audit/README.md naming scopes.json and check_scopes.py; the L2 scope gap (docs/decisions in no seat's scopes). Finder harnesses (evidence commit 79aa98ec): tools/audit/round9/D14/s2/i4_roster.py. Class sweeps (Phase D, final): I4: N 5 (judge 5), rca yes, sweep S4 at b2e3560671, enumerator tools/audit/round9/D14/sweep/I4/enumerate.py, seams 2 guarded, 8 instance, all listed in tools/audit/round9/D14/sweep/S4.json. The enumerator is the fixer.md step-8 rule: run it at the merge base and the head and put every seam it returns in Figures against its disposition (closed here, already guarded, or a distinct finding or instance by id). An instance seam of these classes that this PR's findings do not own belongs to the PR the plan names for it. Needs tvofi: audit-find.js is code-owned. Class issues, in the body exactly as written here: Fixes #1650 (I4). Fixes #N only where this entry says so, because this PR follows every other PR holding that class; everything else is Part of #N. Standing: read CLAUDE.md, every .claude/rules file and tools/audit/briefs/fixer.md first; call the owner tvofi. Cloud seat: no PRs, no GitHub comments, no issues, no gh; hand the branch and body off on handoff/r9-f11-governance-4 and the Mac orchestrator pushes as the hpo-author App via tools/audit/app_push.sh; hpo-approver approves a non-code-owned PR, tvofi reviews a code-owned one (decision 0011). No heavy D3 (tvofi): no mutation pools, pre-screens or quiet windows; a D3-class mutation proof is one mutant applied in memory against the production symbol. Findings were measured at baseline 1936d5ca; main has since merged #1641, #1642 and #1643, so re-measure each finding at your merge base before fixing. Harnesses are at evidence commit 79aa98ec: run them from that export, before and after, and cite the path with its sha1 (fixer.md step 3). Every figure is re-derived at your own merge base. Run python3 tests/structure.py before every hand-off; a budget raise is tvofi's, asked before the push (CLAUDE.md rule 2). Tests go in a class-named block in sorted position in tests/features.py or tests/entities.py, never at end of file; install both merge drivers before the first commit; re-record closures and budgets once, at the hand-off. Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary (failing test written, fix green, body drafted) and at least every 30 minutes of work, never holding unpushed work across a long run; with every push update the resume note named in this entry's resume field (last completed step, next step, branch at commit, open questions); at each milestone append one dated line to the round-9 resume log and its git mirror, as the resume field says. A crashed seat is restarted from its branch and note, not from scratch. Class issues: write Fixes #N only for an issue this entry marks Fixes, Part of #N for every other listed issue. Touch the claim files only to claim measured drift. No VERSION, manifest version or notes-heading edits. Part of #201. Carry (RCA-BULK-3 at c5c32f2b, handoff/round9/state/alt/rca/RCA-BULK-3.md section 5, #1041): the silent-zero refusal is overturned on its re-run cost test. Land merge_shape_guard as a check in agreement.mjs that refuses an item every reader answers null (the prototype is handoff/round9/state/alt/rca/bulk3/merge_shape_guard_lite.py). The class barrier for N-silent-zero, registering count-printing instruments in field_coverage.mjs's perturb-to-red registry (the file lives at 844d14b7 on handoff/r9-rca-i3, not yet merged to main), is tvofi's decision: ask before building it. Mandate (rev 3.1): tvofi extended the programme mandate to programme completion on 2026-09-29, so no step waits for a human decision. A budget raise that an honest re-record requires is confirmed by that mandate: post the measured value and the reason on #201 before the push (CLAUDE.md rule 2), and the raise still merges only on tvofi's approving review at the head (budget-raise-gate), which the orchestrator requests; a code-owned file likewise merges on that review. Decided under the mandate (D8): build the N-silent-zero class barrier, since its refusal was overturned on the re-run cost test. Carry-in (R9-F7.5, measured both arms, fix #1778 hand-off of #1779-era): entity-name READERS diverge — the shipped contiguity check resolves names through strings.json (its entity-name resolver, tests/entities.py) while the archscore family_splits enumerator reads translations/en.json; the only two parity arms in features.py cover the exceptions section only, and hassfest never compares the files values. Close it here as an entity-section parity check inside this barrier's own mutation proof (route A of the F7.5 hand-off); route B (pointing the contiguity check at en.json) is REFUSED per RCA-BULK-4 section 2, a check edited to agree with one fix."
     },
     {
       "group": "R9-F11.5",
@@ -2998,7 +2998,7 @@
       "sweep_instances": [],
       "class": "architecture",
       "wave": 10,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -3159,7 +3159,7 @@
       "sweep_instances": [],
       "class": "architecture",
       "wave": 13,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -3489,11 +3489,11 @@
         "R9-F1.6"
       ],
       "resume": {
-        "stage": "fixing",
+        "stage": "done",
         "branch": "handoff/r9-eg-solve-lifecycle",
-        "commit": "6e062c77efd3835110695659c09d70ea34b61ce2",
-        "last_step": "GRACEFUL STOP at owner directive: seat syncing mutation-site disposition state to the branch + resume note (verify via ls-remote handoff/r9-eg-solve-lifecycle); round-2 head 6e062c77 review-merged but SUPERSEDED by the coming pin commit; tvofi review must re-land at the new head; mutation is a REQUIRED context",
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "1f1ec73197933e9d7c17cfaa83865c4351c22ea8",
+        "last_step": "MERGED as #1779 at 1f1ec731 (PR head e90c127f); round-3 delta verdict merge (8 mutation sites: 1 killing check, 7 pins, 1 triage row at 1353); tvofi re-approved at e90c127f (raise 9031->9034)",
+        "next_step": "none; #1754 and #1755 closed by hand",
         "note_file": "handoff/round9/fix/resume/EG-B10.md on handoff/r9-eg-solve-lifecycle",
         "review_branch": "handoff/r9-eg-solve-lifecycle-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B10-review.md on handoff/r9-eg-solve-lifecycle-review",
@@ -3564,7 +3564,7 @@
       "sweep_instances": [],
       "class": "register",
       "wave": 17,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -3615,7 +3615,7 @@
       "sweep_instances": [],
       "class": "P7",
       "wave": 12,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -3814,7 +3814,7 @@
       "sweep_instances": [],
       "class": "architecture",
       "wave": 16,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
@@ -3988,11 +3988,11 @@
         "R9-F7.4"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f7-family-splits",
-        "commit": "ef8fc20cc2e65f32b8155071c54a92aed0aa383d",
-        "last_step": "hand-off COMPLETE at ef8fc20c (unpushed; opus reviewer at interim); app_push REFUSED on prepr, reason UNDIAGNOSED (seat ran prepr green in-tree minutes earlier) — next session: run prepr at the head and read the refuse line first",
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
+        "commit": "04fa97bcae548c6cc4b73e50d4a145ebec7d4328",
+        "last_step": "MERGED as #1781 at 04fa97bc (PR head 9e7fbc3a = ef8fc20c + row); verdict merge (opus reviewer, family_splits 3->0); #1777 closed by hand (bold keyword did not fire)",
+        "next_step": "none; stale in-tree resume note handoff/round9/fix/resume/F7.5.md (wrongly calls tests/entities.py code-owned) to delete at the next record batch",
         "note_file": "handoff/round9/fix/resume/F7.5.md on handoff/r9-f7-entities-5",
         "review_branch": "handoff/r9-f7-entities-5-review",
         "review_note_file": "handoff/round9/fix/resume/F7.5-review.md on handoff/r9-f7-entities-5-review",
@@ -4175,7 +4175,7 @@
       "sweep_instances": [],
       "class": "architecture",
       "wave": 18,
-      "fixerModel": "opus",
+      "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
         "fixer": "opus",
