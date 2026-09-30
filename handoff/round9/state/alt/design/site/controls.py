@@ -26,6 +26,7 @@ CASES = [
     ("number outside any claim", once(PAGE, '<div class="wrap">\n<section', '<div class="wrap"><p>Saves 40 % a year</p>\n<section'), ()),
     ("version literal", once(PAGE, "installs with HACS</span>", "installs with HACS v6.7.12</span>"), ()),
     ("image not in the tree", once(PAGE, 'data-repo="docs/setup/03-menu.png"', 'data-repo="docs/setup/03-menus.png"'), ()),
+    ("link to a sub-page the docs build does not produce", once(PAGE, 'href="ecl110.html"', 'href="tuning.html"'), ()),
     ("external script", once(PAGE, "</head>", '<script src="https://cdn.example.com/x.js"></script></head>'), ()),
     ("fonts from a third party (impl profile)", once(PAGE, "</head>", '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit"></head>'), ("--profile", "impl")),
     ("font url() to a third party in CSS", once(PAGE, "url(fonts/outfit-latin-600-normal.woff2)", "url(https://fonts.gstatic.com/s/outfit/x.woff2)"), ()),

@@ -160,3 +160,113 @@ makes each card PR regenerate its screenshots, and rev 4.2 adds the gallery slot
 - Every existing `tests/doc_claims.py` arm.
 - `tests/README.md` is not edited: it is code-owned and in the F11.4/F11.5 lane. If `entities.py` demands a line
   there, the PR stops and the orchestrator orders it after F11.5.
+
+## Documentation sub-pages (rev 4.3, R9-WEB-3)
+
+tvofi, 2026-09-30: "The docs should also be adopted to sub pages, if that is not unfeasible."
+
+It is feasible and cheap:
+- **What the docs use.** The reader docs use a small markdown subset: tables, fenced code, eight mermaid diagrams, one
+  `[!IMPORTANT]` callout, three `<details>` blocks, images and relative links. There is no maths and no footnotes.
+- **The parser is already in the repository.** It vendors markdown-it 14.1.0 at `.claude/workflows/vendor/`, used by
+  `render_md.mjs` and `tests/md_tables.mjs`, so rendering needs no new dependency.
+
+Files:
+- `docs_build.mjs`: the generator prototype.
+- `docs.css`: the sub-page design.
+- `docs_controls.py` and `DOCS-CHECKS.txt`: the planted-error controls and their output.
+- `docs_shots.mjs` and `docs_shots/`: the renders.
+
+The artifact serves the product page with all nine sub-pages beside it.
+
+### Decisions
+
+- **S7. Built at deploy, never committed.** The Pages workflow renders the pages from the release tag's markdown. No
+  generated HTML is tracked, so no doc-touching PR owes a regeneration: there are about a dozen such PRs left in
+  round 9. A page cannot drift from its source, because it is re-made from it. The PR-time guard is the build itself,
+  run by one new `tests/doc_claims.py` arm into a temporary directory; every FAIL line it prints fails the arm.
+- **S8. GitHub's heading slugs.**
+  - Every existing anchor, in the docs, in the README and on the product page, keeps working.
+  - A link to another published doc becomes its page. A link to any other tracked file becomes a GitHub link. A link
+    to nothing is an error.
+- **S9. Which documents.** The set is derived, not listed:
+  - the README, as "Overview (README)", because it holds the entity and service reference;
+  - every row of the README Documentation table, except `EXCLUDE`, which today holds only `docs/backlog.md` (an
+    archive that R9-RO-4 archives; the product page links it on GitHub).
+
+  This is two-sided. A new row is built. A row whose file is missing fails. An `EXCLUDE` entry that is no longer a
+  row fails.
+- **S10. Mermaid.**
+  - It is one self-hosted UMD file (`mermaid.min.js`), installed at deploy by `npm ci` from a lockfile beside the
+    generator: the `tests/pwlane` precedent, #1548.
+  - It loads only on the four pages that draw a diagram, and redraws in the other theme on toggle.
+  - It is never tracked, and there is no CDN.
+- **S11. No third-party request.** README badges render as their words in a chip, and external links stay links.
+
+### Anatomy
+
+Every page has the same parts:
+- the top bar: Overview, Documentation, Get started, the theme toggle and GitHub;
+- a docs rail on the left, ordered as the README table orders the docs, with the current page marked;
+- one reading column of about 76ch;
+- "On this page" on the right, listing the h2s, from 1180 px on pages with three or more.
+
+Under 900 px the rail folds into a "Documentation" menu above the text. Each page ends with previous and next links
+and "Rendered from docs/x.md, which is the source of truth". Rendered markdown takes styled parts only from the
+generator:
+- tables in a scroll box;
+- callouts with an ember rule and label;
+- single-image paragraphs as white figures;
+- `<details>` as surfaces;
+- code in the well colour;
+- heading anchors that appear on hover.
+
+### Measured on the docs at `aac8fb77`
+
+- 9 pages built, `docs/backlog.md` excluded.
+- 51 links between pages, 39 anchors verified, 20 GitHub links, 20 images, 4 badges rendered as text, 8 diagrams.
+- `docs_shots.mjs`: every page at 1280 and 390 px, light and dark, with no overflow, no page error, every image
+  loading and every diagram drawn.
+- `DOCS-CHECKS.txt`: the baseline is green, and each of these turns it red:
+  - an anchor to a missing heading, on the same page or across pages;
+  - a missing image;
+  - a link to an untracked file;
+  - a README row whose file does not exist;
+  - a stale `EXCLUDE` entry;
+  - a heading renamed under an inbound link;
+  - a README without its Documentation table.
+- The product page's documentation cards now link to the sub-pages. `check_site.py` refuses a link to a sub-page the
+  build would not produce (control added to `SITE-CHECKS.txt`).
+
+### Implementation map (R9-WEB-3)
+
+| design | repository |
+|---|---|
+| `docs_build.mjs` | `tools/site/build_docs.mjs`, which requires the vendored parser by the path `render_md.mjs` uses. R9-RO-6, which moves the vendor folder to `tools/policy/vendor/`, re-points it, and the arm refuses a missing parser. |
+| `docs.css` | `docs/site/docs.css` (fonts first, from `docs/site/fonts/`); the product page may share its tokens from it |
+| mermaid | `tools/site/package.json` and `package-lock.json` pinning mermaid; `npm ci` runs only in the Pages workflow, never in tests |
+| `docs_controls.py` | the PR body's planted-error table, run at the head |
+| the build check | one new arm in `tests/doc_claims.py`: run the build over the working tree into a temp dir with the tracked-file list, fail on every FAIL line, and anchor on zero pages |
+| product page links | the documentation cards, the card and setup links, and the footer point at the sub-pages; `check_site.py`'s sub-page rule joins the WEB-1 arm |
+
+Classification:
+- `tools/site/` needs one `tests/layout.json` glob.
+- The arm makes it part of `doc_claims.py`'s closure, which the autofix records.
+- `.github/CODEOWNERS` gains `/tools/site/ @tvofi` in this PR. The Pages workflow will execute the generator, which
+  puts it on the required-check enforcement surface, and owning it first means R9-WEB-2 need not edit
+  `.github/CODEOWNERS`.
+
+### Hosting change (R9-WEB-2, amended)
+
+The workflow now does four things:
+- runs `npm ci` in `tools/site/`;
+- runs the generator into `_site/` beside the product page;
+- copies `mermaid.min.js` to `site/mermaid/`;
+- stages the images by pattern, as before.
+
+Because it executes one repository script, it changes what `codeowners_gap.py` reports:
+- The body shows that the surface grew by exactly the generator (and anything the harness says it imports), and that
+  all of it is owned.
+- If the harness reports a path that is not yet owned, WEB-2 stops. The orchestrator then orders it before R9-RO-2,
+  which also edits `.github/CODEOWNERS`. That placement is at depth 8 with zero slack, and the programme gets no
+  longer.

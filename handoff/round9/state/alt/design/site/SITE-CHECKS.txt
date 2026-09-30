@@ -8,6 +8,7 @@ RED  docs row removed: README Documentation row missing from the page: docs/ecl1
 RED  number outside any claim: a number outside any claim: 'saves 40 % a year'
 RED  version literal: a number outside any claim: 'home assistant integration · installs with hacs v6.7.12' (+2 more)
 RED  image not in the tree: image docs/setup/03-menus.png is not in the tree at 5dfa6684 and no earlier group lands it
+RED  link to a sub-page the docs build does not produce: link to tuning.html: not a page the docs build produces from the README Documentation table
 RED  external script: external script: https://cdn.example.com/x.js
 RED  fonts from a third party (impl profile): third-party stylesheet: https://fonts.googleapis.com/css2?family=Outfit
 RED  font url() to a third party in CSS: third-party resource in CSS: https://fonts.gstatic.com/s/outfit/x.woff2

@@ -32,6 +32,7 @@ PENDING = {
     "docs/img/readme/how-it-works-dark.png": "R9-UI-2",
 }
 REPO_URL = "https://github.com/tvofi/heatpump_optimizer/blob/main/"
+DOCS_EXCLUDE = {"docs/backlog.md"}  # mirrors docs_build.mjs EXCLUDE: an archive, linked on GitHub, not rendered
 DESIGN_HOSTS = ("https://fonts.googleapis.com", "https://fonts.gstatic.com")
 NUM = re.compile(r"\d+(?:[.,]\d+)*")
 
@@ -221,6 +222,9 @@ def run(page_path: str, repo: str, ref: str, profile: str) -> tuple[list[str], d
     for x in sorted(docs - rows):
         errs.append(f"page docs entry the README Documentation table does not list: {x}")
 
+    # the sub-pages the docs build produces: the README, and each Documentation row except the archive (docs_build.mjs)
+    SUBPAGES = {"readme.html"} | {x.rsplit("/", 1)[-1].lower().replace(".md", ".html") for x in rows if x not in DOCS_EXCLUDE}
+
     # images, links, third parties
     for t, a in p.tags:
         if t in ("img", "source"):
@@ -242,6 +246,11 @@ def run(page_path: str, repo: str, ref: str, profile: str) -> tuple[list[str], d
                 errs.append(f"link to {path}: not in the tree at {ref}")
             elif frag and path.endswith(".md") and frag not in sections(d.text(path) or ""):
                 errs.append(f"link to {path}#{frag}: no such heading")
+        href = a.get("href") or ""
+        if t == "a" and re.fullmatch(r"[\w.-]+\.html(#.*)?", href):
+            stats["subpages"] = stats.get("subpages", 0) + 1
+            if href.split("#")[0] not in SUBPAGES | {"index.html"}:
+                errs.append(f"link to {href}: not a page the docs build produces from the README Documentation table")
         if t == "script" and a.get("src"):
             errs.append(f"external script: {a['src']}")
         if t == "link" and "stylesheet" in (a.get("rel") or "") and a.get("href", "").startswith("http"):

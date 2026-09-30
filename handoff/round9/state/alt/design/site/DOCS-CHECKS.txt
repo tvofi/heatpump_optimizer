@@ -1,0 +1,10 @@
+baseline: exit 0, 0 FAIL line(s)
+RED  cross-page anchor to a heading that does not exist: docs/how-it-works.md: anchor #no-such-heading is not a heading of configuration.html
+RED  same-page anchor to a heading that does not exist: docs/setup.md: anchor #no-such-heading is not a heading of setup.html
+RED  image that is not in the tree: docs/setup.md: image setup/01-first-screens.png does not resolve under docs/
+RED  relative link to an untracked file: docs/automations.md: link to ../tools/nope.py resolves to tools/nope.py, which is not tracked
+RED  README row for a file that does not exist: README Documentation row docs/new-page.md names a file that does not exist
+RED  EXCLUDE entry the README no longer lists: EXCLUDE names docs/backlog.md, which the README Documentation table no longer lists (+1 more)
+RED  heading renamed under an inbound link: docs/configuration.md: anchor #services is not a heading of configuration.html
+RED  anchor: no Documentation table: EXCLUDE names docs/backlog.md, which the README Documentation table no longer lists (+1 more)
+RESULT: every control red, baseline green
