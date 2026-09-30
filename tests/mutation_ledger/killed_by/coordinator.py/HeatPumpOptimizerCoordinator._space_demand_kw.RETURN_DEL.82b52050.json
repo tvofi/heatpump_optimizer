@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._space_demand_kw RETURN_DEL 82b52050",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.0, float(u * params.house_heat_loss_scale * (state.room_temperature - state.outdoor_temperature)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 830f84ad7a25453248a7709f4dfd13769b2d9684: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
