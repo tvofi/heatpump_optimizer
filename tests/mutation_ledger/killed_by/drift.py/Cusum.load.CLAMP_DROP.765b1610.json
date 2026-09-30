@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.load CLAMP_DROP 765b1610",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            self.stat = min(max(0.0, float(data.get(\"stat\", 0.0))), self.threshold * STAT_CAP_FACTOR)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: CLAMP_DROP (`self.stat = (max(0.0, float(data.get(\"stat\", 0.0))))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}
