@@ -16,6 +16,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
+from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
@@ -505,21 +506,26 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
 
 
+# The stubs type UNDEFINED as Incomplete; this is the same sentinel, typed.
+_KEEP_ID: UndefinedType = UNDEFINED
+
+
 def identity_update(
     hass: HomeAssistant,
     entry: Any,
     *,
     data: Mapping[str, Any] | None = None,
     options: Mapping[str, Any] | None = None,
-) -> dict[str, str]:
+) -> str | UndefinedType:
     """``unique_id=`` for a write of ``data``/``options`` that changes an
     identity answer, re-derived as the reconfigure step does (D10-s1-01).
 
-    Empty when no identity answer changes, so an entry keeps the id its
-    setup gave it; a token or entity slot edited anywhere else used to leave
-    the old id, and a fresh setup of the same plant was then accepted. Empty
-    too when another entry already holds the new id: the reconfigure step
-    aborts there, and a write here would index two entries under one id.
+    ``UNDEFINED`` (no write) when no identity answer changes, so an entry
+    keeps the id its setup gave it; a token or entity slot edited anywhere
+    else used to leave the old id, and a fresh setup of the same plant was
+    then accepted. ``UNDEFINED`` too when another entry already holds the
+    new id: the reconfigure step aborts there, and a write here would index
+    two entries under one id.
     """
     new = {
         **(entry.data if data is None else data),
@@ -527,11 +533,11 @@ def identity_update(
     }
     unique_id = entry_identity(new)
     if unique_id == entry_identity({**entry.data, **entry.options}):
-        return {}
+        return _KEEP_ID
     held = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
     if held is not None and held is not entry:
-        return {}
-    return {"unique_id": unique_id}
+        return _KEEP_ID
+    return unique_id
 
 
 def _money(
@@ -3082,7 +3088,7 @@ class HeatPumpOptimizerConfigFlow(
                 # The token is identity: a unique id left on the old one let
                 # a fresh setup with the new token add the plant twice.
                 self.hass.config_entries.async_update_entry(
-                    entry, data=data, **identity_update(self.hass, entry, data=data)
+                    entry, data=data, unique_id=identity_update(self.hass, entry, data=data)
                 )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
@@ -3154,8 +3160,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         options = {**self._entry.options, **user_input}
         # The identity half of ``_save_or_menu``'s write (D10-s1-01); the
         # options themselves are written by the flow manager, as always.
-        if changed := identity_update(self.hass, self._entry, options=options):
-            self.hass.config_entries.async_update_entry(self._entry, **changed)
+        uid = identity_update(self.hass, self._entry, options=options)
+        if uid is not UNDEFINED:
+            self.hass.config_entries.async_update_entry(self._entry, unique_id=uid)
         return self.async_create_entry(title="", data=options)
 
     async def _save_or_menu(self, user_input: dict[str, Any]) -> ConfigFlowResult:
@@ -3194,7 +3201,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self.hass.config_entries.async_update_entry(
             self._entry,
             options=options,
-            **identity_update(self.hass, self._entry, options=options),
+            unique_id=identity_update(self.hass, self._entry, options=options),
         )
         step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
         if step_id in self._ADVANCED_MENU:

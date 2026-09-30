@@ -307,8 +307,9 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
         """The unit stamped at construction, its money code following the
         coordinator's: a price feed that loads after the platforms is
         adopted there (#1657), and the figures are in its currency."""
-        unit = super().native_unit_of_measurement
-        old, new = self._stamped_currency, self.coordinator.currency
+        unit: str | None = super().native_unit_of_measurement
+        old: str = self._stamped_currency
+        new: str = self.coordinator.currency
         if isinstance(unit, str) and old != new and unit.partition("/")[0] == old:
             return new + unit[len(old):]
         return unit
