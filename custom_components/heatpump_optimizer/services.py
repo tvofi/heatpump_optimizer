@@ -66,6 +66,7 @@ from .const import (
     POSITIVE_PARAM_FLOOR,
     topology_layout_valid,
 )
+from .config_flow import entry_identity
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .dhw_schedule import (
     DHWWindowError,
@@ -626,7 +627,13 @@ async def handle_assign_entity(hass: HomeAssistant, call: ServiceCall) -> dict[s
         options = {**dict(entry.options), key: value}
         if write_setpoint:
             options[CONF_MIXING_VALVE_TARGET] = float(setpoint)
-        hass.config_entries.async_update_entry(entry, options=options)
+        # A slot can be an identity slot: re-derive the unique id with it,
+        # as the options flow does (D10-s1-01).
+        hass.config_entries.async_update_entry(
+            entry,
+            options=options,
+            unique_id=entry_identity({**entry.data, **options}),
+        )
 
     _LOGGER.info(
         "Assigned %s = %s on %d entry(ies)", key, value, len(targets)

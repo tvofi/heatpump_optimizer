@@ -53,6 +53,7 @@ from .const import (
     CONF_PEAK_TARIFF_WINDOW,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
 )
+from .currency import money_scale
 from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,6 +69,14 @@ _LOGGER = logging.getLogger(__name__)
 #: permissive (a stored fee that stopped loading, or was silently capped,
 #: would be worse than a wrong one the user was told about).
 IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0
+
+
+def fee_bound(currency: Any = None) -> float:
+    """``IMPLAUSIBLE_FEE_SEK_PER_KWH`` in ``currency``'s whole units (#1657).
+
+    Ten is a SEK-sized number: a real 20 HUF/kWh fee sat above it.
+    """
+    return IMPLAUSIBLE_FEE_SEK_PER_KWH * money_scale(currency)
 
 #: The config flow's error keys for a rules text, translated in
 #: strings.json under ``options.error``. Named here, next to the verdict
@@ -220,7 +229,7 @@ def parse_rules(spec: str | None) -> list[FeeRule]:
     return rules
 
 
-def spec_problem(spec: str) -> str | None:
+def spec_problem(spec: str, currency: Any = None) -> str | None:
     """The config flow's verdict on a rules text: an error key, or None.
 
     A transfer fee is a charge, so a negative rate is a sign slip that the
@@ -237,7 +246,7 @@ def spec_problem(spec: str) -> str | None:
         return ERROR_INVALID
     if any(rule.rate < 0.0 for rule in rules):
         return ERROR_NEGATIVE
-    if any(rule.rate > IMPLAUSIBLE_FEE_SEK_PER_KWH for rule in rules):
+    if any(rule.rate > fee_bound(currency) for rule in rules):
         return ERROR_IMPLAUSIBLE
     return None
 

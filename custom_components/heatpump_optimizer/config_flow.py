@@ -410,7 +410,7 @@ from . import (
 )
 from .wood_fuel import wood_furnace_on
 from .thermal_model import ThermalParameters, _dhw_enabled_from_config
-from .currency import resolve_currency
+from .currency import money_scale, resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
     MIN_WINDOW_MINUTES,
@@ -503,6 +503,15 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
         if user_input.get(key)
     )
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
+
+
+def _money(
+    maximum: float, step: float, hass: HomeAssistant, per: str = ""
+) -> selector.NumberSelector:
+    """A money field in the instance currency, its SEK-sized maximum scaled
+    to that currency (#1657): 5 SEK/kWh left a 20 HUF/kWh fee unenterable."""
+    currency = resolve_currency(hass)
+    return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
 
 
 def _number(
@@ -1653,7 +1662,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_EXTERNAL_HEAT_DECAY_MINUTES, DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number(15, 360, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE, _select(list(WOOD_TYPES), 'wood_type'), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
-    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _number(0, 10000, 10, 'SEK/m³'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _ByHass(lambda hass: _money(10000, 10, hass, "/m³")), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
@@ -1681,7 +1690,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("tuning", CONF_CYCLING_COST, DEFAULT_CYCLING_COST, _number(0, 10, 0.05), group="wear"),
     _F("tuning", CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA, _number(0.0, 2.0, 0.05), group="risk"),
     _F("tuning", CONF_CONFIDENCE_MARGINS_ENABLED, DEFAULT_CONFIDENCE_MARGINS_ENABLED, bool, group="risk"),
-    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _number(0, 100000, 100, resolve_currency(hass))), group="wear"),
+    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _money(100000, 100, hass)), group="wear"),
     _F("tuning", CONF_COMPRESSOR_RATED_STARTS, DEFAULT_COMPRESSOR_RATED_STARTS, _number(1000, 1000000, 1000), group="wear"),
     _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool, group="wear"),
     _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool, group="risk"),
@@ -1728,10 +1737,10 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- grid_fees
     _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
     _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
-    _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass: _number(0, 5, 0.01, f'{resolve_currency(hass)}/kWh'))),
+    _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass: _money(5, 0.01, hass, "/kWh"))),
     _F("grid_fees", CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=True))),
     _F("grid_fees", CONF_GRID_FEE_ENTITY, _STORED, _entity_of('sensor')),
-    _F("grid_fees", CONF_CONTRACT_FIXED_PRICE, DEFAULT_CONTRACT_FIXED_PRICE, _ByHass(lambda hass: _number(0, 10, 0.01, f'{resolve_currency(hass)}/kWh'))),
+    _F("grid_fees", CONF_CONTRACT_FIXED_PRICE, DEFAULT_CONTRACT_FIXED_PRICE, _ByHass(lambda hass: _money(10, 0.01, hass, "/kWh"))),
     # -- solar_pv
     _F("solar_pv", CONF_PV_ENABLED, DEFAULT_PV_ENABLED, bool),
     _F("solar_pv", CONF_PV_PEAK_KW, DEFAULT_PV_PEAK_KW, _number(0, 100, 0.1, 'kWp')),
@@ -3040,9 +3049,13 @@ class HeatPumpOptimizerConfigFlow(
             if verdict == "ok":
                 entry = self._reauth_entry
                 assert entry is not None
+                data = {**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]}
+                # The token is identity: a unique id left on the old one let
+                # a fresh setup with the new token add the plant twice.
                 self.hass.config_entries.async_update_entry(
                     entry,
-                    data={**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]},
+                    data=data,
+                    unique_id=entry_identity({**data, **entry.options}),
                 )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
@@ -3111,9 +3124,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page without discarding settings from the other pages."""
-        return self.async_create_entry(
-            title="", data={**self._entry.options, **user_input}
+        options = {**self._entry.options, **user_input}
+        self.hass.config_entries.async_update_entry(
+            self._entry, unique_id=entry_identity({**self._entry.data, **options})
         )
+        return self.async_create_entry(title="", data=options)
 
     async def _save_or_menu(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page, then stay in the dialog or close it (#100).
@@ -3145,8 +3160,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
         if choice == AFTER_SAVE_CLOSE:
             return self._save(user_input)
+        options = {**self._entry.options, **user_input}
+        # An identity slot edited here is the plant's identity too
+        # (D10-s1-01), exactly as the reconfigure step re-derives it.
         self.hass.config_entries.async_update_entry(
-            self._entry, options={**self._entry.options, **user_input}
+            self._entry,
+            options=options,
+            unique_id=entry_identity({**self._entry.data, **options}),
         )
         step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
         if step_id in self._ADVANCED_MENU:
@@ -3686,7 +3706,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors=errors,
             description_placeholders={
                 "currency": resolve_currency(self.hass),
-                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
             },
             data_schema=_page_schema("grid", current, self.hass),
         )
@@ -3726,7 +3746,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if user_input is not None:
             user_input = _flatten_section_input(user_input)
             fee_problem = grid_fee.spec_problem(
-                user_input.get(CONF_GRID_FEE_RULES, "")
+                user_input.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
             )
             if fee_problem is not None:
                 errors[CONF_GRID_FEE_RULES] = fee_problem
@@ -3745,7 +3765,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors=errors,
             description_placeholders={
                 "currency": resolve_currency(self.hass),
-                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
             },
             data_schema=_page_schema("grid_fees", current, self.hass),
         )

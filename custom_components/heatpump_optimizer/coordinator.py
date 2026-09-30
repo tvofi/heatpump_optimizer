@@ -375,7 +375,7 @@ from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
     GridFeeSchedule,
-    IMPLAUSIBLE_FEE_SEK_PER_KWH,
+    fee_bound,
     min_component as grid_fee_min_component,
     max_abs_component as grid_fee_max_abs_component,
     parse_month_range as grid_fee_parse_month_range,
@@ -385,7 +385,7 @@ from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
-from .currency import resolve_currency
+from .currency import declared_currency, money_currency, resolve_currency
 from .drift import Cusum, stored_instant
 from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
 from .wear import StartCounter, wear_price_per_start
@@ -1625,8 +1625,9 @@ def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
     return None if state is None else price_per_kwh(state.state, state_unit(state))
 
 
-def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
-    """Name a price unit the reader cannot parse, once per slot (#1513).
+def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> str | None:
+    """Name a price unit the reader cannot parse, once per slot (#1513);
+    return the currency the price feed declares, if it declares one (#1657).
 
     The reader keeps that entity's raw number, as every install did before
     the unit was read, so the plan is exactly as wrong as it always was --
@@ -1652,6 +1653,30 @@ def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
             translation_key="price_unit_unrecognised",
             translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
         )
+    # #1657: the feed denominates every money figure, and the sensors say so
+    # (``money_currency``), but the money fields in the options dialog are
+    # labelled in the instance currency. Name the disagreement.
+    feed = _price_feed(config)
+    state = hass.states.get(feed) if feed else None
+    attrs = getattr(state, "attributes", None) or {}
+    declared = declared_currency(attrs.get("unit_of_measurement"), attrs)
+    if declared is None or declared == resolve_currency(hass):
+        ir.async_delete_issue(hass, DOMAIN, "price_currency")
+        return declared
+    _create_issue(
+        hass,
+        DOMAIN,
+        "price_currency",
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="price_currency_mismatch",
+        translation_placeholders={
+            "entity": str(feed),
+            "feed": declared,
+            "configured": resolve_currency(hass),
+        },
+    )
+    return declared
 
 
 def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
@@ -2128,6 +2153,11 @@ def _entity_price_source(cfg: dict[str, Any]) -> bool:
     return str(cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)) == PRICE_SOURCE_ENTITY
 
 
+def _price_feed(cfg: dict[str, Any]) -> Any:
+    """The price entity whose numbers the plan is priced in, if one is."""
+    return cfg.get(CONF_PRICE_ENTITY) if _entity_price_source(cfg) else None
+
+
 def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:
     entity_id = cfg.get(CONF_PRICE_ENTITY)
     if not entity_id:
@@ -2213,9 +2243,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
         self.entry = entry
         config = {**entry.data, **entry.options}
-        # Resolved once: the sensors stamp it into their units at
-        # construction, and units must not change while an entity lives.
-        self.currency = resolve_currency(hass)
+        # The feed's code where it declares one (#1657); a feed that loads
+        # after setup is adopted each cycle, by ``_audit_price_units``.
+        self.currency = money_currency(hass, _price_feed(config))
 
         super().__init__(
             hass,
@@ -5720,7 +5750,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 DEFAULT_STALENESS_SCALE,
             ),
         )
-
+        self.currency = _audit_price_units(self.hass, ctx._config) or self.currency
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
@@ -6068,7 +6098,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
-        _audit_price_units(hass, cfg)
         try:
             session = (
                 None
@@ -6778,7 +6807,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         currency (audit D4-04, #168) rather than assuming one.
         """
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
-        if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
+        currency = self.currency
+        if worst > fee_bound(currency):
             if self._grid_fee_issue_value != worst:
                 _create_issue(
                     self.hass,
@@ -6793,7 +6823,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_placeholders={
                         "rate": f"{worst:.2f}",
                         "source": source,
-                        "currency": self.currency,
+                        "currency": currency,
                     },
                 )
                 self._grid_fee_issue_value = worst
@@ -6820,7 +6850,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_placeholders={
                         "rate": f"{lowest:.2f}",
                         "source": sign_source,
-                        "currency": self.currency,
+                        "currency": currency,
                     },
                 )
                 self._grid_fee_sign_issue_value = lowest

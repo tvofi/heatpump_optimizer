@@ -300,6 +300,18 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
         self.entity_id = f"sensor.heat_pump_optimizer_{translation_key}"
         self._entry = entry
         self._key = key
+        self._stamped_currency = coordinator.currency
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """The unit stamped at construction, its money code following the
+        coordinator's: a price feed that loads after the platforms is
+        adopted there (#1657), and the figures are in its currency."""
+        unit = self._attr_native_unit_of_measurement
+        old, new = self._stamped_currency, self.coordinator.currency
+        if isinstance(unit, str) and old != new and unit.partition("/")[0] == old:
+            return new + unit[len(old):]
+        return unit
 
 
 class _MeasuredTemperatureMixin(_SensorMixinBase):

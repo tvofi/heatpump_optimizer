@@ -1683,6 +1683,10 @@
       "title": "Desinfektionen går över din laddningsgräns för varmvatten",
       "description": "Legionellacykeln är inställd på {legionella_temp} °C, vilket ligger över de {setpoint} °C du angett som högsta tanktemperatur att ladda till. Det är tillåtet och inget är fel: var {interval_days} dygn tas tanken upp till {legionella_temp} °C för cykeln, och övrig tid laddas den aldrig över {setpoint} °C. Meddelandet finns här så att den enda varma dagen i veckan inte kommer som en överraskning. Ändra det genom att höja laddningsgränsen, sänka desinfektionstemperaturen eller stänga av cykeln."
     },
+    "price_currency_mismatch": {
+      "title": "Prisflödet och Home Assistant anger olika valutor",
+      "description": "{entity} anger elpriset i {feed}, medan Home Assistants valuta är {configured}. Optimeraren publicerar sina kostnader och besparingar i {feed}, den valuta talen faktiskt är i. Beloppsfälten i alternativdialogen är märkta {configured}, men nätavgifter, avtalspriset och vedpriset ska också anges i {feed}. Ställ in Home Assistants valuta på {feed}, eller välj en prissensor i {configured}, så försvinner meddelandet vid nästa planeringscykel. Om kostnadssensorerna fortfarande visar den gamla valutan, ladda om integrationen."
+    },
     "price_unit_unrecognised": {
       "title": "En prisentitet anger en enhet som optimeraren inte kan läsa",
       "description": "{entity} anger sitt pris i {unit}. Optimeraren läser ett pris som en valuta eller dess hundradel (öre, cent) per kWh, MWh eller Wh och kan inte avgöra vad den här enheten betyder, så den använder talet exakt som det publiceras, som den alltid har gjort. Om det inte är ett pris per kWh i hela valutaenheter prissätts planen fel. Välj en prissensor, eller ett sensoralternativ, vars enhet har någon av de formerna så försvinner meddelandet vid nästa planeringscykel."
