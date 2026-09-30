@@ -1,0 +1,15 @@
+gate_lock: waiting for the lease held by eg-b10-mut until 2026-09-30 09:40:57.293452+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+draw 1 base: baseline 114.8 probe 128.2 attributable 13.4 MiB traced 3.46 MiB
+draw 1 head: baseline 114.2 probe 128.6 attributable 14.4 MiB traced 3.46 MiB
+draw 2 head: baseline 114.4 probe 128.5 attributable 14.1 MiB traced 3.46 MiB
+draw 2 base: baseline 114.6 probe 128.2 attributable 13.6 MiB traced 3.46 MiB
+draw 3 base: baseline 114.6 probe 127.4 attributable 12.8 MiB traced 3.46 MiB
+draw 3 head: baseline 114.6 probe 128.2 attributable 13.6 MiB traced 3.46 MiB
+draw 4 head: baseline 114.8 probe 128.2 attributable 13.4 MiB traced 3.46 MiB
+draw 4 base: baseline 114.7 probe 128.6 attributable 13.9 MiB traced 3.46 MiB
+draw 5 base: baseline 114.7 probe 128.3 attributable 13.6 MiB traced 3.46 MiB
+draw 5 head: baseline 114.8 probe 128.5 attributable 13.7 MiB traced 3.46 MiB
+draw 6 head: baseline 114.5 probe 128.5 attributable 14.0 MiB traced 3.46 MiB
+draw 6 base: baseline 114.7 probe 128.2 attributable 13.5 MiB traced 3.46 MiB
+RESULT base_attrib_min=12.8 median=13.5 max=13.9 traced_max=3.46 n=6
+RESULT head_attrib_min=13.4 median=13.9 max=14.4 traced_max=3.46 n=6

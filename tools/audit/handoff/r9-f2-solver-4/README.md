@@ -46,11 +46,18 @@ does.
   prologue plus the source between two markers, verbatim, so the checks are the
   suite's own bytes and a mutant that fools this runner fools the suite. A
   marker it cannot find is a refusal, not an empty run.
-- `mutation_proof.py`: the mutation proof. Six mutants, each restoring one seam
-  of the fix to its base form, judged on the failing checks they ADD to the
-  healthy arm's set so a red this box already has is not read as a kill. It
+- `mutation_proof.py`: the mutation proof. Eight mutants (M1, M2, M2b, M3–M7),
+  each restoring one seam of the fix to its base form, judged on the failing
+  checks they ADD to the healthy arm's set so a red this box already has is not
+  read as a kill — or, when the runner dies before its own summary, on the
+  block's named checks that went red, with the runner's tail printed. It
   refuses to start on a dirty production file and refuses a mutant that restores
-  clean but adds no failing check. `ev/mutation_proof_{host,container}.log`.
+  clean but adds no failing check. `ev/mutation_proof_{host,container}.log`,
+  `ev/mutant_m6_host.log`, `ev/mutant_m6_m7_host.log`.
+- `rss_ab.py`: `winter/cycle`'s attributable RSS, base tree against head tree,
+  N interleaved draws each, through `tests/stress.py`'s own `--memory-baseline`
+  and `--memory-probe` entry points; prints every draw and min/median/max per
+  tree and judges nothing. `ev/rss_ab_winter_cycle.log`.
 - `ev/`: the runs the body quotes — the finder's three harnesses at base and
   head with their perturbation arms, the four class instruments at base and
   head, the drift lane and its census, the full `features.py` and `entities.py`

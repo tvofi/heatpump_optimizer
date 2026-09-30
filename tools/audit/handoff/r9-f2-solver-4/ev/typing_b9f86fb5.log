@@ -1,4 +1,4 @@
-tree 720a5de1455e4f825491b0c733a74b38cc8d0934  2026-09-30T09:16:22Z
+tree b9f86fb52ae3c92f2e9375de1f8d5a136c232acd  2026-09-30T06:37:45Z
 
 === typing ruler (mypy 2.3.1, homeassistant-stubs 2026.9.3, stub-free) ===
   ok   every recorded typing count is a finite non-negative integer
@@ -11,8 +11,10 @@ tree 720a5de1455e4f825491b0c733a74b38cc8d0934  2026-09-30T09:16:22Z
   ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
 
 ########## errors by module (reported, not ratcheted) ##########
-  ok   errors did not grow
+  thermal_model.py                    1
+  FAIL errors did not grow  [recorded 0, measured 1 (+1)]
+  FAIL by_code[no-any-return] did not grow  [recorded 0, measured 1 (+1)]
   ok   type_ignores did not grow
 
-ALL 9 typing-ruler checks PASSED
-rc=0
+2 of 10 typing-ruler checks FAILED
+rc=1
