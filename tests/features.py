@@ -7295,7 +7295,8 @@ R.check("DrawStats.from_dict swallows a huge-int reservoir event", _ok, _detail)
 import math as _nf_math
 
 _nf_learner = _DhwUsage()
-_nf_default = list(ThermalParameters().dhw_hourly_draw_pattern)
+# The learner's own fresh seed: the shipped pattern through its projection.
+_nf_default = list(_nf_learner.hourly_profile)
 _nf_profile = _nf_learner.normalize_profile(
     [1.0] * 6 + [float("nan")] + [1.0] * 17
 )
@@ -44137,13 +44138,14 @@ _g8_np_peaky = _g8_np_base.normalize_profile(
     [4.0 if h in (7, 8, 19) else 0.5 for h in range(24)])
 R.check(
     "a stored profile is normalised to average one, or refused whole",
-    _g8_np_short == _g8_np_base._params.dhw_hourly_draw_pattern
-    and _g8_np_text == _g8_np_base._params.dhw_hourly_draw_pattern
+    _g8_np_short == _g8_np_base.hourly_profile
+    and _g8_np_text == _g8_np_base.hourly_profile
     and all(abs(v - 1.0) < 1e-9 for v in _g8_np_zero)
     and abs(sum(_g8_np_ok) / 24.0 - 1.0) < 1e-9
-    and 0.9 < sum(_g8_np_peaky) / 24.0 < 1.0
-    and max(_g8_np_peaky) > min(_g8_np_peaky),
-    f"10 hours -> the configured default; text -> the default; all zero -> the "
+    and abs(sum(_g8_np_peaky) / 24.0 - 1.0) < 1e-12
+    and max(_g8_np_peaky) == 3.5 and min(_g8_np_peaky) > 0.5,
+    f"10 hours -> the learner's seed (the configured default, projected); "
+    f"text -> the seed; all zero -> the "
     f"flat 1.0; a flat 2.0 -> mean {sum(_g8_np_ok) / 24.0:.4f}; a peaky day -> "
     f"mean {sum(_g8_np_peaky) / 24.0:.4f}, span "
     f"{min(_g8_np_peaky):.2f}-{max(_g8_np_peaky):.2f}. The profile decides "
@@ -44151,18 +44153,15 @@ R.check(
     "one silently rescales the day's whole volume. The ALL-ZERO arm is the "
     "interesting one and it does not reach the default: every value is "
     "clipped up to DHW_PROFILE_MIN_INTENSITY (0.2) BEFORE the mean is taken, "
-    "so the mean is 0.2, the `avg <= 0` guard below cannot fire, and each "
+    "so the mean is 0.2 and each "
     "hour normalises to 0.2/0.2 = 1.0 -- a flat profile, which is the right "
-    "answer for a day with no information in it. That guard is therefore "
-    "UNREACHABLE while the clamp floor is positive; it is reported in the "
-    "body rather than deleted here, because deleting production code is not "
-    "a test-only tranche's to do. The peaky day lands "
-    "BELOW one and deliberately so: the clamp runs after the division, so an "
-    "hour the normalisation would push past the intensity ceiling is cut back "
-    "and the day's volume falls a little short. Volume preservation is exact "
-    "only while nothing clamps, and where the two rules disagree the clamp "
-    "wins, because an hour drawing four times the mean is more likely a bad "
-    "reading than a real draw",
+    "answer for a day with no information in it (an `avg <= 0` guard that "
+    "floor made unreachable went with #1747's carry). The peaky "
+    "day keeps BOTH rules: its three peaks sit on the intensity ceiling, "
+    "because an hour drawing four times the mean is more likely a bad reading "
+    "than a real draw, and the other hours are scaled so the day still "
+    "budgets its whole volume. Until #1747's carry one clip-and-divide pass "
+    "left this day at mean 0.9375 -- and a restart, normalising again, moved it",
 )
 
 
@@ -44212,7 +44211,7 @@ R.check(
     _g8_l_unread_err is None and _g8_l_unread_draws is None
     and _g8_l_unread.cooling_rate == _G8Params().dhw_cooling_rate
     and _g8_l_unread.cooling_samples == 0
-    and _g8_l_unread.hourly_profile == _G8Params().dhw_hourly_draw_pattern,
+    and _g8_l_unread.hourly_profile == _g8_learner().hourly_profile,
     f"escaped {_g8_l_unread_err!r}/{_g8_l_unread_draws!r}; cooling rate "
     f"{_g8_l_unread.cooling_rate!r} at {_g8_l_unread.cooling_samples!r} "
     "samples. Both loads run during setup, so a raise here is a config entry "
