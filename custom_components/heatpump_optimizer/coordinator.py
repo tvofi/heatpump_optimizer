@@ -2244,8 +2244,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
     _config = _hub("_config")
-    currency = property(lambda self: getattr(self, "_feed_code", None) or (
-        _feed_currency(self.hass, self._config) or resolve_currency(self.hass)))
     _thermal_params = _hub("_thermal_params")
     _current_state = _hub("_current_state")
     _opt_config = _hub("_opt_config")
@@ -2254,6 +2252,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
         self.entry = entry
         config = {**entry.data, **entry.options}
+        # The feed's code where it declares one (#1657), adopted per cycle.
+        self.currency = _feed_currency(hass, config) or resolve_currency(hass)
 
         super().__init__(
             hass,
@@ -5758,7 +5758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 DEFAULT_STALENESS_SCALE,
             ),
         )
-        self._feed_code = _feed_currency(self.hass, ctx._config) or self.currency
+        self.currency = _feed_currency(self.hass, ctx._config) or self.currency
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
