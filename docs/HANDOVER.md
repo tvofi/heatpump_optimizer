@@ -777,22 +777,14 @@ the pinned mypy half locally via `run.sh` — and repairs at those two sites
 `.github/workflows/tests.yml:427`. #1122's own body names this as owed and
 does not claim to have repaired it.
 
-**Owed from the round-9 EG-L0 legacy triage (2026-09-30): two live items with
-no not-started owner, carried here rather than filed** (fix-over-file, and the
-record lane makes no production edit).
+**Owed from the round-9 EG-L0 legacy triage (2026-09-30): one live item no
+seat can act on** — a repository setting, which the lane's governance rule
+records here and on #201 rather than fixes. (A second triage item, the
+re-drifted lazy-import reach note in `__init__.py` — legacy #1183 — is a code
+defect with a not-started owner: it was carried into R9-EG-B6's brief on
+`handoff/audit-r9-fixplan` @`c9791e2b`, per `finding-propagation.md`; a
+handover bullet is a record, not a carry.)
 
-- **`__init__.py`'s lazy-import reach note re-drifted** (legacy #1183, closed
-  LIVE-CARRIED to this item). The note carries a hard count — "``coordinator``
-  and ``services`` reach 45 of the integration's modules between them" at
-  `bd79bc9e` — but the same import walk (`sys.modules` under
-  `custom_components.heatpump_optimizer.` after importing coordinator then
-  services, `PYTHONPATH=tests/hastub`) measures **50 of 66**. Its twin #1223's
-  fix (PR #1252) moved the count 40→45; the five modules added since
-  (`batchmath`, `entity`, `pump_arbiter`, `repairs`, `store`) re-staled it. No
-  not-started group owns `__init__.py`, and the I5 barrier's quoted-line pass
-  (R9-F11.3) pins backticked `TAG: text` spans, not a prose count, so nothing
-  reddens on it. Repair: update the count, or better rewrite the note to derive
-  it rather than carry one (`CLAUDE.md`'s derive-don't-carry rule).
 - **Ruleset `main-protect` (22628467) carries an undocumented `always` bypass.**
   Read live 2026-09-30: `bypass_actors = [{actor_id 5094721, actor_type
   Integration, bypass_mode always}]`; `~/.zcode/hpo-ledger.appid` = 5094721
