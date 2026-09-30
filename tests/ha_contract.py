@@ -421,6 +421,11 @@ INVENTORY: dict[str, Entry] = {
         "first refresh raises when the update fails (#924); the integration's "
         "setup documents running the entry's unload callbacks on it"
     ),
+    "homeassistant.exceptions.ConfigEntryAuthFailed": F(
+        "carries IntegrationError -> HomeAssistantError and the translation "
+        "kwargs, which is what the Tibber reauth verdict raises through the "
+        "update wrappers (D10-s1-03)"
+    ),
     # -- helpers.aiohttp_client ---------------------------------------------
     "homeassistant.helpers.aiohttp_client.async_get_clientsession": S(
         "raises rather than returning a session: no lane here may reach the "
@@ -628,7 +633,9 @@ INVENTORY: dict[str, Entry] = {
         "and a failed first refresh raises ConfigEntryNotReady. Removing "
         "the last listener cancels the debouncer (upstream :167-172); a "
         "NotImplementedError from the update method is recorded and "
-        "re-raised (:444-446), not latched as a failed fetch. Still "
+        "re-raised (:444-446), not latched as a failed fetch. A "
+        "ConfigEntryAuthFailed latches the failure and starts the entry's "
+        "reauth on a steady refresh, and escapes the first (:428-443). Still "
         "deliberately absent: the loop-driven interval scheduler (no "
         "hass.loop behind the fakes), update_method/setup_method, the "
         "manual-push setters, and the wrong-state report_usage warning "
@@ -1488,6 +1495,68 @@ def _first_refresh_not_ready():
     assert isinstance(raised, ConfigEntryNotReady), f"raised {raised!r}"
 
 
+def _auth_failing_refresh(first: bool):
+    """Drive one refresh whose update raises ConfigEntryAuthFailed, either provider."""
+    import asyncio
+    import logging
+
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    entry = _first_refresh_entry()
+    entry.reauths = 0
+    entry.async_start_reauth = lambda hass, context=None, data=None: setattr(
+        entry, "reauths", entry.reauths + 1)
+
+    async def main():
+        class C(DataUpdateCoordinator):
+            def __init__(self):
+                super().__init__(
+                    _refresh_hass(), logging.getLogger("contract"),
+                    name="contract", config_entry=entry,
+                )
+
+            async def _async_update_data(self):
+                raise ConfigEntryAuthFailed("token refused")
+
+        c = C()
+        try:
+            await (c.async_config_entry_first_refresh() if first else c.async_refresh())
+            raised = None
+        except Exception as err:  # noqa: BLE001 - the type is asserted by the caller
+            raised = err
+        return c.last_update_success, c.last_exception, raised
+
+    ok, last, raised = asyncio.run(main())
+    return ok, last, raised, entry.reauths, ConfigEntryAuthFailed
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "an auth failure on a steady refresh latches, does not escape, and starts reauth",
+    cite="helpers/update_coordinator.py -- `except ConfigEntryAuthFailed` in "
+    "_async_refresh (:428-443): `if self.config_entry: "
+    "self.config_entry.async_start_reauth(self.hass)`",
+)
+def _steady_refresh_auth_failed():
+    ok, last, raised, reauths, auth = _auth_failing_refresh(first=False)
+    assert raised is None, f"raised {raised!r}"
+    assert ok is False and isinstance(last, auth), f"ok={ok} last={last!r}"
+    assert reauths == 1, f"{reauths} reauth flows started"
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "an auth failure on the first refresh escapes as ConfigEntryAuthFailed",
+    cite="helpers/update_coordinator.py -- async_config_entry_first_refresh "
+    "calls _async_refresh(raise_on_auth_failed=True), which re-raises (:439-440)",
+)
+def _first_refresh_auth_failed():
+    ok, last, raised, reauths, auth = _auth_failing_refresh(first=True)
+    assert isinstance(raised, auth), f"raised {raised!r}"
+    assert ok is False and reauths == 0, f"ok={ok} reauths={reauths}"
+
+
 @contract(
     "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
     "a successful first refresh completes without raising",
@@ -1703,6 +1772,24 @@ def _not_ready_is_ha_error():
     from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 
     assert issubclass(ConfigEntryNotReady, HomeAssistantError)
+
+
+@contract(
+    "homeassistant.exceptions.ConfigEntryAuthFailed",
+    "a ConfigEntryAuthFailed is an IntegrationError carrying the translation",
+    cite="exceptions.py -- `class ConfigEntryAuthFailed(IntegrationError)` "
+    "(:218) on IntegrationError(HomeAssistantError)",
+)
+def _auth_failed_is_integration_error():
+    from homeassistant.exceptions import ConfigEntryAuthFailed, IntegrationError
+
+    assert issubclass(ConfigEntryAuthFailed, IntegrationError)
+    err = ConfigEntryAuthFailed(
+        translation_domain="d", translation_key="k",
+        translation_placeholders={"error": "401"},
+    )
+    assert (err.translation_domain, err.translation_key) == ("d", "k")
+    assert err.translation_placeholders == {"error": "401"}
 
 
 @contract(

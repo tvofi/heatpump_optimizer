@@ -875,7 +875,7 @@ def _advisor_spread_c(
 
 
 def rank_sensor_advisor(
-    config: Mapping[str, Any], *, hp_kw: Sequence[float] = ()
+    config: Mapping[str, Any], hp_kw: Sequence[float] = ()
 ) -> dict[str, Any] | None:
     """Rank unconfigured optional temperature sensors by model spread (#1269).
 

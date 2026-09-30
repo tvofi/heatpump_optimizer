@@ -1332,13 +1332,15 @@ async def _with_sensor_advisor(
     used to re-simulate it on the loop at every state write. An advisory:
     a failed ranking leaves the attribute out and never fails the cycle.
     """
-    rank = functools.partial(
-        topology.rank_sensor_advisor,
-        dict(getattr(coordinator, "_ctx", coordinator)._config),
-        hp_kw=list(data.get("heat_pump_power_series") or ()),
-    )
-    try:
-        ranking = await _await_off_loop(coordinator.hass, rank)
+    hp_kw = [  # the numbers only, holes dropped (#1226)
+        float(v) for v in data.get("heat_pump_power_series") or ()
+        if isinstance(v, (int, float))
+    ]
+    config = dict(getattr(coordinator, "_ctx", coordinator)._config)
+    try:  # hp_kw positional: the worker call ships a named function
+        ranking = await _await_off_loop(
+            coordinator.hass, topology.rank_sensor_advisor, config, hp_kw
+        )
     except Exception as err:  # noqa: BLE001 - an advisory never fails the cycle
         _LOGGER.debug("Sensor advisor ranking skipped: %s", err)
         ranking = None
@@ -2726,9 +2728,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 enabled=bool(
                     ctx._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
                 ),
-                # The fit's intercept ridge pulls toward these CONFIGURED
-                # priors; arm() re-seeds the gains from the learned free-heat
-                # profile over the night window where it has one (#1655).
+                # The fit's intercept ridge pulls toward these CONFIGURED priors;
+                # arm() re-seeds the gains from the learned profile (#1655).
                 gains_prior_kw=float(ctx._thermal_params.internal_gains),
                 thermal_mass_prior=float(
                     ctx._thermal_params.room_thermal_mass
@@ -6058,8 +6059,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             verdict, payload = await pull_prices(
                 session, cfg, _price_entity_state(hass, cfg)
             )
-            if verdict == "reauth":
-                self._tibber_start_reauth()
             if verdict != "ok":
                 self._tibber_fetch_failed(str(payload), auth=verdict == "reauth")
                 return
@@ -6088,6 +6087,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
         if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
+            self._tibber_start_reauth()
             _raise_auth_failed("tibber_auth_failed", reason, error=reason)
         _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 

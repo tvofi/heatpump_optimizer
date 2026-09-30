@@ -17726,12 +17726,31 @@ R.check(
     "manual modes and restarts must still land in the month's total",
 )
 
+# #1658 (P10): the experiment steps off the event loop, so a harness awaits
+# the coordinator's step. Here it runs on the (inline) executor route, where
+# a patched step or a spy on the class is the one that runs; the process
+# route is the replay lane's P10 barrier.
+from heatpump_optimizer import coordinator as _sid_cmod  # noqa: E402
+
+
+def _sysid_cycle(host, prices):
+    """One ``_run_system_identification`` on the executor route."""
+    async def _unusable(hass, fn, *args):
+        raise _sid_cmod.ProcessWorkerUnavailable("features: executor route")
+
+    real, _sid_cmod._await_process = _sid_cmod._await_process, _unusable
+    try:
+        return _asyncio.run(host._run_system_identification(prices))
+    finally:
+        _sid_cmod._await_process = real
+
+
 # The sys-ID override wipes the plan's reasons off the running action.
 _cs6 = _t2_coord()
 _cs6._current_action = {"power": 1.0, "space_reason": "cheap_price", "dhw_reason": None}
 _cs6._sysid.phase = PHASE_ARMED
 _cs6._sysid.step = lambda **kw: 2.0
-_cs6._run_system_identification(np.array([1.0]))
+_sysid_cycle(_cs6, np.array([1.0]))
 R.check(
     "an experiment's draw settles untagged, never under the dead plan's reason",
     _cs6._current_action["space_reason"] is None
@@ -22497,6 +22516,62 @@ R.check(
     f"cycles: {_cconn._tibber_outage_cycles}",
 )
 
+# D10-s1-03: a refused token is ConfigEntryAuthFailed, not a transient
+# UpdateFailed. Through Home Assistant's own refresh (the stub's arm, pinned
+# against upstream in tests/ha_contract.py) a steady cycle latches the failure
+# and starts the entry's reauth instead of retrying the dead token every poll,
+# and the first refresh lets it escape, so setup asks for a token rather than
+# retrying as not-ready. A 500 stays transient: no reauth.
+async def _auth_refresh(coord, script, first=False):
+    real = _coord_mod.async_get_clientsession
+    _coord_mod.async_get_clientsession = (
+        lambda hass, verify_ssl=True: _ScriptedSession(script)
+    )
+    try:
+        await (coord.async_config_entry_first_refresh() if first
+               else coord.async_refresh())
+        return None
+    except Exception as err:  # noqa: BLE001 - the class is the assertion
+        return err
+    finally:
+        _coord_mod.async_get_clientsession = real
+
+
+_cauth = {}
+for _cauth_status in (401, 403, 500):
+    _cauth_c = _outage_cycle_coord()
+    _cauth_escaped = _asyncio.run(_auth_refresh(_cauth_c, [(_cauth_status, None)] * 3))
+    _cauth[_cauth_status] = (
+        _cauth_escaped, _cauth_c.last_update_success,
+        type(_cauth_c.last_exception).__name__,
+        getattr(_cauth_c.last_exception, "translation_key", None),
+        _cauth_c.config_entry.reauth_starts,
+    )
+R.check(
+    "D10-s1-03: a steady refresh refused by Tibber (401/403) latches "
+    "ConfigEntryAuthFailed with its translation and starts reauth; a 500 "
+    "stays UpdateFailed with no reauth",
+    all(
+        _cauth[c][:4] == (None, False, "ConfigEntryAuthFailed", "tibber_auth_failed")
+        and _cauth[c][4] >= 1
+        for c in (401, 403)
+    )
+    and _cauth[500] == (None, False, "UpdateFailed", "tibber_fetch_failed", 0),
+    f"{_cauth}",
+)
+_cauth_first = _outage_cycle_coord()
+_cauth_first._skip_solve_once = True  # the setup-time light refresh
+_cauth_first_raised = _asyncio.run(
+    _auth_refresh(_cauth_first, [(401, None)] * 3, first=True)
+)
+R.check(
+    "D10-s1-03: a first refresh refused by Tibber raises ConfigEntryAuthFailed "
+    "out of setup, not ConfigEntryNotReady",
+    type(_cauth_first_raised).__name__ == "ConfigEntryAuthFailed"
+    and getattr(_cauth_first_raised, "translation_key", None) == "tibber_auth_failed",
+    f"raised {_cauth_first_raised!r}",
+)
+
 # D10-06: the override must run the base class's shutdown. Real HA's
 # async_shutdown stops the refresh debouncer and any in-flight refresh; an
 # override that drops super() leaks both on every unload/reload. The stub
@@ -23965,6 +24040,75 @@ R.check(
         - _bat_cap
     )
     < 1e-9,
+)
+
+# D2-s2-01: the settlement caps and the hold demand price the house the
+# dynamics simulate, so they carry the learned house_heat_loss_scale. The cap
+# is documented as the slab temperature that SUSTAINS the target: at it, with
+# the pump off, the zone the slab feeds does not move under the same params'
+# simulate_step, whatever the scale. The whole-house demand (hold_demand_kw,
+# the external-heat detector's _space_demand_kw) is linear in the scale when
+# no free heat offsets it. Scale 1 is the null arm; 0.5 and 2 moved the zone
+# 0.12-0.32 K/h at 3dfebc16.
+_d2s2_drift, _d2s2_lin = [], []
+for _d2s2_zone in (False, True):
+    _d2s2_base = _dc_replace(
+        ThermalParameters.from_config(_grad_house(two_zone=_d2s2_zone, dhw=False)),
+        wind_sensitivity=0.0,
+    )
+    _d2s2_free = _dc_replace(_d2s2_base, internal_gains=0.0)
+    for _d2s2_s in (0.5, 1.0, 2.0):
+        _d2s2_p = _dc_replace(_d2s2_base, house_heat_loss_scale=_d2s2_s)
+        _d2s2_st = ThermalModel(_d2s2_p).simulate_step(
+            ThermalState(
+                room_temperature=21.0, upper_floor_temperature=21.0,
+                lower_floor_temperature=21.0, outdoor_temperature=5.0,
+                slab_temperature=_slab_cap(_d2s2_p, 21.0, 5.0),
+            ),
+            electrical_power=0.0, outdoor_temp=5.0, dt_hours=1.0 / 60,
+        )
+        _d2s2_drift.append(60.0 * ((
+            _d2s2_st.lower_floor_temperature if _d2s2_zone
+            else _d2s2_st.room_temperature
+        ) - 21.0))
+        _d2s2_q = _dc_replace(_d2s2_free, house_heat_loss_scale=_d2s2_s)
+        _d2s2_lin.append((
+            _hold_kw(_d2s2_q, 21.0, 5.0) / (_d2s2_s * _hold_kw(_d2s2_free, 21.0, 5.0)),
+            Coord._space_demand_kw(_NS(
+                _thermal_params=_d2s2_q, _current_state=ThermalState(
+                    room_temperature=21.0, outdoor_temperature=5.0),
+            )) / (_d2s2_s * Coord._space_demand_kw(_NS(
+                _thermal_params=_d2s2_free, _current_state=ThermalState(
+                    room_temperature=21.0, outdoor_temperature=5.0),
+            ))),
+        ))
+R.check(
+    "D2-s2-01: at the settlement cap the slab-fed zone holds the target under "
+    "every learned heat-loss scale, one- and two-zone",
+    max(abs(d) for d in _d2s2_drift) < 1e-6,
+    f"drift K/h {[round(d, 4) for d in _d2s2_drift]}",
+)
+# The forecast summary's solar fraction (the solve's initial guess and the
+# published solar_reduction_factor) reads the same house: a learned scale of 2
+# answers what a nameplate coefficient twice as large does (0.6 vs 0.776 at
+# 3dfebc16 on a 48-step sunny afternoon).
+_d2s2_sr = np.zeros(48)
+_d2s2_sr[14:22] = 600.0
+_d2s2_solar = [
+    _Opt(ThermalModel(_d2s2_p), _OptCfg(target_temp=21.0))._analyze_forecast_trajectory(
+        _d2s2_sr, np.zeros(48), np.zeros(48), np.zeros(48), 0.5
+    )["solar_reduction_factor"]
+    for _d2s2_p in (
+        _dc_replace(_d2s2_base, house_heat_loss_scale=2.0),
+        _dc_replace(_d2s2_base, heat_loss_coefficient=2.0 * _d2s2_base.heat_loss_coefficient),
+    )
+]
+_d2s2_lin.append((_d2s2_solar[0] / _d2s2_solar[1], 1.0))
+R.check(
+    "D2-s2-01: the hold demand, the detector's space demand and the forecast's "
+    "solar fraction scale with the learned heat-loss scale",
+    all(abs(a - 1.0) < 1e-9 and abs(b - 1.0) < 1e-9 for a, b in _d2s2_lin),
+    f"demand / (scale x unscaled) {_d2s2_lin}",
 )
 
 
@@ -27966,6 +28110,7 @@ class _SysIdHost:
     _learning_frozen = Coord._learning_frozen
 
     def __init__(self, signals) -> None:
+        self.hass = FakeHass()  # #1658: the step is awaited off the loop
         self._pump_signals = signals
         self._external_heat_active = False
         self._input_health = None
@@ -28002,7 +28147,7 @@ _OFFLINE = pump_signals.PumpSignals(
 )
 
 _si_free = _SysIdHost(PumpSignals())
-_si_free._run_system_identification(np.full(48, 0.2))
+_sysid_cycle(_si_free, np.full(48, 0.2))
 R.check(
     "the control: with no mode entity the experiment is untouched",
     _si_free._sysid.active,
@@ -28014,7 +28159,7 @@ for _sig, _name in (
     (_OFFLINE, "a pump that is off the network"),
 ):
     _si = _SysIdHost(_sig)
-    _si._run_system_identification(np.full(48, 0.2))
+    _sysid_cycle(_si, np.full(48, 0.2))
     R.check(
         f"{_name} aborts an armed experiment instead of commanding heat",
         not _si._sysid.active
@@ -28025,7 +28170,7 @@ for _sig, _name in (
         f"the house, and _adopt_system_identification persists what it fits",
     )
 _si_reason = _SysIdHost(_COOLING)
-_si_reason._run_system_identification(np.full(48, 0.2))
+_sysid_cycle(_si_reason, np.full(48, 0.2))
 R.check(
     "the aborted result carries the cause",
     _si_reason._sysid.result.reason
@@ -28112,7 +28257,7 @@ def _943_drive(host, hours=6.0):
             dt_util.freeze(when)
             host._current_state = state
             host._current_action = {"power": 0.0, "heat_pump_on": False}
-            host._run_system_identification(np.full(48, 0.2))
+            _sysid_cycle(host, np.full(48, 0.2))
             peak = max(peak, abs(state.room_temperature - 21.0))
             if host._sysid.phase == _SysIdModule.PHASE_STEP and sized is None:
                 sized = host._sysid._step_power
@@ -28176,7 +28321,7 @@ def _943_spy(self, *a, **kw):
 _SysIdModule.SystemIdentification.step = _943_spy
 try:
     _943_wire_host = _943_host(_943_light)
-    _943_wire_host._run_system_identification(np.full(48, 0.2))
+    _sysid_cycle(_943_wire_host, np.full(48, 0.2))
 finally:
     _SysIdModule.SystemIdentification.step = _943_orig_step
 R.check(
@@ -30749,6 +30894,8 @@ _ET_KEYS = {
     "process_worker_unusable": {"cycles"},
     "update_failed": {"error"},
     "tibber_fetch_failed": {"error"},
+    # D10-s1-03: the refused token, through _raise_auth_failed.
+    "tibber_auth_failed": {"error"},
 }
 
 
@@ -50935,14 +51082,14 @@ def _p5_night(how):
         prices = np.full(48, 1.0)
         for k in range(6):
             _p5_dt.freeze(_P5_T0 + timedelta(minutes=15 * k))
-            c._run_system_identification(prices)
+            _sysid_cycle(c, prices)
             if c._sysid.phase == _SysIdModule.PHASE_STEP:
                 break
         entered = c._sysid.phase == _SysIdModule.PHASE_STEP
         _p5_dt.freeze(_P5_T0 + timedelta(minutes=15 * (k + 1)))
         _p5_contaminate(c, how)
         before = len(c._sysid.samples)
-        c._run_system_identification(prices)
+        _sysid_cycle(c, prices)
         return {
             "entered_step": entered,
             "recorded": len(c._sysid.samples) - before,
@@ -51329,6 +51476,11 @@ def _p5_feeders(tree):
                 if (owner in sinks and meth not in _P5_READS) or (
                         owner == "_sysid" and meth == "step"):
                     hit.add(f"{owner}.{meth}")
+            # #1658: the experiment's step runs off the loop, through
+            # _sysid_step_off_loop(hass, self._sysid, ...).
+            if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Name)
+                    and x.func.id == "_sysid_step_off_loop"):
+                hit.add("_sysid.step")
         if hit and name != "_learning_frozen":
             feeders[name] = hit
     open_seams = {
@@ -53262,10 +53414,33 @@ _z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
 from dataclasses import replace as _z1524_replace  # noqa: E402
 
 
+def _z1524_learned(declared, free_kw, hours=range(24)):
+    """The free-heat profile the production learner (#53) leaves on a house
+    whose dark hours in ``hours`` carry ``free_kw`` of free heat, driven
+    through ``_fold_internal_gains`` to its fixed point: each interval's
+    residual is the free heat the current profile still misses. The rest of
+    the day never saw evidence and stays at the configured constant."""
+    seat = _NS(
+        _config={_const922.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True},
+        _thermal_params=declared, _internal_gains_profile=None,
+    )
+    cap = (declared.upper_floor_thermal_mass if declared.two_zone_enabled
+           else declared.room_thermal_mass)
+    dark = ThermalState(room_temperature=21.0, outdoor_temperature=0.0)
+    for _ in range(400):
+        for hour in hours:
+            held = (seat._internal_gains_profile or [declared.internal_gains] * 24)[hour]
+            Coord._fold_internal_gains(
+                seat, _z1524_night.replace(hour=hour), dark,
+                (free_kw - held) * 0.5 / cap, 0.5,
+            )
+    return seat._internal_gains_profile
+
+
 def _z1524_run(
     name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0,
     true_gains=0.0, true_slab_mass=1.0, true_slab_transfer=1.0, drift=0.0,
-    cadence=0.25,
+    cadence=0.25, learned=False,
 ):
     """One experiment night on the declared preset; (decision, peak, fit reason).
 
@@ -53276,6 +53451,9 @@ def _z1524_run(
     ramps the room reading (K/h) while the house does not move. The plant is
     a continuous house (R9 N-fit-integrator): one-minute steps between
     readings taken every ``cadence`` hours, never the fit's own Euler map.
+    ``learned`` (#1655) arms on the declaration carrying the free-heat
+    profile the learner measured on this plant's nights; the plant itself
+    never carries one.
     """
     cfg = _grad_house(two_zone=two_zone, dhw=False)
     cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
@@ -53318,7 +53496,10 @@ def _z1524_run(
     sid = _SysIdModule.SystemIdentification(
         _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
     )
-    sid.arm(_z1524_night, plant=declared)
+    sid.arm(_z1524_night, plant=_z1524_replace(
+        declared, internal_gains_profile=_z1524_learned(
+            declared, declared.internal_gains + true_gains)
+    ) if learned else declared)
     when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
     stepped = False  # whether the pump was ever driven above the hold power
     while sid.active:
@@ -54053,15 +54234,15 @@ R.check(
 # new one without both is refused. Liveness is the #1524 null-control check above (the unperturbed
 # nights still adopt), so the sweep cannot go green by refusing everything.
 #
-# A design choice this check encodes: free heat is swept to the edge of the
-# band its prior asserts (1.96 x SLAB_INTERCEPT_PRIOR_SD_KW), not beyond. One
-# night cannot separate unmodelled free heat from heat loss: a fit with the
-# prior loosened to 1e6 kW lands where the ridged one does, to within the
-# 5-min rollout's own error, and the separating signal is ~1.6e-4 K rms on a
-# 1-min rollout, far under a room sensor's noise. Free heat past the band is
-# a wrong PRIOR, whose fix is the learned free-heat profile in coordinator.py:
-# carried to F1 in .claude/workflows/carry-1655.json with the +0.4/+0.8 kW
-# nights as its failing test.
+# A design choice this check encodes: the band its prior asserts (1.96 x
+# SLAB_INTERCEPT_PRIOR_SD_KW) is not widened. One night cannot separate
+# unmodelled free heat from heat loss: a fit with the prior loosened to 1e6 kW
+# lands where the ridged one does, to within the 5-min rollout's own error,
+# and the separating signal is ~1.6e-4 K rms on a 1-min rollout, far under a
+# room sensor's noise. Free heat past the band is a wrong PRIOR, so the
+# +0.4/+0.8 kW nights (#1655) arm on the profile the learner measured on the
+# plant, which sysid.arm seeds the night's prior from: on the configured prior
+# alone heavy_old adopted 12 % low at +0.8 kW, outside the bar.
 import inspect as _r9p5_inspect  # noqa: E402
 
 _r9p5_band = round(
@@ -54070,7 +54251,7 @@ _r9p5_band = round(
 _R9P5_AXES = {
     "house_ua": ("true_ua", (1.15,)),
     "house_capacity": ("true_mass", (1.5,)),
-    "house_gains": ("true_gains", (-_r9p5_band, _r9p5_band)),
+    "house_gains": ("true_gains", (-_r9p5_band, _r9p5_band, 0.4, 0.8)),
     "house_slab_mass": ("true_slab_mass", (0.5, 2.0)),
     "house_slab_transfer": ("true_slab_transfer", (0.5, 2.0)),
 }
@@ -54111,7 +54292,7 @@ for _r9p5_zone in (False, True):
         ]:
             for _r9p5_mag in _r9p5_mags:
                 _r9p5_d, _, _ = _z1524_run(
-                    _r9p5_name, _r9p5_zone, **{_r9p5_axis: _r9p5_mag}
+                    _r9p5_name, _r9p5_zone, learned=True, **{_r9p5_axis: _r9p5_mag}
                 )
                 _r9p5_nights += 1
                 _r9p5_ua = _r9p5_mag if _r9p5_axis == "true_ua" else 1.0
@@ -54129,6 +54310,32 @@ R.check(
         len(m) for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]
     ),
     f"{_r9p5_nights} nights; " + "; ".join(_r9p5_over),
+)
+# #1655: the night's prior is the learned profile over the experiment's own
+# window, and only there. Free heat learned in the night hours moves it, the
+# same heat learned only by day does not, and a night on a plant with no
+# profile returns to the configured value after one that had one.
+_r9p5_decl = _z1524_replace(
+    ThermalParameters.from_config(_grad_house(two_zone=False, dhw=False)),
+    internal_gains=0.3,
+)
+_r9p5_sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
+    enabled=True, min_days_between_runs=0.0, gains_prior_kw=0.3,
+))
+_r9p5_priors = []
+for _r9p5_hours in ((23, 0, 1, 2, 3, 4), range(9, 18), None):
+    _r9p5_sid.phase = _SysIdModule.PHASE_IDLE
+    _r9p5_sid.arm(_z1524_night, plant=_z1524_replace(
+        _r9p5_decl, internal_gains_profile=None if _r9p5_hours is None
+        else _z1524_learned(_r9p5_decl, 0.9, _r9p5_hours),
+    ))
+    _r9p5_priors.append(round(_r9p5_sid.config.gains_prior_kw, 3))
+R.check(
+    "R9-P5 (#1655): the night's free-heat prior is the learned profile over "
+    "the night window, the configured value by day-only evidence, and the "
+    "configured value again on a plant with no profile",
+    _r9p5_priors[0] > 0.3 + 0.4 and _r9p5_priors[1:] == [0.3, 0.3],
+    f"priors {_r9p5_priors} (configured 0.3, free heat 0.9 kW)",
 )
 # D2-s4-81: a night the gate must refuse on the declared plant itself is not
 # stepped. On the unperturbed plant (the fit's best case) every night either
