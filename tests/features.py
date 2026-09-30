@@ -53235,6 +53235,8 @@ R.check(
 # tolerance: it is a recorded refusal priced in money and CPU, against which
 # #1294's refusal of the anchor ladder already stands.
 import inspect as _f24_inspect  # noqa: E402
+from pathlib import Path as _f24_Path  # noqa: E402
+from types import SimpleNamespace as _f24_NS  # noqa: E402
 
 from heatpump_optimizer import pump_arbiter as _f24_pa  # noqa: E402
 from heatpump_optimizer import thermal_model as _f24_tm  # noqa: E402
@@ -53356,12 +53358,19 @@ R.check(
 # the threshold from its caller, which handed it the METER's, and split the two
 # circuits on two different numbers -- so on a pump whose floor is 0.4 kW a step
 # the plan booked 0.15 kW of space heat for read as no space duty at all, and
-# the arbiter wrote the pump's hot-water mode over a heating step.
-_f24_trickle = _pa_result("xs")  # x: space 0.15 + dhw 2.0; s: space 1.5
+# the arbiter wrote the pump's hot-water mode over a heating step. These
+# fixtures are the block's own, so it runs standalone and its mutation proof
+# does not need the rest of the suite.
+_f24_plan = _f24_NS(
+    timestamps=[_F24_T0 + timedelta(minutes=15 * i) for i in range(2)],
+    power_schedule=[0.15, 1.5],
+    dhw_power_schedule=[2.0, 0.0],
+    optimal_setpoints=[21.0, 21.0],
+)
 _f24_duty_arity = len(_f24_inspect.signature(_f24_pa.step_duty).parameters)
 _f24_duties = (
     [
-        _f24_pa.step_duty(_f24_trickle, _PA_T0 + timedelta(minutes=15 * i + 1))
+        _f24_pa.step_duty(_f24_plan, _F24_T0 + timedelta(minutes=15 * i + 1))
         for i in range(2)
     ]
     if _f24_duty_arity == 2
@@ -53373,25 +53382,24 @@ R.check(
     _f24_duties == ["both", "space"],
     f"step_duty takes {_f24_duty_arity} parameters; duties={_f24_duties}",
 )
-_f24_metered = _PaCoord(_PA_TUYA)  # its plant's floor is 0.4 kW
+# The meter's side of the split: unchanged, floored, and named for what it
+# reads. The null arm is the two thresholds disagreeing on purpose -- the same
+# 0.15 kW step the plan books as running is below what a meter sample proves,
+# which is the whole reason one formula could not answer both.
+_f24_meter = _f24_NS(
+    _thermal_model=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
+)
 R.check(
     "R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the "
-    "modulation floor -- and lives behind a name that says it reads a meter",
+    "modulation floor -- and is not the plan's",
     callable(_f24_ran_kw)
-    and _f24_ran_kw(_f24_metered) == 0.2
+    and _f24_ran_kw(_f24_meter) == 0.2
     and callable(_f24_meter_kw)
-    and _f24_meter_kw(_f24_metered._thermal_model.params) == 0.2,
-    f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r}",
-)
-_f24_sample = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
-_f24_sample._measured_power = 0.15
-_pa_run(_f24_sample, 1)
-_f24_row = _f24_pa.state_for(_f24_sample).step
-R.check(
-    "R9-F2.4 P2 (null arm): a 0.15 kW meter sample is still not a run, though "
-    "the plan books a 0.15 kW step as one",
-    callable(_f24_ran_kw) and _f24_row is not None and _f24_row["ran"] is False,
-    f"{_f24_row}",
+    and _f24_meter_kw(_f24_meter._thermal_model.params) == 0.2
+    and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
+    and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
+    f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
+    f"plan_floor={_f24_floor}",
 )
 
 # The class rule, as a pin: the meter's formula lives in the owner alone, in the
@@ -53403,7 +53411,9 @@ R.check(
 # the owner and is named in the PR body; it is deliberately NOT asserted here,
 # because an allow-list entry silences everything its key matches.
 def _f24_copies(module: str) -> int:
-    src = _Path(f"custom_components/heatpump_optimizer/{module}.py").read_text()
+    src = _f24_Path(
+        f"custom_components/heatpump_optimizer/{module}.py"
+    ).read_text()
     return sum(
         1
         for line in src.splitlines()
