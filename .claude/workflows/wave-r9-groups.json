@@ -3489,10 +3489,10 @@
         "R9-F1.6"
       ],
       "resume": {
-        "stage": "fixing",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-solve-lifecycle",
-        "commit": null,
-        "last_step": "opus seat in flight since 2026-09-29T23:0xZ; Root-cause sections owed on #1754/#1755 at hand-off",
+        "commit": "8aee72d8f898bf9cffc547f73401d6587bf24df3",
+        "last_step": "PR #1779 opened at 8aee72d8 (2026-09-30T02:2xZ); raise posted on #201 pre-push 02:12Z; opus reviewer dispatched at push; tvofi approving review REQUESTED at head (raise + code-owned); Root-cause sections check in review",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-B10.md on handoff/r9-eg-solve-lifecycle",
         "review_branch": "handoff/r9-eg-solve-lifecycle-review",
