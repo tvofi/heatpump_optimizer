@@ -32,7 +32,7 @@ fi
 [ "$(gh pr view $PR --json isDraft --jq .isDraft)" = true ] && gh pr ready $PR >/dev/null
 sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
-[ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
+case "$st" in CLEAN|HAS_HOOKS|UNSTABLE) ;; *) echo "not clean"; exit 1 ;; esac  # UNSTABLE: required contexts pass; a non-required red (delivery-status backlog row, optional CodeQL) never blocks — verified against the ruleset required-list, 2026-09-30 #1773
 gh pr view $PR --json title --jq .title | bash tools/audit/preflight.sh "$@" 2>&1 | tail -1
 gh pr merge $PR --merge --match-head-commit $S || exit 1
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
