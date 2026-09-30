@@ -26819,6 +26819,13 @@ R.check(
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
 )
 
+# P10 (#1658): the replayed day's model kernels, counted by the route they ran
+# on, in three arms (the tree, the process route made unusable, a sysid night
+# armed through its fit). Red at 3dfebc16: the sensor-advisor re-simulated on
+# the loop in every arm and the fit ran there in the third.
+for _rp_name, _rp_ok, _rp_detail in _replay.kernel_checks():
+    R.check(_rp_name, _rp_ok, _rp_detail)
+
 
 # --- round 9's judge re-runner (PLAN R3) ---
 #

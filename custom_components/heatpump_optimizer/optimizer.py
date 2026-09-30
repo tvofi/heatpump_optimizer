@@ -1613,6 +1613,8 @@ def hold_demand_kw(
         u_eff = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
     else:
         u_eff = params.heat_loss_coefficient
+    # D2-s2-01: the learned leakage scale the dynamics apply to both zones.
+    u_eff *= params.house_heat_loss_scale
     return max(
         0.0,
         u_eff * (target - out_mean)
@@ -1711,11 +1713,14 @@ def slab_settlement_cap(
         # and over-valued hot-slab end states by exactly that much.
         q_demand = max(
             0.0,
-            params.lower_floor_heat_loss_learned * (target - out_mean)
+            params.lower_floor_heat_loss_learned * params.house_heat_loss_scale
+            * (target - out_mean)
             - params.internal_gains * (1.0 - params.upper_floor_area_ratio),
         )
     else:
-        u_eff = params.heat_loss_coefficient
+        # D2-s2-01: the learned leakage scale, as the dynamics apply it; a
+        # cap sized on the nameplate loss does not sustain the target.
+        u_eff = params.heat_loss_coefficient * params.house_heat_loss_scale
         q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
     return min(
         target + q_demand / max(params.slab_heat_transfer, 1e-6),

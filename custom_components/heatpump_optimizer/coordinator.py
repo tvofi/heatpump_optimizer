@@ -40,7 +40,7 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
@@ -370,7 +370,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, adoption_decision
+from .sysid import SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -1294,6 +1294,57 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
 async def _await_process(hass: HomeAssistant, fn: Callable[..., Any], *args: Any) -> Any:
     """Park on HA's executor; the CPU work is in another interpreter."""
     return await hass.async_add_executor_job(_run_in_process, fn, args)
+
+
+async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: Any) -> Any:
+    """Model work anywhere but the event loop (P10, #1658).
+
+    The process worker first; a worker that cannot carry the job degrades to
+    the executor, the #511 trade -- a GIL-holding thread, never the loop.
+    """
+    try:
+        return await _await_process(hass, fn, *args)
+    except ProcessWorkerUnavailable as err:
+        _LOGGER.debug("Process worker unusable (%s); using the executor", err)
+        return await hass.async_add_executor_job(fn, *args)
+
+
+async def _sysid_step_off_loop(
+    hass: HomeAssistant, experiment: SystemIdentification, **kwargs: Any
+) -> float | None:
+    """D9-s1-03: advance the experiment off the loop and take its state back.
+
+    A step can size the injection, price the night on the declared plant and
+    fit the finished experiment -- up to several reference solves of CPU.
+    """
+    state, override = await _await_off_loop(hass, step_detached, experiment, kwargs)
+    vars(experiment).update(state)
+    return None if override is None else float(override)
+
+
+async def _with_sensor_advisor(
+    coordinator: Any, data: dict[str, Any]
+) -> dict[str, Any]:
+    """D9-s2-01: rank the sensor advisor once per cycle, off the event loop.
+
+    The ranking sweeps ``ThermalModel.simulate_step`` across every candidate's
+    clamp band; both plan sensors publish this one cached answer, where each
+    used to re-simulate it on the loop at every state write. An advisory:
+    a failed ranking leaves the attribute out and never fails the cycle.
+    """
+    rank = functools.partial(
+        topology.rank_sensor_advisor,
+        dict(getattr(coordinator, "_ctx", coordinator)._config),
+        hp_kw=list(data.get("heat_pump_power_series") or ()),
+    )
+    try:
+        ranking = await _await_off_loop(coordinator.hass, rank)
+    except Exception as err:  # noqa: BLE001 - an advisory never fails the cycle
+        _LOGGER.debug("Sensor advisor ranking skipped: %s", err)
+        ranking = None
+    if ranking:
+        data["sensor_advisor"] = ranking
+    return data
 
 
 def _note_worker_fallback(
@@ -2675,9 +2726,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 enabled=bool(
                     ctx._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
                 ),
-                # The fit's intercept ridge pulls toward the CONFIGURED
-                # gains and mass — the only priors the experiment may use
-                # without assuming the answer it is trying to measure.
+                # The fit's intercept ridge pulls toward these CONFIGURED
+                # priors; arm() re-seeds the gains from the learned free-heat
+                # profile over the night window where it has one (#1655).
                 gains_prior_kw=float(ctx._thermal_params.internal_gains),
                 thermal_mass_prior=float(
                     ctx._thermal_params.room_thermal_mass
@@ -3970,7 +4021,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
         else:
             u = float(params.heat_loss_coefficient)
-        return max(0.0, float(u * (state.room_temperature - state.outdoor_temperature)))
+        return max(0.0, float(u * params.house_heat_loss_scale * (state.room_temperature - state.outdoor_temperature)))
     def _update_external_heat_detection(self) -> None:
         """Fold this interval's observation into the external-heat detector."""
         ctx = getattr(self, "_ctx", self)
@@ -5007,8 +5058,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             ))
 
-            return self._build_data_dict()
-        except UpdateFailed:
+            return await _with_sensor_advisor(self, self._build_data_dict())
+        except (UpdateFailed, ConfigEntryAuthFailed):
             # #216 (D10-09): the raiser — the Tibber outage latch — already
             # logged this failure once, at the severity its state machine
             # chose (ERROR on the transition, DEBUG after). Re-logging it
@@ -5059,7 +5110,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "follows in the background"
             )
             return self._build_data_dict()
-        except UpdateFailed:
+        except (UpdateFailed, ConfigEntryAuthFailed):
             # #216, same as _async_update_data's wrapper: this path also
             # runs _fetch_tibber_prices, whose latch has already logged the
             # failure once. An install whose first poll fails logs exactly
@@ -5410,7 +5461,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
 
             # A step-response experiment overrides the plan for its duration.
-            self._run_system_identification(prices)
+            await self._run_system_identification(prices)
             self._adopt_system_identification()
 
             # The monthly fuse right-sizing what-if (#3); rate-limited to
@@ -6010,12 +6061,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if verdict == "reauth":
                 self._tibber_start_reauth()
             if verdict != "ok":
-                self._tibber_fetch_failed(payload if verdict == "reauth" else str(payload))
+                self._tibber_fetch_failed(str(payload), auth=verdict == "reauth")
                 return
             self._prices = payload
             self._tibber_fetch_recovered()
             _LOGGER.debug("Fetched %d price entries", len(payload))
-        except UpdateFailed:
+        except (UpdateFailed, ConfigEntryAuthFailed):
             raise
         except aiohttp.ClientError as err:
             self._tibber_fetch_failed(f"Error fetching Tibber prices: {err}")
@@ -6024,7 +6075,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 f"Unexpected error fetching prices: {err}", exc_info=True
             )
 
-    def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False) -> None:
+    def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False, auth: bool = False) -> None:
         """Record one failed price fetch: log once, raise as a failed update.
 
         D10-09: an outage lasting a day used to print the same ERROR on
@@ -6036,6 +6087,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
+        if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
+            _raise_auth_failed("tibber_auth_failed", reason, error=reason)
         _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
@@ -10809,7 +10862,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         await self.async_request_refresh()
 
-    def _run_system_identification(self, prices: np.ndarray) -> None:
+    async def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.
 
         Subject to the mode gate and the learners' freeze (#1523).
@@ -10834,7 +10887,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         params = ctx._thermal_params
         state = ctx._current_state
-        override = self._sysid.step(
+        override = await _sysid_step_off_loop(self.hass, self._sysid,
             now=dt_util.now(),
             room_temp=state.room_temperature,
             outdoor_temp=state.outdoor_temperature,
@@ -11160,6 +11213,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 # the entry. Platforms and service handlers annotate with this and read the
 # coordinator from the entry, never from ``hass.data``.
 HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]
+
+
+def _raise_auth_failed(key: str, message: str, **placeholders: str) -> NoReturn:
+    """Refuse the credential so Home Assistant starts reauthentication (D10-s1-03).
+
+    ConfigEntryAuthFailed, not UpdateFailed: at setup Home Assistant stops
+    retrying the entry and marks it for reauthentication; on a steady cycle
+    the base class latches the failure and starts the flow itself.
+    """
+    raise ConfigEntryAuthFailed(
+        message,
+        translation_domain=DOMAIN,
+        translation_key=key,
+        translation_placeholders=placeholders,
+    )
 
 
 def _raise_update_failed(
