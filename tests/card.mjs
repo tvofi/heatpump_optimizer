@@ -7701,6 +7701,28 @@ const setupBox = (card, place) =>
   }
 }
 
+// --- R9-UI-4: the series paint reaches the card through its theme's token ---
+// The checks below measure SERIES_DEFS' literals; what a card paints is the
+// `--hpo-series-<key>` token tokenDeclarations writes for the theme the card
+// is in. Each token must carry that theme's literal, and every series in the
+// markup must be painted through its token.
+{
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const wrong = [];
+  for (const [dark, theme] of [[false, "light"], [true, "dark"]]) {
+    const block = vm.runInContext(`tokenDeclarations(${dark})`, ctx);
+    for (const d of defs) {
+      const want = dark ? d.colorDark || d.color : d.color;
+      if (!block.includes(`--hpo-series-${d.key}: ${want};`)) wrong.push(`${d.key} ${theme}`);
+    }
+  }
+  check("every series token carries its own theme's colour",
+    wrong.length === 0, wrong.join(", "));
+  const painted = vm.runInContext(
+    "SERIES_DEFS.every((d) => seriesPaint(d) === `var(--hpo-series-${d.key}, ${d.color})`)", ctx);
+  check("every series is painted through its token", painted);
+}
+
 // --- C1 (#558) and D4 (#1791): series colours must survive colour-blindness --
 // D4-08 above asks each colour to read against the CARD. This asks the
 // colours to read against EACH OTHER, which is what tells one line from
