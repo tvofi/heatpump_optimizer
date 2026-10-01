@@ -314,12 +314,11 @@ records, each on a remote branch or the shared project files, so no crash loses 
    `<PR-id>-review.md`): last completed step, next step, `branch@commit`, merge base, open questions,
    what is waiting on whom. Updated in the same commit as every push. For in-flight state it outranks the
    roster, which the orchestrator (or a sonnet record seat) brings up to date at each hand-off and merge.
-3. **The run log.** One dated line per milestone (branch cut, failing test, green, body drafted, hand-off,
-   verdict, merge) in `/mnt/project-files/audit-r9/RESUME.md`, and the same line in its mirror,
-   `handoff/round9/RESUME.md` on `handoff/audit-r9-plan` (fetch, append, commit, push; re-fetch and
-   re-append on a non-fast-forward; never force). The Mac cannot read `/mnt/project-files`, so the mirror
-   is what makes the Mac able to resume from git alone; a Mac seat writes the mirror only and the
-   orchestrator copies its lines into the `/mnt` log at its next pass.
+3. **No run log.** Seats append nothing to `RESUME.md` or its mirror; their milestones are in the thread and
+   the resume note. The orchestrator regenerates `RESUME-CURRENT.md` (state only, under 10 KB) in
+   `/mnt/project-files/audit-r9/` and copies it to `handoff/round9/RESUME-CURRENT.md` on `handoff/audit-r9-plan`
+   at each merge, stamp or roster change and at least every 30 minutes, so the Mac resumes from git alone.
+   The old log is frozen as `RESUME-ARCHIVE.md` beside it. Roster entries are read with `jq`, never whole.
 
 **Picking up any PR.** The roster entry `R9-<PR-id>` in `.claude/workflows/wave-r9-groups.json` (on
 `handoff/audit-r9-fixplan`) carries a concrete `resume` object: `branch`, `commit`, `last_step`,
@@ -328,15 +327,15 @@ pickup recipes:
 
 - **Cloud seat** (`pickup_cloud`): `git fetch origin <branch>`; if it exists, `git worktree add --detach
   $S/<lane topic>/wt FETCH_HEAD`, read the note, check its commit against the fetched head (if the branch
-  is ahead, trust the branch and its log), `git merge origin/main` if main moved and re-run `fixer.md`
+  is ahead, trust the branch), `git merge origin/main` if main moved and re-run `fixer.md`
   steps 2-8, then continue at the note's next step. If the branch does not exist, cut from origin/main and
-  start at `fixer.md` step 1. Plan and briefs from `handoff/audit-r9-fixplan`; the log from `/mnt`.
+  start at `fixer.md` step 1. Plan and briefs from `handoff/audit-r9-fixplan`; the state file `RESUME-CURRENT.md` from `/mnt`.
 - **Mac seat** (`pickup_local`): the same git commands from the Mac checkout, with the plan, briefs and
-  roster from `handoff/audit-r9-fixplan` and the log from `handoff/audit-r9-plan`'s mirror; nothing it
+  roster from `handoff/audit-r9-fixplan` and `RESUME-CURRENT.md` from `handoff/audit-r9-plan`; nothing it
   needs lives only under `/mnt`.
 
 A crashed seat is restarted from its branch and resume note, never from scratch. A crashed orchestrator is
-restarted from the mirror log, the roster and `git ls-remote 'refs/heads/handoff/r9-*'`, which together
+restarted from `RESUME-CURRENT.md`, the roster and `git ls-remote 'refs/heads/handoff/r9-*'`, which together
 name every branch in flight and its last pushed step. This plan itself follows the rule: its generator
 sources are committed beside it (`handoff/round9/fix/src/`), and each rebuild is pushed.
 
