@@ -37,7 +37,7 @@ On the unmodified tree, each instrument above passes: `tests/entities.py` (all),
 
 ## Figures
 
-- Eligible pairs over the last 30 merges, with and without the `unrecorded` class: `python3 tools/audit/handoff/r9-f10-merge-queue/replay_pairs.py origin/main 30` and the same with a third argument (sha1 586b2f2b78…), run from the code head at `origin/main` `411368b6`. This transport file is not in the pull request's tree.
+- Eligible pairs over the last 30 merges on `main` at `411368b6`, with and without the `unrecorded` class: a replay outside this tree, with no command that resolves at the code head. It feeds each merged pull request and the merge before it to this head's `decide()`, using `main`'s closure table, the head's closure table, the restore pathspecs, and `run_always` scripts read from both ends' `tests/run.sh`. The replay script and both outputs are in `/mnt/project-files/audit-r9/fix/evidence/F10.9c-r2/` (`replay_pairs.py`, `fastpath_replay_r2.txt`, `fastpath_replay_r2_without_unrecorded.txt`).
 
 ## Red checks
 
@@ -45,7 +45,7 @@ none: CI has not run on this head. Unrun here: the full scoped gate (`MODE: FULL
 
 ## Forward-carry
 
-`tools/audit/briefs/orchestrator.md` §11: the orchestrator runs the fast path before merging a pull request whose CI predates `main`. Not carried, and named here for the orchestrator to roster or decline: the fast path stays near-useless until the `run_always` scripts' unrecorded reads are recorded (a `closure.py` recorder change), because the `unrecorded` class refuses on every `docs/delivery` row. No live roster group or issue owns that change yet.
+`tools/audit/briefs/orchestrator.md` §11: the orchestrator runs the fast path before merging a pull request whose CI predates `main`. The fast path stays near-useless until the `run_always` scripts' unrecorded reads are recorded (a `closure.py` recorder change), because the `unrecorded` class refuses on every `docs/delivery` row. It is rostered as R9-F10.9d (roster `a670d510` on handoff/audit-r9-fixplan).
 
 ## Friction
 
