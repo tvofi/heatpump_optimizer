@@ -1036,7 +1036,8 @@ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
     # strace exists, as on CI's Linux recorder, the run is traced with every
     # child and the two observations are unioned.
     trace = out.with_suffix(".strace")
-    proc = subprocess.run(["strace", "-f", "-qq", "-y", "-e", "trace=openat",
+    proc = subprocess.run(["strace", "-f", "-qq", "-y", "-e",
+                           "trace=openat,execve,clone,clone3,fork,vfork",
                            "-o", str(trace), *cmd], cwd=ROOT, env=env)
     _union_strace(out, trace)
     return proc.returncode
@@ -1047,14 +1048,67 @@ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
 _STRACE_FD = re.compile(r'openat\([^,]+,\s*"(?:[^"\\]|\\.)*"[^)]*\)\s*=\s*\d+<([^>]+)>')
 
 
+_STRACE_PID = re.compile(r"^(\d+)\s+")
+# An execve or a fork can be split by another process's line into
+# `<unfinished ...>` and `<... NAME resumed>`; the path is on the first half.
+_STRACE_EXEC = re.compile(r'execve\("([^"]+)"')
+_STRACE_RESUMED = re.compile(r"<\.\.\. (execve|clone3?|v?fork) resumed>")
+_STRACE_SPAWN = re.compile(r"\b(clone3?|v?fork)\(")
+_STRACE_RET = re.compile(r"\)\s*=\s*(-?\d+)")
+
+
 def strace_files(trace: Path) -> set[str]:
-    """The repo files a `strace -f -y -e trace=openat` log opened successfully."""
+    """The repo files Python processes in a `strace -f -y` log opened.
+
+    Only a process whose last exec was a Python interpreter, and what it forks
+    without exec, counts. The class this instrument exists for is a Python
+    child importing and opening files the hook never sees (R9 D14-s5-01). A
+    `git` child's reads are a content scan whose result reaches the script as
+    git's output, which is how every git-reading check is scoped today
+    (`_warm_index`); a node child is another lane's recording (node scripts
+    record under strace themselves), and its policy linters read the
+    governance corpus the INERT list keeps out of every closure.
+
+    A Python child's read of an INERT path is dropped too. The list is the
+    classification, and the docs-only skip `affected` rests on it; measured at
+    R9 F10.3, tests/harness_headers.py's round-harness children read five such
+    files (DISCLAIMER.md, LICENSE, three docs/ pages), and moving them into a
+    closure is a reclassification for the owner, not a recorder side effect.
+    """
     files = set()
+    py: set[str] = set()
+    execd: set[str] = set()  # a child's exec can print before its fork returns
+    pending: dict[str, str] = {}
     for line in trace.read_text(errors="replace").splitlines():
+        pid_m = _STRACE_PID.match(line)
+        pid = pid_m.group(1) if pid_m else ""
+        resumed = _STRACE_RESUMED.search(line)
+        call = resumed.group(1) if resumed else None
+        e = _STRACE_EXEC.search(line)
+        if e:
+            call, pending[pid] = "execve", e.group(1)
+        elif call is None and _STRACE_SPAWN.search(line):
+            call = "spawn"
+        ret = _STRACE_RET.search(line)
+        if call == "execve":
+            if ret and ret.group(1) == "0" and pid in pending:
+                execd.add(pid)
+                if Path(pending.pop(pid)).name.startswith("python"):
+                    py.add(pid)
+                else:
+                    py.discard(pid)
+            continue
+        if call is not None:
+            child = ret.group(1) if ret else ""
+            if pid in py and child not in execd and int(child or 0) > 0:
+                py.add(child)
+            continue
+        if pid not in py:
+            continue
         m = _STRACE_FD.search(line)
         if m:
             r = _rel(m.group(1))
-            if r and _is_real_file(r):
+            if r and _is_real_file(r) and not is_inert(r):
                 files.add(r)
     return files
 

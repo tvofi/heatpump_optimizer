@@ -16403,21 +16403,39 @@ R.check(
 # The audit hook records this process; a child's reads never reach it, only
 # its argv, so select() skipped deployment_shape.py on a change to any of the
 # 22 hastub modules its own `python -P` driver child imports. Where strace
-# exists the recorder now traces every child and unions what it opened. Driven
-# on a synthetic `strace -f -y` log: a child's successful open of a repo file
-# counts, a failed probe, a directory and an out-of-repo file do not; and the
-# union keeps the hook's own files.
+# exists the recorder now traces every child and unions what its Python
+# processes opened. Driven on a synthetic `strace -f -y` log: a Python child's
+# successful open of a repo file
+# counts; a failed probe, a directory, an out-of-repo file, and anything a git
+# or node child (or its fork) opens do not; the union keeps the hook's files.
 import shutil as _rs_shutil  # noqa: E402
 
 _rs_dir = Path(_tempfile.mkdtemp(prefix="closure-strace-"))
 _rs_root = str(_closure.ROOT)
 (_rs_dir / "r.strace").write_text(
+    f'101 execve("/usr/bin/python3", ["python3", "tests/closure.py"], 0x7f /* 9 vars */) = 0\n'
+    f'101 clone(child_stack=NULL, flags=SIGCHLD) = 102\n'
     f'101 openat(AT_FDCWD, "tests/hastub/homeassistant/core.py", O_RDONLY|O_CLOEXEC)'
     f' = 3<{_rs_root}/tests/hastub/homeassistant/core.py>\n'
     f'102 openat(AT_FDCWD, "{_rs_root}/tests/no_such_file.py", O_RDONLY) = -1 ENOENT'
     f' (No such file or directory)\n'
     f'102 openat(AT_FDCWD, "tests", O_RDONLY|O_DIRECTORY) = 4<{_rs_root}/tests>\n'
-    f'102 openat(AT_FDCWD, "/usr/lib/x.py", O_RDONLY) = 5</usr/lib/x.py>\n')
+    f'102 openat(AT_FDCWD, "/usr/lib/x.py", O_RDONLY) = 5</usr/lib/x.py>\n'
+    # A git child and what it forks scan the tree; their reads are git's.
+    f'101 clone3({{flags=CLONE_VM}}, 88 <unfinished ...>\n'
+    f'103 execve("/usr/bin/git", ["git", "grep", "x"], 0x7f /* 9 vars */) = 0\n'
+    f'101 <... clone3 resumed>) = 103\n'
+    f'103 clone(child_stack=NULL, flags=SIGCHLD) = 104\n'
+    f'103 openat(AT_FDCWD, "tests/entities.py", O_RDONLY) = 3<{_rs_root}/tests/entities.py>\n'
+    f'104 openat(AT_FDCWD, "tests/run.sh", O_RDONLY) = 3<{_rs_root}/tests/run.sh>\n'
+    f'105 execve("/usr/bin/python3", ["python3", "-P"], 0x7f /* 9 vars */ <unfinished ...>\n'
+    f'105 <... execve resumed>) = 0\n'
+    f'105 openat(AT_FDCWD, "tests/harness.py", O_RDONLY) = 3<{_rs_root}/tests/harness.py>\n'
+    # An INERT path stays out: the list is the classification.
+    f'105 openat(AT_FDCWD, "LICENSE", O_RDONLY) = 3<{_rs_root}/LICENSE>\n'
+    # A node child is its own lane's recording, and reads the policy corpus.
+    f'106 execve("/usr/bin/node", ["node", "x.mjs"], 0x7f /* 9 vars */) = 0\n'
+    f'106 openat(AT_FDCWD, "tests/card.mjs", O_RDONLY) = 3<{_rs_root}/tests/card.mjs>\n')
 (_rs_dir / "r.json").write_text(json.dumps(
     {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
 try:
@@ -16433,8 +16451,9 @@ _RS_SRC = _inspect.getsource(_closure.record)
 R.check(
     "the closure recorder unions a traced child's repo reads into the record "
     "(R9 D14-s5-01)",
-    _RS_GOT == (["tests/hastub/homeassistant/core.py"],
-                ["tests/deployment_shape.py", "tests/hastub/homeassistant/core.py"],
+    _RS_GOT == (["tests/harness.py", "tests/hastub/homeassistant/core.py"],
+                ["tests/deployment_shape.py", "tests/harness.py",
+                 "tests/hastub/homeassistant/core.py"],
                 "audithook+sys.modules+strace", False)
     and '"strace", "-f"' in _RS_SRC and '"-y"' in _RS_SRC
     and "_union_strace(out, trace)" in _RS_SRC,
