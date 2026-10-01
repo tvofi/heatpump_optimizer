@@ -19,11 +19,13 @@ How: `transport_in_ancestry` reads `git log --full-history -c --diff-filter=ACMR
 
 ## Head
 
-eff1a2a370d258c14a294914e2d8ffdc63b6bf16
+96caaf6c8477b3fd962cd3de37613e0974ae410d
+
+A merge of main 411368b6 (PROC-1, #1818) into the round-2 head eff1a2a3; no re-cut, rebase or force-push. `tools/audit/briefs/fixer.md` conflicted in two hunks. Step 5 keeps this branch's sentence (the orchestrator opens the PR as the `hpo-author` App) over main's "Seats are LOCAL-ONLY ... hand the branch and body off locally", which the orphan body ref replaces. The landing paragraph takes main's wording, since PROC-1's merge-not-recut paragraph supersedes this branch's "only merge that ever was" clause. PROC-1 left `fixer.md` at exactly its 4585-token cap, so this branch's step 5 and step 6 additions are recompressed to land at 4585/4585 and 278/280 lines; no cap is raised. Everything else merged cleanly.
 
 Round 1 was blocked at e95150fa (refusal-bypass): `--no-merges` never read a merge commit's own diff, so a body added in a conflict resolution passed step 1a. 6a4a4675 answers it with `-c` and a self-test row, and the same round reads the interpreter version from `tests/typing_budgets.json`, moves the ruff removal above the missing-checkout exit, and adds `counts.mjs` and `render_md.mjs` to the self-test inputs.
 
-Merge base: main 90335cbd (#1811). The body travels on `handoff-body/r9-proc-3`, built by `body_push.sh`, so the code head carries no transport.
+Merge base: main 411368b6. The body travels on `handoff-body/r9-proc-3`, built by `body_push.sh`, so the code head carries no transport.
 
 ## Approval
 
@@ -49,10 +51,11 @@ The unmodified head: `bash tools/audit/prepr.sh --self-test` prints 146 passed, 
 
 ## Figures
 
-- `bash tools/audit/prepr.sh --self-test` at this head: 146 passed, 0 failed; at 90335cbd: 129 passed, 0 failed.
+- `bash tools/audit/prepr.sh --self-test` at this head (96caaf6c): 146 passed, 0 failed; at 90335cbd: 129 passed, 0 failed.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED -- 0 script(s) run`; every changed path is INERT or policy.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `node .claude/workflows/policy_lint.mjs`: TOTAL 0 errors; `--budgets` prints every capped file within its cap.
+- `PYTHONPATH=tests/hastub python tests/entities.py` (venv-ci from `cloud-setup.sh`): ALL 2026 ENTITY CHECKS PASSED.
+- `node .claude/workflows/policy_lint.mjs`: TOTAL 0 errors; `--budgets` prints every capped file within its cap (`fixer.md` 278/280 lines, 4585/4585 tokens; `delivery-status-tracking.md` 603/606 tokens).
 - `node .claude/workflows/rules_sync.mjs --check`: RULES-SYNC ok.
 - `HPO_KEEP_RUFF=1 HPO_REPO=$PWD HPO_PREFIX=<scratch>/opt-hpo2 HPO_PROFILE=<scratch>/hpo-profile2.sh bash tools/audit/seat/cloud-setup.sh` at eff1a2a3: rc 0, 1 min 31 s wall with pip's cache warm (11 min 22 s cold at 73f33f93); `venv-ha` runs Python 3.14.7. The image's own uv 0.8.17 refused 3.14.2 with "No download found for request: cpython-3.14.2-linux-x86_64-gnu", which is why the script installs a current uv first. `HPO_KEEP_RUFF=1` kept this container's ruff, so the ruff loop was exercised only on a throwaway `ruff` on PATH.
 - `<scratch>/opt-hpo2/venv-ha/bin/python tests/ha_contract.py --contracts-only`: ALL 61 contracts PASSED against real Home Assistant 2026.9.3 on Python 3.14.7, in this cloud container.
