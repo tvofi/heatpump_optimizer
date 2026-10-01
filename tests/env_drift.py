@@ -2274,7 +2274,7 @@ def self_comparison_error(ref: str, head: str) -> str:
 
 
 def judge_drift(
-    repo: str, ref: str, branch: dict, baseline: dict,
+    repo: str, ref: str, branch: dict[str, object], baseline: dict[str, object],
     claims: dict[str, list[str]], may_drift: dict[str, str],
 ) -> tuple[int, list[str], list[str], dict[str, list[str]]]:
     """Judge each captured scenario against the claims that may excuse it.
