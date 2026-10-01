@@ -7,7 +7,8 @@
 # and the real-Home-Assistant `ha_contract` run in the seat instead of on the Mac
 # or only in CI (round-9 process review, item 5).
 #
-#   python   3.14.2, CI's `fast` and `typing` interpreter line (tests.yml)
+#   python   the version tests/typing_budgets.json records for the `typing`
+#            census (census.environment.python), read at run time
 #   venv-ci  tests/requirements-ci.txt, hash-pinned: numpy, scipy and the rest
 #            of what `fast` installs; first on PATH, so `python3` is this one
 #   venv-ha  tests/requirements-typing.txt, hash-pinned, --no-deps exactly as
@@ -21,21 +22,33 @@ set -euo pipefail
 REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
 PREFIX=${HPO_PREFIX:-/opt/hpo}
 PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}
-PYVER=3.14.2
+
+# The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)
+# and stop-validator.py (Stop) run `ruff format` and `ruff check --fix`, and
+# both skip when `ruff` is not on PATH. Nothing in this repository or its CI
+# uses ruff, so removing the image's copy switches them off for this
+# environment only, with or without a checkout. Disabling the plugin in
+# settings is the complete answer.
+if [ -z "${HPO_KEEP_RUFF:-}" ]; then
+  for r in $(type -ap ruff); do rm -f "$r" || true; done
+fi
 
 # A missing checkout warns and exits 0: a failing setup script would stop
 # every session from starting, which costs more than a seat without pins.
 [ -f "$REPO/tests/requirements-ci.txt" ] || {
   echo "cloud-setup: no checkout at $REPO, so no pins installed (set HPO_REPO)" >&2; exit 0; }
 
-# The image's uv predates 3.14.2 ("No download found for request"), so a
-# current uv comes from PyPI first; it fetches the interpreter itself.
+PYVER=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["census"]["environment"]["python"])' \
+  "$REPO/tests/typing_budgets.json")
+
+# The image's uv 0.8.17 has no build past 3.14.0rc ("No download found for
+# request"), so a current uv comes from PyPI first; it fetches the interpreter.
 python3 -m pip install -q --target "$PREFIX/uv" uv
 UV="$PREFIX/uv/bin/uv"
 export UV_PYTHON_INSTALL_DIR="$PREFIX/python"
 "$UV" python install --no-bin "$PYVER"
 PY=$("$UV" python find "$PYVER")
-"$PY" -c 'import sys; assert sys.version_info[:3] == (3, 14, 2), sys.version'
+"$PY" -c 'import sys; v = "%d.%d.%d" % sys.version_info[:3]; assert v == sys.argv[1], v' "$PYVER"
 
 pins() { # venv, pip arguments...
   local v=$1; shift
@@ -58,12 +71,4 @@ EOF
 [ -n "${HPO_PROFILE:-}" ] || grep -qF "$PROFILE" "$HOME/.bashrc" 2>/dev/null \
   || echo ". $PROFILE" >> "$HOME/.bashrc"
 
-# The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)
-# and stop-validator.py (Stop) run `ruff format` and `ruff check --fix`, and
-# both skip when `ruff` is not on PATH. Nothing in this repository or its CI
-# uses ruff, so removing the image's copy switches them off for this
-# environment only. Disabling the plugin in settings is the complete answer.
-if [ -z "${HPO_KEEP_RUFF:-}" ]; then
-  for r in $(type -ap ruff); do rm -f "$r" || true; done
-fi
-echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX; ruff removed"
+echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX"

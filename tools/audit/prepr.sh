@@ -549,13 +549,15 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
 # `--full-history` because default history simplification follows only the
 # first parent of a merge whose tree matches it, which hides a side branch that
 # added a body and deleted it again: the exact shape a re-cut leaves.
-# `--no-merges` because a merge's diff against its first parent reports main's
-# own files. Deletions pass, so a branch removing a stray file main still
+# `-c` because a merge's combined diff lists only a file that matches none of
+# its parents: a body written while resolving a merge of main is read, and
+# main's own files, which match main's parent, stay out (`--no-merges` read
+# neither, so a conflict resolution was a bypass). Deletions pass, so a branch removing a stray file main still
 # carries is not refused. Fail-closed: a range git cannot read returns 2.
 TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)
 transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> <path>`), 2 unreadable
   local out
-  out=$(git log --full-history --no-merges --diff-filter=ACMRT --name-only \
+  out=$(git log --full-history -c --diff-filter=ACMRT --name-only \
         --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2
   out=$(printf '%s\n' "$out" | awk '/^@/{c=substr($0,2);next} NF{print c" "$0}')
   [ -z "$out" ] && return 0
@@ -570,7 +572,9 @@ transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> 
 # and their fixtures, so a change to any of them can move a row. The program
 # list is derived from this file, never carried: every tracked script path it
 # names. A path named only in a comment over-selects, which costs one self-test
-# run; a carried list under-selects the day a step is added.
+# run; a carried list under-selects the day a step is added. The two modules
+# named after it are imported by `policy_lint.mjs`, not named here, and its
+# `--pr-body` rows move when they do.
 SELFTEST_FIXTURES=.claude/workflows/fixtures/
 selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
   { printf '%s\n' tools/audit/prepr.sh
@@ -578,6 +582,7 @@ selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
   } | sort -u | while read -r p; do
     git ls-files --error-unmatch -- "$p" >/dev/null 2>&1 && printf '%s\n' "$p"
   done
+  printf '%s\n' .claude/workflows/counts.mjs .claude/workflows/render_md.mjs
   printf '%s\n' "$SELFTEST_FIXTURES"
 }
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
@@ -1072,6 +1077,11 @@ PY
     git checkout -q side; git merge -q --no-ff --no-edit note
     git checkout -q -b tidy clean; git rm -q tools/audit/handoff/old/BODY.md
     git commit -qm "delete a transport file main carries"
+    git checkout -q -b main2 main; mkdir -p tools/audit/handoff/m
+    echo m > tools/audit/handoff/m/BODY.md; git add -A; git commit -qm "main moves"
+    git checkout -q -b merged clean; git merge -q --no-edit main2
+    git checkout -q -b resolved clean; git merge -q --no-commit main2
+    echo r > tools/audit/handoff/t.md; git add -A; git commit -qm "merge main"
   ) >/dev/null 2>&1
   for c in "clean 0 a code head over a base that carries a transport file passes (null control)" \
            "above 1 a code commit above a body transport commit is refused" \
@@ -1081,6 +1091,8 @@ PY
     set -- $c; br=$1; want=$2; shift 2
     (cd "$TR" && transport_in_ancestry main "$br" >/dev/null 2>&1); st $? "$want" "transport: $*"
   done
+  (cd "$TR" && transport_in_ancestry main2 merged >/dev/null 2>&1); st $? 0 "transport: merging a main that carries a transport file passes (null control)"
+  (cd "$TR" && transport_in_ancestry main2 resolved >/dev/null 2>&1); st $? 1 "transport: a body written in a merge's own resolution is refused"
   (cd "$TR" && transport_in_ancestry main no-such-ref >/dev/null 2>&1); st $? 2 "transport: an unreadable range is refused, never passed"
   rm -rf "${TR:?}"
 
@@ -1091,7 +1103,8 @@ PY
   printf '%s\n' .claude/workflows/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
   printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
   selftest_inputs > "$SO.in"
-  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py; do
+  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py \
+           .claude/workflows/counts.mjs .claude/workflows/render_md.mjs; do
     grep -qxF "$p" "$SO.in"; st $? 0 "the derived inputs name $p"
   done
   rm -f "$SO.in"
