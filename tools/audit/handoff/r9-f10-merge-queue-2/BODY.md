@@ -25,7 +25,7 @@ _Requested by **tvofi**_
 
 ## Head
 
-`e0fca1fa0684609776d519c37a4e08b32a86121f` (code: the merge of `origin/main` at `d536fb4d64a9a4c27cd49bf63328f9bf8d2e0262`, #1823, into `f88438ddbf41cf11ceeacf60a5314e77832ffefa`, which was cut from stage 1's `c5102ea715260c07fae83e36b3aa2bdba242d856`). The merge was clean.
+`b7ea3bd28c718b6844575c70ec1d234cc90e84fe` (code): the merge of `origin/main` at `8a0ca90ab2b948236424a4346abe7682b5760500` (#1824, #1829, #1831) into the pull-request head `283accde`. That head is `e0fca1fa` (the clean merge of `d536fb4d`, #1823, into `f88438dd`, which was cut from stage 1's `c5102ea7`) plus `docs/delivery/1832.md`. Only `tests/entities.py` conflicted: #1824's coverage-cache check and this branch's merge-queue check were inserted at the same place, and both are kept, the queue check first. `tests.yml` (#1824) and `governance.yml` (#1829) changed on both sides and merged without conflict.
 
 ## Mutation proof
 
