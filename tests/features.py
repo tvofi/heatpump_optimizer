@@ -1853,6 +1853,7 @@ R.section("R9 P11: the stub clock is aware by default and the stub Store honours
 import asyncio as _r9f10b_asyncio  # noqa: E402
 import os as _r9f10b_os  # noqa: E402
 
+from homeassistant.exceptions import HomeAssistantError as _r9f10b_HAError  # noqa: E402
 from homeassistant.helpers import storage as _r9f10b_storage  # noqa: E402
 from homeassistant.util import dt as _r9f10b_dt  # noqa: E402
 
@@ -1920,8 +1921,26 @@ async def _r9f10b_store_load(store_class, saved_at, loaded_at):
         return await store_class(None, loaded_at, "r9f10b_version").async_load()
     except NotImplementedError:
         return "NotImplementedError"
+    except _r9f10b_storage.UnsupportedStorageVersionError:
+        return "Unsupported"
     finally:
         _r9f10b_storage._reset_store_disk()
+
+
+async def _r9f10b_store_resave(saved_at, loaded_at):
+    """Load twice through a migrating Store; report loads, stored version, saves."""
+    _r9f10b_storage.SAVE_COUNTS.clear()
+    await _r9f10b_storage.Store(None, saved_at, "r9f10b_resave").async_save({"n": 1})
+    loads = [
+        await _R9F10bMigrating(None, loaded_at, "r9f10b_resave").async_load()
+        for _ in range(2)
+    ]
+    state = (
+        _r9f10b_storage._VERSIONS["r9f10b_resave"],
+        _r9f10b_storage.SAVE_COUNTS["r9f10b_resave"],
+    )
+    _r9f10b_storage._reset_store_disk()
+    return loads, state
 
 
 class _R9F10bMigrating(_r9f10b_storage.Store):
@@ -1945,6 +1964,22 @@ R.check(
     "...and one that defines _async_migrate_func is migrated from the stored version",
     _r9f10b_asyncio.run(_r9f10b_store_load(_R9F10bMigrating, 1, 2))
     == {"migrated_from": 1, "n": 1},
+)
+# Upstream refuses a downgrade before it looks for a migration, so a Store that
+# migrates is still refused a document saved by a newer release.
+R.check(
+    "a store saved at a newer major version than the code's raises "
+    "UnsupportedStorageVersionError, with or without a migration",
+    _r9f10b_asyncio.run(_r9f10b_store_load(_r9f10b_storage.Store, 2, 1)) == "Unsupported"
+    and _r9f10b_asyncio.run(_r9f10b_store_load(_R9F10bMigrating, 2, 1)) == "Unsupported"
+    and issubclass(_r9f10b_storage.UnsupportedStorageVersionError, _r9f10b_HAError),
+)
+# ...and a migration is saved back, as upstream does, so it runs once.
+R.check(
+    "a migrated load is saved back: the stored version updates to 2, there are "
+    "two saves, and a second load returns the data without migrating again",
+    _r9f10b_asyncio.run(_r9f10b_store_resave(1, 2))
+    == ([{"migrated_from": 1, "n": 1}, {"n": 1, "migrated_from": 1}], (2, 2)),
 )
 
 
