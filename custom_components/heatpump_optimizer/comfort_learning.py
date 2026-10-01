@@ -31,6 +31,7 @@ from typing import Any
 
 import numpy as np
 
+from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ class ComfortLearner:
         if self.last_update is None:
             self.last_update = now
             return
-        days = (now - self.last_update).total_seconds() / 86400.0
+        days = utc_elapsed_seconds(now, self.last_update) / 86400.0
         if days <= 0:
             return
         self.evidence *= 0.5 ** (days / EVIDENCE_HALF_LIFE_DAYS)

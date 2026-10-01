@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+from .accuracy import utc_elapsed_seconds
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
     CONF_EXTERNAL_HEAT_ENABLED,
@@ -277,7 +278,7 @@ def wood_slots_to_kw(
         end = _as_dt(slot.get("end") if isinstance(slot, dict) else None, timestamps)
         if liters <= 0.0 or start is None or end is None or end <= start:
             continue
-        hours = (end - start).total_seconds() / 3600.0
+        hours = utc_elapsed_seconds(end, start) / 3600.0
         if hours <= 0.0:
             continue
         rate = liters_to_kwh(liters, wood_type, packing, efficiency) / hours

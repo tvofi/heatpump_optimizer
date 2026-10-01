@@ -1,7 +1,8 @@
 #!/bin/bash
 # handoff_push.sh <handoff-topic> <code-sha-full> "<title>" [merge-main]
 # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
-# retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes.
+# retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
+# row here because it is the seat that learns N (.claude/rules/delivery-status-tracking.md).
 set -uo pipefail
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
 R=tvofi/heatpump_optimizer; M=/Users/timmalmstrom/heatpump_optimizer
@@ -12,8 +13,14 @@ T="origin/handoff/$TOPIC"
 git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
 CODE=$(git rev-parse "$CODE")
 git diff --name-only "$CODE" "$T" | grep -vqE '^(tools/audit/handoff/|handoff/)' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+# The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
+# transport commit above the code head, until no open handoff carries one.
+if git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
+  git show FETCH_HEAD:BODY.md > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
+else
 bf=${BODYPATH:-$(git diff --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --name-only "$CODE" "$T")"; exit 1; }
 git show "${T}:${bf}" > "$B"
+fi
 python3 - "$B" <<'E'
 import re,sys
 p=sys.argv[1]; s=open(p).read()
