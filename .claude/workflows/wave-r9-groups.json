@@ -3703,6 +3703,52 @@
       "brief": "Round-9 fix PR F10.1d (P7 DST raw-site sweep), added 2026-10-01 by the Mac orchestrator on F10.1c's hand-off. F10.1c's census left 10 raw wall-clock sites that no group owns, recorded in tools/audit/bugclasses.json P7 barrier_gap at F10.1c's merge; 4 are inferred (not measured) once-per-transition rate-limit misfires. Measure each of the 10 first with a straddle or re-introduction probe across the autumn fold and the spring gap. For each that misfires: failing check first in tests/dst_checks.py (or the cheapest script that can see it), then route it through utc_shift (added by F10.1c, #1804, at c05c635f) and compare instants, as F10.1c did for services.py, build_override and channel_pins, with a mutation proof. Each that measures clean: record the probe output in barrier_gap and remove it from the open list. Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it. Also owned here (F10.1c round-1 review, comment 5926703567 on #1804): build_override's two cap compares (the expiry reference against cap, and the last slot's start against cap) and ManualOverride.is_expired still compare same-zone stamps as wall clock. With a naive input, or an apply between 06:00 and 07:00 the day before the fold, the cap can land in the repeated hour. Measure each with the straddle arm and fix it the same way, through instant comparison."
     },
     {
+      "group": "R9-F10.1e",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": 12,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "14 measured misfires with a known remedy and an existing straddle arm; enumerated, not exploratory",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.1d"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-gate-infra-1e",
+        "commit": null,
+        "last_step": null,
+        "next_step": "after F10.1d merges: fixer.md step 1 at a fresh merge base; take the 14 misfiring sites from barrier_gap",
+        "note_file": "handoff/round9/fix/resume/F10.1e.md on handoff/r9-f10-gate-infra-1e",
+        "review_branch": "handoff/r9-f10-gate-infra-1e-review",
+        "review_note_file": "handoff/round9/fix/resume/F10.1e-review.md on handoff/r9-f10-gate-infra-1e-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added 2026-10-01 by the Mac orchestrator (F10.1d measured 14 of 15 census-missed sites misfiring; fixes split out)."
+      },
+      "brief": "Round-9 fix PR F10.1e (P7 DST fold-straddle fixes, second sweep), added 2026-10-01 by the Mac orchestrator on F10.1d's round-1 rework. F10.1d probed the 15 sites its census missed and measured 14 misfiring; fixing them was too large for #1809, so tools/audit/bugclasses.json's P7 barrier_gap (at F10.1d's merge) and F10.1d's evidence folder name each site, its probe output and that F10.1e owns it. Start from that list at a fresh merge base. For each misfiring site: a fold or straddle check in tests/dst_checks.py that is red with the site reverted and green with the fix (mutation proof), then route the arithmetic through true-time instants as F10.1c and F10.1d did. Keep each production edit minimal and check that standalone loaders of the touched module (as tests/open_meteo.py loads open_meteo.py) still import. Record the one clean site with its measurement. Close the barrier_gap list for these 15 when done, and widen the census regex if F10.1d did not. Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+    },
+    {
       "group": "R9-F10.7",
       "lane": "F10",
       "issues": [
