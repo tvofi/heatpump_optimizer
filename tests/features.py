@@ -651,6 +651,9 @@ try:
         "outage ahead by a minute": _fi_outage(_FI_T0 + timedelta(hours=6, minutes=1)),
         "outage plain restart": _fi_outage(_FI_T0 + timedelta(hours=6) - timedelta(minutes=10)),
         "outage at now": _fi_outage(_FI_T0 + timedelta(hours=6)),
+        "outage zoned stamp": _fi_outage(
+            (_FI_T0 + timedelta(hours=5, minutes=50)).astimezone(
+                timezone(timedelta(hours=5)))),
         "outage unbounded ahead": _fi_outage_direct(_FI_AHEAD),
         "outage unbounded honest": _fi_outage_direct(_FI_T0 + timedelta(hours=5, minutes=50)),
     }
@@ -693,6 +696,7 @@ R.check(
     and _fi_got["outage cut"] is True
     and _fi_got["outage plain restart"] is False
     and _fi_got["outage at now"] is False
+    and _fi_got["outage zoned stamp"] is False
     and _fi_got["outage unbounded ahead"] is True
     and _fi_got["outage unbounded honest"] is False,
     f"{ {k: v for k, v in _fi_got.items() if k.startswith('outage')} }",

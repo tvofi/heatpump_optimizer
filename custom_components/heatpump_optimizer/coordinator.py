@@ -822,9 +822,7 @@ def _outage_reading(
     hid, while a raw stamp ahead of ``now`` reads the same way (tvofi, card
     C13: #775's rule).
     """
-    if not last_tick_iso:
-        return None
-    try:
+    try:  # None and "" fail the parse like any other garbage
         last = datetime.fromisoformat(str(last_tick_iso))
     except (TypeError, ValueError):
         return None
