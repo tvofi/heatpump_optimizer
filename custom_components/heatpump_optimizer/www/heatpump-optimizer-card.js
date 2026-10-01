@@ -3468,11 +3468,14 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-accent, #026aa8);
         background: var(--hpo-surface-2, #f7f9fb);
       }
-      /* The four figure tiles (D2b): one style for all of them, four across
-         on a card and two across on a phone. A value wraps rather than
-         clips: a tile is never a scroll container. */
+      /* The four figure tiles (D2b): one style for all of them, two across
+         at every width, as the mockup draws them. Four across was keyed to
+         the viewport, so a narrow dashboard column on a wide window broke
+         a price unit mid-word. A value wraps only between words, and a word
+         wider than its tile still breaks rather than clips: a tile is never
+         a scroll container. */
       .tiles {
-        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--hpo-space-2, 8px); padding: 0 4px var(--hpo-space-2, 8px) 4px;
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
@@ -3493,7 +3496,7 @@ function cardStyleBlock(darkMode) {
       .tile-v {
         display: block; margin-top: 2px; font-size: var(--hpo-text-lg, 18px);
         font-weight: 600; font-variant-numeric: tabular-nums;
-        color: var(--hpo-text, #212121); overflow-wrap: anywhere;
+        color: var(--hpo-text, #212121); overflow-wrap: break-word;
       }
       .tile.accent .tile-v .tile-n { color: var(--hpo-accent, #026aa8); }
       .tile-u {
@@ -3543,7 +3546,7 @@ function cardStyleBlock(darkMode) {
       /* The savings and score stay (CLAUDE.md: never delete working
          functionality merely to fit), drawn in the tile style above. */
       .hl-stats {
-        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--hpo-space-2, 8px);
       }
       .hl-label {
@@ -3553,7 +3556,7 @@ function cardStyleBlock(darkMode) {
       .hl-value {
         display: block; margin-top: 2px; font-size: var(--hpo-text-md, 15px);
         font-weight: 600; font-variant-numeric: tabular-nums;
-        color: var(--hpo-text, #212121); overflow-wrap: anywhere;
+        color: var(--hpo-text, #212121); overflow-wrap: break-word;
       }
       /* D4-06: the always-visible form of the baseline qualifier that used
          to live only in the hover title. Kept small and muted so it reads
@@ -4300,9 +4303,8 @@ function cardStyleBlock(darkMode) {
         .dlg-head { flex-wrap: wrap; row-gap: 6px; }
         .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .setup-canvas svg { min-width: 560px; }
-        /* R9-UI-3: two tiles across, and the card's chips one row that
-           scrolls sideways instead of five wrapped rows. */
-        .tiles, .hl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        /* R9-UI-3: the card's chips one row that scrolls sideways instead
+           of five wrapped rows. */
         .tile-v { font-size: var(--hpo-text-md, 15px); }
         ha-card .legend-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
       }
@@ -11956,6 +11958,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       body = this._chartBlock(built, false);
     }
 
+    // The tile and headline rows: on the card, and again on top of the
+    // dialog's plan page, which otherwise showed the chart without them.
+    const stats =
+      tilesHtml(this.plan, this._config, indoorState(this), Date.now()) +
+      headlineHtml(this.plan, this._config, this._scoreOpen);
+
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
     // whenever the card believes it is expanded: a flag that draws nothing is
@@ -11974,7 +11982,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
             : page === "advisor"
               ? advisorPageHtml(this)
               : anyData
-                ? `${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
+                ? `${stats}${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
                 : `<div class="empty">${L("errors.no_plan_data")}<br>
       ${this.plan.diagnose("space")}<br>
       ${this.plan.diagnose("dhw")}</div>`;
@@ -12007,8 +12015,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               : ""
           }
         </div>
-        ${tilesHtml(this.plan, this._config, indoorState(this), Date.now())}
-        ${headlineHtml(this.plan, this._config, this._scoreOpen)}
+        ${stats}
         ${legend}
         ${body}
       </ha-card>
@@ -12024,8 +12031,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // matters: the card's own open-on-click handler sits on ha-card and would
     // otherwise swallow the toggle into "open the expanded dialog", which is
     // exactly the wrong response to a click that asks "what does 5/100 mean".
-    const scoreStat = this.shadowRoot.querySelector('[data-stat="score"]');
-    if (scoreStat) {
+    // The card's score and the plan page's copy toggle the same panel.
+    for (const scoreStat of this.shadowRoot.querySelectorAll('[data-stat="score"]')) {
       scoreStat.setAttribute("role", "button");
       scoreStat.setAttribute("tabindex", "0");
       scoreStat.setAttribute(

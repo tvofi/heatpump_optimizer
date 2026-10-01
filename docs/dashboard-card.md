@@ -48,7 +48,7 @@ protanopia or tritanopia, and every series reads at 3:1 against its panel.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/tile-dark.png">
-  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a row of four tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
+  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a two-by-two grid of tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
 </picture>
 
 The screenshots on this page are the shipped card, rendered in a headless
@@ -82,7 +82,9 @@ Four tiles sit under the header: the **price now**, the **planned heating**
 plan, in kWh), the **plan cost** of that electricity, and the **indoor
 temperature** from the sensor the card's history uses. Each is drawn only when
 its source publishes a value, and the indoor tile redraws whenever that sensor
-reports. On a phone the four tiles fold into a two-by-two grid.
+reports. The tiles sit two across at every width, so a narrow dashboard
+column never breaks a unit mid-word, and the same tiles head the enlarged
+view's Plan page.
 
 ### The legend
 
