@@ -23,8 +23,9 @@ its live state on three branches, so any session resumes from the tree alone:
   `resume` and model fields), the per-lane briefs `handoff/round9/fix/F*.md`,
   and the standing template `handoff/round9/fix/src/standing.md`, which binds
   every fixer and reviewer seat this round.
-- **`handoff/audit-r9-plan`** — `handoff/round9/RESUME.md`, the programme log a
-  crashed seat resumes from, and the `handoff/round9/state/` mirror of the
+- **`handoff/audit-r9-plan`** — `handoff/round9/RESUME-CURRENT.md`, the regenerated
+  state file (under 10 KB) a crashed seat resumes from, `RESUME-ARCHIVE.md`, the
+  frozen pre-2026-10-01 log, and the `handoff/round9/state/` mirror of the
   orchestrator's shared folder.
 - **`handoff/mac-merge-seat-resume`** — `RESUME-mac-merge-seat.md`, the merge
   seat's standing rules, with its scripts `merge_pr.sh`, `remerge_main.sh` and
