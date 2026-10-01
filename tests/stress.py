@@ -1705,6 +1705,32 @@ def scenario_budget(label: str, table: dict) -> float | None:
     )
 
 
+def scenario_verdict(label: str, ratio: float,
+                     table: dict) -> tuple[str | None, str | None] | None:
+    """One scenario's budget verdict: (over-budget line, stale-cheap line).
+
+    None when the scenario has no recorded budget. Lifted out of the sweep in
+    `__main__` so a check can import it (R9 D7-s1-02): deleting the per-scenario
+    comparison there left every runnable check green, and `scenario_budget`
+    itself ran zero times under both drivers that reach this file.
+    """
+    allowed = scenario_budget(label, table)
+    if allowed is None:
+        return None
+    recorded = float(table[label]["ratio"])
+    over = stale = None
+    if ratio > allowed:
+        over = (f"{label} at {ratio:.1f}x its reference vs its own "
+                f"budget {allowed:.1f}x (recorded {recorded:.1f}x "
+                f"x {SCENARIO_BUDGET_FACTOR:.0f})")
+    if stale_cheap_verdict(ratio, recorded):
+        stale = (f"{label} at {ratio:.1f}x vs recorded {recorded:.1f}x "
+                 f"(cheaper by more than {SCENARIO_STALE_FACTOR:g}x: "
+                 f"re-record, or a regression back to the old cost "
+                 f"would pass unnoticed)")
+    return over, stale
+
+
 def stale_cheap_verdict(observed: float, recorded: float) -> bool:
     """Has this figure fallen far enough that its record is stale-high?
 
@@ -4057,24 +4083,15 @@ if __name__ == "__main__":
             # this environment instead (capture_baseline_work).
             new_table[label] = {"ratio": round(ratio, 2)}
         else:
-            allowed = scenario_budget(label, budget_table)
-            if allowed is None:
+            verdict = scenario_verdict(label, ratio, budget_table)
+            if verdict is None:
                 unrecorded.append(label)
             else:
-                recorded = float(budget_table[label]["ratio"])
-                if ratio > allowed:
-                    over_budget.append(
-                        f"{label} at {ratio:.1f}x its reference vs its own "
-                        f"budget {allowed:.1f}x (recorded {recorded:.1f}x "
-                        f"x {SCENARIO_BUDGET_FACTOR:.0f})"
-                    )
-                if stale_cheap_verdict(ratio, recorded):
-                    stale_cheap.append(
-                        f"{label} at {ratio:.1f}x vs recorded {recorded:.1f}x "
-                        f"(cheaper by more than {SCENARIO_STALE_FACTOR:g}x: "
-                        f"re-record, or a regression back to the old cost "
-                        f"would pass unnoticed)"
-                    )
+                over, stale = verdict
+                if over:
+                    over_budget.append(over)
+                if stale:
+                    stale_cheap.append(stale)
         if solve_ms > budget_ms:
             slow.append(
                 f"{label} used {solve_ms:.0f} ms of CPU = {ratio:.0f}x the "

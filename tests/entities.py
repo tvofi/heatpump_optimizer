@@ -937,6 +937,49 @@ R.check(
     f"README says {_stress_note.group(2) if _stress_note else '?'}, "
     f"the edges dict in stress.py has {_edges_n} entries",
 )
+
+# The gate verdicts, as functions a check can import (R9 D7-s1-02). The drift
+# comparison and stress.py's per-scenario budget used to live inside main()
+# and `__main__`, so deleting either left every runnable check green, and
+# `scenario_budget` ran zero times under both drivers that reach stress.py.
+# Driven: a moved leaf drifts and a claimed one does not; a scenario over its
+# own budget is refused, one at it is not, an unrecorded one has no verdict.
+import contextlib as _d7_contextlib  # noqa: E402
+import io as _d7_io  # noqa: E402
+import env_drift as _ed_d7  # noqa: E402
+
+try:
+    with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+        _D7_DRIFT = (
+            _ed_d7.judge_drift({"s": {"a": [1, 2]}}, {"s": {"a": [1, 2]}},
+                               {}, {}, "base")[0],
+            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                               {}, {}, "base")[0],
+            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                               {"s": ["why"]}, {}, "base")[:2],
+            _ed_d7.judge_drift({}, {"s": {"a": 1}}, {}, {}, "base")[0],
+        )
+    _d7_tab = {"x": {"ratio": 2.0}}
+    _d7_cap = _stress_mod.scenario_budget("x", _d7_tab)
+    _D7_STRESS = (
+        _d7_cap,
+        _stress_mod.scenario_verdict("x", _d7_cap + 0.5, _d7_tab)[0] is not None,
+        _stress_mod.scenario_verdict("x", _d7_cap, _d7_tab)[0],
+        _stress_mod.scenario_verdict("y", 99.0, _d7_tab),
+    )
+except Exception as _d7_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D7_DRIFT = _D7_STRESS = (f"{type(_d7_exc).__name__}: {_d7_exc}",)
+R.check(
+    "env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)",
+    _D7_DRIFT == (0, 1, (0, ["s"]), 1),
+    f"(identical, moved leaf, claimed leaf, scenario removed) -> {_D7_DRIFT}",
+)
+R.check(
+    "stress.py's per-scenario budget verdict is importable and refuses a "
+    "scenario over its own budget (R9 D7-s1-02)",
+    _D7_STRESS == (2.0 * _stress_mod.SCENARIO_BUDGET_FACTOR, True, None, None),
+    f"(budget, over refused, at-budget line, unrecorded) -> {_D7_STRESS}",
+)
 _validate_tree = ast.parse(Path("tests/validate.py").read_text())
 _validate_n = sum(
     isinstance(node, ast.Expr)

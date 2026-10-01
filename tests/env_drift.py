@@ -2218,6 +2218,79 @@ def self_comparison_error(ref: str, head: str) -> str:
     )
 
 
+def judge_drift(branch: dict, baseline: dict, claims: dict, may_drift: dict,
+                ref: str) -> tuple[int, list[str], list[str]]:
+    """The drift verdict over two captures: (unclaimed drifts, claimed, may-drift).
+
+    Lifted out of main() so a check can import it (R9 D7-s1-02): deleting
+    the leaf comparison inside main() left every runnable check green, since
+    nothing could reach a verdict that lived only in `__main__`.
+    """
+    drifted = 0
+    claimed_hits = []
+    may_drift_hits: list[str] = []
+    for name in sorted(set(branch) | set(baseline)):
+        if name not in baseline:
+            # Added by this branch, so there is nothing to compare --
+            # but a PR that adds a scenario may still have claimed it,
+            # and a claim that goes unrecorded here reads as stale.
+            if name in claims:
+                claimed_hits.append(name)
+                print(f"  CLAIMED {name}: added by this branch, no baseline "
+                      f"on {ref} ({'; '.join(claims[name])})")
+            else:
+                print(f"  new   {name}: no baseline on {ref} (added by this branch)")
+            continue
+        if name not in branch:
+            if name in claims:
+                claimed_hits.append(name)
+                print(f"  CLAIMED {name}: removed ({'; '.join(claims[name])})")
+            else:
+                drifted += 1
+                print(f"  DRIFT {name}: scenario removed by this branch")
+            continue
+        diffs: list[str] = []
+        _diff_leaves(baseline[name], branch[name], name, diffs)
+        if not diffs and name in may_drift:
+            # Not "ok": nothing was proved. This machine's solve of a
+            # non-reproducible fixture simply did not land on the part
+            # the change touches, and another machine's may.
+            print(f"  may-drift {name}: did not move here ({may_drift[name]})")
+        elif not diffs:
+            print(f"  ok    {name} is byte-identical to {ref} here")
+        elif name in may_drift:
+            judged_diffs = may_drift_judged_diffs(name, diffs)
+            exempt_diffs = may_drift_exempt_diffs(name, diffs)
+            if judged_diffs:
+                drifted += 1
+                extra = ""
+                if exempt_diffs:
+                    extra = f" ({len(exempt_diffs)} plan leaf/leaves exempt)"
+                print(f"  DRIFT {name}: {len(judged_diffs)} judged "
+                      f"leaf/leaves moved vs {ref}{extra}")
+                for line in judged_diffs[:5]:
+                    print(f"         {line}")
+            else:
+                may_drift_hits.append(name)
+                print(f"  MAY-DRIFT {name}: {len(exempt_diffs)} leaves moved "
+                      f"({may_drift[name]})")
+                for line in exempt_diffs[:10]:
+                    print(f"         {line}")
+        elif name in claims:
+            claimed_hits.append(name)
+            print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
+                  f"({'; '.join(claims[name])})")
+            for line in diffs[:3]:
+                print(f"         {line}")
+        else:
+            drifted += 1
+            print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
+            for line in diffs[:5]:
+                print(f"         {line}")
+
+    return drifted, claimed_hits, may_drift_hits
+
+
 def main() -> int:
     if len(sys.argv) >= 2 and sys.argv[1] == "--capture":
         everything = "--all" in sys.argv[4:]
@@ -2481,67 +2554,8 @@ def main() -> int:
         rot = fixture_staleness(os.path.join(repo, FIXTURE_DIR), branch)
         print_staleness(rot, verbose=bool(os.environ.get(VALUE_REPORT_ENV)))
 
-        drifted = 0
-        claimed_hits = []
-        may_drift_hits: list[str] = []
-        for name in sorted(set(branch) | set(baseline)):
-            if name not in baseline:
-                # Added by this branch, so there is nothing to compare --
-                # but a PR that adds a scenario may still have claimed it,
-                # and a claim that goes unrecorded here reads as stale.
-                if name in claims:
-                    claimed_hits.append(name)
-                    print(f"  CLAIMED {name}: added by this branch, no baseline "
-                          f"on {ref} ({'; '.join(claims[name])})")
-                else:
-                    print(f"  new   {name}: no baseline on {ref} (added by this branch)")
-                continue
-            if name not in branch:
-                if name in claims:
-                    claimed_hits.append(name)
-                    print(f"  CLAIMED {name}: removed ({'; '.join(claims[name])})")
-                else:
-                    drifted += 1
-                    print(f"  DRIFT {name}: scenario removed by this branch")
-                continue
-            diffs: list[str] = []
-            _diff_leaves(baseline[name], branch[name], name, diffs)
-            if not diffs and name in may_drift:
-                # Not "ok": nothing was proved. This machine's solve of a
-                # non-reproducible fixture simply did not land on the part
-                # the change touches, and another machine's may.
-                print(f"  may-drift {name}: did not move here ({may_drift[name]})")
-            elif not diffs:
-                print(f"  ok    {name} is byte-identical to {ref} here")
-            elif name in may_drift:
-                judged_diffs = may_drift_judged_diffs(name, diffs)
-                exempt_diffs = may_drift_exempt_diffs(name, diffs)
-                if judged_diffs:
-                    drifted += 1
-                    extra = ""
-                    if exempt_diffs:
-                        extra = f" ({len(exempt_diffs)} plan leaf/leaves exempt)"
-                    print(f"  DRIFT {name}: {len(judged_diffs)} judged "
-                          f"leaf/leaves moved vs {ref}{extra}")
-                    for line in judged_diffs[:5]:
-                        print(f"         {line}")
-                else:
-                    may_drift_hits.append(name)
-                    print(f"  MAY-DRIFT {name}: {len(exempt_diffs)} leaves moved "
-                          f"({may_drift[name]})")
-                    for line in exempt_diffs[:10]:
-                        print(f"         {line}")
-            elif name in claims:
-                claimed_hits.append(name)
-                print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
-                      f"({'; '.join(claims[name])})")
-                for line in diffs[:3]:
-                    print(f"         {line}")
-            else:
-                drifted += 1
-                print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
-                for line in diffs[:5]:
-                    print(f"         {line}")
+        drifted, claimed_hits, may_drift_hits = judge_drift(
+            branch, baseline, claims, may_drift, ref)
 
         # Staleness is only meaningful for scenarios this run captured. The
         # five-fixture mode captures SENSITIVE and nothing else, so a claim
