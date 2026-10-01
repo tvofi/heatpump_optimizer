@@ -658,10 +658,10 @@
     },
     "total": 37,
     "max_per_round": 12,
-    "detector": null,
+    "detector": "node tests/card_browser.mjs (the browser job), its P9 grid: 31 card states in 9 cells (3 widths x en/sv light, 375 px dark, and HA's theme against the opposite OS scheme both ways, hass.themes.darkMode in lockstep), each asserting over every rendered node WCAG AA text contrast over what is underneath, zero shared glyph ink between text runs, pop-ups inside the viewport and their chart, listbox options distinct as shown, no unreachable clipped ink, and the 24 px target floor or WCAG 2.5.8's spacing exception; controls: every cell mounted and every driver step found its target, and every card rule that sets a colour rendered in some cell",
     "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The P9 grid is a zero rule with no allow-list in the browser CI job (R9-F6.3, #1652), shown failing on each round-9 instance re-introduced and on a catalogue with the status states dropped. HPO_BROWSER_SCOPE=auto skips it on a diff that touches none of the card files, the grid scripts or tests/plan_view.py's measured closure in tests/closures.json (the solver, profiles and stubs that build the payload), and prints that it did; a push always runs it. No grid state crowds a lane enough to contest two slot-hit targets, so their non-overlap is a tests/card.mjs unit on slotHitExtents. Not reached: keyboard routes (the grid drives a pointer; F6.2's lane), and states the catalogue does not drive, which the reach control bounds only for colour rules. Setting the scope variable in tests.yml is F11.7's (.claude/workflows/carry-1757.json)",
+    "status": "barriered",
     "mechanism_note": "Stretched to keyboard access: R8 D4-01 (Tab order) and R9 N-keyboard (pointer-only editing) are card accessibility rules that do not reach a control, the class's shape, but the mechanism text names only clipping/colour/hit target.",
     "aliases": [
       "N-keyboard",
@@ -878,6 +878,14 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
+    },
+    "barrier_parts": {
+      "N-cpu-gate-blind": {
+        "detector": "Three parts, all CI checks (round 9, F10.2). PYTHONPATH=tests/hastub python3 tests/stress.py: the plant-axis coverage section builds every sweep case against a sentinel solve and refuses a selectable topology layout or mixing-valve mode no case reaches (D9-s2-71: 0 of 51 valve plants; the sweep now carries three summer valve plants, manual single-tank, smart_read direct-slab and smart_write two-tank wood); the same script's production-call channel sees non-kernel solve work the per-call CPU sample never meters when it is made of Python calls, the shape of every round-9 instance (D9-s2-03; the finder's own arm injects a call-free spin, which stays the CPU factors' residual below). python3 tests/replay.py: loop_cpu_ratio, the cycle thread's CPU less executor jobs, against a budget recorded on the canonical runner, with a doubled-loop arm that must go over (D9-s2-02).",
+        "barrier": "tests/stress.py and tests/replay.py in the Tests workflow, closure-scoped on a pull request and full on main",
+        "status": "barriered",
+        "residual": "Known, not findings (card C9): the valve plants are sampled in summer and the throttling valve's winter two-zone path stays outside the sample; the coverage check refuses an unreached valve mode, not an unreached valve-mode and season pair. The loop figure reads one fixture. A call-free per-call slowdown is the CPU factors' alone (see N-solve-recompute's residual)."
+      }
     }
   },
   "I2": {
@@ -1261,7 +1269,7 @@
     "max_per_round": 8,
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py (the instant arm drives every store's loader with every stored instant 400 days ahead)",
     "detector_idea": "Bound every stored instant at the store-load boundary instead of linting parse sites: the sweep's AST lint was refused because it accepts a no-op use-time clamp and misses parse_datetime",
-    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Not reached: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stays masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, and it waits on tvofi's rule in F1.9",
+    "barrier": "QuarantiningStore(lead=...) rewrites an instant leaf beyond now plus its store's lead to that bound before any loader sees it; the instant arm of tests/finite_boundary.py fails on an escape and on an opt-out not listed with its reason (#1660); a naive leaf is bounded in the zone its loader reads it in (F3.2). Outside the bound: FI-sw3, _detect_outage's stored last_tick -- restore and read share one now, so a stamp bounded to it gives gap 0 and the outage stayed masked (the RCA's repro_loaders.py: outage_flagged_after_6h_cut null True, skewed False at F3.1's merge); no bound closes it, so tvofi ruled (card C13) that a heartbeat ahead of the clock is an outage, and F1.9 closed it by having the store report the leaves it rewrote (QuarantiningStore.bounded) and the outage reading take that report",
     "status": "barriered",
     "aliases": [
       "new: persisted future instant trusted without bound"
@@ -1420,10 +1428,10 @@
     },
     "total": 14,
     "max_per_round": 7,
-    "detector": null,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/stress.py, the production-call channel (round 9, F10.2): one member of every sweep family, the cheapest recorded, is solved on this tree and on the merge base in fresh interpreters under sys.monitoring, counting PY_START and CALL events per production file; growth beyond what the evaluation and simulate counts vouch for, over SCENARIO_CALLS_GROWTH (5 %, re-derived over 13 first-parent solver merges, 2.35 % largest legitimate) on an unchanged plan, fails. The count is exact, so a per-row or per-iterate recompute the CPU factors' noise hides is refused: RC-rca1's per-row loop re-introduced fires 16 of 20 scenarios at up to 3.3x, F2.2's and F2.5's fixes reverted fire 20 and 18 of 20",
     "detector_idea": "S5 enumerate.py: profiled call counts per (module, qualname) against a once-per-solve boundary; recompute_instances may only fall",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The channel's checks in tests/stress.py's work-drift section, which the Tests workflow runs on every pull request whose closure reaches the solve and in full on main; a merge that adds such work on purpose passes for that one pull request on tvofi's approving review on the red channel, never by raising SCENARIO_CALLS_GROWTH",
+    "status": "barriered",
     "nearest_existing": "P10",
     "mechanism_difference": "P10 is where the solve runs (a GIL-holding thread starving the loop); this is avoidable CPU inside the solve wherever it runs, fixed by vectorising or caching, not by moving work off the loop",
     "aliases": [
@@ -1440,7 +1448,8 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "residual": "Known, not a finding: a per-call slowdown that adds no Python call (a vectorised operation done twice, a larger array) moves CPU without moving the count -- the doubled peak_cost_batch arm reads 1.04x and stays under; the CPU factors remain its only gate."
   },
   "N-structure-blind": {
     "kind": "instrument",

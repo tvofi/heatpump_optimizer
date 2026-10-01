@@ -1373,6 +1373,76 @@ const _targetMinPx = () =>
 // actually land on; the drawn geometry is unchanged.
 const LANE_EDGE_GRAB = 6;
 const LANE_EDGE_GRAB_COARSE = 16;
+
+/** Hit extents for one lane's slots: each target grown to `minTarget`
+ * around its ink, never across another slot's TARGET (P9-rca4, P9-f61c).
+ *
+ * Growth used to stop at the neighbour's ink, so two close slots each
+ * claimed the same gap and their targets overlapped: a pointer between
+ * them hit whichever was drawn last, and a slot boxed in between two such
+ * neighbours abutted neither of their targets, so it fell outside WCAG
+ * 2.5.8's spacing exception (17.4 px at 375 px, shared_steps).
+ *
+ * So the targets are laid out together. Each starts at the floor, centred
+ * on its ink and kept inside the plot; then two overlapping neighbours push
+ * each other apart, each sliding no further than keeps its own ink covered,
+ * until nothing moves. Whatever overlap is left belongs to slots with no
+ * room to slide: their shared edge is put in the empty lane between their
+ * inks, so each abuts the other -- the boxed-in case, where no layout gives
+ * one more without taking a neighbour's. A run that does not grow (locked,
+ * or a read-only chart) keeps its ink, and a neighbour stops at that ink.
+ *
+ * `drawn` is the lane's runs with their clamped ink `x1..x2` and `shown`;
+ * `grows(d)` says whether a run gets a target. Returns `{left, right}` per
+ * index. */
+function slotHitExtents(drawn, plotL, plotR, minTarget, grows) {
+  const out = drawn.map((d) => ({ left: d.x1, right: d.x2 }));
+  const order = drawn.map((d, i) => i).filter((i) => drawn[i].shown)
+    .sort((a, b) => drawn[a].x1 - drawn[b].x1);
+  const free = order.map((i) => grows(drawn[i]));
+  const t = order.map((i, p) => {
+    const d = drawn[i];
+    const w = Math.max(1, d.x2 - d.x1);
+    if (!free[p] || w >= minTarget) return { l: d.x1, r: d.x1 + w };
+    // Half the deficit each side; what the plot edge refuses one side goes
+    // to the other.
+    const need = minTarget - w;
+    let gl = Math.min(need / 2, Math.max(0, d.x1 - plotL));
+    const gr = Math.min(need - gl, Math.max(0, plotR - d.x2));
+    gl = Math.min(need - gr, Math.max(0, d.x1 - plotL));
+    return { l: d.x1 - gl, r: d.x2 + gr };
+  });
+  const ink = (p) => drawn[order[p]];
+  // How far target p may slide left / right and still cover its ink.
+  const roomL = (p) => (free[p] ? Math.max(0, Math.min(t[p].r - ink(p).x2, t[p].l - plotL)) : 0);
+  const roomR = (p) => (free[p] ? Math.max(0, Math.min(ink(p).x1 - t[p].l, plotR - t[p].r)) : 0);
+  for (let pass = 0; pass < 4 * order.length + 4; pass++) {
+    let moved = false;
+    for (let p = 0; p + 1 < order.length; p++) {
+      const o = t[p].r - t[p + 1].l;
+      if (o <= 1e-6) continue;
+      const cl = roomL(p), cr = roomR(p + 1);
+      let dl = Math.min(cl, o / 2);
+      const dr = Math.min(cr, o - dl);
+      dl = Math.min(cl, o - dr);
+      if (dl + dr <= 1e-6) continue;
+      t[p].l -= dl; t[p].r -= dl;
+      t[p + 1].l += dr; t[p + 1].r += dr;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  for (let p = 0; p + 1 < order.length; p++) {
+    if (t[p].r <= t[p + 1].l) continue;
+    const lo = ink(p).x2, hi = Math.max(lo, ink(p + 1).x1);
+    const edge = !free[p] ? lo : !free[p + 1] ? hi
+      : Math.max(lo, Math.min(hi, (t[p].r + t[p + 1].l) / 2));
+    t[p].r = Math.max(ink(p).x2, Math.min(t[p].r, edge));
+    t[p + 1].l = Math.min(ink(p + 1).x1, Math.max(t[p + 1].l, edge));
+  }
+  order.forEach((i, p) => { out[i] = { left: t[p].l, right: t[p].r }; });
+  return out;
+}
 const _coarsePointer = () => {
   try {
     return !!(
@@ -8009,6 +8079,9 @@ class LaneEditor {
         shown: !(run.end <= windowStart || run.start >= windowEnd),
       }));
 
+      const hits = slotHitExtents(drawn, plotL, plotR, minTargetX, (d) =>
+        interactive && !(d.run.end <= lo || d.run.start >= hi));
+
       drawn.forEach((d, index) => {
         // Zooming can put a run wholly outside the window. Clamping alone would
         // collapse it onto the edge and leave a one-pixel sliver pretending to
@@ -8030,42 +8103,8 @@ class LaneEditor {
         // D4-02 (#257): a 15-minute slot on a 24-hour axis is 2.7 px of ink
         // and was its own hit target -- below every target-size minimum
         // there is. The target is therefore grown to `minTargetX` around the
-        // ink. It may claim the EMPTY lane beside it, up to the next slot's
-        // ink and no further: pressing a slot's target can never activate a
-        // slot the pointer is visibly not on.
-        //
-        // The growth is even where it can be and lopsided where it must be.
-        // Splitting the deficit in half and clipping each half at its own
-        // constraint throws the clipped half away -- a slot against the
-        // plot's left edge came out at (minTargetX + w) / 2 with 86 px of
-        // empty lane to its right. Whatever one side cannot take is offered
-        // to the other, so a target falls short of the floor only when BOTH
-        // sides are genuinely boxed in.
-        let left = x1;
-        let right = x2;
-        if (minTargetX > w) {
-          let limitL = plotL;
-          let limitR = plotR;
-          for (let j = 0; j < drawn.length; j++) {
-            if (j === index || !drawn[j].shown) continue;
-            if (drawn[j].x2 <= x1) limitL = Math.max(limitL, drawn[j].x2);
-            if (drawn[j].x1 >= x2) limitR = Math.min(limitR, drawn[j].x1);
-          }
-          const roomL = Math.max(0, x1 - limitL);
-          const roomR = Math.max(0, limitR - x2);
-          const need = minTargetX - w;
-          let growL = Math.min(need / 2, roomL);
-          let growR = Math.min(need / 2, roomR);
-          let short = need - growL - growR;
-          if (short > 0) {
-            const extraL = Math.min(short, roomL - growL);
-            growL += extraL;
-            short -= extraL;
-            growR += Math.min(short, roomR - growR);
-          }
-          left = x1 - growL;
-          right = x2 + growR;
-        }
+        // ink, within the lane's partition of empty space (`slotHitExtents`).
+        const { left, right } = hits[index];
         const hitW = Math.max(1, right - left);
         const fmtT = (t) =>
           new Date(t).toLocaleTimeString(ACTIVE_LANG, {

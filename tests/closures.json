@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 85.5,
+   "seconds": 84.2,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 316.1,
+   "seconds": 437.4,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 319.8,
+   "seconds": 478.7,
    "rc": 0
   },
   "tests/structure.py": {
@@ -98,11 +98,11 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 131.2,
+   "seconds": 195.2,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.6,
+   "seconds": 4.1,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -1433,6 +1433,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
