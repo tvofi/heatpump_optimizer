@@ -29,8 +29,10 @@ import asyncio
 import json
 import pathlib
 import re
+import os
 import string
 import sys
+import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -23280,6 +23282,77 @@ R.check(
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
 )
+# --- the coverage cache restores only main's push run (#1822 review, R9-F10.9c).
+# A restore searches the pull request's own cache scope first, so an earlier
+# head that saved under the same key would be read as the base's data. The
+# push run's staging step writes a marker and the restore's check trusts only
+# that marker at the key's base. Both steps' own `run:` are executed here, the
+# staging one's marker fed to the check, so the two cannot drift apart.
+def _cov_steps():
+    _job = ((_RC_DOCS.get("tests.yml") or {}).get("jobs") or {}).get("coverage") or {}
+    _by = {str(_st.get("id") or _st.get("name")): _st for _st in _job.get("steps") or []}
+    return _job, _by.get("covtrust"), _by.get("Stage this commit's per-script coverage")
+
+
+def _cov_trust(check_run: str, marker: "str | None", base: str) -> "tuple[bool, bool]":
+    """(trusted, entry kept) for the check step's script over one restore."""
+    with tempfile.TemporaryDirectory() as _t:
+        _tmp = Path(_t)
+        (_tmp / "coverage-base").mkdir()
+        if marker is not None:
+            (_tmp / "coverage-base" / ".measured-by").write_text(marker)
+        _out = _tmp / "out"
+        _out.write_text("")
+        subprocess.run(["bash", "-c", check_run], capture_output=True, text=True,
+                       env={**os.environ, "RUNNER_TEMP": str(_tmp), "BASE": base,
+                            "GITHUB_OUTPUT": str(_out)})
+        return ("trusted=true" in _out.read_text(), (_tmp / "coverage-base").exists())
+
+
+def _cov_marker(stage_run: str, event: str, ref: str) -> str:
+    """The marker the staging step writes for a run of `event` on `ref`."""
+    with tempfile.TemporaryDirectory() as _t:
+        _tmp = Path(_t)
+        (_tmp / "w" / "out" / "per").mkdir(parents=True)
+        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+                       env={**os.environ, "RUNNER_TEMP": str(_tmp),
+                            "W5P_WORK": str(_tmp / "w"), "GITHUB_EVENT_NAME": event,
+                            "GITHUB_REF": ref})
+        _m = _tmp / "coverage-base" / ".measured-by"
+        return _m.read_text() if _m.exists() else ""
+
+
+_COV_JOB, _COV_CHECK, _COV_STAGE = _cov_steps()
+_COV_HEAD = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                           text=True).stdout.strip()
+if _COV_CHECK and _COV_STAGE:
+    _COV_CASES = {
+        "the push run's own marker": (_cov_marker(_COV_STAGE["run"], "push", "refs/heads/main"),
+                                      _COV_HEAD, (True, True)),
+        "a pull request's save": (_cov_marker(_COV_STAGE["run"], "pull_request",
+                                              "refs/pull/7/merge"), _COV_HEAD, (False, False)),
+        "no marker": (None, _COV_HEAD, (False, False)),
+        "main's marker at another commit": (_cov_marker(_COV_STAGE["run"], "push",
+                                                        "refs/heads/main"), "0" * 40,
+                                            (False, False)),
+    }
+    _COV_GOT = {_k: _cov_trust(_COV_CHECK["run"], _m, _b)
+                for _k, (_m, _b, _) in _COV_CASES.items()}
+    _COV_BAD = {_k: _g for _k, _g in _COV_GOT.items() if _g != _COV_CASES[_k][2]}
+else:
+    _COV_GOT, _COV_BAD = {}, {"steps": "covtrust or the staging step is missing"}
+_COV_TEXT = json.dumps(_COV_JOB.get("steps") or [])
+R.check(
+    "the coverage job reuses only an entry main's push run saved, keyed on the runner's OS",
+    not _COV_BAD and "runner.os" in _COV_TEXT
+    and "steps.covtrust.outputs.trusted" in _COV_TEXT
+    and "steps.covbase.outputs.cache-hit }}\" = \"true\"" not in _COV_TEXT,
+    f"{_COV_GOT}; wrong: {_COV_BAD or 'none'} -- a restore searches the pull "
+    "request's own scope first, so an entry an earlier head saved would be read "
+    "as main's measured data",
+)
+
+
 # --- decision 0013 as amended: the budget-raise gate's wiring. The budget
 # files carry no code owner, so this job is the only thing between a raise and
 # a merge on the approver App's review. Each property is a way the gate goes
