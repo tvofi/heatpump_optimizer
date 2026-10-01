@@ -13,7 +13,7 @@ How: new section "rate limiters, retry stamps and manual-plan compares across th
 
 ## Head
 
-`CODEHEAD` (code head: fix, checks, `barrier_gap` text and mutation ledger; transport commits sit above it).
+`e52f597075ede9a3559aadee0fc8c2caa979891a` (code head: fix, checks, `barrier_gap` text and mutation ledger; transport commits sit above it).
 
 ## Mutation proof
 
@@ -32,6 +32,7 @@ The unmodified tree (a `git archive` of `787fe137` with this branch's `tests/dst
 ## Figures
 
 - Fold checks: `HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub:custom_components python3 tests/dst_checks.py` prints `ALL 96 DST / QUARTER-GRID CHECKS PASSED` at the head (78 at main).
+- Scoped gate at the code head: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: `MODE: SCOPED -- 16 script(s) run, 12 scoped out`, `19 TEST SCRIPT(S) PASSED`, rc=0, including `tests/open_meteo.py`, `tests/features.py` and `tests/entities.py`.
 - Structure: `python3 tests/structure.py` passes, no budget moved.
 - Brief lint: `node .claude/workflows/brief_lint.mjs` ends `CARRY ok`; its only ERROR lines are the pinned malformed-carry fixtures.
 - The census-missed sites: probes and the table are in the shared folder at `audit-r9/fix/evidence/1809-f10-1e-probes/` (README.md lists each site, its verdict and its one-line fix); the widened rule is `census.rx` beside them and is quoted in `barrier_gap`.
@@ -39,7 +40,7 @@ The unmodified tree (a `git archive` of `787fe137` with this branch's `tests/dst
 
 ## Red checks
 
-`fast (3.14)` was red at `e8cef66b`: `tests/open_meteo.py` loads `open_meteo.py` with a stub that has no `homeassistant.util`, and my new `from .accuracy import utc_elapsed_seconds` imports `homeassistant.util`, so the module failed to import. Root cause: I changed a site that cannot misfire (`_should_refresh`'s one production caller passes `dt_util.utcnow`), and ran `prepr.sh` and the mutation drivers but not `tests/open_meteo.py`, which is in the closure of the file I changed. Fixed by reverting `open_meteo.py` to main's. Cheaper detector: the scoped gate or the one script `python3 tests/open_meteo.py` (under a second), an existing check that sat in none of my local paths; no new countermeasure is worth building, since `prepr.sh`'s scoped step names the scripts a diff reaches and I did not run them. At this head I ran the scoped gate (see Figures when it finishes).
+`fast (3.14)` was red at `e8cef66b`: `tests/open_meteo.py` loads `open_meteo.py` with a stub that has no `homeassistant.util`, and my new `from .accuracy import utc_elapsed_seconds` imports `homeassistant.util`, so the module failed to import. Root cause: I changed a site that cannot misfire (`_should_refresh`'s one production caller passes `dt_util.utcnow`), and ran `prepr.sh` and the mutation drivers but not `tests/open_meteo.py`, which is in the closure of the file I changed. Fixed by reverting `open_meteo.py` to main's. Cheaper detector: the scoped gate or the one script `python3 tests/open_meteo.py` (under a second), an existing check that sat in none of my local paths; no new countermeasure is worth building, since `prepr.sh`'s scoped step names the scripts a diff reaches and I did not run them. At this head I ran the scoped gate and it passes (Figures).
 
 ## Forward-carry
 
