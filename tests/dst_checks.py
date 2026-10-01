@@ -1680,8 +1680,10 @@ for _label, _l, _n in (
     R.check(f"{_label}: a weather refresh a true hour on is due", _om._should_refresh(_n, False), "")
 
 _arb_held = _arbiter.ArbiterState()
+_real_setpoint_check = _arbiter.setpoint_check
 _arbiter.setpoint_check = SimpleNamespace(create_issue=lambda *a, **k: None)
 _arbiter._not_held(SimpleNamespace(hass=None), _arb_held, "mode", "x", _FOLD_LAST)
+_arbiter.setpoint_check = _real_setpoint_check
 _retry_min = (_arb_held.retry["mode"].astimezone(UTC) - _FOLD_LAST_S).total_seconds() / 60.0
 R.check(
     "a pump write retry set on the fold night waits a true 5 minutes",
@@ -1694,7 +1696,78 @@ R.check(
     "",
 )
 
+# The arbiter's two other seams: the echo grace in ``hold`` and the retry gate
+# in ``_write``. A write at 02:59 CEST read back at 02:00 CET is a true 60 s,
+# past the 20 s grace, though the wall difference is -3540 s; a retry stamped
+# 5 true minutes after a 02:58 CEST failure is labelled 02:03 CET, which the
+# wall clock has already passed.
+_arb_hass = FakeHass()
+_arb_hass.states.set("number.dhw", FakeState("55"))
+
+
+class _ArbCoord:  # weak-referenceable, as the arbiter's WeakKeyDictionary needs
+    hass = _arb_hass
+    _config = {const.CONF_DHW_SETPOINT_ENTITY: "number.dhw"}
+
+
+_arb_coord = _ArbCoord()
+_echo_at = datetime(2026, 10, 25, 2, 59, tzinfo=STHLM)
+_echo_now = datetime(2026, 10, 25, 2, 0, tzinfo=STHLM, fold=1)
+_echo_held = _arbiter.state_for(_arb_coord)
+_echo_held.written["dhw_setpoint"] = (60.0, _echo_at)
+_arbiter.hold(_arb_coord, _echo_now)
+R.check(
+    "a pump write read back a true 60 s later across the fold is past its 20 s echo grace",
+    _echo_held.misses.get("dhw_setpoint") == 1,
+    f"misses {dict(_echo_held.misses)}",
+)
+_echo_held.written.clear()
+_echo_held.misses.clear()
+_echo_held.written["dhw_setpoint"] = (60.0, _PLAIN_LAST)
+_arbiter.hold(_arb_coord, _PLAIN_NOW)
+R.check(
+    "NULL CONTROL: a plain-hour write read back an hour later is past its grace",
+    _echo_held.misses.get("dhw_setpoint") == 1,
+    f"misses {dict(_echo_held.misses)}",
+)
+_gate_failed_at = datetime(2026, 10, 25, 2, 58, tzinfo=STHLM)
+_echo_held.retry["dhw_setpoint"] = utc_shift(_gate_failed_at, timedelta(minutes=_arbiter.RETRY_MINUTES))
+_echo_held.written.clear()
+try:
+    asyncio.run(_arbiter._write(_arb_coord, "dhw_setpoint", 60.0, _gate_failed_at))
+except Exception:  # noqa: BLE001 - the write path past the gate is not under test
+    pass
+R.check(
+    "a pump write retry stamped 5 true minutes after a 02:58 CEST failure still holds at 02:58 CEST",
+    "dhw_setpoint" not in _echo_held.written and not _arb_hass.services.calls,
+    f"written {dict(_echo_held.written)}, calls {len(_arb_hass.services.calls)}",
+)
+_spring_guard = _power_guard.GuardState()
+_spring_guard._last_event = datetime(2026, 3, 29, 1, 59, 58, tzinfo=STHLM)
+R.check(
+    "spring gap: a meter event a true 5 s after the last is throttled, not 62 minutes of wall clock on",
+    _spring_guard.throttled(datetime(2026, 3, 29, 3, 0, 3, tzinfo=STHLM)),
+    "",
+)
+
 dt_util.freeze(_FOLD_NOW)
+_c = _fold_coord(**{const.CONF_SNOW_ROOF_FACTOR_ENABLED: True})
+# The heavy-snow hold: 2.5 true days after the last heavy fall it has lapsed
+# (SNOW_ROOF_DAYS is 2), though the wall clock reads 1 day 23 h 30 min.
+_c._last_heavy_snow = datetime(2026, 10, 23, 2, 55, tzinfo=STHLM)
+_c._snow_accum_last = None
+_hold_now = datetime(2026, 10, 25, 2, 25, tzinfo=STHLM, fold=1)
+R.check(
+    "the roof-snow hold has lapsed 2 days 30 true minutes after the last heavy fall",
+    _c._update_snow_memory(_hold_now, np.zeros(4)) is False,
+    "",
+)
+_c._last_heavy_snow = datetime(2026, 10, 23, 2, 55, tzinfo=STHLM)
+R.check(
+    "NULL CONTROL: the same hold is still on a true 1 day 23 h 30 min after",
+    _c._update_snow_memory(datetime(2026, 10, 25, 2, 25, tzinfo=STHLM), np.zeros(4)) is True,
+    "",
+)
 _c = _fold_coord(**{const.CONF_SNOW_ROOF_FACTOR_ENABLED: True})
 _c._snow_accum_last, _c._snow_accum_cm = _FOLD_LAST, 10.0
 _c._update_snow_memory(_FOLD_NOW, np.zeros(4))
