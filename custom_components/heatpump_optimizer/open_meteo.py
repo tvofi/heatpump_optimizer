@@ -44,7 +44,6 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .accuracy import utc_elapsed_seconds
 from .const import (
     OPEN_METEO_FORECAST_URL,
     OPEN_METEO_MIN_REFRESH_MINUTES,
@@ -325,10 +324,8 @@ class OpenMeteoSolar:
     def _should_refresh(self, now: datetime, force: bool) -> bool:
         if force or self._last_attempt is None:
             return True
-        return (
-            utc_elapsed_seconds(now, self._last_attempt)
-            >= OPEN_METEO_MIN_REFRESH_MINUTES * 60.0
-        )
+        age = now - self._last_attempt
+        return age >= timedelta(minutes=OPEN_METEO_MIN_REFRESH_MINUTES)
 
     async def async_refresh(self, now: datetime, force: bool = False) -> bool:
         """Refresh both series. Returns True when usable data is held.

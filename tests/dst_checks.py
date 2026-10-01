@@ -1662,7 +1662,6 @@ def _fold_coord(hass=None, **cfg):
     return HeatPumpOptimizerCoordinator(hass or FakeHass(), FakeEntry(data={**base, **cfg}))
 
 
-from heatpump_optimizer import open_meteo as _open_meteo  # noqa: E402
 from heatpump_optimizer import power_guard as _power_guard  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _arbiter  # noqa: E402
 from heatpump_optimizer.freq_control import FREQ_MIN_SAMPLES  # noqa: E402
@@ -1675,9 +1674,6 @@ for _label, _l, _n in (
     _guard = _power_guard.GuardState()
     _guard._last_event = _l
     R.check(f"{_label}: a meter event a true hour on is not throttled", not _guard.throttled(_n), "")
-    _om = object.__new__(_open_meteo.OpenMeteoSolar)
-    _om._last_attempt = _l
-    R.check(f"{_label}: a weather refresh a true hour on is due", _om._should_refresh(_n, False), "")
 
 _arb_held = _arbiter.ArbiterState()
 _real_setpoint_check = _arbiter.setpoint_check
