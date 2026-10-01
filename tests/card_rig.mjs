@@ -696,6 +696,58 @@ export function sameClaimMap(tree, base) {
   return true;
 }
 
+/** The claims this branch wrote: each state whose reason LIST is not the
+ * fork point's -- env_drift.py's `authored_claims`. */
+export function authoredClaims(tree, base) {
+  const out = new Map();
+  for (const [name, reasons] of tree) {
+    const b = base.get(name);
+    if (!b || b.length !== reasons.length || reasons.some((r, i) => b[i] !== r)) {
+      out.set(name, reasons);
+    }
+  }
+  return out;
+}
+
+/** The card claim file's verdict for one tree: what it reports, how many
+ * of those fail, and the claims that may excuse a moved state -- the drift
+ * loop and the staleness rule judge exactly that map. `treeText` and
+ * `baseText` are the file's text in the tree and at the fork point (null
+ * when absent); `ours` is `claimsAreThisBranchs` for the card file.
+ *
+ * env_drift.py's `claims_hygiene_verdict` and `judge_drift`, ported
+ * (R9-F10.8): a file byte-identical to the fork point's was never written
+ * by this branch and claims nothing, and only lines the branch wrote --
+ * `authoredClaims` -- may excuse a moved state. A merged-in line excusing by
+ * name is #213's hole on the card side. */
+export function judgeCardClaims({ treeText, baseText, ours, refName }) {
+  const tree = parseClaims(treeText || "");
+  const base = parseClaims(baseText || "");
+  const notes = [];
+  let fails = 0;
+  const untouched = false;
+  const same = !untouched && tree.claims.size > 0
+    && sameClaimMap(tree.claims, base.claims);
+  if (same && ours) {
+    notes.push(
+      `INHERITED CLAIMS: ${CLAIM_FILE} claims exactly what ${refName} already claims -- ` +
+      `the same ${tree.claims.size} state(s), with the same reasons: ` +
+      `${[...tree.claims.keys()].sort().join(", ")}. Rewrite the list for THIS diff.`
+    );
+    fails += 1;
+  } else if (same) {
+    notes.push(
+      `NOT THIS BRANCH'S LIST: ${CLAIM_FILE} is line for line the list ${refName} ` +
+      `already claims (${tree.claims.size} state(s)), but this branch's three-dot ` +
+      `against ${refName} moves no card source, so it did not write that list. Failing ` +
+      "it here leaves one remedy -- empty the file -- " +
+      "and a squash-merge applies that deletion to the baseline (#569, #633). Reported, " +
+      "not judged; rewrite it in a change that moves a claimed state."
+    );
+  }
+  return { notes, fails, excusing: tree.claims };
+}
+
 export const looksLikeVersion = (text) =>
   /^\d+\.\d+\.\d+$/.test(String(text || ""));
 
