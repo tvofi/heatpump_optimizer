@@ -25,7 +25,7 @@ none
 
 ## Forward-carry
 
-`tools/audit/round9/fixplan/standing.md` (binds every fixer and reviewer seat). The out-of-tree split lives at `/mnt/project-files/audit-r9/RESUME-CURRENT.md` and `RESUME-ARCHIVE.md`; the plan-branch mirror `handoff/round9/RESUME.md` is not updated here (this seat cannot push that branch) and needs the same split by the orchestrator.
+`tools/audit/round9/fixplan/standing.md` (binds every fixer and reviewer seat). The out-of-tree split (a current-state file and a frozen archive beside the old log in the shared audit-r9 folder) is done there; the plan-branch mirror of the log is not updated here, because this seat cannot push that branch, and needs the same split by the orchestrator.
 
 ## Friction
 
