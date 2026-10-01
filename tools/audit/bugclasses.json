@@ -851,10 +851,10 @@
     },
     "total": 82,
     "max_per_round": 18,
-    "detector": null,
+    "detector": "python3 tests/mutation_table.py --scope changed --base origin/main (the mutation job): the ratchet pre-pass refuses before any mutant is driven",
     "detector_idea": "Count a kill only on at least one failing assertion; re-run previously surviving mutants",
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/mutation_table.py on the PR gate (F10.3, #1646): added_unpinned refuses every unpinned site the diff added by content -- (file, operator, stripped text) as a multiset -- not only a grown total, so a trade that nets the count to zero is refused; a site moved verbatim to another module under the same def is the base's (#1748); GUARD_OFF covers any one-line if/elif test (an else, a comment after the colon) and CLAMP_DROP numpy/math clamps. Not reached (tvofi's card C7): multi-line if tests, multi-line clamps, ternaries and ordering comparisons; the comparison-bound operator is F10.6 and the kill-ledger writer F10.5",
+    "status": "barriered",
     "mechanism_note": "Stretched to performance gates: R2 D9-02, R4 D9-06, R5 D9-07, R6 D9-02 already here; R8 D9-s2-01 and the R9 re-map N-cpu-gate-blind (a 2x regression outside the sampled work leaves the gate green) join them.",
     "aliases": [
       "N-cpu-gate-blind",
@@ -870,8 +870,7 @@
       "RCA-vacuous-acceptance-arm"
     ],
     "rca_planned": [
-      "R9-F10.2",
-      "R9-F10.3"
+      "R9-F10.2"
     ],
     "trigger": {
       "per_round": true,
@@ -916,17 +915,15 @@
     },
     "total": 7,
     "max_per_round": 3,
-    "detector": null,
+    "detector": "python3 tests/closure.py check --in-dir D (the closures job, recording on Linux under strace)",
     "detector_idea": "Nightly strace -f of the gate against the committed closures, reporting files the recorder missed (child-process reads, .pyc-only loads); over-scope needs no barrier (RCA-BULK-2)",
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/closure.py record traces a Python script with every child it spawns under strace -f -y wherever strace exists (CI's Linux recorder, F10.3, #1663) and unions the repo files its Python processes opened with the audit hook's (a git child's content scan, a node child's reads and an INERT path stay out), so a file only a Python child reads is in the recording and check reports a committed closure that lacks it as UNDER-SCOPED; .pyc opens map through _pyc_source on both instruments. Over-scope gets no barrier (RCA-BULK-2: the safe direction, priced in CI seconds)",
+    "status": "barriered",
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
       "BULK-2-I2"
     ],
-    "rca_planned": [
-      "R9-F10.3"
-    ],
+    "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
