@@ -1,28 +1,17 @@
-Fix review: merge de27770e25e05704a02b61cc7e0acc845e1da0e9
+Fix review: merge 89572df03499ba0f0293e863138c4c94ec2539a5
 
-PR #1834, R9-F1.11 (P2 one fact one owner, P6 every read has a producer; D14-s1-02). Round 1.
-Reviewed: code dfab4c6e3661f6a6e242ea3995846c0dffb1b3bf, then the live head de27770e (main 8a0ca90a merged into dfab4c6e). de27770e's tree is 99ee5a82, identical to my own git merge-tree of origin/main with dfab4c6e, which I measured. tests/entities.py changed on both sides, so I judged that delta myself by running the merged tree.
+PR #1834, R9-F1.11, delta review on the round-1 merge verdict at de27770e (earlier commit on this branch).
+Head 89572df0 = de27770e + e13193c3 (docs/delivery/1834.md, one row) + 5d2592ba (github-actions[bot] "ci: re-record closures") + merge of main 1aefd2d0.
 
-RESULT entities.py at dfab4c6e: ALL 2050 ENTITY CHECKS PASSED, rc 0 (venv-ci Python 3.14.7). The body says 2048; the difference is not material.
-RESULT entities.py at tree 99ee5a82 (= de27770e): ALL 2051 ENTITY CHECKS PASSED, rc 0
-RESULT M1 (set_channel probes boost_calls again): rc 1, 4 failing: P6 G [boost.py:244 boost_calls] and the three boost persist checks. Matches the body.
-RESULT M2b (horizon_hours dropped from _plan_settings_view): rc 1, 2 failing: the D14-s1-02 horizon check and P6 K [sensor.py:1531, 1564 horizon_hours]. Matches the body.
-RESULT M4 (heat_pump_on fallback back to p > 0.1): rc 1, 2 failing: P2 plan_running_rule SEAM coordinator.py:2004 and the P2 null-control check. Matches the body.
-RESULT merge-tree origin/main(8a0ca90a) dfab4c6e: clean, rc 0
-RESULT VERSION, manifest and RELEASE_NOTES untouched; claims-for 6.7.13 = VERSION; 5 coord_* claims, each moved by one key, horizon_hours
-RESULT structure_budgets: every changed key goes down (coordinator_loc 9014->9006, cut_views 109->104, max_class_loc 9014->9006); no raise. The restructure (_plan_settings_view out of the class) pays for the new key.
-RESULT CI mutation on dfab4c6e: "MUTATION TABLE PASSED (empty pool)"; unpinned 3919 against 3920 at ratchet base 8a0ca90a. No new unpinned site, so the deferral to mutation-autofix is moot.
-RESULT code-owned paths touched: none (boost.py, coordinator.py, tests/entities.py, tests/features.py, tests/golden/*, structure_budgets.json, bugclasses.json)
+RESULT e13193c3 vs de27770e: docs/delivery/1834.md only, +1 line, PR #1834's own row
+RESULT 5d2592ba: tests/closures.json only. One closure changes: tests/entities.py gains 4 paths and loses none:
+  blueprints/automation/charge_ev_from_grid_headroom.yaml
+  blueprints/automation/economy_mode_on_price_peak.yaml
+  blueprints/automation/notify_on_manual_plan.yaml
+  tests/features.py
+  These are exactly the 4 out-of-closure reads the fixer reported. Arm B of P6 reads the blueprints; the P2 CENSUS-MISSING check reads features.py. The 3 blueprints are already on closure.py's read-file exception list (tests/closure.py:515-517, as doc_claims.py reads them), so recording them is not an INERT contradiction. Every other change is a per-script "seconds" timing.
+RESULT main delta 8a0ca90a..1aefd2d0: 13 files (card JS, card tests, card claims, docs, bus.sh, delivery rows). It shares no file with #1834's diff.
+RESULT tree 89572df0 = 27b29ccf = git merge-tree --write-tree 1aefd2d0 5d2592ba (clean)
 
-Judgement:
-- Barriers are correct and sound for the instances they name. The P6 arms take their universes from production and each has a planted defect. The P2 registry refuses SEAM, OWNER-MISSING, DEAD-RULE, STALE-DISPOSITION and CENSUS-MISSING, with a planted sibling per fact.
-- Residual reach, not blocking, and stated in bugclasses.json's own barrier text:
-  - K counts a key as produced if any dict literal anywhere outside the consumer modules names it.
-  - G counts an attribute as defined if any Name, arg or keyword in production uses that name.
-  - plan_running_rule matches only the literal 0.1 or MIN_RUNNING_DRAW_KW.
-  - A coincidental name, or a different literal threshold, escapes.
-- Production change: the fallback is now planned_draw_runs(space, dhw) (space+dhw > MIN_RUNNING_DRAW_KW). It is reached only when a result has no heat_pump_on_schedule. Indexing is guarded for a None or short dhw schedule.
-- Closure deferral is legitimate. ci-autofix.md assigns UNDER-SCOPED to closures-autofix and forbids duplicating it. Condition: closures-autofix must report `changed`. A red autofix means no bot commit, and the fixer then re-derives tests/entities.py.
-- Carry: no stage that has not started owns the stored-instant rule (the roster groups naming it, F1.6, F1.9, F3.1, F3.2 and F10.1b, are all done). The roster brief allowed "record the measurement". It is recorded in the body and in-tree in the P2 barrier text. No carry is owed.
-- Not verified: the body's "about 16" parse sites. I count 19 fromisoformat occurrences in the package, 1 of them in drift.py; I did not re-derive the 16.
-- CI on de27770e was still running when I posted (fast, typing, coverage, closures, browser, env-matrix). Merge only on green.
+Nit, not blocking: the comment at tests/entities.py:1856 ("The blueprint FILES are not read") is now false for this script, because arm B reads them. It can ride a later edit.
+Round-1 measurements at tree 99ee5a82 stand; no production or test line changed in the delta. CI on 89572df0 was still running when I posted: merge only on green.
