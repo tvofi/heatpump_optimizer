@@ -756,8 +756,8 @@ CONF_MIXING_VALVE_TARGET_ENTITY: Final = "mixing_valve_target_entity"
 CONF_MIXING_VALVE_WRITE_ENTITY: Final = "mixing_valve_write_entity"
 # Do not rewrite the valve target for changes smaller than this. The write
 # runs after every optimization cycle, and most cycles the answer is the same
-# number -- hammering a device with identical setpoints every 15 minutes
-# wears flash on some controllers and floods others' logs.
+# number -- hammering a device with identical setpoints every optimization
+# cycle wears flash on some controllers and floods others' logs.
 MIXING_VALVE_WRITE_EPSILON: Final = 0.25  # K
 # What kind of set-point the write entity expects (#398). "indoor" is the
 # value already written -- a room-temperature target, unit-correct for a

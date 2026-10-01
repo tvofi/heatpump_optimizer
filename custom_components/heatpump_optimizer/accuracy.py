@@ -32,6 +32,7 @@ import numpy as np
 from homeassistant.util import dt as dt_util
 
 from .drift import stored_instant
+from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,24 +110,6 @@ class AccuracySample:
             humidity=num("humidity"),
             cop_residual=num("cop_residual"),
         )
-
-
-def _as_utc(value: datetime) -> datetime:
-    """Home Assistant's ``as_utc`` rule: naive is UTC, aware is converted."""
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
-
-
-def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
-    """Seconds between two stamps as instants (round-9 D14-s4-01, P7).
-
-    Two aware stamps that share Home Assistant's one ZoneInfo object subtract
-    as wall clock in CPython, an hour off across a DST transition; converting
-    both to UTC first measures the instants. A naive pair keeps its wall
-    difference, which is what the identity-zone test clock means by it.
-    """
-    return (_as_utc(newer) - _as_utc(older)).total_seconds()
 
 
 def utc_shift(when: datetime, delta: timedelta) -> datetime:
