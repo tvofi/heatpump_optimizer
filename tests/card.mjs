@@ -428,10 +428,144 @@ check("reason codes render as readable text",
   /Cheapest hours/.test(withReason) && /Hot water needed now/.test(withReason));
 check("a repeated reason is not repeated in the tooltip",
   (withReason.match(/Cheapest hours/g) || []).length === 1);
-check("idle steps produce no explanation",
+// R9-UX-1: reasonHtml still gives an idle step no reason LABEL ("Not
+// heating" for every idle hour would bury the ones that matter); the idle
+// step's explanation is idleWhyHtml's, below, which says why rather than what.
+check("idle steps get no reason label",
   reasonHtml([{ reason: "idle" }, {}]) === "");
 check("an unknown reason code still shows something",
   /brand_new_code/.test(reasonHtml([{ reason: "brand_new_code" }])));
+
+// --- Scenario: R9-UX-1, why an idle step is idle ("likely because") --------
+//
+// The hover on an idle step used to say nothing. It now says why the plan
+// likely left it idle, from the published per-step fields only: the step's
+// price rank within the horizon, the run it coasts on and the next run, the
+// tank against the published hot-water minimum, and the solar surplus ahead.
+// The synthetic plan below has literal answers; local ISO times (no offset)
+// keep the clock text independent of the runner's time zone.
+{
+  const idleWhyHtml = fn("idleWhyHtml");
+  const p2 = (n) => String(n).padStart(2, "0");
+  const at = (m) => `2026-01-15T${p2(Math.floor(m / 60))}:${p2(m % 60)}:00`;
+  // The card's own clock format (the tooltip's time line uses the same).
+  const clk = (m) => new Date(at(m)).toLocaleString("en",
+    { hour: "2-digit", minute: "2-digit" });
+  const SP = [
+    [0.5, 2.0, "cheap_price", null], [0.5, 2.0, "cheap_price", null],
+    [1.0, 0, "idle", null], [3.0, 0, "idle", null], [3.0, 0, "idle", null],
+    [2.0, 0, "idle", 1.2], [0.8, 1.5, "cheap_price", 0.4], [1.0, 0, "idle", null],
+  ].map(([price, space_power, reason, pv_surplus], i) => ({
+    t: at(15 * i), price, price_known: true, outdoor: -3, space_power,
+    room: 21, upper: 21, lower: 21, reason, pv_surplus }));
+  const DH = SP.map((p, i) => ({ t: p.t, price: p.price, price_known: true,
+    outdoor: -3, dhw_power: i === 0 ? 3 : 0, dhw_temp: i === 4 ? 43 : 55,
+    dhw_temp_lo: 40, dhw_temp_hi: 60, reason: i === 0 ? "dhw_preheat" : "idle" }));
+  const ctx = { space: SP, dhw: DH, dhwMin: 45, priceUnit: "SEK/kWh" };
+  const row = (field, i, value, reason) =>
+    ({ field, t: Date.parse(SP[i].t), value, reason });
+  const dear = idleWhyHtml([row("space_power", 3, 0, "idle")], ctx);
+  check("UX-1 an idle step is explained, as an inference",
+    /Likely because/.test(dear) && /Space heating off/.test(dear), dear);
+  check("UX-1 the explanation names the step's own quarter hour",
+    dear.includes(`${clk(45)}\u2013${clk(60)}`), dear);
+  check("UX-1 a dear idle step gives its price rank within the horizon",
+    dear.includes("3.00 SEK/kWh") && dear.includes("dearest 25 %") &&
+      dear.includes("cheapest 0.50"), dear);
+  check("UX-1 it names the run it coasts on and the next run",
+    dear.includes(`${clk(0)}\u2013${clk(30)}`) &&
+      dear.includes(`next heating run is at ${clk(90)}`) &&
+      dear.includes("0.80 SEK/kWh"), dear);
+  check("UX-1 it names the solar surplus ahead",
+    dear.includes("1.2 kW") && dear.includes(clk(75)), dear);
+  const both = idleWhyHtml([row("space_power", 3, 0, "idle"),
+    row("dhw_power", 3, 0, "idle")], ctx);
+  check("UX-1 both channels idle share one block and one price line",
+    (both.match(/class="tt-why"/g) || []).length === 1 &&
+      /Space heating and hot water off/.test(both) &&
+      (both.match(/dearest/g) || []).length === 1 &&
+      /next heating run/.test(both) &&
+      /tank was heated/.test(both), both);
+  check("UX-1 nothing is claimed the published fields cannot show",
+    !/floor|fuse/i.test(dear), dear);
+  const cheap = idleWhyHtml([row("space_power", 2, 0, "idle")], ctx);
+  check("UX-1 a step in the cheaper half claims no price reason",
+    /Likely because/.test(cheap) && !/dearest/.test(cheap), cheap);
+  check("UX-1 an active step is not explained here",
+    idleWhyHtml([row("space_power", 0, 2, "cheap_price")], ctx) === "");
+  // A DHW step classified off the DHW path publishes no reason at all, so
+  // only its power says it is running.
+  check("UX-1 a running step with no published reason is not explained",
+    idleWhyHtml([row("dhw_power", 0, 3, undefined)], ctx) === "");
+  check("UX-1 a step the pump's mode blocks is reasonHtml's, not this",
+    idleWhyHtml([row("space_power", 3, 0, "pump_mode")], ctx) === "");
+  check("UX-1 a hidden channel is not explained",
+    idleWhyHtml([row("room", 3, 21, "idle")], ctx) === "");
+  const tank = idleWhyHtml([row("dhw_power", 3, 0, "idle")], ctx);
+  check("UX-1 a hot-water step compares the tank with the published minimum",
+    /Hot water off/.test(tank) && tank.includes("55.0 °C") &&
+      tank.includes("45 °C"), tank);
+  check("UX-1 no tank line when the minimum is not published",
+    !/minimum/.test(idleWhyHtml([row("dhw_power", 3, 0, "idle")],
+      { ...ctx, dhwMin: null })));
+  check("UX-1 no tank line when the tank is below the minimum",
+    !/minimum/.test(idleWhyHtml([row("dhw_power", 4, 0, "idle")], ctx)));
+  check("UX-1 a step with nothing to say says nothing",
+    idleWhyHtml([row("space_power", 3, 0, "idle")],
+      { space: [SP[3]], dhw: [], dhwMin: null, priceUnit: "SEK/kWh" }) === "");
+
+  // Through the real hover, on the repository fixture: the dearest idle
+  // space step (16:00 in plan_view.py's plan) gets the explanation.
+  const hc = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const fc = plan.space_plan.forecast;
+  const maxP = Math.max(...fc.map((p) => p.price));
+  const idle = fc.find((p) => p.price === maxP && !(p.space_power > 0.05));
+  const VIEW_W = fn("VIEW_W");
+  const hrect = { width: 900, height: 420, left: 0, top: 0 };
+  const hx = (hc._plot.scaleX(Date.parse(idle.t)) / VIEW_W) * hrect.width;
+  hc._onPointerMove({ clientX: hx,
+    currentTarget: { getBoundingClientRect: () => hrect } });
+  const htt = hc.shadowRoot.querySelector(".tooltip").innerHTML;
+  check("UX-1 hovering the fixture's dearest idle step explains it",
+    /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
+
+  // Through the real hover on an idle hot-water step, with the minimum
+  // published: the run it coasts on and the next run come from the DHW
+  // plan, and the tank line from the published `dhw_min_temperature`. The
+  // step is the warmest idle one past the first quarter that has a run on
+  // each side (15:45 in plan_view.py's plan).
+  const whyClock = fn("whyClock");
+  const dfc = plan.dhw_plan.forecast;
+  const on = (q) => q.dhw_power > 0.05;
+  let di = -1;
+  dfc.forEach((q, k) => {
+    if (k < dfc.length / 4 || on(q) || !dfc.slice(0, k).some(on) ||
+        !dfc.slice(k + 1).some(on)) return;
+    if (di < 0 || q.dhw_temp > dfc[di].dhw_temp) di = k;
+  });
+  let dEnd = di - 1;
+  while (!on(dfc[dEnd])) dEnd--;
+  let dStart = dEnd;
+  while (dStart > 0 && on(dfc[dStart - 1])) dStart--;
+  const dNext = dfc.findIndex((q, k) => k > di && on(q));
+  const ms = (k) => Date.parse(dfc[k].t);
+  const dStep = ms(di + 1) - ms(di);
+  const dMin = Math.floor(dfc[di].dhw_temp) - 5;
+  const dst = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  dst[DEFAULT_SPACE].attributes.dhw_min_temperature = dMin;
+  const dc = build(dst);
+  const dx = (dc._plot.scaleX(ms(di)) / VIEW_W) * hrect.width;
+  dc._onPointerMove({ clientX: dx,
+    currentTarget: { getBoundingClientRect: () => hrect } });
+  const dtt = dc.shadowRoot.querySelector(".tooltip").innerHTML;
+  check("UX-1 hovering an idle hot-water step names its own coast and next run",
+    dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
+      `${whyClock(ms(dEnd) + dStep)}`) &&
+      dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
+  check("UX-1 and compares the tank with the published minimum",
+    dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
+      `above the ${dMin} \u00b0C`), dtt);
+}
 
 // --- Scenario 12: estimated prices are marked (item 7) ---------------------
 //
@@ -4252,7 +4386,9 @@ function ctxL(card, key) {
       state: "82", attributes: { envelope: 90, machine: 75 } },
     "sensor.heat_pump_optimizer_plan_narrative": {
       state: "cheap_price", attributes: {
-        lines: ["Most heating is placed in the cheapest hours."],
+        lines: ["Most heating is placed in the cheapest hours.",
+          "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
+          "idle for 19.5 h"],
         language: "en" } },
   });
   const full = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() };
@@ -4305,8 +4441,18 @@ function ctxL(card, key) {
     /class="headline"/.test(collect(lateCard.shadowRoot).join("\n")));
   check("headline shows the optimization score",
     /Optimization score/.test(hlDump) && /82\/100/.test(hlDump));
-  check("headline shows the narrative's first line",
-    hlDump.includes("Most heating is placed in the cheapest hours."));
+  // R9-UX-1: every line the narrative sensor publishes, not only the first.
+  check("headline shows every narrative line",
+    hlDump.includes("Most heating is placed in the cheapest hours.") &&
+      hlDump.includes("leaving the house warm past the horizon") &&
+      hlDump.includes("idle for 19.5 h"));
+  // In the sensor's own order: by spend, then the idle hours.
+  {
+    const at = ["Most heating is placed", "leaving the house warm",
+      "idle for 19.5 h"].map((l) => hlDump.indexOf(l));
+    check("headline keeps the narrative's order",
+      at[0] >= 0 && at[0] < at[1] && at[1] < at[2], at.join(" "));
+  }
 
   // The row must track its own sensors: a new savings value re-renders even
   // though no plan data changed (the headline is part of _signature).
@@ -5845,7 +5991,7 @@ const setupBox = (card, place) =>
     return m ? m[1] : null;
   };
   // Every block the tooltip builder emits, and whether it is prose.
-  const PROSE = ["tt-shared", "tt-reason"];
+  const PROSE = ["tt-shared", "tt-reason", "tt-why"];
   const VALUES = ["tt-row", "tt-time"];
 
   check("the tooltip itself still keeps short value rows on one line",
@@ -5900,6 +6046,50 @@ const setupBox = (card, place) =>
     `left ${place(95)}`);
   check("a pointer in the middle still places it beside the crosshair",
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+  // R9-UX-1: past mid-width the box opens to the LEFT of the crosshair by its
+  // own measured width, so it never covers the step it describes; and a
+  // chart with a height caps the box at it (the idle explanation is tall).
+  {
+    const x = 600;
+    const left = place(x);
+    check("UX-1 past mid-width the tooltip sits wholly left of the crosshair",
+      left + TT_W <= x, `left ${left} + ${TT_W} > ${x}`);
+    // Between 50 % and the 60 % it used to flip at: still left.
+    const x55 = 0.55 * rect.width;
+    const left55 = place(x55);
+    check("UX-1 at 55 % of the width the tooltip already sits left of the crosshair",
+      left55 + TT_W <= x55, `left ${left55} + ${TT_W} > ${x55}`);
+    // fitWhy, with layout stood in for: the box is 16 px a value row and
+    // 15 px an explanation line or its heading.
+    const fitWhy = fn("fitWhy");
+    const box = (rowsN, linesN) => {
+      const html = '<div class="tt-row">r</div>'.repeat(rowsN) +
+        '<div class="tt-why"><span class="why-head">h</span><ul>' +
+        "<li>l</li>".repeat(linesN) + "</ul></div>";
+      const el = document.createElement("div");
+      el.innerHTML = html;
+      Object.defineProperty(el, "offsetHeight", { get: () =>
+        16 * el.querySelectorAll(".tt-row").length +
+        (el.querySelector(".tt-why") ? 15 : 0) +
+        15 * el.querySelectorAll(".tt-why li").length });
+      return el;
+    };
+    const roomy = box(3, 4);
+    fitWhy(roomy, 130);
+    check("UX-1 an explanation that fits is left whole",
+      roomy.querySelectorAll(".tt-why li").length === 4);
+    const shortened = box(3, 4);
+    fitWhy(shortened, 100);
+    check("UX-1 on a short chart the explanation loses its last lines, not its value rows",
+      shortened.offsetHeight <= 100 && shortened.querySelectorAll(".tt-row").length === 3 &&
+        shortened.querySelectorAll(".tt-why li").length === 2, shortened.offsetHeight);
+    // Room for the heading but for no line under it: a heading with no
+    // reason is no explanation, so the block goes.
+    const cramped = box(4, 4);
+    fitWhy(cramped, 80);
+    check("UX-1 and is dropped whole when not even one line fits",
+      !cramped.querySelector(".tt-why") && cramped.querySelectorAll(".tt-row").length === 4);
+  }
   // R9-UI-4: the crosshair crosses every panel, from the top of the first
   // to at least the bottom of the last (on through the lane strip under it,
   // where there is one), wherever the pointer is.

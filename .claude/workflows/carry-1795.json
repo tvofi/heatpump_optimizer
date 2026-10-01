@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for R9-UX-5 (#1795, lane UX: advisor actions and exact idle sub-codes), from R9-UX-1 (#1795, why now, why not).",
+    "The round-9 roster's R9-UX-5 group brief on handoff/audit-r9-fixplan should carry the same text; the roster is not on main,",
+    "so this file is the in-tree destination. While the two disagree the newer one is right. Shape: .claude/rules/finding-propagation.md."
+  ],
+  "issue": 1795,
+  "stage": "R9-UX-5, or any later seat that adds lines to the chart's hover tooltip (tooltipHtml, idleWhyHtml)",
+  "carries": [
+    {
+      "from": "the pull request for R9-UX-1, which put the idle step's likely-because block in the tooltip",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control in tests/card_browser.mjs's P9 grid, in Chromium. With the tooltip capped at the chart's height by max-height and overflow: hidden, the check 'P9 grid: no text is clipped where its ancestor cannot scroll to it' went red on the explanation's li runs in the tooltip_hover cell; the same grid is green with fitWhy, which omits the explanation's last lines instead (the control). Without either, the box ran below the chart on a 400 px card (a probe measured the box's bottom past the chart wrapper's), which the P9 pop-up check did not see because it bounded a tooltip by its chart horizontally only.",
+      "remeasure": "Do not trust these figures: they were measured at the UX-1 code head, and a later stage is judged against its own merge base. Run tests/card_browser.mjs and read the two P9 checks named here; then hover the dearest idle step on a narrow card and compare the tooltip's box with its .chartwrap's.",
+      "brief": "The hover tooltip cannot scroll, so it may not clip text (P9 refuses overflow: hidden on it), and since R9-UX-1 the P9 pop-up check also holds a tooltip inside its chart's height. Exact idle sub-codes replace the likely-because lines in idleWhyHtml rather than adding a second block, and anything that does not fit is omitted by fitWhy, last line first, never clipped. Put the most telling line first, because on a small card it is the one that survives."
+    }
+  ]
+}

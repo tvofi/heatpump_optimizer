@@ -38,7 +38,8 @@ Chart.js, ApexCharts, npm or any CDN.
 A vertical "now" marker is drawn at the current time across all three panels,
 and hovering (or touching) the chart shows a crosshair through every panel and
 a tooltip with the value of every visible series at the nearest sample, plus
-**why** the plan is heating at that moment.
+**why** the plan is heating at that moment, or, on a step where it is not
+heating, why it most likely left that step idle.
 
 The colours are chosen per panel, with a light and a dark set, so that every
 pair of series in one panel stays apart for readers with deuteranopia,
@@ -48,7 +49,7 @@ protanopia or tritanopia, and every series reads at 3:1 against its panel.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/tile-dark.png">
-  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a two-by-two grid of tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
+  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a two-by-two grid of tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the five lines of the plan narrative, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
 </picture>
 
 The screenshots on this page are the shipped card, rendered in a headless
@@ -165,8 +166,10 @@ claim a precision the record has not earned.
 Under the stat tiles sits a second row: **projected savings** for the current
 plan, with the percentage beside it when the integration publishes one, and
 the **optimization score** out of 100, drawn as tiles like the ones above, then
-the first line of the **plan narrative**. Set `show_stats: false` to leave out
-both rows.
+every line of the **plan narrative**: the energy and money spent for each
+reason, ordered by spend, then the hours the plan leaves idle. The lines are
+the narrative sensor's own, already in Home Assistant's language. Set
+`show_stats: false` to leave out both rows.
 
 Every part is optional, because every source sensor is. The score is
 unavailable until enough history exists, the savings sensors go blank between
@@ -198,6 +201,38 @@ anti-legionella cycle, and so on — or simply keeping the house at target, whic
 is what an ordinary slot says now that it no longer borrows the weather
 pre-heat label. Without this an unexpected slot is indistinguishable from a
 bug.
+
+### Why a step is idle
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/plan-why-dark.png">
+  <img alt="The enlarged Plan tab with the pointer on an expensive afternoon quarter hour: the tooltip lists the step's values, among them the house and outdoor temperatures, then says space heating and hot water are off and gives the likely reasons: the price rank, the night run the house is coasting on, the next heating run, when the tank was last heated and the next hot-water run" src="img/card/plan-why-light.png">
+</picture>
+
+Hovering a step where a channel is not heating says why the plan most likely
+left it idle, under the words *Likely because*. Each reason comes from what
+the plan sensors publish for that step and nothing else:
+
+- the step's price, when it is among the dearer half of the plan's horizon,
+  with the share of the horizon that is at least as dear and the cheapest
+  price in it;
+- the last run before it, which the house is coasting on, or when the tank
+  was last heated;
+- the next run of that channel, with its time and price;
+- on a hot-water step, the planned tank temperature, when it is above the
+  hot-water minimum the integration publishes;
+- a solar surplus expected later in the horizon.
+
+When both channels are idle at that step they share one list, with the price
+said once. A reason the published fields cannot show — the room's lower limit
+at that hour, or a fuse limit — is never claimed, which is why the heading
+says *likely*: the plan's exact reasons for idle steps are not published yet.
+A step none of these fits gets no explanation rather than a guessed one.
+
+The tooltip stays inside the chart: past the middle of the chart it opens to
+the left of the crosshair, and it is never taller than the chart. On a small
+dashboard card the list is shortened, last reason first, to what fits; the
+enlarged view has room for all of it.
 
 The stretch of the horizon whose prices have not been published yet — Nord Pool
 and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated
