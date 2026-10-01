@@ -9605,7 +9605,10 @@ check("without an indoor reading the corner now label is absent",
   const pStale = pillOf(build(staleStates));
   check("UI-3 pill: a plan last solved 4 h ago, past max(3 x 30 min, 90 min), reads stale",
     !!pStale && pStale.key === "stale" && pStale.tone === "warn", JSON.stringify(pStale));
-  const freshStates = { ...idle(), [LAST_ID]: { state: iso(FROZEN - 80 * 60e3), attributes: {} } };
+  // A 20 min solve interval puts three intervals at 60 min, under the floor:
+  // 80 min old is inside the 90 min floor and must not read stale.
+  const freshStates = { ...idle(), [LAST_ID]: { state: iso(FROZEN - 80 * 60e3), attributes: {} },
+    [NEXT_ID]: { state: iso(FROZEN + 10 * 60e3), last_changed: iso(FROZEN - 10 * 60e3), attributes: {} } };
   const pFresh = pillOf(build(freshStates));
   check("UI-3 pill: a plan solved 80 min ago is inside the 90 min floor, not stale",
     !!pFresh && pFresh.key === "idle", JSON.stringify(pFresh));
@@ -9616,6 +9619,10 @@ check("without an indoor reading the corner now label is absent",
   const pSlow = pillOf(build(slowStates));
   check("UI-3 pill: the stale limit scales with the published solve interval",
     !!pSlow && pSlow.key === "idle", JSON.stringify(pSlow));
+  const halfStates = withPlan(idle(), "space", { state: "no plan" });
+  const pHalf = pillOf(build(halfStates));
+  check("UI-3 pill: one plan sensor still planning is not fallback",
+    !!pHalf && pHalf.key === "idle", JSON.stringify(pHalf));
   const fbStates = withPlan(withPlan(staleStates, "space", { state: "no plan" }), "dhw", { state: "no plan" });
   const pFb = pillOf(build(fbStates));
   check("UI-3 pill: no plan on either sensor reads fallback, ahead of stale",
@@ -9634,12 +9641,20 @@ check("without an indoor reading the corner now label is absent",
   // the limit, must redraw with nothing in hass changing.
   const clockCard = build(freshStates);
   try {
-    ctx.Date = class extends FrozenDate { static now() { return FROZEN + 60 * 60e3; } };
+    ctx.Date = class extends FrozenDate { static now() { return FROZEN + 11 * 60e3; } };
     clockCard.hass = { states: clockCard._hass.states };
     const p = pillOf(clockCard);
     check("UI-3 pill: crossing the stale limit redraws with no sensor changing",
       !!p && p.key === "stale", JSON.stringify(p));
   } finally { ctx.Date = FrozenDate; }
+
+  // D2 fills: the price area at 16% and the solar area at 10%, the other
+  // filled series at the card's 18%.
+  const fillOf = (d, key) => (d.match(new RegExp(`<path class="series" data-key="${key}"[^>]*fill-opacity="([\\d.]+)"`)) || [])[1];
+  const fDump = dumpOf(build(idle()));
+  check("UI-3 fills: the price area is drawn at 16% and the solar area at 10%",
+    fillOf(fDump, "price") === "0.16" && fillOf(fDump, "solar") === "0.1",
+    `price ${fillOf(fDump, "price")}, solar ${fillOf(fDump, "solar")}`);
 
   // Tiles: price now, planned heating, plan cost, indoor temperature.
   const tileStates = { ...idle(), [INDOOR_ID]: { state: "20.9", last_updated: iso(FROZEN - 60e3),

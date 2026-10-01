@@ -300,6 +300,9 @@ async function cardPages({ browser, check, plan, out }) {
           window.__card = card;
         }, [THEMES[theme], states, theme === "dark", view]);
         await page.waitForTimeout(250);
+        // Opening a page focuses its tab; a picture of the page should not
+        // show a focus ring on a tab the reader did not press.
+        await page.evaluate(() => { const a = window.__card.shadowRoot.activeElement; if (a) a.blur(); });
         const target = view === "tile" ? page.locator("heatpump-optimizer-card")
           : page.locator("heatpump-optimizer-card dialog[open]");
         const shot = await target.screenshot({ type: "png" });
