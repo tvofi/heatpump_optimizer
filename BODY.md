@@ -20,7 +20,7 @@ Documentation (U5): `docs/dashboard-card.md` "The advisor page" is rewritten aro
 
 ## Head
 
-98c0710e6ff1ad85866ee981522767797c5af099 (code head, `origin/main` 480a6911 merged in; main did not touch the card)
+6514ed1a915edd34dd7856782fa56d085554ff81 (code head, `origin/main` 8f496ce1 merged in; #1835 touched the card, its tests and the card claim file; the claim file was the only conflict, resolved by keeping main's lines and this branch's R9-UX-2 block)
 
 ## Mutation proof
 
@@ -47,10 +47,10 @@ Failing test first: commit 9bc74be9 (tests only) against main's card fails 13 of
 
 ## Figures
 
-- `node tests/card.mjs`: ALL CARD CHECKS PASSED at 98c0710e.
-- `node tests/card_drift.mjs` (merge base 480a6911 is main's tip): "39 state(s) moved and claimed, 1 identical".
-- `node tests/card_browser.mjs` (`HPO_PAGES_OUT=docs/img/card`): ALL BROWSER CHECKS PASSED at the commit before the merge, P9 grid MODE: FULL; main's merge touched no card or browser file, so it is not re-run.
-- Scoped gate selection, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: "MODE: SCOPED -- 11 script(s) run, 17 scoped out". Run at 98c0710e with `GOLDEN_MODE=drift`: `deployment_shape`, `doc_claims`, `entities` (2034 checks), `env_drift`, `features`, `golden`, `harness_headers` (94 checks), `md_tables`, `plan_view`, `card`, `card_drift`: all passed. `tests/stress.py` is not in the selection.
+- `node tests/card.mjs`: ALL CARD CHECKS PASSED at 6514ed1a.
+- `node tests/card_drift.mjs` (merge base 8f496ce1 is main's tip): "39 state(s) moved and claimed, 1 identical".
+- `node tests/card_browser.mjs` (`HPO_PAGES_OUT=docs/img/card`): ALL BROWSER CHECKS PASSED at 6514ed1a (page screenshots to a scratch directory; the committed advisor pictures come from the earlier run, and the Advisor page is not changed by #1835), P9 grid MODE: FULL.
+- Scoped gate selection, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: "MODE: SCOPED -- 11 script(s) run, 17 scoped out". Run at 6514ed1a with `GOLDEN_MODE=drift`: `deployment_shape`, `doc_claims`, `entities` (2034 checks), `env_drift`, `features`, `golden`, `harness_headers` (94 checks), `md_tables`, `plan_view`, `card`, `card_drift`: all passed. `tests/stress.py` is not in the selection.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `node .claude/workflows/brief_lint.mjs`: TOTAL: 0 error(s) across 45 file(s).
 - The monthly figure in the screenshot is the fixture's own: `(12.00 − 10.50) × 30 = 45`, and 180 is the fixture's gap, both labelled "≈" on the page.
 - Contrast: the inbox button first used the accent colour on the surface-2 row and measured 2.09:1; it now inherits the text colour. The P9 contrast check is the instrument, and it reads green at the head.
