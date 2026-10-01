@@ -5804,6 +5804,36 @@ const setupBox = (card, place) =>
     `left ${place(95)}`);
   check("a pointer in the middle still places it beside the crosshair",
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+  // R9-UI-4: the crosshair crosses every panel, from the top of the first
+  // to at least the bottom of the last (on through the lane strip under it,
+  // where there is one), wherever the pointer is.
+  {
+    const cross = posCard.shadowRoot.querySelector(".crosshair");
+    const pl = posCard._plot;
+    const ps = (pl && pl.panels) || [];
+    place(300);
+    check("the crosshair spans all three panels",
+      cross && ps.length === 3 && cross.getAttribute("visibility") !== "hidden" &&
+        Math.abs(+cross.getAttribute("y1") - ps[0].top) < 1e-9 &&
+        +cross.getAttribute("y2") >= ps[2].bottom - 1e-9,
+      cross ? `y ${cross.getAttribute("y1")}..${cross.getAttribute("y2")}, ` +
+        `panels ${ps.map((p) => `${p.key} ${p.top.toFixed(1)}..${p.bottom.toFixed(1)}`).join(", ")}` : "no crosshair");
+  }
+  // ... and the plan editor's lanes sit UNDER the bottom panel, so a slot
+  // never covers a temperature, on the tile and in the dialog alike.
+  {
+    const laneTops = [];
+    for (const open of [false, true]) {
+      if (open) posCard.dialog.open();
+      else posCard._render();
+      const geoms = (posCard._geoms || []).filter(Boolean);
+      const ps = (posCard._plot && posCard._plot.panels) || [];
+      for (const g of geoms) laneTops.push({ open, top: g.laneTop, bottom: ps.length ? ps[ps.length - 1].bottom : NaN });
+    }
+    check("the lane strip sits under the bottom panel, on the tile and in the dialog",
+      laneTops.length >= 2 && laneTops.every((l) => l.top >= l.bottom - 1e-9),
+      laneTops.map((l) => `${l.open ? "dialog" : "tile"} lanes at ${l.top}, bottom panel ends ${l.bottom}`).join("; "));
+  }
 }
 
 // --- Scenario: the zone traces are named, in one legend entry ------------

@@ -6131,7 +6131,72 @@ function renderChart(frame, opts) {
   const plotB = VIEW_H - MARGIN.bottom * marginScale;
   const plotW = plotR - plotL;
   const plotH = plotB - plotT;
-  const panels = chartPanels(axes, plotT, plotB, strip);
+
+  // Editable slot lanes, drawn by the caller's overlay into the geometry a
+  // pointer event needs to turn a screen coordinate back into a time. The
+  // lane metrics travel with the geometry (D4-01): a boosted compact font
+  // scales the lanes with it, and hit-testing must use the same numbers the
+  // drawing used.
+  //
+  // D4-02 (#257): only the EXPANDED chart's lanes are operable. On the
+  // compact tile they are a picture of the schedule -- a tap there opens the
+  // dialog, which is where the editing happens -- so the tile keeps drawing
+  // them at the size the layout gives them, and the dialog sizes them in
+  // real pixels instead. Where that strip would eat the plot (a phone, where
+  // 24 px is a third of the whole chart) it moves BELOW the axis into
+  // viewBox height added for it, so the chart keeps its shape and the room
+  // is found rather than taken -- on a phone the dialog spends about 200 px
+  // of an 812 px screen, so there is room to find.
+  //
+  // R9-UI-4: otherwise the strip sits UNDER the bottom panel, above the time
+  // axis, and the panels share what is left -- the lanes no longer draw over
+  // the temperatures.
+  let geom = null;
+  let viewH = VIEW_H;
+  let panelsBottom = plotB;
+  if (editing) {
+    const lanes = Math.max(1, (laneCount && laneCount()) || 1);
+    const laneGap = LANE_GAP * marginScale;
+    const laneInset = LANE_BOTTOM_INSET * marginScale;
+    let laneH = LANE_H * marginScale;
+    if (expanded) {
+      // Pixels to viewBox units through the scale the chart is drawn at.
+      // preserveAspectRatio is "none", but both wrappers keep the viewBox
+      // ratio (`.chartwrap` from the intrinsic size, `.chartwrap.big` from
+      // the aspect-ratio it is given below), so one scale serves both axes.
+      const unitsPerPx = drawnWidth > 0 ? VIEW_W / drawnWidth : 0;
+      if (unitsPerPx > 0) laneH = Math.max(laneH, _targetMinPx() * unitsPerPx);
+    }
+    const laneStrip = lanes * (laneH + laneGap);
+    // A strip the chart can spare stays above the axis; it is only the
+    // narrow hosts, where 24 px is a third of the whole plot, that get their
+    // own band below the axis -- added height rather than height taken from
+    // the chart. A third is the line: past it the bars stop being readable,
+    // which is the failure the lane floor must not trade itself for.
+    let laneTop = plotB - laneInset - laneStrip;
+    if (laneStrip > (plotB - plotT) / 3) {
+      laneTop = VIEW_H + laneInset;
+      viewH = laneTop + laneStrip;
+    } else {
+      panelsBottom = laneTop - laneInset;
+    }
+    geom = {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH, laneGap, laneInset, laneTop, viewH,
+      // The lane labels' own floored font (R4-D4-01, #935): recorded with
+      // the rest so a drag redraw rebuilds the strip at the size the chart
+      // drew it, not at a ratio recomputed from stale locals.
+      laneLabelFont,
+      // The compact tile's lanes are presentational; the dialog's are the
+      // editor. `laneGroupInner` reads this to decide what carries a
+      // tabindex and a hit target, and what is just ink.
+      interactive: !!expanded,
+      // The pixel floor a slot's hit target has to clear, in viewBox units.
+      minTargetX:
+        expanded && drawnWidth > 0 ? _targetMinPx() * (VIEW_W / drawnWidth) : 0,
+    };
+  }
+  const panels = chartPanels(axes, plotT, panelsBottom, strip);
   const panelOf = (axisName) => panels.find((p) => p.axes.includes(axisName)) || null;
 
   const xSpan = windowEnd - windowStart || 1;
@@ -6353,63 +6418,8 @@ function renderChart(frame, opts) {
     }
   }
 
-  // Editable slot lanes, drawn by the caller's overlay into the geometry a
-  // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
-  // geometry (D4-01): a boosted compact font scales the lanes with it, and
-  // hit-testing must use the same numbers the drawing used.
-  //
-  // D4-02 (#257): only the EXPANDED chart's lanes are operable. On the
-  // compact tile they are a picture of the schedule -- a tap there opens the
-  // dialog, which is where the editing happens -- so the tile keeps drawing
-  // them at the size the layout gives them, and the dialog sizes them in
-  // real pixels instead. Where that strip would eat the plot (a phone, where
-  // 24 px is a third of the whole chart) it moves BELOW the axis into
-  // viewBox height added for it, so the chart keeps its shape and the room
-  // is found rather than taken -- on a phone the dialog spends about 200 px
-  // of an 812 px screen, so there is room to find.
-  let geom = null;
-  let viewH = VIEW_H;
-  if (editing) {
-    const lanes = Math.max(1, (laneCount && laneCount()) || 1);
-    const laneGap = LANE_GAP * marginScale;
-    const laneInset = LANE_BOTTOM_INSET * marginScale;
-    let laneH = LANE_H * marginScale;
-    if (expanded) {
-      // Pixels to viewBox units through the scale the chart is drawn at.
-      // preserveAspectRatio is "none", but both wrappers keep the viewBox
-      // ratio (`.chartwrap` from the intrinsic size, `.chartwrap.big` from
-      // the aspect-ratio it is given below), so one scale serves both axes.
-      const unitsPerPx = drawnWidth > 0 ? VIEW_W / drawnWidth : 0;
-      if (unitsPerPx > 0) laneH = Math.max(laneH, _targetMinPx() * unitsPerPx);
-    }
-    const strip = lanes * (laneH + laneGap);
-    // A strip the plot can spare stays where it has always been, inside the
-    // plot: on a wide dialog 24 px is barely more than the authored 15 units
-    // and costs the chart nothing. It is only the narrow hosts, where 24 px
-    // is a third of the whole plot, that get their own band below the axis
-    // -- added height rather than height taken from the chart. A third is
-    // the line: past it the bars stop being readable, which is the failure
-    // the lane floor must not trade itself for.
-    let laneTop = plotB - laneInset - strip;
-    if (strip > (plotB - plotT) / 3) {
-      laneTop = VIEW_H + laneInset;
-      viewH = laneTop + strip;
-    }
-    geom = {
-      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-      laneH, laneGap, laneInset, laneTop, viewH,
-      // The lane labels' own floored font (R4-D4-01, #935): recorded with
-      // the rest so a drag redraw rebuilds the strip at the size the chart
-      // drew it, not at a ratio recomputed from stale locals.
-      laneLabelFont,
-      // The compact tile's lanes are presentational; the dialog's are the
-      // editor. `laneGroupInner` reads this to decide what carries a
-      // tabindex and a hit target, and what is just ink.
-      interactive: !!expanded,
-      // The pixel floor a slot's hit target has to clear, in viewBox units.
-      minTargetX:
-        expanded && drawnWidth > 0 ? _targetMinPx() * (VIEW_W / drawnWidth) : 0,
-    };
+  // The lanes, into the geometry measured above.
+  if (geom) {
     parts.push(`<g class="lanes">${overlay(geom)}</g>`);
   }
 
