@@ -16533,12 +16533,15 @@ _rs_root = str(_closure.ROOT)
     f'106 openat(AT_FDCWD, "tests/card.mjs", O_RDONLY) = 3<{_rs_root}/tests/card.mjs>\n')
 (_rs_dir / "r.json").write_text(json.dumps(
     {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
+_RS_INERT = None
 try:
     _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
+    _RS_INERT_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace", inert=True))
     _closure._union_strace(_rs_dir / "r.json", _rs_dir / "r.strace")
     _RS_REC = json.loads((_rs_dir / "r.json").read_text())
     _RS_GOT = (_RS_SEEN, _RS_REC["files"], _RS_REC["how"],
                (_rs_dir / "r.strace").exists())
+    _RS_INERT = (_RS_INERT_SEEN, _RS_REC.get("inert_reads"))
 except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
     _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
 _rs_shutil.rmtree(_rs_dir, ignore_errors=True)
@@ -16554,6 +16557,13 @@ R.check(
     and "_union_strace(out, trace)" in _RS_SRC,
     f"(seen, unioned files, how, trace left behind) -> {_RS_GOT}; record() "
     f"must trace with -f -y and union the log",
+)
+R.check(
+    "the recorder files a traced Python child's INERT reads apart from the closure "
+    "(R9-F10.9d): LICENSE is in inert_reads and in no file list",
+    _RS_INERT == (["LICENSE"], ["LICENSE"]) and "LICENSE" not in _RS_GOT[1],
+    f"(inert seen, record's inert_reads) -> {_RS_INERT}; merge_fastpath.py reads these "
+    "to tell a docs/delivery row from a doc harness_headers.py opens",
 )
 
 

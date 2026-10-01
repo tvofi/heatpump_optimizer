@@ -2497,5 +2497,14 @@
    "tests/layout.json",
    "tests/layout.py"
   ]
+ },
+ "inert_reads": {
+  "tests/harness_headers.py": [
+   "DISCLAIMER.md",
+   "LICENSE",
+   "docs/audit-2026-08.md",
+   "docs/audit-2026-09.md",
+   "docs/backlog.md"
+  ]
  }
 }
