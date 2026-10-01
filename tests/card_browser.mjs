@@ -549,6 +549,13 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   const cells = [];
   for (const vp of VIEWPORTS) for (const lang of ["en", "sv-SE"]) cells.push({ vp, lang, theme: "light" });
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark" });
+  // The card picks its status colours from hass.themes.darkMode, a profile
+  // setting the user flips independently of the OS scheme (D4-s1-01, carry
+  // 1652), so each cell sets it in lockstep with its theme variables, and two
+  // cells run HA's theme against the opposite OS scheme: a colour keyed off
+  // the OS instead of HA fails one of them.
+  cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark", os: "light" });
+  cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "light", os: "dark" });
   const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
   const bad = { contrast: [], overflow: [], overlap: [], small: [], popups: [], options: [], missed: [], threw: [] };
   const reach = {};
@@ -558,17 +565,17 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
     const ctx = await browser.newContext({ viewport: { width: cell.vp[0], height: cell.vp[1] }, deviceScaleFactor: 2,
       // Reduced motion: the card drops its transitions, so every cell measures
       // an end state -- a fade caught half-way would be a flake, not a finding.
-      colorScheme: cell.theme, reducedMotion: "reduce" });
+      colorScheme: cell.os || cell.theme, reducedMotion: "reduce" });
     await ctx.clock.setFixedTime(FROZEN);
     await ctx.route("http://hpo.test/**", (r) => r.fulfill({ contentType: "text/html", body: PAGE }));
     const page = await ctx.newPage();
     for (const st of states) {
-      const tag = `${st.name}/${cell.vp[0]}/${cell.theme}/${cell.lang}`;
+      const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
       try {
         await page.goto("http://hpo.test/");
         await page.addScriptTag({ content: cardSrc });
         await page.addScriptTag({ content: `(${instrument.toString()})();` });
-        await page.evaluate(([themeCss, w, cfg, states2, lang, svc]) => {
+        await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {
           document.getElementById("theme").textContent =
             `html{${themeCss};background:var(--primary-background-color)}` +
             `body{margin:0;padding:8px;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
@@ -586,12 +593,12 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
           }
           const c = document.createElement("heatpump-optimizer-card");
           c.setConfig({ type: "custom:heatpump-optimizer-card", ...cfg });
-          const hass = { states: states2, language: lang };
+          const hass = { states: states2, language: lang, themes: { darkMode: dark } };
           if (svc === "fail") hass.callService = async () => { throw new Error("Service call failed"); };
           else if (svc) hass.callService = async () => ({ response: { results: {}, applied: { space: { expires_at: new Date(Date.now() + 5 * 3600000).toISOString() } } } });
           c.hass = hass;
           document.body.appendChild(c);
-        }, [THEMES[cell.theme], cell.vp[0] - 16, st.config, st.states, cell.lang, st.service]);
+        }, [THEMES[cell.theme], cell.vp[0] - 16, st.config, st.states, cell.lang, st.service, cell.theme === "dark"]);
         await page.waitForTimeout(60);
         const { missed, hover } = await page.evaluate((s) => window.__p9.drive(s), st.steps);
         if (hover) { await page.mouse.move(hover.x, hover.y); await page.waitForTimeout(120); }
@@ -631,6 +638,7 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   check("P9 grid: every listbox option reads differently from its siblings as shown", bad.options.length === 0, show(bad.options));
   check("P9 grid: no text is clipped where its ancestor cannot scroll to it", bad.overflow.length === 0, show(bad.overflow));
   check("P9 grid: every target clears 24 px or the 2.5.8 spacing exception", bad.small.length === 0, show(bad.small));
+  if (process.env.P9_DEBUG) console.log(JSON.stringify(bad, null, 1));
   return { bad, unreached, n };
 }
 
