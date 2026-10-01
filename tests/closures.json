@@ -6,11 +6,11 @@
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 11.5,
+   "seconds": 8.7,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 4.4,
+   "seconds": 3.3,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
@@ -22,7 +22,7 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 28.7,
+   "seconds": 16.5,
    "rc": 0
   },
   "tests/entities.py": {
@@ -58,7 +58,7 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.8,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/solar_alignment.py": {
@@ -74,7 +74,7 @@
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 26.9,
+   "seconds": 15.6,
    "rc": 0
   },
   "tests/deployment_shape.py": {
@@ -82,7 +82,7 @@
    "rc": 0
   },
   "tests/ha_contract.py": {
-   "seconds": 0.2,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/typing_ruler.py": {
@@ -1780,6 +1780,7 @@
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
