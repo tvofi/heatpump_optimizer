@@ -5,7 +5,7 @@ Seats stop appending to `RESUME.md`, read the roster through `jq`, and send mech
 
 ## Head
 
-Code head 893022c25756de27a60f10d26342b41d6bd939e4 on `handoff/r9-proc-5`, merge base 90335cbd6ee6a0e4423cd1effc2c8c962e2ac0a0.
+Code head b986847149298b9d0fa2cf479fa5be221003556d on `handoff/r9-proc-5`, merge base 90335cbd6ee6a0e4423cd1effc2c8c962e2ac0a0.
 
 ## Mutation proof
 
