@@ -537,6 +537,56 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
   [ -z "$out" ]
 }
 
+# --- transport files in the code head's ancestry -------------------------------
+# WHY THIS EXISTS. A pull-request body used to travel as a commit above the code
+# head, under `tools/audit/handoff/`, with resume notes under `handoff/`, and any
+# commit a seat then added on top dragged the transport into the code head. The
+# round-9 process review counted at least seven such incidents, every one found
+# by a reviewer or by a re-cut (#1783 re-cut as #1785, #1801, #1815). Transport
+# now travels on an orphan ref (`fixer.md` step 6), so no commit a branch adds
+# writes under either root, and a reviewer never has to look.
+#
+# `--full-history` because default history simplification follows only the
+# first parent of a merge whose tree matches it, which hides a side branch that
+# added a body and deleted it again: the exact shape a re-cut leaves.
+# `--no-merges` because a merge's diff against its first parent reports main's
+# own files. Deletions pass, so a branch removing a stray file main still
+# carries is not refused. Fail-closed: a range git cannot read returns 2.
+TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)
+transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> <path>`), 2 unreadable
+  local out
+  out=$(git log --full-history --no-merges --diff-filter=ACMRT --name-only \
+        --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2
+  out=$(printf '%s\n' "$out" | awk '/^@/{c=substr($0,2);next} NF{print c" "$0}')
+  [ -z "$out" ] && return 0
+  printf '%s\n' "$out"
+  return 1
+}
+
+# --- whether a diff owes the self-test -----------------------------------------
+# WHY THIS EXISTS. #1811 went red in CI's `governance` job on a self-test row its
+# own diff had made stale, a run of seconds here; its fixer named this as the
+# cheaper detector. The rows drive this script, the programs it shells out to
+# and their fixtures, so a change to any of them can move a row. The program
+# list is derived from this file, never carried: every tracked script path it
+# names. A path named only in a comment over-selects, which costs one self-test
+# run; a carried list under-selects the day a step is added.
+SELFTEST_FIXTURES=.claude/workflows/fixtures/
+selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
+  { printf '%s\n' tools/audit/prepr.sh
+    grep -oE '(\.claude/workflows|tools|tests)/[A-Za-z0-9_./-]+\.(mjs|js|py|sh)' tools/audit/prepr.sh
+  } | sort -u | while read -r p; do
+    git ls-files --error-unmatch -- "$p" >/dev/null 2>&1 && printf '%s\n' "$p"
+  done
+  printf '%s\n' "$SELFTEST_FIXTURES"
+}
+selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
+  awk 'NR==FNR { if ($0 ~ /\/$/) d[$0]=1; else f[$0]=1; next }
+       ($0 in f) { hit=1; exit }
+       { for (p in d) if (index($0, p) == 1) { hit=1; exit } }
+       END { exit !hit }' <(selftest_inputs) "$1"
+}
+
 # `pr-contract`'s entry point: `prepr.sh --version-edit <main ref> <head>`. It
 # exits before anything below, which needs a body, node and the closures.
 if [ "${1:-}" = "--version-edit" ]; then
@@ -1002,6 +1052,51 @@ PY
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
   st $? 0 "preflight accepts an intended one (null control)"
 
+  # transport_in_ancestry, on a throwaway repository: one null control per arm
+  # that must pass, and each refused shape built the way a seat produced it.
+  TR=$(mktemp -d)
+  (
+    set -e; cd "$TR"; git init -q -b main .
+    git config user.name st; git config user.email st@st
+    mkdir -p tools/audit/handoff/old; echo x > tools/audit/handoff/old/BODY.md
+    echo a > code; git add -A; git commit -qm base
+    git checkout -q -b clean; echo b > code; git commit -qam code
+    git checkout -q -b above clean; mkdir -p tools/audit/handoff/t
+    echo b > tools/audit/handoff/t/BODY.md; git add -A; git commit -qm transport
+    echo c > code; git commit -qam "code above the transport"
+    git checkout -q -b cancelled above; git rm -q tools/audit/handoff/t/BODY.md
+    git commit -qm "strip the transport"
+    git checkout -q -b side clean; git checkout -q -b note clean; mkdir -p handoff/r
+    echo n > handoff/r/RESUME.md; git add -A; git commit -qm note
+    git rm -q handoff/r/RESUME.md; git commit -qm "drop the note"
+    git checkout -q side; git merge -q --no-ff --no-edit note
+    git checkout -q -b tidy clean; git rm -q tools/audit/handoff/old/BODY.md
+    git commit -qm "delete a transport file main carries"
+  ) >/dev/null 2>&1
+  for c in "clean 0 a code head over a base that carries a transport file passes (null control)" \
+           "above 1 a code commit above a body transport commit is refused" \
+           "cancelled 1 a body added and deleted again is still refused" \
+           "side 1 a resume note hidden behind a tree-identical merge is refused" \
+           "tidy 0 deleting a transport file main carries passes (null control)"; do
+    set -- $c; br=$1; want=$2; shift 2
+    (cd "$TR" && transport_in_ancestry main "$br" >/dev/null 2>&1); st $? "$want" "transport: $*"
+  done
+  (cd "$TR" && transport_in_ancestry main no-such-ref >/dev/null 2>&1); st $? 2 "transport: an unreadable range is refused, never passed"
+  rm -rf "${TR:?}"
+
+  # selftest_owed: the trigger for step 3h.
+  SO=$(mktemp)
+  printf '%s\n' tools/audit/prepr.sh > "$SO"; selftest_owed "$SO"; st $? 0 "a change to prepr.sh owes the self-test"
+  printf '%s\n' .claude/workflows/policy_lint.mjs > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a program a step runs owes the self-test"
+  printf '%s\n' .claude/workflows/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
+  printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
+  selftest_inputs > "$SO.in"
+  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py; do
+    grep -qxF "$p" "$SO.in"; st $? 0 "the derived inputs name $p"
+  done
+  rm -f "$SO.in"
+  rm -f "$SO"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
@@ -1036,6 +1131,14 @@ if [ -z "$BASE" ]; then
   exit 2
 fi
 step "merge-base" 0 "$BASE"
+
+# --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
+TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
+case $? in
+  0) step "transport" 0 "no commit since the merge base writes under ${TRANSPORT_ROOTS[*]}" ;;
+  1) step "transport" 1 "$(echo $TRANSPORT) -- transport is in the code head's ancestry; the body goes on the orphan ref handoff-body/<topic> (fixer.md step 6), and the code head is re-cut without these commits" ;;
+  *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
+esac
 
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
@@ -1112,6 +1215,19 @@ rm -f /tmp/prepr-fc.$$
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)
 step "pinned graders" $? "$(echo $VERDICT)"
+
+# --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
+# CI's `governance` job runs it on every pull request; this is the cheaper
+# detector. A diff that cannot be listed is treated as owing it.
+if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+     || selftest_owed /tmp/prepr-st.$$; then
+  bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1
+  step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
+  rm -f /tmp/prepr-stlog.$$
+else
+  say skip "self-test" "no change to prepr.sh, a program it names or its fixtures"
+fi
+rm -f /tmp/prepr-st.$$
 
 # --- 4. the wave script's branching, when the branch touched any of its inputs.
 #
