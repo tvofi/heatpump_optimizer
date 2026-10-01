@@ -3688,11 +3688,11 @@
         "R9-F10.1c"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-1d",
-        "commit": null,
-        "last_step": null,
-        "next_step": "after F10.1c merges: fixer.md step 1 at a fresh merge base; measure the 10 barrier_gap sites before writing any fix",
+        "commit": "2f2b167d",
+        "last_step": "#1809 merged 2026-10-01T13:0xZ as 2f2b167d at head 5ef09d8a (round-2 verdict 5931556210 + delta 5931870147; tvofi review under mandate; real-HA 61/61); barrier_gap 14 misfires owned by F10.1e",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.1d.md on handoff/r9-f10-gate-infra-1d",
         "review_branch": "handoff/r9-f10-gate-infra-1d-review",
         "review_note_file": "handoff/round9/fix/resume/F10.1d-review.md on handoff/r9-f10-gate-infra-1d-review",
