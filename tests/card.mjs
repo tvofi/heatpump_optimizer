@@ -9547,5 +9547,28 @@ check("without an indoor reading the corner now label is absent",
     dmDump2.includes(`.dearer {\n        color: ${fn("ERROR_READABLE")};`));
 }
 
+{
+  // P9 (round-9 review M2): slotHitExtents grows narrow slots towards the
+  // 24 px target floor, then splits any still-contested edge. Without that
+  // last split two neighbours' hit rects overlap, and a tap on the overlap
+  // opens the wrong slot. The browser grid's states never produce such a
+  // crowd, so the invariant is pinned here: within one lane no two targets
+  // overlap, and every target still covers its own ink.
+  const slotHitExtents = fn("slotHitExtents");
+  const crowds = {
+    boxed_in: [[100, 103], [113, 116], [126, 129]],
+    pair_close: [[100, 103], [108, 111]],
+    shared_steps_like: [[50, 54], [60, 64], [70, 74], [80, 84], [90, 94]],
+  };
+  for (const [name, spans] of Object.entries(crowds)) {
+    const drawn = spans.map(([x1, x2]) => ({ x1, x2, shown: true }));
+    const hits = slotHitExtents(drawn, 0, 400, 24, () => true);
+    const covers = hits.every((h, i) => h.left <= drawn[i].x1 + 1e-9 && h.right >= drawn[i].x2 - 1e-9);
+    const disjoint = hits.every((h, i) => i + 1 >= hits.length || h.right <= hits[i + 1].left + 1e-9);
+    check(`slotHitExtents ${name}: every hit target covers its own ink`, covers);
+    check(`slotHitExtents ${name}: no two hit targets in the lane overlap`, disjoint);
+  }
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
