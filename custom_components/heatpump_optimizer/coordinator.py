@@ -413,7 +413,7 @@ from .wood_fuel import (
     wood_fuel_from_coordinator,
 )
 from .thermal_model import (
-    DHW_AMBIENT_TEMP,
+    TANK_ROOM_AMBIENT_TEMP,
     WATER_SPECIFIC_HEAT,
     ThermalModel,
     ThermalParameters,
@@ -437,6 +437,7 @@ from .optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
+    _utc_step_starts,
     optimize_in_process,
     slab_settlement_cap,
 )
@@ -608,25 +609,8 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 FORECAST_STEP_MINUTES = 15
 
 
-def _utc_step_starts(
-    midnight: datetime,
-    n_steps: int,
-    step_offset: int = 0,
-    step_minutes: int = FORECAST_STEP_MINUTES,
-) -> list[datetime]:
-    """Step labels walked in UTC, then converted back to ``midnight``'s zone.
-
-    Adding a wall-clock step invents the spring DST gap and stretches the
-    autumn overlap into a 75-minute step. Walking the same count in UTC
-    keeps every label a real instant. Naive ``midnight`` keeps the old
-    wall-clock walk so unzoned fixtures stay byte-identical.
-    """
-    step = timedelta(minutes=step_minutes)
-    tz = midnight.tzinfo
-    if tz is None:
-        return [midnight + step * (step_offset + i) for i in range(n_steps)]
-    base = midnight.astimezone(timezone.utc)
-    return [(base + step * (step_offset + i)).astimezone(tz) for i in range(n_steps)]
+#: One forecast step, as the clock ``optimizer._utc_step_starts`` walks.
+FORECAST_STEP = timedelta(minutes=FORECAST_STEP_MINUTES)
 
 
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
@@ -770,9 +754,9 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 # A failed solve keeps the last good plan published — deliberately, a solver
 # hiccup must not blank the entities — but a plan that keeps failing to
 # refresh eventually describes yesterday's prices and weather, not today's.
-# Stale = older than three missed solve cycles, floored at 90 minutes so a
-# short 5-minute update interval does not declare a plan stale over one
-# transient failure. A stale plan stops being actuated (the pump falls back
+# Stale = older than three missed solve cycles, floored at 90 minutes so even
+# the shortest update interval the options allow does not declare a plan stale
+# over one transient failure. A stale plan stops being actuated (the pump falls back
 # to its own curve, exactly as when no plan exists) and, after three
 # consecutive failures, raises a repair issue.
 PLAN_STALE_INTERVALS = 3
@@ -3177,7 +3161,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             t = float(setpoint)
             standby_kwh = (
                 params.dhw_tank_heat_loss_coefficient
-                * max(0.5 * (t + params.dhw_min_temp) - DHW_AMBIENT_TEMP, 0.0)
+                * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * 24.0
             )
             cop = max(
@@ -6423,7 +6407,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return None
 
-        step_starts = _utc_step_starts(midnight, n_steps, step_offset)
+        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
 
         # Align by each entry's own timestamp, not by its position. Position
         # assumed the first entry is *today's* midnight, which breaks two real
@@ -6525,7 +6509,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The rows are already in m/s (`_forecast_in_model_units`, #1513):
         # guessing from the magnitude misreads a moderate 20 km/h breeze as
         # a 20 m/s storm and doubles the predicted heat loss.
-        step_starts = _utc_step_starts(midnight, n_steps, step_offset)
+        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
 
         parsed: list[
             tuple[datetime | None, tuple[float, float, float, float, float]]
@@ -6611,7 +6595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         aligned: list[float] = []
         missing = 0
         for i, step_start in enumerate(
-            _utc_step_starts(midnight, n_steps, step_offset)
+            _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
         ):
             value = self._open_meteo.irradiance_for(step_start, step)
             if value is None:
@@ -6687,7 +6671,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._open_meteo is not None and self._open_meteo.available:
             step = timedelta(minutes=FORECAST_STEP_MINUTES)
             for i, step_start in enumerate(
-                _utc_step_starts(midnight, n_steps, step_offset)
+                _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
             ):
                 rh = self._open_meteo.humidity_for(step_start, step)
                 if rh is not None:
@@ -7891,7 +7875,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return _utc_step_starts(
             solve_now,
             n_steps,
-            step_minutes=int(round(getattr(self, "_ctx", self)._opt_config.dt_hours * 60)),
+            timedelta(hours=getattr(self, "_ctx", self)._opt_config.dt_hours),
         )
 
     def _manual_pins(

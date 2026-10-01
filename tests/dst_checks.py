@@ -28,6 +28,7 @@ from heatpump_optimizer import (
     _take_fresh_handover,
 )
 from heatpump_optimizer.coordinator import (
+    FORECAST_STEP,
     FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
     _solve_anchor,
@@ -375,7 +376,7 @@ for _label, _day in _DST_DAYS:
     _midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
     _priced = _c._price_series(_n, _midnight, 0)
     _arrays = _c._forecast_arrays(_now)
-    _labels = _utc_step_starts(_midnight, _n, 0)
+    _labels = _utc_step_starts(_midnight, _n, FORECAST_STEP)
     _t0 = _labels[0].astimezone(UTC)
     _real = [_t0 + timedelta(minutes=FORECAST_STEP_MINUTES * i) for i in range(_n)]
     _expected = np.array([_price_for(r) for r in _real])
@@ -418,11 +419,35 @@ R.check(
     not any(_is_phantom(t) for t in _spring_ts),
     f"phantoms={[t.isoformat() for t in _spring_ts if _is_phantom(t)]}",
 )
+# #1741: one clock. The coordinator's bridge to the optimizer's horizon
+# (_horizon_step_starts) and _Horizon.timestamps both call the one
+# optimizer._utc_step_starts with the configured step, so they agree on both
+# transition days by construction, not because the config surface only offers
+# whole-minute steps. A 7.5-minute step is the control the old two-clock pair
+# failed: its minute-rounding bridge walked 8-minute steps.
+_clk_fake = type("_C", (), {"_opt_config": type("_O", (), {"dt_hours": 0.25})()})()
+_clk_odd = type("_C", (), {"_opt_config": type("_O", (), {"dt_hours": 0.125})()})()
 R.check(
-    "coordinator and optimizer stamp the same spring grid",
-    _opt_utc_step_starts(_spring, _n, 0.25) == _utc_step_starts(_spring, _n, 0),
-    "the two seams must not disagree by an hour on a transition day",
+    "one horizon clock: the coordinator's import IS the optimizer's",
+    _utc_step_starts is _opt_utc_step_starts,
 )
+for _clk_label, _clk_day, _clk_ts in (
+    ("spring", _spring, _spring_ts), ("autumn", _autumn, _autumn_ts),
+):
+    R.check(
+        f"coordinator and optimizer stamp the same {_clk_label} grid",
+        HeatPumpOptimizerCoordinator._horizon_step_starts(_clk_fake, _clk_day, _n)
+        == list(_clk_ts),
+        "the two seams must not disagree by an hour on a transition day",
+    )
+    _clk_odd_ts = _Horizon.timestamps.fget(
+        type("_H", (), {"start_time": _clk_day, "n_steps": _n, "dt": 0.125})()
+    )
+    R.check(
+        f"and on a step that is not a whole number of minutes ({_clk_label})",
+        HeatPumpOptimizerCoordinator._horizon_step_starts(_clk_odd, _clk_day, _n)
+        == list(_clk_odd_ts),
+    )
 _spring_gaps = [
     (_spring_ts[i + 1].astimezone(UTC) - _spring_ts[i].astimezone(UTC)).total_seconds()
     / 60.0
@@ -482,7 +507,7 @@ def _plan_on(day: datetime):
     c = _dst_coord(day)
     arrays = c._forecast_arrays(now)
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    labels = _utc_step_starts(midnight, _n, 0)
+    labels = _utc_step_starts(midnight, _n, FORECAST_STEP)
     hours = np.array([(s.hour + s.minute / 60.0) for s in labels])
     shaped = np.where(
         (hours >= 0) & (hours < 5),
@@ -561,7 +586,7 @@ def _metered_factors(tariff: CapacityTariff, start: datetime, n: int) -> list[fl
     tracker = PeakTracker()
     slot0 = _window_slot(start, tariff.window_minutes)
     seen = []
-    for when in _opt_utc_step_starts(slot0, n, tariff.window_minutes / 60.0):
+    for when in _opt_utc_step_starts(slot0, n, timedelta(minutes=tariff.window_minutes)):
         tracker.observe(when, 1.0, tariff)
         seen.append(tracker._window_factor)
     return seen
@@ -603,7 +628,7 @@ def _detail777(label: str) -> str:
 # The guard against this case silently sliding off the transition again --
 # the exact way the 13:30 case above stopped covering anything.
 _offsets777 = {
-    label: len({s.utcoffset() for s in _opt_utc_step_starts(start, 24, 1.0)})
+    label: len({s.utcoffset() for s in _opt_utc_step_starts(start, 24, timedelta(hours=1))})
     for label, start in _DAYS777
 }
 R.check(

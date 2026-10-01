@@ -36,7 +36,12 @@ import numpy as np
 
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .mixing_valve import is_throttling
-from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .thermal_model import (
+    TANK_ROOM_AMBIENT_TEMP,
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,7 +203,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
                 [0.0, k_slab, -(a_f + k_slab), a_f],
                 [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
             ]),
-            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - TANK_ROOM_AMBIENT_TEMP * k_b]),
             rcond=None,
         )
     return ThermalState(

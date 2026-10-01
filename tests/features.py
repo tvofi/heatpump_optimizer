@@ -13911,7 +13911,7 @@ from zoneinfo import ZoneInfo as _ClkZone
 
 _clk_tz = _ClkZone("Europe/Stockholm")
 _spring = datetime(2026, 3, 29, 1, 30, tzinfo=_clk_tz)
-_spring_steps = _usteps(_spring, 8, 0.25)
+_spring_steps = _usteps(_spring, 8, timedelta(minutes=15))
 _spring_utc = [
     (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
     for a, b in zip(_spring_steps, _spring_steps[1:])
@@ -13922,7 +13922,7 @@ R.check(
     f"deltas={_spring_utc} local={[s.isoformat() for s in _spring_steps]}",
 )
 _autumn = datetime(2026, 10, 25, 1, 30, tzinfo=_clk_tz)
-_autumn_steps = _usteps(_autumn, 8, 0.25)
+_autumn_steps = _usteps(_autumn, 8, timedelta(minutes=15))
 _autumn_utc = [
     (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
     for a, b in zip(_autumn_steps, _autumn_steps[1:])
@@ -21747,7 +21747,7 @@ R.check(
 
 # R6-D2-02: the inlet floor must not manufacture heat above the tank's
 # surroundings. The floor is a lower bound, and the tank stands in a room at
-# DHW_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
+# TANK_ROOM_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
 # above that room turns the bound into a source that pins the tank at the
 # inlet and books the fabricated heat on _step_dhw_floor_injected. The floor
 # belongs at min(inlet_reference, ambient), where an unheated tank settles of
@@ -49249,7 +49249,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     DHW_COOLING_REFERENCE_DELTA as _R7PIN_REF_DELTA,
 )
 from heatpump_optimizer.thermal_model import (  # noqa: E402
-    DHW_AMBIENT_TEMP as _R7PIN_AMBIENT,
+    TANK_ROOM_AMBIENT_TEMP as _R7PIN_AMBIENT,
 )
 
 # `async_load_profile` restores a stored pooled profile only when it is a
@@ -54052,6 +54052,17 @@ class _R9P3Resolve(_r9p3_ast.NodeTransformer):
             return self.visit(n.args[0])
         return self.generic_visit(n)
 
+    def visit_BinOp(self, n):
+        # A commutative product or sum keys alike in either operand order:
+        # coordinator._observe_compressor_start floored `0.5 * min_power`
+        # beside the owner's `min_power * 0.5`, and the unsorted key read
+        # them as two quantities (the fourth on-threshold copy, P2 RCA).
+        n = self.generic_visit(n)
+        if isinstance(n.op, (_r9p3_ast.Mult, _r9p3_ast.Add)):
+            a, b = sorted((n.left, n.right), key=_r9p3_ast.unparse)
+            n.left, n.right = a, b
+        return n
+
 
 def _r9p3_groups(sources: dict[str, str]) -> dict:
     """{key: (kinds, floors, raw divisors)} for every inconsistently floored key."""
@@ -54150,13 +54161,19 @@ _r9p3_probe = {
         "def h(p, q):\n    return q / max(p.cap_a - p.cap_b, 0.1)\n"
         "def k(p, q):\n    return q / p.cap_a + q / max(p.cap_a, 0.02) + q / max(q, 0.5)\n"
     ),
+    "three": (
+        "def m(p):\n    return max(0.1, 0.5 * p.cap_b)\n"
+        "def n(p):\n    return max(0.1, float(p.cap_b) * 0.5)\n"
+    ),
 }
 R.check(
-    "R9-P3: and the rule keys a range spelt two ways alike, a floor through a "
-    "local, a second constant and a raw divisor, and passes a local's floor",
+    "R9-P3: and the rule keys a range spelt two ways alike, a product in "
+    "either operand order alike, a floor through a local, a second constant "
+    "and a raw divisor, and passes a local's floor",
     {k: v[0] for k, v in _r9p3_groups(_r9p3_probe).items()} == {
         "cap_a": ["two constants", "floored in two functions", "divided raw beside its floor"],
         "cap_a - cap_b": ["floored in two functions"],
+        "0.5 * cap_b": ["floored in two functions"],
     },
     f"{_r9p3_groups(_r9p3_probe)}",
 )

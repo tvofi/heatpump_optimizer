@@ -126,9 +126,11 @@ _LOGGER = logging.getLogger(__name__)
 # re-exported here so the many uses below read unchanged.
 WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
 
-# Air temperature around the storage tanks; they are assumed to stand indoors.
-# This is the reference ambient the learned DHW cooling rate is stated against.
-DHW_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
+# Air temperature around the storage tanks -- DHW, buffer and wood alike; they
+# are assumed to stand indoors. The one name every tank's standing loss is
+# taken against (#1741), and the reference ambient the learned DHW cooling
+# rate is stated against.
+TANK_ROOM_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
 
 # Physical floor for the thermal-mass stores the per-step model divides by.
 # 0.1 kWh/°C is about 90 litres of water — already implausibly small for a
@@ -1959,7 +1961,7 @@ class ThermalModel:
         self,
         from_temp: float,
         to_temp: float,
-        ambient_temp: float = DHW_AMBIENT_TEMP,
+        ambient_temp: float = TANK_ROOM_AMBIENT_TEMP,
     ) -> float:
         """Hours of pure standby decay between two tank temperatures.
 
@@ -1992,7 +1994,7 @@ class ThermalModel:
         dhw_temp: float,
         dhw_power_thermal: float,
         hour_of_day: float,
-        ambient_temp: float = DHW_AMBIENT_TEMP,
+        ambient_temp: float = TANK_ROOM_AMBIENT_TEMP,
         dt_hours: float = 0.25,
         draw_power: float | None = None,
     ) -> float:
@@ -2329,8 +2331,8 @@ class ThermalModel:
 
         rad_fraction = p.radiator_power_fraction
 
-        # Buffer tank loss to ambient (assume ~20°C ambient indoors)
-        q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
+        # Buffer tank loss to the room it stands in
+        q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - TANK_ROOM_AMBIENT_TEMP)
 
         if throttled:
             # --- A valve exists: it regulates flow temperature ----------------
@@ -2417,7 +2419,7 @@ class ThermalModel:
                 if T_w is None:
                     T_w = T_buf
                 C_w = p.wood_tank_thermal_mass
-                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - 20.0)
+                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - TANK_ROOM_AMBIENT_TEMP)
                 w = wood_share(T_w, T_buf, flow_set, floor_temp)
                 avail_wood = ext - q_wood_loss + C_w * max(
                     0.0, T_w - floor_temp
@@ -3051,7 +3053,7 @@ class ThermalModel:
                     q_int_up = q_internal * area_ratio
                     q_int_lo = q_internal * (1.0 - area_ratio)
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
-                        T_buf - 20.0
+                        T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
                     # COP: only the flow-temp correction varies per element;
                     # the scalar law lives in _batch_cop so this method's
@@ -3088,7 +3090,7 @@ class ThermalModel:
                         drawn = q_rad + q_floor
                         if two_tank and T_wood is not None:
                             q_wood_loss = p.wood_tank_heat_loss_coefficient * (
-                                T_wood - 20.0
+                                T_wood - TANK_ROOM_AMBIENT_TEMP
                             )
                             w = _wood_share_vec(
                                 T_wood, T_buf, flow_set, floor_temp
@@ -3394,7 +3396,7 @@ class ThermalModel:
                 dhw_temp=state.dhw_temperature,
                 dhw_power_thermal=dhw_thermal_power,
                 hour_of_day=current_hour % 24.0,
-                ambient_temp=DHW_AMBIENT_TEMP,
+                ambient_temp=TANK_ROOM_AMBIENT_TEMP,
                 dt_hours=dt_hours,
                 draw_power=draw_i,
             )
