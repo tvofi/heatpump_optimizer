@@ -30,7 +30,13 @@ none
 
 ## Red checks
 
-none: CI has not run on this head. Unrun here: the full gate (`MODE: FULL`, `tests.yml` changes), typing and real-HA `ha_contract` (no Python 3.14.2 in the cloud seat), and a real cache round trip, which needs a push to `main` first.
+Two checks were red on earlier commits of this branch, and neither is on its current code.
+
+`fast (3.14)` was red once, on `c1ee65df` (the merge of `main` at `411368b6` into this branch): "1 TEST SCRIPT(S) FAILED" in run 36904819953. The next commit, `3e74c871`, differs from it only by `docs/delivery/1824.md`, and the same suite passed there (run 36905055277). It also passed on `e67bc382` and `29c3eef7`. The failing script's own lines are outside what this seat can read: the log API returns only the tail, and the full-log download host is refused by the seat's proxy. So the failure does not reproduce on the identical code. No cheaper detector exists for a failure that passes on the next run of the same code.
+
+`delivery-status` was red on `e67bc382` because `main` then had overdue rows for #1802 to #1810. That check is not required and grades `main`'s record, not this diff. #1828 wrote those rows, and the check is green on `29c3eef7`. The cheaper detector already exists: `stamp.py` refuses to run with a missing row.
+
+CI has not run on this head. Unrun here: the full gate (`MODE: FULL`, `tests.yml` changes), typing and real-HA `ha_contract` (no Python 3.14.2 in the cloud seat), and a real cache round trip, which needs a push to `main` first.
 
 ## Forward-carry
 
