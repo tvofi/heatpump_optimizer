@@ -24,6 +24,15 @@
 // Regenerate after a card change that should move the picture:
 //
 //   HPO_HERO_OUT=docs/img/card-plan-chart.png node tests/card_browser.mjs
+//
+// R9-UI-3 (decision U5): the hero mode generalised into a page-screenshot
+// mode, which renders the dashboard tile and each dialog page (Plan, Setup,
+// Savings, Advisor) from the repository fixture in Home Assistant's light and
+// dark themes. CI takes the pictures and checks them; HPO_PAGES_OUT writes
+// them, and every card group regenerates the pages it changes this way, never
+// by hand, for docs/dashboard-card.md:
+//
+//   HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -165,8 +174,35 @@ function gridStates(plan) {
     ] };
     return st;
   };
+  // R9-UI-3's status pill: one cell per state the default cells do not
+  // reach (the fixture's plan is heating, and override_active is the manual
+  // pill), so every tone's colour rule is rendered and measured. The idle
+  // cell also carries the indoor sensor, so the fourth tile is measured too.
+  const pillIdle = () => {
+    const st = planStates(plan);
+    for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) st[id].attributes.active_now = false;
+    st["sensor.heat_pump_optimizer_indoor_temperature_optimizer"] = { state: "20.9",
+      attributes: { device_class: "temperature", unit_of_measurement: "°C" } };
+    return st;
+  };
+  const pillStale = () => {
+    const st = planStates(plan);
+    const at = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+    st["sensor.heat_pump_optimizer_last_optimization"] = { state: new Date(at - 4 * HOUR).toISOString(), attributes: {} };
+    return st;
+  };
+  const pillFallback = () => {
+    const st = planStates(plan);
+    for (const [id, kind] of [[DEFAULT_SPACE, "space"], [DEFAULT_DHW, "dhw"]]) {
+      st[id] = { state: "no plan", attributes: { plan_kind: kind, friendly_name: st[id].attributes.friendly_name } };
+    }
+    return st;
+  };
   const S = (name, o) => ({ name, config: {}, steps: [], service: false, ...o });
   return [
+    S("status_idle", { states: pillIdle() }),
+    S("status_stale", { states: pillStale() }),
+    S("status_fallback", { states: pillFallback() }),
     S("live_default", { states: withActuals(planStates(plan)) }),
     S("live_default_expanded", { states: withActuals(planStates(plan)), steps: [["cardClick"]] }),
     S("draft_menu_open", { states: planStates(plan), config: wi, steps: [["cardClick"], ["dragDhw"], ["menuAt", "space", 0.1]] }),
@@ -206,6 +242,147 @@ function gridStates(plan) {
     S("setup_clear_armed", { states: setupStates(qaTopologies().base), steps: [["cardClick"], ["page", "setup"], ["armClear"]] }),
     S("picker_twins", { states: setupStates(qaTopologies().base, twins()), steps: [["cardClick"], ["page", "setup"], ["picker", "vedpanna"]] }),
   ];
+}
+
+/** The fixture behind the page screenshots: the plan, the headline and
+ * indoor sensors, the setup topology, an advisor ranking and two months of
+ * savings, so no page renders its empty state. */
+function pageStates(plan) {
+  const st = { ...planStates(plan), ...setupSensorStates() };
+  st[DEFAULT_SPACE].attributes.setup_topology = qaTopologies().base;
+  st[DEFAULT_SPACE].attributes.sensor_advisor = { basis: "history", candidates: [
+    { key: "buffer_tank_temp_entity", label: "Buffer tank temperature", spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+    { key: "lower_floor_temp_entity", label: "Lower floor temperature", spread_c: 1.62, parameters: ["lower_floor_loss"], priced: true },
+    { key: "dhw_temp_entity", label: "Hot water temperature", priced: false, reason: "no_clamped_parameter" },
+  ] };
+  Object.assign(st, {
+    "sensor.heat_pump_optimizer_indoor_temperature_optimizer": { state: "20.9",
+      attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
+    "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+    "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
+      lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+    "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
+      { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
+      { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: -12, savings_pct: -1.7 }] } },
+  });
+  return st;
+}
+
+/** The page-screenshot mode: the tile at 900 px and each dialog page, per
+ * theme. Returns nothing; each picture is checked as a PNG of real size. */
+async function themeMismatch({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) {
+    st[id] = { ...st[id], attributes: { ...st[id].attributes, active_now: false } };
+  }
+  const cases = [
+    { name: "dark theme variables, darkMode false", vars: THEMES.dark, dark: false },
+    { name: "light theme variables, darkMode true", vars: THEMES.light, dark: true },
+  ];
+  for (const c of cases) {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1 });
+    await ctx.clock.setFixedTime(FROZEN);
+    const page = await ctx.newPage();
+    try {
+      await page.goto("about:blank");
+      await page.addScriptTag({ path: CARD_SRC });
+      const res = await page.evaluate(([vars, st, dark]) => {
+        const style = document.createElement("style");
+        style.textContent = `html{${vars}} body{margin:0;padding:16px;background:var(--card-background-color)}` +
+          `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color)}` +
+          `heatpump-optimizer-card{display:block;width:900px}`;
+        document.head.appendChild(style);
+        const card = document.createElement("heatpump-optimizer-card");
+        document.body.appendChild(card);
+        card.setConfig({ type: "custom:heatpump-optimizer-card" });
+        card.hass = { states: st, language: "en", themes: { darkMode: dark } };
+        const root = card.shadowRoot;
+        const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const bgOf = (el) => {
+          for (let e = el; e; e = e.parentElement || (e.getRootNode() && e.getRootNode().host)) {
+            const c = rgba(getComputedStyle(e).backgroundColor);
+            if (c.length === 3 || (c.length === 4 && c[3] === 1)) return c;
+          }
+          return [255, 255, 255];
+        };
+        const seen = [];
+        const low = [];
+        for (const box of root.querySelectorAll(".tile, .hl-stat, .status-pill")) {
+          for (const el of [box, ...box.querySelectorAll("*")]) {
+            const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+            if (!own || !el.getClientRects().length) continue;
+            const fg = rgba(getComputedStyle(el).color), bg = bgOf(el);
+            const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a);
+            const r = (l1 + 0.05) / (l2 + 0.05);
+            seen.push(el.className || el.tagName);
+            if (r < 4.5) low.push(`${el.className || el.tagName.toLowerCase()} ${r.toFixed(2)}:1`);
+          }
+        }
+        return { seen: seen.length, idle: !!root.querySelector('.status-pill[data-status="idle"]'),
+          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length, low };
+      }, [c.vars, st, c.dark]);
+      check(`R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with ${c.name}`,
+        res.idle && res.tiles === 4 && res.stats >= 2 && res.seen >= 12 && res.low.length === 0,
+        `${res.seen} text runs, ${res.tiles} tiles, ${res.stats} stats, idle pill ${res.idle}; under 4.5: ${res.low.slice(0, 6).join(", ")}`);
+    } finally {
+      await ctx.close();
+    }
+  }
+}
+
+async function cardPages({ browser, check, plan, out }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const states = pageStates(plan);
+  const shots = [];
+  for (const theme of ["light", "dark"]) {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 860 }, deviceScaleFactor: 1,
+      colorScheme: theme, reducedMotion: "reduce" });
+    await ctx.clock.setFixedTime(FROZEN);
+    const page = await ctx.newPage();
+    try {
+      for (const view of ["tile", "plan", "setup", "savings", "advisor"]) {
+        await page.goto("about:blank");
+        await page.addScriptTag({ path: CARD_SRC });
+        await page.evaluate(([themeCss, st, dark, view]) => {
+          const style = document.createElement("style");
+          style.textContent = `html{${themeCss};background:var(--primary-background-color)}` +
+            `body{margin:0;padding:16px;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
+            `ha-card{display:block;background:var(--card-background-color);border-radius:12px;` +
+            `border:1px solid var(--divider-color)}heatpump-optimizer-card{display:block;width:900px}`;
+          document.head.appendChild(style);
+          const card = document.createElement("heatpump-optimizer-card");
+          document.body.appendChild(card);
+          card.setConfig({ type: "custom:heatpump-optimizer-card" });
+          card.hass = { states: st, language: "en", themes: { darkMode: dark } };
+          if (view !== "tile") { card._onCardClick({}); card.dialog.page = view; card._render(); }
+          window.__card = card;
+        }, [THEMES[theme], states, theme === "dark", view]);
+        await page.waitForTimeout(250);
+        // Opening a page focuses its tab; a picture of the page should not
+        // show a focus ring on a tab the reader did not press.
+        await page.evaluate(() => { const a = window.__card.shadowRoot.activeElement; if (a) a.blur(); });
+        const target = view === "tile" ? page.locator("heatpump-optimizer-card")
+          : page.locator("heatpump-optimizer-card dialog[open]");
+        const shot = await target.screenshot({ type: "png" });
+        const name = `${view}-${theme}.png`;
+        shots.push({ name, ok: shot[0] === 0x89 && shot[1] === 0x50 && shot.length > 10_000, bytes: shot.length });
+        if (out) {
+          writeFileSync(path.join(out, name), shot);
+          console.log(`  wrote page ${name} ${shot.length} bytes -> ${out}`);
+        }
+      }
+    } finally {
+      await ctx.close();
+    }
+  }
+  check("U5 page-screenshot mode takes the tile and all four pages in both themes",
+    shots.length === 10 && shots.every((s) => s.ok),
+    shots.filter((s) => !s.ok).map((s) => `${s.name} ${s.bytes} bytes`).join(", "));
 }
 
 // ---- the in-page instrument (serialised into the page) ---------------------
@@ -1641,8 +1818,18 @@ try {
     const walk = (node) => {
       for (const el of node.querySelectorAll("*")) {
         if (!el.getClientRects().length) continue;
-        const b = el.getBoundingClientRect();
-        const out = Math.max(cb.left - b.left, b.right - cb.right, 0);
+        // What paints is the box clipped by every ancestor that clips its
+        // overflow: the phone legend is one scrolling row, so a chip scrolled
+        // past the edge is inside its scroller, not outside the card. The card
+        // box itself is never a clipper here, or the check would be vacuous.
+        let { left, right } = el.getBoundingClientRect();
+        for (let a = el.parentElement; a && a !== box; a = a.parentElement) {
+          if (getComputedStyle(a).overflowX === "visible") continue;
+          const r = a.getBoundingClientRect();
+          left = Math.max(left, r.left); right = Math.min(right, r.right);
+        }
+        if (right <= left) continue;
+        const out = Math.max(cb.left - left, right - cb.right, 0);
         if (out > worst) { worst = out; who = el.tagName.toLowerCase(); }
       }
     };
@@ -2199,6 +2386,22 @@ try {
   } finally {
     await heroPage.close();
   }
+
+  // U5 (R9-UI-3): the card's pages for docs/dashboard-card.md, in light and
+  // dark -- the dashboard tile, then each dialog page -- from one fixture
+  // that gives every page something to draw. Frozen six hours into the
+  // payload, the instant the P9 grid measures, so the tile's price is the
+  // plan's and the chart has a past and a future. Written only under
+  // HPO_PAGES_OUT; checked always.
+  await cardPages({ browser, check, plan, out: process.env.HPO_PAGES_OUT });
+
+  // R9-UI-3 review (theme-contrast): Home Assistant reports
+  // hass.themes.darkMode false for any theme without a dark mode, so a
+  // community dark theme paints the card with dark variables and the light
+  // literals. Every text run on a tile, a headline stat or the status pill
+  // must clear 4.5:1 against what it is painted on, in that mismatch and in
+  // its mirror image.
+  await themeMismatch({ browser, check, plan });
 } finally {
   await browser.close();
 }

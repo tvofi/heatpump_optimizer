@@ -34,6 +34,52 @@ A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
 at the nearest sample, plus **why** the plan is heating at that moment.
 
+## The card at a glance
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/tile-dark.png">
+  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a row of four tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
+</picture>
+
+The screenshots on this page are the shipped card, rendered in a headless
+browser against the solved plan the chart figures use, in the theme your
+browser prefers. `HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs`
+re-takes all of them, light and dark.
+
+### The header and its status pill
+
+The title sits after the integration's mark: a dusk line falling through the
+cheap hours of the night with the heat it plans pooled under it. After the
+title, a pill says in one word what the plan is doing, in this order of
+precedence:
+
+| Pill | When |
+|---|---|
+| **Manual plan until HH:MM** | You applied a plan by hand; it holds until the time shown. |
+| **Fallback: pump's own curve** | Neither plan sensor has a plan, so the optimizer actuates nothing and the pump follows its own heating curve. |
+| **Plan stale** | No new plan for longer than three solve intervals, and never less than 90 minutes: the same rule the integration uses to stop acting on an old plan. |
+| **Heating now** | A plan step is heating right now. |
+| **Idle** | The plan is current and nothing is heating at this moment. |
+
+Hovering the stale or fallback pill says what the pump does meanwhile. With no
+plan sensor at all the pill is left out, because the card's diagnostics already
+say why.
+
+### The stat tiles
+
+Four tiles sit under the header: the **price now**, the **planned heating**
+(the electricity the plan expects the heat pump to draw over the plotted
+plan, in kWh), the **plan cost** of that electricity, and the **indoor
+temperature** from the sensor the card's history uses. Each is drawn only when
+its source publishes a value, and the indoor tile redraws whenever that sensor
+reports. On a phone the four tiles fold into a two-by-two grid.
+
+### The legend
+
+The legend is a row of compact chips, one per series; on a phone it is a
+single row you scroll sideways. Under it, a one-line footnote names what the
+dashed lines mean, with the full explanation further down this page.
+
 ## Reading the chart
 
 ![The plan chart with every series, the now marker, the editable slot lanes and the time axis numbered, and a key naming each one](img/chart-anatomy.svg)
@@ -104,10 +150,11 @@ claim a precision the record has not earned.
 
 ### The headline row
 
-Under the card title sits a compact row of numbers: **projected savings** for
-the current plan, with the percentage beside it when the integration publishes
-one; the **optimization score** out of 100; and the first line of the **plan
-narrative**. Set `show_stats: false` to leave it out.
+Under the stat tiles sits a second row: **projected savings** for the current
+plan, with the percentage beside it when the integration publishes one, and
+the **optimization score** out of 100, drawn as tiles like the ones above, then
+the first line of the **plan narrative**. Set `show_stats: false` to leave out
+both rows.
 
 Every part is optional, because every source sensor is. The score is
 unavailable until enough history exists, the savings sensors go blank between
@@ -184,6 +231,11 @@ total. It relabels; it does not convert.
 A dashboard card is usually too small to read a 48-hour plan comfortably.
 Clicking anywhere on the card, or the expand button in its header, opens the
 same chart in a large modal overlay, drawn at a larger font.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/plan-dark.png">
+  <img alt="The enlarged view on its Plan tab: the plan chart drawn wide, with the slot lanes and the schedule editor under it" src="img/card/plan-light.png">
+</picture>
 
 Gridlines stand at every hour. How many of them are *labelled* is worked out
 from how wide a label is against how much room an hour gets, then snapped to an
@@ -414,6 +466,11 @@ carries a bar scaled to the biggest month in the table, which answers "compared
 with the others" without quoting a target the page does not show. The open
 month is an estimate until it closes, and is badged as one; a month with no
 settled rows yet says so in words rather than drawing an empty table.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/savings-dark.png">
+  <img alt="The Savings tab: a table of months with the baseline, what was paid, the difference and its percentage, and a bar per month" src="img/card/savings-light.png">
+</picture>
 
 ## The advisor page
 
