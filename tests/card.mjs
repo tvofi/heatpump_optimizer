@@ -4539,6 +4539,17 @@ function ctxL(card, key) {
       preventDefault() {}, stopPropagation() {} });
   check("Enter opens the panel as well",
     /class="score-breakdown"/.test(collect(kbCard.shadowRoot).join("\n")));
+  // The expanded Plan page carries its own copy of the score tile, and it is
+  // a control too: same role, and a click on it toggles the same panel.
+  const dlgCard = build(full);
+  dlgCard._onCardClick({}); dlgCard.dialog.page = "plan"; dlgCard._render();
+  const dlgScore = [...dlgCard.shadowRoot.querySelectorAll('[data-stat="score"]')][1];
+  const dlgRole = dlgScore && dlgScore.getAttribute("role");
+  if (dlgScore) dlgScore.dispatchEvent({ type: "click", stopPropagation() {} });
+  const dlgPanel = (collect(dlgCard.shadowRoot).join("\n").match(/<dialog[\s\S]*$/) || [""])[0];
+  check("the Plan page's score tile is a button that opens the breakdown panel",
+    dlgRole === "button" && dlgCard._scoreOpen === true && /class="score-breakdown"/.test(dlgPanel),
+    `role ${dlgRole}, open ${dlgCard._scoreOpen}`);
   // And the whole thing speaks Swedish with the install.
   const svScore = new Card();
   svScore.setConfig({ type: "custom:heatpump-optimizer-card" });
@@ -10059,6 +10070,24 @@ check("without an indoor reading the corner now label is absent",
     indoorTile(dumpOf(tc)) === "21.4", indoorTile(dumpOf(tc)));
   check("UI-3 tiles: show_stats: false draws no tile row",
     !/class="tiles"/.test(dumpOf(build(tileStates, { show_stats: false }))));
+  // tvofi 2026-10-01 (macOS Safari): four columns keyed to the viewport
+  // squeezed a narrow dashboard column until a price unit broke mid-word.
+  // The tile and headline rows are two across at every width, with no media
+  // rule widening them, and wrap between words.
+  const gridOf = (d, sel) => (d.match(new RegExp(`\\${sel} \\{[^}]*grid-template-columns: ([^;]+);`)) || [])[1];
+  check("tiles: the tile and headline rows are two across outside any media rule",
+    gridOf(tDump, ".tiles") === "repeat(2, minmax(0, 1fr))" &&
+    gridOf(tDump, ".hl-stats") === "repeat(2, minmax(0, 1fr))" &&
+    !/\.(tiles|hl-stats)\b[^{]*\{[^}]*repeat\(4/.test(tDump) &&
+    !/\.(tile-v|hl-value) \{[^}]*overflow-wrap: anywhere/.test(tDump),
+    `${gridOf(tDump, ".tiles")} / ${gridOf(tDump, ".hl-stats")}`);
+  // The expanded dialog's Plan page opens with the same tiles and headline.
+  tc._onCardClick({}); tc.dialog.page = "plan"; tc._render();
+  const dlgDump = (dumpOf(tc).match(/<dialog[\s\S]*$/) || [""])[0];
+  const dlgTiles = [...dlgDump.matchAll(/data-tile="(\w+)"/g)].map((m) => m[1]).join(",");
+  check("tiles: the expanded Plan page shows the four tiles above its chart",
+    dlgTiles === "price,energy,cost,indoor" &&
+    dlgDump.indexOf('class="tiles"') < dlgDump.indexOf('class="chartwrap'), dlgTiles);
 
   // Tokens: every var(--hpo-*) the card uses is declared, one var() level
   // deep with a literal fallback, and dark mode resolves to the dark literal.
