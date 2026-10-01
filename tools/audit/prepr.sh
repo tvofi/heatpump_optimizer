@@ -858,7 +858,9 @@ if [ "${1:-}" = "--self-test" ]; then
 
   # Steps 6a and 6b over a throwaway clone, driven through the functions the
   # steps print (`claims_line`, `closures_line`). Main claims a lane AFTER the
-  # branches fork: one branch inherits the list (refused); one forked before
+  # branches fork. Two fork from that main: one edits the claim file and keeps
+  # main's list (refused as inherited); one never edits it (passes: a file
+  # byte-identical to the fork point's claims nothing, R9-F10.8). One forked before
   # it writes only a delivery row (passes: CI compares with the fork point,
   # and main's tip would refuse it -- the #1591 review's E); one writes its
   # own claim (passes). For 6b a branch edits a selectable script and a stub
@@ -887,10 +889,14 @@ if [ "${1:-}" = "--self-test" ]; then
     && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
     && $G checkout -q -b main fork && echo "main_lane  # claimed on main after the fork" >> tests/golden/claimed_drift.txt \
     && $G commit -qam main && git update-ref refs/remotes/origin/main main \
-    && $G checkout -q -b inh && echo "# inh" >> custom_components/heatpump_optimizer/away.py \
+    && $G checkout -q -b unt && echo "# unt" >> custom_components/heatpump_optimizer/away.py \
+    && $G commit -qam unt \
+    && $G checkout -q -b inh main && echo "# inh" >> custom_components/heatpump_optimizer/away.py \
+    && echo "# a note this branch wrote" >> tests/golden/claimed_drift.txt \
     && $G commit -qam inh) >/dev/null 2>&1
   claims_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(claims_line); echo "$?:$(printf '%s' "$got" | grep -o -e '--drop-inherited' -e 'restore both' | head -1)"); }
-  got=$(claims_at inh); st "$got" '1:--drop-inherited' "6a refuses a branch that inherits main's claim list, naming --drop-inherited"
+  got=$(claims_at inh); st "$got" '1:--drop-inherited' "6a refuses a branch that edited the claim file and kept main's list, naming --drop-inherited"
+  got=$(claims_at unt); st "$got" '0:' "6a passes a branch that never edited the claim file it inherited (R9-F10.8)"
   got=$(claims_at rec); st "$got" '0:' "6a passes a row-only branch forked before main claimed (the fork point, not the tip)"
   got=$(claims_at own); st "$got" '0:' "6a passes a branch that writes its own claim (null control)"
 

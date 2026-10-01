@@ -47,8 +47,8 @@ import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 import {
   CARD_PATH, EDITOR_TAG, DEFAULT_SPACE, DEFAULT_DHW, HOUR,
-  CLAIM_FILE, parseClaims, claimVersionError, claimsAreThisBranchs,
-  justifiesCardClaim, sameClaimMap,
+  CLAIM_FILE, parseClaims, claimVersionError, claimsAreThisBranchs, judgeCardClaims,
+  justifiesCardClaim,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
   historyApi, historyFixture, flushHistory, realisticHistory, withActuals,
@@ -666,7 +666,15 @@ if (sha === head) {
 const version = fs.readFileSync(path.join(repo, "VERSION"), "utf8").trim();
 const claimPath = path.join(repo, CLAIM_FILE);
 const treeClaims = parseClaims(fs.existsSync(claimPath) ? fs.readFileSync(claimPath, "utf8") : "");
-const baseClaims = parseClaims(showAt(sha, CLAIM_FILE) || "");
+// The fork point, not the ref: on a pull request the ref is main's tip, and
+// a claim file the branch never wrote is main's own there (env_drift.py's
+// `fork_point`).
+let forkSha = sha;
+try {
+  forkSha = git("merge-base", sha, "HEAD").trim() || sha;
+} catch (e) {
+  forkSha = sha;
+}
 
 // WHOSE CLAIM IS IT? tests/env_drift.py's `stale_claims_judged`, ported in
 // card_rig.mjs -- and asked PER FILE KIND, never per branch (#747): the
@@ -692,32 +700,18 @@ if (stampError) {
 // A claim list that is exactly the baseline's -- same names, same reason
 // LISTS, line count included -- was written for the baseline's diff, not
 // this one (env_drift.py's inherited-claims rule, multi-valued since #1255
-// and ported to this lane by #1266: a branch that ADDED a line beside the
-// baseline's own must not parse equal to the baseline's single entry, or
-// this gate fires INHERITED CLAIMS where env_drift.py answers "not
-// inherited" on the same file). An empty list claims nothing and is always
-// fine. run.sh also runs env_drift.py --claims-only (never scoped out) so a
-// roster-only PR cannot skip this the way #493 skipped this file.
-const sameClaims =
-  treeClaims.claims.size > 0 &&
-  sameClaimMap(treeClaims.claims, baseClaims.claims);
-if (sameClaims && claimsAreOurs) {
-  console.log(
-    `INHERITED CLAIMS: ${CLAIM_FILE} claims exactly what ${refName} already claims -- ` +
-    `the same ${treeClaims.claims.size} state(s), with the same reasons: ` +
-    `${[...treeClaims.claims.keys()].sort().join(", ")}. Rewrite the list for THIS diff.`
-  );
-  fails += 1;
-} else if (sameClaims) {
-  console.log(
-    `NOT THIS BRANCH'S LIST: ${CLAIM_FILE} is byte-for-byte the list ${refName} ` +
-    `already claims (${treeClaims.claims.size} state(s)), but this branch's three-dot ` +
-    `against ${refName} moves no card source, so it did not write that list. Failing ` +
-    "it here leaves one remedy -- empty the file -- " +
-    "and a squash-merge applies that deletion to the baseline (#569, #633). Reported, " +
-    "not judged; rewrite it in a change that moves a claimed state."
-  );
-}
+// and ported to this lane by #1266). card_rig.mjs's `judgeCardClaims` owns
+// the rule and the claims a moved state may cite. run.sh also runs
+// env_drift.py --claims-only (never scoped out) so a roster-only PR cannot
+// skip this the way #493 skipped this file.
+const cardClaims = judgeCardClaims({
+  treeText: fs.existsSync(claimPath) ? fs.readFileSync(claimPath, "utf8") : null,
+  baseText: showAt(forkSha, CLAIM_FILE),
+  ours: claimsAreOurs,
+  refName,
+});
+for (const note of cardClaims.notes) console.log(note);
+fails += cardClaims.fails;
 
 function makeSide(src, label) {
   const rig = makeCardContext();
@@ -793,7 +787,7 @@ function diffText(a, b, name) {
 
 console.log(`card_drift: ${refName} = ${sha.slice(0, 12)}, tree = ${head.slice(0, 12)}, ${STATES.length} states`);
 const moved = [];
-const claimed = treeClaims.claims;
+const claimed = cardClaims.excusing;
 for (const st of STATES) {
   const a = baseOut.get(st.name), b = treeOut.get(st.name);
   if (a === b) {

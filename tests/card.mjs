@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass,
          CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
-         threeDotFiles, claimsAreThisBranchs, sameClaimMap,
+         threeDotFiles, claimsAreThisBranchs, sameClaimMap, judgeCardClaims,
          historyApi, historyFixture, HISTORY_IDS, flushHistory,
          withActuals, realisticHistory, haStamp, HA_HISTORY_ROW_KEYS } from "./card_rig.mjs";
 
@@ -9427,6 +9427,42 @@ const STOCK_THEMES = {
   check("empty lists claim nothing and are never an inheritance",
     sameClaimMap(parseClaims("# claims-for: 6.6.6\n").claims,
       one.claims) === false);
+}
+
+// R9-F10.8, the card lane: a claim file byte-identical to the fork point's
+// is the no-claim state, and only lines the branch wrote may excuse a moved
+// state. Before this, a solver branch that merged a card-claiming main was
+// refused INHERITED CLAIMS, and once dropped or not, every line in the
+// tree's file excused drift by name (#213's hole, card side).
+{
+  const MAIN = "# claims-for: 6.7.12\naway_toggle  # F6.4: another lane's claim\n";
+  const carried = judgeCardClaims({ treeText: MAIN, baseText: MAIN, ours: true, refName: "REF" });
+  check("a card claim file the branch never edited is not refused",
+    carried.fails === 0 && carried.notes.length === 0,
+    `fails=${carried.fails} notes=${JSON.stringify(carried.notes)}`);
+  check("a carried card claim line excuses no moved state",
+    carried.excusing.size === 0,
+    `excusing=${JSON.stringify([...carried.excusing])}`);
+  const authored = judgeCardClaims({
+    treeText: MAIN + "dhw_card  # this lane moves it\n", baseText: MAIN,
+    ours: true, refName: "REF" });
+  check("a card claim line the branch wrote excuses its moved state",
+    authored.fails === 0 && JSON.stringify([...authored.excusing])
+      === '[["dhw_card",["this lane moves it"]]]',
+    `fails=${authored.fails} excusing=${JSON.stringify([...authored.excusing])}`);
+  const edited = judgeCardClaims({
+    treeText: MAIN + "# a note this lane wrote\n", baseText: MAIN,
+    ours: true, refName: "REF" });
+  check("an edited card file that kept the baseline's list is still inherited",
+    edited.fails === 1 && edited.notes[0].startsWith("INHERITED CLAIMS")
+      && edited.excusing.size === 0,
+    `fails=${edited.fails} notes=${JSON.stringify(edited.notes)}`);
+  const foreign = judgeCardClaims({
+    treeText: MAIN + "# a note this lane wrote\n", baseText: MAIN,
+    ours: false, refName: "REF" });
+  check("a branch that cannot move the card is reported, not judged",
+    foreign.fails === 0 && foreign.notes[0].startsWith("NOT THIS BRANCH'S LIST"),
+    `fails=${foreign.fails} notes=${JSON.stringify(foreign.notes)}`);
 }
 
 // --- #1495: the space-blocked de-emphasis and the measured "now" reading ---
