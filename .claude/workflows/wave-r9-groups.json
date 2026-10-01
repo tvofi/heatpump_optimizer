@@ -3642,11 +3642,11 @@
         "R9-F10.1b"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-1c",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "787fe137",
+        "last_step": "#1804 merged 2026-10-01T09:1xZ as 787fe137 at head 733f6f35 (round-2 merge verdict 5927429501 + delta 5928126005; tvofi review under mandate; real-HA 61/61 on the Mac); #1756 closed",
+        "next_step": "none; F10.1d owns the 10 barrier_gap sites",
         "note_file": "handoff/round9/fix/resume/F10.1c.md on handoff/r9-f10-gate-infra-1c",
         "review_branch": "handoff/r9-f10-gate-infra-1c-review",
         "review_note_file": "handoff/round9/fix/resume/F10.1c-review.md on handoff/r9-f10-gate-infra-1c-review",
