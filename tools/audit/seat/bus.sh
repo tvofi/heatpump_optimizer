@@ -205,13 +205,21 @@ review_status() { # pr [want] -> prints BUS undispatched|unconfirmed|refused; al
 }
 
 post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned line; rc 0 posted
-  local pr c d first hsha body who
+  local pr c d first hsha body who sig
   unpack verdict "$1" "${2:-}" || return 1
   if grep -qx "$pr $c" "$S/posted" 2>/dev/null; then
     printf 'BUS refused %s %s: already posted\n' "$pr" "$c"; return 1
   fi
   if ! signed_by_approver "$pr" "$c"; then
     printf 'BUS unsigned %s %s: not signed with hpo-approver'"'"'s key; a reviewer proposes on review/%s and the orchestrator confirms it\n' "$pr" "$c" "$pr"; return 1
+  fi
+  # A commit is not what was signed: a keyless seat can re-commit an earlier
+  # confirmed tree and message after a later round and supersede it (round-2
+  # review of PROC-4). The signature is deterministic over pr and tree, so
+  # each signed verdict posts once per pull request whatever commit carries it.
+  sig=$(git log -1 --format=%B "$c" | sed -n 's/^bus-signature: //p' | head -n 1)
+  if grep -qxF -- "$pr $sig" "$S/posted-signed" 2>/dev/null; then
+    printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
   fi
   who=$(git log -1 --format=%B "$c" | sed -n 's/^bus-confirmed: //p' | head -n 1)
   body=$S/verdicts/$pr/$c.md
@@ -222,8 +230,10 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
   # landed post and the record would otherwise post twice. A kill now leaves
   # "already posted" on a verdict that may not have landed; read the PR.
   printf '%s %s\n' "$pr" "$c" >> "$S/posted"
+  printf '%s %s\n' "$pr" "$sig" >> "$S/posted-signed"
   if ! "$POSTER" "$REPO" "$pr" "$body" >"$body.log" 2>&1; then
     grep -vx "$pr $c" "$S/posted" > "$S/posted.new"; mv "$S/posted.new" "$S/posted"
+    grep -vxF -- "$pr $sig" "$S/posted-signed" > "$S/posted-signed.new"; mv "$S/posted-signed.new" "$S/posted-signed"
     printf 'BUS refused %s %s: the poster refused (%s): %s\n' "$pr" "$c" "$POSTER" "$(tail -n 1 "$body.log")"; return 1
   fi
   printf 'BUS posted %s %s %s\n' "$pr" "$c" "$first"
@@ -484,6 +494,14 @@ P
   echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
     && [ "$(tip verdict/7^)" = "$tt" ]
   expect "a later round fast-forwards the verdict ref and is posted" $?
+  # The replay the round-2 review drove: round 1's signed merge re-committed
+  # by a keyless seat after round 2's block, to supersede it.
+  t=$(git -C "$W/seat" log -1 --format=%B "$v1" | git -C "$W/seat" commit-tree "$(tip "$v1^{tree}")" -p "$v2")
+  git -C "$W/seat" fetch -q origin verdict/7
+  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 7 $t: this signed verdict was already posted on #7 (a replay)" && [ "$(calls)" = 2 ]
+  expect "a confirmed verdict replayed after a later round does not post again" $?
 
   # Raw refs are still checked before anything else.
   t=$(printf 'Fix review: approve %s\n' "$h1" | raw "" raw)
