@@ -33,8 +33,16 @@ WHAT IT REFUSES, every class conservative:
   * full       -- the pull request's own selection was FULL (a gate file, an
                   unmeasured file, a table that does not describe the tree),
                   under `main`'s table or the head's: every script graded it.
+  * unrecorded -- either side changes a file no closure records (an INERT
+                  doc, say) while `tests/run.sh` has a `run_always` script: such
+                  a script runs whatever the plan says and may read that file
+                  unrecorded. `harness_headers.py` does, through D6's
+                  `claims.py` (#1823 review: a link the pull request adds to
+                  DISCLAIMER.md, to a file main deletes, is a false claim on
+                  the merged tree that neither side's CI saw).
   * overlap    -- a file `main` changed since the CI base is in the closure of
-                  a script the pull request selected, under either table.
+                  a script the pull request selected, or of a `run_always`
+                  script, which is selected on every run, under either table.
 
 WHAT IT DOES NOT ANSWER, said so the orchestrator does not read more into it:
 the jobs no closure scopes -- `policy-docs`, `env-matrix`, `wave-script`,
@@ -69,6 +77,13 @@ sys.path.insert(0, str(ROOT / "tests"))
 import closure  # noqa: E402  (tests/closure.py: the gate's own selection)
 
 CLAIM_FILES = ("tests/golden/claimed_drift.txt", "tests/golden/card_claimed_drift.txt")
+# `run_always <interpreter> tests/<script>` in tests/run.sh: the scripts no scope skips.
+ALWAYS = re.compile(r"^\s*run_always\s+\S+\s+(tests/[\w./-]+\.(?:py|mjs))\b", re.M)
+
+
+def always_scripts(run_sh_texts: list[str]) -> list[str]:
+    """Every script a `tests/run.sh` text runs with `run_always`."""
+    return sorted({m for t in run_sh_texts for m in ALWAYS.findall(t)})
 
 
 def _codeowners_gap():
@@ -112,7 +127,8 @@ def select_under(table: dict, files: list[str]) -> dict:
 
 
 def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
-           graders: list[str], conflict: str | None) -> list[tuple[str, str]]:
+           graders: list[str], conflict: str | None,
+           always: "list[str] | tuple[str, ...]" = ()) -> list[tuple[str, str]]:
     """Every refusal, as (class, detail); empty means eligible. Pure: no git."""
     out: list[tuple[str, str]] = []
     if conflict:
@@ -131,6 +147,9 @@ def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
             out.append(("grader", f"{side} changes {f}, a grader required jobs restore from the base"))
         elif f.endswith("_budgets.json") and closure.unit_of(f) not in measured:
             out.append(("budget", f"{side} changes {f}, a cap no closure measures"))
+        elif always and closure.unit_of(f) not in measured:
+            out.append(("unrecorded", f"{side} changes {f}, which no closure records, and "
+                        f"run_always {', '.join(always)} read the tree whatever is selected"))
     if not pr_files:
         out.append(("full", "the pull request changes no file that could be determined"))
         return out
@@ -141,7 +160,7 @@ def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
             out.append(("full", f"under {where}'s table: {plan['reason']}"))
             continue
         cl = table["closures"]
-        for s in plan["run"]:
+        for s in sorted(set(plan["run"]) | set(always)):
             hit = sorted(units & set(cl.get(s, ())))
             if hit:
                 more = f" (+{len(hit) - 3})" if len(hit) > 3 else ""
@@ -194,7 +213,8 @@ def run(head: str, main: str, ci_base: str | None) -> int:
               "head": json.loads(_git("show", f"{head}:tests/closures.json"))}
     print(f"pull request changes {len(pr_files)} file(s) ({fork[:12]}...{head[:12]}); "
           f"main changed {len(main_files)} since the CI base ({base[:12]}..{tip[:12]})")
-    found = decide(pr_files, main_files, tables, grader_specs(wf), conflict)
+    always = always_scripts([_git("show", f"{rev}:tests/run.sh") for rev in (tip, head)])
+    found = decide(pr_files, main_files, tables, grader_specs(wf), conflict, always)
     for cls, detail in found:
         print(f"REFUSE {cls}: {detail}")
     if found:
@@ -217,8 +237,9 @@ def self_test() -> int:
         fails += not ok
         print(f"  {'ok  ' if ok else 'FAIL'} {name}" + ("" if ok else f": got {got!r}, want {want!r}"))
 
-    scripts = ["tests/a.py", "tests/b.py"]
+    scripts = ["tests/a.py", "tests/b.py", "tests/h.py"]
     table = {"closures": {"tests/a.py": ["tests/a.py", "custom_components/x/one.py"],
+                          "tests/h.py": ["tests/h.py", "tools/audit/x/claims.py"],
                           "tests/b.py": ["tests/b.py", "tests/golden/b.json",
                                          "tests/golden/claimed_drift.txt"]}}
     tables = {"main": table, "head": table}
@@ -226,8 +247,8 @@ def self_test() -> int:
     saved = closure.selectable_scripts
     closure.selectable_scripts = lambda: list(scripts)
     try:
-        def classes(pr, mn, conflict=None, t=tables):
-            return sorted({c for c, _ in decide(pr, mn, t, graders, conflict)})
+        def classes(pr, mn, conflict=None, t=tables, always=("tests/h.py",)):
+            return sorted({c for c, _ in decide(pr, mn, t, graders, conflict, always)})
 
         check("disjoint closures are eligible (null control)",
               classes(["tests/golden/b.json"], ["custom_components/x/one.py"]), [])
@@ -257,11 +278,31 @@ def self_test() -> int:
                           *table["closures"]["tests/a.py"], "tests/a_budgets.json"]}},
                          "head": table}), [])
         check("a gate file in the pull request is FULL and refuses",
-              classes(["tests/run.sh"], ["docs/delivery/1.md"]), ["full"])
+              classes(["tests/run.sh"], ["docs/delivery/1.md"], always=()), ["full"])
         check("an unmeasured file in the pull request is FULL and refuses",
-              classes(["custom_components/x/new.py"], ["docs/delivery/1.md"]), ["full"])
-        check("an INERT-only pull request selects nothing and is eligible against code (null control)",
-              classes(["docs/delivery/1.md"], ["custom_components/x/one.py"]), [])
+              classes(["custom_components/x/new.py"], ["docs/delivery/1.md"], always=()), ["full"])
+        check("an INERT-only pull request selects nothing and is eligible against code "
+              "when no script runs always (null control)",
+              classes(["docs/delivery/1.md"], ["custom_components/x/one.py"], always=()), [])
+        check("#1823's probe: the pull request links a file from DISCLAIMER.md and main "
+              "deletes it, and a run_always script reads both unrecorded",
+              classes(["DISCLAIMER.md"], ["tools/audit/README.md"]), ["unrecorded"])
+        check("... the same pair with no run_always script is eligible (null control)",
+              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], always=()), [])
+        check("an unrecorded file on main's side alone refuses too",
+              classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
+        check("main changed what a run_always script reads, which the pull request never "
+              "selected: overlap",
+              classes(["tests/golden/b.json"], ["tools/audit/x/claims.py"]), ["overlap"])
+        check("... and with that script not run_always, the same pair is eligible (null control)",
+              classes(["tests/golden/b.json"], ["tools/audit/x/claims.py"], always=()), [])
+        check("the run_always scripts are read from tests/run.sh",
+              always_scripts(['  run_always "$PYTHON" tests/harness_headers.py\n',
+                              '  run "$PYTHON" tests/edge.py\n']),
+              ["tests/harness_headers.py"])
+        check("this tree's run.sh runs harness_headers.py always",
+              "tests/harness_headers.py" in always_scripts([(ROOT / "tests/run.sh").read_text()]),
+              True)
         check("no determinable pull-request file refuses", classes([], ["tests/a.py"]), ["full"])
         check("main unmoved since the CI base: even a gate change is eligible (null control)",
               classes(["tests/run.sh", ".github/workflows/tests.yml"], []), [])
