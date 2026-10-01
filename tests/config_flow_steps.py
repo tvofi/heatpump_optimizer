@@ -1616,6 +1616,19 @@ async def options_walk():
         and bool(form.get("description_placeholders", {}).get("setup_summary")),
         str(form.get("description_placeholders", {}))[:120],
     )
+    hass.config.language = "sv"
+    try:
+        sv_form = await flow.async_step_setup_overview(None)
+    finally:
+        del hass.config.language
+    sv_summary = sv_form.get("description_placeholders", {}).get("setup_summary", "")
+    check(
+        "opt_setup_overview",
+        "happy",
+        "the setup overview is written in the install's language (Swedish hass)",
+        "Värmepump" in sv_summary and "Heat pump" not in sv_summary,
+        sv_summary[:120],
+    )
     result = await submit(flow, "setup_overview", {})
     check(
         "opt_setup_overview",
