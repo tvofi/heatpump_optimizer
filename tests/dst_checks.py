@@ -33,7 +33,7 @@ from heatpump_optimizer.coordinator import (
     _solve_anchor,
     _utc_step_starts,
 )
-from heatpump_optimizer.manual_plan import ManualOverride, PIN_ON
+from heatpump_optimizer.manual_plan import ManualOverride, PIN_OFF, PIN_ON
 from heatpump_optimizer.disinfection import DisinfectionSwitch
 from heatpump_optimizer.legionella import LegionellaGuard
 from heatpump_optimizer.pump_signals import (
@@ -1157,6 +1157,7 @@ R.section("the DST tracer over replayed transition days (round-9 P7 barrier)")
 # stepping a zoned clock by wall time drops the autumn day's repeated hour
 # (round-9 D14-s4-02, G3-V2).
 import json  # noqa: E402
+import logging as _logging  # noqa: E402
 import re  # noqa: E402
 import tempfile  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -1264,7 +1265,6 @@ _saved_clock = {
     for n in ("now", "utcnow", "as_local", "as_utc", "parse_datetime")
 }
 _saved_ts = replay._ts
-_traced_days: dict[str, tuple[int, int, list]] = {}
 # The lane's forecast walk and recorded price walk, captured per day: the
 # cycle count alone does not see either walk or the price labels.
 import harness  # noqa: E402
@@ -1295,42 +1295,95 @@ async def _capturing_update(self):
     return await _saved_update(self)
 
 
-with tempfile.TemporaryDirectory() as _tmp:
-    try:
-        for _n, _f in _saved_clock.items():
-            setattr(dt_util, _n, (lambda f: lambda *a, **k: _traced(f(*a, **k)))(_f))
-        replay._ts = lambda raw: (
-            datetime.fromisoformat(raw).astimezone(STHLM) if raw else None
-        )
-        harness.FakeServices.async_call = _capturing_call
-        cm.HeatPumpOptimizerCoordinator._async_update_data = _capturing_update
-        for _label, _day in _TRACE_DAYS:
-            _walk_label[0] = _label
-            _walks[_label] = {"forecasts": [], "prices": []}
-            _fx = _shifted(_REPLAY_SRC, _day.astimezone(UTC) - _REPLAY_DAY0.astimezone(UTC))
-            _end = _day.astimezone(UTC) + timedelta(hours=_TRACE_HOURS)
-            _fx["window"] = {
-                "start": _day.isoformat(),
-                "end": _end.astimezone(STHLM).isoformat(),
-            }
-            _path = Path(_tmp) / f"dst-{_label}.json"
-            _path.write_text(json.dumps(_fx))
-            _before = dict(_WALL_SEAMS)
-            _run = replay.run_fixture(_path, 30)
-            _traced_days[_label] = (
-                _run["cycles"],
-                _run["counts"]["cycle"],
-                sorted(
-                    k for k, v in _WALL_SEAMS.items()
-                    if v != _before.get(k, 0) and k not in _EXEMPT
-                ),
+def _traced_replay(
+    options: dict | None = None,
+    *,
+    before_cycle=None,
+    solve_fails: range = range(0),
+    on_day=None,
+) -> dict[str, tuple[int, int, list]]:
+    """The three days through the traced clock: (cycles, failed, seams) each.
+
+    ``options`` is laid over the fixture's entry options (a configured seam is
+    reached only when its option is on); ``before_cycle(coordinator, day, n)``
+    is awaited ahead of cycle ``n`` (a manual plan applied by the real
+    service); ``solve_fails`` names the cycles whose solve raises, so the plan
+    keeps its earlier stamps and the next cycles read them across the
+    transition. A seam is keyed by (file, function), as the tracer reports it.
+    """
+    out: dict[str, tuple[int, int, list]] = {}
+    cycle_no = [0]
+    saved_update = cm.HeatPumpOptimizerCoordinator._async_update_data
+    saved_process = cm._await_process
+
+    async def counting_update(self):
+        n = cycle_no[0]
+        cycle_no[0] += 1
+        if before_cycle is not None:
+            await before_cycle(self, _day_now[0], n)
+        return await saved_update(self)
+
+    async def failing_process(*args, **kwargs):
+        if cycle_no[0] - 1 in solve_fails:
+            raise RuntimeError("the solve failed (the straddle arm)")
+        return await saved_process(*args, **kwargs)
+
+    _day_now = [None]
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            for n, f in _saved_clock.items():
+                setattr(dt_util, n, (lambda f: lambda *a, **k: _traced(f(*a, **k)))(f))
+            replay._ts = lambda raw: (
+                datetime.fromisoformat(raw).astimezone(STHLM) if raw else None
             )
-    finally:
-        harness.FakeServices.async_call = _saved_call
-        cm.HeatPumpOptimizerCoordinator._async_update_data = _saved_update
-        replay._ts = _saved_ts
-        for _n, _f in _saved_clock.items():
-            setattr(dt_util, _n, _f)
+            cm.HeatPumpOptimizerCoordinator._async_update_data = counting_update
+            if solve_fails:
+                cm._await_process = failing_process
+                _logging.disable(_logging.CRITICAL)  # the failed solves' tracebacks are the arm's input
+            for label, day in _TRACE_DAYS:
+                if on_day is not None:
+                    on_day(label)
+                cycle_no[0] = 0
+                _day_now[0] = day
+                fx = _shifted(_REPLAY_SRC, day.astimezone(UTC) - _REPLAY_DAY0.astimezone(UTC))
+                fx["entry"]["options"].update(options or {})
+                end = day.astimezone(UTC) + timedelta(hours=_TRACE_HOURS)
+                fx["window"] = {
+                    "start": day.isoformat(),
+                    "end": end.astimezone(STHLM).isoformat(),
+                }
+                path = Path(tmp) / f"dst-{label}.json"
+                path.write_text(json.dumps(fx))
+                before = dict(_WALL_SEAMS)
+                run = replay.run_fixture(path, 30)
+                out[label] = (
+                    run["cycles"],
+                    run["counts"]["cycle"],
+                    sorted(
+                        k for k, v in _WALL_SEAMS.items()
+                        if v != before.get(k, 0) and k not in _EXEMPT
+                    ),
+                )
+        finally:
+            _logging.disable(_logging.NOTSET)
+            cm.HeatPumpOptimizerCoordinator._async_update_data = saved_update
+            cm._await_process = saved_process
+            replay._ts = _saved_ts
+            for n, f in _saved_clock.items():
+                setattr(dt_util, n, f)
+    return out
+
+
+try:
+    harness.FakeServices.async_call = _capturing_call
+    cm.HeatPumpOptimizerCoordinator._async_update_data = _capturing_update
+    _traced_days = _traced_replay(on_day=lambda label: (
+        _walk_label.__setitem__(0, label),
+        _walks.__setitem__(label, {"forecasts": [], "prices": []}),
+    ))
+finally:
+    harness.FakeServices.async_call = _saved_call
+    cm.HeatPumpOptimizerCoordinator._async_update_data = _saved_update
 
 # The committed day prices from a price entity, so the lane's own recorded
 # price walk (the Tibber path) never runs above. One hour of the same days
@@ -1417,5 +1470,173 @@ R.check(
     f"plain {_traced_days['plain'][2]}, exempt label hits "
     f"{_WALL_SEAMS.get(('tariff.py', '_window_slot'), 0)}",
 )
+
+
+# ---------------------------------------------------------------------------
+# The two arms the first tracer lacked (#1756). The run above replays one
+# configuration with every solve succeeding, so it is blind in two ways its
+# own barrier text did not name (RCA-BULK-1 section 1): a seam reached only
+# through an option, and a seam that executes but whose operands never
+# straddle the transition. Each arm answers one.
+# ---------------------------------------------------------------------------
+R.section("the manual override lasts its stated length in true time (#1756, D9)")
+
+# ``now + timedelta(hours=20)`` on a zoned stamp adds wall clock: applied the
+# evening before the autumn fold the override lasted 21 true hours, and the
+# spring gap cut it to 19. The same sum clamps a far ``expires_at`` in
+# ``build_override`` and ends each step in ``channel_pins``.
+from harness import FakeServiceCall  # noqa: E402
+from heatpump_optimizer import services as _services  # noqa: E402
+from heatpump_optimizer.accuracy import utc_elapsed_seconds as _elapsed_s  # noqa: E402
+from homeassistant.config_entries import ConfigEntryState  # noqa: E402
+from heatpump_optimizer.manual_plan import build_override  # noqa: E402
+
+_override_hours = {}
+for _label, _evening in (
+    ("autumn", datetime(2026, 10, 24, 23, 0, tzinfo=STHLM)),
+    ("spring", datetime(2026, 3, 28, 23, 0, tzinfo=STHLM)),
+    ("plain", datetime(2026, 10, 17, 23, 0, tzinfo=STHLM)),
+):
+    _hass = FakeHass()
+    _entry = FakeEntry(data={}, entry_id=f"override-{_label}")
+    _coord = HeatPumpOptimizerCoordinator(_hass, _entry)
+
+    async def _no_refresh(*_a, **_k):
+        return None
+
+    _coord.async_request_refresh = _no_refresh
+    _entry.state = ConfigEntryState.LOADED
+    _entry.runtime_data = _coord
+    _hass.config_entries.entries.append(_entry)
+    dt_util.freeze(_evening)
+    try:
+        asyncio.run(
+            _services.handle_apply_manual_plan(
+                _hass,
+                FakeServiceCall("heatpump_optimizer", "apply_manual_plan", {"dhw_slots": []}),
+            )
+        )
+        _far = build_override(
+            dhw_slots=[], space_slots=None, now=_evening,
+            expires_at=_evening + timedelta(hours=48),
+        )
+    finally:
+        dt_util.freeze(None)
+    _override_hours[_label] = (
+        _elapsed_s(_coord._manual_override.expires_at, _evening) / 3600.0,
+        _elapsed_s(_far.expires_at, _evening) / 3600.0,
+    )
+R.check(
+    "a default override applied the evening before either transition lasts 20 true hours",
+    all(v[0] == const.MANUAL_PLAN_WINDOW_HOURS for v in _override_hours.values()),
+    f"(default, clamped far expiry) hours {_override_hours}",
+)
+R.check(
+    "a far expires_at is clamped to the same 20 true hours",
+    all(v[1] == const.MANUAL_PLAN_WINDOW_HOURS for v in _override_hours.values()),
+    f"{_override_hours}",
+)
+R.check(
+    "NULL CONTROL: on a plain day the 20 hours were always right",
+    _override_hours["plain"] == (20.0, 20.0),
+    f"{_override_hours['plain']}",
+)
+
+# ``channel_pins`` judges a step by overlap with ``[ref, ref + step)``. The
+# step 02:45 CEST on the autumn day ends at 02:00 CET, a true quarter hour
+# later; wall-added it ends at 03:00 CET, an hour and a quarter later, and a
+# slot starting at 02:30 CET (30 true minutes after the step ended) then
+# overlaps it and pins it on.
+_pin_step = datetime(2026, 10, 25, 2, 45, tzinfo=STHLM)  # fold 0: 00:45Z
+_pin_far = datetime(2026, 10, 25, 2, 30, fold=1, tzinfo=STHLM)  # 01:30Z
+_pin_near = datetime(2026, 10, 25, 2, 50, tzinfo=STHLM)  # 00:50Z, inside the step
+
+
+def _pin_for(slot_start: datetime):
+    override = ManualOverride(
+        space_slots=None,
+        dhw_slots=[(slot_start, slot_start + timedelta(hours=1))],
+        expires_at=datetime(2026, 10, 26, 2, 0, tzinfo=STHLM),
+    )
+    return override.channel_pins("dhw", [_pin_step], timedelta(minutes=15))
+
+
+R.check(
+    "a step ending at the autumn fold stays off for a slot that starts 30 true minutes after it",
+    _pin_for(_pin_far) == [PIN_OFF],
+    f"pins {_pin_for(_pin_far)}",
+)
+R.check(
+    "NULL CONTROL: a slot that starts inside the step still pins it on",
+    _pin_for(_pin_near) == [PIN_ON],
+    f"pins {_pin_for(_pin_near)}",
+)
+
+R.section("the DST tracer: config arm and straddle arm (#1756)")
+
+_CAPACITY_MASK = {
+    const.CONF_PEAK_TARIFF_ENABLED: True,
+    const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00",
+    const.CONF_PEAK_TARIFF_OFFPEAK_FACTOR: 0.5,
+}
+_MANUAL_PLAN_AT = 1  # cycle ahead of both transitions (00:30 true time)
+
+
+async def _apply_plan_before_fold(coord, day, n):
+    """The apply service, as the card calls it, once, ahead of the fold."""
+    if n != _MANUAL_PLAN_AT:
+        return
+
+    async def no_refresh(*_a, **_k):
+        return None
+
+    coord.async_request_refresh = no_refresh
+    coord.entry.state = ConfigEntryState.LOADED
+    coord.entry.runtime_data = coord
+    coord.hass.config_entries.entries.append(coord.entry)
+    start = (day.astimezone(UTC) + timedelta(hours=1)).astimezone(STHLM)
+    end = (day.astimezone(UTC) + timedelta(hours=6)).astimezone(STHLM)
+    await _services.handle_apply_manual_plan(
+        coord.hass,
+        FakeServiceCall(
+            "heatpump_optimizer", "apply_manual_plan",
+            {"dhw_slots": [{"start": start.isoformat(), "end": end.isoformat()}]},
+        ),
+    )
+
+
+_arm_runs = {
+    f"tariff {w} min": _traced_replay(
+        {**_CAPACITY_MASK, const.CONF_PEAK_TARIFF_WINDOW: w},
+        before_cycle=_apply_plan_before_fold,
+    )
+    for w in (15, 60)
+}
+_arm_runs["straddle"] = _traced_replay(solve_fails=range(3, 7))
+
+
+def _arm_seams(run: dict, days=("spring", "autumn")) -> dict:
+    return {k: v[2] for k, v in run.items() if k in days and v[2]}
+
+
+R.check(
+    "every arm runs its true cycles on every day, none failing outright",
+    all(
+        v[0] == _want_cycles and v[1] == 0
+        for run in _arm_runs.values() for v in run.values()
+    ),
+    f"(cycles, failed) { {a: {k: v[:2] for k, v in r.items()} for a, r in _arm_runs.items()} }",
+)
+for _arm, _run in _arm_runs.items():
+    R.check(
+        f"arm [{_arm}]: no production seam does wall-clock arithmetic across either transition",
+        not _arm_seams(_run),
+        f"{_arm_seams(_run)}",
+    )
+    R.check(
+        f"NULL CONTROL arm [{_arm}]: the plain day reads no seam",
+        not _run["plain"][2],
+        f"{_run['plain'][2]}",
+    )
 
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))
