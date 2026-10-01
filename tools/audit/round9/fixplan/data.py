@@ -921,7 +921,7 @@ ROLE_MODELS = [
  ("reviewer", "opus: fix-review.md, adversarial, from a detached worktree; never the fixer's session"),
  ("rca and judge", "opus"),
  ("runner", "haiku: gate and stress re-runs, closure and budget re-records at the hand-off, build.sh rebuilds, report rendering and digests; reports numbers, decides nothing"),
- ("record", "sonnet: delivery rows, issue text, the #201 draft, RESUME.md lines, roster resume upkeep and V1-style checks"),
+ ("record", "sonnet: delivery rows, issue text, the #201 draft, relays, roster resume upkeep and V1-style checks"),
 ]
 
 
