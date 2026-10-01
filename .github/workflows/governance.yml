@@ -27,6 +27,12 @@ on:
     # and `wave-script` as SKIPPED at an unchanged head, over the real verdict.
     # The contract that does read the body is `pr-contract.yml`.
     types: [opened, synchronize, reopened]
+  # The merge queue (round-9 process review item 2): `policy-docs`,
+  # `env-matrix` and `wave-script` run on the queue's merge commit, pinned to
+  # the queue's base as a pull request's are to its own; `record` and the
+  # delivery-status pair stay off it.
+  merge_group:
+    types: [checks_requested]
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -120,7 +126,7 @@ jobs:
       # and not modules beside `policy_lint.mjs`.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -190,8 +196,8 @@ jobs:
       - name: Refuse a governance check input field no check reads
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
-          SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
@@ -391,7 +397,7 @@ jobs:
       # commit is local to this runner and never pushed.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -441,7 +447,7 @@ jobs:
       # an owner: the checker evaluates them in its own process.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -487,7 +493,7 @@ jobs:
   # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
   # merge.
   record:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

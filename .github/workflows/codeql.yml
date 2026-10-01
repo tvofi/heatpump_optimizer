@@ -58,6 +58,10 @@ on:
     branches:
       - main
   pull_request:
+  # The merge queue (round-9 process review item 2): the three `Analyze`
+  # contexts run on the queue's merge commit as on a pull request.
+  merge_group:
+    types: [checks_requested]
   schedule:
     - cron: "41 2 * * 1"
   # All three autofix jobs in tests.yml dispatch this after a GITHUB_TOKEN push,

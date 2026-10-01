@@ -23282,6 +23282,48 @@ R.check(
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
 )
+
+
+# THE MERGE QUEUE (round-9 process review item 2). A queue entry merges only
+# when every required context reports on its merge commit, so each context's
+# producing job must be in a workflow that lists `merge_group` and must run
+# there: a context nobody produces waits out the queue's timeout, and a
+# skipped one passes it without measuring. Keyed on the recorded required set
+# through `_rc_producer`, as the `edited` check above is.
+def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
+    out = []
+    for _ctx in _RC_CONTEXTS:
+        _prod = _rc_producer(_ctx)
+        if _prod is None:
+            out.append(f"{_ctx}: no producing job")
+            continue
+        _doc = docs[_prod[0]]
+        _on = _doc.get("on", _doc.get(True)) or {}
+        if "merge_group" not in ([_on] if isinstance(_on, str) else list(_on)):
+            out.append(f"{_ctx}: {_prod[0]} does not list merge_group")
+        elif _if_under(((_doc.get("jobs") or {}).get(_prod[1]) or {}).get("if"),
+                       {"github.event_name": "merge_group"}) is not True:
+            out.append(f"{_ctx}: {_prod[0]}'s {_prod[1]} does not run on merge_group")
+    return out
+
+
+_MQ_FOUND = _mq_problems(_RC_DOCS)
+R.check(
+    "every required context runs on a merge-queue entry (process review item 2)",
+    bool(_RC_CONTEXTS) and not _MQ_FOUND,
+    f"{len(_RC_CONTEXTS)} context(s); {_MQ_FOUND or 'none missing'}",
+)
+_MQ_NULL = {_n: ({**_d, "on": {"pull_request": None}} if _n == "tests.yml" else _d)
+            for _n, _d in _RC_DOCS.items()}
+R.check(
+    "and tests.yml without merge_group is refused for each context it produces "
+    "(null control)",
+    sorted(_c.split(":")[0] for _c in _mq_problems(_MQ_NULL))
+    == sorted(_c for _c in _RC_CONTEXTS if (_rc_producer(_c) or ("",))[0] == "tests.yml"),
+    f"{_mq_problems(_MQ_NULL)}",
+)
+
+
 # --- the coverage cache restores only main's push run (#1822 review, R9-F10.9c).
 # A restore searches the pull request's own cache scope first, so an earlier
 # head that saved under the same key would be read as the base's data. The
