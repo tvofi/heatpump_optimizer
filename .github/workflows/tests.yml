@@ -651,12 +651,18 @@ jobs:
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
 
-      # The next pull requests' base: every script measured, on main.
+      # The next pull requests' base: every script measured, on main. Copied
+      # to the path the restore names, because a cache entry's version hashes
+      # its path: saved from the mktemp directory, no restore would ever hit.
+      - name: Stage this commit's per-script coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
+
       - name: Save this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          path: ${{ env.W5P_WORK }}/out/per
+          path: ${{ runner.temp }}/coverage-base
           key: ${{ steps.covkey.outputs.key }}
 
   # The coverage ratchet, in a job of its own (decision 0013, amended).
