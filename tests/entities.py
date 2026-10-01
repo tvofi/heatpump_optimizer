@@ -10046,6 +10046,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "problem_inputs", "problem_messages", "problems", "stale_inputs",
         "summary"
     }),
+    "IndoorTempSensor": frozenset({"source_entity"}),
     "MeasuredPowerSensor": frozenset({
         "energy_meter", "house_power", "recommended_power"
     }),
