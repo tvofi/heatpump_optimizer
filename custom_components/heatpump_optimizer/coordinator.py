@@ -51,6 +51,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
+    CONF_TIBBER_TOKEN,
     CONF_PRICE_ENTITY,
     CONF_PRICE_SOURCE,
     DEFAULT_PRICE_SOURCE,
@@ -85,11 +86,27 @@ from .const import (
     CONF_ECL110_DISPLACE_MIN,
     CONF_ECL110_DISPLACE_MAX,
     CONF_TARGET_TEMP,
+    CONF_MIN_TEMP,
+    CONF_MAX_TEMP,
+    CONF_COMFORT_TEMP_DAY,
+    CONF_COMFORT_TEMP_NIGHT,
+    CONF_DAY_START_HOUR,
+    CONF_DAY_END_HOUR,
     CONF_OPTIMIZATION_INTERVAL,
+    CONF_PRICE_WEIGHT,
     CONF_COMFORT_WEIGHT,
     DEFAULT_TARGET_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_COMFORT_TEMP_DAY,
+    DEFAULT_COMFORT_TEMP_NIGHT,
+    DEFAULT_DAY_START_HOUR,
+    DEFAULT_DAY_END_HOUR,
     DEFAULT_OPTIMIZATION_INTERVAL,
+    DEFAULT_PRICE_WEIGHT,
     DEFAULT_COMFORT_WEIGHT,
+    BUFFER_COOLING_RATE_MAX,
+    BUFFER_COOLING_RATE_MIN,
     buffer_cooling_rate_bounds,
     default_buffer_cooling_rate,
     CONF_BUFFER_COOLING_RATE,
@@ -214,12 +231,19 @@ from .const import (
     CONF_DHW_INLET_ENTITY,
     CONF_DHW_QUANTILE_TARGETS_ENABLED,
     DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+    CONF_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_LEGIONELLA_TEMP,
+    DEFAULT_DHW_SETPOINT,
     CONF_SHOWER_FLOW_LPM,
     DEFAULT_SHOWER_FLOW_LPM,
     CONF_VVC_PUMP_ENTITY,
     CONF_VVC_LEAD_MINUTES,
     DEFAULT_VVC_LEAD_MINUTES,
     CONF_SPACE_PUMP_ENTITY,
+    DHW_LEGIONELLA_BOOST_MAX_HOURS,
+    DHW_LEGIONELLA_HOLD_MINUTES,
+    SPACE_PUMP_FLOOR_MARGIN_C,
     CONF_OPEN_WINDOW_RELAX_ENABLED,
     DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
     CONF_IMMERSION_FEEDBACK_ENABLED,
@@ -339,6 +363,7 @@ from .manual_plan import (
 )
 from .price_model import (
     PriceShapeModel,
+    TIBBER_API_URL,
     _raw_value,
     extend_price_series,
     hourly_from_entries,
@@ -356,7 +381,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
-from .dhw_learning import DhwProfileLearner
+from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
@@ -389,6 +414,7 @@ from .wood_fuel import (
 )
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
+    WATER_SPECIFIC_HEAT,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -406,6 +432,7 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
+    REASON_LEGIONELLA,
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
