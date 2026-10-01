@@ -110,6 +110,66 @@ const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
 
 function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
 
+// R9-UI-4: what each drawn mark's vertical extent is, against the panel it
+// belongs to. A series, its band and its dot belong to the panel that carries
+// its axis; the actioned band and the shared-step hatch to the power panel; an
+// estimated-price wash and a vertical grid rule to whichever panel they are
+// drawn in, and the wash to every one. Returns the marks that leave their
+// panel, as readable strings, plus how many marks were measured -- so a check
+// can refuse an empty sweep as well as an escape.
+function panelEscapes(card) {
+  const html = collect(card.shadowRoot).join("\n");
+  const pl = card._plot;
+  const panels = (pl && pl.panels) || [];
+  const series = card._series || [];
+  const eps = 0.011; // the markup rounds to two decimals
+  const out = [];
+  let measured = 0;
+  const panelOfAxis = (axis) => panels.find((p) => p.axes.includes(axis));
+  const power = panelOfAxis("power");
+  const inside = (p, y0, y1) => y0 >= p.top - eps && y1 <= p.bottom + eps;
+  const attrs = (tag) => Object.fromEntries(
+    [...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
+  const pathYs = (d) => {
+    const ys = [];
+    for (const m of d.matchAll(/([MLHVCZ])([^MLHVCZ]*)/gi)) {
+      const n = (m[2].match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(Number);
+      const c = m[1].toUpperCase();
+      if (c === "V") ys.push(...n);
+      else if (c === "M" || c === "L" || c === "C") for (let i = 1; i < n.length; i += 2) ys.push(n[i]);
+    }
+    return ys;
+  };
+  const judge = (what, p, y0, y1) => {
+    measured++;
+    if (!p) out.push(`${what}: no panel`);
+    else if (!inside(p, y0, y1)) out.push(`${what} spans ${y0.toFixed(2)}..${y1.toFixed(2)}, ${p.key} panel is ${p.top.toFixed(2)}..${p.bottom.toFixed(2)}`);
+  };
+  for (const m of html.matchAll(/<(path|circle) class="series[^"]*"[^>]*>/g)) {
+    const a = attrs(m[0]);
+    const s = series.find((x) => x.key === a["data-key"]);
+    const ys = m[1] === "circle" ? [+a.cy] : pathYs(a.d || "");
+    if (!ys.length) continue;
+    judge(`series ${a["data-key"]}`, s && panelOfAxis(s.axis), Math.min(...ys), Math.max(...ys));
+  }
+  for (const cls of ["actioned-band", "shared-band"]) {
+    for (const m of html.matchAll(new RegExp(`<rect class="${cls}"[^>]*>`, "g"))) {
+      const a = attrs(m[0]);
+      judge(cls, power, +a.y, +a.y + +a.height);
+    }
+  }
+  const owner = (y0, y1) => panels.find((p) => inside(p, y0, y1));
+  const washes = [...html.matchAll(/<rect class="estimated"[^>]*>/g)].map((m) => attrs(m[0]));
+  for (const a of washes) judge("estimated wash", owner(+a.y, +a.y + +a.height) || panels[0], +a.y, +a.y + +a.height);
+  if (washes.length && washes.length !== panels.length) out.push(`${washes.length} estimated wash(es) for ${panels.length} panels`);
+  for (const m of html.matchAll(/<line class="grid grid-v"[^>]*>/g)) {
+    const a = attrs(m[0]);
+    const y0 = Math.min(+a.y1, +a.y2), y1 = Math.max(+a.y1, +a.y2);
+    judge("vertical grid rule", owner(y0, y1) || panels[0], y0, y1);
+  }
+  return { out, measured, panels: panels.length };
+}
+
 function build(states, config) {
   const card = new Card();
   card.setConfig({ type:"custom:heatpump-optimizer-card", ...(config||{}) });
@@ -305,6 +365,19 @@ check("the solar axis does not share the power scale",
 const plotRWithSolar = solarCard._plot.plotR;
 solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
 check("hiding solar leaves the plot width as it was", solarCard._plot.plotR === plotRWithSolar);
+// R9-UI-4: a panel with nothing left to draw gives its height to the others.
+// With solar already off, turning price off empties the price panel, so the
+// power panel moves up to the top of the plot.
+{
+  const before = (solarCard._plot.panels || []).map((p) => p.key).join(",");
+  solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "price" : null } });
+  const ps = solarCard._plot.panels || [];
+  check("an emptied panel is dropped and the others take its height",
+    before === "price,power,temps" && ps.map((p) => p.key).join(",") === "power,temps" &&
+      Math.abs(ps[0].top - solarCard._plot.plotT) < 1e-9,
+    `panels ${before} -> ${ps.map((p) => `${p.key} ${p.top.toFixed(1)}..${p.bottom.toFixed(1)}`).join(", ")}`);
+  solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "price" : null } });
+}
 
 const renamedSolar = build({
   ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
@@ -378,6 +451,12 @@ check("the tooltip says a price is estimated",
   /estimated, not published/.test(reasonHtml([{ priceKnown: false }])));
 check("a fully published horizon is not shaded",
   !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
+{
+  const esc = panelEscapes(markedCard);
+  check("every series, band, wash and grid rule stays inside its own panel (estimated prices, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
 
 // --- Scenario 13: what-if simulator ---------------------------------------
 // The panel is on by default: editing a draft costs nothing, and only the
@@ -3787,6 +3866,12 @@ check("the hand-scheduled reason has a label",
     /shared-band/.test(shDump) && /hpoShared/.test(shDump));
   check("the band explains itself: time-sharing, not double-booking",
     /alternates circuits/.test(shDump) && /not double-booking/.test(shDump));
+{
+  const esc = panelEscapes(sh);
+  check("every series, band, wash and grid rule stays inside its own panel (shared steps, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
 
   // Control: with hot water flat off there is nothing to mark.
   const off = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -8752,6 +8837,12 @@ const STOCK_THEMES = {
     const dump = collect(c.shadowRoot).join("\n");
     check("actioned slots render from state history alone, no power attribute",
       /class="actioned-band"/.test(dump), "no band rects in the dump");
+{
+  const esc = panelEscapes(c);
+  check("every series, band, wash and grid rule stays inside its own panel (actioned slots, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
     const act = c._series.find((s) => s.key === "actioned");
     check("the actioned chip reads as having data without power",
       act && act.hasData === true);
