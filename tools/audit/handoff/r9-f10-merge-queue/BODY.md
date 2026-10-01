@@ -8,7 +8,9 @@ Why two pull requests: the graders run pinned to the base, so the base's `codeow
 
 **What still runs where (no barrier lost).**
 - Concurrency: a cancelled run is only one superseded by a newer run of the same workflow on the same pull request, and branch protection grades the current head, which still runs every required job. The group key is `run_id` for every other event, so each `main` push still runs FULL and unscoped to completion, and a red `main` is still reverted first. `tests/entities.py` checks each event × sender in every file carrying a top-level `concurrency:`.
-- Fast path: `ELIGIBLE` means every script the pull request selects ran on its head, and nothing `main` changed since lies in any of their closures under either table; the merge commit's push to `main` then runs FULL. Any doubt is a refusal, and a refusal is the old route (merge `main` in, CI re-runs; with stage 2, the queue). The unscoped lanes (policy-docs, env-matrix, wave-script, briefs, typing, browser, mutation, CodeQL, hassfest, validate-hacs) are not modelled by closures. For those, the fast path relies on the FULL `main` push and revert-first, which is what the docstring states. Measured on this branch's own probe merge with `0bfb8883`: `REFUSED` on `workflow`, `grader` and `full`.
+- Fast path: `ELIGIBLE` means every script the pull request selects, and every `run_always` script in `tests/run.sh` (`harness_headers.py`, `env_drift.py --claims-only`, `closure.py selftest`, `layout.py`), ran on its head, and nothing `main` changed since then lies in any of their closures under either table. Any refusal sends the pull request back to the old route: merge `main` in and re-run CI, or, once stage 2 lands, the queue. The push the merge makes to `main` still runs FULL. The unscoped lanes (policy-docs, env-matrix, wave-script, briefs, typing, browser, mutation, CodeQL, hassfest, validate-hacs) are not modelled by closures; for those, the fast path relies on the FULL push and revert-first, as the docstring states.
+- **Round 2 (#1823 review).** `harness_headers.py` is `run_always` and reads INERT docs through D6's `claims.py`, which no closure records. The reviewer's probe: the pull request adds a link to `tools/audit/README.md` in `DISCLAIMER.md`, and `main` deletes that file. Round 1 said `ELIGIBLE` on that pair, although the merged tree has a false claim. Now, a file on either side that no closure records refuses as `unrecorded` while any `run_always` script exists, and `run_always` scripts count as selected for `overlap`. **Cost, measured:** over the last 30 merges on `main` (`411368b6`), this conservative rule leaves 0 pairs eligible, against 5 without it. Nearly every merge adds a `docs/delivery/<N>.md` row, which no closure records. Narrowing it soundly needs the `run_always` scripts' unrecorded reads to be recorded, which is a `closure.py` recorder change. That is not done here; see Forward-carry.
+- Main-moved rule: `orchestrator.md` §11 keeps PROC-1's "CI green at a head containing current `origin/main`" and names the fast path as its one exception, merged by the orchestrator as the queue's only bypass.
 - Pin readers: they still refuse every form they refused before; the two new forms only add the queue's base ahead of `github.sha`.
 - Residual: if `CLOSURES_PUSH_TOKEN` is set, the autofix pushes come from that token's user rather than `github-actions[bot]`, so they are not exempt and may cancel the run that will be overtaken anyway; the `ci:` loop guard still stops a second autofix.
 
@@ -16,23 +18,26 @@ _Requested by **tvofi**_
 
 ## Head
 
-`c5102ea715260c07fae83e36b3aa2bdba242d856` (code), merge base `90335cbd6ee6a0e4423cd1effc2c8c962e2ac0a0`. `main` has since moved to `0bfb8883` (#1815); `git merge-tree` merges it clean, and on that probe merge `tests/entities.py` and `merge_fastpath.py --self-test` both pass.
+`ccc8c594963435bd8073bb79e47cf9e748cfe701` (code). It is round 1's `c5102ea7`, then `origin/main` at `411368b6` merged in as `aa42c991` (the `orchestrator.md` conflict with #1818), then the round-2 fix.
 
 ## Mutation proof
 
 - `tests.yml` `cancel-in-progress: true` → `tests/entities.py`: `FAIL only a pull request's superseded run is cancelled (process review item 3)` naming seven event × sender cells, `1 of 2023 ENTITY CHECKS FAILED`. Before any workflow change the same check named all seven files `no top-level concurrency`.
-- `merge_fastpath.py` overlap refusal disabled (`if hit:` → `if False:`) → `--self-test`: three `FAIL ... want ['overlap']`, `18 checks, 3 failed`, rc 1.
+- `merge_fastpath.py` overlap refusal disabled (`if hit:` → `if False:`) → `--self-test`: three `FAIL ... want ['overlap']`, rc 1 (round 1, 18 checks).
+- The `unrecorded` class disabled → `--self-test`: `FAIL #1823's probe: ... got [], want ['unrecorded']` and `FAIL an unrecorded file on main's side alone refuses too`, `25 checks, 2 failed`.
+- `run_always` scripts not counted as selected → `FAIL main changed what a run_always script reads, which the pull request never selected: overlap`, `25 checks, 1 failed`.
+- The reviewer's probe as real commits on `origin/main`: round 1's script prints `FASTPATH ELIGIBLE`, and this head's prints `REFUSE unrecorded` for `DISCLAIMER.md` and for `tools/audit/README.md`.
 - `codeowners_gap.py` `PINNED_OK` without the two queue forms → `--self-test`: `FAIL NULL  PINNED from the queue's base: grader not pinned` and its `else the push's` twin, `2 wrong`.
 - `prepr.sh` awk regex without the optional queue clause → `--self-test`: `FAIL governance.yml perturbed (queue-base), with step 3e's run present, passes (null control)`, `130 passed, 1 failed`.
 - Removing the `CODEOWNERS` line does not turn `codeowners_gap.py --check` red: the file falls to `NO-PR-JOB` (see Friction). The line takes it to `COVERED`, so the line is ownership, and nothing here claims it is a detector.
 
 ## Null control
 
-On the unmodified tree, each instrument above passes: `tests/entities.py` (all), `merge_fastpath.py --self-test` (it includes `ELIGIBLE` fixtures and a measured-budget case that must not refuse), `codeowners_gap.py --self-test`, `prepr.sh --self-test`. The concurrency check carries its own null (a `github.ref`-keyed, always-cancel block must yield six findings).
+On the unmodified tree, each instrument above passes: `tests/entities.py` (all), `merge_fastpath.py --self-test` (25 checks; each new case has a null control, the same pair with no `run_always` script, which must stay `ELIGIBLE`), `codeowners_gap.py --self-test`, `prepr.sh --self-test`. The concurrency check carries its own null (a `github.ref`-keyed, always-cancel block must yield six findings).
 
 ## Figures
 
-none
+- Eligible pairs over the last 30 merges, with and without the `unrecorded` class: `python3 tools/audit/handoff/r9-f10-merge-queue/replay_pairs.py origin/main 30` and the same with a third argument (sha1 586b2f2b78…), run from the code head at `origin/main` `411368b6`. This transport file is not in the pull request's tree.
 
 ## Red checks
 
@@ -40,12 +45,14 @@ none: CI has not run on this head. Unrun here: the full scoped gate (`MODE: FULL
 
 ## Forward-carry
 
-`tools/audit/briefs/orchestrator.md` §11 (the orchestrator runs the fast path before merging a pull request whose CI predates `main`). Stage 2 is this group's own second pull request; it is not a carry.
+`tools/audit/briefs/orchestrator.md` §11: the orchestrator runs the fast path before merging a pull request whose CI predates `main`. Not carried, and named here for the orchestrator to roster or decline: the fast path stays near-useless until the `run_always` scripts' unrecorded reads are recorded (a `closure.py` recorder change), because the `unrecorded` class refuses on every `docs/delivery` row. No live roster group or issue owns that change yet.
 
 ## Friction
+
+fix-review: unclear: three non-blocking review notes, answered rather than fixed. (1) The env_drift integration belt is not modelled by closures. `env_drift.py --claims-only` is `run_always`, so its closure now counts toward `overlap`, but the belt as a whole is latent. (2) A re-run of an old head's run shares the pull request's concurrency group and can cancel the current head's in-progress run. That fails closed (a cancelled required context, re-run once). (3) Who bypasses the queue for an ELIGIBLE merge: §11 now says the orchestrator does.
 
 codeowners_gap: unclear: `instrument-self-tests` has no job `if:` and runs on `pull_request`, yet `--check` lists `.claude/workflows/gh_comment.py` and `.claude/workflows/policy_lint_mutants.mjs` (both run there) as `NO-PR-JOB`, and `merge_fastpath.py` without its CODEOWNERS line lands there too.
 
 ## Approval
 
-Awaiting the owner's approving review at the merge head. This changes what the orchestrator must do: `tools/audit/briefs/orchestrator.md` §11 gains the fast-path step, and §12's lease sentence is shortened to pay its cap. Under the programme mandate (tvofi, 2026-09-30T20:19Z and 2026-10-01T05:03Z) the orchestrator gives that review as tvofi after a merge verdict and green CI; the change itself is the adopted process review (2026-10-01T16:51Z).
+Awaiting the owner's approving review at the merge head. This changes what the orchestrator must do: `tools/audit/briefs/orchestrator.md` §11 gains the fast path as the one exception to PROC-1's current-main rule. To pay the file's token cap, §10b's tag-citation and `FIXTURE ok` sentences and §11's worktree_gc line are reworded without dropping an obligation. Under the programme mandate (tvofi, 2026-09-30T20:19Z and 2026-10-01T05:03Z) the orchestrator gives that review as tvofi after a merge verdict and green CI; the change itself is the adopted process review (2026-10-01T16:51Z).
