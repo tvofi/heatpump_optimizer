@@ -811,6 +811,33 @@ def _utc_age_seconds(newer: datetime, older: datetime) -> float:
     return (dt_util.as_utc(newer) - dt_util.as_utc(older)).total_seconds()
 
 
+def _outage_reading(
+    last_tick_iso: str | None, now: datetime, ahead: bool
+) -> str | None:
+    """What reads as an outage at this restart, or None (#22).
+
+    A gap past ``OUTAGE_GAP_MINUTES`` does. So does a heartbeat ahead of the
+    clock (one that ran ahead, or was set back): its gap is unknowable, and
+    the store has bounded it to ``now``, so ``ahead`` carries what the bound
+    hid, while a raw stamp ahead of ``now`` reads the same way (tvofi, card
+    C13: #775's rule).
+    """
+    if not last_tick_iso:
+        return None
+    try:
+        last = datetime.fromisoformat(str(last_tick_iso))
+    except (TypeError, ValueError):
+        return None
+    if last.tzinfo is None and now.tzinfo is not None:
+        last = last.replace(tzinfo=now.tzinfo)
+    gap_minutes = _utc_age_seconds(now, last) / 60.0
+    if ahead or gap_minutes < 0.0:
+        return "A heartbeat ahead of the clock"
+    if gap_minutes <= OUTAGE_GAP_MINUTES:
+        return None
+    return f"Update gap of {gap_minutes:.0f} minutes"
+
+
 def _cop_fold_blocked(coord: Any) -> bool:
     """#1067: whether this interval's meter reading describes the compressor.
 
@@ -8534,29 +8561,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return False
         return True
     def _detect_outage(self, last_tick_iso: str | None, ahead: bool = False) -> None:
-        """Open the staggered-recovery window after a real gap (#22).
-
-        A heartbeat ahead of the clock (a clock that ran ahead, or was set
-        back) has no knowable gap, and the store has bounded it to now, so
-        ``ahead`` carries what the bound hid: it reads as an outage (tvofi,
-        card C13: #775's rule).
-        """
+        """Open the staggered-recovery window after a real gap (#22)."""
         if not getattr(self, "_ctx", self)._config.get(
             CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED
         ):
             return
-        if not last_tick_iso:
-            return
-        try:
-            last = datetime.fromisoformat(str(last_tick_iso))
-        except (TypeError, ValueError):
-            return
         now = dt_util.now()
-        if last.tzinfo is None and now.tzinfo is not None:
-            last = last.replace(tzinfo=now.tzinfo)
-        gap_minutes = _utc_age_seconds(now, last) / 60.0
-        ahead = ahead or gap_minutes < 0.0
-        if gap_minutes <= OUTAGE_GAP_MINUTES and not ahead:
+        if (reading := _outage_reading(last_tick_iso, now, ahead)) is None:
             return
         self._outage_recovery_until = utc_shift(now, timedelta(
             hours=OUTAGE_RECOVERY_HOURS
@@ -8565,12 +8576,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             minutes=OUTAGE_DHW_DELAY_MINUTES
         ))
         _LOGGER.warning(
-            "%s reads as an outage; staggered "
-            "recovery active for %.1f h (hot water queued %.0f min behind "
-            "space heating)",
-            "A heartbeat ahead of the clock"
-            if ahead
-            else f"Update gap of {gap_minutes:.0f} minutes",
+            "%s reads as an outage; staggered recovery active for %.1f h "
+            "(hot water queued %.0f min behind space heating)",
+            reading,
             OUTAGE_RECOVERY_HOURS,
             OUTAGE_DHW_DELAY_MINUTES,
         )
