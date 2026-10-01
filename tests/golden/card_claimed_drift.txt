@@ -647,51 +647,52 @@
 # merge base, and the tried fix instead clipped the title off the top of the
 # svg on 388 of the grid's cells. Not fixed in this PR; see the PR body.
 
-# R9-UI-3 (#1791 D1, D2b; DESIGN.md section 3): the card's visual system.
-# Every state but editor_schema moves, because every state renders the one
-# <style> block and the header: the --hpo- token :host block and the hex
-# literals routed through it, the dusk mark before the title and the status
-# pill after it, the stat-tile row (price now, planned heating, plan cost,
-# indoor), savings and score restyled as tiles, the legend chips wrapped in a
-# legend-chips span with the dashed-line sentence as a footnote under them,
-# and the price and solar area fills at 16% and 10% opacity. editor_schema
-# renders no card markup and is byte-identical.
-no_plan # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-no_plan_expanded # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-plan_inline # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-plan_inline_sv # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-plan_short_window # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-custom_title_currency # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-hidden_series # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-score_open # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-expanded_plan # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-what_if_off # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-expanded_zoomed # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-draft_dirty_menu_open # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-draft_mid_drag # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-whatif_edited # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-whatif_weekly # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-override_active # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-shared_steps # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-shared_steps_hover # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-tooltip_hover # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-coarse_pointer # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-reduced_motion # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-setup_single_buffer # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-setup_two_tank # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-setup_coil # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-advisor_page # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-layout_editing_dragged # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-layout_editing_tidy # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-picker_open_filtered # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-wood_alert # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-wood_lane # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-wood_whatif # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-away_toggle # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-away_return # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-away_status # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-history_panned # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-history_deep_panned # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-history_no_power # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-history_unavailable # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
-history_pending # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+# R9-UI-4 (#1791 D2, D3, D4; DESIGN.md section 4): plan chart concept A and
+# the series palette of record. Every state but editor_schema moves, because
+# every state renders the one <style> block, whose :host token block now also
+# declares --hpo-plot and one --hpo-series-<key> token per series. Every state
+# that draws the plan chart moves again: price, heating power and temperature
+# panels stacked in the one chart svg, one value axis and unit per panel on the
+# left, solar as a relative curve in the price panel, the actioned band and the
+# shared-step hatch in the power panel, series painted through their tokens,
+# the now-temperature reading in the temperature panel. editor_schema renders
+# no card markup and is byte-identical.
+no_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+no_plan_expanded # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+plan_inline # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+plan_inline_sv # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+plan_short_window # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+custom_title_currency # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+hidden_series # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+score_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+expanded_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+what_if_off # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+expanded_zoomed # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+draft_dirty_menu_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+draft_mid_drag # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+whatif_edited # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+whatif_weekly # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+override_active # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+shared_steps # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+shared_steps_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+tooltip_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+coarse_pointer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+reduced_motion # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+setup_single_buffer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+setup_two_tank # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+setup_coil # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+advisor_page # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+layout_editing_dragged # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+layout_editing_tidy # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+picker_open_filtered # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+wood_alert # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+wood_lane # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+wood_whatif # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+away_toggle # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+away_return # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+away_status # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+history_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+history_deep_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+history_no_power # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+history_unavailable # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+history_pending # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn

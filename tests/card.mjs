@@ -110,6 +110,66 @@ const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
 
 function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
 
+// R9-UI-4: what each drawn mark's vertical extent is, against the panel it
+// belongs to. A series, its band and its dot belong to the panel that carries
+// its axis; the actioned band and the shared-step hatch to the power panel; an
+// estimated-price wash and a vertical grid rule to whichever panel they are
+// drawn in, and the wash to every one. Returns the marks that leave their
+// panel, as readable strings, plus how many marks were measured -- so a check
+// can refuse an empty sweep as well as an escape.
+function panelEscapes(card) {
+  const html = collect(card.shadowRoot).join("\n");
+  const pl = card._plot;
+  const panels = (pl && pl.panels) || [];
+  const series = card._series || [];
+  const eps = 0.011; // the markup rounds to two decimals
+  const out = [];
+  let measured = 0;
+  const panelOfAxis = (axis) => panels.find((p) => p.axes.includes(axis));
+  const power = panelOfAxis("power");
+  const inside = (p, y0, y1) => y0 >= p.top - eps && y1 <= p.bottom + eps;
+  const attrs = (tag) => Object.fromEntries(
+    [...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
+  const pathYs = (d) => {
+    const ys = [];
+    for (const m of d.matchAll(/([MLHVCZ])([^MLHVCZ]*)/gi)) {
+      const n = (m[2].match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(Number);
+      const c = m[1].toUpperCase();
+      if (c === "V") ys.push(...n);
+      else if (c === "M" || c === "L" || c === "C") for (let i = 1; i < n.length; i += 2) ys.push(n[i]);
+    }
+    return ys;
+  };
+  const judge = (what, p, y0, y1) => {
+    measured++;
+    if (!p) out.push(`${what}: no panel`);
+    else if (!inside(p, y0, y1)) out.push(`${what} spans ${y0.toFixed(2)}..${y1.toFixed(2)}, ${p.key} panel is ${p.top.toFixed(2)}..${p.bottom.toFixed(2)}`);
+  };
+  for (const m of html.matchAll(/<(path|circle) class="series[^"]*"[^>]*>/g)) {
+    const a = attrs(m[0]);
+    const s = series.find((x) => x.key === a["data-key"]);
+    const ys = m[1] === "circle" ? [+a.cy] : pathYs(a.d || "");
+    if (!ys.length) continue;
+    judge(`series ${a["data-key"]}`, s && panelOfAxis(s.axis), Math.min(...ys), Math.max(...ys));
+  }
+  for (const cls of ["actioned-band", "shared-band"]) {
+    for (const m of html.matchAll(new RegExp(`<rect class="${cls}"[^>]*>`, "g"))) {
+      const a = attrs(m[0]);
+      judge(cls, power, +a.y, +a.y + +a.height);
+    }
+  }
+  const owner = (y0, y1) => panels.find((p) => inside(p, y0, y1));
+  const washes = [...html.matchAll(/<rect class="estimated"[^>]*>/g)].map((m) => attrs(m[0]));
+  for (const a of washes) judge("estimated wash", owner(+a.y, +a.y + +a.height) || panels[0], +a.y, +a.y + +a.height);
+  if (washes.length && washes.length !== panels.length) out.push(`${washes.length} estimated wash(es) for ${panels.length} panels`);
+  for (const m of html.matchAll(/<line class="grid grid-v"[^>]*>/g)) {
+    const a = attrs(m[0]);
+    const y0 = Math.min(+a.y1, +a.y2), y1 = Math.max(+a.y1, +a.y2);
+    judge("vertical grid rule", owner(y0, y1) || panels[0], y0, y1);
+  }
+  return { out, measured, panels: panels.length };
+}
+
 function build(states, config) {
   const card = new Card();
   card.setConfig({ type:"custom:heatpump-optimizer-card", ...(config||{}) });
@@ -284,15 +344,40 @@ check("the empty state is not clickable",
 const solarCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 const solarDump = collect(solarCard.shadowRoot).join("\n");
 check("solar series has data", solarCard._series.find(s => s.key === "solar").hasData);
-check("solar gets its own W/m2 axis", /W\/m/.test(solarDump));
 check("the solar axis does not share the power scale",
   solarCard._plot.axes.solar !== null && solarCard._plot.axes.solar !== solarCard._plot.axes.power);
+// R9-UI-4 (concept A): solar is a relative curve in the price panel, its
+// scale's top at SOLAR_PANEL_SHARE of that panel and no axis of its own.
+{
+  const pl = solarCard._plot;
+  const price = (pl.panels || []).find((p) => p.key === "price");
+  const share = vm.runInContext("SOLAR_PANEL_SHARE", ctx);
+  const topY = price && pl.scaleY(pl.axes.solar.max, "solar");
+  const want = price && price.bottom - (price.bottom - price.top) * share;
+  check("solar is drawn in the price panel, topping out at its share of it",
+    price && Math.abs(topY - want) < 1e-9 && Math.abs(pl.scaleY(pl.axes.solar.min, "solar") - price.bottom) < 1e-9,
+    price ? `solar max at y ${topY}, want ${want}` : "no price panel");
+  check("solar gets no W/m2 axis title of its own",
+    !/>W\/m²<\/text>/.test(solarDump));
+}
 
-// Turning the series off must give the plot its width back rather than
-// permanently reserving room for an axis most users will not show.
+// Turning the series off costs the plot nothing: no width is reserved for it.
 const plotRWithSolar = solarCard._plot.plotR;
 solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
-check("hiding solar returns the reserved axis width", solarCard._plot.plotR > plotRWithSolar);
+check("hiding solar leaves the plot width as it was", solarCard._plot.plotR === plotRWithSolar);
+// R9-UI-4: a panel with nothing left to draw gives its height to the others.
+// With solar already off, turning price off empties the price panel, so the
+// power panel moves up to the top of the plot.
+{
+  const before = (solarCard._plot.panels || []).map((p) => p.key).join(",");
+  solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "price" : null } });
+  const ps = solarCard._plot.panels || [];
+  check("an emptied panel is dropped and the others take its height",
+    before === "price,power,temps" && ps.map((p) => p.key).join(",") === "power,temps" &&
+      Math.abs(ps[0].top - solarCard._plot.plotT) < 1e-9,
+    `panels ${before} -> ${ps.map((p) => `${p.key} ${p.top.toFixed(1)}..${p.bottom.toFixed(1)}`).join(", ")}`);
+  solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "price" : null } });
+}
 
 const renamedSolar = build({
   ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
@@ -366,6 +451,12 @@ check("the tooltip says a price is estimated",
   /estimated, not published/.test(reasonHtml([{ priceKnown: false }])));
 check("a fully published horizon is not shaded",
   !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
+{
+  const esc = panelEscapes(markedCard);
+  check("every series, band, wash and grid rule stays inside its own panel (estimated prices, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
 
 // --- Scenario 13: what-if simulator ---------------------------------------
 // The panel is on by default: editing a draft costs nothing, and only the
@@ -887,9 +978,17 @@ for (const expanded of [false, true]) {
   const where = expanded ? "expanded" : "inline";
   check(`the ${where} chart titles its value axes`, titles.length >= 3,
     `found ${titles.map((t) => t.text).join(", ")}`);
-  check(`the ${where} chart really is showing both right-hand axes`,
-    titles.some((t) => t.text === "W/m²") && titles.some((t) => t.text === "SEK/kWh"),
-    "otherwise this is not testing the crowded case at all");
+  // R9-UI-4: one unit per panel, each in the strip above its own frame.
+  const panels = (c._plot && c._plot.panels) || [];
+  const above = ["price", "power", "temps"].map((k) => {
+    const unit = { price: "SEK/kWh", power: "kW", temps: "°C" }[k];
+    const t = titles.find((x) => x.text === unit);
+    const p = panels.find((x) => x.key === k);
+    return { k, ok: !!(t && p && t.y < p.top && (p.key === "price" || t.y > panels[panels.indexOf(p) - 1].bottom)) };
+  });
+  check(`the ${where} chart writes each panel's unit above its own frame`,
+    panels.length === 3 && above.every((x) => x.ok),
+    `${panels.length} panels; ${above.filter((x) => !x.ok).map((x) => x.k).join(", ")} misplaced`);
   const bad = [];
   for (let i = 1; i < titles.length; i++) {
     if (Math.abs(titles[i].y - titles[i - 1].y) > 1) continue;
@@ -898,37 +997,6 @@ for (const expanded of [false, true]) {
       bad.push(`${titles[i - 1].text}/${titles[i].text} overlap by ${(-gap).toFixed(1)}u`);
   }
   check(`the ${where} value axis titles do not overlap`, bad.length === 0, bad.join("; "));
-}
-
-// The flip is conditional, not unconditional: with no solar series there is no
-// second right-hand axis, so the price title must stay where it always sat.
-{
-  const expandedTitles = (card) => {
-    const dump = collect(card.shadowRoot).join("\n");
-    return axisTitles(dump.slice(dump.indexOf("chartwrap big")));
-  };
-
-  const withSolar = withAllSeries();
-  withSolar.dialog.open();
-  const a = expandedTitles(withSolar);
-  const priceWith = a.find((t) => t.text === "SEK/kWh");
-
-  const noSolar = withAllSeries();
-  noSolar.legend.hidden = { solar: true };
-  noSolar._sig = null;
-  noSolar.dialog.open();
-  const b = expandedTitles(noSolar);
-  const priceWithout = b.find((t) => t.text === "SEK/kWh");
-
-  check("the price title is pushed aside when the solar axis crowds it",
-    priceWith && priceWith.anchor === "end",
-    priceWith && `anchor ${priceWith.anchor}`);
-  check("and left exactly where it was when nothing crowds it",
-    priceWithout && priceWithout.anchor === "start",
-    priceWithout && `anchor ${priceWithout.anchor}`);
-  check("the solar title itself never moves",
-    !b.some((t) => t.text === "W/m²") &&
-      a.some((t) => t.text === "W/m²" && t.anchor === "start"));
 }
 
 // Density must follow the space available, not a hardcoded interval, so the
@@ -1014,12 +1082,13 @@ check("a very wide dialog does not turn the legend into a headline",
   // than the authored 92-unit left margin, or the boosted labels would
   // collide with the axis they describe.
   const frameX = (dump) => {
-    const m = dump.match(/<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="[\d.]+" fill="none" stroke="var\(--divider-color/);
+    const m = dump.match(/<rect class="panel" data-panel="\w+" x="([\d.]+)"/);
     return m ? Number(m[1]) : null;
   };
+  const left = vm.runInContext("MARGIN.left", ctx);
   check("the boosted font carries the left margin with it",
-    frameX(phone.dump) > 92 + 1e-9 && (frameX(wide.dump) === 92 || frameX(wide.dump) === null || Math.abs(frameX(wide.dump) - 92) < 1e-9),
-    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}`);
+    frameX(phone.dump) > left + 1e-9 && Math.abs(frameX(wide.dump) - left) < 1e-9,
+    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}, authored ${left}`);
 }
 check("an unmeasured dialog is left alone rather than sized from zero",
   dlgOf(0) === 0);
@@ -3797,6 +3866,12 @@ check("the hand-scheduled reason has a label",
     /shared-band/.test(shDump) && /hpoShared/.test(shDump));
   check("the band explains itself: time-sharing, not double-booking",
     /alternates circuits/.test(shDump) && /not double-booking/.test(shDump));
+{
+  const esc = panelEscapes(sh);
+  check("every series, band, wash and grid rule stays inside its own panel (shared steps, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
 
   // Control: with hot water flat off there is nothing to mark.
   const off = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -5814,6 +5889,36 @@ const setupBox = (card, place) =>
     `left ${place(95)}`);
   check("a pointer in the middle still places it beside the crosshair",
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+  // R9-UI-4: the crosshair crosses every panel, from the top of the first
+  // to at least the bottom of the last (on through the lane strip under it,
+  // where there is one), wherever the pointer is.
+  {
+    const cross = posCard.shadowRoot.querySelector(".crosshair");
+    const pl = posCard._plot;
+    const ps = (pl && pl.panels) || [];
+    place(300);
+    check("the crosshair spans all three panels",
+      cross && ps.length === 3 && cross.getAttribute("visibility") !== "hidden" &&
+        Math.abs(+cross.getAttribute("y1") - ps[0].top) < 1e-9 &&
+        +cross.getAttribute("y2") >= ps[2].bottom - 1e-9,
+      cross ? `y ${cross.getAttribute("y1")}..${cross.getAttribute("y2")}, ` +
+        `panels ${ps.map((p) => `${p.key} ${p.top.toFixed(1)}..${p.bottom.toFixed(1)}`).join(", ")}` : "no crosshair");
+  }
+  // ... and the plan editor's lanes sit UNDER the bottom panel, so a slot
+  // never covers a temperature, on the tile and in the dialog alike.
+  {
+    const laneTops = [];
+    for (const open of [false, true]) {
+      if (open) posCard.dialog.open();
+      else posCard._render();
+      const geoms = (posCard._geoms || []).filter(Boolean);
+      const ps = (posCard._plot && posCard._plot.panels) || [];
+      for (const g of geoms) laneTops.push({ open, top: g.laneTop, bottom: ps.length ? ps[ps.length - 1].bottom : NaN });
+    }
+    check("the lane strip sits under the bottom panel, on the tile and in the dialog",
+      laneTops.length >= 2 && laneTops.every((l) => l.top >= l.bottom - 1e-9),
+      laneTops.map((l) => `${l.open ? "dialog" : "tile"} lanes at ${l.top}, bottom panel ends ${l.bottom}`).join("; "));
+  }
 }
 
 // --- Scenario: the zone traces are named, in one legend entry ------------
@@ -6126,7 +6231,8 @@ const setupBox = (card, place) =>
     `band ${dashAttrs(dashed(onPaths)[0])} vs `
     + `room[${roomDashed.length}] ${dashAttrs(roomDashed[0])}`);
   check("and the band is drawn in the tank series' own colour",
-    dashed(onPaths).every((x) => /stroke="#c264d0"/.test(x)),
+    dashed(onPaths).every((x) => x.includes(`stroke="${vm.runInContext(
+      'seriesPaint(SERIES_DEFS.find((d) => d.key === "dhw_temp"))', ctx)}"`)),
     dashed(onPaths).join("\n"));
   check("the band brackets the curve it belongs to at every plotted step",
     (() => {
@@ -7463,7 +7569,8 @@ const setupBox = (card, place) =>
 }
 
 // --- D4-08 (#263): chart series colours against the card background --------
-// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c.
+// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c: each
+// theme's own colour (`colorDark` on the dark card, R9-UI-4's palette).
 {
   const hex = (h) => {
     const n = parseInt(h.slice(1), 16);
@@ -7481,9 +7588,8 @@ const setupBox = (card, place) =>
   const BG = { light: hex("#ffffff"), dark: hex("#1c1c1c") };
   let low = { light: 0, dark: 0 };
   for (const d of defs) {
-    const c = hex(d.color);
-    if (ratio(c, BG.light) < 3) low.light++;
-    if (ratio(c, BG.dark) < 3) low.dark++;
+    if (ratio(hex(d.color), BG.light) < 3) low.light++;
+    if (ratio(hex(d.colorDark || d.color), BG.dark) < 3) low.dark++;
   }
   check("every series colour clears WCAG 1.4.11's 3:1 on a light card",
     low.light === 0, `${low.light} of ${defs.length} below 3:1 on #fff`);
@@ -7528,6 +7634,14 @@ const setupBox = (card, place) =>
       "--divider-color": "rgba(225,225,225,.12)",
     },
   };
+  // The card's own `--hpo-` tokens, as tokenDeclarations declares them for
+  // each theme: the HA variable a token stands for where it has one, else
+  // its literal. The chart's in-panel text and series are painted with them.
+  for (const [name, t] of Object.entries(vm.runInContext("CARD_TOKENS", ctx))) {
+    for (const k of ["light", "dark"]) {
+      THEMES[k][name] = t.ha && THEMES[k][t.ha] !== undefined ? THEMES[k][t.ha] : t[k];
+    }
+  }
   const rgba = (s) => {
     s = String(s).trim();
     if (s.startsWith("#")) {
@@ -7672,33 +7786,85 @@ const setupBox = (card, place) =>
   }
 }
 
-// --- C1 (#558): series colours must survive colour-blindness --------------
+// --- R9-UI-4: the series paint reaches the card through its theme's token ---
+// The checks below measure SERIES_DEFS' literals; what a card paints is the
+// `--hpo-series-<key>` token tokenDeclarations writes for the theme the card
+// is in. Each token must carry that theme's literal, and every series in the
+// markup must be painted through its token.
+{
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const wrong = [];
+  for (const [dark, theme] of [[false, "light"], [true, "dark"]]) {
+    const block = vm.runInContext(`tokenDeclarations(${dark})`, ctx);
+    for (const d of defs) {
+      const want = dark ? d.colorDark || d.color : d.color;
+      if (!block.includes(`--hpo-series-${d.key}: ${want};`)) wrong.push(`${d.key} ${theme}`);
+    }
+  }
+  check("every series token carries its own theme's colour",
+    wrong.length === 0, wrong.join(", "));
+  const painted = vm.runInContext(
+    "SERIES_DEFS.every((d) => seriesPaint(d) === `var(--hpo-series-${d.key}, ${d.color})`)", ctx);
+  check("every series is painted through its token", painted);
+}
+
+// --- C1 (#558) and D4 (#1791): series colours must survive colour-blindness --
 // D4-08 above asks each colour to read against the CARD. This asks the
 // colours to read against EACH OTHER, which is what tells one line from
-// another, and it asks it of a deuteranope -- the commonest form, and the
-// one that collapses exactly the amber/gold axis this palette leans on.
+// another. #558 asked it of a deuteranope -- the commonest form, and the one
+// that collapses the amber/gold axis the old palette leaned on. tvofi's D4
+// (2026-09-30, #1791) extends it to protanopia and tritanopia.
+//
+// Two design choices, stated (`tools/audit/briefs/fixer.md` step 11):
+// - The pairs are the series drawn in ONE PANEL (`panel` in SERIES_DEFS,
+//   R9-UI-4's concept A). Two series in different panels never share a y
+//   range or a stretch of plot, so their colours are not what tells them
+//   apart. A tree without `panel` draws every series on one plot, and every
+//   pair is compared.
+// - Each theme's own colours: `colorDark` where a series has one. A dark
+//   card never shows a light colour, so a light/dark pair is not compared.
+//
+// The simulations: deuteranopia and protanopia by Vienot 1999's reduced
+// model (one LMS plane each); tritanopia by Machado 2009 at severity 1,
+// because the reduced model has no tritan plane and the one-plane tritan
+// shortcut collapses blue against green that the dichromat keeps apart.
 {
   const hex = (h) => {
     const n = parseInt(h.slice(1), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
-  // Vienot 1999 reduced model: project onto the deuteranope's surface in
-  // LMS, then back to sRGB.
   const g = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
   const ug = (v) => {
     v = v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055;
     return Math.min(255, Math.max(0, v * 255));
   };
-  const deuter = (c) => {
+  // Vienot 1999: into LMS, replace the missing cone's signal by its plane
+  // through the other two, back to sRGB.
+  const vienot = (lose) => (c) => {
     const [R, G, B] = [g(c[0]), g(c[1]), g(c[2])];
-    const L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    let L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    let M = 3.45565 * R + 27.1554 * G + 3.86714 * B;
     const S = 0.0299566 * R + 0.184309 * G + 1.46709 * B;
-    const M = 0.494207 * L + 1.24827 * S;
+    if (lose === "M") M = 0.494207 * L + 1.24827 * S;
+    else L = 2.02344 * M - 2.52581 * S;
     return [
       ug(0.080944 * L - 0.130504 * M + 0.116721 * S),
       ug(-0.0102485 * L + 0.0540194 * M - 0.113615 * S),
       ug(-0.000365294 * L - 0.00412163 * M + 0.693513 * S),
     ];
+  };
+  const deuter = vienot("M");
+  const protan = vienot("L");
+  // Machado, Oliveira and Fernandes 2009, tritanomaly at severity 1.0,
+  // applied to linear RGB.
+  const TRITAN = [
+    [1.255528, -0.076749, -0.178779],
+    [-0.078411, 0.930809, 0.147602],
+    [0.004733, 0.691367, 0.3039],
+  ];
+  const tritan = (c) => {
+    const l = c.map(g);
+    return TRITAN.map((r) => ug(r[0] * l[0] + r[1] * l[1] + r[2] * l[2]));
   };
   // CIE Lab, so the distance is perceptual rather than a contrast ratio --
   // a ratio only sees lightness, and two colours can differ in hue while
@@ -7717,60 +7883,55 @@ const setupBox = (card, place) =>
     return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
   };
   const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const paint = (d, theme) => (theme === "dark" && d.colorDark ? d.colorDark : d.color);
+  const panelOf = (d) => d.panel || "plot";
+  // Every pair of series sharing a panel, once per theme.
+  const pairs = [];
+  for (const theme of ["light", "dark"])
+    for (let i = 0; i < defs.length; i++)
+      for (let j = i + 1; j < defs.length; j++)
+        if (panelOf(defs[i]) === panelOf(defs[j]))
+          pairs.push({ theme, a: defs[i], b: defs[j] });
+  check("the colour-vision checks have series pairs to compare",
+    pairs.length > 0, `${defs.length} series, no two in one panel`);
   // A CIE Lab dE of about 2.3 is the just-noticeable difference. 10 is a
   // deliberate margin over it: below that two traces are not "hard to tell
   // apart", they are the same colour.
   const JND_MARGIN = 10;
-  let worst = { d: Infinity, pair: "" };
-  for (let i = 0; i < defs.length; i++)
-    for (let j = i + 1; j < defs.length; j++) {
-      const d = dE(deuter(hex(defs[i].color)), deuter(hex(defs[j].color)));
-      if (d < worst.d) worst = { d, pair: `${defs[i].key}/${defs[j].key}` };
+  for (const [name, sim, tag] of [
+    ["deuteranope", deuter, "#558 C1"],
+    ["protanope", protan, "D4, #1791"],
+    ["tritanope", tritan, "D4, #1791"],
+  ]) {
+    let worst = { d: Infinity, pair: "" };
+    for (const { theme, a, b } of pairs) {
+      const d = dE(sim(hex(paint(a, theme))), sim(hex(paint(b, theme))));
+      if (d < worst.d)
+        worst = { d, pair: `${a.key}/${b.key} in ${panelOf(a)}, ${theme}` };
     }
-  check("no two series are the same colour to a deuteranope (#558 C1)",
-    worst.d >= JND_MARGIN,
-    `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
-    `(just-noticeable is about 2.3)`);
+    check(`no two series in one panel are the same colour to a ${name} (${tag})`,
+      worst.d >= JND_MARGIN,
+      `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated ${name} ` +
+      `(just-noticeable is about 2.3)`);
+  }
 
-  // Colour cannot carry it alone here, and the reason is a CONVENTION rather
-  // than a measurement -- stated that way because earlier drafts of this
-  // comment gave contrast-shaped reasons that measurement refuted.
-  //
-  // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
-  // "lightness is the only axis a deuteranope keeps" is false -- among in-band
-  // colours of EQUAL luminance to the solar series the separation reaches
-  // 140 dE. Colours far from price DO exist -- no count of them is given,
-  // because a count is only defined against a stated separation, and the
-  // one that governs here is the MINIMUM to every series, not the distance
-  // from price. What must NOT be asserted is that those colours collide with
-  // something else: the best blue is 147 dE from dhw_slots, not close to it.
-  // And "green would have done" is false under the metric this check uses:
-  // by MINIMUM separation to every series, green reaches only 19.6 -- below
-  // the 20 dE demanded, and inside the 2.3 dE just-noticeable difference of
-  // the warm best at 18.1. Blue does clear it (54.2); solar is warm by
-  // convention rather than by constraint.
-  //
-  // Solar is warm because a solar series is warm by convention, not because
-  // the palette forbids the alternatives. Within the warm family the
-  // deuteranope ceiling against price is 18.1 dE (a plateau over hue 30-50 at
-  // C>=40), and the shipped #ed6900 sits at 15.0 -- its own figure, not the
-  // family's. Both are under the 20 dE below, so the dash is necessary.
-  //
-  // So two series drawn by the SAME branch of seriesPath -- same shape, same
-  // fill treatment -- must differ in stroke pattern unless their colours are
-  // far apart on their own. 20 is comfortably below every same-style pair the
-  // palette already ships except the one this fixes: price/solar at 15.0 is
-  // the only pair under it, and the next lowest is 24.7.
-  const byStyle = {};
-  for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);
+  // Colour cannot carry it alone where two series share a draw style, and
+  // the reason is a CONVENTION rather than a measurement. The S-cone
+  // blue-yellow axis survives deuteranopia, so colours far apart to a
+  // deuteranope do exist; what made the dash necessary on #558's palette
+  // was that price and solar were the only pair drawn by the SAME branch of
+  // seriesPath -- same shape, same fill treatment -- and solar is warm by
+  // convention. So two series of one style IN ONE PANEL must differ in
+  // stroke pattern unless their colours are far apart on their own, which
+  // 20 dE simulated deuteranope stands for. Solar keeps its dash in the
+  // price panel either way: it is a relative curve, not a second price.
   const undistinguished = [];
-  for (const group of Object.values(byStyle))
-    for (let i = 0; i < group.length; i++)
-      for (let j = i + 1; j < group.length; j++) {
-        const d = dE(deuter(hex(group[i].color)), deuter(hex(group[j].color)));
-        if (d < 20 && !group[i].dash === !group[j].dash)
-          undistinguished.push(`${group[i].key}/${group[j].key} (${group[i].style}, dE ${d.toFixed(1)}, neither dashed)`);
-      }
+  for (const { theme, a, b } of pairs) {
+    if (a.style !== b.style) continue;
+    const d = dE(deuter(hex(paint(a, theme))), deuter(hex(paint(b, theme))));
+    if (d < 20 && !a.dash === !b.dash)
+      undistinguished.push(`${a.key}/${b.key} (${a.style}, ${theme}, dE ${d.toFixed(1)}, neither dashed)`);
+  }
   check("series sharing a draw style are separated by more than colour (#558 C1)",
     undistinguished.length === 0, undistinguished.join("; "));
 }
@@ -8133,8 +8294,11 @@ const STOCK_THEMES = {
   // perceptibility floor this suite already applies to a graphic that is not
   // required to read the chart.
   const alpha = cardNumber("BAND_FILL_OPACITY");
-  const dhwColor = sRGB(vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp").color);
+  const tankDef = vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp");
+  // Each theme's own tank colour (R9-UI-4's palette, `colorDark`).
+  const tankOf = (theme) => sRGB(theme === "dark" ? tankDef.colorDark || tankDef.color : tankDef.color);
   for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const dhwColor = tankOf(theme);
     const band = over(dhwColor, th.card, alpha);
     const seen = contrast(band, th.card);
     const line = contrast(dhwColor, th.card);
@@ -8143,39 +8307,24 @@ const STOCK_THEMES = {
     check(`the envelope stays quieter than the curve it surrounds on a ${theme} card`,
       seen < line, `fill ${seen.toFixed(3)}:1 vs curve ${line.toFixed(3)}:1`);
   }
-  // Why the band is NOT also held to leaving the curve at 3:1 against it.
-  // The band is a tint of the very colour it surrounds, so the two demands
-  // pull opposite ways, and ON A LIGHT CARD they have no common ground at
-  // all. Swept exhaustively over every fill-opacity in 0.001 steps rather
-  // than argued from an interval, because an interval argument is only as
-  // good as its arithmetic.
-  //
-  // The dark card is the control, and it is why this is stated as a
-  // light-card result rather than a general one: there a window does exist,
-  // and the shipped opacity sits inside it. A sweep that found nothing in
-  // either theme would more likely be a broken sweep than a real result.
-  {
-    const window = (th) => {
-      let both = 0, seen = 0, three = 0;
-      for (let i = 0; i <= 1000; i++) {
-        const band = over(dhwColor, th.card, i / 1000);
-        const p = contrast(band, th.card) >= 1.3;
-        const t = contrast(dhwColor, band) >= 3;
-        if (p) seen++;
-        if (t) three++;
-        if (p && t) both++;
-      }
-      return { both, seen, three };
-    };
-    const light = window(STOCK_THEMES.light);
-    const dark = window(STOCK_THEMES.dark);
-    check("on a light card no fill-opacity is both perceptible and leaves the curve at 3:1",
-      light.both === 0 && light.seen > 0 && light.three > 0,
-      `${light.both} of 1001 steps satisfy both ` +
-      `(${light.seen} clear perceptibility, ${light.three} leave the curve at 3:1)`);
-    check("and the dark card is the control that says the sweep can find one",
-      dark.both > 0,
-      `${dark.both} of 1001 steps satisfy both on a dark card`);
+  // The curve at 3:1 against its own band, too. The band is a tint of the
+  // very colour it surrounds, so the two demands pull opposite ways: the
+  // band must be seen, and must not wash the curve out. On #558's palette a
+  // light card had no opacity that met both; on the palette of record
+  // (R9-UI-4, DESIGN.md section 4) both themes have a window. Swept over
+  // every fill-opacity in 0.001 steps rather than argued from an interval,
+  // and the shipped value must sit inside each theme's window.
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const dhwColor = tankOf(theme);
+    let both = 0;
+    for (let i = 0; i <= 1000; i++) {
+      const band = over(dhwColor, th.card, i / 1000);
+      if (contrast(band, th.card) >= 1.3 && contrast(dhwColor, band) >= 3) both++;
+    }
+    const shipped = over(dhwColor, th.card, alpha);
+    check(`the shipped envelope leaves the curve at 3:1 against it on a ${theme} card`,
+      contrast(dhwColor, shipped) >= 3,
+      `${contrast(dhwColor, shipped).toFixed(3)}:1 at fill-opacity ${alpha}; ${both} of 1001 steps satisfy both`);
   }
 }
 
@@ -8688,6 +8837,12 @@ const STOCK_THEMES = {
     const dump = collect(c.shadowRoot).join("\n");
     check("actioned slots render from state history alone, no power attribute",
       /class="actioned-band"/.test(dump), "no band rects in the dump");
+{
+  const esc = panelEscapes(c);
+  check("every series, band, wash and grid rule stays inside its own panel (actioned slots, R9-UI-4)",
+    esc.panels === 3 && esc.measured > 0 && esc.out.length === 0,
+    `${esc.measured} mark(s) measured in ${esc.panels} panel(s); ${esc.out.slice(0, 4).join("; ")}`);
+}
     const act = c._series.find((s) => s.key === "actioned");
     check("the actioned chip reads as having data without power",
       act && act.hasData === true);
