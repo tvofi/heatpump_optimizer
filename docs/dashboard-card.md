@@ -204,7 +204,7 @@ bug.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/plan-why-dark.png">
-  <img alt="The enlarged Plan tab with the pointer on an expensive afternoon quarter hour: the tooltip lists the step's values, then says space heating is off and gives the likely reasons, the price rank, the night run the house is coasting on and the next run, with the house and outdoor temperatures underneath" src="img/card/plan-why-light.png">
+  <img alt="The enlarged Plan tab with the pointer on an expensive afternoon quarter hour: the tooltip lists the step's values, among them the house and outdoor temperatures, then says space heating and hot water are off and gives the likely reasons: the price rank, the night run the house is coasting on, the next heating run, when the tank was last heated and the next hot-water run" src="img/card/plan-why-light.png">
 </picture>
 
 Hovering a step where a channel is not heating says why the plan most likely

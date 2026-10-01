@@ -528,6 +528,43 @@ check("an unknown reason code still shows something",
   const htt = hc.shadowRoot.querySelector(".tooltip").innerHTML;
   check("UX-1 hovering the fixture's dearest idle step explains it",
     /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
+
+  // Through the real hover on an idle hot-water step, with the minimum
+  // published: the run it coasts on and the next run come from the DHW
+  // plan, and the tank line from the published `dhw_min_temperature`. The
+  // step is the warmest idle one past the first quarter that has a run on
+  // each side (15:45 in plan_view.py's plan).
+  const whyClock = fn("whyClock");
+  const dfc = plan.dhw_plan.forecast;
+  const on = (q) => q.dhw_power > 0.05;
+  let di = -1;
+  dfc.forEach((q, k) => {
+    if (k < dfc.length / 4 || on(q) || !dfc.slice(0, k).some(on) ||
+        !dfc.slice(k + 1).some(on)) return;
+    if (di < 0 || q.dhw_temp > dfc[di].dhw_temp) di = k;
+  });
+  let dEnd = di - 1;
+  while (!on(dfc[dEnd])) dEnd--;
+  let dStart = dEnd;
+  while (dStart > 0 && on(dfc[dStart - 1])) dStart--;
+  const dNext = dfc.findIndex((q, k) => k > di && on(q));
+  const ms = (k) => Date.parse(dfc[k].t);
+  const dStep = ms(di + 1) - ms(di);
+  const dMin = Math.floor(dfc[di].dhw_temp) - 5;
+  const dst = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  dst[DEFAULT_SPACE].attributes.dhw_min_temperature = dMin;
+  const dc = build(dst);
+  const dx = (dc._plot.scaleX(ms(di)) / VIEW_W) * hrect.width;
+  dc._onPointerMove({ clientX: dx,
+    currentTarget: { getBoundingClientRect: () => hrect } });
+  const dtt = dc.shadowRoot.querySelector(".tooltip").innerHTML;
+  check("UX-1 hovering an idle hot-water step names its own coast and next run",
+    dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
+      `${whyClock(ms(dEnd) + dStep)}`) &&
+      dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
+  check("UX-1 and compares the tank with the published minimum",
+    dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
+      `above the ${dMin} \u00b0C`), dtt);
 }
 
 // --- Scenario 12: estimated prices are marked (item 7) ---------------------
@@ -4409,6 +4446,13 @@ function ctxL(card, key) {
     hlDump.includes("Most heating is placed in the cheapest hours.") &&
       hlDump.includes("leaving the house warm past the horizon") &&
       hlDump.includes("idle for 19.5 h"));
+  // In the sensor's own order: by spend, then the idle hours.
+  {
+    const at = ["Most heating is placed", "leaving the house warm",
+      "idle for 19.5 h"].map((l) => hlDump.indexOf(l));
+    check("headline keeps the narrative's order",
+      at[0] >= 0 && at[0] < at[1] && at[1] < at[2], at.join(" "));
+  }
 
   // The row must track its own sensors: a new savings value re-renders even
   // though no plan data changed (the headline is part of _signature).
@@ -5999,6 +6043,11 @@ const setupBox = (card, place) =>
     const left = place(x);
     check("UX-1 past mid-width the tooltip sits wholly left of the crosshair",
       left + TT_W <= x, `left ${left} + ${TT_W} > ${x}`);
+    // Between 50 % and the 60 % it used to flip at: still left.
+    const x55 = 0.55 * rect.width;
+    const left55 = place(x55);
+    check("UX-1 at 55 % of the width the tooltip already sits left of the crosshair",
+      left55 + TT_W <= x55, `left ${left55} + ${TT_W} > ${x55}`);
     // fitWhy, with layout stood in for: the box is 16 px a value row and
     // 15 px an explanation line or its heading.
     const fitWhy = fn("fitWhy");
