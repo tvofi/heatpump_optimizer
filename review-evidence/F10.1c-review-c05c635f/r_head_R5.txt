@@ -1,0 +1,5 @@
+== R5-D1-08: rc=1 4 FAIL lines
+  FAIL a 2 h fold-night outage reads its true age, not the wall clock's  [published 60.0 min, true 120.0]
+  FAIL and crosses the 90-minute stale floor a 2 h outage must cross  [stale flag False at published 60.0 min]
+  FAIL spring gap: the plan age is the true 2 h, not 3 h of wall clock  [published 180.0 min, true 120.0]
+  FAIL arm [straddle]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('coordinator.py', '_plan_age_minutes')], 'autumn': [('coordin

@@ -1,0 +1,8 @@
+applied FIX-step-end manual_plan.py
+== FIX-step-end: rc=1 3 FAIL lines
+  FAIL a step ending at the autumn fold stays off for a slot that starts 30 true minutes after it  [pins [1.0]]
+  FAIL arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition  [{'autumn': [('manual_plan.py', 'channel_pins')]}]
+  FAIL arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition  [{'autumn': [('manual_plan.py', 'channel_pins')]}]
+applied FIX-instants manual_plan.py
+== FIX-instants: rc=1 1 FAIL lines
+  FAIL NULL CONTROL: a slot that starts inside the step still pins it on  [pins [0.0]]

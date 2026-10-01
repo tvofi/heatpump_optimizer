@@ -1,0 +1,11 @@
+applied FIX-service-expiry services.py
+== FIX-service-expiry: rc=1 3 FAIL lines
+  FAIL a default override applied the evening before either transition lasts 20 true hours  [(default, clamped far expiry) hours {'autumn': (20.0, 20.0), 'spring': (19.0,
+  FAIL arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('services.py', 'handle_apply_manual_plan')], 'autumn': [
+  FAIL arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('services.py', 'handle_apply_manual_plan')], 'autumn': [
+applied FIX-build-cap manual_plan.py
+== FIX-build-cap: rc=1 4 FAIL lines
+  FAIL a default override applied the evening before either transition lasts 20 true hours  [(default, clamped far expiry) hours {'autumn': (20.0, 21.0), 'spring': (19.0,
+  FAIL a far expires_at is clamped to the same 20 true hours  [{'autumn': (20.0, 21.0), 'spring': (19.0, 19.0), 'plain': (20.0, 20.0)}]
+  FAIL arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('manual_plan.py', 'build_override')], 'autumn': [('manua
+  FAIL arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('manual_plan.py', 'build_override')], 'autumn': [('manua

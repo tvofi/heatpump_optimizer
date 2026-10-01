@@ -1,0 +1,8 @@
+== R3-D2-02: rc=1 2 FAIL lines
+  FAIL autumn fold: every window bills under the hour the meter keys it at  [60min produced=True mismatched=[10, 23]; 15min produced=True mismatched=[40, 41, 42, 43, 92, 
+  FAIL spring gap: every window bills under the hour the meter keys it at  [60min produced=True mismatched=[9, 22]; 15min produced=True mismatched=[36, 37, 38, 39, 88, 89
+== R5-D1-08: rc=1 3 FAIL lines
+  FAIL a 2 h fold-night outage reads its true age, not the wall clock's  [published 60.0 min, true 120.0]
+  FAIL and crosses the 90-minute stale floor a 2 h outage must cross  [stale flag False at published 60.0 min]
+  FAIL spring gap: the plan age is the true 2 h, not 3 h of wall clock  [published 180.0 min, true 120.0]
+== NONE: rc=0 0 FAIL lines

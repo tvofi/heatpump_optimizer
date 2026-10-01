@@ -1,0 +1,5 @@
+== R3-D2-02: rc=1 4 FAIL lines
+  FAIL autumn fold: every window bills under the hour the meter keys it at  [60min produced=True mismatched=[10, 23]; 15min produced=True mismatched=[40, 41, 42, 43, 92, 
+  FAIL spring gap: every window bills under the hour the meter keys it at  [60min produced=True mismatched=[9, 22]; 15min produced=True mismatched=[36, 37, 38, 39, 88, 89
+  FAIL arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('tariff.py', '<listcomp>')], 'autumn': [('tariff.py', '<
+  FAIL arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('tariff.py', '<listcomp>')], 'autumn': [('tariff.py', '<

@@ -1,0 +1,5 @@
+== NONE: rc=0 0 FAIL lines
+
+real	1m30.023s
+user	1m24.813s
+sys	0m0.964s
