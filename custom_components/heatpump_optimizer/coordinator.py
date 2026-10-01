@@ -4592,7 +4592,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if previous_temp is None or previous_time is None or heated:
             return
 
-        dt_h = (now - previous_time).total_seconds() / 3600.0
+        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS:
             return
         if dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS:
@@ -4701,7 +4701,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if previous_power is None:
             return
 
-        dt_h = (now - previous_time).total_seconds() / 3600.0
+        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS:
             return
         if dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
@@ -4890,7 +4890,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if previous_power is None:
             return
 
-        dt_h = (now - previous_time).total_seconds() / 3600.0
+        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
             return
 
@@ -8541,7 +8541,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
             self._outage_recovery_until is not None
-            and now < self._outage_recovery_until
+            and utc_elapsed_seconds(self._outage_recovery_until, now) > 0
         )
 
     def _outage_dhw_hold(self, now: datetime) -> bool:
@@ -8552,7 +8552,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         to protect a tariff is the wrong trade.
         """
         ctx = getattr(self, "_ctx", self)
-        if self._outage_dhw_until is None or now >= self._outage_dhw_until:
+        if self._outage_dhw_until is None or utc_elapsed_seconds(self._outage_dhw_until, now) <= 0:
             return False
         params = ctx._thermal_params
         if params.dhw_enabled and (
