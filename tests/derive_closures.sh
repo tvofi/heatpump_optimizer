@@ -57,6 +57,9 @@ if [ -n "$SINGLE" ]; then
   case "$SINGLE" in
     tests/golden.py) set -- "--only" "__no_such_scenario__" ;;
     tests/env_drift.py) set -- "--cache-key" "$GOLDEN_REF" "--all" ;;
+    # Its lane's environment, below: the scoped `closures` job re-derives it
+    # beside features.py, its driver (R9-F10.9).
+    tests/dst_checks.py) export HASTUB_TZ=Europe/Stockholm; set -- ;;
     *) set -- ;;
   esac
 else
