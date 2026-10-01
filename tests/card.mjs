@@ -4393,6 +4393,17 @@ function ctxL(card, key) {
       preventDefault() {}, stopPropagation() {} });
   check("Enter opens the panel as well",
     /class="score-breakdown"/.test(collect(kbCard.shadowRoot).join("\n")));
+  // The expanded Plan page carries its own copy of the score tile, and it is
+  // a control too: same role, and a click on it toggles the same panel.
+  const dlgCard = build(full);
+  dlgCard._onCardClick({}); dlgCard.dialog.page = "plan"; dlgCard._render();
+  const dlgScore = [...dlgCard.shadowRoot.querySelectorAll('[data-stat="score"]')][1];
+  const dlgRole = dlgScore && dlgScore.getAttribute("role");
+  if (dlgScore) dlgScore.dispatchEvent({ type: "click", stopPropagation() {} });
+  const dlgPanel = (collect(dlgCard.shadowRoot).join("\n").match(/<dialog[\s\S]*$/) || [""])[0];
+  check("the Plan page's score tile is a button that opens the breakdown panel",
+    dlgRole === "button" && dlgCard._scoreOpen === true && /class="score-breakdown"/.test(dlgPanel),
+    `role ${dlgRole}, open ${dlgCard._scoreOpen}`);
   // And the whole thing speaks Swedish with the install.
   const svScore = new Card();
   svScore.setConfig({ type: "custom:heatpump-optimizer-card" });
@@ -9877,7 +9888,7 @@ check("without an indoor reading the corner now label is absent",
   check("tiles: the tile and headline rows are two across outside any media rule",
     gridOf(tDump, ".tiles") === "repeat(2, minmax(0, 1fr))" &&
     gridOf(tDump, ".hl-stats") === "repeat(2, minmax(0, 1fr))" &&
-    !/\.tiles[^{]*\{[^}]*repeat\(4/.test(tDump) &&
+    !/\.(tiles|hl-stats)\b[^{]*\{[^}]*repeat\(4/.test(tDump) &&
     !/\.(tile-v|hl-value) \{[^}]*overflow-wrap: anywhere/.test(tDump),
     `${gridOf(tDump, ".tiles")} / ${gridOf(tDump, ".hl-stats")}`);
   // The expanded dialog's Plan page opens with the same tiles and headline.
