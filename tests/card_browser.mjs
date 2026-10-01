@@ -410,6 +410,19 @@ async function cardPages({ browser, check, plan, out }) {
           });
           if (at) { await page.mouse.move(at.x, at.y); await page.waitForTimeout(120); }
           shots.push({ name: "plan-why hover target", ok: !!at, bytes: 0, probe: true });
+          // R9-UX-1: the idle explanation is there, and the box stays inside
+          // the chart it describes, measured on real layout.
+          const box = await page.evaluate(() => {
+            const r = window.__card.shadowRoot;
+            const tt = r.querySelector("dialog[open] .tooltip"), w = tt && tt.closest(".chartwrap");
+            if (!tt || tt.hidden || !w) return null;
+            const a = tt.getBoundingClientRect(), b = w.getBoundingClientRect();
+            return { why: !!tt.querySelector(".tt-why"), inside: a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5 &&
+              a.left >= b.left - 0.5 && a.right <= b.right + 0.5, a: [a.top, a.bottom, a.left, a.right].map(Math.round),
+              b: [b.top, b.bottom, b.left, b.right].map(Math.round) };
+          });
+          check(`R9-UX-1 the idle-step hover explains the step and stays inside the chart (${theme})`,
+            box && box.why && box.inside, JSON.stringify(box));
         }
         const target = view === "tile" ? page.locator("heatpump-optimizer-card")
           : page.locator("heatpump-optimizer-card dialog[open]");

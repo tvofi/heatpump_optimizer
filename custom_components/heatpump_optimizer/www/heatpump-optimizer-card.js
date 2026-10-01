@@ -216,18 +216,19 @@ const STRINGS = {
     // R9-UX-1: why an idle step is idle, inferred from the published fields.
     "why.space_off": "Space heating off",
     "why.dhw_off": "Hot water off",
+    "why.both_off": "Space heating and hot water off",
     "why.likely": "Likely because:",
     "why.price_rank":
       "{price} {unit} is among the dearest {pct} % of the plan " +
       "(cheapest {min})",
     "why.coast_space": "the house is coasting on heat stored {from}\u2013{to}",
     "why.coast_dhw": "the tank was heated {from}\u2013{to}",
-    "why.next_run": "the next run is at {time} at {price} {unit}",
+    "why.next_space": "the next heating run is at {time} at {price} {unit}",
+    "why.next_dhw": "the next hot-water run is at {time} at {price} {unit}",
     "why.tank_above":
       "the tank is at {temp} \u00b0C, above the {min} \u00b0C hot-water minimum",
     "why.solar_ahead":
       "a solar surplus of up to {kw} kW is expected from {time}",
-    "why.footer": "House {room} \u00b0C \u00b7 outdoors {outdoor} \u00b0C",
 
     // slot lanes and the slot menu
     "slots.lane_dhw": "Hot water",
@@ -707,18 +708,19 @@ const STRINGS = {
     "reasons.idle": "Värmer inte",
     "why.space_off": "Husvärmen av",
     "why.dhw_off": "Varmvattnet av",
+    "why.both_off": "Husvärmen och varmvattnet av",
     "why.likely": "Troligen för att:",
     "why.price_rank":
       "{price} {unit} hör till de dyraste {pct} % av planen " +
       "(billigast {min})",
     "why.coast_space": "huset lever på värme som lagrades {from}\u2013{to}",
     "why.coast_dhw": "tanken värmdes {from}\u2013{to}",
-    "why.next_run": "nästa körning är {time} för {price} {unit}",
+    "why.next_space": "nästa värmekörning är {time} för {price} {unit}",
+    "why.next_dhw": "nästa varmvattenkörning är {time} för {price} {unit}",
     "why.tank_above":
       "tanken håller {temp} \u00b0C, över varmvattenminimum {min} \u00b0C",
     "why.solar_ahead":
       "ett solöverskott på upp till {kw} kW väntas från {time}",
-    "why.footer": "Huset {room} \u00b0C \u00b7 ute {outdoor} \u00b0C",
 
     "slots.lane_dhw": "Varmvatten",
     "slots.lane_space": "Värme",
@@ -3741,6 +3743,7 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
         color: var(--hpo-text, #212121);
         box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
+        overflow: hidden; box-sizing: border-box;
       }
       /* The value rows keep the tooltip's nowrap: "House temperature:
          22 °C" broken across two lines is worse than a wider box, and these
@@ -3771,7 +3774,9 @@ function cardStyleBlock(darkMode) {
         max-width: 220px;
       }
       /* R9-UX-1: why an idle step is idle. Prose, so it wraps like
-         tt-reason; the footer is the step's house and outdoor reading. */
+         tt-reason. It comes last in the box, so when a small chart caps
+         the box's height (.tooltip's overflow) it is the least important
+         lines of it that are cut, never a value row. */
       .tooltip .tt-why {
         margin-top: 4px; padding-top: 4px;
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
@@ -3781,7 +3786,6 @@ function cardStyleBlock(darkMode) {
       }
       .tooltip .tt-why .why-head { color: var(--hpo-text, #212121); }
       .tooltip .tt-why ul { margin: 2px 0; padding-left: 1.1em; }
-      .tooltip .tt-why .why-foot { display: block; font-size: 0.92em; }
       .tooltip .dot {
         width: 8px; height: 8px; border-radius: 50%; display: inline-block;
       }
@@ -7154,32 +7158,27 @@ function whyClock(ms) {
   });
 }
 
-/** The explanation for every idle channel at the hovered step, or "".
+/** The explanation for the idle channels at the hovered step, or "".
  * `ctx` is `{ space, dhw, dhwMin, priceUnit }`: the two published
  * forecasts, the published hot-water minimum (null when not published) and
- * the price unit. */
+ * the price unit. Both channels idle at once share one block and one price
+ * line, which keeps the box short enough to stay inside a small chart; the
+ * house and outdoor temperatures are already the tooltip's own rows. */
 function idleWhyHtml(rows, ctx) {
-  const out = [];
+  const idle = [];
+  let t = null;
   for (const ch of ["space", "dhw"]) {
-    const field = `${ch}_power`;
-    const row = (rows || []).find((r) => r.field === field);
+    const row = (rows || []).find((r) => r.field === `${ch}_power`);
     if (!row || row.value > WHY_RUNNING_KW) continue;
     if (row.reason && row.reason !== "idle") continue;
-    const block = idleChannelWhy(ch, ctx[ch] || [], Number(row.t), ctx);
-    if (block) out.push(block);
+    const fc = ctx[ch] || [];
+    const ts = fc.map((p) => Date.parse(p.t));
+    const i = ts.indexOf(Number(row.t));
+    if (i < 0) continue;
+    if (t === null) t = ts[i];
+    idle.push({ ch, fc, ts, i });
   }
-  return out.join("");
-}
-
-function idleChannelWhy(ch, fc, t, ctx) {
-  const field = `${ch}_power`;
-  const ts = fc.map((p) => Date.parse(p.t));
-  const i = ts.indexOf(t);
-  if (i < 0) return "";
-  const p = fc[i];
-  const running = (k) => Number(fc[k][field]) > WHY_RUNNING_KW;
-  const step =
-    i + 1 < ts.length ? ts[i + 1] - ts[i] : i > 0 ? ts[i] - ts[i - 1] : 900000;
+  if (!idle.length) return "";
   const unit = ctx.priceUnit || "";
   const money = (v) => Number(v).toFixed(2);
   const lines = [];
@@ -7187,8 +7186,9 @@ function idleChannelWhy(ch, fc, t, ctx) {
   // Where the step's price sits in the horizon. Only a step in the dearer
   // half is explained by its price; a cheap idle step is idle for another
   // reason the published fields do not carry.
-  const prices = fc.map((q) => Number(q.price)).filter(Number.isFinite);
-  const price = Number(p.price);
+  const { fc: pfc, i: pi } = idle[0];
+  const prices = pfc.map((q) => Number(q.price)).filter(Number.isFinite);
+  const price = Number(pfc[pi].price);
   if (prices.length > 1 && Number.isFinite(price)) {
     const pct = Math.ceil(
       (100 * prices.filter((v) => v >= price).length) / prices.length
@@ -7199,36 +7199,41 @@ function idleChannelWhy(ch, fc, t, ctx) {
     }
   }
 
-  // The run it coasts on: the last stretch of running steps before it.
-  let end = i - 1;
-  while (end >= 0 && !running(end)) end--;
-  if (end >= 0) {
-    let start = end;
-    while (start > 0 && running(start - 1)) start--;
-    lines.push(L(ch === "dhw" ? "why.coast_dhw" : "why.coast_space", {
-      from: whyClock(ts[start]), to: whyClock(ts[end] + step) }));
-  }
-
-  // The next run.
-  let next = i + 1;
-  while (next < fc.length && !running(next)) next++;
-  if (next < fc.length) {
-    lines.push(L("why.next_run", { time: whyClock(ts[next]),
-      price: money(fc[next].price), unit }));
-  }
-
-  // The tank against the published minimum, only when it is above it.
-  const temp = Number(p.dhw_temp);
-  const min = ctx.dhwMin;
-  if (ch === "dhw" && min !== null && min !== undefined &&
-      Number.isFinite(temp) && Number.isFinite(Number(min)) && temp > min) {
-    lines.push(L("why.tank_above", { temp: temp.toFixed(1), min }));
+  const { ts: sts, i: si } = idle[0];
+  const step =
+    si + 1 < sts.length ? sts[si + 1] - sts[si]
+      : si > 0 ? sts[si] - sts[si - 1] : 900000;
+  for (const { ch, fc, ts, i } of idle) {
+    const running = (k) => Number(fc[k][`${ch}_power`]) > WHY_RUNNING_KW;
+    // The run it coasts on: the last stretch of running steps before it.
+    let end = i - 1;
+    while (end >= 0 && !running(end)) end--;
+    if (end >= 0) {
+      let start = end;
+      while (start > 0 && running(start - 1)) start--;
+      lines.push(L(`why.coast_${ch}`, {
+        from: whyClock(ts[start]), to: whyClock(ts[end] + step) }));
+    }
+    // The next run.
+    let next = i + 1;
+    while (next < fc.length && !running(next)) next++;
+    if (next < fc.length) {
+      lines.push(L(`why.next_${ch}`, { time: whyClock(ts[next]),
+        price: money(fc[next].price), unit }));
+    }
+    // The tank against the published minimum, only when it is above it.
+    const temp = Number(fc[i].dhw_temp);
+    const min = ctx.dhwMin;
+    if (ch === "dhw" && min !== null && min !== undefined &&
+        Number.isFinite(temp) && Number.isFinite(Number(min)) && temp > min) {
+      lines.push(L("why.tank_above", { temp: temp.toFixed(1), min }));
+    }
   }
 
   // The solar surplus ahead, from the space plan's published surplus.
   const sp = ctx.space || [];
   const pv = (q) => Number(q && q.pv_surplus);
-  let s0 = sp.findIndex((q) => Date.parse(q.t) >= t && pv(q) > WHY_RUNNING_KW);
+  const s0 = sp.findIndex((q) => Date.parse(q.t) >= t && pv(q) > WHY_RUNNING_KW);
   if (s0 >= 0) {
     let peak = pv(sp[s0]);
     for (let k = s0 + 1; k < sp.length && pv(sp[k]) > WHY_RUNNING_KW; k++) {
@@ -7239,20 +7244,13 @@ function idleChannelWhy(ch, fc, t, ctx) {
   }
 
   if (!lines.length) return "";
-  const room = Number(p.room);
-  const outdoor = Number(p.outdoor);
-  const foot =
-    ch === "space" && Number.isFinite(room) && Number.isFinite(outdoor)
-      ? `<span class="why-foot">${esc(L("why.footer", {
-          room: room.toFixed(1), outdoor: outdoor.toFixed(1) }))}</span>`
-      : "";
+  const head = idle.length > 1 ? "why.both_off" : `why.${idle[0].ch}_off`;
   return (
     `<div class="tt-why"><span class="why-head">` +
-    `${esc(`${whyClock(t)}–${whyClock(t + step)}`)} · ` +
-    `${esc(L(ch === "dhw" ? "why.dhw_off" : "why.space_off"))}. ` +
-    `${esc(L("why.likely"))}</span><ul>` +
+    `${esc(`${whyClock(t)}\u2013${whyClock(t + step)}`)} \u00b7 ` +
+    `${esc(L(head))}. ${esc(L("why.likely"))}</span><ul>` +
     lines.map((l) => `<li>${esc(l)}</li>`).join("") +
-    `</ul>${foot}</div>`
+    `</ul></div>`
   );
 }
 

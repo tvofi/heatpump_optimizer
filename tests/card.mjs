@@ -473,12 +473,19 @@ check("an unknown reason code still shows something",
     dear.includes("3.00 SEK/kWh") && dear.includes("dearest 25 %") &&
       dear.includes("cheapest 0.50"), dear);
   check("UX-1 it names the run it coasts on and the next run",
-    dear.includes(`${clk(0)}\u2013${clk(30)}`) && dear.includes(clk(90)) &&
+    dear.includes(`${clk(0)}\u2013${clk(30)}`) &&
+      dear.includes(`next heating run is at ${clk(90)}`) &&
       dear.includes("0.80 SEK/kWh"), dear);
   check("UX-1 it names the solar surplus ahead",
     dear.includes("1.2 kW") && dear.includes(clk(75)), dear);
-  check("UX-1 the footer gives the house and outdoor temperatures",
-    /House 21\.0 °C/.test(dear) && /outdoors -3\.0 °C/.test(dear), dear);
+  const both = idleWhyHtml([row("space_power", 3, 0, "idle"),
+    row("dhw_power", 3, 0, "idle")], ctx);
+  check("UX-1 both channels idle share one block and one price line",
+    (both.match(/class="tt-why"/g) || []).length === 1 &&
+      /Space heating and hot water off/.test(both) &&
+      (both.match(/dearest/g) || []).length === 1 &&
+      /next heating run/.test(both) &&
+      /tank was heated/.test(both), both);
   check("UX-1 nothing is claimed the published fields cannot show",
     !/floor|fuse/i.test(dear), dear);
   const cheap = idleWhyHtml([row("space_power", 2, 0, "idle")], ctx);
@@ -5980,6 +5987,23 @@ const setupBox = (card, place) =>
     `left ${place(95)}`);
   check("a pointer in the middle still places it beside the crosshair",
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+  // R9-UX-1: past mid-width the box opens to the LEFT of the crosshair by its
+  // own measured width, so it never covers the step it describes; and a
+  // chart with a height caps the box at it (the idle explanation is tall).
+  {
+    const x = 600;
+    const left = place(x);
+    check("UX-1 past mid-width the tooltip sits wholly left of the crosshair",
+      left + TT_W <= x, `left ${left} + ${TT_W} > ${x}`);
+    const tall = { width: 900, height: 200, left: 0, top: 0 };
+    posCard._onPointerMove({ clientX: 300,
+      currentTarget: { getBoundingClientRect: () => tall } });
+    check("UX-1 the tooltip is never taller than the chart",
+      parseFloat(ttNode.style.top) + parseFloat(ttNode.style.maxHeight) <=
+        tall.height, `top ${ttNode.style.top} max ${ttNode.style.maxHeight}`);
+    check("UX-1 and what it cannot hold is clipped, not spilled",
+      /\.tooltip \{[\s\S]*?overflow:\s*hidden[\s\S]*?\}/.test(cardSrc));
+  }
   // R9-UI-4: the crosshair crosses every panel, from the top of the first
   // to at least the bottom of the last (on through the lane strip under it,
   // where there is one), wherever the pointer is.

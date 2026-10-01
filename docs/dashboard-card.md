@@ -214,21 +214,23 @@ the plan sensors publish for that step and nothing else:
 - the step's price, when it is among the dearer half of the plan's horizon,
   with the share of the horizon that is at least as dear and the cheapest
   price in it;
-- the last run before it, which the house (or the tank) is coasting on;
-- the next run, with its time and price;
+- the last run before it, which the house is coasting on, or when the tank
+  was last heated;
+- the next run of that channel, with its time and price;
 - on a hot-water step, the planned tank temperature, when it is above the
   hot-water minimum the integration publishes;
 - a solar surplus expected later in the horizon.
 
-Under the list, a space-heating step gives the planned house temperature and
-the outdoor temperature. A reason the published fields cannot show — the
-room's lower limit at that hour, or a fuse limit — is never claimed, which is
-why the heading says *likely*: the plan's exact reasons for idle steps are not
-published yet. A step none of these fits gets no explanation rather than a
-guessed one.
+When both channels are idle at that step they share one list, with the price
+said once. A reason the published fields cannot show — the room's lower limit
+at that hour, or a fuse limit — is never claimed, which is why the heading
+says *likely*: the plan's exact reasons for idle steps are not published yet.
+A step none of these fits gets no explanation rather than a guessed one.
 
 The tooltip stays inside the chart: past the middle of the chart it opens to
-the left of the crosshair, and it is never taller than the chart.
+the left of the crosshair, and it is never taller than the chart. On a small
+dashboard card that can cut the end of the list; the enlarged view has room
+for all of it.
 
 The stretch of the horizon whose prices have not been published yet — Nord Pool
 and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated
