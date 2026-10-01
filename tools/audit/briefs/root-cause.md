@@ -9,6 +9,7 @@ cost test with numbers, and either a countermeasure or a recorded decision not
 to build one. All four, or the analysis is not finished.
 
 Read `.cursor/rules/defect-root-cause.mdc` first — it is the policy you execute.
+Long jobs follow `fixer.md`'s preamble: a background task that wakes you.
 
 ## 1. Establish the cause, do not accept it
 
@@ -45,8 +46,7 @@ of the deliverable, whether or not it finds anything.
 
     cost(countermeasure, recurring) < cost(defect) x P(recurrence)
 
-Wall-clock, per occurrence, over a release cycle; the left side is the
-**standing** cost (`defect-root-cause.md`). For `P(recurrence)`, prefer a
+For `P(recurrence)`, prefer a
 **measured** class frequency over a guess: the repository's own escape record is
 `RELEASE_NOTES.md` (every shipped fix is a bug that escaped) together with the
 closed `bug` issues. Where the programme has already classified a defect's
