@@ -19,16 +19,17 @@ Documentation (U5): `docs/dashboard-card.md` gains "Why a step is idle" with the
 
 ## Head
 
-57eeaa6d
+7fc5d3fa
 
 ## Mutation proof
 
 The card is not in `tests/mutation_table.py`'s production set: `python tests/mutation_table.py --scope changed --base origin/main` prints "no production file in scope; nothing to mutate", so no site is added and no pin is owed. Hand mutants instead, each a one-line replace in a detached worktree at the head, then `HPO_PLANDATA=<plan_view.py payload> node tests/card.mjs`, failing check names read out of the output:
 
 - M0 null (comment only): rc 0, failing 0
-- M1 headline shows first line only: rc 1, failing 1
+- M1 headline shows first line only: rc 1, failing 2
   - `headline shows every narrative line`
-- M2 no idle explanation: rc 1, failing 9 (the first six shown)
+  - `headline keeps the narrative's order`
+- M2 no idle explanation: rc 1, failing 11 (the first six shown)
   - `UX-1 an idle step is explained, as an inference`
   - `UX-1 the explanation names the step's own quarter hour`
   - `UX-1 a dear idle step gives its price rank within the horizon`
@@ -39,10 +40,13 @@ The card is not in `tests/mutation_table.py`'s production set: `python tests/mut
   - `UX-1 a step in the cheaper half claims no price reason`
 - M4 tank line below the minimum too: rc 1, failing 1
   - `UX-1 no tank line when the tank is below the minimum`
-- M5 hover does not pass the explanation: rc 1, failing 1
+- M5 hover does not pass the explanation: rc 1, failing 3
   - `UX-1 hovering the fixture's dearest idle step explains it`
-- M6 flip assumes a 160 px box: rc 1, failing 1
+  - `UX-1 hovering an idle hot-water step names its own coast and next run`
+  - `UX-1 and compares the tank with the published minimum`
+- M6 flip assumes a 160 px box: rc 1, failing 2
   - `UX-1 past mid-width the tooltip sits wholly left of the crosshair`
+  - `UX-1 at 55 % of the width the tooltip already sits left of the crosshair`
 - M7 fitWhy never shortens: rc 1, failing 2
   - `UX-1 on a short chart the explanation loses its last lines, not its value rows`
   - `UX-1 and is dropped whole when not even one line fits`
@@ -51,6 +55,17 @@ The card is not in `tests/mutation_table.py`'s production set: `python tests/mut
 - M10 hover does not fit the box: rc 0, failing 0
 - M9 active steps explained too: rc 1, failing 1
   - `UX-1 a running step with no published reason is not explained`
+- R2 hover reads `dhw_min_temp`: rc 1, failing 1
+  - `UX-1 and compares the tank with the published minimum`
+- R3 hover passes the space forecast as `dhw`: rc 1, failing 2
+  - `UX-1 hovering an idle hot-water step names its own coast and next run`
+  - `UX-1 and compares the tank with the published minimum`
+- R6 flip at 60 % (main's threshold): rc 1, failing 1
+  - `UX-1 at 55 % of the width the tooltip already sits left of the crosshair`
+- R9 narrative lines reversed: rc 1, failing 1
+  - `headline keeps the narrative's order`
+
+R2, R3, R6 and R9 are the round-1 review's survivors at 57eeaa6d; the checks that kill them were added at 7fc5d3fa: a hover at 55 % of the width, a real hover on the fixture's warmest idle hot-water step past the first quarter with `dhw_min_temperature` published 5 °C below its tank, and an order check on the headline. R10 (tank line on the space channel) is equivalent: the space forecast carries no `dhw_temp`.
 
 M10 (the hover does not call `fitWhy`) has no Node detector: the test DOM has no layout. Its detector is the browser: with M10 applied, `node tests/card_browser.mjs` fails "P9 grid: no pop-up leaves the viewport or its chart" (`div.tooltip` up to 72.7px outside, 10 findings), the vertical arm this PR adds; it is the only browser check that goes red.
 
@@ -64,10 +79,10 @@ Failing test first: the head's `tests/card.mjs` against main's card file stops w
 
 ## Figures
 
-- `node tests/card.mjs`: ALL CARD CHECKS PASSED at the head.
+- `node tests/card.mjs`: ALL CARD CHECKS PASSED at 7fc5d3fa.
 - `node tests/card_drift.mjs $(git merge-base origin/main HEAD)`: "39 state(s) moved and claimed, 1 identical".
-- `NODE_PATH=<playwright> node tests/card_browser.mjs`: ALL BROWSER CHECKS PASSED at the head, P9 grid MODE: FULL, including "P9 grid: no pop-up leaves the viewport or its chart", "P9 grid: no text is clipped where its ancestor cannot scroll to it", "R9-UX-1 the idle-step hover explains the step and stays inside the chart" (light, dark) and the U5 page check (12 pictures).
-- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: MODE: SCOPED -- 11 script(s) run, 17 scoped out; "13 TEST SCRIPT(S) PASSED; 16 SCOPED OUT AND NOT RUN" at 7b806cba (the head's last code-bearing tree for the Python lanes). The head's later commits touch only `tests/card.mjs`, `docs/` and the pictures; at the head `tests/card.mjs`, `tests/doc_claims.py`, `tests/entities.py`, `tests/harness_headers.py` and `tests/md_tables.mjs` re-ran green. Python 3.13.15 venv from `tests/requirements-ci.txt`, not the pinned 3.14.
+- `NODE_PATH=<playwright> node tests/card_browser.mjs`: ALL BROWSER CHECKS PASSED at 7fc5d3fa, P9 grid MODE: FULL, including "P9 grid: no pop-up leaves the viewport or its chart", "P9 grid: no text is clipped where its ancestor cannot scroll to it", "R9-UX-1 the idle-step hover explains the step and stays inside the chart" (light, dark) and the U5 page check (12 pictures).
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at 7fc5d3fa: "MODE: SCOPED -- 11 script(s) run, 17 scoped out", "13 TEST SCRIPT(S) PASSED; 16 SCOPED OUT AND NOT RUN". Python 3.13 venv from `tests/requirements-ci.txt`, not the pinned 3.14.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED (no Python changed; the card has no structure metric).
 - `node .claude/workflows/brief_lint.mjs`: TOTAL: 0 error(s), `carry-1795.json` 0 errors.
 - The idle-step example in the docs picture, from the repository fixture: 16:00, 2.85 SEK/kWh, among the dearest 17 % of the plan (cheapest 0.62), coasting on 00:00-05:00, next run 23:00 at 0.78; this is `idleWhyHtml` on `plan_view.py`'s plan, and the design's mockup predicted the same numbers.
