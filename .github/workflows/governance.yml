@@ -297,6 +297,12 @@ jobs:
       - name: Show the App verdict poster refusing its own fixtures
         run: bash tools/audit/app_comment.sh --self-test
 
+      # The verdict bus (round-9 process review item 9): the reviewer's
+      # verdict push and the orchestrator's ref watcher, over a local bare
+      # repository and a stub poster -- no network, no key.
+      - name: Show the verdict bus refusing its own fixtures
+        run: bash tools/audit/seat/bus.sh --self-test
+
       # The budget-raise gate (0013 as amended): a raise and a routine edit
       # per budget file, every tracked file's caps moved both ways, and the
       # owner's approval -- current, stale, dismissed, the App's -- offline.

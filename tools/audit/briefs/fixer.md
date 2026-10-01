@@ -65,7 +65,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
-   the PR as the `hpo-author` App (decision 0011).
+   the PR as the `hpo-author` App (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -81,9 +81,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
-   with that tip and `date -u`. The body rides the orphan ref
-   `handoff-body/<topic>` (`tools/audit/seat/body_push.sh`), off the code
-   head (`prepr.sh` step 1a); the orchestrator writes the delivery row.
+   with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
+   body to the orphan `handoff-body/<topic>` (`seat/body_push.sh`),
+   off the code head (`prepr.sh` step 1a); that push is the handoff; the
+   orchestrator writes the row.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
@@ -234,7 +235,7 @@ holds several, and adding a method, call and attribute to `CoordinatorContext` m
 
 **Derive the split, do not carry it.** The coordinator-scoped rows are the ones
 `measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge
-base; a list here would be a carried number, which this file already refuses.
+base.
 
 **Read the expression, not the value.** `attrbag_classes_over_30` has the
 coordinator as its only member and a `top_is_coordinator` flag beside it, yet is
