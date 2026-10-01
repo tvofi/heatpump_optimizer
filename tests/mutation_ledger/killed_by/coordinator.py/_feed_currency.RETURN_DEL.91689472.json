@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_feed_currency RETURN_DEL 91689472",
+  "killed_by": "tests/features.py",
+  "old": "    return declared_currency(attrs.get(\"unit_of_measurement\"), attrs)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
