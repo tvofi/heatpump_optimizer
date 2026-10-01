@@ -571,11 +571,11 @@
         "R9-F3.1"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f1-coordinator-9",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "404a5fb0",
+        "last_step": "#1805 merged 2026-10-01T08:4xZ as 404a5fb0 at head 3bf9c454 (merge verdicts 5927309928 + delta 5927675458; tvofi review under mandate; real-HA 61/61 on the Mac); #1660 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F1.9.md on handoff/r9-f1-coordinator-9",
         "review_branch": "handoff/r9-f1-coordinator-9-review",
         "review_note_file": "handoff/round9/fix/resume/F1.9-review.md on handoff/r9-f1-coordinator-9-review",
