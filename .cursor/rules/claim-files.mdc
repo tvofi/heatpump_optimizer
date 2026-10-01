@@ -41,13 +41,13 @@ confirm it:
 git merge-tree --write-tree origin/main HEAD
 ```
 
-**So a branch that claims nothing does not touch the claim files at all.** The
-note is a convention, not a requirement: `inherited_claims_error` compares the
-parsed claim map, an empty list always passes, and no check anywhere reads a
-note. A branch that leaves both files byte-identical to `main` cannot conflict,
-and inherits whatever `stamp.py` last wrote to `claims-for:` — which is also how
-you stop hand-editing that line wrong. Edit these files only when you are
-actually claiming drift; there a conflict is meaningful, and rare.
+**So a branch that claims nothing does not touch the claim files at all.** No
+check reads a note, and a file byte-identical to its fork point's claims
+nothing: it passes, the autofix leaves it, and its lines excuse no drift. A
+line excuses only the diff that wrote it, so lines `main` carries from earlier
+merges are inert until `stamp.py` empties them. Such a file cannot conflict and
+keeps the `claims-for:` line the stamp last wrote. Edit these files only when
+you are actually claiming drift; there a conflict is meaningful, and rare.
 
 Why no autofix job repairs this, and what the `claims-autofix` job does
 instead, are in `ci-autofix.md`.

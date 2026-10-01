@@ -17837,13 +17837,18 @@ R.check(
 )
 _INH_HDR = "# claims-for: 6.3.15\n#\n"
 _INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
-_INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
+# Edited (a note) and kept the baseline's list: the inherited list. A file
+# byte-identical to the baseline's was never written and is not dropped
+# (R9-F10.8, `_f108_repo` below).
+_INH_EDITED = _INH_FILE + "# a note this branch wrote\n"
+_INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_EDITED, _INH_FILE)
 R.check(
     "inherited claim lines are dropped and may-drift is kept",
     _INH_DROPPED is not None
     and "wood_coil  #" not in _INH_DROPPED
     and "# may-drift: wood_coil -- keep" in _INH_DROPPED
-    and "claims-for: 6.3.15" in _INH_DROPPED,
+    and "claims-for: 6.3.15" in _INH_DROPPED
+    and "# a note this branch wrote" in _INH_DROPPED,
     f"dropped={_INH_DROPPED!r}",
 )
 R.check(
@@ -17862,11 +17867,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _inh_td:
     _inh_repo = Path(_inh_td) / "repo"
     _inh_base = Path(_inh_td) / "base"
-    for _d in (_inh_repo, _inh_base):
+    for _d, _note in ((_inh_repo, "# edited here\n"), (_inh_base, "")):
         (_d / "tests" / "golden").mkdir(parents=True)
-        (_d / _env_drift.CLAIM_FILE).write_text(_INH_FILE)
+        (_d / _env_drift.CLAIM_FILE).write_text(_INH_FILE + _note)
         (_d / "tests" / "golden" / "card_claimed_drift.txt").write_text(
-            _INH_HDR + "away_toggle  # copied\n")
+            _INH_HDR + "away_toggle  # copied\n" + _note)
     _inh_status = _env_drift.apply_inherited_claims(
         str(_inh_repo), baseline_dir=str(_inh_base))
     _inh_solver = (_inh_repo / _env_drift.CLAIM_FILE).read_text()
@@ -18391,7 +18396,10 @@ def _merge_hygiene_git():
     _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
     branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
-    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    # A note keeps the merge tree's list the baseline's while its bytes are
+    # not: byte-identical is the no-claim state (R9-F10.8), checked below.
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(
+        five + "# a note the merge tree carries\n")
     _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
     return root, base, branch
@@ -18401,8 +18409,10 @@ _mt_root, _mt_base, _mt_branch = _merge_hygiene_git()
 _mt_without = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
 with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_branch}):
     _mt_with_head = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
-with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": "HEAD"}):
     _mt_defect = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+    _mt_untouched = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
 R.check(
     "the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires",
     callable(_hyg)
@@ -18416,11 +18426,16 @@ R.check(
     f"got {_mt_with_head!r}",
 )
 R.check(
-    "CLAIM_HEAD pointing at a byte-identical list still fires the inherited check (the real-defect arm)",
+    "CLAIM_HEAD pointing at an edited file that kept the list still fires the inherited check (the real-defect arm)",
     callable(_hyg)
     and isinstance(_mt_defect, str)
     and _mt_defect.startswith("INHERITED CLAIMS"),
     f"got {_mt_defect!r}",
+)
+R.check(
+    "CLAIM_HEAD pointing at a byte-identical file is the no-claim state (R9-F10.8)",
+    callable(_hyg) and _mt_untouched is None,
+    f"got {_mt_untouched!r}",
 )
 
 # The false positive the fork-point baseline repairs (#1361/#1357/#1360). A
@@ -18590,7 +18605,8 @@ R.check(
 _ac2_root, _ac2_base = _hygiene_git(
     "# claims-for: 6.3.15\n\n"
     "whatif_edited  # in-window lo floored at the window min; floored band note\n"
-    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+    "# this branch edited the file and kept the list (R9-F10.8)\n",
     {_env_drift.CARD_JS: "// this branch moved the card\n"},
     py_touch=False,
 )
@@ -18617,6 +18633,197 @@ R.check(
     "a solver branch cannot have written the card list, and emptying it is the "
     f"deletion a squash applies to main (#608); status={_ac3_status!r} "
     f"changed={_ac3_after != _ac3_before}",
+)
+
+# --- F10.8: a branch that only MERGED a claiming main claims nothing --------
+#
+# #608 erased #569's claims, #635 erased #633's, and on 2026-10-01 #1808 and
+# #1809 each dropped F6.4's (#1806) to pass: a branch that never edited a
+# claim file merged a main that had just landed a claiming PR, its list then
+# equalled its new merge base's, INHERITED CLAIMS refused it, and the one
+# remedy offered -- empty the list -- is a deletion its own merge applies to
+# main. A file byte-identical to the fork point's is the no-claim state: it
+# is not refused, the autofix does not empty it, and its lines excuse no
+# drift and go stale for nobody. A list the branch rewrote to the baseline's
+# is still inherited, which the touched control below keeps red.
+def _f108_repo(branch_note: bool, branch_claim: bool = False):
+    """main forks; the branch moves solver code; main lands a claiming PR
+    (solver and card); the branch merges main. `branch_note` then edits a
+    comment in the solver claim file, leaving its parsed list main's;
+    `branch_claim` adds the branch's own line for main's claimed scenario."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="f108_")
+
+    def _git(*args: str) -> str:
+        return _sp.run(["git", *args], cwd=root, check=True,
+                       capture_output=True, text=True).stdout.strip()
+
+    def _put(rel: str, text: str) -> None:
+        p = Path(root, rel)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+
+    hdr = "# claims-for: 6.7.12\n"
+    _put("VERSION", "6.7.12\n")
+    _put(_env_drift.CLAIM_FILE, hdr)
+    _put(_env_drift.CARD_CLAIM_FILE, hdr)
+    _put("custom_components/heatpump_optimizer/optimizer.py", "x = 1\n")
+    _put(_env_drift.CARD_JS, "// card\n")
+    _git("init", "-q")
+    _git("config", "user.email", "t@t")
+    _git("config", "user.name", "t")
+    _git("add", "-A")
+    _git("commit", "-q", "-m", "base")
+    _git("branch", "-M", "main")
+    _git("checkout", "-q", "-b", "lane")
+    _put("custom_components/heatpump_optimizer/optimizer.py", "x = 2\n")
+    _put(_env_drift.CARD_JS, "// card, this lane\n")
+    _git("commit", "-q", "-am", "lane moves solver and card code")
+    _git("checkout", "-q", "main")
+    _put(_env_drift.CLAIM_FILE, hdr + "wood_coil  # F6.4: another lane's claim\n")
+    _put(_env_drift.CARD_CLAIM_FILE, hdr + "away_toggle  # F6.4: another lane's claim\n")
+    _put("custom_components/heatpump_optimizer/coordinator.py", "y = 1\n")
+    _git("add", "-A")
+    _git("commit", "-q", "-m", "a claiming PR lands on main")
+    main_sha = _git("rev-parse", "HEAD")
+    _git("checkout", "-q", "lane")
+    _git("merge", "-q", "--no-edit", "main")
+    if branch_note:
+        p = Path(root, _env_drift.CLAIM_FILE)
+        p.write_text(p.read_text() + "# a note this lane wrote\n")
+        _git("commit", "-q", "-am", "lane edits a claim-file comment")
+    if branch_claim:
+        p = Path(root, _env_drift.CLAIM_FILE)
+        p.write_text(p.read_text() + "wood_coil  # this lane moves it too\n")
+        _git("commit", "-q", "-am", "lane claims its own drift")
+    return root, main_sha
+
+
+def _f108_hygiene(root: str, ref: str, claim_head: str | None) -> str | None:
+    """check_claims_hygiene with CLAIM_HEAD set exactly as given, restored after."""
+    import os as _os
+
+    saved = _os.environ.pop("CLAIM_HEAD", None)
+    if claim_head is not None:
+        _os.environ["CLAIM_HEAD"] = claim_head
+    try:
+        return _env_drift.check_claims_hygiene(root, ref)
+    finally:
+        _os.environ.pop("CLAIM_HEAD", None)
+        if saved is not None:
+            _os.environ["CLAIM_HEAD"] = saved
+
+
+_f108_root, _f108_main = _f108_repo(branch_note=False)
+_f108_files = {rel: Path(_f108_root, rel).read_text()
+               for rel in (_env_drift.CLAIM_FILE, _env_drift.CARD_CLAIM_FILE)}
+_f108_local = _f108_hygiene(_f108_root, _f108_main, None)
+_f108_ci = _f108_hygiene(_f108_root, _f108_main, "HEAD")
+R.check(
+    "a branch that only merged a claiming main passes claims hygiene",
+    _f108_local is None and _f108_ci is None,
+    "it never edited either claim file, so main's lines are not its list to "
+    f"empty (#608, #635, #1808); local={_f108_local!r} ci={_f108_ci!r}",
+)
+_f108_status = _env_drift.apply_inherited_claims(_f108_root, ref=_f108_main)
+_f108_after = {rel: Path(_f108_root, rel).read_text() for rel in _f108_files}
+R.check(
+    "the autofix leaves a claim file the branch never edited byte-identical",
+    _f108_status == "skip-not-inherited" and _f108_after == _f108_files,
+    "emptying it is the deletion the merge applies to main; "
+    f"status={_f108_status!r} changed={_f108_after != _f108_files}",
+)
+R.check(
+    "an untouched claim file is not an inherited-claims rewrite",
+    all(_env_drift.drop_inherited_claim_lines(t, t) is None
+        for t in _f108_files.values()),
+    "byte-identical to the baseline is the no-claim state",
+)
+_f108_solver = _env_drift.parse_claim_map(_f108_files[_env_drift.CLAIM_FILE])
+_f108_base = _env_drift._claimed_at(_f108_root, _f108_main, _env_drift.CLAIM_FILE)
+R.check(
+    "lines a branch inherited excuse no drift and go stale for nobody",
+    _f108_solver == {"wood_coil": ["F6.4: another lane's claim"]}
+    and _env_drift.authored_claims(_f108_solver, _f108_base) == {},
+    f"authored={_env_drift.authored_claims(_f108_solver, _f108_base)!r}",
+)
+R.check(
+    "a claim line written beside an inherited one is the branch's own",
+    _env_drift.authored_claims(
+        {"wood_coil": ["F6.4", "this lane"], "dhw_only": ["this lane"]},
+        {"wood_coil": ["F6.4"], "away": ["F6.4"]},
+    ) == {"wood_coil": ["F6.4", "this lane"], "dhw_only": ["this lane"]},
+    "an added or rewritten reason line is authored (#1255's parse)",
+)
+# The consumer, not the helper: `judge_drift` is the loop `--all` runs, fed
+# `excusing_claims`, which is what main() hands it (pinned by source below).
+_f108_moved = ({"wood_coil": {"v": 2}}, {"wood_coil": {"v": 1}})
+_f108_x = _env_drift.excusing_claims(_f108_root, _f108_main, _f108_solver)
+_f108_j = _env_drift.judge_drift(*_f108_moved, _f108_x, {}, _f108_main)
+R.check(
+    "a carried claim line does not excuse a moved fixture",
+    _f108_j[0] == 1 and _f108_j[1] == [] and _f108_x == {},
+    f"drifted={_f108_j[0]} claimed={_f108_j[1]} excusing={_f108_x!r}",
+)
+import inspect as _f108_inspect
+_f108_main_src = _f108_inspect.getsource(_env_drift.main)
+R.check(
+    "main() judges drift and staleness with excusing_claims, not the raw file",
+    "claims = excusing_claims(repo, ref, claims)" in _f108_main_src
+    and _f108_main_src.index("claims = excusing_claims(repo, ref, claims)")
+    < _f108_main_src.index("judge_drift("),
+    "the raw claim map excuses carried lines by name (#213)",
+)
+_f108a_root, _f108a_main = _f108_repo(branch_note=False, branch_claim=True)
+_f108a_x = _env_drift.excusing_claims(
+    _f108a_root, _f108a_main, _env_drift._claimed(_f108a_root)[1])
+_f108a_j = _env_drift.judge_drift(*_f108_moved, _f108a_x, {}, _f108a_main)
+R.check(
+    "a claim line the branch wrote excuses its moved fixture",
+    _f108a_j[0] == 0 and _f108a_j[1] == ["wood_coil"],
+    f"drifted={_f108a_j[0]} claimed={_f108a_j[1]} excusing={_f108a_x!r}",
+)
+# The autofix reads the baseline at the FORK POINT, as the guard does. CI
+# passes main's tip; a main that moved past the fork with only a note edit
+# keeps the parsed list, and judging the untouched branch file against the
+# tip's bytes would empty a list the branch never wrote.
+def _f108_tip_moved():
+    import subprocess as _sp
+
+    root, main_sha = _f108_repo(branch_note=False)
+
+    def _git(*args: str) -> str:
+        return _sp.run(["git", *args], cwd=root, check=True,
+                       capture_output=True, text=True).stdout.strip()
+
+    _git("checkout", "-q", "main")
+    p = Path(root, _env_drift.CLAIM_FILE)
+    p.write_text(p.read_text() + "# a note main wrote later\n")
+    _git("commit", "-q", "-am", "main edits a claim-file note")
+    tip = _git("rev-parse", "HEAD")
+    _git("checkout", "-q", "lane")
+    return root, tip
+
+
+_f108m_root, _f108m_tip = _f108_tip_moved()
+_f108m_before = Path(_f108m_root, _env_drift.CLAIM_FILE).read_text()
+_f108m_status = _env_drift.apply_inherited_claims(_f108m_root, ref=_f108m_tip)
+R.check(
+    "the autofix judges an untouched file against the fork point, not main's tip",
+    _f108m_status == "skip-not-inherited"
+    and Path(_f108m_root, _env_drift.CLAIM_FILE).read_text() == _f108m_before,
+    f"status={_f108m_status!r}",
+)
+_f108t_root, _f108t_main = _f108_repo(branch_note=True)
+_f108t_local = _f108_hygiene(_f108t_root, _f108t_main, None) or ""
+_f108t_ci = _f108_hygiene(_f108t_root, _f108t_main, "HEAD") or ""
+R.check(
+    "a branch that edited the claim file and kept main's list is still inherited",
+    _f108t_local.startswith("INHERITED CLAIMS")
+    and _f108t_ci.startswith("INHERITED CLAIMS"),
+    "the null control: only an untouched file is the no-claim state; "
+    f"local={_f108t_local[:40]!r} ci={_f108t_ci[:40]!r}",
 )
 
 # AND THE THIRD MECHANISM, which is the one that actually reddened #662's own
