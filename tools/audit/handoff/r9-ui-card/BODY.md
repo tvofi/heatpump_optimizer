@@ -23,6 +23,12 @@ _Requested by **tvofi**_
   for the dark literal. Left as they were: `--error-color`,
   `--secondary-background-color` and the slot hit-rect's `#fff`, whose values
   carry their own measured contrast rules.
+  The tiles, the headline stats and the idle pill sit on `--hpo-surface-2`,
+  a literal switched by `darkMode`, so their text comes from `--hpo-ink` and
+  `--hpo-ink-2`, literals switched by the same flag, and never from the HA
+  theme's own text colour. Home Assistant reports `darkMode` false for any
+  theme without a dark mode, so a community dark theme would otherwise paint
+  its light text on the light surface (round 1 measured 1.24:1).
 - **Header.** The dusk mark (one inline SVG, `aria-hidden`) before the title,
   and a status pill after it: *Manual plan until HH:MM*, *Fallback: pump's own
   curve*, *Plan stale*, *Heating now*, *Idle*, in that precedence. No plan
@@ -85,6 +91,24 @@ solved plan the card tests use. In the tree:
 
 The page screenshots are in `docs/img/card/`.
 
+### Round 2 (review of a0fe0243 blocked on theme-contrast)
+
+The reviewer measured the tile value and the headline value at 1.24:1, and
+the tile labels, units, headline label and idle pill at 2.63:1, under a dark
+theme with no dark mode (`darkMode` false). The fix re-points `--hpo-text`
+and `--hpo-text-2` at the ink literals inside `.tile` and `.hl-stat`, and
+gives the idle pill `--hpo-ink-2`. `tests/card_browser.mjs` gains
+`themeMismatch`, which renders the card with dark theme variables and
+`darkMode` false, and with light variables and `darkMode` true, and measures
+every text run on a tile, a headline stat and the pill against what it is
+painted on. Run with this head's test file against the a0fe0243 card, both
+checks fail (dark mismatch: idle pill, tile labels and units 2.63:1, tile
+value 1.24:1; light mismatch: 3.01:1 and 1.11:1). At this head both pass,
+and so does the rest of the browser lane. `card_drift` still reports 39
+moved and claimed, 1 identical. The code head is a0fe0243 plus this one
+commit; a merge commit carries it under the transport tip, so no
+transport file is in the code head's ancestry.
+
 ### Checks run, and what was not
 
 Run at the code head, all green: `node tests/card.mjs`;
@@ -105,7 +129,7 @@ Python 3.14 with the pins; no Python changed, so neither has a site here);
 
 ## Head
 
-a0fe02438bf2f0d466d75a4ee6a5ff0db8e1faa4 (code head). Everything below was measured there; the
+dfe4d53cb355f3637449ab61d52bcf7928bd32e0 (code head). Everything below was measured there; the
 transport commit above it adds only `tools/audit/handoff/r9-ui-card/`.
 
 ## Mutation proof
@@ -161,6 +185,7 @@ untouched.
 
 - 39 moved and claimed card states, 1 identical: `node tests/card_drift.mjs origin/main`
 - 20 of the 25 new card checks red at the merge base: `tests/card.mjs` from the head, run in a worktree at `f67f598a`
+- 2 of 2 theme-mismatch checks red at a0fe0243 and green at this head: `HPO_BROWSER_SCOPE=full node tests/card_browser.mjs`
 - 18 of 18 card mutants killed: stated without a command, because its driver is evidence and not code. It rests on the table under ## Mutation proof, printed by the driver `js_mutants.py` that transport commit 53100679 adds under tools/audit/handoff/r9-ui-card/, run from the repository root of a tree at the code head.
 
 ## Red checks
