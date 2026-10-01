@@ -2863,7 +2863,7 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_price=float(peak.get("price_per_kw") or 45.0),
             peak_window=int(peak.get("window_minutes") or 60),
             peak_count=int(peak.get("peaks_averaged") or 3),
-            language=self.hass.config.language,
+            language=self.coordinator.hass.config.language,
             **_gap_probe_terms(
                 config,
                 hp,
