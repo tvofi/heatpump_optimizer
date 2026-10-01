@@ -7,3 +7,4 @@
 2026-10-01T22:07:01Z 1832 APPROVED e7de78b1 on carry of verdict b7ea3bd2 (merge-tree(main,code) == head tree, delta empty); carried verdict comment 5941599479 posted; merge waits for CI (BLOCKED now)
 2026-10-01T22:08:51Z 1834 SKIP head 89572df0: verdict branch unchanged (de27770e); head differs from merge-tree(main,code) by docs/delivery/1834.md + tests/closures.json; carry rule fails. Needs a fresh verdict at this head. Draft, BLOCKED.
 2026-10-01T22:14:16Z 1834 APPROVED 89572df0 on exact verdict (handoff/verdict/1834 now names the live head); verdict comment 5941712337 posted, read-back identical; marked ready; merge waits for CI
+2026-10-01T22:35:11Z 1835 APPROVED a9861b00 on carry of verdict 3520a107 (delta = docs/delivery/1835.md only); carried verdict comment posted; marked ready; merge waits for CI
