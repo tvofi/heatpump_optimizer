@@ -1103,10 +1103,11 @@ const DEFAULTS = {
   // "Simulate" button runs a solve on the Home Assistant host, and only "Save"
   // changes any configuration. Set `what_if: false` to hide the panel entirely.
   what_if: true,
-  // The headline stats row under the title: projected savings, optimization
-  // score and the plan narrative, when the integration publishes them. It
-  // costs nothing when the sensors are absent (the row simply is not
-  // rendered), so it is on by default.
+  // The stat tiles under the title (price now, planned heating, plan cost,
+  // indoor temperature) and the headline row (projected savings, optimization
+  // score, plan narrative), each drawn from what the integration publishes. A
+  // tile or row with no sensor behind it is simply not rendered, so it costs
+  // nothing and is on by default.
   show_stats: true,
 };
 
@@ -3237,9 +3238,9 @@ function setupSvgHtml(topo, ctx) {
 // the D4-s1-01 colours below are (a profile switch, not the OS scheme).
 // Values are the design of record's (handoff/round9/state/alt/design/DESIGN.md
 // section 3, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
-// every text pair and tests/card_browser.mjs's P9 grid what Chromium paints.
-// Each entry is [light, dark], plus the Home Assistant variable it stands for
-// where there is one. The stylesheet is written with the LIGHT literal as
+// the text, pill and tile pairs on these literals, and tests/card_browser.mjs's
+// P9 grid what Chromium paints. Each entry holds its light and dark literal,
+// plus the Home Assistant variable it stands for where there is one. The stylesheet is written with the LIGHT literal as
 // every fallback, so the source reads as plain CSS; `themeFallbacks` swaps
 // each `var(--hpo-x, <light>)` for the dark literal when the card is dark.
 const CARD_TOKENS = {
