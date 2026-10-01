@@ -1,2 +1,3 @@
 2026-10-01T21:34:15Z 1833 APPROVED 033ce6a3 carry of verdict 69646cef (diff = docs/delivery/1833.md only); verdict comment NOT posted: app_comment refuses head moved; marked ready
 2026-10-01T21:34:17Z 1830 APPROVED 7898b0ed on relayed carry verdict 8f30964f (tvofi confirmed); verdict comment NOT posted (app_comment head moved); merge pending CI
+2026-10-01T21:38:42Z 1833,1830 carried verdicts posted as hpo-approver at live heads (comments 5941174539, 5941176230; carry check passed, read-back identical)
