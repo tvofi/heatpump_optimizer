@@ -1,17 +1,11 @@
-Fix review: merge 89572df03499ba0f0293e863138c4c94ec2539a5
+Fix review: merge 103f0ff8cced94a4c8c87ba7e9f75b7d0811cd77
 
-PR #1834, R9-F1.11, delta review on the round-1 merge verdict at de27770e (earlier commit on this branch).
-Head 89572df0 = de27770e + e13193c3 (docs/delivery/1834.md, one row) + 5d2592ba (github-actions[bot] "ci: re-record closures") + merge of main 1aefd2d0.
+PR #1834, R9-F1.11, second delta review. The earlier verdicts on this branch cover de27770e and 89572df0.
+Head 103f0ff8 = 89572df0 + merges of main 480a6911 and 8f496ce1 (#1835). There is no branch-authored commit.
 
-RESULT e13193c3 vs de27770e: docs/delivery/1834.md only, +1 line, PR #1834's own row
-RESULT 5d2592ba: tests/closures.json only. One closure changes: tests/entities.py gains 4 paths and loses none:
-  blueprints/automation/charge_ev_from_grid_headroom.yaml
-  blueprints/automation/economy_mode_on_price_peak.yaml
-  blueprints/automation/notify_on_manual_plan.yaml
-  tests/features.py
-  These are exactly the 4 out-of-closure reads the fixer reported. Arm B of P6 reads the blueprints; the P2 CENSUS-MISSING check reads features.py. The 3 blueprints are already on closure.py's read-file exception list (tests/closure.py:515-517, as doc_claims.py reads them), so recording them is not an INERT contradiction. Every other change is a per-script "seconds" timing.
-RESULT main delta 8a0ca90a..1aefd2d0: 13 files (card JS, card tests, card claims, docs, bus.sh, delivery rows). It shares no file with #1834's diff.
-RESULT tree 89572df0 = 27b29ccf = git merge-tree --write-tree 1aefd2d0 5d2592ba (clean)
-
-Nit, not blocking: the comment at tests/entities.py:1856 ("The blueprint FILES are not read") is now false for this script, because arm B reads them. It can ride a later edit.
-Round-1 measurements at tree 99ee5a82 stand; no production or test line changed in the delta. CI on 89572df0 was still running when I posted: merge only on green.
+RESULT diff 89572df0..103f0ff8 == diff 1aefd2d0..8f496ce1 (main's own 20 files: workflows, card JS/tests/images, card claims, delivery rows, tests/entities.py +42)
+RESULT tree 103f0ff8 = 48e87d65 = git merge-tree --write-tree 8f496ce1 89572df0 (clean)
+RESULT tests/entities.py, both-sides file: main adds one block, the merge-queue required-context check with its null control (entities.py ~23285). It does not touch the P2 or P6 sections.
+RESULT entities.py at 103f0ff8: ALL 2053 ENTITY CHECKS PASSED, rc 0 (venv-ci Python 3.14.7). Every P2 and P6 check passes.
+RESULT 89572df0..103f0ff8 leaves these unchanged: tests/closures.json, custom_components/*.py, tests/features.py, tests/golden/claimed_drift.txt. The bot-recorded closure from the previous delta stands.
+Round-1 measurements and the first delta's findings stand. CI on 103f0ff8 is the merge gate: merge only on green.
