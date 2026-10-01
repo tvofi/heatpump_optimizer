@@ -255,6 +255,20 @@ function pageStates(plan) {
     { key: "lower_floor_temp_entity", label: "Lower floor temperature", spread_c: 1.62, parameters: ["lower_floor_loss"], priced: true },
     { key: "dhw_temp_entity", label: "Hot water temperature", priced: false, reason: "no_clamped_parameter" },
   ] };
+  // The advisor inbox (R9-UX-2): the three default-on advisors, with the
+  // money the page ranks by. The values are examples, as the page's own
+  // copy says "≈".
+  Object.assign(st, {
+    "sensor.heat_pump_optimizer_sensor_gap_advisor": { state: "180", attributes: {
+      top_slot: "lower_floor_temp_entity", gaps: [{ key: "lower_floor_temp_entity",
+        label: "Lower floor temperature", empty: true, sek_per_month: 180 }] } },
+    "sensor.heat_pump_optimizer_dhw_setpoint_advisor": { state: "52", attributes: {
+      current_setpoint: 60, recommended_setpoint: 52, covers_heaviest_window: true,
+      candidates: [{ setpoint: 60, cost_per_day: 12.0, meets_heaviest_window: true },
+        { setpoint: 52, cost_per_day: 10.5, meets_heaviest_window: true }] } },
+    "sensor.heat_pump_optimizer_valve_target_recommendation": { state: "21.5", attributes: {
+      reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual" } },
+  });
   Object.assign(st, {
     "sensor.heat_pump_optimizer_indoor_temperature_optimizer": { state: "20.9",
       attributes: { device_class: "temperature", unit_of_measurement: "°C" } },

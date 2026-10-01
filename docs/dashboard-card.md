@@ -517,18 +517,41 @@ settled rows yet says so in words rather than drawing an empty table.
 
 ## The advisor page
 
-The **Advisor** tab answers "which sensor should I add next?" for the
-temperature sensors you have *not* configured. The integration ranks the empty
-optional slots by how far apart the model's own temperature predictions can sit
-until that sensor pins them down, and the card draws that ranking:
+The **Advisor** tab is an inbox: what the integration would change to make
+your plan cheaper, ranked by what each change is worth per month.
 
-![The card's Advisor page: two ranked sensor rows with a plus-minus degrees estimate badge each, then a lower group of three rows the estimate cannot price, each with its reason](img/card-advisor-page.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png">
+  <img alt="The Advisor tab: a Worth doing section with a sensor-gap row at about 180 kronor a month with an Assign sensor button, a hot-water setpoint row at about 45 kronor a month with an Open schedule button and a valve-target row with an Apply button; below it a More advice, once turned on section with wood-stove timing, fuse size and compressor frequency rows, each with an Open settings button; then the ranking of sensors that would tighten the model" src="img/card/advisor-light.png">
+</picture>
 
-*Every ranked row is an estimate — the model replaying what the sensor would
-pin down, not a measurement of your house — and the page says so on every
-row.*
+*Every figure is an estimate (it reads "≈") and comes from the integration's
+own advisor sensors, not from the card.*
 
-Three things shape the page:
+**Worth doing** reads the advisors that are on by default:
+
+- **A missing sensor.** The unconfigured slot that costs most, with its
+  monthly cost. **Assign sensor** opens the Setup page's assign picker for that
+  exact slot.
+- **The hot-water setpoint.** The cheapest setpoint that still covers your
+  heaviest draw, priced against the setpoint you run. **Open schedule** takes
+  you to the Plan tab's schedule editor; the setpoint is not written from here.
+- **The valve target.** The mixing valve's recommended target, which carries no
+  money figure and so follows the priced rows. **Apply** appears only when the
+  valve holds a manual setpoint, and calls `assign_entity` with it.
+
+A row reads its own state: an advisor still learning says what it is waiting
+for, and one that is unavailable says "This advice is unavailable right now"
+with the reason it publishes. When there is nothing to do, the page says "Nothing
+to do: the plan is already as cheap as your settings allow."
+
+**More advice, once turned on** offers wood-stove timing, fuse size and
+compressor frequency. These advisors are off by default, so the card never
+reads them: each row only offers **Open settings** to the integration's page,
+where you can turn them on.
+
+Below the inbox, the page still ranks the temperature sensors you have *not*
+configured, the way it did before:
 
 - **Each ranked row carries its spread and an *estimated* badge.** The spread
   is in degrees the model's predictions can move — one unit, comparable
@@ -545,9 +568,9 @@ Three things shape the page:
   that exact slot, pre-opened — the one editing lane the card already owns.
   Adding the sensor is still your choice; the picker can be closed empty.
 
-When every optional temperature sensor is already configured, the page says
-exactly that; the integration publishes no ranking at all, and no empty table
-is drawn.
+When every optional temperature sensor is already configured, that part of the
+page says exactly that; the integration publishes no ranking at all, and no
+empty table is drawn.
 
 ## The setup page
 

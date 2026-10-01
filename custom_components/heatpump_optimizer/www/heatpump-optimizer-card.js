@@ -4234,8 +4234,8 @@ function cardStyleBlock(darkMode) {
       .adv-text .adv-sub { display: block; font-size: 0.85em; opacity: 0.8; }
       .adv-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
-        color: var(--hpo-primary, #03a9f4); background: none;
-        border: 1px solid currentColor; border-radius: 6px;
+        color: inherit; background: none;
+        border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
       .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
       .adv-basis { font-size: 0.85em; opacity: 0.75; }
