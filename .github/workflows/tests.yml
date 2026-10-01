@@ -576,8 +576,8 @@ jobs:
       # decides what a script's data means: the instrument, the tracer and
       # dependency locks, and the interpreter. A change to any of them is a
       # different key, so a miss, so every script is measured. A push keys its
-      # own commit and saves; nothing else saves, so a pull request can only
-      # ever restore data a push to main measured.
+      # own commit and saves. The runner's OS is in the key as well, since the
+      # tracer's data is the platform's (#1822 review, R9-F10.9c).
       - name: Key the per-script coverage
         id: covkey
         run: |
@@ -588,7 +588,7 @@ jobs:
           fi
           PY=$(python -c 'import sys; print(sys.version.split()[0])')
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
 
       # An exact key and no restore-keys: data from any other commit is a miss.
       - name: Restore the base's per-script coverage
@@ -598,6 +598,29 @@ jobs:
         with:
           path: ${{ runner.temp }}/coverage-base
           key: ${{ steps.covkey.outputs.key }}
+
+      # THE ENTRY MUST BE MAIN'S PUSH RUN'S (#1822 review, R9-F10.9c). A
+      # restore searches this pull request's own cache scope before main's, so
+      # an earlier head of the same pull request whose tests.yml saved under
+      # this key would be restored here in place of the push run's data. The
+      # push run writes a marker naming its event, ref and commit; an entry
+      # whose marker is not a push to main at this key's base is discarded and
+      # every script is measured, as on a miss. A head that forges the marker
+      # too is not caught here: the push to main measures every script
+      # unscoped, as it does behind every scoped lane.
+      - name: Check the restored coverage is main's push run's
+        id: covtrust
+        if: steps.covbase.outputs.cache-hit == 'true'
+        env:
+          BASE: ${{ steps.covkey.outputs.base }}
+        run: |
+          MARK="$RUNNER_TEMP/coverage-base/.measured-by"
+          if [ -f "$MARK" ] && [ "$(cat "$MARK")" = "push refs/heads/main $BASE" ]; then
+            echo "trusted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The restored coverage is not a push to main at $BASE (marker: $(cat "$MARK" 2>/dev/null || echo none)); measuring every script."
+            rm -rf "$RUNNER_TEMP/coverage-base"
+          fi
 
       - name: Install pinned test dependencies
         run: >-
@@ -638,8 +661,9 @@ jobs:
           echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
           # The gate's own scope for this diff decides which scripts can
           # reuse the base's data: a script the plan skips has no changed file
-          # in its measured closure. Only on a hit; a miss measures everything.
-          if [ "${{ steps.covbase.outputs.cache-hit }}" = "true" ]; then
+          # in its measured closure. Only on a hit the marker check trusted; a
+          # miss or a discarded entry measures everything.
+          if [ "${{ steps.covtrust.outputs.trusted }}" = "true" ]; then
             PYTHONPATH=tests/hastub python tests/closure.py select \
               --diff "${{ steps.covkey.outputs.base }}" \
               --workdir "$RUNNER_TEMP/coverage-scope"
@@ -669,7 +693,10 @@ jobs:
       # its path: saved from the mktemp directory, no restore would ever hit.
       - name: Stage this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
+        run: |
+          cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
+          printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
+            > "$RUNNER_TEMP/coverage-base/.measured-by"
 
       - name: Save this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
