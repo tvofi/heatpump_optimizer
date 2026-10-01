@@ -28,6 +28,7 @@ from typing import Any, Protocol
 
 from homeassistant.util import dt as dt_util
 
+from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
 from .store import QuarantiningStore
 
@@ -466,7 +467,7 @@ def _apply_return(
     if return_time.tzinfo is None and now.tzinfo is not None:
         return_time = return_time.replace(tzinfo=now.tzinfo)
     state.return_time = return_time
-    hours_left = (return_time - now).total_seconds() / 3600.0
+    hours_left = utc_elapsed_seconds(return_time, now) / 3600.0
     state.hours_until_return = hours_left
     recovery_hours = estimate_recovery_hours(
         model,
