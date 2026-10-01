@@ -28,6 +28,7 @@ import sys
 import threading
 from bisect import bisect_right
 from dataclasses import dataclass, replace
+from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
@@ -1646,6 +1647,18 @@ def _hub(name: str) -> property:
     return property(get, set)
 
 
+def _view(name: str) -> property:
+    """A read-only public name for a member the entity platforms read.
+
+    The surfaces used to reach the private member itself (#1739), so a rename
+    broke an entity only where a test happened to drive it. A view breaks at
+    the class instead, and has no setter: what a surface reads it cannot
+    write. It resolves through ``getattr``, so a hub resolves through its
+    facade and an instance-level patch of the member is still what is read.
+    """
+    return property(attrgetter(name))
+
+
 def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
     """The live fee entity's value per kWh, in its own unit (#1513)."""
     return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))
@@ -2284,6 +2297,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     _thermal_params = _hub("_thermal_params")
     _current_state = _hub("_current_state")
     _opt_config = _hub("_opt_config")
+    thermal_params = _view("_thermal_params")
+    thermal_model = _view("_thermal_model")
+    away_state = _view("_away_state")
+    mold_floor_series = _view("_mold_floor_series")
 
     def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""

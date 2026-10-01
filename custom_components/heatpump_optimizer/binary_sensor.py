@@ -65,6 +65,8 @@ async def async_setup_entry(
 class _OptimizerBinarySensorBase(HeatPumpOptimizerEntity, BinarySensorEntity):
     """Shared plumbing so the entities land on the existing device."""
 
+    _platform_domain = "binary_sensor"
+
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
@@ -73,16 +75,8 @@ class _OptimizerBinarySensorBase(HeatPumpOptimizerEntity, BinarySensorEntity):
         translation_key: str,
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
         self._key = key
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_translation_key = translation_key
-        # Pin today's English object id for new installs (the integration
-        # suggested-object-id mechanism); see the sensor base class.
-        self.entity_id = f"binary_sensor.heat_pump_optimizer_{translation_key}"
-
-    def _data(self) -> dict[str, Any]:
-        return self.coordinator.data or {}
+        self._pin_identity(entry, key, translation_key)
 
 
 class InputHealthBinarySensor(_OptimizerBinarySensorBase):
@@ -176,11 +170,10 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "mold_floor_breach", "mold_floor_breach")
-        self._config = {**entry.data, **entry.options}
 
     def _margin_c(self) -> float:
         """The breach margin, °C: a noisily jittering reading must not fire."""
-        raw = self._config.get(
+        raw = self.coordinator.effective_config.get(
             CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN
         )
         try:
@@ -192,7 +185,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
 
         The floor is the one the solve enforces: the coordinator's own
-        ``_mold_floor_series`` evaluated at the outdoor forecast of the plan
+        ``mold_floor_series`` evaluated at the outdoor forecast of the plan
         step covering now -- the same ``outdoor_temps[i]`` the solve passed
         it -- so the guard toggle, the humidity entity's age check and the cap
         at the configured comfort target are the solve's, not a second copy.
@@ -207,7 +200,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         outdoor = self._plan_outdoor_now(data)
         if outdoor is None:
             return None, None
-        floors = self.coordinator._mold_floor_series(np.array([float(outdoor)]))
+        floors = self.coordinator.mold_floor_series(np.array([float(outdoor)]))
         if floors is None:
             return None, None
         two_zone = bool(data.get("two_zone_enabled"))

@@ -83,6 +83,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     # comfort and boost are Home Assistant's and need no entry.
     _attr_name = None
     _attr_translation_key = "heat_pump_optimizer"
+    _platform_domain = "climate"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
     _attr_supported_features = (
@@ -102,12 +103,8 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     ) -> None:
         """Initialize the climate entity."""
         super().__init__(coordinator)
-        self._entry = entry
-        self._config = {**entry.data, **entry.options}
-        self._attr_unique_id = f"{entry.entry_id}_climate"
-        # Pin today's object id for new installs (the integration
-        # suggested-object-id mechanism); see the sensor base class.
-        self.entity_id = "climate.heat_pump_optimizer"
+        # The object id predates the ``heat_pump_optimizer_<key>`` scheme.
+        self._pin_identity(entry, "climate", object_id="heat_pump_optimizer")
         # The slider offers exactly the band, and nothing outside it.
         #
         # It used to run a degree past the ceiling AND a degree below the
@@ -120,8 +117,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         # fixed, and it is what the earlier `- 1` here produced. If a user
         # wants a target outside the band, the band is what they need to
         # change, and the options page is where that is done.
-        self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
-        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
+        config = coordinator.effective_config
+        self._attr_min_temp = config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        self._attr_max_temp = config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
 
     @property
     def available(self) -> bool:
@@ -132,7 +130,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         entity stayed available, so the thermostat card published that
         constructor default as a measurement (A3(e)).
         """
-        flags = (self.coordinator.data or {}).get("reading_ok") or {}
+        flags = (self._data()).get("reading_ok") or {}
         return bool(super().available and flags.get("upper_floor_temperature"))
 
     @property
@@ -213,7 +211,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         breaks every template that reads it, while ``None`` is what Home
         Assistant renders as unknown and what a template already handles.
         """
-        data = self.coordinator.data or {}
+        data = self._data()
         flags = data.get("reading_ok") or {}
         return data.get(key) if flags.get(key) else None
 
@@ -227,7 +225,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         thermometer this attribute used to publish the 5.0 constructor
         default beside a plan solved at the forecast's −5 °C.
         """
-        data = self.coordinator.data or {}
+        data = self._data()
         if (data.get("reading_ok") or {}).get("outdoor_temperature"):
             return data.get("outdoor_temperature")
         return data.get("outdoor_forecast_temperature")
