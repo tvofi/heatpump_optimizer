@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:ManualOverride.is_expired RETURN_DEL 3514ea5b",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        return _instant(_coerce_awareness(now, self.expires_at)) >= _instant(self.expires_at)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=4."
+}

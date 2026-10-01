@@ -346,6 +346,7 @@ from .accuracy import (
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
+    utc_elapsed_seconds,
     utc_shift,
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
@@ -6748,7 +6749,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         rate_now = float(snow_array[0]) if snow_array.size else 0.0
         last = self._snow_accum_last
         if last is not None:
-            dt_true = max(0.0, (now - last).total_seconds() / 3600.0)
+            dt_true = max(0.0, utc_elapsed_seconds(now, last) / 3600.0)
             # Decay over the FULL gap — clamping it would keep two-day-old
             # snow "fresh" forever — but credit new fall only for a bounded
             # window, so a long outage cannot book a blizzard from one rate
@@ -6760,7 +6761,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._last_heavy_snow = now
         if self._last_heavy_snow is None:
             return False
-        return (now - self._last_heavy_snow).total_seconds() < (
+        return utc_elapsed_seconds(now, self._last_heavy_snow) < (
             SNOW_ROOF_DAYS * 86400.0
         )
 
@@ -8263,7 +8264,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # meter cannot claim an hour-long sample.
         dt_h: float | None = None
         if self._guard_last_fold is not None:
-            spacing = (now - self._guard_last_fold).total_seconds() / 3600.0
+            spacing = utc_elapsed_seconds(now, self._guard_last_fold) / 3600.0
             if 0.0 < spacing <= 0.25:
                 dt_h = spacing
         self._guard_last_fold = now
@@ -10732,7 +10733,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         if (
             self._freq_last_write is not None
-            and (now - self._freq_last_write).total_seconds()
+            and utc_elapsed_seconds(now, self._freq_last_write)
             < FREQ_WRITE_MIN_INTERVAL_S
         ):
             return
@@ -11088,7 +11089,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         if limited and (
             self._last_simulation is not None
-            and (now - self._last_simulation).total_seconds()
+            and utc_elapsed_seconds(now, self._last_simulation)
             < SIMULATE_MIN_INTERVAL_SECONDS
         ):
             return {

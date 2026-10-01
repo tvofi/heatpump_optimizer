@@ -655,8 +655,3 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
-coord_all_features # F6.4: indoor_temp source_entity attribute, setup_topology.language
-coord_dhw # F6.4: indoor_temp source_entity attribute, setup_topology.language
-coord_grid_fee # F6.4: indoor_temp source_entity attribute, setup_topology.language
-coord_minimal # F6.4: indoor_temp source_entity attribute, setup_topology.language
-coord_two_zone # F6.4: indoor_temp source_entity attribute, setup_topology.language

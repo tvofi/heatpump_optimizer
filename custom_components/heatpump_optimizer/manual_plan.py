@@ -168,7 +168,7 @@ class ManualOverride:
 
     def is_expired(self, now: datetime) -> bool:
         """Whether the override no longer applies as of ``now``."""
-        return _coerce_awareness(now, self.expires_at) >= self.expires_at
+        return _instant(_coerce_awareness(now, self.expires_at)) >= _instant(self.expires_at)
 
     def channel_pins(
         self,
@@ -288,7 +288,7 @@ def build_override(
     # A tz-less `expires_at` is exactly what the service UI's free-text field
     # produces, so this is the ordinary case, not a corner one.
     expires_ref = _coerce_awareness(expires_at, now)
-    if expires_ref <= now:
+    if _instant(expires_ref) <= _instant(now):
         raise ManualPlanError(
             f"expires_at {expires_at.isoformat()} is not in the future"
         )
@@ -298,7 +298,7 @@ def build_override(
     # card's editor always offered "up to 20 hours"; the service accepted
     # any datetime, and a far one owned every step of every plan unenforced.
     cap = utc_shift(now, timedelta(hours=MANUAL_PLAN_WINDOW_HOURS))
-    if expires_ref > cap:
+    if _instant(expires_ref) > _instant(cap):
         expires_ref = cap
     space = parse_channel(space_slots, now)
     dhw = parse_channel(dhw_slots, now)

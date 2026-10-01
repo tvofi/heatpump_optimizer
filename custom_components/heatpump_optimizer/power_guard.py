@@ -32,6 +32,8 @@ from datetime import datetime
 
 import numpy as np
 
+from .accuracy import utc_elapsed_seconds
+
 #: Consecutive agreeing projections needed to engage or release.
 HYSTERESIS_SAMPLES = 2
 
@@ -81,7 +83,7 @@ class GuardState:
         """Whether this event arrives too soon after the last processed one."""
         if self._last_event is None:
             return False
-        return (now - self._last_event).total_seconds() < MIN_EVENT_SPACING_S
+        return utc_elapsed_seconds(now, self._last_event) < MIN_EVENT_SPACING_S
 
     def update(
         self,
