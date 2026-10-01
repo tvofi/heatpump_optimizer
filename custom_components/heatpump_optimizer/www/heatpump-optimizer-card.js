@@ -213,6 +213,21 @@ const STRINGS = {
       "cannot heat rooms (hot-water-only or cooling). Switch the unit " +
       "to a heating mode.",
     "reasons.idle": "Not heating",
+    // R9-UX-1: why an idle step is idle, inferred from the published fields.
+    "why.space_off": "Space heating off",
+    "why.dhw_off": "Hot water off",
+    "why.likely": "Likely because:",
+    "why.price_rank":
+      "{price} {unit} is among the dearest {pct} % of the plan " +
+      "(cheapest {min})",
+    "why.coast_space": "the house is coasting on heat stored {from}\u2013{to}",
+    "why.coast_dhw": "the tank was heated {from}\u2013{to}",
+    "why.next_run": "the next run is at {time} at {price} {unit}",
+    "why.tank_above":
+      "the tank is at {temp} \u00b0C, above the {min} \u00b0C hot-water minimum",
+    "why.solar_ahead":
+      "a solar surplus of up to {kw} kW is expected from {time}",
+    "why.footer": "House {room} \u00b0C \u00b7 outdoors {outdoor} \u00b0C",
 
     // slot lanes and the slot menu
     "slots.lane_dhw": "Hot water",
@@ -690,6 +705,20 @@ const STRINGS = {
       "-- kan inte värma huset (endast varmvatten eller kylning). Ställ " +
       "om aggregatet till ett värmeläge.",
     "reasons.idle": "Värmer inte",
+    "why.space_off": "Husvärmen av",
+    "why.dhw_off": "Varmvattnet av",
+    "why.likely": "Troligen för att:",
+    "why.price_rank":
+      "{price} {unit} hör till de dyraste {pct} % av planen " +
+      "(billigast {min})",
+    "why.coast_space": "huset lever på värme som lagrades {from}\u2013{to}",
+    "why.coast_dhw": "tanken värmdes {from}\u2013{to}",
+    "why.next_run": "nästa körning är {time} för {price} {unit}",
+    "why.tank_above":
+      "tanken håller {temp} \u00b0C, över varmvattenminimum {min} \u00b0C",
+    "why.solar_ahead":
+      "ett solöverskott på upp till {kw} kW väntas från {time}",
+    "why.footer": "Huset {room} \u00b0C \u00b7 ute {outdoor} \u00b0C",
 
     "slots.lane_dhw": "Varmvatten",
     "slots.lane_space": "Värme",
@@ -3565,6 +3594,7 @@ function cardStyleBlock(darkMode) {
       .hl-narrative {
         font-size: 0.82em; font-style: italic;
         color: var(--hpo-text-2, #727272);
+        list-style: none; margin: 0; padding: 0;
       }
       /* R5-D4-02 (#1319): the score is a control (role="button" and tabindex
          arrive after render) and must clear the 24 px target floor. It used
@@ -3740,6 +3770,18 @@ function cardStyleBlock(darkMode) {
         white-space: normal;
         max-width: 220px;
       }
+      /* R9-UX-1: why an idle step is idle. Prose, so it wraps like
+         tt-reason; the footer is the step's house and outdoor reading. */
+      .tooltip .tt-why {
+        margin-top: 4px; padding-top: 4px;
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text-2, #727272);
+        white-space: normal;
+        max-width: 260px;
+      }
+      .tooltip .tt-why .why-head { color: var(--hpo-text, #212121); }
+      .tooltip .tt-why ul { margin: 2px 0; padding-left: 1.1em; }
+      .tooltip .tt-why .why-foot { display: block; font-size: 0.92em; }
       .tooltip .dot {
         width: 8px; height: 8px; border-radius: 50%; display: inline-block;
       }
@@ -6984,8 +7026,9 @@ function tooltipRows(series, t, { seriesUnit, isLowerModelled, actionMode }) {
 }
 
 /** The tooltip's body: the time, one line per row, the shared-step
- * sentence when the step is shared, and why the plan is heating. */
-function tooltipHtml(rows) {
+ * sentence when the step is shared, why the plan is heating, and -- when
+ * the host passes it -- why an idle step is idle (`whyHtml`, R9-UX-1). */
+function tooltipHtml(rows, whyHtml) {
   const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
     hour: "2-digit",
     minute: "2-digit",
@@ -7007,7 +7050,8 @@ function tooltipHtml(rows) {
       )
       .join("") +
     sharedHtml +
-    reasonHtml(rows);
+    reasonHtml(rows) +
+    (whyHtml || "");
   return bodyHtml;
 }
 
@@ -7087,6 +7131,129 @@ function sharedTooltipHtml(rows) {
   return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
       kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
     })}</div>`;
+}
+
+// ---- Why an idle step is idle (R9-UX-1) -------------------------------------
+// reasonHtml names what a heating step is for and stays silent on an idle
+// one. This says why the plan likely left the hovered step idle, from the
+// per-step fields the plan sensors already publish and nothing else: the
+// step's price rank within the horizon, the run it coasts on, the next run,
+// the tank against the published hot-water minimum, and the solar surplus
+// ahead. The room floor and the fuse cap are not published per step, so they
+// are never claimed; the backend's exact sub-codes (R9-UX-5) are what will
+// turn "likely because" into "because".
+
+/** A step is running when it draws more than this, the threshold
+ * `sharedTooltipHtml` already uses for a channel that is on. */
+const WHY_RUNNING_KW = 0.05;
+
+function whyClock(ms) {
+  return new Date(ms).toLocaleString(ACTIVE_LANG, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** The explanation for every idle channel at the hovered step, or "".
+ * `ctx` is `{ space, dhw, dhwMin, priceUnit }`: the two published
+ * forecasts, the published hot-water minimum (null when not published) and
+ * the price unit. */
+function idleWhyHtml(rows, ctx) {
+  const out = [];
+  for (const ch of ["space", "dhw"]) {
+    const field = `${ch}_power`;
+    const row = (rows || []).find((r) => r.field === field);
+    if (!row || row.value > WHY_RUNNING_KW) continue;
+    if (row.reason && row.reason !== "idle") continue;
+    const block = idleChannelWhy(ch, ctx[ch] || [], Number(row.t), ctx);
+    if (block) out.push(block);
+  }
+  return out.join("");
+}
+
+function idleChannelWhy(ch, fc, t, ctx) {
+  const field = `${ch}_power`;
+  const ts = fc.map((p) => Date.parse(p.t));
+  const i = ts.indexOf(t);
+  if (i < 0) return "";
+  const p = fc[i];
+  const running = (k) => Number(fc[k][field]) > WHY_RUNNING_KW;
+  const step =
+    i + 1 < ts.length ? ts[i + 1] - ts[i] : i > 0 ? ts[i] - ts[i - 1] : 900000;
+  const unit = ctx.priceUnit || "";
+  const money = (v) => Number(v).toFixed(2);
+  const lines = [];
+
+  // Where the step's price sits in the horizon. Only a step in the dearer
+  // half is explained by its price; a cheap idle step is idle for another
+  // reason the published fields do not carry.
+  const prices = fc.map((q) => Number(q.price)).filter(Number.isFinite);
+  const price = Number(p.price);
+  if (prices.length > 1 && Number.isFinite(price)) {
+    const pct = Math.ceil(
+      (100 * prices.filter((v) => v >= price).length) / prices.length
+    );
+    if (pct <= 50) {
+      lines.push(L("why.price_rank", { price: money(price), unit, pct,
+        min: money(Math.min(...prices)) }));
+    }
+  }
+
+  // The run it coasts on: the last stretch of running steps before it.
+  let end = i - 1;
+  while (end >= 0 && !running(end)) end--;
+  if (end >= 0) {
+    let start = end;
+    while (start > 0 && running(start - 1)) start--;
+    lines.push(L(ch === "dhw" ? "why.coast_dhw" : "why.coast_space", {
+      from: whyClock(ts[start]), to: whyClock(ts[end] + step) }));
+  }
+
+  // The next run.
+  let next = i + 1;
+  while (next < fc.length && !running(next)) next++;
+  if (next < fc.length) {
+    lines.push(L("why.next_run", { time: whyClock(ts[next]),
+      price: money(fc[next].price), unit }));
+  }
+
+  // The tank against the published minimum, only when it is above it.
+  const temp = Number(p.dhw_temp);
+  const min = ctx.dhwMin;
+  if (ch === "dhw" && min !== null && min !== undefined &&
+      Number.isFinite(temp) && Number.isFinite(Number(min)) && temp > min) {
+    lines.push(L("why.tank_above", { temp: temp.toFixed(1), min }));
+  }
+
+  // The solar surplus ahead, from the space plan's published surplus.
+  const sp = ctx.space || [];
+  const pv = (q) => Number(q && q.pv_surplus);
+  let s0 = sp.findIndex((q) => Date.parse(q.t) >= t && pv(q) > WHY_RUNNING_KW);
+  if (s0 >= 0) {
+    let peak = pv(sp[s0]);
+    for (let k = s0 + 1; k < sp.length && pv(sp[k]) > WHY_RUNNING_KW; k++) {
+      peak = Math.max(peak, pv(sp[k]));
+    }
+    lines.push(L("why.solar_ahead", { kw: peak.toFixed(1),
+      time: whyClock(Date.parse(sp[s0].t)) }));
+  }
+
+  if (!lines.length) return "";
+  const room = Number(p.room);
+  const outdoor = Number(p.outdoor);
+  const foot =
+    ch === "space" && Number.isFinite(room) && Number.isFinite(outdoor)
+      ? `<span class="why-foot">${esc(L("why.footer", {
+          room: room.toFixed(1), outdoor: outdoor.toFixed(1) }))}</span>`
+      : "";
+  return (
+    `<div class="tt-why"><span class="why-head">` +
+    `${esc(`${whyClock(t)}–${whyClock(t + step)}`)} · ` +
+    `${esc(L(ch === "dhw" ? "why.dhw_off" : "why.space_off"))}. ` +
+    `${esc(L("why.likely"))}</span><ul>` +
+    lines.map((l) => `<li>${esc(l)}</li>`).join("") +
+    `</ul>${foot}</div>`
+  );
 }
 
 // ---- Legend ---------------------------------------------------------------
@@ -7591,17 +7758,18 @@ function headlineHtml(plan, cfg, scoreOpen) {
   }
 
   // The narrative arrives already rendered in Home Assistant's language
-  // (the coordinator owns those templates), so the first line is shown
-  // verbatim rather than re-keyed here.
+  // (the coordinator owns those templates), so its lines are shown verbatim
+  // rather than re-keyed here: every line, in the order the sensor
+  // publishes them (by spend, then the idle hours), not only the first
+  // (R9-UX-1).
   const narrative = plan.statEntity("_plan_narrative");
-  const lines =
+  const published =
     narrative && narrative.attributes && narrative.attributes.lines;
-  const line =
-    Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
-      ? lines[0]
-      : null;
+  const lines = Array.isArray(published)
+    ? published.filter((l) => typeof l === "string" && l)
+    : [];
 
-  if (!items.length && !line) return "";
+  if (!items.length && !lines.length) return "";
   const stats = items
     .map(
       (it) =>
@@ -7621,7 +7789,11 @@ function headlineHtml(plan, cfg, scoreOpen) {
   return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
       ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
-      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
+      ${lines.length
+        ? `<ul class="hl-narrative">${lines
+            .map((l) => `<li>${esc(l)}</li>`)
+            .join("")}</ul>`
+        : ""}
     </div>`;
 }
 
@@ -12370,10 +12542,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const tt = scope.querySelector(".tooltip");
     if (tt) {
-      tt.innerHTML = tooltipHtml(rows);
+      const plan = this.plan;
+      tt.innerHTML = tooltipHtml(rows, idleWhyHtml(rows, {
+        space: plan.forecastOf("space"),
+        dhw: plan.forecastOf("dhw"),
+        dhwMin: plan.attr("dhw_min_temperature", null),
+        priceUnit: plan.priceUnit(),
+      }));
       tt.hidden = false;
       const leftPx = clientX - rect.left;
-      const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
       // Clamped to the chart, both edges. Flipping to the left of the pointer
       // past 60 % of the width assumed a 160 px box; a wider one (a long
       // reason line, a shared-step sentence, a chart in the expanded dialog)
@@ -12381,12 +12558,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // the box that actually exists, and keep its right edge inside the plot.
       // `offsetWidth` is 0 before layout and absent in the test DOM, hence the
       // fallback to the width this placement was originally written for.
+      //
+      // R9-UX-1: it flips past mid-width by its own measured width, so the
+      // box never covers the crosshair it describes, and it stays inside the
+      // chart vertically too: the idle explanation makes it taller, so it is
+      // capped at the chart's height and scrolls nothing out of view below.
       const ttWidth = tt.offsetWidth || 160;
+      const place =
+        leftPx > rect.width * 0.5 ? leftPx - ttWidth - 14 : leftPx + 14;
       const rightLimit = Math.max(0, rect.width - ttWidth - 4);
       tt.style.left = `${Math.min(Math.max(0, place), rightLimit)}px`;
       // The tooltip is positioned against its own chart wrapper, so a
       // small inset keeps it clear of the plot frame in both views.
       tt.style.top = `8px`;
+      if (Number.isFinite(rect.height) && rect.height > 16) {
+        tt.style.maxHeight = `${rect.height - 16}px`;
+      }
     }
   }
 
