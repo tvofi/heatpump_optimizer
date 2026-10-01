@@ -534,6 +534,26 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    // The tile row and the header's status pill (R9-UI-3, #1791).
+    "tiles.price_now": "Price now",
+    "tiles.planned": "Planned heating",
+    "tiles.planned_title":
+      "Electricity the current plan uses for heating over its horizon.",
+    "tiles.cost": "Plan cost",
+    "tiles.cost_title":
+      "What the current plan's electricity costs over its horizon.",
+    "tiles.indoor": "Indoor",
+    "status.heating": "Heating now",
+    "status.idle": "Idle",
+    "status.stale": "Plan stale",
+    "status.stale_title":
+      "No new plan for more than {minutes} min. In auto and economy mode " +
+      "the pump runs on its own curve until a solve succeeds.",
+    "status.fallback": "Fallback: pump's own curve",
+    "status.fallback_title":
+      "The integration has no plan yet, so the pump runs on its own curve.",
+    "status.manual": "Manual plan until {time}",
+    "status.manual_open": "Manual plan",
 
     // keyboard access (aria labels)
     "slots.slot_aria":
@@ -987,6 +1007,26 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    // The tile row and the header's status pill (R9-UI-3, #1791).
+    "tiles.price_now": "Pris nu",
+    "tiles.planned": "Planerad uppvärmning",
+    "tiles.planned_title":
+      "El som den aktuella planen använder för uppvärmning under sin horisont.",
+    "tiles.cost": "Plankostnad",
+    "tiles.cost_title":
+      "Vad den aktuella planens el kostar under sin horisont.",
+    "tiles.indoor": "Inomhus",
+    "status.heating": "Värmer nu",
+    "status.idle": "Vilar",
+    "status.stale": "Planen är gammal",
+    "status.stale_title":
+      "Ingen ny plan på mer än {minutes} min. I läget auto och ekonomi går " +
+      "pumpen på sin egen kurva tills en beräkning lyckas.",
+    "status.fallback": "Reserv: pumpens egen kurva",
+    "status.fallback_title":
+      "Integrationen har ingen plan än, så pumpen går på sin egen kurva.",
+    "status.manual": "Manuell plan till {time}",
+    "status.manual_open": "Manuell plan",
 
     "slots.slot_aria":
       "{lane} {start}–{end}. Tryck Enter för åtgärder, Delete för att " +
@@ -1088,6 +1128,9 @@ const SERIES_DEFS = [
     sensor: "either",
     field: "price",
     style: "stepArea",
+    // R9-UI-3 (DESIGN.md section 3): the two area fills sit under the
+    // heating bars, so they drop to a wash and the bars are the loudest mark.
+    areaOpacity: 0.16,
   },
   {
     key: "dhw_slots",
@@ -1212,6 +1255,7 @@ const SERIES_DEFS = [
     color: "#ed6900",
     sensor: "solar",
     field: "ghi",
+    areaOpacity: 0.1,
     // Colour alone cannot finish the job, but not for the reason first
     // written here. It is NOT that lightness is the only axis a deuteranope
     // keeps -- the S-cone blue-yellow axis survives, and among in-band
@@ -1249,6 +1293,15 @@ const VIEW_RATIO = VIEW_W / VIEW_H;
 const EXPAND_ICON =
   '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
   '<path fill="currentColor" d="M10 21v-2H6.4l4.5-4.5-1.4-1.4L5 17.6V14H3v7h7zm4-18v2h3.6l-4.5 4.5 1.4 1.4L19 6.4V10h2V3h-7z"/></svg>';
+// The "dusk" mark (R9-UI-1's identity, decided by tvofi 2026-09-30, D1): a
+// price line stepping down through the cheap hours with the heat pooled in
+// the lowest step, on a 48-unit lattice. Painted by class from the token
+// layer below, so the line follows the theme (fjord on light, glacier on
+// dark) and the pool stays ember in both.
+const DUSK_MARK =
+  '<svg class="hpo-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
+  '<path class="mark-pool" d="M20 22 V26 H27 V35 H36 V22 Z"/>' +
+  '<path class="mark-line" d="M6 12 H13 V19 H20 V26 H27 V35 H36 V13 H42"/></svg>';
 const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
   '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
@@ -3171,6 +3224,69 @@ function setupSvgHtml(topo, ctx) {
   return { html: out, boxes: boxesOut };
 }
 
+// ---- The token layer (R9-UI-3, #1791) -------------------------------------
+// The card's colours, spacing, radii and type scale as custom properties with
+// an `--hpo-` prefix, declared on :host by `cardStyleBlock(darkMode)` and read
+// everywhere else in the stylesheet as `var(--hpo-x, <literal>)`: ONE var()
+// level deep, with this theme's own literal as the fallback, which is the
+// depth tests/card.mjs resolves. The tokens that stand for a Home Assistant
+// theme variable are declared as that variable with the same literal, so a
+// theme still wins and an unthemed card falls back to one value per role
+// instead of the three dividers and two greys the literals had drifted to.
+// Light and dark are chosen in JS from `hass.themes.darkMode` for the reason
+// the D4-s1-01 colours below are (a profile switch, not the OS scheme).
+// Values are the design of record's (handoff/round9/state/alt/design/DESIGN.md
+// section 3, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
+// every text pair and tests/card_browser.mjs's P9 grid what Chromium paints.
+// Each entry is [light, dark], plus the Home Assistant variable it stands for
+// where there is one. The stylesheet is written with the LIGHT literal as
+// every fallback, so the source reads as plain CSS; `themeFallbacks` swaps
+// each `var(--hpo-x, <light>)` for the dark literal when the card is dark.
+const CARD_TOKENS = {
+  "--hpo-primary": { ha: "--primary-color", light: "#03a9f4", dark: "#03a9f4" },
+  "--hpo-on-primary": { ha: "--text-primary-color", light: "#ffffff", dark: "#ffffff" },
+  "--hpo-text": { ha: "--primary-text-color", light: "#212121", dark: "#e1e1e1" },
+  "--hpo-text-2": { ha: "--secondary-text-color", light: "#727272", dark: "#9b9b9b" },
+  "--hpo-surface": { ha: "--card-background-color", light: "#ffffff", dark: "#1c1c1c" },
+  "--hpo-divider": { ha: "--divider-color", light: "#e0e0e0", dark: "#3a3a3a" },
+  "--hpo-surface-2": { light: "#f7f9fb", dark: "#242a30" },
+  "--hpo-accent": { light: "#026aa8", dark: "#4fb3f0" },
+  "--hpo-heat": { light: "#d2601f", dark: "#d2601f" },
+  "--hpo-ok": { light: "#1c7350", dark: "#1fad6b" },
+  "--hpo-ok-bg": { light: "#e8f1ed", dark: "#1c3027" },
+  "--hpo-warn": { light: "#8a5a00", dark: "#e3b25a" },
+  "--hpo-warn-bg": { light: "#fbf1de", dark: "#352c1a" },
+  "--hpo-crit": { light: "#b3261e", dark: "#f28b82" },
+  "--hpo-crit-bg": { light: "#fbe9e7", dark: "#3b2322" },
+};
+// The scale tokens, the same in both themes.
+const CARD_SCALE_TOKENS = {
+  "--hpo-space-1": "4px", "--hpo-space-2": "8px", "--hpo-space-3": "12px",
+  "--hpo-space-4": "16px", "--hpo-space-5": "24px",
+  "--hpo-radius-s": "6px", "--hpo-radius-m": "12px", "--hpo-radius-pill": "999px",
+  "--hpo-text-xs": "12px", "--hpo-text-sm": "13px", "--hpo-text-md": "15px",
+  "--hpo-text-lg": "18px",
+};
+
+/** The :host block declaring every token for one theme. */
+function tokenDeclarations(darkMode) {
+  const lines = Object.entries(CARD_TOKENS).map(([name, t]) => {
+    const lit = darkMode ? t.dark : t.light;
+    return `        ${name}: ${t.ha ? `var(${t.ha}, ${lit})` : lit};`;
+  });
+  for (const [name, v] of Object.entries(CARD_SCALE_TOKENS)) {
+    lines.push(`        ${name}: ${v};`);
+  }
+  return `\n      :host {\n${lines.join("\n")}\n      }`;
+}
+
+/** `css` with every colour token's fallback set to `darkMode`'s literal. */
+function themeFallbacks(css, darkMode) {
+  if (!darkMode) return css;
+  return css.replace(/var\((--hpo-[\w-]+), ([^)]+)\)/g, (m, name) =>
+    CARD_TOKENS[name] ? `var(${name}, ${CARD_TOKENS[name].dark})` : m);
+}
+
 // The card's whole stylesheet, as one top-level function (#95): a
 // self-contained string with no instance state, moved out of the class
 // so the largest pure member of a 7,900-line god class is a visible
@@ -3248,6 +3364,14 @@ function cardStyleBlock(darkMode) {
           padding: 0.45em 0.85em;
           line-height: 1.25;
         }
+        /* R9-UI-3: the card's own chips are compact pills -- 28 px drawn,
+           the floor above still the hit target -- in the token type scale. */
+        ha-card .chip {
+          padding: 2px 10px 2px 8px; min-height: ${Math.max(28, targetFloorPx)}px;
+          border-radius: var(--hpo-radius-pill, 999px);
+          font-size: var(--hpo-text-sm, 13px); white-space: nowrap; flex: 0 0 auto;
+        }
+        ha-card .chip .dot { width: 8px; height: 8px; }
         .dlg-tab { padding: 0.35em 0.9em; }
         .whatif button { padding: 0.45em 0.85em; }
         .whatif .wi-remove {
@@ -3258,33 +3382,104 @@ function cardStyleBlock(darkMode) {
           width: auto; height: auto;
           min-width: ${targetFloorPx}px; min-height: ${targetFloorPx}px;
         }`;
-  return `
-    <style>
+  return themeFallbacks(`
+    <style>${tokenDeclarations(darkMode)}
       ha-card { padding: 12px 12px 8px 12px; }
       ha-card.clickable { cursor: pointer; }
       .header {
         font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
-        color: var(--primary-text-color);
+        color: var(--hpo-text, #212121);
         display: flex; align-items: center; gap: 8px;
       }
-      .header .title { flex: 1 1 auto; min-width: 0; }
+      /* R9-UI-3: the mark, the title and the status pill share one wrapping
+         line that takes the free width, so the expand button keeps the
+         right edge whether or not a pill is drawn, and on a phone a long
+         title pushes the pill under itself rather than off the card. */
+      .header .head-main {
+        flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;
+        align-items: center; gap: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
+      }
+      .header .title {
+        min-width: 0; font-size: var(--hpo-text-lg, 18px); font-weight: 600;
+      }
+      .hpo-mark { width: 28px; height: 28px; flex: 0 0 auto; display: block; }
+      .hpo-mark .mark-pool { fill: var(--hpo-heat, #d2601f); }
+      .hpo-mark .mark-line {
+        fill: none; stroke: var(--hpo-accent, #026aa8); stroke-width: 3.6;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      /* The status pill: always a word as well as a colour, each pair one of
+         the design of record's measured status pairs. */
+      .status-pill {
+        display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+        font-size: var(--hpo-text-xs, 12px); font-weight: 500; line-height: 1.4;
+        padding: 3px 10px 3px 8px; border-radius: var(--hpo-radius-pill, 999px);
+        white-space: nowrap;
+      }
+      .status-pill::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: currentColor; flex: 0 0 auto;
+      }
+      .status-pill.tone-ok {
+        color: var(--hpo-ok, #1c7350); background: var(--hpo-ok-bg, #e8f1ed);
+      }
+      .status-pill.tone-idle {
+        color: var(--hpo-text-2, #727272);
+        background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .status-pill.tone-warn {
+        color: var(--hpo-warn, #8a5a00); background: var(--hpo-warn-bg, #fbf1de);
+      }
+      .status-pill.tone-crit {
+        color: var(--hpo-crit, #b3261e); background: var(--hpo-crit-bg, #fbe9e7);
+      }
+      .status-pill.tone-accent {
+        color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
+      }
+      /* The four figure tiles (D2b): one style for all of them, four across
+         on a card and two across on a phone. A value wraps rather than
+         clips: a tile is never a scroll container. */
+      .tiles {
+        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--hpo-space-2, 8px); padding: 0 4px var(--hpo-space-2, 8px) 4px;
+      }
+      .tile, .hl-stat {
+        background: var(--hpo-surface-2, #f7f9fb);
+        border-radius: var(--hpo-radius-m, 12px);
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
+      }
+      .tile-k {
+        display: block; font-size: var(--hpo-text-xs, 12px);
+        color: var(--hpo-text-2, #727272);
+      }
+      .tile-v {
+        display: block; margin-top: 2px; font-size: var(--hpo-text-lg, 18px);
+        font-weight: 600; font-variant-numeric: tabular-nums;
+        color: var(--hpo-text, #212121); overflow-wrap: anywhere;
+      }
+      .tile.accent .tile-v .tile-n { color: var(--hpo-accent, #026aa8); }
+      .tile-u {
+        margin-left: 3px; font-size: var(--hpo-text-xs, 12px); font-weight: 500;
+        color: var(--hpo-text-2, #727272);
+      }
       .expand, .close {
         flex: 0 0 auto; display: inline-flex; align-items: center;
         justify-content: center; background: transparent; border: none;
         padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
-        color: var(--secondary-text-color); font: inherit;
+        color: var(--hpo-text-2, #727272); font: inherit;
       }
-      .expand:hover, .close:hover { color: var(--primary-text-color); }
+      .expand:hover, .close:hover { color: var(--hpo-text, #212121); }
       .expand:focus-visible, .close:focus-visible,
       .chip:focus-visible {
-        outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: 2px;
       }
       /* The SVG's keyboard-reachable parts: slot targets and lanes. The
          ring is drawn on the slot-hit rect, the one that actually takes
          focus, so it shows the target's real extent, not the ink's
          (D4-02). */
       .slot-hit:focus-visible, .lane:focus-visible {
-        outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: 1px;
       }
       /* The setup rows ring themselves with their own stroke rather than
          an outline. An outline on an SVG rect is painted around the
@@ -3301,86 +3496,90 @@ function cardStyleBlock(darkMode) {
          no ring behind while a keyboard user keeps one. */
       .setup-hit:focus-visible {
         outline: none;
-        fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
-        stroke: var(--primary-color, #03a9f4); stroke-width: 2;
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
+        stroke: var(--hpo-primary, #03a9f4); stroke-width: 2;
       }
       .headline {
         display: flex; flex-direction: column; gap: 2px;
         padding: 0 4px 8px 4px;
       }
+      /* The savings and score stay (CLAUDE.md: never delete working
+         functionality merely to fit), drawn in the tile style above. */
       .hl-stats {
-        display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.85em;
+        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--hpo-space-2, 8px);
       }
-      .hl-label { color: var(--secondary-text-color); }
-      .hl-value { font-weight: 600; color: var(--primary-text-color); }
+      .hl-label {
+        display: block; font-size: var(--hpo-text-xs, 12px);
+        color: var(--hpo-text-2, #727272);
+      }
+      .hl-value {
+        display: block; margin-top: 2px; font-size: var(--hpo-text-md, 15px);
+        font-weight: 600; font-variant-numeric: tabular-nums;
+        color: var(--hpo-text, #212121); overflow-wrap: anywhere;
+      }
       /* D4-06: the always-visible form of the baseline qualifier that used
          to live only in the hover title. Kept small and muted so it reads
          as a footnote, not a second value competing with the number. */
       .hl-caveat {
         display: block; font-size: 0.82em; font-weight: 400;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
       .hl-narrative {
         font-size: 0.82em; font-style: italic;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
-      /* R5-D4-02 (#1319): the score pill is a control (role="button" and
-         tabindex arrive after render) but never joined the 24 px target
-         floor -- at phone width it measured 158x15, the label's own line
-         box. The .expand/.close pattern: vertical padding grows what a
-         pointer can land on and the equal negative margin gives the space
-         back, so the flex line, the sibling stats and the pill's own text
-         keep their geometry (measured: every anchor unchanged, the pill
-         15 -> 25 px) and only the invisible hit box grows. */
-      .hl-stat.hl-score {
-        cursor: pointer;
-        padding: 5px 0;
-        margin: -5px 0;
-      }
+      /* R5-D4-02 (#1319): the score is a control (role="button" and tabindex
+         arrive after render) and must clear the 24 px target floor. It used
+         to grow an invisible hit box with padding and an equal negative
+         margin; as a tile (R9-UI-3) its own padding is the target, and
+         htmlTargetFloor's 44 px coarse minimum still applies on top. */
+      .hl-stat.hl-score { cursor: pointer; }
       /* Click-opened score breakdown (#2): one row per sub-score. */
       .score-breakdown {
         display: flex; flex-direction: column; gap: 6px;
         padding: 6px 8px; margin-top: 2px;
-        border: 1px solid var(--divider-color, #e0e0e0);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 6px;
       }
       .sb-row { display: flex; flex-direction: column; gap: 1px; }
       .sb-head {
         display: flex; align-items: center; gap: 8px; font-size: 0.82em;
       }
-      .sb-name { font-weight: 600; color: var(--primary-text-color); }
+      .sb-name { font-weight: 600; color: var(--hpo-text, #212121); }
       .sb-bar {
         flex: 1; height: 4px; border-radius: 2px;
-        background: var(--divider-color, #e0e0e0);
+        background: var(--hpo-divider, #e0e0e0);
         overflow: hidden; display: inline-block;
       }
       .sb-fill {
         display: block; height: 100%;
-        background: var(--primary-color, #03a9f4);
+        background: var(--hpo-primary, #03a9f4);
       }
-      .sb-val { font-weight: 600; color: var(--primary-text-color); }
+      .sb-val { font-weight: 600; color: var(--hpo-text, #212121); }
       .sb-na {
-        font-weight: 400; color: var(--secondary-text-color);
+        font-weight: 400; color: var(--hpo-text-2, #727272);
         font-style: italic;
       }
-      .sb-text { font-size: 0.78em; color: var(--secondary-text-color); }
+      .sb-text { font-size: 0.78em; color: var(--hpo-text-2, #727272); }
       .legend {
-        display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
+        display: flex; flex-direction: column; gap: 4px; padding: 0 2px 8px 2px;
       }
+      .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chip {
         display: inline-flex; align-items: center; gap: 6px;
-        border: 1px solid var(--divider-color, #e0e0e0);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 14px; padding: 3px 10px; cursor: pointer;
         font-size: 0.82em; user-select: none; background: transparent;
-        color: var(--primary-text-color); font-family: inherit;
+        color: var(--hpo-text, #212121); font-family: inherit;
       }
       .chip .dot {
         width: 10px; height: 10px; border-radius: 50%;
         display: inline-block; flex: 0 0 auto;
       }
       .chip.off {
-        color: var(--primary-text-color);
-        background: var(--card-background-color, #fff);
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
         text-decoration: line-through;
       }
       /* #822: this chip used to be cursor: not-allowed; opacity: 0.3, which
@@ -3398,16 +3597,19 @@ function cardStyleBlock(darkMode) {
         border-style: dashed;
       }
       .chip.nodata .dot { opacity: 0.35; }
-      /* The sentence a chip's title attribute used to be the only home for.
-         Drawn in --primary-text-color rather than the --secondary-text-color
-         the rest of the card's small print uses: that token's #888 fallback
-         measures 3.54:1 on a white card, below the 4.5:1 text needs, and it
-         is already one of the three defects blocking the dark and fallback
-         contrast witness. Size carries the hierarchy here, not colour. */
+      /* The sentence a chip's title attribute used to be the only home for,
+         set as a footnote under the chips (R9-UI-3) with a dashed swatch,
+         since what it explains is a dashed line. Secondary text now that
+         the token layer gives it a 4.5:1 literal fallback in both themes:
+         the #888 the card used to fall back to measured 3.54:1 on white. */
       .legend-note {
-        flex: 1 0 100%; margin: 0 2px 2px 2px;
+        margin: 0 2px 2px 2px;
         font-size: 0.76em; line-height: 1.35;
-        color: var(--primary-text-color);
+        color: var(--hpo-text-2, #727272);
+      }
+      .legend-note::before {
+        content: ""; display: inline-block; width: 18px; margin-right: 6px;
+        vertical-align: middle; border-top: 1.5px dashed currentColor;
       }
       .chartwrap { position: relative; width: 100%; }
       /* Overlaid on the chart so the row costs no layout height -- the
@@ -3437,9 +3639,9 @@ function cardStyleBlock(darkMode) {
       .viewctl button {
         width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
         font: inherit; font-size: 0.85em; cursor: pointer;
-        border: 1px solid var(--divider-color, #ccc); border-radius: 0.35em;
-        background: var(--card-background-color, #fff);
-        color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.35em;
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
       }
       .viewctl button:disabled { opacity: 0.4; cursor: default; }
       .chartwrap.pannable svg { cursor: grab; }
@@ -3454,7 +3656,7 @@ function cardStyleBlock(darkMode) {
       .chartwrap svg { touch-action: none; }
       .empty {
         padding: 28px 12px; text-align: center;
-        color: var(--secondary-text-color); line-height: 1.5em;
+        color: var(--hpo-text-2, #727272); line-height: 1.5em;
         /* D4-04 (#259): the diagnostic names entity ids, and a 45-character
            monospace id is wider than a phone tile. Without this it painted
            up to 47 px outside the card box and gave the document 40 px of
@@ -3464,13 +3666,13 @@ function cardStyleBlock(darkMode) {
            min-content width, which is what the h-scroll came from. */
         overflow-wrap: anywhere;
       }
-      .empty code { color: var(--primary-text-color); }
+      .empty code { color: var(--hpo-text, #212121); }
       .tooltip {
         position: absolute; pointer-events: none; z-index: 5;
-        background: var(--card-background-color, #fff);
-        border: 1px solid var(--divider-color, #ccc);
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
-        color: var(--primary-text-color);
+        color: var(--hpo-text, #212121);
         box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
       }
       /* The value rows keep the tooltip's nowrap: "House temperature:
@@ -3490,14 +3692,14 @@ function cardStyleBlock(darkMode) {
         margin-top: 3px;
         font-size: 0.85em;
         font-style: italic;
-        color: var(--secondary-text-color, #888);
+        color: var(--hpo-text-2, #727272);
         white-space: normal;
         max-width: 220px;
       }
       .tooltip .tt-reason {
         margin-top: 4px; padding-top: 4px; font-style: italic;
-        border-top: 1px solid var(--divider-color, #eee);
-        color: var(--secondary-text-color);
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text-2, #727272);
         white-space: normal;
         max-width: 220px;
       }
@@ -3545,8 +3747,8 @@ function cardStyleBlock(darkMode) {
         display: flex;
         flex-direction: column;
         border: none; border-radius: 12px; padding: 16px;
-        background: var(--card-background-color, #fff);
-        color: var(--primary-text-color);
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
         box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         overflow: hidden;
       }
@@ -3612,17 +3814,17 @@ function cardStyleBlock(darkMode) {
          wrappable, the row is never wider than the dialog it sits in. */
       .dlg-tabs { display: flex; gap: 0.3em; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
       .dlg-tab {
-        border: 1px solid var(--divider-color, #e0e0e0);
-        background: transparent; color: var(--secondary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text-2, #727272);
         border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
         font: inherit; font-size: 0.85em;
       }
       .dlg-tab.active {
-        color: var(--primary-text-color);
-        border-color: var(--primary-color, #03a9f4);
+        color: var(--hpo-text, #212121);
+        border-color: var(--hpo-primary, #03a9f4);
       }
       .dlg-tab:focus-visible {
-        outline: 2px solid var(--primary-color, #03a9f4);
+        outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
       .setup-page { padding: 0.5em 0.25em; }
@@ -3632,55 +3834,55 @@ function cardStyleBlock(darkMode) {
          outline (v4.3.0). */
       .setup-box { fill: none; stroke: none; }
       .setup-contour {
-        fill: none; stroke: var(--primary-text-color, #212121);
+        fill: none; stroke: var(--hpo-text, #212121);
         stroke-width: 2; opacity: 0.75;
         stroke-linecap: round; stroke-linejoin: round;
         pointer-events: none;
       }
       .setup-accent {
-        fill: none; stroke: var(--secondary-text-color, #757575);
+        fill: none; stroke: var(--hpo-text-2, #727272);
         stroke-width: 1.25; opacity: 0.6;
         stroke-linecap: round; pointer-events: none;
       }
       .setup-accent.divider { opacity: 0.5; }
       .setup-accent.hub {
-        stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+        stroke: var(--hpo-primary, #03a9f4); opacity: 0.9;
       }
       .setup-coil {
-        fill: none; stroke: var(--primary-color, #03a9f4);
+        fill: none; stroke: var(--hpo-primary, #03a9f4);
         stroke-width: 2; opacity: 0.85;
         stroke-linecap: round; pointer-events: none;
       }
       .setup-pipe-dot {
-        fill: var(--card-background-color, #fff);
-        stroke: var(--secondary-text-color, #888);
+        fill: var(--hpo-surface, #ffffff);
+        stroke: var(--hpo-text-2, #727272);
         stroke-width: 1.5; opacity: 0.8; pointer-events: none;
       }
       .setup-flow {
-        fill: none; stroke: var(--secondary-text-color, #888);
+        fill: none; stroke: var(--hpo-text-2, #727272);
         stroke-width: 1.5; opacity: 0.55; pointer-events: none;
       }
       .setup-pipe {
-        fill: none; stroke: var(--secondary-text-color, #888);
+        fill: none; stroke: var(--hpo-text-2, #727272);
         stroke-width: 1.5; opacity: 0.55;
       }
       .setup-title {
         font-size: 13px; font-weight: 600;
-        fill: var(--primary-text-color, #222);
+        fill: var(--hpo-text, #212121);
       }
-      .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
+      .setup-slot { font-size: 12px; fill: var(--hpo-text, #212121); }
       .setup-slot.empty {
-        fill: var(--primary-text-color, #222);
+        fill: var(--hpo-text, #212121);
         font-style: italic;
       }
-      .setup-slot.extra { fill: var(--secondary-text-color, #888); }
+      .setup-slot.extra { fill: var(--hpo-text-2, #727272); }
       .setup-value { font-weight: 600; }
       .setup-hint {
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
         font-size: 0.85em; padding: 0.5em 0.25em;
       }
       .setup-result {
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
         font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
       }
       .setup-hit { fill: transparent; cursor: pointer; }
@@ -3690,7 +3892,7 @@ function cardStyleBlock(darkMode) {
          have equal specificity, so the later rule would win. Tinting only
          the fill leaves the ring alone. */
       .setup-hit:hover {
-        fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
       }
 
       /* The layout editor (v3.16.0, issue #40) */
@@ -3700,21 +3902,21 @@ function cardStyleBlock(darkMode) {
       }
       .layout-bar button {
         font: inherit; font-size: 0.85em; cursor: pointer;
-        border: 1px solid var(--divider-color, #e0e0e0);
-        background: transparent; color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text, #212121);
         border-radius: 1em; padding: 0.2em 0.9em;
       }
       .layout-bar button:focus-visible {
-        outline: 2px solid var(--primary-color, #03a9f4);
+        outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
+      .layout-edit-toggle.on { border-color: var(--hpo-primary, #03a9f4); }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
         flex: 1 1 100%; font-size: 0.85em;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
-      .layout-verdict.match { color: var(--primary-text-color); }
+      .layout-verdict.match { color: var(--hpo-text, #212121); }
       /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
          target, and clicking a pipe is how one is removed. */
       .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
@@ -3731,15 +3933,15 @@ function cardStyleBlock(darkMode) {
       /* A drag on a touch screen must move the box, not scroll the page. */
       .setup-svg.editing { touch-action: none; }
       .setup-pipe.layout-match {
-        stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+        stroke: var(--hpo-primary, #03a9f4); opacity: 0.9;
       }
       .setup-pipe.invalid {
         stroke: var(--error-color, #db4437); opacity: 0.95;
         stroke-dasharray: 6 4;
       }
       .layout-port {
-        fill: var(--card-background-color, #fff);
-        stroke: var(--primary-color, #03a9f4); stroke-width: 1.5;
+        fill: var(--hpo-surface, #ffffff);
+        stroke: var(--hpo-primary, #03a9f4); stroke-width: 1.5;
         cursor: crosshair;
       }
       .layout-port-hit {
@@ -3747,15 +3949,15 @@ function cardStyleBlock(darkMode) {
         cursor: crosshair;
       }
       .layout-ghost {
-        fill: none; stroke: var(--primary-color, #03a9f4);
+        fill: none; stroke: var(--hpo-primary, #03a9f4);
         stroke-width: 1.5; stroke-dasharray: 4 3;
       }
       .setup-page { position: relative; }
       .setup-picker {
         position: absolute; left: 50%; top: 1em;
         transform: translateX(-50%); z-index: 6;
-        background: var(--card-background-color, #fff);
-        border: 1px solid var(--divider-color, #ccc);
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.5em; padding: 0.7em 0.8em;
         box-shadow: 0 2px 12px rgba(0,0,0,0.25);
         min-width: 16em; max-width: 90%;
@@ -3767,16 +3969,16 @@ function cardStyleBlock(darkMode) {
          thing that only shows up on somebody else's screen. */
       .sp-filter, .sp-select {
         width: 100%; font: inherit; padding: 0.3em;
-        color: var(--primary-text-color);
-        background: var(--card-background-color, #fff);
-        border: 1px solid var(--divider-color, #ccc);
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.3em;
       }
       .sp-filter {
         box-sizing: border-box; margin-bottom: 0.4em;
       }
       .sp-filter:focus-visible, .sp-select:focus-visible {
-        outline: 2px solid var(--primary-color, #03a9f4);
+        outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 1px;
       }
       .sp-actions {
@@ -3784,21 +3986,21 @@ function cardStyleBlock(darkMode) {
       }
       .sp-actions button {
         font: inherit; cursor: pointer; border-radius: 0.3em;
-        border: 1px solid var(--divider-color, #ccc);
-        background: transparent; color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text, #212121);
         padding: 0.25em 0.8em;
       }
-      .sp-save { border-color: var(--primary-color, #03a9f4) !important; }
+      .sp-save { border-color: var(--hpo-primary, #03a9f4) !important; }
       /* An Assign that is armed to CLEAR the slot is not the same button
          any more, and it should not look like it. Same treatment as the
          what-if save's confirmation, which this flow is modelled on. */
       .sp-save.confirm {
         border-color: ${ERROR_READABLE} !important;
         background: ${ERROR_READABLE};
-        color: var(--text-primary-color, #fff); font-weight: 600;
+        color: var(--hpo-on-primary, #ffffff); font-weight: 600;
       }
       .sp-note {
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
         font-size: 0.8em; padding-top: 0.4em;
       }
 
@@ -3812,8 +4014,8 @@ function cardStyleBlock(darkMode) {
       .lanes { user-select: none; }
       .slot-menu {
         position: absolute; z-index: 5;
-        background: var(--card-background-color, #fff);
-        border: 1px solid var(--divider-color, #ccc);
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.4em; padding: 0.2em;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       }
@@ -3821,14 +4023,14 @@ function cardStyleBlock(darkMode) {
         display: block; width: 100%; text-align: left;
         font: inherit; border: none; background: none; cursor: pointer;
         padding: 0.4em 0.7em; border-radius: 0.3em;
-        color: var(--primary-text-color);
+        color: var(--hpo-text, #212121);
       }
       .slot-menu button:hover {
         background: var(--secondary-background-color, #eee);
       }
       .whatif .wi-section + .wi-section {
         margin-top: 0.9em; padding-top: 0.7em;
-        border-top: 1px solid var(--divider-color, #e0e0e0);
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
       }
       .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
       .whatif .delta {
@@ -3836,8 +4038,8 @@ function cardStyleBlock(darkMode) {
         font-variant-numeric: tabular-nums;
       }
       .whatif .wi-pin {
-        border-color: var(--primary-color, #03a9f4);
-        color: var(--primary-text-color);
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-text, #212121);
       }
       .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
 
@@ -3899,12 +4101,12 @@ function cardStyleBlock(darkMode) {
         padding: 0.45em 0.7em; margin: 2px 0;
         font: inherit; text-align: left; color: inherit;
         background: none; border: 1px solid
-        var(--divider-color, rgba(0,0,0,0.12));
+        var(--hpo-divider, #e0e0e0);
         border-radius: 6px; cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
       .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
-      .adv-row:focus-visible { outline: 2px solid var(--primary-color); }
+      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
       .adv-label { flex: 1 1 auto; }
       .adv-value { flex: 0 0 auto; text-align: right; }
       .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
@@ -3919,8 +4121,8 @@ function cardStyleBlock(darkMode) {
       /* What-if simulator */
       .whatif {
         padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
-        border-top: 1px solid var(--divider-color, #e0e0e0);
-        font-size: 0.95rem; color: var(--primary-text-color);
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        font-size: 0.95rem; color: var(--hpo-text, #212121);
       }
       .whatif .wi-row {
         display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
@@ -3933,9 +4135,9 @@ function cardStyleBlock(darkMode) {
       .whatif input[type="range"] { width: 10em; max-width: 100%; }
       .whatif input[type="time"] {
         font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
-        border: 1px solid var(--divider-color, #ccc);
-        background: var(--card-background-color, #fff);
-        color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
       }
       .whatif .wi-value {
         min-width: 3.5em; font-variant-numeric: tabular-nums;
@@ -3947,25 +4149,25 @@ function cardStyleBlock(darkMode) {
       }
       .whatif .wi-group-title {
         font-weight: 600; font-size: 0.9em;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
         text-transform: uppercase; letter-spacing: 0.04em;
       }
       .whatif .wi-hint {
-        font-size: 0.85em; color: var(--secondary-text-color);
+        font-size: 0.85em; color: var(--hpo-text-2, #727272);
         line-height: 1.35em;
       }
       .whatif .wi-viewlimit {
         font-size: 12px;
-        color: var(--secondary-text-color, #888);
+        color: var(--hpo-text-2, #727272);
         margin: 4px 0 6px;
       }
       .whatif .wi-viewreset {
         font-size: 12px;
         padding: 1px 8px;
-        border: 1px solid var(--divider-color, #e0e0e0);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 10px;
         background: none;
-        color: var(--primary-text-color);
+        color: var(--hpo-text, #212121);
         cursor: pointer;
       }
       .lane-more { pointer-events: none; font-weight: 700; }
@@ -3983,33 +4185,33 @@ function cardStyleBlock(darkMode) {
       }
       .whatif .wi-win-days {
         font: inherit; font-size: 0.9em; max-width: 8.5em;
-        border: 1px solid var(--divider-color, #ccc); border-radius: 0.3em;
-        background: transparent; color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.3em;
+        background: transparent; color: var(--hpo-text, #212121);
         padding: 0.15em 0.2em;
       }
       .whatif button {
         font: inherit; cursor: pointer; border-radius: 1.1em;
-        border: 1px solid var(--divider-color, #ccc);
-        background: transparent; color: var(--primary-text-color);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text, #212121);
         padding: 0.35em 0.8em;
       }
-      .whatif button:hover { border-color: var(--primary-color, #03a9f4); }
+      .whatif button:hover { border-color: var(--hpo-primary, #03a9f4); }
       .whatif .wi-remove {
         border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
       .whatif .wi-remove:hover { color: ${errorColor}; }
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
-        border-color: var(--primary-color, #03a9f4);
-        color: var(--primary-text-color);
-        background: var(--card-background-color, #fff);
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
         font-weight: 600;
       }
       .whatif .wi-save {
         border-color: ${ACCENT_READABLE};
         background: ${ACCENT_READABLE};
-        color: var(--text-primary-color, #fff); font-weight: 600;
+        color: var(--hpo-on-primary, #ffffff); font-weight: 600;
       }
       .whatif .wi-save.confirm {
         border-color: ${ERROR_READABLE};
@@ -4035,11 +4237,11 @@ function cardStyleBlock(darkMode) {
       }
       .away-strip [data-away-status] {
         flex: 1 1 100%;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
       .whatif .wi-result {
         flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
-        color: var(--secondary-text-color);
+        color: var(--hpo-text-2, #727272);
       }
       .whatif .wi-result .wi-detail {
         font-size: 0.88em; margin-top: 2px;
@@ -4061,9 +4263,14 @@ function cardStyleBlock(darkMode) {
         .dlg-head { flex-wrap: wrap; row-gap: 6px; }
         .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .setup-canvas svg { min-width: 560px; }
+        /* R9-UI-3: two tiles across, and the card's chips one row that
+           scrolls sideways instead of five wrapped rows. */
+        .tiles, .hl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .tile-v { font-size: var(--hpo-text-md, 15px); }
+        ha-card .legend-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
       }
     </style>
-  `;
+  `, darkMode);
 }
 
 // ---- The series: pure functions of forecasts and a window -----------------
@@ -6490,7 +6697,8 @@ function seriesPath(s, scaleX, scaleY, plotB) {
         stepD +
         ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
         ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
-      const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
+      const fillOpacity =
+        s.style === "stepBars" ? 0.35 : s.areaOpacity !== undefined ? s.areaOpacity : 0.18;
       out.push(
         `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
       );
@@ -6971,7 +7179,7 @@ class Legend {
     const noteHtml = noteRows
       .map((n) => `<p class="legend-note" id="${n.id}">${esc(n.text)}</p>`)
       .join("");
-    return `<div class="legend">${chips}${noteHtml}</div>`;
+    return `<div class="legend"><span class="legend-chips">${chips}</span>${noteHtml}</div>`;
   }
 
   onChipClick(ev) {
@@ -6995,13 +7203,202 @@ class Legend {
 // the breakdown is open, stays on the card (`_scoreOpen`) with the click
 // handlers that flip it. PR 4a of #136.
 
-/** The headline sensors' contribution to the re-render signature. */
-function headlineSignature(plan, cfg) {
+/** The headline sensors' contribution to the re-render signature.
+ *
+ * `indoor` is the indoor-temperature sensor's state (or null) and `now` the
+ * render clock: the tile row reads both, and neither is a plan sensor, so
+ * without them here a new indoor reading or the next plan step's price
+ * would never redraw a card whose plan had not changed (R9-UI-3). */
+function headlineSignature(plan, cfg, indoor, now) {
   if (!cfg.show_stats) return "off";
   return HEADLINE_SUFFIXES.map((sfx) => {
     const st = plan.statEntity(sfx);
     return st ? `${st.state}@${st.last_updated || ""}` : "-";
-  }).join("~");
+  }).concat(
+    indoor ? `${indoor.state}@${indoor.last_updated || ""}` : "-",
+    String(priceNow(plan, now)),
+  ).join("~");
+}
+
+// ---- The tile row and the status pill (R9-UI-3, #1791) ---------------------
+// Pure functions of the plan source, like the headline above: four figures
+// in one tile style (price now, planned heating, plan cost, indoor -- D2b)
+// and the header's one-word plan state. Every input is a state the
+// integration already publishes; nothing here asks the backend for more.
+
+/** The measured indoor temperature's state object, or null.
+ *
+ * The sensor the chart's corner "now" reading already resolves: the upper
+ * floor in two-zone mode and the room otherwise, both written from one read. */
+function indoorState(host) {
+  const id = host.histSource.entityIds().indoor;
+  const states = host._hass && host._hass.states;
+  return (id && states && states[id]) || null;
+}
+
+/** An indoor state as a finite number, or null while it has no live value. */
+function indoorValue(st) {
+  if (!st || st.state === "unavailable" || st.state === "unknown") return null;
+  const n = Number(st.state);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The plan's price for the step covering `now`, or null.
+ *
+ * The space plan's forecast first and the hot-water plan's after it, the
+ * order the chart's price series reads them in. A step covers `now` from its
+ * own start to the next step's; the last step is taken to be as long as the
+ * one before it, and a `now` outside the horizon has no price. */
+function priceNow(plan, now) {
+  for (const kind of ["space", "dhw"]) {
+    const fc = plan.forecast(plan.resolveEntity(kind));
+    if (!Array.isArray(fc) || !fc.length) continue;
+    let hit = -1;
+    for (let i = 0; i < fc.length; i++) {
+      const t = Date.parse(fc[i] && fc[i].t);
+      if (!Number.isFinite(t) || t > now) break;
+      hit = i;
+    }
+    if (hit < 0) continue;
+    if (hit === fc.length - 1) {
+      const step = hit > 0 ? Date.parse(fc[hit].t) - Date.parse(fc[hit - 1].t) : 0;
+      if (!(now < Date.parse(fc[hit].t) + step)) continue;
+    }
+    const v = Number(fc[hit].price);
+    if (fc[hit].price !== null && fc[hit].price !== undefined && Number.isFinite(v)) {
+      return v;
+    }
+  }
+  return null;
+}
+
+/** A plan attribute summed over the plan sensors that publish it, or null. */
+function planTotal(plan, attr) {
+  let sum = null;
+  for (const kind of ["space", "dhw"]) {
+    const st = plan.stateOf(plan.resolveEntity(kind));
+    if (!st || st.state === "unavailable" || st.state === "unknown") continue;
+    const raw = st.attributes && st.attributes[attr];
+    const v = Number(raw);
+    if (raw === null || raw === undefined || raw === "" || !Number.isFinite(v)) continue;
+    sum = (sum === null ? 0 : sum) + v;
+  }
+  return sum;
+}
+
+/** The tile row, or nothing when `show_stats` is off or no figure exists. */
+function tilesHtml(plan, cfg, indoor, now) {
+  if (!cfg.show_stats) return "";
+  const tiles = [];
+  const price = priceNow(plan, now);
+  if (price !== null) {
+    tiles.push({ key: "price", accent: true, label: L("tiles.price_now"),
+      value: price.toFixed(2), unit: plan.priceUnit() });
+  }
+  const energy = planTotal(plan, "total_energy_kwh");
+  if (energy !== null) {
+    tiles.push({ key: "energy", label: L("tiles.planned"), title: L("tiles.planned_title"),
+      value: energy.toFixed(1), unit: "kWh" });
+  }
+  const cost = planTotal(plan, "total_cost");
+  if (cost !== null) {
+    tiles.push({ key: "cost", label: L("tiles.cost"), title: L("tiles.cost_title"),
+      value: cost.toFixed(2), unit: plan.currency() });
+  }
+  const temp = indoorValue(indoor);
+  if (temp !== null) {
+    const unit = (indoor.attributes && indoor.attributes.unit_of_measurement) || "°C";
+    tiles.push({ key: "indoor", label: L("tiles.indoor"), value: temp.toFixed(1), unit });
+  }
+  if (!tiles.length) return "";
+  return `<div class="tiles">${tiles
+    .map(
+      (t) =>
+        `<div class="tile${t.accent ? " accent" : ""}" data-tile="${t.key}"` +
+        `${t.title ? ` title="${esc(t.title)}"` : ""}>` +
+        `<span class="tile-k">${esc(t.label)}</span>` +
+        `<span class="tile-v"><span class="tile-n">${esc(t.value)}</span>` +
+        `<span class="tile-u">${esc(t.unit)}</span></span></div>`
+    )
+    .join("")}</div>`;
+}
+
+// The integration's own staleness rule (coordinator.py, `_plan_is_stale`): a
+// plan is stale once it is older than three solve intervals, and never
+// sooner than 90 minutes. Mirrored, not imported -- the card cannot read the
+// coordinator -- and the interval is read off what the integration does
+// publish (see `planAge`).
+const PLAN_STALE_INTERVALS = 3;
+const PLAN_STALE_FLOOR_MIN = 90;
+const DEFAULT_SOLVE_INTERVAL_MIN = 30;
+
+/** Minutes since the last solve and the age past which the plan is stale,
+ * or null while the last-optimization sensor has no time.
+ *
+ * The solve interval is not published, but its effect is: every cycle sets
+ * the next-optimization sensor to that cycle's time plus the interval, so
+ * the sensor's state minus its own `last_changed` IS the configured interval.
+ * When that cannot be read the integration's default stands in. */
+function planAge(plan, now) {
+  const last = plan.statEntity("_last_optimization");
+  const at = last ? Date.parse(last.state) : NaN;
+  if (!Number.isFinite(at)) return null;
+  const next = plan.statEntity("_next_optimization");
+  const est = next ? (Date.parse(next.state) - Date.parse(next.last_changed)) / 60000 : NaN;
+  const interval = Number.isFinite(est) && est > 0 && est <= 24 * 60
+    ? est : DEFAULT_SOLVE_INTERVAL_MIN;
+  return {
+    minutes: Math.max(0, (now - at) / 60000),
+    limit: Math.max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MIN),
+  };
+}
+
+/** The header's status pill: `{ key, tone, text, title }`, or null.
+ *
+ * Precedence is the order an owner asks in: a plan they pinned by hand, no
+ * plan at all (the integration then actuates nothing and the pump runs on its
+ * own curve), a plan that has stopped being renewed, and only then whether a
+ * plan step is heating right now. No plan sensor at all is no pill: nothing
+ * is known, and the card's diagnostics already say why. */
+function statusPill(plan, now) {
+  const manual = plan.manualOverride();
+  if (manual) {
+    const until = manual.expires_at ? new Date(manual.expires_at) : null;
+    const known = !!until && !Number.isNaN(until.getTime());
+    return { key: "manual", tone: "accent", title: "",
+      text: known ? L("status.manual", { time: fmtExpiry(until) }) : L("status.manual_open") };
+  }
+  const plans = ["space", "dhw"]
+    .map((kind) => plan.stateOf(plan.resolveEntity(kind)))
+    .filter((st) => st && st.state !== "unavailable" && st.state !== "unknown");
+  if (!plans.length) return null;
+  if (plans.every((st) => st.state === "no plan")) {
+    return { key: "fallback", tone: "crit", text: L("status.fallback"),
+      title: L("status.fallback_title") };
+  }
+  const age = planAge(plan, now);
+  if (age && age.minutes > age.limit) {
+    return { key: "stale", tone: "warn", text: L("status.stale"),
+      title: L("status.stale_title", { minutes: Math.round(age.limit) }) };
+  }
+  const heating = plans.some((st) => !!(st.attributes && st.attributes.active_now));
+  return heating
+    ? { key: "heating", tone: "ok", text: L("status.heating"), title: "" }
+    : { key: "idle", tone: "idle", text: L("status.idle"), title: "" };
+}
+
+/** The pill's markup, or nothing. */
+function statusPillHtml(pill) {
+  if (!pill) return "";
+  return `<span class="status-pill tone-${pill.tone}" data-status="${pill.key}"` +
+    `${pill.title ? ` title="${esc(pill.title)}"` : ""}>${esc(pill.text)}</span>`;
+}
+
+/** The pill's contribution to the re-render signature: its key and its text,
+ * so a plan crossing the staleness limit redraws with no sensor changing. */
+function statusSignature(plan, now) {
+  const pill = statusPill(plan, now);
+  return pill ? `${pill.key}:${pill.text}` : "-";
 }
 
 /** The score sensor's three sub-scores, in display order.
@@ -11356,8 +11753,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ACTIVE_LANG,
       this.plan.currency(),
       // The headline reads its own sensors; leaving them out would freeze
-      // the row at whatever the first render saw.
-      headlineSignature(this.plan, this._config),
+      // the row at whatever the first render saw. The tile row reads the
+      // indoor sensor and the clock, and the pill the clock (R9-UI-3).
+      headlineSignature(this.plan, this._config, indoorState(this), Date.now()),
+      statusSignature(this.plan, Date.now()),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
       this.plan.awaySignature(),
       // A dark-mode toggle redraws the whatif result colours (D4-s1-01)
@@ -11524,7 +11923,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <ha-card class="${expandable ? "clickable" : ""}">
         ${style}
         <div class="header">
-          <span class="title">${esc(this._title())}</span>
+          <div class="head-main">
+            ${DUSK_MARK}
+            <span class="title">${esc(this._title())}</span>
+            ${statusPillHtml(statusPill(this.plan, Date.now()))}
+          </div>
           ${
             expandable
               ? `<button type="button" class="expand" title="${esc(
@@ -11534,6 +11937,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               : ""
           }
         </div>
+        ${tilesHtml(this.plan, this._config, indoorState(this), Date.now())}
         ${headlineHtml(this.plan, this._config, this._scoreOpen)}
         ${legend}
         ${body}
@@ -11611,15 +12015,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // while the sensor has no live value. The indoor sensor is the upper floor
     // in two-zone mode and the room otherwise (both written from one read), so
     // a single reading is the measured counterpart to the house/upper traces.
-    let nowTemp = null;
-    const indoorId = this.histSource.entityIds().indoor;
-    if (indoorId && this._hass && this._hass.states) {
-      const st = this._hass.states[indoorId];
-      if (st && st.state !== "unavailable" && st.state !== "unknown") {
-        const n = Number(st.state);
-        if (Number.isFinite(n)) nowTemp = n;
-      }
-    }
+    const nowTemp = indoorValue(indoorState(this));
     const { svg, plot, geom, viewH } = renderChart(built, {
       expanded,
       spaceBlocked,
