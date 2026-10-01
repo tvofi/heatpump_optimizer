@@ -64,10 +64,14 @@ and once per fixture:
                      of ``COST_BUDGETS``: over it is a regression, under it
                      a budget that could not see a doubling (stress.py's
                      rule). The first cycle is traced instead of timed, and
-                     must run the five per-cycle files ``COST_FILES`` names;
-                     the lane then replays the fixture twice more with the
-                     cycle's CPU, then its memory peak, doubled in memory at
-                     ``_async_update_data``, and each must turn it red.
+                     must run the five per-cycle files ``COST_FILES`` names.
+                     ``loop_cpu_ratio`` is the event-loop thread's own share
+                     (the cycle's thread CPU less its executor jobs), banded
+                     the same way, because doubling a tenth of the cycle stays
+                     inside the whole cycle's band (R9 D9-s2-02). The lane
+                     then replays the fixture three more times with the
+                     cycle's CPU, its memory peak, and its loop-thread work
+                     doubled in memory, and each must turn it red.
 
 Each invariant is also driven on a hand-built bad and good record before any
 fixture runs (``control:*``), so a detector that cannot fire fails here
@@ -300,10 +304,9 @@ def frozen_offenders(
 #: The five files of the per-cycle path #1544 found no budgeted script ran.
 COST_FILES = ("coordinator.py", "sensor.py", "process_worker.py",
               "price_model.py", "narrative.py")
-#: Placeholder for the loop-thread budget below; see ``loop_cpu_ratio``.
-LOOP_RATIO_RCA_PROTOTYPE = float(os.environ.get("REPLAY_LOOP_RATIO", "0"))
 #: Executor-job CPU on the loop thread (the test double runs jobs inline),
-#: accumulated by run_fixture's meter and read by the loop perturbation.
+#: accumulated by run_fixture's meter so the loop thread's own share is
+#: the cycle's thread CPU less this.
 _EXEC_CPU = [0.0]
 #: The multiple a budget must be able to see, as ``tests/stress.py``'s
 #: DETECTION_TARGET: a budget is recorded at sqrt(2) x the measured cost, so
@@ -318,17 +321,17 @@ COST_DETECTION = 2.0
 #: it, since a run outside (budget / 2, budget] is red and prints its own.
 #: Across several runs, record the largest ``record:`` value, and keep it
 #: under every doubled arm's figure.
-#: ``loop_cpu_ratio`` (round-9 RCA prototype, D9-s2-02): the cycle's
-#: LOOP-THREAD CPU alone -- the cycle's thread CPU less its executor jobs,
-#: plus the entity reads -- over the same reference. The whole-cycle ratio
-#: cannot see a 2x of it: the loop share was measured at 0.11 of the budgeted
-#: cycle, so a doubled loop moved ``cpu_ratio`` 1.126x under a 1.414x record.
-#: Its own figure, recorded and banded exactly as ``cpu_ratio`` is, sees it.
-#: The value is this RCA box's sqrt(2) x clean record, NOT a recorded budget:
-#: a new budget entry is the owner's decision (F10.2).
+#: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
+#: its thread CPU less its executor jobs, plus the entity reads -- over the
+#: same reference, recorded and banded exactly as ``cpu_ratio``. The
+#: whole-cycle ratio cannot see a 2x of it: the loop is about a tenth of the
+#: cycle, so doubling it moves ``cpu_ratio`` far inside its sqrt(2) band.
+#: Entry allowed by tvofi (card B1); recorded on the idle cloud runner as
+#: the largest of three runs (0.481, 0.468, 0.449; clean 0.318-0.340; the
+#: doubled loop arm 0.605-0.682, its cpu_ratio 2.82-3.24 under 3.576).
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": LOOP_RATIO_RCA_PROTOTYPE},
+                                "loop_cpu_ratio": 0.481},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
@@ -433,8 +436,8 @@ def controls() -> list[tuple[str, bool, str]]:
          cost_offenders(clean, budget))
     pair("cycle_cost:unrecorded", cost_offenders(clean, {"cpu_ratio": 0.0, "peak_kib": 0.0}),
          cost_offenders(clean, budget))
-    # The loop-thread figure (round-9 RCA prototype): a doubled loop inside
-    # an unchanged cycle is over; the whole-cycle figure alone is not.
+    # The loop-thread figure (D9-s2-02): a doubled loop inside an unchanged
+    # cycle is over its own budget, where the whole-cycle figure is not.
     lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4])
     lbudget = {k: math.sqrt(COST_DETECTION) * v for k, v in lclean.items()}
     lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
@@ -683,7 +686,7 @@ def inject_cost(cm, kind: str | None) -> None:
     Wraps ``_async_update_data`` rather than editing ``coordinator.py`` on
     disk, which a concurrent run in the same tree would import.
     """
-    if kind is None or kind == "loop":
+    if kind in (None, "loop"):  # the loop arm is spun in run_fixture
         return
     import tracemalloc
 
@@ -696,8 +699,6 @@ def inject_cost(cm, kind: str | None) -> None:
             until = time.process_time() + (time.process_time() - began)
             while time.process_time() < until:
                 pass
-        elif kind == "loop":
-            pass  # the loop arm is spun around the cycle in run_fixture
         elif tracemalloc.is_tracing():
             current, peak = tracemalloc.get_traced_memory()
             ballast = bytearray(max(0, 2 * peak - current))

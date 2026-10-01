@@ -2196,13 +2196,20 @@ with open(out_path, "w") as fh:
 # out, as kernel_cost_over_verdict does for kernel CPU.
 #
 #: The share of a scenario's baseline production calls that unvouched growth
-#: may reach on an unchanged plan. Re-derived at F10.2's merge base from every
-#: first-parent solver merge #1091..#1799 (merge against first parent): the
-#: largest legitimate unvouched growth outside two flagged merges was 2.2 %;
-#: #1370 (+12.7 %, a per-step derivation inside the substep loop -- this
-#: class's own shape) and #1282 (+11.4 %, the owner-sanctioned per-candidate
-#: polish) fire, and #985's per-row twin fires at 5.7-12.6 %. So the ceiling
-#: is ~12 %, where the class goes silent, and the floor is the 2.2 % noise.
+#: may reach on an unchanged plan. Two histories, both merge against first
+#: parent. The round-9 RCA's, #1091..#1605: the largest legitimate unvouched
+#: growth outside two flagged merges was 2.2 %; #1370 (+12.7 %, a per-step
+#: derivation inside the substep loop -- this class's own shape) and #1282
+#: (+11.4 %, the owner-sanctioned per-candidate polish) fire, and #985's
+#: per-row twin fires at 5.7-12.6 %. Re-derived at F10.2's merge base over
+#: the thirteen first-parent solver merges since, on this population: 253
+#: scenario pairs, the largest legitimate growth 2.35 %, and one merge
+#: firing -- #1711 (+18.4 % on the direct-slab valve plant, +5.9 % and
+#: +5.3 % on two more), whose continuation solves inside multi-start add
+#: work no evaluation counts. That is the channel's job: cost the counts do
+#: not vouch for, which passes the way #1282's passed the work factor, on
+#: the owner's sanction in the diff that adds it. So the ceiling is ~12 %,
+#: where the class goes silent, and the floor is the ~2.3 % noise.
 SCENARIO_CALLS_GROWTH = 0.05
 
 
