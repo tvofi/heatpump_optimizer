@@ -1,0 +1,16 @@
+R1 PR shape (CLAIM_HEAD, ref=merge-base f67f598a):
+INHERITED CLAIMS: tests/golden/claimed_drift.txt claims exactly
+R2 main push shape, claims kept (ref HEAD^1):
+INHERITED CLAIMS: tests/golden/claimed_drift.txt claims exactly
+AUTOFIX: changed
+R3 PR shape after drop:
+claims hygiene: f67f598a ok
+R4 main push shape after drop:
+claims hygiene: HEAD^1 ok
+R4 claim-file delta vs f67f598a:
+ tests/golden/claimed_drift.txt | 5 -----
+ 1 file changed, 5 deletions(-)
+R5 docs-only PR shape:
+claims hygiene: f67f598a ok
+R5 docs-only autofix:
+AUTOFIX: skip-moves-nothing-claimable
