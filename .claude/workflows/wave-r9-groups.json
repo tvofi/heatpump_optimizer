@@ -2242,11 +2242,11 @@
         "R9-F1.7"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-1b",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "d62b99a5fe8b10c7d0fb132855ec8dbdb60ac5dc",
+        "last_step": "MERGED as #1800 at d62b99a5 (head fc16a761 = code 3db3eecf + main 0ba354c5 + row + closures-autofix); opus delta verdict merge; carry-1649.json and tests/features.py approved under the 2026-09-30 mandate; #1649 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.1b.md on handoff/r9-f10-gate-infra-1b",
         "review_branch": "handoff/r9-f10-gate-infra-1b-review",
         "review_note_file": "handoff/round9/fix/resume/F10.1b-review.md on handoff/r9-f10-gate-infra-1b-review",
