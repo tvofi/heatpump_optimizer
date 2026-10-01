@@ -3132,6 +3132,14 @@ check("the hand-scheduled reason has a label",
       key: "mixing_valve_target_entity", entity_id: "", manual_setpoint: 21.5 }),
     JSON.stringify(v.calls));
 
+  // Apply writes a manual setpoint, which only a valve with no target
+  // entity holds: in any other mode the advice stays, the button does not.
+  const am = inboxStates();
+  am[`${PFX}_valve_target_recommendation`].attributes.mixing_valve_mode = "auto";
+  const amHtml = mkInbox(am).html();
+  check("a valve not in manual mode shows the advice without an Apply button",
+    /Valve target 21\.5/.test(amHtml) && !/data-act="apply_valve"/.test(amHtml));
+
   const d = mkInbox(inboxStates());
   await press(d.c, '[data-act="open_schedule"]');
   check("the hot-water row opens the schedule editor, and calls no service",
