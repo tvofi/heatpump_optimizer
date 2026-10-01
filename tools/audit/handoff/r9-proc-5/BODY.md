@@ -13,7 +13,7 @@ n/a: prose-only change to a standing template and a handover; no check or produc
 
 ## Null control
 
-n/a: no cost or gain claim is made. The split itself was checked with `wc -c /mnt/project-files/audit-r9/RESUME*.md`: the current file is under the 10 KB budget it states, and the archive is byte-identical to the old log (`cmp` against the pre-split copy).
+n/a: no cost or gain claim is made. The split itself was checked with `wc -c /mnt/project-files/audit-r9/RESUME*.md`: the current file is under the 10 KB budget it states, and the archive is a copy of the old log taken just before the split (not verified byte for byte, and not equal to the plan-branch mirror, which carries later lines).
 
 ## Figures
 
