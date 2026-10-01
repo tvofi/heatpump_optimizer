@@ -1723,7 +1723,7 @@ def slab_settlement_cap(
         u_eff = params.heat_loss_coefficient * params.house_heat_loss_scale
         q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
     return min(
-        target + q_demand / max(params.slab_heat_transfer, 1e-6),
+        target + q_demand / params.slab_heat_transfer_floored,
         params.buffer_max_temp,
     )
 
@@ -5705,7 +5705,7 @@ class HeatPumpOptimizer:
 
         ceiling = np.asarray(max_temp, dtype=float)
         params = self.model.params
-        capacity = max(params.dhw_tank_thermal_mass, 1e-6)
+        capacity = params.dhw_tank_thermal_mass
         ua = params.dhw_tank_heat_loss_coefficient
         inlet = params.dhw_inlet_reference
         temp = float(initial_temp)
@@ -6800,12 +6800,12 @@ class HeatPumpOptimizer:
                     p.lower_floor_heat_loss_learned,
                     wind_speeds[i] * 0.5, precipitation[i] * 0.5,
                 )
-                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+                design_power = p.max_electrical_power * p.cop_nominal_floored
                 flow_set = mixing_valve.flow_setpoint(
                     target_temp=p.mixing_valve_target or p.comfort_ceiling,
                     outdoor_temp=float(outdoor_temps[i]),
                     heat_loss_coefficient=u_up + u_lo,
-                    emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+                    emitter_ua=design_power / p.emitter_design_delta_t_floored,
                 )
                 w_i = wood_share(
                     state.wood_tank_temperature,
@@ -6855,7 +6855,7 @@ class HeatPumpOptimizer:
     ) -> float:
         """Thermal power a thermostat needs this step in the single-zone model."""
         p = self.model.params
-        k_slab = max(p.slab_heat_transfer, 1e-6)
+        k_slab = p.slab_heat_transfer_floored
 
         u_eff = self.model.effective_heat_loss_coefficient(
             p.heat_loss_coefficient, wind_speed, precipitation
@@ -6899,7 +6899,7 @@ class HeatPumpOptimizer:
         mixing valve would.
         """
         p = self.model.params
-        k_slab = max(p.slab_heat_transfer, 1e-6)
+        k_slab = p.slab_heat_transfer_floored
 
         u_upper = self.model.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss, wind_speed, precipitation
@@ -7096,7 +7096,7 @@ class HeatPumpOptimizer:
 
             raw_displace.append(float(np.clip(displace, d_min, d_max)))
 
-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
+        tau = p.ecl110_pid_tau_hours
         alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0))
         effective = 0.0
         filtered: list[float] = []

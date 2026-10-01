@@ -622,6 +622,42 @@ class ThermalParameters:
         self._wood_ua_cache = (key, value)
         return value
 
+    # -- One floor per thermal parameter (round 9, class P3) -----------------
+    # Every positive floor on a parameter lives here, once, with one constant:
+    # an inline copy at each point of use is how one sibling lost its clip
+    # (D12-s2-03) and how slab_heat_transfer came to be floored at 1e-6 in the
+    # optimizer and 1e-9 in sysid. tests/features.py's R9-P3 block refuses a
+    # second floor, a second constant, or a raw divisor beside a floor.
+
+    @property
+    def cop_nominal_floored(self) -> float:
+        """``cop_nominal``, never below 1.0 (a heat pump delivers at least its draw)."""
+        return max(self.cop_nominal, 1.0)
+
+    @property
+    def emitter_design_delta_t_floored(self) -> float:
+        """``emitter_design_delta_t`` in kelvin, never below 1.0, for dividing by."""
+        return max(self.emitter_design_delta_t, 1.0)
+
+    @property
+    def ecl110_pid_tau_hours(self) -> float:
+        """The ECL110 PID filter constant in hours, never below 0.1, for dividing by."""
+        return max(0.1, self.ecl110_pid_time_constant_hours)
+
+    @property
+    def slab_heat_transfer_floored(self) -> float:
+        """``slab_heat_transfer`` in kW/K, never below 1e-6, for dividing by."""
+        return max(self.slab_heat_transfer, 1e-6)
+
+    @property
+    def flow_lift_power_floor_kw(self) -> float:
+        """Measured draw below which a COP or flow-lift sample says little, kW.
+
+        A third of nameplate, never below 0.2 kW: below it the reading is
+        mostly auxiliaries.
+        """
+        return max(0.3 * self.max_electrical_power, 0.2)
+
     @property
     def dhw_tank_thermal_mass(self) -> float:
         """Thermal mass of DHW tank in kWh/°C."""
@@ -1794,12 +1830,12 @@ class ThermalModel:
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
-        design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+        design_power = p.max_electrical_power * p.cop_nominal_floored
         return mixing_valve.flow_setpoint(
             target_temp=indoor_target,
             outdoor_temp=outdoor_temp,
             heat_loss_coefficient=heat_loss,
-            emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+            emitter_ua=design_power / p.emitter_design_delta_t_floored,
         )
 
     def compute_solar_gain(self, solar_radiation: float) -> float:
@@ -1864,7 +1900,7 @@ class ThermalModel:
         """
         p = self.params
         cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max))
-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
+        tau = p.ecl110_pid_tau_hours
         alpha = float(np.clip(dt_hours / tau, 0.0, 1.0))
 
         effective = state.ecl110_effective_displace + alpha * (
@@ -2304,8 +2340,8 @@ class ThermalModel:
             # (tank at or below the curve) this reproduces the delivery the
             # unthrottled branch would give at the design point rather than
             # inventing a new balance.
-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-            design_dt = max(p.emitter_design_delta_t, 1.0)
+            design_power = p.max_electrical_power * p.cop_nominal_floored
+            design_dt = p.emitter_design_delta_t_floored
             ua_rad = rad_fraction * design_power / design_dt
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
 
@@ -2648,8 +2684,8 @@ class ThermalModel:
                 # The same conductances and C_buf fallback the throttled
                 # branch of `_simulate_step_two_zone` builds, so the count
                 # matches the stiffness the step actually integrates.
-                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-                design_dt = max(p.emitter_design_delta_t, 1.0)
+                design_power = p.max_electrical_power * p.cop_nominal_floored
+                design_dt = p.emitter_design_delta_t_floored
                 ua_rad = p.radiator_power_fraction * design_power / design_dt
                 ua_floor = (
                     (1.0 - p.radiator_power_fraction) * design_power / design_dt
@@ -2953,8 +2989,8 @@ class ThermalModel:
         q_internal_upper_base = None
         # Two-zone valve geometry: uniform per batch.
         if p.two_zone_enabled and throttled:
-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-            design_dt = max(p.emitter_design_delta_t, 1.0)
+            design_power = p.max_electrical_power * p.cop_nominal_floored
+            design_dt = p.emitter_design_delta_t_floored
             ua_rad = rad_fraction * design_power / design_dt
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
         if two_tank:

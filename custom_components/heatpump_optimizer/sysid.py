@@ -166,7 +166,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
     two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
     """
     p = model.params
-    k_slab = max(p.slab_heat_transfer, 1e-9)
+    k_slab = p.slab_heat_transfer_floored
     gains = p.internal_gains
     if not p.two_zone_enabled:
         ua = p.heat_loss_coefficient * p.house_heat_loss_scale
@@ -189,7 +189,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
         slab = lower + (1.0 - rad) * q_hold / k_slab
         tank = ThermalState.buffer_tank_temperature
     else:
-        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
         a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
         (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
             np.array([

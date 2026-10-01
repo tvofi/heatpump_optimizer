@@ -54161,6 +54161,32 @@ R.check(
     f"{_r9p3_groups(_r9p3_probe)}",
 )
 
+# The named exception: optimizer._power_fraction normalises by the modulation
+# band and BRANCHES on a band under _MIN_MODULATION_BAND_KW instead of flooring
+# it, because a floored band is D12-s2-03 itself (a fixed-speed pump read a
+# full-power step as 0). Arm (a) keys neither a branch nor a tuple-assigned
+# local, so it cannot see this helper; this check pins the shape instead, and
+# a plain max(band, 0.1) put back in the helper is its control.
+_r9p3_pf = next(
+    n for n in _r9p3_ast.walk(_r9p3_ast.parse(_r9p3_src["optimizer"]))
+    if isinstance(n, _r9p3_ast.FunctionDef) and n.name == "_power_fraction"
+)
+_r9p3_pf_floors = [
+    _r9p3_ast.unparse(f[0]) for f in map(_r9p3_floor, _r9p3_ast.walk(_r9p3_pf))
+    if f and "electrical_power" in _r9p3_ast.unparse(f[0])
+]
+_r9p3_pf_branch = any(
+    isinstance(n, _r9p3_ast.Compare)
+    and "_MIN_MODULATION_BAND_KW" in _r9p3_ast.unparse(n)
+    for n in _r9p3_ast.walk(_r9p3_pf)
+)
+R.check(
+    "R9-P3: the power-fraction helper is the named exception -- it branches "
+    "on a sub-floor band and floors no power quantity",
+    _r9p3_pf_branch and not _r9p3_pf_floors,
+    f"branch={_r9p3_pf_branch}, floors={_r9p3_pf_floors}",
+)
+
 # (b) The floor price of one zone-kelvin below min_temp is the same in every
 # topology and in both twins: undershooting ONE zone of a two-zone house by
 # u -> 0+ costs what the single-zone room costs (D2-s2-81 priced it at half).

@@ -420,6 +420,7 @@ from .thermal_model import (
     ThermalState,
     learner_newton_step,
     mold_safe_room_floor,
+    on_threshold_kw,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -901,7 +902,7 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         return
     params = ctx._thermal_params
     commanded = coord._commanded_power()
-    if commanded < max(0.3 * params.max_electrical_power, 0.2):
+    if commanded < params.flow_lift_power_floor_kw:
         return
     if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None:
         return
@@ -4259,7 +4260,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = ctx._thermal_params
         # Below a third of nameplate the reading is mostly auxiliaries and the
         # ratio says little about compressor efficiency.
-        floor = max(0.3 * params.max_electrical_power, 0.2)
+        floor = params.flow_lift_power_floor_kw
         if commanded < floor or self._measured_power < floor:
             return
 
@@ -10190,7 +10191,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         started = self._start_counter.observe(
             now,
             self._measured_power,
-            max(0.1, 0.5 * getattr(self, "_ctx", self)._thermal_params.min_electrical_power),
+            on_threshold_kw(getattr(self, "_ctx", self)._thermal_params),
             self._immersion_active,
         )
         if started:
