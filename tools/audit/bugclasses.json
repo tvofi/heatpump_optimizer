@@ -658,10 +658,10 @@
     },
     "total": 37,
     "max_per_round": 12,
-    "detector": null,
+    "detector": "node tests/card_browser.mjs (the browser job), its P9 grid: 31 card states in 9 cells (3 widths x en/sv light, 375 px dark, and HA's theme against the opposite OS scheme both ways, hass.themes.darkMode in lockstep), each asserting over every rendered node WCAG AA text contrast over what is underneath, zero shared glyph ink between text runs, pop-ups inside the viewport and their chart, listbox options distinct as shown, no unreachable clipped ink, and the 24 px target floor or WCAG 2.5.8's spacing exception; controls: every cell mounted and every driver step found its target, and every card rule that sets a colour rendered in some cell",
     "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The P9 grid is a zero rule with no allow-list in the browser CI job (R9-F6.3, #1652), shown failing on each round-9 instance re-introduced and on a catalogue with the status states dropped. HPO_BROWSER_SCOPE=auto skips it on a diff that touches none of the card files, the grid scripts or tests/plan_view.py's measured closure in tests/closures.json (the solver, profiles and stubs that build the payload), and prints that it did; a push always runs it. No grid state crowds a lane enough to contest two slot-hit targets, so their non-overlap is a tests/card.mjs unit on slotHitExtents. Not reached: keyboard routes (the grid drives a pointer; F6.2's lane), and states the catalogue does not drive, which the reach control bounds only for colour rules. Setting the scope variable in tests.yml is F11.7's (.claude/workflows/carry-1757.json)",
+    "status": "barriered",
     "mechanism_note": "Stretched to keyboard access: R8 D4-01 (Tab order) and R9 N-keyboard (pointer-only editing) are card accessibility rules that do not reach a control, the class's shape, but the mechanism text names only clipping/colour/hit target.",
     "aliases": [
       "N-keyboard",
