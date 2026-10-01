@@ -2375,11 +2375,11 @@
         "R9-F9.2"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-3",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "dc6c97e4",
+        "last_step": "#1810 merged 2026-10-01T14:0xZ as dc6c97e4 at head 8dbfbc14 (round-1 verdict 5931460581 + deltas; tvofi review under mandate; real-HA 61/61); #1646, #1663, #1748 closed; stray branch f10-3 deleted (contained in main)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.3.md on handoff/r9-f10-gate-infra-3",
         "review_branch": "handoff/r9-f10-gate-infra-3-review",
         "review_note_file": "handoff/round9/fix/resume/F10.3-review.md on handoff/r9-f10-gate-infra-3-review",
