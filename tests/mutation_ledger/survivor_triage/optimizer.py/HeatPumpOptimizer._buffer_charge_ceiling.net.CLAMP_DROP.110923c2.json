@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling.net CLAMP_DROP 110923c2",
+  "old": "            return p_max * cop - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)",
+  "reason": "Equivalent by construction, and measured. `net` is only ever evaluated at `hi`, `lo` and bisection midpoints between them, and `lo = max(20.0, cop_flow_reference_temp)` with TANK_ROOM_AMBIENT_TEMP = 20.0, so `temp - TANK_ROOM_AMBIENT_TEMP >= 0` at every call and `max(0.0, x)` is `x`. Measured on the F1.10 round-2 head (#1808, review of e964fb78): a differential driver (buffer_probe.py, kept with the PR's evidence) calls _buffer_charge_ceiling over 20736 inputs -- flow_curve_cop on/off, buffer_max_temp 25-75, cop_flow_reference_temp 0-50 (below and above the 20 \u00b0C ambient), one and two zones, three standby-loss scales incl. 0, max power 0.5-9 kW, outdoor -30 to 15 \u00b0C, humidity None/90 -- and spies the tank temperature every `net` call hands marginal_cop: 24468 evaluations, minimum 20.0 \u00b0C. Head vs the CLAMP_DROP mutant: 0 of 20736 ceilings differ.",
+  "verdict": "equivalent"
+}
