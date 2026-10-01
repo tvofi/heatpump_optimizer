@@ -668,45 +668,54 @@
 # run). shared_steps_hover's tooltip now flips left past mid-width by its own
 # width rather than at 60 % by an assumed 160 px, so its left moves.
 
-no_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-no_plan_expanded # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-plan_inline # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-plan_inline_sv # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-plan_short_window # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-custom_title_currency # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-hidden_series # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-score_open # R9-UX-1: stylesheet; the headline lists every narrative line (ul.hl-narrative, not the first line in a div)
-expanded_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-what_if_off # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-expanded_zoomed # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-draft_dirty_menu_open # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-draft_mid_drag # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-whatif_edited # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-whatif_weekly # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-override_active # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-shared_steps # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-shared_steps_hover # R9-UX-1: stylesheet; the tooltip flips past mid-width by its own width, so its left moves
-tooltip_hover # R9-UX-1: stylesheet; the hovered idle step gains its likely-because block
-coarse_pointer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-reduced_motion # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-setup_single_buffer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-setup_two_tank # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-setup_coil # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-advisor_page # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-layout_editing_dragged # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-layout_editing_tidy # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-picker_open_filtered # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-wood_alert # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-wood_lane # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-wood_whatif # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-away_toggle # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-away_return # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-away_status # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-history_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-history_deep_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-history_no_power # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-history_unavailable # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
-history_pending # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+# Card tiles two across (tvofi 2026-10-01: "max 2 per row", and the tiles
+# were missing on top of the expanded plan page), merged over R9-UX-1's list:
+# each state below that already carries UX-1's reason gains this one. Every
+# state that renders the card style block moves: .tiles and .hl-stats are two
+# columns at every width instead of four above 600 px, .tile-v and .hl-value
+# wrap with overflow-wrap: break-word instead of anywhere, and the phone media
+# rule loses its now-redundant column override. editor_schema renders no style
+# block and is identical. The expanded plan states also gain the tile and
+# headline rows at the top of the plan page body.
+no_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+no_plan_expanded # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+plan_inline # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+plan_inline_sv # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+plan_short_window # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+custom_title_currency # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+hidden_series # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+score_open # R9-UX-1: stylesheet; the headline lists every narrative line (ul.hl-narrative, not the first line in a div); card tiles: two across, plan page tiles
+expanded_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+what_if_off # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+expanded_zoomed # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+draft_dirty_menu_open # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+draft_mid_drag # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+whatif_edited # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+whatif_weekly # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+override_active # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+shared_steps # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+shared_steps_hover # R9-UX-1: stylesheet; the tooltip flips past mid-width by its own width, so its left moves; card tiles: two across, plan page tiles
+tooltip_hover # R9-UX-1: stylesheet; the hovered idle step gains its likely-because block; card tiles: two across, plan page tiles
+coarse_pointer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+reduced_motion # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+setup_single_buffer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+setup_two_tank # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+setup_coil # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+advisor_page # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+layout_editing_dragged # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+layout_editing_tidy # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+picker_open_filtered # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+wood_alert # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+wood_lane # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+wood_whatif # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+away_toggle # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+away_return # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+away_status # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+history_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+history_deep_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+history_no_power # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+history_unavailable # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
+history_pending # R9-UX-1: stylesheet only (narrative list and idle-explanation rules); card tiles: two across, plan page tiles
 
 # R9-UX-2 (advisor inbox): the stylesheet gains the inbox rules, so every state that renders it moves; advisor_page also gains the inbox markup.
 advisor_page # R9-UX-2: the inbox section, the opt-in rows and the inbox rules in the stylesheet
