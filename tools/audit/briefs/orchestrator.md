@@ -75,7 +75,7 @@ you take yourself removes a check from the programme rather than adding one.
   exactly as a seat's work is routed.
 
 The honest test: *could a seat have done this with a brief?* If yes, write the
-brief instead.
+brief instead: the programme's method is that no claim stands on one agent's word.
 
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
@@ -136,7 +136,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity and the bus** (decisions 0011, 0013): seats author and push refs, never a pull request -- code on `handoff/<topic>`, its body on `handoff-body/<topic>`, a verdict with its evidence on `verdict/<pr>`; you open the pull request as the `hpo-author` App and write its delivery row, post verdicts as `hpo-approver`, approve, and merge as `tvofi`. Watch the refs with `tools/audit/seat/bus.sh watch --post` as a background task: it exits on a new or moved ref, posting a verdict tip, and a `BUS refused` line is yours. The coordinator starts seats and handles blocks; it relays no head or verdict. The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
@@ -228,11 +228,14 @@ additionally, because you write the rosters and you decide the merge order.
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
-The remedies for a symbol that does not exist yet are that rule's;
-do not reach for a tag citation by reflex, because measurement shows the
-symbols that bit here exist at no tag. Read the **exit code and the error
-lines**: `FIXTURE ok: N error(s)` is designed to print beside a clean exit,
-which is exactly the shape that lets a real error be waved through.
+`brief_lint.mjs` reads the roster and the carry files and never
+`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
+citation left only in markdown is unchecked, and putting one there is not
+carrying it. The remedies for a symbol that does not exist yet are that rule's;
+a tag citation is no reflex fix: the symbols measured biting here exist at
+no tag. Read the **exit code and the error
+lines**: `FIXTURE ok: N error(s)` prints beside a clean exit by design, the
+shape that lets a real error be waved through.
 
 ## 11. Before you merge
 
@@ -246,6 +249,8 @@ which is exactly the shape that lets a real error be waved through.
 - CI green at a head containing current `origin/main`: if main moved, merge it in
   (a carry or resolution delta) and wait, watching CI from a background task
   (`fixer.md`), never a timer.
+  **Except** `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE: you merge
+  it, the queue's one bypass.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -255,7 +260,7 @@ which is exactly the shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
-- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — the merged pull request's worktree, branch and seat scratch go now, cited evidence preserved; disk is not a session-end problem.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept; not at session end.
 
 ## 12. The gate lease
 

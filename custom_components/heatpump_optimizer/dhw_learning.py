@@ -39,7 +39,7 @@ from .const import (
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
-from .thermal_model import DHW_AMBIENT_TEMP, ThermalParameters
+from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -411,7 +411,7 @@ class DhwProfileLearner:
             return
         standby_rate = (
             self.cooling_rate
-            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
+            * max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
             / DHW_COOLING_REFERENCE_DELTA
         )
         intensity = max(0.0, temp_drop / dt_h - standby_rate)  # °C/h beyond standby
@@ -456,8 +456,8 @@ class DhwProfileLearner:
         if dhw_temp > previous_temp:
             return
 
-        start_delta = previous_temp - DHW_AMBIENT_TEMP
-        end_delta = dhw_temp - DHW_AMBIENT_TEMP
+        start_delta = previous_temp - TANK_ROOM_AMBIENT_TEMP
+        end_delta = dhw_temp - TANK_ROOM_AMBIENT_TEMP
         if start_delta < DHW_COOLING_MIN_DELTA or end_delta < DHW_COOLING_MIN_DELTA:
             return
 
@@ -510,7 +510,7 @@ class DhwProfileLearner:
 
         standby_rate = (
             self.cooling_rate
-            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
+            * max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
             / DHW_COOLING_REFERENCE_DELTA
         )
         draw_intensity = temp_drop / dt_h - standby_rate

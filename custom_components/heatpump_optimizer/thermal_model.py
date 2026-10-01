@@ -126,9 +126,11 @@ _LOGGER = logging.getLogger(__name__)
 # re-exported here so the many uses below read unchanged.
 WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
 
-# Air temperature around the storage tanks; they are assumed to stand indoors.
-# This is the reference ambient the learned DHW cooling rate is stated against.
-DHW_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
+# Air temperature around the storage tanks -- DHW, buffer and wood alike; they
+# are assumed to stand indoors. The one name every tank's standing loss is
+# taken against (#1741), and the reference ambient the learned DHW cooling
+# rate is stated against.
+TANK_ROOM_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
 
 # Physical floor for the thermal-mass stores the per-step model divides by.
 # 0.1 kWh/°C is about 90 litres of water — already implausibly small for a
@@ -621,6 +623,42 @@ class ThermalParameters:
         value = rate * self.wood_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
         self._wood_ua_cache = (key, value)
         return value
+
+    # -- One floor per thermal parameter (round 9, class P3) -----------------
+    # Every positive floor on a parameter lives here, once, with one constant:
+    # an inline copy at each point of use is how one sibling lost its clip
+    # (D12-s2-03) and how slab_heat_transfer came to be floored at 1e-6 in the
+    # optimizer and 1e-9 in sysid. tests/features.py's R9-P3 block refuses a
+    # second floor, a second constant, or a raw divisor beside a floor.
+
+    @property
+    def cop_nominal_floored(self) -> float:
+        """``cop_nominal``, never below 1.0 (a heat pump delivers at least its draw)."""
+        return max(self.cop_nominal, 1.0)
+
+    @property
+    def emitter_design_delta_t_floored(self) -> float:
+        """``emitter_design_delta_t`` in kelvin, never below 1.0, for dividing by."""
+        return max(self.emitter_design_delta_t, 1.0)
+
+    @property
+    def ecl110_pid_tau_hours(self) -> float:
+        """The ECL110 PID filter constant in hours, never below 0.1, for dividing by."""
+        return max(0.1, self.ecl110_pid_time_constant_hours)
+
+    @property
+    def slab_heat_transfer_floored(self) -> float:
+        """``slab_heat_transfer`` in kW/K, never below 1e-6, for dividing by."""
+        return max(self.slab_heat_transfer, 1e-6)
+
+    @property
+    def flow_lift_power_floor_kw(self) -> float:
+        """Measured draw below which a COP or flow-lift sample says little, kW.
+
+        A third of nameplate, never below 0.2 kW: below it the reading is
+        mostly auxiliaries.
+        """
+        return max(0.3 * self.max_electrical_power, 0.2)
 
     @property
     def dhw_tank_thermal_mass(self) -> float:
@@ -1794,12 +1832,12 @@ class ThermalModel:
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
-        design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+        design_power = p.max_electrical_power * p.cop_nominal_floored
         return mixing_valve.flow_setpoint(
             target_temp=indoor_target,
             outdoor_temp=outdoor_temp,
             heat_loss_coefficient=heat_loss,
-            emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+            emitter_ua=design_power / p.emitter_design_delta_t_floored,
         )
 
     def compute_solar_gain(self, solar_radiation: float) -> float:
@@ -1864,7 +1902,7 @@ class ThermalModel:
         """
         p = self.params
         cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max))
-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
+        tau = p.ecl110_pid_tau_hours
         alpha = float(np.clip(dt_hours / tau, 0.0, 1.0))
 
         effective = state.ecl110_effective_displace + alpha * (
@@ -1923,7 +1961,7 @@ class ThermalModel:
         self,
         from_temp: float,
         to_temp: float,
-        ambient_temp: float = DHW_AMBIENT_TEMP,
+        ambient_temp: float = TANK_ROOM_AMBIENT_TEMP,
     ) -> float:
         """Hours of pure standby decay between two tank temperatures.
 
@@ -1956,7 +1994,7 @@ class ThermalModel:
         dhw_temp: float,
         dhw_power_thermal: float,
         hour_of_day: float,
-        ambient_temp: float = DHW_AMBIENT_TEMP,
+        ambient_temp: float = TANK_ROOM_AMBIENT_TEMP,
         dt_hours: float = 0.25,
         draw_power: float | None = None,
     ) -> float:
@@ -2293,8 +2331,8 @@ class ThermalModel:
 
         rad_fraction = p.radiator_power_fraction
 
-        # Buffer tank loss to ambient (assume ~20°C ambient indoors)
-        q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
+        # Buffer tank loss to the room it stands in
+        q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - TANK_ROOM_AMBIENT_TEMP)
 
         if throttled:
             # --- A valve exists: it regulates flow temperature ----------------
@@ -2304,8 +2342,8 @@ class ThermalModel:
             # (tank at or below the curve) this reproduces the delivery the
             # unthrottled branch would give at the design point rather than
             # inventing a new balance.
-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-            design_dt = max(p.emitter_design_delta_t, 1.0)
+            design_power = p.max_electrical_power * p.cop_nominal_floored
+            design_dt = p.emitter_design_delta_t_floored
             ua_rad = rad_fraction * design_power / design_dt
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
 
@@ -2381,7 +2419,7 @@ class ThermalModel:
                 if T_w is None:
                     T_w = T_buf
                 C_w = p.wood_tank_thermal_mass
-                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - 20.0)
+                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - TANK_ROOM_AMBIENT_TEMP)
                 w = wood_share(T_w, T_buf, flow_set, floor_temp)
                 avail_wood = ext - q_wood_loss + C_w * max(
                     0.0, T_w - floor_temp
@@ -2648,8 +2686,8 @@ class ThermalModel:
                 # The same conductances and C_buf fallback the throttled
                 # branch of `_simulate_step_two_zone` builds, so the count
                 # matches the stiffness the step actually integrates.
-                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-                design_dt = max(p.emitter_design_delta_t, 1.0)
+                design_power = p.max_electrical_power * p.cop_nominal_floored
+                design_dt = p.emitter_design_delta_t_floored
                 ua_rad = p.radiator_power_fraction * design_power / design_dt
                 ua_floor = (
                     (1.0 - p.radiator_power_fraction) * design_power / design_dt
@@ -2953,8 +2991,8 @@ class ThermalModel:
         q_internal_upper_base = None
         # Two-zone valve geometry: uniform per batch.
         if p.two_zone_enabled and throttled:
-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
-            design_dt = max(p.emitter_design_delta_t, 1.0)
+            design_power = p.max_electrical_power * p.cop_nominal_floored
+            design_dt = p.emitter_design_delta_t_floored
             ua_rad = rad_fraction * design_power / design_dt
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
         if two_tank:
@@ -3015,7 +3053,7 @@ class ThermalModel:
                     q_int_up = q_internal * area_ratio
                     q_int_lo = q_internal * (1.0 - area_ratio)
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
-                        T_buf - 20.0
+                        T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
                     # COP: only the flow-temp correction varies per element;
                     # the scalar law lives in _batch_cop so this method's
@@ -3052,7 +3090,7 @@ class ThermalModel:
                         drawn = q_rad + q_floor
                         if two_tank and T_wood is not None:
                             q_wood_loss = p.wood_tank_heat_loss_coefficient * (
-                                T_wood - 20.0
+                                T_wood - TANK_ROOM_AMBIENT_TEMP
                             )
                             w = _wood_share_vec(
                                 T_wood, T_buf, flow_set, floor_temp
@@ -3358,7 +3396,7 @@ class ThermalModel:
                 dhw_temp=state.dhw_temperature,
                 dhw_power_thermal=dhw_thermal_power,
                 hour_of_day=current_hour % 24.0,
-                ambient_temp=DHW_AMBIENT_TEMP,
+                ambient_temp=TANK_ROOM_AMBIENT_TEMP,
                 dt_hours=dt_hours,
                 draw_power=draw_i,
             )

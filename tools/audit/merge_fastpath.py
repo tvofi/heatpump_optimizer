@@ -1,0 +1,334 @@
+#!/usr/bin/env python3
+"""May a verdicted pull request merge without a fresh CI run? (process review item 2B)
+
+The orchestrator merges only on green CI at a head that contains current
+`main`. When `main` moved after that CI ran, the old answer was "merge main in
+and wait" -- a whole gate run for a change it may not be able to reach. This
+answers the narrower question the measured closures can: did anything `main`
+changed since the pull request's CI base land inside a closure the pull
+request's own scoped gate selected? If not, every script that graded the pull
+request reads exactly what it read then, and the merge needs no new run.
+
+    python3 tools/audit/merge_fastpath.py --head <sha> [--main origin/main] [--ci-base <sha>]
+    python3 tools/audit/merge_fastpath.py --self-test
+
+Exit 0 prints `FASTPATH ELIGIBLE`; exit 1 prints `FASTPATH REFUSED` with one
+`REFUSE <class>: <detail>` line per reason; exit 2 is a question it could not
+ask (a ref that does not resolve), which is a refusal too.
+
+WHAT IT REFUSES, every class conservative:
+  * merged     -- the head is already in `main`.
+  * ci-base    -- `--ci-base` is not between the fork point and `main`.
+  * conflict   -- `git merge-tree --write-tree` reports a conflict.
+  * workflow   -- either side touches `.github/`: the gate itself moved.
+  * claim      -- either side touches a golden claim file (`claim-files.md`).
+  * grader     -- either side touches a path a required job restores from the
+                  base (the `git checkout "$PINNED" --` pathspecs): a grader on
+                  one side and what it grades on the other is the semantic
+                  conflict a merge-tree cannot see (#1589 against #1592).
+  * budget     -- either side touches a `*_budgets.json` no closure records
+                  (`policy_budgets.json`): two changes inside one cap's
+                  headroom can sum past it, and no scoped script would see it.
+                  A cap a script reads is in its closure, so `overlap` has it.
+  * full       -- the pull request's own selection was FULL (a gate file, an
+                  unmeasured file, a table that does not describe the tree),
+                  under `main`'s table or the head's: every script graded it.
+  * unrecorded -- either side changes a file no closure records (an INERT
+                  doc, say) while `tests/run.sh` has a `run_always` script: such
+                  a script runs whatever the plan says and may read that file
+                  unrecorded. `harness_headers.py` does, through D6's
+                  `claims.py` (#1823 review: a link the pull request adds to
+                  DISCLAIMER.md, to a file main deletes, is a false claim on
+                  the merged tree that neither side's CI saw).
+  * overlap    -- a file `main` changed since the CI base is in the closure of
+                  a script the pull request selected, or of a `run_always`
+                  script, which is selected on every run, under either table.
+
+WHAT IT DOES NOT ANSWER, said so the orchestrator does not read more into it:
+the jobs no closure scopes -- `policy-docs`, `env-matrix`, `wave-script`,
+`briefs`, `typing`, `browser`, `mutation`, CodeQL, `hassfest`, `validate-hacs`
+-- grade the whole tree and were not re-run on the merged one. Their backstop
+is the push to `main`, which is FULL and unscoped, and a red there is
+reverted first. Nor does it read CI: green on the head, a merge verdict at it
+and a green `main` tip are the orchestrator's preconditions, checked before
+this runs.
+
+The CI base defaults to the fork point, `git merge-base <main> <head>`. A
+pull-request run grades a merge with the `main` tip of its own moment, never an
+older one, so the fork point can only charge the pull request with MORE of
+`main`'s changes than its CI saw: a refusal it did not need, never a merge it
+should not have had. `--ci-base` narrows that to the tip the run really used
+(`fast`'s log prints it as GOLDEN_REF) and is refused unless it lies between the
+fork point and `main`.
+"""
+
+from __future__ import annotations
+
+import fnmatch
+import importlib.util
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tests"))
+import closure  # noqa: E402  (tests/closure.py: the gate's own selection)
+
+CLAIM_FILES = ("tests/golden/claimed_drift.txt", "tests/golden/card_claimed_drift.txt")
+# `run_always <interpreter> tests/<script>` in tests/run.sh: the scripts no scope skips.
+ALWAYS = re.compile(r"^\s*run_always\s+\S+\s+(tests/[\w./-]+\.(?:py|mjs))\b", re.M)
+
+
+def always_scripts(run_sh_texts: list[str]) -> list[str]:
+    """Every script a `tests/run.sh` text runs with `run_always`."""
+    return sorted({m for t in run_sh_texts for m in ALWAYS.findall(t)})
+
+
+def _codeowners_gap():
+    """The pin reader `policy-docs` runs, so the grader set is the one CI pins."""
+    path = ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py"
+    spec = importlib.util.spec_from_file_location("codeowners_gap", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def grader_specs(workflow_texts: list[str]) -> list[str]:
+    """Every pathspec a `git checkout "$PINNED" --` restore names."""
+    restore = _codeowners_gap().RESTORE
+    specs: set[str] = set()
+    for text in workflow_texts:
+        for m in restore.finditer(text):
+            specs.update(re.findall(r"'([^']+)'", m.group(1)))
+    return sorted(specs)
+
+
+def _spec_hit(spec: str, path: str) -> bool:
+    if any(ch in spec for ch in "*?["):
+        return fnmatch.fnmatch(path, spec)
+    return path == spec or path.startswith(spec.rstrip("/") + "/")
+
+
+def select_under(table: dict, files: list[str]) -> dict:
+    """`closure.select` over `files` with `table` as tests/closures.json."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d) / "closures.json"
+        p.write_text(json.dumps(table))
+        saved = closure.CLOSURES
+        closure.CLOSURES = p
+        try:
+            return closure.select(files)
+        finally:
+            closure.CLOSURES = saved
+
+
+def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
+           graders: list[str], conflict: str | None,
+           always: "list[str] | tuple[str, ...]" = ()) -> list[tuple[str, str]]:
+    """Every refusal, as (class, detail); empty means eligible. Pure: no git."""
+    out: list[tuple[str, str]] = []
+    if conflict:
+        out.append(("conflict", conflict))
+    if not main_files:
+        # main has not moved since the CI base: that run graded this very tree.
+        return out
+    measured = {f for t in tables.values() for fs in t["closures"].values() for f in fs}
+    both = [("pull request", f) for f in pr_files] + [("main", f) for f in main_files]
+    for side, f in both:
+        if f.startswith(".github/"):
+            out.append(("workflow", f"{side} changes {f}"))
+        elif f in CLAIM_FILES:
+            out.append(("claim", f"{side} changes {f}"))
+        elif any(_spec_hit(s, f) for s in graders):
+            out.append(("grader", f"{side} changes {f}, a grader required jobs restore from the base"))
+        elif f.endswith("_budgets.json") and closure.unit_of(f) not in measured:
+            out.append(("budget", f"{side} changes {f}, a cap no closure measures"))
+        elif always and closure.unit_of(f) not in measured:
+            out.append(("unrecorded", f"{side} changes {f}, which no closure records, and "
+                        f"run_always {', '.join(always)} read the tree whatever is selected"))
+    if not pr_files:
+        out.append(("full", "the pull request changes no file that could be determined"))
+        return out
+    units = {closure.unit_of(f) for f in main_files}
+    for where, table in tables.items():
+        plan = select_under(table, pr_files)
+        if plan["mode"] != "scoped":
+            out.append(("full", f"under {where}'s table: {plan['reason']}"))
+            continue
+        cl = table["closures"]
+        for s in sorted(set(plan["run"]) | set(always)):
+            hit = sorted(units & set(cl.get(s, ())))
+            if hit:
+                more = f" (+{len(hit) - 3})" if len(hit) > 3 else ""
+                out.append(("overlap", f"under {where}'s table, {s} selected by the pull "
+                            f"request reads {', '.join(hit[:3])}{more}, which main changed"))
+    return out
+
+
+def _git(*args: str) -> str:
+    r = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {r.stderr.strip()[:200]}")
+    return r.stdout
+
+
+def _is_ancestor(a: str, b: str) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", a, b], cwd=ROOT).returncode == 0
+
+
+def run(head: str, main: str, ci_base: str | None) -> int:
+    try:
+        head = _git("rev-parse", "--verify", head + "^{commit}").strip()
+        tip = _git("rev-parse", "--verify", main + "^{commit}").strip()
+        fork = _git("merge-base", tip, head).strip()
+        base = _git("rev-parse", "--verify", (ci_base or fork) + "^{commit}").strip()
+    except RuntimeError as e:
+        print(f"FASTPATH REFUSED: cannot ask -- {e}")
+        return 2
+    print(f"head {head}\nmain {tip}\nfork {fork}\nci-base {base}"
+          f"{' (the fork point)' if base == fork else ''}")
+    if _is_ancestor(head, tip):
+        print(f"REFUSE merged: {head[:12]} is already in {main}\nFASTPATH REFUSED: 1 reason")
+        return 1
+    if not (_is_ancestor(fork, base) and _is_ancestor(base, tip)):
+        print(f"REFUSE ci-base: {base[:12]} is not between the fork point {fork[:12]} "
+              f"and {main}\nFASTPATH REFUSED: 1 reason")
+        return 1
+    pr_files = sorted(set(_git("diff", "--no-renames", "--name-only", f"{fork}...{head}").split()))
+    main_files = sorted(set(_git("diff", "--no-renames", "--name-only", base, tip).split()))
+    mt = subprocess.run(["git", "merge-tree", "--write-tree", "--name-only", tip, head],
+                        cwd=ROOT, capture_output=True, text=True)
+    conflict = None
+    if mt.returncode != 0:
+        named = [ln for ln in mt.stdout.splitlines()[1:] if ln] or [mt.stderr.strip()]
+        conflict = "merge-tree reports a conflict: " + ", ".join(named)[:300]
+    wf = [_git("show", f"{rev}:.github/workflows/{p}") for rev in (tip, head)
+          for p in _git("ls-tree", "--name-only", f"{rev}:.github/workflows").split()
+          if p.endswith((".yml", ".yaml"))]
+    tables = {"main": json.loads(_git("show", f"{tip}:tests/closures.json")),
+              "head": json.loads(_git("show", f"{head}:tests/closures.json"))}
+    print(f"pull request changes {len(pr_files)} file(s) ({fork[:12]}...{head[:12]}); "
+          f"main changed {len(main_files)} since the CI base ({base[:12]}..{tip[:12]})")
+    always = always_scripts([_git("show", f"{rev}:tests/run.sh") for rev in (tip, head)])
+    found = decide(pr_files, main_files, tables, grader_specs(wf), conflict, always)
+    for cls, detail in found:
+        print(f"REFUSE {cls}: {detail}")
+    if found:
+        print(f"FASTPATH REFUSED: {len(found)} reason(s)")
+        return 1
+    print(f"FASTPATH ELIGIBLE: {head[:12]} may merge onto {tip[:12]} without a fresh CI run; "
+          "main's FULL push gate grades the merged tree, and a red there is reverted first")
+    return 0
+
+
+def self_test() -> int:
+    """Each refusal class against its null control, through the gate's real
+    `closure.select` over a synthetic table and roster."""
+    fails = n = 0
+
+    def check(name: str, got, want) -> None:
+        nonlocal fails, n
+        n += 1
+        ok = got == want
+        fails += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}" + ("" if ok else f": got {got!r}, want {want!r}"))
+
+    scripts = ["tests/a.py", "tests/b.py", "tests/h.py"]
+    table = {"closures": {"tests/a.py": ["tests/a.py", "custom_components/x/one.py"],
+                          "tests/h.py": ["tests/h.py", "tools/audit/x/claims.py"],
+                          "tests/b.py": ["tests/b.py", "tests/golden/b.json",
+                                         "tests/golden/claimed_drift.txt"]}}
+    tables = {"main": table, "head": table}
+    graders = [".claude/workflows/*.mjs", "tools/audit/*.sh"]
+    saved = closure.selectable_scripts
+    closure.selectable_scripts = lambda: list(scripts)
+    try:
+        def classes(pr, mn, conflict=None, t=tables, always=("tests/h.py",)):
+            return sorted({c for c, _ in decide(pr, mn, t, graders, conflict, always)})
+
+        check("disjoint closures are eligible (null control)",
+              classes(["tests/golden/b.json"], ["custom_components/x/one.py"]), [])
+        check("main changed a file the selected script reads",
+              classes(["tests/golden/b.json"], ["tests/b.py"]), ["overlap"])
+        check("... and the mirror: the pull request's file is in the closure main changed",
+              classes(["custom_components/x/one.py"], ["tests/a.py"]), ["overlap"])
+        check("an overlap only the head's table records still refuses",
+              classes(["tests/golden/b.json"], ["tests/c.py"],
+                      t={"main": table, "head": {"closures": {
+                          **table["closures"], "tests/b.py": [*table["closures"]["tests/b.py"],
+                                                              "tests/c.py"]}}}), ["overlap"])
+        check("a merge-tree conflict refuses",
+              classes(["tests/golden/b.json"], ["custom_components/x/one.py"], "x"), ["conflict"])
+        check("a workflow change on main refuses",
+              classes(["tests/golden/b.json"], [".github/workflows/tests.yml"]), ["workflow"])
+        check("a claim-file change on the pull request refuses",
+              classes(["tests/golden/b.json", "tests/golden/claimed_drift.txt"],
+                      ["custom_components/x/one.py"]), ["claim"])
+        check("a pinned grader changed on main refuses",
+              classes(["tests/golden/b.json"], [".claude/workflows/policy_lint.mjs"]), ["grader"])
+        check("an unmeasured budget file on either side refuses",
+              classes(["tests/golden/b.json"], [".claude/workflows/policy_budgets.json"]), ["budget"])
+        check("a measured one is the overlap's to judge, not a refusal of its own (null control)",
+              classes(["tests/golden/b.json"], ["tests/a_budgets.json"],
+                      t={"main": {"closures": {**table["closures"], "tests/a.py": [
+                          *table["closures"]["tests/a.py"], "tests/a_budgets.json"]}},
+                         "head": table}), [])
+        check("a gate file in the pull request is FULL and refuses",
+              classes(["tests/run.sh"], ["docs/delivery/1.md"], always=()), ["full"])
+        check("an unmeasured file in the pull request is FULL and refuses",
+              classes(["custom_components/x/new.py"], ["docs/delivery/1.md"], always=()), ["full"])
+        check("an INERT-only pull request selects nothing and is eligible against code "
+              "when no script runs always (null control)",
+              classes(["docs/delivery/1.md"], ["custom_components/x/one.py"], always=()), [])
+        check("#1823's probe: the pull request links a file from DISCLAIMER.md and main "
+              "deletes it, and a run_always script reads both unrecorded",
+              classes(["DISCLAIMER.md"], ["tools/audit/README.md"]), ["unrecorded"])
+        check("... the same pair with no run_always script is eligible (null control)",
+              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], always=()), [])
+        check("an unrecorded file on main's side alone refuses too",
+              classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
+        check("main changed what a run_always script reads, which the pull request never "
+              "selected: overlap",
+              classes(["tests/golden/b.json"], ["tools/audit/x/claims.py"]), ["overlap"])
+        check("... and with that script not run_always, the same pair is eligible (null control)",
+              classes(["tests/golden/b.json"], ["tools/audit/x/claims.py"], always=()), [])
+        check("the run_always scripts are read from tests/run.sh",
+              always_scripts(['  run_always "$PYTHON" tests/harness_headers.py\n',
+                              '  run "$PYTHON" tests/edge.py\n']),
+              ["tests/harness_headers.py"])
+        check("this tree's run.sh runs harness_headers.py always",
+              "tests/harness_headers.py" in always_scripts([(ROOT / "tests/run.sh").read_text()]),
+              True)
+        check("no determinable pull-request file refuses", classes([], ["tests/a.py"]), ["full"])
+        check("main unmoved since the CI base: even a gate change is eligible (null control)",
+              classes(["tests/run.sh", ".github/workflows/tests.yml"], []), [])
+        check("... but never past a conflict", classes(["tests/run.sh"], [], "x"), ["conflict"])
+        check("the grader specs are the restore pathspecs the workflows name",
+              grader_specs(["git checkout \"$PINNED\" -- \\\n  '.claude/workflows/*.py' \\\n"
+                            "  'tools/audit/*.sh'\n", "git checkout HEAD -- 'x.mjs'"]),
+              [".claude/workflows/*.py", "tools/audit/*.sh"])
+        check("this tree's workflows pin the governance programs",
+              ".claude/workflows/*.mjs" in grader_specs(
+                  [p.read_text() for p in sorted((ROOT / ".github/workflows").glob("*.yml"))]), True)
+    finally:
+        closure.selectable_scripts = saved
+    print(f"merge_fastpath self-test: {n} checks, {fails} failed")
+    return 1 if fails else 0
+
+
+def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        return self_test()
+    args = dict(zip(argv[::2], argv[1::2]))
+    if len(argv) % 2 or "--head" not in args or set(args) - {"--head", "--main", "--ci-base"}:
+        print(__doc__.split("\n\n")[2], file=sys.stderr)
+        return 2
+    return run(args["--head"], args.get("--main", "origin/main"), args.get("--ci-base"))
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

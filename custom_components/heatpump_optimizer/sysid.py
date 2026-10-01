@@ -37,7 +37,12 @@ import numpy as np
 from .accuracy import utc_elapsed_seconds
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .mixing_valve import is_throttling
-from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .thermal_model import (
+    TANK_ROOM_AMBIENT_TEMP,
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -167,7 +172,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
     two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
     """
     p = model.params
-    k_slab = max(p.slab_heat_transfer, 1e-9)
+    k_slab = p.slab_heat_transfer_floored
     gains = p.internal_gains
     if not p.two_zone_enabled:
         ua = p.heat_loss_coefficient * p.house_heat_loss_scale
@@ -190,7 +195,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
         slab = lower + (1.0 - rad) * q_hold / k_slab
         tank = ThermalState.buffer_tank_temperature
     else:
-        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
         a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
         (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
             np.array([
@@ -199,7 +204,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
                 [0.0, k_slab, -(a_f + k_slab), a_f],
                 [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
             ]),
-            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - TANK_ROOM_AMBIENT_TEMP * k_b]),
             rcond=None,
         )
     return ThermalState(
