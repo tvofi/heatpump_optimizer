@@ -1022,8 +1022,51 @@ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
         return _record_node(script, str(out), env)
     cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
            str(out), *(args or [])]
-    proc = subprocess.run(cmd, cwd=ROOT, env=env)
+    if not shutil.which("strace"):
+        return subprocess.run(cmd, cwd=ROOT, env=env).returncode
+    # The audit hook sees this process only. A child the script spawns -- a
+    # `python -P` driver, plan_view.py under doc_claims.py -- reads files the
+    # hook never sees, and its argv was all that reached the record, so
+    # select() skipped the script on a change to any of them (R9 D14-s5-01:
+    # 22 hastub modules under deployment_shape.py's own driver child). Where
+    # strace exists, as on CI's Linux recorder, the run is traced with every
+    # child and the two observations are unioned.
+    trace = out.with_suffix(".strace")
+    proc = subprocess.run(["strace", "-f", "-qq", "-y", "-e", "trace=openat",
+                           "-o", str(trace), *cmd], cwd=ROOT, env=env)
+    _union_strace(out, trace)
     return proc.returncode
+
+
+# `openat(..., "path", ...) = 3</resolved/path>`: with -y strace prints the
+# path the returned descriptor names, absolute whatever the child's cwd.
+_STRACE_FD = re.compile(r'openat\([^,]+,\s*"(?:[^"\\]|\\.)*"[^)]*\)\s*=\s*\d+<([^>]+)>')
+
+
+def strace_files(trace: Path) -> set[str]:
+    """The repo files a `strace -f -y -e trace=openat` log opened successfully."""
+    files = set()
+    for line in trace.read_text(errors="replace").splitlines():
+        m = _STRACE_FD.search(line)
+        if m:
+            r = _rel(m.group(1))
+            if r and _is_real_file(r):
+                files.add(r)
+    return files
+
+
+def _union_strace(out: Path, trace: Path) -> None:
+    """Fold a traced run's repo reads into the audit-hook record at `out`."""
+    try:
+        seen = strace_files(trace)
+        rec = json.loads(out.read_text())
+    except (OSError, json.JSONDecodeError):
+        return
+    finally:
+        trace.unlink(missing_ok=True)
+    rec["files"] = sorted(set(rec["files"]) | seen)
+    rec["how"] = rec.get("how", "") + "+strace"
+    out.write_text(json.dumps(rec, indent=1))
 
 
 # ---------------------------------------------------------------------------

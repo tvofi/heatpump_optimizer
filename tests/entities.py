@@ -16398,6 +16398,51 @@ R.check(
          for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
 )
 
+# --- what the closure RECORDER sees: child processes (R9 D14-s5-01) --------
+#
+# The audit hook records this process; a child's reads never reach it, only
+# its argv, so select() skipped deployment_shape.py on a change to any of the
+# 22 hastub modules its own `python -P` driver child imports. Where strace
+# exists the recorder now traces every child and unions what it opened. Driven
+# on a synthetic `strace -f -y` log: a child's successful open of a repo file
+# counts, a failed probe, a directory and an out-of-repo file do not; and the
+# union keeps the hook's own files.
+import shutil as _rs_shutil  # noqa: E402
+
+_rs_dir = Path(_tempfile.mkdtemp(prefix="closure-strace-"))
+_rs_root = str(_closure.ROOT)
+(_rs_dir / "r.strace").write_text(
+    f'101 openat(AT_FDCWD, "tests/hastub/homeassistant/core.py", O_RDONLY|O_CLOEXEC)'
+    f' = 3<{_rs_root}/tests/hastub/homeassistant/core.py>\n'
+    f'102 openat(AT_FDCWD, "{_rs_root}/tests/no_such_file.py", O_RDONLY) = -1 ENOENT'
+    f' (No such file or directory)\n'
+    f'102 openat(AT_FDCWD, "tests", O_RDONLY|O_DIRECTORY) = 4<{_rs_root}/tests>\n'
+    f'102 openat(AT_FDCWD, "/usr/lib/x.py", O_RDONLY) = 5</usr/lib/x.py>\n')
+(_rs_dir / "r.json").write_text(json.dumps(
+    {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
+try:
+    _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
+    _closure._union_strace(_rs_dir / "r.json", _rs_dir / "r.strace")
+    _RS_REC = json.loads((_rs_dir / "r.json").read_text())
+    _RS_GOT = (_RS_SEEN, _RS_REC["files"], _RS_REC["how"],
+               (_rs_dir / "r.strace").exists())
+except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
+_rs_shutil.rmtree(_rs_dir, ignore_errors=True)
+_RS_SRC = _inspect.getsource(_closure.record)
+R.check(
+    "the closure recorder unions a traced child's repo reads into the record "
+    "(R9 D14-s5-01)",
+    _RS_GOT == (["tests/hastub/homeassistant/core.py"],
+                ["tests/deployment_shape.py", "tests/hastub/homeassistant/core.py"],
+                "audithook+sys.modules+strace", False)
+    and '"strace", "-f"' in _RS_SRC and '"-y"' in _RS_SRC
+    and "_union_strace(out, trace)" in _RS_SRC,
+    f"(seen, unioned files, how, trace left behind) -> {_RS_GOT}; record() "
+    f"must trace with -f -y and union the log",
+)
+
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides
