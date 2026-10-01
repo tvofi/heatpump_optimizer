@@ -9573,5 +9573,141 @@ check("without an indoor reading the corner now label is absent",
   }
 }
 
+{
+  // R9-UI-3 (#1791 D1, D2b): the header's status pill, the four stat tiles,
+  // and the --hpo- token layer the card's colours now resolve through.
+  const INDOOR_ID = "sensor.heat_pump_optimizer_indoor_temperature_optimizer";
+  const LAST_ID = "sensor.heat_pump_optimizer_last_optimization";
+  const NEXT_ID = "sensor.heat_pump_optimizer_next_optimization";
+  const iso = (ms) => new Date(ms).toISOString();
+  const withPlan = (states, kind, patch) => {
+    const id = kind === "space" ? DEFAULT_SPACE : DEFAULT_DHW;
+    const st = states[id];
+    states[id] = { ...st, ...patch, attributes: { ...st.attributes, ...(patch.attributes || {}) } };
+    return states;
+  };
+  const idle = () => withPlan(withPlan(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    "space", { attributes: { active_now: false } }), "dhw", { attributes: { active_now: false } });
+  const pillOf = (card) => {
+    const m = collect(card.shadowRoot).join("\n").match(/<span class="status-pill tone-(\w+)" data-status="(\w+)"[^>]*>([^<]*)</);
+    return m ? { tone: m[1], key: m[2], text: m[3] } : null;
+  };
+  const dumpOf = (card) => collect(card.shadowRoot).join("\n");
+
+  // Pill states, in the precedence order statusPill documents.
+  const pIdle = pillOf(build(idle()));
+  check("UI-3 pill: no step heating now reads idle",
+    !!pIdle && pIdle.key === "idle" && pIdle.tone === "idle" && pIdle.text === "Idle", JSON.stringify(pIdle));
+  const pHeat = pillOf(build(withPlan(idle(), "dhw", { attributes: { active_now: true } })));
+  check("UI-3 pill: a plan step active now reads heating",
+    !!pHeat && pHeat.key === "heating" && pHeat.tone === "ok", JSON.stringify(pHeat));
+  const staleStates = { ...idle(), [LAST_ID]: { state: iso(FROZEN - 4 * 3600e3), attributes: {} } };
+  const pStale = pillOf(build(staleStates));
+  check("UI-3 pill: a plan last solved 4 h ago, past max(3 x 30 min, 90 min), reads stale",
+    !!pStale && pStale.key === "stale" && pStale.tone === "warn", JSON.stringify(pStale));
+  const freshStates = { ...idle(), [LAST_ID]: { state: iso(FROZEN - 80 * 60e3), attributes: {} } };
+  const pFresh = pillOf(build(freshStates));
+  check("UI-3 pill: a plan solved 80 min ago is inside the 90 min floor, not stale",
+    !!pFresh && pFresh.key === "idle", JSON.stringify(pFresh));
+  // A 120 min solve interval, read off next_optimization, lifts the limit
+  // to 360 min, so the same 4 h age is no longer stale.
+  const slowStates = { ...staleStates, [NEXT_ID]: { state: iso(FROZEN + 60 * 60e3),
+    last_changed: iso(FROZEN - 60 * 60e3), attributes: {} } };
+  const pSlow = pillOf(build(slowStates));
+  check("UI-3 pill: the stale limit scales with the published solve interval",
+    !!pSlow && pSlow.key === "idle", JSON.stringify(pSlow));
+  const fbStates = withPlan(withPlan(staleStates, "space", { state: "no plan" }), "dhw", { state: "no plan" });
+  const pFb = pillOf(build(fbStates));
+  check("UI-3 pill: no plan on either sensor reads fallback, ahead of stale",
+    !!pFb && pFb.key === "fallback" && pFb.tone === "crit", JSON.stringify(pFb));
+  const until = new Date(FROZEN + 2 * 3600e3);
+  const manStates = withPlan(fbStates, "space",
+    { attributes: { manual_override: { active: true, expires_at: until.toISOString() } } });
+  const pMan = pillOf(build(manStates));
+  check("UI-3 pill: a manual plan reads 'Manual plan until', ahead of everything else",
+    !!pMan && pMan.key === "manual" && pMan.tone === "accent" && /^Manual plan until /.test(pMan.text),
+    JSON.stringify(pMan));
+  const noPlan = build({ [SOLAR_ID]: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)[SOLAR_ID] });
+  check("UI-3 pill: no plan sensor at all draws no pill", pillOf(noPlan) === null);
+
+  // The pill follows the clock as well as the sensors: the same states, past
+  // the limit, must redraw with nothing in hass changing.
+  const clockCard = build(freshStates);
+  try {
+    ctx.Date = class extends FrozenDate { static now() { return FROZEN + 60 * 60e3; } };
+    clockCard.hass = { states: clockCard._hass.states };
+    const p = pillOf(clockCard);
+    check("UI-3 pill: crossing the stale limit redraws with no sensor changing",
+      !!p && p.key === "stale", JSON.stringify(p));
+  } finally { ctx.Date = FrozenDate; }
+
+  // Tiles: price now, planned heating, plan cost, indoor temperature.
+  const tileStates = { ...idle(), [INDOOR_ID]: { state: "20.9", last_updated: iso(FROZEN - 60e3),
+    attributes: { unit_of_measurement: "°C", device_class: "temperature" } } };
+  const tc = build(tileStates);
+  const tDump = dumpOf(tc);
+  const tileKeys = [...tDump.matchAll(/data-tile="(\w+)"/g)].map((m) => m[1]);
+  check("UI-3 tiles: price now, planned heating, plan cost and indoor, in that order",
+    tileKeys.join(",") === "price,energy,cost,indoor", tileKeys.join(","));
+  const indoorTile = (d) => (d.match(/data-tile="indoor"[\s\S]*?<span class="tile-n">([^<]*)</) || [])[1];
+  check("UI-3 tiles: the indoor tile shows the sensor's value", indoorTile(tDump) === "20.9", indoorTile(tDump));
+  const sumOf = (a) => [DEFAULT_SPACE, DEFAULT_DHW].reduce((s, id) => s + tileStates[id].attributes[a], 0);
+  const tileN = (d, k) => (d.match(new RegExp(`data-tile="${k}"[\\s\\S]*?<span class="tile-n">([^<]*)<`)) || [])[1];
+  check("UI-3 tiles: planned heating sums both plans' kWh",
+    tileN(tDump, "energy") === sumOf("total_energy_kwh").toFixed(1), tileN(tDump, "energy"));
+  check("UI-3 tiles: plan cost sums both plans' cost",
+    tileN(tDump, "cost") === sumOf("total_cost").toFixed(2), tileN(tDump, "cost"));
+  tc.hass = { states: { ...tileStates, [INDOOR_ID]: { ...tileStates[INDOOR_ID],
+    state: "21.4", last_updated: iso(FROZEN) } } };
+  check("UI-3 tiles: an indoor sensor change alone re-renders the indoor tile",
+    indoorTile(dumpOf(tc)) === "21.4", indoorTile(dumpOf(tc)));
+  check("UI-3 tiles: show_stats: false draws no tile row",
+    !/class="tiles"/.test(dumpOf(build(tileStates, { show_stats: false }))));
+
+  // Tokens: every var(--hpo-*) the card uses is declared, one var() level
+  // deep with a literal fallback, and dark mode resolves to the dark literal.
+  const tokensOf = (dump) => {
+    const host = (dump.match(/:host \{([^}]*)\}/) || [])[1] || "";
+    return Object.fromEntries([...host.matchAll(/(--hpo-[\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  };
+  const lit = (v) => (v.match(/#[0-9a-f]{6}\b/i) || [])[0];
+  const lum = (hex) => {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const PAIRS = [["--hpo-text", "--hpo-surface"], ["--hpo-text-2", "--hpo-surface"],
+    ["--hpo-text-2", "--hpo-surface-2"], ["--hpo-accent", "--hpo-surface-2"],
+    ["--hpo-ok", "--hpo-ok-bg"], ["--hpo-warn", "--hpo-warn-bg"], ["--hpo-crit", "--hpo-crit-bg"]];
+  const lightCard = build(tileStates);
+  const darkCard = build(tileStates);
+  darkCard.hass = { states: darkCard._hass.states, themes: { darkMode: true } };
+  const themes = { light: dumpOf(lightCard), dark: dumpOf(darkCard) };
+  for (const [theme, dump] of Object.entries(themes)) {
+    const tok = tokensOf(dump);
+    const used = new Set([...dump.matchAll(/var\((--hpo-[\w-]+)/g)].map((m) => m[1]));
+    const undeclared = [...used].filter((t) => !(t in tok));
+    check(`UI-3 tokens (${theme}): every var(--hpo-*) the card uses is declared on :host`,
+      Object.keys(tok).length >= 15 && undeclared.length === 0,
+      `${Object.keys(tok).length} declared; undeclared: ${undeclared.join(", ")}`);
+    const deep = Object.entries(tok).filter(([, v]) => /--hpo-/.test(v) || (/var\(/.test(v) && !lit(v)) || (v.match(/var\(/g) || []).length > 1);
+    check(`UI-3 tokens (${theme}): each token is one var() level deep with a literal fallback`,
+      deep.length === 0, deep.map(([k, v]) => `${k}: ${v}`).join("; "));
+    const low = PAIRS.map(([f, b]) => [f, b, tok[f] && tok[b] ? ratio(lit(tok[f]), lit(tok[b])) : 0])
+      .filter(([, , r]) => r < 4.5);
+    check(`UI-3 tokens (${theme}): pill, tile and text pairs clear 4.5:1 on the literals`,
+      low.length === 0, low.map(([f, b, r]) => `${f} on ${b} ${r.toFixed(2)}`).join("; "));
+  }
+  const lt = tokensOf(themes.light), dt = tokensOf(themes.dark);
+  check("UI-3 tokens: dark mode resolves the surface to the dark literal",
+    lit(lt["--hpo-surface"] || "") === "#ffffff" && lit(dt["--hpo-surface"] || "") === "#1c1c1c",
+    `${lt["--hpo-surface"]} / ${dt["--hpo-surface"]}`);
+  const lightFallbacks = [...themes.dark.matchAll(/var\(--hpo-(?:text|surface), (#[0-9a-f]{6})\)/gi)]
+    .map((m) => m[1].toLowerCase()).filter((h) => h === "#212121" || h === "#ffffff");
+  check("UI-3 tokens: no use site in dark mode keeps a light text or surface fallback",
+    lightFallbacks.length === 0, lightFallbacks.join(", "));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

@@ -1752,8 +1752,18 @@ try {
     const walk = (node) => {
       for (const el of node.querySelectorAll("*")) {
         if (!el.getClientRects().length) continue;
-        const b = el.getBoundingClientRect();
-        const out = Math.max(cb.left - b.left, b.right - cb.right, 0);
+        // What paints is the box clipped by every ancestor that clips its
+        // overflow: the phone legend is one scrolling row, so a chip scrolled
+        // past the edge is inside its scroller, not outside the card. The card
+        // box itself is never a clipper here, or the check would be vacuous.
+        let { left, right } = el.getBoundingClientRect();
+        for (let a = el.parentElement; a && a !== box; a = a.parentElement) {
+          if (getComputedStyle(a).overflowX === "visible") continue;
+          const r = a.getBoundingClientRect();
+          left = Math.max(left, r.left); right = Math.min(right, r.right);
+        }
+        if (right <= left) continue;
+        const out = Math.max(cb.left - left, right - cb.right, 0);
         if (out > worst) { worst = out; who = el.tagName.toLowerCase(); }
       }
     };
