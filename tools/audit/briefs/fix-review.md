@@ -7,6 +7,7 @@ its bug. You are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
 Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Hand the verdict text to the orchestrator, who posts it as `hpo-approver` via `app_comment.sh` -- never as the author App (#1233's defect), never the owner's approving review (owner-only, GitHub-side) -- citing an evidence directory on this box, non-empty and naming the head SHA, as `app_approve.sh` requires (decision 0013).
+A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -77,8 +78,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
     mutation table; cite the head's CI run. Cheap checks (seconds: a lint, one
-    test, claims) and your targeted mutants stay yours. The merge seat merges
-    only on CI green at a head containing current main; if main moved, it merges main and waits.
+    test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that
@@ -94,10 +94,10 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     instead is yours to offer and is never owed — a violation the reviewer
     absorbs silently costs the seat that committed it nothing, which is how it recurs.
 
-    **A `merge` verdict carries** (#1667) to a head that
-    `tools/audit/app_approve.sh --carry <measured> <head>` reports carried;
-    that move owes no re-review and is not `head-moved`: post at the SHA you
-    measured. Any other move is re-reviewed.
+    **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
+    section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
+    main merge returns as its **resolution delta**, which alone you judge;
+    any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
