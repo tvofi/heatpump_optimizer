@@ -2218,7 +2218,8 @@ def self_comparison_error(ref: str, head: str) -> str:
     )
 
 
-def judge_drift(branch: dict, baseline: dict, claims: dict, may_drift: dict,
+def judge_drift(branch: dict[str, object], baseline: dict[str, object],
+                claims: dict[str, list[str]], may_drift: dict[str, str],
                 ref: str) -> tuple[int, list[str], list[str]]:
     """The drift verdict over two captures: (unclaimed drifts, claimed, may-drift).
 

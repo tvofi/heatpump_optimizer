@@ -96,7 +96,7 @@ import tokenize
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -173,7 +173,7 @@ _CLAMP_ATTRS = {("np", "clip"), ("np", "minimum"), ("np", "maximum"),
                 ("math", "fmin"), ("math", "fmax")}
 
 
-def _clamp_call(func) -> bool:
+def _clamp_call(func: ast.expr) -> bool:
     if isinstance(func, ast.Name):
         return func.id in ("min", "max")
     return (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
@@ -801,9 +801,9 @@ def base_unpinned_sites(ref: str | None,
 # driver kills stays unpinned and the ratchet stays red on it.
 
 
-def _scope_tail(s: dict) -> str:
+def _scope_tail(s: dict[str, Any]) -> str:
     """The innermost def/class name around a site, read off its anchor."""
-    scope = s.get("anchor", "")[len(s["file"]) + 1:].split(" ", 1)[0]
+    scope = str(s.get("anchor", ""))[len(s["file"]) + 1:].split(" ", 1)[0]
     return scope.rsplit(".", 1)[-1]
 
 
@@ -827,9 +827,9 @@ def diff_sides(ref: str | None) -> tuple[set[str], set[str]]:
     return removed, added
 
 
-def added_unpinned(unpinned: list[dict], base: list[dict],
+def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
                    sides: tuple[set[str], set[str]] = (set(), set()),
-                   ) -> list[dict]:
+                   ) -> list[dict[str, Any]]:
     """The unpinned sites this tree has and the base did not, by CONTENT.
 
     The count ratchet compares two totals, so a diff that adds an unpinned
@@ -849,9 +849,9 @@ def added_unpinned(unpinned: list[dict], base: list[dict],
     such as `return None` that left one function cannot launder a new guard
     into another.
     """
-    def ident(s: dict) -> tuple[str, str, str]:
+    def ident(s: dict[str, Any]) -> tuple[str, str, str]:
         return (s["file"], s["kind"], s["old"].strip())
-    left: dict[tuple[str, str, str], list[dict]] = {}
+    left: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for s in base:
         left.setdefault(ident(s), []).append(s)
     out = []

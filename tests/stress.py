@@ -1706,7 +1706,7 @@ def scenario_budget(label: str, table: dict) -> float | None:
 
 
 def scenario_verdict(label: str, ratio: float,
-                     table: dict) -> tuple[str | None, str | None] | None:
+                     table: dict[str, dict[str, float]]) -> tuple[str | None, str | None] | None:
     """One scenario's budget verdict: (over-budget line, stale-cheap line).
 
     None when the scenario has no recorded budget. Lifted out of the sweep in
