@@ -657,42 +657,53 @@
 # shared-step hatch in the power panel, series painted through their tokens,
 # the now-temperature reading in the temperature panel. editor_schema renders
 # no card markup and is byte-identical.
-no_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-no_plan_expanded # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_inline # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_inline_sv # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_short_window # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-custom_title_currency # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-hidden_series # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-score_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-expanded_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-what_if_off # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-expanded_zoomed # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-draft_dirty_menu_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-draft_mid_drag # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-whatif_edited # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-whatif_weekly # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-override_active # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-shared_steps # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-shared_steps_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-tooltip_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-coarse_pointer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-reduced_motion # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_single_buffer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_two_tank # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_coil # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-advisor_page # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-layout_editing_dragged # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-layout_editing_tidy # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-picker_open_filtered # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_alert # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_lane # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_whatif # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_toggle # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_return # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_status # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_deep_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_no_power # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_unavailable # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_pending # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
+
+# R9-UX-1 (lane UX, why now, why not). The card's one stylesheet gains the
+# narrative list's and the idle explanation's rules, and every rendered state
+# carries that stylesheet, so all 39 states that card_drift reports as moved
+# move by it; three also move in their DOM. score_open's headline renders
+# every line the narrative sensor publishes as a list, where it showed the
+# first line in a div. tooltip_hover's hovered step is idle, so its tooltip
+# gains the likely-because block (price rank, the run it coasts on, the next
+# run). shared_steps_hover's tooltip now flips left past mid-width by its own
+# width rather than at 60 % by an assumed 160 px, so its left moves.
+
+no_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+no_plan_expanded # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+plan_inline # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+plan_inline_sv # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+plan_short_window # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+custom_title_currency # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+hidden_series # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+score_open # R9-UX-1: stylesheet; the headline lists every narrative line (ul.hl-narrative, not the first line in a div)
+expanded_plan # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+what_if_off # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+expanded_zoomed # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+draft_dirty_menu_open # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+draft_mid_drag # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+whatif_edited # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+whatif_weekly # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+override_active # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+shared_steps # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+shared_steps_hover # R9-UX-1: stylesheet; the tooltip flips past mid-width by its own width, so its left moves
+tooltip_hover # R9-UX-1: stylesheet; the hovered idle step gains its likely-because block
+coarse_pointer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+reduced_motion # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+setup_single_buffer # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+setup_two_tank # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+setup_coil # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+advisor_page # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+layout_editing_dragged # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+layout_editing_tidy # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+picker_open_filtered # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+wood_alert # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+wood_lane # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+wood_whatif # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+away_toggle # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+away_return # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+away_status # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+history_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+history_deep_panned # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+history_no_power # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+history_unavailable # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
+history_pending # R9-UX-1: stylesheet only (narrative list and idle-explanation rules)
