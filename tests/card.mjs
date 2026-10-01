@@ -6023,10 +6023,12 @@ const setupBox = (card, place) =>
     check("UX-1 on a short chart the explanation loses its last lines, not its value rows",
       shortened.offsetHeight <= 100 && shortened.querySelectorAll(".tt-row").length === 3 &&
         shortened.querySelectorAll(".tt-why li").length === 2, shortened.offsetHeight);
-    const cramped = box(5, 4);
-    fitWhy(cramped, 90);
+    // Room for the heading but for no line under it: a heading with no
+    // reason is no explanation, so the block goes.
+    const cramped = box(4, 4);
+    fitWhy(cramped, 80);
     check("UX-1 and is dropped whole when not even one line fits",
-      !cramped.querySelector(".tt-why") && cramped.querySelectorAll(".tt-row").length === 5);
+      !cramped.querySelector(".tt-why") && cramped.querySelectorAll(".tt-row").length === 4);
   }
   // R9-UI-4: the crosshair crosses every panel, from the top of the first
   // to at least the bottom of the last (on through the lane strip under it,
