@@ -1848,6 +1848,141 @@ R.check(
 )
 
 
+# --- R9 P11 (#1649): the stub clock and the stub Store answer as Home Assistant's
+R.section("R9 P11: the stub clock is aware by default and the stub Store honours version (D1-s1-52, #1740)")
+import asyncio as _r9f10b_asyncio  # noqa: E402
+import os as _r9f10b_os  # noqa: E402
+
+from homeassistant.exceptions import HomeAssistantError as _r9f10b_HAError  # noqa: E402
+from homeassistant.helpers import storage as _r9f10b_storage  # noqa: E402
+from homeassistant.util import dt as _r9f10b_dt  # noqa: E402
+
+_r9f10b_clock_default = _r9f10b_os.environ.get("HASTUB_TZ") is None
+if _r9f10b_clock_default:
+    # Upstream's clock is aware in UTC when no zone is configured. A naive clock
+    # inverted the verdict of every stored-stamp comparison: a naive stamp passed
+    # against it, where Home Assistant raises (D1-s1-52).
+    _r9f10b_live = _r9f10b_dt.now()
+    R.check(
+        "with no zone configured the clock is aware, in UTC",
+        _r9f10b_live.tzinfo is not None and _r9f10b_live.utcoffset() == timedelta(0),
+        repr(_r9f10b_live),
+    )
+    R.check(
+        "...and the configured zone is UTC, not None, as upstream's is",
+        _r9f10b_dt.DEFAULT_TIME_ZONE is timezone.utc,
+        repr(_r9f10b_dt.DEFAULT_TIME_ZONE),
+    )
+    _r9f10b_wall = datetime(2026, 3, 4, 12, 30)
+    _r9f10b_dt.freeze(_r9f10b_wall)
+    try:
+        _r9f10b_frozen = _r9f10b_dt.now()
+        _r9f10b_frozen_utc = _r9f10b_dt.utcnow()
+    finally:
+        _r9f10b_dt.freeze(None)
+    R.check(
+        "a naive freeze is read as UTC wall time by both clocks",
+        _r9f10b_frozen == _r9f10b_wall.replace(tzinfo=timezone.utc)
+        and _r9f10b_frozen_utc == _r9f10b_frozen,
+        f"{_r9f10b_frozen!r} / {_r9f10b_frozen_utc!r}",
+    )
+
+    def _r9f10b_mixed(stamp):
+        try:
+            return _r9f10b_dt.now() - stamp
+        except TypeError:
+            return "TypeError"
+
+    R.check(
+        "a naive stored stamp read against the clock raises, as it does upstream",
+        _r9f10b_mixed(datetime(2026, 1, 1)) == "TypeError",
+    )
+    R.check(
+        "null control: an aware stamp against the same clock subtracts",
+        _r9f10b_mixed(datetime(2026, 1, 1, tzinfo=timezone.utc)) != "TypeError",
+    )
+    R.check(
+        "a stored instant typed without an offset loads aware through the stub's zone "
+        "(the away picker string, D1-s3-01)",
+        away_mode._parse_return_time("2026-03-04 12:30:00")
+        == datetime(2026, 3, 4, 12, 30, tzinfo=timezone.utc),
+        repr(away_mode._parse_return_time("2026-03-04 12:30:00")),
+    )
+    R.check(
+        "as_local is still the identity under the UTC default (every golden fixture "
+        "was recorded that way)",
+        _r9f10b_dt.as_local(_r9f10b_wall) is _r9f10b_wall,
+    )
+
+
+async def _r9f10b_store_load(store_class, saved_at, loaded_at):
+    await _r9f10b_storage.Store(None, saved_at, "r9f10b_version").async_save({"n": 1})
+    try:
+        return await store_class(None, loaded_at, "r9f10b_version").async_load()
+    except NotImplementedError:
+        return "NotImplementedError"
+    except _r9f10b_storage.UnsupportedStorageVersionError:
+        return "Unsupported"
+    finally:
+        _r9f10b_storage._reset_store_disk()
+
+
+async def _r9f10b_store_resave(saved_at, loaded_at):
+    """Load twice through a migrating Store; report loads, stored version, saves."""
+    _r9f10b_storage.SAVE_COUNTS.clear()
+    await _r9f10b_storage.Store(None, saved_at, "r9f10b_resave").async_save({"n": 1})
+    loads = [
+        await _R9F10bMigrating(None, loaded_at, "r9f10b_resave").async_load()
+        for _ in range(2)
+    ]
+    state = (
+        _r9f10b_storage._VERSIONS["r9f10b_resave"],
+        _r9f10b_storage.SAVE_COUNTS["r9f10b_resave"],
+    )
+    _r9f10b_storage._reset_store_disk()
+    return loads, state
+
+
+class _R9F10bMigrating(_r9f10b_storage.Store):
+    async def _async_migrate_func(self, old_major, old_minor, old_data):
+        return {"migrated_from": old_major, **old_data}
+
+
+# Home Assistant re-raises NotImplementedError on a major-version mismatch that
+# the Store does not migrate (helpers/storage.py, _async_load_data), so a version
+# bump without a migration fails here and not on a user's install (#1740).
+R.check(
+    "control: a store saved and loaded at one version returns its data",
+    _r9f10b_asyncio.run(_r9f10b_store_load(_r9f10b_storage.Store, 1, 1)) == {"n": 1},
+)
+R.check(
+    "a store loaded at a newer major version with no migration raises NotImplementedError",
+    _r9f10b_asyncio.run(_r9f10b_store_load(_r9f10b_storage.Store, 1, 2))
+    == "NotImplementedError",
+)
+R.check(
+    "...and one that defines _async_migrate_func is migrated from the stored version",
+    _r9f10b_asyncio.run(_r9f10b_store_load(_R9F10bMigrating, 1, 2))
+    == {"migrated_from": 1, "n": 1},
+)
+# Upstream refuses a downgrade before it looks for a migration, so a Store that
+# migrates is still refused a document saved by a newer release.
+R.check(
+    "a store saved at a newer major version than the code's raises "
+    "UnsupportedStorageVersionError, with or without a migration",
+    _r9f10b_asyncio.run(_r9f10b_store_load(_r9f10b_storage.Store, 2, 1)) == "Unsupported"
+    and _r9f10b_asyncio.run(_r9f10b_store_load(_R9F10bMigrating, 2, 1)) == "Unsupported"
+    and issubclass(_r9f10b_storage.UnsupportedStorageVersionError, _r9f10b_HAError),
+)
+# ...and a migration is saved back, as upstream does, so it runs once.
+R.check(
+    "a migrated load is saved back: the stored version updates to 2, there are "
+    "two saves, and a second load returns the data without migrating again",
+    _r9f10b_asyncio.run(_r9f10b_store_resave(1, 2))
+    == ([{"migrated_from": 1, "n": 1}, {"n": 1, "migrated_from": 1}], (2, 2)),
+)
+
+
 # ===========================================================================
 # Round 9, F4.2: class-named blocks, sorted by class
 # ===========================================================================
@@ -3522,7 +3657,7 @@ def resolve_away(now, return_at, current=16.0):
     )
 
 
-now = datetime(2026, 2, 10, 12, 0)
+now = datetime(2026, 2, 10, 12, 0, tzinfo=UTC)
 far = resolve_away(now, (now + timedelta(days=3)).isoformat())
 R.check("away is detected", far.active)
 R.check("the deep setback applies while away", far.target_temperature == 16.0)
@@ -26442,8 +26577,11 @@ def _band_window(defrosting: bool):
 
 # The tz guard itself: a window it cannot measure must decline, not raise, and
 # declining must fall back to the whole-band exclusion.
+# A naive stamp against the aware clock: the stub's clock is aware, as Home
+# Assistant's is, so the mixed pair is the naive stamp (round-9 D1-s1-52; the
+# premise used to be an aware stamp against a naive clock).
 _band_mixed = DefrostWindow()
-_band_mixed.observe(_PS_NOW - timedelta(minutes=30), False)
+_band_mixed.observe(_PS_NOW.replace(tzinfo=None) - timedelta(minutes=30), False)
 _band_mixed_gate = _CopGate(outdoor=2.0, defrost=_band_mixed)
 _band_mixed_gate._learn_measured_cop()
 R.check(
@@ -29926,6 +30064,11 @@ from heatpump_optimizer.config_flow import (
     _dhw_legionella_warning as _lgw,
 )
 
+# The last cycle every fixture below seeds: golden.START is a naive wall time,
+# and the aware clock the stub now keeps (round-9 D1-s1-52) refuses to compare
+# with a naive stamp, as Home Assistant's does.
+_LG_LAST = _G_START.replace(tzinfo=UTC) - timedelta(days=8)
+
 _LG_CFG = {
     "tibber_token": "x",
     "weather_entity": "weather.home",
@@ -29939,7 +30082,7 @@ _LG_CFG = {
 def _lg_coord(**over):
     cfg = {**_LG_CFG, **over}
     coord = _Coord(_FakeHass(), _FakeEntry(data=cfg))
-    coord._legionella.last_cycle = _G_START - timedelta(days=8)
+    coord._legionella.last_cycle = _LG_LAST
     return coord
 
 
@@ -29969,7 +30112,7 @@ R.check(
     "…and it is recorded as an attempt, not as a successful cycle",
     _lg_short._legionella.attempt is not None
     and _lg_short._legionella.attempt_peak == 54.0
-    and _lg_short._legionella.last_cycle == _G_START - timedelta(days=8),
+    and _lg_short._legionella.last_cycle == _LG_LAST,
     f"attempt {_lg_short._legionella.attempt!r}, "
     f"success {_lg_short._legionella.last_cycle!r}",
 )
@@ -30530,7 +30673,7 @@ R.check(
 R.check(
     "…but it is recorded as an attempt, not as a verified cycle",
     _lg_blind2._legionella.attempt is not None
-    and _lg_blind2._legionella.last_cycle == _G_START - timedelta(days=8),
+    and _lg_blind2._legionella.last_cycle == _LG_LAST,
     f"attempt {_lg_blind2._legionella.attempt!r}, "
     f"completion {_lg_blind2._legionella.last_cycle!r}",
 )
@@ -30602,7 +30745,7 @@ R.check(
 )
 R.check(
     "the observer demonstrably did not credit it under the hold rule",
-    _lg_gap._legionella.last_cycle == _G_START - timedelta(days=8),
+    _lg_gap._legionella.last_cycle == _LG_LAST,
     f"completion {_lg_gap._legionella.last_cycle!r}",
 )
 R.check(
@@ -30629,7 +30772,7 @@ _lg_gap_off = _lg_coord()
 _lg_cycle_obs(_lg_gap_off, [_LG_GAP_PEAK])
 R.check(
     "with the flag off the same peak is a real completion, not an attempt",
-    _lg_gap_off._legionella.last_cycle != _G_START - timedelta(days=8)
+    _lg_gap_off._legionella.last_cycle != _LG_LAST
     and _lg_gap_off._legionella.attempt is None,
     f"completion {_lg_gap_off._legionella.last_cycle!r}",
 )
@@ -36735,7 +36878,7 @@ _T2_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
 # A fixed wall clock, because several guards below are threshold checks on
 # the interval length and an unfrozen clock measures the interval plus
 # however long the constructor took.
-_T2_BASE = datetime(2026, 2, 1, 3, 0, 0)
+_T2_BASE = datetime(2026, 2, 1, 3, 0, 0, tzinfo=UTC)
 
 
 def _t2_coord(**config):
@@ -40782,7 +40925,7 @@ R.check(
 R.section("W5-G7 t5: the lifecycle methods (#195)")
 
 _T5_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
-_T5_NOW = datetime(2026, 2, 1, 12, 0, 0)
+_T5_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def _t5_coord(states=None, **config):
@@ -46958,7 +47101,7 @@ def _g5_coord(hass=None, entry_id=None, **over):
     cfg = {**_G5_LG_CFG, **over}
     hass = hass if hass is not None else _FakeHass({})
     coord = _Coord(hass, _FakeEntry(data=cfg, entry_id=entry_id or f"g5-{next(_g5_ids)}"))
-    coord._legionella.last_cycle = _G_START - timedelta(days=8)
+    coord._legionella.last_cycle = _LG_LAST
     return coord
 
 
@@ -46971,7 +47114,7 @@ def _g5_restart(old, **over):
     coord = _g5_coord(hass, entry_id=old._entry_id_for_g5, **over)
     coord._entry_id_for_g5 = old._entry_id_for_g5
     _asyncio.run(coord._legionella.async_load())
-    coord._legionella.last_cycle = _G_START - timedelta(days=8)
+    coord._legionella.last_cycle = _LG_LAST
     return coord
 
 

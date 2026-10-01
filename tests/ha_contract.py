@@ -608,13 +608,22 @@ INVENTORY: dict[str, Entry] = {
     "homeassistant.helpers.storage.SAVE_COUNTS": H(
         "a test-facing counter with no upstream counterpart"
     ),
+    "homeassistant.helpers.storage.UnsupportedStorageVersionError": S(
+        "subclasses HomeAssistantError and takes upstream's (key, found "
+        "version, maximum version) arguments; the class is in HA releases "
+        "after the 2025.2.0 floor, so the real-package run cannot compare it"
+    ),
     "homeassistant.helpers.storage.Store": S(
         "an honest in-memory round trip -- keyed by storage key across "
         "instances so a simulated restart loads what an earlier one saved, and "
         "serialised eagerly so a payload the real Store could not write raises "
         "here too; a load decodes with orjson's number rules and moves a "
-        "refused document aside, loading None. Upstream's delayed write, "
-        "migration and atomic replace are not modelled",
+        "refused document aside, loading None; a load at a major version "
+        "newer than the code's raises UnsupportedStorageVersionError before any "
+        "migration, and one older raises NotImplementedError unless the Store "
+        "defines _async_migrate_func, whose result is saved back. "
+        "Upstream's delayed write, minor versions and atomic replace are not "
+        "modelled",
         absent=("async_delay_save", "_async_migrate_func"),
     ),
     # -- helpers.translation ------------------------------------------------
@@ -676,23 +685,18 @@ INVENTORY: dict[str, Entry] = {
         "returns None; nothing here reads a manifest through the loader"
     ),
     # -- util.dt ------------------------------------------------------------
-    "homeassistant.util.dt.DEFAULT_TIME_ZONE": D(
-        "None unless HASTUB_TZ is set, where upstream always carries the "
-        "instance's configured zone. Opt-in because every golden fixture was "
-        "recorded against the identity as_local below",
-        issue="#577",
+    "homeassistant.util.dt.DEFAULT_TIME_ZONE": F(
+        "UTC unless HASTUB_TZ names another zone, where upstream carries the "
+        "instance's configured zone and UTC by default, never None (round-9 "
+        "D1-s1-52). as_local below still treats the UTC default as identity"
     ),
     "homeassistant.util.dt.freeze": H(
         "a test-facing clock pin with no upstream counterpart; the clocks "
         "normalise what it pins, and HOOKS re-runs their contracts under it"
     ),
-    "homeassistant.util.dt.now": D(
-        "aware in DEFAULT_TIME_ZONE when one is configured, and a frozen value "
-        "is normalised into it; naive when none is, where upstream is aware in "
-        "UTC (round-9 D1-s1-52). Split from F10.1: the aware default reaches "
-        "production's handling of naive stored stamps (D1-s3-01) and the "
-        "features.py fixtures that seed them",
-        issue="#1649",
+    "homeassistant.util.dt.now": F(
+        "aware in DEFAULT_TIME_ZONE, which is UTC when none is configured, as "
+        "upstream; a frozen value is normalised into it (round-9 D1-s1-52)"
     ),
     "homeassistant.util.dt.utcnow": F("returns an aware datetime in UTC, as upstream"),
     "homeassistant.util.dt.parse_datetime": F(
@@ -746,7 +750,7 @@ DROPPED: dict[str, tuple] = {
     "homeassistant.helpers.config_validation.config_entry_only_config_schema": ("domain",),
     "homeassistant.helpers.entity_registry.async_entries_for_device": ("include_disabled_entities",),
     "homeassistant.helpers.event.async_track_time_interval": ("a", "k"),
-    "homeassistant.helpers.storage.Store": ("hass", "version", "kwargs"),
+    "homeassistant.helpers.storage.Store": ("hass", "kwargs"),
     "homeassistant.helpers.translation.async_get_translations": (
         "hass", "language", "category", "integrations",
     ),
@@ -2110,6 +2114,74 @@ def _store_decode():
     assert got_gone == [w is None for w in want]
 
 
+@contract(
+    "homeassistant.helpers.storage.Store",
+    "a load at a newer major version than the code's raises "
+    "UnsupportedStorageVersionError before any migration; at an older one it "
+    "raises NotImplementedError with no migration, or runs the migration with "
+    "the stored version and saves the result back (the stored version updates, "
+    "a second load does not migrate again); an equal version returns the data",
+    cite="helpers/storage.py -- _async_load_data: `if data[\"version\"] > "
+    "self._max_readable_version: raise UnsupportedStorageVersionError` before "
+    "`_async_migrate_func` (default raises NotImplementedError, re-raised when "
+    "the major versions differ), then `await self.async_save(stored)` "
+    "(round-9 #1740). The error class is in HA releases after the 2025.2.0 "
+    "floor, hence expect=stub",
+    expect="stub",
+)
+def _store_version():
+    import asyncio
+
+    from homeassistant.exceptions import HomeAssistantError
+    from homeassistant.helpers import storage
+
+    class Migrating(storage.Store):
+        async def _async_migrate_func(self, old_major, old_minor, old_data):
+            return {"migrated_from": old_major, **old_data}
+
+    async def arm(cls, save_v, load_v, loads=1):
+        out = []
+        try:
+            storage.SAVE_COUNTS.clear()
+            await storage.Store(None, save_v, "contract_version").async_save({"n": 1})
+            for _ in range(loads):
+                try:
+                    out.append(await cls(None, load_v, "contract_version").async_load())
+                except storage.UnsupportedStorageVersionError:
+                    out.append("Unsupported")
+                except NotImplementedError:
+                    out.append("NotImplementedError")
+            out.append(
+                (
+                    storage._VERSIONS.get("contract_version"),
+                    storage.SAVE_COUNTS.get("contract_version"),
+                )
+            )
+            return out
+        finally:
+            storage._reset_store_disk()
+
+    assert issubclass(storage.UnsupportedStorageVersionError, HomeAssistantError)
+    got = {
+        "equal": asyncio.run(arm(storage.Store, 1, 1)),
+        "bumped, no migration": asyncio.run(arm(storage.Store, 1, 2)),
+        "bumped, migrated, twice": asyncio.run(arm(Migrating, 1, 2, 2)),
+        "downgrade, no migration": asyncio.run(arm(storage.Store, 2, 1)),
+        "downgrade, migrating Store": asyncio.run(arm(Migrating, 2, 1)),
+    }
+    assert got == {
+        "equal": [{"n": 1}, (1, 1)],
+        "bumped, no migration": ["NotImplementedError", (1, 1)],
+        "bumped, migrated, twice": [
+            {"migrated_from": 1, "n": 1},
+            {"n": 1, "migrated_from": 1},
+            (2, 2),
+        ],
+        "downgrade, no migration": ["Unsupported", (2, 1)],
+        "downgrade, migrating Store": ["Unsupported", (2, 1)],
+    }, got
+
+
 # -- util.dt -----------------------------------------------------------------
 
 @contract(
@@ -2157,7 +2229,6 @@ def _dt_now():
     "returns an aware datetime when no zone has been configured",
     cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level, "
     "read by now()",
-    expect="real",
 )
 def _dt_now_default_aware():
     import os
@@ -2214,7 +2285,6 @@ def _dt_as_utc():
     "homeassistant.util.dt.DEFAULT_TIME_ZONE",
     "a zone is configured without anything being set in the environment",
     cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level",
-    expect="real",
 )
 def _dt_default_zone():
     import os
