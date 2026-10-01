@@ -3976,6 +3976,13 @@ check("the hand-scheduled reason has a label",
   const eurDump = collect(eur.shadowRoot).join("\n");
   check("a currency published on the plan sensor reaches the price axis",
     /EUR\/kWh/.test(eurDump) && !/SEK\/kWh/.test(eurDump));
+  // #1657 (P8): nothing here converts, so the currency the integration
+  // publishes -- the price feed's -- outranks a card-config `currency:`,
+  // which fills in only where the integration publishes none.
+  const eurCfg = collect(build(eurStates, { currency: "NOK" }).shadowRoot)
+    .join("\n");
+  check("a card currency does not relabel the currency the plan publishes (#1657)",
+    /EUR\/kWh/.test(eurCfg) && !/NOK\/kWh/.test(eurCfg));
   const sekDump =
     collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot)
       .join("\n");

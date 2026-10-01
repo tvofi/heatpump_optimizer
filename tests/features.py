@@ -2018,6 +2018,179 @@ R.check(
     f"limit {inputs_mod.max_age_for(_r9f42_key)}, dead {_r9f42_dead.problem}",
 )
 
+# --- R9 P8 (#1657): a money figure names the currency its feed declares -----
+R.section("R9 P8: money units follow the price feed; bounds scale (D14-s2-02, D12-s3-81)")
+
+# One fact, one owner: the price feed denominates every money figure, so the
+# published unit is the feed's declared code (D6: the instance's only where
+# the feed declares none), the options dialog's money fields and fee bounds
+# scale with the currency they are labelled in, and a feed that disagrees with
+# the instance raises a notice. Every arm drives the production symbol.
+import asyncio as _r9p8_aio  # noqa: E402
+
+from harness import FakeEntry as _r9p8_Entry  # noqa: E402
+from heatpump_optimizer import config_flow as _r9p8_flow  # noqa: E402
+from heatpump_optimizer import coordinator as _r9p8_coord  # noqa: E402
+from heatpump_optimizer import currency as _r9p8_cur  # noqa: E402
+from heatpump_optimizer import grid_fee as _r9p8_fee  # noqa: E402
+from heatpump_optimizer import sensor as _r9p8_sensor  # noqa: E402
+from heatpump_optimizer.const import CONF_WOOD_PRICE_SEK_M3 as _r9p8_WOOD  # noqa: E402
+
+_r9p8_cfg = {
+    "price_entity": "sensor.price", "price_source": "entity",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+}
+
+
+def _r9p8_hass(instance, unit=None, attributes=None):
+    states = {}
+    if unit is not None or attributes is not None:
+        states["sensor.price"] = FakeState(
+            "0.10", attributes={"unit_of_measurement": unit, **(attributes or {})}
+        )
+    hass = FakeHass(states)
+    hass.config.currency = instance
+    return hass
+
+
+R.check(
+    "D14-s2-02: the feed's code is read from its unit, an unambiguous symbol, "
+    "or its currency attribute; 'kr' and a minor unit in any case name none",
+    [_r9p8_cur.declared_currency(u, a) for u, a in (
+        ("EUR/kWh", None), ("€/MWh", None), ("öre/kWh", {"currency": "SEK"}),
+        ("öre/kWh", None), ("kr/kWh", None), (None, None), ("ÖRE/kWh", None),
+    )] == ["EUR", "EUR", "SEK", None, None, None, None],
+)
+_r9p8_units = {}
+for _r9p8_inst, _r9p8_unit in (("SEK", "EUR/kWh"), ("SEK", "SEK/kWh"), ("EUR", "öre/kWh")):
+    _r9p8_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass(_r9p8_inst, _r9p8_unit), _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _r9p8_units[(_r9p8_inst, _r9p8_unit)] = _r9p8_sensor.CurrentPriceSensor(
+        _r9p8_c, _r9p8_Entry(data=_r9p8_cfg)
+    ).native_unit_of_measurement
+R.check(
+    "D14-s2-02: a EUR feed on a SEK instance publishes EUR/kWh; a SEK feed "
+    "(null) and a feed declaring no code keep the instance currency",
+    _r9p8_units == {
+        ("SEK", "EUR/kWh"): "EUR/kWh", ("SEK", "SEK/kWh"): "SEK/kWh",
+        ("EUR", "öre/kWh"): "EUR/kWh",
+    },
+    str(_r9p8_units),
+)
+
+# The startup race: the platforms are built before the feed has a state (the
+# replay's order, and a feed integration that loads after this one). The
+# first cycle adopts the feed's code, and the built sensor follows it.
+_r9p8_race = _r9p8_coord.HeatPumpOptimizerCoordinator(
+    _r9p8_hass("SEK"), _r9p8_Entry(data=_r9p8_cfg)
+)
+_r9p8_early = _r9p8_sensor.PredictedSavingsSensor(_r9p8_race, _r9p8_Entry(data=_r9p8_cfg))
+_r9p8_price = _r9p8_sensor.CurrentPriceSensor(_r9p8_race, _r9p8_Entry(data=_r9p8_cfg))
+_r9p8_before = (_r9p8_early.native_unit_of_measurement, _r9p8_price.native_unit_of_measurement)
+_r9p8_race.hass.states.set(
+    "sensor.price", FakeState("0.10", attributes={"unit_of_measurement": "EUR/kWh"})
+)
+_r9p8_aio.run(_r9p8_race._update_current_state())
+_r9p8_race.hass.states.set(
+    "sensor.price", FakeState("unavailable", attributes={})
+)
+_r9p8_aio.run(_r9p8_race._update_current_state())
+R.check(
+    "D14-s2-02: a feed that loads after the platforms is adopted by the next "
+    "cycle, the built sensors follow it, and an unavailable feed keeps it",
+    _r9p8_before == ("SEK", "SEK/kWh")
+    and _r9p8_race.currency == "EUR"
+    and _r9p8_early.native_unit_of_measurement == "EUR"
+    and _r9p8_price.native_unit_of_measurement == "EUR/kWh",
+    f"before {_r9p8_before}, after {_r9p8_race.currency} "
+    f"{_r9p8_early.native_unit_of_measurement} {_r9p8_price.native_unit_of_measurement}",
+)
+
+_r9p8_issues = {}
+for _r9p8_unit in ("EUR/kWh", "SEK/kWh"):
+    _r9p8_h = _r9p8_hass("SEK", _r9p8_unit)
+    _r9p8_h.issues = []
+    _r9p8_coord._audit_price_units(_r9p8_h, _r9p8_cfg)
+    _r9p8_issues[_r9p8_unit] = ([
+        (i[1], i[2].get("translation_placeholders")) for i in _r9p8_h.issues
+        if i[1] == "price_currency"
+    ])
+R.check(
+    "D14-s2-02: a EUR feed on a SEK instance raises the price_currency notice "
+    "naming both; a SEK feed (null) raises none",
+    _r9p8_issues["EUR/kWh"] == [("price_currency", {
+        "entity": "sensor.price", "feed": "EUR", "configured": "SEK"})]
+    and _r9p8_issues["SEK/kWh"] == [],
+    str(_r9p8_issues),
+)
+
+_r9p8_widgets = {}
+for _r9p8_inst in ("EUR", "HUF", "SEK"):
+    _r9p8_h = _r9p8_hass(_r9p8_inst)
+    for _r9p8_row in _r9p8_flow._OPTION_FIELDS:
+        if _r9p8_row.key in (_r9p8_WOOD, "grid_fee_fixed"):
+            _r9p8_w = _r9p8_row.widget.of(_r9p8_h)
+            _r9p8_widgets[(_r9p8_inst, _r9p8_row.key)] = (
+                _r9p8_w.config.get("unit_of_measurement"), _r9p8_w.config.get("max")
+            )
+R.check(
+    "D14-s2-02: the firewood price is labelled in the instance currency, "
+    "as every other money field is",
+    _r9p8_widgets[("EUR", _r9p8_WOOD)][0] == "EUR/m³"
+    and _r9p8_widgets[("SEK", _r9p8_WOOD)][0] == "SEK/m³",
+    str(_r9p8_widgets),
+)
+R.check(
+    "D12-s3-81: a 0.05 EUR/kWh fee (about 20 HUF) is enterable and passes the "
+    "bound in HUF; the SEK field and bound are unchanged (null)",
+    _r9p8_widgets[("HUF", "grid_fee_fixed")] == ("HUF/kWh", 250.0)
+    and _r9p8_widgets[("SEK", "grid_fee_fixed")] == ("SEK/kWh", 5)
+    and _r9p8_fee.spec_problem("= 20", "HUF") is None
+    and _r9p8_fee.spec_problem("= 20", "SEK") == _r9p8_fee.ERROR_IMPLAUSIBLE
+    and _r9p8_fee.spec_problem("= 20") == _r9p8_fee.ERROR_IMPLAUSIBLE,
+    str(_r9p8_widgets),
+)
+_r9p8_page = {}
+for _r9p8_inst in ("HUF", "SEK"):
+    _r9p8_opt = _r9p8_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(
+        _r9p8_Entry(data={"tibber_token": "t"})
+    )
+    _r9p8_opt.hass = _r9p8_hass(_r9p8_inst)
+    _r9p8_shown = _r9p8_aio.run(_r9p8_opt.async_step_grid_fees(None))
+    _r9p8_sent = _r9p8_aio.run(
+        _r9p8_opt.async_step_grid_fees({"grid_fee_rules": "= 20"})
+    )
+    _r9p8_page[_r9p8_inst] = (
+        _r9p8_shown["description_placeholders"]["fee_bound"],
+        (_r9p8_sent.get("errors") or {}).get("grid_fee_rules"),
+    )
+R.check(
+    "D12-s3-81: the grid-fee page states the bound in its own currency and "
+    "saves 20 HUF/kWh; 20 SEK/kWh (null) is still refused as öre",
+    _r9p8_page == {
+        "HUF": ("500", None), "SEK": ("10", _r9p8_fee.ERROR_IMPLAUSIBLE),
+    },
+    str(_r9p8_page),
+)
+_r9p8_fee_issue = {}
+for _r9p8_inst in ("HUF", "SEK"):
+    _r9p8_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass(_r9p8_inst),
+        _r9p8_Entry(data={"grid_fee_mode": "rules", "grid_fee_rules": "= 20"}),
+    )
+    _r9p8_c._fee_series([NOW + timedelta(minutes=15 * i) for i in range(4)])
+    _r9p8_fee_issue[_r9p8_inst] = [
+        i[2].get("translation_placeholders", {}).get("currency")
+        for i in getattr(_r9p8_c.hass, "issues", []) if i[1] == "grid_fee_magnitude"
+    ]
+R.check(
+    "D12-s3-81: the coordinator's fee notice scales too: 20 HUF/kWh raises "
+    "none, 20 SEK/kWh (null) still raises it",
+    _r9p8_fee_issue == {"HUF": [], "SEK": ["SEK"]},
+    str(_r9p8_fee_issue),
+)
+
 
 # ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers

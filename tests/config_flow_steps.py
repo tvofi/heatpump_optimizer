@@ -1453,6 +1453,20 @@ async def reauth_round_trip():
         f"{fixed} token={entry.data[const.CONF_TIBBER_TOKEN]} "
         f"reloaded={hass.config_entries.reloaded}",
     )
+    # D10-s1-01 (#1644, P2): the token is identity, so the unique id must
+    # follow it -- left on the old token, a fresh setup with the new one was
+    # a second entry for the same plant.
+    check(
+        "reauth_confirm",
+        "happy",
+        "the new token re-derives the entry's unique id (D10-s1-01)",
+        entry.unique_id
+        == config_flow.entry_identity({**entry.data, **entry.options})
+        != config_flow.entry_identity(
+            {**entry.data, const.CONF_TIBBER_TOKEN: "stale-token"}
+        ),
+        f"unique_id={entry.unique_id!r}",
+    )
     LEDGER.rows["_reauth"] = int(round_trip_done)
     config_flow.async_get_clientsession = real
 
@@ -1885,6 +1899,42 @@ async def options_advanced_pages():
         and quiet_session.posts == 0,
         f"indoor={entry.options.get(const.CONF_INDOOR_TEMP_ENTITY)!r} "
         f"posts={quiet_session.posts}",
+    )
+    # D10-s1-01: the cleared indoor sensor was part of the plant's identity.
+    check(
+        "opt_entities",
+        "happy",
+        "an identity slot edited here re-derives the unique id (D10-s1-01)",
+        entry.unique_id
+        == config_flow.entry_identity({**entry.data, **entry.options})
+        != config_flow.entry_identity(BASE_ENTRY_DATA),
+        f"unique_id={entry.unique_id!r}",
+    )
+    flow_close, entry_close, _ = fresh_options()
+    await flow_close.async_step_entities(None)
+    await submit(
+        flow_close,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "and so does the same edit saved with close (D10-s1-01)",
+        entry_close.unique_id
+        == config_flow.entry_identity(
+            {
+                **entry_close.data,
+                const.CONF_INDOOR_TEMP_ENTITY: None,
+                const.CONF_HEAT_PUMP_SWITCH_ENTITY: None,
+            }
+        )
+        != config_flow.entry_identity(BASE_ENTRY_DATA),
+        f"unique_id={entry_close.unique_id!r}",
     )
     check(
         "opt_entities",

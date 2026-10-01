@@ -12719,6 +12719,48 @@ R.check(
     and _ent_assigned["entity_id"] == "sensor.valve_target",
 )
 
+# D10-s1-01 (#1644, P2): twelve assignable slots are identity slots, so the
+# service re-derives the unique id the way the options flow does.
+_svc_hass.states.set("sensor.dhw_probe", FakeState(50.0, unit="°C"))
+_uid_before = _svc_entry.unique_id
+_svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {"key": const.CONF_DHW_TEMP_ENTITY, "entity_id": "sensor.dhw_probe"},
+)
+from heatpump_optimizer.config_flow import entry_identity as _svc_identity  # noqa: E402
+
+R.check(
+    "assign_entity on an identity slot re-derives the entry's unique id "
+    "(D10-s1-01)",
+    _svc_entry.unique_id
+    == _svc_identity({**_svc_entry.data, **_svc_entry.options})
+    != _uid_before,
+    f"unique_id {_uid_before!r} -> {_svc_entry.unique_id!r}",
+)
+
+# #1799 review B1: an id another entry already holds is left alone, as the
+# reconfigure step aborts on it; two entries indexed under one id is what
+# real Home Assistant logs as an integration error.
+from heatpump_optimizer.config_flow import identity_update as _svc_idupd  # noqa: E402
+import types as _svc_types  # noqa: E402
+from homeassistant.helpers.typing import UNDEFINED as _svc_undef  # noqa: E402
+
+_svc_next = {**_svc_entry.options, const.CONF_DHW_TEMP_ENTITY: "sensor.dhw_probe2"}
+_svc_free = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
+_svc_holder = _svc_types.SimpleNamespace(
+    domain=const.DOMAIN, entry_id="holder", data={}, options={},
+    unique_id=_svc_identity({**_svc_entry.data, **_svc_next}),
+)
+_svc_hass.config_entries.entries.append(_svc_holder)
+_svc_held = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
+_svc_hass.config_entries.entries.remove(_svc_holder)
+R.check(
+    "an identity edit whose id another entry holds leaves the id alone; a "
+    "free id is still written (#1799 B1)",
+    _svc_held is _svc_undef and _svc_free == _svc_holder.unique_id,
+    f"held={_svc_held!r} free={_svc_free!r}",
+)
+
 _man_assigned = _svc_call(
     const.SERVICE_ASSIGN_ENTITY,
     {
@@ -19170,6 +19212,9 @@ class _ReauthEntry:
     def __init__(self):
         self.entry_id = "reauth-1"
         self.data = {_CONF_TOKEN: "expired-token", "name": "HP"}
+        # Every ConfigEntry carries options; reauth reads them to re-derive
+        # the unique id (D10-s1-01).
+        self.options = {}
         self.started = []
 
     def async_start_reauth(self, hass):

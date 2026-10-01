@@ -4601,20 +4601,20 @@ class PlanSource {
     return null;
   }
 
-  /** The currency to price the delta in.
+  /** The currency a money figure is in: the card's one resolver (#1657).
    *
-   * The plan carries prices but not a currency, so take Home Assistant's own
-   * configured currency rather than assuming the author's. `currency:` in the
-   * card config still wins, for installs where the two disagree.
+   * Nothing in this card converts, so what denominates the numbers leads:
+   * `own`, a figure's own declared unit, then the currency the integration
+   * publishes on the plan sensors (the price feed's). A card-config
+   * `currency:` and Home Assistant's own only fill in where the integration
+   * publishes none; a config value that led relabelled un-converted prices.
    */
-  currency() {
+  currency(own) {
     const hass = this.hass || {};
     return (
-      this.config.currency ||
-      // v4.1.0+: the integration publishes the currency its prices are in on
-      // the plan sensors. That beats Home Assistant's global currency, which
-      // describes the install, not the price feed.
+      own ||
       this.attrRaw("currency", null) ||
+      this.config.currency ||
       (hass.config && hass.config.currency) ||
       "SEK"
     );
@@ -6982,21 +6982,13 @@ function scoreBreakdownHtml(plan) {
   return `<div class="score-breakdown">${rows}</div>`;
 }
 
-/** The currency a savings figure is denominated in.
- *
- * A savings sensor declares the unit its own value is in (the integration
- * sets `native_unit_of_measurement` from the coordinator's currency), and
- * nothing in this card converts, so that declaration leads and `currency()`
- * only fills in when the sensor publishes none. R7-D4-03 (#1456): the
- * savings table took `plan.currency()` alone, whose chain puts a card-config
- * `currency:` ahead of the sensor's own token, so the override relabelled
- * un-converted figures under a headline that still named SEK. Both savings
- * surfaces resolve through here, so they cannot name different currencies.
+/** The currency a savings figure is denominated in: the sensor's own
+ * declared unit through `currency()` (R7-D4-03, #1456), so both savings
+ * surfaces and the price axis resolve in one chain.
  */
 function savingsUnit(plan, statKey) {
   const st = plan.statEntity(statKey);
-  const declared = st && st.attributes && st.attributes.unit_of_measurement;
-  return declared || plan.currency();
+  return plan.currency(st && st.attributes && st.attributes.unit_of_measurement);
 }
 
 /** The compact stats row under the header, or nothing at all.

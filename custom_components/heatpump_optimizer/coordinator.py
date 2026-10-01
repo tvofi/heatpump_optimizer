@@ -375,7 +375,7 @@ from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
     GridFeeSchedule,
-    IMPLAUSIBLE_FEE_SEK_PER_KWH,
+    fee_bound,
     min_component as grid_fee_min_component,
     max_abs_component as grid_fee_max_abs_component,
     parse_month_range as grid_fee_parse_month_range,
@@ -385,7 +385,7 @@ from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
-from .currency import resolve_currency
+from .currency import declared_currency, resolve_currency
 from .drift import Cusum, stored_instant
 from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
 from .wear import StartCounter, wear_price_per_start
@@ -1652,6 +1652,26 @@ def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
             translation_key="price_unit_unrecognised",
             translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
         )
+    # #1657: the feed denominates every money figure, and the sensors say so
+    # (``money_currency``), but the money fields in the options dialog are
+    # labelled in the instance currency. Name the disagreement.
+    declared = _feed_currency(hass, config)
+    if declared is None or declared == resolve_currency(hass):
+        ir.async_delete_issue(hass, DOMAIN, "price_currency")
+        return
+    _create_issue(
+        hass,
+        DOMAIN,
+        "price_currency",
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="price_currency_mismatch",
+        translation_placeholders={
+            "entity": str(_price_feed(config)),
+            "feed": declared,
+            "configured": resolve_currency(hass),
+        },
+    )
 
 
 def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
@@ -2128,6 +2148,25 @@ def _entity_price_source(cfg: dict[str, Any]) -> bool:
     return str(cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)) == PRICE_SOURCE_ENTITY
 
 
+def _price_feed(cfg: dict[str, Any]) -> Any:
+    """The price entity whose numbers the plan is priced in, if one is."""
+    return cfg.get(CONF_PRICE_ENTITY) if _entity_price_source(cfg) else None
+
+
+def _feed_currency(hass: HomeAssistant, cfg: dict[str, Any]) -> str | None:
+    """The currency the price feed declares for its numbers, if any (#1657).
+
+    Every money figure is denominated by the feed, so this, not the
+    instance's label currency, is what a published money unit names; the
+    instance's (``resolve_currency``) only fills in where the feed says
+    nothing, and an unavailable feed keeps the code already adopted.
+    """
+    feed = _price_feed(cfg)
+    state = hass.states.get(feed) if feed else None
+    attrs = getattr(state, "attributes", None) or {}
+    return declared_currency(attrs.get("unit_of_measurement"), attrs)
+
+
 def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:
     entity_id = cfg.get(CONF_PRICE_ENTITY)
     if not entity_id:
@@ -2213,9 +2252,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
         self.entry = entry
         config = {**entry.data, **entry.options}
-        # Resolved once: the sensors stamp it into their units at
-        # construction, and units must not change while an entity lives.
-        self.currency = resolve_currency(hass)
+        # The feed's code where it declares one (#1657), adopted per cycle.
+        self.currency = _feed_currency(hass, config) or resolve_currency(hass)
 
         super().__init__(
             hass,
@@ -5720,7 +5758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 DEFAULT_STALENESS_SCALE,
             ),
         )
-
+        self.currency = _feed_currency(self.hass, ctx._config) or self.currency
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
@@ -6778,7 +6816,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         currency (audit D4-04, #168) rather than assuming one.
         """
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
-        if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
+        currency = self.currency
+        if worst > fee_bound(currency):
             if self._grid_fee_issue_value != worst:
                 _create_issue(
                     self.hass,
@@ -6793,7 +6832,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_placeholders={
                         "rate": f"{worst:.2f}",
                         "source": source,
-                        "currency": self.currency,
+                        "currency": currency,
                     },
                 )
                 self._grid_fee_issue_value = worst
@@ -6820,7 +6859,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_placeholders={
                         "rate": f"{lowest:.2f}",
                         "source": sign_source,
-                        "currency": self.currency,
+                        "currency": currency,
                     },
                 )
                 self._grid_fee_sign_issue_value = lowest

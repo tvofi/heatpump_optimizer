@@ -631,6 +631,13 @@ INVENTORY: dict[str, Entry] = {
         "returns an empty mapping; tests/entities.py reads strings.json "
         "directly rather than through the loader"
     ),
+    # -- helpers.typing -----------------------------------------------------
+    "homeassistant.helpers.typing.UNDEFINED": F(
+        "upstream's singleton, UndefinedType._singleton (2025.2.0 and 2026.9.3)"
+    ),
+    "homeassistant.helpers.typing.UndefinedType": F(
+        "upstream's one-member Enum, copied as it is (2025.2.0 and 2026.9.3)"
+    ),
     # -- helpers.update_coordinator -----------------------------------------
     "homeassistant.helpers.update_coordinator.DataUpdateCoordinator": S(
         "runs the refresh chain (#924): every entry point awaits "
@@ -886,6 +893,28 @@ def _redact_scalar():
 
     assert async_redact_data("abc", {"abc"}) == "abc"
     assert async_redact_data(7, {7}) == 7
+
+
+@contract(
+    "homeassistant.helpers.typing.UndefinedType",
+    "a one-member Enum whose member is _singleton",
+    cite="helpers/typing.py -- `class UndefinedType(Enum): _singleton = 0`",
+)
+def _undefined_type():
+    from homeassistant.helpers.typing import UndefinedType
+
+    assert [m.name for m in UndefinedType] == ["_singleton"]
+
+
+@contract(
+    "homeassistant.helpers.typing.UNDEFINED",
+    "the sentinel is UndefinedType's one member",
+    cite="helpers/typing.py -- `UNDEFINED = UndefinedType._singleton`",
+)
+def _undefined_sentinel():
+    from homeassistant.helpers.typing import UNDEFINED, UndefinedType
+
+    assert UNDEFINED is UndefinedType._singleton
 
 
 @contract(
