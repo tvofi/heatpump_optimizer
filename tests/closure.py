@@ -787,8 +787,12 @@ def _rel(path: str) -> str | None:
             s = str(p.relative_to(ROOT))
         except ValueError:
             return None
-    # The instrument is not a dependency of what it measures.
-    if s in ("tests/closure.py", "tests/closures.json"):
+    # The instrument is not a dependency of what it measures. Its table is:
+    # a change to tests/closures.json no longer runs every script (`select`
+    # runs the scripts whose entry changed), so a script whose answer depends
+    # on the table's content -- tests/entities.py pins `select` and `affected`
+    # against it -- must carry it in its own closure to be selected (R9-F10.9).
+    if s == "tests/closure.py":
         return None
     # A DIRECTORY is not a dependency. The audit hook sees `open` on directories
     # too -- os.scandir, os.listdir and anything that enumerates the tree -- and
@@ -1731,9 +1735,16 @@ def check(in_dir: Path, partial: bool = False) -> int:
     expected_recordings = {
         s for s in test_scripts() if Path(s).name not in SLOW_GATED
     }
-    fresh = _fold(records) if set(records) >= expected_recordings else {
-        k: sorted(set(v["files"]) | {k}) for k, v in records.items()
-    }
+    if set(records) >= expected_recordings:
+        fresh = _fold(records)
+    else:
+        # A driven child has no committed entry of its own: its reads must be
+        # in its driver's, which is what the full fold checks (R9-F10.9).
+        fresh = {k: sorted(set(v["files"]) | {k}) for k, v in records.items()}
+        for child, parent in DRIVEN_BY_OTHERS.items():
+            c, p = f"tests/{child}", f"tests/{parent}"
+            if c in fresh:
+                fresh[p] = sorted(set(fresh.get(p, ())) | set(fresh.pop(c)))
     failed = 0
     for name, files in sorted(fresh.items()):
         have = set(committed.get(name, ()))
@@ -2021,8 +2032,30 @@ def changed_files(diff_ref: str) -> list[str]:
     return sorted(set(files))
 
 
-def select(files: list[str]) -> dict:
-    """Decide what to run. Returns a plan; every decision carries its reason."""
+CLOSURES_REL = "tests/closures.json"
+
+
+def base_closures(diff_ref: str) -> dict | None:
+    """The closures the merge base with ``diff_ref`` committed, or None."""
+    base = subprocess.run(["git", "merge-base", diff_ref, "HEAD"], cwd=ROOT,
+                          capture_output=True, text=True)
+    if base.returncode != 0:
+        return None
+    shown = subprocess.run(["git", "show", f"{base.stdout.strip()}:{CLOSURES_REL}"],
+                           cwd=ROOT, capture_output=True, text=True)
+    try:
+        return json.loads(shown.stdout)["closures"] if shown.returncode == 0 else None
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return None
+
+
+def select(files: list[str], base: dict | None = None) -> dict:
+    """Decide what to run. Returns a plan; every decision carries its reason.
+
+    ``base`` is the merge base's closures, which a change to
+    tests/closures.json itself is measured against: without it that change
+    runs everything, as a gate file does.
+    """
     if not CLOSURES.exists():
         return {"mode": "full", "reason": "tests/closures.json is missing",
                 "run": selectable_scripts(), "skip": {}, "changed": files}
@@ -2045,13 +2078,22 @@ def select(files: list[str]) -> dict:
         return {"mode": "full", "reason": "no changed files could be determined",
                 "run": scripts, "skip": {}, "changed": files}
 
+    # tests/closures.json is a gate file for everything but this: a script
+    # whose entry is unchanged keeps the skip claim it had at the merge base,
+    # so only the scripts whose entry moved -- grown, shrunk or new; a shrink
+    # is how a dependency would be hidden -- run on its account, plus every
+    # script that reads the table (its closure lists it, see `_rel`). The
+    # FULL run on every push to main still re-checks every skip (R9-F10.9).
     for f in files:
-        if is_gate_file(f):
+        if is_gate_file(f) and not (f == CLOSURES_REL and base is not None):
             return {"mode": "full",
                     "reason": f"{f} changes the gate itself, so every closure is suspect",
                     "run": scripts, "skip": {}, "changed": files}
+    moved = sorted(s for s in scripts
+                   if CLOSURES_REL in files
+                   and set(closures[s]) != set((base or {}).get(s, ())))
 
-    known = {f for files_ in closures.values() for f in files_}
+    known = {f for files_ in closures.values() for f in files_} | {CLOSURES_REL}
     unmapped = [f for f in files if unit_of(f) not in known and not is_inert(f)]
     if unmapped:
         return {"mode": "full",
@@ -2075,7 +2117,7 @@ def select(files: list[str]) -> dict:
     run, skip = [], {}
     for s in scripts:
         hits = sorted({unit_of(f) for f in files} & set(closures[s]))
-        if hits:
+        if hits or s in moved:
             run.append(s)
             continue
         if s == "tests/env_drift.py" and touched_integration:
@@ -2094,7 +2136,8 @@ def select(files: list[str]) -> dict:
     run = suite_order(run)      # suite order, PRODUCERS edge honoured (#1146)
 
     return {"mode": "scoped", "reason": "", "run": run, "skip": skip,
-            "changed": files, "closure_sizes": {s: len(closures[s]) for s in scripts}}
+            "changed": files, "entry_changed": moved,
+            "closure_sizes": {s: len(closures[s]) for s in scripts}}
 
 
 def print_plan(plan: dict, stream=sys.stdout) -> None:
@@ -2115,7 +2158,9 @@ def print_plan(plan: dict, stream=sys.stdout) -> None:
         w(f"      ... and {len(plan['changed']) - 60} more\n")
     w("\n")
     for s_ in plan["run"]:
-        w(f"      RUN   {s_}\n")
+        moved = " (its tests/closures.json entry changed)" if s_ in plan.get(
+            "entry_changed", ()) else ""
+        w(f"      RUN   {s_}{moved}\n")
     w("\n")
     for s_, info in plan["skip"].items():
         w(f"      SKIP  {s_}  (closure: {info['closure_size']} files, "
@@ -2145,6 +2190,84 @@ def write_plan(plan: dict, workdir: Path) -> None:
     (workdir / "scope.txt").write_text(buf.getvalue())
 
 
+def coverage_split(plan: dict, stage: list[str],
+                   reusable: set[str]) -> tuple[list[str], list[str]]:
+    """(measure, reuse): which coverage-stage scripts a pull request re-runs.
+
+    The coverage job's scoping (R9-F10.9b, #1812). ``stage`` is
+    tools/audit/w5-partition/coverage_tree.sh's script list, as
+    ``tests/<name>.py``; ``reusable`` the ones whose per-script coverage data
+    the push run at the diff's base left behind. A script is reused only when
+    the plan is SCOPED and skips it -- no changed file is in its measured
+    closure, so it executes the production lines it executed at the base --
+    and its data is there. Everything else is measured: every script under a
+    FULL plan, a script the plan runs, and a script with no base data, which a
+    cache miss makes every script. The skip claim is the gate's own, and the
+    push to main still measures every script unscoped.
+    """
+    if plan.get("mode") != "scoped":
+        return list(stage), []
+    skip = set(plan.get("skip", ())) - set(plan.get("run", ()))
+    measure = [s for s in stage if s not in skip or s not in reusable]
+    return measure, [s for s in stage if s not in measure]
+
+
+def coverage_split_cli(plan_path: Path, reuse_dir: Path) -> int:
+    """Read coverage_tree.sh's script names on stdin; print ``measure`` or
+    ``reuse`` before each. A script's base data is ``.coverage.<name>``, or
+    ``<name>.nodata`` for one that executed no package line."""
+    stage = [line.strip() for line in sys.stdin if line.strip()]
+    have = {n for n in stage if (reuse_dir / f".coverage.{n}").is_file()
+            or (reuse_dir / f"{n}.nodata").is_file()}
+    measure, reuse = coverage_split(
+        json.loads(plan_path.read_text()),
+        [f"tests/{n}.py" for n in stage], {f"tests/{n}.py" for n in have})
+    verb = {**{s: "measure" for s in measure}, **{s: "reuse" for s in reuse}}
+    for n in stage:
+        print(f"{verb[f'tests/{n}.py']}\t{n}")
+    return 0
+
+
+def not_run(workdir: Path) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """What a scoped gate really left out: (did-not-run rows, ran anyway).
+
+    ``scope.skip`` is the plan, and run.sh runs a run_always script whatever
+    the plan says, so the plan alone named harness_headers.py and layout.py
+    as "did NOT run" on gates that ran them (R9-F10.9). A planned skip counts
+    as run only on positive evidence: a manifest line that ran the script and
+    none that skipped it -- env_drift.py's run_always ``--claims-only`` line
+    beside its skipped capture is not its capture.
+    """
+    labels = [line.split("\t", 3)[3]
+              for m in sorted(workdir.glob("*.manifest"))
+              for line in m.read_text().splitlines() if line.count("\t") >= 3]
+    skipped = {lab[len("#skip "):] for lab in labels if lab.startswith("#skip ")}
+    ran = [lab.split() for lab in labels if not lab.startswith("#skip ")]
+    rows, anyway = [], []
+    plan = workdir / "scope.skip"
+    for line in plan.read_text().splitlines() if plan.exists() else ():
+        script, size, reason = (line.split("\t", 2) + ["", ""])[:3]
+        if not script:
+            continue
+        if script not in skipped and any(script in argv for argv in ran):
+            anyway.append(script)
+        else:
+            rows.append((script, size, reason))
+    return rows, anyway
+
+
+def _not_run_cmd(workdir: Path) -> int:
+    rows, anyway = not_run(workdir)
+    for script, size, reason in rows:
+        print(f"  {script:24s} did NOT run -- {reason} (closure: {size} files)")
+    if not rows:
+        print("  (nothing -- every script ran)")
+    for script in anyway:
+        print(f"  {script:24s} ran anyway -- run_always, so no scope skips it")
+    (workdir / "not_run.count").write_text(f"{len(rows)}\n")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # the closures check's own scope
 #
@@ -2163,9 +2286,9 @@ def write_plan(plan: dict, workdir: Path) -> None:
 # Three cases:
 #
 #   full    a changed file is a GATE_FILE (every closure is suspect at once),
-#           is a script this gate cannot re-derive on its own, or -- the case
-#           that matters -- is in NO recorded closure and not INERT. Nothing
-#           can be inferred about a file the table has never measured.
+#           or -- the case that matters -- is in NO recorded closure and not
+#           INERT. Nothing can be inferred about a file the table has never
+#           measured.
 #   scoped  some recorded closure contains a changed file: re-derive exactly
 #           those scripts, then run the same `check`. One entry is ~40 s
 #           against 12-22 minutes for the full table.
@@ -2233,17 +2356,6 @@ def affected(files: list[str]) -> dict:
         return _full(f"{gate[0]} changes the gate itself, so every closure "
                      f"is suspect")
 
-    # A script another script drives in a SUBPROCESS reaches the table only
-    # through its driver's fold, and `--single` cannot record it (dst_checks.py
-    # needs HASTUB_TZ set, which only the lane sets). Re-deriving the driver
-    # alone would not see the child's new reads, so a change here is not
-    # something the scoped path can check.
-    driven = [f for f in files if Path(f).name in DRIVEN_BY_OTHERS]
-    if driven:
-        return _full(f"{driven[0]} is driven in a subprocess by "
-                     f"{DRIVEN_BY_OTHERS[Path(driven[0]).name]}; only a full "
-                     f"re-derivation folds its reads in")
-
     known = {f for files_ in closures.values() for f in files_}
     unmapped = [f for f in files if unit_of(f) not in known and not is_inert(f)]
     if unmapped:
@@ -2266,11 +2378,23 @@ def affected(files: list[str]) -> dict:
             for prod in producers:
                 if prod not in why:
                     why[prod] = {"changed": [], "via": f"producer of {consumer}"}
+    # A script another script drives in a SUBPROCESS reaches the table only
+    # through its driver's fold, so re-deriving the driver re-derives the
+    # child too, in its own lane (`--single` sets HASTUB_TZ for dst_checks.py
+    # as the lane does), and `check --partial` folds it into the driver. This
+    # replaced a FULL re-derivation of every closure (R9-F10.9); the driver's
+    # strace recording already sees the child's reads (R9-F10.3), and the
+    # child's own recording is the belt for a recorder without strace.
+    children = [f"tests/{c}" for c, p in DRIVEN_BY_OTHERS.items()
+                if f"tests/{p}" in why]
+    for c in children:
+        why[c] = {"changed": [], "via": f"driven by tests/{DRIVEN_BY_OTHERS[Path(c).name]}"}
     # Suite order, so the recordings run in the order run.sh would -- which
     # includes the PRODUCERS edge: the plan payload's producer ahead of the
     # card scripts that read it, or a `--single` re-record of the pair runs
-    # the card against no payload and fails (#1146).
-    rederive = suite_order(why)
+    # the card against no payload and fails (#1146). A driven child is not
+    # selectable, so suite order cannot place it: it follows its driver.
+    rederive = suite_order(why) + children
     if not rederive:
         # Everything that changed is absent from every closure, and `unmapped`
         # above already proved each such file is INERT. Nothing a recording
@@ -2676,6 +2800,44 @@ def selftest() -> int:
                 f"rc={prc2} after={sorted(after)!r}",
             )
 
+    print("\n=== coverage reuses only what the scoped gate skips (#1812) ===")
+    stage = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.py"]
+    every = set(stage)
+    scoped = {"mode": "scoped", "run": ["tests/a.py"],
+              "skip": {"tests/b.py": {}, "tests/c.py": {}}}
+    # The mode decides, not the skip list: a plan that is not SCOPED reuses
+    # nothing even when it names a skip (a design choice, pinned here).
+    pin("a FULL plan measures every script, base data or not",
+        coverage_split({"mode": "full", "run": stage,
+                        "skip": {"tests/b.py": {}}}, stage, every)
+        == (stage, []))
+    pin("a plan of no known mode measures every script",
+        coverage_split({"skip": {"tests/b.py": {}}}, stage, every)
+        == (stage, []))
+    split = coverage_split(scoped, stage, {"tests/a.py", "tests/b.py",
+                                           "tests/d.py"})
+    pin("scoped: only a skipped script with base data is reused",
+        split == (["tests/a.py", "tests/c.py", "tests/d.py"], ["tests/b.py"]),
+        f"got {split!r}")
+    pin("scoped, cache miss: nothing is reused",
+        coverage_split(scoped, stage, set()) == (stage, []))
+    with tempfile.TemporaryDirectory() as td:
+        reuse = Path(td)
+        (reuse / ".coverage.b").write_text("")
+        (reuse / "c.nodata").write_text("")
+        plan_file = reuse / "scope.json"
+        plan_file.write_text(json.dumps(scoped))
+        buf, real_stdin = io.StringIO(), sys.stdin
+        sys.stdin = io.StringIO("a\nb\nc\nd\n")
+        try:
+            with contextlib.redirect_stdout(buf):
+                coverage_split_cli(plan_file, reuse)
+        finally:
+            sys.stdin = real_stdin
+        pin("coverage-split reads .coverage.<n> and <n>.nodata as base data",
+            buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
+            repr(buf.getvalue()))
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
@@ -2820,6 +2982,10 @@ def main() -> int:
     f.add_argument("--files-from")
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
+    nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
+    cs = sub.add_parser("coverage-split")
+    cs.add_argument("--plan", required=True)
+    cs.add_argument("--reuse-dir", required=True)
     sub.add_parser("show")
     sub.add_parser("no-copies")
     sub.add_parser("selftest")
@@ -2837,6 +3003,10 @@ def main() -> int:
         return _autofix_report_cmd(a.job, a.status)
     if a.cmd == "prune":
         return prune(Path(a.out))
+    if a.cmd == "coverage-split":
+        return coverage_split_cli(Path(a.plan), Path(a.reuse_dir))
+    if a.cmd == "not-run":
+        return _not_run_cmd(Path(a.workdir))
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":
@@ -2864,7 +3034,7 @@ def main() -> int:
     files = list(a.files or [])
     if a.diff:
         files += changed_files(a.diff)
-    plan = select(sorted(set(files)))
+    plan = select(sorted(set(files)), base_closures(a.diff) if a.diff else None)
     if a.workdir:
         write_plan(plan, Path(a.workdir))
     if a.json:

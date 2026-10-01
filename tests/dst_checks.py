@@ -28,6 +28,7 @@ from heatpump_optimizer import (
     _take_fresh_handover,
 )
 from heatpump_optimizer.coordinator import (
+    FORECAST_STEP,
     FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
     _solve_anchor,
@@ -375,7 +376,7 @@ for _label, _day in _DST_DAYS:
     _midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
     _priced = _c._price_series(_n, _midnight, 0)
     _arrays = _c._forecast_arrays(_now)
-    _labels = _utc_step_starts(_midnight, _n, 0)
+    _labels = _utc_step_starts(_midnight, _n, FORECAST_STEP)
     _t0 = _labels[0].astimezone(UTC)
     _real = [_t0 + timedelta(minutes=FORECAST_STEP_MINUTES * i) for i in range(_n)]
     _expected = np.array([_price_for(r) for r in _real])
@@ -418,11 +419,35 @@ R.check(
     not any(_is_phantom(t) for t in _spring_ts),
     f"phantoms={[t.isoformat() for t in _spring_ts if _is_phantom(t)]}",
 )
+# #1741: one clock. The coordinator's bridge to the optimizer's horizon
+# (_horizon_step_starts) and _Horizon.timestamps both call the one
+# optimizer._utc_step_starts with the configured step, so they agree on both
+# transition days by construction, not because the config surface only offers
+# whole-minute steps. A 7.5-minute step is the control the old two-clock pair
+# failed: its minute-rounding bridge walked 8-minute steps.
+_clk_fake = type("_C", (), {"_opt_config": type("_O", (), {"dt_hours": 0.25})()})()
+_clk_odd = type("_C", (), {"_opt_config": type("_O", (), {"dt_hours": 0.125})()})()
 R.check(
-    "coordinator and optimizer stamp the same spring grid",
-    _opt_utc_step_starts(_spring, _n, 0.25) == _utc_step_starts(_spring, _n, 0),
-    "the two seams must not disagree by an hour on a transition day",
+    "one horizon clock: the coordinator's import IS the optimizer's",
+    _utc_step_starts is _opt_utc_step_starts,
 )
+for _clk_label, _clk_day, _clk_ts in (
+    ("spring", _spring, _spring_ts), ("autumn", _autumn, _autumn_ts),
+):
+    R.check(
+        f"coordinator and optimizer stamp the same {_clk_label} grid",
+        HeatPumpOptimizerCoordinator._horizon_step_starts(_clk_fake, _clk_day, _n)
+        == list(_clk_ts),
+        "the two seams must not disagree by an hour on a transition day",
+    )
+    _clk_odd_ts = _Horizon.timestamps.fget(
+        type("_H", (), {"start_time": _clk_day, "n_steps": _n, "dt": 0.125})()
+    )
+    R.check(
+        f"and on a step that is not a whole number of minutes ({_clk_label})",
+        HeatPumpOptimizerCoordinator._horizon_step_starts(_clk_odd, _clk_day, _n)
+        == list(_clk_odd_ts),
+    )
 _spring_gaps = [
     (_spring_ts[i + 1].astimezone(UTC) - _spring_ts[i].astimezone(UTC)).total_seconds()
     / 60.0
@@ -482,7 +507,7 @@ def _plan_on(day: datetime):
     c = _dst_coord(day)
     arrays = c._forecast_arrays(now)
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    labels = _utc_step_starts(midnight, _n, 0)
+    labels = _utc_step_starts(midnight, _n, FORECAST_STEP)
     hours = np.array([(s.hour + s.minute / 60.0) for s in labels])
     shaped = np.where(
         (hours >= 0) & (hours < 5),
@@ -561,7 +586,7 @@ def _metered_factors(tariff: CapacityTariff, start: datetime, n: int) -> list[fl
     tracker = PeakTracker()
     slot0 = _window_slot(start, tariff.window_minutes)
     seen = []
-    for when in _opt_utc_step_starts(slot0, n, tariff.window_minutes / 60.0):
+    for when in _opt_utc_step_starts(slot0, n, timedelta(minutes=tariff.window_minutes)):
         tracker.observe(when, 1.0, tariff)
         seen.append(tracker._window_factor)
     return seen
@@ -603,7 +628,7 @@ def _detail777(label: str) -> str:
 # The guard against this case silently sliding off the transition again --
 # the exact way the 13:30 case above stopped covering anything.
 _offsets777 = {
-    label: len({s.utcoffset() for s in _opt_utc_step_starts(start, 24, 1.0)})
+    label: len({s.utcoffset() for s in _opt_utc_step_starts(start, 24, timedelta(hours=1))})
     for label, start in _DAYS777
 }
 R.check(
@@ -1856,6 +1881,474 @@ R.check(
     "NULL CONTROL: on a plain day the same far expiry was always 20 hours",
     (_plain.expires_at.timestamp() - datetime(2026, 10, 20, 6, 30, tzinfo=STHLM).timestamp()) / 3600.0 == 20.0,
     "",
+)
+
+
+# ===========================================================================
+# R9-F10.1e: the sites F10.1d's probes measured as misfiring, one check each
+# ===========================================================================
+R.section(
+    "R9-F10.1e: the census-missed sites measure true time across the fold and the spring gap"
+)
+
+from dataclasses import replace  # noqa: E402
+
+import heatpump_optimizer.away as _away  # noqa: E402
+import heatpump_optimizer.boost as _boost  # noqa: E402
+import heatpump_optimizer.sysid as _sysid  # noqa: E402
+import heatpump_optimizer.wood_fuel as _wood_fuel  # noqa: E402
+from heatpump_optimizer.comfort_learning import ComfortLearner  # noqa: E402
+from heatpump_optimizer.drift import Cusum  # noqa: E402
+from heatpump_optimizer.external_heat import ExternalHeatConfig, ExternalHeatDetector  # noqa: E402
+from heatpump_optimizer.optimizer import REASON_LEGIONELLA  # noqa: E402
+
+_F60_LAST = datetime(2026, 10, 25, 2, 59, 30, tzinfo=STHLM)  # true 60 s, wall -3540 s
+_F60_NOW = datetime(2026, 10, 25, 2, 0, 30, tzinfo=STHLM, fold=1)
+_SP_LAST = datetime(2026, 3, 29, 1, 59, tzinfo=STHLM)  # true 2 min, wall 62 min
+_SP_NOW = datetime(2026, 3, 29, 3, 1, tzinfo=STHLM)
+_NO_SWITCH = DisinfectionSwitch({}, None, None)
+
+
+def _leg_guard(cfg=None, action=None):
+    return LegionellaGuard(
+        FakeHass(),
+        "dst",
+        ThermalParameters.from_config({}),
+        cfg or {},
+        action=lambda: action or {},
+        disinfect=_NO_SWITCH,
+        dhw_blocked=lambda: False,
+    )
+
+
+async def _noop_drive(*_a, **_k):
+    return None
+
+
+_leg_target = float(ThermalParameters.from_config({}).dhw_legionella_temp)
+
+# legionella hold minutes: 60 true seconds, not -59 wall minutes
+_g = _leg_guard({const.CONF_DHW_FREE_DISINFECTION_ENABLED: True})
+_g.hold_last, _g.hold_minutes = _F60_LAST, 0.0
+dt_util.freeze(_F60_NOW)
+asyncio.run(_g.async_track(_leg_target))
+R.check(
+    "legionella: a hot-to-hot gap across the fold adds its true 1 minute to the hold",
+    abs(_g.hold_minutes - 1.0) < 1e-9,
+    f"{_g.hold_minutes}",
+)
+# legionella refusal window: a credit a true hour after the last passes on the fold, and
+# one a true 2 minutes after it is refused across the spring gap
+_g = _leg_guard()
+_g.last_cycle = _FOLD_LAST
+dt_util.freeze(_FOLD_NOW)
+asyncio.run(_g.async_track(_leg_target))
+R.check(
+    "legionella: a credit a true hour after the last is not refused across the fold",
+    _g.last_cycle is not _FOLD_LAST,
+    "",
+)
+_g = _leg_guard()
+_g.last_cycle = _SP_LAST
+dt_util.freeze(_SP_NOW)
+asyncio.run(_g.async_track(_leg_target))
+R.check(
+    "legionella: a credit a true 2 minutes after the last is refused across the spring gap",
+    _g.last_cycle is _SP_LAST,
+    "",
+)
+# legionella boost bound: 12 true hours (11 wall hours) closes the window
+_g = _leg_guard(action={"dhw_reason": REASON_LEGIONELLA})
+_g.boost_active, _g.boost_started = True, datetime(2026, 10, 24, 22, 30, tzinfo=STHLM)
+_g._drive_switch = _noop_drive
+dt_util.freeze(datetime(2026, 10, 25, 9, 30, tzinfo=STHLM))
+asyncio.run(_g.async_track_cycle(50.0))
+R.check(
+    "legionella: the 12 h boost bound closes at 12 true hours across the fold",
+    _g.boost_active is False,
+    "",
+)
+# legionella credited-since-start: a cycle credited 20 true minutes after the boost began
+_g = _leg_guard({const.CONF_DHW_TEMP_ENTITY: "sensor.dhw"})
+_g.boost_active, _g.boost_peak = True, 60.0
+_g.boost_started = datetime(2026, 10, 25, 2, 50, tzinfo=STHLM)
+_g.last_cycle = datetime(2026, 10, 25, 2, 10, tzinfo=STHLM, fold=1)
+_g._drive_switch = _noop_drive
+dt_util.freeze(datetime(2026, 10, 25, 2, 20, tzinfo=STHLM, fold=1))
+asyncio.run(_g.async_track_cycle(60.0))
+R.check(
+    "legionella: a cycle credited a true 20 minutes into the boost counts as credited",
+    _g.attempt is None,
+    f"{_g.attempt}",
+)
+dt_util.freeze(None)
+
+# drift: the starvation window is a true hour on the fold, a true 2 minutes in the spring gap
+for _label, _a, _b, _want in (
+    ("fold", _FOLD_LAST, _FOLD_NOW, True),
+    ("spring gap", _SP_LAST, _SP_NOW, False),
+):
+    _c = Cusum(threshold=3.0, drift=0.5)
+    _c.tripped, _c.stat, _c.last_fed = True, 5.0, _a
+    R.check(
+        f"drift: a latch starved for a true hour releases on the {_label} only if the hour passed",
+        _c.release_if_starved(_b, 1.0) is _want,
+        "",
+    )
+
+# comfort_learning and external_heat decay by true elapsed time
+_cl = ComfortLearner()
+_cl.evidence, _cl.last_update = 4.0, _F60_LAST
+_cl._decay(_F60_NOW)
+R.check(
+    "comfort learning: evidence decays over the true minute, not by a negative wall span",
+    abs(_cl.evidence - 4.0 * 0.5 ** ((60.0 / 86400.0) / 21.0)) < 1e-9,
+    f"{_cl.evidence}",
+)
+_det = ExternalHeatDetector(ExternalHeatConfig(enabled=True, decay_minutes=90.0))
+_det.state.last_active = _FOLD_LAST
+_det._decay(_FOLD_NOW)
+R.check(
+    "external heat: confidence fades over the fold's true hour, not its wall zero",
+    abs(_det.state.confidence - (1.0 - 60.0 / 90.0)) < 1e-9,
+    f"{_det.state.confidence}",
+)
+
+# sysid: the 30-day arm gap and the phase clock
+_si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+_si.last_run = datetime(
+    2026, 9, 25, 5, 0, tzinfo=STHLM
+)  # 30 true days and 30 min, 29 d 23 h 30 min wall
+R.check(
+    "sysid: arming after a true 30 days is allowed across the autumn fold",
+    _si.arm(datetime(2026, 10, 25, 4, 30, tzinfo=STHLM)) is True,
+    "",
+)
+
+
+def _sysid_phase(started, now, phase):
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si.phase, si.phase_started, si._baseline_temp = phase, started, 20.0
+    si.step(
+        now=now,
+        room_temp=20.0,
+        outdoor_temp=0.0,
+        price=1.0,
+        price_horizon=np.ones(8),
+        learner_samples=0,
+        max_power_kw=5.0,
+        cop=3.0,
+    )
+    return si.phase
+
+
+R.check(
+    "sysid: the 2 h step ends at 2 true hours across the fold, not the 1 h of wall clock",
+    _sysid_phase(
+        datetime(2026, 10, 25, 1, 30, tzinfo=STHLM),
+        datetime(2026, 10, 25, 2, 30, tzinfo=STHLM, fold=1),
+        _sysid.PHASE_STEP,
+    )
+    == _sysid.PHASE_RELAX,
+    "",
+)
+
+
+# the learners' sample gaps: coordinator replays weigh the true hour on the fold
+def _house_dt(prev, now, lower):
+    cfg = {}
+    if lower:
+        cfg = {
+            "upper_floor_thermal_mass": 3.0,
+            "lower_floor_thermal_mass": 8.0,
+            "lower_floor_temp_entity": "sensor.lower",
+        }
+    c = _fold_coord(**cfg)
+    seen: list = []
+    base = ThermalState(
+        room_temperature=21.0,
+        upper_floor_temperature=21.0,
+        lower_floor_temperature=20.0,
+        slab_temperature=27.0,
+        outdoor_temperature=-5.0,
+    )
+    c._last_house_sample, c._last_house_sample_time = base, prev
+    c._current_state = replace(
+        base,
+        lower_floor_temperature=19.9,
+        room_temperature=20.9,
+        upper_floor_temperature=20.9,
+    )
+    c._current_action = {"power": 2.0}
+    c._learning_frozen = lambda *a, **k: None
+    c._interval_space_power = lambda: 1.0
+    c._current_weather = lambda: (0.0, 0.0)
+
+    def _sim(prev_state, power, outdoor, **kw):
+        seen.append(kw.get("dt_hours"))
+        return replace(
+            prev_state,
+            room_temperature=20.9,
+            upper_floor_temperature=20.9,
+            lower_floor_temperature=19.9,
+        )
+
+    c._thermal_model.simulate_step = _sim
+    dt_util.freeze(now)
+    asyncio.run(
+        c._async_learn_lower_floor_loss() if lower else c._async_learn_house_heat_loss()
+    )
+    dt_util.freeze(None)
+    return seen
+
+
+for _lower, _name in ((False, "house"), (True, "lower-floor")):
+    _fold_seen = _house_dt(_FOLD_LAST, _FOLD_NOW, _lower)
+    R.check(
+        f"{_name} learner: a replay across the fold weighs the true hour, not a wall zero",
+        _fold_seen == [1.0],
+        f"{_fold_seen}",
+    )
+    _spring_seen = _house_dt(_SP_LAST, _SP_NOW, _lower)
+    R.check(
+        f"NULL CONTROL: the {_name} learner takes no sample across the spring gap (a true 2 minutes, under its floor)",
+        _spring_seen == [],
+        f"{_spring_seen}",
+    )
+
+_c = _fold_coord()
+_rates: list = []
+_c._buffer_cooling_bounds = lambda: (0.0, 1e9)
+_c._apply_buffer_cooling_rate = lambda r: _rates.append(r)
+
+
+async def _no_save():
+    return None
+
+
+_c._async_save_thermal_learning = _no_save
+_c._learning_frozen = lambda *a, **k: None
+_c._current_action = {"power": 0.0}
+_c._last_buffer_temp_sample, _c._last_buffer_sample_time = 50.0, _FOLD_LAST
+_c._buffer_heating_since_sample = False
+dt_util.freeze(_FOLD_NOW)
+asyncio.run(_c._async_learn_buffer_cooling(48.0))
+dt_util.freeze(None)
+R.check(
+    "buffer cooling learner: a sample a true hour on across the fold is accepted",
+    bool(_rates),
+    "",
+)
+
+
+# the outage recovery window and the DHW queue hold
+def _outage(at):
+    c = _fold_coord(**{const.CONF_OUTAGE_RECOVERY_ENABLED: True})
+    c._thermal_params.dhw_enabled = False
+    dt_util.freeze(at)
+    c._detect_outage("2020-01-01T00:00:00+00:00")
+    dt_util.freeze(None)
+    return c
+
+
+_c = _outage(datetime(2026, 10, 25, 1, 30, tzinfo=STHLM))
+R.check(
+    "outage recovery: still active a true 45 minutes before its end across the fold",
+    _c._outage_recovery_active(datetime(2026, 10, 25, 2, 45, tzinfo=STHLM)) is True,
+    "",
+)
+_c = _outage(datetime(2026, 10, 25, 0, 50, tzinfo=STHLM))
+R.check(
+    "outage recovery: over once the true end has passed, though the wall clock reads before it",
+    _c._outage_recovery_active(datetime(2026, 10, 25, 2, 20, tzinfo=STHLM, fold=1))
+    is False,
+    "",
+)
+_c = _outage(datetime(2026, 10, 25, 2, 20, tzinfo=STHLM))
+R.check(
+    "outage DHW hold: still queueing a true 35 minutes before its end across the fold",
+    _c._outage_dhw_hold(datetime(2026, 10, 25, 2, 30, tzinfo=STHLM)) is True,
+    "",
+)
+_c = _outage(datetime(2026, 10, 25, 2, 5, tzinfo=STHLM))
+R.check(
+    "outage DHW hold: released a true 30 minutes after its end",
+    _c._outage_dhw_hold(datetime(2026, 10, 25, 2, 20, tzinfo=STHLM, fold=1)) is False,
+    "",
+)
+
+# boost: a two-hour boost lasts two true hours, is active until its true end, and is clamped in true time
+_set_at = datetime(2026, 10, 25, 1, 30, tzinfo=STHLM)
+_held = _boost.BoostState()
+_held.set(_boost.CHANNEL_DHW, True, _set_at)
+R.check(
+    "boost: set on the fold night lasts a true two hours",
+    utc_elapsed_seconds(_held.until[_boost.CHANNEL_DHW], _set_at) / 3600.0 == 2.0,
+    "",
+)
+_held = _boost.BoostState()
+_held.until[_boost.CHANNEL_DHW] = datetime(2026, 10, 25, 2, 50, tzinfo=STHLM)
+R.check(
+    "boost: inactive once its true end has passed, though the wall clock reads before it",
+    _held.active(
+        _boost.CHANNEL_DHW, datetime(2026, 10, 25, 2, 20, tzinfo=STHLM, fold=1)
+    )
+    is False,
+    "",
+)
+_held.until[_boost.CHANNEL_DHW] = datetime(2026, 10, 25, 2, 30, tzinfo=STHLM, fold=1)
+_held.expire(datetime(2026, 10, 25, 2, 45, tzinfo=STHLM))
+R.check(
+    "boost: kept with a true 45 minutes still to run across the fold",
+    _boost.CHANNEL_DHW in _held.until,
+    "",
+)
+_held.until[_boost.CHANNEL_DHW] = datetime(2026, 10, 25, 4, 45, tzinfo=STHLM)
+_exp_now = datetime(2026, 10, 25, 2, 45, tzinfo=STHLM)
+_held.expire(_exp_now)
+R.check(
+    "boost: an end three true hours out is clamped to two true hours from now",
+    utc_elapsed_seconds(_held.until[_boost.CHANNEL_DHW], _exp_now) / 3600.0 == 2.0,
+    "",
+)
+
+# away: hours until a presence calendar's return, typed as local wall text across the fold
+# (00:45 CEST is 22:45Z; 03:45 CET is 02:45Z, a true four hours)
+_away_state = _away.resolve(
+    _away.AwayConfig(presence_entity="calendar.holiday"),
+    now=datetime(2026, 10, 25, 0, 45, tzinfo=STHLM),
+    presence_raw="on",
+    presence_attributes={"end_time": "2026-10-25 03:45:00"},
+    return_raw=None,
+    comfort_temp=21.0,
+    model=ThermalModel(ThermalParameters.from_config({})),
+    thermal_state=ThermalState(room_temperature=21.0, outdoor_temperature=0.0),
+    outdoor_temp=0.0,
+)
+R.check(
+    "away: hours until a presence end time typed across the fold are the true 4, not the wall 3",
+    abs(_away_state.hours_until_return - 4.0) < 1e-9,
+    f"{_away_state.hours_until_return}",
+)
+# sysid's sample series and the typed wood slots: the same instants, labelled in the shared
+# zone across the fold (01:00Z falls between 02:45 CEST and 02:00 CET), must give the
+# result the UTC-labelled stamps give, since those subtract as true time.
+_SID_START = datetime(2026, 10, 24, 22, 30, tzinfo=timezone.utc)
+
+
+def _sid_samples(label):
+    """The v4.0.5 synthetic step response (C 6, UA 0.12, 0.5 kW free heat), every sample 10 true minutes on."""
+    out, temp, when = [], 20.7, _SID_START
+    for phase, power, steps in ((_sysid.PHASE_STEP, 3.0, 12), (_sysid.PHASE_RELAX, 0.0, 19)):
+        for _ in range(steps):
+            out.append(_sysid.SysIdSample(when.astimezone(label), temp, 0.0, power, phase))
+            temp += (1.0 / 6.0) * (power + 0.5 - 0.12 * temp) / 6.0
+            when += timedelta(minutes=10)
+    return out
+
+
+def _sid_with(label):
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si.samples = _sid_samples(label)
+    return si
+
+
+_sid_local, _sid_utc = _sid_with(STHLM), _sid_with(timezone.utc)
+R.check(
+    "sysid identify: samples straddling the fold fit as the same instants labelled in UTC",
+    _sid_utc.identify().completed and repr(_sid_local.identify()) == repr(_sid_utc.identify()),
+    f"{_sid_local.identify()} vs {_sid_utc.identify()}",
+)
+_ser_local = _sysid._slab_series(_sid_local.samples)
+_ser_utc = _sysid._slab_series(_sid_utc.samples)
+R.check(
+    "sysid slab series: the interval lengths across the fold are the true quarters",
+    _ser_local is not None
+    and _ser_utc is not None
+    and bool(np.array_equal(_ser_local[3], _ser_utc[3])),
+    f"{None if _ser_local is None else _ser_local[3]}",
+)
+_hw_seen: list = []
+_real_halfwidth = _sysid._declared_night_halfwidth
+_sysid._declared_night_halfwidth = lambda *a: _hw_seen.append(a[4][2]) or 0.0
+for _label in (STHLM, timezone.utc):
+    _si = _sid_with(_label)
+    _si.samples = [_s for _s in _si.samples if _s.phase == _sysid.PHASE_SETTLING]
+    _si.samples[-2:] = [
+        _sysid.SysIdSample(
+            _FOLD_LAST.astimezone(_label), 20.0, -2.0, 0.0, _sysid.PHASE_SETTLING
+        ),
+        _sysid.SysIdSample(
+            _FOLD_NOW.astimezone(_label), 20.0, -2.0, 0.0, _sysid.PHASE_SETTLING
+        ),
+    ]
+    _si._slab_pair, _si._slab_prior, _si._baseline_temp = (8.0, 0.5), (0.2, 6.0), 20.0
+    _si._unadoptable(1.0, -2.0)
+_sysid._declared_night_halfwidth = _real_halfwidth
+R.check(
+    "sysid adoption gate: the settle interval across the fold is the true hour, as in UTC",
+    _hw_seen == [1.0, 1.0],
+    f"{_hw_seen}",
+)
+
+# wood_fuel: a typed slot 02:00 to 04:00 across the fold is three true hours
+_wf_stamps = [
+    (
+        datetime(2026, 10, 25, 0, 0, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    ).astimezone(STHLM)
+    for i in range(16)
+]
+_wf_typed = _wood_fuel.wood_slots_to_kw(
+    [{"liters": 40.0, "start": "2026-10-25T02:00:00", "end": "2026-10-25T04:00:00"}],
+    _wf_stamps,
+    0.25,
+    "birch",
+    "packed",
+    75.0,
+)
+R.check(
+    "wood fuel: a typed slot across the fold spreads its liters over the true three hours",
+    abs(max(_wf_typed) - _wood_fuel.liters_to_kwh(40.0, "birch", "packed", 75.0) / 3.0)
+    < 1e-9,
+    f"{max(_wf_typed)}",
+)
+
+
+# Standalone loaders: tests/open_meteo.py execs open_meteo.py and const.py under a stub with
+# only homeassistant.core and helpers.aiohttp_client, so a true-time helper imported from
+# accuracy (which needs homeassistant.util) breaks it at import (the F10.1d red). The
+# loader's modules may import from the package only what it loads, and no unstubbed HA module.
+import ast  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+_PKG_DIR = Path(_sysid.__file__).parent
+_LOADER_STUBS = {"homeassistant", "homeassistant.core", "homeassistant.helpers", "homeassistant.helpers.aiohttp_client", "aiohttp"}
+
+
+def _imports_of(name):
+    sibs, ext = set(), set()
+    for node in ast.walk(ast.parse((_PKG_DIR / f"{name}.py").read_text())):
+        if isinstance(node, ast.ImportFrom) and node.level:
+            sibs.update([node.module] if node.module else [a.name for a in node.names])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            ext.add(node.module)
+        elif isinstance(node, ast.Import):
+            ext.update(a.name for a in node.names)
+    return sibs, ext
+
+
+_loaded = ("const", "open_meteo")
+_loader_sibs = set().union(*(_imports_of(m)[0] for m in _loaded))
+_loader_ext = set().union(*(_imports_of(m)[1] for m in _loaded))
+R.check(
+    "open_meteo's loader finds every package module it imports among those it loads",
+    _loader_sibs <= set(_loaded),
+    f"{sorted(_loader_sibs - set(_loaded))}",
+)
+R.check(
+    "and every Home Assistant module those import is one of the loader's stubs (stdlib and numpy aside)",
+    all(m in _LOADER_STUBS or not m.startswith(("homeassistant", "aiohttp")) for m in _loader_ext),
+    f"{sorted(m for m in _loader_ext if m.startswith(('homeassistant', 'aiohttp')) and m not in _LOADER_STUBS)}",
 )
 
 

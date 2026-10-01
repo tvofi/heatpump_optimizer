@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_utc_step_starts RETURN_DEL 3be6dbf2",
+  "killed_by": "tests/features.py",
+  "old": "    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

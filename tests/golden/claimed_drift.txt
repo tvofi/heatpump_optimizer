@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.12
+# claims-for: 6.7.13
 #
-# v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
+# v6.7.13: round 9: coordinator seams, the DST barrier completed, CPU gate, card and chart work, adopted process changes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

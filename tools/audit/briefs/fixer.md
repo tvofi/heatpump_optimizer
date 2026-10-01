@@ -2,6 +2,8 @@
 
 You own one PR group: one subsystem, at most five findings, at most about 400
 production lines. You work in your own worktree branched from `origin/main`.
+Read only your roster group (`jq`). Run a job outliving your turn as a
+background task, whose exit wakes you; never end a turn on a detached one.
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
@@ -18,7 +20,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included — the M0 null run attributes it to
-   the runner (#1713, #1723).
+   the runner (#1713, #1723). **Pinning is `mutation-autofix`'s**
+   (`ci-autofix.md`): no local `--pin-killed`; the body lists survivors on the
+   sites you touched (`mutation_table.py --scope changed`), each with a value
+   check or a written triage.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
@@ -56,15 +61,11 @@ production lines. You work in your own worktree branched from `origin/main`.
    mode against the same merge base, and a full run is about forty minutes. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
-   keep the handoff body outside the worktree `app_push.sh` refuses when dirty.
+   keep the body outside the worktree.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally and the body passes `tools/audit/prepr.sh`. Seats are LOCAL-ONLY
-   (decision 0011, `docs/decisions/0011-app-authored-identity.md`): hand the
-   branch and body off locally; the orchestrator pushes and opens the pull
-   request as the
-   `hpo-author` App, whose key files (`~/.zcode/hpo-author.*`) it alone holds
-   and never prints. `fix-review.md`'s posting line is the reviewer's.
+   locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
+   the PR as the `hpo-author` App (decision 0011).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -77,26 +78,26 @@ production lines. You work in your own worktree branched from `origin/main`.
    the detail. `python3 tests/structure.py` is seconds and runs before every
    push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
-   steps 2–8 are re-executed**: the evidence describes one tree, and either
-   makes a new one — **the body included**, because a figure that is a function
+   steps 2–8 are re-executed** (past the handoff, where its delta reaches):
+   the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
-   with that tip and `date -u`.
+   with that tip and `date -u`. The body rides the orphan ref
+   `handoff-body/<topic>` (`tools/audit/seat/body_push.sh`), off the code
+   head (`prepr.sh` step 1a); the orchestrator writes the delivery row.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
    head is the reviewer's measuring surface and **only the orchestrator moves
    it**: a head that moves mid-review invalidates measurements already taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
-   If your branch goes stale while a review is in flight, say so and hand it
-   back; do not merge it yourself — **re-read the head before you post**, in
-   `fix-review.md`.
+   **A conflict with main after it is resolved by merge, never a re-cut**
+   (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
+   hands you a semantic one to merge alike; the same reviewer judges that delta
+   alone (`fix-review.md` step 12).
 
-   Landing a PR is never yours — that is the **orchestrator's**, the
-   seat the Model-routing table gives control flow, merges and sequencing, or a
-   merge-and-release seat it starts. `git merge origin/main` into your own
-   branch and merging the pull request differ; only the first was ever yours,
-   and only before the handoff. "Coordinator" here is `coordinator.py` and its
-   ratchet budgets, never a seat.
+   Landing the pull request is the **orchestrator's**, or a merge-and-release
+   seat it starts. "Coordinator" here is `coordinator.py` and its ratchet
+   budgets, never a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
@@ -224,14 +225,12 @@ genuine new production feature, **raise** the budget because the capability is
 worth the structure it costs (`--record --allow-regression="<reason>"`, with
 that reason in the **commit** message: `main`'s history keeps a commit message
 and never a pull-request body — decision 0010, true under either merge method).
-Paying for the lines is the first question; a raise is for when you cannot.
 
 **Ask which class the budget you fear is even measured on.** Some rows come from
 the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed
 module. A method added outside that **class** moves none of the first group, so
-the payment question -- which has cost several seats a scan and once a near-halt
--- does not arise there. *Class*, not file: `coordinator.py` holds several, and
-adding a method, call and attribute to `CoordinatorContext` moves no row.
+the payment question does not arise there. *Class*, not file: `coordinator.py`
+holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
 
 **Derive the split, do not carry it.** The coordinator-scoped rows are the ones
 `measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge

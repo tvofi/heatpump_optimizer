@@ -1,38 +1,48 @@
 # Heat Pump Optimizer dashboard card
 
 `custom:heatpump-optimizer-card` is a self-contained Lovelace card that plots the
-optimizer's planning series on a single shared time axis:
+optimizer's planning series in three panels stacked on one shared time axis,
+each panel with its own scale:
 
-- **Electricity price** (per kWh in your currency, right axis, stepped
-  filled area)
-- **DHW heating** power (kW, left power axis, stepped filled band)
-- **Space heating** power (kW, left power axis, stepped filled band)
-- **Actioned power** (kW, left power axis, stepped filled band) — what the
-  heat pump actually did, left of "now" when you pan back through it: a
-  mode band along the base of the plot for the hours the pump was executing
-  heating (from the action sensor's own recorded state history, which every
-  install has), and the commanded power in kW above it on installs whose
-  action sensor publishes a `power_kw` attribute
-- **Outdoor temperature** (°C, left temperature axis, smooth line)
-- **DHW tank temperature** (°C, left temperature axis, smooth line, with the
-  prediction's expected error drawn as a dashed pair around it)
-- **House temperature** (°C, left temperature axis; upper/lower zones drawn as
-  dashed lines when the house is configured as two-zone)
-- **Solar irradiance** (W/m², inner right axis, stepped filled area)
+- **Price** (per kWh in your currency)
+  - **Electricity price** (stepped filled area)
+  - **Solar irradiance** (dashed stepped area): a relative curve behind the
+    price, with no axis of its own; the tooltip gives it in W/m²
+- **Heating power** (kW)
+  - **DHW heating** power (stepped filled band)
+  - **Space heating** power (stepped filled band)
+  - **Actioned power** — what the heat pump actually did, left of "now" when
+    you pan back through it: a mode band along the base of the panel for the
+    hours the pump was executing heating (from the action sensor's own
+    recorded state history, which every install has), and the commanded power
+    in kW above it on installs whose action sensor publishes a `power_kw`
+    attribute
+- **Temperatures** (°C)
+  - **Outdoor temperature** (smooth dashed-blue line)
+  - **DHW tank temperature** (smooth line, with the prediction's expected
+    error drawn as a dashed pair around it)
+  - **House temperature** (smooth line; upper/lower zones drawn as dashed
+    lines when the house is configured as two-zone)
 
 Every series has one clickable legend chip — one per series, including the
 house-temperature series when it draws its two zone lines as well, because
 visibility is per series and hiding one line of a series is not something the
 card can do. The chip's hover text names the extra traces that ride on it; the
 crosshair tooltip is where they are told apart, with a row per line. Toggling a
-chip hides/shows the series and rescales the axes to the visible data.
+chip hides/shows the series and rescales its panel to the visible data; a
+panel with nothing visible gives its height to the others.
 
 The chart is drawn as hand-written inline SVG — there is **no** dependency on
 Chart.js, ApexCharts, npm or any CDN.
 
-A vertical "now" marker is drawn at the current time, and hovering (or touching)
-the plot shows a crosshair and a tooltip with the value of every visible series
-at the nearest sample, plus **why** the plan is heating at that moment.
+A vertical "now" marker is drawn at the current time across all three panels,
+and hovering (or touching) the chart shows a crosshair through every panel and
+a tooltip with the value of every visible series at the nearest sample, plus
+**why** the plan is heating at that moment.
+
+The colours are chosen per panel, with a light and a dark set, so that every
+pair of series in one panel stays apart for readers with deuteranopia,
+protanopia or tritanopia, and every series reads at 3:1 against its panel.
 
 ## The card at a glance
 
@@ -171,16 +181,12 @@ suffix after the current one. The savings figure is labelled with the unit the
 savings sensor itself declares — nothing here converts, so a `currency:` in the
 card config does not relabel it.
 
-### The solar irradiance axis
+### The solar irradiance curve
 
-W/m² is a fourth unit and both plot edges were already occupied by the
-temperature/power axes on the left and the price axis on the right. Irradiance
-therefore gets its own axis just inside the price one, and the plot only gives
-up that width when the series is actually visible — a permanently narrower chart
-would be a real cost to everyone who does not use it.
-
-Scaling irradiance into the existing power axis as kW/m² was the alternative,
-but a 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
+Irradiance is a fourth unit. It is drawn in the price panel as a dashed,
+relative curve whose scale tops out a little over half way up the panel, so it
+shows when the sun is up without competing with the price in front of it, and
+it costs the chart no axis width. Hovering gives its value in W/m².
 
 ### Reason codes and estimated prices
 
@@ -234,14 +240,16 @@ same chart in a large modal overlay, drawn at a larger font.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/plan-dark.png">
-  <img alt="The enlarged view on its Plan tab: the plan chart drawn wide, with the slot lanes and the schedule editor under it" src="img/card/plan-light.png">
+  <img alt="The enlarged view on its Plan tab: the plan chart drawn wide in its three panels, price, heating power and temperatures, with the slot lanes and the schedule editor under it" src="img/card/plan-light.png">
 </picture>
 
-Gridlines stand at every hour. How many of them are *labelled* is worked out
-from how wide a label is against how much room an hour gets, then snapped to an
-interval that divides the day — 1, 2, 3, 4, 6, 8, 12 or 24 hours — so the
-labels land on the same clock times each day rather than drifting across
-midnight. Zoom in, or plot fewer hours, and more of them are labelled.
+The time axis is labelled as often as a label fits, worked out from how wide a
+label is against how much room an hour gets, then snapped to an interval that
+divides the day — 1, 2, 3, 4, 6, 8, 12 or 24 hours — so the labels land on the
+same clock times each day rather than drifting across midnight. Each labelled
+hour also gets a vertical gridline in every panel. Zoom in, or plot fewer
+hours, and more of them are labelled. The editor, panning and zooming all work
+on that one time axis, whichever panel the pointer is over.
 
 Clicking a legend chip only toggles that series; it does not open the overlay.
 Toggles work inside the overlay too, and the visibility state is shared with the

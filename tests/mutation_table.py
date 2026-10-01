@@ -1963,6 +1963,63 @@ def deferred_drivers(needed: list[str], scope: str) -> list[str]:
     return [s for s in needed if s in EXCLUSIVE and scope == "changed"]
 
 
+def lazy_drivers(needed: list[str], scope: str) -> list[str]:
+    """The shared drivers whose baseline and null run wait for a red mutant run.
+
+    Under --scope changed (R9-F10.9b, #1812). `killed()` reads a baseline only
+    for a RED run: a green one kills under any baseline. So a driver's
+    baseline and null control are run, on that worker's restored tree, the
+    first time one of its mutant runs comes back red, and every kill is still
+    judged against them -- no kill or LIVES verdict moves. What moves is the
+    headline when no mutant run of a driver is red, as for `deferred_drivers`:
+    its red baseline or killed null control, which no verdict then reads, is
+    never run. #1806 spent 17 minutes on baselines, tests/features.py's 712 s
+    of them, before a table that driver killed nothing in. A ref-driven driver
+    stays eager: its recorded seconds time a cheap stub (closure.py #934), and
+    its measured baseline is what orders the sweep. --scope full stays eager.
+    """
+    if scope != "changed":
+        return []
+    return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
+
+
+def recorded_seconds() -> dict[str, float]:
+    """Each script's seconds as tests/closures.json's recording measured them:
+    the sweep order's cost for a lazy driver, which has no baseline yet."""
+    raw = json.loads(CLOSURES.read_text()).get("recorded", {})
+    return {s: float(r.get("seconds", 0.0)) for s, r in raw.items()
+            if isinstance(r, dict)}
+
+
+class LazyBaselines:
+    """Kill verdicts that pay for a lazy driver's baseline at its first red run.
+
+    `settle(worker, script)` runs that driver's baseline and null control on
+    the worker's unmutated tree, stores the baseline in `baseline` when both
+    pass, and returns None -- or the run's exit status when either refuses,
+    which stops every later verdict (`stop`) and is main()'s to return.
+    """
+
+    def __init__(self, baseline: dict[str, "ScriptRun"], settle) -> None:
+        self.baseline = baseline
+        self._settle = settle
+        self._guard = threading.Lock()
+        self._locks: dict[str, threading.Lock] = {}
+        self.stop: int | None = None
+
+    def killed(self, worker: int, script: str, run: "ScriptRun") -> bool:
+        if run.rc == 0 or self.stop is not None:
+            return False
+        with self._guard:
+            lock = self._locks.setdefault(script, threading.Lock())
+        with lock:
+            if script not in self.baseline and self.stop is None:
+                self.stop = self._settle(worker, script)
+        if self.stop is not None:
+            return False
+        return killed(script, run, self.baseline[script])
+
+
 class Deferred(Exception):
     """A deferred driver's baseline or null control refused the run."""
 
@@ -2258,8 +2315,13 @@ def main() -> int:
         for s in deferred:
             print(f"  {s}: baseline and null control deferred until a mutant "
                   f"survives every shared driver")
+        lazy = lazy_drivers(needed, args.scope)
+        for s in lazy:
+            print(f"  {s}: baseline and null control deferred until a mutant "
+                  f"run of it is red")
         null_runs: dict[str, ScriptRun] = {}
-        baseline = drive_baselines([s for s in needed if s not in deferred],
+        baseline = drive_baselines([s for s in needed
+                                    if s not in deferred and s not in lazy],
                                    jobs, run_baseline,
                                    null_run=run_null, null_out=null_runs)
         verdict = baseline_refusal(baseline, args.scope)
@@ -2272,9 +2334,9 @@ def main() -> int:
             return 1
         print(f"  null control {triage_key(null)} survived every driver")
 
-        def settle(s: str) -> None:
-            """A deferred driver's baseline and null run, alone on tree 0."""
-            base, nul = run_baseline(0, s), run_null(0, s)
+        def settle_on(w: int, s: str) -> int | None:
+            """A deferred or lazy driver's baseline and null run on tree `w`."""
+            base, nul = run_baseline(w, s), run_null(w, s)
             stop = baseline_refusal({s: base}, args.scope)
             if stop is None:
                 why = null_control_refusal(triage_key(null),
@@ -2282,11 +2344,19 @@ def main() -> int:
                                                                 {s: base}))
                 stop = 1 if why else None
                 print(why or f"  null control {triage_key(null)} survived {s}")
+            if stop is None:
+                baseline[s] = base
+            return stop
+
+        def settle(s: str) -> None:
+            """A deferred driver's baseline and null run, alone on tree 0."""
+            stop = settle_on(0, s)
             if stop is not None:
                 raise Deferred(stop)
-            baseline[s] = base
 
-        seconds = {s: r.seconds for s, r in baseline.items()}
+        verdicts = LazyBaselines(baseline, settle_on)
+        seconds = {**{s: t for s, t in recorded_seconds().items() if s in lazy},
+                   **{s: r.seconds for s, r in baseline.items()}}
         for mut in pool:
             mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
                                           budgets.get("killed_by", {}))
@@ -2312,6 +2382,8 @@ def main() -> int:
 
         def drive(w: int, mut: dict, s: str) -> bool:
             # One task per worker at a time, so a tree carries one mutant.
+            if verdicts.stop is not None:
+                return False
             path = trees[w] / mut["file"]
             original = path.read_text()
             path.write_text(mutated[id(mut)])
@@ -2319,19 +2391,27 @@ def main() -> int:
                 extra_args, extra_env = drive_spec(s, ref)
                 run = run_script(s, trees[w], args.timeout, extra_args,
                                  extra_env)
-                hit = killed(s, run, baseline[s])
-                if hit:
-                    kill_runs[(id(mut), s)] = run
-                return hit
             finally:
                 path.write_text(original)
+            # After the restore: a lazy driver's baseline runs on this tree.
+            hit = verdicts.killed(w, s, run)
+            if hit:
+                kill_runs[(id(mut), s)] = run
+            return hit
 
         try:
             results += drive_pool(
                 [m for m in pool if id(m) in mutated], jobs, seconds, drive,
-                settle=lambda s: s in deferred and settle(s))
+                settle=lambda s: (s in deferred and verdicts.stop is None
+                                  and settle(s)))
         except Deferred as stop:
             return stop.rc
+        if verdicts.stop is not None:
+            return verdicts.stop
+        for s in (s for s in lazy if s not in baseline):
+            print(f"  {s}: LAZY AND NEVER RUN -- every mutant run of it was "
+                  f"green, so no verdict read its baseline; a red one would "
+                  f"have made it INCONCLUSIVE, a killed null REFUSED")
         for s in (s for s in deferred if s not in baseline):
             print(f"  {s}: DEFERRED AND NEVER RUN -- no mutant survived every "
                   f"shared driver, so its baseline was never checked here; a "

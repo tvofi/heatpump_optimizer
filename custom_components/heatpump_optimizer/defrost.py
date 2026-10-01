@@ -108,8 +108,8 @@ def in_frost_band(outdoor_temp: float) -> bool:
     """Whether under-delivery at this outdoor temperature reads as frost."""
     return FROST_BAND_MIN_C <= float(outdoor_temp) < FROST_BAND_MAX_C
 
-# Derate is bounded. A unit that appears to deliver less than half its rated
-# output is telling us about a broken sensor, not about frost.
+# Derate is bounded. A unit that appears to deliver less than DERATE_MIN of its
+# rated output is telling us about a broken sensor, not about frost.
 DERATE_MIN = 0.55
 # v5.3.0: 1.0, previously 1.05. This module models a LOSS; a derate above 1
 # says frost makes the pump exceed its own curve, which is not a thing that
