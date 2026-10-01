@@ -1663,11 +1663,11 @@
         "R9-F1.8"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f6-card-4",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "f67f598a",
+        "last_step": "#1806 merged 2026-10-01T12:4xZ as f67f598a at head 57eecef0 (round-2 merge verdict 5931655451; tvofi review under mandate; real-HA 61/61); #1687 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F6.4.md on handoff/r9-f6-card-4",
         "review_branch": "handoff/r9-f6-card-4-review",
         "review_note_file": "handoff/round9/fix/resume/F6.4-review.md on handoff/r9-f6-card-4-review",
