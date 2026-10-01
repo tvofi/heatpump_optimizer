@@ -16892,40 +16892,56 @@ R.check(
     f"status={_af4_status}",
 )
 # A merge that SUCCEEDS and still leaves check failing must restore the file,
-# not push it. The fixture that used to occupy this slot made the under-scoped
-# cause an INERT file (LICENSE): the merge wrote the INERT-and-recorded pair
-# and the second check refused it. 45b5768 moved that refusal into merge
-# --single itself, so the INERT route now reports skip-merge-failed before
-# any write, and this check would pin the wrong status. The surviving route
-# to a successful merge with a still-failing check is non-INERT: a
-# DRIVEN_BY_OTHERS child recorded alone. merge --partial folds
-# dst_checks.py into features.py, grows that entry, and returns 0 -- the
-# push path -- while check --partial compares the raw record name, finds no
-# committed closure for it, and still fails. The merge wrote real bytes (the
-# fold grew features.py's list), so the restore below is undoing a change,
-# not confirming a no-op.
-with _tempfile.TemporaryDirectory() as _af5_td:
-    _af5_root = Path(_af5_td)
-    _af5_script = "tests/dst_checks.py"
-    _af5_closures = _af5_root / "closures.json"
-    _af5_before = json.dumps({
-        "closures": {"tests/features.py": ["tests/features.py"]},
-        "recorded": {},
-    })
-    _af5_closures.write_text(_af5_before)
-    _af5_rec = _af5_root / "rec"
-    _af5_rec.mkdir()
-    (_af5_rec / "dst_checks.json").write_text(json.dumps({
-        "script": _af5_script, "rc": 0,
-        "files": [_af5_script, "tests/harness.py"],
-    }))
-    _af5_orig, _closure.CLOSURES = _closure.CLOSURES, _af5_closures
-    try:
-        _af5_status = _closure.apply_under_scoped_recordings(
-            _af5_rec, partial=True)
-        _af5_after = _af5_closures.read_text()
-    finally:
-        _closure.CLOSURES = _af5_orig
+# not push it. Two fixtures held this slot and each route closed under it: an
+# INERT cause (45b5768 moved that refusal into merge --single, so it reports
+# skip-merge-failed before any write), then a DRIVEN_BY_OTHERS child recorded
+# alone, which check --partial compared under its own name. R9-F10.9 made
+# check --partial fold the child into its driver, as merge --partial does, so
+# that recording is now a repair -- pinned first below. No real route to a
+# successful merge with a still-failing check remains, so the restore is
+# driven by a check that fails on its second call: the merge wrote real bytes
+# (the fold grew features.py's list), so the restore undoes a change, not a
+# no-op.
+def _af5_run(fail_second_check: bool) -> tuple[str, str, str]:
+    with _tempfile.TemporaryDirectory() as _td:
+        _root = Path(_td)
+        _closures = _root / "closures.json"
+        _before = json.dumps({
+            "closures": {"tests/features.py": ["tests/features.py"]},
+            "recorded": {},
+        })
+        _closures.write_text(_before)
+        _rec = _root / "rec"
+        _rec.mkdir()
+        (_rec / "dst_checks.json").write_text(json.dumps({
+            "script": "tests/dst_checks.py", "rc": 0,
+            "files": ["tests/dst_checks.py", "tests/harness.py"],
+        }))
+        _orig, _closure.CLOSURES = _closure.CLOSURES, _closures
+        _real_check, _calls = _closure.check, []
+
+        def _check(in_dir, partial=False):
+            _calls.append(1)
+            if fail_second_check and len(_calls) == 2:
+                return 1
+            return _real_check(in_dir, partial)
+        _closure.check = _check
+        try:
+            _status = _closure.apply_under_scoped_recordings(_rec, partial=True)
+            return _status, _before, _closures.read_text()
+        finally:
+            _closure.CLOSURES, _closure.check = _orig, _real_check
+
+
+_af5_status, _af5_before, _af5_after = _af5_run(False)
+R.check(
+    "a driven child's recording repairs its driver's closure (R9-F10.9)",
+    _af5_status == "changed"
+    and {"tests/dst_checks.py", "tests/harness.py"}
+    <= set(json.loads(_af5_after)["closures"]["tests/features.py"]),
+    f"status={_af5_status}",
+)
+_af5_status, _af5_before, _af5_after = _af5_run(True)
 R.check(
     "a merge that still fails check is restored, not pushed",
     _af5_status == "skip-still-fails" and _af5_after == _af5_before,
@@ -17150,11 +17166,112 @@ R.check(
     "the runner, so a bare interpreter cannot reach Docker",
 )
 # A script another script drives in a subprocess reaches the table only
-# through its driver's fold, and --single cannot record it.
+# through its driver's fold: a change to it re-derives the driver and the
+# child, never every closure (R9-F10.9; this pinned `full` until then).
+_A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
-    "a change to a subprocess-driven script re-derives everything",
-    _closure.affected(["tests/dst_checks.py"])["case"] == "full",
-    "re-deriving features.py alone would not see dst_checks.py's new reads",
+    "a change to a subprocess-driven script re-derives its driver and itself",
+    _A_DRIVEN["case"] == "scoped"
+    and _A_DRIVEN["rederive"] == ["tests/features.py", "tests/dst_checks.py"],
+    f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
+)
+# A tests/closures.json change runs the scripts whose entry moved, measured
+# against the merge base's table, not every script (R9-F10.9). Without a base
+# it is still a gate file; with one, an unmoved table runs no entry's script.
+_CJ = "tests/closures.json"
+_CJ_HEAD = json.loads(_closure.CLOSURES.read_text())["closures"]
+_CJ_SAME = {k: list(v) for k, v in _CJ_HEAD.items()}
+_CJ_GREW = {**_CJ_SAME, "tests/open_meteo.py": _CJ_SAME["tests/open_meteo.py"][:-1]}
+_CJ_SHRANK = {**_CJ_SAME, "tests/edge.py": _CJ_SAME["tests/edge.py"] + ["README.md"]}
+_CJ_READERS = sorted(k for k, v in _CJ_HEAD.items() if _CJ in v)
+R.check(
+    "the recorder measures the table as a dependency, never the instrument",
+    _closure._rel(str(_closure.CLOSURES)) == _CJ
+    and _closure._rel(str(_closure.ROOT / "tests" / "closure.py")) is None,
+    "a closures.json change selects its readers only if their closures list it",
+)
+R.check(
+    "a closures.json change runs the scripts whose entry moved, either way",
+    _closure.select([_CJ])["mode"] == "full"
+    and _closure.select([_CJ, "tests/run.sh"], _CJ_SAME)["mode"] == "full"
+    and _closure.select([_CJ], _CJ_SAME)["run"] == _CJ_READERS
+    and _closure.select([_CJ], _CJ_GREW)["run"]
+    == _closure.suite_order(_CJ_READERS + ["tests/open_meteo.py"])
+    and _closure.select([_CJ], _CJ_SHRANK)["run"]
+    == _closure.suite_order(_CJ_READERS + ["tests/edge.py"]),
+    f"readers={_CJ_READERS} grew={_closure.select([_CJ], _CJ_GREW)['run']} "
+    f"shrank={_closure.select([_CJ], _CJ_SHRANK)['run']}",
+)
+# The base a closures.json change is measured against is the merge base's
+# committed table, and `select --diff` hands it to `select`: a base read from
+# HEAD would make every entry unchanged, so a shrunk entry -- the way to hide
+# a dependency -- would run nothing (R9-F10.9 review round 1). The ancestor is
+# the first parent of a commit that moved the table whose table differs from
+# HEAD's, so the pin reads a table the HEAD-reading mutant cannot return.
+import contextlib as _bc_contextlib
+import io as _bc_io
+import subprocess as _bc_subprocess
+
+_BC_REVS = _bc_subprocess.run(
+    ["git", "log", "--format=%H", "--", _CJ], cwd=_closure.ROOT,
+    capture_output=True, text=True).stdout.split()
+
+
+def _bc_table(rev: str) -> dict | None:
+    _shown = _bc_subprocess.run(["git", "show", f"{rev}:{_CJ}"], cwd=_closure.ROOT,
+                             capture_output=True, text=True)
+    return json.loads(_shown.stdout)["closures"] if _shown.returncode == 0 else None
+
+
+_BC_ANC = next((f"{r}^" for r in _BC_REVS
+                if _bc_table(f"{r}^") not in (None, _CJ_HEAD)), None)
+_BC_SEEN: list = []
+_bc_select, _bc_argv = _closure.select, sys.argv
+
+
+def _bc_spy(files, base=None):
+    _BC_SEEN.append(base)
+    return _bc_select(files, base)
+
+
+_closure.select = _bc_spy
+sys.argv = ["closure.py", "select", "--files", _CJ, "--diff", _BC_ANC or "HEAD", "--json"]
+try:
+    with _bc_contextlib.redirect_stdout(_bc_io.StringIO()):
+        _closure.main()
+finally:
+    _closure.select, sys.argv = _bc_select, _bc_argv
+R.check(
+    "a closures.json change is measured against the merge base's table, not HEAD's",
+    _BC_ANC is not None
+    and _closure.base_closures(_BC_ANC) == _bc_table(_BC_ANC) != _CJ_HEAD
+    and _BC_SEEN == [_bc_table(_BC_ANC)]
+    and _closure.base_closures("refs/heads/no-such-ref-r9-f10-9") is None,
+    f"ancestor={_BC_ANC} base_closures equal={_closure.base_closures(_BC_ANC or 'HEAD') == _bc_table(_BC_ANC or 'HEAD')} "
+    f"select got the ancestor's table={_BC_SEEN == [_bc_table(_BC_ANC or 'HEAD')]}",
+)
+# The NOT RUN block reads the manifests: a run_always script the plan scoped
+# out ran, and env_drift.py's --claims-only line is not its skipped capture.
+with _tempfile.TemporaryDirectory() as _nr_td:
+    _nr = Path(_nr_td)
+    (_nr / "scope.skip").write_text(
+        "tests/harness_headers.py\t220\tno changed file\n"
+        "tests/env_drift.py\t300\tno changed file\n"
+        "tests/open_meteo.py\t40\tno changed file\n"
+        "tests/card.mjs\t60\tno changed file\n")
+    (_nr / "units.manifest").write_text(
+        "units-001\t0\t3\tpython3 tests/env_drift.py --claims-only origin/main\n"
+        "units-002\t0\t0\t#skip tests/open_meteo.py\n"
+        "units-003\t0\t90\tpython3 tests/harness_headers.py\n")
+    (_nr / "golden.manifest").write_text(
+        "golden-001\t0\t0\t#skip tests/env_drift.py\n")
+    _nr_rows, _nr_anyway = _closure.not_run(_nr)
+R.check(
+    "the NOT RUN block lists what did not run, and only that (R9-F10.9)",
+    [r[0] for r in _nr_rows]
+    == ["tests/env_drift.py", "tests/open_meteo.py", "tests/card.mjs"]
+    and _nr_anyway == ["tests/harness_headers.py"],
+    f"not run={[r[0] for r in _nr_rows]} ran anyway={_nr_anyway}",
 )
 # The cost claim: one script's closure touched re-derives ONE entry.
 _A_ONE = _closure.affected(["tests/open_meteo.py"])
