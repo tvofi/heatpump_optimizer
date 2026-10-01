@@ -3468,6 +3468,458 @@ R.check(
 )
 
 # ===========================================================================
+# P2: one fact, one owner (round-9 class barrier)
+# ===========================================================================
+# Class P2 -- one fact decided twice by divergent predicates, a guard at one
+# seam and missing at its sibling -- recurred in all nine audit rounds
+# (bugclasses.json). Each fix routed its own sibling through the fact's owner
+# and enumerated the class's seams with a rule (fixer.md step 8) that ran
+# once, in a pull request body, with free-text dispositions. This registry is
+# that rule kept: per fact, the AST shape that decides it, the functions
+# allowed to hold the shape, and every other site the shape returns with the
+# reason it is not the fact's decision. Any other hit fails. Three refusals
+# stop it going green by skipping: an owner that no longer exists
+# (OWNER-MISSING), a shape that matches nothing and has nothing to match
+# (DEAD-RULE), and a disposition whose site no longer hits
+# (STALE-DISPOSITION). Facts with no syntactic shape are held by a census that
+# asserts its own reach; _P2_CENSUSES names each, and one whose check text is
+# gone from its script is refused (CENSUS-MISSING). Prototype: the round-9 P2
+# RCA's owners lint, handoff/r9-rca-p2@3938c8ea.
+R.section("P2: one fact, one owner (round-9 class barrier)")
+
+
+def _p2_conf(e):
+    if isinstance(e, ast.Name) and e.id.startswith("CONF_"):
+        return e.id
+    if isinstance(e, ast.Attribute) and e.attr.startswith("CONF_"):
+        return e.attr
+    return None
+
+
+def _p2_conf_read(n):
+    """``x.get(K)``, ``x[K]`` (a load) or ``K in x``: the CONF_ name read."""
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+            and n.func.attr == "get" and n.args:
+        return _p2_conf(n.args[0])
+    if isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
+        return _p2_conf(n.slice)
+    if isinstance(n, ast.Compare) and len(n.ops) == 1 \
+            and isinstance(n.ops[0], (ast.In, ast.NotIn)):
+        return _p2_conf(n.left)
+    return None
+
+
+def _p2_decides(n, parents):
+    """In an if/while/assert/ternary test, a bool op, ``not`` or ``bool()``."""
+    cur = n
+    while cur in parents:
+        par = parents[cur]
+        if isinstance(par, (ast.If, ast.IfExp, ast.While, ast.Assert)) and cur is par.test:
+            return True
+        if isinstance(par, ast.BoolOp) or (
+            isinstance(par, ast.UnaryOp) and isinstance(par.op, ast.Not)
+        ):
+            return True
+        if isinstance(par, ast.Call) and getattr(par.func, "id", None) == "bool":
+            return True
+        if isinstance(par, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.stmt)):
+            return False
+        cur = par
+    return False
+
+
+def _p2_match_proxy(keys):
+    """A decision-context read of one of the fact's proxy keys. ``live`` is
+    whether the extraction found any: an empty set means it broke."""
+    def m(n, parents):
+        return _p2_conf_read(n) in keys and _p2_decides(n, parents)
+    m.live = bool(keys)
+    return m
+
+
+def _p2_match_node(types, pattern, pre):
+    """A node of ``types`` passing the cheap ``pre`` filter whose unparsed
+    text matches ``pattern`` (the unparse is the cost, hence ``pre``)."""
+    rx = re.compile(pattern)
+
+    def m(n, parents):
+        if not isinstance(n, types) or not pre(n):
+            return False
+        if isinstance(n, ast.Attribute) and not isinstance(n.ctx, ast.Load):
+            return False
+        return bool(rx.search(ast.unparse(n)))
+    return m
+
+
+def _p2_match_literal_domain(domains):
+    """``*.async_call("<domain>", ...)``: an entity write naming its domain
+    as a literal rather than taking it from the entity."""
+    def m(n, parents):
+        return (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and n.func.attr == "async_call" and n.args
+                and isinstance(n.args[0], ast.Constant) and n.args[0].value in domains)
+    return m
+
+
+_P2_STAMPS = {"last_updated", "last_changed", "last_reported"}
+#: The cycle path: where a fenced step's direct call is an unfenced sibling.
+_P2_CYCLE = {"_async_update_data", "async_run_optimization", "_apply_action"}
+#: Every step the cycle fences at this tree (#1644, F1.3's carry): a step
+#: that loses its fence is still in the universe, so its bare call strays.
+_P2_FENCED = {
+    "pump_arbiter.apply", "self._async_drive_pumps", "self._async_save_accuracy",
+    "self._async_save_energy_totals", "self._async_watch_learning_drift",
+    "self._command_frequency", "self._maybe_refresh_price_tile",
+    "self._maybe_run_fuse_advisor", "self._record_accuracy",
+    "self._record_quiet_comfort_period", "self._track_realised_peak",
+}
+
+
+def _p2_fence_args(source):
+    """The callee each ``_best_effort_cycle_step`` call fences, as written:
+    a bound method, or the call inside a lambda."""
+    out = set()
+    for n in ast.walk(ast.parse(source)):
+        if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_best_effort_cycle_step" \
+                and n.args:
+            arg = n.args[0]
+            heads = [arg] if isinstance(arg, ast.Attribute) else [
+                c.func for c in ast.walk(arg) if isinstance(c, ast.Call)]
+            out |= {ast.unparse(h) for h in heads}
+    return out
+
+
+def _p2_match_unfenced(universe, live):
+    """A direct call of a fenced step inside a cycle-path function, outside
+    any ``_best_effort_cycle_step`` (F1.3: the fence is one helper's
+    argument list, so an unfenced sibling is a bare call, not a missing try)."""
+    def m(n, parents):
+        if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and ast.unparse(n.func) in universe):
+            return False
+        cur = n
+        while cur in parents:
+            cur = parents[cur]
+            if isinstance(cur, ast.Call) and getattr(cur.func, "id", None) == "_best_effort_cycle_step":
+                return False
+            if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return cur.name in _P2_CYCLE
+        return False
+    m.live = live
+    return m
+
+
+def _p2_running_floor(node):
+    return (isinstance(node, ast.Constant) and node.value == 0.1) or (
+        isinstance(node, ast.Name) and node.id == "MIN_RUNNING_DRAW_KW")
+
+
+def _p2_proxies(sources):
+    """The CONF_ names each canonical predicate reads, extracted from the
+    predicate's own body (D14-s2-01's rule), so a key the owner starts
+    reading is a proxy the day it lands."""
+    def names(node):
+        return {c for x in ast.walk(node) if (c := _p2_conf(x))}
+    out = {"two_zone_enabled": set(), "dhw_enabled": set(), "wood_furnace_on": set()}
+    for n in ast.walk(ast.parse(sources["thermal_model.py"])):
+        if isinstance(n, ast.If):
+            txt = ast.unparse(n)
+            if "values['two_zone_enabled']" in txt and "CONF_TWO_ZONE_MODE" not in txt:
+                out["two_zone_enabled"] |= names(n)
+        if isinstance(n, ast.Assign) and "two_zone_mode" in ast.unparse(n.targets[0]):
+            out["two_zone_enabled"] |= names(n.value)
+        if isinstance(n, ast.FunctionDef) and n.name == "_dhw_enabled_from_config":
+            out["dhw_enabled"] |= names(n)
+    for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
+        if isinstance(n, ast.FunctionDef) and n.name in ("wood_furnace_on", "wood_furnace_inferred"):
+            out["wood_furnace_on"] |= names(n)
+    return out
+
+
+def _p2_registry(sources):
+    """owners: ``file.py::Qual.name`` where the shape may live. dispositions:
+    sites the shape returns that are not the fact's decision, with why."""
+    px = _p2_proxies(sources)
+    answer = "not a decision: answer read-back"
+    fenced_now = _p2_fence_args(sources["coordinator.py"])
+    cycle_defined = {
+        n.name for n in ast.walk(ast.parse(sources["coordinator.py"]))
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    } >= _P2_CYCLE
+    return [
+        dict(fact="two_zone_enabled", finding="D14-s2-01",
+             match=_p2_match_proxy(px["two_zone_enabled"]),
+             owners=["thermal_model.py::ThermalParameters.from_config"], dispositions={}),
+        dict(fact="wood_furnace_on", finding="D14-s2-01",
+             match=_p2_match_proxy(px["wood_furnace_on"]),
+             owners=["wood_fuel.py::wood_furnace_on", "wood_fuel.py::wood_furnace_inferred",
+                     "wood_fuel.py::wood_fuel_ready"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
+                     "guarded: ANDed with wood_furnace_on",
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
+                     "guarded: normalises the flag after wood_furnace_on(merged)",
+                 "thermal_model.py::ThermalParameters.from_config":
+                     "guarded: under _on = wood_furnace_on(config)",
+                 "quick_setup.py::stored_answers": answer,
+             }),
+        dict(fact="dhw_enabled", finding="D14-s2-01",
+             match=_p2_match_proxy(px["dhw_enabled"]),
+             owners=["thermal_model.py::_dhw_enabled_from_config"],
+             dispositions={
+                 "legionella.py::LegionellaGuard.async_track_cycle":
+                     "probe presence, not the hot-water fact",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_probe_temperature":
+                     "probe presence",
+                 "topology.py::rank_sensor_gaps": "probe presence",
+                 "sensor.py::_gap_probe_terms": "a volume default",
+                 "services.py::handle_set_thermal_params": "service data write",
+                 "services.py::handle_apply_topology": "service data write",
+                 "services.py::handle_apply_schedule": "service data write",
+                 "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
+                     "windows update",
+                 "quick_setup.py::stored_answers": answer,
+                 # F1.2's two reads (its carry-in to this registry):
+                 "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_dhw":
+                     answer + ": the page suggests the stored answer back",
+                 "config_flow.py::_omit_unstored_defaults":
+                     answer + " and canonical predicate: it asks only whether "
+                     "the explicit answer is stored and takes its verdict from "
+                     "_dhw_enabled_from_config",
+             }),
+        # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
+        # (last_reported first, #775); age_of re-derived it.
+        dict(fact="state_age", finding="D1-s5-01",
+             match=_p2_match_node(
+                 (ast.Attribute,), r"\.(last_updated|last_changed|last_reported)$",
+                 lambda n: n.attr in _P2_STAMPS),
+             also=_p2_match_node(
+                 (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
+                 lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
+                 and getattr(n.args[1], "value", None) in _P2_STAMPS),
+             owners=["inputs.py::state_stamp"], dispositions={}),
+        # D12-s2-01: whether a step's draw means "on", held at four sites.
+        dict(fact="on_threshold_kw", finding="D12-s2-01",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"min_electrical_power\)? \* 0\.5|0\.5 \* .*min_electrical_power",
+                 lambda n: isinstance(n.op, ast.Mult) and 0.5 in (
+                     getattr(n.left, "value", None), getattr(n.right, "value", None))),
+             owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
+        # D12-s2-02: the domain that writes a configured entity comes from
+        # the entity (coordinator._on_off_service, #1526), never a literal.
+        dict(fact="entity_write_domain", finding="D12-s2-02",
+             match=_p2_match_literal_domain(
+                 {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
+             owners=["coordinator.py::_on_off_service"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
+                     "the compressor_freq slot is number-only "
+                     "(config_flow's _entity_of('number'))",
+             }),
+        # #1644 (D1-s2-51, D1-s2-91): a cycle step owns its own failure. The
+        # owner is the fence; `requires` names the steps it must still hold.
+        dict(fact="fenced_cycle_step", finding="D1-s2-51",
+             match=_p2_match_unfenced(_P2_FENCED, bool(fenced_now) and cycle_defined),
+             owners=["coordinator.py::_best_effort_cycle_step"], dispositions={},
+             requires=sorted(_P2_FENCED - fenced_now)),
+        # D12-s2-01's other half: whether the PLAN runs the pump at a step is
+        # planned_draws_run's (MIN_RUNNING_DRAW_KW on space plus DHW); a
+        # literal running threshold on a power elsewhere is a copy of it.
+        dict(fact="plan_running_rule", finding="D12-s2-01",
+             match=_p2_match_node(
+                 (ast.Compare,), r"power|_kw\b|\bp\b|dhw",
+                 lambda n: len(n.ops) == 1
+                 and any(map(_p2_running_floor, (n.left, n.comparators[0])))),
+             owners=["thermal_model.py::planned_draws_run", "thermal_model.py::planned_draw_runs"],
+             dispositions={
+                 "climate.py::HeatPumpOptimizerClimate.hvac_action":
+                     "a fraction of the plan's power range, ORed with the "
+                     "action's heat_pump_on, which planned_draws_run set",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._detect_immersion":
+                     "a commanded-draw gate on a metered excess: whether any "
+                     "power was commanded, not whether the plan's step runs",
+                 "optimizer.py::HeatPumpOptimizer.get_current_action":
+                     "dhw_heating_active: the DHW circuit's own activity, not "
+                     "the pump's running verdict",
+                 "optimizer.py::HeatPumpOptimizer._optimize_with_dhw":
+                     "DHW-active step counts for the log and the out-of-window "
+                     "figure: the DHW circuit's activity",
+             }),
+    ]
+
+
+#: Facts no AST shape holds, each held by a census in another script that
+#: asserts its own reach. A registry entry here is the census's check text.
+_P2_CENSUSES = {
+    # #1747: the DHW mode block reached the first DHW build and not the
+    # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
+    "dhw_mode_blocked_at_every_build": (
+        "tests/features.py", "and every DHW build that solve made was told the mode is blocked"),
+    # D12-s2-02's runtime half: every domain a written slot accepts is
+    # commanded through a service that domain implements (#1526).
+    "written_slot_domain_routed": (
+        "tests/features.py",
+        "every slot accepting a commandable domain is a driven writer or a named"),
+}
+
+
+def _p2_index(tree):
+    parents, qual = {}, {}
+
+    def walk(node, q):
+        for c in ast.iter_child_nodes(node):
+            parents[c] = node
+            cq = q
+            if isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                cq = f"{q}.{c.name}" if q else c.name
+            qual[c] = cq
+            walk(c, cq)
+    walk(tree, "")
+    return parents, qual
+
+
+def _p2_owner_of(n, parents, qual):
+    cur = n
+    while cur in parents:
+        cur = parents[cur]
+        if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return qual[cur]
+    return ""
+
+
+_P2_FILE_CACHE = {}
+
+
+def _p2_file(name, text, registry):
+    """(defined qualnames, {fact: hits}) for one module, cached by its text
+    and the registry's matchers, so a plant re-scans only its own module."""
+    key = (name, text, tuple((e["fact"], id(e["match"])) for e in registry))
+    if key not in _P2_FILE_CACHE:
+        tree = ast.parse(text)
+        parents, qual = _p2_index(tree)
+        hits = {e["fact"]: [] for e in registry}
+        if name != "const.py":
+            for n in ast.walk(tree):
+                for e in registry:
+                    if e["match"](n, parents) or (e.get("also") and e["also"](n, parents)):
+                        hits[e["fact"]].append((name, n.lineno, _p2_owner_of(n, parents, qual)))
+        _P2_FILE_CACHE[key] = ({f"{name}::{v}" for v in qual.values() if v}, hits)
+    return _P2_FILE_CACHE[key]
+
+
+def _p2_scan(sources, registry=None):
+    """One row per fact: (fact, hits, stray, owners missing, stale
+    dispositions, dead). Clean is all four empty and dead False."""
+    registry = registry or _p2_registry(sources)
+    defined, hits = set(), {e["fact"]: [] for e in registry}
+    for name, text in sorted(sources.items()):
+        file_defined, file_hits = _p2_file(name, text, registry)
+        defined |= file_defined
+        for fact, found in file_hits.items():
+            hits[fact] += found
+    rows = []
+    for e in registry:
+        found = hits[e["fact"]]
+        sites = {f"{h[0]}::{h[2]}" for h in found}
+        stray = [h for h in found
+                 if f"{h[0]}::{h[2]}" not in e["owners"]
+                 and f"{h[0]}::{h[2]}" not in e["dispositions"]]
+        rows.append((
+            e["fact"], found, stray,
+            [o for o in e["owners"] if o not in defined],
+            [d for d in e["dispositions"] if d not in sites] + list(e.get("requires", [])),
+            not found and not getattr(e["match"], "live", False),
+        ))
+    return rows
+
+
+def _p2_fails(rows):
+    return {r[0] for r in rows if r[2] or r[3] or r[4] or r[5]}
+
+
+_P2_SOURCES = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
+_P2_REGISTRY = _p2_registry(_P2_SOURCES)
+_p2_rows = _p2_scan(_P2_SOURCES, _P2_REGISTRY)
+for _p2_fact, _p2_hits, _p2_stray, _p2_missing, _p2_stale, _p2_dead in _p2_rows:
+    R.check(
+        f"P2 owners: {_p2_fact} is decided only by its owner or a dispositioned "
+        f"site, its owner exists, no disposition is stale, the rule is live",
+        not (_p2_stray or _p2_missing or _p2_stale or _p2_dead),
+        f"SEAM {[f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray]} "
+        f"OWNER-MISSING {_p2_missing} STALE-DISPOSITION {_p2_stale} DEAD-RULE {_p2_dead} "
+        f"(hits={len(_p2_hits)})",
+    )
+_p2_census_gone = sorted(
+    fact for fact, (path, text) in _P2_CENSUSES.items()
+    if text not in (ROOT.parent.parent / path).read_text()
+)
+R.check(
+    "P2 owners: every census a shapeless fact rests on is still in its script",
+    not _p2_census_gone,
+    f"CENSUS-MISSING {_p2_census_gone}",
+)
+
+# NULL CONTROLS: each fact handed a new sibling outside its owner must fail,
+# and each refusal must fire on its own planted skip. Plants go into a copy
+# of one module's source; the rest of the tree is the scan above, cached.
+_p2_px = _p2_proxies(_P2_SOURCES)
+_P2_PLANTS = {
+    fact: f"\n\ndef _p2_plant(config):\n    if config.get({sorted(_p2_px[fact])[0]}):\n"
+          "        return 1\n    return 0\n"
+    for fact in ("two_zone_enabled", "wood_furnace_on", "dhw_enabled")
+}
+_P2_PLANTS["state_age"] = "\n\ndef _p2_plant(state, now):\n    return now - state.last_updated\n"
+_P2_PLANTS["on_threshold_kw"] = (
+    "\n\ndef _p2_plant(p):\n    return max(0.1, p.min_electrical_power * 0.5)\n"
+)
+_P2_PLANTS["plan_running_rule"] = "\n\ndef _p2_plant(p):\n    return p > 0.1\n"
+_P2_PLANTS["entity_write_domain"] = (
+    "\n\nasync def _p2_plant(hass):\n"
+    "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+)
+_p2_planted = {
+    fact: _p2_fails(_p2_scan(
+        {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
+    for fact, plant in _P2_PLANTS.items()
+}
+_P2_FENCE_RECORD = (
+    "await _best_effort_cycle_step(\n"
+    "                self._record_accuracy, \"Accuracy pairing skipped: %s\"\n"
+    "            )"
+)
+_p2_unfenced = _p2_fails(_p2_scan(
+    {**_P2_SOURCES, "coordinator.py": _P2_SOURCES["coordinator.py"].replace(
+        _P2_FENCE_RECORD, "await self._record_accuracy()")}, _P2_REGISTRY))
+_p2_renamed = _p2_fails(_p2_scan(
+    {**_P2_SOURCES, "thermal_model.py": _P2_SOURCES["thermal_model.py"].replace(
+        "def on_threshold_kw(", "def _p2_owner_renamed(")}, _P2_REGISTRY))
+_p2_with_stale = [
+    {**e, "dispositions": {**e["dispositions"], "coordinator.py::_p2_no_such_site": "planted"}}
+    if e["fact"] == "entity_write_domain"
+    else {**e, "requires": ["self._p2_never_fenced"]} if e["fact"] == "fenced_cycle_step"
+    else e
+    for e in _P2_REGISTRY
+]
+_p2_dead_entry = {**_P2_REGISTRY[4], "fact": "p2_dead",
+                  "match": _p2_match_node((ast.BinOp,), r"p2_never_spelt", lambda n: True)}
+_p2_dead_proxy = {**_P2_REGISTRY[0], "fact": "p2_dead_proxy", "match": _p2_match_proxy(set())}
+R.check(
+    "and each P2 fact fails on a new sibling outside its owner, and each "
+    "refusal fires on its planted skip (null controls)",
+    all(_p2_planted[fact] == {fact} for fact in _P2_PLANTS)
+    and _P2_SOURCES["coordinator.py"].count(_P2_FENCE_RECORD) == 1
+    and _p2_unfenced == {"fenced_cycle_step"}
+    and "on_threshold_kw" in _p2_renamed
+    and _p2_fails(_p2_scan(_P2_SOURCES, _p2_with_stale))
+    == {"entity_write_domain", "fenced_cycle_step"}
+    and _p2_fails(_p2_scan(_P2_SOURCES, [_p2_dead_entry, _p2_dead_proxy]))
+    == {"p2_dead", "p2_dead_proxy"}
+    and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
+    f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+
+# ===========================================================================
 # P6: every read has a producer (round-9 class barrier)
 # ===========================================================================
 # Class P6 -- a consumer reads a key or field no producer writes, with a

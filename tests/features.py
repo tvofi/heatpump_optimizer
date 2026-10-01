@@ -27403,10 +27403,16 @@ R.check(
     "scores better on negative prices, and replaces the honest plan -- the "
     "breach then reads as nearly met while the mode makes no hot water",
 )
+# The census asserts its own reach (R9-RCA-1747): the replan's build must be
+# among the builds it saw, so at least two. With one it passed both while the
+# replan was never built and while a route the spy does not watch rebuilt
+# the plan without the block and shipped 9.22 kWh of hot water.
 R.check(
-    "and every DHW build that solve made was told the mode is blocked",
-    len(_rb_blocked_args) >= 1 and all(_rb_blocked_args),
-    f"blocked per build: {_rb_blocked_args!r}",
+    "and every DHW build that solve made was told the mode is blocked, the "
+    "co-optimisation replan's build among them",
+    len(_rb_blocked_args) >= 2 and all(_rb_blocked_args),
+    f"blocked per build: {_rb_blocked_args!r} (fewer than two: the replan's "
+    "build was not seen, so the census did not reach it)",
 )
 
 # The null control that protects every golden fixture.
@@ -52185,9 +52191,28 @@ _P6_GENERIC = {"turn_on", "turn_off", "toggle"}
 _P6_READ_DOMAINS = {"sensor", "binary_sensor", "weather", "person",
                     "device_tracker", "calendar"}
 #: Slots that accept a commandable domain yet are only read, with the reader.
+#: A slot that also accepts ``sensor`` is classified here or driven as a
+#: writer like any other: the census used to skip it unasked, which is how
+#: D12-s2-02 (the arbiter's mode write, its slot accepting ``sensor``) went
+#: unseen (the round-9 P2 RCA, state d). Design choice: the helper domains a
+#: reading slot offers (number, input_number, input_boolean, switch) let a
+#: helper stand in for a probe; reading one is not commanding it.
 _P6_READ_ONLY = {
     hp_const.CONF_SPACE_SETPOINT_ENTITY: "setpoint_check reads it; the space "
     "repair is a confirm flow that writes nothing",
+    **{key: "a measurement InputReader reads" for key in (
+        "buffer_tank_temp_entity", "dhw_temp_entity", "floor_return_temp_entity",
+        "heat_pump_energy_entity", "heat_pump_power_entity", "house_power_entity",
+        "indoor_temp_entity", "lower_floor_temp_entity", "mixing_valve_target_entity",
+        "outdoor_temp_entity", "pv_production_entity", "solar_radiation_entity",
+        "valve_outlet_temp_entity", "wood_tank_bottom_entity", "wood_tank_top_entity",
+    )},
+    **{key: "a status flag read as on or off" for key in (
+        "external_heat_entity", "heat_pump_backup_heater_entity",
+        "heat_pump_capacity_limited_entity", "heat_pump_defrost_entity",
+        "heat_pump_dhw_booster_entity", "heat_pump_fault_entity",
+        "heat_pump_online_entity",
+    )},
 }
 
 
@@ -52272,6 +52297,15 @@ async def _p6_setpoint(eid):
     return hass.services.calls
 
 
+async def _p6_mode(eid):
+    coord = _PaCoord(_PA_TUYA)
+    coord._config[hp_const.CONF_HEAT_PUMP_MODE_ENTITY] = eid
+    coord.hass.states._states[eid] = FakeState(
+        "Heating + DHW", attributes={"options": list(_PA_TUYA)})
+    await _pa.apply(coord, _PA_T0 + timedelta(minutes=1))
+    return coord.hass.services.calls
+
+
 #: Every slot a consumer writes, and that consumer, driven for real.
 _P6_WRITERS = {
     hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
@@ -52281,6 +52315,7 @@ _P6_WRITERS = {
     hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: _p6_valve,
     hp_const.CONF_COMPRESSOR_FREQ_ENTITY: _p6_freq,
     hp_const.CONF_DHW_SETPOINT_ENTITY: _p6_setpoint,
+    hp_const.CONF_HEAT_PUMP_MODE_ENTITY: _p6_mode,
 }
 
 
@@ -52288,6 +52323,8 @@ def _p6_routes(eid, calls):
     """Refusals for one driven entity: unroutable calls, or none at all."""
     domain = eid.split(".", 1)[0]
     mine = [(d, s) for d, s, data in calls if (data or {}).get("entity_id") == eid]
+    if domain in _P6_READ_DOMAINS:
+        return [f"{eid}: a read-only domain was commanded: {d}.{s}" for d, s in mine]
     if domain not in _P6_IMPLEMENTS:
         return [f"{eid}: no service table for domain {domain!r}"]
     if not mine:
@@ -52304,7 +52341,7 @@ def _p6_census(accepts):
     """(unclassified slots, refusals, driven pairs) over one accept map."""
     unclassified, refusals, driven = [], [], []
     for key, domains in sorted(accepts.items()):
-        if key in _P6_READ_ONLY or "sensor" in domains:
+        if key in _P6_READ_ONLY:
             continue
         if not domains - _P6_READ_DOMAINS:
             continue
@@ -52324,9 +52361,9 @@ _p6_unclassified, _p6_refused, _p6_driven = _p6_census(_p6_acc)
 R.check(
     "every slot accepting a commandable domain is a driven writer or a named "
     "reading",
-    not _p6_unclassified and set(_P6_WRITERS) <= set(_p6_acc),
-    f"unclassified {_p6_unclassified}; writers no producer offers "
-    f"{sorted(set(_P6_WRITERS) - set(_p6_acc))}",
+    not _p6_unclassified and set(_P6_WRITERS) | set(_P6_READ_ONLY) <= set(_p6_acc),
+    f"unclassified {_p6_unclassified}; writers or readings no producer offers "
+    f"{sorted(set(_P6_WRITERS) | set(_P6_READ_ONLY) - set(_p6_acc))}",
 )
 R.check(
     "every domain a written slot accepts is commanded through a service that "
@@ -52342,10 +52379,13 @@ _p6_bad = {k: set(v) for k, v in _p6_acc.items()}
 _p6_bad[hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY].add("number")
 _p6_bad[hp_const.CONF_MIXING_VALVE_WRITE_ENTITY].add("switch")
 _p6_bad["p6_new_slot"] = {"switch"}
+_p6_bad["p6_new_sensor_slot"] = {"sensor", "select"}
 _p6_bad_unc, _p6_bad_ref, _ = _p6_census(_p6_bad)
 R.check(
-    "and the census refuses an accepted domain with no route",
-    _p6_bad_unc == ["p6_new_slot"]
+    "and the census refuses an accepted domain with no route, an unclassified "
+    "slot that also accepts sensor, and a command to a read-only domain",
+    _p6_bad_unc == ["p6_new_sensor_slot", "p6_new_slot"]
+    and _p6_routes("sensor.p6", [("select", "select_option", {"entity_id": "sensor.p6"})])
     and any(r.startswith("number.p6_heat_pump_switch_entity") for r in _p6_bad_ref)
     and any(r.startswith("switch.p6_mixing_valve_write_entity") for r in _p6_bad_ref),
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",

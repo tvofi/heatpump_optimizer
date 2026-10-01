@@ -422,6 +422,7 @@ from .thermal_model import (
     learner_newton_step,
     mold_safe_room_floor,
     on_threshold_kw,
+    planned_draw_runs,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -1981,7 +1982,12 @@ def _apply_result_payload(
                     "heat_pump_on": (
                         result.heat_pump_on_schedule[idx]
                         if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
-                        else p > 0.1
+                        else planned_draw_runs(
+                            p,
+                            result.dhw_power_schedule[idx]
+                            if idx < len(result.dhw_power_schedule or ())
+                            else 0.0,
+                        )
                     ),
                 }
                 for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
@@ -10165,10 +10171,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _observe_compressor_start(self, now: datetime) -> None:
         """#55: fold one measured-power sample into the start counter.
 
-        The threshold is the optimizer's own on/off convention (half the
-        pump's minimum electrical power), so the counter and the plan agree
-        about what "running" means. Immersion intervals are the #11
-        classifier's, never the compressor's.
+        The threshold is thermal_model.on_threshold_kw, the rule for whether
+        a MEASURED draw means the compressor ran (half the pump's minimum
+        electrical power). The plan's running rule is a different owner on
+        purpose (planned_draws_run, MIN_RUNNING_DRAW_KW). Immersion intervals
+        are the #11 classifier's, never the compressor's.
 
         Meter-driven too, deliberately (#1067): this counts COMPRESSOR
         starts for wear, and a heater flag is no evidence about whether the
