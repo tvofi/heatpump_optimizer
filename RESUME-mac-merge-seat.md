@@ -97,3 +97,13 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - **Close-out decision (tvofi 09:18Z):** the final stamp when only #201 remains is **v7.0.0** (semver). Intermediate wave stamps stay 6.7.x. A fixer seat authors the notes, and stamp.py stamps after the merge. Recorded in the roster's `decisions`.
 - Open: #1806 F6.4 at 0077ab5a, which is code f95051f4 with main 787fe137 merged in (coordinator.py and features.py auto-merged; the tree equals merge-tree). Real-HA 61/61 at f95051f4. The reviewer is on the code head; the delta is owed after.
 - Dispatch owed: F10.1d (after F10.1c, now met). In flight: F10.3, F1.10.
+
+## LIVE STATE 2026-10-01T13:17Z
+
+- main 2f2b167d. Merged since 09:22: #1806 F6.4 (f67f598a, closes #1687), #1809 F10.1d (2f2b167d). Roster 6167b7ef or later. Session total: #1799 #1802 #1803 #1805 #1804 #1806 #1809.
+- Open, all approved as tvofi, waiting on CI plus delta review after the re-merge of main 2f2b167d:
+  - #1810 F10.3 at 8dbfbc14 (closes #1646, #1663, #1748; stray branch `f10-3` at 64b4bc24 to delete after the merge)
+  - #1808 F1.10 at 6bb4e471 (closes #1654, #1741)
+- Fixers in flight: UI-3 (opus), F10.8 (opus, plus an RCA seat: carried claim lines are no-claim, ported to env_drift.py and card_drift.mjs), F10.1e (sonnet, the 14 DST misfires plus deleting the stray BODY.md).
+- Tools: /private/tmp/audit-7/r9-mac/mergemain.sh `<wt> <branch> <body> <codehead8> <issues>` merges main and refreshes the Head line. dropclaims.sh runs `--drop-inherited`, needed until F10.8 lands, when prepr refuses INHERITED CLAIMS. Merge rhythm: after a merge, `gh pr ready`, wait about 20 s for CLEAN, then merge.
+- Close-out stamp: v7.0.0 (tvofi 09:18Z).
