@@ -1103,7 +1103,8 @@ PY
   printf '%s\n' .claude/workflows/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
   printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
   selftest_inputs > "$SO.in"
-  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py; do
+  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py \
+           .claude/workflows/counts.mjs .claude/workflows/render_md.mjs; do
     grep -qxF "$p" "$SO.in"; st $? 0 "the derived inputs name $p"
   done
   rm -f "$SO.in"
