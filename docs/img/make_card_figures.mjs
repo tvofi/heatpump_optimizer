@@ -103,7 +103,7 @@ function chartBody(svg, ns) {
   const open = svg.indexOf(">");
   const body = svg
     .slice(open + 1, svg.lastIndexOf("</svg>"))
-    .replace(/var\(--[a-z-]+,\s*([^)]+)\)/g, "$1")
+    .replace(/var\(--[\w-]+,\s*([^)]+)\)/g, "$1")
     .replace(/var\(--primary-text-color\)/g, "#212121")
     .replace(/var\(--secondary-text-color\)/g, "#757575")
     .replace(/var\(--divider-color\)/g, "#e0e0e0");
@@ -152,7 +152,9 @@ function seriesPaths(svg) {
   const re = /<path class="series" data-key="([^"]+)"[^>]*?d="([^"]+)"([^>]*)>/g;
   for (const m of svg.matchAll(re)) {
     const [, key, d, tail] = m;
-    const stroke = /stroke="(#[0-9a-fA-F]{3,8})"/.exec(tail + m[0]);
+    // A series is painted with its `--hpo-series-<key>` token (R9-UI-4);
+    // the literal after the comma is the light-card colour.
+    const stroke = /stroke="(?:var\(--[\w-]+,\s*)?(#[0-9a-fA-F]{3,8})\)?"/.exec(tail + m[0]);
     const entry = (by[key] = by[key] || { solid: [], dashed: [], color: null });
     if (stroke && !entry.color) entry.color = stroke[1];
     // The filled area under a stepped series carries no stroke; the line does.
@@ -182,15 +184,19 @@ function onlySeries(keep) {
   return { series };
 }
 
-/** The plot frame the card draws, widened to take in the axis beside it. */
+/** The panel frames the card draws (R9-UI-4), together, widened to take in
+ * the axis beside them and the unit above the first. */
 function plotBox(svg) {
-  const m = /<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)" fill="none"/.exec(svg);
-  if (!m) {
-    console.error("FAIL: no plot frame in the render");
+  const re = /<rect class="panel" data-panel="\w+" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g;
+  const frames = [...svg.matchAll(re)].map((m) => m.slice(1).map(Number));
+  if (!frames.length) {
+    console.error("FAIL: no panel frame in the render");
     process.exit(1);
   }
-  const [x, y, w, h] = m.slice(1).map(Number);
-  return { x0: x - 52, y0: y - 8, x1: x + w + 8, y1: y + h + 8 };
+  const x = frames[0][0], w = frames[0][2];
+  const y = Math.min(...frames.map((f) => f[1]));
+  const bottom = Math.max(...frames.map((f) => f[1] + f[3]));
+  return { x0: x - 52, y0: y - 18, x1: x + w + 8, y1: bottom + 8 };
 }
 
 function bbox(lists) {
@@ -249,11 +255,9 @@ function anatomy(svg) {
     }
     return pts;
   };
-  // The now marker: the one full-height line the card draws that is neither a
-  // gridline nor the hidden crosshair. Its x is where "now" is.
-  const nowM = [...svg.matchAll(/<line(?![^>]*class="crosshair")[^>]*x1="([\d.]+)"[^>]*y1="16"[^>]*y2="346"[^>]*>/g)]
-    .map((m) => ({ raw: m[0], x: parseFloat(m[1]) }))
-    .filter((l) => !/#eee/.test(l.raw));
+  // The now marker, by the class the card gives it. Its x is where "now" is.
+  const nowM = [...svg.matchAll(/<line class="now" x1="([\d.]+)"[^>]*>/g)]
+    .map((m) => ({ raw: m[0], x: parseFloat(m[1]) }));
   if (!nowM.length) {
     console.error("FAIL: no now marker in the render; freeze the clock inside the plotted window");
     process.exit(1);
@@ -280,16 +284,16 @@ function anatomy(svg) {
   const dhwDashed = S.dhw_temp && S.dhw_temp.dashed.length ? S.dhw_temp.dashed[0] : null;
 
   const items = [
-    [1, at(need("price"), 0.62), "Electricity price, stepped — right axis"],
-    [2, peakIn(need("space_slots"), 0.15, 0.45), "Space heating power — left kW axis"],
-    [3, peakIn(need("dhw_slots"), 0.0, 1.0), "Hot-water heating power, the same kW axis"],
-    [4, at(need("outdoor"), 0.24), "Outdoor temperature — left °C axis"],
+    [1, at(need("price"), 0.62), "Electricity price, stepped — the price panel"],
+    [2, peakIn(need("space_slots"), 0.15, 0.45), "Space heating power — the heating-power panel"],
+    [3, peakIn(need("dhw_slots"), 0.0, 1.0), "Hot-water heating power, in the same panel"],
+    [4, at(need("outdoor"), 0.24), "Outdoor temperature — the temperature panel"],
     [5, at(need("house_temp"), 0.46), "House temperature: the curve the plan holds"],
     [6, at(need("dhw_temp"), 0.78), "Hot-water tank temperature"],
     [7, dhwDashed ? at(dhwDashed, 0.9) : at(need("dhw_temp"), 0.9),
       "…and the model’s own expected error, dashed"],
-    [8, peakIn(need("solar"), 0.0, 1.0), "Solar irradiance — its own inner right axis"],
-    [9, { x: nowX + 3, y: 30 }, "The “now” marker: the plan starts here"],
+    [8, peakIn(need("solar"), 0.0, 1.0), "Solar irradiance, a relative curve behind the price"],
+    [9, { x: nowX + 14, y: 62 }, "The “now” marker: the plan starts here"],
   ];
   if (laneRect) {
     items.push([10, { x: 300, y: parseFloat(laneRect[1]) + parseFloat(laneRect[2]) / 2 },
@@ -315,11 +319,11 @@ function anatomy(svg) {
   const H = keyTop + perCol * 21 + 6;
 
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="The plan chart with each of its seven series, the now marker, the editable slot lanes and the shared time axis numbered, and a key naming them">
+     aria-label="The plan chart's three panels -- price, heating power and temperatures -- with each of its seven series, the now marker, the editable slot lanes and the shared time axis numbered, and a key naming them">
 <style>text { font-family: ${FONT}; }</style>
 <rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
 <text x="${PAD_X}" y="28" font-size="16" font-weight="700" fill="${INK}">Anatomy of the plan chart</text>
-<text x="${PAD_X}" y="45" font-size="12" fill="#5a5a5a">Seven series on one shared time axis, four units on four axes. Every chip in the legend toggles one series and rescales the axes to what is left.</text>
+<text x="${PAD_X}" y="45" font-size="12" fill="#5a5a5a">Seven series in three panels on one shared time axis, each panel on its own scale. Every chip in the legend toggles one series and rescales its panel.</text>
 <g transform="translate(${ox},${oy})">${chartBody(svg, "an")}</g>
 <line x1="${PAD_X}" y1="${keyTop - 18}" x2="${W - PAD_X}" y2="${keyTop - 18}" stroke="#d8d8d8"/>
 ${items.map(([n, a]) => badge(n, a, ox, oy)).join("")}

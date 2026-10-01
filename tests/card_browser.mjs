@@ -323,12 +323,39 @@ async function themeMismatch({ browser, check, plan }) {
             if (r < 4.5) low.push(`${el.className || el.tagName.toLowerCase()} ${r.toFixed(2)}:1`);
           }
         }
+        // R9-UI-4: the chart's series and its in-panel text against the
+        // panel they are drawn on, whose fill comes from the same darkMode
+        // switch as their colours. Series as C4 reads them: the stroke where
+        // there is one, else the fill, at the element's opacity.
+        const panel = root.querySelector("rect.panel");
+        const plotBg = panel ? rgba(getComputedStyle(panel).fill) : null;
+        const chart = { seen: 0, low: [] };
+        if (plotBg && plotBg.length >= 3) {
+          for (const el of root.querySelectorAll(".series[data-key], text.now-label, text.estimated-label, text.now-temp")) {
+            if (!el.getClientRects().length) continue;
+            const cs = getComputedStyle(el);
+            const text = el.tagName.toLowerCase() === "text";
+            const prop = !text && cs.stroke && cs.stroke !== "none" ? "stroke" : "fill";
+            const fg = rgba(cs[prop]);
+            if (fg.length < 3) continue;
+            const a = parseFloat(cs.opacity);
+            const shown = fg.slice(0, 3).map((v, i) => v * a + plotBg[i] * (1 - a));
+            const [l1, l2] = [lum(shown), lum(plotBg)].sort((x, y) => y - x);
+            const r = (l1 + 0.05) / (l2 + 0.05);
+            chart.seen++;
+            if (r < (text ? 4.5 : 3)) chart.low.push(`${el.getAttribute("class")}${el.dataset.key ? ":" + el.dataset.key : ""} ${r.toFixed(2)}:1`);
+          }
+        }
         return { seen: seen.length, idle: !!root.querySelector('.status-pill[data-status="idle"]'),
-          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length, low };
+          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length, low,
+          panel: !!panel, chart };
       }, [c.vars, st, c.dark]);
       check(`R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with ${c.name}`,
         res.idle && res.tiles === 4 && res.stats >= 2 && res.seen >= 12 && res.low.length === 0,
         `${res.seen} text runs, ${res.tiles} tiles, ${res.stats} stats, idle pill ${res.idle}; under 4.5: ${res.low.slice(0, 6).join(", ")}`);
+      check(`R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with ${c.name}`,
+        res.panel && res.chart.seen >= 8 && res.chart.low.length === 0,
+        `${res.chart.seen} measured; under the floor: ${res.chart.low.slice(0, 6).join(", ")}`);
     } finally {
       await ctx.close();
     }
@@ -2027,8 +2054,11 @@ try {
       },
     },
   };
-  const graphicsOf = async (themeCss) => {
-    await page.evaluate(async ([st, theme]) => {
+  // Home Assistant reports darkMode true with its dark theme, and the card
+  // picks its series colours and panel surface from that flag (R9-UI-4); the
+  // mismatched pairings are themeMismatch's.
+  const graphicsOf = async (themeCss, dark) => {
+    await page.evaluate(async ([st, theme, dark]) => {
       document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
       document.body.innerHTML = "";
       const style = document.createElement("style");
@@ -2039,13 +2069,13 @@ try {
       document.head.appendChild(style);
       const card = document.createElement("heatpump-optimizer-card");
       card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
-      card.hass = { states: st, language: "en" };
+      card.hass = { states: st, language: "en", themes: { darkMode: dark } };
       document.body.appendChild(card);
       window.__card = card;
       card._onCardClick({});
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       await new Promise((r) => setTimeout(r, 80));
-    }, [graphicStates, themeCss]);
+    }, [graphicStates, themeCss, dark]);
     return page.evaluate(() => {
       const hex = (h) => {
         const n = parseInt(h.slice(1), 16);
@@ -2072,13 +2102,17 @@ try {
       const rawBg = getComputedStyle(host).getPropertyValue("--card-background-color").trim();
       const bg = parse(rawBg) || parse(getComputedStyle(host).backgroundColor) || [255, 255, 255];
       const root = host.shadowRoot;
+      // What an in-chart object is drawn on: its panel's own fill (R9-UI-4),
+      // where the chart has panels; else the card.
+      const panel = root.querySelector("dialog[open] rect.panel") || root.querySelector("rect.panel");
+      const plotBg = (panel && parse(getComputedStyle(panel).fill)) || bg;
       const against = (el, prop, floor) => {
         if (!el) return { missing: true, ratio: 0, floor };
         const cs = getComputedStyle(el);
         const color = parse(cs[prop]) || parse(el.getAttribute(prop));
         const op = Number(cs.opacity);
         if (!color || !Number.isFinite(op)) return { missing: true, ratio: 0, floor };
-        const r = ratio(over(color, bg, op), bg);
+        const r = ratio(over(color, plotBg, op), plotBg);
         return { missing: false, ratio: +r.toFixed(3), floor, ok: r >= floor };
       };
       const series = [...root.querySelectorAll(".series[data-key]")];
@@ -2099,7 +2133,7 @@ try {
     });
   };
   for (const [label, theme] of [["HA light theme", HA_LIGHT], ["HA dark theme", HA_DARK]]) {
-    const g = await graphicsOf(theme);
+    const g = await graphicsOf(theme, theme === HA_DARK);
     check(`C4 now marker clears 3:1 (${label})`,
       !g.now.missing && g.now.ok, g.now.missing ? "missing .now" : `${g.now.ratio}:1`);
     check(`C4 now label clears 4.5:1 (${label})`,

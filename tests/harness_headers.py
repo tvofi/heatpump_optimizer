@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import re
+import resource
 import subprocess
 import sys
 from pathlib import Path
@@ -171,35 +172,48 @@ def printed_from(stdout: str) -> dict[str, str]:
     return found
 
 
+# The hang bound is CPU seconds, not wall seconds (F10.11). The harness that
+# runs longest, tools/audit/round4/D7/sysid_estimator_frontier.py, costs about
+# 100 CPU-s on one core; a wall-clock bound of 240 s sat at 2.4x that, and the
+# mutation lane's parallel pool (four trees, four drivers) stretched it past
+# 240 s of wall without it doing any more work: the TimeoutExpired crashed this
+# script and "killed" the comment-only null control, refusing the table on #1808
+# twice. A CPU limit does not move with machine load, and keeps hang detection
+# for a spinning harness at the same 240 s. A harness blocked on I/O spends no
+# CPU, so the wall cap below is what bounds that one, sized for the slowest
+# runner under the pool, below mutation_table.py's 1200 s per-driver timeout.
+CPU_LIMIT_S = 240
+WALL_LIMIT_S = 900
+
+
+def run_bounded(cmd: list[str], env: dict[str, str], cpu_s: int, wall_s: int):
+    """``(returncode, stdout, stderr)``; rc -9/-24 is the kernel's SIGKILL/SIGXCPU
+    on the CPU limit, and a wall overrun returns rc 124 and says so on stderr."""
+    def limit() -> None:
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s + 5))
+
+    try:
+        p = subprocess.run(
+            cmd, cwd=ROOT, env=env, shell=False, capture_output=True, text=True,
+            timeout=wall_s, preexec_fn=limit,
+        )
+    except subprocess.TimeoutExpired:
+        return 124, "", f"wall limit {wall_s}s exceeded"
+    return p.returncode, p.stdout, p.stderr
+
+
 def run_harness(rel: str) -> str:
     env = dict(os.environ)
     env["PYTHONPATH"] = "tests/hastub:custom_components:tests"
-    # 240 s, raised from 120 with h7_memory_gate.py's live-header marker
-    # (#1005's review follow-up): the constant exists for hang detection,
-    # not runtime policing, and 120 was set when the slowest executed
-    # harness declared "< 5 s". h7 probes through the stress gate's own
-    # subprocess entry points, two of its three arms being full
-    # build_case runs of the recorded attributable-RSS leader -- 59.8 s
-    # total, CPU-bound (user 58.9), on the seat that measured at load1
-    # 2.1 -- so 120 sat at ~2x the measured runtime and a 1.5-2.5x-slower
-    # CI core crosses it: a spurious red on every pull request. 240
-    # restores the margin for the runner class without weakening hang
-    # detection anywhere else.
-    p = subprocess.run(
-        [sys.executable, rel],
-        cwd=ROOT,
-        env=env,
-        shell=False,
-        capture_output=True,
-        text=True,
-        timeout=240,
+    rc, stdout, stderr = run_bounded(
+        [sys.executable, rel], env, CPU_LIMIT_S, WALL_LIMIT_S
     )
     R.check(
         f"{rel} exits 0",
-        p.returncode == 0,
-        f"rc={p.returncode} stderr={p.stderr[-300:]}",
+        rc == 0,
+        f"rc={rc} stderr={stderr[-300:]}",
     )
-    return p.stdout
+    return stdout
 
 
 def main() -> int:
@@ -231,6 +245,18 @@ def main() -> int:
                 got.get(name) == want,
                 f"header={want!r} printed={got.get(name)!r}",
             )
+    # The bound's own controls, seconds each: a child that idles past the CPU
+    # limit is NOT killed (load cannot kill a harness that does no work), a
+    # spinning child is, and an idle child past the wall cap reports 124.
+    env = dict(os.environ)
+    idle = [sys.executable, "-c", "import time; time.sleep(3)"]
+    spin = [sys.executable, "-c", "while True: pass"]
+    R.check("an idle child past the CPU limit is not killed by it",
+            run_bounded(idle, env, 1, 30)[0] == 0, "load-independence lost")
+    R.check("a spinning child is killed at the CPU limit",
+            run_bounded(spin, env, 1, 30)[0] < 0, "hang detection lost")
+    R.check("an idle child past the wall cap reports 124",
+            run_bounded(idle, env, 30, 1)[0] == 124, "wall cap lost")
     clean, detail = dirty_registers()
     R.check(
         "the executed harnesses leave their committed output byte-identical",
