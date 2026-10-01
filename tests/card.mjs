@@ -4347,7 +4347,7 @@ function ctxL(card, key) {
       state: "cheap_price", attributes: {
         lines: ["Most heating is placed in the cheapest hours.",
           "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
-          "idle for 18.0 h"],
+          "idle for 19.5 h"],
         language: "en" } },
   });
   const full = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() };
@@ -4404,7 +4404,7 @@ function ctxL(card, key) {
   check("headline shows every narrative line",
     hlDump.includes("Most heating is placed in the cheapest hours.") &&
       hlDump.includes("leaving the house warm past the horizon") &&
-      hlDump.includes("idle for 18.0 h"));
+      hlDump.includes("idle for 19.5 h"));
 
   // The row must track its own sensors: a new savings value re-renders even
   // though no plan data changed (the headline is part of _signature).

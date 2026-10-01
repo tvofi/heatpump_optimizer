@@ -261,8 +261,16 @@ function pageStates(plan) {
     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
     "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    // R9-UX-1: every line the headline shows. These are narrative.render's
+    // English lines for plan_view.py's plan (narrative.build over the two
+    // published forecasts, 15-minute steps, SEK), so the page shows what an
+    // install with this plan would read.
     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
-      lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+      lines: ["28.6 kWh in the cheapest hours for 17.76 SEK",
+        "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
+        "hot water needed now: 2.5 kWh (4.32 SEK)",
+        "charging the tank while electricity is cheap: 4.0 kWh (3.88 SEK)",
+        "idle for 19.5 h"], language: "en" } },
     "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
       { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
       { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: -12, savings_pct: -1.7 }] } },
