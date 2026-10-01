@@ -113,6 +113,19 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request cancels that pull request's run at the head it
+# superseded (round-9 process review item 3): nobody reads a verdict on a head
+# that is gone, and it holds runners the new head waits for. Only
+# `pull_request` runs share a group; every other event -- above all the push to
+# main, whose FULL gate is the backstop for every scoped one -- gets a group of
+# its own by run id, so it is never cancelled and never queued behind another.
+# So does an autofix push (GITHUB_TOKEN, `github-actions[bot]`): the run it
+# would cancel is still running the other autofix jobs, and the next run's
+# `ci:` subject is their loop guard, so a repair cancelled there never comes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+
 jobs:
   # workflow_dispatch inputs exist only on the default branch. An autofix
   # push from this PR must retrigger before that lands, so recheck is also

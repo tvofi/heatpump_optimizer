@@ -35,6 +35,12 @@ permissions:
   contents: read
   pull-requests: read
 
+# Superseded pull-request runs are cancelled, nothing else is: see the same
+# block in tests.yml (round-9 process review item 3).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+
 jobs:
   budget-raise-gate:
     runs-on: ubuntu-latest
