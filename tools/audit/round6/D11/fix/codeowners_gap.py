@@ -311,7 +311,7 @@ def pr_reachable(wf_text: str, job_text: str) -> bool:
 # `read` or `printf -v`, and every `export`/`declare`; a write to `$GITHUB_ENV`
 # or `$GITHUB_PATH`; a step or job `shell:`, `working-directory:` or
 # `defaults:`; an `env:` value naming a tracked path, a CODE_VARS name in
-# `env:`, or a `PINNED` other than the two PINNED_OK forms. Other assignments
+# `env:`, or a `PINNED` other than the PINNED_OK forms. Other assignments
 # (`BODY=$(...)`, arrays) are admitted: `pr-contract` uses them.
 ALLOWED_USES = {
     "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
@@ -333,9 +333,14 @@ CODE_VARS = re.compile(r"^(?:PINNED|PATH|BASH_ENV|ENV|LD_\w+|NODE_\w+|PYTHON\w*|
 # A word that tells a program to write a file: `sort -o`, `git diff --output=`,
 # `curl -O`. Any such word outside `set` taints (round 4).
 WRITES_FILE = re.compile(r"^(?:-[A-Za-z]*[oO][A-Za-z]*|--output\b.*|--o=.*)$")
-# The two admitted values of `PINNED` in a step or job `env:`.
+# The admitted values of `PINNED` in a step or job `env:`: the pull request's
+# base, or on a `merge_group` run the queue's (the main tip the entry is built
+# on), and only then `github.sha`, which on a queue run is its own merge commit.
 PINNED_OK = {"${{ github.event.pull_request.base.sha || github.sha }}",
-             "${{ github.event.pull_request.base.sha }}"}
+             "${{ github.event.pull_request.base.sha }}",
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+             " || github.sha }}",
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"}
 # A bare interpreter name, resolved on the job's PATH, which nothing admitted
 # can change; never a path (round 4: `tools/shim/python3`).
 INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
@@ -514,7 +519,7 @@ def step_uses(step: str) -> str:
 
 def _bad_pinned(env_block: str) -> bool:
     """True when an `env:` block sets PINNED, or a code-loading variable, to
-    anything but the two admitted forms (round 4: `PINNED: ${{ github.sha }}`
+    anything but the admitted forms (round 4: `PINNED: ${{ github.sha }}`
     makes the restore and the byte check read the pull request's own commit)."""
     for name, val in re.findall(r"^\s*([A-Za-z_]\w*):\s*(.*?)\s*$", env_block, re.M):
         if name == "PINNED" and val.strip("'\"") not in PINNED_OK:
@@ -799,6 +804,15 @@ PROBES = [
     ("bare PINNED=HEAD before the restore", _GRADE("PINNED=HEAD")),
     ("step env PINNED: github.sha", lambda jt: jt.replace(
         "PINNED: ${{ github.event.pull_request.base.sha }}", "PINNED: ${{ github.sha }}")),
+    # `github.sha` ahead of the queue's base: always set, so a queue run
+    # restores from its own merge commit, the pull request's graders.
+    ("step env PINNED: github.sha before the queue's base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.sha"
+        " || github.event.merge_group.base_sha }}")),
+    ("step env PINNED: the queue's head", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.head_sha }}")),
     ("grader run by an interpreter path", lambda jt: jt.replace(
         "python3 -I -S tests/coverage_ratchet.py", "tools/shim/python3 -I -S tests/coverage_ratchet.py")),
 ]
@@ -812,6 +826,15 @@ NULLS = [
     ("download-artifact at its pin", "\n      - uses: actions/download-artifact@"
      "37930b1c2abaa49bbe596cd826c3c89aef350131 # v7\n        with:\n          name: x\n"),
     ("a scratch write", _run('echo x > "$RUNNER_TEMP/x.txt"')),
+    # The merge queue's base (round-9 process review item 2): a `merge_group`
+    # run has no pull request, so the base it restores from is the queue's.
+    ("PINNED from the queue's base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}")),
+    ("PINNED from the queue's base, else the push's", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+        " || github.sha }}")),
 ]
 
 

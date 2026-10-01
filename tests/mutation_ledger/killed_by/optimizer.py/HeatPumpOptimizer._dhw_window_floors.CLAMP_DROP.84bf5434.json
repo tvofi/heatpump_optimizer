@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_window_floors CLAMP_DROP 84bf5434",
+  "killed_by": "tests/features.py",
+  "old": "                * max(0.5 * (dhw_setpoint + dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21: CLAMP_DROP (`* (0.5 * (dhw_setpoint + dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

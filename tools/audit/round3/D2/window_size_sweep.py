@@ -102,7 +102,7 @@ def metered(tariff: CapacityTariff, slot0: datetime, n: int) -> list[float]:
     """The factor production assigns each window, over real UTC-walked instants."""
     tracker = PeakTracker()
     out = []
-    for when in _utc_step_starts(slot0, n, tariff.window_minutes / 60.0):
+    for when in _utc_step_starts(slot0, n, timedelta(minutes=tariff.window_minutes)):
         tracker.observe(when, 1.0, tariff)
         out.append(tracker._window_factor)
     return out

@@ -261,10 +261,10 @@
     },
     "total": 24,
     "max_per_round": 6,
-    "detector": null,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/features.py -- block R9-P3, arm (a): every max(E, c>0) on a ThermalParameters quantity, keyed on E resolved through single-assignment locals to attribute leaves with commutative operands sorted, must sit in one function with one constant and never beside a raw divisor of E; zero groups, no allow-list, a fixture probe of its own keying, and optimizer._power_fraction's band branch pinned as the named exception",
     "detector_idea": "Every max(<capacity>, <constant>) cross-referenced against unclamped reads of the same variable",
-    "barrier": null,
-    "status": "open",
+    "barrier": "Every positive floor on a thermal parameter is one ThermalParameters property with one constant (round 9, F1.10; prototype handoff/r9-rca-p3@2ca057ae), so a second diverging copy cannot pass arm (a); arm (b) pins each zone of a two-zone house at the single-zone room's linear floor price in both _comfort_terms twins. Covers the floor-and-divisor mechanism only: a sibling disagreement that is not a floor (a halved weight, a clip behind a shared helper) is pinned per pair, not class-wide (the P3 RCA's open item for tvofi).",
+    "status": "barriered",
     "mechanism_note": "Stretched. In practice 'a clamp, floor, limit or step constant in a physics or tariff formula breaks the identity its siblings keep' (R2 D2-05, R4 D2-02/03, R5 D2-01, R6 D2-02); R9 re-maps N-sign-floor (price-margin sign floor), N-euler-coupled (sub-step bound judged per store) and N-clamp-range (bias clamp sized to an assumed range), and R8 D2-s2-01 (tariff top-k by window, not by day) is a low-confidence placement.",
     "aliases": [
       "N-clamp-range",

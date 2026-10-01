@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling.net RETURN_DEL 110923c2",
+  "killed_by": "tests/features.py",
+  "old": "            return p_max * cop - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

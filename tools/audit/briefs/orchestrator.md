@@ -232,10 +232,10 @@ additionally, because you write the rosters and you decide the merge order.
 `docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
 citation left only in markdown is unchecked, and putting one there is not
 carrying it. The remedies for a symbol that does not exist yet are that rule's;
-do not reach for a tag citation by reflex, because measurement shows the
-symbols that bit here exist at no tag. Read the **exit code and the error
-lines**: `FIXTURE ok: N error(s)` is designed to print beside a clean exit,
-which is exactly the shape that lets a real error be waved through.
+a tag citation is no reflex fix: the symbols measured biting here exist at
+no tag. Read the **exit code and the error
+lines**: `FIXTURE ok: N error(s)` prints beside a clean exit by design, the
+shape that lets a real error be waved through.
 
 ## 11. Before you merge
 
@@ -249,6 +249,8 @@ which is exactly the shape that lets a real error be waved through.
 - CI green at a head containing current `origin/main`: if main moved, merge it in
   (a carry or resolution delta) and wait, watching CI from a background task
   (`fixer.md`), never a timer.
+  **Except** `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE: you merge
+  it, the queue's one bypass.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -258,7 +260,7 @@ which is exactly the shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
-- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — the merged pull request's worktree, branch and seat scratch go now, cited evidence preserved; disk is not a session-end problem.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept; not at session end.
 
 ## 12. The gate lease
 
