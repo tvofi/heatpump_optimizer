@@ -18,16 +18,14 @@ them. **Not one was in a pull-request body.**
 every role contract here are not instructions you relay. They are instructions
 you follow. Where a rule names "the fixer" or "a seat", read yourself into it
 whenever you are the one acting — and you are acting whenever you write text
-another agent or the owner will treat as established. *Coordinator* is
-`coordinator.py`, never the name of a seat.
+another agent or the owner will treat as established.
 
 The sections below say where those rules meet work only you do. They do not
 replace the source rules.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
-**`fixer.md` step 8: a quoted number states its rule, not just its value** —
-#373's census is the evidence there. Say what you counted, not only how many.
+**`fixer.md` step 8: a quoted number states its rule, not just its value.**
 
 Generalised:
 
@@ -38,9 +36,6 @@ cannot answer the second, you have not measured — you have expected.
 
 - **A sample is not a quantifier.** Five runs checked and reported as "every run"
   was false.
-- **A paged listing is a sliding window.** `--limit 120` truncated silently; a
-  count from it decays by roughly one per merge. State the rule, not the number,
-  and where an instrument prints the figure — `--budgets`, `--record` — name it.
 - **Describing another artifact without opening it is the same defect.** A
   boundary paragraph asserted that earlier work "is recorded" in three named
   documents. It is not, in the great majority of cases, and none of the three was
@@ -64,7 +59,7 @@ bare line number.
 has and authority no seat has — sequencing, merging, the record, the freeze,
 stamps, and speaking to the owner. Everything else is a seat's.
 
-This is not about your time. It is about **independence**, and it is the same
+The reason is **independence**, the same
 principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
 a harness they wrote is measuring themselves*. Work you perform is work you must
 then review, and you are the one participant who cannot review it — so every task
@@ -88,8 +83,7 @@ brief instead: the programme's method is that no claim stands on one agent's wor
 instance by you counts toward the third: three symptoms recorded separately are
 worth less than one analysis of why they were possible. The product, the four
 process states and the demonstration a check owes are `root-cause.md`'s and
-`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix, for
-the same independence reason as section 2.
+`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
 
 ## 4. The merge message is a second closing surface
 
@@ -126,10 +120,9 @@ incident, which this section encourages.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
-beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
-be reopened — `8bc4c661` (#557) shut #224 at 10:56:35 while its own text denied
-doing so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. A pre-merge scan that asks *which form was used* rather
+beforehand, and on 2026-09-07 merge commits shut two issues that had to be
+reopened (`8bc4c661` shut #224 while its own text denied doing so; `e072b2d`,
+#195). A pre-merge scan that asks *which form was used* rather
 than *whether every keyword binds an intended number* reports clean through
 exactly that.
 
@@ -144,6 +137,8 @@ exactly that.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
 - **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
+  (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
@@ -171,7 +166,10 @@ head** — so you are the one who breaks it. A reviewer works in a fresh *detach
 worktree at the head SHA, so the branch has no worktree and no marker: a liveness
 check looking for either will not see it. Check whether a review is in flight on
 the pull request before moving anything. A head that moves under a review costs
-that review, and it has happened twice.
+that review, and it has happened twice. **A conflict with main after the
+handoff is resolved by merge, never a re-cut**: merge
+`origin/main` into the head, or hand a semantic one to the fixer, and send the
+resolution delta to the same reviewer.
 
 **Stopping a seat is not neutral.** A seat killed between applying a mutation and
 restoring it leaves a production file broken in its worktree. Check
@@ -203,9 +201,7 @@ is not one.
 `delivery-status-tracking.mdc`, at **each merge** and not at session end, and
 batching to the end is how an abort loses it. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price, not zero.
-**The handover is one file and it is not optional**: `writing-for-agents.md`
-states the split against #201, and `tests/entities.py` enforces the single file
-and the reachable `updated-for:`.
+**The handover is one file and it is not optional** (`writing-for-agents.md`).
 
 Three failure shapes already produced, all yours:
 
@@ -236,20 +232,25 @@ additionally, because you write the rosters and you decide the merge order.
 `docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
 citation left only in markdown is unchecked, and putting one there is not
 carrying it. The remedies for a symbol that does not exist yet are that rule's;
-do not reach for a tag citation by reflex, because measurement shows the
-symbols that bit here exist at no tag. Read the **exit code and the error
-lines**: `FIXTURE ok: N error(s)` is designed to print beside a clean exit,
-which is exactly the shape that lets a real error be waved through.
+a tag citation is no reflex fix: the symbols measured biting here exist at
+no tag. Read the **exit code and the error
+lines**: `FIXTURE ok: N error(s)` prints beside a clean exit by design, the
+shape that lets a real error be waved through.
 
 ## 11. Before you merge
 
 - Every gate lane **ran**. Absent is not green, and a `DIRTY` pull request never
   queues Tests.
-- A `merge` verdict from a reviewer that measured **this** head, or a recorded
-  reason why an older verdict carries — the authored diff proved byte-identical,
-  not assumed.
-- **Main moved since its CI**: `tools/audit/merge_fastpath.py --head <sha>`;
-  ELIGIBLE merges as it is, REFUSED enters the merge queue.
+- A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
+  with no reviewer turn (tvofi, 2026-10-01): `tools/audit/app_approve.sh --carry
+  <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
+  <head>` names miss the branch's own diff, and the claim files equal
+  `origin/main`'s. Anything else is a resolution delta for the same reviewer.
+- CI green at a head containing current `origin/main`: if main moved, merge it in
+  (a carry or resolution delta) and wait, watching CI from a background task
+  (`fixer.md`), never a timer.
+  **Except** `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE: you merge
+  it, the queue's one bypass.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -259,12 +260,12 @@ which is exactly the shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
-- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — the merged pull request's worktree, branch and seat scratch go now, cited evidence preserved; disk is not a session-end problem.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept; not at session end.
 
 ## 12. The gate lease
 
-`run.sh` takes it around `tests/stress.py`. **Never clear a live lease**:
-several seats run at once.
+Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
+(`gate-scoping.md`). **Never clear a live lease**: several seats run at once.
 
 ## 13. Stamps, budgets, and the two things you may not decide alone
 
