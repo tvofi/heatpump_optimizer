@@ -26931,6 +26931,75 @@ R.check(
     and "DEFERRED AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"deferred={_MUT_D_OUT!r}",
 )
+
+# R9-F10.9b (#1812): under --scope changed every other shared driver but a
+# ref-driven one runs its baseline and null control at its first RED mutant
+# run, and every kill is still judged against them. A green run is no kill
+# under any baseline, so it settles nothing; two red runs at once settle once.
+_mut_lazy = getattr(_mut, "lazy_drivers", None)
+_MUT_L_NET = ["tests/a.py", "tests/env_drift.py", "tests/stress.py"]
+R.check(
+    "a changed-scope run makes every shared, non-ref driver lazy; the nightly "
+    "none, and main() takes its lazy set from that rule",
+    _mut_lazy is not None
+    and _mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+    and _mut_lazy(_MUT_L_NET, "full") == []
+    and "lazy = lazy_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
+    and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
+    and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
+    f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+_MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
+_MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
+_MUT_L_SETTLED: list = []
+_MUT_L_BAR = _mut_threading.Barrier(2)
+
+
+def _mut_l_settle(w, s, base, rc=None):
+    """Record the call, then hold it so a second red run arrives meanwhile."""
+    _MUT_L_SETTLED.append((w, s))
+    _time.sleep(0.2)
+    if rc is None:
+        base[s] = _mut.ScriptRun(0, 0, 0.0)
+    return rc
+
+
+from concurrent.futures import ThreadPoolExecutor as _mut_ThreadPool  # noqa: E402
+
+_mut_lazy_cls = getattr(_mut, "LazyBaselines", None)
+_MUT_L_OUT: list = []
+if _mut_lazy_cls is not None:
+    _mut_l_base: dict = {}
+    _mut_l = _mut_lazy_cls(
+        _mut_l_base, lambda w, s: _mut_l_settle(w, s, _mut_l_base))
+    _MUT_L_OUT.append(_mut_l.killed(0, "tests/a.py", _MUT_L_GREEN))
+    _MUT_L_OUT.append(list(_MUT_L_SETTLED))
+
+    def _mut_l_red(w):
+        _MUT_L_BAR.wait()
+        return _mut_l.killed(w, "tests/a.py", _MUT_L_RED)
+    with _mut_ThreadPool(max_workers=2) as _ex:
+        _MUT_L_OUT.append(sorted(_ex.map(_mut_l_red, [0, 1])))
+    _MUT_L_OUT.append(len(_MUT_L_SETTLED))
+R.check(
+    "a lazy driver's green run settles nothing; its first red runs settle its "
+    "baseline once and are judged kills against it",
+    _MUT_L_OUT == [False, [], [True, True], 1],
+    f"out={_MUT_L_OUT!r} settled={_MUT_L_SETTLED!r}",
+)
+_MUT_L_SETTLED.clear()
+_MUT_L_REF: list = []
+if _mut_lazy_cls is not None:
+    _mut_l2 = _mut_lazy_cls({}, lambda w, s: _mut_l_settle(w, s, {}, rc=1))
+    _MUT_L_REF = [_mut_l2.killed(2, "tests/a.py", _MUT_L_RED), _mut_l2.stop,
+                  _mut_l2.killed(2, "tests/b.py", _MUT_L_RED),
+                  list(_MUT_L_SETTLED)]
+R.check(
+    "a lazy baseline or null control that refuses stops the table: no kill, "
+    "the refusal's status kept, and no later driver settled",
+    _MUT_L_REF == [False, 1, False, [(2, "tests/a.py")]],
+    f"out={_MUT_L_REF!r}",
+)
 # The sweep order is the ledger's: tests/features.py, costly but holding the
 # ledger's kills, goes before a cheap driver that has killed nothing -- and
 # the order is a permutation, so no driver leaves the net.
