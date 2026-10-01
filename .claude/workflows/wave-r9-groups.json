@@ -1608,11 +1608,11 @@
         "R9-F1.8"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f6-card-3",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "cc00ed85",
+        "last_step": "#1802 merged 2026-10-01T07:5xZ as cc00ed85 at head 7a1567fe (round-2 merge verdict 5926802988; tvofi review under mandate); #1652 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F6.3.md on handoff/r9-f6-card-3",
         "review_branch": "handoff/r9-f6-card-3-review",
         "review_note_file": "handoff/round9/fix/resume/F6.3-review.md on handoff/r9-f6-card-3-review",
