@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 88.6,
+   "seconds": 70.0,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 19.1,
+   "seconds": 15.9,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 69.4,
+   "seconds": 85.5,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 361.8,
+   "seconds": 316.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,7 +42,7 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/manual_plan.py": {
@@ -54,7 +54,7 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 166.9,
+   "seconds": 128.2,
    "rc": 0
   },
   "tests/plan_view.py": {
@@ -62,11 +62,11 @@
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.6,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 401.3,
+   "seconds": 319.8,
    "rc": 0
   },
   "tests/structure.py": {
@@ -90,23 +90,23 @@
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.6,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.6,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 176.3,
+   "seconds": 131.2,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.5,
+   "seconds": 2.6,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 46.1,
+   "seconds": 48.4,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -143,6 +143,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
@@ -420,6 +421,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -602,6 +604,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -821,6 +824,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -935,6 +939,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1129,6 +1134,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1216,6 +1222,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1251,6 +1258,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
@@ -1403,6 +1411,7 @@
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1433,6 +1442,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
@@ -1659,6 +1669,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1774,6 +1785,7 @@
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py"
@@ -1851,6 +1863,7 @@
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -1862,6 +1875,8 @@
    "tests/harness_headers.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/config_entries.py",
+   "tests/hastub/homeassistant/helpers/__init__.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tools/audit/round3/D0/arms_decomposition.py",
    "tools/audit/round3/D0/budget_slack.py",
    "tools/audit/round3/D0/coopt_gate.py",
@@ -2196,6 +2211,7 @@
    "tests/hastub/homeassistant/helpers/selector.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -2301,6 +2317,7 @@
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
