@@ -60,18 +60,18 @@ live-header: this header is maintained against the tree; harness_headers.py exec
 FINAL RESULT (exact; #1005 review follow-up -- the marker above puts
 this harness in tests/harness_headers.py's executed set, which compares
 these lines to the run):
-    RESULT scenarios_recorded=51
+    RESULT scenarios_recorded=54             (51 until R9 F10.2 added three summer valve plants)
     RESULT memory_top_n=6
     RESULT memory_budget_factor=1.5
     RESULT detection_target=2
     RESULT min_attrib_rss_multiple_required_to_fail=1.5
     RESULT max_attrib_rss_multiple_required_to_fail=1.5
-    RESULT scenarios_where_2x_attrib_rss_fails=51
+    RESULT scenarios_where_2x_attrib_rss_fails=54
     RESULT min_traced_multiple_required_to_fail=1.5
     RESULT max_traced_multiple_required_to_fail=1.5
-    RESULT scenarios_where_2x_traced_fails=51
+    RESULT scenarios_where_2x_traced_fails=54
     RESULT scenarios_memory_probed=6
-    RESULT scenarios_never_memory_probed=45
+    RESULT scenarios_never_memory_probed=48
     RESULT attrib_leader_label=typical_slab/winter   (unchanged by R9 F2.5: the review restored the table's memory caps to the base's -- the container's raises were a recording-environment artifact -- keeping only the fields the record measured lower; typical_slab/winter's own rss_attrib_mb is one of those, 16.7 -> 13.7, which moves the failing multiple below)
     RESULT attrib_fail_threshold_mb=20.55       (25.05 at the base; 20.55 at R9 F2.5, 1.5 x the leader's kept-lower 13.7 MiB cap)
     RESULT traced_fail_threshold_mb=5.145        (the base value; the review restored the raised memory caps)
