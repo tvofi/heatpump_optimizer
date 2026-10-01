@@ -100,11 +100,13 @@ approver_key() { # -> the hpo-approver App's private key on this machine, or a n
   [ -f "$k" ] && printf '%s\n' "$k"
 }
 signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is the approver key's over pr and tree
-  local pr=$1 c=$2 key t rc
+  local pr=$1 c=$2 key t rc line
   key=$(approver_key) || return 1
   t=$(mktemp -d) || return 1
-  git log -1 --format=%B "$c" | sed -n 's/^bus-signature: //p' | head -n 1 | openssl base64 -d -A > "$t/sig" 2>/dev/null \
-    && [ -s "$t/sig" ] && openssl rsa -in "$key" -pubout -out "$t/pub" 2>/dev/null \
+  # Canonical base64 only: the decoded signature must re-encode to the line.
+  line=$(git log -1 --format=%B "$c" | sed -n 's/^bus-signature: //p' | head -n 1)
+  printf '%s' "$line" | openssl base64 -d -A > "$t/sig" 2>/dev/null \
+    && [ -s "$t/sig" ] && [ "$(openssl base64 -A < "$t/sig")" = "$line" ] && openssl rsa -in "$key" -pubout -out "$t/pub" 2>/dev/null \
     && printf 'hpo-bus verdict %s %s\n' "$pr" "$(git rev-parse "$c^{tree}")" \
        | openssl dgst -sha256 -verify "$t/pub" -signature "$t/sig" >/dev/null 2>&1
   rc=$?; rm -rf "$t"; return $rc
@@ -215,9 +217,10 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
   fi
   # A commit is not what was signed: a keyless seat can re-commit an earlier
   # confirmed tree and message after a later round and supersede it (round-2
-  # review of PROC-4). The signature is deterministic over pr and tree, so
-  # each signed verdict posts once per pull request whatever commit carries it.
-  sig=$(git log -1 --format=%B "$c" | sed -n 's/^bus-signature: //p' | head -n 1)
+  # review of PROC-4), or re-encode its signature line (round 3). What is
+  # signed is "<pr> <tree>", so each tree posts once per pull request whatever
+  # commit or encoding carries it; each round's nonce makes its tree distinct.
+  sig=$(git rev-parse "$c^{tree}")
   if grep -qxF -- "$pr $sig" "$S/posted-signed" 2>/dev/null; then
     printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
   fi
@@ -502,6 +505,20 @@ P
   out=$(run watch --once --post)
   echo "$out" | grep -q "^BUS refused 7 $t: this signed verdict was already posted on #7 (a replay)" && [ "$(calls)" = 2 ]
   expect "a confirmed verdict replayed after a later round does not post again" $?
+  # Round 3's review: the same signature re-encoded (padding, a trailing space).
+  for t in "$(git -C "$W/seat" log -1 --format=%B "$v1" | sed 's/^\(bus-signature: .*\)$/\1=/')" \
+           "$(git -C "$W/seat" log -1 --format=%B "$v1" | sed 's/^\(bus-signature: .*\)$/\1 /')"; do
+    t=$(printf '%s' "$t" | git -C "$W/seat" commit-tree "$(tip "$v1^{tree}")" -p "$(tip verdict/7)")
+    git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+    out=$(run watch --once --post)
+    echo "$out" | grep -q "^BUS \(refused\|unsigned\) 7 $t" && [ "$(calls)" = 2 ]
+    expect "a replay with its signature line re-encoded does not post again" $?
+  done
+  out=$(cd "$W/seat" && HPO_IDENTITY_DIR=$W/ap bash -c '. /dev/stdin; signed_by_approver 7 "$1" && echo verified' _ "$t" <<B 2>&1
+$(sed -n '/^approver_key() {/,/^}/p;/^signed_by_approver() {/,/^}/p' "$ROOT/tools/audit/seat/bus.sh")
+B
+)
+  [ -z "$out" ]; expect "a signature line that is not canonical base64 does not verify" $?
 
   # Raw refs are still checked before anything else.
   t=$(printf 'Fix review: approve %s\n' "$h1" | raw "" raw)
