@@ -18667,6 +18667,37 @@ R.check(
     _f108a_j[0] == 0 and _f108a_j[1] == ["wood_coil"],
     f"drifted={_f108a_j[0]} claimed={_f108a_j[1]} excusing={_f108a_j[3]!r}",
 )
+# The autofix reads the baseline at the FORK POINT, as the guard does. CI
+# passes main's tip; a main that moved past the fork with only a note edit
+# keeps the parsed list, and judging the untouched branch file against the
+# tip's bytes would empty a list the branch never wrote.
+def _f108_tip_moved():
+    import subprocess as _sp
+
+    root, main_sha = _f108_repo(branch_note=False)
+
+    def _git(*args: str) -> str:
+        return _sp.run(["git", *args], cwd=root, check=True,
+                       capture_output=True, text=True).stdout.strip()
+
+    _git("checkout", "-q", "main")
+    p = Path(root, _env_drift.CLAIM_FILE)
+    p.write_text(p.read_text() + "# a note main wrote later\n")
+    _git("commit", "-q", "-am", "main edits a claim-file note")
+    tip = _git("rev-parse", "HEAD")
+    _git("checkout", "-q", "lane")
+    return root, tip
+
+
+_f108m_root, _f108m_tip = _f108_tip_moved()
+_f108m_before = Path(_f108m_root, _env_drift.CLAIM_FILE).read_text()
+_f108m_status = _env_drift.apply_inherited_claims(_f108m_root, ref=_f108m_tip)
+R.check(
+    "the autofix judges an untouched file against the fork point, not main's tip",
+    _f108m_status == "skip-not-inherited"
+    and Path(_f108m_root, _env_drift.CLAIM_FILE).read_text() == _f108m_before,
+    f"status={_f108m_status!r}",
+)
 _f108t_root, _f108t_main = _f108_repo(branch_note=True)
 _f108t_local = _f108_hygiene(_f108t_root, _f108t_main, None) or ""
 _f108t_ci = _f108_hygiene(_f108t_root, _f108t_main, "HEAD") or ""
