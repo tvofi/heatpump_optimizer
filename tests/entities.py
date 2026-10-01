@@ -3845,13 +3845,15 @@ def _p6_arm_b(built):
 
 
 # --- arm S: a solve seed is a producer's, not the constructor's -----------
-# D12-s1-01's shape. The flow's own install (no thermometer, hot water on),
-# the clock moving one plan step per cycle, a 6 h horizon because only the
-# seed is read: a numeric field equal to its constructor default at EVERY
-# solve had no producer on this install.
+# D12-s1-01's shape. The flow's own install with hot water answered on (the
+# untouched flow leaves it off since F1.2, and a solve that models no tank
+# reads no tank seed, so arm S would be blind to the field D12-s1-01 named),
+# no thermometer, the clock moving one plan step per cycle, a 6 h horizon
+# because only the seed is read: a numeric field equal to its constructor
+# default at EVERY solve had no producer on this install.
 def _p6_seed_log(cycles=2):
     log = []
-    _hass, _entry, coord = _d801_coordinator(_FLOW_CONFIG)
+    _hass, _entry, coord = _d801_coordinator({**_FLOW_CONFIG, const.CONF_DHW_ENABLED: True})
     coord._opt_config.horizon_hours = 6.0
     snap = coord._solve_snapshot
 

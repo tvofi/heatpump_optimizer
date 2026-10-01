@@ -7243,6 +7243,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "comfort_temp_night": ctx._opt_config.comfort_temp_night,
             "day_start_hour": ctx._opt_config.day_start_hour,
             "day_end_hour": ctx._opt_config.day_end_hour,
+            "horizon_hours": ctx._opt_config.horizon_hours,
             "min_temperature": ctx._opt_config.min_temp,
             "max_temperature": ctx._opt_config.max_temp,
         }
