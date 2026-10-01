@@ -3762,8 +3762,8 @@
       "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
-        "fixer": "opus",
-        "fixer_why": "a value-bearing record guard in a code-owned gate script, with a recurring history; needs an RCA beside it",
+        "fixer": "sonnet",
+        "fixer_why": "message and wording change only, after the RCA re-scope",
         "reviewer": "opus",
         "rca": "opus",
         "runner": "haiku",
@@ -3782,15 +3782,15 @@
         "branch": "handoff/r9-f10-claims-baseline",
         "commit": null,
         "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base; failing test for a branch that only merged a claiming main; RCA seat in parallel",
+        "next_step": "wait for the root-cause seat's root-cause.md, then a message-and-wording fix only (re-scoped 2026-10-01)",
         "note_file": "handoff/round9/fix/resume/F10.8.md on handoff/r9-f10-claims-baseline",
         "review_branch": "handoff/r9-f10-claims-baseline-review",
         "review_note_file": "handoff/round9/fix/resume/F10.8-review.md on handoff/r9-f10-claims-baseline-review",
         "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
-        "note": "Added 2026-10-01 by the Mac orchestrator after #1809/#1808 had to drop F6.4's claims (third instance of the #634 class)."
+        "note": "Added 2026-10-01; re-scoped the same day: the guard's behaviour is correct by design (RCA), only its message and the rule wording mislead."
       },
-      "brief": "Round-9 fix PR F10.8 (claims baseline: inherited_claims_error erases another lane's claims), added 2026-10-01 by the Mac orchestrator. Defect: tests/env_drift.py's inherited_claims_error compares a branch's parsed claim map with its merge-base's. A branch that never touched tests/golden/claimed_drift.txt or card_claimed_drift.txt, merged with a main that just landed a claiming PR, reads as 'inherited'; prepr.sh refuses it and claims-autofix pushes --drop-inherited, which deletes the other lane's claims, and the PR's merge then deletes them from main. Instances: #608 erased #569's claims (2b5e416), #635 erased #633's (dda7193), and on 2026-10-01 #1809 and #1808 each had to drop F6.4's 5 claims (#1806, f67f598a) to pass prepr. Fix: a branch whose claim files are byte-identical to the main it merged (it never edited them) is the no-claim state and must pass; only a claim list the branch itself wrote that equals the baseline is inherited. Failing test first (a branch that only merged a claiming main passes; a branch that copies main's claims as its own still refuses), mutation proof, and keep .claude/rules/claim-files.md and ci-autofix.md consistent with the new behaviour (policy files: tvofi's approval under the mandate). Beside the fix, run tools/audit/briefs/root-cause.md as its own seat (recurrence trigger, third instance): named cause, process state, cost test, countermeasure or recorded refusal. Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+      "brief": "Round-9 fix PR F10.8 (inherited-claims refusal message and claim-file rule wording), added 2026-10-01 by the Mac orchestrator and RE-SCOPED the same day on its root-cause seat's finding. Context: #1809 and #1808 each had to drop F6.4's 5 claims (#1806) to pass prepr's INHERITED CLAIMS refusal, which the orchestrator first read as a record-loss defect (the #608/#635 history). The root-cause seat measured that dropping inherited claims is the DESIGNED lifecycle: tests/release/stamp.py's claim rewrite expects the next branch to restate its own footprint; branches made 47 drop commits since 2026-09-17 (17 by the bot); keeping the carried claims turns main's push check (--claims-only HEAD^1) red; and letting a branch pass with main's claims byte-identical would reopen #213 (carried claims excusing new coord drift). #662 and #747 already closed the docs-only variant. Scope, therefore: no change to the guard's logic. Make the INHERITED CLAIMS refusal message in tests/env_drift.py and the wording in .claude/rules/claim-files.md and ci-autofix.md say plainly that dropping claims inherited from main is the expected step, not a loss, so seats stop reading it as one. Policy files: tvofi's approval under the mandate. Follow the root-cause seat's root-cause.md for exact wording targets. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
     },
     {
       "group": "R9-F10.7",
