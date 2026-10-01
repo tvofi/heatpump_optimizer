@@ -940,6 +940,49 @@ R.check(
     f"README says {_stress_note.group(2) if _stress_note else '?'}, "
     f"the edges dict in stress.py has {_edges_n} entries",
 )
+
+# The gate verdicts, as functions a check can import (R9 D7-s1-02). The drift
+# comparison and stress.py's per-scenario budget used to live inside main()
+# and `__main__`, so deleting either left every runnable check green, and
+# `scenario_budget` ran zero times under both drivers that reach stress.py.
+# Driven: a moved leaf drifts and a claimed one does not; a scenario over its
+# own budget is refused, one at it is not, an unrecorded one has no verdict.
+import contextlib as _d7_contextlib  # noqa: E402
+import io as _d7_io  # noqa: E402
+import env_drift as _ed_d7  # noqa: E402
+
+try:
+    with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+        _D7_DRIFT = (
+            _ed_d7.judge_drift({"s": {"a": [1, 2]}}, {"s": {"a": [1, 2]}},
+                               {}, {}, "base")[0],
+            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                               {}, {}, "base")[0],
+            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                               {"s": ["why"]}, {}, "base")[:2],
+            _ed_d7.judge_drift({}, {"s": {"a": 1}}, {}, {}, "base")[0],
+        )
+    _d7_tab = {"x": {"ratio": 2.0}}
+    _d7_cap = _stress_mod.scenario_budget("x", _d7_tab)
+    _D7_STRESS = (
+        _d7_cap,
+        _stress_mod.scenario_verdict("x", _d7_cap + 0.5, _d7_tab)[0] is not None,
+        _stress_mod.scenario_verdict("x", _d7_cap, _d7_tab)[0],
+        _stress_mod.scenario_verdict("y", 99.0, _d7_tab),
+    )
+except Exception as _d7_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D7_DRIFT = _D7_STRESS = (f"{type(_d7_exc).__name__}: {_d7_exc}",)
+R.check(
+    "env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)",
+    _D7_DRIFT == (0, 1, (0, ["s"]), 1),
+    f"(identical, moved leaf, claimed leaf, scenario removed) -> {_D7_DRIFT}",
+)
+R.check(
+    "stress.py's per-scenario budget verdict is importable and refuses a "
+    "scenario over its own budget (R9 D7-s1-02)",
+    _D7_STRESS == (2.0 * _stress_mod.SCENARIO_BUDGET_FACTOR, True, None, None),
+    f"(budget, over refused, at-budget line, unrecorded) -> {_D7_STRESS}",
+)
 _validate_tree = ast.parse(Path("tests/validate.py").read_text())
 _validate_n = sum(
     isinstance(node, ast.Expr)
@@ -16448,6 +16491,70 @@ R.check(
          for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
 )
 
+# --- what the closure RECORDER sees: child processes (R9 D14-s5-01) --------
+#
+# The audit hook records this process; a child's reads never reach it, only
+# its argv, so select() skipped deployment_shape.py on a change to any of the
+# 22 hastub modules its own `python -P` driver child imports. Where strace
+# exists the recorder now traces every child and unions what its Python
+# processes opened. Driven on a synthetic `strace -f -y` log: a Python child's
+# successful open of a repo file
+# counts; a failed probe, a directory, an out-of-repo file, and anything a git
+# or node child (or its fork) opens do not; the union keeps the hook's files.
+import shutil as _rs_shutil  # noqa: E402
+
+_rs_dir = Path(_tempfile.mkdtemp(prefix="closure-strace-"))
+_rs_root = str(_closure.ROOT)
+(_rs_dir / "r.strace").write_text(
+    f'101 execve("/usr/bin/python3", ["python3", "tests/closure.py"], 0x7f /* 9 vars */) = 0\n'
+    f'101 clone(child_stack=NULL, flags=SIGCHLD) = 102\n'
+    f'101 openat(AT_FDCWD, "tests/hastub/homeassistant/core.py", O_RDONLY|O_CLOEXEC)'
+    f' = 3<{_rs_root}/tests/hastub/homeassistant/core.py>\n'
+    f'102 openat(AT_FDCWD, "{_rs_root}/tests/no_such_file.py", O_RDONLY) = -1 ENOENT'
+    f' (No such file or directory)\n'
+    f'102 openat(AT_FDCWD, "tests", O_RDONLY|O_DIRECTORY) = 4<{_rs_root}/tests>\n'
+    f'102 openat(AT_FDCWD, "/usr/lib/x.py", O_RDONLY) = 5</usr/lib/x.py>\n'
+    # A git child and what it forks scan the tree; their reads are git's.
+    f'101 clone3({{flags=CLONE_VM}}, 88 <unfinished ...>\n'
+    f'103 execve("/usr/bin/git", ["git", "grep", "x"], 0x7f /* 9 vars */) = 0\n'
+    f'101 <... clone3 resumed>) = 103\n'
+    f'103 clone(child_stack=NULL, flags=SIGCHLD) = 104\n'
+    f'103 openat(AT_FDCWD, "tests/entities.py", O_RDONLY) = 3<{_rs_root}/tests/entities.py>\n'
+    f'104 openat(AT_FDCWD, "tests/run.sh", O_RDONLY) = 3<{_rs_root}/tests/run.sh>\n'
+    f'105 execve("/usr/bin/python3", ["python3", "-P"], 0x7f /* 9 vars */ <unfinished ...>\n'
+    f'105 <... execve resumed>) = 0\n'
+    f'105 openat(AT_FDCWD, "tests/harness.py", O_RDONLY) = 3<{_rs_root}/tests/harness.py>\n'
+    # An INERT path stays out: the list is the classification.
+    f'105 openat(AT_FDCWD, "LICENSE", O_RDONLY) = 3<{_rs_root}/LICENSE>\n'
+    # A node child is its own lane's recording, and reads the policy corpus.
+    f'106 execve("/usr/bin/node", ["node", "x.mjs"], 0x7f /* 9 vars */) = 0\n'
+    f'106 openat(AT_FDCWD, "tests/card.mjs", O_RDONLY) = 3<{_rs_root}/tests/card.mjs>\n')
+(_rs_dir / "r.json").write_text(json.dumps(
+    {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
+try:
+    _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
+    _closure._union_strace(_rs_dir / "r.json", _rs_dir / "r.strace")
+    _RS_REC = json.loads((_rs_dir / "r.json").read_text())
+    _RS_GOT = (_RS_SEEN, _RS_REC["files"], _RS_REC["how"],
+               (_rs_dir / "r.strace").exists())
+except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
+_rs_shutil.rmtree(_rs_dir, ignore_errors=True)
+_RS_SRC = _inspect.getsource(_closure.record)
+R.check(
+    "the closure recorder unions a traced child's repo reads into the record "
+    "(R9 D14-s5-01)",
+    _RS_GOT == (["tests/harness.py", "tests/hastub/homeassistant/core.py"],
+                ["tests/deployment_shape.py", "tests/harness.py",
+                 "tests/hastub/homeassistant/core.py"],
+                "audithook+sys.modules+strace", False)
+    and '"strace", "-f"' in _RS_SRC and '"-y"' in _RS_SRC
+    and "_union_strace(out, trace)" in _RS_SRC,
+    f"(seen, unioned files, how, trace left behind) -> {_RS_GOT}; record() "
+    f"must trace with -f -y and union the log",
+)
+
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides
@@ -25252,6 +25359,103 @@ R.check(
     f"(no base, base 0, base = count, base above) -> {_MUT_RATCHET}",
 )
 
+# The I1 barrier (R9 RCA I1, #1646): the per-site half of the ratchet. A count
+# compares two totals, so a diff that adds an unpinned guard and drops any
+# other nets to zero: the trade below is admitted by ratchet_refusal and
+# refused by added_unpinned. A site re-indented or renamed in place is the
+# base's; one that left a file and reappears unchanged in another, under the
+# same def, is moved, not added (#1748) -- but only between files the diff
+# removes lines from and adds lines to, and never into another def.
+_ADD = getattr(_mut, "added_unpinned", None)
+
+
+def _au(file: str, scope: str, old: str, kind: str = "GUARD_OFF") -> dict:
+    return {"file": file, "kind": kind, "old": old, "line": 1,
+            "anchor": f"{file}:{scope} {kind} 0"}
+
+
+_au_a, _au_b = _au("p/f.py", "g", "    if a:"), _au("p/f.py", "g", "    if b:")
+_au_c = _au("p/f.py", "g", "    if c:")
+_au_mv = _au("p/new.py", "g", "        if b:")
+_au_ret = _au("p/f.py", "g", "    return None", "RETURN_DEL")
+_au_ret2 = _au("p/new.py", "h", "    return None", "RETURN_DEL")
+_au_moved = ({"p/f.py"}, {"p/new.py"})
+try:
+    _AU_GOT = tuple(
+        [x["old"].strip() for x in _ADD(*args)] for args in (
+            ([_au_a, _au_c], [_au_a, _au_b]),                  # the trade
+            ([_au_a, _au_b], [_au_a, _au_b]),                  # null: no change
+            ([_au_a, dict(_au_b, old="        if b:",
+                          anchor="p/f.py:k GUARD_OFF 0")], [_au_a, _au_b]),
+            ([_au_a, _au_mv], [_au_a, _au_b], _au_moved),      # moved across files
+            ([_au_a, _au_mv], [_au_a, _au_b]),                 # no diff sides given
+            ([_au_a, _au_mv], [_au_a, _au_b], ({"p/x.py"}, {"p/new.py"})),
+            ([_au_a, dict(_au_mv, anchor="p/new.py:h GUARD_OFF 0")],
+             [_au_a, _au_b], _au_moved),                       # another def
+            ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
+            ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
+            ([_au("p/f.py", "h", "    if b:"), _au_mv],          # twins: h stays,
+             [_au("p/f.py", "h", "    if b:"), _au_b], _au_moved),  # g's moves
+        ))
+    _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_GOT, _AU_COUNT = (f"{type(_au_exc).__name__}: {_au_exc}",), None
+R.check(
+    "added_unpinned refuses a site traded in at an unchanged count, and keeps "
+    "a re-indented or moved site the base's (#1646, #1748)",
+    _AU_COUNT is None and _AU_GOT == (
+        ["if c:"], [], [], [], ["if b:"], ["if b:"], ["if b:"],
+        ["return None"], ["if c:"], []),
+    f"count verdict on the trade {_AU_COUNT}; (trade, null, re-indent, moved, "
+    f"no sides, source untouched, other def, generic return, new guard beside "
+    f"a move, the moved one of two twins) -> {_AU_GOT}",
+)
+
+# The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an
+# `else`, an `elif`, or a comment after the colon is a GUARD_OFF site, and a
+# numpy/math clamp is a CLAMP_DROP; each mutant keeps the header's tail and
+# still parses. The null control is a multi-line test, which the single-line
+# format does not reach (the barrier's residual, tvofi's card C7).
+_WI_DIR = Path(_tempfile.mkdtemp(prefix="mutation-widened-"))
+
+
+def _wi_compiles(m: dict) -> bool:
+    src = (_WI_DIR / "w.py").read_text().splitlines()
+    src[m["line"] - 1] = m["new"]
+    try:
+        ast.parse("\n".join(src))
+    except SyntaxError:
+        return False
+    return True
+
+
+(_WI_DIR / "w.py").write_text(
+    "import math\nimport numpy as np\n\n\ndef f(x, y):\n"
+    "    if x > 1:  # why\n        return 1\n"
+    "    elif y:\n        return 2\n"
+    "    if x < 0:\n        y = 3\n    else:\n        y = 4\n"
+    "    z = np.clip(x, 0.0, 1.0)\n    w = math.fmin(x, y)\n"
+    "    if (x and\n            y):\n        return 5\n"
+    "    return z + w\n")
+try:
+    _WI_GOT = sorted((_m["line"], _m["kind"], _m["new"].strip())
+                     for _m in _mut.candidates(_WI_DIR / "w.py")
+                     if _m["kind"] in ("GUARD_OFF", "CLAMP_DROP"))
+    _WI_PARSE = all(
+        _wi_compiles(_m) for _m in _mut.candidates(_WI_DIR / "w.py"))
+except Exception as _wi_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _WI_GOT, _WI_PARSE = [f"{type(_wi_exc).__name__}: {_wi_exc}"], False
+_mut_shutil.rmtree(_WI_DIR, ignore_errors=True)
+R.check(
+    "the inventory sees elif, else-carrying, commented and numpy/math guard "
+    "shapes, and not a multi-line test (R9 D14-s5-02)",
+    _WI_PARSE and _WI_GOT == [
+        (6, "GUARD_OFF", "if False:  # why"), (8, "GUARD_OFF", "elif False:"),
+        (10, "GUARD_OFF", "if False:"), (14, "CLAMP_DROP", "z = (x)"),
+        (15, "CLAMP_DROP", "w = (x)")],
+    f"(line, kind, mutant) -> {_WI_GOT}; every mutant parses: {_WI_PARSE}",
+)
+
 # The completeness check, both directions, plus the empty-inventory null
 # control. A stale mark (a disposition whose key+old no longer names a site)
 # and an empty inventory are each REFUSED; a consistent ledger passes.
@@ -25475,8 +25679,10 @@ R.check(
     and "cap_problems(budgets)" in _MUT_BODY
     and "ledger_form_problems(budgets)" in _MUT_BODY
     and 'budgets["reason"] =' not in _MUT_BODY
-    and "base_unpinned(rbase, sites)" in _MUT_BODY
-    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
+    and "base_sites = base_unpinned_sites(rbase, sites)" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY
+    and "added_unpinned(unpinned, base_sites or [], diff_sides(rbase))" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned) == 1 or added)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "
     "the cap refusal and the ratchet verdict must all run before the sampled "
     "pool, or the ratchet is defined and never enforced",
@@ -25515,7 +25721,7 @@ R.check(
 R.check(
     "--pin-killed is wired: new sites from the base's own unpinned list, "
     "a pin only from a recorded kill run",
-    "new_unpinned(unpinned, base_sites)" in _MUT_BODY
+    "new_unpinned(unpinned, base_sites or [])" in _MUT_BODY
     and "base_unpinned_sites(rbase, sites)" in _MUT_BODY
     and "pin_results(results, kill_runs, baseline,\n" in _MUT_BODY
     and ".update(entries)" in _MUT_BODY and "return pin_rc" in _MUT_BODY,

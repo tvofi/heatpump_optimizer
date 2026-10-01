@@ -43,12 +43,14 @@ alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images) -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 73 of the 378 script pairs (28 choose 2) sharing 0.80 or more
-of their production-module closure, all 73 among the 276 pairs whose two
+recording finds 83 of the 378 script pairs (28 choose 2) sharing 0.80 or more
+of their production-module closure, all 83 among the 300 pairs whose two
 scripts each have a non-empty production closure (``tests/ha_contract.py``,
-``tests/harness_headers.py``, ``tests/layout.py`` and ``tests/md_tables.mjs``
-have none). Twelve of the pairs sit at
-exactly 1.00 -- structure.py/typing_ruler.py (67 shared production files),
+``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
+``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
+R9 F10.3's strace instrument recorded its round-harness children's imports).
+Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
+(75 shared production files), structure.py/typing_ruler.py (67),
 finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (67
 each), plan_view.py/solar_alignment.py (50), the optimality.py/validate.py/
 edge.py/backtest.py four (14, six pairs), golden.py/env_drift.py (83),
