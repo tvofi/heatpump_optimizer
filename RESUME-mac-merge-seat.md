@@ -77,3 +77,16 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - #1799 F1.8 merged 6793659c (it was still a draft: run `gh pr ready` before merging). #1657 closed. Roster ada74d99 marks F1.8 done.
 - Ready set sent to the coordinator for dispatch, all parallel: F10.2 (opus), F1.9 (sonnet), F6.3 (opus per its brief text), F10.1c (sonnet). The only shared files are bugclasses.json and S5.json, which are append-only.
 - No PRs open from this seat. Next: post the hpo-approver verdicts as they arrive, merge in batches of 2-3, and after each merge mark the roster and dispatch the next group (F1.10, F6.4, F10.3).
+
+## LIVE STATE 2026-10-01T08:56Z
+
+- main 404a5fb0. Merged this session: #1799 F1.8 (6793659c), #1802 F6.3 (cc00ed85), #1803 F10.2 (a413832a), #1805 F1.9 (404a5fb0). Closed #1657, #1652, #1656, #1653, #1660. Roster 80f16eb0; F10.1d was added (after F10.1c) to own F10.1c's 10 unowned DST raw sites, plus build_override's cap compares and is_expired.
+- Open: #1804 F10.1c at 733f6f35, which is code e26fa13b (round-2 merge verdict 5927429501) with main 404a5fb0 merged in. Delta review and CI are running. Approve on the delta verdict, merge on green, then dispatch F10.1d.
+- Fixers in flight (cloud): F6.4 (sonnet), F10.3 (opus), F1.10 (opus).
+- Working method:
+  - Approve as tvofi with `gh pr review N --approve` as soon as the merge verdict lands (tvofi 08:42Z); the merge waits for green CI at a head that contains main. `gh api .../reviews` is classifier-denied.
+  - app_push opens PRs non-draft; I run `gh pr ready --undo`, then `gh pr ready` before merging.
+  - Every merge of main into a PR head needs a `## Head` line naming the new SHA, or pr-contract refuses the body.
+  - Verdicts arrive via the coordinator; I post them with app_comment.sh using the 40-hex grammar.
+  - Real-HA ha_contract (nightly-ha is skipped on PRs) runs natively: venv /private/tmp/audit-7/r9-mac/ha-venv (Python 3.14.7, HA 2026.9.3), `env -u PYTHONPATH ../ha-venv/bin/python tests/ha_contract.py --emit-probes X/real.json --contracts-only`, then the stub run and `--compare`. The hpo-ci container was deleted on 2026-10-01.
+  - Batch rule: after each merge, merge main into the next verdict-ready PR once, then let the reviewer judge that delta.
