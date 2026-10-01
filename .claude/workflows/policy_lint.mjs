@@ -548,8 +548,8 @@ const CORPUS_EXCLUDED = new Set([
   // The author-identity record (#201 comment 5744682317): pull requests are
   // authored by the `hpo-author` App, seats are LOCAL-ONLY, the retired
   // account never writes again. Named one by one per the rule above, and owed
-  // rather than optional: `tools/audit/briefs/fixer.md` and
-  // `tools/audit/briefs/fix-review.md` cite it and are capped.
+  // rather than optional: a capped policy file cites it, and
+  // `EXCLUDED_BECAUSE_CITED` below refuses the last such citation going.
   'docs/decisions/0011-app-authored-identity.md',
   // The process-diet record (round-8 convergence programme, item F6): the
   // process moratorium until 2026-10-31, the D11/D13-every-third-round and
@@ -945,6 +945,11 @@ const EXCLUDED_BECAUSE_CITED = new Map([
   // `tools/audit/briefs/orchestrator.md` cites it; that is the citation whose
   // disappearance nothing saw.
   ['docs/decisions/0010-merge-commits-on-main.md', 'tools/audit/briefs/orchestrator.md'],
+  // The author-identity record. Its CORPUS_EXCLUDED line was paid for a
+  // citation by `tools/audit/briefs/fixer.md`; when the briefs came to say
+  // "decision 0011" in prose the path went, and the line's comment went on
+  // claiming two citers for weeks (PROC-3's review), because nothing read it.
+  ['docs/decisions/0011-app-authored-identity.md', 'tools/audit/briefs/fixer.md'],
 ])
 
 // Injectable for the reason `uncoveredPolicyFiles` states about itself: this
