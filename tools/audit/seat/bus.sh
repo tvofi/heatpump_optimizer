@@ -47,24 +47,33 @@
 # THE REF IS NOT THE REVIEWER. Every cloud seat pushes with one credential, so
 # a hand-made `verdict/<pr>` with a well-formed line and evidence is as easy
 # for a fixer as for its reviewer (PROC-4's round-1 review drove exactly that
-# to a post). Two records gate a post, both kept by whichever role dispatched
-# the reviewer -- the coordinator where there is one, else the orchestrator --
-# in $HPO_BUS_STATE on the machine that posts:
-#   - `dispatch` when the reviewer starts: PR, head and reviewer (its thread or
-#     session id), and a fresh nonce it prints for the reviewer's brief. The
-#     verdict must carry `bus-nonce: <nonce>`, and a nonce binds only the PR
-#     and head it was minted for.
-#   - `confirm`, after the dispatcher has read that reviewer's OWN thread or
-#     session output and found this verdict commit there.
-# Without both it fails closed: `BUS undispatched` or `BUS unconfirmed`. WHAT
-# THIS PROVES: the nonce ties a verdict to a dispatch, not to a seat -- a
-# brief is readable project-wide, so any seat that reads the reviewer's
-# thread can copy it; it stops a verdict for an undispatched PR, a stale head
-# or a guessed nonce. Authorship rests on `confirm`, the dispatcher reading
-# the reviewer's own output, as the relay did before the bus. No design
-# without a confirming role is sound here: with one push credential and
-# project-readable briefs, every secret a reviewer could sign with is
-# readable by the seat it reviews.
+# to a post). A post needs one of two proofs:
+#
+# 1. THE APPROVER'S SIGNATURE (decision 0013's review identity). Where the
+#    hpo-approver App's key is present ($HPO_IDENTITY_DIR, default ~/.zcode,
+#    `identity-approver.pem`, the file `app_comment.sh` signs with),
+#    push-verdict signs "hpo-bus verdict <pr> <tree>" with it into a
+#    `bus-signature:` line of the commit message (no nonce needed), and the posting machine
+#    verifies it against the public half of its own copy of that key. It binds
+#    the pull request and the whole tree, VERDICT.md and evidence. WHAT IT
+#    PROVES: the commit was made where that key is -- the posting machine and
+#    a review-only environment holding it, never one a fixer runs in. It is
+#    exactly as strong as that separation (the pull-request body states the
+#    settings); a key in a fixer's environment or in /mnt/project-files voids it.
+#
+# 2. ELSE, THE DISPATCHER'S RECORDS, kept by whichever role dispatched the
+#    reviewer -- the coordinator where there is one, else the orchestrator --
+#    in $HPO_BUS_STATE on the machine that posts:
+#    - `dispatch` when the reviewer starts: PR, head and reviewer (its thread
+#      or session id), and a fresh nonce it prints for the reviewer's brief.
+#      The verdict must carry `bus-nonce: <nonce>`, and a nonce binds only the
+#      PR and head it was minted for.
+#    - `confirm`, after the dispatcher has read that reviewer's OWN thread or
+#      session output and found this verdict commit there.
+#    Without both it fails closed: `BUS undispatched` or `BUS unconfirmed`.
+#    The nonce ties a verdict to a dispatch, not to a seat (a brief is
+#    readable project-wide); authorship rests on `confirm`, as it did on the
+#    relay before the bus.
 #
 # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
 # HPO_BUS_POSTER (this checkout's tools/audit/app_comment.sh).
@@ -89,15 +98,30 @@ verdict_nonce() { # verdict file -> the first bus-nonce, or nothing
   sed -n 's/^bus-nonce: \([0-9a-f]\{32\}\)$/\1/p' "$1" | head -n 1
 }
 numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
+approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
+  local k=${HPO_IDENTITY_DIR:-$HOME/.zcode}/identity-approver.pem
+  [ -f "$k" ] && printf '%s\n' "$k"
+}
+signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is the approver key's over pr and tree
+  local pr=$1 c=$2 key t rc
+  key=$(approver_key) || return 1
+  t=$(mktemp -d) || return 1
+  git log -1 --format=%B "$c" | sed -n 's/^bus-signature: //p' | head -n 1 | openssl base64 -d -A > "$t/sig" 2>/dev/null \
+    && [ -s "$t/sig" ] && openssl rsa -in "$key" -pubout -out "$t/pub" 2>/dev/null \
+    && printf 'hpo-bus verdict %s %s\n' "$pr" "$(git rev-parse "$c^{tree}")" \
+       | openssl dgst -sha256 -verify "$t/pub" -signature "$t/sig" >/dev/null 2>&1
+  rc=$?; rm -rf "$t"; return $rc
+}
 
 push_verdict() { # pr verdict-file [evidence-dir]
-  local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree parent c
+  local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree parent c key msg sig
   numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
   [ -f "$v" ] || die "push-verdict: no verdict file at '$v'"
   first=$(head -n 1 "$v")
   hsha=$(verdict_sha "$first") \
     || die "push-verdict: the first line is outside fix-review.md's grammar: '$first'"
-  [ -n "$(verdict_nonce "$v")" ] \
+  key=$(approver_key) || key=""
+  [ -n "$key" ] || [ -n "$(verdict_nonce "$v")" ] \
     || die "push-verdict: no 'bus-nonce: <32 hex>' line; the dispatcher's brief gives it (bus.sh dispatch)"
   [ -n "$ev" ] && [ -d "$ev" ] || die "push-verdict: no evidence directory (a verdict cites one; fix-review.md)"
   grep -rqF -- "$hsha" "$ev" \
@@ -119,8 +143,14 @@ push_verdict() { # pr verdict-file [evidence-dir]
     git fetch -q "$REMOTE" "refs/heads/verdict/$pr" || die "push-verdict: could not fetch verdict/$pr"
     parent="-p $(git rev-parse FETCH_HEAD)"
   fi
+  msg="verdict: #$pr $first"
+  if [ -n "$key" ]; then
+    sig=$(printf 'hpo-bus verdict %s %s\n' "$pr" "$tree" | openssl dgst -sha256 -sign "$key" | openssl base64 -A) \
+      && [ -n "$sig" ] || die "push-verdict: signing with $key failed"
+    msg=$(printf '%s\n\nbus-signature: %s' "$msg" "$sig")
+  fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
-  c=$(git commit-tree "$tree" $parent -m "verdict: #$pr $first") || die "push-verdict: commit-tree failed"
+  c=$(git commit-tree "$tree" $parent -m "$msg") || die "push-verdict: commit-tree failed"
   git push -q "$REMOTE" "$c:refs/heads/verdict/$pr" || die "push-verdict: the push of verdict/$pr was refused"
   printf 'verdict/%s %s\n' "$pr" "$c"
 }
@@ -140,7 +170,7 @@ kind_of() { # ref name -> "<kind> <name>"
 }
 
 post_verdict() { # pr [expected sha] -> prints one BUS posted|refused line; rc 0 posted
-  local pr=$1 want=${2:-} c d first hsha body why thread nonce
+  local pr=$1 want=${2:-} c d first hsha body why thread nonce how
   numeric "$pr" || { printf 'BUS refused %s: verdict/%s is not a pull-request number\n' "$pr" "$pr"; return 1; }
   if ! git fetch -q "$REMOTE" "+refs/heads/verdict/$pr:refs/hpo-bus/verdict/$pr" 2>/dev/null; then
     printf 'BUS refused %s: could not fetch verdict/%s\n' "$pr" "$pr"; return 1
@@ -164,20 +194,25 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused line; rc 0
     fi
   fi
   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
-  # The ref proves no reviewer (the header): a dispatch record for this pr,
-  # head and nonce, then the dispatcher's confirmation of this commit.
-  nonce=$(verdict_nonce "$d/VERDICT.md")
-  thread=$(awk -v k="$pr $hsha " -v n="$nonce" 'index($0, k) == 1 && n != "" && $4 == n { print $3; exit }' "$S/dispatched" 2>/dev/null)
-  if [ -z "$thread" ]; then
-    printf 'BUS undispatched %s %s: no dispatch record for #%s at %s with this verdict'"'"'s nonce\n' "$pr" "$c" "$pr" "$hsha"; return 1
-  fi
-  if ! grep -qx "$pr $c" "$S/confirmed" 2>/dev/null; then
-    printf 'BUS unconfirmed %s %s: read %s'"'"'s own output for this commit, then: bus.sh confirm %s %s\n' \
-      "$pr" "$c" "$thread" "$pr" "$c"; return 1
+  # The ref proves no reviewer (the header): the approver key's signature over
+  # this pr and tree, else a dispatch record for this pr, head and nonce and
+  # the dispatcher's confirmation of this commit.
+  if signed_by_approver "$pr" "$c"; then how="signed with hpo-approver's key"
+  else
+    nonce=$(verdict_nonce "$d/VERDICT.md")
+    thread=$(awk -v k="$pr $hsha " -v n="$nonce" 'index($0, k) == 1 && n != "" && $4 == n { print $3; exit }' "$S/dispatched" 2>/dev/null)
+    if [ -z "$thread" ]; then
+      printf 'BUS undispatched %s %s: no dispatch record for #%s at %s with this verdict'"'"'s nonce\n' "$pr" "$c" "$pr" "$hsha"; return 1
+    fi
+    if ! grep -qx "$pr $c" "$S/confirmed" 2>/dev/null; then
+      printf 'BUS unconfirmed %s %s: read %s'"'"'s own output for this commit, then: bus.sh confirm %s %s\n' \
+        "$pr" "$c" "$thread" "$pr" "$c"; return 1
+    fi
+    how="dispatched to and confirmed from $thread"
   fi
   body=$S/verdicts/$pr/$c.md
   { cat "$d/VERDICT.md"
-    printf '\nbus: verdict/%s at %s, dispatched to and confirmed from %s; evidence: %s/evidence\n' "$pr" "$c" "$thread" "$d"
+    printf '\nbus: verdict/%s at %s, %s; evidence: %s/evidence\n' "$pr" "$c" "$how" "$d"
   } > "$body"
   # Recorded BEFORE the post and withdrawn on a refusal: a kill between a
   # landed post and the record would otherwise post twice. A kill now leaves
@@ -257,7 +292,7 @@ watch() {
 }
 
 self_test() {
-  local W pass=0 fail=0 out rc h1 h2 c1 c2 c9 ca cs t ev forged N0 N1 N1b N2 N9
+  local W pass=0 fail=0 out rc h1 h2 c1 c2 c9 c13 c14 c16 ca cs t ev forged n N0 N1 N1b N2 N9
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -291,8 +326,14 @@ P
   chmod +x "$W/poster"
   export BUS_TEST_CALLS=$W/calls BUS_TEST_LAST=$W/last
   : > "$W/calls"
+  # BUS_ID picks the identity directory: none by default, $W/ap for the
+  # approver's key (the posting machine and a review-only environment), $W/fx
+  # for a key a fixer made itself under the same file name.
+  mkdir -p "$W/ap" "$W/fx" "$W/noid"
+  openssl genrsa -out "$W/ap/identity-approver.pem" 2048 2>/dev/null
+  openssl genrsa -out "$W/fx/identity-approver.pem" 2048 2>/dev/null
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
-           bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+           HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   calls() { grep -c . "$W/calls"; }
 
   out=$(run push-verdict 7 "$W/badgrammar.md" "$W/ev1"); rc=$?
@@ -406,6 +447,40 @@ P
   out=$(run post 9)
   echo "$out" | grep -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
 
+  # The approver's signature: no dispatch, no nonce, no confirmation needed.
+  # Every other key, PR or tree falls back to the dispatcher's records.
+  n=$(calls)
+  out=$(BUS_ID=$W/ap run push-verdict 13 "$W/nononce.md" "$W/ev1"); rc=$?
+  c13=$(git -C "$W/origin.git" rev-parse verdict/13)
+  [ $rc = 0 ] && git -C "$W/origin.git" log -1 --format=%B "$c13" | grep -q '^bus-signature: '
+  expect "push-verdict signs with the approver key and needs no nonce then" $?
+  out=$(BUS_ID=$W/fx run push-verdict 14 "$W/nononce.md" "$W/ev1")
+  c14=$(git -C "$W/origin.git" rev-parse verdict/14)
+  git -C "$W/seat" fetch -q origin verdict/13
+  git -C "$W/seat" push -q origin "$c13:refs/heads/verdict/15"
+  out=$(BUS_ID=$W/ap run push-verdict 16 "$W/nononce.md" "$W/ev1")
+  c16=$(git -C "$W/origin.git" rev-parse verdict/16)
+  git -C "$W/seat" fetch -q origin verdict/16
+  t=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' \
+      "$(git -C "$W/seat" rev-parse "$c16:VERDICT.md")" \
+      "$(printf 'edited after signing, at %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin | xargs printf '100644 blob %s\trun.log\n' | git -C "$W/seat" mktree)" \
+      | git -C "$W/seat" mktree)
+  t=$(git -C "$W/seat" log -1 --format=%B "$c16" | git -C "$W/seat" commit-tree "$t" -p "$c16")
+  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/16"
+  out=$(BUS_ID=$W/ap run watch --once --post)
+  echo "$out" | grep -q "^BUS undispatched 14 $c14" && [ "$(calls)" = $((n + 1)) ]
+  expect "a verdict signed with a key that is not the approver's does not post" $?
+  echo "$out" | grep -q "^BUS undispatched 15 $c13"
+  expect "an approver-signed verdict moved to another pull request does not post" $?
+  echo "$out" | grep -q "^BUS undispatched 16 $t"
+  expect "an approver signature over another tree does not post" $?
+  echo "$out" | grep -q "^BUS posted 13 $c13 Fix review: merge $h1" \
+    && grep -q "^bus: verdict/13 at $c13, signed with hpo-approver's key;" "$W/last"
+  expect "watch --post posts an approver-signed verdict with no dispatch" $?
+  out=$(run post 14)
+  echo "$out" | grep -q "^BUS undispatched 14 $c14"
+  expect "a machine without the approver key verifies no signature" $?
+
   git -C "$W/seat" push -q origin :refs/heads/handoff/t1
   out=$(run watch --once)
   echo "$out" | grep -qx "BUS handoff t1 gone"; expect "watch reports a deleted ref" $?
@@ -416,7 +491,7 @@ P
   out=$(timeout 3 bash -c "cd '$W/seat' && HPO_BUS_STATE='$W/state' bash '$ROOT/tools/audit/seat/bus.sh' watch --every 1" 2>&1); rc=$?
   [ $rc = 124 ] && [ -z "$out" ]; expect "watch without --once keeps waiting while nothing changes" $?
 
-  rm -rf "$W"
+  [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
 }
