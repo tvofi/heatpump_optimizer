@@ -2190,6 +2190,44 @@ def write_plan(plan: dict, workdir: Path) -> None:
     (workdir / "scope.txt").write_text(buf.getvalue())
 
 
+def coverage_split(plan: dict, stage: list[str],
+                   reusable: set[str]) -> tuple[list[str], list[str]]:
+    """(measure, reuse): which coverage-stage scripts a pull request re-runs.
+
+    The coverage job's scoping (R9-F10.9b, #1812). ``stage`` is
+    tools/audit/w5-partition/coverage_tree.sh's script list, as
+    ``tests/<name>.py``; ``reusable`` the ones whose per-script coverage data
+    the push run at the diff's base left behind. A script is reused only when
+    the plan is SCOPED and skips it -- no changed file is in its measured
+    closure, so it executes the production lines it executed at the base --
+    and its data is there. Everything else is measured: every script under a
+    FULL plan, a script the plan runs, and a script with no base data, which a
+    cache miss makes every script. The skip claim is the gate's own, and the
+    push to main still measures every script unscoped.
+    """
+    if plan.get("mode") != "scoped":
+        return list(stage), []
+    skip = set(plan.get("skip", ())) - set(plan.get("run", ()))
+    measure = [s for s in stage if s not in skip or s not in reusable]
+    return measure, [s for s in stage if s not in measure]
+
+
+def coverage_split_cli(plan_path: Path, reuse_dir: Path) -> int:
+    """Read coverage_tree.sh's script names on stdin; print ``measure`` or
+    ``reuse`` before each. A script's base data is ``.coverage.<name>``, or
+    ``<name>.nodata`` for one that executed no package line."""
+    stage = [line.strip() for line in sys.stdin if line.strip()]
+    have = {n for n in stage if (reuse_dir / f".coverage.{n}").is_file()
+            or (reuse_dir / f"{n}.nodata").is_file()}
+    measure, reuse = coverage_split(
+        json.loads(plan_path.read_text()),
+        [f"tests/{n}.py" for n in stage], {f"tests/{n}.py" for n in have})
+    verb = {**{s: "measure" for s in measure}, **{s: "reuse" for s in reuse}}
+    for n in stage:
+        print(f"{verb[f'tests/{n}.py']}\t{n}")
+    return 0
+
+
 def not_run(workdir: Path) -> tuple[list[tuple[str, str, str]], list[str]]:
     """What a scoped gate really left out: (did-not-run rows, ran anyway).
 
@@ -2762,6 +2800,44 @@ def selftest() -> int:
                 f"rc={prc2} after={sorted(after)!r}",
             )
 
+    print("\n=== coverage reuses only what the scoped gate skips (#1812) ===")
+    stage = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.py"]
+    every = set(stage)
+    scoped = {"mode": "scoped", "run": ["tests/a.py"],
+              "skip": {"tests/b.py": {}, "tests/c.py": {}}}
+    # The mode decides, not the skip list: a plan that is not SCOPED reuses
+    # nothing even when it names a skip (a design choice, pinned here).
+    pin("a FULL plan measures every script, base data or not",
+        coverage_split({"mode": "full", "run": stage,
+                        "skip": {"tests/b.py": {}}}, stage, every)
+        == (stage, []))
+    pin("a plan of no known mode measures every script",
+        coverage_split({"skip": {"tests/b.py": {}}}, stage, every)
+        == (stage, []))
+    split = coverage_split(scoped, stage, {"tests/a.py", "tests/b.py",
+                                           "tests/d.py"})
+    pin("scoped: only a skipped script with base data is reused",
+        split == (["tests/a.py", "tests/c.py", "tests/d.py"], ["tests/b.py"]),
+        f"got {split!r}")
+    pin("scoped, cache miss: nothing is reused",
+        coverage_split(scoped, stage, set()) == (stage, []))
+    with tempfile.TemporaryDirectory() as td:
+        reuse = Path(td)
+        (reuse / ".coverage.b").write_text("")
+        (reuse / "c.nodata").write_text("")
+        plan_file = reuse / "scope.json"
+        plan_file.write_text(json.dumps(scoped))
+        buf, real_stdin = io.StringIO(), sys.stdin
+        sys.stdin = io.StringIO("a\nb\nc\nd\n")
+        try:
+            with contextlib.redirect_stdout(buf):
+                coverage_split_cli(plan_file, reuse)
+        finally:
+            sys.stdin = real_stdin
+        pin("coverage-split reads .coverage.<n> and <n>.nodata as base data",
+            buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
+            repr(buf.getvalue()))
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
@@ -2907,6 +2983,9 @@ def main() -> int:
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
     nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
+    cs = sub.add_parser("coverage-split")
+    cs.add_argument("--plan", required=True)
+    cs.add_argument("--reuse-dir", required=True)
     sub.add_parser("show")
     sub.add_parser("no-copies")
     sub.add_parser("selftest")
@@ -2924,6 +3003,8 @@ def main() -> int:
         return _autofix_report_cmd(a.job, a.status)
     if a.cmd == "prune":
         return prune(Path(a.out))
+    if a.cmd == "coverage-split":
+        return coverage_split_cli(Path(a.plan), Path(a.reuse_dir))
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
     if a.cmd == "no-copies":

@@ -13949,7 +13949,7 @@ from zoneinfo import ZoneInfo as _ClkZone
 
 _clk_tz = _ClkZone("Europe/Stockholm")
 _spring = datetime(2026, 3, 29, 1, 30, tzinfo=_clk_tz)
-_spring_steps = _usteps(_spring, 8, 0.25)
+_spring_steps = _usteps(_spring, 8, timedelta(minutes=15))
 _spring_utc = [
     (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
     for a, b in zip(_spring_steps, _spring_steps[1:])
@@ -13960,7 +13960,7 @@ R.check(
     f"deltas={_spring_utc} local={[s.isoformat() for s in _spring_steps]}",
 )
 _autumn = datetime(2026, 10, 25, 1, 30, tzinfo=_clk_tz)
-_autumn_steps = _usteps(_autumn, 8, 0.25)
+_autumn_steps = _usteps(_autumn, 8, timedelta(minutes=15))
 _autumn_utc = [
     (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
     for a, b in zip(_autumn_steps, _autumn_steps[1:])
@@ -21785,7 +21785,7 @@ R.check(
 
 # R6-D2-02: the inlet floor must not manufacture heat above the tank's
 # surroundings. The floor is a lower bound, and the tank stands in a room at
-# DHW_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
+# TANK_ROOM_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
 # above that room turns the bound into a source that pins the tank at the
 # inlet and books the fabricated heat on _step_dhw_floor_injected. The floor
 # belongs at min(inlet_reference, ambient), where an unheated tank settles of
@@ -49287,7 +49287,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     DHW_COOLING_REFERENCE_DELTA as _R7PIN_REF_DELTA,
 )
 from heatpump_optimizer.thermal_model import (  # noqa: E402
-    DHW_AMBIENT_TEMP as _R7PIN_AMBIENT,
+    TANK_ROOM_AMBIENT_TEMP as _R7PIN_AMBIENT,
 )
 
 # `async_load_profile` restores a stored pooled profile only when it is a
@@ -54025,6 +54025,344 @@ R.check(
     not hasattr(_f23_const, "DHW_COLD_WATER_TEMP"),
 )
 
+
+# -- R9-P3: one floor per quantity, and one floor price per zone ---------------
+# Class P3 (a capacity floor or divisor applied inconsistently across sibling
+# formulas) recurred in seven of nine audit rounds. Each fix enumerated its
+# siblings with a rule keyed on its own instance's text (a grep for
+# max(...thermal_mass...), a humidity keyword) that lived in the pull request's
+# body, so a sibling of another spelling was in no rule: round 9's on/off
+# power_normalized (four inline copies of one floored range, one unclipped)
+# and the halved two-zone floor price. Two arms.
+#
+# (a) Every positive floor max(E, c) on a ThermalParameters quantity lives in
+# ONE function, with one constant, and nothing divides by E raw. E is resolved
+# through single-assignment locals and cut to attribute leaves, so `p_range`
+# in one method and `p_max - p_min` in another are the same key. This encodes
+# a design choice (fixer.md step 11): a floor two sites need is a helper, not
+# two copies, because two copies are how one of them loses its clip.
+import ast as _r9p3_ast  # noqa: E402
+from pathlib import Path as _R9P3Path  # noqa: E402
+from heatpump_optimizer import optimizer as _r9p3_optmod  # noqa: E402
+
+
+def _r9p3_const(n):
+    if isinstance(n, _r9p3_ast.Constant) and isinstance(n.value, (int, float)) \
+            and not isinstance(n.value, bool):
+        return float(n.value)
+    if isinstance(n, _r9p3_ast.UnaryOp) and isinstance(n.op, _r9p3_ast.USub):
+        v = _r9p3_const(n.operand)
+        return -v if isinstance(v, float) else None
+    if isinstance(n, _r9p3_ast.Name) and n.id.isupper():
+        return n.id
+    return None
+
+
+def _r9p3_floor(n):
+    """(E, c) for max(E, c) / max(c, E) with c a positive constant, else None."""
+    if isinstance(n, _r9p3_ast.Call) and isinstance(n.func, _r9p3_ast.Name) \
+            and n.func.id == "max" and len(n.args) == 2 and not n.keywords:
+        for q, c in (n.args, n.args[::-1]):
+            cv = _r9p3_const(c)
+            if cv is not None and (isinstance(cv, str) or cv > 0) \
+                    and _r9p3_const(q) is None:
+                return q, cv
+    return None
+
+
+class _R9P3Resolve(_r9p3_ast.NodeTransformer):
+    def __init__(self, alias, depth=0):
+        self.alias, self.depth = alias, depth
+
+    def visit_Attribute(self, n):
+        return _r9p3_ast.Name(id=n.attr, ctx=_r9p3_ast.Load())
+
+    def visit_Name(self, n):
+        if n.id in self.alias and self.depth < 4:
+            return _R9P3Resolve(self.alias, self.depth + 1).visit(
+                _r9p3_ast.parse(_r9p3_ast.unparse(self.alias[n.id]), mode="eval").body
+            )
+        return n
+
+    def visit_Call(self, n):
+        if isinstance(n.func, _r9p3_ast.Name) and n.func.id in ("float", "int") \
+                and len(n.args) == 1 and not n.keywords:
+            return self.visit(n.args[0])
+        return self.generic_visit(n)
+
+    def visit_BinOp(self, n):
+        # A commutative product or sum keys alike in either operand order:
+        # coordinator._observe_compressor_start floored `0.5 * min_power`
+        # beside the owner's `min_power * 0.5`, and the unsorted key read
+        # them as two quantities (the fourth on-threshold copy, P2 RCA).
+        n = self.generic_visit(n)
+        if isinstance(n.op, (_r9p3_ast.Mult, _r9p3_ast.Add)):
+            a, b = sorted((n.left, n.right), key=_r9p3_ast.unparse)
+            n.left, n.right = a, b
+        return n
+
+
+def _r9p3_groups(sources: dict[str, str]) -> dict:
+    """{key: (kinds, floors, raw divisors)} for every inconsistently floored key."""
+    fields: set = set()
+    for node in _r9p3_ast.walk(_r9p3_ast.parse(sources["thermal_model"])):
+        if isinstance(node, _r9p3_ast.ClassDef) and node.name == "ThermalParameters":
+            for b in node.body:
+                if isinstance(b, _r9p3_ast.AnnAssign) and isinstance(b.target, _r9p3_ast.Name):
+                    fields.add(b.target.id)
+                elif isinstance(b, _r9p3_ast.FunctionDef) and any(
+                    isinstance(d, _r9p3_ast.Name) and d.id == "property"
+                    for d in b.decorator_list
+                ):
+                    fields.add(b.name)
+    floored: dict = {}
+    raw: dict = {}
+    for mod, src in sources.items():
+        for fn in _r9p3_ast.walk(_r9p3_ast.parse(src)):
+            if not isinstance(fn, (_r9p3_ast.FunctionDef, _r9p3_ast.AsyncFunctionDef)):
+                continue
+            assigns: dict = {}
+            for n in _r9p3_ast.walk(fn):
+                if isinstance(n, _r9p3_ast.Assign) and len(n.targets) == 1 \
+                        and isinstance(n.targets[0], _r9p3_ast.Name):
+                    # a constant fallback (`if C < eps: C = 0.04`) leaves C
+                    # the quantity it was read as
+                    if _r9p3_const(n.value) is None:
+                        assigns.setdefault(n.targets[0].id, []).append(n.value)
+                elif isinstance(getattr(n, "target", None), _r9p3_ast.Name) and isinstance(
+                    n, (_r9p3_ast.AugAssign, _r9p3_ast.AnnAssign, _r9p3_ast.For, _r9p3_ast.NamedExpr)
+                ):
+                    assigns.setdefault(n.target.id, []).append(None)
+            alias = {
+                k: v[0] for k, v in assigns.items()
+                if len(v) == 1 and v[0] is not None
+                and k not in {x.id for x in _r9p3_ast.walk(v[0]) if isinstance(x, _r9p3_ast.Name)}
+            }
+
+            def key(e, alias=alias):
+                r = _R9P3Resolve(alias).visit(
+                    _r9p3_ast.parse(_r9p3_ast.unparse(e), mode="eval").body
+                )
+                names = {x.id for x in _r9p3_ast.walk(r) if isinstance(x, _r9p3_ast.Name)}
+                if names & fields and all(x in fields or x.isupper() for x in names):
+                    return _r9p3_ast.unparse(r)
+                return None  # a local or a non-parameter quantity: out of class
+
+            where = f"{mod}.{fn.name}"
+            for n in _r9p3_ast.walk(fn):
+                f = _r9p3_floor(n)
+                if f and key(f[0]):
+                    floored.setdefault(key(f[0]), []).append((str(f[1]), where))
+                if isinstance(n, _r9p3_ast.BinOp) and isinstance(
+                    n.op, (_r9p3_ast.Div, _r9p3_ast.FloorDiv)
+                ):
+                    d = n.right
+                    if _r9p3_floor(d) or _r9p3_const(d) is not None or _r9p3_floor(
+                        _R9P3Resolve(alias).visit(
+                            _r9p3_ast.parse(_r9p3_ast.unparse(d), mode="eval").body
+                        )
+                    ):
+                        continue
+                    if key(d):
+                        raw.setdefault(key(d), []).append(where)
+    out = {}
+    for k, fl in floored.items():
+        kinds = [
+            kind for kind, hit in (
+                ("two constants", len({c for c, _ in fl}) > 1),
+                ("floored in two functions", len({w for _, w in fl}) > 1),
+                ("divided raw beside its floor", bool(raw.get(k))),
+            ) if hit
+        ]
+        if kinds:
+            out[k] = (kinds, sorted({w for _, w in fl}), sorted(set(raw.get(k, []))))
+    return out
+
+
+_r9p3_dir = _R9P3Path(_r9p3_optmod.__file__).parent
+_r9p3_src = {p.stem: p.read_text(encoding="utf-8") for p in sorted(_r9p3_dir.glob("*.py"))}
+_r9p3_open = _r9p3_groups(_r9p3_src)
+R.check(
+    "R9-P3: every floor on a thermal parameter lives in one function with one "
+    "constant, and nothing divides by that parameter raw",
+    not _r9p3_open and len(_r9p3_src) > 30,
+    f"{len(_r9p3_src)} modules; " + "; ".join(
+        f"{k}: {', '.join(v[0])} (floored {v[1]}, raw {v[2]})"
+        for k, v in sorted(_r9p3_open.items())
+    ),
+)
+_r9p3_probe = {
+    "thermal_model": "class ThermalParameters:\n    cap_a: float = 1.0\n    cap_b: float = 1.0\n",
+    "one": "def f(p, q):\n    c = max(p.cap_a, 0.01)\n    return q / c\n",
+    "two": (
+        "def g(p, q):\n    r = p.cap_a - p.cap_b\n    return q / max(r, 0.1)\n"
+        "def h(p, q):\n    return q / max(p.cap_a - p.cap_b, 0.1)\n"
+        "def k(p, q):\n    return q / p.cap_a + q / max(p.cap_a, 0.02) + q / max(q, 0.5)\n"
+    ),
+    "three": (
+        "def m(p):\n    return max(0.1, 0.5 * p.cap_b)\n"
+        "def n(p):\n    return max(0.1, float(p.cap_b) * 0.5)\n"
+    ),
+}
+R.check(
+    "R9-P3: and the rule keys a range spelt two ways alike, a product in "
+    "either operand order alike, a floor through a local, a second constant "
+    "and a raw divisor, and passes a local's floor",
+    {k: v[0] for k, v in _r9p3_groups(_r9p3_probe).items()} == {
+        "cap_a": ["two constants", "floored in two functions", "divided raw beside its floor"],
+        "cap_a - cap_b": ["floored in two functions"],
+        "0.5 * cap_b": ["floored in two functions"],
+    },
+    f"{_r9p3_groups(_r9p3_probe)}",
+)
+
+# The named exception: optimizer._power_fraction normalises by the modulation
+# band and BRANCHES on a band under _MIN_MODULATION_BAND_KW instead of flooring
+# it, because a floored band is D12-s2-03 itself (a fixed-speed pump read a
+# full-power step as 0). Arm (a) keys neither a branch nor a tuple-assigned
+# local, so it cannot see this helper; this check pins the shape instead, and
+# a plain max(band, 0.1) put back in the helper is its control.
+_r9p3_pf = next(
+    n for n in _r9p3_ast.walk(_r9p3_ast.parse(_r9p3_src["optimizer"]))
+    if isinstance(n, _r9p3_ast.FunctionDef) and n.name == "_power_fraction"
+)
+_r9p3_pf_floors = [
+    _r9p3_ast.unparse(f[0]) for f in map(_r9p3_floor, _r9p3_ast.walk(_r9p3_pf)) if f
+]
+_r9p3_pf_branch = any(
+    isinstance(n, _r9p3_ast.Compare)
+    and "_MIN_MODULATION_BAND_KW" in _r9p3_ast.unparse(n)
+    for n in _r9p3_ast.walk(_r9p3_pf)
+)
+R.check(
+    "R9-P3: the power-fraction helper is the named exception -- it branches "
+    "on a sub-floor band and floors nothing",
+    _r9p3_pf_branch and not _r9p3_pf_floors,
+    f"branch={_r9p3_pf_branch}, floors={_r9p3_pf_floors}",
+)
+
+# Each floor's value, on an input below it and one above it. With every site
+# reading the one property, a dropped floor moves all sites together and no
+# cross-site agreement check can see it (round-1 review of #1808), so the
+# floor itself is pinned here.
+from dataclasses import replace as _r9p3_replace  # noqa: E402
+
+_r9p3_tp = ThermalParameters()
+for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in (
+    ("cop_nominal_floored", "cop_nominal", 0.4, 3.2, 1.0, 3.2),
+    ("emitter_design_delta_t_floored", "emitter_design_delta_t", 0.3, 7.0, 1.0, 7.0),
+    ("slab_heat_transfer_floored", "slab_heat_transfer", 0.0, 0.25, 1e-6, 0.25),
+    ("flow_lift_power_floor_kw", "max_electrical_power", 0.1, 3.0, 0.2, 0.9),
+):
+    _r9p3_got = [
+        getattr(_r9p3_replace(_r9p3_tp, **{_r9p3_field: v}), _r9p3_prop)
+        for v in (_r9p3_lo, _r9p3_hi)
+    ]
+    R.check(
+        f"R9-P3: {_r9p3_prop} holds its floor below it and passes through above",
+        abs(_r9p3_got[0] - _r9p3_want_lo) < 1e-12
+        and abs(_r9p3_got[1] - _r9p3_want_hi) < 1e-12,
+        f"{_r9p3_field}={_r9p3_lo} -> {_r9p3_got[0]} (want {_r9p3_want_lo}), "
+        f"{_r9p3_field}={_r9p3_hi} -> {_r9p3_got[1]} (want {_r9p3_want_hi})",
+    )
+
+# The one clock keeps a naive start naive: the wall-clock walk, no zone added.
+from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
+
+_r9p3_naive = datetime(2026, 3, 29, 1, 0)
+_r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
+R.check(
+    "R9-P3/#1741: a naive start walks the wall clock and stays naive",
+    _r9p3_steps == [_r9p3_naive + timedelta(minutes=30) * k for k in (2, 3, 4, 5)]
+    and all(s.tzinfo is None for s in _r9p3_steps),
+    f"{_r9p3_steps}",
+)
+
+# A tank colder than the room it stands in loses nothing to it: the standby
+# term is one-sided at the tank-room ambient in the DHW window planner and in
+# the setpoint advisor. The what-if service takes any DHW setpoint, so a cold
+# tank is a reachable input of the planner; the advisor sweeps 48-60 °C and
+# meets one only below a -8 °C minimum, which the rule covers all the same.
+# At a cold tank the standby coefficient must not move either answer (a
+# dropped clamp turns the loss into a credit and does). The warm tank is the
+# liveness leg: there the coefficient does move both.
+def _r9p3_ready(rate, cold):
+    lo, hi = (12.0, 24.0) if cold else (40.0, 75.0)
+    opt, params = _r7d203_opt(
+        200.0, dhw_cooling_rate=rate, dhw_setpoint=hi, dhw_min_temp=lo,
+        dhw_idle_min_temp=lo,
+    )
+    windows, _ = opt._effective_dhw_windows()
+    res = opt._dhw_window_floors(
+        params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
+    )
+    return [round(float(v), 9) for v in res[6] if v]
+
+
+def _r9p3_sweep(rate, cold):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    tp = coord._thermal_params
+    tp.dhw_enabled, tp.dhw_cooling_rate = True, rate
+    if cold:
+        tp.dhw_min_temp = -40.0
+    coord._prices = [{"total": 1.0}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+for _r9p3_what, _r9p3_fn in (
+    ("window planner's ready temperatures", _r9p3_ready),
+    ("setpoint advisor's daily costs", _r9p3_sweep),
+):
+    _r9p3_cold = (_r9p3_fn(0.0, True), _r9p3_fn(1.5, True))
+    _r9p3_warm = (_r9p3_fn(0.0, False), _r9p3_fn(1.5, False))
+    R.check(
+        f"R9-P3: a tank below the tank-room ambient has no standby loss "
+        f"({_r9p3_what})",
+        _r9p3_cold[0] == _r9p3_cold[1] and _r9p3_warm[0] != _r9p3_warm[1],
+        f"cold: {_r9p3_cold[0][:6]} vs {_r9p3_cold[1][:6]}; "
+        f"warm: {_r9p3_warm[0][:6]} vs {_r9p3_warm[1][:6]}",
+    )
+
+# (b) The floor price of one zone-kelvin below min_temp is the same in every
+# topology and in both twins: undershooting ONE zone of a two-zone house by
+# u -> 0+ costs what the single-zone room costs (D2-s2-81 priced it at half).
+# Only the linear floor term is pinned; how the quadratic terms combine the
+# zones is the optimizer's design and is left free.
+from golden import make as _r9p3_make  # noqa: E402
+
+_r9p3_opt = {tz: _r9p3_make(two_zone=tz, dhw=False)["optimizer"] for tz in (False, True)}
+
+
+def _r9p3_price(opt, zone: str, batch: bool, u: float = 1e-4, n: int = 8) -> float:
+    def pen(d):
+        room = np.full(n + 1, 21.0)
+        up, lo = room.copy(), room.copy()
+        for arr, z in ((room, "room"), (up, "upper"), (lo, "lower")):
+            if zone in (z, "room"):
+                arr[1:] = 20.0 - d
+        args = (room, up, lo, np.full(n, 21.0), np.full(n, 20.0),
+                np.full(n, 24.0), np.full(n, 1.0))
+        if batch:
+            args = tuple(a[None, :] if a.shape == (n + 1,) else a for a in args)
+            return float(opt._comfort_terms_batch(*args)[0][0])
+        return float(opt._comfort_terms(*args)[0])
+
+    return (pen(u) - pen(0.0)) / (u * n)
+
+
+_r9p3_ref = _r9p3_price(_r9p3_opt[False], "room", False)
+for _r9p3_batch in (False, True):
+    for _r9p3_zone in ("upper", "lower"):
+        _r9p3_got = _r9p3_price(_r9p3_opt[True], _r9p3_zone, _r9p3_batch)
+        R.check(
+            f"R9-P3: one kelvin-step under the floor in the {_r9p3_zone} zone "
+            f"costs what it costs a single-zone room ("
+            f"{'batch' if _r9p3_batch else 'scalar'} twin)",
+            _r9p3_ref > 0 and abs(_r9p3_got / _r9p3_ref - 1.0) < 1e-3,
+            f"two-zone {_r9p3_got:.5f}, single-zone {_r9p3_ref:.5f} per K-step",
+        )
 
 # -- #1524: the experiment identifies a TWO-ZONE house ------------------------
 # coordinator._update_current_state feeds the indoor reading to the upper zone,

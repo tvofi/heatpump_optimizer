@@ -34,9 +34,15 @@ from typing import Any, Callable
 
 import numpy as np
 
+from .accuracy import utc_elapsed_seconds
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .mixing_valve import is_throttling
-from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .thermal_model import (
+    TANK_ROOM_AMBIENT_TEMP,
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,7 +172,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
     two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
     """
     p = model.params
-    k_slab = max(p.slab_heat_transfer, 1e-9)
+    k_slab = p.slab_heat_transfer_floored
     gains = p.internal_gains
     if not p.two_zone_enabled:
         ua = p.heat_loss_coefficient * p.house_heat_loss_scale
@@ -189,7 +195,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
         slab = lower + (1.0 - rad) * q_hold / k_slab
         tank = ThermalState.buffer_tank_temperature
     else:
-        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
         a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
         (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
             np.array([
@@ -198,7 +204,7 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
                 [0.0, k_slab, -(a_f + k_slab), a_f],
                 [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
             ]),
-            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - TANK_ROOM_AMBIENT_TEMP * k_b]),
             rcond=None,
         )
     return ThermalState(
@@ -778,7 +784,7 @@ def _slab_series(
     powers = np.asarray([s.power_kw for s in usable], dtype=float)
     dts = np.asarray(
         [
-            (b.when - a.when).total_seconds() / 3600.0
+            utc_elapsed_seconds(b.when, a.when) / 3600.0
             for a, b in zip(usable, usable[1:])
         ],
         dtype=float,
@@ -1296,7 +1302,7 @@ class SystemIdentification:
                     float(plant.upper_floor_thermal_mass + plant.lower_floor_thermal_mass),
                 )
         if self.last_run is not None:
-            days = (now - self.last_run).total_seconds() / 86400.0
+            days = utc_elapsed_seconds(now, self.last_run) / 86400.0
             if days < self.config.min_days_between_runs:
                 _LOGGER.info(
                     "System identification ran %.1f days ago; waiting for the "
@@ -1513,7 +1519,7 @@ class SystemIdentification:
         no declared plant seeds the fit (the harness-only one-state path).
         """
         rows = [s for s in self.samples if s.phase == PHASE_SETTLING]
-        dt = (rows[-1].when - rows[-2].when).total_seconds() / 3600.0 if len(rows) > 1 else 0.25
+        dt = utc_elapsed_seconds(rows[-1].when, rows[-2].when) / 3600.0 if len(rows) > 1 else 0.25
         if (
             self._slab_pair is None or self._slab_prior is None
             or self._baseline_temp is None or not 1e-3 < dt <= 2.0
@@ -1582,7 +1588,7 @@ class SystemIdentification:
             self._baseline_temp = room_temp
 
         elapsed = (
-            (now - self.phase_started).total_seconds() / 3600.0
+            utc_elapsed_seconds(now, self.phase_started) / 3600.0
             if self.phase_started
             else 0.0
         )
@@ -1725,12 +1731,12 @@ class SystemIdentification:
         row_dts = []
         t_zero = usable[0].when
         for previous, current in zip(usable, usable[1:]):
-            dt_h = (current.when - previous.when).total_seconds() / 3600.0
+            dt_h = utc_elapsed_seconds(current.when, previous.when) / 3600.0
             if dt_h <= 1e-3 or dt_h > 2.0:
                 continue
             rate = (current.room_temp - previous.room_temp) / dt_h
             delta = previous.room_temp - previous.outdoor_temp
-            since = (previous.when - t_zero).total_seconds() / 3600.0
+            since = utc_elapsed_seconds(previous.when, t_zero) / 3600.0
             # D2-07: the fourth column is elapsed time, and it is there to
             # catch a drifting ROOM SENSOR. A sensor ageing at d °C/h adds
             # d·t to every reading, which enters the regression twice — the
@@ -1819,9 +1825,9 @@ class SystemIdentification:
         d2_all = []
         for i in range(1, len(usable) - 1):
             if usable[i - 1].phase == usable[i].phase == usable[i + 1].phase:
-                h_prev = (
-                    usable[i].when - usable[i - 1].when
-                ).total_seconds() / 3600.0
+                h_prev = utc_elapsed_seconds(
+                    usable[i].when, usable[i - 1].when
+                ) / 3600.0
                 if h_prev <= 1e-6:
                     continue
                 curvature = (

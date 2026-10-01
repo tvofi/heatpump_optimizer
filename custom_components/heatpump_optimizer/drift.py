@@ -29,6 +29,24 @@ import numpy as np
 STAT_CAP_FACTOR = 1.5
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Home Assistant's ``as_utc`` rule: naive is UTC, aware is converted."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
+    """Seconds between two stamps as instants (round-9 D14-s4-01, P7).
+
+    Two aware stamps that share Home Assistant's one ZoneInfo object subtract
+    as wall clock in CPython, an hour off across a DST transition; converting
+    both to UTC first measures the instants. A naive pair keeps its wall
+    difference, which is what the identity-zone test clock means by it.
+    """
+    return (_as_utc(newer) - _as_utc(older)).total_seconds()
+
+
 def stored_instant(
     raw: Any, naive_zone: tzinfo | None = timezone.utc
 ) -> datetime | None:
@@ -126,7 +144,7 @@ class Cusum:
             # now rather than releasing on a guess.
             self.last_fed = now
             return False
-        if (now - self.last_fed).total_seconds() < max_gap_hours * 3600.0:
+        if utc_elapsed_seconds(now, self.last_fed) < max_gap_hours * 3600.0:
             return False
         self.tripped = False
         self.stat = 0.0
