@@ -327,15 +327,15 @@ pickup recipes:
 
 - **Cloud seat** (`pickup_cloud`): `git fetch origin <branch>`; if it exists, `git worktree add --detach
   $S/<lane topic>/wt FETCH_HEAD`, read the note, check its commit against the fetched head (if the branch
-  is ahead, trust the branch and its log), `git merge origin/main` if main moved and re-run `fixer.md`
+  is ahead, trust the branch), `git merge origin/main` if main moved and re-run `fixer.md`
   steps 2-8, then continue at the note's next step. If the branch does not exist, cut from origin/main and
-  start at `fixer.md` step 1. Plan and briefs from `handoff/audit-r9-fixplan`; the log from `/mnt`.
+  start at `fixer.md` step 1. Plan and briefs from `handoff/audit-r9-fixplan`; the state file `RESUME-CURRENT.md` from `/mnt`.
 - **Mac seat** (`pickup_local`): the same git commands from the Mac checkout, with the plan, briefs and
-  roster from `handoff/audit-r9-fixplan` and the log from `handoff/audit-r9-plan`'s mirror; nothing it
+  roster from `handoff/audit-r9-fixplan` and `RESUME-CURRENT.md` from `handoff/audit-r9-plan`; nothing it
   needs lives only under `/mnt`.
 
 A crashed seat is restarted from its branch and resume note, never from scratch. A crashed orchestrator is
-restarted from the mirror log, the roster and `git ls-remote 'refs/heads/handoff/r9-*'`, which together
+restarted from `RESUME-CURRENT.md`, the roster and `git ls-remote 'refs/heads/handoff/r9-*'`, which together
 name every branch in flight and its last pushed step. This plan itself follows the rule: its generator
 sources are committed beside it (`handoff/round9/fix/src/`), and each rebuild is pushed.
 
