@@ -493,6 +493,10 @@ check("an unknown reason code still shows something",
     /Likely because/.test(cheap) && !/dearest/.test(cheap), cheap);
   check("UX-1 an active step is not explained here",
     idleWhyHtml([row("space_power", 0, 2, "cheap_price")], ctx) === "");
+  // A DHW step classified off the DHW path publishes no reason at all, so
+  // only its power says it is running.
+  check("UX-1 a running step with no published reason is not explained",
+    idleWhyHtml([row("dhw_power", 0, 3, undefined)], ctx) === "");
   check("UX-1 a step the pump's mode blocks is reasonHtml's, not this",
     idleWhyHtml([row("space_power", 3, 0, "pump_mode")], ctx) === "");
   check("UX-1 a hidden channel is not explained",
@@ -5995,14 +5999,34 @@ const setupBox = (card, place) =>
     const left = place(x);
     check("UX-1 past mid-width the tooltip sits wholly left of the crosshair",
       left + TT_W <= x, `left ${left} + ${TT_W} > ${x}`);
-    const tall = { width: 900, height: 200, left: 0, top: 0 };
-    posCard._onPointerMove({ clientX: 300,
-      currentTarget: { getBoundingClientRect: () => tall } });
-    check("UX-1 the tooltip is never taller than the chart",
-      parseFloat(ttNode.style.top) + parseFloat(ttNode.style.maxHeight) <=
-        tall.height, `top ${ttNode.style.top} max ${ttNode.style.maxHeight}`);
-    check("UX-1 and what it cannot hold is clipped, not spilled",
-      /\.tooltip \{[\s\S]*?overflow:\s*hidden[\s\S]*?\}/.test(cardSrc));
+    // fitWhy, with layout stood in for: the box is 16 px a value row and
+    // 15 px an explanation line or its heading.
+    const fitWhy = fn("fitWhy");
+    const box = (rowsN, linesN) => {
+      const html = '<div class="tt-row">r</div>'.repeat(rowsN) +
+        '<div class="tt-why"><span class="why-head">h</span><ul>' +
+        "<li>l</li>".repeat(linesN) + "</ul></div>";
+      const el = document.createElement("div");
+      el.innerHTML = html;
+      Object.defineProperty(el, "offsetHeight", { get: () =>
+        16 * el.querySelectorAll(".tt-row").length +
+        (el.querySelector(".tt-why") ? 15 : 0) +
+        15 * el.querySelectorAll(".tt-why li").length });
+      return el;
+    };
+    const roomy = box(3, 4);
+    fitWhy(roomy, 130);
+    check("UX-1 an explanation that fits is left whole",
+      roomy.querySelectorAll(".tt-why li").length === 4);
+    const shortened = box(3, 4);
+    fitWhy(shortened, 100);
+    check("UX-1 on a short chart the explanation loses its last lines, not its value rows",
+      shortened.offsetHeight <= 100 && shortened.querySelectorAll(".tt-row").length === 3 &&
+        shortened.querySelectorAll(".tt-why li").length === 2, shortened.offsetHeight);
+    const cramped = box(5, 4);
+    fitWhy(cramped, 90);
+    check("UX-1 and is dropped whole when not even one line fits",
+      !cramped.querySelector(".tt-why") && cramped.querySelectorAll(".tt-row").length === 5);
   }
   // R9-UI-4: the crosshair crosses every panel, from the top of the first
   // to at least the bottom of the last (on through the lane strip under it,

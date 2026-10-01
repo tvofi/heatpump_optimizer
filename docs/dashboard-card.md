@@ -229,8 +229,8 @@ A step none of these fits gets no explanation rather than a guessed one.
 
 The tooltip stays inside the chart: past the middle of the chart it opens to
 the left of the crosshair, and it is never taller than the chart. On a small
-dashboard card that can cut the end of the list; the enlarged view has room
-for all of it.
+dashboard card the list is shortened, last reason first, to what fits; the
+enlarged view has room for all of it.
 
 The stretch of the horizon whose prices have not been published yet — Nord Pool
 and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated

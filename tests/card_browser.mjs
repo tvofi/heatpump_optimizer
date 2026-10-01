@@ -629,7 +629,11 @@ function instrument() {
     for (const p of scope().querySelectorAll(".tooltip, .slot-menu")) {
       if (!visible(p)) continue;
       const r = p.getBoundingClientRect(), host = p.closest(".chartwrap"), hr = host && host.getBoundingClientRect();
-      const out1 = Math.max(0, -r.left, r.right - innerWidth, -r.top, r.bottom - innerHeight, hr ? hr.left - r.left : 0, hr ? r.right - hr.right : 0);
+      // R9-UX-1: a tooltip also stays within its chart's height, which the
+      // idle explanation's extra lines made reachable.
+      const tip = hr && p.matches(".tooltip");
+      const out1 = Math.max(0, -r.left, r.right - innerWidth, -r.top, r.bottom - innerHeight, hr ? hr.left - r.left : 0, hr ? r.right - hr.right : 0,
+        tip ? hr.top - r.top : 0, tip ? r.bottom - hr.bottom : 0);
       if (out1 > 0.5) out.popups.push(`${desc(p)} ${out1.toFixed(1)}px outside`);
     }
     // A listbox option shows only the prefix that fits; two options whose shown text is equal are one option to a reader.

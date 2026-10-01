@@ -3743,7 +3743,6 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
         color: var(--hpo-text, #212121);
         box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
-        overflow: hidden; box-sizing: border-box;
       }
       /* The value rows keep the tooltip's nowrap: "House temperature:
          22 °C" broken across two lines is worse than a wider box, and these
@@ -3774,9 +3773,9 @@ function cardStyleBlock(darkMode) {
         max-width: 220px;
       }
       /* R9-UX-1: why an idle step is idle. Prose, so it wraps like
-         tt-reason. It comes last in the box, so when a small chart caps
-         the box's height (.tooltip's overflow) it is the least important
-         lines of it that are cut, never a value row. */
+         tt-reason. It comes last in the box, and on a chart too short for
+         all of it fitWhy drops its last lines rather than letting the box
+         run out of the chart or clipping text. */
       .tooltip .tt-why {
         margin-top: 4px; padding-top: 4px;
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
@@ -7252,6 +7251,23 @@ function idleWhyHtml(rows, ctx) {
     lines.map((l) => `<li>${esc(l)}</li>`).join("") +
     `</ul></div>`
   );
+}
+/** Keep the tooltip inside a chart `cap` px tall by shortening the idle
+ * explanation, its last (least telling) line first, and dropping it whole
+ * when even its heading does not fit. Text is omitted, never clipped: the
+ * box cannot scroll, so a clipped line is one nobody can read. The value
+ * rows are left alone. `offsetHeight` is 0 or absent before layout, and
+ * then there is nothing to measure against. */
+function fitWhy(tt, cap) {
+  const tall = () => Number(tt.offsetHeight) > cap;
+  if (!(cap > 0) || !tall()) return;
+  const why = tt.querySelector(".tt-why");
+  if (!why) return;
+  // removeChild rather than remove(): the Node test DOM has only the former.
+  const drop = (n) => n.parentNode && n.parentNode.removeChild(n);
+  const items = [...why.querySelectorAll("li")];
+  while (items.length && tall()) drop(items.pop());
+  if (tall() || !why.querySelector("li")) drop(why);
 }
 
 // ---- Legend ---------------------------------------------------------------
@@ -12548,6 +12564,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         priceUnit: plan.priceUnit(),
       }));
       tt.hidden = false;
+      fitWhy(tt, rect.height - 16);
       const leftPx = clientX - rect.left;
       // Clamped to the chart, both edges. Flipping to the left of the pointer
       // past 60 % of the width assumed a 160 px box; a wider one (a long
@@ -12558,9 +12575,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // fallback to the width this placement was originally written for.
       //
       // R9-UX-1: it flips past mid-width by its own measured width, so the
-      // box never covers the crosshair it describes, and it stays inside the
-      // chart vertically too: the idle explanation makes it taller, so it is
-      // capped at the chart's height and scrolls nothing out of view below.
+      // box never covers the crosshair it describes; `fitWhy` above keeps it
+      // inside the chart vertically.
       const ttWidth = tt.offsetWidth || 160;
       const place =
         leftPx > rect.width * 0.5 ? leftPx - ttWidth - 14 : leftPx + 14;
@@ -12569,9 +12585,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The tooltip is positioned against its own chart wrapper, so a
       // small inset keeps it clear of the plot frame in both views.
       tt.style.top = `8px`;
-      if (Number.isFinite(rect.height) && rect.height > 16) {
-        tt.style.maxHeight = `${rect.height - 16}px`;
-      }
     }
   }
 
