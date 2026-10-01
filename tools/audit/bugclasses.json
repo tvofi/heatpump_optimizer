@@ -917,7 +917,7 @@
     "max_per_round": 3,
     "detector": "python3 tests/closure.py check --in-dir D (the closures job, recording on Linux under strace)",
     "detector_idea": "Nightly strace -f of the gate against the committed closures, reporting files the recorder missed (child-process reads, .pyc-only loads); over-scope needs no barrier (RCA-BULK-2)",
-    "barrier": "tests/closure.py record traces a Python script with every child it spawns under strace -f -y wherever strace exists (CI's Linux recorder, F10.3, #1663) and unions the repo files it opened with the audit hook's, so a file only a child reads is in the recording and check reports a committed closure that lacks it as UNDER-SCOPED; .pyc opens map through _pyc_source on both instruments. Over-scope gets no barrier (RCA-BULK-2: the safe direction, priced in CI seconds)",
+    "barrier": "tests/closure.py record traces a Python script with every child it spawns under strace -f -y wherever strace exists (CI's Linux recorder, F10.3, #1663) and unions the repo files its Python processes opened with the audit hook's (a git child's content scan, a node child's reads and an INERT path stay out), so a file only a Python child reads is in the recording and check reports a committed closure that lacks it as UNDER-SCOPED; .pyc opens map through _pyc_source on both instruments. Over-scope gets no barrier (RCA-BULK-2: the safe direction, priced in CI seconds)",
     "status": "barriered",
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
