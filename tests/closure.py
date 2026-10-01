@@ -2805,11 +2805,15 @@ def selftest() -> int:
     every = set(stage)
     scoped = {"mode": "scoped", "run": ["tests/a.py"],
               "skip": {"tests/b.py": {}, "tests/c.py": {}}}
+    # The mode decides, not the skip list: a plan that is not SCOPED reuses
+    # nothing even when it names a skip (a design choice, pinned here).
     pin("a FULL plan measures every script, base data or not",
-        coverage_split({"mode": "full", "run": stage, "skip": {}}, stage, every)
+        coverage_split({"mode": "full", "run": stage,
+                        "skip": {"tests/b.py": {}}}, stage, every)
         == (stage, []))
     pin("a plan of no known mode measures every script",
-        coverage_split({}, stage, every) == (stage, []))
+        coverage_split({"skip": {"tests/b.py": {}}}, stage, every)
+        == (stage, []))
     split = coverage_split(scoped, stage, {"tests/a.py", "tests/b.py",
                                            "tests/d.py"})
     pin("scoped: only a skipped script with base data is reused",
