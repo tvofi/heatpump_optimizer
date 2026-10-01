@@ -248,6 +248,8 @@ which is exactly the shape that lets a real error be waved through.
 - A `merge` verdict from a reviewer that measured **this** head, or a recorded
   reason why an older verdict carries — the authored diff proved byte-identical,
   not assumed.
+- **Main moved since its CI**: `tools/audit/merge_fastpath.py --head <sha>`;
+  ELIGIBLE merges as it is, REFUSED enters the merge queue.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -261,10 +263,8 @@ which is exactly the shape that lets a real error be waved through.
 
 ## 12. The gate lease
 
-Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
-(`gate-scoping.md` has the commands). **Never clear a live lease**: an expired
-lease or an abandoned hold may be taken, a live one may not, and several seats
-run at once.
+`run.sh` takes it around `tests/stress.py`. **Never clear a live lease**:
+several seats run at once.
 
 ## 13. Stamps, budgets, and the two things you may not decide alone
 

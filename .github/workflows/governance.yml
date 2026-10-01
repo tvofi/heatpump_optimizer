@@ -318,6 +318,16 @@ jobs:
           python3 .claude/workflows/contract_rerun.py --self-test | tee "$RUNNER_TEMP/crr-self-test.txt"
           grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
 
+      # The merge fast path (round-9 process review item 2B): each refusal class
+      # against its null control, through the gate's own `closure.select`. The
+      # orchestrator runs it by hand before a merge; nothing else would notice
+      # a class that stopped refusing. The tally line must say 0 failed.
+      - name: Show the merge fast path refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
+          grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
