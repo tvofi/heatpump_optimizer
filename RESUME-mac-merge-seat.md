@@ -90,3 +90,10 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
   - Verdicts arrive via the coordinator; I post them with app_comment.sh using the 40-hex grammar.
   - Real-HA ha_contract (nightly-ha is skipped on PRs) runs natively: venv /private/tmp/audit-7/r9-mac/ha-venv (Python 3.14.7, HA 2026.9.3), `env -u PYTHONPATH ../ha-venv/bin/python tests/ha_contract.py --emit-probes X/real.json --contracts-only`, then the stub run and `--compare`. The hpo-ci container was deleted on 2026-10-01.
   - Batch rule: after each merge, merge main into the next verdict-ready PR once, then let the reviewer judge that delta.
+
+## LIVE STATE 2026-10-01T09:22Z
+
+- main 787fe137 after #1804 F10.1c merged; #1756 closed. Roster 4f1c0f97.
+- **Close-out decision (tvofi 09:18Z):** the final stamp when only #201 remains is **v7.0.0** (semver). Intermediate wave stamps stay 6.7.x. A fixer seat authors the notes, and stamp.py stamps after the merge. Recorded in the roster's `decisions`.
+- Open: #1806 F6.4 at 0077ab5a, which is code f95051f4 with main 787fe137 merged in (coordinator.py and features.py auto-merged; the tree equals merge-tree). Real-HA 61/61 at f95051f4. The reviewer is on the code head; the delta is owed after.
+- Dispatch owed: F10.1d (after F10.1c, now met). In flight: F10.3, F1.10.
