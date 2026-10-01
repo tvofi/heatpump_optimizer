@@ -516,7 +516,8 @@ class QuarantiningStore(Store[_StorePayload]):
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
-                self.bounded = hits = []
+                hits: list[str] = []
+                self.bounded = hits
                 data = _bound_instants(data, bound, where, self._naive_zone, hits)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
