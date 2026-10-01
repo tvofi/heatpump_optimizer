@@ -170,6 +170,101 @@ ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
 }
 
 
+#: Swedish text for everything ``describe_setup`` and ``render_text_summary``
+#: publish, keyed by the English string (D4-s2-81): the setup page and the
+#: diagram showed English on a Swedish install because the producers took no
+#: language. English is the key and the fallback, so an unlisted string, or any
+#: other language, reads as it always did. The card's own text is its own table.
+_SV: dict[str, str] = {
+    "Outdoor temperature": "Utetemperatur",
+    "Solar radiation": "Solinstrålning",
+    "PV production": "Solcellsproduktion",
+    "Indoor temperature": "Inomhustemperatur",
+    "Lower floor temperature": "Temperatur nedre plan",
+    "Floor loop return": "Golvslingans retur",
+    "Heat pump switch": "Värmepumpens brytare",
+    "Power meter": "Effektmätare",
+    "Energy meter": "Energimätare",
+    "Whole-house power": "Husets totala effekt",
+    "Operating mode": "Driftläge",
+    "Defrosting": "Avfrostning",
+    "Online status": "Anslutningsstatus",
+    "Fault alarm": "Fellarm",
+    "Buffer tank temperature": "Buffertankens temperatur",
+    "Valve target": "Ventilens börvärde",
+    "Hot water temperature": "Varmvattentemperatur",
+    "Stove or flue sensor": "Kamin- eller rökgivare",
+    "Wood tank top": "Vedtankens topp",
+    "Wood tank bottom": "Vedtankens botten",
+    "Valve outlet temperature": "Ventilens utgångstemperatur",
+    "House: two zones": "Hus: två zoner",
+    "House: one zone": "Hus: en zon",
+    "Heat pump": "Värmepump",
+    "Heat pump tank": "Värmepumpstank",
+    "Buffer tank": "Buffertank",
+    "Mixing valve": "Blandningsventil",
+    "Hot water tank": "Varmvattentank",
+    "Wood furnace tank": "Vedpannans tank",
+    "Outside": "Ute",
+    "not configured": "inte konfigurerad",
+    "used as a store up to": "används som lager upp till",
+    "too small to store": "för liten för att lagra",
+    "none (delivery is not throttled)": "ingen (leveransen stryps inte)",
+    "(refilled through a coil in the wood tank)":
+        "(fylls på via en slinga i vedtanken)",
+    "modelled as its own store": "modelleras som ett eget lager",
+    "(modelled as heat into the heat-pump tank)":
+        "(modelleras som värme in i värmepumpstanken)",
+    "No mixing valve": "Ingen blandningsventil",
+    "One tank behind a valve": "En tank bakom en ventil",
+    "Two tanks, one 4-way valve": "Två tankar, en 4-vägsventil",
+    "Valve on the radiators, slab fed direct":
+        "Ventil på elementen, plattan matas direkt",
+    "Separate slab shunt": "Separat plattshunt",
+    "Everything the pump makes reaches the emitters; the tank is a "
+    "pass-through with a standing loss.":
+        "Allt pumpen producerar når värmeavgivarna; tanken är en "
+        "genomströmning med stilleståndsförlust.",
+    "The valve regulates one shared flow to every circuit; wood "
+    "heat, if any, is folded into the heat-pump tank.":
+        "Ventilen reglerar ett gemensamt flöde till alla kretsar; "
+        "eventuell vedvärme räknas in i värmepumpstanken.",
+    "A wood tank beside the heat-pump tank; the valve draws "
+    "wood-first while usable and feeds both floors in parallel.":
+        "En vedtank vid sidan av värmepumpstanken; ventilen tar "
+        "först från veden så länge den går att använda och matar "
+        "båda planen parallellt.",
+    "Only the radiator circuit sits behind the valve; the slab "
+    "drinks raw tank water.":
+        "Bara elementkretsen sitter bakom ventilen; plattan får "
+        "outblandat tankvatten.",
+    "A second shunt on the slab circuit. Recorded as a known "
+    "layout; not selectable until physics exists for it.":
+        "En andra shunt på plattkretsen. Känd layout; går inte att välja "
+        "förrän fysiken för den finns.",
+    "no throttling mixing valve configured":
+        "ingen strypande blandningsventil konfigurerad",
+    "a throttling mixing valve": "en strypande blandningsventil",
+    "a throttling valve, two zones and a wood-tank top probe":
+        "en strypande ventil, två zoner och en givare i vedtankens topp",
+    "a throttling valve, two zones, and no wood-tank probe (no "
+    "model exists for two tanks with a direct-fed slab)":
+        "en strypande ventil, två zoner och ingen vedtanksgivare (modell "
+        "saknas för två tankar med direktmatad platta)",
+    "not selectable: no model variant exists yet":
+        "går inte att välja: ingen modellvariant finns ännu",
+    "Sensor-gap cost (empty slots, estimated extra / month)":
+        "Kostnad för sensorluckor (tomma platser, beräknad extrakostnad / månad)",
+}
+
+
+def _tr(text: str, language: str) -> str:
+    """``text`` in ``language`` ("sv"; anything else is English)."""
+    if (language or "en").lower().replace("_", "-").split("-")[0] == "sv":
+        return _SV.get(text, text)
+    return text
+
+
 def _slot_extras(key: str, config: dict[str, Any]) -> dict[str, Any]:
     """Fields the card needs on one slot that the table row does not carry.
 
@@ -371,8 +466,12 @@ def layout_edges(
     return edges
 
 
-def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
+def describe_setup(
+    config: dict[str, Any], language: str = "en"
+) -> dict[str, Any]:
     """The configured system as one structured description.
+
+    ``language`` is the install's (D4-s2-81): the slot labels take it.
 
     Pure over the config dict. The ``slots`` list includes empty slots for
     every place the configured topology has, each entry
@@ -401,7 +500,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     slots = [
         {
             "key": key,
-            "label": label,
+            "label": _tr(label, language),
             "place": _place_home(place, two_tank=two_tank),
             "entity": config.get(key) or None,
             # Carried so the card's picker offers only what the service will
@@ -431,14 +530,14 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     catalog = [
         {
             "key": layout.key,
-            "label": layout.label,
-            "description": layout.description,
+            "label": _tr(layout.label, language),
+            "description": _tr(layout.description, language),
             # The prose half of the validity predicate. The card renders it
             # when a drawing matches a layout the configuration cannot store;
             # omitting it was the "needs: undefined" bug (#40 feedback,
             # item 5) — the one message meant to say exactly what is missing
             # said nothing at all.
-            "requirement": layout.requirement,
+            "requirement": _tr(layout.requirement, language),
             "selectable": layout.selectable,
             "valid": layout.selectable
             and topology_layout_valid(
@@ -459,6 +558,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     ]
     positions = config.get(CONF_TOPOLOGY_POSITIONS) or {}
     return {
+        "language": language,
         "two_zone": p.two_zone_enabled,
         "dhw": p.dhw_enabled,
         "valve_mode": p.mixing_valve_mode,
@@ -489,11 +589,12 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             ),
         },
         "slots": slots,
-        "sensor_gaps": rank_sensor_gaps(config),
+        "sensor_gaps": rank_sensor_gaps(config, language=language),
     }
 
 
 def _slot_lines(setup: dict[str, Any], place: str) -> list[str]:
+    lang = setup.get("language", "en")
     lines = []
     for slot in setup["slots"]:
         if slot["place"] != place:
@@ -502,7 +603,7 @@ def _slot_lines(setup: dict[str, Any], place: str) -> list[str]:
         if not slot["entity"] and slot.get("manual_setpoint") is not None:
             value = f"{slot['manual_setpoint']:g} °C"
         else:
-            value = slot["entity"] or "not configured"
+            value = slot["entity"] or _tr("not configured", lang)
         lines.append(f"  {mark} {slot['label']}: {value}")
     return lines
 
@@ -515,7 +616,8 @@ def _sensor_gap_lines(setup: dict[str, Any]) -> list[str] | None:
     # Currency-neutral on purpose (round-5 D8-03, #1228): the figures below
     # are priced in the instance's own currency (``coordinator.currency``,
     # SEK where nothing is configured), so the panel names none of its own.
-    lines = ["Sensor-gap cost (empty slots, estimated extra / month)"]
+    lines = [_tr("Sensor-gap cost (empty slots, estimated extra / month)",
+                 setup.get("language", "en"))]
     for gap in ranked[:5]:
         lines.append(f"  - {gap['label']}: {gap['sek_per_month']:.0f}")
     return lines
@@ -536,14 +638,17 @@ def render_text_summary(setup: dict[str, Any]) -> str:
     two_tank = bool(setup.get("two_tank_modelled"))
     parts: list[str] = []
 
-    house = ["House: two zones" if setup["two_zone"] else "House: one zone"]
+    def t(text: str) -> str:
+        return _tr(text, setup.get("language", "en"))
+
+    house = [t("House: two zones" if setup["two_zone"] else "House: one zone")]
     house += _slot_lines(setup, "upper_zone")
     if setup["two_zone"]:
         house += _slot_lines(setup, "lower_zone")
         house += _slot_lines(setup, "floor_loop")
     parts.append("\n".join(house))
 
-    hp = ["Heat pump"]
+    hp = [t("Heat pump")]
     hp += _slot_lines(setup, "heat_pump")
     parts.append("\n".join(hp))
 
@@ -551,29 +656,29 @@ def render_text_summary(setup: dict[str, Any]) -> str:
     tank = [
         # With a second modelled store the bare word "buffer" stops
         # identifying which tank is meant, so name it by what fills it.
-        ("Heat pump tank" if two_tank else "Buffer tank")
+        t("Heat pump tank" if two_tank else "Buffer tank")
         + f": {buf['volume_l']:.0f} L"
         + (
-            f", used as a store up to {buf['max_temp']:.0f} °C"
+            f", {t('used as a store up to')} {buf['max_temp']:.0f} °C"
             if buf["is_store"]
-            else (", too small to store" if valve else "")
+            else (f", {t('too small to store')}" if valve else "")
         )
     ]
     if valve:
-        tank.append(f"  * Mixing valve: {setup['valve_mode']}")
+        tank.append(f"  * {t('Mixing valve')}: {setup['valve_mode']}")
         tank += _slot_lines(setup, "mixing_valve")
     else:
-        tank.append("  - Mixing valve: none (delivery is not throttled)")
+        tank.append(f"  - {t('Mixing valve')}: {t('none (delivery is not throttled)')}")
     tank += _slot_lines(setup, "buffer_tank")
     parts.append("\n".join(tank))
 
     if setup["dhw"]:
-        dhw = ["Hot water tank"]
+        dhw = [t("Hot water tank")]
         # Absent on descriptions captured before v3.15.1, and absent is the
         # right rendering for those: no coil, so nothing to say. Placed like
         # the wood tank's caption, immediately under the heading it qualifies.
         if setup.get("dhw_wood_coil"):
-            dhw.append("  (refilled through a coil in the wood tank)")
+            dhw.append("  " + t("(refilled through a coil in the wood tank)"))
         dhw += _slot_lines(setup, "dhw_tank")
         parts.append("\n".join(dhw))
 
@@ -583,18 +688,18 @@ def render_text_summary(setup: dict[str, Any]) -> str:
         # into the heat-pump tank, and the summary must admit that; with it,
         # the tank is a store in its own right and the caption would lie.
         wood = [
-            f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"
-            + (", modelled as its own store" if two_tank else "")
+            f"{t('Wood furnace tank')}: {setup['wood']['volume_l']:.0f} L"
+            + (f", {t('modelled as its own store')}" if two_tank else "")
         ]
         if not two_tank:
-            wood.append("  (modelled as heat into the heat-pump tank)")
+            wood.append("  " + t("(modelled as heat into the heat-pump tank)"))
         # The valve-outlet probe's slot lives on the wood tank here (or on
         # the 4-way valve in the two-tank layout, rendered above) — there is
         # no separate wood-valve section since v4.0.0.
         wood += _slot_lines(setup, "wood_tank")
         parts.append("\n".join(wood))
 
-    outside = ["Outside"]
+    outside = [t("Outside")]
     outside += _slot_lines(setup, "outdoor")
     parts.append("\n".join(outside))
 
@@ -667,12 +772,16 @@ def rank_sensor_gaps(
     cop_guess: float = 2.6,
     dhw_extra_kwh: float = 0.0,
     dhw_price: float = 0.0,
+    language: str = "en",
 ) -> list[dict[str, Any]]:
     """Rank empty topology slots by estimated extra cost per month (#699).
 
     A configured slot ranks 0. Peak costs come from ``metering_windows``.
     """
-    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    labels = {
+        key: _tr(label, language)
+        for key, _place, label, _domains, _class in _SLOTS
+    }
     rows = (
         (
             CONF_HOUSE_POWER_ENTITY,
@@ -875,7 +984,9 @@ def _advisor_spread_c(
 
 
 def rank_sensor_advisor(
-    config: Mapping[str, Any], hp_kw: Sequence[float] = ()
+    config: Mapping[str, Any],
+    hp_kw: Sequence[float] = (),
+    language: str = "en",
 ) -> dict[str, Any] | None:
     """Rank unconfigured optional temperature sensors by model spread (#1269).
 
@@ -931,7 +1042,10 @@ def rank_sensor_advisor(
             *buffer_cooling_rate_bounds(params.buffer_tank_volume),
         ),
     }
-    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    labels = {
+        key: _tr(label, language)
+        for key, _place, label, _domains, _class in _SLOTS
+    }
     rows: list[dict[str, Any]] = []
     for key in candidates:
         lane = lanes.get(key)

@@ -327,6 +327,8 @@ class FakeCoordinator:
         self.pressed = []
         # What the real coordinator resolves from hass.config at construction.
         self.currency = "SEK"
+        # ``coordinator.hass``, which the gap advisor reads the language from.
+        self.hass = FakeHass()
         # What the climate thermostat card shows as the user's target.
         self.target_temperature = 21.0
         # What `configured_dhw_windows()` answers: the hot-water windows as
