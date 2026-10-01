@@ -4023,6 +4023,54 @@
       "brief": "Round-9 fix PR F10.9c (process-review items 2 and 3; item 2 BOTH arms, tvofi: 'On 2, I want both'). tvofi adopted all ten changes of the round-9 process review on 2026-10-01T16:51Z (cmsg_01EL5jLi4rokGBbkaevYXSJVQhpF9dkgnJhpD8EsagTaiE: 'fold in all changes as soon as possible in the ongoing plan. On 2, I want both'; review page https://claude.ai/artifact/JBLhwGFCUcQAat1jZKQ9K9, thread cmsg_01EL5jLi4rokGBbkaevYXSJVRx5H3xLz67uBnWXvCtYn8B). (A) GitHub merge queue: add the merge_group trigger to every required workflow under .github/workflows so required checks run on queue entries, and make each required job pass on merge_group exactly as on pull_request; the orchestrator then enables the queue on ruleset main-protect under the mandate. (B) Disjoint fast path: a verdicted PR whose merge-tree with current main is clean and whose selected closures (tests/closures.json) are disjoint from every file main changed since the PR's CI base may merge without a fresh CI run; build the predicate as a script the orchestrator runs (refuse on any overlap, conflict, claim-file change or workflow change), with main's FULL push gate and revert-first as the backstop, and document it in orchestrator.md. (3) Cancel superseded PR runs: concurrency {group: <workflow>-<PR number>, cancel-in-progress: true} on pull_request events only; main pushes untouched. Main's push stays FULL and unscoped and a red main is reverted first. Every arm keeps every barrier; state per arm what still runs where. Policy files changed here need tvofi's approval under the mandate (the orchestrator gives it on the merge verdict). Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it. Constraint (F10.9b fixer, 2026-10-01): tests/harness_headers.py must stay run_always, because D6's claims.py reads INERT docs (docs/backlog.md, docs/audit-2026-09.md, DISCLAIMER.md) that no closure records; any scoping of it would let those docs change without the check running. Follow-up from #1822's review (non-blocking, owned here): an earlier PR head that edited tests.yml can plant a ref-scope coverage-cache entry under the same key; add a marker check that the restored per-script coverage came from main's push run, and add runner.os to the cache key."
     },
     {
+      "group": "R9-F10.9d",
+      "lane": "F10",
+      "issues": [
+        1812
+      ],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": 12,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "changes what closure recording sees for run_always scripts; a wrong record hides reds",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.9c"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-closure-runalways",
+        "commit": null,
+        "last_step": null,
+        "next_step": "after F10.9c merges: fixer.md step 1 at a fresh merge base",
+        "note_file": "handoff/round9/fix/resume/F10.9d.md on handoff/r9-f10-closure-runalways",
+        "review_branch": "handoff/r9-f10-closure-runalways-review",
+        "review_note_file": "handoff/round9/fix/resume/F10.9d-review.md on handoff/r9-f10-closure-runalways-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added 2026-10-01 from F10.9c's forward-carry."
+      },
+      "brief": "Round-9 fix PR F10.9d (closure recorder: run_always reads), added 2026-10-01 from F10.9c's forward-carry (#1823 body). F10.9c's conservative fast path treats any file read by a run_always script as overlapping, because tests/closure.py does not record those reads (D6 claims.py reads INERT docs such as docs/backlog.md, docs/audit-2026-09.md and DISCLAIMER.md; every merge also adds a docs/delivery row no closure records). Measured: 0 ELIGIBLE pairs over the last 30 merges. Extend tests/closure.py's recorder (and tests/derive_closures.sh as needed) to record the run_always scripts' actual reads, so the fast path can tell a docs/delivery row from a doc a harness reads; tests/harness_headers.py stays run_always (decisions). Show, red-first, a delivery-row-only change becoming ELIGIBLE and a change to a doc harness_headers reads staying not eligible, and re-measure the ELIGIBLE count over the last 30 merges. Main's push stays FULL. Read CLAUDE.md, .claude/rules/* (gate-scoping.md especially) and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+    },
+    {
       "group": "R9-PROC-3",
       "lane": "F10",
       "issues": [],
