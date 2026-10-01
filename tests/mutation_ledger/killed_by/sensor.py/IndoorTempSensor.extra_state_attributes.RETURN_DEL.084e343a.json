@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:IndoorTempSensor.extra_state_attributes RETURN_DEL 084e343a",
+  "killed_by": "tests/entities.py",
+  "old": "        return {\"source_entity\": config.get(CONF_INDOOR_TEMP_ENTITY) or None}",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
+}
