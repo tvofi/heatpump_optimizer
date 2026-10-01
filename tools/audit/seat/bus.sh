@@ -5,6 +5,7 @@
 #
 #   bus.sh push-verdict <pr> <VERDICT.md> [<evidence dir>]     (reviewer)
 #   bus.sh watch [--once] [--post] [--every <seconds>]          (orchestrator)
+#   bus.sh confirm <pr> <verdict commit> <head> <thread>        (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
 #   bus.sh --self-test
 #
@@ -41,6 +42,14 @@
 # posted at most once ($HPO_BUS_STATE/posted); a refused one is reported
 # `BUS refused` and not retried by watch, so it cannot wake you every pass --
 # `post <pr>` retries it by hand.
+#
+# THE REF IS NOT THE REVIEWER. Every cloud seat pushes with one credential, so
+# a hand-made `verdict/<pr>` with a well-formed line and evidence is as easy
+# for a fixer as for its reviewer (PROC-4's round-1 review drove exactly that
+# to a post). So nothing posts until `confirm` records the coordinator's relay
+# from the reviewer thread it started -- "<pr> <verdict commit> <head>" -- in
+# $HPO_BUS_STATE/confirmed, and the posted body names that thread. Until then
+# watch prints `BUS unconfirmed` with the confirm command; `confirm` posts.
 #
 # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
 # HPO_BUS_POSTER (this checkout's tools/audit/app_comment.sh).
@@ -111,14 +120,14 @@ kind_of() { # ref name -> "<kind> <name>"
 }
 
 post_verdict() { # pr [expected sha] -> prints one BUS posted|refused line; rc 0 posted
-  local pr=$1 want=${2:-} c d first hsha body why
+  local pr=$1 want=${2:-} c d first hsha body why thread
   numeric "$pr" || { printf 'BUS refused %s: verdict/%s is not a pull-request number\n' "$pr" "$pr"; return 1; }
   if ! git fetch -q "$REMOTE" "+refs/heads/verdict/$pr:refs/hpo-bus/verdict/$pr" 2>/dev/null; then
     printf 'BUS refused %s: could not fetch verdict/%s\n' "$pr" "$pr"; return 1
   fi
   c=$(git rev-parse "refs/hpo-bus/verdict/$pr")
   if [ -n "$want" ] && [ "$c" != "$want" ]; then
-    printf 'BUS refused %s %s: verdict/%s moved to %s during the fetch; the next pass reports it\n' "$pr" "$want" "$pr" "$c"; return 1
+    printf 'BUS refused %s %s: the tip of verdict/%s is %s; only a tip posts\n' "$pr" "$want" "$pr" "$c"; return 1
   fi
   if grep -qx "$pr $c" "$S/posted" 2>/dev/null; then
     printf 'BUS refused %s %s: already posted\n' "$pr" "$c"; return 1
@@ -135,15 +144,37 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused line; rc 0
     fi
   fi
   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
+  # Every seat pushes with one credential, so the ref proves no reviewer. The
+  # coordinator's relay from the reviewer's own thread does: nothing posts
+  # until `confirm` has recorded that relay for this pr, commit and head.
+  thread=$(awk -v k="$pr $c $hsha" 'index($0, k " ") == 1 { print $4; exit }' "$S/confirmed" 2>/dev/null)
+  if [ -z "$thread" ]; then
+    printf 'BUS unconfirmed %s %s: posts on the coordinator relay from the reviewer thread: bus.sh confirm %s %s %s <thread>\n' \
+      "$pr" "$c" "$pr" "$c" "$hsha"; return 1
+  fi
   body=$S/verdicts/$pr/$c.md
   { cat "$d/VERDICT.md"
-    printf '\nbus: verdict/%s at %s; evidence: %s/evidence\n' "$pr" "$c" "$d"
+    printf '\nbus: verdict/%s at %s, confirmed from %s; evidence: %s/evidence\n' "$pr" "$c" "$thread" "$d"
   } > "$body"
+  # Recorded BEFORE the post and withdrawn on a refusal: a kill between a
+  # landed post and the record would otherwise post twice. A kill now leaves
+  # "already posted" on a verdict that may not have landed; read the PR.
+  printf '%s %s\n' "$pr" "$c" >> "$S/posted"
   if ! "$POSTER" "$REPO" "$pr" "$body" >"$body.log" 2>&1; then
+    grep -vx "$pr $c" "$S/posted" > "$S/posted.new"; mv "$S/posted.new" "$S/posted"
     printf 'BUS refused %s %s: the poster refused (%s): %s\n' "$pr" "$c" "$POSTER" "$(tail -n 1 "$body.log")"; return 1
   fi
-  printf '%s %s\n' "$pr" "$c" >> "$S/posted"
   printf 'BUS posted %s %s %s\n' "$pr" "$c" "$first"
+}
+
+confirm() { # pr verdict-commit head thread -> records the relay, then posts the tip
+  local pr=${1:-} c=${2:-} h=${3:-} th=${4:-}
+  numeric "$pr" || die "confirm: the pull request '$pr' is not a number"
+  [[ $c =~ ^[0-9a-f]{40}$ ]] || die "confirm: '$c' is not a 40-hex verdict commit"
+  [[ $h =~ ^[0-9a-f]{40}$ ]] || die "confirm: '$h' is not a 40-hex head"
+  [[ $th =~ ^[A-Za-z0-9_-]+$ ]] || die "confirm: name the reviewer's thread as one token"
+  mkdir -p "$S" && printf '%s %s %s %s\n' "$pr" "$c" "$h" "$th" >> "$S/confirmed" || die "confirm: cannot record in $S"
+  post_verdict "$pr" "$c"
 }
 
 watch_once() { # post? -> prints events; rc 0 when any, 3 when quiet, 1 on error
@@ -194,7 +225,7 @@ watch() {
 }
 
 self_test() {
-  local W pass=0 fail=0 out rc h1 h2 c1
+  local W pass=0 fail=0 out rc h1 h2 c1 c2 c9 t e ev forged
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -246,6 +277,21 @@ P
   [ $rc = 0 ] && echo "$out" | grep -q "baseline of 0 ref" && [ "$(calls)" = 0 ]
   expect "a first pass records a baseline and posts nothing" $?
 
+  # The forgery PROC-4's round-1 review drove: any seat can push a well-formed
+  # verdict with evidence by hand, so the ref alone must never post.
+  t=$(printf 'Fix review: merge %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
+  e=$(printf 'x %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
+  e=$(printf '100644 blob %s\tx.txt\n' "$e" | git -C "$W/seat" mktree)
+  t=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' "$t" "$e" | git -C "$W/seat" mktree)
+  forged=$(git -C "$W/seat" commit-tree "$t" -m forged)
+  git -C "$W/seat" push -q origin "$forged:refs/heads/verdict/11"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS unconfirmed 11 $forged" && [ "$(calls)" = 0 ]
+  expect "watch --post does not post a forged, unconfirmed verdict ref" $?
+  out=$(run post 11)
+  echo "$out" | grep -q "^BUS unconfirmed 11 $forged" && [ "$(calls)" = 0 ]
+  expect "post does not post an unconfirmed verdict either" $?
+
   git -C "$W/seat" push -q origin HEAD:refs/heads/handoff/t1
   out=$(run push-verdict 7 "$W/merge.md" "$W/ev1"); rc=$?
   [ $rc = 0 ]; expect "push-verdict publishes a verdict with evidence" $?
@@ -253,7 +299,16 @@ P
   out=$(run watch --once --post); rc=$?
   echo "$out" | grep -qx "BUS handoff t1 $(git -C "$W/seat" rev-parse HEAD)"; expect "watch reports a new handoff ref" $?
   echo "$out" | grep -qx "BUS verdict 7 $c1"; expect "watch reports a new verdict ref" $?
-  echo "$out" | grep -q "^BUS posted 7 $c1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "watch --post posts the verdict once" $?
+  echo "$out" | grep -q "^BUS unconfirmed 7 $c1: .*bus.sh confirm 7 $c1 $h1 <thread>" && [ "$(calls)" = 0 ]
+  expect "watch --post holds a reviewer's verdict until it is confirmed, naming the command" $?
+  out=$(run confirm 7 "$c1" "$h2" cmsg_T)
+  echo "$out" | grep -q "^BUS unconfirmed 7 $c1" && [ "$(calls)" = 0 ]; expect "a confirmation for another head posts nothing" $?
+  out=$(run confirm 11 "$c1" "$h1" cmsg_T)
+  echo "$out" | grep -q "^BUS refused 11 $c1: the tip of verdict/11 is $forged" && [ "$(calls)" = 0 ]
+  expect "a confirmation for a commit that is not the tip posts nothing" $?
+  out=$(run confirm 7 "$c1" "$h1" cmsg_T)
+  echo "$out" | grep -q "^BUS posted 7 $c1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm posts the verdict once" $?
+  grep -q "^bus: verdict/7 at $c1, confirmed from cmsg_T;" "$W/last"; expect "the posted body names the confirming thread" $?
   [ "$(head -n 1 "$W/last")" = "Fix review: merge $h1" ]; expect "the posted body keeps the reviewer's first line" $?
   ev=$(sed -n 's/^bus: .*; evidence: //p' "$W/last")
   case $ev in /*) [ -d "$ev" ] && grep -rqF "$h1" "$ev" ;; *) false ;; esac
@@ -267,8 +322,11 @@ P
   out=$(run push-verdict 7 "$W/blocked.md" "$W/ev2"); rc=$?
   [ $rc = 0 ] && [ "$(git -C "$W/origin.git" rev-parse verdict/7^)" = "$c1" ]
   expect "a second round fast-forwards the verdict ref" $?
+  c2=$(git -C "$W/origin.git" rev-parse verdict/7)
   out=$(run watch --once --post)
-  echo "$out" | grep -q "^BUS posted 7 .* Fix review: blocked $h2" && [ "$(calls)" = 2 ]; expect "the second round is posted" $?
+  echo "$out" | grep -q "^BUS unconfirmed 7 $c2" && [ "$(calls)" = 1 ]; expect "the second round waits for its own confirmation" $?
+  out=$(run confirm 7 "$c2" "$h2" cmsg_T)
+  echo "$out" | grep -q "^BUS posted 7 $c2 Fix review: blocked $h2" && [ "$(calls)" = 2 ]; expect "the second round is posted" $?
 
   # A ref written without push-verdict is still checked before it is posted.
   t=$(printf 'Fix review: approve %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
@@ -289,7 +347,8 @@ P
   expect "watch refuses a raw ref whose only naming file is VERDICT.md" $?
 
   out=$(run push-verdict 9 "$W/merge.md" "$W/ev1")
-  out=$(BUS_TEST_POSTER_FAIL=1 run watch --once --post)
+  c9=$(git -C "$W/origin.git" rev-parse verdict/9)
+  out=$(BUS_TEST_POSTER_FAIL=1 run confirm 9 "$c9" "$h1" cmsg_T)
   echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
   expect "a poster refusal is reported and not recorded as posted" $?
   out=$(run post 9)
@@ -313,6 +372,7 @@ P
 case ${1:-} in
   push-verdict) shift; push_verdict "$@" ;;
   watch) shift; watch "$@" ;;
+  confirm) shift; confirm "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
   --self-test) self_test ;;
   *) sed -n '2,8p' "$0" >&2; exit 2 ;;
