@@ -119,6 +119,7 @@ import datetime as dt
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -212,6 +213,16 @@ OWED_WHEN_RED = (
     "it is recorded the same way: name the cause and who owns it, in the body. "
     "What is refused is a red nobody answered.",
 )
+
+
+# How many times a result that would read ABSENT is asked again, in a different
+# query shape, and how long to wait before each ask (multiplied by the attempt).
+CORROBORATIONS = 2
+CORROBORATION_PAUSE_S = 5
+
+
+def _sleep(seconds: float) -> None:
+    time.sleep(seconds)
 
 
 class Unreadable(Exception):
@@ -489,9 +500,38 @@ def _jobs(repo: str, run_id: int, token: str | None) -> list[dict]:
     return jobs
 
 
+def _discover(repo: str, workflow: str, token: str | None,
+              default_branch: str, since: dt.date | None = None) -> list[dict]:
+    """Candidate nightly runs, one listing per verifying event.
+
+    `since` switches the query from "the newest ten" to "every run created on
+    or after that date", which is the second shape the corroboration asks in.
+    """
+    runs: list[dict] = []
+    for event in sorted(VERIFYING_EVENTS):
+        shape = (f"per_page=10" if since is None
+                 else f"per_page=30&created=%3E%3D{since.isoformat()}")
+        payload = _get(
+            f"{API}/repos/{repo}/actions/workflows/{workflow}/runs"
+            f"?event={event}&{shape}", token)
+        found = payload.get("workflow_runs")
+        if not isinstance(found, list):
+            raise Unreadable(
+                f"the {event} runs listing carried no 'workflow_runs' array")
+        # A dispatch on a feature branch is somebody testing their own
+        # branch, not a statement about the nightly. Dropped here rather
+        # than in pick_runs so the age window still sees every candidate.
+        runs += [r for r in found
+                 if r.get("event") != "workflow_dispatch"
+                 or r.get("head_branch") == default_branch]
+    return runs
+
+
 def collect(repo: str, workflow: str, token: str | None,
             run_id: int | None,
             default_branch: str = DEFAULT_BRANCH,
+            now: dt.datetime | None = None,
+            max_age_nights: int = MAX_AGE_NIGHTS,
             ) -> tuple[dict | None, dict | None, list[dict]]:
     """Fetch what `verdict` classifies. Three GETs on the discovery path."""
     if run_id is not None:
@@ -511,22 +551,33 @@ def collect(repo: str, workflow: str, token: str | None,
             )
         concluded, in_flight = pick_runs([run])
     else:
-        runs = []
-        for event in sorted(VERIFYING_EVENTS):
-            payload = _get(
-                f"{API}/repos/{repo}/actions/workflows/{workflow}/runs"
-                f"?event={event}&per_page=10", token)
-            found = payload.get("workflow_runs")
-            if not isinstance(found, list):
-                raise Unreadable(
-                    f"the {event} runs listing carried no 'workflow_runs' array")
-            # A dispatch on a feature branch is somebody testing their own
-            # branch, not a statement about the nightly. Dropped here rather
-            # than in pick_runs so the age window still sees every candidate.
-            runs += [r for r in found
-                     if r.get("event") != "workflow_dispatch"
-                     or r.get("head_branch") == default_branch]
-        concluded, in_flight = pick_runs(runs)
+        now = now or dt.datetime.now(dt.timezone.utc)
+        concluded, in_flight = pick_runs(
+            _discover(repo, workflow, token, default_branch))
+        # CORROBORATE BEFORE CALLING IT ABSENT. On 2026-10-01 one run of this
+        # job (PR #1808, 14:07Z) read the newest scheduled run as 2026-09-21
+        # while the listing it queries held a run from 09:00Z that day; the
+        # same query, the same base and the same code passed on the 40 other
+        # pull-request runs of that day, and passes from a shell minutes later.
+        # The listing endpoint served an answer that was not the whole one, and
+        # the reader took the first answer as the truth. A red that a re-ask
+        # clears teaches everybody to re-run the check -- the blindness this
+        # file exists to remove -- so a result that would read ABSENT is asked
+        # again, in a DIFFERENT shape (a `created` window instead of the
+        # newest-ten page), and the union is judged. A nightly that is truly
+        # absent is absent in every shape, so it still goes red; only an
+        # answer no second look agrees with is overruled.
+        for attempt in range(CORROBORATIONS):
+            if concluded is not None and nights_ago(
+                    parse_ts(concluded.get("created_at")), now
+            ) <= max_age_nights:
+                break
+            _sleep(CORROBORATION_PAUSE_S * (attempt + 1))
+            since = (now - dt.timedelta(days=max_age_nights + 1)).date()
+            more = _discover(repo, workflow, token, default_branch,
+                             since=since)
+            concluded, in_flight = pick_runs(
+                [*more, *(r for r in (concluded, in_flight) if r is not None)])
     jobs = _jobs(repo, concluded["id"], token) if concluded else []
     return concluded, in_flight, jobs
 
@@ -550,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         concluded, in_flight, jobs = collect(
             args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run,
-            args.default_branch)
+            args.default_branch, now, args.max_age_nights)
         state, code, lines = verdict(
             concluded, in_flight, jobs, now, args.max_age_nights)
     except Unreadable as exc:
