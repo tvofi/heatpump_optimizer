@@ -204,10 +204,8 @@ recording (a new selectable script the lanes never ran):
 ./tests/derive_closures.sh --record-only  # record without rewriting it — what main does
 ```
 
-A pull request that touches `tests/closures.json` is itself in the "changes
-the gate" case above, so it runs the whole suite unscoped. The change that
-redefines what may be skipped is never validated by the definition it is
-introducing.
+A change to `tests/closures.json` runs the scripts whose entry differs from
+the merge base's, and those that read the table.
 
 ## The Home Assistant stub
 
