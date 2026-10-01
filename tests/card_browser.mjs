@@ -272,6 +272,69 @@ function pageStates(plan) {
 
 /** The page-screenshot mode: the tile at 900 px and each dialog page, per
  * theme. Returns nothing; each picture is checked as a PNG of real size. */
+async function themeMismatch({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) {
+    st[id] = { ...st[id], attributes: { ...st[id].attributes, active_now: false } };
+  }
+  const cases = [
+    { name: "dark theme variables, darkMode false", vars: THEMES.dark, dark: false },
+    { name: "light theme variables, darkMode true", vars: THEMES.light, dark: true },
+  ];
+  for (const c of cases) {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1 });
+    await ctx.clock.setFixedTime(FROZEN);
+    const page = await ctx.newPage();
+    try {
+      await page.goto("about:blank");
+      await page.addScriptTag({ path: CARD_SRC });
+      const res = await page.evaluate(([vars, st, dark]) => {
+        const style = document.createElement("style");
+        style.textContent = `html{${vars}} body{margin:0;padding:16px;background:var(--card-background-color)}` +
+          `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color)}` +
+          `heatpump-optimizer-card{display:block;width:900px}`;
+        document.head.appendChild(style);
+        const card = document.createElement("heatpump-optimizer-card");
+        document.body.appendChild(card);
+        card.setConfig({ type: "custom:heatpump-optimizer-card" });
+        card.hass = { states: st, language: "en", themes: { darkMode: dark } };
+        const root = card.shadowRoot;
+        const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const bgOf = (el) => {
+          for (let e = el; e; e = e.parentElement || (e.getRootNode() && e.getRootNode().host)) {
+            const c = rgba(getComputedStyle(e).backgroundColor);
+            if (c.length === 3 || (c.length === 4 && c[3] === 1)) return c;
+          }
+          return [255, 255, 255];
+        };
+        const seen = [];
+        const low = [];
+        for (const box of root.querySelectorAll(".tile, .hl-stat, .status-pill")) {
+          for (const el of [box, ...box.querySelectorAll("*")]) {
+            const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+            if (!own || !el.getClientRects().length) continue;
+            const fg = rgba(getComputedStyle(el).color), bg = bgOf(el);
+            const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a);
+            const r = (l1 + 0.05) / (l2 + 0.05);
+            seen.push(el.className || el.tagName);
+            if (r < 4.5) low.push(`${el.className || el.tagName.toLowerCase()} ${r.toFixed(2)}:1`);
+          }
+        }
+        return { seen: seen.length, idle: !!root.querySelector('.status-pill[data-status="idle"]'),
+          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length, low };
+      }, [c.vars, st, c.dark]);
+      check(`R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with ${c.name}`,
+        res.idle && res.tiles === 4 && res.stats >= 2 && res.seen >= 12 && res.low.length === 0,
+        `${res.seen} text runs, ${res.tiles} tiles, ${res.stats} stats, idle pill ${res.idle}; under 4.5: ${res.low.slice(0, 6).join(", ")}`);
+    } finally {
+      await ctx.close();
+    }
+  }
+}
+
 async function cardPages({ browser, check, plan, out }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const states = pageStates(plan);
@@ -2331,6 +2394,14 @@ try {
   // plan's and the chart has a past and a future. Written only under
   // HPO_PAGES_OUT; checked always.
   await cardPages({ browser, check, plan, out: process.env.HPO_PAGES_OUT });
+
+  // R9-UI-3 review (theme-contrast): Home Assistant reports
+  // hass.themes.darkMode false for any theme without a dark mode, so a
+  // community dark theme paints the card with dark variables and the light
+  // literals. Every text run on a tile, a headline stat or the status pill
+  // must clear 4.5:1 against what it is painted on, in that mismatch and in
+  // its mirror image.
+  await themeMismatch({ browser, check, plan });
 } finally {
   await browser.close();
 }

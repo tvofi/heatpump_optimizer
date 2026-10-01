@@ -3251,6 +3251,15 @@ const CARD_TOKENS = {
   "--hpo-surface": { ha: "--card-background-color", light: "#ffffff", dark: "#1c1c1c" },
   "--hpo-divider": { ha: "--divider-color", light: "#e0e0e0", dark: "#3a3a3a" },
   "--hpo-surface-2": { light: "#f7f9fb", dark: "#242a30" },
+  // The text that sits ON --hpo-surface-2. The surface is a literal picked
+  // by hass.themes.darkMode, and Home Assistant reports darkMode false for
+  // any theme without a dark mode, community dark themes included; text
+  // taken from that theme's --primary-text-color would then be light on
+  // the light surface (1.24:1, R9-UI-3 review). So the tiles, the headline
+  // stats and the idle pill take their text from the same literal source
+  // as their surface: one pair, one switch.
+  "--hpo-ink": { light: "#212121", dark: "#e1e1e1" },
+  "--hpo-ink-2": { light: "#727272", dark: "#9b9b9b" },
   "--hpo-accent": { light: "#026aa8", dark: "#4fb3f0" },
   "--hpo-heat": { light: "#d2601f", dark: "#d2601f" },
   "--hpo-ok": { light: "#1c7350", dark: "#1fad6b" },
@@ -3425,7 +3434,7 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-ok, #1c7350); background: var(--hpo-ok-bg, #e8f1ed);
       }
       .status-pill.tone-idle {
-        color: var(--hpo-text-2, #727272);
+        color: var(--hpo-ink-2, #727272);
         background: var(--hpo-surface-2, #f7f9fb);
       }
       .status-pill.tone-warn {
@@ -3445,7 +3454,13 @@ function cardStyleBlock(darkMode) {
         display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: var(--hpo-space-2, 8px); padding: 0 4px var(--hpo-space-2, 8px) 4px;
       }
+      /* A surface-2 block re-points the text tokens at the ink literals, so
+         every descendant that reads --hpo-text or --hpo-text-2 is paired
+         with the surface it sits on, whatever the HA theme's own text. */
       .tile, .hl-stat {
+        --hpo-text: var(--hpo-ink, #212121);
+        --hpo-text-2: var(--hpo-ink-2, #727272);
+        color: var(--hpo-text, #212121);
         background: var(--hpo-surface-2, #f7f9fb);
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;

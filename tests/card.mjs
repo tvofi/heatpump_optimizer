@@ -9693,7 +9693,7 @@ check("without an indoor reading the corner now label is absent",
   };
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
   const PAIRS = [["--hpo-text", "--hpo-surface"], ["--hpo-text-2", "--hpo-surface"],
-    ["--hpo-text-2", "--hpo-surface-2"], ["--hpo-accent", "--hpo-surface-2"],
+    ["--hpo-ink", "--hpo-surface-2"], ["--hpo-ink-2", "--hpo-surface-2"], ["--hpo-accent", "--hpo-surface-2"],
     ["--hpo-ok", "--hpo-ok-bg"], ["--hpo-warn", "--hpo-warn-bg"], ["--hpo-crit", "--hpo-crit-bg"]];
   const lightCard = build(tileStates);
   const darkCard = build(tileStates);
