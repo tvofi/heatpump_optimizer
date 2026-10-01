@@ -25159,6 +25159,101 @@ R.check(
     f"(no base, base 0, base = count, base above) -> {_MUT_RATCHET}",
 )
 
+# The I1 barrier (R9 RCA I1, #1646): the per-site half of the ratchet. A count
+# compares two totals, so a diff that adds an unpinned guard and drops any
+# other nets to zero: the trade below is admitted by ratchet_refusal and
+# refused by added_unpinned. A site re-indented or renamed in place is the
+# base's; one that left a file and reappears unchanged in another, under the
+# same def, is moved, not added (#1748) -- but only between files the diff
+# removes lines from and adds lines to, and never into another def.
+_ADD = getattr(_mut, "added_unpinned", None)
+
+
+def _au(file: str, scope: str, old: str, kind: str = "GUARD_OFF") -> dict:
+    return {"file": file, "kind": kind, "old": old, "line": 1,
+            "anchor": f"{file}:{scope} {kind} 0"}
+
+
+_au_a, _au_b = _au("p/f.py", "g", "    if a:"), _au("p/f.py", "g", "    if b:")
+_au_c = _au("p/f.py", "g", "    if c:")
+_au_mv = _au("p/new.py", "g", "        if b:")
+_au_ret = _au("p/f.py", "g", "    return None", "RETURN_DEL")
+_au_ret2 = _au("p/new.py", "h", "    return None", "RETURN_DEL")
+_au_moved = ({"p/f.py"}, {"p/new.py"})
+try:
+    _AU_GOT = tuple(
+        [x["old"].strip() for x in _ADD(*args)] for args in (
+            ([_au_a, _au_c], [_au_a, _au_b]),                  # the trade
+            ([_au_a, _au_b], [_au_a, _au_b]),                  # null: no change
+            ([_au_a, dict(_au_b, old="        if b:",
+                          anchor="p/f.py:k GUARD_OFF 0")], [_au_a, _au_b]),
+            ([_au_a, _au_mv], [_au_a, _au_b], _au_moved),      # moved across files
+            ([_au_a, _au_mv], [_au_a, _au_b]),                 # no diff sides given
+            ([_au_a, _au_mv], [_au_a, _au_b], ({"p/x.py"}, {"p/new.py"})),
+            ([_au_a, dict(_au_mv, anchor="p/new.py:h GUARD_OFF 0")],
+             [_au_a, _au_b], _au_moved),                       # another def
+            ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
+            ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
+        ))
+    _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_GOT, _AU_COUNT = (f"{type(_au_exc).__name__}: {_au_exc}",), None
+R.check(
+    "added_unpinned refuses a site traded in at an unchanged count, and keeps "
+    "a re-indented or moved site the base's (#1646, #1748)",
+    _AU_COUNT is None and _AU_GOT == (
+        ["if c:"], [], [], [], ["if b:"], ["if b:"], ["if b:"],
+        ["return None"], ["if c:"]),
+    f"count verdict on the trade {_AU_COUNT}; (trade, null, re-indent, moved, "
+    f"no sides, source untouched, other def, generic return, new guard beside "
+    f"a move) -> {_AU_GOT}",
+)
+
+# The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an
+# `else`, an `elif`, or a comment after the colon is a GUARD_OFF site, and a
+# numpy/math clamp is a CLAMP_DROP; each mutant keeps the header's tail and
+# still parses. The null control is a multi-line test, which the single-line
+# format does not reach (the barrier's residual, tvofi's card C7).
+_WI_DIR = Path(_tempfile.mkdtemp(prefix="mutation-widened-"))
+
+
+def _wi_compiles(m: dict) -> bool:
+    src = (_WI_DIR / "w.py").read_text().splitlines()
+    src[m["line"] - 1] = m["new"]
+    try:
+        ast.parse("\n".join(src))
+    except SyntaxError:
+        return False
+    return True
+
+
+(_WI_DIR / "w.py").write_text(
+    "import math\nimport numpy as np\n\n\ndef f(x, y):\n"
+    "    if x > 1:  # why\n        return 1\n"
+    "    elif y:\n        return 2\n"
+    "    if x < 0:\n        y = 3\n    else:\n        y = 4\n"
+    "    z = np.clip(x, 0.0, 1.0)\n    w = math.fmin(x, y)\n"
+    "    if (x and\n            y):\n        return 5\n"
+    "    return z + w\n")
+try:
+    _WI_GOT = sorted((_m["line"], _m["kind"], _m["new"].strip())
+                     for _m in _mut.candidates(_WI_DIR / "w.py")
+                     if _m["kind"] in ("GUARD_OFF", "CLAMP_DROP"))
+    _WI_PARSE = all(
+        _wi_compiles(_m) for _m in _mut.candidates(_WI_DIR / "w.py"))
+except Exception as _wi_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _WI_GOT, _WI_PARSE = [f"{type(_wi_exc).__name__}: {_wi_exc}"], False
+_mut_shutil.rmtree(_WI_DIR, ignore_errors=True)
+R.check(
+    "the inventory sees elif, else-carrying, commented and numpy/math guard "
+    "shapes, and not a multi-line test (R9 D14-s5-02)",
+    _WI_PARSE and _WI_GOT == [
+        (6, "GUARD_OFF", "if False:  # why"), (8, "GUARD_OFF", "elif False:"),
+        (10, "GUARD_OFF", "if False:"), (14, "CLAMP_DROP", "z = (x)"),
+        (15, "CLAMP_DROP", "w = (x)")],
+    f"(line, kind, mutant) -> {_WI_GOT}; every mutant parses: {_WI_PARSE}",
+)
+
 # The completeness check, both directions, plus the empty-inventory null
 # control. A stale mark (a disposition whose key+old no longer names a site)
 # and an empty inventory are each REFUSED; a consistent ledger passes.
@@ -25382,8 +25477,10 @@ R.check(
     and "cap_problems(budgets)" in _MUT_BODY
     and "ledger_form_problems(budgets)" in _MUT_BODY
     and 'budgets["reason"] =' not in _MUT_BODY
-    and "base_unpinned(rbase, sites)" in _MUT_BODY
-    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
+    and "base_sites = base_unpinned_sites(rbase, sites)" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY
+    and "added_unpinned(unpinned, base_sites or [], diff_sides(rbase))" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned) == 1 or added)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "
     "the cap refusal and the ratchet verdict must all run before the sampled "
     "pool, or the ratchet is defined and never enforced",
@@ -25422,7 +25519,7 @@ R.check(
 R.check(
     "--pin-killed is wired: new sites from the base's own unpinned list, "
     "a pin only from a recorded kill run",
-    "new_unpinned(unpinned, base_sites)" in _MUT_BODY
+    "new_unpinned(unpinned, base_sites or [])" in _MUT_BODY
     and "base_unpinned_sites(rbase, sites)" in _MUT_BODY
     and "pin_results(results, kill_runs, baseline,\n" in _MUT_BODY
     and ".update(entries)" in _MUT_BODY and "return pin_rc" in _MUT_BODY,
