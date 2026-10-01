@@ -107,3 +107,16 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - Fixers in flight: UI-3 (opus), F10.8 (opus, plus an RCA seat: carried claim lines are no-claim, ported to env_drift.py and card_drift.mjs), F10.1e (sonnet, the 14 DST misfires plus deleting the stray BODY.md).
 - Tools: /private/tmp/audit-7/r9-mac/mergemain.sh `<wt> <branch> <body> <codehead8> <issues>` merges main and refreshes the Head line. dropclaims.sh runs `--drop-inherited`, needed until F10.8 lands, when prepr refuses INHERITED CLAIMS. Merge rhythm: after a merge, `gh pr ready`, wait about 20 s for CLEAN, then merge.
 - Close-out stamp: v7.0.0 (tvofi 09:18Z).
+
+## LIVE STATE 2026-10-01T18:45Z
+
+- main 25e5b9cc. Merged 2026-10-01, in order: #1799 #1802 #1803 #1805 #1804 #1806 #1809 #1810 #1813 #1814 #1811 #1815 #1818 #1819 #1817 #1821 #1820 #1822 #1816.
+- **tvofi adopted the process review (16:51Z, all ten items; on item 2 "both").** Roster groups: PROC-1, PROC-3 and PROC-5 are merged; PROC-4 (git bus) is in flight; F10.9c (merge queue 2A, fast path 2B, cancel item 3) is stacked as #1823 (stage 1), stage 2 (not opened) and #1824 (stage 3); F10.9d (closure recorder for run_always reads) runs after F10.9c. Enable the merge queue on main-protect 22628467 only after stage 2's merge_group lands; merge method MERGE; no new bypass on 23698884.
+- **Working rules now:**
+  - Delivery rows are mine at open (addrow.sh).
+  - Clean merge-deltas carry with no reviewer turn (carry.sh), requiring tree = merge-tree, no same-file change, and claims equal main or unchanged from the verdicted head.
+  - Skip a re-merge only on closure-set disjointness. Run_always readers (harness_headers, entities) make doc and policy changes non-disjoint.
+  - On tvofi's 18:27Z "green and approved but not merged", automerge.sh merges each approved PR as soon as it is green, without re-merging; main's FULL push is the backstop, and a red main is reverted first.
+- Tools in /private/tmp/audit-7/r9-mac: openpr.sh, movepr.sh (tolerates delivery rows, adds a Head line when PR head != code head), mergemain.sh, carry.sh, addrow.sh, automerge.sh; real-HA venv ha-venv.
+- Open: #1823 (auto-merging), #1808 F1.10 (main carried for the F10.11 fix, auto-merging), #1824 (auto-merging after #1822). Seats in flight: UX-1, PROC-4, F10.9c stage 2.
+- Close-out stamp v7.0.0 when only #201 remains.
