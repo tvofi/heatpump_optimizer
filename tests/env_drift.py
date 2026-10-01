@@ -2115,6 +2115,16 @@ def branch_authored_stale_claims(
     return [n for n in stale if baseline_claims.get(n) != claims.get(n)]
 
 
+def authored_claims(
+    claims: dict[str, list[str]], baseline_claims: dict[str, list[str]]
+) -> dict[str, list[str]]:
+    """The claims this branch wrote: every scenario whose reason LIST is not
+    the fork point's. A line merged in from the baseline described the
+    baseline's diff; an added or rewritten reason line is authored (#1255's
+    parse), and so the whole scenario is."""
+    return {n: r for n, r in claims.items() if baseline_claims.get(n) != r}
+
+
 def runner_conditional_error(name: str, ref: str) -> str:
     """The fail-fast message for a branch-authored stale claim (#996).
 
@@ -2216,6 +2226,82 @@ def self_comparison_error(ref: str, head: str) -> str:
         "PR, HEAD^1 for a push to main -- and fail the run if that commit\n"
         "cannot be resolved instead of falling back to HEAD."
     )
+
+
+def judge_drift(
+    repo: str, ref: str, branch: dict, baseline: dict,
+    claims: dict[str, list[str]], may_drift: dict[str, str],
+) -> tuple[int, list[str], list[str], dict[str, list[str]]]:
+    """Judge each captured scenario against the claims that may excuse it.
+
+    Returns the unclaimed drift count, the claimed scenarios that moved, the
+    may-drift scenarios that moved, and the claims the verdict used -- the
+    staleness rule judges exactly that map, so a line that excused nothing
+    here goes stale or not by the same reading.
+    """
+    excusing = claims
+    drifted = 0
+    claimed_hits = []
+    may_drift_hits: list[str] = []
+    for name in sorted(set(branch) | set(baseline)):
+        if name not in baseline:
+            # Added by this branch, so there is nothing to compare --
+            # but a PR that adds a scenario may still have claimed it,
+            # and a claim that goes unrecorded here reads as stale.
+            if name in excusing:
+                claimed_hits.append(name)
+                print(f"  CLAIMED {name}: added by this branch, no baseline "
+                      f"on {ref} ({'; '.join(excusing[name])})")
+            else:
+                print(f"  new   {name}: no baseline on {ref} (added by this branch)")
+            continue
+        if name not in branch:
+            if name in excusing:
+                claimed_hits.append(name)
+                print(f"  CLAIMED {name}: removed ({'; '.join(excusing[name])})")
+            else:
+                drifted += 1
+                print(f"  DRIFT {name}: scenario removed by this branch")
+            continue
+        diffs: list[str] = []
+        _diff_leaves(baseline[name], branch[name], name, diffs)
+        if not diffs and name in may_drift:
+            # Not "ok": nothing was proved. This machine's solve of a
+            # non-reproducible fixture simply did not land on the part
+            # the change touches, and another machine's may.
+            print(f"  may-drift {name}: did not move here ({may_drift[name]})")
+        elif not diffs:
+            print(f"  ok    {name} is byte-identical to {ref} here")
+        elif name in may_drift:
+            judged_diffs = may_drift_judged_diffs(name, diffs)
+            exempt_diffs = may_drift_exempt_diffs(name, diffs)
+            if judged_diffs:
+                drifted += 1
+                extra = ""
+                if exempt_diffs:
+                    extra = f" ({len(exempt_diffs)} plan leaf/leaves exempt)"
+                print(f"  DRIFT {name}: {len(judged_diffs)} judged "
+                      f"leaf/leaves moved vs {ref}{extra}")
+                for line in judged_diffs[:5]:
+                    print(f"         {line}")
+            else:
+                may_drift_hits.append(name)
+                print(f"  MAY-DRIFT {name}: {len(exempt_diffs)} leaves moved "
+                      f"({may_drift[name]})")
+                for line in exempt_diffs[:10]:
+                    print(f"         {line}")
+        elif name in excusing:
+            claimed_hits.append(name)
+            print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
+                  f"({'; '.join(excusing[name])})")
+            for line in diffs[:3]:
+                print(f"         {line}")
+        else:
+            drifted += 1
+            print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
+            for line in diffs[:5]:
+                print(f"         {line}")
+    return drifted, claimed_hits, may_drift_hits, excusing
 
 
 def main() -> int:
@@ -2481,67 +2567,8 @@ def main() -> int:
         rot = fixture_staleness(os.path.join(repo, FIXTURE_DIR), branch)
         print_staleness(rot, verbose=bool(os.environ.get(VALUE_REPORT_ENV)))
 
-        drifted = 0
-        claimed_hits = []
-        may_drift_hits: list[str] = []
-        for name in sorted(set(branch) | set(baseline)):
-            if name not in baseline:
-                # Added by this branch, so there is nothing to compare --
-                # but a PR that adds a scenario may still have claimed it,
-                # and a claim that goes unrecorded here reads as stale.
-                if name in claims:
-                    claimed_hits.append(name)
-                    print(f"  CLAIMED {name}: added by this branch, no baseline "
-                          f"on {ref} ({'; '.join(claims[name])})")
-                else:
-                    print(f"  new   {name}: no baseline on {ref} (added by this branch)")
-                continue
-            if name not in branch:
-                if name in claims:
-                    claimed_hits.append(name)
-                    print(f"  CLAIMED {name}: removed ({'; '.join(claims[name])})")
-                else:
-                    drifted += 1
-                    print(f"  DRIFT {name}: scenario removed by this branch")
-                continue
-            diffs: list[str] = []
-            _diff_leaves(baseline[name], branch[name], name, diffs)
-            if not diffs and name in may_drift:
-                # Not "ok": nothing was proved. This machine's solve of a
-                # non-reproducible fixture simply did not land on the part
-                # the change touches, and another machine's may.
-                print(f"  may-drift {name}: did not move here ({may_drift[name]})")
-            elif not diffs:
-                print(f"  ok    {name} is byte-identical to {ref} here")
-            elif name in may_drift:
-                judged_diffs = may_drift_judged_diffs(name, diffs)
-                exempt_diffs = may_drift_exempt_diffs(name, diffs)
-                if judged_diffs:
-                    drifted += 1
-                    extra = ""
-                    if exempt_diffs:
-                        extra = f" ({len(exempt_diffs)} plan leaf/leaves exempt)"
-                    print(f"  DRIFT {name}: {len(judged_diffs)} judged "
-                          f"leaf/leaves moved vs {ref}{extra}")
-                    for line in judged_diffs[:5]:
-                        print(f"         {line}")
-                else:
-                    may_drift_hits.append(name)
-                    print(f"  MAY-DRIFT {name}: {len(exempt_diffs)} leaves moved "
-                          f"({may_drift[name]})")
-                    for line in exempt_diffs[:10]:
-                        print(f"         {line}")
-            elif name in claims:
-                claimed_hits.append(name)
-                print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
-                      f"({'; '.join(claims[name])})")
-                for line in diffs[:3]:
-                    print(f"         {line}")
-            else:
-                drifted += 1
-                print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
-                for line in diffs[:5]:
-                    print(f"         {line}")
+        drifted, claimed_hits, may_drift_hits, claims = judge_drift(
+            repo, ref, branch, baseline, claims, may_drift)
 
         # Staleness is only meaningful for scenarios this run captured. The
         # five-fixture mode captures SENSITIVE and nothing else, so a claim
