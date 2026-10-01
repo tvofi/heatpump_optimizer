@@ -3888,6 +3888,17 @@ def _p6_seed_seams(log):
 
 
 _p6_k_reads, _p6_k = _p6_arm_k(_P6_WALKS)
+# Arm K's first instance (D14-s1-02): the plan sensors read horizon_hours off
+# the payload and no producer wrote it, so a 12 h optimizer published 24.
+_p6_h_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data={}))
+_p6_h_coord._opt_config.horizon_hours = 12.0
+_p6_h_data = _p6_h_coord._build_data_dict()
+R.check(
+    "the payload carries the optimizer's own horizon, so the plan sensors "
+    "publish 12 h for a 12 h plan rather than a constant 24 (D14-s1-02)",
+    _p6_h_data.get("horizon_hours") == 12.0,
+    str(_p6_h_data.get("horizon_hours")),
+)
 _p6_g_probes, _p6_g, _p6_g_stale = _p6_arm_g(_P6_WALKS)
 _p6_e_codes, _p6_e, _p6_e_owed = _p6_arm_e(_P6_TREES["config_flow.py"], _P6_WALKS, _P6_CATALOGUES)
 _p6_p_offered, _p6_p = _p6_arm_p(_P6_TREES, _P6_CATALOGUES, _P6_ICONS)
@@ -9440,24 +9451,40 @@ R.check(
 )
 R.check("both boost switches are off when no overlay is live",
     not dhw_boost_sw.is_on and not space_boost_sw.is_on)
-asyncio.run(dhw_boost_sw.async_turn_on())
-R.check(
-    "turning DHW boost on reaches the coordinator",
-    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": True},
-    str(dhw_boost_sw.coordinator.boost_calls),
-)
-asyncio.run(space_boost_sw.async_turn_on())
-R.check(
-    "turning space boost on reaches the coordinator",
-    space_boost_sw.coordinator.boost_calls[-1] == {"channel": "space", "active": True},
-    str(space_boost_sw.coordinator.boost_calls),
-)
-asyncio.run(dhw_boost_sw.async_turn_off())
-R.check(
-    "turning DHW boost off reaches the coordinator",
-    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": False},
-    str(dhw_boost_sw.coordinator.boost_calls),
-)
+# The switches call boost.set_channel, which persists through the module's
+# own Store; a recorder in place of persist reads what each press held
+# without a test-only branch in production (R9 D14-s1-02: set_channel used
+# to probe for a ``boost_calls`` list only FakeCoordinator defines).
+_boost_persisted = []
+
+
+async def _boost_persist_recorder(coord):
+    _boost_persisted.append((coord, sorted(_boost_mod.held_for(coord).until)))
+
+
+_boost_persist_real = _boost_mod.persist
+_boost_mod.persist = _boost_persist_recorder
+try:
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "turning DHW boost on holds and persists the DHW channel",
+        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["dhw"])],
+        str(_boost_persisted),
+    )
+    asyncio.run(space_boost_sw.async_turn_on())
+    R.check(
+        "turning space boost on holds and persists the space channel",
+        _boost_persisted[-1:] == [(space_boost_sw.coordinator, ["dhw", "space"])],
+        str(_boost_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_off())
+    R.check(
+        "turning DHW boost off releases and persists the DHW channel",
+        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["space"])],
+        str(_boost_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
