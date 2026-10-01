@@ -2,3 +2,4 @@
 2026-10-01T21:34:17Z 1830 APPROVED 7898b0ed on relayed carry verdict 8f30964f (tvofi confirmed); verdict comment NOT posted (app_comment head moved); merge pending CI
 2026-10-01T21:38:42Z 1833,1830 carried verdicts posted as hpo-approver at live heads (comments 5941174539, 5941176230; carry check passed, read-back identical)
 2026-10-01T22:00:10Z 1830 MERGED 6616752c; 1833 MERGED 1aefd2d0 (approved at head, CLEAN, --match-head-commit)
+2026-10-01T22:00:44Z 1834 SKIP head e13193c3: code..head delta is docs/delivery/1834.md only, but origin/main moved after verdict de27770e (card.js, tests/card*.mjs, delivery 1830/1833, tools/audit/seat/bus.sh); merge-tree(main,code) vs head lists those, so the carry rule fails. Needs head merged with main or a fresh verdict. PR is draft.
