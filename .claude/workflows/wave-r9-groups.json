@@ -5250,11 +5250,11 @@
         "R9-F6.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-ui-card",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/state/alt/design/DESIGN.md, then write the failing test",
+        "commit": "661d56f4",
+        "last_step": "#1814 merged 2026-10-01T15:1xZ as 661d56f4 at head 4f60194c (round-2 verdict + delta 5934036686; tvofi review under mandate; 36 green)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/UI-3.md on handoff/r9-ui-card",
         "review_branch": "handoff/r9-ui-card-review",
         "review_note_file": "handoff/round9/fix/resume/UI-3-review.md on handoff/r9-ui-card-review",
