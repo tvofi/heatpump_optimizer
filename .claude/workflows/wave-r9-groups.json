@@ -3826,11 +3826,11 @@
         "R9-F10.3"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-ci-scoping",
-        "commit": null,
-        "last_step": null,
-        "next_step": "after F10.3 (#1810) merges: fixer.md step 1 at a fresh merge base",
+        "commit": "0bfb8883",
+        "last_step": "#1815 merged 2026-10-01T16:5xZ as 0bfb8883 at head 6fd8fa70 (round-2 verdict + deltas 5935469410; tvofi review under mandate; 35 green); part 1 of #1812",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.9.md on handoff/r9-f10-ci-scoping",
         "review_branch": "handoff/r9-f10-ci-scoping-review",
         "review_note_file": "handoff/round9/fix/resume/F10.9-review.md on handoff/r9-f10-ci-scoping-review",
@@ -3888,7 +3888,51 @@
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added 2026-10-01 on tvofi's widening of F10.9 (#1812)."
       },
-      "brief": "Round-9 fix PR F10.9b (PR-gate efficiency, part 2 of #1812; closes it). Builds on F10.9. (1) Coverage runs all its coverage-stage scripts on every PR (15-32 min): measure only the reachable ones by the measured closures and reuse per-script coverage from main's push run for the rest; the coverage ratchet must stay exact on the merged result. (2) A holistic investigation of the whole CI (every workflow and job in .github/workflows, their triggers, caches, duplicated setup, serial steps that could run in parallel, autofix loops): adopt every further saving that keeps every barrier, each with its measured minutes and the barrier argument. Known candidates: a standing flake, where tests/harness_headers.py runs tools/audit/round4/D7/sysid_estimator_frontier.py (about 100 s single-core) under a fixed 240 s timeout inside the parallel mutation pool, and on #1808 the null control 'died' of that timeout (fix with a load-aware timeout or by running that harness outside the pool, keeping the barrier); every 'ci: re-record closures' autofix commit selects tests/entities.py (about 4 min each; F10.9 fixer's note), lazy mutation-driver baselines (17 min on #1806), the NOT RUN block wrongly listing run_always scripts, and coverage's fixed script list. The investigation MUST examine, and must not omit (tvofi, 2026-10-01T13:59Z): re-scoping tests/harness_headers.py (which would reverse #983) and mutation-baseline speed. Adopt each if it keeps every barrier, with the barrier argument and measured minutes in the body. HARD CONDITION: no barrier lost; the PR itself runs the FULL gate. The push to main keeps running everything unscoped (CLAUDE.md rule 1); every narrowing shows a case where the old scope ran a script the new one skips, proves the skip cannot hide a red (closure containment), and gives a null control. Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* (gate-scoping.md especially) and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+      "brief": "Round-9 fix PR F10.9b (PR-gate efficiency, part 2 of #1812; closes it). Builds on F10.9. (1) Coverage runs all its coverage-stage scripts on every PR (15-32 min): measure only the reachable ones by the measured closures and reuse per-script coverage from main's push run for the rest; the coverage ratchet must stay exact on the merged result. (2) A holistic investigation of the whole CI (every workflow and job in .github/workflows, their triggers, caches, duplicated setup, serial steps that could run in parallel, autofix loops): adopt every further saving that keeps every barrier, each with its measured minutes and the barrier argument. Known candidates: the harness_headers sysid timeout is R9-F10.11's; every 'ci: re-record closures' autofix commit selects tests/entities.py (about 4 min each; F10.9 fixer's note), lazy mutation-driver baselines (17 min on #1806), the NOT RUN block wrongly listing run_always scripts, and coverage's fixed script list. The investigation MUST examine, and must not omit (tvofi, 2026-10-01T13:59Z): re-scoping tests/harness_headers.py (which would reverse #983) and mutation-baseline speed. Adopt each if it keeps every barrier, with the barrier argument and measured minutes in the body. HARD CONDITION: no barrier lost; the PR itself runs the FULL gate. The push to main keeps running everything unscoped (CLAUDE.md rule 1); every narrowing shows a case where the old scope ran a script the new one skips, proves the skip cannot hide a red (closure containment), and gives a null control. Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* (gate-scoping.md especially) and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+    },
+    {
+      "group": "R9-F10.11",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": 12,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "one harness timeout with a measured cause",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-harness-timeout",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base",
+        "note_file": "handoff/round9/fix/resume/F10.11.md on handoff/r9-f10-harness-timeout",
+        "review_branch": "handoff/r9-f10-harness-timeout-review",
+        "review_note_file": "handoff/round9/fix/resume/F10.11-review.md on handoff/r9-f10-harness-timeout-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added 2026-10-01 after #1808's mutation lane refused twice on the sysid timeout."
+      },
+      "brief": "Round-9 fix PR F10.11 (standing CI flake, urgent; split out of F10.9b on 2026-10-01). tests/harness_headers.py runs tools/audit/round4/D7/sysid_estimator_frontier.py (about 100 s single-core: 100.2 s at main dc6c97e4, 96.0 s at #1808's head, identical output) under a fixed 240 s timeout; inside the mutation lane's parallel pool it timed out and 'killed' the comment-only null control, refusing the mutation table on #1808 twice (jobs 110408288832 and the 16:35Z run). Fix so the barrier is kept: either size the timeout to the measured cost under the pool's parallelism (load-aware), or run that harness outside the parallel pool; show a red-first reproduction under parallel load and a null control that survives after the fix. tests/harness_headers.py is code-owned (tvofi's approval under the mandate). Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
     },
     {
       "group": "R9-PROC-1",
