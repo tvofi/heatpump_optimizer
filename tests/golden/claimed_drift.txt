@@ -655,3 +655,8 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
+coord_all_features # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_dhw # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_grid_fee # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_minimal # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_two_zone # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved

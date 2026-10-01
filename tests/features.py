@@ -52184,6 +52184,10 @@ _P6_IMPLEMENTS = {
     "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
     "number": {"set_value"},
     "input_number": {"set_value", "increment", "decrement"},
+    "select": {"select_option", "select_first", "select_last", "select_next",
+               "select_previous"},
+    "input_select": {"select_option", "select_first", "select_last", "select_next",
+                     "select_previous", "set_options"},
 }
 #: `homeassistant.<svc>` re-dispatches to `<entity domain>.<svc>`.
 _P6_GENERIC = {"turn_on", "turn_off", "toggle"}
