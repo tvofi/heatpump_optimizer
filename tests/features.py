@@ -531,6 +531,177 @@ R.check(
     f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
 )
 
+# --- R9 N-future-instant (#1660): a stored instant ahead of the clock --------
+R.section("R9 N-future-instant: a persisted instant ahead of the clock (FI-sw1, FI-sw2, FI-sw3, FI-sw4, FI-rca1)")
+import asyncio as _fi_aio  # noqa: E402
+import json as _fi_json  # noqa: E402
+from harness import FakeEntry as _fi_entry  # noqa: E402
+from heatpump_optimizer import const as _fi_const  # noqa: E402
+from heatpump_optimizer.ledger import month_key as _fi_month  # noqa: E402
+from homeassistant.helpers import storage as _fi_storage  # noqa: E402
+from homeassistant.util import dt as _fi_dt  # noqa: E402
+
+# Each instance through its real store and loader, the clock frozen aware, and
+# a stamp written 400 days ahead (the RCA's repro_loaders.py shape; a parse
+# alone is not the seam, a use-time clamp inside one is a no-op there). The
+# restart is at T0 and the gate reads at the stated time. Every row owes a null
+# control: an honest stamp whose window must still hold.
+_FI_T0 = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+_FI_D30 = _FI_T0 + timedelta(days=30)
+_FI_AHEAD = _FI_T0 + timedelta(days=400)
+
+
+def _fi_restart(at, store_of, payload, loader):
+    """A coordinator restarted at ``at`` over ``payload``, read by its real loader."""
+    _fi_storage._DISK.clear()
+    _fi_dt.freeze(at)
+    c = Coord(FakeHass(), _fi_entry(data={
+        _fi_const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        _fi_const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        _fi_const.CONF_DHW_TANK_VOLUME: 180.0,
+        _fi_const.CONF_OUTAGE_RECOVERY_ENABLED: True,
+        _fi_const.CONF_SNOW_ROOF_FACTOR_ENABLED: True,
+        _fi_const.CONF_IMMERSION_FEEDBACK_ENABLED: True,
+        _fi_const.CONF_MAIN_FUSE_A: 25,
+    }))
+    _fi_storage._DISK[store_of(c)._key] = _fi_json.dumps(payload)
+    _fi_aio.run(loader(c))
+    return c
+
+
+def _fi_fuse_held(stamp, gate):
+    """FI-sw1: the 7-day recompute cooldown still holds at ``gate``."""
+    c = _fi_restart(
+        _FI_T0, lambda k: k._ledger_store,
+        {"fuse_advisor": {"month": _fi_month(_FI_T0), "candidate_kw": 1.0},
+         "fuse_advisor_at": stamp.isoformat()},
+        lambda k: k._async_load_ledger())
+    for when in (_FI_T0, gate):
+        _fi_dt.freeze(when)
+        before = c._fuse_advisor_at
+        try:
+            _fi_aio.run(c._maybe_run_fuse_advisor())
+        except Exception:  # noqa: BLE001 -- only whether the cooldown held is read
+            pass
+    return c._fuse_advisor_at == before
+
+
+def _fi_snow_damped(stamp, at):
+    """FI-sw2: the heavy-snow damping window is open at ``at``."""
+    c = _fi_restart(
+        _FI_T0, lambda k: k._thermal_learning_store,
+        {"last_heavy_snow": stamp.isoformat()},
+        lambda k: k._async_load_thermal_learning())
+    _fi_dt.freeze(at)
+    c._snow_accum_last, c._snow_accum_cm = None, 0.0
+    return c._update_snow_memory(at, np.zeros(4))
+
+
+def _fi_immersion_margin(stamp, at):
+    """FI-sw4: the immersion margin three recent events buy at ``at``."""
+    c = _fi_restart(
+        _FI_T0, lambda k: k._thermal_learning_store,
+        {"immersion_events": [stamp.isoformat()] * 3},
+        lambda k: k._async_load_thermal_learning())
+    _fi_dt.freeze(at)
+    return c._immersion_dhw_margin(at)
+
+
+def _fi_legionella_due(stamp, at):
+    """FI-rca1: hours until the anti-legionella cycle is due at ``at``."""
+    c = _fi_restart(
+        _FI_T0, lambda k: k._legionella.store,
+        {"last_cycle": stamp.isoformat()},
+        lambda k: k._legionella.async_load())
+    c._thermal_params.dhw_legionella_enabled = True
+    _fi_dt.freeze(at)
+    return c._legionella.due_in_hours()
+
+
+def _fi_outage(stamp):
+    """FI-sw3: a restart six hours after T0 opens the staggered recovery."""
+    c = _fi_restart(
+        _FI_T0 + timedelta(hours=6), lambda k: k._energy_store,
+        {"last_tick": stamp.isoformat()},
+        lambda k: k._async_load_energy_totals())
+    return c._outage_recovery_until is not None
+
+
+def _fi_outage_direct(stamp):
+    """FI-sw3, a caller that bypasses the store's bound: the stamp as written."""
+    c = _fi_restart(
+        _FI_T0 + timedelta(hours=6), lambda k: k._energy_store, {},
+        lambda k: k._async_load_energy_totals())
+    c._detect_outage(stamp.isoformat())
+    return c._outage_recovery_until is not None
+
+
+try:
+    _fi_got = {
+        "fuse ahead": _fi_fuse_held(_FI_T0 + timedelta(days=5), _FI_T0 + timedelta(days=10)),
+        "fuse honest": _fi_fuse_held(_FI_T0 - timedelta(days=1), _FI_T0 + timedelta(days=3)),
+        "snow ahead": _fi_snow_damped(_FI_AHEAD, _FI_D30),
+        "snow honest": _fi_snow_damped(_FI_T0 - timedelta(days=1), _FI_T0),
+        "immersion ahead": _fi_immersion_margin(_FI_AHEAD, _FI_D30),
+        "immersion honest": _fi_immersion_margin(_FI_T0 - timedelta(hours=1), _FI_T0),
+        "legionella ahead": _fi_legionella_due(_FI_AHEAD, _FI_D30),
+        "legionella honest": _fi_legionella_due(_FI_T0 - timedelta(days=1), _FI_T0),
+        "outage cut": _fi_outage(_FI_T0),
+        "outage ahead": _fi_outage(_FI_AHEAD),
+        "outage ahead by a minute": _fi_outage(_FI_T0 + timedelta(hours=6, minutes=1)),
+        "outage plain restart": _fi_outage(_FI_T0 + timedelta(hours=6) - timedelta(minutes=10)),
+        "outage at now": _fi_outage(_FI_T0 + timedelta(hours=6)),
+        "outage zoned stamp": _fi_outage(
+            (_FI_T0 + timedelta(hours=5, minutes=50)).astimezone(
+                timezone(timedelta(hours=5)))),
+        "outage unbounded ahead": _fi_outage_direct(_FI_AHEAD),
+        "outage unbounded honest": _fi_outage_direct(_FI_T0 + timedelta(hours=5, minutes=50)),
+    }
+finally:
+    _fi_dt.freeze(None)
+    _fi_storage._DISK.clear()
+
+R.check(
+    "FI-sw1: a fuse-advisor stamp ahead of the clock, inside its month, does not "
+    "hold the 7-day cooldown past it; an honest recent stamp still does",
+    _fi_got["fuse ahead"] is False and _fi_got["fuse honest"] is True,
+    f"held at day 10 with a stamp 5 days ahead {_fi_got['fuse ahead']}; "
+    f"held at day 3 with an honest stamp {_fi_got['fuse honest']}",
+)
+R.check(
+    "FI-sw2: a heavy-snow stamp ahead of the clock does not keep the damping on "
+    "30 days later; an honest day-old stamp still does",
+    _fi_got["snow ahead"] is False and _fi_got["snow honest"] is True,
+    f"ahead {_fi_got['snow ahead']}, honest {_fi_got['snow honest']}",
+)
+R.check(
+    "FI-sw4: three immersion events stamped ahead of the clock buy no margin; "
+    "three honest recent ones still do",
+    _fi_got["immersion ahead"] == 0.0 and _fi_got["immersion honest"] > 0.0,
+    f"ahead {_fi_got['immersion ahead']}, honest {_fi_got['immersion honest']}",
+)
+R.check(
+    "FI-rca1: a legionella cycle stamped ahead of the clock does not postpone "
+    "the next one for the skew; an honest day-old cycle is not yet due",
+    _fi_got["legionella ahead"] < 0.0 and _fi_got["legionella honest"] > 0.0,
+    f"due in {_fi_got['legionella ahead']} h with a stamp 400 days ahead, "
+    f"{_fi_got['legionella honest']} h with an honest one",
+)
+R.check(
+    "FI-sw3: a stored last_tick ahead of the clock reads as an outage "
+    "(tvofi's rule, card C13); a real cut still does, and a plain restart, or "
+    "a tick at the restart instant, still does not",
+    _fi_got["outage ahead"] is True
+    and _fi_got["outage ahead by a minute"] is True
+    and _fi_got["outage cut"] is True
+    and _fi_got["outage plain restart"] is False
+    and _fi_got["outage at now"] is False
+    and _fi_got["outage zoned stamp"] is False
+    and _fi_got["outage unbounded ahead"] is True
+    and _fi_got["outage unbounded honest"] is False,
+    f"{ {k: v for k, v in _fi_got.items() if k.startswith('outage')} }",
+)
+
 # --- R9 N-plausibility (#1659): a live input meets its physical window ------
 R.section("R9 N-plausibility: live inputs meet their physical window (D1-s2-02, D1-s1-03)")
 import asyncio as _np_aio  # noqa: E402
@@ -41980,6 +42151,7 @@ class _T6Store:
     def __init__(self, payload=None):
         self.payload = payload
         self.saved: list = []
+        self.bounded: list = []  # what a QuarantiningStore reports it rewrote
 
     async def async_load(self):
         return self.payload

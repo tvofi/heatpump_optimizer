@@ -131,6 +131,12 @@
     "rss_peak_mb": 76.3,
     "traced_peak_mb": 0.86
   },
+  "summer/1z/space/valve": {
+    "ratio": 1.54,
+    "rss_attrib_mb": 0.2,
+    "rss_peak_mb": 76.3,
+    "traced_peak_mb": 0.81
+  },
   "summer/2z/dhw": {
     "ratio": 2.62,
     "rss_attrib_mb": 8.1,
@@ -148,6 +154,18 @@
     "rss_attrib_mb": 1.4,
     "rss_peak_mb": 77.2,
     "traced_peak_mb": 0.87
+  },
+  "summer/2z/space/valve-direct-slab": {
+    "ratio": 9.15,
+    "rss_attrib_mb": 3.4,
+    "rss_peak_mb": 79.5,
+    "traced_peak_mb": 0.85
+  },
+  "summer/2z/space/wood-two-tank": {
+    "ratio": 7.64,
+    "rss_attrib_mb": 2.4,
+    "rss_peak_mb": 78.5,
+    "traced_peak_mb": 0.91
   },
   "summer_negative/1z/dhw": {
     "ratio": 2.96,
