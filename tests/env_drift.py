@@ -2273,24 +2273,28 @@ def self_comparison_error(ref: str, head: str) -> str:
     )
 
 
-def judge_drift(
-    repo: str, ref: str, branch: dict[str, object], baseline: dict[str, object],
-    claims: dict[str, list[str]], may_drift: dict[str, str],
-) -> tuple[int, list[str], list[str], dict[str, list[str]]]:
-    """Judge each captured scenario against the claims that may excuse it.
-
-    Returns the unclaimed drift count, the claimed scenarios that moved, the
-    may-drift scenarios that moved, and the claims the verdict used -- the
-    staleness rule judges exactly that map, so a line that excused nothing
-    here goes stale or not by the same reading.
-
-    Only the lines this branch wrote may excuse (`authored_claims` against
-    the fork point): a line merged in from main described the claiming
-    merge's diff, and excusing a scenario by its name here is #213's hole
-    -- whatever it excuses, it excuses by accident (R9-F10.8).
+def excusing_claims(
+    repo: str, ref: str, claims: dict[str, list[str]]
+) -> dict[str, list[str]]:
+    """The claims that may excuse a drift here: only the lines this branch
+    wrote (`authored_claims` against `fork_point`). A line merged in from
+    main described the claiming merge's diff; excusing a scenario by its
+    name here is #213's hole -- whatever it excuses, it excuses by accident
+    (R9-F10.8). `judge_drift` and the staleness rule read this map.
     """
-    excusing = authored_claims(
+    return authored_claims(
         claims, _claimed_at(repo, fork_point(repo, ref), CLAIM_FILE))
+
+
+def judge_drift(branch: dict[str, object], baseline: dict[str, object],
+                claims: dict[str, list[str]], may_drift: dict[str, str],
+                ref: str) -> tuple[int, list[str], list[str]]:
+    """The drift verdict over two captures: (unclaimed drifts, claimed, may-drift).
+
+    Lifted out of main() so a check can import it (R9 D7-s1-02): deleting
+    the leaf comparison inside main() left every runnable check green, since
+    nothing could reach a verdict that lived only in `__main__`.
+    """
     drifted = 0
     claimed_hits = []
     may_drift_hits: list[str] = []
@@ -2299,17 +2303,17 @@ def judge_drift(
             # Added by this branch, so there is nothing to compare --
             # but a PR that adds a scenario may still have claimed it,
             # and a claim that goes unrecorded here reads as stale.
-            if name in excusing:
+            if name in claims:
                 claimed_hits.append(name)
                 print(f"  CLAIMED {name}: added by this branch, no baseline "
-                      f"on {ref} ({'; '.join(excusing[name])})")
+                      f"on {ref} ({'; '.join(claims[name])})")
             else:
                 print(f"  new   {name}: no baseline on {ref} (added by this branch)")
             continue
         if name not in branch:
-            if name in excusing:
+            if name in claims:
                 claimed_hits.append(name)
-                print(f"  CLAIMED {name}: removed ({'; '.join(excusing[name])})")
+                print(f"  CLAIMED {name}: removed ({'; '.join(claims[name])})")
             else:
                 drifted += 1
                 print(f"  DRIFT {name}: scenario removed by this branch")
@@ -2341,10 +2345,10 @@ def judge_drift(
                       f"({may_drift[name]})")
                 for line in exempt_diffs[:10]:
                     print(f"         {line}")
-        elif name in excusing:
+        elif name in claims:
             claimed_hits.append(name)
             print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
-                  f"({'; '.join(excusing[name])})")
+                  f"({'; '.join(claims[name])})")
             for line in diffs[:3]:
                 print(f"         {line}")
         else:
@@ -2352,7 +2356,8 @@ def judge_drift(
             print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
             for line in diffs[:5]:
                 print(f"         {line}")
-    return drifted, claimed_hits, may_drift_hits, excusing
+
+    return drifted, claimed_hits, may_drift_hits
 
 
 def main() -> int:
@@ -2618,8 +2623,11 @@ def main() -> int:
         rot = fixture_staleness(os.path.join(repo, FIXTURE_DIR), branch)
         print_staleness(rot, verbose=bool(os.environ.get(VALUE_REPORT_ENV)))
 
-        drifted, claimed_hits, may_drift_hits, claims = judge_drift(
-            repo, ref, branch, baseline, claims, may_drift)
+        # Only lines this branch wrote excuse or go stale (R9-F10.8);
+        # the staleness rule below reads the same map.
+        claims = excusing_claims(repo, ref, claims)
+        drifted, claimed_hits, may_drift_hits = judge_drift(
+            branch, baseline, claims, may_drift, ref)
 
         # Staleness is only meaningful for scenarios this run captured. The
         # five-fixture mode captures SENSITIVE and nothing else, so a claim

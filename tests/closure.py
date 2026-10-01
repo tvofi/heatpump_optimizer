@@ -9,11 +9,15 @@ release-notes change reaches one script, a change to the card's JavaScript
 reaches six, a change to the optimizer reaches fourteen of sixteen.
 
 The closures are MEASURED, never declared. ``closure.py record`` runs a test
-script for real under two instruments at once:
+script for real under two instruments at once, and a third where it exists:
 
   * a ``sys.addaudithook`` hook that records every ``open`` the run performs,
-    every ``compile``/``exec`` of a file, and every subprocess it spawns; and
-  * ``sys.modules`` at the end of the run, filtered to files inside the repo.
+    every ``compile``/``exec`` of a file, and every subprocess it spawns;
+  * ``sys.modules`` at the end of the run, filtered to files inside the repo;
+    and
+  * ``strace -f`` over the run and every child it spawns, where ``strace``
+    exists (CI's Linux recorder): the hook sees one process, so a child's
+    reads reached the record as its argv alone (R9 D14-s5-01).
 
 The union of those, expressed as repo-relative paths, is the closure. That
 catches the things an import graph cannot see -- ``tests/golden/*.json``,
@@ -1022,8 +1026,105 @@ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
         return _record_node(script, str(out), env)
     cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
            str(out), *(args or [])]
-    proc = subprocess.run(cmd, cwd=ROOT, env=env)
+    if not shutil.which("strace"):
+        return subprocess.run(cmd, cwd=ROOT, env=env).returncode
+    # The audit hook sees this process only. A child the script spawns -- a
+    # `python -P` driver, plan_view.py under doc_claims.py -- reads files the
+    # hook never sees, and its argv was all that reached the record, so
+    # select() skipped the script on a change to any of them (R9 D14-s5-01:
+    # 22 hastub modules under deployment_shape.py's own driver child). Where
+    # strace exists, as on CI's Linux recorder, the run is traced with every
+    # child and the two observations are unioned.
+    trace = out.with_suffix(".strace")
+    proc = subprocess.run(["strace", "-f", "-qq", "-y", "-e",
+                           "trace=openat,execve,clone,clone3,fork,vfork",
+                           "-o", str(trace), *cmd], cwd=ROOT, env=env)
+    _union_strace(out, trace)
     return proc.returncode
+
+
+# `openat(..., "path", ...) = 3</resolved/path>`: with -y strace prints the
+# path the returned descriptor names, absolute whatever the child's cwd.
+_STRACE_FD = re.compile(r'openat\([^,]+,\s*"(?:[^"\\]|\\.)*"[^)]*\)\s*=\s*\d+<([^>]+)>')
+
+
+_STRACE_PID = re.compile(r"^(\d+)\s+")
+# An execve or a fork can be split by another process's line into
+# `<unfinished ...>` and `<... NAME resumed>`; the path is on the first half.
+_STRACE_EXEC = re.compile(r'execve\("([^"]+)"')
+_STRACE_RESUMED = re.compile(r"<\.\.\. (execve|clone3?|v?fork) resumed>")
+_STRACE_SPAWN = re.compile(r"\b(clone3?|v?fork)\(")
+_STRACE_RET = re.compile(r"\)\s*=\s*(-?\d+)")
+
+
+def strace_files(trace: Path) -> set[str]:
+    """The repo files Python processes in a `strace -f -y` log opened.
+
+    Only a process whose last exec was a Python interpreter, and what it forks
+    without exec, counts. The class this instrument exists for is a Python
+    child importing and opening files the hook never sees (R9 D14-s5-01). A
+    `git` child's reads are a content scan whose result reaches the script as
+    git's output, which is how every git-reading check is scoped today
+    (`_warm_index`); a node child is another lane's recording (node scripts
+    record under strace themselves), and its policy linters read the
+    governance corpus the INERT list keeps out of every closure.
+
+    A Python child's read of an INERT path is dropped too. The list is the
+    classification, and the docs-only skip `affected` rests on it; measured at
+    R9 F10.3, tests/harness_headers.py's round-harness children read five such
+    files (DISCLAIMER.md, LICENSE, three docs/ pages), and moving them into a
+    closure is a reclassification for the owner, not a recorder side effect.
+    """
+    files = set()
+    py: set[str] = set()
+    execd: set[str] = set()  # a child's exec can print before its fork returns
+    pending: dict[str, str] = {}
+    for line in trace.read_text(errors="replace").splitlines():
+        pid_m = _STRACE_PID.match(line)
+        pid = pid_m.group(1) if pid_m else ""
+        resumed = _STRACE_RESUMED.search(line)
+        call = resumed.group(1) if resumed else None
+        e = _STRACE_EXEC.search(line)
+        if e:
+            call, pending[pid] = "execve", e.group(1)
+        elif call is None and _STRACE_SPAWN.search(line):
+            call = "spawn"
+        ret = _STRACE_RET.search(line)
+        if call == "execve":
+            if ret and ret.group(1) == "0" and pid in pending:
+                execd.add(pid)
+                if Path(pending.pop(pid)).name.startswith("python"):
+                    py.add(pid)
+                else:
+                    py.discard(pid)
+            continue
+        if call is not None:
+            child = ret.group(1) if ret else ""
+            if pid in py and child not in execd and int(child or 0) > 0:
+                py.add(child)
+            continue
+        if pid not in py:
+            continue
+        m = _STRACE_FD.search(line)
+        if m:
+            r = _rel(m.group(1))
+            if r and _is_real_file(r) and not is_inert(r):
+                files.add(r)
+    return files
+
+
+def _union_strace(out: Path, trace: Path) -> None:
+    """Fold a traced run's repo reads into the audit-hook record at `out`."""
+    try:
+        seen = strace_files(trace)
+        rec = json.loads(out.read_text())
+    except (OSError, json.JSONDecodeError):
+        return
+    finally:
+        trace.unlink(missing_ok=True)
+    rec["files"] = sorted(set(rec["files"]) | seen)
+    rec["how"] = rec.get("how", "") + "+strace"
+    out.write_text(json.dumps(rec, indent=1))
 
 
 # ---------------------------------------------------------------------------
