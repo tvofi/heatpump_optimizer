@@ -25283,7 +25283,7 @@ try:
             ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
             ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
             ([_au("p/f.py", "h", "    if b:"), _au_mv],          # twins: h stays,
-             [_au_b, _au("p/f.py", "h", "    if b:")], _au_moved),  # g's moves
+             [_au("p/f.py", "h", "    if b:"), _au_b], _au_moved),  # g's moves
         ))
     _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
 except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
