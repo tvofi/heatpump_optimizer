@@ -25,6 +25,7 @@
 //
 //   HPO_HERO_OUT=docs/img/card-plan-chart.png node tests/card_browser.mjs
 import { strict as assert } from "node:assert";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -52,6 +53,7 @@ const defaultPath = path.join(
   "/tmp",
   `plandata-${createHash("sha256").update(testsDir).digest("hex").slice(0, 12)}.json`
 );
+let gridMode = null;
 let planPath = process.argv[2] || process.env.HPO_PLANDATA || defaultPath;
 if (!existsSync(planPath)) {
   console.error(`FAIL: plan payload ${planPath} not found — run tests/plan_view.py first`);
@@ -539,6 +541,39 @@ function instrument() {
   };
 }
 
+// ---- the grid's scope ----------------------------------------------------------
+// The grid costs about as long as the rest of this lane together, and what it
+// renders is the card source, this lane, its rig and the payload: a diff that
+// touches none of them cannot move a cell. HPO_BROWSER_SCOPE=auto runs it only
+// when the branch's diff from its merge base with HPO_BROWSER_BASE (default
+// origin/main) touches one; unset or any other value runs it, as does a push
+// (GITHUB_EVENT_NAME=push), so main is always measured in full and a surface
+// this list misses goes red on main within one merge -- the scoped gate's own
+// bargain (CLAUDE.md rule 1). Any git failure runs it. The mode line always
+// prints, and a skip is reported as a skip in the summary, never as a pass.
+const GRID_SURFACE = [
+  /^custom_components\/heatpump_optimizer\/www\//,
+  /^tests\/card_browser\.mjs$/,
+  /^tests\/card_rig\.mjs$/,
+  /^tests\/plan_view\.py$/,
+];
+function gridScope(env = process.env) {
+  const mode = env.HPO_BROWSER_SCOPE || "full";
+  if (mode !== "auto") return { run: true, line: `P9 grid MODE: FULL (HPO_BROWSER_SCOPE=${mode})` };
+  if (env.GITHUB_EVENT_NAME === "push") return { run: true, line: "P9 grid MODE: FULL (a push is always measured in full)" };
+  const base = env.HPO_BROWSER_BASE || "origin/main";
+  let files;
+  try {
+    const git = (...a) => execFileSync("git", a, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    files = git("diff", "--name-only", `${git("merge-base", base, "HEAD")}...HEAD`).split("\n").filter(Boolean);
+  } catch (e) {
+    return { run: true, line: `P9 grid MODE: FULL (diff against ${base} unreadable: ${String(e.message || e).split("\n")[0]})` };
+  }
+  const hit = files.filter((f) => GRID_SURFACE.some((re) => re.test(f)));
+  if (hit.length) return { run: true, line: `P9 grid MODE: SCOPED -- RUN (${hit.length} of ${files.length} changed file(s) on the card surface: ${hit.slice(0, 4).join(", ")})` };
+  return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface)` };
+}
+
 // ---- the host side -----------------------------------------------------------
 async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
@@ -638,6 +673,8 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   check("P9 grid: every listbox option reads differently from its siblings as shown", bad.options.length === 0, show(bad.options));
   check("P9 grid: no text is clipped where its ancestor cannot scroll to it", bad.overflow.length === 0, show(bad.overflow));
   check("P9 grid: every target clears 24 px or the 2.5.8 spacing exception", bad.small.length === 0, show(bad.small));
+  // P9_DEBUG prints every failure with its cell, where the checks above
+  // print the first few, de-duplicated across cells.
   if (process.env.P9_DEBUG) console.log(JSON.stringify(bad, null, 1));
   return { bad, unreached, n };
 }
@@ -2079,9 +2116,14 @@ try {
       orderCells.filter((c) => c.view === "plan").every((c) => c.n >= 20),
     orderCells.map((c) => `${c.w} ${c.view}=${c.n}`).join(", "));
 
-  // P9: the rendered-property rules over the state grid (see p9Grid above).
-  await p9Grid({ browser, check, plan, cardSrc: readFileSync(CARD_SRC, "utf8"),
-    log: (line) => console.log(`  ${line}`) });
+  // P9: the rendered-property rules over the state grid (see p9Grid above),
+  // under the scope gridScope prints.
+  gridMode = gridScope();
+  console.log(`  ${gridMode.line}`);
+  if (gridMode.run) {
+    await p9Grid({ browser, check, plan, cardSrc: readFileSync(CARD_SRC, "utf8"),
+      log: (line) => console.log(`  ${line}`) });
+  }
 
   // B12: the README hero is a screenshot of this lane, not the card_rig
   // SVG B4 committed as an interim. Frozen at the payload's first sample
@@ -2154,4 +2196,5 @@ try {
 }
 
 console.log(fails ? `\n${fails} BROWSER CHECK(S) FAILED` : "\nALL BROWSER CHECKS PASSED");
+if (gridMode && !gridMode.run) console.log("P9 GRID SKIPPED -- the class barrier did not run on this diff");
 process.exit(fails ? 1 : 0);
