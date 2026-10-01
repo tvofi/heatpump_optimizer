@@ -3793,6 +3793,52 @@
       "brief": "Round-9 fix PR F10.8 (claims baseline: carried claim lines read as no-claim), added 2026-10-01 by the Mac orchestrator. Its scope was briefly narrowed to wording and then RESTORED on the root-cause seat's revised root-cause.md (handoff/r9-f10-claims-baseline-rca at 27ed4fb6). Root cause: the inherited-claims guard uses 'claim list equals the fork point's' as a stand-in for 'carried', and merging main into branches made claiming fork points routine. So a branch that never wrote a claim but merged a claiming main reads as inherited (#1809 and #1808 each had to drop F6.4's 5 claims), contradicting claim-files.md's byte-identical rule, and every solver branch pays a drop commit and a DIRTY round (#570) per claiming merge. Design: only branch-authored claim lines (lines absent from the fork point's parsed map) excuse drift or count as stale; carried lines read as no-claim. Main must stay green (its push check --claims-only HEAD^1). Both excusal sites port the rule: tests/env_drift.py (--all) and tests/card_drift.mjs, each with a test that is red before the port and green after, plus the mutation proof. Keep #213's protection: a carried claim must never excuse new drift. Update .claude/rules/claim-files.md and ci-autofix.md to match (policy files: tvofi's approval under the mandate). Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
     },
     {
+      "group": "R9-F10.9",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": 12,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "changes what the PR gate runs in code-owned gate scripts; a wrong scope hides reds",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.3"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-ci-scoping",
+        "commit": null,
+        "last_step": null,
+        "next_step": "after F10.3 (#1810) merges: fixer.md step 1 at a fresh merge base",
+        "note_file": "handoff/round9/fix/resume/F10.9.md on handoff/r9-f10-ci-scoping",
+        "review_branch": "handoff/r9-f10-ci-scoping-review",
+        "review_note_file": "handoff/round9/fix/resume/F10.9-review.md on handoff/r9-f10-ci-scoping-review",
+        "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added 2026-10-01 by the Mac orchestrator from the final CI scoping audit (20 runs)."
+      },
+      "brief": "Round-9 fix PR F10.9 (PR-gate scoping waste), added 2026-10-01 by the Mac orchestrator from the CI scoping audit tvofi asked for (report: project thread cmsg_01EL5jLi4rokGBbkaevYXSJVQnCkQXZkngnPTjcnYyTKVE; final sample the last 20 successful runs over 11 PRs, #1799 to #1810). The fast gate's own scoping is correct; the waste is elsewhere. (1) Biggest saving: when tests/closures.json changes, fast runs every closure script. Instead count only the scripts whose own closure entries changed (a shrunken closure counts as changed). Measured: 5 of 20 runs (#1803 three times, #1799, #1800) at 28-32 min each; #1803 would have run 5 scripts and #1800 20. (2) A change to tests/dst_checks.py re-records every closure (6 of 20 runs). Re-record only the scripts that change requires, after showing strace parity between the narrow and the full re-record. (3) The gate log lists tests/harness_headers.py and tests/layout.py as 'did NOT run' even when they ran: fix the log. Keep the safety net: the push to main still runs everything unscoped (CLAUDE.md rule 1). For each narrowing show a case where the old scope ran a script the new one skips, prove the skip cannot hide a red (closure containment), and give a null control. Out of scope: scoping coverage (saves nothing in the sample), reusing coverage from main and faster mutation baselines (later follow-ups), and re-scoping harness_headers.py (reverses #983; waits on tvofi's word). Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* (gate-scoping.md especially) and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+    },
+    {
       "group": "R9-F10.7",
       "lane": "F10",
       "issues": [
