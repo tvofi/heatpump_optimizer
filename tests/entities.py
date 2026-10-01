@@ -257,8 +257,12 @@ def collect(module, data=None, coordinator=None):
     the one entity nobody thought to name.
     """
     added = []
+    hass = FakeHass()
 
     def add_entities(entities):
+        # HA hands every added entity its hass; _gaps reads hass.config.language
+        for entity in entities:
+            entity.hass = hass
         added.extend(entities)
 
     if coordinator is None:
@@ -267,7 +271,6 @@ def collect(module, data=None, coordinator=None):
         # publish (#4): set here so every entity test sees a coordinator
         # that has been running, not one booted this minute.
         coordinator._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
-    hass = FakeHass()
     # Where a platform finds its coordinator: on the entry, as runtime_data
     # (runtime-data, Bronze). Nothing is put in hass.data -- a platform that
     # still looked there would find nothing and fail here.
@@ -2941,6 +2944,20 @@ R.check(
     sensor.IndoorTempSensor(_blind_fake, ENTRY).available
     and sensor.IndoorTempSensor(_blind_fake, ENTRY).native_value == 21.4,
     "gating everything would be as useless as gating nothing",
+)
+# D4 side of the L1 indoor-sensor lead (F6.4): the sensor names its
+# thermometer, so the card can draw the raw trace through a silence gap.
+_src_fake = FakeCoordinator(_blind)
+_src_fake._config = {"indoor_temp_entity": "sensor.indoor"}
+_src_none = FakeCoordinator(_blind)
+_src_none._config = {}
+R.check(
+    "the indoor sensor publishes its thermometer's id, None without one",
+    sensor.IndoorTempSensor(_src_fake, ENTRY).extra_state_attributes
+    == {"source_entity": "sensor.indoor"}
+    and sensor.IndoorTempSensor(_src_none, ENTRY).extra_state_attributes
+    == {"source_entity": None},
+    "an unconfigured thermometer must read as absent, never as an id",
 )
 # The upper floor is the one entity that is not gated on an input of its own,
 # because it has never had one: it follows the indoor thermometer, so it lives
@@ -6141,6 +6158,7 @@ def _gap_production_rows(data, config):
     """The production advisor's own ``gaps`` for a payload and a config."""
     coord = FakeCoordinator(dict(data), _config=dict(config))
     gap_sensor = sensor.SensorGapAdvisorSensor(coord, ENTRY)
+    gap_sensor.hass = FakeHass()
     gaps = gap_sensor.extra_state_attributes["gaps"]
     return gap_sensor, {row["key"]: row for row in gaps}
 
@@ -6410,6 +6428,7 @@ R.check(
     repr(_peak_folds),
 )
 _series_gap_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
+_series_gap_sensor.hass = _series_coord.hass  # entities get theirs from HA
 _series_gaps = {
     row["key"]: row
     for row in _series_gap_sensor.extra_state_attributes["gaps"]
@@ -6419,6 +6438,56 @@ R.check(
     "(#1460)",
     _series_gaps[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
     repr(_series_gaps),
+)
+
+# D4-s2-81: the coordinator and the sensor hand the install's language to the
+# topology; each wiring line is pinned by a Swedish hass (null control: English).
+_series_coord.hass.config.language = "sv"
+try:
+    _sv_setup = _series_coord.describe_setup()
+    _sv_gaps = _series_gap_sensor._gaps()
+finally:
+    del _series_coord.hass.config.language
+_en_setup = _series_coord.describe_setup()
+_sv_slot = {s["key"]: s["label"] for s in _sv_setup["slots"]}
+R.check(
+    "describe_setup on a Swedish hass labels the slots in Swedish (D4-s2-81)",
+    _sv_slot.get(const.CONF_OUTDOOR_TEMP_ENTITY) == "Utetemperatur"
+    and {s["key"]: s["label"] for s in _en_setup["slots"]}.get(
+        const.CONF_OUTDOOR_TEMP_ENTITY
+    ) != "Utetemperatur",
+    repr(_sv_slot.get(const.CONF_OUTDOOR_TEMP_ENTITY)),
+)
+_cat_pairs = list(zip(_en_setup["catalog"], _sv_setup["catalog"]))
+R.check(
+    "describe_setup's layout catalog label, description and requirement are "
+    "Swedish on a Swedish hass (D4-s2-81)",
+    bool(_cat_pairs)
+    and all(
+        e[k] != n[k] for e, n in _cat_pairs
+        for k in ("label", "description", "requirement")
+    ),
+    repr([(e["key"], [k for k in ("label", "description", "requirement")
+                      if e[k] == n[k]]) for e, n in _cat_pairs]),
+)
+R.check(
+    "describe_setup's sensor gap labels are Swedish on a Swedish hass "
+    "(D4-s2-81)",
+    bool(_sv_setup["sensor_gaps"])
+    and all(
+        e["label"] != n["label"]
+        for e, n in zip(_en_setup["sensor_gaps"], _sv_setup["sensor_gaps"])
+    ),
+)
+R.check(
+    "the gap advisor sensor ranks with Swedish labels on a Swedish hass "
+    "(D4-s2-81)",
+    bool(_sv_gaps)
+    and all(
+        g["label"] != e["label"]
+        for g, e in zip(_sv_gaps, _series_gap_sensor._gaps())
+    ),
+    repr([g["label"] for g in _sv_gaps]),
 )
 
 
@@ -6440,7 +6509,9 @@ class _ReadRecordingData(dict):
 # published fails here rather than silently ranking 0.00.
 _series_recorder = _ReadRecordingData(_series_data)
 _series_coord.data = _series_recorder
-sensor.SensorGapAdvisorSensor(_series_coord, ENTRY).extra_state_attributes
+_series_recorder_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
+_series_recorder_sensor.hass = _series_coord.hass
+_series_recorder_sensor.extra_state_attributes
 _series_unwritten = sorted(_series_recorder.asked - set(_series_data))
 R.check(
     "every payload key the gap advisor reads is one `_build_data_dict` "
@@ -6630,6 +6701,27 @@ R.check(
     and _adv_cached.get("sensor_advisor")
     == topology.rank_sensor_advisor(_adv_two_zone, hp_kw=[3.0, 3.0]),
     f"re-ranked {len(_adv_reads)} time(s); published {_adv_read_attrs!r}",
+)
+_adv_sv_hass = _AdvHass()
+_adv_sv_hass.config.language = "sv"
+_adv_sv_rows = asyncio.run(coordinator_module._with_sensor_advisor(
+    FakeCoordinator({}, _config=dict(_adv_two_zone), hass=_adv_sv_hass),
+    {"heat_pump_power_series": [3.0, 3.0]},
+))["sensor_advisor"]["candidates"]
+_adv_en_rows = _adv_attr_rows
+R.check(
+    "_with_sensor_advisor ranks with Swedish labels on a Swedish hass "
+    "(D4-s2-81)",
+    bool(_adv_sv_rows)
+    and len(_adv_sv_rows) == len(_adv_en_rows)
+    and all(
+        n["label"] != e["label"]
+        for n, e in zip(
+            sorted(_adv_sv_rows, key=lambda r: r["key"]),
+            sorted(_adv_en_rows, key=lambda r: r["key"]),
+        )
+    ),
+    repr([r["label"] for r in _adv_sv_rows]),
 )
 R.check(
     "the advisor attribute is unrecorded like its siblings (#1269)",
@@ -10075,6 +10167,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "problem_inputs", "problem_messages", "problems", "stale_inputs",
         "summary"
     }),
+    "IndoorTempSensor": frozenset({"source_entity"}),
     "MeasuredPowerSensor": frozenset({
         "energy_meter", "house_power", "recommended_power"
     }),

@@ -644,3 +644,19 @@
 # restart. Measured against 3dfebc16 by tests/env_drift.py --all with the
 # inherited list emptied (Linux cloud box, CPython 3.14.7, pinned
 # requirements-ci, OPENBLAS_CORETYPE=Haswell, 1 thread).
+#
+# F6.4 (D4-s2-81, indoor source-entity carry-in): this diff claims the five
+# coordinator captures and NOTHING ELSE. Every moved leaf is deterministic, not
+# a solver float, and the direction is ADD-ONLY on two leaves per fixture:
+#   (a) sensors.indoor_temp.extra_state_attributes goes None -> {'source_entity':
+#       None}: IndoorTempSensor gains a source_entity attribute, None here
+#       because no capture maps an indoor entity;
+#   (b) setup_topology.language is new on sensors.space_heating_plan and
+#       sensors.dhw_heating_plan: describe_setup now carries the install
+#       language (D4-s2-81).
+# No plan, schedule or solver fixture moves.
+coord_all_features # F6.4: indoor_temp source_entity attribute, setup_topology.language
+coord_dhw # F6.4: indoor_temp source_entity attribute, setup_topology.language
+coord_grid_fee # F6.4: indoor_temp source_entity attribute, setup_topology.language
+coord_minimal # F6.4: indoor_temp source_entity attribute, setup_topology.language
+coord_two_zone # F6.4: indoor_temp source_entity attribute, setup_topology.language
