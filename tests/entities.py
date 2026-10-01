@@ -25282,6 +25282,8 @@ try:
              [_au_a, _au_b], _au_moved),                       # another def
             ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
             ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
+            ([_au("p/f.py", "h", "    if b:"), _au_mv],          # twins: h stays,
+             [_au_b, _au("p/f.py", "h", "    if b:")], _au_moved),  # g's moves
         ))
     _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
 except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
@@ -25291,10 +25293,10 @@ R.check(
     "a re-indented or moved site the base's (#1646, #1748)",
     _AU_COUNT is None and _AU_GOT == (
         ["if c:"], [], [], [], ["if b:"], ["if b:"], ["if b:"],
-        ["return None"], ["if c:"]),
+        ["return None"], ["if c:"], []),
     f"count verdict on the trade {_AU_COUNT}; (trade, null, re-indent, moved, "
     f"no sides, source untouched, other def, generic return, new guard beside "
-    f"a move) -> {_AU_GOT}",
+    f"a move, the moved one of two twins) -> {_AU_GOT}",
 )
 
 # The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an

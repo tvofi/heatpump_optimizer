@@ -824,6 +824,11 @@ def diff_sides(ref: str | None) -> tuple[set[str], set[str]]:
             removed.add(path)
         if plus not in ("0", "-"):
             added.add(path)
+    # A new module not yet added to the index is all added lines too; the
+    # inventory already counts it (`rglob`), so the move match must see it.
+    if out is not None:
+        added.update((_git_or_none("ls-files", "--others", "--exclude-standard",
+                                   "--", PKG) or "").split())
     return removed, added
 
 
@@ -856,10 +861,15 @@ def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
         left.setdefault(ident(s), []).append(s)
     out = []
     for s in unpinned:
-        if left.get(ident(s)):
-            left[ident(s)].pop()
-        else:
+        group = left.get(ident(s))
+        if not group:
             out.append(s)
+            continue
+        # Of identical lines in one file, consume the one under the same def
+        # first, so the twin that really left is the one left over to match.
+        tail = _scope_tail(s)
+        same = [i for i, b in enumerate(group) if _scope_tail(b) == tail]
+        group.pop(same[-1] if same else -1)
     removed, added = sides
     gone: dict[tuple[str, str, str], int] = {}
     for group in left.values():
