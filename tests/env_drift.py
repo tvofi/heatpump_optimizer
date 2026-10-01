@@ -1106,6 +1106,23 @@ def _merge_base(repo: str, ref: str, other: str) -> str | None:
     return proc.stdout.strip() or None if proc.returncode == 0 else None
 
 
+def fork_point(repo: str, ref: str) -> str:
+    """Where HEAD forked from ``ref`` -- ``ref`` itself when git cannot say.
+
+    A claim describes the diff against this commit: the merge base on a
+    pull request, ``HEAD^1`` on main's push run (its own fork point).
+    """
+    return _merge_base(repo, ref, "HEAD") or ref
+
+
+def _claim_text(repo: str, head: str | None, relpath: str) -> str | None:
+    """``relpath``'s text at ``head``, or in the working tree when None."""
+    if head is not None:
+        return _show_at(repo, head, relpath)
+    path = os.path.join(repo, relpath)
+    return open(path).read() if os.path.exists(path) else None
+
+
 def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, list[str]]:
     """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
     text = _show_at(repo, ref, relpath)
@@ -1403,8 +1420,12 @@ def drop_inherited_claim_lines(text: str, baseline_text: str) -> str | None:
     None when the list is empty or not inherited -- and the parsed map
     carries every line per scenario, so a list that ADDED a line beside
     the baseline's is a rewrite, not an inheritance (#1255). Those are
-    not a mechanical rewrite.
+    not a mechanical rewrite. A file byte-identical to the baseline's was
+    never written by this branch: it claims nothing, and emptying it is the
+    deletion a merge applies to main (R9-F10.8).
     """
+    if text == baseline_text:
+        return None
     if inherited_claims_error(
         parse_claim_map(text), parse_claim_map(baseline_text), "baseline"
     ) is None:
@@ -1428,6 +1449,10 @@ def apply_inherited_claims(
     someone else's line. Only `ref` can be checked this way -- a
     `baseline_dir` is a tree, not a revision, and the tests that use it
     supply the diff's intent themselves.
+
+    The baseline is the fork point (`fork_point`), as in the guard: on a
+    pull request `ref` is main's tip, and a file this branch never wrote is
+    byte-identical to its fork point's, not necessarily to the tip's.
     """
     kinds = {CLAIM_FILE: True, CARD_CLAIM_FILE: True}
     if ref:
@@ -1455,13 +1480,10 @@ def apply_inherited_claims(
         else:
             if not ref:
                 raise ValueError("apply_inherited_claims needs baseline_dir or ref")
-            proc = subprocess.run(
-                ["git", "show", f"{ref}:{rel}"],
-                cwd=repo, capture_output=True, text=True,
-            )
-            if proc.returncode != 0:
+            shown = _show_at(repo, fork_point(repo, ref), rel)
+            if shown is None:
                 continue
-            baseline = proc.stdout
+            baseline = shown
         new = drop_inherited_claim_lines(open(path).read(), baseline)
         if new is not None:
             open(path, "w").write(new)
@@ -1497,14 +1519,17 @@ def inherited_claims_error(
         f"what {ref} already claims -- the same {len(claims)} scenario(s),\n"
         "with the same reasons:\n"
         f"  {names}\n"
-        "So this list was written for the baseline's diff and carried\n"
-        "forward, not written for this one; whatever it excuses here, it\n"
-        "excuses by accident. (The 'claims-for:' stamp cannot catch this:\n"
-        "it only expires claims when VERSION changes, and a merge at an\n"
-        "unchanged version inherits a matching stamp too.) Rewrite the\n"
-        "list for THIS diff -- delete what this change does not move, and\n"
-        "give what it does move a reason that describes this change. An\n"
-        "empty list is the right answer for a change that moves nothing."
+        "This branch edited the file and kept that list, so the list was\n"
+        "written for the baseline's diff and carried forward, not written\n"
+        "for this one; whatever it excuses here, it excuses by accident.\n"
+        "(The 'claims-for:' stamp cannot catch this: it only expires\n"
+        "claims when VERSION changes, and a merge at an unchanged version\n"
+        "inherits a matching stamp too.) Rewrite the list for THIS diff --\n"
+        "delete what this change does not move, and give what it does move\n"
+        "a reason that describes this change. An empty list is the right\n"
+        "answer for a change that moves nothing; if this branch claims\n"
+        "nothing, restoring the baseline's bytes is the other: a file merged\n"
+        "in and never edited claims nothing and passes."
     )
 
 
@@ -1958,6 +1983,7 @@ def claims_hygiene_verdict(
     base_card: dict[str, list[str]],
     ref: str,
     stamp: tuple[str, str, str | None, str | None, int] | None = None,
+    carried: frozenset[str] = frozenset(),
 ) -> str | None:
     """The claim-file rule for one three-dot, per file kind. None when it holds.
 
@@ -1967,6 +1993,13 @@ def claims_hygiene_verdict(
     file must be exactly as found. A three-dot that can move neither is the
     record-PR case and keeps its own rule and message. A release stamp, by
     `release_stamp_holds`, owes the lists empty and nothing else.
+
+    ``carried`` names the claim files byte-identical to the fork point's:
+    the branch never wrote them, which is the no-claim state
+    (`claim-files.md`), so neither rule has anything to judge there. Lines
+    in such a file excuse nothing (`judge_drift`). Keyed on the bytes, not
+    the parsed list, so an edit that keeps the baseline's list is still
+    the inherited list it always was (R9-F10.8).
     """
     if release_stamp_holds(changed, solver, card, stamp):
         return None
@@ -1977,7 +2010,9 @@ def claims_hygiene_verdict(
         (CLAIM_FILE, solver, base_solver, "a solver golden"),
         (CARD_CLAIM_FILE, card, base_card, "a card state"),
     ):
-        if kinds[claim_file]:
+        if claim_file in carried:
+            inherited = None
+        elif kinds[claim_file]:
             inherited = inherited_claims_error(claims, baseline, ref, claim_file)
         else:
             inherited = foreign_claim_file_error(claim_file, claims, baseline, cannot)
@@ -2007,6 +2042,8 @@ def record_pr_claims_error(
     times -- #608 deleted #569's claims, #635 deleted #633's, and #658
     would have deleted #653's `config_flow` line, which is what stopped it.
     A change that moves no fixture has nothing to say about anyone's claim.
+    The loss is this branch shape's: a file a fixture-moving branch never
+    wrote is carried untouched too (`claims_hygiene_verdict`).
     """
     if moves_claimable(changed):
         return None
@@ -2177,7 +2214,9 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     # this check made before the head read existed.
     claim_head = os.environ.get("CLAIM_HEAD", "").strip()
     claim_base = ref
+    text_head: str | None = None
     if claim_head and _rev(repo, claim_head) is not None:
+        text_head = claim_head
         declared_solver, solver = _claimed_full_at(repo, claim_head, CLAIM_FILE)
         declared_card, card = _claimed_full_at(repo, claim_head, CARD_CLAIM_FILE)
         parent = _parent_count(repo, claim_head)
@@ -2192,6 +2231,11 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     ) if stamp_ref_allows(dict(os.environ)) else None
     base_solver = _claimed_at(repo, claim_base, CLAIM_FILE)
     base_card = _claimed_at(repo, claim_base, CARD_CLAIM_FILE)
+    # Byte-identical to the base this list is judged against: never written.
+    carried = frozenset(
+        rel for rel in (CLAIM_FILE, CARD_CLAIM_FILE)
+        if _claim_text(repo, text_head, rel) == _show_at(repo, claim_base, rel)
+    )
     # An unanswerable comparison is not a clean one. Returning None here would
     # be the gate reporting "no claim owed" about a tree it could not read.
     # It is computed FIRST because it decides which rule applies: a three-dot
@@ -2209,7 +2253,8 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
             "A shallow clone is the usual cause: git fetch --unshallow origin."
         )
     return claims_hygiene_verdict(
-        changed, solver, card, base_solver, base_card, ref, stamp=stamp
+        changed, solver, card, base_solver, base_card, ref, stamp=stamp,
+        carried=carried,
     )
 
 
@@ -2238,8 +2283,14 @@ def judge_drift(
     may-drift scenarios that moved, and the claims the verdict used -- the
     staleness rule judges exactly that map, so a line that excused nothing
     here goes stale or not by the same reading.
+
+    Only the lines this branch wrote may excuse (`authored_claims` against
+    the fork point): a line merged in from main described the claiming
+    merge's diff, and excusing a scenario by its name here is #213's hole
+    -- whatever it excuses, it excuses by accident (R9-F10.8).
     """
-    excusing = claims
+    excusing = authored_claims(
+        claims, _claimed_at(repo, fork_point(repo, ref), CLAIM_FILE))
     drifted = 0
     claimed_hits = []
     may_drift_hits: list[str] = []

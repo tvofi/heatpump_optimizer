@@ -17730,13 +17730,18 @@ R.check(
 )
 _INH_HDR = "# claims-for: 6.3.15\n#\n"
 _INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
-_INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
+# Edited (a note) and kept the baseline's list: the inherited list. A file
+# byte-identical to the baseline's was never written and is not dropped
+# (R9-F10.8, `_f108_repo` below).
+_INH_EDITED = _INH_FILE + "# a note this branch wrote\n"
+_INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_EDITED, _INH_FILE)
 R.check(
     "inherited claim lines are dropped and may-drift is kept",
     _INH_DROPPED is not None
     and "wood_coil  #" not in _INH_DROPPED
     and "# may-drift: wood_coil -- keep" in _INH_DROPPED
-    and "claims-for: 6.3.15" in _INH_DROPPED,
+    and "claims-for: 6.3.15" in _INH_DROPPED
+    and "# a note this branch wrote" in _INH_DROPPED,
     f"dropped={_INH_DROPPED!r}",
 )
 R.check(
@@ -17755,11 +17760,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _inh_td:
     _inh_repo = Path(_inh_td) / "repo"
     _inh_base = Path(_inh_td) / "base"
-    for _d in (_inh_repo, _inh_base):
+    for _d, _note in ((_inh_repo, "# edited here\n"), (_inh_base, "")):
         (_d / "tests" / "golden").mkdir(parents=True)
-        (_d / _env_drift.CLAIM_FILE).write_text(_INH_FILE)
+        (_d / _env_drift.CLAIM_FILE).write_text(_INH_FILE + _note)
         (_d / "tests" / "golden" / "card_claimed_drift.txt").write_text(
-            _INH_HDR + "away_toggle  # copied\n")
+            _INH_HDR + "away_toggle  # copied\n" + _note)
     _inh_status = _env_drift.apply_inherited_claims(
         str(_inh_repo), baseline_dir=str(_inh_base))
     _inh_solver = (_inh_repo / _env_drift.CLAIM_FILE).read_text()
@@ -18284,7 +18289,10 @@ def _merge_hygiene_git():
     _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
     branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
-    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    # A note keeps the merge tree's list the baseline's while its bytes are
+    # not: byte-identical is the no-claim state (R9-F10.8), checked below.
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(
+        five + "# a note the merge tree carries\n")
     _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
     _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
     return root, base, branch
@@ -18294,8 +18302,10 @@ _mt_root, _mt_base, _mt_branch = _merge_hygiene_git()
 _mt_without = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
 with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_branch}):
     _mt_with_head = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
-with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": "HEAD"}):
     _mt_defect = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+    _mt_untouched = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
 R.check(
     "the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires",
     callable(_hyg)
@@ -18309,11 +18319,16 @@ R.check(
     f"got {_mt_with_head!r}",
 )
 R.check(
-    "CLAIM_HEAD pointing at a byte-identical list still fires the inherited check (the real-defect arm)",
+    "CLAIM_HEAD pointing at an edited file that kept the list still fires the inherited check (the real-defect arm)",
     callable(_hyg)
     and isinstance(_mt_defect, str)
     and _mt_defect.startswith("INHERITED CLAIMS"),
     f"got {_mt_defect!r}",
+)
+R.check(
+    "CLAIM_HEAD pointing at a byte-identical file is the no-claim state (R9-F10.8)",
+    callable(_hyg) and _mt_untouched is None,
+    f"got {_mt_untouched!r}",
 )
 
 # The false positive the fork-point baseline repairs (#1361/#1357/#1360). A
@@ -18483,7 +18498,8 @@ R.check(
 _ac2_root, _ac2_base = _hygiene_git(
     "# claims-for: 6.3.15\n\n"
     "whatif_edited  # in-window lo floored at the window min; floored band note\n"
-    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+    "# this branch edited the file and kept the list (R9-F10.8)\n",
     {_env_drift.CARD_JS: "// this branch moved the card\n"},
     py_touch=False,
 )
