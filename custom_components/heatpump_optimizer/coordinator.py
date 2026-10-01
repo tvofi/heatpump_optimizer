@@ -1533,6 +1533,25 @@ def _warm_seeded(
     return optimizer
 
 
+def _plan_settings_view(opt: OptimizationConfig) -> dict[str, Any]:
+    """The comfort schedule and horizon the plan was actually made against.
+
+    The card's what-if editor pre-fills from these: an editor that started
+    from defaults would silently propose a change the user never made. The
+    plan sensors publish the horizon, which they read here and nothing wrote
+    until R9 D14-s1-02, so every plan claimed 24 h.
+    """
+    return {
+        "comfort_temp_day": opt.comfort_temp_day,
+        "comfort_temp_night": opt.comfort_temp_night,
+        "day_start_hour": opt.day_start_hour,
+        "day_end_hour": opt.day_end_hour,
+        "horizon_hours": opt.horizon_hours,
+        "min_temperature": opt.min_temp,
+        "max_temperature": opt.max_temp,
+    }
+
+
 def _open_loop_plan_value(
     result: OptimizationResult | None, trajectory_attr: str, now: datetime
 ) -> float | None:
@@ -7241,17 +7260,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._open_meteo.diagnostics() if self._open_meteo else None
             ),
             "two_zone_enabled": ctx._thermal_params.two_zone_enabled,
-            # The comfort schedule the plan was actually made against. The
-            # card's what-if editor pre-fills from this: an editor that
-            # started from defaults would silently propose a change the user
-            # never made.
-            "comfort_temp_day": ctx._opt_config.comfort_temp_day,
-            "comfort_temp_night": ctx._opt_config.comfort_temp_night,
-            "day_start_hour": ctx._opt_config.day_start_hour,
-            "day_end_hour": ctx._opt_config.day_end_hour,
-            "horizon_hours": ctx._opt_config.horizon_hours,
-            "min_temperature": ctx._opt_config.min_temp,
-            "max_temperature": ctx._opt_config.max_temp,
+            **_plan_settings_view(ctx._opt_config),
         }
     def _dhw_view(self) -> dict[str, Any]:
         """Hot water configuration and current demand state."""
