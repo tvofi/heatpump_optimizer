@@ -10,7 +10,7 @@ _Requested by **tvofi**_
 
 ## Head
 
-`7a113ee6f5cde689dd8ae919747022366c674d3c` (code), on #1822's code head `af2ac76378deb834773e8c01ad32a16bb3fe5497`.
+`c010925be70e8bf02533b752410d5697cb0d65c1` (code: the merge of `origin/main` at `d536fb4d`, #1823, into the verdicted head `7a113ee6f5cde689dd8ae919747022366c674d3c`), on #1822's code head `af2ac76378deb834773e8c01ad32a16bb3fe5497`. The delta from the verdict at `e67bc382` is that merge: `tests/entities.py` conflicted with #1823's checks and keeps both, the coverage-cache check after #1823's concurrency checks.
 
 ## Mutation proof
 
