@@ -326,12 +326,19 @@ COST_DETECTION = 2.0
 #: same reference, recorded and banded exactly as ``cpu_ratio``. The
 #: whole-cycle ratio cannot see a 2x of it: the loop is about a tenth of the
 #: cycle, so doubling it moves ``cpu_ratio`` far inside its sqrt(2) band.
-#: Entry allowed by tvofi (card B1); recorded on the idle cloud runner as
-#: the largest of three runs (0.481, 0.468, 0.449; clean 0.318-0.340; the
-#: doubled loop arm 0.605-0.682, its cpu_ratio 2.82-3.24 under 3.576).
+#: Entry allowed by tvofi (card B1). Recorded at the CENTRE of its measured
+#: spread, not at sqrt(2) x the largest run: the figure is noisy (1.30x)
+#: inside a band only 2x wide, and the nightly runner reads the cycle lower
+#: than cloud boxes (cpu_ratio 2.18 there, 2.36-2.98 here), so a cap at the
+#: top leaves its floor within 10 % of a clean run. Six clean runs on cloud
+#: boxes, 0.2642-0.3433 (0.3401, 0.3310, 0.3178, 0.2825 at the fixer's
+#: b4a0f75e and 0.2642 threads-pinned, 0.3433 unpinned at the review's);
+#: sqrt(2) x their geometric midpoint 0.3012 is 0.426. Both edges then sit
+#: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
+#: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.481},
+                                "loop_cpu_ratio": 0.426},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.

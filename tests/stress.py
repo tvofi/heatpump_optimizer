@@ -2207,9 +2207,17 @@ with open(out_path, "w") as fh:
 #: firing -- #1711 (+18.4 % on the direct-slab valve plant, +5.9 % and
 #: +5.3 % on two more), whose continuation solves inside multi-start add
 #: work no evaluation counts. That is the channel's job: cost the counts do
-#: not vouch for, which passes the way #1282's passed the work factor, on
-#: the owner's sanction in the diff that adds it. So the ceiling is ~12 %,
-#: where the class goes silent, and the floor is the ~2.3 % noise.
+#: not vouch for. So the ceiling is ~12 %, where the class goes silent, and
+#: the floor is the ~2.3 % noise.
+#:
+#: A legitimate firing passes for ONE pull request, never by a raise. The
+#: comparison is against that pull request's merge base, so once it merges
+#: the next one is measured from the dearer tree and the channel is quiet
+#: again; the pass is tvofi's approving review on the red channel, the
+#: verdict naming the merge and the measured growth. This constant is never
+#: raised for a single firing -- unlike SCENARIO_WORK_FACTOR's permanent
+#: raise for #1282 -- because a raise to an #1711-sized 18 % silences the
+#: class for every pull request after it.
 SCENARIO_CALLS_GROWTH = 0.05
 
 
