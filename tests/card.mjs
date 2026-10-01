@@ -284,15 +284,27 @@ check("the empty state is not clickable",
 const solarCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 const solarDump = collect(solarCard.shadowRoot).join("\n");
 check("solar series has data", solarCard._series.find(s => s.key === "solar").hasData);
-check("solar gets its own W/m2 axis", /W\/m/.test(solarDump));
 check("the solar axis does not share the power scale",
   solarCard._plot.axes.solar !== null && solarCard._plot.axes.solar !== solarCard._plot.axes.power);
+// R9-UI-4 (concept A): solar is a relative curve in the price panel, its
+// scale's top at SOLAR_PANEL_SHARE of that panel and no axis of its own.
+{
+  const pl = solarCard._plot;
+  const price = (pl.panels || []).find((p) => p.key === "price");
+  const share = vm.runInContext("SOLAR_PANEL_SHARE", ctx);
+  const topY = price && pl.scaleY(pl.axes.solar.max, "solar");
+  const want = price && price.bottom - (price.bottom - price.top) * share;
+  check("solar is drawn in the price panel, topping out at its share of it",
+    price && Math.abs(topY - want) < 1e-9 && Math.abs(pl.scaleY(pl.axes.solar.min, "solar") - price.bottom) < 1e-9,
+    price ? `solar max at y ${topY}, want ${want}` : "no price panel");
+  check("solar gets no W/m2 axis title of its own",
+    !/>W\/m²<\/text>/.test(solarDump));
+}
 
-// Turning the series off must give the plot its width back rather than
-// permanently reserving room for an axis most users will not show.
+// Turning the series off costs the plot nothing: no width is reserved for it.
 const plotRWithSolar = solarCard._plot.plotR;
 solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
-check("hiding solar returns the reserved axis width", solarCard._plot.plotR > plotRWithSolar);
+check("hiding solar leaves the plot width as it was", solarCard._plot.plotR === plotRWithSolar);
 
 const renamedSolar = build({
   ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
@@ -887,9 +899,17 @@ for (const expanded of [false, true]) {
   const where = expanded ? "expanded" : "inline";
   check(`the ${where} chart titles its value axes`, titles.length >= 3,
     `found ${titles.map((t) => t.text).join(", ")}`);
-  check(`the ${where} chart really is showing both right-hand axes`,
-    titles.some((t) => t.text === "W/m²") && titles.some((t) => t.text === "SEK/kWh"),
-    "otherwise this is not testing the crowded case at all");
+  // R9-UI-4: one unit per panel, each in the strip above its own frame.
+  const panels = (c._plot && c._plot.panels) || [];
+  const above = ["price", "power", "temps"].map((k) => {
+    const unit = { price: "SEK/kWh", power: "kW", temps: "°C" }[k];
+    const t = titles.find((x) => x.text === unit);
+    const p = panels.find((x) => x.key === k);
+    return { k, ok: !!(t && p && t.y < p.top && (p.key === "price" || t.y > panels[panels.indexOf(p) - 1].bottom)) };
+  });
+  check(`the ${where} chart writes each panel's unit above its own frame`,
+    panels.length === 3 && above.every((x) => x.ok),
+    `${panels.length} panels; ${above.filter((x) => !x.ok).map((x) => x.k).join(", ")} misplaced`);
   const bad = [];
   for (let i = 1; i < titles.length; i++) {
     if (Math.abs(titles[i].y - titles[i - 1].y) > 1) continue;
@@ -898,37 +918,6 @@ for (const expanded of [false, true]) {
       bad.push(`${titles[i - 1].text}/${titles[i].text} overlap by ${(-gap).toFixed(1)}u`);
   }
   check(`the ${where} value axis titles do not overlap`, bad.length === 0, bad.join("; "));
-}
-
-// The flip is conditional, not unconditional: with no solar series there is no
-// second right-hand axis, so the price title must stay where it always sat.
-{
-  const expandedTitles = (card) => {
-    const dump = collect(card.shadowRoot).join("\n");
-    return axisTitles(dump.slice(dump.indexOf("chartwrap big")));
-  };
-
-  const withSolar = withAllSeries();
-  withSolar.dialog.open();
-  const a = expandedTitles(withSolar);
-  const priceWith = a.find((t) => t.text === "SEK/kWh");
-
-  const noSolar = withAllSeries();
-  noSolar.legend.hidden = { solar: true };
-  noSolar._sig = null;
-  noSolar.dialog.open();
-  const b = expandedTitles(noSolar);
-  const priceWithout = b.find((t) => t.text === "SEK/kWh");
-
-  check("the price title is pushed aside when the solar axis crowds it",
-    priceWith && priceWith.anchor === "end",
-    priceWith && `anchor ${priceWith.anchor}`);
-  check("and left exactly where it was when nothing crowds it",
-    priceWithout && priceWithout.anchor === "start",
-    priceWithout && `anchor ${priceWithout.anchor}`);
-  check("the solar title itself never moves",
-    !b.some((t) => t.text === "W/m²") &&
-      a.some((t) => t.text === "W/m²" && t.anchor === "start"));
 }
 
 // Density must follow the space available, not a hardcoded interval, so the
@@ -1014,12 +1003,13 @@ check("a very wide dialog does not turn the legend into a headline",
   // than the authored 92-unit left margin, or the boosted labels would
   // collide with the axis they describe.
   const frameX = (dump) => {
-    const m = dump.match(/<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="[\d.]+" fill="none" stroke="var\(--divider-color/);
+    const m = dump.match(/<rect class="panel" data-panel="\w+" x="([\d.]+)"/);
     return m ? Number(m[1]) : null;
   };
+  const left = vm.runInContext("MARGIN.left", ctx);
   check("the boosted font carries the left margin with it",
-    frameX(phone.dump) > 92 + 1e-9 && (frameX(wide.dump) === 92 || frameX(wide.dump) === null || Math.abs(frameX(wide.dump) - 92) < 1e-9),
-    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}`);
+    frameX(phone.dump) > left + 1e-9 && Math.abs(frameX(wide.dump) - left) < 1e-9,
+    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}, authored ${left}`);
 }
 check("an unmeasured dialog is left alone rather than sized from zero",
   dlgOf(0) === 0);
@@ -6126,7 +6116,8 @@ const setupBox = (card, place) =>
     `band ${dashAttrs(dashed(onPaths)[0])} vs `
     + `room[${roomDashed.length}] ${dashAttrs(roomDashed[0])}`);
   check("and the band is drawn in the tank series' own colour",
-    dashed(onPaths).every((x) => /stroke="#c264d0"/.test(x)),
+    dashed(onPaths).every((x) => x.includes(`stroke="${vm.runInContext(
+      'seriesPaint(SERIES_DEFS.find((d) => d.key === "dhw_temp"))', ctx)}"`)),
     dashed(onPaths).join("\n"));
   check("the band brackets the curve it belongs to at every plotted step",
     (() => {
@@ -7463,7 +7454,8 @@ const setupBox = (card, place) =>
 }
 
 // --- D4-08 (#263): chart series colours against the card background --------
-// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c.
+// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c: each
+// theme's own colour (`colorDark` on the dark card, R9-UI-4's palette).
 {
   const hex = (h) => {
     const n = parseInt(h.slice(1), 16);
@@ -7481,9 +7473,8 @@ const setupBox = (card, place) =>
   const BG = { light: hex("#ffffff"), dark: hex("#1c1c1c") };
   let low = { light: 0, dark: 0 };
   for (const d of defs) {
-    const c = hex(d.color);
-    if (ratio(c, BG.light) < 3) low.light++;
-    if (ratio(c, BG.dark) < 3) low.dark++;
+    if (ratio(hex(d.color), BG.light) < 3) low.light++;
+    if (ratio(hex(d.colorDark || d.color), BG.dark) < 3) low.dark++;
   }
   check("every series colour clears WCAG 1.4.11's 3:1 on a light card",
     low.light === 0, `${low.light} of ${defs.length} below 3:1 on #fff`);
@@ -7528,6 +7519,14 @@ const setupBox = (card, place) =>
       "--divider-color": "rgba(225,225,225,.12)",
     },
   };
+  // The card's own `--hpo-` tokens, as tokenDeclarations declares them for
+  // each theme: the HA variable a token stands for where it has one, else
+  // its literal. The chart's in-panel text and series are painted with them.
+  for (const [name, t] of Object.entries(vm.runInContext("CARD_TOKENS", ctx))) {
+    for (const k of ["light", "dark"]) {
+      THEMES[k][name] = t.ha && THEMES[k][t.ha] !== undefined ? THEMES[k][t.ha] : t[k];
+    }
+  }
   const rgba = (s) => {
     s = String(s).trim();
     if (s.startsWith("#")) {
@@ -8158,8 +8157,11 @@ const STOCK_THEMES = {
   // perceptibility floor this suite already applies to a graphic that is not
   // required to read the chart.
   const alpha = cardNumber("BAND_FILL_OPACITY");
-  const dhwColor = sRGB(vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp").color);
+  const tankDef = vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp");
+  // Each theme's own tank colour (R9-UI-4's palette, `colorDark`).
+  const tankOf = (theme) => sRGB(theme === "dark" ? tankDef.colorDark || tankDef.color : tankDef.color);
   for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const dhwColor = tankOf(theme);
     const band = over(dhwColor, th.card, alpha);
     const seen = contrast(band, th.card);
     const line = contrast(dhwColor, th.card);
@@ -8168,39 +8170,24 @@ const STOCK_THEMES = {
     check(`the envelope stays quieter than the curve it surrounds on a ${theme} card`,
       seen < line, `fill ${seen.toFixed(3)}:1 vs curve ${line.toFixed(3)}:1`);
   }
-  // Why the band is NOT also held to leaving the curve at 3:1 against it.
-  // The band is a tint of the very colour it surrounds, so the two demands
-  // pull opposite ways, and ON A LIGHT CARD they have no common ground at
-  // all. Swept exhaustively over every fill-opacity in 0.001 steps rather
-  // than argued from an interval, because an interval argument is only as
-  // good as its arithmetic.
-  //
-  // The dark card is the control, and it is why this is stated as a
-  // light-card result rather than a general one: there a window does exist,
-  // and the shipped opacity sits inside it. A sweep that found nothing in
-  // either theme would more likely be a broken sweep than a real result.
-  {
-    const window = (th) => {
-      let both = 0, seen = 0, three = 0;
-      for (let i = 0; i <= 1000; i++) {
-        const band = over(dhwColor, th.card, i / 1000);
-        const p = contrast(band, th.card) >= 1.3;
-        const t = contrast(dhwColor, band) >= 3;
-        if (p) seen++;
-        if (t) three++;
-        if (p && t) both++;
-      }
-      return { both, seen, three };
-    };
-    const light = window(STOCK_THEMES.light);
-    const dark = window(STOCK_THEMES.dark);
-    check("on a light card no fill-opacity is both perceptible and leaves the curve at 3:1",
-      light.both === 0 && light.seen > 0 && light.three > 0,
-      `${light.both} of 1001 steps satisfy both ` +
-      `(${light.seen} clear perceptibility, ${light.three} leave the curve at 3:1)`);
-    check("and the dark card is the control that says the sweep can find one",
-      dark.both > 0,
-      `${dark.both} of 1001 steps satisfy both on a dark card`);
+  // The curve at 3:1 against its own band, too. The band is a tint of the
+  // very colour it surrounds, so the two demands pull opposite ways: the
+  // band must be seen, and must not wash the curve out. On #558's palette a
+  // light card had no opacity that met both; on the palette of record
+  // (R9-UI-4, DESIGN.md section 4) both themes have a window. Swept over
+  // every fill-opacity in 0.001 steps rather than argued from an interval,
+  // and the shipped value must sit inside each theme's window.
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const dhwColor = tankOf(theme);
+    let both = 0;
+    for (let i = 0; i <= 1000; i++) {
+      const band = over(dhwColor, th.card, i / 1000);
+      if (contrast(band, th.card) >= 1.3 && contrast(dhwColor, band) >= 3) both++;
+    }
+    const shipped = over(dhwColor, th.card, alpha);
+    check(`the shipped envelope leaves the curve at 3:1 against it on a ${theme} card`,
+      contrast(dhwColor, shipped) >= 3,
+      `${contrast(dhwColor, shipped).toFixed(3)}:1 at fill-opacity ${alpha}; ${both} of 1001 steps satisfy both`);
   }
 }
 

@@ -1111,11 +1111,17 @@ const DEFAULTS = {
   show_stats: true,
 };
 
-// Series metadata. `axis` selects one of four value axes: temp / power / price
-// / solar. `sensor` selects which forecast the values come from ("space",
-// "dhw", "solar", or "either" meaning prefer space then fall back to dhw).
-// `field` is the forecast attribute key. Colours are fixed and chosen to read
-// on light + dark themes.
+// Series metadata. `axis` selects one of four value scales: temp / power /
+// price / solar; `panel` the one of the chart's three stacked panels
+// (R9-UI-4, concept A: CHART_PANELS) the series is drawn in. `sensor` selects
+// which forecast the values come from ("space", "dhw", "solar", or "either"
+// meaning prefer space then fall back to dhw). `field` is the forecast
+// attribute key. `color` is the light-card colour and `colorDark` the dark
+// one: the palette of record (handoff/round9/state/alt/design/DESIGN.md
+// section 4, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
+// its own card and against deuteranope, protanope and tritanope confusion
+// (D4). Both reach the markup through the `--hpo-series-<key>` tokens
+// (`seriesPaint`), so a theme switch repaints without a redraw.
 const SERIES_DEFS = [
   {
     key: "price",
@@ -1125,7 +1131,9 @@ const SERIES_DEFS = [
     // the card config, the plan sensor or Home Assistant. This is only the
     // fallback shape.
     unit: "SEK/kWh",
-    color: "#a86b00",
+    panel: "price",
+    color: "#4a3aa7",
+    colorDark: "#9085e9",
     sensor: "either",
     field: "price",
     style: "stepArea",
@@ -1138,7 +1146,9 @@ const SERIES_DEFS = [
     labelKey: "series.dhw_slots",
     axis: "power",
     unit: "kW",
-    color: "#e0544e",
+    panel: "power",
+    color: "#d2403f",
+    colorDark: "#e66767",
     sensor: "dhw",
     field: "dhw_power",
     style: "stepBars",
@@ -1148,7 +1158,9 @@ const SERIES_DEFS = [
     labelKey: "series.space_slots",
     axis: "power",
     unit: "kW",
-    color: "#4a90e2",
+    panel: "power",
+    color: "#2a78d6",
+    colorDark: "#3987e5",
     sensor: "space",
     field: "space_power",
     style: "stepBars",
@@ -1156,17 +1168,18 @@ const SERIES_DEFS = [
   {
     // The pump's own record of what it actually ran, left of "now" (the
     // history pan): heat_pump_action's MODE, drawn as the band along the
-    // plot base (renderChart, `actionRuns`). Its recorded power_kw draws
-    // on the space/DHW slot series themselves since bug 7, so this series
-    // carries no points of its own and its chip toggles the band. Teal rather than another
-    // blue or red: measured, not the same dE 20 the palette demands of any
-    // two series sharing this draw style (#558 C1; 37.8 from space_slots,
-    // 60.6 from dhw_slots simulated deuteranope).
+    // power panel's base (renderChart, `actionRuns`). Its recorded power_kw
+    // draws on the space/DHW slot series themselves since bug 7, so this
+    // series carries no points of its own and its chip toggles the band.
+    // Green-teal rather than another blue or red, so it clears the power
+    // panel's colour-vision pairs (tests/card.mjs, D4).
     key: "actioned",
     labelKey: "series.actioned",
     axis: "power",
     unit: "kW",
-    color: "#00838f",
+    panel: "power",
+    color: "#008a70",
+    colorDark: "#22a383",
     sensor: "action",
     field: "action_power",
     style: "stepBars",
@@ -1176,7 +1189,9 @@ const SERIES_DEFS = [
     labelKey: "series.outdoor",
     axis: "temp",
     unit: "\u00b0C",
-    color: "#7d8794",
+    panel: "temps",
+    color: "#3b7dd8",
+    colorDark: "#4b95e8",
     sensor: "either",
     field: "outdoor",
     style: "smooth",
@@ -1186,7 +1201,9 @@ const SERIES_DEFS = [
     labelKey: "series.dhw_temp",
     axis: "temp",
     unit: "\u00b0C",
-    color: "#c264d0",
+    panel: "temps",
+    color: "#c2477a",
+    colorDark: "#d55181",
     sensor: "dhw",
     field: "dhw_temp",
     // v5.2.0: the model's own expected error for the tank, published per
@@ -1225,7 +1242,9 @@ const SERIES_DEFS = [
     labelKey: "series.house_temp",
     axis: "temp",
     unit: "\u00b0C",
-    color: "#1a7a52",
+    panel: "temps",
+    color: "#008300",
+    colorDark: "#1f9d1f",
     sensor: "space",
     field: "room",
     extra: ["upper", "lower"],
@@ -1239,48 +1258,24 @@ const SERIES_DEFS = [
     style: "smooth",
   },
   {
-    // W/m² is a fourth unit, and both plot edges were already occupied, so it
-    // gets an inner right-hand axis that only appears when the series is on.
-    // Scaling it into the power axis as kW/m² was the alternative, but a
-    // 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
+    // Drawn in the price panel as a RELATIVE curve with no axis of its own
+    // (R9-UI-4, DESIGN.md section 4): its W/m² scale tops out at
+    // SOLAR_PANEL_SHARE of the panel, so it shows when the sun is up without
+    // competing with the price it sits behind. The tooltip still reads W/m².
     key: "solar",
     labelKey: "series.solar",
     axis: "solar",
     unit: "W/m\u00b2",
-    // Was #9a7700, which differs from the price series' #a86b00 by a CIE Lab
-    // dE of 0.9 once simulated for deuteranopia -- below the ~2.3
-    // just-noticeable difference, so the two step-areas were one colour to
-    // the commonest form of colour blindness (#558 C1). #ed6900 takes that
-    // to 15.0 while staying inside the band every series colour must sit in
-    // (3:1 against BOTH a #ffffff and a #1c1c1c card, D4-08 above).
-    color: "#ed6900",
+    panel: "price",
+    color: "#d4561f",
+    colorDark: "#d95926",
     sensor: "solar",
     field: "ghi",
     areaOpacity: 0.1,
-    // Colour alone cannot finish the job, but not for the reason first
-    // written here. It is NOT that lightness is the only axis a deuteranope
-    // keeps -- the S-cone blue-yellow axis survives, and among in-band
-    // colours of EQUAL luminance to #ed6900 the deuteranope separation
-    // reaches 140 dE (at #0093ff). So colours far from price DO exist, and
-    // no count of them is given here: a count is only defined against a
-    // stated separation, and the one that governs is the MINIMUM to every
-    // series below, not the distance from price.
-    //
-    // Solar is warm by CONVENTION, not because the palette forbids the
-    // alternatives. The objective that is well posed is the MINIMUM
-    // separation to every other series -- not the separation from price --
-    // because moving solar away from price pushes it toward the other
-    // series. Under that metric the warm family tops out at 18.1 dE, a
-    // plateau over hue 30-50 at C>=40, and the shipped #ed6900 sits at 15.0,
-    // which is its own figure and not the family's. Both are under the 20 dE
-    // this check demands, which is what makes the dash necessary rather than
-    // decorative. Blue clears it comfortably (54.2); green does NOT (19.6 --
-    // under the threshold, and inside the 2.3 dE just-noticeable difference
-    // of the warm best, so "green would have done" is false). Price and
-    // solar are also the only pair drawn by the same `stepArea` branch of
-    // seriesPath, so shape did not tell them apart. The dash is the second
-    // channel, and unlike a hue it survives monochrome and every other form
-    // of colour blindness.
+    // The dash is the second channel that survives monochrome and every
+    // form of colour blindness, and it says "relative, not a second price":
+    // price and solar are the only pair drawn by the same `stepArea` branch
+    // of seriesPath, so shape alone does not tell them apart (#558 C1).
     dash: "6 3",
     style: "stepArea",
   },
@@ -1306,14 +1301,28 @@ const DUSK_MARK =
 const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
   '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
+// One value axis per panel, on the left (R9-UI-4), so the plot no longer
+// pays for a second left axis or the two right-hand ones.
+const MARGIN = { top: 16, right: 20, bottom: 34, left: 52 };
+// R9-UI-4 (tvofi's D2, concept A; handoff/round9/state/alt/design/DESIGN.md
+// section 4): three panels stacked on the chart's one time axis, each with
+// its own value scale, gridlines and unit. `axes` are the value scales a
+// panel draws (SERIES_DEFS' `axis`); `share` divides the height between the
+// panels that have a visible series. All three live inside the ONE chart svg
+// each copy draws, with the one x-scale, so the lane editor's hit-test, pan,
+// wheel and the inline and dialog copies -- which read only x -- are
+// untouched by the split.
+const CHART_PANELS = [
+  { key: "price", axes: ["price", "solar"], share: 0.27 },
+  { key: "power", axes: ["power"], share: 0.33 },
+  { key: "temps", axes: ["temp"], share: 0.4 },
+];
+// The irradiance curve is relative in the price panel: its scale's top sits
+// this far up the panel, so it never reaches the price line's headroom.
+const SOLAR_PANEL_SHARE = 0.6;
 // #1495: how far the house/upper/lower traces are dimmed while space heating
 // is blocked, so a promise the pump cannot execute reads as a hint, not a plan.
 const SPACE_BLOCKED_OPACITY = 0.35;
-// When the irradiance series is on, the right margin has to make room for a
-// second axis inside the price one.
-const SOLAR_AXIS_INSET = 46;
-const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
 
 // The chart is drawn in a fixed 900x380 coordinate system and stretched to
 // whatever width it is given, so text sized in these units already grows with
@@ -3269,6 +3278,18 @@ const CARD_TOKENS = {
   "--hpo-crit": { light: "#b3261e", dark: "#f28b82" },
   "--hpo-crit-bg": { light: "#fbe9e7", dark: "#3b2322" },
 };
+// The chart (R9-UI-4): each panel's surface, from the same darkMode switch
+// as the series colours drawn on it, and one token per series from
+// SERIES_DEFS' light and dark colours.
+CARD_TOKENS["--hpo-plot"] = { light: "#ffffff", dark: "#1c1c1c" };
+for (const d of SERIES_DEFS) {
+  CARD_TOKENS[`--hpo-series-${d.key}`] = { light: d.color, dark: d.colorDark || d.color };
+}
+
+/** What a series is painted with: its token, falling back to the light colour. */
+function seriesPaint(def) {
+  return `var(--hpo-series-${def.key}, ${def.color})`;
+}
 // The scale tokens, the same in both themes.
 const CARD_SCALE_TOKENS = {
   "--hpo-space-1": "4px", "--hpo-space-2": "8px", "--hpo-space-3": "12px",
@@ -4491,6 +4512,7 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
     }
     series.push({
       ...def,
+      color: seriesPaint(def),
       lines,
       hasData: lines.length > 0,
       visible: !hidden[def.key],
@@ -6019,6 +6041,28 @@ class ViewWindow {
 // methods they were (PR 3 of #136); the host publishes `plot` and `geom` in
 // the order it always did.
 
+/** The panels this frame draws, top to bottom, with their vertical extents.
+ *
+ * A panel with no visible series gives its height to the others; with
+ * nothing visible at all the three frames stay, empty, so the chart keeps
+ * its shape. `strip` is the gap above every panel but the first, where the
+ * next panel's unit is written.
+ */
+function chartPanels(axes, top, bottom, strip) {
+  let shown = CHART_PANELS.filter((p) => p.axes.some((n) => axes[n]));
+  if (!shown.length) shown = CHART_PANELS;
+  const total = shown.reduce((n, p) => n + p.share, 0);
+  const room = bottom - top - strip * (shown.length - 1);
+  const out = [];
+  let y = top;
+  for (const p of shown) {
+    const h = (room * p.share) / total;
+    out.push({ key: p.key, axes: p.axes, top: y, bottom: y + h });
+    y += h + strip;
+  }
+  return out;
+}
+
 function renderChart(frame, opts) {
   const { windowStart, windowEnd, series } = frame;
   const {
@@ -6077,36 +6121,44 @@ function renderChart(frame, opts) {
   // authored values below are already laid out for FONT_EXPANDED, so the
   // scale only engages past that.
   const plotL = MARGIN.left * marginScale;
-  // Only pay for the solar axis's width when it is actually drawn; a
-  // permanently narrower plot would be a real cost to every user who does
-  // not use the series.
-  const rightMargin =
-    (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
-  const plotR = VIEW_W - rightMargin;
-  // Once D4-01 floors the font, MARGIN.top * marginScale alone leaves the
-  // unit label strip too short and the uy clamp pushes units onto the top
-  // tick (#258). The 1.45 floor clears the measured glyph ascent.
-  const plotT = Math.max(MARGIN.top * marginScale, font * 1.45);
+  const plotR = VIEW_W - MARGIN.right * marginScale;
+  // Each panel's unit sits in a strip above its frame. Once D4-01 floors the
+  // font, MARGIN.top * marginScale alone leaves that strip too short and the
+  // uy clamp pushes units onto the top tick (#258). The 1.45 floor clears
+  // the measured glyph ascent.
+  const strip = Math.max(MARGIN.top * marginScale, font * 1.45);
+  const plotT = strip;
   const plotB = VIEW_H - MARGIN.bottom * marginScale;
   const plotW = plotR - plotL;
   const plotH = plotB - plotT;
+  const panels = chartPanels(axes, plotT, plotB, strip);
+  const panelOf = (axisName) => panels.find((p) => p.axes.includes(axisName)) || null;
 
   const xSpan = windowEnd - windowStart || 1;
   const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
   const scaleY = (v, axisName) => {
     const a = axes[axisName];
-    if (!a) return plotB;
+    const p = panelOf(axisName);
+    if (!a || !p) return plotB;
     const span = a.max - a.min || 1;
-    return plotB - ((v - a.min) / span) * plotH;
+    const h = (p.bottom - p.top) * (axisName === "solar" ? SOLAR_PANEL_SHARE : 1);
+    return p.bottom - ((v - a.min) / span) * h;
+  };
+  // The bottom edge a series' areas and bars stand on: its own panel's.
+  const baseOf = (axisName) => {
+    const p = panelOf(axisName);
+    return p ? p.bottom : plotB;
   };
 
-  // The geometry the hover hit-tests against.
+  // The geometry the hover hit-tests against. plotT and plotB span all three
+  // panels, so the crosshair and the hover band cross every one of them.
   const plot = {
     windowStart,
     windowEnd,
     scaleX,
     scaleY,
     axes,
+    panels,
     plotL,
     plotR,
     plotT,
@@ -6115,70 +6167,50 @@ function renderChart(frame, opts) {
 
   const parts = [];
 
-  // Plot frame
-  parts.push(
-    `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
-  );
+  // One frame per panel, filled with the card's own surface for this theme
+  // (`--hpo-plot`): the series colours are picked by the same
+  // hass.themes.darkMode switch, so a theme that reports darkMode false with
+  // a dark card (Home Assistant does, for any theme without modes.dark)
+  // still draws every series on the surface it was measured against.
+  for (const p of panels) {
+    parts.push(
+      `<rect class="panel" data-panel="${p.key}" x="${plotL}" y="${p.top}" width="${plotW}" height="${
+        p.bottom - p.top
+      }" fill="var(--hpo-plot, #ffffff)" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
+    );
+  }
 
   // The grid, both ways, before anything it sits behind.
   //
-  // Verticals at the LABELLED hours only; how often that is comes from the
-  // space available, so a wider chart or a shorter horizon labels more.
+  // Verticals at the LABELLED hours only, one per panel; how often that is
+  // comes from the space available, so a wider chart or a shorter horizon
+  // labels more.
   parts.push(
-    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR)
+    timeAxis(
+      scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR,
+      panels.map((p) => [p.top, p.bottom])
+    )
   );
-  // Horizontals from the outermost left-hand axis if there is one, else
-  // whichever axis is present -- the same order the axes are drawn in below,
-  // so the grid belongs to the axis nearest the reader's eye rather than to
-  // whichever series happened to be switched on.
-  const gridAxis = ["temp", "power", "price", "solar"].find((n) => axes[n]);
-  if (gridAxis) parts.push(valueGrid(axes[gridAxis], plotL, plotR, scaleY, gridAxis));
+  // Horizontals from each panel's own axis. Solar is a relative curve with
+  // no labelled scale, so it rules no lines of its own.
+  for (const p of panels) {
+    const gridAxis = p.axes.find((n) => n !== "solar" && axes[n]);
+    if (gridAxis) parts.push(valueGrid(axes[gridAxis], plotL, plotR, scaleY, gridAxis));
+  }
 
-  // Value axes. Where two axes share a side, the inner one's title has only
-  // the gap to the outer axis to live in, and that gap does not grow with
-  // the font: at the expanded size "SEK/kWh" is wider than the 46 units
-  // between the price and solar axes, so it used to run straight through
-  // "W/m2". Measure the title and, when it does not fit, hang it off the
-  // inside of its own axis line instead -- the strip above the plot frame
-  // is empty, so the title stays beside the axis it names either way.
-  const titleFits = (unit, room) =>
-    textWidth(unit, font) + font * 0.6 <= room;
-  const powerTitleInset = 44;
-  // The price axis title carries the resolved currency, so the measured
-  // string and the drawn string must be the same value.
-  const tempAnchor =
-    axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
-  const priceAnchor =
-    axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
-
-  if (axes.temp)
+  // Value axes, one per panel on the left, each with its unit in the strip
+  // above its frame. The price unit carries the resolved currency.
+  const UNITS = { temp: "\u00b0C", power: "kW", price: priceUnit };
+  for (const p of panels) {
+    const name = p.axes.find((n) => n !== "solar" && axes[n]);
+    if (!name) continue;
     parts.push(
       valueAxis(
-        axes.temp, plotL, plotT, plotB, plotH, "left", 0,
-        scaleY, "temp", "\u00b0C", font, tempAnchor
+        axes[name], plotL, p.top, p.bottom, p.bottom - p.top, "left", 0,
+        scaleY, name, UNITS[name], font, "start"
       )
     );
-  if (axes.power)
-    parts.push(
-      valueAxis(
-        axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
-        scaleY, "power", "kW", font
-      )
-    );
-  if (axes.price)
-    parts.push(
-      valueAxis(
-        axes.price, plotR, plotT, plotB, plotH, "right", 0,
-        scaleY, "price", priceUnit, font, priceAnchor
-      )
-    );
-  if (axes.solar)
-    parts.push(
-      valueAxis(
-        axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
-        scaleY, "solar", "W/m\u00b2", font
-      )
-    );
+  }
 
   // Now marker.
   //
@@ -6206,13 +6238,14 @@ function renderChart(frame, opts) {
   // pair sharing ink at a second, independent x. Given each other one row,
   // rather than one shared row, no pair can collide regardless of x.
   const labelRow = font + 4;
+  const top = panels[0].top;
   if (now >= windowStart && now <= windowEnd) {
     const nx = scaleX(now);
     parts.push(
       `<line class="now" x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-text-color,#212121)" stroke-width="1.5" stroke-dasharray="4 3"/>`
     );
     parts.push(
-      `<text class="now-label" x="${nx + 3}" y="${plotT + labelRow}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-label" x="${nx + 3}" y="${top + labelRow}" font-size="${font}" fill="var(--hpo-ink, #212121)">${esc(
           L("plan.now")
         )}</text>`
     );
@@ -6224,9 +6257,11 @@ function renderChart(frame, opts) {
   // that gap visible without a second series. Drawn only while a temperature
   // series is on, and only from a live reading (`_chartBlock` passes null
   // for an unknown/unavailable sensor).
+  // R9-UI-4: in the temperature panel's own first row, beside the curves it
+  // reads against.
   if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
     parts.push(
-      `<text class="now-temp" x="${plotL + 6}" y="${plotT + labelRow * 2}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-temp" x="${plotL + 6}" y="${panelOf("temp").top + labelRow}" font-size="${font}" fill="var(--hpo-ink, #212121)">${esc(
         L("plan.now_temp", { temp: nowTemp.toFixed(1) })
       )}</text>`
     );
@@ -6237,6 +6272,9 @@ function renderChart(frame, opts) {
   // whether or not it rests on real prices cannot be audited.
   if (estimatedFrom !== null && estimatedFrom < windowEnd) {
     const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+    // R9-UI-4: wash and edge in every panel, so the gaps between them stay
+    // the card's own background.
+    for (const p of panels) {
     // The wash was fill-opacity 0.07, which composites to 1.089:1 on a light
     // card (#558 C1) -- the region that says "these prices are guesses" was
     // not visible. 0.16 is where it stops disappearing without burying the
@@ -6245,10 +6283,10 @@ function renderChart(frame, opts) {
     // the edge below instead. Boundary, wash and label together, rather than
     // one of them straining.
     parts.push(
-      `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
+      `<rect class="estimated" pointer-events="none" x="${ex}" y="${p.top}" width="${Math.max(
           0,
           plotR - ex
-        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.16"/>`
+        )}" height="${p.bottom - p.top}" fill="var(--secondary-text-color,#888)" fill-opacity="0.16"/>`
     );
     // Where the published prices stop. This is the part a reader has to be
     // able to SEE -- full-strength `--secondary-text-color` is 4.81:1 light
@@ -6260,8 +6298,9 @@ function renderChart(frame, opts) {
     // frame already draws that edge and this would double it.
     if (ex > plotL) {
       parts.push(
-        `<line class="estimated-edge" pointer-events="none" x1="${ex}" y1="${plotT}" x2="${ex}" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1"/>`
+        `<line class="estimated-edge" pointer-events="none" x1="${ex}" y1="${p.top}" x2="${ex}" y2="${p.bottom}" stroke="var(--secondary-text-color,#888)" stroke-width="1"/>`
       );
+    }
     }
     // D4-03: this used to sit at `plotB - 5`, directly on top of the
     // lane-row labels drawn near the bottom of the plot (`laneGroupInner()`),
@@ -6275,7 +6314,7 @@ function renderChart(frame, opts) {
     // on the card in every theme (16.10:1 light, 13.03:1 dark -- see the
     // "now" marker's own note above), so this label uses it too.
     parts.push(
-      `<text class="estimated-label" x="${ex + 4}" y="${plotT + labelRow * 3}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="estimated-label" x="${ex + 4}" y="${top + labelRow * 2}" font-size="${font}" fill="var(--hpo-ink, #212121)">${esc(
           L("plan.estimated_prices")
         )}</text>`
     );
@@ -6298,13 +6337,14 @@ function renderChart(frame, opts) {
         const bx1 = Math.max(plotL, scaleX(Math.max(run.start, windowStart)));
         const bx2 = Math.min(plotR, scaleX(Math.min(run.end, windowEnd)));
         if (bx2 <= bx1) continue;
+        const base = baseOf("power");
         // The stroke is the perceptibility carrier (#558 C1's pattern for
         // the estimated-price region): a wash alone composites far below
         // 1.4.11's 3:1, but a full-strength edge delimits it, and the wash
         // only has to be seen.
         parts.push(
           `<rect class="actioned-band" pointer-events="none" x="${bx1.toFixed(2)}" y="${(
-            plotB - bandH
+            base - bandH
           ).toFixed(2)}" width="${(bx2 - bx1).toFixed(2)}" height="${bandH.toFixed(2)}" fill="${
             act.color
           }" fill-opacity="0.3" stroke="${act.color}" stroke-width="1"/>`
@@ -6378,16 +6418,19 @@ function renderChart(frame, opts) {
   // deliberate relaxation (space + hot water ≤ nameplate per step), not
   // double-booking, and two full-height bars with nothing said implied
   // the impossible. Drawn under the bars so the bars stay readable.
-  parts.push(
-    sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR, nextPatternId)
-  );
+  const power = panelOf("power");
+  if (power) {
+    parts.push(
+      sharedSpanBands(visible, scaleX, power.top, power.bottom, plotL, plotR, nextPatternId)
+    );
+  }
 
   // Series paths (filled/area series first, lines on top)
   const order = ["stepArea", "stepBars", "smooth"];
   for (const st of order) {
     for (const s of visible) {
       if (s.style !== st) continue;
-      const path = seriesPath(s, scaleX, scaleY, plotB);
+      const path = seriesPath(s, scaleX, scaleY, baseOf(s.axis));
       // #1495: with space heating blocked the house/upper/lower traces are a
       // promise the pump is not executing, so they are de-emphasized rather
       // than charted as a forecast. The group opacity covers the primary room
@@ -6438,7 +6481,7 @@ function renderChart(frame, opts) {
  * "13:00" is five characters but "12:00 AM" is eight. Build the labels
  * first, measure the widest, and only then decide how many to show.
  */
-function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR) {
+function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR, bands) {
   const size = font || FONT_BASE;
   const hour = 3600 * 1000;
 
@@ -6493,9 +6536,13 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
     // in HA's light theme, so even at FULL strength it reaches only 1.315:1.
     // The token had to change, not just the opacity.
     if (labelled) {
-      out.push(
-        `<line class="grid grid-v" x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" opacity="${GRID_OPACITY}"/>`
-      );
+      // One rule per panel (`bands`, R9-UI-4), so none runs through the
+      // unit strip between two panels.
+      for (const [y1, y2] of bands || [[plotT, plotB]]) {
+        out.push(
+          `<line class="grid grid-v" x1="${tick.x}" y1="${y1}" x2="${tick.x}" y2="${y2}" stroke="var(--secondary-text-color,#888)" stroke-width="1" opacity="${GRID_OPACITY}"/>`
+        );
+      }
       // Kept inside the plot's own span. Centred on its tick, the first
       // label runs left under the value axis and the last runs off the
       // chart -- which the boosted compact font (D4-01) makes far more
@@ -6626,17 +6673,14 @@ function valueAxis(
 
 // How heavily a band's envelope is filled. Bounded from both sides and both
 // bounds are measured, by sweeping every opacity rather than by argument:
-// below 0.236 the fill stops clearing the 1.3:1 perceptibility floor this
-// card applies to a graphic that is not required to read the chart (0.198 on
-// a dark card, so the light card binds), and the heavier it gets the more of
-// the curve it is explaining it hides.
+// too light and the fill stops clearing the 1.3:1 perceptibility floor this
+// card applies to a graphic that is not required to read the chart, and the
+// heavier it gets the more of the curve it is explaining it hides.
 //
-// It is NOT also held to leaving the curve at 3:1 against the band, because
-// a band is a tint of the very colour it surrounds and on a WHITE card the
-// two demands have no common ground: perceptibility needs at least 0.236 and
-// that 3:1 at most 0.138. A light-card result, not a general one -- on a dark
-// card a window does exist and this value is inside it. The curve's 3:1 is
-// therefore held against the CARD, which is the surface D4-08 measures.
+// A band is a tint of the very colour it surrounds, so leaving the curve at
+// 3:1 against it pulls the other way. On #558's palette a white card had no
+// opacity meeting both; on R9-UI-4's palette of record each theme has a
+// window and this value sits inside both (tests/card.mjs sweeps them).
 const BAND_FILL_OPACITY = 0.28;
 
 /** The filled region between a band's two edges.
@@ -7187,7 +7231,7 @@ class Legend {
       }" aria-pressed="${hidden ? "false" : "true"}"${
         noteId ? ` aria-describedby="${noteId}"` : ""
       } title="${esc(title)}">
-        <span class="dot" style="${dotStyle(def.color, !!def.dash)}"></span>${esc(
+        <span class="dot" style="${dotStyle(seriesPaint(def), !!def.dash)}"></span>${esc(
         label
       )}
       </button>`;
