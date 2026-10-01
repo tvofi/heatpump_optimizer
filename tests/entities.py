@@ -23090,6 +23090,79 @@ R.check(
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
+# --- round-9 process review item 3: a superseded pull-request run is cancelled,
+# and nothing else is. Every workflow a pull request starts declares one
+# top-level `concurrency:`; each `${{ }}` in it is evaluated here under the
+# events the file lists. Two `pull_request` runs of one pull request share a
+# group and cancel; two runs of any other event -- a push to main, a merge
+# queue entry, the nightly, an autofix push or dispatch, a review -- get
+# groups of their own, because a group they shared would queue them, and a newer
+# pending run cancels the older pending one whatever `cancel-in-progress`
+# says. Main's FULL push gate must never be the run that is dropped.
+def _cc_value(expr, event: "dict[str, object]"):
+    """A `${{ }}`-bearing string under `event`, each expression replaced by its
+    value; None when one cannot be decided (literals, `==`, `&&`, `||` only)."""
+    def _one(m):
+        e = m.group(1)
+        e = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
+                   lambda n: repr(event.get(n.group(0))), e)
+        e = e.replace("&&", " and ").replace("||", " or ")
+        if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
+                            r"|'[^']*'|-?\d+)*", e):
+            raise ValueError(e)
+        return str(eval(e, {"__builtins__": {}}, {}))  # literals and operators only
+    try:
+        return re.sub(r"\$\{\{(.*?)\}\}", _one, str(expr))
+    except ValueError:
+        return None
+
+
+_CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
+              "schedule", "workflow_dispatch")
+
+
+def _cc_problems(name: str, doc: dict) -> "list[str]":
+    on = doc.get("on", doc.get(True)) or {}
+    events = [on] if isinstance(on, str) else list(on)
+    if "pull_request" not in events:
+        return []
+    cc = doc.get("concurrency")
+    if not isinstance(cc, dict):
+        return [f"{name}: no top-level concurrency"]
+    out = []
+    for ev in [e for e in _CC_EVENTS if e in events]:
+        for who in ("hpo-author[bot]", "github-actions[bot]"):
+            def at(run_id, ev=ev, who=who):
+                return {"github.event_name": ev, "github.workflow": doc.get("name"),
+                        "github.run_id": run_id, "github.event.sender.login": who,
+                        "github.event.pull_request.number":
+                            7 if ev.startswith("pull_request") else None}
+            # Only a pull request's own push supersedes; an autofix push does not.
+            want = ev == "pull_request" and who != "github-actions[bot]"
+            cancel = _cc_value(cc.get("cancel-in-progress"), at(1))
+            a, b = _cc_value(cc.get("group"), at(1)), _cc_value(cc.get("group"), at(2))
+            if cancel != str(want):
+                out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
+            if None in (a, b) or (a == b) != want:
+                out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
+    return out
+
+
+_CC_FOUND = [p for n, d in _RC_DOCS.items() for p in _cc_problems(n, d)]
+R.check(
+    "only a pull request's superseded run is cancelled (process review item 3)",
+    not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
+                          for n, d in _RC_DOCS.items()),
+    f"{_CC_FOUND or 'none'}",
+)
+_CC_NULL = {"name": "x", "on": {"pull_request": None, "push": None},
+            "concurrency": {"group": "${{ github.workflow }}-${{ github.ref }}",
+                            "cancel-in-progress": True}}
+R.check(
+    "and a group keyed on the ref, cancelling everything, is refused (null control)",
+    len(_cc_problems("null.yml", _CC_NULL)) == 6,
+    f"{_cc_problems('null.yml', _CC_NULL)}",
+)
 # --- decision 0013 as amended: the budget-raise gate's wiring. The budget
 # files carry no code owner, so this job is the only thing between a raise and
 # a merge on the approver App's review. Each property is a way the gate goes

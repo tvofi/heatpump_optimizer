@@ -149,8 +149,10 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # A pin under another name is still a pin: a checkout that restores paths
   # from a ref counts as naming one, so a renamed PINNED is unclassified.
   if ($0 ~ /PINNED/ || $0 ~ /git (checkout|restore) [^#]*--/) mentions = 1
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha \}\}[[:space:]]*$/) expr = "pr"
+  # The merge queue's base sits between the two (round-9 process review item 2):
+  # a `merge_group` run has no pull request and grades like one, never like main.
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \}\}[[:space:]]*$/) expr = "pr"
   if ($0 ~ /git checkout "\$PINNED" --/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
     s = $0
@@ -947,7 +949,7 @@ PY
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
   [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$OWN" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
-  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed; do
+  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
 import os, sys
@@ -964,6 +966,8 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     head, _, body = s.partition("\njobs:\n")
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
+elif k == "queue-base": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}",
+                                      "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}")
 else: t = s.replace("run: " + own, "run: |\n          python3 -I \\\n            tools/audit/round6/D11/fix/codeowners_gap.py --check", 1)
 assert t != s, k
 open(p, "w").write(t)
@@ -972,7 +976,7 @@ PY
     st $? 1 "governance.yml perturbed ($pert), with step 3e's run deleted, is refused"
     # The reader reads a shape it knows rather than refusing it: with 3e's run
     # present, each of these passes (null control).
-    case $pert in x-flag|bare-python|uv-run|continuation|indent4)
+    case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base)
       pinned_verdict tools/audit/prepr.sh "$WF/wf/"*.yml >/dev/null
       st $? 0 "governance.yml perturbed ($pert), with step 3e's run present, passes (null control)" ;;
     esac
