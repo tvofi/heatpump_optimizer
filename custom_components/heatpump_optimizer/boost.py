@@ -25,6 +25,7 @@ from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
+from .accuracy import utc_elapsed_seconds, utc_shift
 from .const import DOMAIN
 from .drift import stored_instant
 from .entity import has_hot_water
@@ -62,23 +63,23 @@ class BoostState:
 
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
-        return end is not None and end > now
+        return end is not None and utc_elapsed_seconds(end, now) > 0
 
     def expire(self, now: datetime) -> None:
         for channel, end in list(self.until.items()):
-            if end <= now:
+            if utc_elapsed_seconds(end, now) <= 0:
                 self.until.pop(channel, None)
-            elif end > now + _MAX_LEAD:
+            elif utc_elapsed_seconds(end, now) > _MAX_LEAD.total_seconds():
                 # The clock stepped back since the boost was set: the two-hour
                 # maximum is a duration, not an instant (D1-s3-05), so it is
                 # held to two hours from now rather than for the step as well.
-                self.until[channel] = now + _MAX_LEAD
+                self.until[channel] = utc_shift(now, _MAX_LEAD)
 
     def set(self, channel: str, active: bool, now: datetime) -> None:
         if channel not in CHANNELS:
             raise ValueError(channel)
         if active:
-            self.until[channel] = now + _MAX_LEAD
+            self.until[channel] = utc_shift(now, _MAX_LEAD)
         else:
             self.until.pop(channel, None)
 

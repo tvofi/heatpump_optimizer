@@ -23,6 +23,7 @@ from homeassistant.helpers import issue_registry as ir
 from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
+from .accuracy import utc_elapsed_seconds
 from .const import (
     CONF_DHW_FREE_DISINFECTION_ENABLED,
     CONF_DHW_TEMP_ENTITY,
@@ -203,7 +204,7 @@ class LegionellaGuard:
                 # a long observation gap cannot claim more than was
                 # plausibly held.
                 if previous_obs is not None:
-                    gap_min = (now - previous_obs).total_seconds() / 60.0
+                    gap_min = utc_elapsed_seconds(now, previous_obs) / 60.0
                     self.hold_minutes += min(gap_min, 90.0)
                 self.hold_last = now
                 if self.hold_minutes < DHW_LEGIONELLA_HOLD_MINUTES:
@@ -219,7 +220,7 @@ class LegionellaGuard:
             return
 
         previous = self.last_cycle
-        if previous is not None and (now - previous).total_seconds() < 3600:
+        if previous is not None and utc_elapsed_seconds(now, previous) < 3600:
             return
         self.hold_minutes = 0.0
         self.last_cycle = now
@@ -297,7 +298,7 @@ class LegionellaGuard:
             started = self.boost_started
             expired = (
                 started is not None
-                and (now - started).total_seconds()
+                and utc_elapsed_seconds(now, started)
                 >= DHW_LEGIONELLA_BOOST_MAX_HOURS * 3600.0
             )
             if not expired:
@@ -341,7 +342,7 @@ class LegionellaGuard:
         credited = (
             self.last_cycle is not None
             and started is not None
-            and self.last_cycle >= started
+            and utc_elapsed_seconds(self.last_cycle, started) >= 0
         )
         if credited:
             return

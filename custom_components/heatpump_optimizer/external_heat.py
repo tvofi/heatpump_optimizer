@@ -459,7 +459,7 @@ class ExternalHeatDetector:
             state.confidence = 0.0
             state.fading = False
             return
-        elapsed = (now - state.last_active).total_seconds() / 60.0
+        elapsed = utc_elapsed_seconds(now, state.last_active) / 60.0
         remaining = max(0.0, 1.0 - elapsed / cfg.decay_minutes)
         state.confidence = remaining
         state.fading = remaining > 0.0
