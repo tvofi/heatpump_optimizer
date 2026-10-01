@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util
 from . import comfort_band
 from . import mixing_valve
 from . import topology
+from .accuracy import utc_shift
 from .const import (
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
@@ -875,7 +876,7 @@ async def handle_apply_manual_plan(hass: HomeAssistant, call: ServiceCall) -> di
         # expiry shrank as the day wore on -- an override applied at 22:00
         # lasted two hours -- and the card's edit ceiling had to track it,
         # or slots showed as pinned past the point `channel_pins` frees them.
-        expires_at = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+        expires_at = utc_shift(now, timedelta(hours=MANUAL_PLAN_WINDOW_HOURS))
     else:
         parsed = dt_util.parse_datetime(raw_expires)
         if parsed is None:
