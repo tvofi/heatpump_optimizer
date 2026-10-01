@@ -86,7 +86,7 @@ from .const import (
 from .batchmath import row_sums
 from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
-    DHW_AMBIENT_TEMP,
+    TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
     ThermalModel,
     ThermalParameters,
@@ -199,15 +199,24 @@ def _dhw_windows_at(
     )
 
 
-def _utc_step_starts(start: datetime, n: int, dt_hours: float) -> list[datetime]:
-    """Horizon clock in UTC so DST transitions do not invent or drop a step."""
-    if start.tzinfo is None:
-        return [start + timedelta(hours=i * dt_hours) for i in range(n)]
-    utc = start.astimezone(timezone.utc)
-    return [
-        (utc + timedelta(hours=i * dt_hours)).astimezone(start.tzinfo)
-        for i in range(n)
-    ]
+def _utc_step_starts(
+    start: datetime, n: int, step: timedelta, offset: int = 0
+) -> list[datetime]:
+    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
+
+    The one horizon clock: the optimizer's horizon, the coordinator's
+    forecast and price grids, and the silent-mode schedule all read it
+    (#1741), so no two of them can label one step differently. Adding a
+    wall-clock step invents the spring DST gap and stretches the autumn
+    overlap into a 75-minute step; walking the count in UTC keeps every label
+    a real instant, converted back to ``start``'s zone. A naive ``start``
+    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
+    """
+    tz = start.tzinfo
+    if tz is None:
+        return [start + step * (offset + i) for i in range(n)]
+    base = start.astimezone(timezone.utc)
+    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
 
 
 def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
@@ -1568,7 +1577,7 @@ class _Horizon:
 
     @property
     def timestamps(self) -> list[datetime]:
-        return _utc_step_starts(self.start_time, self.n_steps, self.dt)
+        return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
     @property
     def weather(self) -> dict[str, np.ndarray]:
@@ -1723,7 +1732,7 @@ def slab_settlement_cap(
         u_eff = params.heat_loss_coefficient * params.house_heat_loss_scale
         q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
     return min(
-        target + q_demand / max(params.slab_heat_transfer, 1e-6),
+        target + q_demand / params.slab_heat_transfer_floored,
         params.buffer_max_temp,
     )
 
@@ -2934,7 +2943,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = _utc_step_starts(start_time, n_steps, dt)
+        step_datetimes = _utc_step_starts(start_time, n_steps, timedelta(hours=dt))
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])
@@ -3474,7 +3483,7 @@ class HeatPumpOptimizer:
             1e-3,
         )
         standby_loss = p.dhw_tank_heat_loss_coefficient * max(
-            dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
+            dhw_setpoint - TANK_ROOM_AMBIENT_TEMP, 0.0
         )
         baseline_draw = p.dhw_draw_power
         if (
@@ -4505,7 +4514,7 @@ class HeatPumpOptimizer:
         ):
             ua = params.dhw_tank_heat_loss_coefficient
             decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
-            gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+            gain = ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
             everyday = float(params.dhw_max_temp)
             max_temp[legionella_step] = boost_top
 
@@ -4812,7 +4821,7 @@ class HeatPumpOptimizer:
                         )
             standby_energy = (
                 params.dhw_tank_heat_loss_coefficient
-                * max(0.5 * (dhw_setpoint + dhw_min_temp) - 20.0, 0.0)
+                * max(0.5 * (dhw_setpoint + dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * window_hours
             )
             needed_delta = (draw_energy + standby_energy) / c_dhw if c_dhw else 0.0
@@ -5284,7 +5293,7 @@ class HeatPumpOptimizer:
         # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
         # long time step cannot produce a negative (unstable) factor.
         decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
-        gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+        gain = ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
 
         # Free trajectory: what the tank does with no heating at all.
         free = np.zeros(n_steps + 1)
@@ -5705,7 +5714,7 @@ class HeatPumpOptimizer:
 
         ceiling = np.asarray(max_temp, dtype=float)
         params = self.model.params
-        capacity = max(params.dhw_tank_thermal_mass, 1e-6)
+        capacity = params.dhw_tank_thermal_mass
         ua = params.dhw_tank_heat_loss_coefficient
         inlet = params.dhw_inlet_reference
         temp = float(initial_temp)
@@ -5748,7 +5757,7 @@ class HeatPumpOptimizer:
             # so the hours after a disinfection cycle stay closed to
             # re-heating exactly as before.
             q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
-            q_loss = ua * (temp - DHW_AMBIENT_TEMP)
+            q_loss = ua * (temp - TANK_ROOM_AMBIENT_TEMP)
             headroom_c = float(ceiling[i]) - temp
             allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
             plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
@@ -6586,7 +6595,7 @@ class HeatPumpOptimizer:
             cop = self.model.marginal_cop(
                 out_mean, "buffer", store_temp=temp, humidity=humidity
             )
-            return p_max * cop - q_house - ua_tank * max(0.0, temp - 20.0)
+            return p_max * cop - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
 
         if net(hi) > 0.0:
             return hi
@@ -6800,12 +6809,12 @@ class HeatPumpOptimizer:
                     p.lower_floor_heat_loss_learned,
                     wind_speeds[i] * 0.5, precipitation[i] * 0.5,
                 )
-                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+                design_power = p.max_electrical_power * p.cop_nominal_floored
                 flow_set = mixing_valve.flow_setpoint(
                     target_temp=p.mixing_valve_target or p.comfort_ceiling,
                     outdoor_temp=float(outdoor_temps[i]),
                     heat_loss_coefficient=u_up + u_lo,
-                    emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+                    emitter_ua=design_power / p.emitter_design_delta_t_floored,
                 )
                 w_i = wood_share(
                     state.wood_tank_temperature,
@@ -6855,7 +6864,7 @@ class HeatPumpOptimizer:
     ) -> float:
         """Thermal power a thermostat needs this step in the single-zone model."""
         p = self.model.params
-        k_slab = max(p.slab_heat_transfer, 1e-6)
+        k_slab = p.slab_heat_transfer_floored
 
         u_eff = self.model.effective_heat_loss_coefficient(
             p.heat_loss_coefficient, wind_speed, precipitation
@@ -6899,7 +6908,7 @@ class HeatPumpOptimizer:
         mixing valve would.
         """
         p = self.model.params
-        k_slab = max(p.slab_heat_transfer, 1e-6)
+        k_slab = p.slab_heat_transfer_floored
 
         u_upper = self.model.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss, wind_speed, precipitation
@@ -6950,7 +6959,7 @@ class HeatPumpOptimizer:
 
         # Replace what the buffer tank leaks so it does not sag over the day.
         thermal += p.buffer_tank_heat_loss_coefficient * max(
-            0.0, state.buffer_tank_temperature - 20.0
+            0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
         )
         return thermal
 
@@ -7096,7 +7105,7 @@ class HeatPumpOptimizer:
 
             raw_displace.append(float(np.clip(displace, d_min, d_max)))
 
-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
+        tau = p.ecl110_pid_tau_hours
         alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0))
         effective = 0.0
         filtered: list[float] = []

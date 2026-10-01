@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._stability_substeps CLAMP_DROP 2356eace",
-  "killed_by": "tests/features.py",
-  "old": "                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9c6b923f2614936aad89e1408dabca8ddd721322: CLAMP_DROP (`design_power = p.max_electrical_power * (p.cop_nominal)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}
