@@ -261,8 +261,16 @@ function pageStates(plan) {
     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
     "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    // R9-UX-1: every line the headline shows. These are narrative.render's
+    // English lines for plan_view.py's plan (narrative.build over the two
+    // published forecasts, 15-minute steps, SEK), so the page shows what an
+    // install with this plan would read.
     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
-      lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+      lines: ["28.6 kWh in the cheapest hours for 17.76 SEK",
+        "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
+        "hot water needed now: 2.5 kWh (4.32 SEK)",
+        "charging the tank while electricity is cheap: 4.0 kWh (3.88 SEK)",
+        "idle for 19.5 h"], language: "en" } },
     "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
       { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
       { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: -12, savings_pct: -1.7 }] } },
@@ -372,7 +380,10 @@ async function cardPages({ browser, check, plan, out }) {
     await ctx.clock.setFixedTime(FROZEN);
     const page = await ctx.newPage();
     try {
-      for (const view of ["tile", "plan", "setup", "savings", "advisor"]) {
+      // "plan-why" is the Plan page with the pointer on the dearest idle
+      // space-heating step, so the "likely because" hover (R9-UX-1) is
+      // documented from the code rather than from a hand capture.
+      for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor"]) {
         await page.goto("about:blank");
         await page.addScriptTag({ path: CARD_SRC });
         await page.evaluate(([themeCss, st, dark, view]) => {
@@ -386,13 +397,41 @@ async function cardPages({ browser, check, plan, out }) {
           document.body.appendChild(card);
           card.setConfig({ type: "custom:heatpump-optimizer-card" });
           card.hass = { states: st, language: "en", themes: { darkMode: dark } };
-          if (view !== "tile") { card._onCardClick({}); card.dialog.page = view; card._render(); }
+          if (view !== "tile") { card._onCardClick({}); card.dialog.page = view === "plan-why" ? "plan" : view; card._render(); }
           window.__card = card;
         }, [THEMES[theme], states, theme === "dark", view]);
         await page.waitForTimeout(250);
         // Opening a page focuses its tab; a picture of the page should not
         // show a focus ring on a tab the reader did not press.
         await page.evaluate(() => { const a = window.__card.shadowRoot.activeElement; if (a) a.blur(); });
+        if (view === "plan-why") {
+          const at = await page.evaluate(() => {
+            const c = window.__card, plot = c._plot;
+            const svgs = [...c.shadowRoot.querySelectorAll("dialog[open] .chartwrap svg")];
+            const svg = svgs[svgs.length - 1];
+            const fc = c.hass.states["sensor.heat_pump_optimizer_plan_space_heating"].attributes.forecast;
+            const top = Math.max(...fc.map((p) => p.price));
+            const f = fc.find((p) => p.price === top && !(Number(p.space_power) > 0.05) && Date.parse(p.t) >= Date.now());
+            if (!svg || !plot || !f) return null;
+            const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+            return { x: r.left + (plot.scaleX(Date.parse(f.t) + 450000) / vb.width) * r.width, y: r.top + r.height * 0.45 };
+          });
+          if (at) { await page.mouse.move(at.x, at.y); await page.waitForTimeout(120); }
+          shots.push({ name: "plan-why hover target", ok: !!at, bytes: 0, probe: true });
+          // R9-UX-1: the idle explanation is there, and the box stays inside
+          // the chart it describes, measured on real layout.
+          const box = await page.evaluate(() => {
+            const r = window.__card.shadowRoot;
+            const tt = r.querySelector("dialog[open] .tooltip"), w = tt && tt.closest(".chartwrap");
+            if (!tt || tt.hidden || !w) return null;
+            const a = tt.getBoundingClientRect(), b = w.getBoundingClientRect();
+            return { why: !!tt.querySelector(".tt-why"), inside: a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5 &&
+              a.left >= b.left - 0.5 && a.right <= b.right + 0.5, a: [a.top, a.bottom, a.left, a.right].map(Math.round),
+              b: [b.top, b.bottom, b.left, b.right].map(Math.round) };
+          });
+          check(`R9-UX-1 the idle-step hover explains the step and stays inside the chart (${theme})`,
+            box && box.why && box.inside, JSON.stringify(box));
+        }
         const target = view === "tile" ? page.locator("heatpump-optimizer-card")
           : page.locator("heatpump-optimizer-card dialog[open]");
         const shot = await target.screenshot({ type: "png" });
@@ -407,8 +446,9 @@ async function cardPages({ browser, check, plan, out }) {
       await ctx.close();
     }
   }
-  check("U5 page-screenshot mode takes the tile and all four pages in both themes",
-    shots.length === 10 && shots.every((s) => s.ok),
+  const pics = shots.filter((s) => !s.probe);
+  check("U5 page-screenshot mode takes the tile, all four pages and the idle-step hover in both themes",
+    pics.length === 12 && shots.every((s) => s.ok),
     shots.filter((s) => !s.ok).map((s) => `${s.name} ${s.bytes} bytes`).join(", "));
 }
 
@@ -589,7 +629,11 @@ function instrument() {
     for (const p of scope().querySelectorAll(".tooltip, .slot-menu")) {
       if (!visible(p)) continue;
       const r = p.getBoundingClientRect(), host = p.closest(".chartwrap"), hr = host && host.getBoundingClientRect();
-      const out1 = Math.max(0, -r.left, r.right - innerWidth, -r.top, r.bottom - innerHeight, hr ? hr.left - r.left : 0, hr ? r.right - hr.right : 0);
+      // R9-UX-1: a tooltip also stays within its chart's height, which the
+      // idle explanation's extra lines made reachable.
+      const tip = hr && p.matches(".tooltip");
+      const out1 = Math.max(0, -r.left, r.right - innerWidth, -r.top, r.bottom - innerHeight, hr ? hr.left - r.left : 0, hr ? r.right - hr.right : 0,
+        tip ? hr.top - r.top : 0, tip ? r.bottom - hr.bottom : 0);
       if (out1 > 0.5) out.popups.push(`${desc(p)} ${out1.toFixed(1)}px outside`);
     }
     // A listbox option shows only the prefix that fits; two options whose shown text is equal are one option to a reader.

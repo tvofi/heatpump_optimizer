@@ -551,8 +551,13 @@ B
   git -C "$W/seat" push -q origin HEAD:refs/heads/handoff-body/t1
   out=$(run watch --every 1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q "^BUS body t1 "; expect "watch without --once exits on its first event" $?
-  out=$(timeout 3 bash -c "cd '$W/seat' && HPO_BUS_STATE='$W/state' bash '$ROOT/tools/audit/seat/bus.sh' watch --every 1" 2>&1); rc=$?
-  [ $rc = 124 ] && [ -z "$out" ]; expect "watch without --once keeps waiting while nothing changes" $?
+  # No `timeout`: it is GNU coreutils, absent from stock macOS (exit 127 there).
+  (cd "$W/seat" && HPO_BUS_STATE=$W/state exec bash "$ROOT/tools/audit/seat/bus.sh" watch --every 1) > "$W/wait.out" 2>&1 &
+  t=$!
+  sleep 3
+  kill -0 "$t" 2>/dev/null; rc=$?
+  kill "$t" 2>/dev/null; wait "$t" 2>/dev/null
+  [ $rc = 0 ] && [ ! -s "$W/wait.out" ]; expect "watch without --once keeps waiting while nothing changes" $?
 
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
