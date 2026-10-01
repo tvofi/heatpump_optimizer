@@ -725,7 +725,7 @@ export function judgeCardClaims({ treeText, baseText, ours, refName }) {
   const base = parseClaims(baseText || "");
   const notes = [];
   let fails = 0;
-  const untouched = false;
+  const untouched = (treeText || "") === (baseText || "");
   const same = !untouched && tree.claims.size > 0
     && sameClaimMap(tree.claims, base.claims);
   if (same && ours) {
@@ -745,7 +745,7 @@ export function judgeCardClaims({ treeText, baseText, ours, refName }) {
       "not judged; rewrite it in a change that moves a claimed state."
     );
   }
-  return { notes, fails, excusing: tree.claims };
+  return { notes, fails, excusing: authoredClaims(tree.claims, base.claims) };
 }
 
 export const looksLikeVersion = (text) =>

@@ -1424,6 +1424,8 @@ def drop_inherited_claim_lines(text: str, baseline_text: str) -> str | None:
     never written by this branch: it claims nothing, and emptying it is the
     deletion a merge applies to main (R9-F10.8).
     """
+    if text == baseline_text:
+        return None
     if inherited_claims_error(
         parse_claim_map(text), parse_claim_map(baseline_text), "baseline"
     ) is None:
@@ -1478,7 +1480,7 @@ def apply_inherited_claims(
         else:
             if not ref:
                 raise ValueError("apply_inherited_claims needs baseline_dir or ref")
-            shown = _show_at(repo, ref, rel)
+            shown = _show_at(repo, fork_point(repo, ref), rel)
             if shown is None:
                 continue
             baseline = shown
@@ -2008,7 +2010,9 @@ def claims_hygiene_verdict(
         (CLAIM_FILE, solver, base_solver, "a solver golden"),
         (CARD_CLAIM_FILE, card, base_card, "a card state"),
     ):
-        if kinds[claim_file]:
+        if claim_file in carried:
+            inherited = None
+        elif kinds[claim_file]:
             inherited = inherited_claims_error(claims, baseline, ref, claim_file)
         else:
             inherited = foreign_claim_file_error(claim_file, claims, baseline, cannot)
@@ -2278,7 +2282,8 @@ def excusing_claims(
     name here is #213's hole -- whatever it excuses, it excuses by accident
     (R9-F10.8). `judge_drift` and the staleness rule read this map.
     """
-    return claims
+    return authored_claims(
+        claims, _claimed_at(repo, fork_point(repo, ref), CLAIM_FILE))
 
 
 def judge_drift(branch: dict[str, object], baseline: dict[str, object],
@@ -2618,6 +2623,9 @@ def main() -> int:
         rot = fixture_staleness(os.path.join(repo, FIXTURE_DIR), branch)
         print_staleness(rot, verbose=bool(os.environ.get(VALUE_REPORT_ENV)))
 
+        # Only lines this branch wrote excuse or go stale (R9-F10.8);
+        # the staleness rule below reads the same map.
+        claims = excusing_claims(repo, ref, claims)
         drifted, claimed_hits, may_drift_hits = judge_drift(
             branch, baseline, claims, may_drift, ref)
 
