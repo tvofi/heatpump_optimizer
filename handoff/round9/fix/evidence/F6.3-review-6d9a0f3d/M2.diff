@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index aacae518..b1a7978b 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -1433,7 +1433,7 @@ function slotHitExtents(drawn, plotL, plotR, minTarget, grows) {
+     if (!moved) break;
+   }
+   for (let p = 0; p + 1 < order.length; p++) {
+-    if (t[p].r <= t[p + 1].l) continue;
++    continue;
+     const lo = ink(p).x2, hi = Math.max(lo, ink(p + 1).x1);
+     const edge = !free[p] ? lo : !free[p + 1] ? hi
+       : Math.max(lo, Math.min(hi, (t[p].r + t[p + 1].l) / 2));
