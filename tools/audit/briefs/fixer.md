@@ -57,15 +57,13 @@ background task, whose exit wakes you; never end a turn on a detached one.
    run` and `MODE: FULL` both print zero and mean opposite things. Run what
    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
    to CI. `tests/README.md` ("The scoped gate") is the in-tree source for why
-   that is safe and what it costs: CI runs the same `run.sh` in the same drift
-   mode against the same merge base, and a full run is about forty minutes. So
-   `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+   that is safe and what it costs. `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
-   the PR as the `hpo-author` App (decision 0011).
+   the PR as the `hpo-author` App (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -81,9 +79,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
-   with that tip and `date -u`. The body rides the orphan ref
-   `handoff-body/<topic>` (`tools/audit/seat/body_push.sh`), off the code
-   head (`prepr.sh` step 1a); the orchestrator writes the delivery row.
+   with that tip and `date -u`. Push the code head to `handoff/<topic>` and
+   the body to the orphan ref `handoff-body/<topic>`
+   (`tools/audit/seat/body_push.sh`), off the code head (`prepr.sh` step 1a):
+   the orchestrator watches both (`tools/audit/seat/bus.sh`), so the push is
+   the handoff, and writes the delivery row.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
@@ -234,7 +234,7 @@ holds several, and adding a method, call and attribute to `CoordinatorContext` m
 
 **Derive the split, do not carry it.** The coordinator-scoped rows are the ones
 `measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge
-base; a list here would be a carried number, which this file already refuses.
+base.
 
 **Read the expression, not the value.** `attrbag_classes_over_30` has the
 coordinator as its only member and a `top_is_coordinator` flag beside it, yet is

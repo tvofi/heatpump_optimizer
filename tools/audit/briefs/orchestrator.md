@@ -75,7 +75,7 @@ you take yourself removes a check from the programme rather than adding one.
   exactly as a seat's work is routed.
 
 The honest test: *could a seat have done this with a brief?* If yes, write the
-brief instead: the programme's method is that no claim stands on one agent's word.
+brief instead.
 
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
@@ -136,7 +136,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Every brief names the identity and the bus** (decisions 0011, 0013): seats author and push refs, never a pull request -- code on `handoff/<topic>`, its body on `handoff-body/<topic>`, a verdict with its evidence on `verdict/<pr>`; you open the pull request as the `hpo-author` App and write its delivery row, post verdicts as `hpo-approver`, approve, and merge as `tvofi`. Watch the refs with `tools/audit/seat/bus.sh watch --post` as a background task: it exits on a new or moved ref, posting a verdict tip, and a `BUS refused` line is yours. The coordinator starts seats and handles blocks; it relays no head or verdict. The retired account makes no GitHub write: its writes can vanish and purge retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
@@ -228,10 +228,7 @@ additionally, because you write the rosters and you decide the merge order.
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
-`brief_lint.mjs` reads the roster and the carry files and never
-`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
-citation left only in markdown is unchecked, and putting one there is not
-carrying it. The remedies for a symbol that does not exist yet are that rule's;
+The remedies for a symbol that does not exist yet are that rule's;
 do not reach for a tag citation by reflex, because measurement shows the
 symbols that bit here exist at no tag. Read the **exit code and the error
 lines**: `FIXTURE ok: N error(s)` is designed to print beside a clean exit,

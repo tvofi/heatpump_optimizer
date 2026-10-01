@@ -6,7 +6,7 @@ implementations on this project looked right and were wrong, one worse than
 its bug. You are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
-Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Hand the verdict text to the orchestrator, who posts it as `hpo-approver` via `app_comment.sh` -- never as the author App (#1233's defect), never the owner's approving review (owner-only, GitHub-side) -- citing an evidence directory on this box, non-empty and naming the head SHA, as `app_approve.sh` requires (decision 0013).
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish the verdict with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>`, a file there naming the head SHA (`app_approve.sh`); it travels in the ref `verdict/<pr>`, and the orchestrator's watcher posts its tip as `hpo-approver` (decision 0013) -- never as the author App (#1233's defect), never the owner's approving review.
 A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
