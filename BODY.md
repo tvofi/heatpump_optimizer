@@ -5,18 +5,20 @@ Before: the stat tiles and the savings/score tiles were four columns whenever th
 
 After: both rows are two tiles across at every width, as the round-9 mockup draws them (`handoff/round9/state/alt/design/assets/card/after-dark-375.png` on `handoff/audit-r9-alt`), and values wrap only between words (`overflow-wrap: break-word`). The Plan page opens with the same tile and headline rows above its chart; the score toggle is wired on both copies.
 
-How: `cardStyleBlock` sets `repeat(2, …)` on `.tiles` and `.hl-stats` and drops the phone media rule's column override; `_render` builds the tile and headline markup once and places it on the card and at the top of the plan page body; the score wiring iterates `querySelectorAll`. `docs/dashboard-card.md` and its tile and plan pictures (regenerated with `HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs`) follow. The legend chips, which also wrap at that width for the same viewport-keyed reason, are out of scope here.
+How: `cardStyleBlock` sets `repeat(2, …)` on `.tiles` and `.hl-stats` and drops the phone media rule's column override; `_render` builds the tile and headline markup once and places it on the card and at the top of the plan page body; the score wiring iterates `querySelectorAll`. `docs/dashboard-card.md` and its tile, plan and plan-why pictures (regenerated with `HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs`) follow. The card-drift claims are merged over R9-UX-1's list: each state it already claims gains this change's reason. The legend chips, which also wrap at that width for the same viewport-keyed reason, are out of scope here.
 
 ## Head
 
-73028145f27d5460892ad1b975c837a562278973
+3520a10703629e3fb5bd4af8e8f7cad97c993168
 
 ## Mutation proof
 
-Two new `tests/card.mjs` checks, each red on its own mutant and green on the head:
+Three new `tests/card.mjs` checks, each red on its mutants and green on the head:
 
 - `.tiles` back to `repeat(4, …)`: `FAIL  tiles: the tile and headline rows are two across outside any media rule`
+- `@media (min-width: 601px) { .hl-stats { grid-template-columns: repeat(4, …) } }` added: the same check fails
 - `${stats}` removed from the plan page body: `FAIL  tiles: the expanded Plan page shows the four tiles above its chart`
+- score wiring narrowed to the card's first `[data-stat="score"]`: `FAIL  the Plan page's score tile is a button that opens the breakdown panel`
 
 ## Null control
 
