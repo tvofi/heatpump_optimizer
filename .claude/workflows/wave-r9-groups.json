@@ -24,7 +24,7 @@
     "D8-s2-01": "refused by tvofi (card C15, 'Keep'): the A3(e) ruling stands, the climate entity stays unavailable without an indoor thermometer as recorded, and F7.3 is dropped; the refusal is recorded against A3(e), and its class issue #1689 is closed as not planned",
     "D11-s1-01": "refused by tvofi (card C16, 'Leave'): the ruleset setting is unchanged; no ruleset, decision or policy edit; the refusal is recorded in #1648 (I3), which F11.3 fixes"
   },
-  "decisions": "tvofi answered all 35 asks at 19:16Z (cmsg_01EL5jLi4rokGBbkaevYXSJV6CQVMDN96YfVMTcN5QGSx2); handoff/round9/TVOFI-ASKS.md, DECISIONS, records each card's answer and where it is applied",
+  "decisions": "tvofi answered all 35 asks at 19:16Z (cmsg_01EL5jLi4rokGBbkaevYXSJV6CQVMDN96YfVMTcN5QGSx2); handoff/round9/TVOFI-ASKS.md, DECISIONS, records each card's answer and where it is applied Close-out version (tvofi, 2026-10-01T09:18Z, cmsg_01EL5jLi4rokGBbkaevYXSJVFWKibqqMQ4VwVh1Ss3r5uD: \"Ok, do v7.0.0 when the programme is concluded.\"): the close-out stamp, when only #201 remains, is v7.0.0 (semver; a major bump tells HACS users to read the notes). Intermediate wave stamps stay 6.7.x. No CalVer. A fixer seat authors its release notes, and tools/release/stamp.py applies the stamp after the merge (CLAUDE.md rule 4).",
   "groups": [
     {
       "group": "R9-F1.1",
