@@ -512,11 +512,11 @@
         "R9-F3.3"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f1-coordinator-8",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "6793659c",
+        "last_step": "#1799 merged 2026-10-01T05:29Z as 6793659c at head 65814159 (owner review; 116->117 coordinator_multiassigned_attrs raise, verdict comment 5924987560); #1657 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F1.8.md on handoff/r9-f1-coordinator-8",
         "review_branch": "handoff/r9-f1-coordinator-8-review",
         "review_note_file": "handoff/round9/fix/resume/F1.8-review.md on handoff/r9-f1-coordinator-8-review",
