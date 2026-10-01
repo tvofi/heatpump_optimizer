@@ -1,0 +1,3 @@
+applied INSTANT-guard-off
+== INSTANT-guard-off rc=1 1 FAIL 1 of 78 DST / QUARTER-GRID CHECKS FAILED
+  FAIL NULL CONTROL: a slot that starts inside the step still pins it on  [pins [0.0]]
