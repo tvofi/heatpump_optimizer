@@ -17202,6 +17202,54 @@ R.check(
     f"readers={_CJ_READERS} grew={_closure.select([_CJ], _CJ_GREW)['run']} "
     f"shrank={_closure.select([_CJ], _CJ_SHRANK)['run']}",
 )
+# The base a closures.json change is measured against is the merge base's
+# committed table, and `select --diff` hands it to `select`: a base read from
+# HEAD would make every entry unchanged, so a shrunk entry -- the way to hide
+# a dependency -- would run nothing (R9-F10.9 review round 1). The ancestor is
+# the first parent of a commit that moved the table whose table differs from
+# HEAD's, so the pin reads a table the HEAD-reading mutant cannot return.
+import contextlib as _bc_contextlib
+import io as _bc_io
+import subprocess as _bc_subprocess
+
+_BC_REVS = _bc_subprocess.run(
+    ["git", "log", "--format=%H", "--", _CJ], cwd=_closure.ROOT,
+    capture_output=True, text=True).stdout.split()
+
+
+def _bc_table(rev: str) -> dict | None:
+    _shown = _bc_subprocess.run(["git", "show", f"{rev}:{_CJ}"], cwd=_closure.ROOT,
+                             capture_output=True, text=True)
+    return json.loads(_shown.stdout)["closures"] if _shown.returncode == 0 else None
+
+
+_BC_ANC = next((f"{r}^" for r in _BC_REVS
+                if _bc_table(f"{r}^") not in (None, _CJ_HEAD)), None)
+_BC_SEEN: list = []
+_bc_select, _bc_argv = _closure.select, sys.argv
+
+
+def _bc_spy(files, base=None):
+    _BC_SEEN.append(base)
+    return _bc_select(files, base)
+
+
+_closure.select = _bc_spy
+sys.argv = ["closure.py", "select", "--files", _CJ, "--diff", _BC_ANC or "HEAD", "--json"]
+try:
+    with _bc_contextlib.redirect_stdout(_bc_io.StringIO()):
+        _closure.main()
+finally:
+    _closure.select, sys.argv = _bc_select, _bc_argv
+R.check(
+    "a closures.json change is measured against the merge base's table, not HEAD's",
+    _BC_ANC is not None
+    and _closure.base_closures(_BC_ANC) == _bc_table(_BC_ANC) != _CJ_HEAD
+    and _BC_SEEN == [_bc_table(_BC_ANC)]
+    and _closure.base_closures("refs/heads/no-such-ref-r9-f10-9") is None,
+    f"ancestor={_BC_ANC} base_closures equal={_closure.base_closures(_BC_ANC or 'HEAD') == _bc_table(_BC_ANC or 'HEAD')} "
+    f"select got the ancestor's table={_BC_SEEN == [_bc_table(_BC_ANC or 'HEAD')]}",
+)
 # The NOT RUN block reads the manifests: a run_always script the plan scoped
 # out ran, and env_drift.py's --claims-only line is not its skipped capture.
 with _tempfile.TemporaryDirectory() as _nr_td:
