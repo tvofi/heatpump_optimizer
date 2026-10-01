@@ -56,15 +56,13 @@ production lines. You work in your own worktree branched from `origin/main`.
    mode against the same merge base, and a full run is about forty minutes. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
-   keep the handoff body outside the worktree `app_push.sh` refuses when dirty.
+   keep the handoff body outside the worktree.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally and the body passes `tools/audit/prepr.sh`. Seats are LOCAL-ONLY
-   (decision 0011, `docs/decisions/0011-app-authored-identity.md`): hand the
-   branch and body off locally; the orchestrator pushes and opens the pull
-   request as the
-   `hpo-author` App, whose key files (`~/.zcode/hpo-author.*`) it alone holds
-   and never prints. `fix-review.md`'s posting line is the reviewer's.
+   locally and the body passes `tools/audit/prepr.sh`. The orchestrator
+   opens the pull request as the `hpo-author` App (decision 0011,
+   `docs/decisions/0011-app-authored-identity.md`), whose key files it alone
+   holds and never prints.
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -82,6 +80,11 @@ production lines. You work in your own worktree branched from `origin/main`.
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
    with that tip and `date -u`.
 
+   **Transport stays off the code head**: the body and any resume note go to
+   the orphan ref `handoff-body/<topic>` by `tools/audit/seat/body_push.sh`,
+   fast-forward, and `prepr.sh` step 1a refuses a commit writing under
+   `tools/audit/handoff/` or `handoff/`. The orchestrator writes the delivery row.
+
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
    head is the reviewer's measuring surface and **only the orchestrator moves
@@ -91,12 +94,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    back; do not merge it yourself — **re-read the head before you post**, in
    `fix-review.md`.
 
-   Landing a PR is never yours — that is the **orchestrator's**, the
-   seat the Model-routing table gives control flow, merges and sequencing, or a
-   merge-and-release seat it starts. `git merge origin/main` into your own
-   branch and merging the pull request differ; only the first was ever yours,
-   and only before the handoff. "Coordinator" here is `coordinator.py` and its
-   ratchet budgets, never a seat.
+   Landing a PR is never yours but the **orchestrator's**, or a
+   merge-and-release seat it starts: `git merge origin/main` into your own
+   branch, before the handoff, is the only merge that ever was. "Coordinator"
+   here is `coordinator.py` and its ratchet budgets, never a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**

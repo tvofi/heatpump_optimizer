@@ -17,6 +17,6 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 
 - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
 - A PR's **body describes its current head**, not the head it was opened at.
-- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request writes its **own** row before the handoff, once its number exists, as `docs/delivery/<N>.md`: a line `- [#N](…/pull/N)` and its state. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. `fixer.md`'s freeze forbids a row added after, not before. A record pull request is for merges no branch rowed.
+- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `docs/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator on opening it (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed.
 
 Do **not** wait for a stamp to truth the record. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch. Measure from `origin/main`, merged pull requests and closed issues; never invent.
