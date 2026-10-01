@@ -209,7 +209,7 @@ _SV: dict[str, str] = {
     "not configured": "inte konfigurerad",
     "used as a store up to": "används som lager upp till",
     "too small to store": "för liten för att lagra",
-    "none (delivery is not throttled)": "ingen (leveransen strypsas inte)",
+    "none (delivery is not throttled)": "ingen (leveransen stryps inte)",
     "(refilled through a coil in the wood tank)":
         "(fylls på via en slinga i vedtanken)",
     "modelled as its own store": "modelleras som ett eget lager",
