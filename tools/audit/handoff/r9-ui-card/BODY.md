@@ -161,7 +161,7 @@ untouched.
 
 - 39 moved and claimed card states, 1 identical: `node tests/card_drift.mjs origin/main`
 - 20 of the 25 new card checks red at the merge base: `tests/card.mjs` from the head, run in a worktree at `f67f598a`
-- 18 of 18 card mutants killed: `python3 tools/audit/handoff/r9-ui-card/js_mutants.py`
+- 18 of 18 card mutants killed: stated without a command, because its driver is evidence and not code. It rests on the table under ## Mutation proof, printed by the driver `js_mutants.py` that transport commit 53100679 adds under tools/audit/handoff/r9-ui-card/, run from the repository root of a tree at the code head.
 
 ## Red checks
 
