@@ -140,6 +140,7 @@ from .const import (
 )
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .repairs import _write_setpoint
+from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore
 from .thermal_model import on_threshold_kw, planned_draw_runs
@@ -498,7 +499,7 @@ def hold(coord: Any, now: datetime) -> None:
     held = state_for(coord)
     for slot, (value, at) in list(held.written.items()):
         observed = _observed(coord, slot)
-        if observed is None or (now - at).total_seconds() < ECHO_GRACE_S:
+        if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
             continue
         if not _differs(slot, observed, value):
             held.misses.pop(slot, None)
@@ -514,7 +515,7 @@ def hold(coord: Any, now: datetime) -> None:
 
 def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
     """A rewrite did not hold either: warn, and send it again in a few minutes."""
-    held.retry[slot] = now + timedelta(minutes=RETRY_MINUTES)
+    held.retry[slot] = utc_shift(now, timedelta(minutes=RETRY_MINUTES))
     _LOGGER.warning("Pump duty: the pump does not hold a write, %s; retrying", detail)
     setpoint_check.create_issue(
         coord.hass,
@@ -544,7 +545,7 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
     recorded = held.written.get(slot)
     if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
         return
-    if slot in held.retry and now < held.retry[slot]:
+    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
         return
     domain = entity.split(".", 1)[0]
     if slot == "mode" and domain not in _MODE_DOMAINS:

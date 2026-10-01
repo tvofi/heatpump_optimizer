@@ -1664,4 +1664,224 @@ for _arm, _run in _arm_runs.items():
         f"{_run['plain'][2]}",
     )
 
+R.section("rate limiters, retry stamps and manual-plan compares across the fold (round-9 F10.1d)")
+
+# Every site below subtracted or compared two stamps that share the one
+# ZoneInfo object, which CPython reads as wall clock. LAST/NOW are 02:55 on
+# the autumn fold day, a true hour apart and a wall zero apart.
+_FOLD_LAST = datetime(2026, 10, 25, 2, 55, tzinfo=STHLM)  # 00:55Z
+_FOLD_NOW = datetime(2026, 10, 25, 2, 55, tzinfo=STHLM, fold=1)  # 01:55Z
+_FOLD_NOW_10M = datetime(2026, 10, 25, 2, 5, tzinfo=STHLM, fold=1)  # 01:05Z
+_FOLD_LAST_S = _FOLD_LAST.astimezone(UTC)
+_PLAIN_LAST = datetime(2026, 10, 24, 2, 55, tzinfo=STHLM)
+_PLAIN_NOW = datetime(2026, 10, 24, 3, 55, tzinfo=STHLM)
+
+
+def _fold_coord(hass=None, **cfg):
+    base = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }
+    return HeatPumpOptimizerCoordinator(hass or FakeHass(), FakeEntry(data={**base, **cfg}))
+
+
+from heatpump_optimizer import power_guard as _power_guard  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _arbiter  # noqa: E402
+from heatpump_optimizer.freq_control import FREQ_MIN_SAMPLES  # noqa: E402
+from heatpump_optimizer.manual_plan import build_override  # noqa: E402
+
+for _label, _l, _n in (
+    ("the fold hour", _FOLD_LAST, _FOLD_NOW),
+    ("NULL CONTROL: a plain hour", _PLAIN_LAST, _PLAIN_NOW),
+):
+    _guard = _power_guard.GuardState()
+    _guard._last_event = _l
+    R.check(f"{_label}: a meter event a true hour on is not throttled", not _guard.throttled(_n), "")
+
+_arb_held = _arbiter.ArbiterState()
+_real_setpoint_check = _arbiter.setpoint_check
+_arbiter.setpoint_check = SimpleNamespace(create_issue=lambda *a, **k: None)
+_arbiter._not_held(SimpleNamespace(hass=None), _arb_held, "mode", "x", _FOLD_LAST)
+_arbiter.setpoint_check = _real_setpoint_check
+_retry_min = (_arb_held.retry["mode"].astimezone(UTC) - _FOLD_LAST_S).total_seconds() / 60.0
+R.check(
+    "a pump write retry set on the fold night waits a true 5 minutes",
+    _retry_min == _arbiter.RETRY_MINUTES,
+    f"{_retry_min} min",
+)
+R.check(
+    "and is due once those 5 true minutes have passed, not an hour of wall clock later",
+    utc_elapsed_seconds(_FOLD_NOW, _arb_held.retry["mode"]) >= 0,
+    "",
+)
+
+# The arbiter's two other seams: the echo grace in ``hold`` and the retry gate
+# in ``_write``. A write at 02:59 CEST read back at 02:00 CET is a true 60 s,
+# past the 20 s grace, though the wall difference is -3540 s; a retry stamped
+# 5 true minutes after a 02:58 CEST failure is labelled 02:03 CET, which the
+# wall clock has already passed.
+_arb_hass = FakeHass()
+_arb_hass.states.set("number.dhw", FakeState("55"))
+
+
+class _ArbCoord:  # weak-referenceable, as the arbiter's WeakKeyDictionary needs
+    hass = _arb_hass
+    _config = {const.CONF_DHW_SETPOINT_ENTITY: "number.dhw"}
+
+
+_arb_coord = _ArbCoord()
+_echo_at = datetime(2026, 10, 25, 2, 59, tzinfo=STHLM)
+_echo_now = datetime(2026, 10, 25, 2, 0, tzinfo=STHLM, fold=1)
+_echo_held = _arbiter.state_for(_arb_coord)
+_echo_held.written["dhw_setpoint"] = (60.0, _echo_at)
+_arbiter.hold(_arb_coord, _echo_now)
+R.check(
+    "a pump write read back a true 60 s later across the fold is past its 20 s echo grace",
+    _echo_held.misses.get("dhw_setpoint") == 1,
+    f"misses {dict(_echo_held.misses)}",
+)
+_echo_held.written.clear()
+_echo_held.misses.clear()
+_echo_held.written["dhw_setpoint"] = (60.0, _PLAIN_LAST)
+_arbiter.hold(_arb_coord, _PLAIN_NOW)
+R.check(
+    "NULL CONTROL: a plain-hour write read back an hour later is past its grace",
+    _echo_held.misses.get("dhw_setpoint") == 1,
+    f"misses {dict(_echo_held.misses)}",
+)
+_gate_failed_at = datetime(2026, 10, 25, 2, 58, tzinfo=STHLM)
+_echo_held.retry["dhw_setpoint"] = utc_shift(_gate_failed_at, timedelta(minutes=_arbiter.RETRY_MINUTES))
+_echo_held.written.clear()
+try:
+    asyncio.run(_arbiter._write(_arb_coord, "dhw_setpoint", 60.0, _gate_failed_at))
+except Exception:  # noqa: BLE001 - the write path past the gate is not under test
+    pass
+R.check(
+    "a pump write retry stamped 5 true minutes after a 02:58 CEST failure still holds at 02:58 CEST",
+    "dhw_setpoint" not in _echo_held.written and not _arb_hass.services.calls,
+    f"written {dict(_echo_held.written)}, calls {len(_arb_hass.services.calls)}",
+)
+_spring_guard = _power_guard.GuardState()
+_spring_guard._last_event = datetime(2026, 3, 29, 1, 59, 58, tzinfo=STHLM)
+R.check(
+    "spring gap: a meter event a true 5 s after the last is throttled, not 62 minutes of wall clock on",
+    _spring_guard.throttled(datetime(2026, 3, 29, 3, 0, 3, tzinfo=STHLM)),
+    "",
+)
+
+dt_util.freeze(_FOLD_NOW)
+_c = _fold_coord(**{const.CONF_SNOW_ROOF_FACTOR_ENABLED: True})
+# The heavy-snow hold: 2.5 true days after the last heavy fall it has lapsed
+# (SNOW_ROOF_DAYS is 2), though the wall clock reads 1 day 23 h 30 min.
+_c._last_heavy_snow = datetime(2026, 10, 23, 2, 55, tzinfo=STHLM)
+_c._snow_accum_last = None
+_hold_now = datetime(2026, 10, 25, 2, 25, tzinfo=STHLM, fold=1)
+R.check(
+    "the roof-snow hold has lapsed 2 days 30 true minutes after the last heavy fall",
+    _c._update_snow_memory(_hold_now, np.zeros(4)) is False,
+    "",
+)
+_c._last_heavy_snow = datetime(2026, 10, 23, 2, 55, tzinfo=STHLM)
+R.check(
+    "NULL CONTROL: the same hold is still on a true 1 day 23 h 30 min after",
+    _c._update_snow_memory(datetime(2026, 10, 25, 2, 25, tzinfo=STHLM), np.zeros(4)) is True,
+    "",
+)
+_c = _fold_coord(**{const.CONF_SNOW_ROOF_FACTOR_ENABLED: True})
+_c._snow_accum_last, _c._snow_accum_cm = _FOLD_LAST, 10.0
+_c._update_snow_memory(_FOLD_NOW, np.zeros(4))
+R.check(
+    "snow memory decays over the true hour of the fold, not the wall zero",
+    abs(_c._snow_accum_cm - 10.0 * np.exp(-1 / 24)) < 1e-9,
+    f"{_c._snow_accum_cm}",
+)
+
+_c = _fold_coord()
+_c._last_simulation = _FOLD_LAST
+_sim = asyncio.run(_c.async_simulate({}, limited=True))
+R.check(
+    "the what-if limiter lets a call a true hour after the last one through",
+    _sim.get("rate_limited") is False,
+    f"{_sim}",
+)
+
+dt_util.freeze(_FOLD_NOW_10M)
+_c = _fold_coord(
+    peak_guard_enabled=True,
+    house_power_entity="sensor.house_power",
+    main_fuse_amperes=16.0,
+    main_fuse_phases=1,
+    **{const.CONF_PEAK_TARIFF_ENABLED: True},
+)
+_seen: list = []
+_c._peak_tracker.observe = lambda *a, **k: _seen.append(k.get("dt_hours"))
+_c._guard_last_fold = _FOLD_LAST
+_c._on_power_event(SimpleNamespace(data={"new_state": FakeState("6500", unit="W")}))
+R.check(
+    "the meter fold weighs a sample by its true 10 minutes across the fold",
+    len(_seen) == 1 and _seen[0] is not None and abs(_seen[0] - 1 / 6) < 1e-9,
+    f"{_seen}",
+)
+
+dt_util.freeze(_FOLD_NOW)
+_hass = FakeHass()
+_hass.states.set("number.freq", FakeState("45", attributes={"min": 20.0, "max": 120.0}))
+_c = _fold_coord(_hass, compressor_freq_entity="number.freq", freq_control_mode="control")
+_c._measured_power = 2.0
+_c._current_action = {"power": 1.5, "dhw_power": 0.5}
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _c._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+_c._freq_last_write = _FOLD_LAST
+asyncio.run(_c._command_frequency())
+R.check(
+    "a compressor frequency write a true hour after the last one is not rate-limited",
+    len(_hass.services.calls) == 1,
+    f"{len(_hass.services.calls)} writes",
+)
+
+_mp_now = datetime(2026, 10, 24, 6, 30, tzinfo=STHLM)
+_mp_exp = datetime(2026, 10, 25, 2, 15, tzinfo=STHLM, fold=1)  # 45 true min past the cap
+_built = build_override(dhw_slots=[], space_slots=[], expires_at=_mp_exp, now=_mp_now)
+R.check(
+    "a far expiry applied the morning before the fold clamps to 20 true hours",
+    (_built.expires_at.timestamp() - _mp_now.timestamp()) / 3600.0 == 20.0,
+    f"{(_built.expires_at.timestamp() - _mp_now.timestamp()) / 3600.0} h",
+)
+_mp_over = ManualOverride(
+    space_slots=[], dhw_slots=[],
+    expires_at=datetime(2026, 10, 25, 2, 30, tzinfo=STHLM, fold=1), created_at=_mp_now,
+)
+R.check(
+    "an override expiring 02:30 CET is still running at 02:45 CEST, a true 45 minutes before",
+    not _mp_over.is_expired(datetime(2026, 10, 25, 2, 45, tzinfo=STHLM)),
+    "",
+)
+try:
+    build_override(
+        dhw_slots=[], space_slots=[],
+        expires_at=datetime(2026, 10, 25, 2, 30, tzinfo=STHLM, fold=1),
+        now=datetime(2026, 10, 25, 2, 45, tzinfo=STHLM),
+    )
+    _past_refused = False
+except Exception as _exc:  # ManualPlanError
+    _past_refused = "not in the future" in str(_exc)
+R.check(
+    "an expiry 02:30 CET is in the future of 02:45 CEST, so it is accepted",
+    not _past_refused,
+    "",
+)
+_plain = build_override(
+    dhw_slots=[], space_slots=[],
+    expires_at=datetime(2026, 10, 24, 2, 15, tzinfo=STHLM) + timedelta(days=3),
+    now=datetime(2026, 10, 20, 6, 30, tzinfo=STHLM),
+)
+R.check(
+    "NULL CONTROL: on a plain day the same far expiry was always 20 hours",
+    (_plain.expires_at.timestamp() - datetime(2026, 10, 20, 6, 30, tzinfo=STHLM).timestamp()) / 3600.0 == 20.0,
+    "",
+)
+
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))
