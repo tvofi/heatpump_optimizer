@@ -352,7 +352,7 @@ python tests/golden.py       # default drift: env_drift.py --all, the same measu
 python tests/validate.py     # 22 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
-python tests/stress.py       # 51 combinations, 17 edge cases, economics
+python tests/stress.py       # 54 combinations, 17 edge cases, economics
 python tests/rolling.py      # days of re-planning against a mismatched house
 python tests/optimality.py   # solution-quality floor against cheap challengers
 python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine

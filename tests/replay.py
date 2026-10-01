@@ -64,10 +64,14 @@ and once per fixture:
                      of ``COST_BUDGETS``: over it is a regression, under it
                      a budget that could not see a doubling (stress.py's
                      rule). The first cycle is traced instead of timed, and
-                     must run the five per-cycle files ``COST_FILES`` names;
-                     the lane then replays the fixture twice more with the
-                     cycle's CPU, then its memory peak, doubled in memory at
-                     ``_async_update_data``, and each must turn it red.
+                     must run the five per-cycle files ``COST_FILES`` names.
+                     ``loop_cpu_ratio`` is the event-loop thread's own share
+                     (the cycle's thread CPU less its executor jobs), banded
+                     the same way, because doubling a tenth of the cycle stays
+                     inside the whole cycle's band (R9 D9-s2-02). The lane
+                     then replays the fixture three more times with the
+                     cycle's CPU, its memory peak, and its loop-thread work
+                     doubled in memory, and each must turn it red.
 
 Each invariant is also driven on a hand-built bad and good record before any
 fixture runs (``control:*``), so a detector that cannot fire fails here
@@ -300,6 +304,10 @@ def frozen_offenders(
 #: The five files of the per-cycle path #1544 found no budgeted script ran.
 COST_FILES = ("coordinator.py", "sensor.py", "process_worker.py",
               "price_model.py", "narrative.py")
+#: Executor-job CPU on the loop thread (the test double runs jobs inline),
+#: accumulated by run_fixture's meter so the loop thread's own share is
+#: the cycle's thread CPU less this.
+_EXEC_CPU = [0.0]
 #: The multiple a budget must be able to see, as ``tests/stress.py``'s
 #: DETECTION_TARGET: a budget is recorded at sqrt(2) x the measured cost, so
 #: the measurement sits in (budget / 2, budget] and a doubled cycle is over it.
@@ -313,8 +321,24 @@ COST_DETECTION = 2.0
 #: it, since a run outside (budget / 2, budget] is red and prints its own.
 #: Across several runs, record the largest ``record:`` value, and keep it
 #: under every doubled arm's figure.
+#: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
+#: its thread CPU less its executor jobs, plus the entity reads -- over the
+#: same reference, recorded and banded exactly as ``cpu_ratio``. The
+#: whole-cycle ratio cannot see a 2x of it: the loop is about a tenth of the
+#: cycle, so doubling it moves ``cpu_ratio`` far inside its sqrt(2) band.
+#: Entry allowed by tvofi (card B1). Recorded at the CENTRE of its measured
+#: spread, not at sqrt(2) x the largest run: the figure is noisy (1.30x)
+#: inside a band only 2x wide, and the nightly runner reads the cycle lower
+#: than cloud boxes (cpu_ratio 2.18 there, 2.36-2.98 here), so a cap at the
+#: top leaves its floor within 10 % of a clean run. Six clean runs on cloud
+#: boxes, 0.2642-0.3433 (0.3401, 0.3310, 0.3178, 0.2825 at the fixer's
+#: b4a0f75e and 0.2642 threads-pinned, 0.3433 unpinned at the review's);
+#: sqrt(2) x their geometric midpoint 0.3012 is 0.426. Both edges then sit
+#: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
+#: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0},
+    "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0,
+                                "loop_cpu_ratio": 0.426},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
@@ -322,11 +346,16 @@ COST_REF_EVERY = 8
 
 
 def cost_figures(cycle_cpu: list[float], ref_cpu: list[float],
-                 peaks: list[int]) -> dict[str, float]:
+                 peaks: list[int], loop_cpu: list[float] | None = None
+                 ) -> dict[str, float]:
     ref = sorted(ref_cpu)[len(ref_cpu) // 2] if ref_cpu else 0.0
-    return {"cpu_ratio": round(sum(cycle_cpu) / len(cycle_cpu) / ref, 4)
-            if cycle_cpu and ref > 0 else float("nan"),
-            "peak_kib": round(max(peaks) / 1024.0, 1) if peaks else float("nan")}
+    out = {"cpu_ratio": round(sum(cycle_cpu) / len(cycle_cpu) / ref, 4)
+           if cycle_cpu and ref > 0 else float("nan"),
+           "peak_kib": round(max(peaks) / 1024.0, 1) if peaks else float("nan")}
+    if loop_cpu is not None:
+        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / ref, 4)
+                                 if loop_cpu and ref > 0 else float("nan"))
+    return out
 
 
 def cost_offenders(figures: dict[str, float], budget: dict[str, float] | None,
@@ -414,6 +443,13 @@ def controls() -> list[tuple[str, bool, str]]:
          cost_offenders(clean, budget))
     pair("cycle_cost:unrecorded", cost_offenders(clean, {"cpu_ratio": 0.0, "peak_kib": 0.0}),
          cost_offenders(clean, budget))
+    # The loop-thread figure (D9-s2-02): a doubled loop inside an unchanged
+    # cycle is over its own budget, where the whole-cycle figure is not.
+    lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4])
+    lbudget = {k: math.sqrt(COST_DETECTION) * v for k, v in lclean.items()}
+    lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
+    pair("cycle_cost:loop_thread", cost_offenders(lhot, lbudget),
+         cost_offenders(lclean, lbudget))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -657,7 +693,7 @@ def inject_cost(cm, kind: str | None) -> None:
     Wraps ``_async_update_data`` rather than editing ``coordinator.py`` on
     disk, which a concurrent run in the same tree would import.
     """
-    if kind is None:
+    if kind in (None, "loop"):  # the loop arm is spun in run_fixture
         return
     import tracemalloc
 
@@ -704,6 +740,19 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     inject_cost(cm, inject)
 
     hass = FakeHass()
+    # Executor jobs run inline on this thread in the double, so the loop
+    # thread's own work is the cycle's thread CPU less theirs.
+    _EXEC_CPU[0] = 0.0
+    _real_exec = hass.async_add_executor_job
+
+    async def _metered_exec(func, *args):
+        began_job = time.thread_time()
+        try:
+            return await _real_exec(func, *args)
+        finally:
+            _EXEC_CPU[0] += time.thread_time() - began_job
+
+    hass.async_add_executor_job = _metered_exec
     weather_id = config.get(const.CONF_WEATHER_ENTITY)
 
     async def forecasts(call):
@@ -775,6 +824,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     reference_solve()  # scipy's first-call costs, thrown away as stress.py does
     ref_cpu = [reference_solve()[1] for _ in range(3)]
     cycle_cpu: list[float] = []
+    loop_cpu: list[float] = []
     peaks: list[int] = []
     traced: set[str] = set()
     while t < end:
@@ -805,6 +855,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         elif mode == "memory":
             tracemalloc.start()
         began = time.process_time()
+        began_thread, exec_before = time.thread_time(), _EXEC_CPU[0]
         try:
             data = asyncio.run(coord._async_update_data())
             coord.data = data
@@ -816,8 +867,16 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
 
         action = data.get("current_action") or {}
         records = sweep(entities, action, results["cycle"], t)
+        own_loop = (time.thread_time() - began_thread) - (_EXEC_CPU[0] - exec_before)
+        if inject == "loop":
+            # The perturbation: exactly the loop thread's own work again.
+            until = time.thread_time() + own_loop
+            while time.thread_time() < until:
+                pass
         if mode == "cpu":
             cycle_cpu.append((time.process_time() - began) * 1000.0)
+            loop_cpu.append(((time.thread_time() - began_thread)
+                             - (_EXEC_CPU[0] - exec_before)) * 1000.0)
         elif mode == "memory":
             peaks.append(tracemalloc.get_traced_memory()[1])
             tracemalloc.stop()
@@ -844,7 +903,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     dt_util.freeze(None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
-    figures = cost_figures(cycle_cpu, ref_cpu, peaks)
+    figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu)
     results["cycle_cost"] = uncovered_files(traced) + cost_offenders(
         figures, COST_BUDGETS.get(path.name))
     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
@@ -1162,7 +1221,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fixture", action="append", type=Path)
     ap.add_argument("--step-minutes", type=int)
     ap.add_argument("--one", type=Path, help=argparse.SUPPRESS)
-    ap.add_argument("--inject-cost", choices=("cpu", "memory"), help=argparse.SUPPRESS)
+    ap.add_argument("--inject-cost", choices=("cpu", "memory", "loop"), help=argparse.SUPPRESS)
     ap.add_argument("--kernels", choices=tuple(KERNEL_ARMS), help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
 
@@ -1200,14 +1259,15 @@ def main(argv: list[str] | None = None) -> int:
               f"in {out['seconds']} s; cost {out['cost']}")
         print(f"  record: {path.name} " + " ".join(
             f"{k}={math.sqrt(COST_DETECTION) * out['cost'][k]:.4g}"
-            for k in ("cpu_ratio", "peak_kib")))
+            for k in ("cpu_ratio", "peak_kib", "loop_cpu_ratio")))
         R.check(f"{path.name}: at least one cycle and one entity",
                 out["cycles"] > 0 and out["entities"] > 0, str(out["cycles"]))
         for name, offenders in out["results"].items():
             R.check(f"{path.name}: {name}", not offenders,
                     f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
         # The perturbation, every night: a doubled cycle must be over budget.
-        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib")):
+        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
+                          ("loop", "loop_cpu_ratio")):
             hot = replay_one(R, path, args.step_minutes, kind)
             if hot is None:
                 continue

@@ -2179,6 +2179,245 @@ with open(out_path, "w") as fh:
 '''
 
 
+# ===========================================================================
+# The production-call channel (round 9: N-solve-recompute, N-cpu-gate-blind)
+# ===========================================================================
+#
+# Every other channel here meters a NAMED seam -- scipy's evaluations, the
+# three simulate kernels -- or a CPU ratio that cannot see under 3.0x per
+# scenario (#346). Work outside the named seams was invisible below that, and
+# each audit round found the next unnamed place: #985's per-row cost twins,
+# peak_cost_batch at 62 % of a capacity-tariff solve, a confined non-kernel 2x
+# (R9 D9-s2-03). This channel names nothing: it counts every call production
+# bytecode executes, per production file, so the package is the population.
+# The count is exact -- two captures of one tree agree to the call -- which is
+# what lets its allowance sit far under the CPU factors. Growth the evaluation
+# and simulate counts vouch for (more iterations, #1208's restarts) is divided
+# out, as kernel_cost_over_verdict does for kernel CPU.
+#
+#: The share of a scenario's baseline production calls that unvouched growth
+#: may reach on an unchanged plan. Two histories, both merge against first
+#: parent. The round-9 RCA's, #1091..#1605: the largest legitimate unvouched
+#: growth outside two flagged merges was 2.2 %; #1370 (+12.7 %, a per-step
+#: derivation inside the substep loop -- this class's own shape) and #1282
+#: (+11.4 %, the owner-sanctioned per-candidate polish) fire, and #985's
+#: per-row twin fires at 5.7-12.6 %. Re-derived at F10.2's merge base over
+#: the thirteen first-parent solver merges since, on this population: 253
+#: scenario pairs, the largest legitimate growth 2.35 %, and one merge
+#: firing -- #1711 (+18.4 % on the direct-slab valve plant, +5.9 % and
+#: +5.3 % on two more), whose continuation solves inside multi-start add
+#: work no evaluation counts. That is the channel's job: cost the counts do
+#: not vouch for. So the ceiling is ~12 %, where the class goes silent, and
+#: the floor is the ~2.3 % noise.
+#:
+#: A legitimate firing passes for ONE pull request, never by a raise. The
+#: comparison is against that pull request's merge base, so once it merges
+#: the next one is measured from the dearer tree and the channel is quiet
+#: again; the pass is tvofi's approving review on the red channel, the
+#: verdict naming the merge and the measured growth. This constant is never
+#: raised for a single firing -- unlike SCENARIO_WORK_FACTOR's permanent
+#: raise for #1282 -- because a raise to an #1711-sized 18 % silences the
+#: class for every pull request after it.
+SCENARIO_CALLS_GROWTH = 0.05
+
+
+def production_calls(fn, package_dir):
+    """Run ``fn()`` and count the calls production bytecode executes.
+
+    Returns ``(fn's result, {file basename: count})``: every function entry
+    (``PY_START``) in a file under ``package_dir`` -- a property getter's
+    body included, which no ``CALL`` reaches -- plus every call site
+    (``CALL``) such a file's bytecode executes, a numpy call in a per-row
+    loop included. A location outside the package returns ``DISABLE`` on
+    first sight, so the meter costs one callback per production event. Its
+    source is embedded in CALLS_PROBE_DRIVER, so both trees are counted by
+    the same text.
+    """
+    import os as _os
+    import sys as _sys
+
+    mon = _sys.monitoring
+    tool = 4
+    if mon.get_tool(tool) is not None:
+        raise RuntimeError(f"sys.monitoring tool {tool} is taken by {mon.get_tool(tool)!r}")
+    prefix = _os.path.abspath(package_dir) + _os.sep
+    counts = {}
+    disable = mon.DISABLE
+
+    def count(code, *_):
+        name = code.co_filename
+        if not name.startswith(prefix):
+            return disable
+        counts[name] = counts.get(name, 0) + 1
+
+    mon.use_tool_id(tool, "hpo-production-calls")
+    try:
+        mon.register_callback(tool, mon.events.PY_START, count)
+        mon.register_callback(tool, mon.events.CALL, count)
+        mon.set_events(tool, mon.events.PY_START | mon.events.CALL)
+        result = fn()
+    finally:
+        mon.set_events(tool, 0)
+        mon.register_callback(tool, mon.events.PY_START, None)
+        mon.register_callback(tool, mon.events.CALL, None)
+        mon.free_tool_id(tool)
+        mon.restart_events()
+    return result, {_os.path.basename(k): v for k, v in sorted(counts.items())}
+
+
+def calls_population(combos: list[dict], table: dict) -> list[dict]:
+    """The scenarios the production-call channel judges: one per family.
+
+    A family is a spec with its season and label taken away -- the code path
+    a scenario exercises, which a call count needs one covered member of to
+    see -- and its member is the one the recorded table says is cheapest,
+    so the channel costs the sweep's cheapest path per family rather than
+    its dearest (tvofi, card C8: the subset form). Derived from
+    sweep_combinations() and the table, so a new family is judged the day
+    it is added.
+    """
+    families: dict[tuple, dict] = {}
+    for combo in combos:
+        spec = {k: v for k, v in combo.items() if k != "label"}
+        key = tuple(item for item in case_key({**spec, "season": "x"}))
+        cost = (table.get(combo["label"]) or {}).get("ratio", float("inf"))
+        held = families.get(key)
+        if held is None or cost < held[0]:
+            families[key] = (cost, combo)
+    return sorted((combo for _, combo in families.values()), key=lambda c: c["label"])
+
+
+CALLS_PROBE_DRIVER = '''
+import json, os, sys
+root, out_path, specs_path = sys.argv[1:4]
+os.chdir(root)
+for part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
+    sys.path.insert(0, os.path.join(root, part))
+import inspect, stress
+from heatpump_optimizer import optimizer as _opt
+PACKAGE = os.path.dirname(os.path.abspath(_opt.__file__))
+''' + textwrap.dedent(inspect.getsource(production_calls)) + '''
+rows = {}
+with open(specs_path, encoding="utf-8") as fh:
+    specs = json.load(fh)
+for combo in specs:
+    label = combo.pop("label")
+    try:  # a tree whose build_case lacks an argument the spec names
+        inspect.signature(stress.build_case).bind(**combo)
+    except TypeError as exc:
+        rows[label] = {"unbuildable": str(exc)}
+        continue
+    run, files = production_calls(lambda: stress.build_case(**combo), PACKAGE)
+    rows[label] = {
+        "calls": files,
+        "evals": int(run["solver_evals"]),
+        "simulate": int(run.get("solver_simulate_steps") or 0),
+        "objective": float(run["result"].objective_value),
+    }
+with open(out_path, "w") as fh:
+    json.dump(rows, fh, indent=1, sort_keys=True)
+'''
+
+
+def calls_over_verdict(
+    observed: dict[str, int], baseline: dict[str, int], vouched: float
+) -> str | None:
+    """Did production calls grow past what the work counts vouch for?
+
+    ``vouched`` is the larger of the evaluation and simulate ratios on the
+    same scenario. Returns None, or the verdict naming the files that grew
+    most. Shared by the sweep and the checks that prove it can fail.
+    """
+    base_total, got_total = sum(baseline.values()), sum(observed.values())
+    if base_total <= 0 or got_total <= base_total * vouched * (1.0 + SCENARIO_CALLS_GROWTH):
+        return None
+    grew = sorted(
+        ((observed.get(f, 0) - baseline.get(f, 0) * vouched, f)
+         for f in set(observed) | set(baseline)),
+        reverse=True,
+    )
+    named = ", ".join(f"{f} +{int(d)}" for d, f in grew[:3] if d > 0)
+    return (
+        f"{got_total} production calls against the baseline's {base_total} "
+        f"= {got_total / base_total:.3f}x on work the counts vouch at "
+        f"{vouched:.3f}x, over the {1.0 + SCENARIO_CALLS_GROWTH:.2f}x allowance ({named})"
+    )
+
+
+def calls_drift(here: dict[str, dict], baseline: dict[str, dict]) -> dict[str, list[str]]:
+    """Judge two CALLS_PROBE_DRIVER captures of the same specs, per scenario.
+
+    Every label lands in exactly one of ``covered``, ``replanned`` (this
+    branch changed the plan: env_drift's question, not this one's),
+    ``only_here`` (the baseline tree cannot build the spec, so this branch
+    added what it needs) and ``unmetered`` (a capture that counted nothing,
+    which must fail rather than shrink the population); ``over`` is the
+    verdict within ``covered``.
+    """
+    out: dict[str, list[str]] = {
+        k: [] for k in ("covered", "replanned", "only_here", "unmetered", "over")
+    }
+    for label in sorted(set(here) | set(baseline)):
+        h, b = here.get(label) or {}, baseline.get(label) or {}
+        if "unbuildable" in b and "calls" in h:
+            out["only_here"].append(label)
+            continue
+        if not sum((h.get("calls") or {}).values()) or not sum(
+            (b.get("calls") or {}).values()
+        ) or b.get("evals", 0) <= 0:
+            out["unmetered"].append(label)
+            continue
+        if not same_basin(h["objective"], b["objective"]):
+            out["replanned"].append(label)
+            continue
+        out["covered"].append(label)
+        vouched = h["evals"] / b["evals"]
+        if b["simulate"] > 0:
+            vouched = max(vouched, h["simulate"] / b["simulate"])
+        verdict = calls_over_verdict(h["calls"], b["calls"], vouched)
+        if verdict:
+            out["over"].append(f"{label}: {verdict}")
+    return out
+
+
+def capture_calls_pair(
+    repo: str, ref: str, specs: list[dict]
+) -> tuple[dict | None, dict | None, str]:
+    """This tree's and ``ref``'s production calls on ``specs``, side by side.
+
+    Two child processes started together, each solving in a fresh
+    interpreter by the same driver text on this tree's specs -- so neither
+    half is timed, the in-process sweep stays unmetered, and both halves see
+    the same machine at the same moment.
+    """
+    with baseline_worktree(repo, ref) as (worktree, tmp, where):
+        if worktree is None:
+            return None, None, where
+        specs_path = os.path.join(tmp, "specs.json")
+        with open(specs_path, "w", encoding="utf-8") as fh:
+            json.dump(specs, fh)
+        outs = (os.path.join(tmp, "calls_here.json"), os.path.join(tmp, "calls_base.json"))
+        procs = [
+            subprocess.Popen(
+                [sys.executable, "-c", CALLS_PROBE_DRIVER, root, out, specs_path],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                env={**os.environ, "PYTHONPATH": os.path.join(root, "tests", "hastub")},
+            )
+            for root, out in zip((repo, worktree), outs)
+        ]
+        rows = []
+        for proc, path in zip(procs, outs):
+            out, err = proc.communicate()
+            if proc.returncode != 0:
+                return None, None, (
+                    f"a production-call capture exited {proc.returncode}: "
+                    f"{(err or out or '').strip()[-300:]}"
+                )
+            with open(path, encoding="utf-8") as fh:
+                rows.append(json.load(fh))
+        return rows[0], rows[1], where
+
+
 def repository_root() -> str:
     """The checkout this file belongs to, however the run was started."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -2744,10 +2983,107 @@ def sweep_combinations() -> list[dict]:
                  pin_off_steps=(_PIN_STEP,), label="winter/1z/space/pin-off"),
         ]
     )
+
+    # Throttling-valve plants (R9 D9-s2-71). No scenario above builds one, so
+    # the valve path -- 1.3-2.9x a same-family solve's CPU, measured -- had no
+    # budget at any factor; plant_axes() below now refuses a selectable
+    # layout or valve mode nothing reaches. One member per layout, each
+    # carrying one valve mode, at the cheapest season and zone count the
+    # layout allows, as the zero-range trio is (tvofi, card C9 "Cheaper").
+    # The plants are tests/golden.py's own valve configurations. Residual,
+    # recorded rather than sampled: a regression only a valve's winter
+    # two-zone path exercises (card C9).
+    _valve = {"buffer_tank_volume": 750.0, "buffer_max_temperature": 70.0}
+    _wood = {"wood_tank_top_entity": "sensor.wood_top", "wood_tank_volume": 500.0}
+    for two_zone, mode, extra, label in (
+        (False, "manual", {}, "summer/1z/space/valve"),
+        (True, "smart_read", {"topology_layout": "valve_upper_direct_slab"},
+         "summer/2z/space/valve-direct-slab"),
+        (True, "smart_write", _wood, "summer/2z/space/wood-two-tank"),
+    ):
+        combinations.append(
+            dict(season="summer", two_zone=two_zone, dhw=False,
+                 config={**_valve, "mixing_valve_mode": mode, **extra},
+                 state={"buffer_tank_temperature": 32.0,
+                        **({"wood_tank_temperature": 55.0} if extra is _wood else {})},
+                 label=label)
+        )
     return combinations
 
 
+
+# ===========================================================================
+# Plant-axis coverage (round 9, N-cpu-gate-blind / D9-s2-71)
+# ===========================================================================
+#
+# The sweep is a hand list, and a path it does not build has no budget at all.
+# This derives the axis values from production -- every selectable topology
+# layout and every mixing-valve mode -- and names each one no sweep scenario's
+# built plant reaches, read off the ThermalParameters build_case hands
+# optimize(), never off the spec text.
+
+
+class _PlantSeen(Exception):
+    pass
+
+
+def plant_axes(combos: list[dict]) -> dict[str, tuple[str, str]]:
+    """``{label: (mixing_valve_mode, topology_layout)}`` of each built plant.
+
+    optimize() is replaced by a sentinel for the duration, so nothing is
+    solved; a combo whose build never reaches optimize() raises, rather than
+    being left out of the population it was meant to cover.
+    """
+    real = optimizer_module.HeatPumpOptimizer.optimize
+
+    def sentinel(self, *args, **kwargs):
+        p = self.model.params
+        raise _PlantSeen((p.mixing_valve_mode, p.topology_layout))
+
+    seen: dict[str, tuple[str, str]] = {}
+    optimizer_module.HeatPumpOptimizer.optimize = sentinel
+    try:
+        for combo in combos:
+            try:
+                build_case(**{k: v for k, v in combo.items() if k != "label"})
+            except _PlantSeen as hit:
+                seen[combo["label"]] = hit.args[0]
+            else:
+                raise AssertionError(f"{combo['label']} never reached optimize()")
+    finally:
+        optimizer_module.HeatPumpOptimizer.optimize = real
+    return seen
+
+
+def unsampled_plant_axes(seen: dict[str, tuple[str, str]]) -> list[str]:
+    """Production axis values no sampled plant reaches, by name."""
+    from heatpump_optimizer import mixing_valve, topology
+
+    required = {f"layout:{key}" for key, lay in topology.LAYOUTS.items() if lay.selectable}
+    required |= {f"valve_mode:{mode}" for mode in mixing_valve.MODES}
+    reached = {f"layout:{layout}" for _, layout in seen.values()}
+    reached |= {f"valve_mode:{mode or mixing_valve.MODE_NONE}" for mode, _ in seen.values()}
+    return sorted(required - reached)
+
+
 if __name__ == "__main__":
+    R.section("Plant-axis coverage (round 9, D9-s2-71)")
+    _axes_started = time.perf_counter()
+    _plants = plant_axes(sweep_combinations())
+    _unsampled = unsampled_plant_axes(_plants)
+    print(f"  {len(_plants)} built plants read in {time.perf_counter() - _axes_started:.1f} s")
+    R.check(
+        "every production plant axis value is sampled by the sweep",
+        not _unsampled,
+        f"unsampled: {', '.join(_unsampled)} -- a plant no scenario builds "
+        f"has no budget in this file at any factor",
+    )
+    R.check(
+        "plant-axis coverage: an axis nobody samples is named",
+        unsampled_plant_axes({"x": ("none", "no_valve")}) != [],
+        "a sweep of one no-valve plant must leave the valve axes unsampled",
+    )
+
     # ===========================================================================
     # The single-scenario detection statistic (#346), compared in one
     # environment rather than against a recorded table (#387)
@@ -2760,6 +3096,49 @@ if __name__ == "__main__":
     # false-fails on the second machine -- and the second one is what
     # reverted the 1.4142 factor, closed #371, and then came back as #387.
     R.section("Single-scenario detection (#346, #387)")
+
+    # The production-call channel can fail, and does not fail on flat or
+    # vouched work. Figures are the round-9 RCA's measured winter/2z/space
+    # counts: 4,641,468 with #985's per-row comfort twin, 4,123,689 with it
+    # row-vectorised.
+    _files = {"optimizer.py": 1_279_542, "thermal_model.py": 3_224_625}
+    R.check(
+        "production calls: an identical count is not over",
+        calls_over_verdict(_files, dict(_files), 1.0) is None,
+        "a tree compared with itself must pass",
+    )
+    R.check(
+        "production calls: #985's per-row twin against its vectorised fix is over",
+        calls_over_verdict({"x.py": 4_641_468}, {"x.py": 4_123_689}, 1.0) is not None,
+        f"4641468/4123689 = {4641468 / 4123689:.3f}x must exceed "
+        f"{1.0 + SCENARIO_CALLS_GROWTH:.2f}x",
+    )
+    R.check(
+        "production calls: growth the evaluation count vouches for is not over",
+        calls_over_verdict({k: int(v * 1.8) for k, v in _files.items()}, _files, 1.8) is None,
+        "#1208's restarts: 1.80x of evaluations and of calls on one plan",
+    )
+    _row = {"calls": _files, "evals": 10, "simulate": 0, "objective": 1.0}
+    _cd = calls_drift(
+        {"a": _row, "b": _row, "c": {**_row, "calls": {}}},
+        {"a": _row, "b": {"unbuildable": "x"}, "c": _row},
+    )
+    R.check(
+        "production calls: a spec the baseline cannot build is new, and a "
+        "capture that counted nothing is unmetered",
+        (_cd["covered"], _cd["only_here"], _cd["unmetered"]) == (["a"], ["b"], ["c"]),
+        repr(_cd),
+    )
+    _pop = calls_population(sweep_combinations(), load_budget_table())
+    _fam = {case_key({**{k: v for k, v in c.items() if k != "label"}, "season": "x"})
+            for c in sweep_combinations()}
+    R.check(
+        "production calls: the population is one member of every sweep family",
+        len(_pop) == len(_fam)
+        and {case_key({**{k: v for k, v in c.items() if k != "label"}, "season": "x"})
+             for c in _pop} == _fam,
+        f"{len(_pop)} members for {len(_fam)} families",
+    )
 
     # 2026-09-05 CI ubuntu-latest, consecutive main pushes, same tree:
     # shoulder/tariff+pv+cycle at 775.5x (pass, ref 52.3 ms) vs 808.2x /
@@ -3969,6 +4348,51 @@ if __name__ == "__main__":
             "kernel's own CPU seconds against the baseline captured "
             "beside this run is the only channel that moves",
         )
+        # The production-call channel (round 9): every call production
+        # bytecode executes, both trees, one scenario per family.
+        _calls_pop = calls_population(sweep_combinations(), budget_table)
+        _calls_started = time.perf_counter()
+        _calls_here, _calls_base, _calls_where = capture_calls_pair(
+            repository_root(), WORK_DRIFT_REF, _calls_pop
+        )
+        R.check(
+            "production calls were captured on this tree and the baseline",
+            _calls_here is not None,
+            f"no capture, so the production-call check compared nothing: {_calls_where}",
+        )
+        if _calls_here is not None:
+            _cd = calls_drift(_calls_here, _calls_base)
+            print(
+                f"  production calls: {len(_cd['covered'])} of {len(_calls_pop)} "
+                f"family members judged against {_calls_where} in "
+                f"{time.perf_counter() - _calls_started:.0f} s; re-planned: "
+                f"{_cd['replanned']}; new on this branch: {_cd['only_here']}"
+            )
+            R.check(
+                "the production-call meter counted every scenario on both trees",
+                not _cd["unmetered"],
+                f"unmetered: {', '.join(_cd['unmetered'])} -- a scenario the "
+                f"meter did not count cannot fail the check below",
+            )
+            R.check(
+                "no scenario's production calls grew past what its work "
+                "counts vouch for, on an unchanged plan (round 9)",
+                not _cd["over"],
+                "; ".join(_cd["over"])
+                + "; interpreter work outside the named seams -- a per-row "
+                "loop, an uncached property, a repeated pass -- moves no "
+                "evaluation or simulate count and sits under the 3.0x CPU "
+                "factor, so this is the only channel that sees it",
+            )
+            # The work check's own floor, as a share: a branch that re-plans
+            # more of the families than it may of the sweep is told so.
+            _calls_floor = -(-len(_calls_pop) * SCENARIO_WORK_MIN_COVERED // len(sweep_combinations()))
+            R.check(
+                f"the production-call check covers at least {_calls_floor} "
+                f"of {len(_calls_pop)} families",
+                len(_cd["covered"]) >= _calls_floor,
+                f"{len(_cd['covered'])} covered; re-planned: {', '.join(_cd['replanned'])}",
+            )
         # Two different failures wear this check's name, and telling a
         # reader they made a behaviour change when the baseline simply
         # never arrived would send them looking in the wrong place.
