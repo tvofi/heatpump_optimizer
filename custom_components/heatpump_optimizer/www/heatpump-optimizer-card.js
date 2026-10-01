@@ -1404,12 +1404,13 @@ function slotHitExtents(drawn, plotL, plotR, minTarget, grows) {
     const d = drawn[i];
     const w = Math.max(1, d.x2 - d.x1);
     if (!free[p] || w >= minTarget) return { l: d.x1, r: d.x1 + w };
-    const c = (d.x1 + d.x2) / 2;
-    let l = c - minTarget / 2;
-    l = Math.max(plotL, Math.min(l, plotR - minTarget));
-    // Never off the ink: a slot hard against the plot edge keeps it covered.
-    l = Math.min(l, d.x1);
-    return { l, r: Math.max(l + minTarget, d.x2) };
+    // Half the deficit each side; what the plot edge refuses one side goes
+    // to the other.
+    const need = minTarget - w;
+    let gl = Math.min(need / 2, Math.max(0, d.x1 - plotL));
+    const gr = Math.min(need - gl, Math.max(0, plotR - d.x2));
+    gl = Math.min(need - gr, Math.max(0, d.x1 - plotL));
+    return { l: d.x1 - gl, r: d.x2 + gr };
   });
   const ink = (p) => drawn[order[p]];
   // How far target p may slide left / right and still cover its ink.
