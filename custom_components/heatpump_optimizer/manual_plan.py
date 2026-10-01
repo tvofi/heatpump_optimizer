@@ -26,9 +26,10 @@ Three things carry subtle intent and are worth stating once here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from .accuracy import utc_shift
 from .const import MANUAL_PLAN_WINDOW_HOURS
 
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
@@ -53,6 +54,13 @@ class ManualPlanError(ValueError):
     Assistant-free, so the service layer is what turns this into the
     ``ServiceValidationError`` the user actually sees.
     """
+
+
+def _instant(when: datetime) -> float:
+    """``when`` as epoch seconds; a naive stamp keeps its wall order (read as UTC)."""
+    if when.tzinfo is not None:
+        return when.timestamp()
+    return when.replace(tzinfo=timezone.utc).timestamp()
 
 
 def _coerce_awareness(value: datetime, reference: datetime) -> datetime:
@@ -189,16 +197,20 @@ class ManualOverride:
                 if len(step_starts) > 1
                 else timedelta(minutes=15)
             )
+        # Compared as instants: two stamps sharing a zone compare as wall
+        # clock, which orders a step's end label (02:00 CET after the autumn
+        # fold) before a start inside the step (02:50 CEST).
+        expires = _instant(self.expires_at)
+        spans = [(_instant(start), _instant(end)) for start, end in slots]
         pins: list[float] = []
         for ts in step_starts:
             ref = _coerce_awareness(ts, self.expires_at)
-            if ref >= self.expires_at:
+            if _instant(ref) >= expires:
                 pins.append(PIN_FREE)
                 continue
-            step_end = ref + step_length
-            in_slot = any(
-                start < step_end and end > ref for start, end in slots
-            )
+            step_end = _instant(utc_shift(ref, step_length))
+            ref_at = _instant(ref)
+            in_slot = any(start < step_end and end > ref_at for start, end in spans)
             pins.append(PIN_ON if in_slot else PIN_OFF)
         return pins
 
@@ -285,7 +297,7 @@ def build_override(
     # can be built beyond it and the store's lead bound matches it. The
     # card's editor always offered "up to 20 hours"; the service accepted
     # any datetime, and a far one owned every step of every plan unenforced.
-    cap = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+    cap = utc_shift(now, timedelta(hours=MANUAL_PLAN_WINDOW_HOURS))
     if expires_ref > cap:
         expires_ref = cap
     space = parse_channel(space_slots, now)
