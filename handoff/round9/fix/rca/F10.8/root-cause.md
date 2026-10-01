@@ -5,7 +5,84 @@ Measured at main `f67f598a` (#1806 F6.4 merged). Roster entry read at `2eaa8c77`
 Reproduction: `repro.sh` and its output `repro.out` sit next to this file. They run in a
 scratch worktree and touch nothing remote.
 
-## Verdict
+## Revised verdict (round 2, after the fixer's counter-points)
+
+**This section supersedes the "Verdict", §2, the state in §4 and the countermeasure in
+§5 below.** The sections below are kept as the round-1 record. Their measurements (R1
+to R5, the 43/351 and 47/17 counts) still stand. Their conclusions about the fix do not.
+
+**The fixer's narrower design holds, and the scope should return to it**, provided one
+condition is met.
+
+Design (`/mnt/project-files/audit-r9/fix/evidence/F10.8-alt/failing-test-untouched-noclaim.patch`):
+- A claim file byte-identical to the fork point's is the no-claim state. It is not
+  refused and not emptied.
+- Only *authored* lines can excuse drift or go stale. A line is authored when it is not
+  in the fork point's map; an added or rewritten reason line counts (#1255 parse).
+
+**The three counter-points, judged:**
+
+1. **"Carried lines never excuse drift, so #213 stays closed."** This holds **only if
+   every consumer that excuses drift uses the authored subset.** The patch tests the
+   helper, `authored_claims`, not the consumers. There are two:
+   - The `--all` excuse and staleness path in `tests/env_drift.py`.
+   - `tests/card_drift.mjs`, which excuses by name from the whole tree list
+     (`const claimed = treeClaims.claims`, line 796) and judges staleness over the same
+     keys (line 818).
+
+   If the card lane is not ported, a solver branch that merged a card-claiming main
+   carries card lines that excuse card-state drift its payload change causes. That is
+   #213's hole on the card side. Part of this exists today: the `NOT THIS BRANCH'S LIST`
+   branch reports but still excuses. **Condition:** add a test per consumer showing that
+   a carried line does not excuse a moved fixture or state, and that an authored line
+   does. Run each against the unported consumer first to show it goes red.
+2. **"Main's push run stays green."** Conceded. My R2 measured today's guard. Under the
+   draft, the merge commit's file equals `HEAD^1`'s, so it is untouched, passes, and
+   authored is empty. Main's own drift is then excused only by lines the merge wrote.
+   That is the right answer.
+3. **"Unpriced cost: the 47 drops are the edits that make DIRTY conflicts."** Conceded,
+   and it outweighs my message-only countermeasure.
+   - Today, a solver branch B drops M's lines, and main then lands claiming PR C
+     (which also dropped M's and added its own). GitHub's three-way merge sees base = M's
+     list, B = empty, main = C's, so both sides rewrote the list. The claimnotes driver
+     refuses that, and on GitHub it means DIRTY: the PR does not run (#570).
+   - Under the draft, B is untouched, so main's side wins cleanly.
+   - Today's gate also contradicts `claim-files.md`'s own rule, "a branch that claims
+     nothing does not touch the claim files at all".
+
+**Revised cause.** `inherited_claims_error` uses "list equals the fork point's" as a
+proxy for "this branch carried the list forward". The proxy cannot tell *never touched
+the file* apart from *copied the list*. The first is the no-claim state the claim-files
+rule prescribes, and with merge commits plus merge-base re-pointing (#1359–#1361) it is
+the routine shape after any claiming merge (43 of 351).
+
+**Revised process state: (d).** The guard predates the merge-commit, merge-base and
+`CLAIM_HEAD` workflow and was sound for the shape it was written against. That workflow
+changed its precondition: the fork point is now routinely a claiming merge. The guard
+did not notice the change, so it contradicts the later byte-identical rule. The
+countermeasure is to make the guard key on authorship, which is the precondition it
+was really testing. It is not a firmer instruction.
+
+**Revised countermeasure.** The draft, plus the condition in point 1 and two additions:
+- **Card lane:** `card_drift.mjs` and `card_rig.mjs` take the same authored filter.
+- **Rules:** keep `claim-files.md` and `ci-autofix.md` consistent with the new
+  behaviour, which needs tvofi's approval under the mandate. Main's file now accumulates
+  carried lines until the stamp empties it. Say once in `claim-files.md` that a line
+  excuses only the diff that wrote it, so a reader does not take carried lines on main
+  as active.
+
+**Revised cost test.**
+- **Standing cost:** one map difference per claims check, in milliseconds.
+- **Removed cost per claiming merge:** one drop commit per open solver branch. Since
+  2026-09-17 that is 47, 30 of them by a seat; each is a refusal, a commit, a push and,
+  on a frozen head, a review delta. It also removes the DIRTY rounds those drops cause.
+- **Result:** build it.
+
+**Not inferred, still owed:** I have not run the draft's code. Only the failing test is
+in the evidence folder. The reviewer should check the condition in point 1 on the
+fixer's head.
+
+## Verdict (round 1, superseded above)
 
 **The reported defect does not exist. The claimed cause is wrong in the direction that
 matters** (root-cause.md §1, second trap). A solver-claimable branch that merged a
