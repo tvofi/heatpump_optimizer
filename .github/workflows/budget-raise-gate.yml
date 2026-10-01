@@ -28,6 +28,11 @@ on:
     types: [opened, edited, synchronize, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
+  # The merge queue (round-9 process review item 2): the same verdict, on a
+  # queue entry for the pull request it carries. Still no `if:`, so no run
+  # this file starts is a skipped one.
+  merge_group:
+    types: [checks_requested]
 
 # Workflow-level and read-only: the reviews list needs `pull-requests: read`,
 # the checkout `contents: read`. No job widens it.
@@ -53,7 +58,7 @@ jobs:
 
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
@@ -62,15 +67,44 @@ jobs:
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/budget_raise_gate.py
 
+      # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
+      # carries no pull request in its payload, so the entry is named from the
+      # tree: its number from the queue branch's name, its head as the queue
+      # commit's second parent (merge method MERGE), and the API must report
+      # that same head or the step fails -- a run that cannot name what it
+      # grades must not pass. On any other event it writes nothing and every
+      # step below reads the payload as before. Outputs only, never
+      # $GITHUB_ENV: nothing here can reach a later program, and it runs after
+      # the restore, from admitted commands alone.
+      - name: Name the pull request a queue entry carries
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "merge_group" ]; then
+            NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
+            HEAD=$(git rev-parse --verify 'HEAD^2^{commit}')
+            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
+            echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+            echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
+            echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+            echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
+          fi
+
       # The head is the payload's: it is the commit this run's check run is
-      # written on. The reviews are read live, so a re-run after an approval
-      # reads the approval.
+      # written on. On a queue entry it is the pull request's head the step
+      # above named, the head an owner's approval has to be at. The reviews are
+      # read live, so a re-run after an approval reads the approval.
       - name: Refuse a budget raise the owner has not approved at this head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
         run: |
           set -euo pipefail
           python3 -I .claude/workflows/budget_raise_gate.py \

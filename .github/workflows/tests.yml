@@ -99,6 +99,13 @@ on:
     branches:
       - main
   pull_request:
+  # The merge queue (round-9 process review item 2): every job that writes a
+  # required context runs on the queue's merge commit as it does on a pull
+  # request. The PR-only lanes (autofix, `graders-head-copy`, `nightly-status`)
+  # and the non-required coverage pair stay off it; the coverage pair ran on
+  # the pull request's head and runs again on the push the merge makes.
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       recheck:
@@ -156,6 +163,7 @@ jobs:
       always() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
@@ -231,6 +239,20 @@ jobs:
             # The branch's OWN claim list is read from the PR head, not the
             # synthetic merge tree this checkout is (env_drift's CLAIM_HEAD).
             echo "CLAIM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "merge_group" ]; then
+            # A queue entry is a merge commit (merge method MERGE): its first
+            # parent is the main tip or the entry ahead of it, its second the
+            # pull request's head. That is the shape of a pull request's
+            # synthetic merge, whose merge-base with its target is the same
+            # first parent, so the drift comparison and the claim list are
+            # read exactly as on the pull request. No second parent means the
+            # queue's merge method changed; fail rather than guess.
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+            PR_TIP=$(git rev-parse --verify --quiet 'HEAD^2^{commit}') || {
+              echo "This merge_group commit has no second parent; the queue must merge with merge method MERGE."
+              exit 1
+            }
+            echo "CLAIM_HEAD=${PR_TIP}" >> "$GITHUB_ENV"
           elif [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
             # Autofix dispatch is not a pull_request event. Compare against
             # main the same way a PR would, not HEAD^1 (the autofix commit's
@@ -263,6 +285,7 @@ jobs:
         id: driftkey
         if: >-
           github.event_name == 'pull_request'
+          || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
         env:
           PYTHONPATH: tests/hastub
@@ -271,6 +294,7 @@ jobs:
       - name: Restore the drift baseline
         if: >-
           github.event_name == 'pull_request'
+          || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
@@ -297,13 +321,14 @@ jobs:
           echo "key=$(python tests/env_drift.py --cache-key "$GITHUB_SHA" --all)" >> "$GITHUB_OUTPUT"
           echo "DRIFT_WARM_CACHE=1" >> "$GITHUB_ENV"
 
-      # Pull requests get the scoped gate; everything else -- pushes to
-      # main above all -- gets the whole suite. Written as an explicit
-      # equality on the event name so an event this file has not thought
-      # about lands on `full`, not on `auto`.
+      # Pull requests and merge-queue entries get the scoped gate;
+      # everything else -- pushes to main above all -- gets the whole suite.
+      # Written as an explicit equality on the event name so an event this
+      # file has not thought about lands on `full`, not on `auto`.
       - name: Decide the gate scope
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] \
+             || [ "${{ github.event_name }}" = "merge_group" ] \
              || [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
             echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
             echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
@@ -358,6 +383,7 @@ jobs:
       always() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
@@ -430,6 +456,7 @@ jobs:
       always() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
@@ -453,7 +480,7 @@ jobs:
       # rosters are the pull request's, the linter the base's.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -488,6 +515,7 @@ jobs:
       always() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
@@ -772,6 +800,7 @@ jobs:
       always() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
@@ -1257,7 +1286,7 @@ jobs:
   # recorded closure), scoped (re-derive only the closures the diff
   # intersects, ~40 s an entry against 12-22 minutes for the table).
   closure-scope:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -1272,8 +1301,8 @@ jobs:
           python-version: "3.13"
       - id: decide
         run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
+          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
           # --files-from, not `--files $(...)`: a path list off the command
           # line is split on whitespace and capped by ARG_MAX.
           # Three dots, not two. base.sha is the base BRANCH TIP at the time
@@ -1334,7 +1363,8 @@ jobs:
     # this workflow's own: a second rule for "docs-only" would drift from the
     # gate's the first time either learned a new inert prefix.
     env:
-      DOCS_ONLY_FAST: ${{ github.event_name == 'pull_request'
+      DOCS_ONLY_FAST: ${{ (github.event_name == 'pull_request'
+                           || github.event_name == 'merge_group')
                          && needs.closure-scope.outputs.case == 'skip' }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -1390,8 +1420,8 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
+          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
           # The same three-dot, --files-from derivation closure-scope ran:
           # base.sha is the base branch tip, not the merge base, so two dots
           # would charge this job with files merged elsewhere while it was
