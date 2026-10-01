@@ -19,7 +19,7 @@ Documentation (U5): `docs/dashboard-card.md` gains "Why a step is idle" with the
 
 ## Head
 
-7fc5d3fa
+8f30964f
 
 ## Mutation proof
 
@@ -79,10 +79,10 @@ Failing test first: the head's `tests/card.mjs` against main's card file stops w
 
 ## Figures
 
-- `node tests/card.mjs`: ALL CARD CHECKS PASSED at 7fc5d3fa.
-- `node tests/card_drift.mjs $(git merge-base origin/main HEAD)`: "39 state(s) moved and claimed, 1 identical".
-- `NODE_PATH=<playwright> node tests/card_browser.mjs`: ALL BROWSER CHECKS PASSED at 7fc5d3fa, P9 grid MODE: FULL, including "P9 grid: no pop-up leaves the viewport or its chart", "P9 grid: no text is clipped where its ancestor cannot scroll to it", "R9-UX-1 the idle-step hover explains the step and stays inside the chart" (light, dark) and the U5 page check (12 pictures).
-- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at 7fc5d3fa: "MODE: SCOPED -- 11 script(s) run, 17 scoped out", "13 TEST SCRIPT(S) PASSED; 16 SCOPED OUT AND NOT RUN". Python 3.13 venv from `tests/requirements-ci.txt`, not the pinned 3.14.
+- `node tests/card.mjs`: ALL CARD CHECKS PASSED at 8f30964f (7fc5d3fa merged with main d536fb4d, the v6.7.13 stamp; the claim file keeps main's header at `claims-for: 6.7.13` and restates this branch's claims).
+- `node tests/card_drift.mjs $(git merge-base origin/main HEAD)` at 8f30964f (merge base d536fb4d): "39 state(s) moved and claimed, 1 identical".
+- `NODE_PATH=<playwright> node tests/card_browser.mjs`: ALL BROWSER CHECKS PASSED at 8f30964f, P9 grid MODE: FULL, including "P9 grid: no pop-up leaves the viewport or its chart", "P9 grid: no text is clipped where its ancestor cannot scroll to it", "R9-UX-1 the idle-step hover explains the step and stays inside the chart" (light, dark) and the U5 page check (12 pictures).
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at 8f30964f: "MODE: SCOPED -- 11 script(s) run, 17 scoped out", "13 TEST SCRIPT(S) PASSED; 16 SCOPED OUT AND NOT RUN". Python 3.13 venv from `tests/requirements-ci.txt`, not the pinned 3.14.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED (no Python changed; the card has no structure metric).
 - `node .claude/workflows/brief_lint.mjs`: TOTAL: 0 error(s), `carry-1795.json` 0 errors.
 - The idle-step example in the docs picture, from the repository fixture: 16:00, 2.85 SEK/kWh, among the dearest 17 % of the plan (cheapest 0.62), coasting on 00:00-05:00, next run 23:00 at 0.78; this is `idleWhyHtml` on `plan_view.py`'s plan, and the design's mockup predicted the same numbers.
