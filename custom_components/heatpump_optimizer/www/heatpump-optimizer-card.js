@@ -163,7 +163,7 @@ const STRINGS = {
 
     // chart / plan annotations
     "plan.now": "now",
-    "plan.now_temp": "now {temp} °C",
+    "plan.now_temp": "{temp} °C",
     "plan.space_blocked":
       "DHW only — no space heating: the house trace is the plan's promise, " +
       "not what the pump is executing.",
@@ -626,7 +626,7 @@ const STRINGS = {
       "Visas först när det finns tillräckligt med historik.",
 
     "plan.now": "nu",
-    "plan.now_temp": "nu {temp} °C",
+    "plan.now_temp": "{temp} °C",
     "plan.space_blocked":
       "Endast varmvatten — ingen rumsuppvärmning: hustemperaturen är planens " +
       "löfte, inte vad pumpen utför.",

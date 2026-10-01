@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, TypedDict
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -31,6 +31,7 @@ from .const import (
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_INDOOR_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
@@ -668,6 +669,17 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
             val = self.coordinator.data.get("indoor_temperature")
             return round(val, 1) if val is not None else None
         return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The thermometer this reading comes from (D4 side of the L1 lead).
+
+        The reading goes unavailable through a long thermometer silence while
+        the thermometer's own state is still valid, so the card needs its id
+        to draw the raw trace through that gap. ``None`` with no thermometer.
+        """
+        config = getattr(self.coordinator, "_config", None) or {}
+        return {"source_entity": config.get(CONF_INDOOR_TEMP_ENTITY) or None}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
@@ -2753,12 +2765,26 @@ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> floa
     return float(rate)
 
 
+class _GapTerms(TypedDict):
+    """The keyword terms ``rank_sensor_gaps`` takes from the probe series.
+
+    A named shape, not ``dict[str, float]``: unpacked with ``**`` a plain
+    float dict could, to the type checker, also supply the ``language`` str.
+    """
+
+    outdoor_load_kw: float
+    outdoor_hours: float
+    outdoor_price: float
+    dhw_extra_kwh: float
+    dhw_price: float
+
+
 def _gap_probe_terms(
     config: Mapping[str, Any],
     hp_vals: list[float],
     house_vals: list[float],
     rate: float,
-) -> dict[str, float]:
+) -> _GapTerms:
     """The COP-miss and DHW-coast inputs, from the series the payload carries.
 
     With no measured power series there is nothing to price, so every term
@@ -2776,7 +2802,7 @@ def _gap_probe_terms(
     band. That kWh figure is the documented tank sizing, not reheat energy
     observed in a series: the payload carries no DHW series to read one from.
     """
-    terms: dict[str, float] = {
+    terms: _GapTerms = {
         "outdoor_load_kw": 0.0,
         "outdoor_hours": 0.0,
         "outdoor_price": 0.0,
@@ -2837,6 +2863,7 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_price=float(peak.get("price_per_kw") or 45.0),
             peak_window=int(peak.get("window_minutes") or 60),
             peak_count=int(peak.get("peaks_averaged") or 3),
+            language=self.coordinator.hass.config.language,
             **_gap_probe_terms(
                 config,
                 hp,

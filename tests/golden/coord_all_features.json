@@ -1561,6 +1561,7 @@
        "dhw_tank"
       ]
      ],
+     "language": "en",
      "layout": "no_valve",
      "positions": {},
      "sensor_gaps": [
@@ -1970,7 +1971,9 @@
    "native_value": "unknown"
   },
   "indoor_temp": {
-   "extra_state_attributes": null,
+   "extra_state_attributes": {
+    "source_entity": null
+   },
    "native_value": 21.0
   },
   "lower_floor_temp": {
@@ -2482,6 +2485,7 @@
        "dhw_tank"
       ]
      ],
+     "language": "en",
      "layout": "no_valve",
      "positions": {},
      "sensor_gaps": [
