@@ -28,6 +28,7 @@ from .const import (
     CONF_DHW_TANK_VOLUME,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
+    CONF_INDOOR_TEMP_ENTITY,
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -668,6 +669,17 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
             val = self.coordinator.data.get("indoor_temperature")
             return round(val, 1) if val is not None else None
         return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The thermometer this reading comes from (D4 side of the L1 lead).
+
+        The reading goes unavailable through a long thermometer silence while
+        the thermometer's own state is still valid, so the card needs its id
+        to draw the raw trace through that gap. ``None`` with no thermometer.
+        """
+        config = getattr(self.coordinator, "_config", None) or {}
+        return {"source_entity": config.get(CONF_INDOOR_TEMP_ENTITY) or None}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):

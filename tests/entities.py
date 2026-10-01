@@ -2899,6 +2899,20 @@ R.check(
     and sensor.IndoorTempSensor(_blind_fake, ENTRY).native_value == 21.4,
     "gating everything would be as useless as gating nothing",
 )
+# D4 side of the L1 indoor-sensor lead (F6.4): the sensor names its
+# thermometer, so the card can draw the raw trace through a silence gap.
+_src_fake = FakeCoordinator(_blind)
+_src_fake._config = {"indoor_temp_entity": "sensor.indoor"}
+_src_none = FakeCoordinator(_blind)
+_src_none._config = {}
+R.check(
+    "the indoor sensor publishes its thermometer's id, None without one",
+    sensor.IndoorTempSensor(_src_fake, ENTRY).extra_state_attributes
+    == {"source_entity": "sensor.indoor"}
+    and sensor.IndoorTempSensor(_src_none, ENTRY).extra_state_attributes
+    == {"source_entity": None},
+    "an unconfigured thermometer must read as absent, never as an id",
+)
 # The upper floor is the one entity that is not gated on an input of its own,
 # because it has never had one: it follows the indoor thermometer, so it lives
 # and dies with the Indoor Temperature sensor rather than holding 21.4 on its
