@@ -42109,6 +42109,7 @@ class _T6Store:
     def __init__(self, payload=None):
         self.payload = payload
         self.saved: list = []
+        self.bounded: list = []  # what a QuarantiningStore reports it rewrote
 
     async def async_load(self):
         return self.payload
