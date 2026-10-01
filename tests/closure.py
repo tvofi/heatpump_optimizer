@@ -9,11 +9,15 @@ release-notes change reaches one script, a change to the card's JavaScript
 reaches six, a change to the optimizer reaches fourteen of sixteen.
 
 The closures are MEASURED, never declared. ``closure.py record`` runs a test
-script for real under two instruments at once:
+script for real under two instruments at once, and a third where it exists:
 
   * a ``sys.addaudithook`` hook that records every ``open`` the run performs,
-    every ``compile``/``exec`` of a file, and every subprocess it spawns; and
-  * ``sys.modules`` at the end of the run, filtered to files inside the repo.
+    every ``compile``/``exec`` of a file, and every subprocess it spawns;
+  * ``sys.modules`` at the end of the run, filtered to files inside the repo;
+    and
+  * ``strace -f`` over the run and every child it spawns, where ``strace``
+    exists (CI's Linux recorder): the hook sees one process, so a child's
+    reads reached the record as its argv alone (R9 D14-s5-01).
 
 The union of those, expressed as repo-relative paths, is the closure. That
 catches the things an import graph cannot see -- ``tests/golden/*.json``,
