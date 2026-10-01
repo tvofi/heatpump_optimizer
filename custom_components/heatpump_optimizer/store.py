@@ -100,7 +100,12 @@ def _sanitize(value: Any) -> Any:
 
 
 def _bound_instants(
-    value: Any, bound: datetime, where: str, naive_zone: tzinfo | None = timezone.utc
+    value: Any,
+    bound: datetime,
+    where: str,
+    naive_zone: tzinfo | None = timezone.utc,
+    hits: list[str] | None = None,
+    path: tuple[str | int, ...] = (),
 ) -> Any:
     """Bound every stored instant to ``bound``: none may lie beyond it.
 
@@ -114,7 +119,10 @@ def _bound_instants(
     is not one. A naive leaf is read in ``naive_zone``, the zone its loader
     reads it in, and bounded as a naive wall time there (``None``: the naive
     clock's own wall time). Only a leaf beyond the bound is rewritten, so a
-    healthy payload comes back unchanged.
+    healthy payload comes back unchanged. ``hits`` collects the ``/``-joined
+    path of every leaf it rewrote: a loader whose rule differs for a stamp
+    ahead of the clock (the outage heartbeat, card C13) reads it there, since
+    the bound leaves it equal to now.
     """
     if isinstance(value, str) and len(value) >= 16 and value[10:11] in ("T", " "):
         try:
@@ -131,11 +139,19 @@ def _bound_instants(
             "%s: stored instant %s is ahead of the clock; bounded to %s",
             where, value, clamped,
         )
+        if hits is not None:
+            hits.append("/".join(map(str, path)))
         return clamped.isoformat()
     if isinstance(value, dict):
-        return {k: _bound_instants(v, bound, where, naive_zone) for k, v in value.items()}
+        return {
+            k: _bound_instants(v, bound, where, naive_zone, hits, path + (k,))
+            for k, v in value.items()
+        }
     if isinstance(value, list):
-        return [_bound_instants(child, bound, where, naive_zone) for child in value]
+        return [
+            _bound_instants(child, bound, where, naive_zone, hits, path + (i,))
+            for i, child in enumerate(value)
+        ]
     return value
 
 
@@ -490,6 +506,8 @@ class QuarantiningStore(Store[_StorePayload]):
         super().__init__(*args, **kwargs)
         self._lead = lead
         self._naive_zone = naive_zone
+        #: Paths of the instants the last load rewrote to the bound.
+        self.bounded: list[str] = []
 
     async def async_load(self) -> _StorePayload | None:
         self._reading = reading = asyncio.get_running_loop().create_future()
@@ -498,7 +516,8 @@ class QuarantiningStore(Store[_StorePayload]):
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
-                data = _bound_instants(data, bound, where, self._naive_zone)
+                self.bounded = hits = []
+                data = _bound_instants(data, bound, where, self._naive_zone, hits)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:

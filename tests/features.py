@@ -627,6 +627,15 @@ def _fi_outage(stamp):
     return c._outage_recovery_until is not None
 
 
+def _fi_outage_direct(stamp):
+    """FI-sw3, a caller that bypasses the store's bound: the stamp as written."""
+    c = _fi_restart(
+        _FI_T0 + timedelta(hours=6), lambda k: k._energy_store, {},
+        lambda k: k._async_load_energy_totals())
+    c._detect_outage(stamp.isoformat())
+    return c._outage_recovery_until is not None
+
+
 try:
     _fi_got = {
         "fuse ahead": _fi_fuse_held(_FI_T0 + timedelta(days=5), _FI_T0 + timedelta(days=10)),
@@ -642,6 +651,8 @@ try:
         "outage ahead by a minute": _fi_outage(_FI_T0 + timedelta(hours=6, minutes=1)),
         "outage plain restart": _fi_outage(_FI_T0 + timedelta(hours=6) - timedelta(minutes=10)),
         "outage at now": _fi_outage(_FI_T0 + timedelta(hours=6)),
+        "outage unbounded ahead": _fi_outage_direct(_FI_AHEAD),
+        "outage unbounded honest": _fi_outage_direct(_FI_T0 + timedelta(hours=5, minutes=50)),
     }
 finally:
     _fi_dt.freeze(None)
@@ -681,7 +692,9 @@ R.check(
     and _fi_got["outage ahead by a minute"] is True
     and _fi_got["outage cut"] is True
     and _fi_got["outage plain restart"] is False
-    and _fi_got["outage at now"] is False,
+    and _fi_got["outage at now"] is False
+    and _fi_got["outage unbounded ahead"] is True
+    and _fi_got["outage unbounded honest"] is False,
     f"{ {k: v for k, v in _fi_got.items() if k.startswith('outage')} }",
 )
 

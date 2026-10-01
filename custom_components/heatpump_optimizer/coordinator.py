@@ -7775,7 +7775,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(since, str) and since:
             self._energy_totals_since = since
         # A long silence before this restart reads as a power cut (#22).
-        self._detect_outage(stored.get("last_tick"))
+        self._detect_outage(
+            stored.get("last_tick"), "last_tick" in self._energy_store.bounded
+        )
 
     async def _async_save_energy_totals(self) -> None:
         try:
@@ -8531,8 +8533,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ):
             return False
         return True
-    def _detect_outage(self, last_tick_iso: str | None) -> None:
-        """Open the staggered-recovery window after a real gap (#22)."""
+    def _detect_outage(self, last_tick_iso: str | None, ahead: bool = False) -> None:
+        """Open the staggered-recovery window after a real gap (#22).
+
+        A heartbeat ahead of the clock (a clock that ran ahead, or was set
+        back) has no knowable gap, and the store has bounded it to now, so
+        ``ahead`` carries what the bound hid: it reads as an outage (tvofi,
+        card C13: #775's rule).
+        """
         if not getattr(self, "_ctx", self)._config.get(
             CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED
         ):
@@ -8547,7 +8555,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if last.tzinfo is None and now.tzinfo is not None:
             last = last.replace(tzinfo=now.tzinfo)
         gap_minutes = _utc_age_seconds(now, last) / 60.0
-        if gap_minutes <= OUTAGE_GAP_MINUTES:
+        ahead = ahead or gap_minutes < 0.0
+        if gap_minutes <= OUTAGE_GAP_MINUTES and not ahead:
             return
         self._outage_recovery_until = utc_shift(now, timedelta(
             hours=OUTAGE_RECOVERY_HOURS
@@ -8556,10 +8565,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             minutes=OUTAGE_DHW_DELAY_MINUTES
         ))
         _LOGGER.warning(
-            "Update gap of %.0f minutes reads as an outage; staggered "
+            "%s reads as an outage; staggered "
             "recovery active for %.1f h (hot water queued %.0f min behind "
             "space heating)",
-            gap_minutes,
+            "A heartbeat ahead of the clock"
+            if ahead
+            else f"Update gap of {gap_minutes:.0f} minutes",
             OUTAGE_RECOVERY_HOURS,
             OUTAGE_DHW_DELAY_MINUTES,
         )
