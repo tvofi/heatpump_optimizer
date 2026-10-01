@@ -1,5 +1,41 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.13
+
+round 9 continues: the coordinator lane lands currency and unit seams with config-entry identity (F1.8), its regression pins (F1.9) and one floor per thermal parameter with a single horizon clock (F1.10); the DST barrier is completed across the census — config and straddle arms, then two sweeps of fold fixes (F10.1c, F10.1d, F10.1e); the CPU gate sees the event loop and valve plants (F10.2); gate infrastructure and its verdicts are lifted into pinned functions (F10.3); card hit-targets, language and the header, tile and chart work (F6.3, F6.4, UI-1 to UI-4); and the process changes tvofi adopted: carried merge-deltas, delivery rows at open, a closure-scoped gate with coverage reuse, a harness timeout bound by CPU, a nightly-status reader that re-asks, and inherited claims read as no-claim (PROC-1, PROC-3, PROC-5, F10.8, F10.9, F10.9b, F10.11).
+
+- #1785 — fix: every store loader holds its stored fields to their declared domains (round-9 F9.3)
+- #1786 — fix: EG-B8, the DHW usage profile keeps its co-optimisation block (round-9 EG-B8)
+- #1787 — record: root cause of #1747 (R9-RCA-1747), with its carries to F1.11 and EG-B5
+- #1788 — fix: the P10 barrier and the coordinator's round-9 F1.7 fixes
+- #1790 — tests: the repository layout check, report-only (round-9 RO-1)
+- #1794 — policy(fix-review): reviewers cite CI's heavy runs; cheap re-runs stay theirs
+- #1796 — record: rows for #1784-#1790 and #1794 merged
+- #1797 — feat(brand): the dusk icon and logo set, package icon and SVG masters (round-9 UI-1)
+- #1799 — fix: currency and unit seams, and config-entry identity (round-9 F1.8)
+- #1800 — tests: the aware-default hastub clock and storage fixes, contract rows and fixture seeds (round-9 F10.1b)
+- #1801 — docs(readme): banner, badges, at-a-glance table and how-it-works figure (round-9 UI-2)
+- #1802 — fix: card slot hit-targets never overlap and cover their own ink; the P9 grid scoped by plan_view.py's measured closure (round-9 F6.3, #1652)
+- #1803 — fix: the CPU gate sees the event-loop share (loop_cpu_ratio) and non-kernel solve work; the sweep builds three summer valve plants (round-9 F10.2, #1656 #1653)
+- #1804 — fix: the P7 DST tracer gains config and straddle arms; manual overrides last their stated true hours across both transitions (round-9 F10.1c, #1756)
+- #1805 — tests: regression pins for the instances F3.1 closed, and the outage branch tvofi decided (round-9 F1.9, #1660)
+- #1806 — fix: setup text and diagram take the install's language; the indoor sensor publishes its source entity; shorter now-temp label (round-9 F6.4, #1687)
+- #1808 — fix: one floor per thermal parameter, one on-threshold owner, one horizon clock (round-9 F1.10)
+- #1809 — fix: the census-missed P7 DST raw sites measured and fixed with fold checks (round-9 F10.1d)
+- #1810 — fix: gate infrastructure — the class barriers I1 and I2 and the drift and stress verdicts lifted into pinned functions (round-9 F10.3, #1646 #1663 #1748)
+- #1811 — fix(F10.8): only the claim lines a branch wrote are judged or excuse drift
+- #1813 — fix(nightly-status): corroborate a stale listing before reporting ABSENT
+- #1814 — docs: card header, pill states, stat tiles and legend; page screenshots in both themes (R9-UI-3, U5)
+- #1815 — gate: scope closures.json edits and dst_checks re-derives; true NOT RUN log (R9-F10.9, part of #1812)
+- #1816 — fix: DST fold and straddle fixes for the 14 misfiring raw sites F10.1d measured (round-9 F10.1e)
+- #1817 — R9-UI-4: series token checks; regenerate the hero and Plan page screenshots
+- #1818 — briefs: carry clean merge-deltas, wake on job exit, merge rather than re-cut (R9-PROC-1)
+- #1819 — tests: bound harness_headers children by CPU seconds, not wall (F10.11)
+- #1820 — process: prepr runs its own self-test and refuses transport files in the code head's ancestry; PR bodies travel on an orphan ref and the orchestrator writes delivery rows at open (round-9 PROC-3)
+- #1821 — R9-PROC-5: stop appending to RESUME.md, read the roster through jq, route mechanical turns cheaper
+- #1822 — gate: coverage on reachable scripts with main's coverage reused, plus the holistic CI pass (R9-F10.9b, closes #1812)
+- #1828 — record: delivery rows for the 11 merges no branch rowed (#1802-#1816) and #1808's open row
+
 ## v6.7.12
 
 round 9 continues: a refresh requested during a solve is now honoured and the worker-fallback cap is kept per entry (EG-B10); the solver's seed set and stop tolerance bracket the optimum again, with no planned-heat switch-offs in the finder's scenarios (F2.4); the split entity families now lead with their family token in English and Swedish (F7.5); the legacy-programme verdicts and the rev-3.1 record corrections.

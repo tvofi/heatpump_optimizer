@@ -54,11 +54,16 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.12
+# claims-for: 6.7.13
 #
-# v6.7.11: round-9 F1.5/F1.6 coordinator barrier wave, F7.2/F7.4 entity waves, EG-B9, the register onto main, record-class self-disposal. The stamp empties the list; the
+# v6.7.13: round 9: coordinator seams, the DST barrier completed, CPU gate, card and chart work, adopted process changes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+coord_all_features # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_dhw # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_grid_fee # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_minimal # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_two_zone # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -655,8 +660,3 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
-coord_all_features # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
-coord_dhw # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
-coord_grid_fee # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
-coord_minimal # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
-coord_two_zone # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved

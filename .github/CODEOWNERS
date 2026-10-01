@@ -59,6 +59,11 @@
 # self-test, and only ownership stops that (#1583 review, the tally-forgery gap).
 /.claude/workflows/budget_raise_gate.py   @tvofi
 /.claude/workflows/contract_rerun.py      @tvofi
+# The merge fast path decides when a pull request merges without a fresh CI
+# run (round-9 process review item 2B); the orchestrator runs main's copy, and
+# its self-test cannot stop a pull request that weakens a class and its fixture
+# together, which only ownership does.
+/tools/audit/merge_fastpath.py            @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset

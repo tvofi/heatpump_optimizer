@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.12
+# claims-for: 6.7.13
 #
-# v6.7.12: round 9: solve-lifecycle, solver F2.4, family renames. The stamp empties the list; the
+# v6.7.13: round 9: coordinator seams, the DST barrier completed, CPU gate, card and chart work, adopted process changes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -657,42 +657,3 @@
 # shared-step hatch in the power panel, series painted through their tokens,
 # the now-temperature reading in the temperature panel. editor_schema renders
 # no card markup and is byte-identical.
-no_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-no_plan_expanded # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_inline # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_inline_sv # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-plan_short_window # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-custom_title_currency # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-hidden_series # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-score_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-expanded_plan # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-what_if_off # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-expanded_zoomed # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-draft_dirty_menu_open # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-draft_mid_drag # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-whatif_edited # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-whatif_weekly # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-override_active # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-shared_steps # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-shared_steps_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-tooltip_hover # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-coarse_pointer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-reduced_motion # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_single_buffer # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_two_tank # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-setup_coil # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-advisor_page # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-layout_editing_dragged # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-layout_editing_tidy # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-picker_open_filtered # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_alert # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_lane # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-wood_whatif # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_toggle # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_return # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-away_status # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_deep_panned # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_no_power # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_unavailable # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
-history_pending # R9-UI-4: series and plot tokens; three-panel chart and palette where drawn
