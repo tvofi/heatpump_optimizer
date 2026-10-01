@@ -136,7 +136,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh` names them), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). A verdict posts only on `bus.sh confirm`, on the coordinator's relay from the reviewer's thread: one push credential, so a ref proves no reviewer. The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh` names them), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). A verdict posts only on its dispatcher's record and confirmation, read from the reviewer's own output (`bus.sh`): seats share one push credential. The retired account makes no GitHub write: its writes can vanish and purge retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
