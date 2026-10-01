@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 
 class _ShowFormParent(Protocol):
+    hass: Any
+
     def async_show_form(
         self,
         *,
@@ -2279,7 +2281,7 @@ def _setup_overview_form(
     last_step: bool | None = None,
 ) -> ConfigFlowResult:
     """Read-only picture of ``data`` — the same text Options already shows."""
-    setup = topology.describe_setup(dict(data))
+    setup = topology.describe_setup(dict(data), flow.hass.config.language)
     return flow.async_show_form(
         step_id="setup_overview",
         data_schema=vol.Schema({}),

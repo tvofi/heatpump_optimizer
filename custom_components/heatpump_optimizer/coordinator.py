@@ -1375,7 +1375,8 @@ async def _with_sensor_advisor(
     config = dict(getattr(coordinator, "_ctx", coordinator)._config)
     try:  # hp_kw positional: the worker call ships a named function
         ranking = await _await_off_loop(
-            coordinator.hass, topology.rank_sensor_advisor, config, hp_kw
+            coordinator.hass, topology.rank_sensor_advisor, config, hp_kw,
+            coordinator.hass.config.language,
         )
     except Exception as err:  # noqa: BLE001 - an advisory never fails the cycle
         _LOGGER.debug("Sensor advisor ranking skipped: %s", err)
@@ -7493,7 +7494,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         what the system looks like. Pure over configuration — not part of
         the data dict, because it only changes when the config does.
         """
-        return topology.describe_setup(getattr(self, "_ctx", self)._config)
+        return topology.describe_setup(getattr(self, "_ctx", self)._config, self.hass.config.language)
 
     def _mixing_valve_view(self) -> dict[str, Any]:
         """The valve mode in force, and what a dumb valve should be set to.

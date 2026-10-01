@@ -10542,6 +10542,44 @@ R.check(
     and "dhw_tank" not in {s["place"] for s in _off_dhw["slots"]},
 )
 
+R.section("R9 N-language: setup text takes the install's language (D4-s2-81)")
+_sv_full = _topo.describe_setup(_full_cfg, "sv")
+_en_labels = {s["key"]: s["label"] for s in _full["slots"]}
+_sv_labels = {s["key"]: s["label"] for s in _sv_full["slots"]}
+R.check(
+    "every slot label differs from English on a Swedish install",
+    _sv_labels.keys() == _en_labels.keys()
+    and all(_sv_labels[k] != _en_labels[k] for k in _en_labels),
+    f"unchanged: {[k for k in _en_labels if _sv_labels.get(k) == _en_labels[k]]}",
+)
+_sv_text = _topo.render_text_summary(_sv_full)
+_en_words = ("not configured", "House:", "Heat pump", "Buffer tank",
+             "Mixing valve", "Hot water tank", "Outside", "Wood furnace tank")
+R.check(
+    "the text summary carries no English heading on a Swedish install",
+    not any(w in _sv_text for w in _en_words)
+    and "Värmepump" in _sv_text and "Ute" in _sv_text,
+    _sv_text,
+)
+R.check(
+    "null control: English and an unknown language read as before",
+    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "de"))
+    == _text_en_ref
+    if (_text_en_ref := _topo.render_text_summary(_full)) else False,
+)
+R.check(
+    "the layout catalog and sensor gaps follow the language too",
+    all(e["label"] != n["label"]
+        for e, n in zip(_full["catalog"], _sv_full["catalog"]))
+    and all(e["label"] != n["label"]
+            for e, n in zip(_full["sensor_gaps"], _sv_full["sensor_gaps"])),
+)
+R.check(
+    "a region-tagged Swedish locale counts as Swedish",
+    _topo.describe_setup(_full_cfg, "sv-SE")["slots"][0]["label"]
+    == _sv_full["slots"][0]["label"],
+)
+
 _text = _topo.render_text_summary(_full)
 R.check(
     "every assignable slot carries the domains it accepts",

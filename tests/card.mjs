@@ -9458,8 +9458,11 @@ nowStates[DEFAULT_SPACE].attributes.forecast =
   plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
 const nowCard = build(nowStates);
 const nowDump = collect(nowCard.shadowRoot).join("\n");
-check("a live indoor reading shows the corner now temperature",
-  /now 16\.8/.test(nowDump));
+check("a live indoor reading shows the corner now temperature, without a second 'now'",
+  /text="16\.8 °C"|>16\.8 °C</.test(nowDump) && !/now 16\.8/.test(nowDump));
+check("the default live view draws exactly one 'now' for the current moment",
+  (nowDump.match(/class="now-label"/g) || []).length === 1
+    && !/now [\d.]+ °C/.test(nowDump));
 check("without an indoor reading the corner now label is absent",
   !/now-temp/.test(dump));
 
