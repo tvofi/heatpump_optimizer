@@ -63,3 +63,10 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - Cloud fixers: R9-F1.8 (opus, handoff/r9-f1-coordinator-8), R9-F10.1b (sonnet, handoff/r9-f10-1b), both on base 5dfa6684; R9-UI-1 (sonnet). Roster handoff/audit-r9-fixplan 1c3558f0: 42 done, 47 not-started; nothing else is unblocked.
 - Merge-gate rule (tvofi 20:00-20:10Z): reviewers cite the head's CI and never re-run the gate or mutation table. Merge only on CI green at a head containing current main; if main moved, merge main and wait. Balance speed against first-pass yield: 2-3 verdict-ready PRs per main merge, one at a time after a red; dispatch in parallel only non-overlapping groups whose after-edges are met.
 - Worktrees on the Mac: the main checkout plus pol-review-reuse; nothing else.
+
+## LIVE STATE 2026-10-01T04:58Z (restarted Mac session)
+
+- main d62b99a5; roster 404ea756 (45 done).
+- #1799 F1.8 at 65814159 (contains main): all green except budget-raise-gate (red pending owner review). Round-6 merge verdict posted as hpo-approver, comment 5924987560, read back identical; it affirms the 116→117 raise as architecturally right.
+- Mandate: NOT yet re-confirmed for this session. Asked tvofi in the fix thread (cmsg_01EL5jLi4rokGBbkaevYXSJVTfLK8mjBTxvGekKRYxRv52). On "yes": approve as tvofi at 65814159 (grounds only), confirm budget-raise-gate green, merge --match-head-commit, roster F1.8 done, then dispatch F10.2 (opus) + F10.1c (sonnet), then F1.9 + F6.3.
+- Nothing else dispatchable: EG-B0 is rca-done with no next step.
