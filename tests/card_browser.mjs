@@ -372,7 +372,10 @@ async function cardPages({ browser, check, plan, out }) {
     await ctx.clock.setFixedTime(FROZEN);
     const page = await ctx.newPage();
     try {
-      for (const view of ["tile", "plan", "setup", "savings", "advisor"]) {
+      // "plan-why" is the Plan page with the pointer on the dearest idle
+      // space-heating step, so the "likely because" hover (R9-UX-1) is
+      // documented from the code rather than from a hand capture.
+      for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor"]) {
         await page.goto("about:blank");
         await page.addScriptTag({ path: CARD_SRC });
         await page.evaluate(([themeCss, st, dark, view]) => {
@@ -386,13 +389,28 @@ async function cardPages({ browser, check, plan, out }) {
           document.body.appendChild(card);
           card.setConfig({ type: "custom:heatpump-optimizer-card" });
           card.hass = { states: st, language: "en", themes: { darkMode: dark } };
-          if (view !== "tile") { card._onCardClick({}); card.dialog.page = view; card._render(); }
+          if (view !== "tile") { card._onCardClick({}); card.dialog.page = view === "plan-why" ? "plan" : view; card._render(); }
           window.__card = card;
         }, [THEMES[theme], states, theme === "dark", view]);
         await page.waitForTimeout(250);
         // Opening a page focuses its tab; a picture of the page should not
         // show a focus ring on a tab the reader did not press.
         await page.evaluate(() => { const a = window.__card.shadowRoot.activeElement; if (a) a.blur(); });
+        if (view === "plan-why") {
+          const at = await page.evaluate(() => {
+            const c = window.__card, plot = c._plot;
+            const svgs = [...c.shadowRoot.querySelectorAll("dialog[open] .chartwrap svg")];
+            const svg = svgs[svgs.length - 1];
+            const fc = c.hass.states["sensor.heat_pump_optimizer_plan_space_heating"].attributes.forecast;
+            const top = Math.max(...fc.map((p) => p.price));
+            const f = fc.find((p) => p.price === top && !(Number(p.space_power) > 0.05) && Date.parse(p.t) >= Date.now());
+            if (!svg || !plot || !f) return null;
+            const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+            return { x: r.left + (plot.scaleX(Date.parse(f.t) + 450000) / vb.width) * r.width, y: r.top + r.height * 0.45 };
+          });
+          if (at) { await page.mouse.move(at.x, at.y); await page.waitForTimeout(120); }
+          shots.push({ name: "plan-why hover target", ok: !!at, bytes: 0, probe: true });
+        }
         const target = view === "tile" ? page.locator("heatpump-optimizer-card")
           : page.locator("heatpump-optimizer-card dialog[open]");
         const shot = await target.screenshot({ type: "png" });
@@ -407,8 +425,9 @@ async function cardPages({ browser, check, plan, out }) {
       await ctx.close();
     }
   }
-  check("U5 page-screenshot mode takes the tile and all four pages in both themes",
-    shots.length === 10 && shots.every((s) => s.ok),
+  const pics = shots.filter((s) => !s.probe);
+  check("U5 page-screenshot mode takes the tile, all four pages and the idle-step hover in both themes",
+    pics.length === 12 && shots.every((s) => s.ok),
     shots.filter((s) => !s.ok).map((s) => `${s.name} ${s.bytes} bytes`).join(", "));
 }
 
