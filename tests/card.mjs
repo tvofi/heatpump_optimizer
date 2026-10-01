@@ -3056,6 +3056,132 @@ check("the hand-scheduled reason has a label",
     "a new HTML control joins the floor or ships below it");
 }
 
+// --- Scenario: the advisor inbox (R9-UX-2, #1795) ---------------------------
+//
+// The Advisor tab leads with an inbox ranked by monthly value, read from the
+// advisor sensors that are on by default, with actions through the services
+// the card already calls. An advisor that is off by default is offered, never
+// read: tests/entities.py refuses a card read of one.
+{
+  const PFX = "sensor.heat_pump_optimizer";
+  const inboxStates = () => {
+    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    s[DEFAULT_SPACE].attributes.setup_topology = {
+      two_zone: true, dhw: true, valve_mode: "manual",
+      buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+      wood: { present: false, volume_l: 500 }, edges: [],
+      slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: ["sensor"] }],
+    };
+    s[`${PFX}_sensor_gap_advisor`] = { state: "180", last_updated: "t1", attributes: {
+      top_slot: "lower_floor_temp_entity",
+      gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        empty: true, sek_per_month: 180 }] } };
+    s[`${PFX}_dhw_setpoint_advisor`] = { state: "52", last_updated: "t1", attributes: {
+      current_setpoint: 60, recommended_setpoint: 52, covers_heaviest_window: true,
+      candidates: [{ setpoint: 60, cost_per_day: 12.0, meets_heaviest_window: true },
+                   { setpoint: 52, cost_per_day: 10.5, meets_heaviest_window: true }] } };
+    s[`${PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
+      reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
+    return s;
+  };
+  const mkInbox = (states, lang) => {
+    const calls = [];
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states, ...(lang ? { language: lang } : {}),
+      callService: async (...a) => { calls.push(a); } };
+    c._onCardClick({});
+    c.dialog.page = "advisor";
+    c._render();
+    return { c, calls, html: () => collect(c.shadowRoot).join("\n") };
+  };
+  const press = async (c, sel) => {
+    const el = c.shadowRoot.querySelector(sel);
+    if (el) await Promise.all(
+      (el._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+    return el;
+  };
+
+  const { c, calls, html } = mkInbox(inboxStates());
+  const page = html().slice(html().indexOf('advisor-page"'));
+  check("the inbox has a Worth doing section",
+    /Worth doing/.test(page));
+  const at = (s) => page.indexOf(s);
+  check("rows rank by monthly value: gap 180 > hot water 45 > valve (no money)",
+    at("Lower floor temperature") > 0
+    && at('data-act="assign"') < at('data-act="open_schedule"')
+    && at('data-act="open_schedule"') < at('data-act="apply_valve"'),
+    "sensor gap 180/mo, hot-water setpoint (12.00-10.50)*30 = 45/mo, valve unpriced");
+  check("a priced row shows its monthly value as an estimate",
+    /180/.test(page) && /45/.test(page) && /≈/.test(page));
+  check("today's sensor ranking still follows on the page",
+    /Sensors that would tighten the model/.test(page) || /already configured/.test(page));
+
+  await press(c, '[data-act="assign"]');
+  check("Assign sensor opens the setup picker for the gap's top slot",
+    c.dialog.activePage() === "setup" && c.setup.pickerKey === "lower_floor_temp_entity",
+    `page=${c.dialog.activePage()} picker=${c.setup.pickerKey}`);
+
+  const v = mkInbox(inboxStates());
+  await press(v.c, '[data-act="apply_valve"]');
+  check("Apply on the valve target calls assign_entity with a manual setpoint",
+    v.calls.length === 1 && v.calls[0][0] === "heatpump_optimizer"
+    && v.calls[0][1] === "assign_entity"
+    && JSON.stringify(v.calls[0][2]) === JSON.stringify({
+      key: "mixing_valve_target_entity", entity_id: "", manual_setpoint: 21.5 }),
+    JSON.stringify(v.calls));
+
+  const d = mkInbox(inboxStates());
+  await press(d.c, '[data-act="open_schedule"]');
+  check("the hot-water row opens the schedule editor, and calls no service",
+    d.c.dialog.activePage() === "plan" && d.calls.length === 0);
+
+  check("off-by-default advisors are offered as enable-to-see rows",
+    /data-act="settings"/.test(page) && /wood/i.test(page) && /fuse/i.test(page)
+    && /frequency/i.test(page));
+  const readIds = Object.keys(inboxStates());
+  check("the card never reads a disabled-by-default advisor",
+    !readIds.some((id) => /wood_burn|compressor_frequency/.test(id))
+    && !/_wood_burn_advisor|_compressor_frequency_advisor/.test(
+      cardSrc.slice(cardSrc.indexOf("const ADVISOR_SUFFIXES"),
+        cardSrc.indexOf("const ADVISOR_SUFFIXES") + 400)),
+    "tests/entities.py refuses a card read of one");
+
+  // States: waiting, error, empty.
+  const w = inboxStates();
+  w[`${PFX}_dhw_setpoint_advisor`] = { state: "unavailable", attributes: { waiting_for: "first_dhw_cycle" } };
+  const waitHtml = mkInbox(w).html();
+  check("an advisor that is waiting shows its own reason",
+    /first_dhw_cycle/.test(waitHtml.slice(waitHtml.indexOf('advisor-page"'))));
+  const e = inboxStates();
+  e[`${PFX}_valve_target_recommendation`] = { state: "unavailable", attributes: { reason: "no_price" } };
+  const errHtml = mkInbox(e).html();
+  check("an unavailable advisor says so, with the reason from its attributes",
+    /This advice is unavailable right now/.test(errHtml) && /no_price/.test(errHtml));
+  const z = inboxStates();
+  delete z[`${PFX}_sensor_gap_advisor`];
+  delete z[`${PFX}_dhw_setpoint_advisor`];
+  delete z[`${PFX}_valve_target_recommendation`];
+  const emptyHtml = mkInbox(z).html();
+  check("with nothing to do the inbox says the plan is already as cheap as settings allow",
+    /Nothing to do: the plan is already as cheap as your settings allow/.test(emptyHtml)
+    && !/data-act="assign"|data-act="apply_valve"|data-act="open_schedule"/.test(emptyHtml));
+
+  // The render signature follows the advisor sensors (their own list, not
+  // HEADLINE_SUFFIXES): a gap that changes value must redraw the page.
+  const sig1 = c._signature();
+  const st2 = inboxStates();
+  st2[`${PFX}_sensor_gap_advisor`] = { ...st2[`${PFX}_sensor_gap_advisor`], state: "90", last_updated: "t2" };
+  c.hass = { states: st2, callService: async () => {} };
+  check("the card's render signature includes the advisor sensors",
+    c._signature() !== sig1 && /const ADVISOR_SUFFIXES/.test(cardSrc));
+
+  const sv = mkInbox(inboxStates(), "sv-SE");
+  check("the inbox speaks Swedish",
+    /Värt att göra/.test(sv.html()));
+}
+
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
 //
 // The editor's whole promise is that a drawing cannot claim physics the model
