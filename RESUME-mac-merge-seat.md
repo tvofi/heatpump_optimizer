@@ -120,3 +120,16 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - Tools in /private/tmp/audit-7/r9-mac: openpr.sh, movepr.sh (tolerates delivery rows, adds a Head line when PR head != code head), mergemain.sh, carry.sh, addrow.sh, automerge.sh; real-HA venv ha-venv.
 - Open: #1823 (auto-merging), #1808 F1.10 (main carried for the F10.11 fix, auto-merging), #1824 (auto-merging after #1822). Seats in flight: UX-1, PROC-4, F10.9c stage 2.
 - Close-out stamp v7.0.0 when only #201 remains.
+
+## LIVE STATE 2026-10-01T20:15Z
+
+- **v6.7.13 stamped** at 4ac63b0a (31 PRs, #1785 to #1828), using `stamp.py --bump patch --title ... --push --push-key ~/.zcode/stamp-deploy.key` after writing the `## v6.7.13` notes section by hand.
+- Merged since 18:45: #1808 (e1ded322), #1828 record rows (30031add), plus #1821, #1820, #1822, #1816, #1819, #1817. The delivery backlog is drained; delivery_status is OK.
+- Open:
+  - #1823 (F10.9c stage 1): main merged in, with same-file auto-merges, so a reviewer delta is owed.
+  - #1824 (stage 3): carried at 29c3eef7, auto-merging.
+  - #1829 (PROC-4): blocked on provenance. Never run `bus.sh watch --post` until a fixed version merges.
+  - #1830 (UX-1): blocked, fixer reworking.
+  - F1.11: fixer started.
+  - F10.9c stage 2: not opened; it rides on stage 1.
+- automerge.sh ignores the advisory checks delivery-status and nightly-status, and cancelled runs. delivery-status grades the PR's own tree, so a PR needs main merged in to see new record rows.
