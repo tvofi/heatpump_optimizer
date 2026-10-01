@@ -70,3 +70,10 @@ Local dirs likely pruned by gc — remote branches are truth: handoff/r9-f7-fami
 - #1799 F1.8 at 65814159 (contains main): all green except budget-raise-gate (red pending owner review). Round-6 merge verdict posted as hpo-approver, comment 5924987560, read back identical; it affirms the 116→117 raise as architecturally right.
 - Mandate: NOT yet re-confirmed for this session. Asked tvofi in the fix thread (cmsg_01EL5jLi4rokGBbkaevYXSJVTfLK8mjBTxvGekKRYxRv52). On "yes": approve as tvofi at 65814159 (grounds only), confirm budget-raise-gate green, merge --match-head-commit, roster F1.8 done, then dispatch F10.2 (opus) + F10.1c (sonnet), then F1.9 + F6.3.
 - Nothing else dispatchable: EG-B0 is rca-done with no next step.
+
+## LIVE STATE 2026-10-01T05:32Z
+
+- Mandate re-granted for this restarted session: tvofi "Yes" 05:03Z (cmsg_01EL5jLi4rokGBbkaevYXSJVS8fNNhePWz99QDCstHr3RM). The auto-mode classifier denied `gh api POST .../reviews APPROVE` as tvofi, so tvofi approved #1799 themselves and added `"permissions":{"allow":["Bash(gh pr review *)"]}` to ~/.claude/settings.json. From the next session, approve with `gh pr review N --approve --body ...`, not gh api.
+- #1799 F1.8 merged 6793659c (it was still a draft: run `gh pr ready` before merging). #1657 closed. Roster ada74d99 marks F1.8 done.
+- Ready set sent to the coordinator for dispatch, all parallel: F10.2 (opus), F1.9 (sonnet), F6.3 (opus per its brief text), F10.1c (sonnet). The only shared files are bugclasses.json and S5.json, which are append-only.
+- No PRs open from this seat. Next: post the hpo-approver verdicts as they arrive, merge in batches of 2-3, and after each merge mark the roster and dispatch the next group (F1.10, F6.4, F10.3).
