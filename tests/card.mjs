@@ -7672,33 +7672,63 @@ const setupBox = (card, place) =>
   }
 }
 
-// --- C1 (#558): series colours must survive colour-blindness --------------
+// --- C1 (#558) and D4 (#1791): series colours must survive colour-blindness --
 // D4-08 above asks each colour to read against the CARD. This asks the
 // colours to read against EACH OTHER, which is what tells one line from
-// another, and it asks it of a deuteranope -- the commonest form, and the
-// one that collapses exactly the amber/gold axis this palette leans on.
+// another. #558 asked it of a deuteranope -- the commonest form, and the one
+// that collapses the amber/gold axis the old palette leaned on. tvofi's D4
+// (2026-09-30, #1791) extends it to protanopia and tritanopia.
+//
+// Two design choices, stated (`tools/audit/briefs/fixer.md` step 11):
+// - The pairs are the series drawn in ONE PANEL (`panel` in SERIES_DEFS,
+//   R9-UI-4's concept A). Two series in different panels never share a y
+//   range or a stretch of plot, so their colours are not what tells them
+//   apart. A tree without `panel` draws every series on one plot, and every
+//   pair is compared.
+// - Each theme's own colours: `colorDark` where a series has one. A dark
+//   card never shows a light colour, so a light/dark pair is not compared.
+//
+// The simulations: deuteranopia and protanopia by Vienot 1999's reduced
+// model (one LMS plane each); tritanopia by Machado 2009 at severity 1,
+// because the reduced model has no tritan plane and the one-plane tritan
+// shortcut collapses blue against green that the dichromat keeps apart.
 {
   const hex = (h) => {
     const n = parseInt(h.slice(1), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
-  // Vienot 1999 reduced model: project onto the deuteranope's surface in
-  // LMS, then back to sRGB.
   const g = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
   const ug = (v) => {
     v = v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055;
     return Math.min(255, Math.max(0, v * 255));
   };
-  const deuter = (c) => {
+  // Vienot 1999: into LMS, replace the missing cone's signal by its plane
+  // through the other two, back to sRGB.
+  const vienot = (lose) => (c) => {
     const [R, G, B] = [g(c[0]), g(c[1]), g(c[2])];
-    const L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    let L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    let M = 3.45565 * R + 27.1554 * G + 3.86714 * B;
     const S = 0.0299566 * R + 0.184309 * G + 1.46709 * B;
-    const M = 0.494207 * L + 1.24827 * S;
+    if (lose === "M") M = 0.494207 * L + 1.24827 * S;
+    else L = 2.02344 * M - 2.52581 * S;
     return [
       ug(0.080944 * L - 0.130504 * M + 0.116721 * S),
       ug(-0.0102485 * L + 0.0540194 * M - 0.113615 * S),
       ug(-0.000365294 * L - 0.00412163 * M + 0.693513 * S),
     ];
+  };
+  const deuter = vienot("M");
+  const protan = vienot("L");
+  // Machado, Oliveira and Fernandes 2009, tritanomaly at severity 1.0,
+  // applied to linear RGB.
+  const TRITAN = [
+    [1.255528, -0.076749, -0.178779],
+    [-0.078411, 0.930809, 0.147602],
+    [0.004733, 0.691367, 0.3039],
+  ];
+  const tritan = (c) => {
+    const l = c.map(g);
+    return TRITAN.map((r) => ug(r[0] * l[0] + r[1] * l[1] + r[2] * l[2]));
   };
   // CIE Lab, so the distance is perceptual rather than a contrast ratio --
   // a ratio only sees lightness, and two colours can differ in hue while
@@ -7717,60 +7747,55 @@ const setupBox = (card, place) =>
     return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
   };
   const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const paint = (d, theme) => (theme === "dark" && d.colorDark ? d.colorDark : d.color);
+  const panelOf = (d) => d.panel || "plot";
+  // Every pair of series sharing a panel, once per theme.
+  const pairs = [];
+  for (const theme of ["light", "dark"])
+    for (let i = 0; i < defs.length; i++)
+      for (let j = i + 1; j < defs.length; j++)
+        if (panelOf(defs[i]) === panelOf(defs[j]))
+          pairs.push({ theme, a: defs[i], b: defs[j] });
+  check("the colour-vision checks have series pairs to compare",
+    pairs.length > 0, `${defs.length} series, no two in one panel`);
   // A CIE Lab dE of about 2.3 is the just-noticeable difference. 10 is a
   // deliberate margin over it: below that two traces are not "hard to tell
   // apart", they are the same colour.
   const JND_MARGIN = 10;
-  let worst = { d: Infinity, pair: "" };
-  for (let i = 0; i < defs.length; i++)
-    for (let j = i + 1; j < defs.length; j++) {
-      const d = dE(deuter(hex(defs[i].color)), deuter(hex(defs[j].color)));
-      if (d < worst.d) worst = { d, pair: `${defs[i].key}/${defs[j].key}` };
+  for (const [name, sim, tag] of [
+    ["deuteranope", deuter, "#558 C1"],
+    ["protanope", protan, "D4, #1791"],
+    ["tritanope", tritan, "D4, #1791"],
+  ]) {
+    let worst = { d: Infinity, pair: "" };
+    for (const { theme, a, b } of pairs) {
+      const d = dE(sim(hex(paint(a, theme))), sim(hex(paint(b, theme))));
+      if (d < worst.d)
+        worst = { d, pair: `${a.key}/${b.key} in ${panelOf(a)}, ${theme}` };
     }
-  check("no two series are the same colour to a deuteranope (#558 C1)",
-    worst.d >= JND_MARGIN,
-    `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
-    `(just-noticeable is about 2.3)`);
+    check(`no two series in one panel are the same colour to a ${name} (${tag})`,
+      worst.d >= JND_MARGIN,
+      `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated ${name} ` +
+      `(just-noticeable is about 2.3)`);
+  }
 
-  // Colour cannot carry it alone here, and the reason is a CONVENTION rather
-  // than a measurement -- stated that way because earlier drafts of this
-  // comment gave contrast-shaped reasons that measurement refuted.
-  //
-  // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
-  // "lightness is the only axis a deuteranope keeps" is false -- among in-band
-  // colours of EQUAL luminance to the solar series the separation reaches
-  // 140 dE. Colours far from price DO exist -- no count of them is given,
-  // because a count is only defined against a stated separation, and the
-  // one that governs here is the MINIMUM to every series, not the distance
-  // from price. What must NOT be asserted is that those colours collide with
-  // something else: the best blue is 147 dE from dhw_slots, not close to it.
-  // And "green would have done" is false under the metric this check uses:
-  // by MINIMUM separation to every series, green reaches only 19.6 -- below
-  // the 20 dE demanded, and inside the 2.3 dE just-noticeable difference of
-  // the warm best at 18.1. Blue does clear it (54.2); solar is warm by
-  // convention rather than by constraint.
-  //
-  // Solar is warm because a solar series is warm by convention, not because
-  // the palette forbids the alternatives. Within the warm family the
-  // deuteranope ceiling against price is 18.1 dE (a plateau over hue 30-50 at
-  // C>=40), and the shipped #ed6900 sits at 15.0 -- its own figure, not the
-  // family's. Both are under the 20 dE below, so the dash is necessary.
-  //
-  // So two series drawn by the SAME branch of seriesPath -- same shape, same
-  // fill treatment -- must differ in stroke pattern unless their colours are
-  // far apart on their own. 20 is comfortably below every same-style pair the
-  // palette already ships except the one this fixes: price/solar at 15.0 is
-  // the only pair under it, and the next lowest is 24.7.
-  const byStyle = {};
-  for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);
+  // Colour cannot carry it alone where two series share a draw style, and
+  // the reason is a CONVENTION rather than a measurement. The S-cone
+  // blue-yellow axis survives deuteranopia, so colours far apart to a
+  // deuteranope do exist; what made the dash necessary on #558's palette
+  // was that price and solar were the only pair drawn by the SAME branch of
+  // seriesPath -- same shape, same fill treatment -- and solar is warm by
+  // convention. So two series of one style IN ONE PANEL must differ in
+  // stroke pattern unless their colours are far apart on their own, which
+  // 20 dE simulated deuteranope stands for. Solar keeps its dash in the
+  // price panel either way: it is a relative curve, not a second price.
   const undistinguished = [];
-  for (const group of Object.values(byStyle))
-    for (let i = 0; i < group.length; i++)
-      for (let j = i + 1; j < group.length; j++) {
-        const d = dE(deuter(hex(group[i].color)), deuter(hex(group[j].color)));
-        if (d < 20 && !group[i].dash === !group[j].dash)
-          undistinguished.push(`${group[i].key}/${group[j].key} (${group[i].style}, dE ${d.toFixed(1)}, neither dashed)`);
-      }
+  for (const { theme, a, b } of pairs) {
+    if (a.style !== b.style) continue;
+    const d = dE(deuter(hex(paint(a, theme))), deuter(hex(paint(b, theme))));
+    if (d < 20 && !a.dash === !b.dash)
+      undistinguished.push(`${a.key}/${b.key} (${a.style}, ${theme}, dE ${d.toFixed(1)}, neither dashed)`);
+  }
   check("series sharing a draw style are separated by more than colour (#558 C1)",
     undistinguished.length === 0, undistinguished.join("; "));
 }
