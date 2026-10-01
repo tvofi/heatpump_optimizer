@@ -2310,11 +2310,11 @@
         "R9-F2.5"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-2",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "a413832a",
+        "last_step": "#1803 merged 2026-10-01T08:1xZ as a413832a at head f720ee90 (round-2 merge verdict 5927101377 + merge-delta 5927204568; tvofi review under mandate; new caps loop_cpu_ratio 0.426, three valve rows; #201 5926478717/5927049914); #1656 and #1653 closed",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.2.md on handoff/r9-f10-gate-infra-2",
         "review_branch": "handoff/r9-f10-gate-infra-2-review",
         "review_note_file": "handoff/round9/fix/resume/F10.2-review.md on handoff/r9-f10-gate-infra-2-review",
