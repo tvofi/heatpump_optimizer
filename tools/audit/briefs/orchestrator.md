@@ -26,8 +26,7 @@ replace the source rules.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
-**`fixer.md` step 8: a quoted number states its rule, not just its value** —
-#373's census is the evidence there. Say what you counted, not only how many.
+**`fixer.md` step 8: a quoted number states its rule, not just its value.**
 
 Generalised:
 
@@ -38,9 +37,6 @@ cannot answer the second, you have not measured — you have expected.
 
 - **A sample is not a quantifier.** Five runs checked and reported as "every run"
   was false.
-- **A paged listing is a sliding window.** `--limit 120` truncated silently; a
-  count from it decays by roughly one per merge. State the rule, not the number,
-  and where an instrument prints the figure — `--budgets`, `--record` — name it.
 - **Describing another artifact without opening it is the same defect.** A
   boundary paragraph asserted that earlier work "is recorded" in three named
   documents. It is not, in the great majority of cases, and none of the three was
@@ -64,7 +60,7 @@ bare line number.
 has and authority no seat has — sequencing, merging, the record, the freeze,
 stamps, and speaking to the owner. Everything else is a seat's.
 
-This is not about your time. It is about **independence**, and it is the same
+The reason is **independence**, the same
 principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
 a harness they wrote is measuring themselves*. Work you perform is work you must
 then review, and you are the one participant who cannot review it — so every task
@@ -88,8 +84,7 @@ brief instead: the programme's method is that no claim stands on one agent's wor
 instance by you counts toward the third: three symptoms recorded separately are
 worth less than one analysis of why they were possible. The product, the four
 process states and the demonstration a check owes are `root-cause.md`'s and
-`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix, for
-the same independence reason as section 2.
+`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
 
 ## 4. The merge message is a second closing surface
 
@@ -126,10 +121,9 @@ incident, which this section encourages.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
-beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
-be reopened — `8bc4c661` (#557) shut #224 at 10:56:35 while its own text denied
-doing so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. A pre-merge scan that asks *which form was used* rather
+beforehand, and on 2026-09-07 merge commits shut two issues that had to be
+reopened (`8bc4c661` shut #224 while its own text denied doing so; `e072b2d`,
+#195). A pre-merge scan that asks *which form was used* rather
 than *whether every keyword binds an intended number* reports clean through
 exactly that.
 
@@ -144,6 +138,8 @@ exactly that.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
 - **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
+  (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
@@ -171,7 +167,10 @@ head** — so you are the one who breaks it. A reviewer works in a fresh *detach
 worktree at the head SHA, so the branch has no worktree and no marker: a liveness
 check looking for either will not see it. Check whether a review is in flight on
 the pull request before moving anything. A head that moves under a review costs
-that review, and it has happened twice.
+that review, and it has happened twice. **A conflict with main after the
+handoff is resolved by merge, never a re-cut**: merge
+`origin/main` into the head, or hand a semantic one to the fixer, and send the
+resolution delta to the same reviewer.
 
 **Stopping a seat is not neutral.** A seat killed between applying a mutation and
 restoring it leaves a production file broken in its worktree. Check
@@ -203,9 +202,7 @@ is not one.
 `delivery-status-tracking.mdc`, at **each merge** and not at session end, and
 batching to the end is how an abort loses it. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price, not zero.
-**The handover is one file and it is not optional**: `writing-for-agents.md`
-states the split against #201, and `tests/entities.py` enforces the single file
-and the reachable `updated-for:`.
+**The handover is one file and it is not optional** (`writing-for-agents.md`).
 
 Three failure shapes already produced, all yours:
 
@@ -245,9 +242,13 @@ which is exactly the shape that lets a real error be waved through.
 
 - Every gate lane **ran**. Absent is not green, and a `DIRTY` pull request never
   queues Tests.
-- A `merge` verdict from a reviewer that measured **this** head, or a recorded
-  reason why an older verdict carries — the authored diff proved byte-identical,
-  not assumed.
+- A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
+  with no reviewer turn (tvofi, 2026-10-01): `tools/audit/app_approve.sh --carry
+  <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
+  <head>` names miss the branch's own diff, and the claim files equal
+  `origin/main`'s. Anything else goes to the same reviewer as a resolution delta.
+- Watch CI from a background task that ends when the head's check runs do, so
+  the result wakes you (`fixer.md`'s preamble), never on a timer.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -262,9 +263,7 @@ which is exactly the shape that lets a real error be waved through.
 ## 12. The gate lease
 
 Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
-(`gate-scoping.md` has the commands). **Never clear a live lease**: an expired
-lease or an abandoned hold may be taken, a live one may not, and several seats
-run at once.
+(`gate-scoping.md`). **Never clear a live lease**: several seats run at once.
 
 ## 13. Stamps, budgets, and the two things you may not decide alone
 
