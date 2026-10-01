@@ -658,18 +658,20 @@ printf '  %6ss  TOTAL (%s lane(s))\n' "$(( $(date +%s) - suite_start ))" "$JOBS"
 # Said twice, on purpose. A scoped gate that is quiet about what it dropped
 # is indistinguishable from a gate that passed, and this codebase already has
 # six known instances of a test that looked like it ran and asserted nothing.
+# `closure.py not-run` reads the manifests, not just the plan: `select` scopes
+# a run_always script out like any other, and listing the plan said
+# harness_headers.py and layout.py "did NOT run" on every scoped gate that ran
+# them (R9-F10.9).
+not_run=0
 if [ -n "$SCOPE_RUN" ]; then
   echo
   echo "########## NOT RUN: scoped out of this gate ##########"
-  if [ -s "$WORKDIR/scope.skip" ]; then
-    while IFS=$'\t' read -r script size reason; do
-      [ -z "$script" ] && continue
-      printf '  %-24s did NOT run -- %s (closure: %s files)\n' \
-        "$script" "$reason" "$size"
-    done < "$WORKDIR/scope.skip"
-  else
-    echo "  (nothing -- every script was in scope)"
+  if ! "$PYTHON" tests/closure.py not-run --workdir "$WORKDIR"; then
+    # Fail closed: the plan's own list, every line counted as not run.
+    sed 's/\t/  did NOT run -- /' "$WORKDIR/scope.skip"
   fi
+  not_run=$(cat "$WORKDIR/not_run.count" 2>/dev/null \
+    || grep -c . "$WORKDIR/scope.skip" 2>/dev/null || true)
   echo
   echo "  Each line above is a claim that no file changed by this branch is in"
   echo "  that script's MEASURED closure (tests/closures.json, recorded by"
@@ -694,8 +696,7 @@ if [ "$ran" -eq 0 ]; then
   exit 0
 fi
 if [ -n "$SCOPE_RUN" ]; then
-  scoped_out_count=$(grep -c . "$WORKDIR/scope.skip" 2>/dev/null || true)
-  echo "$ran TEST SCRIPT(S) PASSED; ${scoped_out_count:-0} SCOPED OUT AND NOT RUN"
+  echo "$ran TEST SCRIPT(S) PASSED; ${not_run:-0} SCOPED OUT AND NOT RUN"
   echo "(see the NOT RUN block above -- this is not a full gate)"
   exit 0
 fi

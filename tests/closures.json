@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 247.5,
+   "seconds": 252.5,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.8,
+   "seconds": 4.0,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -563,6 +563,7 @@
    "docs/configuration.md",
    "hacs.json",
    "tests/README.md",
+   "tests/closures.json",
    "tests/coverage_budgets.json",
    "tests/coverage_ratchet.py",
    "tests/delivery_status.py",
