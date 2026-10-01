@@ -21,6 +21,10 @@ name: PR contract
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  # The merge queue (round-9 process review item 2): the same contract, run on
+  # a queue entry for the pull request it carries, named by the step below.
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -36,7 +40,7 @@ jobs:
     # The evidence sections a body owes, checked at the head CI is running.
     # `pull_request: [edited]` is why this workflow is separate from tests.yml:
     # a body edit must re-run this and must NOT re-run the forty-minute gate.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # THE GRANTS THIS JOB ADDS ARE READS. The red-list step below reads the
@@ -81,7 +85,7 @@ jobs:
       # `policy-docs` states.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
           rm -rf .claude/workflows/vendor
@@ -94,6 +98,34 @@ jobs:
             'tools/audit/round6/D11/fix/codeowners_gap.py'
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs
+
+      # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
+      # carries no pull request in its payload, so the entry is named from the
+      # tree: its number from the queue branch's name, its head as the queue
+      # commit's second parent (merge method MERGE), and the API must report
+      # that same head or the step fails -- a run that cannot name what it
+      # grades must not pass. On any other event it writes nothing and every
+      # step below reads the payload as before. Outputs only, never
+      # $GITHUB_ENV: nothing here can reach a later program, and it runs after
+      # the restore, from admitted commands alone.
+      - name: Name the pull request a queue entry carries
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "merge_group" ]; then
+            NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
+            HEAD=$(git rev-parse --verify 'HEAD^2^{commit}')
+            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
+            echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+            echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
+            echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+            echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
+          fi
 
       # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT
       # PAYLOAD. `${{ github.event.pull_request.body }}` is the body as it
@@ -125,13 +157,18 @@ jobs:
       - name: Read the body off the API, not the event payload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
         run: |
           set -euo pipefail
           BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
           printf '%s' "$BODY" > /tmp/pr-body.md
           AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
           printf '%s' "$AUTHOR" > /tmp/pr-author.txt
+          # The title too, which a queue entry's payload does not carry; on a
+          # pull request the payload's title below is used, as before.
+          if [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
+          fi
 
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
@@ -139,8 +176,8 @@ jobs:
       # reason -- an empty diff is not a thing a pull request has.
       - name: List the paths this pull request changes
         env:
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           # --no-renames, and it is not cosmetic: a rename is reported by its
@@ -185,7 +222,7 @@ jobs:
       - name: List the red checks at this head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           # Fail-closed, on the paths-file step's own principle: a derivation
@@ -207,7 +244,7 @@ jobs:
           # true of the title as EVIDENCE, which is R3-D11-03: `## Approval` is
           # keyed on --paths-file below, and the title only adds to it.
           PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           # One --red flag per name, never one comma-joined value: a check
@@ -217,6 +254,9 @@ jobs:
           while IFS= read -r name; do
             RED_ARGS+=(--red "$name")
           done < /tmp/pr-reds.txt
+          if [ -f /tmp/pr-title.txt ]; then
+            PR_TITLE=$(cat /tmp/pr-title.txt)
+          fi
           node .claude/workflows/policy_lint.mjs \
             --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
             --author "$(cat /tmp/pr-author.txt)" \
@@ -251,7 +291,7 @@ jobs:
       - name: Refuse a version, manifest-version or notes-heading edit
         if: always()
         env:
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main

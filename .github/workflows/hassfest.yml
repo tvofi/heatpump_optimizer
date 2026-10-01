@@ -6,6 +6,10 @@ on:
       - main
       - master
   pull_request:
+  # The merge queue (round-9 process review item 2): this file's required
+  # contexts run on the queue's merge commit as on a pull request.
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 # Read-only validation: the GITHUB_TOKEN needs nothing beyond checkout.
