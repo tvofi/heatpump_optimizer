@@ -33,7 +33,7 @@ PYVER=3.14.2
 python3 -m pip install -q --target "$PREFIX/uv" uv
 UV="$PREFIX/uv/bin/uv"
 export UV_PYTHON_INSTALL_DIR="$PREFIX/python"
-"$UV" python install "$PYVER"
+"$UV" python install --no-bin "$PYVER"
 PY=$("$UV" python find "$PYVER")
 "$PY" -c 'import sys; assert sys.version_info[:3] == (3, 14, 2), sys.version'
 
@@ -57,4 +57,13 @@ export OPENBLAS_CORETYPE=Haswell
 EOF
 [ -n "${HPO_PROFILE:-}" ] || grep -qF "$PROFILE" "$HOME/.bashrc" 2>/dev/null \
   || echo ". $PROFILE" >> "$HOME/.bashrc"
-echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX"
+
+# The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)
+# and stop-validator.py (Stop) run `ruff format` and `ruff check --fix`, and
+# both skip when `ruff` is not on PATH. Nothing in this repository or its CI
+# uses ruff, so removing the image's copy switches them off for this
+# environment only. Disabling the plugin in settings is the complete answer.
+if [ -z "${HPO_KEEP_RUFF:-}" ]; then
+  for r in $(type -ap ruff); do rm -f "$r" || true; done
+fi
+echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX; ruff removed"
