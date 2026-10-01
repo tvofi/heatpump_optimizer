@@ -647,12 +647,51 @@
 # merge base, and the tried fix instead clipped the title off the top of the
 # svg on 388 of the grid's cells. Not fixed in this PR; see the PR body.
 
-# F6.4 (D4-s2-81): this diff claims exactly the five history-pan states, and
-# the only change in each is the corner now-temperature text `now 21.1 °C` ->
-# `21.1 °C`: the string plan.now_temp is shortened in en and sv, while the axis
-# `now` label keeps its text. Every other state is byte-identical.
-history_panned # F6.4: corner now-temp text drops the "now " prefix
-history_deep_panned # F6.4: corner now-temp text drops the "now " prefix
-history_no_power # F6.4: corner now-temp text drops the "now " prefix
-history_unavailable # F6.4: corner now-temp text drops the "now " prefix
-history_pending # F6.4: corner now-temp text drops the "now " prefix
+# R9-UI-3 (#1791 D1, D2b; DESIGN.md section 3): the card's visual system.
+# Every state but editor_schema moves, because every state renders the one
+# <style> block and the header: the --hpo- token :host block and the hex
+# literals routed through it, the dusk mark before the title and the status
+# pill after it, the stat-tile row (price now, planned heating, plan cost,
+# indoor), savings and score restyled as tiles, the legend chips wrapped in a
+# legend-chips span with the dashed-line sentence as a footnote under them,
+# and the price and solar area fills at 16% and 10% opacity. editor_schema
+# renders no card markup and is byte-identical.
+no_plan # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+no_plan_expanded # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+plan_inline # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+plan_inline_sv # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+plan_short_window # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+custom_title_currency # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+hidden_series # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+score_open # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+expanded_plan # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+what_if_off # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+expanded_zoomed # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+draft_dirty_menu_open # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+draft_mid_drag # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+whatif_edited # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+whatif_weekly # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+override_active # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+shared_steps # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+shared_steps_hover # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+tooltip_hover # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+coarse_pointer # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+reduced_motion # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+setup_single_buffer # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+setup_two_tank # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+setup_coil # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+advisor_page # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+layout_editing_dragged # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+layout_editing_tidy # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+picker_open_filtered # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+wood_alert # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+wood_lane # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+wood_whatif # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+away_toggle # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+away_return # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+away_status # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+history_panned # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+history_deep_panned # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+history_no_power # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+history_unavailable # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
+history_pending # R9-UI-3: token layer, dusk mark, status pill, stat tiles, compact legend
