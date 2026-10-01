@@ -136,7 +136,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
