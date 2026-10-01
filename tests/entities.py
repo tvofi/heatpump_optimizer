@@ -23207,6 +23207,79 @@ R.check(
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
+# --- round-9 process review item 3: a superseded pull-request run is cancelled,
+# and nothing else is. Every workflow a pull request starts declares one
+# top-level `concurrency:`; each `${{ }}` in it is evaluated here under the
+# events the file lists. Two `pull_request` runs of one pull request share a
+# group and cancel; two runs of any other event -- a push to main, a merge
+# queue entry, the nightly, an autofix push or dispatch, a review -- get
+# groups of their own, because a group they shared would queue them, and a newer
+# pending run cancels the older pending one whatever `cancel-in-progress`
+# says. Main's FULL push gate must never be the run that is dropped.
+def _cc_value(expr, event: "dict[str, object]"):
+    """A `${{ }}`-bearing string under `event`, each expression replaced by its
+    value; None when one cannot be decided (literals, `==`, `&&`, `||` only)."""
+    def _one(m):
+        e = m.group(1)
+        e = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
+                   lambda n: repr(event.get(n.group(0))), e)
+        e = e.replace("&&", " and ").replace("||", " or ")
+        if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
+                            r"|'[^']*'|-?\d+)*", e):
+            raise ValueError(e)
+        return str(eval(e, {"__builtins__": {}}, {}))  # literals and operators only
+    try:
+        return re.sub(r"\$\{\{(.*?)\}\}", _one, str(expr))
+    except ValueError:
+        return None
+
+
+_CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
+              "schedule", "workflow_dispatch")
+
+
+def _cc_problems(name: str, doc: dict) -> "list[str]":
+    on = doc.get("on", doc.get(True)) or {}
+    events = [on] if isinstance(on, str) else list(on)
+    if "pull_request" not in events:
+        return []
+    cc = doc.get("concurrency")
+    if not isinstance(cc, dict):
+        return [f"{name}: no top-level concurrency"]
+    out = []
+    for ev in [e for e in _CC_EVENTS if e in events]:
+        for who in ("hpo-author[bot]", "github-actions[bot]"):
+            def at(run_id, ev=ev, who=who):
+                return {"github.event_name": ev, "github.workflow": doc.get("name"),
+                        "github.run_id": run_id, "github.event.sender.login": who,
+                        "github.event.pull_request.number":
+                            7 if ev.startswith("pull_request") else None}
+            # Only a pull request's own push supersedes; an autofix push does not.
+            want = ev == "pull_request" and who != "github-actions[bot]"
+            cancel = _cc_value(cc.get("cancel-in-progress"), at(1))
+            a, b = _cc_value(cc.get("group"), at(1)), _cc_value(cc.get("group"), at(2))
+            if cancel != str(want):
+                out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
+            if None in (a, b) or (a == b) != want:
+                out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
+    return out
+
+
+_CC_FOUND = [p for n, d in _RC_DOCS.items() for p in _cc_problems(n, d)]
+R.check(
+    "only a pull request's superseded run is cancelled (process review item 3)",
+    not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
+                          for n, d in _RC_DOCS.items()),
+    f"{_CC_FOUND or 'none'}",
+)
+_CC_NULL = {"name": "x", "on": {"pull_request": None, "push": None},
+            "concurrency": {"group": "${{ github.workflow }}-${{ github.ref }}",
+                            "cancel-in-progress": True}}
+R.check(
+    "and a group keyed on the ref, cancelling everything, is refused (null control)",
+    len(_cc_problems("null.yml", _CC_NULL)) == 6,
+    f"{_cc_problems('null.yml', _CC_NULL)}",
+)
 # --- decision 0013 as amended: the budget-raise gate's wiring. The budget
 # files carry no code owner, so this job is the only thing between a raise and
 # a merge on the approver App's review. Each property is a way the gate goes
@@ -26930,6 +27003,75 @@ R.check(
     and "deferred = deferred_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
     and "DEFERRED AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"deferred={_MUT_D_OUT!r}",
+)
+
+# R9-F10.9b (#1812): under --scope changed every other shared driver but a
+# ref-driven one runs its baseline and null control at its first RED mutant
+# run, and every kill is still judged against them. A green run is no kill
+# under any baseline, so it settles nothing; two red runs at once settle once.
+_mut_lazy = getattr(_mut, "lazy_drivers", None)
+_MUT_L_NET = ["tests/a.py", "tests/env_drift.py", "tests/stress.py"]
+R.check(
+    "a changed-scope run makes every shared, non-ref driver lazy; the nightly "
+    "none, and main() takes its lazy set from that rule",
+    _mut_lazy is not None
+    and _mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+    and _mut_lazy(_MUT_L_NET, "full") == []
+    and "lazy = lazy_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
+    and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
+    and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
+    f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+_MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
+_MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
+_MUT_L_SETTLED: list = []
+_MUT_L_BAR = _mut_threading.Barrier(2)
+
+
+def _mut_l_settle(w, s, base, rc=None):
+    """Record the call, then hold it so a second red run arrives meanwhile."""
+    _MUT_L_SETTLED.append((w, s))
+    _time.sleep(0.2)
+    if rc is None:
+        base[s] = _mut.ScriptRun(0, 0, 0.0)
+    return rc
+
+
+from concurrent.futures import ThreadPoolExecutor as _mut_ThreadPool  # noqa: E402
+
+_mut_lazy_cls = getattr(_mut, "LazyBaselines", None)
+_MUT_L_OUT: list = []
+if _mut_lazy_cls is not None:
+    _mut_l_base: dict = {}
+    _mut_l = _mut_lazy_cls(
+        _mut_l_base, lambda w, s: _mut_l_settle(w, s, _mut_l_base))
+    _MUT_L_OUT.append(_mut_l.killed(0, "tests/a.py", _MUT_L_GREEN))
+    _MUT_L_OUT.append(list(_MUT_L_SETTLED))
+
+    def _mut_l_red(w):
+        _MUT_L_BAR.wait()
+        return _mut_l.killed(w, "tests/a.py", _MUT_L_RED)
+    with _mut_ThreadPool(max_workers=2) as _ex:
+        _MUT_L_OUT.append(sorted(_ex.map(_mut_l_red, [0, 1])))
+    _MUT_L_OUT.append(len(_MUT_L_SETTLED))
+R.check(
+    "a lazy driver's green run settles nothing; its first red runs settle its "
+    "baseline once and are judged kills against it",
+    _MUT_L_OUT == [False, [], [True, True], 1],
+    f"out={_MUT_L_OUT!r} settled={_MUT_L_SETTLED!r}",
+)
+_MUT_L_SETTLED.clear()
+_MUT_L_REF: list = []
+if _mut_lazy_cls is not None:
+    _mut_l2 = _mut_lazy_cls({}, lambda w, s: _mut_l_settle(w, s, {}, rc=1))
+    _MUT_L_REF = [_mut_l2.killed(2, "tests/a.py", _MUT_L_RED), _mut_l2.stop,
+                  _mut_l2.killed(2, "tests/b.py", _MUT_L_RED),
+                  list(_MUT_L_SETTLED)]
+R.check(
+    "a lazy baseline or null control that refuses stops the table: no kill, "
+    "the refusal's status kept, and no later driver settled",
+    _MUT_L_REF == [False, 1, False, [(2, "tests/a.py")]],
+    f"out={_MUT_L_REF!r}",
 )
 # The sweep order is the ledger's: tests/features.py, costly but holding the
 # ledger's kills, goes before a cheap driver that has killed nothing -- and

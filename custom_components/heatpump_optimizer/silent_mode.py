@@ -35,7 +35,7 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import numpy as np
@@ -80,7 +80,7 @@ def caps(
         return None
     cap = max(float(fraction), CAPACITY_FLOOR_FRACTION) * float(p_max)
     out = np.full(n_steps, float(p_max), dtype=float)
-    for i, step in enumerate(_utc_step_starts(start_time, n_steps, dt_hours)):
+    for i, step in enumerate(_utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
         day = windows_for_day(weekly, step.weekday(), windows)
         if hour_in_windows(step.hour + step.minute / 60.0, day):
             out[i] = cap

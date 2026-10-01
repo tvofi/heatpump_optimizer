@@ -54,6 +54,18 @@
 # REPLACES the data file instead of merging into it, and the second stage
 # silently reports its own scripts as the whole measurement -- a run that had
 # climate.py at 100 pct came back at 0 pct with no error anywhere.
+#
+# PER-SCRIPT DATA, AND REUSING IT (R9-F10.9b, #1812). Each script's processes
+# write under their own data directory and are combined into
+# $OUT/per/.coverage.<name> (or $OUT/per/<name>.nodata, for a script that
+# executed no package line) before the final combine, which reads $OUT/per/:
+# a union of line sets, so the per-script detour measures what one combine
+# over every raw file did. The push to main keeps $OUT/per/ as the next pull
+# request's base. With W5P_SCOPE (the gate's scope.json for the diff) and
+# W5P_REUSE (that base's per/ directory) both set, a script the plan skips
+# and the base measured is not re-run: its base file is copied into per/.
+# `tests/closure.py coverage-split` decides, and `closure.py selftest` pins
+# it. Either variable unset measures every script, as before.
 set -u
 [ -f custom_components/heatpump_optimizer/manifest.json ] || { echo "run from the worktree root" >&2; exit 2; }
 STAGE="${1:-all}"
@@ -62,7 +74,7 @@ WORK="${W5P_WORK:?set W5P_WORK to a private mktemp -d}"
 OUT="${W5P_OUT:-$WORK/out}"
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
-mkdir -p "$OUT/logs" "$WORK/site" "$WORK/data"
+mkdir -p "$OUT/logs" "$OUT/per" "$WORK/site" "$WORK/data"
 export HPO_PLANDATA="$WORK/plandata.json"
 
 DERIVED=$(grep -oE 'run "\$PYTHON" tests/[a-z_]+\.py' tests/run.sh \
@@ -97,20 +109,49 @@ export COVERAGE_PROCESS_START="$WORK/coveragerc"
 export PYTHONPATH="$WORK/site:$PWD/tests/hastub"
 "$PY" -c "import coverage" || { echo "coverage not importable" >&2; exit 2; }
 
+# Decided BEFORE COVERAGE_PROCESS_START is exported, so the decision itself
+# is not traced. A split that fails measures every script.
+if [ -n "${W5P_SCOPE:-}" ] && [ -n "${W5P_REUSE:-}" ]; then
+  PLAN=$(echo "$SCRIPTS" | env -u COVERAGE_PROCESS_START PYTHONPATH="$PWD/tests/hastub" \
+           "$PY" tests/closure.py coverage-split --plan "$W5P_SCOPE" --reuse-dir "$W5P_REUSE") \
+    || PLAN=""
+fi
+[ -n "${PLAN:-}" ] || PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
+
 [ -f "$OUT/scripts.tsv" ] || printf 'script\texit\twall_s\n' > "$OUT/scripts.tsv"
-for s in $SCRIPTS; do
+while IFS=$'\t' read -r verb s; do
+  [ -n "$s" ] || continue
+  rm -f "$OUT/per/.coverage.$s" "$OUT/per/$s.nodata"
+  if [ "$verb" = "reuse" ]; then
+    for f in ".coverage.$s" "$s.nodata"; do
+      [ -f "$W5P_REUSE/$f" ] && cp "$W5P_REUSE/$f" "$OUT/per/$f"
+    done
+    printf '%s\treused\t0\n' "$s" >> "$OUT/scripts.tsv"
+    echo "reused tests/$s.py's coverage from the base: no changed file is in its closure"
+    continue
+  fi
+  sed "s#^data_file = .*#data_file = $WORK/data/$s/.coverage#" "$WORK/coveragerc" > "$WORK/coveragerc.$s"
+  mkdir -p "$WORK/data/$s"
   a=$(date +%s)
   if [ "$s" = "golden" ]; then
-    GOLDEN_MODE=strict "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
+    COVERAGE_PROCESS_START="$WORK/coveragerc.$s" GOLDEN_MODE=strict "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
   else
-    "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
+    COVERAGE_PROCESS_START="$WORK/coveragerc.$s" "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
   fi
   rc=$?; b=$(date +%s)
   printf '%s\t%s\t%s\n' "$s" "$rc" "$((b-a))" >> "$OUT/scripts.tsv"
   echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
-done
+  if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
+    COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
+      >> "$OUT/logs/combine.log" 2>&1 \
+      && mv "$WORK/data/$s/.coverage" "$OUT/per/.coverage.$s" \
+      || { echo "could not combine tests/$s.py's data; see $OUT/logs/combine.log" >&2; exit 1; }
+  else
+    : > "$OUT/per/$s.nodata"
+  fi
+done <<< "$PLAN"
 
-"$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep > "$OUT/logs/combine.log" 2>&1
+"$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
 unset COVERAGE_PROCESS_START
 "$PY" -m coverage json --rcfile="$WORK/coveragerc" -o "$OUT/coverage.json" >> "$OUT/logs/combine.log" 2>&1
 "$PY" -m coverage report --rcfile="$WORK/coveragerc" > "$OUT/coverage_report.txt" 2>&1

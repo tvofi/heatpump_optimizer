@@ -113,6 +113,19 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request cancels that pull request's run at the head it
+# superseded (round-9 process review item 3): nobody reads a verdict on a head
+# that is gone, and it holds runners the new head waits for. Only
+# `pull_request` runs share a group; every other event -- above all the push to
+# main, whose FULL gate is the backstop for every scoped one -- gets a group of
+# its own by run id, so it is never cancelled and never queued behind another.
+# So does an autofix push (GITHUB_TOKEN, `github-actions[bot]`): the run it
+# would cancel is still running the other autofix jobs, and the next run's
+# `ci:` subject is their loop guard, so a repair cancelled there never comes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+
 jobs:
   # workflow_dispatch inputs exist only on the default branch. An autofix
   # push from this PR must retrigger before that lands, so recheck is also
@@ -548,11 +561,43 @@ jobs:
     # end-to-end scripts, run under a tracer that costs roughly a third again.
     timeout-minutes: 90
     steps:
+      # Full history: the scope below diffs against the merge base and reads
+      # that base's tests/closures.json, as `fast`'s does.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
+
+      # Per-script coverage is reused from the push run at the diff's base
+      # (R9-F10.9b, #1812). The key is that base commit plus everything that
+      # decides what a script's data means: the instrument, the tracer and
+      # dependency locks, and the interpreter. A change to any of them is a
+      # different key, so a miss, so every script is measured. A push keys its
+      # own commit and saves; nothing else saves, so a pull request can only
+      # ever restore data a push to main measured.
+      - name: Key the per-script coverage
+        id: covkey
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE=$(git rev-parse HEAD)
+          else
+            BASE=$(git merge-base origin/main HEAD)
+          fi
+          PY=$(python -c 'import sys; print(sys.version.split()[0])')
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+
+      # An exact key and no restore-keys: data from any other commit is a miss.
+      - name: Restore the base's per-script coverage
+        id: covbase
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/coverage-base
+          key: ${{ steps.covkey.outputs.key }}
 
       - name: Install pinned test dependencies
         run: >-
@@ -591,6 +636,18 @@ jobs:
           export W5P_WORK
           W5P_WORK=$(mktemp -d)
           echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
+          # The gate's own scope for this diff decides which scripts can
+          # reuse the base's data: a script the plan skips has no changed file
+          # in its measured closure. Only on a hit; a miss measures everything.
+          if [ "${{ steps.covbase.outputs.cache-hit }}" = "true" ]; then
+            PYTHONPATH=tests/hastub python tests/closure.py select \
+              --diff "${{ steps.covkey.outputs.base }}" \
+              --workdir "$RUNNER_TEMP/coverage-scope"
+            export W5P_SCOPE="$RUNNER_TEMP/coverage-scope/scope.json"
+            export W5P_REUSE="$RUNNER_TEMP/coverage-base"
+          else
+            echo "No per-script coverage for ${{ steps.covkey.outputs.base }}: measuring every script."
+          fi
           tools/audit/w5-partition/coverage_tree.sh fast || true
           test -s "$W5P_WORK/out/coverage.json" || {
             echo "The instrument produced no coverage.json. That is this job"
@@ -606,6 +663,20 @@ jobs:
           name: coverage-json
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
+
+      # The next pull requests' base: every script measured, on main. Copied
+      # to the path the restore names, because a cache entry's version hashes
+      # its path: saved from the mktemp directory, no restore would ever hit.
+      - name: Stage this commit's per-script coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
+
+      - name: Save this commit's per-script coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/coverage-base
+          key: ${{ steps.covkey.outputs.key }}
 
   # The coverage ratchet, in a job of its own (decision 0013, amended).
   # `coverage` above runs the pull request's suite, so nothing after that in

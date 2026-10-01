@@ -56,7 +56,7 @@ INSTRUMENTED SYMBOLS: tariff.py:window_factors, tariff.py:_window_slot,
     optimizer.py:_utc_step_starts,
     optimizer.py:HeatPumpOptimizer._peak_window_factors
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import d2lib  # noqa: F401  -- thread pin + sys.path, must be first
@@ -94,7 +94,7 @@ def compare(t: CapacityTariff, start: datetime, hours: float):
     produced = window_factors(t, start, n, dt)
     if produced is None:
         return None, n, None, None
-    instants = _utc_step_starts(start, n, dt)
+    instants = _utc_step_starts(start, n, timedelta(hours=dt))
     truth = np.array([t.sample_factor(d) for d in instants], dtype=float)
     return int(np.sum(produced != truth)), n, produced, truth
 
@@ -152,7 +152,7 @@ def main() -> int:
     for label, start in (("autumn", AUTUMN), ("spring", SPRING), ("control", CONTROL)):
         n_h = 48
         prod = opt._peak_window_factors(n_h, 1.0, start, 0)
-        instants = _utc_step_starts(start, n_h, 1.0)
+        instants = _utc_step_starts(start, n_h, timedelta(hours=1))
         t = CapacityTariff(
             enabled=True, window_minutes=60,
             peak_hours=((7.0, 20.0),), offpeak_factor=0.0,
