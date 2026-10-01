@@ -54189,8 +54189,7 @@ _r9p3_pf = next(
     if isinstance(n, _r9p3_ast.FunctionDef) and n.name == "_power_fraction"
 )
 _r9p3_pf_floors = [
-    _r9p3_ast.unparse(f[0]) for f in map(_r9p3_floor, _r9p3_ast.walk(_r9p3_pf))
-    if f and "electrical_power" in _r9p3_ast.unparse(f[0])
+    _r9p3_ast.unparse(f[0]) for f in map(_r9p3_floor, _r9p3_ast.walk(_r9p3_pf)) if f
 ]
 _r9p3_pf_branch = any(
     isinstance(n, _r9p3_ast.Compare)
@@ -54199,7 +54198,7 @@ _r9p3_pf_branch = any(
 )
 R.check(
     "R9-P3: the power-fraction helper is the named exception -- it branches "
-    "on a sub-floor band and floors no power quantity",
+    "on a sub-floor band and floors nothing",
     _r9p3_pf_branch and not _r9p3_pf_floors,
     f"branch={_r9p3_pf_branch}, floors={_r9p3_pf_floors}",
 )
