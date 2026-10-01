@@ -230,6 +230,7 @@
    "space_blocked": false,
    "space_heat_available": true
   },
+  "horizon_hours": 24.0,
   "house_heat_loss_effective": 0.15,
   "house_heat_loss_learned": false,
   "house_heat_loss_samples": 0,

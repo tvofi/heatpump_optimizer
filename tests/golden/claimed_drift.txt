@@ -59,6 +59,11 @@
 # v6.7.13: round 9: coordinator seams, the DST barrier completed, CPU gate, card and chart work, adopted process changes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+coord_all_features # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_dhw # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_grid_fee # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_minimal # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
+coord_two_zone # R9-F1.11: the payload publishes the optimizer's own horizon_hours (D14-s1-02); one key added, no value moved
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

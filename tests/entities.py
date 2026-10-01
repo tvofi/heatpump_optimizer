@@ -3469,6 +3469,982 @@ R.check(
     f"named-if-climate-available={sorted(_D801_SOLVE_DERIVED)}",
 )
 
+# ===========================================================================
+# P2: one fact, one owner (round-9 class barrier)
+# ===========================================================================
+# Class P2 -- one fact decided twice by divergent predicates, a guard at one
+# seam and missing at its sibling -- recurred in all nine audit rounds
+# (bugclasses.json). Each fix routed its own sibling through the fact's owner
+# and enumerated the class's seams with a rule (fixer.md step 8) that ran
+# once, in a pull request body, with free-text dispositions. This registry is
+# that rule kept: per fact, the AST shape that decides it, the functions
+# allowed to hold the shape, and every other site the shape returns with the
+# reason it is not the fact's decision. Any other hit fails. Three refusals
+# stop it going green by skipping: an owner that no longer exists
+# (OWNER-MISSING), a shape that matches nothing and has nothing to match
+# (DEAD-RULE), and a disposition whose site no longer hits
+# (STALE-DISPOSITION). Facts with no syntactic shape are held by a census that
+# asserts its own reach; _P2_CENSUSES names each, and one whose check text is
+# gone from its script is refused (CENSUS-MISSING). Prototype: the round-9 P2
+# RCA's owners lint, handoff/r9-rca-p2@3938c8ea.
+R.section("P2: one fact, one owner (round-9 class barrier)")
+
+
+def _p2_conf(e):
+    if isinstance(e, ast.Name) and e.id.startswith("CONF_"):
+        return e.id
+    if isinstance(e, ast.Attribute) and e.attr.startswith("CONF_"):
+        return e.attr
+    return None
+
+
+def _p2_conf_read(n):
+    """``x.get(K)``, ``x[K]`` (a load) or ``K in x``: the CONF_ name read."""
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+            and n.func.attr == "get" and n.args:
+        return _p2_conf(n.args[0])
+    if isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
+        return _p2_conf(n.slice)
+    if isinstance(n, ast.Compare) and len(n.ops) == 1 \
+            and isinstance(n.ops[0], (ast.In, ast.NotIn)):
+        return _p2_conf(n.left)
+    return None
+
+
+def _p2_decides(n, parents):
+    """In an if/while/assert/ternary test, a bool op, ``not`` or ``bool()``."""
+    cur = n
+    while cur in parents:
+        par = parents[cur]
+        if isinstance(par, (ast.If, ast.IfExp, ast.While, ast.Assert)) and cur is par.test:
+            return True
+        if isinstance(par, ast.BoolOp) or (
+            isinstance(par, ast.UnaryOp) and isinstance(par.op, ast.Not)
+        ):
+            return True
+        if isinstance(par, ast.Call) and getattr(par.func, "id", None) == "bool":
+            return True
+        if isinstance(par, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.stmt)):
+            return False
+        cur = par
+    return False
+
+
+def _p2_match_proxy(keys):
+    """A decision-context read of one of the fact's proxy keys. ``live`` is
+    whether the extraction found any: an empty set means it broke."""
+    def m(n, parents):
+        return _p2_conf_read(n) in keys and _p2_decides(n, parents)
+    m.live = bool(keys)
+    return m
+
+
+def _p2_match_node(types, pattern, pre):
+    """A node of ``types`` passing the cheap ``pre`` filter whose unparsed
+    text matches ``pattern`` (the unparse is the cost, hence ``pre``)."""
+    rx = re.compile(pattern)
+
+    def m(n, parents):
+        if not isinstance(n, types) or not pre(n):
+            return False
+        if isinstance(n, ast.Attribute) and not isinstance(n.ctx, ast.Load):
+            return False
+        return bool(rx.search(ast.unparse(n)))
+    return m
+
+
+def _p2_match_literal_domain(domains):
+    """``*.async_call("<domain>", ...)``: an entity write naming its domain
+    as a literal rather than taking it from the entity."""
+    def m(n, parents):
+        return (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and n.func.attr == "async_call" and n.args
+                and isinstance(n.args[0], ast.Constant) and n.args[0].value in domains)
+    return m
+
+
+_P2_STAMPS = {"last_updated", "last_changed", "last_reported"}
+#: The cycle path: where a fenced step's direct call is an unfenced sibling.
+_P2_CYCLE = {"_async_update_data", "async_run_optimization", "_apply_action"}
+#: Every step the cycle fences at this tree (#1644, F1.3's carry): a step
+#: that loses its fence is still in the universe, so its bare call strays.
+_P2_FENCED = {
+    "pump_arbiter.apply", "self._async_drive_pumps", "self._async_save_accuracy",
+    "self._async_save_energy_totals", "self._async_watch_learning_drift",
+    "self._command_frequency", "self._maybe_refresh_price_tile",
+    "self._maybe_run_fuse_advisor", "self._record_accuracy",
+    "self._record_quiet_comfort_period", "self._track_realised_peak",
+}
+
+
+def _p2_fence_args(source):
+    """The callee each ``_best_effort_cycle_step`` call fences, as written:
+    a bound method, or the call inside a lambda."""
+    out = set()
+    for n in ast.walk(ast.parse(source)):
+        if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_best_effort_cycle_step" \
+                and n.args:
+            arg = n.args[0]
+            heads = [arg] if isinstance(arg, ast.Attribute) else [
+                c.func for c in ast.walk(arg) if isinstance(c, ast.Call)]
+            out |= {ast.unparse(h) for h in heads}
+    return out
+
+
+def _p2_match_unfenced(universe, live):
+    """A direct call of a fenced step inside a cycle-path function, outside
+    any ``_best_effort_cycle_step`` (F1.3: the fence is one helper's
+    argument list, so an unfenced sibling is a bare call, not a missing try)."""
+    def m(n, parents):
+        if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and ast.unparse(n.func) in universe):
+            return False
+        cur = n
+        while cur in parents:
+            cur = parents[cur]
+            if isinstance(cur, ast.Call) and getattr(cur.func, "id", None) == "_best_effort_cycle_step":
+                return False
+            if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return cur.name in _P2_CYCLE
+        return False
+    m.live = live
+    return m
+
+
+def _p2_running_floor(node):
+    return (isinstance(node, ast.Constant) and node.value == 0.1) or (
+        isinstance(node, ast.Name) and node.id == "MIN_RUNNING_DRAW_KW")
+
+
+def _p2_proxies(sources):
+    """The CONF_ names each canonical predicate reads, extracted from the
+    predicate's own body (D14-s2-01's rule), so a key the owner starts
+    reading is a proxy the day it lands."""
+    def names(node):
+        return {c for x in ast.walk(node) if (c := _p2_conf(x))}
+    out = {"two_zone_enabled": set(), "dhw_enabled": set(), "wood_furnace_on": set()}
+    for n in ast.walk(ast.parse(sources["thermal_model.py"])):
+        if isinstance(n, ast.If):
+            txt = ast.unparse(n)
+            if "values['two_zone_enabled']" in txt and "CONF_TWO_ZONE_MODE" not in txt:
+                out["two_zone_enabled"] |= names(n)
+        if isinstance(n, ast.Assign) and "two_zone_mode" in ast.unparse(n.targets[0]):
+            out["two_zone_enabled"] |= names(n.value)
+        if isinstance(n, ast.FunctionDef) and n.name == "_dhw_enabled_from_config":
+            out["dhw_enabled"] |= names(n)
+    for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
+        if isinstance(n, ast.FunctionDef) and n.name in ("wood_furnace_on", "wood_furnace_inferred"):
+            out["wood_furnace_on"] |= names(n)
+    return out
+
+
+def _p2_registry(sources):
+    """owners: ``file.py::Qual.name`` where the shape may live. dispositions:
+    sites the shape returns that are not the fact's decision, with why."""
+    px = _p2_proxies(sources)
+    answer = "not a decision: answer read-back"
+    fenced_now = _p2_fence_args(sources["coordinator.py"])
+    cycle_defined = {
+        n.name for n in ast.walk(ast.parse(sources["coordinator.py"]))
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    } >= _P2_CYCLE
+    return [
+        dict(fact="two_zone_enabled", finding="D14-s2-01",
+             match=_p2_match_proxy(px["two_zone_enabled"]),
+             owners=["thermal_model.py::ThermalParameters.from_config"], dispositions={}),
+        dict(fact="wood_furnace_on", finding="D14-s2-01",
+             match=_p2_match_proxy(px["wood_furnace_on"]),
+             owners=["wood_fuel.py::wood_furnace_on", "wood_fuel.py::wood_furnace_inferred",
+                     "wood_fuel.py::wood_fuel_ready"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
+                     "guarded: ANDed with wood_furnace_on",
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
+                     "guarded: normalises the flag after wood_furnace_on(merged)",
+                 "thermal_model.py::ThermalParameters.from_config":
+                     "guarded: under _on = wood_furnace_on(config)",
+                 "quick_setup.py::stored_answers": answer,
+             }),
+        dict(fact="dhw_enabled", finding="D14-s2-01",
+             match=_p2_match_proxy(px["dhw_enabled"]),
+             owners=["thermal_model.py::_dhw_enabled_from_config"],
+             dispositions={
+                 "legionella.py::LegionellaGuard.async_track_cycle":
+                     "probe presence, not the hot-water fact",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_probe_temperature":
+                     "probe presence",
+                 "topology.py::rank_sensor_gaps": "probe presence",
+                 "sensor.py::_gap_probe_terms": "a volume default",
+                 "services.py::handle_set_thermal_params": "service data write",
+                 "services.py::handle_apply_topology": "service data write",
+                 "services.py::handle_apply_schedule": "service data write",
+                 "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
+                     "windows update",
+                 "quick_setup.py::stored_answers": answer,
+                 # F1.2's two reads (its carry-in to this registry):
+                 "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_dhw":
+                     answer + ": the page suggests the stored answer back",
+                 "config_flow.py::_omit_unstored_defaults":
+                     answer + " and canonical predicate: it asks only whether "
+                     "the explicit answer is stored and takes its verdict from "
+                     "_dhw_enabled_from_config",
+             }),
+        # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
+        # (last_reported first, #775); age_of re-derived it.
+        dict(fact="state_age", finding="D1-s5-01",
+             match=_p2_match_node(
+                 (ast.Attribute,), r"\.(last_updated|last_changed|last_reported)$",
+                 lambda n: n.attr in _P2_STAMPS),
+             also=_p2_match_node(
+                 (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
+                 lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
+                 and getattr(n.args[1], "value", None) in _P2_STAMPS),
+             owners=["inputs.py::state_stamp"], dispositions={}),
+        # D12-s2-01: whether a step's draw means "on", held at four sites.
+        dict(fact="on_threshold_kw", finding="D12-s2-01",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"min_electrical_power\)? \* 0\.5|0\.5 \* .*min_electrical_power",
+                 lambda n: isinstance(n.op, ast.Mult) and 0.5 in (
+                     getattr(n.left, "value", None), getattr(n.right, "value", None))),
+             owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
+        # D12-s2-02: the domain that writes a configured entity comes from
+        # the entity (coordinator._on_off_service, #1526), never a literal.
+        dict(fact="entity_write_domain", finding="D12-s2-02",
+             match=_p2_match_literal_domain(
+                 {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
+             owners=["coordinator.py::_on_off_service"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
+                     "the compressor_freq slot is number-only "
+                     "(config_flow's _entity_of('number'))",
+             }),
+        # #1644 (D1-s2-51, D1-s2-91): a cycle step owns its own failure. The
+        # owner is the fence; `requires` names the steps it must still hold.
+        dict(fact="fenced_cycle_step", finding="D1-s2-51",
+             match=_p2_match_unfenced(_P2_FENCED, bool(fenced_now) and cycle_defined),
+             owners=["coordinator.py::_best_effort_cycle_step"], dispositions={},
+             requires=sorted(_P2_FENCED - fenced_now)),
+        # D12-s2-01's other half: whether the PLAN runs the pump at a step is
+        # planned_draws_run's (MIN_RUNNING_DRAW_KW on space plus DHW); a
+        # literal running threshold on a power elsewhere is a copy of it.
+        dict(fact="plan_running_rule", finding="D12-s2-01",
+             match=_p2_match_node(
+                 (ast.Compare,), r"power|_kw\b|\bp\b|dhw",
+                 lambda n: len(n.ops) == 1
+                 and any(map(_p2_running_floor, (n.left, n.comparators[0])))),
+             owners=["thermal_model.py::planned_draws_run", "thermal_model.py::planned_draw_runs"],
+             dispositions={
+                 "climate.py::HeatPumpOptimizerClimate.hvac_action":
+                     "a fraction of the plan's power range, ORed with the "
+                     "action's heat_pump_on, which planned_draws_run set",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._detect_immersion":
+                     "a commanded-draw gate on a metered excess: whether any "
+                     "power was commanded, not whether the plan's step runs",
+                 "optimizer.py::HeatPumpOptimizer.get_current_action":
+                     "dhw_heating_active: the DHW circuit's own activity, not "
+                     "the pump's running verdict",
+                 "optimizer.py::HeatPumpOptimizer._optimize_with_dhw":
+                     "DHW-active step counts for the log and the out-of-window "
+                     "figure: the DHW circuit's activity",
+             }),
+    ]
+
+
+#: Facts no AST shape holds, each held by a census in another script that
+#: asserts its own reach. A registry entry here is the census's check text.
+_P2_CENSUSES = {
+    # #1747: the DHW mode block reached the first DHW build and not the
+    # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
+    "dhw_mode_blocked_at_every_build": (
+        "tests/features.py", "and every DHW build that solve made was told the mode is blocked"),
+    # D12-s2-02's runtime half: every domain a written slot accepts is
+    # commanded through a service that domain implements (#1526).
+    "written_slot_domain_routed": (
+        "tests/features.py",
+        "every slot accepting a commandable domain is a driven writer or a named"),
+}
+
+
+def _p2_index(tree):
+    parents, qual = {}, {}
+
+    def walk(node, q):
+        for c in ast.iter_child_nodes(node):
+            parents[c] = node
+            cq = q
+            if isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                cq = f"{q}.{c.name}" if q else c.name
+            qual[c] = cq
+            walk(c, cq)
+    walk(tree, "")
+    return parents, qual
+
+
+def _p2_owner_of(n, parents, qual):
+    cur = n
+    while cur in parents:
+        cur = parents[cur]
+        if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return qual[cur]
+    return ""
+
+
+_P2_FILE_CACHE = {}
+
+
+def _p2_file(name, text, registry):
+    """(defined qualnames, {fact: hits}) for one module, cached by its text
+    and the registry's matchers, so a plant re-scans only its own module."""
+    key = (name, text, tuple((e["fact"], id(e["match"])) for e in registry))
+    if key not in _P2_FILE_CACHE:
+        tree = ast.parse(text)
+        parents, qual = _p2_index(tree)
+        hits = {e["fact"]: [] for e in registry}
+        if name != "const.py":
+            for n in ast.walk(tree):
+                for e in registry:
+                    if e["match"](n, parents) or (e.get("also") and e["also"](n, parents)):
+                        hits[e["fact"]].append((name, n.lineno, _p2_owner_of(n, parents, qual)))
+        _P2_FILE_CACHE[key] = ({f"{name}::{v}" for v in qual.values() if v}, hits)
+    return _P2_FILE_CACHE[key]
+
+
+def _p2_scan(sources, registry=None):
+    """One row per fact: (fact, hits, stray, owners missing, stale
+    dispositions, dead). Clean is all four empty and dead False."""
+    registry = registry or _p2_registry(sources)
+    defined, hits = set(), {e["fact"]: [] for e in registry}
+    for name, text in sorted(sources.items()):
+        file_defined, file_hits = _p2_file(name, text, registry)
+        defined |= file_defined
+        for fact, found in file_hits.items():
+            hits[fact] += found
+    rows = []
+    for e in registry:
+        found = hits[e["fact"]]
+        sites = {f"{h[0]}::{h[2]}" for h in found}
+        stray = [h for h in found
+                 if f"{h[0]}::{h[2]}" not in e["owners"]
+                 and f"{h[0]}::{h[2]}" not in e["dispositions"]]
+        rows.append((
+            e["fact"], found, stray,
+            [o for o in e["owners"] if o not in defined],
+            [d for d in e["dispositions"] if d not in sites] + list(e.get("requires", [])),
+            not found and not getattr(e["match"], "live", False),
+        ))
+    return rows
+
+
+def _p2_fails(rows):
+    return {r[0] for r in rows if r[2] or r[3] or r[4] or r[5]}
+
+
+_P2_SOURCES = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
+_P2_REGISTRY = _p2_registry(_P2_SOURCES)
+_p2_rows = _p2_scan(_P2_SOURCES, _P2_REGISTRY)
+for _p2_fact, _p2_hits, _p2_stray, _p2_missing, _p2_stale, _p2_dead in _p2_rows:
+    R.check(
+        f"P2 owners: {_p2_fact} is decided only by its owner or a dispositioned "
+        f"site, its owner exists, no disposition is stale, the rule is live",
+        not (_p2_stray or _p2_missing or _p2_stale or _p2_dead),
+        f"SEAM {[f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray]} "
+        f"OWNER-MISSING {_p2_missing} STALE-DISPOSITION {_p2_stale} DEAD-RULE {_p2_dead} "
+        f"(hits={len(_p2_hits)})",
+    )
+_p2_census_gone = sorted(
+    fact for fact, (path, text) in _P2_CENSUSES.items()
+    if text not in (ROOT.parent.parent / path).read_text()
+)
+R.check(
+    "P2 owners: every census a shapeless fact rests on is still in its script",
+    not _p2_census_gone,
+    f"CENSUS-MISSING {_p2_census_gone}",
+)
+
+# NULL CONTROLS: each fact handed a new sibling outside its owner must fail,
+# and each refusal must fire on its own planted skip. Plants go into a copy
+# of one module's source; the rest of the tree is the scan above, cached.
+_p2_px = _p2_proxies(_P2_SOURCES)
+_P2_PLANTS = {
+    fact: f"\n\ndef _p2_plant(config):\n    if config.get({sorted(_p2_px[fact])[0]}):\n"
+          "        return 1\n    return 0\n"
+    for fact in ("two_zone_enabled", "wood_furnace_on", "dhw_enabled")
+}
+_P2_PLANTS["state_age"] = "\n\ndef _p2_plant(state, now):\n    return now - state.last_updated\n"
+_P2_PLANTS["on_threshold_kw"] = (
+    "\n\ndef _p2_plant(p):\n    return max(0.1, p.min_electrical_power * 0.5)\n"
+)
+_P2_PLANTS["plan_running_rule"] = "\n\ndef _p2_plant(p):\n    return p > 0.1\n"
+_P2_PLANTS["entity_write_domain"] = (
+    "\n\nasync def _p2_plant(hass):\n"
+    "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+)
+_p2_planted = {
+    fact: _p2_fails(_p2_scan(
+        {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
+    for fact, plant in _P2_PLANTS.items()
+}
+_P2_FENCE_RECORD = (
+    "await _best_effort_cycle_step(\n"
+    "                self._record_accuracy, \"Accuracy pairing skipped: %s\"\n"
+    "            )"
+)
+_p2_unfenced = _p2_fails(_p2_scan(
+    {**_P2_SOURCES, "coordinator.py": _P2_SOURCES["coordinator.py"].replace(
+        _P2_FENCE_RECORD, "await self._record_accuracy()")}, _P2_REGISTRY))
+_p2_renamed = _p2_fails(_p2_scan(
+    {**_P2_SOURCES, "thermal_model.py": _P2_SOURCES["thermal_model.py"].replace(
+        "def on_threshold_kw(", "def _p2_owner_renamed(")}, _P2_REGISTRY))
+_p2_with_stale = [
+    {**e, "dispositions": {**e["dispositions"], "coordinator.py::_p2_no_such_site": "planted"}}
+    if e["fact"] == "entity_write_domain"
+    else {**e, "requires": ["self._p2_never_fenced"]} if e["fact"] == "fenced_cycle_step"
+    else e
+    for e in _P2_REGISTRY
+]
+_p2_dead_entry = {**_P2_REGISTRY[4], "fact": "p2_dead",
+                  "match": _p2_match_node((ast.BinOp,), r"p2_never_spelt", lambda n: True)}
+_p2_dead_proxy = {**_P2_REGISTRY[0], "fact": "p2_dead_proxy", "match": _p2_match_proxy(set())}
+R.check(
+    "and each P2 fact fails on a new sibling outside its owner, and each "
+    "refusal fires on its planted skip (null controls)",
+    all(_p2_planted[fact] == {fact} for fact in _P2_PLANTS)
+    and _P2_SOURCES["coordinator.py"].count(_P2_FENCE_RECORD) == 1
+    and _p2_unfenced == {"fenced_cycle_step"}
+    and "on_threshold_kw" in _p2_renamed
+    and _p2_fails(_p2_scan(_P2_SOURCES, _p2_with_stale))
+    == {"entity_write_domain", "fenced_cycle_step"}
+    and _p2_fails(_p2_scan(_P2_SOURCES, [_p2_dead_entry, _p2_dead_proxy]))
+    == {"p2_dead", "p2_dead_proxy"}
+    and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
+    f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+
+# ===========================================================================
+# P6: every read has a producer (round-9 class barrier)
+# ===========================================================================
+# Class P6 -- a consumer reads a key or field no producer writes, with a
+# silent fallback -- recurred in every audit round but one (bugclasses.json).
+# Each fix before this one guarded its own instance with a universe the fixer
+# supplied: one sensor's payload reads (#1460, above), one slot shape (#1526),
+# one fixture device's preview fields (#1262), six hand-listed error codes,
+# 13 in-scope entities (#368, which named the solve seed and scoped it out).
+# Every arm here reads its universe off production instead, so a new read,
+# code, preset, prefill key or seed field is covered the day it lands.
+# Each exemption table is a deliberate classification with its reason, and an
+# entry that stops matching anything is refused, so the tables only shrink.
+R.section("P6: every read has a producer (round-9 class barrier)")
+
+import dataclasses as _p6_dc  # noqa: E402
+
+from heatpump_optimizer import modbus_prefill as _p6_modbus_prefill  # noqa: E402
+
+#: Names Home Assistant or the stdlib defines on the objects these probes
+#: read; their producer is upstream, so they are not this class.
+P6_UPSTREAM_PROBES = {
+    "async_update_entry", "_get_reauth_entry", "cur_step", "async_on_unload",
+    "async_start_reauth", "last_update_success", "async_items",
+    "register_static_path", "async_update_item", "last_updated", "last_changed",
+    "last_reported", "isoformat", "temperature_unit",
+}
+#: Home Assistant's own climate presets (climate/const.py PRESET_*), which the
+#: climate component translates and icons itself.
+P6_HA_PRESETS = {"none", "eco", "away", "boost", "comfort", "home", "sleep", "activity"}
+#: Modules whose dict literals are the payload's consumers' output: an
+#: attribute dict naming a key does not produce ``coordinator.data``.
+P6_CONSUMER_MODULES = {
+    "sensor.py", "binary_sensor.py", "climate.py", "switch.py", "button.py",
+    "datetime.py", "number.py", "select.py", "diagnostics.py", "entity.py",
+}
+#: Seed fields the flow's own install legitimately leaves at the constructor
+#: default across solves, each with the reason. Not a place to park a finding.
+P6_SEED_DEFAULTS_DECLARED = {
+    "room_temperature": "no indoor thermometer: tvofi's A3(e) ruling (D8-s2-01, F7.3)",
+    "upper_floor_temperature": "no indoor thermometer: tvofi's A3(e) ruling (D8-s2-01, F7.3)",
+    "lower_floor_temperature": "no indoor thermometer: tvofi's A3(e) ruling (D8-s2-01, F7.3)",
+    "buffer_tank_temperature": "the flow's install configures no buffer tank",
+    "solar_radiation": "the run's clock is 00:00 UTC in January, where 0 W/m2 is the truth",
+}
+
+_P6_TREES = {p.name: ast.parse(p.read_text()) for p in sorted(ROOT.glob("*.py"))}
+_P6_WALKS = {name: list(ast.walk(tree)) for name, tree in _P6_TREES.items()}
+_P6_CATALOGUES = {
+    "strings.json": json.loads((ROOT / "strings.json").read_text()),
+    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
+    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+}
+_P6_ICONS = json.loads((ROOT / "icons.json").read_text())
+
+
+def _p6_consts():
+    """Module-level ``NAME = "text"`` across the package, by bare name."""
+    out = {}
+    for name, tree in _P6_TREES.items():
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) \
+                    and isinstance(node.value.value, str):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        out.setdefault(target.id, node.value.value)
+    return out
+
+
+_P6_CONSTS = _p6_consts()
+
+
+def _p6_lit(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        return _P6_CONSTS.get(node.id)
+    if isinstance(node, ast.Attribute):
+        return _P6_CONSTS.get(node.attr)
+    return None
+
+
+# --- arm K: a payload key read off coordinator.data has a producer --------
+def _p6_is_data(node, aliases, accessors):
+    if isinstance(node, ast.BoolOp):
+        return any(_p6_is_data(v, aliases, accessors) for v in node.values)
+    if isinstance(node, ast.Attribute) and node.attr == "data":
+        base = node.value
+        return (isinstance(base, ast.Attribute) and base.attr == "coordinator") or (
+            isinstance(base, ast.Name) and base.id in ("coordinator", "coord")
+        )
+    if isinstance(node, ast.Name):
+        return node.id in aliases
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        return node.func.attr in accessors and not node.args
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        return node.value.id == "self" and node.attr in accessors
+    return False
+
+
+def _p6_arm_k(walks):
+    produced = set()
+    for name, nodes in walks.items():
+        if name in P6_CONSUMER_MODULES:
+            continue
+        for n in nodes:
+            if isinstance(n, ast.Dict):
+                produced.update(k for k in map(_p6_lit, filter(None, n.keys)) if k)
+            elif isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Store):
+                produced.add(_p6_lit(n.slice))
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "dict":
+                produced.update(kw.arg for kw in n.keywords if kw.arg)
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                    and n.func.attr in ("setdefault", "update"):
+                if n.func.attr == "setdefault" and n.args:
+                    produced.add(_p6_lit(n.args[0]))
+                produced.update(kw.arg for kw in n.keywords if kw.arg)
+    reads, seams = 0, set()
+    for name, nodes in walks.items():
+        if name not in P6_CONSUMER_MODULES and name != "__init__.py":
+            continue
+        fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        accessors = {
+            fn.name for fn in fns
+            if (rets := [r.value for r in ast.walk(fn) if isinstance(r, ast.Return) and r.value])
+            and all(_p6_is_data(r, set(), set()) for r in rets)
+        }
+        for fn in fns:
+            body = list(ast.walk(fn))
+            aliases = set()
+            for n in body:
+                if isinstance(n, ast.Assign) and _p6_is_data(n.value, aliases, accessors):
+                    aliases.update(t.id for t in n.targets if isinstance(t, ast.Name))
+            for n in body:
+                key = None
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                        and n.func.attr == "get" and n.args \
+                        and _p6_is_data(n.func.value, aliases, accessors):
+                    key = _p6_lit(n.args[0])
+                elif isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load) \
+                        and _p6_is_data(n.value, aliases, accessors):
+                    key = _p6_lit(n.slice)
+                if key:
+                    reads += 1
+                    if key not in produced:
+                        seams.add(f"{name}:{n.lineno} {key}")
+    return reads, sorted(seams)
+
+
+# --- arm G: a getattr/hasattr probe names something production defines ---
+def _p6_arm_g(walks):
+    defined = set()
+    for nodes in walks.values():
+        for n in nodes:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                defined.add(n.name)
+            elif isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Store):
+                defined.add(n.attr)
+            elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store):
+                defined.add(n.id)
+            elif isinstance(n, ast.keyword) and n.arg:
+                defined.add(n.arg)
+            elif isinstance(n, ast.arg):
+                defined.add(n.arg)
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                    and n.func.id == "setattr" and len(n.args) >= 2 \
+                    and isinstance(n.args[1], ast.Constant):
+                defined.add(n.args[1].value)
+    probes, seams, upstream_used = 0, [], set()
+    for name, nodes in walks.items():
+        for n in nodes:
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                    and n.func.id in ("getattr", "hasattr") and len(n.args) >= 2 \
+                    and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str):
+                probes += 1
+                attr = n.args[1].value
+                if attr in P6_UPSTREAM_PROBES:
+                    upstream_used.add(attr)
+                elif attr not in defined:
+                    seams.append(f"{name}:{n.lineno} {attr}")
+    return probes, sorted(seams), sorted(P6_UPSTREAM_PROBES - upstream_used)
+
+
+# --- arm E: an error code a flow can return is in its flow's error table ---
+def _p6_arm_e(tree, walks, catalogues):
+    """A code inside a flow class is owed by that flow; one in a module-level
+    helper by every flow that calls it, transitively; a validator's return
+    (a function named ``*problem``) likewise. Unreached: both flows."""
+    callers, found = {}, []
+
+    def owner_of(stack):
+        for kind, name in reversed(stack):
+            if kind == "class" and "OptionsFlow" in name:
+                return ("flow", "options")
+            if kind == "class" and "ConfigFlow" in name:
+                return ("flow", "config")
+        for kind, name in reversed(stack):
+            if kind == "def":
+                return ("helper", name)
+        return ("helper", "<module>")
+
+    def codes_of(node):
+        out = []
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) \
+                        and target.value.id == "errors":
+                    vals = [node.value.body, node.value.orelse] \
+                        if isinstance(node.value, ast.IfExp) else [node.value]
+                    out += [c for c in map(_p6_lit, vals) if c]
+            if any(isinstance(t, ast.Name) and t.id.endswith("problem") for t in node.targets):
+                out += [c for c in [_p6_lit(node.value)] if c]
+        if isinstance(node, ast.Dict):
+            out += [
+                c for k, v in zip(node.keys, node.values)
+                if isinstance(k, ast.Constant) and k.value == "base" and (c := _p6_lit(v))
+            ]
+        return out
+
+    def visit(node, stack):
+        if isinstance(node, ast.ClassDef):
+            stack = stack + [("class", node.name)]
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            stack = stack + [("def", node.name)]
+        owner = owner_of(stack)
+        found.extend((owner, code, node.lineno) for code in codes_of(node))
+        if isinstance(node, ast.Call):
+            fn = node.func
+            called = fn.id if isinstance(fn, ast.Name) else getattr(fn, "attr", None)
+            if called:
+                callers.setdefault(called, set()).add(owner)
+        for child in ast.iter_child_nodes(node):
+            visit(child, stack)
+
+    visit(tree, [])
+    for nodes in walks.values():
+        for fn in nodes:
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)) and fn.name.endswith("problem"):
+                found.extend(
+                    (("helper", fn.name), code, r.lineno)
+                    for r in ast.walk(fn)
+                    if isinstance(r, ast.Return) and r.value is not None
+                    and (code := _p6_lit(r.value))
+                )
+
+    def flows_of(owner, seen=()):
+        kind, name = owner
+        if kind == "flow":
+            return {name}
+        if name in seen:
+            return set()
+        outs = set()
+        for caller in callers.get(name, ()):
+            outs |= flows_of(caller, seen + (name,))
+        return outs or {"config", "options"}
+
+    seams = {
+        f"{cat_name}:{flow}.error.{code} ({owner[1]}:{line})"
+        for owner, code, line in found
+        for flow in flows_of(owner)
+        for cat_name, cat in catalogues.items()
+        if code not in (cat.get(flow) or {}).get("error", {})
+    }
+    owed = {(flow, code) for owner, code, _l in found for flow in flows_of(owner)}
+    return len({c for _o, c, _l in found}), sorted(seams), owed
+
+
+# --- arm P: a mode an entity offers is Home Assistant's or translated -----
+def _p6_arm_p(trees, catalogues, icons):
+    attrs = {"_attr_preset_modes": "preset_mode", "_attr_fan_modes": "fan_mode",
+             "_attr_swing_modes": "swing_mode"}
+    offered, seams = 0, []
+    for name, tree in trees.items():
+        platform = name[:-3]
+        for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+            tkey, lists = None, {}
+            for stmt in cls.body:
+                if not isinstance(stmt, (ast.Assign, ast.AnnAssign)):
+                    continue
+                for t in stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]:
+                    if not isinstance(t, ast.Name):
+                        continue
+                    if t.id == "_attr_translation_key":
+                        tkey = _p6_lit(stmt.value)
+                    elif t.id in attrs and isinstance(stmt.value, (ast.List, ast.Tuple)):
+                        lists[attrs[t.id]] = [_p6_lit(e) for e in stmt.value.elts]
+            for attr, values in lists.items():
+                for value in values:
+                    offered += 1
+                    if attr == "preset_mode" and value in P6_HA_PRESETS:
+                        continue
+                    for cat_name, cat in {**catalogues, "icons.json": icons}.items():
+                        node = ((cat.get("entity") or {}).get(platform) or {}).get(tkey or "") or {}
+                        node = ((node.get("state_attributes") or {}).get(attr) or {}).get("state") or {}
+                        if value not in node:
+                            seams.append(
+                                f"{cat_name}:entity.{platform}.{tkey}.state_attributes."
+                                f"{attr}.state.{value} ({cls.name})"
+                            )
+    return offered, sorted(seams)
+
+
+# --- arm F: every field the setup pre-fill preview can render is labelled -
+def _p6_prefill_universe():
+    """The preview's keys are exactly ``modbus_prefill.infer``'s output: the two
+    register tables' fixed keys (read with every register absent) plus the
+    named slots. One fixture's resolution is not the universe (#1262)."""
+    mp = _p6_modbus_prefill
+    return set(mp._hot_water({})) | set(mp._plant({}, {})) | (set(mp._NAMED) - {"unit_capacity"})
+
+
+def _p6_arm_f(catalogues, universe):
+    seams = []
+    for cat_name, cat in catalogues.items():
+        for flow, step in (("config", "device_prefill"), ("options", "modbus_prefill")):
+            node = ((cat.get(flow) or {}).get("step") or {}).get(step) or {}
+            for kind in ("data", "data_description"):
+                seams += [
+                    f"{cat_name}:{flow}.step.{step}.{kind}.{key}"
+                    for key in sorted(universe)
+                    if not (node.get(kind) or {}).get(key)
+                ]
+    return seams
+
+
+# --- arm B: an entity id a blueprint, the card or the package names is built
+#: The id shape this integration builds; a reference is a value handed to Home
+#: Assistant (a blueprint input default or entity_id, the card, the package),
+#: not prose. R6 D6-02 (#1392) shipped two blueprint defaults naming ids the
+#: sensor platform never builds, and its fix added no guard.
+_P6_ID = re.compile(
+    r"\b(sensor|binary_sensor|switch|climate|button|datetime)\.heat_pump_optimizer_[a-z0-9_]+\b"
+)
+
+
+def _p6_built_ids():
+    hass = FakeHass()
+    entry = FakeEntry(data={"indoor_temp_entity": "sensor.indoor",
+                            "outdoor_temp_entity": "sensor.outdoor",
+                            "dhw_tank_volume": 180.0})
+    coord = HeatPumpOptimizerCoordinator(hass, entry)
+    coord.data = coord._build_data_dict()
+    entry.runtime_data = coord
+    built = set()
+    for platform in integration.PLATFORM_LIST:
+        module = __import__(f"heatpump_optimizer.{platform}", fromlist=["_"])
+        added = []
+        asyncio.run(module.async_setup_entry(hass, entry, added.extend))
+        for entity in added:
+            eid = getattr(entity, "entity_id", None)
+            tkey = getattr(entity, "_attr_translation_key", None)
+            if not eid and tkey:
+                eid = f"{platform}.heat_pump_optimizer_{tkey}"
+            if eid:
+                built.add(str(eid))
+    return built
+
+
+def _p6_arm_b(built):
+    files = [p for p in (ROOT.parent.parent / "blueprints").rglob("*.yaml")]
+    files += [p for p in (ROOT / "www").rglob("*") if p.suffix in (".js", ".mjs")]
+    files += sorted(ROOT.glob("*.py"))
+    dangling = set()
+    for path in files:
+        text = path.read_text(errors="replace")
+        if path.suffix == ".yaml":
+            text = "\n".join(
+                line for line in text.splitlines()
+                if re.match(r"\s*(-\s*)?(default|entity_id)\s*:", line)
+            )
+        for m in _P6_ID.finditer(text):
+            ref = m.group(0)
+            if ref not in built and not any(b.startswith(ref) for b in built):
+                dangling.add(f"{path.name}: {ref}")
+    return sorted(dangling)
+
+
+# --- arm S: a solve seed is a producer's, not the constructor's -----------
+# D12-s1-01's shape. The flow's own install with hot water answered on (the
+# untouched flow leaves it off since F1.2, and a solve that models no tank
+# reads no tank seed, so arm S would be blind to the field D12-s1-01 named),
+# no thermometer, the clock moving one plan step per cycle, a 6 h horizon
+# because only the seed is read: a numeric field equal to its constructor
+# default at EVERY solve had no producer on this install.
+def _p6_seed_log(cycles=2):
+    log = []
+    _hass, _entry, coord = _d801_coordinator({**_FLOW_CONFIG, const.CONF_DHW_ENABLED: True})
+    coord._opt_config.horizon_hours = 6.0
+    snap = coord._solve_snapshot
+
+    def recording_snapshot():
+        state, optimizer = snap()
+        log.append({f.name: getattr(state, f.name) for f in _p6_dc.fields(state)})
+        return state, optimizer
+
+    coord._solve_snapshot = recording_snapshot
+
+    async def run():
+        for cycle in range(cycles):
+            dt_util.freeze(_D801_START + timedelta(minutes=15 * cycle))
+            await coord._update_current_state()
+            await coord.async_run_optimization()
+
+    try:
+        asyncio.run(run())
+    finally:
+        dt_util.freeze(None)
+    return log
+
+
+def _p6_seed_seams(log):
+    defaults = ThermalState()
+    return [
+        f.name
+        for f in _p6_dc.fields(ThermalState)
+        if isinstance(d := getattr(defaults, f.name), (int, float))
+        and not isinstance(d, bool)  # None is an honest "unknown"; flags seed nothing
+        and len(log) >= 2
+        and all(seed[f.name] == d for seed in log)
+    ]
+
+
+_p6_k_reads, _p6_k = _p6_arm_k(_P6_WALKS)
+# Arm K's first instance (D14-s1-02): the plan sensors read horizon_hours off
+# the payload and no producer wrote it, so a 12 h optimizer published 24.
+_p6_h_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data={}))
+_p6_h_coord._opt_config.horizon_hours = 12.0
+_p6_h_data = _p6_h_coord._build_data_dict()
+R.check(
+    "the payload carries the optimizer's own horizon, so the plan sensors "
+    "publish 12 h for a 12 h plan rather than a constant 24 (D14-s1-02)",
+    _p6_h_data.get("horizon_hours") == 12.0,
+    str(_p6_h_data.get("horizon_hours")),
+)
+_p6_g_probes, _p6_g, _p6_g_stale = _p6_arm_g(_P6_WALKS)
+_p6_e_codes, _p6_e, _p6_e_owed = _p6_arm_e(_P6_TREES["config_flow.py"], _P6_WALKS, _P6_CATALOGUES)
+_p6_p_offered, _p6_p = _p6_arm_p(_P6_TREES, _P6_CATALOGUES, _P6_ICONS)
+_p6_built = _p6_built_ids()
+_p6_b = _p6_arm_b(_p6_built)
+_p6_universe = _p6_prefill_universe()
+_p6_f = _p6_arm_f(_P6_CATALOGUES, _p6_universe)
+_p6_seeds = _p6_seed_log()
+_p6_s = _p6_seed_seams(_p6_seeds)
+_p6_s_open = sorted(set(_p6_s) - set(P6_SEED_DEFAULTS_DECLARED))
+_p6_s_stale = sorted(set(P6_SEED_DEFAULTS_DECLARED) - set(_p6_s))
+
+R.check(
+    "every coordinator.data key a platform reads is one production writes (P6 K)",
+    _p6_k_reads > 0 and not _p6_k,
+    f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+R.check(
+    "every entity id a blueprint, the card or the package names is one a platform "
+    "builds (P6 B)",
+    len(_p6_built) > 0 and not _p6_b,
+    f"{len(_p6_b)} dangling of {len(_p6_built)} built: {_p6_b[:6]}",
+)
+R.check(
+    "every getattr/hasattr probe names what production or upstream defines (P6 G)",
+    _p6_g_probes > 0 and not _p6_g and not _p6_g_stale,
+    f"test-double-only: {_p6_g}; upstream entries nothing probes: {_p6_g_stale}",
+)
+R.check(
+    "every error code a flow can return is in that flow's error table, in every "
+    "catalogue (P6 E)",
+    _p6_e_codes > 0 and not _p6_e,
+    f"{len(_p6_e)} raw: {_p6_e[:6]}",
+)
+R.check(
+    "every non-standard mode an entity offers is translated and iconed (P6 P)",
+    _p6_p_offered > 0 and not _p6_p,
+    f"{len(_p6_p)} raw: {_p6_p[:6]}",
+)
+R.check(
+    "every field the pre-fill preview can render has a label and a description, "
+    "in both flows and every catalogue (P6 F)",
+    len(_p6_universe) > 0 and not _p6_f,
+    f"{len(_p6_f)} of {len(_p6_universe)} keys x 2 flows x 2 kinds x 3 catalogues "
+    f"render raw: {_p6_f[:6]}",
+)
+R.check(
+    "no solve seed stays at its constructor default unless declared, and no "
+    "declaration is stale (P6 S)",
+    len(_p6_seeds) >= 2 and not _p6_s_open and not _p6_s_stale,
+    f"solves={len(_p6_seeds)} undeclared={_p6_s_open} stale={_p6_s_stale}",
+)
+
+# NULL CONTROLS: each arm, handed its own defect, must see it. A check that
+# cannot fail pins nothing (the repository's most repeated detector defect).
+_p6_null_k = dict(_P6_WALKS)
+_p6_null_k["sensor.py"] = _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
+    "def _p6_probe(self):\n    return self.coordinator.data.get('p6_no_producer_writes_this')\n"
+)))
+_p6_null_g = {"sensor.py": list(ast.walk(ast.parse("getattr(c, 'p6_only_a_double_has_this', None)")))}
+_p6_null_cat = json.loads(json.dumps(_P6_CATALOGUES))
+_p6_null_code = sorted(
+    code for flow, code in _p6_e_owed
+    if flow == "config" and code in _p6_null_cat["en.json"]["config"]["error"]
+)[0]
+del _p6_null_cat["en.json"]["config"]["error"][_p6_null_code]
+_p6_null_key = sorted(_p6_universe)[0]
+for _p6_step in _p6_null_cat["sv.json"]["options"]["step"].values():
+    (_p6_step.get("data") or {}).pop(_p6_null_key, None)
+_p6_null_p = {"climate.py": ast.parse(
+    "class C:\n    _attr_translation_key = 'p6'\n    _attr_preset_modes = ['p6_custom']\n"
+)}
+_p6_default_seed = {f.name: getattr(ThermalState(), f.name) for f in _p6_dc.fields(ThermalState)}
+R.check(
+    "and each P6 arm fires on its own planted defect (null controls)",
+    any("p6_no_producer_writes_this" in s for s in _p6_arm_k(_p6_null_k)[1])
+    and any("p6_only_a_double_has_this" in s for s in _p6_arm_g(_p6_null_g)[1])
+    and any(_p6_null_code in s for s in _p6_arm_e(
+        _P6_TREES["config_flow.py"], _P6_WALKS, _p6_null_cat)[1])
+    and any(_p6_null_key in s for s in _p6_arm_f(_p6_null_cat, _p6_universe))
+    and any("p6_custom" in s for s in _p6_arm_p(_p6_null_p, _P6_CATALOGUES, _P6_ICONS)[1])
+    and len(_p6_arm_b(set())) > 0
+    and "dhw_temperature" in _p6_seed_seams([_p6_default_seed, _p6_default_seed])
+    and "dhw_temperature" not in _p6_seed_seams(
+        [_p6_default_seed, {**_p6_default_seed, "dhw_temperature": 54.9}]
+    ),
+    f"code={_p6_null_code} key={_p6_null_key}",
+)
+
+
 # --- path by path, so a revert of any one line is named --------------------
 #
 # The same install, one light cycle, read through the REAL coordinator: the
@@ -8931,24 +9907,40 @@ R.check(
 )
 R.check("both boost switches are off when no overlay is live",
     not dhw_boost_sw.is_on and not space_boost_sw.is_on)
-asyncio.run(dhw_boost_sw.async_turn_on())
-R.check(
-    "turning DHW boost on reaches the coordinator",
-    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": True},
-    str(dhw_boost_sw.coordinator.boost_calls),
-)
-asyncio.run(space_boost_sw.async_turn_on())
-R.check(
-    "turning space boost on reaches the coordinator",
-    space_boost_sw.coordinator.boost_calls[-1] == {"channel": "space", "active": True},
-    str(space_boost_sw.coordinator.boost_calls),
-)
-asyncio.run(dhw_boost_sw.async_turn_off())
-R.check(
-    "turning DHW boost off reaches the coordinator",
-    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": False},
-    str(dhw_boost_sw.coordinator.boost_calls),
-)
+# The switches call boost.set_channel, which persists through the module's
+# own Store; a recorder in place of persist reads what each press held
+# without a test-only branch in production (R9 D14-s1-02: set_channel used
+# to probe for a ``boost_calls`` list only FakeCoordinator defines).
+_boost_persisted = []
+
+
+async def _boost_persist_recorder(coord):
+    _boost_persisted.append((coord, sorted(_boost_mod.held_for(coord).until)))
+
+
+_boost_persist_real = _boost_mod.persist
+_boost_mod.persist = _boost_persist_recorder
+try:
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "turning DHW boost on holds and persists the DHW channel",
+        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["dhw"])],
+        str(_boost_persisted),
+    )
+    asyncio.run(space_boost_sw.async_turn_on())
+    R.check(
+        "turning space boost on holds and persists the space channel",
+        _boost_persisted[-1:] == [(space_boost_sw.coordinator, ["dhw", "space"])],
+        str(_boost_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_off())
+    R.check(
+        "turning DHW boost off releases and persists the DHW channel",
+        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["space"])],
+        str(_boost_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
