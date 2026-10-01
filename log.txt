@@ -4,3 +4,4 @@
 2026-10-01T22:00:10Z 1830 MERGED 6616752c; 1833 MERGED 1aefd2d0 (approved at head, CLEAN, --match-head-commit)
 2026-10-01T22:00:44Z 1834 SKIP head e13193c3: code..head delta is docs/delivery/1834.md only, but origin/main moved after verdict de27770e (card.js, tests/card*.mjs, delivery 1830/1833, tools/audit/seat/bus.sh); merge-tree(main,code) vs head lists those, so the carry rule fails. Needs head merged with main or a fresh verdict. PR is draft.
 2026-10-01T22:04:41Z 1834 SKIP head 5d2592ba: verdict de27770e; code..head delta is docs/delivery/1834.md AND tests/closures.json (not delivery-row only), main also moved; carry rule fails. Needs fresh verdict at this head. Draft, BLOCKED.
+2026-10-01T22:07:01Z 1832 APPROVED e7de78b1 on carry of verdict b7ea3bd2 (merge-tree(main,code) == head tree, delta empty); carried verdict comment 5941599479 posted; merge waits for CI (BLOCKED now)
