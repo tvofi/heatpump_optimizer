@@ -54203,6 +54203,90 @@ R.check(
     f"branch={_r9p3_pf_branch}, floors={_r9p3_pf_floors}",
 )
 
+# Each floor's value, on an input below it and one above it. With every site
+# reading the one property, a dropped floor moves all sites together and no
+# cross-site agreement check can see it (round-1 review of #1808), so the
+# floor itself is pinned here.
+from dataclasses import replace as _r9p3_replace  # noqa: E402
+
+_r9p3_tp = ThermalParameters()
+for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in (
+    ("cop_nominal_floored", "cop_nominal", 0.4, 3.2, 1.0, 3.2),
+    ("emitter_design_delta_t_floored", "emitter_design_delta_t", 0.3, 7.0, 1.0, 7.0),
+    ("slab_heat_transfer_floored", "slab_heat_transfer", 0.0, 0.25, 1e-6, 0.25),
+    ("flow_lift_power_floor_kw", "max_electrical_power", 0.1, 3.0, 0.2, 0.9),
+):
+    _r9p3_got = [
+        getattr(_r9p3_replace(_r9p3_tp, **{_r9p3_field: v}), _r9p3_prop)
+        for v in (_r9p3_lo, _r9p3_hi)
+    ]
+    R.check(
+        f"R9-P3: {_r9p3_prop} holds its floor below it and passes through above",
+        abs(_r9p3_got[0] - _r9p3_want_lo) < 1e-12
+        and abs(_r9p3_got[1] - _r9p3_want_hi) < 1e-12,
+        f"{_r9p3_field}={_r9p3_lo} -> {_r9p3_got[0]} (want {_r9p3_want_lo}), "
+        f"{_r9p3_field}={_r9p3_hi} -> {_r9p3_got[1]} (want {_r9p3_want_hi})",
+    )
+
+# The one clock keeps a naive start naive: the wall-clock walk, no zone added.
+from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
+
+_r9p3_naive = datetime(2026, 3, 29, 1, 0)
+_r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
+R.check(
+    "R9-P3/#1741: a naive start walks the wall clock and stays naive",
+    _r9p3_steps == [_r9p3_naive + timedelta(minutes=30) * k for k in (2, 3, 4, 5)]
+    and all(s.tzinfo is None for s in _r9p3_steps),
+    f"{_r9p3_steps}",
+)
+
+# A tank colder than the room it stands in loses nothing to it: the standby
+# term is one-sided at the tank-room ambient in the DHW window planner and in
+# the setpoint advisor. The what-if service takes any DHW setpoint, so a cold
+# tank is a reachable input of the planner; the advisor sweeps 48-60 °C and
+# meets one only below a -8 °C minimum, which the rule covers all the same.
+# At a cold tank the standby coefficient must not move either answer (a
+# dropped clamp turns the loss into a credit and does). The warm tank is the
+# liveness leg: there the coefficient does move both.
+def _r9p3_ready(rate, cold):
+    lo, hi = (12.0, 24.0) if cold else (40.0, 75.0)
+    opt, params = _r7d203_opt(
+        200.0, dhw_cooling_rate=rate, dhw_setpoint=hi, dhw_min_temp=lo,
+        dhw_idle_min_temp=lo,
+    )
+    windows, _ = opt._effective_dhw_windows()
+    res = opt._dhw_window_floors(
+        params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
+    )
+    return [round(float(v), 9) for v in res[6] if v]
+
+
+def _r9p3_sweep(rate, cold):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    tp = coord._thermal_params
+    tp.dhw_enabled, tp.dhw_cooling_rate = True, rate
+    if cold:
+        tp.dhw_min_temp = -40.0
+    coord._prices = [{"total": 1.0}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+for _r9p3_what, _r9p3_fn in (
+    ("window planner's ready temperatures", _r9p3_ready),
+    ("setpoint advisor's daily costs", _r9p3_sweep),
+):
+    _r9p3_cold = (_r9p3_fn(0.0, True), _r9p3_fn(1.5, True))
+    _r9p3_warm = (_r9p3_fn(0.0, False), _r9p3_fn(1.5, False))
+    R.check(
+        f"R9-P3: a tank below the tank-room ambient has no standby loss "
+        f"({_r9p3_what})",
+        _r9p3_cold[0] == _r9p3_cold[1] and _r9p3_warm[0] != _r9p3_warm[1],
+        f"cold: {_r9p3_cold[0][:6]} vs {_r9p3_cold[1][:6]}; "
+        f"warm: {_r9p3_warm[0][:6]} vs {_r9p3_warm[1][:6]}",
+    )
+
 # (b) The floor price of one zone-kelvin below min_temp is the same in every
 # topology and in both twins: undershooting ONE zone of a two-zone house by
 # u -> 0+ costs what the single-zone room costs (D2-s2-81 priced it at half).
