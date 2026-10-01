@@ -3762,8 +3762,8 @@
       "fixerModel": "sonnet",
       "reviewerModel": "opus",
       "model": {
-        "fixer": "sonnet",
-        "fixer_why": "message and wording change only, after the RCA re-scope",
+        "fixer": "opus",
+        "fixer_why": "a value-bearing guard ported across two excusal sites (Python and JS) without reopening #213",
         "reviewer": "opus",
         "rca": "opus",
         "runner": "haiku",
@@ -3782,15 +3782,15 @@
         "branch": "handoff/r9-f10-claims-baseline",
         "commit": null,
         "last_step": null,
-        "next_step": "wait for the root-cause seat's root-cause.md, then a message-and-wording fix only (re-scoped 2026-10-01)",
+        "next_step": "fixer running the RCA's narrower design (carried lines are no-claim) at a fresh merge base",
         "note_file": "handoff/round9/fix/resume/F10.8.md on handoff/r9-f10-claims-baseline",
         "review_branch": "handoff/r9-f10-claims-baseline-review",
         "review_note_file": "handoff/round9/fix/resume/F10.8-review.md on handoff/r9-f10-claims-baseline-review",
         "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md (rev 2), handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/SCREEN-1736-SHAPES.md, handoff/round9/state/alt/register/REGISTER-V2.md",
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
-        "note": "Added 2026-10-01; re-scoped the same day: the guard's behaviour is correct by design (RCA), only its message and the rule wording mislead."
+        "note": "Added 2026-10-01; scope restored to the guard fix on the RCA's revised root-cause.md (27ed4fb6)."
       },
-      "brief": "Round-9 fix PR F10.8 (inherited-claims refusal message and claim-file rule wording), added 2026-10-01 by the Mac orchestrator and RE-SCOPED the same day on its root-cause seat's finding. Context: #1809 and #1808 each had to drop F6.4's 5 claims (#1806) to pass prepr's INHERITED CLAIMS refusal, which the orchestrator first read as a record-loss defect (the #608/#635 history). The root-cause seat measured that dropping inherited claims is the DESIGNED lifecycle: tools/release/stamp.py's claim rewrite expects the next branch to restate its own footprint; branches made 47 drop commits since 2026-09-17 (17 by the bot); keeping the carried claims turns main's push check (--claims-only HEAD^1) red; and letting a branch pass with main's claims byte-identical would reopen #213 (carried claims excusing new coord drift). #662 and #747 already closed the docs-only variant. Scope, therefore: no change to the guard's logic. Make the INHERITED CLAIMS refusal message in tests/env_drift.py and the wording in .claude/rules/claim-files.md and ci-autofix.md say plainly that dropping claims inherited from main is the expected step, not a loss, so seats stop reading it as one. Policy files: tvofi's approval under the mandate. Follow the root-cause seat's root-cause.md for exact wording targets. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
+      "brief": "Round-9 fix PR F10.8 (claims baseline: carried claim lines read as no-claim), added 2026-10-01 by the Mac orchestrator. Its scope was briefly narrowed to wording and then RESTORED on the root-cause seat's revised root-cause.md (handoff/r9-f10-claims-baseline-rca at 27ed4fb6). Root cause: the inherited-claims guard uses 'claim list equals the fork point's' as a stand-in for 'carried', and merging main into branches made claiming fork points routine. So a branch that never wrote a claim but merged a claiming main reads as inherited (#1809 and #1808 each had to drop F6.4's 5 claims), contradicting claim-files.md's byte-identical rule, and every solver branch pays a drop commit and a DIRTY round (#570) per claiming merge. Design: only branch-authored claim lines (lines absent from the fork point's parsed map) excuse drift or count as stale; carried lines read as no-claim. Main must stay green (its push check --claims-only HEAD^1). Both excusal sites port the rule: tests/env_drift.py (--all) and tests/card_drift.mjs, each with a test that is red before the port and green after, plus the mutation proof. Keep #213's protection: a carried claim must never excuse new drift. Update .claude/rules/claim-files.md and ci-autofix.md to match (policy files: tvofi's approval under the mandate). Ratchets keep the architecture sound: restructure first; a raise is a last resort and needs the reviewer's verdict to call it the architecturally right call. Read CLAUDE.md, .claude/rules/* and tools/audit/briefs/fixer.md first; call the owner \"tvofi\", PR attribution \"_Requested by **tvofi**_\"; the reviewer cites the head's CI and never re-runs it."
     },
     {
       "group": "R9-F10.7",
