@@ -543,35 +543,43 @@ function instrument() {
 
 // ---- the grid's scope ----------------------------------------------------------
 // The grid costs about as long as the rest of this lane together, and what it
-// renders is the card source, this lane, its rig and the payload: a diff that
-// touches none of them cannot move a cell. HPO_BROWSER_SCOPE=auto runs it only
+// renders is the card source and this lane's own scripts, fed the payload
+// tests/plan_view.py builds by running the integration -- the solver, the
+// profiles and the stubs included. So the surface is the card files, the grid
+// scripts, and plan_view.py's MEASURED closure from tests/closures.json at
+// HEAD, never a hand list of its inputs: a solver-only or profiles-only diff
+// moves the payload and runs the grid. HPO_BROWSER_SCOPE=auto runs it only
 // when the branch's diff from its merge base with HPO_BROWSER_BASE (default
-// origin/main) touches one; unset or any other value runs it, as does a push
-// (GITHUB_EVENT_NAME=push), so main is always measured in full and a surface
-// this list misses goes red on main within one merge -- the scoped gate's own
-// bargain (CLAUDE.md rule 1). Any git failure runs it. The mode line always
-// prints, and a skip is reported as a skip in the summary, never as a pass.
+// origin/main) touches the surface; unset or any other value runs it, as does
+// a push (GITHUB_EVENT_NAME=push), so main is always measured in full and a
+// closure that misses a file goes red on main within one merge -- the scoped
+// gate's own bargain (CLAUDE.md rule 1). Any git failure, and a closure file
+// without plan_view.py's entry, runs it. The mode line always prints, and a
+// skip is reported as a skip in the summary, never as a pass.
 const GRID_SURFACE = [
   /^custom_components\/heatpump_optimizer\/www\//,
   /^tests\/card_browser\.mjs$/,
   /^tests\/card_rig\.mjs$/,
-  /^tests\/plan_view\.py$/,
 ];
+const GRID_PAYLOAD = "tests/plan_view.py";
 function gridScope(env = process.env) {
   const mode = env.HPO_BROWSER_SCOPE || "full";
   if (mode !== "auto") return { run: true, line: `P9 grid MODE: FULL (HPO_BROWSER_SCOPE=${mode})` };
   if (env.GITHUB_EVENT_NAME === "push") return { run: true, line: "P9 grid MODE: FULL (a push is always measured in full)" };
   const base = env.HPO_BROWSER_BASE || "origin/main";
-  let files;
+  let files, closure;
   try {
-    const git = (...a) => execFileSync("git", a, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    const git = (...a) => execFileSync("git", a, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 << 20 }).trim();
     files = git("diff", "--name-only", `${git("merge-base", base, "HEAD")}...HEAD`).split("\n").filter(Boolean);
+    closure = JSON.parse(git("show", "HEAD:tests/closures.json")).closures[GRID_PAYLOAD];
   } catch (e) {
-    return { run: true, line: `P9 grid MODE: FULL (diff against ${base} unreadable: ${String(e.message || e).split("\n")[0]})` };
+    return { run: true, line: `P9 grid MODE: FULL (diff or closure against ${base} unreadable: ${String(e.message || e).split("\n")[0]})` };
   }
-  const hit = files.filter((f) => GRID_SURFACE.some((re) => re.test(f)));
-  if (hit.length) return { run: true, line: `P9 grid MODE: SCOPED -- RUN (${hit.length} of ${files.length} changed file(s) on the card surface: ${hit.slice(0, 4).join(", ")})` };
-  return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface)` };
+  if (!Array.isArray(closure) || !closure.length) return { run: true, line: `P9 grid MODE: FULL (tests/closures.json has no closure for ${GRID_PAYLOAD})` };
+  const payload = new Set([GRID_PAYLOAD, "tests/closures.json", ...closure]);
+  const hit = files.filter((f) => payload.has(f) || GRID_SURFACE.some((re) => re.test(f)));
+  if (hit.length) return { run: true, line: `P9 grid MODE: SCOPED -- RUN (${hit.length} of ${files.length} changed file(s) on the card surface or ${GRID_PAYLOAD}'s closure: ${hit.slice(0, 4).join(", ")})` };
+  return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface or in ${GRID_PAYLOAD}'s ${closure.length}-file closure)` };
 }
 
 // ---- the host side -----------------------------------------------------------
