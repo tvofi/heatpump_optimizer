@@ -1,4 +1,4 @@
-R9-F10.9c, stage 2 of 2 (process review item 2A, adopted by tvofi 2026-10-01T16:51Z: "On 2, I want both"). **Merge after stage 1** (`handoff/r9-f10-merge-queue`, code head `c5102ea7`): this branch is cut from it, and its pinned graders run from the base, so before stage 1 lands the base's `codeowners_gap.py` and `prepr.sh` refuse the queue's `PINNED` form here.
+R9-F10.9c, stage 2 of 2 (process review item 2A, adopted by tvofi 2026-10-01T16:51Z: "On 2, I want both"). Stage 1 landed as #1823 (`d536fb4d`), and this branch merges it, so the base's `codeowners_gap.py` and `prepr.sh` accept the queue's `PINNED` form here.
 
 Before: no workflow lists `merge_group`, so a merge queue on `main` would wait on 17 required contexts that nothing produces.
 
@@ -25,7 +25,7 @@ _Requested by **tvofi**_
 
 ## Head
 
-`f88438ddbf41cf11ceeacf60a5314e77832ffefa` (code), cut from stage 1's `c5102ea715260c07fae83e36b3aa2bdba242d856` on merge base `90335cbd6ee6a0e4423cd1effc2c8c962e2ac0a0`.
+`e0fca1fa0684609776d519c37a4e08b32a86121f` (code: the merge of `origin/main` at `d536fb4d64a9a4c27cd49bf63328f9bf8d2e0262`, #1823, into `f88438ddbf41cf11ceeacf60a5314e77832ffefa`, which was cut from stage 1's `c5102ea715260c07fae83e36b3aa2bdba242d856`). The merge was clean.
 
 ## Mutation proof
 
