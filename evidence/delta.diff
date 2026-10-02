@@ -1,0 +1,7 @@
+diff --git a/docs/delivery/1842.md b/docs/delivery/1842.md
+new file mode 100644
+index 000000000..55fd59a8a
+--- /dev/null
++++ b/docs/delivery/1842.md
+@@ -0,0 +1 @@
++- [#1842](https://github.com/tvofi/heatpump_optimizer/pull/1842) — **open**, R9-F10.4 precursor: brief_lint conditions the 931dffe `coordinator_loc` pin on the budget key (R9-F10.4)
