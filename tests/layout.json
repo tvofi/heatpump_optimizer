@@ -35,7 +35,9 @@
     "docs/img/model/*",
     "docs/img/readme/*",
     "docs/img/setup/*",
-    "docs/design/*/{design,plan}.md"
+    "docs/design/*/{design,plan}.md",
+    "docs/index.html",
+    "docs/site/**"
    ]
   },
   {
