@@ -1,0 +1,6 @@
+RESULT payload_keys 173
+RESULT golden_keys_missing_from_Payload 0 {}
+RESULT payload_keys_absent_from_all_goldens ['last_optimization', 'manual_plan', 'mixing_valve_mode', 'next_optimization', 'sensor_advisor', 'solve_time_ms', 'two_tank_modelled', 'valve_target_recommendation', 'valve_target_schedule', 'wood_tank_temperature']
+RESULT keys_None_in_every_golden_they_appear 22
+RESULT type_mismatch_paths 1
+  MISMATCH insight.compressor_starts.wear_price_per_start ['all_features: key not declared in CompressorStarts', 'dhw: key not declared in CompressorStarts', 'grid_fee: key not declared in CompressorStarts', 'minimal: key not declared in CompressorStarts', 'two_zone: key not declared in CompressorStarts']
