@@ -31,6 +31,8 @@ const rotation = args?.rotation
 const scopes = args?.scopes
 const box = args?.box
 const from = args?.from
+const defer = Array.isArray(args?.defer) ? args.defer : []
+const judgeFlags = typeof args?.judge_flags === 'string' ? args.judge_flags : ''
 if (!Number.isInteger(round) || !baseline || !repo) throw new Error('args.round (integer), args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 // The ledger and the scopes are passed, not read: this runtime has no
 // filesystem. The prepare agent below compares both against the committed
@@ -193,11 +195,11 @@ const reportSchema = {
 phase('Prepare the baseline')
 const prep = await agent(
   `Prepare the round ${round} audit baseline from the repository at ${repo} (do not modify that checkout)${box ? ` for box ${box} (this container)` : ''}.
-1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them. Create tools/audit/round${round}/ in the export.
-2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way.
-3. Warm the shared drift cache once: from ${repo}, run \`python tests/env_drift.py --cache-key ${baseline} --all\` and, if the cache misses, capture the baseline with \`--capture\` as tests/README.md describes so later runs hit.
-4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path under ~/.cache/pw-browsers in tools/audit/round${round}/BASELINE.md inside the export.
-5. Read tools/audit/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension step lists are exactly these: ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, rotation[d]?.steps ?? null])))}, and its rounds maps equal the ones passed to this run; otherwise false, with the difference in rotation_note.
+1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so no earlier round's evidence the gate does not read stays in the export (the strip is that script's own, never a second list). Create tools/audit/round${round}/ in the export.
+2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way and strip it the same way.
+3. Warm the shared drift cache once: from ${repo}, run \`DRIFT_WARM_CACHE=1 PYTHONPATH=tests/hastub python3 tests/env_drift.py --all ${baseline}\` (the cache is warmed by a run with that variable set; \`--cache-key [ref] [--all]\` only prints the key, and there is no warm mode behind it).
+4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in tools/audit/round${round}/BASELINE.md inside the export.
+5. Read tools/audit/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension {steps, rounds} are exactly these (compare parsed JSON): ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, { steps: rotation[d]?.steps ?? null, rounds: rotation[d]?.rounds ?? null }])))}; otherwise false, with the difference in rotation_note.
 6. Read tools/audit/scopes.json in ${repo}. scopes_ok is true only if it parses to exactly this object (compare parsed JSON, not bytes): ${JSON.stringify(scopes)}; otherwise false, with the difference in scopes_note.
 7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
 Return JSON {exportDir, worktrees: {<seat id>: <absolute path>} for the seats of step 2, python, node, rotation_ok, rotation_note, scopes_ok, scopes_note, scopes_rc, scopes_out}.`,
@@ -260,7 +262,8 @@ if (from) {
   if (gathered.absent_boxes?.length) log(`boxes with no evidence branch: ${gathered.absent_boxes.join(', ')}`)
 }
 
-const missing = SEATS.map((s) => s.id).filter((id) => !reports[id])
+const missing = SEATS.map((s) => s.id).filter((id) => !reports[id] && !defer.includes(id))
+if (defer.length) log(`deferred to the catch-up batch (tvofi 2026-09-26): ${defer.join(', ')}`)
 if (missing.length) log(`seats not reported: ${missing.join(', ')}`)
 const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 
@@ -268,7 +271,9 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 // agent's: a finding must carry its own seat as scope, an id under that seat,
 // and a class_guess the schema admits. A failure is rejected at intake with the
 // reason, never repaired.
-const CLASS_GUESS = /^([PI][0-9]+|new)$/
+// The ledger's ids (tools/audit/bugclasses.json) spelled out: agreement.mjs's
+// finding-class-id pair refuses this list the moment it parts from the ledger.
+const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
 const rejected = []
 const accepted = []
 for (const id of REPORTED) {
@@ -352,7 +357,7 @@ Return JSON {quiet_path, d3_confirmed: [{mutant, finding_id, survived, killed_by
 // which measures that two findings are one mechanism rather than reading it.
 const provisional = accepted.filter((f) => f.provisional || ['cpu', 'wall'].includes(f.evidence?.cpu_or_wall)).map((f) => f.id)
 const intake = await agent(
-  `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.
+  `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.${defer.length ? ` This is BATCH 1 of round ${round}: seats ${defer.join(', ')} have not reported and are deferred to a catch-up batch by tvofi's decision of 2026-09-26; list them in the dimension status table as "deferred (catch-up)", and note that the catch-up batch adds their rows and updates their dimensions' rotation entries.` : ''}${judgeFlags ? ` Add a "Judge flags" subsection to the register section with exactly this text: ${JSON.stringify(judgeFlags)}.` : ''}
 1. Validate every accepted finding's JSON against tools/audit/finding.schema.json in ${repo} (pip install jsonschema into a venv if needed); one that fails is moved to rejected-at-intake with the validator's message. Already rejected by the driver, with reasons: ${JSON.stringify(rejected)}.
 2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${round}-register created from origin/main in a worktree of your own: the dimension status table (seats reported, findings accepted, rejected at intake), one table per dimension with id, scope, step, severity, class_guess, title, status=reported, provisional (${JSON.stringify(provisional)} are provisional until the judge's batch re-run), a leads table (raised by, owner seat, file, symbol, converted to / closed because), and ${quiet ? `D3's confirmations from ${quiet.quiet_path}: ${JSON.stringify(quiet.d3_confirmed)} -- a D3 finding is registered only if its mutant survived the full gate, otherwise it is rejected at intake with the killing checks` : 'no D3 confirmations (no D3 seat reported)'}.
 3. Copy tools/audit/round${round}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set tools/audit/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).

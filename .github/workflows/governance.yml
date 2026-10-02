@@ -203,7 +203,7 @@ jobs:
           set -euo pipefail
           if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix; then
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
             node .claude/workflows/field_coverage.mjs
@@ -433,9 +433,14 @@ jobs:
     # and the script did not share, a verdict class no script read) both shipped
     # and stayed shipped. Never scoped, on the tests.yml `briefs` precedent.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      # Full history and tags: agreement.mjs's merge-subject corpus is every
+      # first-parent subject since v6.5.0, and a shallow clone hands it an
+      # empty window.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -458,12 +463,50 @@ jobs:
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tests/coverage_ratchet.py' \
+            'tests/entities.py' \
+            'tests/gate_lock.py' \
+            'tests/issue996_count.py' \
+            'tests/nightly_ha.py' \
+            'tests/replay.py' \
+            'tests/structure.py' \
+            'tools/audit/round4/D11/d11lib.py' \
+            'tools/audit/round4/D11/governance_cost.py'
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs
 
       - name: Drive the wave script's branching
         run: node .claude/workflows/check-wave-script.mjs
+
+      # Class I4 (round 9): two readers of one governance concept must give one
+      # answer, and a regex grammar written in two governance files must be
+      # registered. The base's copy once the base carries the program (the
+      # restore above); the pull request that lands it skips the lane, below. The tests
+      # and audit scripts its Python readers load are restored from the base
+      # above too, so a pull request cannot change a reader it is graded by.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # Skipped, with the reason printed, while the base does not carry the
+      # lane: its readers are restored from the base above, so a pull request
+      # that lands the lane would be graded by readers written before it, which
+      # is no verdict on either (the `field coverage` step's own rule).
+      - name: Refuse two readers of one concept that disagree
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
+            echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
+          else
+            python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
+            node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
+          fi
+
+      - name: Show the agreement lane refusing each shape it exists to refuse
+        run: node .claude/workflows/agreement.mjs --self-test
 
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived

@@ -15,6 +15,47 @@
 # and writes tools/audit/round<round>/BASELINE.md into each with the paths the
 # finders need. Idempotent: refuses to overwrite an existing export.
 set -euo pipefail
+strip_earlier_rounds() {
+  "$PYTHON" - "$1" "$ROUND" <<'PY'
+import json, re, sys
+from pathlib import Path
+root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
+rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
+keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
+        for f in fs if f.startswith("tools/audit/round")}
+lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
+for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
+    for m in lit.findall(t.read_text(errors="replace")):
+        p = root / m.rstrip("/.")
+        if p.is_file():
+            keep.add(p.relative_to(root).as_posix())
+        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
+            keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
+removed = kept = 0
+for d in rounds:
+    for f in sorted(d.rglob("*")):
+        if f.is_file() or f.is_symlink():
+            if f.relative_to(root).as_posix() in keep:
+                kept += 1
+            else:
+                f.unlink()
+                removed += 1
+    for sub in sorted((d, *(p for p in d.rglob("*") if p.is_dir())), key=lambda p: -len(p.parts)):
+        if not any(sub.iterdir()):
+            sub.rmdir()
+print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
+PY
+}
+# `prepare_baseline.sh --strip <export-dir> <round>` runs ONLY the earlier-round
+# strip, on an export or a worktree some other path made: audit-find.js's Prepare
+# (and the leads seat's own export) run it, so the driver and this script cannot
+# disagree on what the wall leaves in (R9 box B1's wall breach: the driver copied
+# tools/audit/ whole and nothing stripped it).
+if [ "${1:-}" = "--strip" ]; then
+  PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
+  strip_earlier_rounds "$(cd "${2:?export dir}" && pwd)"
+  exit 0
+fi
 ROUND="${1:?round}"; SHA="${2:?baseline sha}"; SRC="${3:-$(git rev-parse --show-toplevel)}"
 cd "$(git rev-parse --show-toplevel)"
 PARENT="$(cd .. && pwd)"
@@ -79,37 +120,6 @@ mkdir -p "$EXPORT/tools/audit/round${ROUND}"
 # removed. The instruments that survive are the ones tools/audit/harnesses/
 # README.md's rule would keep live anyway: evidence is archived, instruments
 # are kept.
-strip_earlier_rounds() {
-  "$PYTHON" - "$1" "$ROUND" <<'PY'
-import json, re, sys
-from pathlib import Path
-root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
-rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
-keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
-        for f in fs if f.startswith("tools/audit/round")}
-lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
-for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
-    for m in lit.findall(t.read_text(errors="replace")):
-        p = root / m.rstrip("/.")
-        if p.is_file():
-            keep.add(p.relative_to(root).as_posix())
-        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
-            keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
-removed = kept = 0
-for d in rounds:
-    for f in sorted(d.rglob("*")):
-        if f.is_file() or f.is_symlink():
-            if f.relative_to(root).as_posix() in keep:
-                kept += 1
-            else:
-                f.unlink()
-                removed += 1
-    for sub in sorted((d, *(p for p in d.rglob("*") if p.is_dir())), key=lambda p: -len(p.parts)):
-        if not any(sub.iterdir()):
-            sub.rmdir()
-print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
-PY
-}
 strip_earlier_rounds "$EXPORT"
 
 # One list, read three times below. audit-find.js's ISOLATED must agree with it;

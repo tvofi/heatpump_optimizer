@@ -1228,6 +1228,14 @@ node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1
 step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
 rm -f /tmp/prepr-fc.$$
 
+# --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
+# base once the base carries it: the Python readers first, under -I, then the
+# lane over their answers. Needs full history for its merge-subject corpus.
+python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1 \
+  && node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1
+step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
+rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)
