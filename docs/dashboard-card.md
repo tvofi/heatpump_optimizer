@@ -584,6 +584,51 @@ When every optional temperature sensor is already configured, that part of the
 page says exactly that; the integration publishes no ranking at all, and no
 empty table is drawn.
 
+## The health page
+
+The **Health** tab answers "is the plan running on good data?" in one screen,
+and the dialog's header carries a pill that says the same on every tab: **All
+inputs fresh**, or **1 input stale** / **N inputs stale** in the warn colour.
+The pill appears once the **Input Problem** sensor has a state.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
+  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
+</picture>
+
+*Everything here is read from sensors the integration already publishes; the
+card adds no backend field.*
+
+- **Inputs.** One row per input the integration has read, with its age. A
+  failing input says what is wrong in words (stale, unavailable, entity not
+  found, not a number, outside its plausible range, unrecognised state, not a
+  yes/no flag) with its age and its limit, so "2 h 10 min ago, limit 1 h"
+  reads at a glance. A healthy input says how long ago it reported. The rows
+  come from the Input Problem sensor's `problems` and `input_ages_minutes`
+  attributes. The integration does not publish which fallback the plan uses
+  for a failing input, so the page does not say.
+- **Plan.** When the plan was solved, when the next solve is due, how many
+  steps it holds and how long the solve took (the Optimization Status sensor's
+  `solve_time_ms`). The pill reads **Stale** once the plan is past the limit
+  the header's own status pill uses.
+- **Still learning.** The sensors that are enabled by default and unavailable
+  because they wait for evidence, each with its reason in words: savings
+  (the first settled month), heat pump COP (a power meter, then some running
+  time), prediction accuracy (the first scored interval) and the optimization
+  score (the first scored day). Home Assistant hides an unavailable entity's
+  attributes, so the card cannot read the sensor's own `waiting_for` code and
+  the reason is keyed by the sensor. A sensor that has a value is not listed;
+  with nothing waiting the block is absent.
+- **Something looks wrong?** **Download diagnostics** opens the integration's
+  page in Home Assistant; the diagnostics download is in that page's menu.
+- **First-plan checklist.** Price source connected, weather forecast
+  available (from the Optimization Status sensor's counts), an indoor
+  temperature sensor, and heat pump control connected are ticked from what the
+  card can read; **Assign** on the power meter opens the Setup page's picker
+  for that slot. The insight sensors that are off by default are mentioned
+  without a count, because the card cannot see which are disabled; **Show**
+  opens the integration's settings.
+
 ## The setup page
 
 The enlarged view's **Setup** tab draws your heating system as a schematic:
@@ -648,7 +693,7 @@ editor are labelled the same way.
 
 The overlay is a native `<dialog>` opened with `showModal()`, so the browser
 itself keeps focus inside it and closes it on Escape; it is labelled with the
-card's title, and its four pages — Plan, Setup, Savings, Advisor — are a
+card's title, and its five pages — Plan, Setup, Savings, Advisor, Health — are a
 `role="tablist"` whose current tab carries `aria-selected`.
 
 The plan's editable slots and the setup page's assignment rows are covered
