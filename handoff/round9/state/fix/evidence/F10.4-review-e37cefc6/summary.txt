@@ -1,0 +1,16 @@
+tests/doc_claims.py rc=0 16s
+
+ALL 112 checks PASSED
+tests/structure.py rc=0 11s
+
+STRUCTURE RATCHET PASSED
+tests/deployment_shape.py rc=0 5s
+
+ALL DEPLOYMENT SHAPE CHECKS PASSED
+tests/entities.py rc=0 402s
+
+ALL 2060 ENTITY CHECKS PASSED
+tests/features.py rc=0 690s
+
+ALL 3649 FEATURE CHECKS PASSED
+check rc=0
