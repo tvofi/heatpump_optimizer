@@ -508,6 +508,20 @@ jobs:
       - name: Show the agreement lane refusing each shape it exists to refuse
         run: node .claude/workflows/agreement.mjs --self-test
 
+      # Class R-register (round 9, #1759): every in-tree judge survivor sits in
+      # exactly one class, every class that met an adopted trigger carries a
+      # barrier or an rca document under tools/audit/rca, and the counts the
+      # ledger carries are the ones its instances derive. The checker is the
+      # pull request's own copy, not a pinned one: a pinned grader must be
+      # declared in field_coverage.mjs, which is itself pinned, so the pull
+      # request that adds one cannot pass (#1847). Its protection is ownership
+      # instead, as merge_fastpath.py's is: CODEOWNERS names it.
+      - name: Check the bug-class register against the rounds in the tree
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/fold_ledger.py --self-test
+          python3 -I tools/audit/fold_ledger.py check
+
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
   # their reason.

@@ -18,7 +18,10 @@ measurement; the verdicts are yours. Then, per survivor:
 4. For aggregates, re-run leave-one-out and drop the most favourable cell.
 5. For cost, gain or time claims, re-run the null control.
 6. Assign `stop_rule_class` (`bug` or `hygiene`) from what the number shows,
-   not what the finder wrote, and a class: a `bugclasses.json` id or a new one.
+   not what the finder wrote, and a class. Reuse before minting: a class is a
+   mechanism, never a site, so take the nearest `bugclasses.json` id unless the
+   mechanism differs. A new id names its `nearest` and `differs`, or
+   `fold_ledger.py` refuses it; two sharing a nearest count as one.
 7. Write the verdict line for the register: `verified` / `weakened(sev)` /
    `refuted` / `unreproduced`, your number, the verifiers' votes. `unreproduced`
    is no kill and no pass: the round is not dry until it is re-measured or refuted.

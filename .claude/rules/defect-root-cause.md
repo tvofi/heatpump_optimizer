@@ -86,10 +86,12 @@ cycle**. State the numbers, do not assert the conclusion.
 **"No countermeasure" is a legitimate, recordable outcome.** Some defects are
 irreducible: the cheapest detector that would have caught them is the gate that
 did. Record that finding and stop. **Except an audit class**: three or more
-instances in one round (judged findings plus sweep-confirmed ones), or any
+instances in one round, three over any three consecutive rounds, five while it
+is open (judged findings plus sweep seams marked `beyond_finding`), or any
 instance of a `barriered` class, owes a class-eliminating barrier (tvofi,
 2026-09-25); the cost test picks its form, and a seat finding none within the
-bound asks the owner.
+bound asks the owner. `fold_ledger.py check` lists each with no barrier and no
+RCA document.
 
 ## The bound
 
@@ -116,9 +118,11 @@ check is in the derived set and registers its input or declares none.
 
 ## Where it is recorded
 
-The qualifying defect's issue carries a **Root cause** section: the cause, the
-process state (a-d) with its evidence, the cost test with its numbers, and the
-countermeasure or the recorded decision not to build one.
+The analysis is `tools/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`:
+a class has no issue, and a pull-request body or comment can be deleted or its
+author retired. The qualifying defect's issue carries a short **Root cause**
+section: the state (a-d) with its evidence, the cost-test numbers, the
+countermeasure or the recorded refusal, and that path.
 
 ## Enforcement
 
