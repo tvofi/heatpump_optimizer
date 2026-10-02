@@ -30,7 +30,9 @@ Review prep note: `handoff/round9/fix/resume/F11.4-review.md` on `handoff/r9-f11
 
 ## Head
 
-`4a3b49dee17e339058749ed224bf67fa0c19f02d` is `d0c761b545f52e0c841d26634b5dbafb6c021a23` plus two commits. `d0c761b5` merges origin/main `2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d` (#1838, F10.4) into `2391db77b4878d54e96279dd79301782f57fefa5`, with no conflict and no hand resolution. The first commit (e166a15a) registers `agreement.mjs`, `agreement_py.py` and `tests/structure.py` in `field_coverage.mjs`'s DECLARED list (as `none`, with a reason each) and names `tests/structure*` by glob in the `policy-docs` field-coverage skip guard, because `tools/audit/prepr.sh` refused the merged head on `field coverage` and `pinned graders` (Red checks). The second (4a3b49de) adds an `agreement lane` step to `tools/audit/prepr.sh`, because `pinned graders` also refused `agreement.mjs` and `agreement_py.py` for having no local run there.
+`b05c2a19f24ce514a1f29e9c757038387b2ee9e5` merges the precursor `07b0704b82b57f6c60bdccd1a0e293d51ec09305` (handoff/r9-f11-governance-4-pre: `resolvePrFromCommit` reads both merge shapes, `rulePaths` exported; itself two commits on origin/main `af7660c749a65762934d45b7c91957102253e209`) into `f6af0c50c47ec3e0d1d6de12e85635eb2cc3d9ca` (this PR's head, which carries its delivery row), with no conflict. Two merges and one commit of mine make up the difference: `6edcbaaa` merged the precursor's first head `9d03708b` and made the `agreement lane` step in `governance.yml` skip, with its reason printed, while the base lacks the lane; `b05c2a19` merges the precursor's second head, which replaces a frontmatter regex the lane's own grammar discovery refused in the precursor's first test.
+
+The earlier history: `d0c761b5` merged main `2b6c5b87` (#1838) into `2391db77`; `e166a15a` registered the lane's three pinned files in `field_coverage.mjs` and named `tests/structure*` by glob in the field-coverage skip guard; `4a3b49de` added the `agreement lane` step to `tools/audit/prepr.sh`.
 
 ## Mutation proof
 
@@ -58,14 +60,19 @@ The unmutated tree: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, rc 0, 
 - Field coverage, 0 refused: `node .claude/workflows/field_coverage.mjs`
 - Structure ratchet: `python3 tests/structure.py`
 - Policy: `node .claude/workflows/policy_lint.mjs`, `node .claude/workflows/policy_lint.mjs --budgets`, `node .claude/workflows/rules_sync.mjs --check`, `node .claude/workflows/check-wave-script.mjs` (151 passed, 0 failed)
-- Scoped gate, `MODE: SCOPED`, two scripts run (`tests/entities.py`, `tests/harness_headers.py`): `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`. Both need numpy, which the seat's Mac lacks, so CI is their first run.
+- Scoped gate, `MODE: SCOPED`, two scripts run (`tests/entities.py`, `tests/harness_headers.py`): `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`. Run in a venv with numpy at this head: `tests/harness_headers.py` 94 of 94 pass; `tests/entities.py` 1 of 2060 fails, `the template arm turns the acceptance red ...`, which is the live-ruleset read (`required-contexts` fixture against the live `main-protect-checks` ruleset) and fails identically at pristine `af7660c7`.
 - Step-8 enumeration, class I4 seams at `origin/main` 2b6c5b87 and at this head, from an export of each tree overlaid with `origin/handoff/audit-r9-evidence` and `origin/handoff/audit-r9-sweep-s4`: `PYTHONPATH=tests/hastub python3 $EXPORT/tools/audit/round9/D14/sweep/I4/enumerate.py` run with `$EXPORT` as the working directory (sha1 `a9dad811c7ac3d7dda3dbd4dafdcd73560850d62`, `figure_lint` reports it unverified). Rule: it re-runs the four offline finder harnesses and greps `CLASS_GUESS` readers. Result: `dead_methods=0` at both ends (D7-s3-02 closed at base by #1838, guarded here by the pair and the census arm); `i4_reader_sites` 34 at base and 44 at head, the added sites being the registered lane readers; the `CLASS_GUESS` readers are the three-reader `finding-class-id` pair. D11-s1-71 and D11-s1-72 harnesses error at both ends (`eFrontmatter is not defined`, `_GOV_JOBS = _workflow_job_ids(_DS_GOV)` not found), because their text is keyed to source that F11.1 rewrote; the pairs `rule-frontmatter-paths` and `governance-workflow-jobs` are their live detectors. D13-s1-01 needs a live window and is cited from `tools/audit/round9/D13/s1/REPORT.md` as the enumerator says. Disposition: every returned seam is closed in this diff or already guarded; none is a new finding.
 
 ## Red checks
 
-No CI run exists yet at this head and no pull request is open. `tools/audit/prepr.sh` at `d0c761b5` refused two steps, both fixed in `e166a15a`:
-- `field coverage`: three `pinned` inputs (`agreement.mjs`, `agreement_py.py`, `tests/structure.py`) had no DECLARED entry. Cheaper detector already in place: `field_coverage.mjs` itself, which `prepr.sh` step 3f3 and `policy-docs` run; the earlier handoff at `2391db77` did not run it after the pins were added. No new detector owed.
-- `pinned graders` (`unparsed governance.yml:policy-docs tests/structure.py`): the skip guard's `git diff --quiet` line named a pinned `.py` with no interpreter on the line. Fixed by the glob `'tests/structure*'`.
+Three required checks went red on `f6af0c50`, which this body had said had no CI run. Causes:
+- `wave-script`: CI restores `.claude/workflows/*.mjs` and the Python readers from the base, so the lane ran over main's readers. `REFUSED rule-frontmatter-paths: pl.rulePaths is not a function` (main's `policy_lint.mjs` did not export it) and `DIVERGENT merge-subject-pr "fix: a squash (#1234)"` (main's `resolvePrFromCommit` read one shape, D13-s1-01). Both are fixed on main by the precursor (handoff/r9-f11-governance-4-pre), which this head merges in, and the step now skips with a printed reason while the base lacks `agreement.mjs`. Cheaper detector: none that is cheap. `tools/audit/prepr.sh`'s `agreement lane` step runs this PR's own readers, so it passes locally while CI's pinned copy fails; recorded in Friction, no countermeasure built.
+- `policy-docs`: EXPECTED, a bootstrap red. Main's base-pinned `field_coverage.mjs` lacks the three DECLARED entries (`agreement.mjs`, `agreement_py.py`, `tests/structure.py`), and they cannot go to main first: alone on main they are DEAD (`DECLARED ... is no longer in the derived set`, measured at `af7660c7`), because the pins they describe arrive in this PR. Any PR that extends the pinned list meets the same red. tvofi merges past it with `--admin` (ruling of 2026-10-02). No cheaper detector exists for a registry entry that is valid only alongside its pin.
+- `pr-contract`: it named `wave-script` as red and unanswered; this section answers it.
+
+Local `tools/audit/prepr.sh` at this head refuses `policy_lint`, `mutants` and `field coverage` for a cause outside this diff: the live `main-protect-checks` ruleset (23698884) no longer matches `.claude/workflows/fixtures/required-contexts.json` in `bypass_actors` (5 `required-contexts` errors), and the same 5 errors print at a pristine `af7660c7` checkout. These read the live ruleset through `gh`, so CI's runs read the same live ruleset; whether CI's `policy-docs` also shows it is the orchestrator's to read.
+
+Expected to remain red on this PR: `policy-docs` only (the bootstrap), and anything the live-ruleset drift above turns red in `policy-docs`. `budget-raise-gate` does not apply, since no budget file moves.
 
 ## Approval
 
@@ -77,5 +84,6 @@ Not yet given. This diff touches policy and code-owned paths: one line in `tools
 
 ## Friction
 
-- `gate-scoping: cost`: local `python3` has no numpy, so `tests/entities.py` and `tests/harness_headers.py`, the two scripts the scoped gate selects for this diff, cannot run on the seat's Mac and wait for CI.
+- `gate-scoping: contradiction`: `tools/audit/prepr.sh`'s `agreement lane` step (and its `field coverage` step) run this PR's own copies, while CI restores the readers and `field_coverage.mjs` from the base (decision 0013). A local prepr was green on all three steps while CI's `wave-script` and `policy-docs` failed on the same head. Recorded as a process point; no countermeasure built.
+
 - `writing-for-agents: stale`: `wave-r9-groups.json`'s resume entry names `handoff/round9/fix/resume/F11.4.md` on this branch, and the file is not in the tree at 2391db77 or the merged head.
