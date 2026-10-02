@@ -55,7 +55,9 @@ How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `Coor
 
 ## Head
 
-9c4e4516cf9cb0c1a35a6c57aaceaee940e13768
+ce12cbd10b4f58ab2b72311da79847f73cda988f
+
+Main 777c2318 (#1837, F10.9d) is merged in.
 
 ## Mutation proof
 
@@ -91,6 +93,7 @@ On the base tree, the perturbation run's two null rows ("no edit", and renaming 
 ## Red checks
 
 - `briefs` (Tests, on a980e165): `FIXTURE VACUOUS: 931dffe acceptance pins missing: [W1-G8] metric: coordinator_loc`. CI restores `brief_lint.mjs` from the base (decision 0013), and the base copy still pins an error for the 931dffe fixture's `coordinator_loc 10394 <= 10394`. That error fires only while `coordinator_loc` is a budget key. This PR retires the key (#1738, R3-2) and drops the pin in its own `brief_lint.mjs`, which CI does not run. The check cannot go green from inside this PR. It goes green once main carries this PR's linter, or after a separate pin change lands first. Which of those happens is the owner's call, because the linter is policy. Cheaper detector: running the base's `brief_lint.mjs` (`git show origin/main:.claude/workflows/brief_lint.mjs`) over the branch tree in `tools/audit/prepr.sh`. It costs one node run of about 8 s per pre-PR, and it would have named this before the push. Not built here, since it is outside this PR's scope.
+- `fast (3.14)` (Tests, on 9c4e4516), whose one failed script is `tests/entities.py`, and the #1218 selection-cost note within it: from a980e165, the docstring of `tests/deployment_shape.py` said 83 pairs at >= 0.80 while the tree derived 82. The re-recorded `doc_claims.py` closure takes the doc_claims.py/manual_plan.py pair from 0.81 to 0.79. CI's Tests run on a980e165 was cancelled, and the run on 9c4e4516 went red on it. Running `tests/entities.py` on 9c4e4516 locally reproduces it as 1 of 2053 failed. The note now says 82, and that file now passes all 2055 checks. Cheaper detector: `tools/audit/prepr.sh` re-records a closure but does not re-run `tests/entities.py`, the script that reads every closure. Re-running it after any change to `tests/closures.json` costs about 90 s per pre-PR. Not built here, since it is outside this PR's scope.
 - `budget-raise-gate`: `structure_budgets.json` raises `dead_methods` 0 → 3 and `coordinator_multiassigned_attrs` 117 → 120, both by redefinition (figures above). This gate is meant to stay red until the owner's approving review at the head, so there is no cheaper detector to build.
 
 ## Forward-carry
