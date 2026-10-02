@@ -524,7 +524,7 @@ your plan cheaper, ranked by what each change is worth per month.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png">
-  <img alt="The Advisor tab: a Worth doing section with a sensor-gap row at about 180 kronor a month with an Assign sensor button, a hot-water setpoint row at about 45 kronor a month with an Open schedule button and a valve-target row with an Apply button; below it a More advice, once turned on section with wood-stove timing, fuse size and compressor frequency rows, each with an Open settings button; then the ranking of sensors that would tighten the model" src="img/card/advisor-light.png">
+  <img alt="The Advisor tab: a Worth doing section with a price-of-a-degree row with a Try in what-if button, a hot-water setpoint row with an Open schedule button, a sensor-gap row with an Assign sensor button and a valve-target row with an Apply button; below it a More advice, once turned on section with wood-stove timing, fuse size and compressor frequency rows, each with an Open settings button; then the ranking of sensors that would tighten the model" src="img/card/advisor-light.png">
 </picture>
 
 *Every figure is an estimate (it reads "≈") and comes from the integration's
@@ -536,19 +536,29 @@ own advisor sensors, not from the card.*
   monthly cost. **Assign sensor** opens the Setup page's assign picker for that
   exact slot.
 - **The hot-water setpoint.** The cheapest setpoint that still covers your
-  heaviest draw, priced against the setpoint you run. **Open schedule** takes
-  you to the Plan tab's schedule editor; the setpoint is not written from here.
+  heaviest draw, priced against the setpoint you run. The advisor sweeps
+  setpoints two degrees apart, so a setpoint between two of them (the default
+  55 °C) is priced by interpolating between its neighbours. **Open schedule**
+  takes you to the Plan tab's schedule editor; the setpoint is not written
+  from here.
+- **The price of a degree.** What a degree cooler would save a month, and what
+  a degree warmer would cost, from the score sensor's price tiles. **Try in
+  what-if** opens the Plan tab's what-if panel with the comfort slider on the
+  cooler target and runs the simulation. The tiles exist only while the
+  integration's price-tiles option is on; with it off the row is offered under
+  **More advice, once turned on** instead.
 - **The valve target.** The mixing valve's recommended target, which carries no
   money figure and so follows the priced rows. **Apply** appears only when the
   valve holds a manual setpoint, and calls `assign_entity` with it.
 
 A row reads its own state: an advisor still learning says what it is waiting
-for, and one that is unavailable says "This advice is unavailable right now"
-with the reason it publishes. When there is nothing to do, the page says "Nothing
+for, and one that is unavailable says "This advice is unavailable right now".
+Home Assistant hides an entity's attributes while it is unavailable, so that
+row has no reason to show. When there is nothing to do, the page says "Nothing
 to do: the plan is already as cheap as your settings allow."
 
-**More advice, once turned on** offers wood-stove timing, fuse size and
-compressor frequency. These advisors are off by default, so the card never
+**More advice, once turned on** offers the price of a degree (while its tiles are off), wood-stove timing,
+fuse size and compressor frequency. These advisors are off by default, so the card never
 reads them: each row only offers **Open settings** to the integration's page,
 where you can turn them on.
 

@@ -259,13 +259,14 @@ function pageStates(plan) {
   // money the page ranks by. The values are examples, as the page's own
   // copy says "≈".
   Object.assign(st, {
-    "sensor.heat_pump_optimizer_sensor_gap_advisor": { state: "180", attributes: {
+    "sensor.heat_pump_optimizer_sensor_gap_advisor": { state: "40", attributes: {
       top_slot: "lower_floor_temp_entity", gaps: [{ key: "lower_floor_temp_entity",
-        label: "Lower floor temperature", empty: true, sek_per_month: 180 }] } },
-    "sensor.heat_pump_optimizer_dhw_setpoint_advisor": { state: "52", attributes: {
-      current_setpoint: 60, recommended_setpoint: 52, covers_heaviest_window: true,
-      candidates: [{ setpoint: 60, cost_per_day: 12.0, meets_heaviest_window: true },
-        { setpoint: 52, cost_per_day: 10.5, meets_heaviest_window: true }] } },
+        label: "Lower floor temperature", empty: true, sek_per_month: 40 }] } },
+    "sensor.heat_pump_optimizer_dhw_setpoint_advisor": { state: "48", attributes: {
+      current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
+      candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
+        [60, 12.9]].map(([setpoint, cost_per_day]) =>
+        ({ setpoint, cost_per_day, meets_heaviest_window: true })) } },
     "sensor.heat_pump_optimizer_valve_target_recommendation": { state: "21.5", attributes: {
       reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual" } },
   });
@@ -274,7 +275,11 @@ function pageStates(plan) {
       attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: {
+      envelope: 90, machine: 75,
+      price_tiles: {
+        target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
+        target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 } } } },
     // R9-UX-1: every line the headline shows. These are narrative.render's
     // English lines for plan_view.py's plan (narrative.build over the two
     // published forecasts, 15-minute steps, SEK), so the page shows what an
