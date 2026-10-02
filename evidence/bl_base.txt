@@ -1,0 +1,211 @@
+
+== .claude/workflows/wave-3l-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/wave-4-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/wave-5-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/wave-d11-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/wave-r8-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/wave-ux-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1067.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1295.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1300.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1308.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1320.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1330.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1336.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1395.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1398.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1412.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1454.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1459.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1463.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1617.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1644.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1645.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1646.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1647.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1648.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1649.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1651.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1652.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1653.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1654.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1655.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1659.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1660.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1668.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1686.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1743.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1747.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1757.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1791.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-1795.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-201.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-681.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-752.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-932.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/carry-962.json ==
+  -- 0 error(s), 0 warning(s)
+
+CARRY: 39 carry file(s) (.claude/workflows/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 45 file(s)
+
+== .claude/workflows/fixtures/wave-1b-931dffe.json ==
+  ERROR   [W1-G2] counts: states 22 for metrics in tests/structure_budgets.json; derived 16. Derive the count, do not carry one. (brief line 5)
+  ERROR   [W1-G11] path: tools/audit/round2/D3/verify3-assertions.patch: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [W1-G5] path: tools/audit/round2/HARNESSES.md: not in the tree, and not present at its cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence]
+  ERROR   [W1-G5] path: HARNESSES.md: not in the tree, and not present at its cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence]
+  ERROR   [W1-G5] path:line: tools/audit/README.md:244-255: line 244 is past end of file (230 lines)
+  WARNING [W1-G5] path:line: tests/stress.py:1024: no anchor text extracted near the citation; line range only
+  ERROR   [W1-G6] path:line: optimizer.py:366-373: '_multi_start_minimize' not found near custom_components/heatpump_optimizer/optimizer.py:366-373; found at line 561 instead
+  ERROR   [W1-G8] metric: 'methods 255 <= 255' cites a literal value for dead_methods; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
+  ERROR   [W1-G8] metric: 'attrs 176 <= 176' cites a literal value for coordinator_attrs; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
+  ERROR   [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree, and not present at its cited tag ref(s) [291ae76, 2385df6]
+  WARNING [W1-G14] path: card.js: not in the tree and no tag cited; could be shorthand for custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, docs/dashboard-card.md, docs/img/card-advisor-page.png, docs/img/card-dhw-band-weekly.png, docs/img/card-plan-chart.png -- verify by hand
+  ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 18571 instead
+  ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 6.7.13
+  WARNING [W1-G15] path:line: env_drift.py:934-948: no anchor text extracted near the citation; line range only
+  ERROR   [W1-G9] path: model_sanity.py: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [W1-G9] path:line (anchored): thermal_model.wood_share:1152 (custom_components/heatpump_optimizer/thermal_model.py): 'return' not found near custom_components/heatpump_optimizer/thermal_model.py:1152; found at line 157 instead
+  ERROR   [W1-G9] symbol: 'wood_share_vec_parity': not found in the tracked tree (no tag cited either)
+  -- 14 error(s), 3 warning(s)
+
+FIXTURE ok: 14 error(s) pin the 931dffe acceptance (9 required)
+
+== .claude/workflows/fixtures/shape-defects.json ==
+  ERROR   [(index 0)] shape: group entry is not an object
+  ERROR   [(index 1)] shape: `group` is missing or is not a non-empty string
+  ERROR   [no-brief] shape: `brief` is missing or is not a non-empty string, so no citation in it can be checked
+  ERROR   [no-resume] shape: `resume` is missing or is not an object; the lane cannot be picked up cold without one
+  ERROR   [no-stage] shape: `resume.stage` is missing or is not a non-empty string
+  ERROR   [after-not-array] shape: `after` is present but is not an array
+  ERROR   [twin] shape: duplicate group id; an `after` edge and a resume both become ambiguous
+  ERROR   [edge-probe] after: after: 'no-such-group' names no group in this file
+  ERROR   [no-resume] path: tests/no_such_probe_file.py: not in the tree, and no tag SHA is cited alongside it
+  -- 9 error(s), 0 warning(s)
+
+FIXTURE ok: 9 error(s) pin the shape-defects acceptance (9 required)
+
+== .claude/workflows/fixtures/count-drift.json ==
+  ERROR   [stale-count] counts: states 999 for metrics in tests/structure_budgets.json; derived 16. Derive the count, do not carry one. (brief line 1)
+  -- 1 error(s), 0 warning(s)
+
+COUNTS ok: 1 error(s) and 0 warning(s) on count-drift.json; 8 of 9 shared rule(s) run over a brief
+
+GUARD ok: an unexpected throw is reported as that roster's own error
+
+EXCLUDE ok: 1 symbol-search exclusion(s), each naming a prefix the tree has, none of the load-bearing ones dropped
+
+ROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, nothing for a non-numeric one, nothing a done group alone covers, and the live group where a done one also covers
+
+== .claude/workflows/fixtures/carry-990001.json ==
+  -- 0 error(s), 0 warning(s)
+
+== .claude/workflows/fixtures/carry-990002.json ==
+  ERROR   [carry-990002.json] carry: `issue` is 990009 but the filename says 990002; a seat looking for its own stage opens the filename
+  ERROR   [carry-990002.json] carry: `stage` is missing or is not a non-empty string; the issue number alone does not say what the stage is
+  ERROR   [carry-990002.json] carry: carry 0: `from` is missing or is not a non-empty string
+  ERROR   [carry-990002.json] carry: carry 0: `control` is missing or is not a non-empty string
+  ERROR   [carry-990002.json] carry: carry 0: `remeasure` is missing or is not a non-empty string
+  ERROR   [carry-990002.json] carry: carry 0: `effect` is "worth knowing", not one of narrows/invalidates/removes. The rule carries a finding on those three effects and refuses a threshold of importance; free text here is that threshold.
+  ERROR   [carry-990002.json] carry: carry 1: `brief` is missing or is not a non-empty string
+  ERROR   [carry-990002.json carry 0] path: tests/no_such_carry_probe.py: not in the tree, and no tag SHA is cited alongside it
+  -- 8 error(s), 0 warning(s)
+
+== .claude/workflows/fixtures/carry-990003.json ==
+  ERROR   [carry-990003.json] carry: `carries` is empty; a destination that exists and holds nothing reads exactly like a carry that was never written
+  -- 1 error(s), 0 warning(s)
+
+== .claude/workflows/fixtures/carry-990004.json ==
+  ERROR   [carry-990004.json] carry: issue 990004 already has a live roster group (wave-probe-groups.json PROBE-G1), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
