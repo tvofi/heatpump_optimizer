@@ -232,6 +232,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
     report it; if parity forbids vectorising, the fix is a recorded partial with
     its remaining share, not a close.
 
+16. **An age computed from a stamp ahead of the reading clock is unknowable,
+    never 0.** #775 refused the clamp that reads such an age as zero; #1532
+    pinned the technique #775 had refused. Carry the refusal into any fix that
+    reads a persisted instant back against `now`.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
