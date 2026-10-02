@@ -1,4 +1,0 @@
-RESULT counter_produced 166 payload_declared 173
-RESULT declared_not_produced_by_counter ['dhw_cost', 'dhw_energy_kwh', 'space_cost', 'space_energy_kwh', 'total_cost', 'total_energy_kwh', 'valve_target_schedule']
-RESULT produced_not_declared []
-dyn {'coordinator.py:7585'}

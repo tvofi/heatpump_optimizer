@@ -1,46 +1,49 @@
-Fix review: blocked 2261e2a468eeae11c2e0b81532e87322ca620f90 contract: Payload declares two keys no producer sets (Insight.wear_price_per_start, top-level valve_target_schedule) and omits published keys (compressor_starts.wear_price_per_start, dhw_disinfection_switch); the cast hides all four
+Fix review: blocked 29b763d7c2eb23a7f01f5cf10531caeeb866f7ca root-cause-unanswered: fast (3.14), mutation, closures went red on this PR's own diff (payload.py unclassified and missing from architecture.md, coverage and harness headers; stale entity._data mutation pin), unanswered
 
-bus-nonce: 862c26e3a6baa3d31136240e6543bda9
+bus-nonce: f480ca19a80d54ed0f1234660c8e26f6
 
-Round 1. PR #1852 (R9-EG-B3a, Part of #1737). Measured head `2261e2a468eeae11c2e0b81532e87322ca620f90` (code `8eba0f4989d211e3111e6966bea4c2acdebff5c5`); base `af7660c74`. The live head was re-read when this verdict was posted and had not moved. Evidence: `evidence/` (the file `HEAD-2261e2a468eeae11c2e0b81532e87322ca620f90.txt` names the head). The review ran from a detached worktree. `fix-review.md` at origin/main has no diff against the merge base.
+Round 2. PR #1852 (R9-EG-B3a, Part of #1737). Measured head `29b763d7c2eb23a7f01f5cf10531caeeb866f7ca` (code `684b5a1e354c875d380ec693f8ac58eb574b787a`). The live head was re-read when this verdict was posted and had not moved. The evidence directory names the head (`HEAD-29b763d7c2eb23a7f01f5cf10531caeeb866f7ca.txt`). CI job logs are in `evidence/ci/`.
 
-## Blocking findings (wrong types, not loose ones)
+The round-1 contract findings are fixed and the new check holds. The block is CI: Tests ran for the first time on this PR at this head (round 1's run never left `pending`), and four checks are red. Every red traces to this PR's diff. The body still says "## Red checks: none".
 
-Every one passes the census, because `_build_data_dict` returns `cast(Payload, data)`.
+## Red checks at this head (check-runs API, `evidence/check_runs_r2.tsv`)
 
-1. **`Insight.wear_price_per_start` is in the wrong class.** The producer `_insight_view` (coordinator.py:10594-10600) writes it inside `compressor_starts` (`{"lifetime", "month", "wear_price_per_start"}`). `CompressorStarts` declares only `lifetime` and `month`, and `Insight` declares `wear_price_per_start` at its own level, where nothing writes it. All 5 goldens publish `insight.compressor_starts.wear_price_per_start`.
-2. **Top-level `valve_target_schedule` is declared, but no producer sets it.** `_build_plan_views` writes it only as `space_plan["valve_target_schedule"]` (coordinator.py:3834-3836). The prototype counter, run on a version of the head it can trace, also lists it as declared but not produced.
-3. **`dhw_disinfection_switch` is published and missing from `Payload`.** `_dhw_view` spreads `**self._legionella.disinfect.view()` (coordinator.py, `_dhw_view`), and `DisinfectionSwitch.view()` (disinfection.py:264) returns `{"dhw_disinfection_switch": {...}}` whenever a switch is configured. The body says `Payload` carries "every key `_build_data_dict` and `_with_sensor_advisor` can publish", so the body is wrong here. Two instruments miss this key: no golden configures a switch, and the prototype counter does not follow a spread across objects.
+1. **`fast (3.14)`: 2 test scripts failed.**
+   - `tests/entities.py`: 7 of 2063 checks failed. All 7 come from adding `payload.py`, and EG-B3 is not among them:
+     - "every tracked file is either measured or deliberately classified": `payload.py` forces FULL. CLAUDE.md requires a new tracked file to go into a closure or onto `tests/closure.py`'s INERT list.
+     - "and still covers every python file of the integration": `payload.py` is missing.
+     - "the deployment-shape lane's closure is the whole tracked package": covers 68 modules is False.
+     - Four `docs/architecture.md` checks: the opening counts (67/25 against 68/25), the module map (`payload.py` missing), the HA boundary (documented of 67), and the HA-free count (41 against 42).
+   - `tests/harness_headers.py`: 6 of 94 checks failed.
+     - `tools/audit/round4/D6/claims.py`: four headers moved for the same `architecture.md` reason (arch_modules_on_disk 67→68, arch_map_missing 0→1, claims_true 123→121, claims_false 0→2).
+     - `tools/audit/round4/D10/qs_rules.py`: `declared_mismatch` went 0→1. I reproduced this locally: 1 at the head, 0 at base `af7660c74`. The `common-modules` rule looks for the substring `class HeatPumpOptimizerEntity(CoordinatorEntity)`, and the PR changed that line to `CoordinatorEntity["HeatPumpOptimizerCoordinator"]`. That is a false todo in the harness, caused by this diff. Either update the harness pattern or rewrite the base so it still matches, and say which in the body.
+     - The committed output of `D6/claims.{json,md}` is not byte-identical.
+2. **`mutation`: `MUTATION TABLE REFUSED`.** The ledger has a stale pin: `entity.py:HeatPumpOptimizerEntity._data RETURN_DEL 35920c59`, whose old pin is `return data`, and the PR rewrote that line. `mutation-autofix` repairs only unpinned sites, so the fixer owes the ledger re-key.
+3. **`closures` (UNDER-SCOPED, 15 scripts now read `payload.py`) and `closures-autofix`:** "skip-failed-recording -- THE REPAIR DID NOT HAPPEN", because a script failed while it was being recorded. Per `ci-autofix.md`, this repairs itself once items 1 and 2 are green, so the body only has to name it.
 
-The probe (`evidence/_review_probe.py`, added to a copy of the head tree, census `evidence/probe_census.out`, 3 errors) shows how this behaves:
-- `data["dhw_disinfection_switch"]` (published) gives `typeddict-item` error.
-- `data["insight"]["compressor_starts"]["wear_price_per_start"]` (published) gives `typeddict-item` error.
-- `data["insight"]["wear_price_per_start"]` and `data["valve_target_schedule"]` (never published) give **no error**.
+Under `defect-root-cause.md`'s red-check trigger, the body must name each red check and answer it: the cheaper detector that existed, or the finding that none existed. Every red above would have shown locally in `tests/entities.py`, `tests/harness_headers.py` and `tests/mutation_table.py`. The body says entities.py was "not run locally (scipy)". The `mac-local-test-container` route exists for exactly that case.
 
-So the contract rejects reads that are correct and accepts reads that are wrong. That is the reverse of the PR's stated purpose.
+## Contract re-review (passes)
 
-Fix: move `wear_price_per_start` into `CompressorStarts`, delete the top-level `valve_target_schedule` (it belongs to `space_plan`, which is B3b's), and add `dhw_disinfection_switch: dict[str, object]` (or a TypedDict). This is about 4 lines. Then state the enumeration rule in the body. A union of goldens plus a reading of producers missed a `**view()` spread. Grepping every `**self.<x>.<y>()` / `data.update(<call>)` in the views is a rule that would have found it.
+- Probe (`evidence/probe_census_r2.out`, 3 errors) flips as it should. The published `compressor_starts.wear_price_per_start` and `dhw_disinfection_switch` now type-check. The never-published `Insight.wear_price_per_start` and `valve_target_schedule` now fail with `typeddict-item`. The remaining error is the deliberate typed-sink `.get` line.
+- `DisinfectionSwitch` types match `disinfection.py` (`_readings: dict[str, tuple[bool | None, str | None]]`, so `state: bool | None`).
+- Census: `RESULT errors=0` at the head. CI `typing`: success. M1 and M2 give `RESULT errors=2` each, and M1 also turns EG-B3 red (`egb3_fails 1`).
+- Goldens against Payload (my instrument): `type_mismatch_paths 0`, `golden_keys_missing_from_Payload 0`.
+- EG-B3 check, extracted and run standalone at the head: `RESULT egb3_fails 0 published 173 declared 173 unresolved []`. In CI it printed ok on all 3 lines. Null control with round 1's `payload.py`: `egb3_fails 2`, naming exactly the four keys.
+- The body narrows both round-1 claims accurately (the 166→0 overstatement with produced=3, the 23 `dict[str, object]` keys, and the `.get` caveat). Delta-S is stated as not re-derived.
 
-## Claim findings (owed with the fix; not separately blocking)
+## The new enumeration check, attacked (non-blocking; owed to R9-EG-B3b, per the orchestrator)
 
-4. **untyped_payload_keys 166→0 is a vacuous figure at this head.** I re-ran the prototype's v1 counter (`handoff/audit-r9-alt:handoff/round9/state/alt/archscore/a3/metrics/untyped_payload_keys.py`). This is my run of the finder's instrument, not the fixer's script.
-   - `RESULT af7660c74 untyped=166 produced=166`
-   - `RESULT 2261e2a46 untyped=0 produced=3`, with 130+ surface keys now "read_but_not_produced". The counter stops tracing at `return cast(Payload, data)`, so it reaches 0 because it lost the producer, not because it found typed keys.
-   - `RESULT head-with-cast-removed untyped=0 produced=166`. On a traceable variant the 0 does hold under the counter's rule. But the counter shares finding 3's blind spot and counts `dict[str, object]` as typed.
-   
-   Stated plainly: 23 of the 173 top-level keys (plus 6 nested fields) are `dict[str, object]`. Under the issue's own rule ("an `Any` or `object` typed key is not progress", quoted in the body's item 6), 166→0 overstates the result. Under that rule, about 23 top-level keys are still not progress. The body discloses the 23 keys but quotes the figure without the produced=3 artefact. I did not re-derive delta-S +50.98 (I did not run the full `arch_score.py --delta`), so it is not verified.
-5. **"A read of a key no producer sets is now a strict-census error" holds only for subscript reads or a typed use of the `.get()` result.** `data.get("horizon_hourz")` with an unused or `object`-accepting sink type-checks (probe line 28). M1 and M2 go red through `float(object)` (`arg-type`), not through a missing key.
+I added a new key to the producers in 8 ways (`evidence/egb3_mutants_r2.out`):
+- **Caught:** a `data["k"] =` store, a new `update(call)` spread (unresolved), and a non-literal view return. The last is caught only indirectly, and the `dict(kw=...)` call's own key is never seen.
+- **Missed:** `data.setdefault("k", ...)`, `data |= {...}`, `data.update(k=...)`, and `data[NAME_CONST] =`.
+- **Not seen by the check:** a store on `handover` in `_republish_handover_ages`. The census should catch that one, because `handover` is typed `Payload`, but I did not run the census on that mutant.
 
-## Re-run (mine)
+A scan of the current producers (`evidence/egb3_pattern_scan_r2.out`) finds none of the missed patterns in use, so the check is complete for this tree. Inside the cast, mypy does not see these patterns either. Removing the cast in B3b closes them.
 
-- Census, pinned toolchain (`typing_ruler.py --print-requirements`: mypy 2.3.1, homeassistant-stubs 2026.9.3, Python 3.14.7, venv under the seat root): `RESULT head errors=0`, `RESULT base errors=0`. `typing_ruler.py --mypy` at head: ALL 9 checks PASSED.
-- Mutants: `RESULT M1 (delete Payload.horizon_hours) errors=2`, `RESULT M2 (get("horizon_hourz") in sensor.py) errors=2`. Both reproduce the body's figures.
-- Null control: `RESULT N2 (M2 rename at base af7660c74) errors=0`. Reproduced.
-- Goldens against Payload (my instrument, `evidence/golden_vs_payload.py`, a runtime walk of `Payload` type hints over `tests/golden/coord_*.json` `data`): `RESULT golden_keys_missing_from_Payload 0`, `RESULT type_mismatch_paths 1` (finding 1). The 22 keys that are None in every golden are all declared Optional. All 5 goldens are `optimization_status: not_run`, so the solved-path shapes (`schedule`, `space_plan`, `dhw_plan`, `predictive_info`, `CurrentAction` from the solver) appear in no golden. I checked them by reading producers: the `CurrentAction` keys match `optimizer.get_current_action` / `_idle_action`, and `valve_target_schedule` is the error above.
-- hastub `Generic[_DataT]`: the MRO gains `typing.Generic` only, there is no `__slots__`, and `__init__` is unchanged. The test MRO walks (`finite_boundary.py:413`, `entities.py:4892/10056/10695`) filter on module or `__dict__` membership, so they are unaffected. `ha_contract.py` at head under the stub: ALL 4 PASSED. I found no runtime behaviour change. The CI suite (Tests) is the full proof.
-- Behavioural edits elsewhere: `_plan_outdoor_now` now treats a truthy non-list `forecast` as empty (previously iterated). `_advice` now ignores a non-dict truthy `night_advice`. `_data()` returns `Payload()` (that is, `{}`). The producers only emit lists and dicts there, so I see no observable change.
-- `VERSION`, manifest, `RELEASE_NOTES.md` and `tests/golden/`: untouched (three-dot). `git merge-tree --write-tree origin/main HEAD`: rc 0.
-- Head CI (check-runs API, `evidence/check_runs_at_verdict.tsv`): no red. Two `cancelled` superseded duplicates of `budget-raise-gate` and `pr-contract` each have a `success` beside them. **Tests is still `pending`** and CodeQL python is in progress, so the suite, typing and mutation lanes are not yet reported for this head. No red check, so there is no root-cause trigger to answer.
-- Forward-carry: the B3b destination is a roster group the orchestrator creates. B3b item 1 must also cover the shape of `space_plan.valve_target_schedule`.
+## Other
 
-Not run locally: entities.py and the numeric scripts (no scipy), full arch_score delta.
+- `structure.py`: STRUCTURE RATCHET PASSED.
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/`: untouched (three-dot).
+- `git merge-tree --write-tree origin/main HEAD`: rc 0.
+- I ran the hastub check in round 1 and found no change. CI's `fast` ran every other script green, including FINITE BOUNDARY, DEPLOYMENT SHAPE and FEATURE.

@@ -1,0 +1,35 @@
+Analyze (actions)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061924/job/110900866585
+Analyze (javascript-typescript)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061924/job/110900866133
+Analyze (python)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061924/job/110900866524
+CodeQL	completed	success	https://github.com/tvofi/heatpump_optimizer/runs/110901180355
+briefs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116667
+browser	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116623
+budget-raise-gate	completed	cancelled	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062047/job/110900866141
+budget-raise-gate	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026063021/job/110900874447
+claims-autofix	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110923319393
+closure-scope	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116701
+closures	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910225053
+closures-autofix	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110921765977
+coverage	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116580
+coverage-ratchet	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110919838849
+delivery-status	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900864603
+delivery-status-publish	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900865861
+env-matrix	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900864666
+fast (3.14)	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116713
+graders-head-copy	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110919838730
+hassfest	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062523/job/110900868712
+instrument-self-tests	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900864473
+mutation	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116343
+mutation-autofix	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910346486
+mutation-nightly	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910118166
+nightly-ha	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910117468
+nightly-status	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116097
+policy-docs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900864193
+pr-contract	completed	cancelled	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061270/job/110900863486
+pr-contract	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062273/job/110923525889
+recheck-gate	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910117868
+record	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900865649
+slow	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910117975
+typing	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026062126/job/110910116671
+validate-hacs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061370/job/110900864006
+wave-script	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37026061250/job/110900864707

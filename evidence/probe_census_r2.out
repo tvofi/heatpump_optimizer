@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/_review_probe.py:25: error: TypedDict "Insight" has no key "wear_price_per_start"  [typeddict-item]
+custom_components/heatpump_optimizer/_review_probe.py:26: error: TypedDict "Payload" has no key "valve_target_schedule"  [typeddict-item]
+custom_components/heatpump_optimizer/_review_probe.py:27: error: Incompatible types in assignment (expression has type "object", variable has type "float")  [assignment]
+RESULT errors=3
