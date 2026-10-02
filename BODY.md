@@ -10,7 +10,7 @@ After: the ratchet finds the coordinator by role and prices each of those edits.
 
 The metric set changed shape, so the budget file was re-recorded at base 3bd6f122. Two caps rise by redefinition only, and the orchestrator posts both on #201 before this merges: `dead_methods` 0 → 3 (the base measures 9 under the new definition, this branch removes 6) and `coordinator_multiassigned_attrs` 117 → 120 (the base measures 120 under the new definition, which counts writers outside the class). Every other key is at or below its base value under its own definition.
 
-How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `CoordinatorEntity.coordinator`, `entry.runtime_data` and calls of the class, and propagates through call parameters and `self` slots. `dead_members` resolves each load by receiver and keeps only what is reachable from the roots. `duplicate_clones` hashes normalized 2-statement AST windows of at least 30 nodes across the package. `import_cycle_modules` is Tarjan over relative imports, function-scope imports included and `TYPE_CHECKING` imports excluded. Star imports now bind. `role_self_check` plants 16 cases, which brings the counting rules to 40.
+How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `CoordinatorEntity.coordinator`, `entry.runtime_data` and calls of the class, and propagates through call parameters and `self` slots. `dead_members` resolves each load by receiver and keeps only what is reachable from the roots. `duplicate_clones` hashes normalized 2-statement AST windows of at least 30 nodes across the package. `import_cycle_modules` is Tarjan over relative imports, function-scope imports included and `TYPE_CHECKING` imports excluded. Star imports now bind. `role_self_check` plants 17 cases, which brings the counting rules to 41.
 
 **Metrics.**
 - Retired: `attrbag_classes_over_30`, `classes_over_300`, `internal_call_edges` and `coordinator_methods`.
@@ -47,7 +47,7 @@ How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `Coor
 
 **Residuals.**
 - Moving a method into a helper still lowers `max_class_loc`, by the moved lines. Seam totals are now flat under that move, which was #1686's complaint.
-- 92 members are kept by name (HA conventions, runtime-assembled names) and are not measured for liveness. `structure.py` prints them.
+- 113 live members are kept only by an untyped `x.n` load of a name another class also defines, as a method or as a field. Their liveness is not measured, and `structure.py` prints them. Round 1 found that fields were left out of that test, which hid 21 such members, among them `DefrostDerate.samples` at base and `solar_radiation` at head. Base under this definition prints 114.
 - D6-s1-02's unlabeled prose stays out of the census, because it names no entity.
 - At this head, two D7 finder harnesses do not run as they did at base. `s1/helper_escape.py` refuses because inlining leaves a stale seam-map entry, which the #1539 rule rejects. `leads/sentinel.py` raises `KeyError: current_action` because the member is deleted. Both are expected.
 
@@ -55,13 +55,14 @@ How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `Coor
 
 ## Head
 
-a980e1650524c3782976e0631b2b4271ee797435
+9c4e4516cf9cb0c1a35a6c57aaceaee940e13768
 
 ## Mutation proof
 
-Twelve mutants of `structure.py`, each breaking one new rule. All 12 turn its self-check red, and the unmutated file passes (`rc=0 []`). Some examples:
+Thirteen mutants of `structure.py`, each breaking one new rule. All 13 turn its self-check red, and the unmutated file passes (`rc=0 []`). Some examples:
 - Taking properties out of the census fails "a property nothing reads is a dead member".
 - Liveness by name fails "a member reached only from its own body is dead".
+- Ignoring other classes' fields in the name-collision test fails "an untyped x.n of a name another class holds as a field is name-kept". That case failed on the unfixed code before the round-2 fix was written.
 - Not charging helpers fails "a helper is priced as the method it was cut from (#1686)".
 - No role propagation fails "an in-place mutation is a write, through a renamed parameter".
 - Per-module duplication fails "a copy in another module is one copy, renamed or not".
@@ -72,15 +73,16 @@ For doc_claims: at c6ba6036^ the arms report 25 FAIL, and at base 3bd6f122 they 
 
 ## Null control
 
-On the base tree, the perturbation run's two null rows ("no edit", and renaming `_fold_flow_lift`'s coordinator parameter) move nothing under either ratchet. The unmutated `structure.py` self-check is green with 40 counting rules. `doc_claims.py` at this head passes 112 checks.
+On the base tree, the perturbation run's two null rows ("no edit", and renaming `_fold_flow_lift`'s coordinator parameter) move nothing under either ratchet. The unmutated `structure.py` self-check is green with 41 counting rules. `doc_claims.py` at this head passes 112 checks.
 
 ## Figures
 
 - Perturbation table (old ratchet against new, base tree): `python3.13 tools/audit/round9/F10/gate-infra-4/perturb.py <base-checkout> <base tests/structure.py> tests/structure.py tests/seam_map.json <base tests/seam_map.json>`
 - Mutants: `python3.13 tools/audit/round9/F10/gate-infra-4/mutants.py .`
-- Budgets, the 40 counting rules (24 + 16 planted role cases), and the 92 name-kept members it prints: `python3.13 tests/structure.py`
+- Budgets, the 41 counting rules (24 + 17 planted role cases), and the 113 name-kept members it prints: `python3.13 tests/structure.py`
 - Base under the new definitions (`dead_methods` 9, `coordinator_multiassigned_attrs` 120): `python3.13 tests/structure.py` run with this branch's `tests/structure.py` and `tests/seam_map.json` copied over a base 3bd6f122 checkout
 - Duplication window of 2 statements and 30 nodes: the constants `DUP_WINDOW_STATEMENTS` and `DUP_MIN_NODES` in `tests/structure.py`, which `tests/features.py`'s #369 block pins
+- The 21 members fields hid (113 now against 92 at a980e165) and the base's 114: `python3.13 tests/structure.py` at each head, and over the base checkout as above
 - doc_claims 112 checks: `python3.13 tests/doc_claims.py`
 - entities 2053 checks: `python3.13 tests/entities.py`
 - Scoped gate, `MODE: SCOPED`: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`
@@ -88,7 +90,8 @@ On the base tree, the perturbation run's two null rows ("no edit", and renaming 
 
 ## Red checks
 
-none
+- `briefs` (Tests, on a980e165): `FIXTURE VACUOUS: 931dffe acceptance pins missing: [W1-G8] metric: coordinator_loc`. CI restores `brief_lint.mjs` from the base (decision 0013), and the base copy still pins an error for the 931dffe fixture's `coordinator_loc 10394 <= 10394`. That error fires only while `coordinator_loc` is a budget key. This PR retires the key (#1738, R3-2) and drops the pin in its own `brief_lint.mjs`, which CI does not run. The check cannot go green from inside this PR. It goes green once main carries this PR's linter, or after a separate pin change lands first. Which of those happens is the owner's call, because the linter is policy. Cheaper detector: running the base's `brief_lint.mjs` (`git show origin/main:.claude/workflows/brief_lint.mjs`) over the branch tree in `tools/audit/prepr.sh`. It costs one node run of about 8 s per pre-PR, and it would have named this before the push. Not built here, since it is outside this PR's scope.
+- `budget-raise-gate`: `structure_budgets.json` raises `dead_methods` 0 → 3 and `coordinator_multiassigned_attrs` 117 → 120, both by redefinition (figures above). This gate is meant to stay red until the owner's approving review at the head, so there is no cheaper detector to build.
 
 ## Forward-carry
 
