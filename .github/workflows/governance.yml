@@ -433,9 +433,14 @@ jobs:
     # and the script did not share, a verdict class no script read) both shipped
     # and stayed shipped. Never scoped, on the tests.yml `briefs` precedent.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      # Full history and tags: agreement.mjs's merge-subject corpus is every
+      # first-parent subject since v6.5.0, and a shallow clone hands it an
+      # empty window.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -464,6 +469,17 @@ jobs:
 
       - name: Drive the wave script's branching
         run: node .claude/workflows/check-wave-script.mjs
+
+      # Class I4 (round 9): two readers of one governance concept must give one
+      # answer, and a regex grammar written in two governance files must be
+      # registered. The base's copy once the base carries the program (the
+      # restore above); the pull request that lands it runs its own.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Refuse two readers of one concept that disagree
+        run: node .claude/workflows/agreement.mjs
 
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived

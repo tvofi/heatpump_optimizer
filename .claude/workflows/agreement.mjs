@@ -49,8 +49,50 @@ function constFromSource(rel, name) {
 }
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href)
 function python(code, input) {
-  return JSON.parse(execFileSync('python3', ['-I', '-c', code], { cwd: ROOT, input: JSON.stringify(input), encoding: 'utf8' }))
+  return JSON.parse(execFileSync('python3', ['-c', code], { cwd: ROOT, input: JSON.stringify(input), encoding: 'utf8' }))
 }
+
+
+// The readers below are run in a Python subprocess against the live tree.
+const PY_STRUCTURE = `
+import ast, json, sys
+sys.path.insert(0, "tests")
+import structure
+trees = structure.module_trees(); pkg = structure.Package(trees)
+dead, _ = structure.dead_members(pkg)
+dead_set = {(r, c, m) for r, c, m, _ in dead}
+bound = structure.bound_references(trees)
+rows = []
+for (mod, cname), cls in pkg.classes.items():
+    rel = pkg.mods[mod][0]
+    ms = [i.name for i in cls.body if isinstance(i, (ast.FunctionDef, ast.AsyncFunctionDef)) and not (i.name.startswith("__") and i.name.endswith("__"))]
+    if not ms: continue
+    flow = any(getattr(b, "id", getattr(b, "attr", "")).endswith(("ConfigFlow", "OptionsFlow")) for b in cls.bases)
+    rows.append({"item": rel + "::" + cname,
+                 "bound": ((rel, cname) in bound) or cname in structure.HA_CONVENTION_NAMES or flow,
+                 "live_methods": any((rel, cname, m) not in dead_set for m in ms)})
+if not rows: raise SystemExit("no production class measured")
+`
+const PY_GOV = `
+import importlib.util, json, re
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("gc", "tools/audit/round4/D11/governance_cost.py")
+gc = importlib.util.module_from_spec(spec); spec.loader.exec_module(gc)
+def job_ids(t):
+    i = t.rfind("\\njobs:\\n")
+    return set(re.findall(r"^  ([A-Za-z][\\w-]*):", t[i:], re.M)) if i >= 0 else set()
+src = Path("tests/entities.py").read_text()
+m = re.search(r"_GOV_FILES = \\[(.*?)\\]", src, re.S)
+files = re.findall(r'"(\\.github/[^"]+\\.yml)"', m.group(1)) if m else []
+w = re.search(r'^_GOV_WF = "([^"]+)"', src, re.M)
+if m and "_GOV_WF" in m.group(1) and w: files.append(w.group(1))
+if not files: raise SystemExit("entities.py: no _GOV_FILES list")
+pin = {"briefs"}
+for f in files: pin |= job_ids(Path(f).read_text())
+jobs = set()
+for f in sorted(Path(".github/workflows").glob("*.y*ml")): jobs |= job_ids(f.read_text())
+gov = set(gc.GOV)
+`
 
 // ---- the registered concepts ------------------------------------------------
 
@@ -142,6 +184,32 @@ const PAIRS = [
           // null HERE: an answer means the asymmetry is stale and is refused.
           { narrow: /^Merge pull request #\d+ from /, why: 'offline subject mode reads the squash shape only (enumSkipLine)' }),
       }
+    },
+  },
+  {
+    concept: 'dead-member-liveness',
+    what: 'whether a production class is live: structure.py dead_top_level_symbols (bound_references) against dead_members (reachability over methods), D7-s3-02',
+    async corpus() {
+      return python(PY_STRUCTURE + 'print(json.dumps(sorted(r["item"] for r in rows)))', null).map((i) => [i, i])
+    },
+    async readers() {
+      const rows = python(PY_STRUCTURE + 'print(json.dumps({r["item"]: r for r in rows}))', null)
+      return {
+        'structure.py bound_references (top-level)': (i) => rows[i].bound,
+        'structure.py dead_members (methods)': (i) => rows[i].live_methods,
+      }
+    },
+  },
+  {
+    concept: 'governance-workflow-jobs',
+    what: 'which workflow jobs are governance: tests/entities.py\'s pinned file list against governance_cost.py\'s GOV derivation, D11-s1-72',
+    async corpus() {
+      return python(PY_GOV + 'print(json.dumps(sorted(jobs)))', null).map((j) => [j, j])
+    },
+    async readers() {
+      const out = python(PY_GOV + 'print(json.dumps({"gov": sorted(gov), "pin": sorted(pin)}))', null)
+      const gov = new Set(out.gov); const pin = new Set(out.pin)
+      return { 'governance_cost.py GOV': (j) => gov.has(j), "tests/entities.py _GOV_FILES (+ the 'briefs' null control)": (j) => pin.has(j) }
     },
   },
 ]
