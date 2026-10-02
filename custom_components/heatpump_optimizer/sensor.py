@@ -45,6 +45,7 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
+from .payload import Payload
 from .mixing_valve import is_throttling
 
 if TYPE_CHECKING:
@@ -1703,7 +1704,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
 
-    def _modelled_cop(self, data: dict[str, Any]) -> float | None:
+    def _modelled_cop(self, data: Payload) -> float | None:
         model = getattr(self.coordinator, "thermal_model", None)
         if model is None:
             return None
@@ -1986,7 +1987,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self._data()
-        out = {
+        out: dict[str, Any] = {
             "month": data.get("peak_month"),
             # Below this a new hour is free: the bill is already set by the
             # peaks already recorded, so keeping power low buys nothing.
@@ -2496,9 +2497,9 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     def native_value(self) -> float | None:
         stats = (self._data()).get("dhw_draw_stats") or {}
         values = [
-            v.get("p90_kwh")
+            p90
             for v in stats.values()
-            if isinstance(v.get("p90_kwh"), (int, float))
+            if isinstance(p90 := v.get("p90_kwh"), (int, float))
         ]
         return max(values) if values else None
 
@@ -2893,12 +2894,8 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
         )
 
     def _advice(self) -> dict[str, Any]:
-        return dict(
-            ((self._data()).get("wood_fuel") or {}).get(
-                "night_advice"
-            )
-            or {}
-        )
+        advice = ((self._data()).get("wood_fuel") or {}).get("night_advice")
+        return dict(advice) if isinstance(advice, dict) else {}
 
     @property
     def _waiting_for(self) -> str | None:

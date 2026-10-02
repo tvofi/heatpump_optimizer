@@ -27015,7 +27015,7 @@ R.check(
     "HASTUB_TZ is the positive control",
 )
 
-# The six operators, driven over a module written to carry one of each. A
+# The seven operators, driven over a module written to carry one of each. A
 # generated mutant that does not PARSE cannot run, and a mutant that cannot
 # run reports as a survivor -- which reads as a finding about production.
 # W5-G7 tranche 5 measured two of those.
@@ -27055,7 +27055,8 @@ _MUT_GOT = list(_mut.candidates(_MUT_FILE))
 R.check(
     "every operator fires on a module written to carry one of each",
     {_m["kind"] for _m in _MUT_GOT} == {
-        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"},
+        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST",
+        "CMP_BOUND"},
     f"kinds generated: {sorted({_m['kind'] for _m in _MUT_GOT})}",
 )
 _MUT_LINES = _MUT_SRC.splitlines(True)
@@ -27090,6 +27091,78 @@ R.check(
             for _m in _MUT_GOT),
     "a `raise` alone under its `if` cannot become `pass` without an "
     "IndentationError -- the refusal is in candidates(), not in the runner",
+)
+
+# The comparison-bound operator (R9 F10.6, the I1 RCA's residual (b)): no
+# operator mutated an ordering comparison, so D3-s1-01's `-5.0 <= value` bound
+# was tightenable unseen. CMP_BOUND moves one bound of a one-line comparison by
+# one -- `<`/`<=`, `>`/`>=` -- one mutant per operator of a chain, and leaves
+# `==`, `in` and `is` alone. tvofi priced it and ruled "enable now"
+# (2026-10-02), so the default candidates, and with them the ratchet, carry it.
+_CB_FILE = _mut_write(_MUT_DIR / "bounds.py", (
+    "def f(v):\n    return v if -5.0 <= v <= 35.0 else None\n\n\n"
+    "def g(a, b):\n    if (a) > b or a >= 2 or a == b or a in b:\n"
+    "        return 1\n    return 0\n\n\n"
+    "def h(a, b):\n    return a < b\n\n\n"
+    "def k(a, b):\n    return a < max(\n        b, 1)\n"))
+_CB_SRC_LINES = _CB_FILE.read_text().splitlines(True)
+_CB_LISTED = getattr(_mut, "LISTED", None)
+_CB_GOT = [] if _CB_LISTED is None else [
+    _m for _m in _mut.candidates(_CB_FILE, kinds=_CB_LISTED)
+    if _m["kind"] == "CMP_BOUND"]
+
+
+def _cb_parses(m: dict) -> bool:
+    _l = list(_CB_SRC_LINES)
+    _l[m["line"] - 1] = m["new"] + "\n"
+    try:
+        ast.parse("".join(_l))
+    except SyntaxError:
+        return False
+    return True
+
+
+R.check(
+    "CMP_BOUND moves each ordering bound by one, one mutant per operator",
+    sorted(_m["new"] for _m in _CB_GOT) == sorted([
+        "    return v if -5.0 < v <= 35.0 else None",
+        "    return v if -5.0 <= v < 35.0 else None",
+        "    if (a) >= b or a >= 2 or a == b or a in b:",
+        "    if (a) > b or a > 2 or a == b or a in b:",
+        "    return a <= b"])
+    and all(_cb_parses(_m) for _m in _CB_GOT),
+    f"generated: {[_m['new'].strip() for _m in _CB_GOT]}",
+)
+# A comparison spanning lines (k's `a < max(` ... `)`) is card C7's residual,
+# ruled "Not now": the one-line format cannot carry it, so it yields nothing.
+R.check(
+    "a comparison spanning more than one line yields no CMP_BOUND site (C7)",
+    _CB_LISTED is not None
+    and not [_m for _m in _CB_GOT if _m["line"] >= 15],
+    f"sites at k's lines: {[_m['new'] for _m in _CB_GOT if _m['line'] >= 15]}",
+)
+R.check(
+    "and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted "
+    "inventory",
+    _CB_LISTED is not None and "CMP_BOUND" in _mut.RATCHETED
+    and sorted(_m["new"] for _m in _mut.candidates(_CB_FILE)
+               if _m["kind"] == "CMP_BOUND")
+    == sorted(_m["new"] for _m in _CB_GOT),
+    f"default kinds: {sorted({_m['kind'] for _m in _mut.candidates(_CB_FILE)})}",
+)
+_CB_LIST = getattr(_mut, "listed_sites", None)
+_CB_ROWS = [] if _CB_LIST is None else _CB_LIST("CMP_BOUND", {}, [_CB_FILE])
+_CB_LEDGER = {"killed_by": {_s["anchor"]: {"killed_by": "tests/x.py",
+                                            "old": _s["old"]}
+                            for _s, _u in _CB_ROWS if _s["line"] == 2}}
+R.check(
+    "--list counts a CMP_BOUND anchor unpinned until the ledger covers it",
+    _CB_LIST is not None
+    and [_u for _s, _u in _CB_ROWS] == [True] * 5
+    and [_u for _s, _u in _CB_LIST("CMP_BOUND", _CB_LEDGER, [_CB_FILE])]
+    == [False, False, True, True, True],
+    f"unpinned with no ledger / with line 2 pinned: "
+    f"{[_u for _s, _u in _CB_ROWS]}",
 )
 
 # The deterministic inventory + completeness ledger + exact-count ratchet
@@ -29806,6 +29879,149 @@ R.check(
     and _egb2_real.effective_config
     == {**_egb2_real.entry.data, **_egb2_real.entry.options},
     "no real coordinator" if _egb2_real is None else "a view diverged",
+)
+
+
+# EG-B3: the published key set, enumerated from the producers, equals Payload.
+# Rule: the keys of every dict a producer returns, assigns to what it publishes
+# or passes to ``update``, plus ``data["k"] =`` stores; a ``**x`` / ``update(x)``
+# source is resolved through ``_egb3_resolve`` and a source not listed there
+# fails, so a new spread cannot be missed (the review of #1852 found one that a
+# golden-union and a read of the producers both missed).
+_egb3_pkg = Path("custom_components/heatpump_optimizer")
+_egb3_src = {p.stem: ast.parse(p.read_text()) for p in _egb3_pkg.glob("*.py")}
+
+
+def _egb3_fn(mod, name, cls=None):
+    for n in ast.walk(_egb3_src[mod]):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name:
+            return n
+    raise KeyError((mod, name))
+
+
+def _egb3_lit(d):
+    return {k.value for k in d.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+
+
+def _egb3_top(fn, names=("data", "out")):
+    """String keys fn writes at its dict's top level: displays that are returned,
+    assigned or passed to update, plus ``data["k"] =`` stores (tuple targets too)."""
+    keys, merges, parent = set(), [], {}
+    for p in ast.walk(fn):
+        for c in ast.iter_child_nodes(p):
+            parent[c] = p
+    carried = set(names)  # local names whose dict is what the function publishes
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Return) and isinstance(n.value, ast.Name):
+            carried.add(n.value.id)
+        if isinstance(n, ast.Dict):
+            carried |= {v.id for k, v in zip(n.keys, n.values) if k is None and isinstance(v, ast.Name)}
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Dict):
+            par = parent.get(n)
+            if (isinstance(par, ast.Return)
+                    or (isinstance(par, ast.Call) and getattr(par.func, "attr", "") == "update")
+                    or (isinstance(par, (ast.Assign, ast.AnnAssign))
+                        and any(isinstance(t, ast.Name) and t.id in carried
+                                for t in (par.targets if isinstance(par, ast.Assign) else [par.target])))):
+                keys |= _egb3_lit(n)
+                merges += [v for k, v in zip(n.keys, n.values) if k is None]
+        if isinstance(n, ast.Assign):
+            for t in n.targets:
+                for s in (t.elts if isinstance(t, ast.Tuple) else [t]):
+                    if (isinstance(s, ast.Subscript) and isinstance(s.slice, ast.Constant)
+                            and isinstance(s.slice.value, str)
+                            and isinstance(s.value, ast.Name) and s.value.id in names):
+                        keys.add(s.slice.value)
+        if (isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "update"
+                and n.args and not isinstance(n.args[0], ast.Dict)):
+            merges.append(n.args[0])
+    return keys, merges
+
+
+# How each merge source in a producer resolves: the one hand-written part, and it
+# is checked: an unlisted source fails, so a new spread cannot slip past.
+_egb3_resolve = {
+    "self._legionella.disinfect.view()": ("disinfection", "view"),
+    "self._away_state.as_dict()": ("away", "as_dict"),
+    "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    "plan_views": ("coordinator", "_build_plan_views"),
+}
+_egb3_inline = {"two_tank", "view()", "{k: round(v, 4) for k, v in self._energy_totals.items()}"}
+
+
+def _egb3_energy():
+    for n in ast.walk(_egb3_src["coordinator"]):
+        if (isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Attribute)
+                and n.target.attr == "_energy_totals" and isinstance(n.value, ast.Dict)):
+            return _egb3_lit(n.value)
+    raise KeyError("_energy_totals")
+
+
+def _egb3_enumerate(fn, unresolved):
+    keys, merges = _egb3_top(fn)
+    for m in merges:
+        src = ast.unparse(m)
+        if src in _egb3_resolve:
+            keys |= _egb3_enumerate(_egb3_fn(*_egb3_resolve[src]), unresolved)
+        elif "_energy_totals" in src:
+            keys |= _egb3_energy()
+        elif src not in _egb3_inline:
+            unresolved.add(src)
+    return keys
+
+
+def _egb3_published():
+    build = _egb3_fn("coordinator", "_build_data_dict")
+    roots = [build] + [_egb3_fn("coordinator", n) for n in (
+        "_apply_result_payload", "_apply_unsolved_payload", "_with_sensor_advisor")]
+    for n in ast.walk(build):  # the views the assembler loops over
+        if isinstance(n, ast.For) and isinstance(n.iter, ast.Tuple):
+            roots += [_egb3_fn("coordinator", e.attr) for e in n.iter.elts]
+    unresolved, keys = set(), set()
+    for r in roots:
+        keys |= _egb3_enumerate(r, unresolved)
+    return keys, unresolved
+
+
+def _egb3_payload_keys():
+    cls = next(n for n in _egb3_src["payload"].body
+               if isinstance(n, ast.ClassDef) and n.name == "Payload")
+    return {a.target.id for a in cls.body if isinstance(a, ast.AnnAssign)}
+
+def _egb3_class(name):
+    cls = next(n for n in _egb3_src["payload"].body
+               if isinstance(n, ast.ClassDef) and n.name == name)
+    return {a.target.id for a in cls.body if isinstance(a, ast.AnnAssign)}
+
+
+def _egb3_insight():
+    ret = next(n for n in ast.walk(_egb3_fn("coordinator", "_insight_view"))
+               if isinstance(n, ast.Return) and isinstance(n.value, ast.Dict))
+    nested = {k.value: v for k, v in zip(ret.value.keys, ret.value.values)
+              if isinstance(k, ast.Constant)}["compressor_starts"]
+    return _egb3_lit(ret.value), _egb3_lit(nested)
+
+
+_egb3_pub, _egb3_unres = _egb3_published()
+_egb3_pk = _egb3_payload_keys()
+R.check(
+    "EG-B3: every merge source in the payload producers is resolved",
+    not _egb3_unres,
+    repr(sorted(_egb3_unres)),
+)
+R.check(
+    "EG-B3: Payload declares exactly the keys the producers publish",
+    _egb3_pub == _egb3_pk,
+    f"published-not-declared={sorted(_egb3_pub - _egb3_pk)} "
+    f"declared-not-published={sorted(_egb3_pk - _egb3_pub)}",
+)
+_egb3_ins, _egb3_cs = _egb3_insight()
+R.check(
+    "EG-B3: Insight and CompressorStarts declare the keys _insight_view writes",
+    _egb3_ins == _egb3_class("Insight") and _egb3_cs == _egb3_class("CompressorStarts"),
+    f"insight={sorted(_egb3_ins ^ _egb3_class('Insight'))} "
+    f"compressor_starts={sorted(_egb3_cs ^ _egb3_class('CompressorStarts'))}",
 )
 
 
