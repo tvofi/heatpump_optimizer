@@ -1,6 +1,6 @@
 R9-F10.4: the structural ratchet measures what its names say, and the I5 doc-claims barrier.
 
-Fixes #1661 (N-dead-member); Part of #1650 (I4); Fixes #1686 (N-structure-blind); Fixes #1645 (I5)
+Fixes #1661 (N-dead-member); Part of #1650 (I4); Fixes #1686 (N-structure-blind); Part of #1645 (I5)
 Fixes #1738
 Part of #201
 
