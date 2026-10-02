@@ -471,7 +471,9 @@ def check_initial_setup_menu() -> None:
     from heatpump_optimizer import config_flow, const
 
     text = DOCS["configuration.md"]
-    section = text.split("## Initial setup", 1)[1].split("\n## ", 1)[0]
+    section = _section(text, "## Initial setup", "\n## ", "configuration.md")
+    if section is None:
+        return
 
     async def _first_two_screens():
         flow = config_flow.HeatPumpOptimizerConfigFlow()
@@ -574,7 +576,9 @@ def check_simulate_plan_fields() -> None:
         "configuration.md still documents simulate_plan's field list (anchor)",
         m is not None,
     )
-    documented = set(re.findall(r"`([a-z0-9_]+)`", m.group(1))) if m else set()
+    if m is None:
+        return
+    documented = set(re.findall(r"`([a-z0-9_]+)`", m.group(1)))
     missing = schema_fields - documented
     R.check(
         "configuration.md's simulate_plan field list names every schema "
@@ -589,6 +593,8 @@ def check_simulate_plan_fields() -> None:
     # literal deleted from the simulate_plan sentence, and confirm the
     # missing-field check fires on that mutation -- not on set algebra that
     # cannot fail regardless of whether the regex extraction works at all.
+    if not schema_fields & documented:
+        return
     _dropped = sorted(schema_fields & documented)[0]
     _mutated_text = text.replace(m.group(0), m.group(0).replace(f"`{_dropped}`", ""), 1)
     _mutated_span = re.search(
@@ -596,7 +602,9 @@ def check_simulate_plan_fields() -> None:
         _mutated_text,
         re.S,
     )
-    _mutated_documented = set(re.findall(r"`([a-z0-9_]+)`", _mutated_span.group(1)))
+    _mutated_documented = (
+        set(re.findall(r"`([a-z0-9_]+)`", _mutated_span.group(1))) if _mutated_span else set()
+    )
     _synthetic_missing = schema_fields - _mutated_documented
     R.check(
         "the missing-field check fires when a field is undocumented (null "
@@ -604,6 +612,17 @@ def check_simulate_plan_fields() -> None:
         _dropped in _synthetic_missing,
         f"dropped={_dropped!r} synthetic missing={sorted(_synthetic_missing)}",
     )
+
+
+def _section(text: str, start: str, end: str, where: str) -> str | None:
+    """The text between ``start`` and the next ``end``, or None after a named FAIL.
+
+    An anchor a doc rewrite moves must fail as a check, not abort the run with
+    an IndexError that hides every other arm's result (carry-1645.json).
+    """
+    parts = text.split(start, 1)
+    R.check(f"{where} still has {start.strip()!r} (anchor)", len(parts) == 2)
+    return parts[1].split(end, 1)[0] if len(parts) == 2 else None
 
 
 # ---------------------------------------------------------------------------
@@ -652,7 +671,7 @@ def check_two_zone_field_labels_and_placement() -> None:
     )
     config_text = DOCS["configuration.md"]
     howitworks_text = DOCS["how-it-works.md"]
-    zones_section = config_text.split("### Two-zone model", 1)[1].split("\n### ", 1)[0]
+    zones_section = _section(config_text, "### Two-zone model", "\n### ", "configuration.md") or ""
     R.check(
         "configuration.md's Two-zone model table names the inter-zone "
         "transfer field by its actual options-form label, not a paraphrase "
@@ -700,7 +719,7 @@ def check_two_zone_field_labels_and_placement() -> None:
         two_zone_page == radiator_page == orientation_page,
         repr((two_zone_page, radiator_page, orientation_page)),
     )
-    readme_para = README.split("Both paths land on the same model", 1)[1].split("\n\n", 1)[0]
+    readme_para = _section(README, "Both paths land on the same model", "\n\n", "README.md") or ""
     R.check(
         "README's page-placement paragraph names the two-zone split's real "
         "options page (D6-s1-02)",
@@ -907,7 +926,7 @@ def check_multistart_starting_points() -> None:
         bool(starts_seen),
         repr(starts_seen),
     )
-    n = starts_seen[0]
+    n = starts_seen[0] if starts_seen else -1
     text = DOCS["how-it-works.md"]
     R.check(
         "how-it-works.md no longer claims a fixed count of two starting "
@@ -923,6 +942,20 @@ def check_multistart_starting_points() -> None:
         "(anchor + D6-s2-04)",
         m is not None and _NUMBER_WORDS.get(m.group(1)) == n,
         f"doc states {m.group(1) if m else None!r}, measured {n}",
+    )
+    # Corpus-wide (I5): every count of starting points anywhere in the reader
+    # docs is the count the optimizer runs, not only the sentence above.
+    claims = multistart_count_claims(CORPUS)
+    R.check(
+        "every starting-point count the corpus states is the count the "
+        f"optimizer runs (I5, measured {n})",
+        all(v == n for _, v in claims),
+        repr(claims),
+    )
+    R.check(
+        "the corpus count fires on a stale count (null control)",
+        multistart_count_claims({"probe.md": f"It runs from {n + 1} starting points."})
+        == [("probe.md", n + 1)],
     )
     # Null control: the exact pre-fix sentence is what this check exists to
     # catch.
@@ -1576,6 +1609,304 @@ def check_service_fields() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# I5 class barrier (round 9, #1645): shape-agnostic arms. The services arm is
+# F8.3's check_service_fields above, the leaf this barrier was written for. Each derives its claim
+# set from a whole corpus and its fact set from code, so a new sentence,
+# table row or comment of the shape joins the check the moment it lands; none
+# is keyed to a round-9 sentence. Every arm carries an anchor.
+# ---------------------------------------------------------------------------
+
+def entity_census(extra: dict) -> list[dict]:
+    """Every entity the platforms' real ``async_setup_entry`` add for an entry."""
+    import asyncio
+    import importlib
+
+    import heatpump_optimizer as integ
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer import const
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    names = json.loads((PKG / "strings.json").read_text())["entity"]
+    cfg = {const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home", **extra}
+    hass, entry = FakeHass(), FakeEntry(data=cfg)
+    entry.runtime_data = HeatPumpOptimizerCoordinator(hass, entry)
+    out: list[dict] = []
+    for plat in integ.PLATFORM_LIST:
+        added: list = []
+        mod = importlib.import_module(f"heatpump_optimizer.{plat}")
+        asyncio.run(mod.async_setup_entry(hass, entry, lambda e, *a, **k: added.extend(e)))
+        for e in added:
+            key = getattr(e, "_attr_translation_key", None)
+            out.append({
+                "platform": str(plat),
+                "name": names.get(str(plat), {}).get(key, {}).get("name", f"<{plat}:{key}>"),
+                "enabled": getattr(e, "entity_registry_enabled_default", True),
+                "options": set(getattr(e, "_attr_options", None) or ()) - {"unknown"},
+            })
+    return out
+
+
+_HEADS = {"Sensors": "sensor", "Binary Sensors": "binary_sensor", "Buttons": "button",
+          "Switches": "switch"}
+
+
+def check_entity_prose() -> None:
+    R.section("entity prose vs the constructed entity set (I5)")
+    from heatpump_optimizer import const
+
+    with_dhw = entity_census({const.CONF_DHW_TANK_VOLUME: 200.0})
+    bare = entity_census({})
+    R.check("the census constructs entities (anchor)", len(with_dhw) > 0 and len(bare) > 0)
+    total = len(with_dhw)
+    counts = [(n, int(m.group(1))) for n, text in CORPUS.items()
+              for m in re.finditer(r"\b(\d{2,3}) entities\b", text)]
+    R.check("the corpus states an entity count (anchor)", bool(counts))
+    R.check("every '<N> entities' in the corpus equals the constructed total",
+            all(v == total for _, v in counts), f"total {total}: {counts}")
+    heads = [(h, int(n)) for h, n in re.findall(r"^### (.+?) \((\d+) total\)", README, re.M)
+             if h in _HEADS]
+    per = {p: sum(1 for e in with_dhw if e["platform"] == p) for p in _HEADS.values()}
+    R.check("README states per-platform totals (anchor)", bool(heads))
+    R.check("every README '### <platform> (N total)' equals that platform's count",
+            all(per[_HEADS[h]] == n for h, n in heads), f"{heads} vs {per}")
+    rows = {}
+    for line in README.splitlines():
+        if line.startswith("| ") and line.count("|") >= 4:
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows.setdefault(cells[0], " ".join(cells[1:]))
+    listed = []
+    omitted = {}
+    for e in with_dhw:
+        named = set(re.findall(r"`(\w+)`", rows.get(e["name"], "")))
+        if e["options"] and named & e["options"]:
+            listed.append(e["name"])
+            if e["options"] - named:
+                omitted[e["name"]] = sorted(e["options"] - named)
+    R.check("README lists an enum entity's states (anchor)", bool(listed))
+    R.check("every README row that lists an enum entity's states lists all of them",
+            not omitted, repr(omitted))
+    m = re.search(r"Disabled by default: (.*?)\.\n", README, re.S)
+    R.check("README keeps its 'Disabled by default:' list (anchor)", m is not None)
+    census_list = {x.strip() for x in re.split(r",| and ", m.group(1).replace("\n", " "))} if m else set()
+    prose = " ".join(l for l in README.splitlines() if not l.startswith("|"))
+    sentences = [s for s in re.split(r"(?<=\.)\s", prose) if "disabled by default" in s.lower()]
+
+    def documented(name: str) -> bool:
+        return (name in census_list or "disabled by default" in rows.get(name, "").lower()
+                or any(name in s for s in sentences))
+
+    undoc = sorted(e["name"] for e in bare if not e["enabled"] and not documented(e["name"]))
+    R.check("every entity a no-hot-water install disables is documented as disabled",
+            not undoc, repr(undoc))
+
+
+CARD = PKG / "www" / "heatpump-optimizer-card.js"
+_TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
+
+
+def _tokens(text: str) -> set[str]:
+    return set(re.findall(r"[A-Za-z_$][\w$]*", text))
+
+
+def check_private_mentions() -> None:
+    R.section("backticked private names in the card resolve (I5)")
+    src = CARD.read_text()
+    cited = set(_TICKED_PRIVATE.findall(src))
+    R.check("the card's comments cite private names (anchor)", bool(cited), f"{len(cited)}")
+    known = _tokens(_TICKED_PRIVATE.sub(" ", src))
+    for path in sorted(PKG.rglob("*")):
+        if path.suffix in (".py", ".json", ".yaml") and "__pycache__" not in path.parts:
+            known |= _tokens(path.read_text())
+    stale = sorted(n for n in cited if n not in known)
+    R.check("every backticked private name in the card names something that exists",
+            not stale, repr(stale))
+
+
+_BARE_UNIT = re.compile(r"(\d) C\b|\bm2\b")
+
+
+def check_unit_typography() -> None:
+    R.section("translated text writes units as the selectors do (I5)")
+    hits: list[str] = []
+    leaves = 0
+    for rel in ("strings.json", "translations/en.json", "translations/sv.json"):
+        stack = [((rel,), json.loads((PKG / rel).read_text()))]
+        while stack:
+            path, node = stack.pop()
+            if isinstance(node, dict):
+                stack.extend((path + (k,), v) for k, v in node.items())
+            elif isinstance(node, str):
+                leaves += 1
+                if _BARE_UNIT.search(node):
+                    hits.append(".".join(path))
+    R.check("the catalogs carry text (anchor)", leaves > 0, f"{leaves} leaves")
+    R.check("no translated string writes '<n> C' or 'm2' for °C / m²", not hits, repr(sorted(hits)))
+
+
+def _label(s: str) -> str:
+    return re.sub(r"\s*\(.*?\)\s*", " ", s).strip().strip("*`").strip().lower()
+
+
+_LABEL_END = r"(?:temperature|sensor|source|switch|entity|enabled|mode|control|feedback|experiment|cycle|limit)"
+
+
+def check_option_labels() -> None:
+    R.section("option fields the docs name are fields the forms show (I5)")
+    en = json.loads((PKG / "translations" / "en.json").read_text())
+    steps = en.get("options", {}).get("step", {})
+    menu = {v: k for s in ("init", "advanced")
+            for k, v in steps.get(s, {}).get("menu_options", {}).items()}
+    R.check("the options flow keeps its init and advanced menus (anchor)", bool(menu))
+
+    def labels(node, out):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "data" and isinstance(v, dict):
+                    out |= {_label(x) for x in v.values() if isinstance(x, str)}
+                labels(v, out)
+        return out
+
+    every: set[str] = set()
+    stack = [en]
+    while stack:
+        n = stack.pop()
+        if isinstance(n, dict):
+            stack.extend(n.values())
+        elif isinstance(n, str):
+            every.add(_label(n))
+    rows, bad = 0, []
+    for name, text in CORPUS.items():
+        page = hdr = None
+        for line in text.splitlines():
+            if (m := re.match(r"^###\s+(.*)", line)):
+                page, hdr = m.group(1).strip(), None
+            elif line.startswith("|"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                if hdr is None:
+                    hdr = cells
+                elif (hdr[0] == "Setting" and page in menu and not set(line) <= set("|-: ")
+                      and not re.search(r" / |, |^The |Monday", cells[0])):
+                    rows += 1
+                    if _label(cells[0]) not in labels(steps.get(menu[page], {}), set()):
+                        bad.append(f"{name} '{page}': {cells[0]}")
+            else:
+                hdr = None
+            for m in re.finditer(r"(?<![*\w])\*([A-Z][^*\n]{3,70}?" + _LABEL_END + r")\*(?!\*)", line):
+                if not m.group(1).startswith("HP ") and _label(m.group(1)) not in every:
+                    bad.append(f"{name}: *{m.group(1)}*")
+    R.check("the docs tabulate options-page fields (anchor)", rows > 0, f"{rows} rows")
+    R.check("every options field the docs name is a label the forms render", not bad, repr(bad))
+
+
+def options_field_pages() -> tuple[dict[str, str], dict[str, set[str]]]:
+    """(step -> page title, field label -> the steps whose form renders it)."""
+    steps = _EN_STRINGS.get("options", {}).get("step", {})
+    titles = {name: step["title"] for name, step in steps.items()
+              if isinstance(step, dict) and isinstance(step.get("title"), str)}
+    pages: dict[str, set[str]] = {}
+    for name, step in steps.items():
+        stack = [step]
+        while stack:
+            node = stack.pop()
+            if not isinstance(node, dict):
+                continue
+            for key, value in node.items():
+                if key == "data" and isinstance(value, dict):
+                    for label in value.values():
+                        if isinstance(label, str):
+                            pages.setdefault(_label(label), set()).add(name)
+                else:
+                    stack.append(value)
+    return titles, pages
+
+
+def page_placement_problems(corpus: dict[str, str], titles: dict[str, str],
+                            pages: dict[str, set[str]]) -> tuple[int, list[str]]:
+    """(claims, wrong): italic field labels in a sentence naming a bold options page.
+
+    A sentence that names one or more options pages in bold (``**Hot water**``,
+    ``**Advanced settings → Thermal model (expert)**``) and the word "page"
+    places every italic field label in it on one of those pages; the field's
+    real page is the step whose form renders the label.
+    """
+    by_title = {_label(t): step for step, t in titles.items()}
+    claims, wrong = 0, []
+    for name, text in corpus.items():
+        for sentence in re.split(r"(?<=[.;])\s", text.replace("\n", " ")):
+            if "page" not in sentence:
+                continue
+            named = {by_title[_label(t.split("→")[-1])]
+                     for t in re.findall(r"\*\*([^*]+?)\*\*", sentence)
+                     if _label(t.split("→")[-1]) in by_title}
+            if not named:
+                continue
+            for field in re.findall(r"(?<![*\w])\*([^*\n]{3,80}?)\*(?!\*)", sentence):
+                homes = pages.get(_label(field))
+                if homes is None:
+                    continue
+                claims += 1
+                if not homes & named:
+                    wrong.append(f"{name}: *{field}* on {sorted(titles[s] for s in named)},"
+                                 f" rendered on {sorted(titles[s] for s in homes)}")
+    return claims, wrong
+
+
+def check_options_page_census() -> None:
+    R.section("a field the docs place on an options page is on that page (I5, D6-s1-02)")
+    titles, pages = options_field_pages()
+    R.check("the options forms have titled pages and labelled fields (anchor)",
+            bool(titles) and bool(pages), f"{len(titles)} pages, {len(pages)} labels")
+    claims, wrong = page_placement_problems(CORPUS, titles, pages)
+    R.check("the corpus places options fields on pages (anchor)", claims > 0, f"{claims} claims")
+    R.check("every field the corpus places on an options page is rendered there",
+            not wrong, repr(wrong))
+    # Null control: one real label, placed on a real page that does not render it.
+    field, homes = next((f, h) for f, h in sorted(pages.items()) if set(titles) - h)
+    elsewhere = titles[sorted(set(titles) - homes)[0]]
+    probe = {"probe.md": f"The *{field}* field is on the **{elsewhere}** page."}
+    R.check("the census fires on a field placed on a page that does not render it (null control)",
+            page_placement_problems(probe, titles, pages)[1] != [], probe["probe.md"])
+
+
+_COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+                "eight": 8, "nine": 9, "ten": 10}
+_START_COUNT = re.compile(
+    r"\b(\d+|" + "|".join(_COUNT_WORDS) + r")\s+(?:starting points|candidate"
+    r"(?: initial guesses| starting points| starts)?s?|initial guesses)\b", re.I)
+
+
+def multistart_count_claims(corpus: dict[str, str]) -> list[tuple[str, int]]:
+    """Every '<n> starting points / candidates / initial guesses' the corpus states."""
+    return [(name, int(m.group(1)) if m.group(1).isdigit() else _COUNT_WORDS[m.group(1).lower()])
+            for name, text in corpus.items() for m in _START_COUNT.finditer(text.replace("\n", " "))]
+
+
+def py_typed_files(root: pathlib.Path = PKG) -> int:
+    """How many ``py.typed`` markers a package tree carries."""
+    return sum(1 for _ in root.rglob("py.typed"))
+
+
+def check_py_typed_claim() -> None:
+    R.section("quality_scale.yaml's py.typed count vs the package (RCA-BULK-3, #1545)")
+    claims = [int(n) for n in re.findall(r"\bqs_py_typed_files=(\d+)", QUALITY_SCALE)]
+    R.check("strict-typing states qs_py_typed_files (anchor)", bool(claims), repr(claims))
+    shipped = py_typed_files()
+    R.check(
+        "every qs_py_typed_files the checklist states is the number of py.typed "
+        "files the package ships",
+        bool(claims) and all(n == shipped for n in claims),
+        f"stated {claims}, shipped {shipped}",
+    )
+    with tempfile.TemporaryDirectory() as _bare:
+        _unmarked = py_typed_files(pathlib.Path(_bare))
+    R.check(
+        "the count fires on a package that ships no marker (null control)",
+        bool(claims) and any(n != _unmarked for n in claims),
+        f"stated {claims}, a bare tree counts {_unmarked}",
+    )
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
@@ -1590,11 +1921,17 @@ def main() -> int:
     check_multistart_starting_points()
     check_census_self_test()
     check_quality_scale()
+    check_py_typed_claim()
     check_quick_setup_promises()
     check_card_version_tracks_stamp()
     check_curve_bias_no_weekly_bound()
     check_readme_currency_claim()
     check_service_fields()
+    check_entity_prose()
+    check_private_mentions()
+    check_unit_typography()
+    check_option_labels()
+    check_options_page_census()
     return R.close("checks")
 
 

@@ -2898,9 +2898,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Return current operation mode."""
         return self._mode
 
-    @property
-    def current_action(self) -> dict[str, Any]:
-        return self._current_action
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
         if not self._ecl110_state_topic:

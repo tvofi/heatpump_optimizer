@@ -1579,16 +1579,6 @@ class _Horizon:
     def timestamps(self) -> list[datetime]:
         return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
-    @property
-    def weather(self) -> dict[str, np.ndarray]:
-        """Keyword arguments the simulation and baseline calls share."""
-        return {
-            "outdoor_temps": self.outdoor_temps,
-            "wind_speeds": self.wind_speeds,
-            "precipitation": self.precipitation,
-            "solar_radiation": self.solar_radiation,
-        }
-
 
 def hold_demand_kw(
     params: ThermalParameters,
