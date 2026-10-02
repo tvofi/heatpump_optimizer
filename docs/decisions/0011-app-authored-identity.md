@@ -109,12 +109,17 @@ So the writer is a **fourth App, `hpo-ledger`**, with exactly this grant:
   holds no secret and no write grant (D11-s1-03). The installation token is
   minted with `contents: write` alone.
 
-**Owed by the owner, not by any seat**: create the App with `contents` read &
-write on this repository, install it, store the two secrets, and add it to
-`main-protect`'s bypass list for pushes. Until the secrets exist the push job
-reports `skip-no-writer` and stays green, as `hpo-runs`' step already does
-while its secrets are absent, and the measured slice is kept only as the run's
-artifact.
+**The owner's setup, not any seat's**: the App with `contents` read & write on
+this repository, installed, the two secrets stored, and the App on the push
+bypass. Done by the owner on 2026-10-02: `hpo-ledger` is App 5094721, an
+`always` bypass actor on both `main-protect` (22628467, where it already stood
+on 2026-09-30, `docs/HANDOVER.md`) and `main-protect-checks` (23698884,
+re-recorded in `.claude/workflows/fixtures/required-contexts.json`), and
+`HPO_LEDGER_APPID` and `HPO_LEDGER_PEM` are set. A ruleset read cannot prove
+the bypass lets the push through (the rules endpoint is not bypass-aware), so
+the first nightly `ci: record nightly kills` push is its live test. Were the
+secrets ever absent, the push job reports `skip-no-writer` and stays green, as
+`hpo-runs`' step does, and the slice is kept only as the run's artifact.
 
 The App is no code owner (above), and a row it writes merges no policy: the
 ledger rows are dispositions the ratchet reads, not caps
