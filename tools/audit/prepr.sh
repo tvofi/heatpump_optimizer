@@ -1236,9 +1236,10 @@ python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/p
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 
-# --- 3f5. the register check (class R-register), which `wave-script` runs from
-# the base once the base carries it: this head's ledger and the rounds in the
-# tree, under the head's copy of the checker. Well under a second.
+# --- 3f5. the register check (class R-register), which `wave-script` runs on the
+# branch's own copy of the checker, not a pinned one: this head's ledger and the
+# rounds in the tree. Ownership (CODEOWNERS) is the only protection against a
+# branch editing the checker. Well under a second.
 python3 -I tools/audit/fold_ledger.py --self-test >/tmp/prepr-fl.$$ 2>&1 \
   && python3 -I tools/audit/fold_ledger.py check >>/tmp/prepr-fl.$$ 2>&1
 step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
