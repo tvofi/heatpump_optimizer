@@ -17823,13 +17823,16 @@ R.check(
 # refusal is `skip-merge-failed`, which reddens. Removing the early return
 # entirely yields exactly that -- measured -- so the status below restores a
 # refusal the early return had been pre-empting, with a remedy of its own.
-def _af_case(committed, records, check_txt=None):
+def _af_case(committed, records, check_txt=None, inert=()):
     """Run the real apply function over a throwaway closures.json.
 
     Returns (status, bytes-unchanged). Files named must be real files in the
     tree: `check` rejects a recording of anything that is not a regular file.
-    `check_txt`, when given, is the closures job's tee of its own check.
+    `check_txt`, when given, is the closures job's tee of its own check;
+    `inert` paths are classified INERT for the call, whatever main's list says.
     """
+    real_is_inert = _closure.is_inert
+    _closure.is_inert = lambda rel: rel in inert or real_is_inert(rel)
     with _tempfile.TemporaryDirectory() as td:
         path = Path(td) / "closures.json"
         before = json.dumps({"closures": committed, "recorded": {}})
@@ -17845,7 +17848,7 @@ def _af_case(committed, records, check_txt=None):
             status = _closure.apply_under_scoped_recordings(rec, partial=True)
             return status, path.read_text() == before
         finally:
-            _closure.CLOSURES = orig
+            _closure.CLOSURES, _closure.is_inert = orig, real_is_inert
 
 
 _af3_status, _af3_kept = _af_case(
@@ -17946,7 +17949,8 @@ R.check(
 # now tees its check to check.txt beside the recordings; a disagreement is
 # red. The two logs are the real check-step lines of those runs, timestamps
 # stripped: the defect, and a46a91c's by-design INERT READS failure, which
-# printed no UNDER-SCOPED and must stay quiet.
+# printed no UNDER-SCOPED and must stay quiet. DISCLAIMER.md is held INERT
+# for the case, as the base held it: #1846 itself moved it out of main's list.
 _AF8_DEFECT_LOG = (
     "note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)\n"
     "UNDER-SCOPED: tests/harness_headers.py really reads 1 file(s) the "
@@ -17964,13 +17968,12 @@ _af8_s = "tests/harness_headers.py"
 _af8_args = ({_af8_s: [_af8_s, "DISCLAIMER.md"]},
              [{"script": _af8_s, "rc": 0,
                "files": [_af8_s, "DISCLAIMER.md", "tests/harness.py"]}])
-_af8 = {k: _af_case(*_af8_args, check_txt=v) for k, v in (
+_af8 = {k: _af_case(*_af8_args, check_txt=v, inert={"DISCLAIMER.md"}) for k, v in (
     ("defect", _AF8_DEFECT_LOG), ("null", _AF8_NULL_LOG), ("absent", None))}
 R.check(
     "a pinned classifier that disagrees with the closures job's UNDER-SCOPED "
     "reddens (#1846)",
-    _closure.is_inert("DISCLAIMER.md")
-    and _af8["defect"] == ("skip-classifier-disagrees", True)
+    _af8["defect"] == ("skip-classifier-disagrees", True)
     and _closure.autofix_repair_failed("closures-autofix", _af8["defect"][0])
     and "--single" in _closure.autofix_report("closures-autofix", _af8["defect"][0])[1],
     f"{_af8}: green here is a repair nobody makes and nothing reports",
@@ -18175,9 +18178,12 @@ _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
 # The disagreement check above reads a file only the closures job can write.
 _cl_step = [s for s in _workflow_job(_TESTS_YML, "closures").split("\n      - ")
             if s.startswith("name: Fail if tests/closures.json under-approximates")]
+_cl_lines = [l.strip() for l in (_cl_step or [""])[0].splitlines()]
+_cl_if = [i for i, l in enumerate(_cl_lines) if l.startswith('if [ "$SCOPE_CASE"')]
 R.check(
     "the closures job tees its check to check.txt beside the recordings",
-    len(_cl_step) == 1 and "set -o pipefail" in _cl_step[0]
+    len(_cl_step) == 1 and len(_cl_if) == 1
+    and "set -o pipefail" in _cl_lines[:_cl_if[0]]
     and _cl_step[0].count('| tee "$RUNNER_TEMP/closures/check.txt"') == 2,
     "without it closures-autofix cannot see that its pinned classifier disagrees",
 )
