@@ -1,0 +1,73 @@
+<!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
+_Requested by **tvofi** · [project thread](https://claude.ai/code/project/chan_01EL5jLi4rokGBbkaevYXSJV?thread=cmsg_01EL5jLi4rokGBbkaevYXSJVDJLRGybvz7gq2LHEKFoKoj)_
+
+Round-9 endgame PR EG-B2 (roster group R9-EG-B2): surface identity and public accessors.
+
+Closes #1742. Part of #1739 (the surface half; the collaborators are R9-EG-B6's). Part of #201.
+
+Before: each of the six entity platforms derived its own unique id, translation key and pinned object id (nine constructors). `climate.py` and `binary_sensor.py` kept a private `{**entry.data, **entry.options}` copy beside the coordinator's own. `sensor.py` spelled the payload read `self.coordinator.data or {}` 66 times while `binary_sensor.py` had a `_data()`. Thirteen surface reads reached coordinator private members (`_config`, `_thermal_params`, `_thermal_model`, `_away_state`, `_mold_floor_series`), and `diagnostics.py` read `_mode` and `_optimization_running` past their public properties.
+
+After: `HeatPumpOptimizerEntity._pin_identity` in `entity.py` is the one rule for all three ids, with the registry-compatibility rationale written once there; each platform base names its `_platform_domain` and passes its key (climate alone passes `object_id`, as its id predates the scheme). `_data()` moved onto the base, and the 66 `sensor.py` spellings and climate's three read it. Both private config copies read `coordinator.effective_config`. The surfaces read the coordinator through public names only: the existing `effective_config`, `mode` and `optimization_running`, and four new read-only views on the coordinator: `thermal_params`, `thermal_model`, `away_state` and `mold_floor_series`. `entity.py` still imports nothing from the package.
+
+How. The views are one module function, `coordinator._view(name)`, which returns `property(attrgetter(name))`. Each view is one class line with no setter, and it resolves through `getattr`, so a hub resolves through its `_hub` facade and an instance-level patch of the member is what the view reads (`tests/entities.py`'s mold-floor solve-recording check depends on that). The four class lines are paid for by deleting four coordinator properties with no reader in the package, the tests or the card: `last_optimization`, `next_optimization`, `solar_radiation` and `floor_return_temp`. Their `seam_map.json` entries go too, and the W5-G7 t6 property pin in `tests/features.py` now covers the three attribute views in their place. The coordinator agreed this split with R9-F10.4, which keeps the remaining dead members. The structure budgets are re-recorded down, with the reason in the commit (`coordinator_loc` and `max_class_loc` 9006 to 8992, `coordinator_methods` 224 to 220, `cut_fetch` 118 to 117). No budget rises.
+
+Test doubles follow the real interface: `tests/harness.py`'s `FakeCoordinator` gains the same four views and `effective_config` over the private names a test passes, and `features.py`'s `_G8DtCoord` gains `away_state`. `tests/doc_claims.py`'s object-id prefix reader now also reads the base's `object_id` f-string, and `tools/audit/round4/D10/qs_rules.py`'s `entity-unique-id` rule now asks whether every unique-id site is keyed on the entry rather than counting six sites. Both instruments had been keyed to one copy per platform.
+
+**The architecture score is report-only.** Three of the views are passthroughs over a private member, which `PRE-STUDY.md` §7 names as no interface. The C5 counter (`private_reach_v2`) counts them as reads of their privates, and the gain below is measured with it. What the views do buy is the #1739 failure mode: a rename now breaks at the class, not in whichever entity a test happened to drive. `mold_floor_series` is a passthrough too; a narrower `mold_floor_at(outdoor)` would cost a method the budget did not have.
+
+## Head
+
+907eedf6c83e92d4a0a439c993c70d71ab008f7a
+
+Code head on `handoff/r9-eg-surface-identity`, measured against merge base `3bd6f122` (origin/main at 2026-10-02T01:45Z).
+
+## Mutation proof
+
+New checks in `tests/entities.py` (the R9-EG-B2 block at the end), run with `PYTHONPATH=tests/hastub python tests/entities.py` (Python 3.13):
+
+- At the merge base `3bd6f122`, with the block appended: `FAIL EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options` (13 reaches plus the two `{**data, **options}` copies), `FAIL EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file`, `FAIL EG-B2: every coordinator view the surfaces read is a read-only property`. The real-coordinator check then raised `AttributeError` before the summary (fixed at head to read through `getattr`).
+- M1, `switch.py` `away_state` reverted to `_away_state`: `FAIL EG-B2: no entity platform reads a coordinator private member ...  [{'switch.py': ['126:._away_state']}]`, rc=1.
+- M2, the `self.entity_id = ...` line removed from `_pin_identity`: `tests/entities.py` stops with `AttributeError: 'HeatPumpOptimizerClimate' object has no attribute 'entity_id'` at the climate object-id pin, rc=1.
+
+Survivors on the sites this diff touched: none. `mutation_table.py --scope changed` refused before driving anything (`3921 unpinned site(s) against 3919 at the ratchet base 3bd6f122..., 6 of them added by this diff`). Pinning is `mutation-autofix`'s, so I drove each of the six added sites by hand on a copy of the head, running `tests/entities.py` and, for the two `sensor.py` lines, `tests/features.py` as well. Every one was killed by `tests/entities.py`:
+- `coordinator.py` `_view` RETURN_DEL: `AttributeError: 'NoneType' object has no attribute 'compute_cop'`.
+- `entity.py` `if translation_key is not None` forced true: `FAIL architecture.md's switch.py names every entity it constructs`, `FAIL every entity id a blueprint, the card or the package names is one a platform builds (P6 B)`.
+- `entity.py` `if object_id is None` forced true: `FAIL the climate entity pins the corrected object id for new installs [climate.heat_pump_optimizer_heat_pump_optimizer]`.
+- `entity.py` `_data` RETURN_DEL: `AttributeError: 'NoneType' object has no attribute 'get'`.
+- `sensor.py` PV availability `and` to `or`: `FAIL the PV sensor is unavailable without an array`; `features.py` stays green.
+- `sensor.py` mixed hot-water availability `and` to `or`: `FAIL mixed hot water follows the thermometer it is computed from`; `features.py` stays green.
+
+## Null control
+
+- **Identity snapshot.** Every entity's (platform, unique_id, entity_id, translation_key) is snapshotted at the merge base and at the head with `hass.config.language` set to `en` and to `sv`: 75 entities (sensor 59, binary_sensor 6, button 4, switch 4, climate 1, datetime 1), byte-identical across all four. Perturbation: climate's `object_id` changed to `heat_pump_optimizer_climate` on the head. The snapshot then differs on exactly that row (`climate.heat_pump_optimizer` against `climate.heat_pump_optimizer_climate`), so an identity change would have shown. The ids are built in the constructors and no translation file is loaded, so en against sv shows that language does not reach the ids. It is not a test of display names.
+- **The scan's own control.** `EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins` passes at the base and at the head. It runs three planted reaches, a `.`-read, a `getattr` and a `{**data, **options}`, and their public twins.
+- `tests/entities.py` passes at the head (2058 checks; the 2053 at the merge base plus the five new).
+- **Goldens.** The scoped gate runs `tests/golden.py` in drift mode against the merge base, green; no claim file is touched.
+
+## Figures
+
+`$EV` is `/mnt/project-files/audit-r9/fix/evidence/EG-B2-907eedf6/` (project files, not in the tree). The snapshot script is `$EV/identity_snapshot.py`, sha1 `003ab58cc89772cc75efeb0d63d818816f20431f`.
+
+- **Scope:** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 21 script(s) run, 7 scoped out`.
+- **Scoped gate:** `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at 907eedf6. Every script passed except `tests/stress.py`: `FAIL every scenario's solve costs what it should, in CPU, for this machine [shoulder/tariff+cycle used 11664 ms of CPU = 273x the 42.8 ms reference measured beside it (budget 268x)]`. That run shared the box with a snapshot run of mine. Re-run alone, `PYTHONPATH=tests/hastub python tests/stress.py` at 907eedf6 failed the same check (`272x ... (budget 268x)`). At the merge base 3bd6f122 the same command failed it worse (`worst scenario: shoulder/tariff+cycle used 12215 ms of CPU = 284.5x its 42.9 ms reference`), and the first gate at 076f77a0 passed it (`257.2x`). The budget check is reading this machine, and the diff does not touch the solver. CI's runner is the judge.
+- **Identity snapshot:** `cd <tree> && PYTHONPATH=tests/hastub:tests:. python $EV/identity_snapshot.py <en|sv>`, then `cmp base_<lang>.tsv head_<lang>.tsv && echo IDENTICAL`, which printed IDENTICAL for en and sv; the perturbed head printed `differ: ... line 11`.
+- **Private reaches:** this is the rule that enumerates the seams, the `_egb2_private_reads` scan in `tests/entities.py`. Over the seven surface modules (entity, sensor, binary_sensor, button, switch, climate, datetime) it returned 15 at the base: entity.py 199 `_thermal_params` and 208 `_config`; sensor.py 641 and 1716 `_thermal_model`, 681 and 2850 `_config`, 1091-1093 and 2164 `_thermal_params`; binary_sensor.py 179 `{**data, **options}` and 210 `_mold_floor_series`; switch.py 130 and datetime.py 45 `_away_state`; climate.py 106 `{**data, **options}`. It returns 0 at the head, and every one of the 15 is closed in this diff. `diagnostics.py` is not a surface, and the scan does not read it: its `_mode` and `_optimization_running` move here to the existing properties, and its six remaining reaches (`_tibber_outage_cycles`, `_tibber_reauth_started`, `_solve_failures`, `_cop_scale`, `_cop_samples`, `_house_heat_loss_scale`) have no public accessor and are R9-EG-B6's (#1739).
+- **Architecture score.** The prototype is exported from `92b3ecc9` into `$EV/archscore/proto/`, with sha1s arch_score 5312e86583a2…, measure_vec e78dbcc37e26…, metrics_v1 89c968bf0910… and counters d547b17cc711…. Each tree's vector is `python3 $EV/archscore/proto/b/measure_vec.py <tree>` merged with `python3 $EV/archscore/proto/b/metrics_v1.py <tree>`, and its counters come from `python3 $EV/archscore/proto/redteam/counters/counters.py <tree>`. The no-counter delta is `python3 $EV/archscore/proto/b/arch_score.py --delta $EV/archscore/base.json $EV/archscore/head.json`. The counter delta is `python3 $EV/archscore/score_with_counters.py` (sha1 `a6a5d61d7633…`), which applies `score_proto.py`'s swap, gate-only list and weights to these two trees, because `score_proto.py` reads only its own attempt files.
+  - With counters: ΔS +0.2009, admissible, and the only term is `private_reach_v2` 99 → 86.
+  - Without counters: ΔS +0.2538, `private_reach` 92 → 77.
+  - No score or gate metric rises under either.
+  - Per file with counters: entity 2 → 0, sensor 8 → 0, binary_sensor 1 → 0, datetime 1 → 0, switch 4 → 3, diagnostics 8 → 8. C5 counts `mode` and `optimization_running` as passthroughs too.
+  - The brief's carry expected +3.8, for `private_reach` 13 → 0 tree-wide after B6. The surface half reaches 0 here on the v1 count; the counters keep the passthrough views and properties.
+- **Structure:** `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED` at 907eedf6. The re-record was `python3 tests/structure.py --record`, on the commit whose message carries the reason.
+
+## Red checks
+
+none on this branch's CI yet. Locally, the first scoped gate at 076f77a0 went red on `tests/features.py` (a test double without the new view), `tests/doc_claims.py` and `tests/harness_headers.py` (two instruments keyed to one copy per platform) and `tests/structure.py` (+4 class lines). Each is fixed in this diff. The cheaper detector for the first three is the scoped gate itself, which caught them before any push to a pull request.
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
