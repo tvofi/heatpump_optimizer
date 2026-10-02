@@ -512,6 +512,14 @@ INERT_EXCEPT = (
     "docs/img/dhw-store-decay.svg",
     "docs/img/marginal-cop.svg",
     "docs/img/make_model_figures.py",
+    # R9-WEB-1: tests/doc_claims.py opens the product page to pin every claim
+    # on it to the reader documents, so the page is a gate script's read, not
+    # inert prose: an edit to it selects doc_claims.py. The self-hosted fonts
+    # and the page's images are only stat()ed by that arm (the recorder traces
+    # openat), so they stay under the docs/ prefix. The arm also opens
+    # DISCLAIMER.md for the page's DISCLAIMER.md#disclaimer claims.
+    "docs/index.html",
+    "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
     "blueprints/automation/notify_on_manual_plan.yaml",

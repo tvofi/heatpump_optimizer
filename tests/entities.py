@@ -17631,10 +17631,10 @@ R.check(
 # request, a red main, and a second pull request to repair it.
 # tests/README.md left this example in #938, when this script began reading
 # its annotations above: it is a dependency of this script now, so an edit to
-# it selects this script rather than skipping. DISCLAIMER.md keeps the third
+# it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["docs/audit-2026-09.md", "LICENSE", "DISCLAIMER.md"])
+    ["docs/audit-2026-09.md", "LICENSE", "SECURITY.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
@@ -24293,7 +24293,7 @@ def _if_under(expr, event: "dict[str, str]") -> "bool | None":
     s = str(expr).strip()
     if s.startswith("${{") and s.endswith("}}"):
         s = s[3:-2]
-    s = s.replace("always()", " True ")
+    s = s.replace("always()", " True ").replace("!cancelled()", " True ")
     s = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
                lambda m: repr(event.get(m.group(0))), s)
     s = s.replace("&&", " and ").replace("||", " or ")
@@ -24405,6 +24405,29 @@ R.check(
     "and a group keyed on the ref, cancelling everything, is refused (null control)",
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
+)
+
+# A superseded run must stop: a job-level `always()` keeps running after the
+# run is cancelled (the newer run then sits pending in the group, 34 min on
+# #1845); `!cancelled()` skips the same way for a skipped `needs` but honours
+# the cancel. Step-level `always()` (artifact upload, cache save) is fine.
+def _ca_bad(jobs):
+    return [f"{n}:{j}" for n, j, e in jobs
+            if re.match(r"(?:\$\{\{)?\s*always\(\)", e)]
+
+
+_CA_JOBS = [(n, j, str((b or {}).get("if") or "")) for n, d in _RC_DOCS.items()
+            for j, b in (d.get("jobs") or {}).items()]
+R.check(
+    "no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)",
+    not _ca_bad(_CA_JOBS) and sum("!cancelled()" in e for _, _, e in _CA_JOBS) >= 14,
+    f"{_ca_bad(_CA_JOBS) or 'none'}",
+)
+R.check(
+    "and a leading `always()` is refused, `!cancelled()` is not (null control)",
+    _ca_bad([("x", "y", "always() && a"), ("x", "z", "${{ always() }}")])
+    == ["x:y", "x:z"] and not _ca_bad([("x", "y", "!cancelled() && a")]),
+    f"{_ca_bad([('x', 'y', 'always() && a')])}",
 )
 
 

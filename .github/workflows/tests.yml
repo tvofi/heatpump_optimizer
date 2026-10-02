@@ -160,7 +160,7 @@ jobs:
   fast:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
@@ -380,7 +380,7 @@ jobs:
   browser:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
@@ -453,7 +453,7 @@ jobs:
   briefs:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
@@ -512,7 +512,7 @@ jobs:
   typing:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
@@ -578,7 +578,7 @@ jobs:
   coverage:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || (github.event_name == 'workflow_dispatch'
@@ -742,7 +742,7 @@ jobs:
   coverage-ratchet:
     needs: [recheck-gate, coverage]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || (github.event_name == 'workflow_dispatch'
@@ -797,7 +797,7 @@ jobs:
   mutation:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
@@ -920,7 +920,7 @@ jobs:
   mutation-nightly:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
@@ -966,7 +966,7 @@ jobs:
   slow:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      !cancelled() && (
         github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
@@ -1217,7 +1217,7 @@ jobs:
   # already drives the pull request's copy through `tests/entities.py`.
   graders-head-copy:
     needs: [coverage]
-    if: always() && github.event_name == 'pull_request'
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -1327,15 +1327,16 @@ jobs:
 
   closures:
     needs: [closure-scope]
-    # `always()` is load-bearing, not decoration. `closure-scope` only runs on
-    # a pull request, so on a push to main it is SKIPPED -- and a job whose
+    # `!cancelled()` is load-bearing, not decoration. `closure-scope` only runs
+    # on a pull request, so on a push to main it is SKIPPED -- and a job whose
     # `needs` was skipped is skipped too, whatever its own `if` says. Without
-    # `always()` this line would silently switch off the closures check on
+    # it (`always()` also works, but keeps a superseded run's job running and
+    # the newer run pending in the group) this line would switch off the check on
     # main, which is the one place it has always run: a far worse bug than the
     # one it is here to prevent.
     #
     # THE DOCS-ONLY FAST LANE (#201 item 8, ledger finding (c)). This job no
-    # longer has a skip case at all, so its `if` is bare `always()`: the only
+    # longer has a skip case at all, so its `if` is bare `!cancelled()`: the only
     # diff that ever skipped here is the one `closure-scope` derives as
     # `skip` -- every changed file INERT and absent from every recorded
     # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
@@ -1353,7 +1354,7 @@ jobs:
     # `closure-scope`), an unknown event, a dispatch, the nightly and every
     # push all take the full arm, exactly as they did when `!= 'skip'` was
     # the last line of the `if`.
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
     # 'true' exactly when this run is a `pull_request` whose diff the gate's
@@ -1534,7 +1535,7 @@ jobs:
   closures-autofix:
     needs: [closures]
     if: >-
-      always()
+      !cancelled()
       && github.event_name == 'pull_request'
       && needs.closures.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
@@ -1803,7 +1804,7 @@ jobs:
   claims-autofix:
     needs: [fast]
     if: >-
-      always()
+      !cancelled()
       && github.event_name == 'pull_request'
       && needs.fast.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
@@ -2062,7 +2063,7 @@ jobs:
   mutation-autofix:
     needs: [mutation]
     if: >-
-      always()
+      !cancelled()
       && github.event_name == 'pull_request'
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
