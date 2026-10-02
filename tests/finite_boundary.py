@@ -44,6 +44,14 @@ load held a number. The substitution and seeding rules are the round-9 P1
 RCA's, measured over the eleven judged instances its narrower predecessors
 were green on.
 
+**Arm 5 -- the store version seam (#1740).** Over Arm 1's construction set:
+every store names its own version constant (no literal, none shared); every
+store, seeded at its own version (the control), one below it (a bump: the
+migration hook) and one above it (a downgrade), and read through its real
+loader, surfaces each mismatch as a WARNING and a ``store_version`` repair
+issue; and a store read at a version above 1 overrides the default migration
+hook, so a bump without a migration fails here.
+
 **I1 pins (round 9, F9.1).** Five guards outside the boundary above, each
 correct already and each invisible to every closure script if deleted: a
 direct call of the production symbol, not a store sweep, because I1 is
