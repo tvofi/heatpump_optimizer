@@ -105,9 +105,16 @@ def computed_attr_access(ts: dict[str, ast.Module]) -> int:
 
 # ---------------------------------------------------------------- C3
 def is_noop(s: ast.AST) -> bool:
-    """An expression statement with no effect: a constant, a name, an attribute, or a call of a
-    pure builtin on names and constants. Dropped before a clone window is cut, so a
-    ``id(N)`` interleaved in every window does not split the clone (attempt 04: 121 -> 7)."""
+    """A statement with no effect, dropped before a clone window is cut so junk interleaved in every
+    window does not split the clone (attempt 04: 121 -> 7; the reviewer's ``pass`` variant read +14.15).
+
+    The class: ``pass``; an expression statement of a constant (``...``, ``None``, a string), a name,
+    an attribute, or a call of a pure builtin on names and constants; and an ``if`` on a constant
+    whose branches are all such statements."""
+    if isinstance(s, ast.Pass):
+        return True
+    if isinstance(s, ast.If) and isinstance(s.test, ast.Constant):
+        return all(is_noop(x) for x in (*s.body, *s.orelse))
     if not isinstance(s, ast.Expr):
         return False
     v = s.value

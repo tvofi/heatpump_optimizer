@@ -648,6 +648,42 @@
   "set": "redteam",
   "verdict": "NULL"
  },
+ "rt_04b_dup_pass_interleave": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_04c_dup_pass_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04d_dup_ellipsis_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04e_dup_none_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04f_dup_str_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04g_dup_iffalse_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
  "rt_05_coord_mixin_relocation": {
   "admissible": true,
   "label": "GAME",

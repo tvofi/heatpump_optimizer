@@ -57,6 +57,10 @@ def smoke() -> None:
     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
     parsed here too: a script runs as a child process, whose own reads the recorder does not see."""
     sys.path.insert(0, str(calibrate.HERE / "planted"))
+    # The full run loads tests/structure.py for every case, in worker processes the recorder does not
+    # see; loading it here puts it in the recorded closure, so a structure.py-only diff selects this script.
+    R.check("tests/structure.py loads as the score's definition source",
+            hasattr(vector.load_structure(ROOT), "duplicate_clones"))
     for helper in sorted((calibrate.HERE / "planted").rglob("*.py")):
         try:
             ast.parse(helper.read_text())
@@ -106,7 +110,7 @@ def main() -> int:
         smoke()
     if not stored:
         games = [r for r in rows if r["set"] == "redteam" and r["label"] == "GAME"]
-        R.check("the red-team attempts are all present", len(games) >= 17, f"{len(games)}")
+        R.check("the red-team attempts are all present", len(games) >= 23, f"{len(games)}")
         R.check("no red-team attempt reads IMPROVES",
                 not [r["id"] for r in games if r["verdict"] == "IMPROVES"],
                 f"{[r['id'] for r in games if r['verdict'] == 'IMPROVES']}")

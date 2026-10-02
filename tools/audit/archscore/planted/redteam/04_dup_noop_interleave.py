@@ -1,12 +1,19 @@
-"""Game duplication_copies: every duplicated statement window is kept, but in each clone except the
+"""Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse), argv[3] == "uncharged"
+leaves the coordinator and every footprint-charged function alone so no other metric stops it.
+Game duplication_copies: every duplicated statement window is kept, but in each clone except the
 first a no-op call statement id(<distinct int per function>) is inserted
 between the window's two statements, so no window hashes equal any more.
 The duplicated logic is untouched; only junk is added."""
 import ast, hashlib, sys
 from collections import defaultdict
 from pathlib import Path
-from rt_lib import pkg, structure
+from rt_lib import pkg, structure, metric
 root = sys.argv[1]
+JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "None\n", "str": '"junk"\n',
+        "iffalse": "if False:\n{ind}    pass\n"}
+kind = sys.argv[2] if len(sys.argv) > 2 else "id"
+uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
+CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()
 S = structure(root)
 win = defaultdict(set)
 node_of = {}
@@ -39,6 +46,8 @@ inserts = defaultdict(dict)  # module -> {line_after: (indent, owner)}
 for key, owners in win.items():
     o = sorted(owners)
     for owner in o[1:]:
+        if uncharged and (owner[0].startswith("coordinator") or f"{owner[0]}.{owner[1]}" in CHARGED):
+            continue  # the footprint gate would stop these: only the counter may hold the line
         s0 = node_of[(key, owner)]
         fid = fn_ids.setdefault(owner, len(fn_ids) + 1)
         inserts[owner[0]][s0.end_lineno] = (s0.col_offset, fid)
@@ -48,7 +57,7 @@ for mname, ins in inserts.items():
     lines = p.read_text().splitlines(keepends=True)
     for ln in sorted(ins, reverse=True):
         col, fid = ins[ln]
-        lines.insert(ln, " " * col + f"id({fid})\n")
+        lines.insert(ln, " " * col + JUNK[kind].format(fid=fid, ind=" " * col))
         n += 1
     p.write_text("".join(lines))
 print("functions perturbed", len(fn_ids), "no-ops inserted", n)

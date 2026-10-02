@@ -118,7 +118,7 @@
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 67.1,
+   "seconds": 103.4,
    "rc": 0
   },
   "tests/arch_score_head.py": {
@@ -2519,6 +2519,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/typing.py",
    "tests/seam_map.json",
+   "tests/structure.py",
    "tools/audit/archscore/__init__.py",
    "tools/audit/archscore/calibrate.py",
    "tools/audit/archscore/calibration/corpus.tsv",
@@ -2573,6 +2574,12 @@
    "tools/audit/archscore/planted/redteam/02_hub_object_setattr.py",
    "tools/audit/archscore/planted/redteam/03_shared_dunder_spelling.py",
    "tools/audit/archscore/planted/redteam/04_dup_noop_interleave.py",
+   "tools/audit/archscore/planted/redteam/04b_dup_pass_interleave.py",
+   "tools/audit/archscore/planted/redteam/04c_dup_pass_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04d_dup_ellipsis_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04e_dup_none_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04f_dup_str_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04g_dup_iffalse_uncharged.py",
    "tools/audit/archscore/planted/redteam/05_coord_mixin_relocation.py",
    "tools/audit/archscore/planted/redteam/05b_coord_mixin_private_only.py",
    "tools/audit/archscore/planted/redteam/05c_coord_base_class_all.py",
