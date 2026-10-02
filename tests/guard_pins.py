@@ -25,6 +25,7 @@ from harness import FakeHass, Results
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.disinfection import DisinfectionSwitch
 from heatpump_optimizer.legionella import LegionellaGuard
+from heatpump_optimizer.dhw_planner import DhwPlanner
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.price_model import PriceShapeModel
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
@@ -131,7 +132,7 @@ def _runup_stops_at_the_ordinary_floor() -> bool:
     )
     n_steps = 12
     floor_temps = np.full(n_steps, 50.0)
-    plan = opt._dhw_legionella_ceilings(
+    plan = DhwPlanner(opt.model, opt.config)._dhw_legionella_ceilings(
         params=params,
         n_steps=n_steps,
         dt=1.0,

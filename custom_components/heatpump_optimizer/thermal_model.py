@@ -1499,6 +1499,16 @@ def dhw_draw_scale(dhw_temp: float, inlet_temp: float) -> float:
     return min(1.0, max(0.0, dhw_temp - inlet_temp) / span)
 
 
+def _step_humidity(humidity: np.ndarray | None, i: int) -> float | None:
+    """Step ``i``'s forecast humidity; None falls back to the ambient (#1520)."""
+    return None if humidity is None else float(humidity[i])
+
+
+def _mean_humidity(humidity: np.ndarray | None) -> float | None:
+    """The humidity a horizon-mean outdoor valuation prices at (#1520)."""
+    return None if humidity is None else float(np.nanmean(humidity))
+
+
 def learner_newton_step(
     current: float,
     base_u: float,
@@ -2059,7 +2069,7 @@ class ThermalModel:
         dT = (q_in - q_draw - q_loss) / C_dhw
 
         # The tank rating, enforced in the model itself rather than trusted
-        # to every caller's pre-clamp: the optimizer's `_clamp_dhw_to_capacity`
+        # to every caller's pre-clamp: the DHW planner's `_clamp_dhw_to_capacity`
         # protects planned schedules, but the published trajectory also
         # replays pinned plans and legionella boosts, and those paths could
         # exceed the rating with no accounting. Same shape as the buffer
