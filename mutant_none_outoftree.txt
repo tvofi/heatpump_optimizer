@@ -1,0 +1,3 @@
+  FAIL the tracked budget files could not be listed (Command '['git', '-C', '/Users/timmalmstrom/hpo-seats/1843-review/mut', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.)
+  FAIL the tree has budget files to read: got False, want True
+budget_raise_gate self-test: 154 checks, 2 failed

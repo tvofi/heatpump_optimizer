@@ -1,0 +1,8 @@
+RESULT old-pattern: ['budget-raise-gate.yml']
+RESULT new-pattern: []
+RESULT workflows without a block 'on:' line (new pattern cannot see them): []
+RESULT 'on:\n  push:\n    branches: [main]\n\n  # c\n' True
+RESULT 'on:\n  issues:\n' True
+RESULT 'on: [issues]\n' False
+RESULT '"on":\n  issues:\n' False
+RESULT 'on:\n  push:\npermissions:\n  issues: read\n' False
