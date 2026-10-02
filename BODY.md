@@ -31,14 +31,16 @@ Every `tests/structure.py` metric is unchanged; no budget is re-recorded. `class
 
 ## Head
 
-`2b6cd5cfa6fa7e61d2f1549b5e71643c93fe2260`. The merge base is origin/main `5f87e25a110ff0a6fad179283b21f3823d0cd1f1`, measured 2026-10-02T18:00Z (`date -u`).
+`eed5ac3fa3ed0b2d4df7680800b097217a90acc2`, the merge of origin/main `aa7a81192325614999803e40e3cedc024e22ce2b` (#1859, the merge base) into `2b6cd5cfa6fa7e61d2f1549b5e71643c93fe2260`, with no hand resolution. Measured 2026-10-02T19:11Z (`date -u`).
 
-The head adds three commits to the round-1 head `291b3e0fad611c73d07952ddd2b1c2399ebc8781`, and none of them touches production code: `git diff --quiet 291b3e0fa HEAD -- custom_components && echo PRODUCTION-UNCHANGED` printed `PRODUCTION-UNCHANGED`.
+Main's delta touched no file this PR changes, and the PR's own delta is unchanged by the merge: `diff <(git diff 5f87e25a1...2b6cd5cfa -- custom_components tests) <(git diff aa7a81192...eed5ac3fa -- custom_components tests) && echo CODE-AND-TEST-DELTA-IDENTICAL` printed `CODE-AND-TEST-DELTA-IDENTICAL`. Main changed `tests/mutation_table.py` and `tests/entities.py`, so the ledger check, `provenance.py`, `tests/entities.py`, `tests/harness_headers.py`, `tests/deployment_shape.py` and `tests/structure.py` were re-run at this head (Figures).
+
+Round 2 added three commits to the round-1 head `291b3e0fad611c73d07952ddd2b1c2399ebc8781`, and none of them touches production code: `git diff --quiet 291b3e0fa eed5ac3fa -- custom_components && echo PRODUCTION-UNCHANGED` printed `PRODUCTION-UNCHANGED`.
 - `7ddec1a78` updates the round-4 D6 header and regenerates its output.
 - `87371ea3a` adds `dhw_planner.py` and `manual_plan.py` to the closure table from CI's Linux recordings.
 - `2b6cd5cfa` updates `tests/deployment_shape.py`'s selection-cost note.
 
-The branch was cut at `4e2582e79a4d788fee44c8eb82502cbf46f53af7`. Neither merge from origin/main, at `d3f3640c7` and at `35642ec22`, changed this PR's production delta: `tools/audit/round9/EG-B5/provenance.py` passes against each base (Figures).
+The branch was cut at `4e2582e79a4d788fee44c8eb82502cbf46f53af7`. No merge from origin/main, at `d3f3640c7`, `35642ec22` or `eed5ac3fa`, changed this PR's production delta: `tools/audit/round9/EG-B5/provenance.py` passes against each base (Figures).
 
 The `tests/features.py` runs below were measured at `0c458974916fe80c8873e11b71abb9afef178e53`, and `env_drift.py --all` at `07ff8248e6245d4591dd349b612b6eabc3990a39`. Both trees carry this head's production code: `git diff --quiet 0c4589749 HEAD -- custom_components && echo PRODUCTION-IDENTICAL` printed `PRODUCTION-IDENTICAL`, and the same for `07ff8248e`.
 
@@ -54,7 +56,7 @@ Two mutants of the head export, each run through the whole `tests/features.py`:
 - **M1:** `_co_optimize` builds its replan on a fresh `DhwPlanner(self.model, self.config, self._pv_surplus, self._price_known)` instead of the handed-down planner. This is behaviour-identical, so only the hand-down check sees it: 3 of 3652 failed, the new one being `a solve builds one planner and every DHW build it makes runs on it, ...` with `planners built: 2; builds: 2, on 2 planner(s)`.
 - **M2:** `_build_dhw_requirements` stashes `self._last_requirement = requirement`. 3 of 3652 failed, the new one being `and no DhwPlanner method but __init__ writes an attribute` with `writes: [('_build_dhw_requirements', 1138)]`.
 
-Mutation ledger: `PYTHONPATH=tests/hastub python3 tools/audit/round9/EG-B5/ledger_check.py 948671af1dcb63b1e3ceebb0154ba5c5b9c2911e` reports:
+Mutation ledger: `PYTHONPATH=tests/hastub python3 tools/audit/round9/EG-B5/ledger_check.py aa7a81192325614999803e40e3cedc024e22ce2b` reports:
 - form and layout `[]`, completeness `[]` over 4520 sites;
 - 3909 unpinned sites here and 3909 at the base;
 - `added unpinned: 0`, with ratchet refusal `None`.
@@ -75,7 +77,7 @@ Its null control is the same per-site match run without #1748's move pairing (`s
 
 ## Figures
 
-- **Provenance.** `python3 tools/audit/round9/EG-B5/provenance.py 5f87e25a110ff0a6fad179283b21f3823d0cd1f1 HEAD` (the merge base) exited rc=0 and printed `PROVENANCE PASSED: 27 units, 0 problem(s)`.
+- **Provenance.** `python3 tools/audit/round9/EG-B5/provenance.py aa7a81192325614999803e40e3cedc024e22ce2b HEAD` (the merge base) exited rc=0 and printed `PROVENANCE PASSED: 27 units, 0 problem(s)`.
   - The 27 units: 19 methods, 5 module-level names, the 3 helpers and the section banner.
   - Every unit prints `IDENTICAL`, except `_build_dhw_requirements`, which is `IDENTICAL after 3 listed substitution(s)`: the return annotation, the two stash lines, and `), requirement`.
   - `still defined on HeatPumpOptimizer at HEAD: []`.
@@ -98,7 +100,7 @@ Its null control is the same per-site match run without #1748's move pairing (`s
 - **Scripts run locally.** Python 3.14.7 with CI's pinned numpy and scipy, on the head tree:
   - Passed: `guard_pins.py` (9), `manual_plan.py` (85), `finite_boundary.py` (68), `edge.py`, `validate.py`, `plan_view.py`, `solar_alignment.py`, `deployment_shape.py`, `config_flow_steps.py` (496), `doc_claims.py` (112), and `typing_ruler.py` (source-only, 11).
   - `dst_checks.py` failed 7 of 131, and the base export fails the same 7: the `grep FAIL` lists of the two runs diffed equal.
-  - With `~/hpo-seats/R9-F11.4-venv/bin/python3` and `PYTHONPATH=tests/hastub`, at this head: `tests/entities.py` `ALL 2062 ENTITY CHECKS PASSED`, `tests/harness_headers.py` `ALL 94 HARNESS HEADER CHECKS PASSED`, `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, and `tests/structure.py` `STRUCTURE RATCHET PASSED`.
+  - With `~/hpo-seats/R9-F11.4-venv/bin/python3` and `PYTHONPATH=tests/hastub`, at this head: `tests/entities.py` `ALL 2071 ENTITY CHECKS PASSED`, `tests/harness_headers.py` `ALL 94 HARNESS HEADER CHECKS PASSED`, `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, and `tests/structure.py` `STRUCTURE RATCHET PASSED`.
   - Not run locally: `optimality.py`, `stress.py`, `backtest.py`, `replay.py`, `rolling.py`, the node lanes, and the pinned mypy census. CI runs the FULL suite.
 - **Typing (indicative, not the census).** mypy 2.3.1 with scipy-stubs 1.18.1.1 and numpy 2.4.6 (not the pinned 2.5.3, and without homeassistant-stubs), `--strict --follow-imports=silent` over `optimizer.py`, `dhw_planner.py`, `thermal_model.py` and `manual_plan.py`, reported 0 errors at the base and 0 at the head. Null control: adding a property `not_on_the_horizon` to the `_Horizon` Protocol made mypy refuse both `_dhw_coil_wood_forecast(h)` call sites in `optimizer.py`, so `optimizer._Horizon` really is checked against the Protocol. The census proper (`HPO_TYPING_PYTHON`) is CI's `typing` job; the seat's typing venv was removed when the disk filled.
 - **Humidity rule.** `python3 tools/audit/round9/EG-B5/p3_control.py` takes the seam rule's own functions out of `tests/features.py` by AST.
@@ -121,7 +123,7 @@ Round 1 at `291b3e0fa` had four reds: `fast (3.14)`, `closures`, `closures-autof
 - **`fast (3.14)`, `tests/harness_headers.py`, 3 of 94.** `tools/audit/round4/D6/claims.py`'s header asserts `arch_modules_on_disk=67` and `arch_map_listed=67`, and the run printed 68. The executed harness also rewrote its committed `claims.json` and `claims.md`. `7ddec1a78` moves both header numbers to 68 and commits the regenerated output: two result strings per file, C32 and C33. `tests/harness_headers.py` at this head: `ALL 94 HARNESS HEADER CHECKS PASSED`.
   - Cheaper detector: running `tests/harness_headers.py` locally before the push. It takes minutes, while the red cost a CI round and a review round. It was not run because the seat block then read it as a numpy script.
   - The block now names it (item 12): `entities.py`, `harness_headers.py`, `deployment_shape.py` and `structure.py` run under `~/hpo-seats/R9-F11.4-venv` before every push that adds a module. #1852's root-cause section already recorded this countermeasure for the same class, so this PR adds no new one.
-- **`fast (3.14)`, `tests/entities.py`, 3 of 2062.** These are the closure-table checks the round-1 body named. `87371ea3a` fixes them. `tests/entities.py` then found a fourth stale figure, `tests/deployment_shape.py`'s #1218 selection-cost note (`all 85 files`), which `2b6cd5cfa` fixes. At this head it prints `ALL 2062 ENTITY CHECKS PASSED`.
+- **`fast (3.14)`, `tests/entities.py`, 3 of 2062.** These are the closure-table checks the round-1 body named. `87371ea3a` fixes them. `tests/entities.py` then found a fourth stale figure, `tests/deployment_shape.py`'s #1218 selection-cost note (`all 85 files`), which `2b6cd5cfa` fixes. At this head it prints `ALL 2071 ENTITY CHECKS PASSED` (2062 before main's #1859 added checks).
 - **`closures`, UNDER-SCOPED (23 scripts), and `closures-autofix`, `skip-failed-recording`.** The autofix refuses to merge recordings from a run in which a recorded script exited non-zero. Three did, so no bot commit was coming, and the round-1 body was wrong to wait for one: `.claude/rules/ci-autofix.md` lifts the `--single` prohibition when the job reports red. The table was re-recorded by hand from CI's own Linux recordings (Figures, Closures); nothing was recorded on this Mac.
   - `entities.py` and `harness_headers.py` exited 1 on the reds above.
   - **`stress.py` exited 1 under recording, and is green in `fast`.** Its recording output reads `1 of 98 STRESS CHECKS FAILED`: `no scenario exceeds its own recorded cost by the budget factor`, with `winter/1z/dhw at 15.2x its reference vs its own budget 14.5x` and `winter_extreme/1z/dhw at 15.4x vs 11.0x`. The recording runs the script under `sys.addaudithook` plus `strace` (`how: audithook+sys.modules+strace` in `stress.py.json`). That instrumentation slows the scenario solves far more than the short reference solve the ratio is calibrated against, so the per-scenario cost ratio crosses its budget.
