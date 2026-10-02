@@ -14,13 +14,13 @@ How. New module `notifier.py`, registered in `__init__.py` right after `entry.ru
 
 Decisions worth a reviewer's eye:
 - **The store opts out of the instant bound (`lead=None`).** The manual-plan occurrence key is the override's expiry, the owner's instant and ahead of the clock by design. With the default bound the store rewrote that key on load, and a restart announced the same override again; `tests/features.py` found it (the restart check failed on the first run). `finite_boundary.py` lists the opt-out beside `away`'s, with its reason.
-- **Comfort at risk is one event per episode,** not per worsening: a deeper forecast on a later refresh does not fire again; it re-arms only after a refresh with no risk. No hysteresis band: a plan oscillating across the floor refresh to refresh would fire at each crossing. Not built; no evidence yet that it happens, and a band is a threshold the owner would have to be told about.
+- **Comfort at risk is one event per episode,** not per worsening: a deeper forecast on a later refresh does not fire again; it re-arms only after a refresh with no risk. No hysteresis band: a plan oscillating across the floor refresh to refresh fires at each crossing (disclosed in `docs/automations.md`). Not built; no evidence yet that it happens, and a band is a threshold the owner would have to be told about.
 - **"Why" in the comfort sample is limited to what is published.** The design's sample names the fuse limit; no field says why a step is cold until UX-5's sub-codes, so the event carries `peak_guard_suppressing` and the blueprint says "the peak guard is holding heating back". UX-5 can extend `EVENT_DATA`.
-- **Manual-plan release fires once per channel and override,** with the steps released when it fired; more steps released by a later solve of the same override do not re-fire.
+- **Manual-plan release fires once per release episode,** not once per override: a release that lapses for one solve and returns fires again (the detector clears its key whenever a solve releases nothing, and `released_*` is re-derived each solve; probe release, none, release gives two events). More steps released within one episode do not re-fire. Keying the clear on the override ending would fix it but is not small, so it is disclosed here and in `docs/automations.md`, as the comfort oscillation is.
 
 ## Head
 
-3964868f479f85045304b7696ede6248bff0abfe (code head on `handoff/r9-ux-events`, `origin/main` 03ba7f70 is the merge base and still its tip)
+bb75a44d6ccf2768090c77734ec01e13789d7a46 (code head on `handoff/r9-ux-events`; `origin/main` 03ba7f70 is the merge base and was still its tip when measured)
 
 ## Mutation proof
 
@@ -30,6 +30,8 @@ Decisions worth a reviewer's eye:
 - Also killed, by named check: dedupe off (7 checks), no re-arm on clear (4), `problem != "stale"` (3), no baseline adoption (1), no persist (1).
 
 Failing test first: the UX-4 block was written before `notifier.py` existed and failed on `ImportError: cannot import name 'notifier'`.
+
+Round 1 (#1865) re-run: the restart check pinning `lead=None` had a fixed expiry and went vacuous once the calendar passed it. The block now freezes the clock (`_UX4_NOW`) and derives the expiry from it. Mutant `lead=None` deleted, block run with `_UX4_NOW` at 2026-10-02T12:00Z, 2031-01-01T00:00Z and 2026-10-03T07:00Z (the instant the reviewer's freeze found it surviving): the restart check fails in all three, and the unmutated block passes all 18 in all three.
 
 ## Null control
 
@@ -49,13 +51,14 @@ Failing test first: the UX-4 block was written before `notifier.py` existed and 
 
 ## Red checks
 
-None on a pushed commit. Two local reds before the push, each answered:
+- `closures` on the pushed head (CI run 37073640871): `UNDER-SCOPED: tests/features.py really reads 2 file(s) ... notifications.yaml, docs/automations.md`, and `closures-autofix` returned skip-classifier-disagrees because main's `closure.py` treats the blueprint as INERT. Cheaper detector: none on this Mac, since recording a closure needs Linux and CI's recording is the only instrument; the standing cost is one CI cycle. The cause is that the new UX-4 block reads the blueprint and the docs. Fixed by hand-merging that run's recording for `tests/features.py` alone (`closure.py merge --partial --allow-failures`, one artifact downloaded; the timing left as it was).
+- Two local reds before the first push, each answered:
 - `structure.py` `dead_top_level_symbols 2 > 1`: cheaper detector is `structure.py` itself, seconds; fixed in the same working tree.
 - `entities.py` "every tracked file is either measured or deliberately classified" on `notifier.py`, plus the architecture HA-free count (I had written 44, the tree's is 43): the detector is already seconds-cheap and ran before the push.
 
 ## Forward-carry
 
-`none`. UX-5 may extend `EVENT_DATA` with its idle sub-codes; that is its own brief's to say.
+The comfort event's "why" (the design's "the fuse limit caps heating 02:00-05:00") is carried to R9-UX-5's brief by the coordinator, which owns that roster entry; this PR ships `peak_guard_suppressing` only.
 
 ## Owner gate
 
