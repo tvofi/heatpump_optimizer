@@ -1,0 +1,6 @@
+  REFUSED  registry: `pinned .claude/workflows/agreement.mjs` is unregistered: DECLARED names neither an arm for its input nor none
+  REFUSED  registry: `pinned .claude/workflows/agreement_py.py` is unregistered: DECLARED names neither an arm for its input nor none
+  REFUSED  registry: `pinned tests/structure.py` is unregistered: DECLARED names neither an arm for its input nor none
+RESULT read=56 ignored=25 declared_none=31 blind=0 dead=0 refused=3 runs=133 seconds=8.2
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+##[error]Process completed with exit code 1.

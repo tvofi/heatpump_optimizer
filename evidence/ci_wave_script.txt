@@ -1,0 +1,3 @@
+153 passed, 0 failed
+agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped
+SELF-TEST 13 of 13 probes held

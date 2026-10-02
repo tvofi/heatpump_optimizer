@@ -1,0 +1,13 @@
+.claude/workflows/agreement.mjs
+.claude/workflows/agreement_py.py
+.claude/workflows/audit-find.js
+.claude/workflows/counts.mjs
+.claude/workflows/field_coverage.mjs
+.claude/workflows/policy_lint_envmatrix.mjs
+.github/workflows/governance.yml
+docs/delivery/1847.md
+tools/audit/README.md
+tools/audit/bugclasses.json
+tools/audit/prepare_baseline.sh
+tools/audit/prepr.sh
+tools/audit/scopes.json

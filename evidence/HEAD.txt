@@ -1,3 +1,4 @@
-head measured: 1517fa2d6363cba80335a1db35623682aad177e4
-main: aab94eea2211b41a224fd23980e084e77c529ec0
-B1(main+precursor)=50eb80642e0116ec97067372f3e5a2c8d3c019f4 M2(PR merged on B1)=c376da5c3782bc1b57f5c0582fa9ea7924378c9f
+head measured: c4311a4629a88260a16eb49db4ae8616db671b7e
+previous verified head: 1517fa2d6363cba80335a1db35623682aad177e4
+main: 2e7422e59aad538d043d544df356721c9d4264aa
+merge tree a75e6004 == git merge-tree --write-tree 1517fa2d 2e7422e5 (rc 0)
