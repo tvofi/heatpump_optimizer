@@ -268,7 +268,6 @@ for key in ("indoor_temp_entity", "outdoor_temp_entity", "dhw_temp_entity"):
 health = health_reader.health
 R.check("stale inputs are listed", health.stale_keys == ["indoor_temp_entity"])
 R.check("missing inputs are listed", health.missing_keys == ["dhw_temp_entity"])
-R.check("a healthy snapshot says so", not health.healthy)
 R.check(
     "the summary is human-readable",
     stale_summary(health) == "1 stale, 1 missing",
@@ -6543,9 +6542,9 @@ R.check("a recent run blocks another", not repeat.arm(NOW))
 # ``identify()`` (the one-state regression) is HARNESS-ONLY (#1395). Every
 # production experiment arms with a declared plant, so ``_finish`` routes it to
 # ``identify_slab()``; the one-state regression is reached only by a caller
-# that declares no plant. A name-based scan cannot pin this -- ``_finish`` DOES
-# reference ``identify`` by name, so the method census reads 0 (which is what
-# ``tests/structure.py``'s #1395 metric checks) -- so the shape is pinned here,
+# that declares no plant. A static scan cannot pin this -- ``_finish`` DOES
+# call ``identify`` through ``self``, so the member census reads it live (which
+# is what ``tests/structure.py``'s #1395 metric checks) -- so the shape is pinned here,
 # by counting entries along each sequence. The no-plant arm is the null
 # control: it must reach ``identify()``, or a screen that counted 0 everywhere
 # would read as proof of a property it never tested.
@@ -26827,12 +26826,17 @@ R.check(
 # factor() interpolates between bucket centres now, so the learned value is
 # read exactly at the centre and these checks keep asking about the estimator,
 # not the interpolant.
+def _derate_decision(derate, outdoor_temp, humidity):
+    """(source, factor, samples) the bucket factor() reads is decided on."""
+    return derate._decide(*derate._bucket(outdoor_temp, humidity))
+
+
 _meas = DefrostDerate()
 for _ in range(40):
     _meas.observe_duty(2.0, 80.0, 0.10, events=1)
 R.check(
     "a measured bucket derates from its counted duty",
-    _meas.measured(3.5, 85.5)
+    _derate_decision(_meas, 3.5, 85.5)[0] == "measured"
     and abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
     f"factor {_meas.factor(3.5, 85.5):.4f} vs {derate_from_duty(0.10):.4f}",
 )
@@ -27472,10 +27476,9 @@ R.check(
 )
 R.check(
     "and it reports the estimator the plan is actually using",
-    not _rv_one_zero.measured(_RV_T, _RV_H)
-    and _rv_one_zero.samples(_RV_T, _RV_H) == 200,
-    f"measured={_rv_one_zero.measured(_RV_T, _RV_H)} "
-    f"samples={_rv_one_zero.samples(_RV_T, _RV_H)} — saying 'measured, 1 "
+    _derate_decision(_rv_one_zero, _RV_T, _RV_H)[0] != "measured"
+    and _derate_decision(_rv_one_zero, _RV_T, _RV_H)[2] == 200,
+    f"decision={_derate_decision(_rv_one_zero, _RV_T, _RV_H)} — saying 'measured, 1 "
     f"sample' while planning from 200 inferred ones is how the diagnostics "
     f"and the plan come to disagree",
 )
@@ -27499,7 +27502,9 @@ for _n in (1, 4, 8, 11, 12, 40):
     d = _rv_mature()
     for _ in range(_n):
         d.observe_duty(_RV_T, _RV_H, 0.10)
-    _rv_ramp.append((_n, d.factor(_RV_T, _RV_H), d.measured(_RV_T, _RV_H)))
+    _rv_ramp.append(
+        (_n, d.factor(_RV_T, _RV_H), _derate_decision(d, _RV_T, _RV_H)[0] == "measured")
+    )
 R.check(
     "while the measurement is short of full trust the inference is a FLOOR",
     all(
@@ -27549,7 +27554,7 @@ _rv_deep_t, _rv_deep_h = _rv_deep._bucket(_RV_T, _RV_H)
 R.check(
     "a measured duty deeper than the inference wins before full trust",
     _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9
-    and _rv_deep.measured(_RV_T, _RV_H)
+    and _derate_decision(_rv_deep, _RV_T, _RV_H)[0] == "measured"
     and _rv_deep.duty_counts[_rv_deep_t][_rv_deep_h] < DERATE_CONFIDENCE_SAMPLES,
     f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 on "
     f"{_rv_deep.duty_counts[_rv_deep_t][_rv_deep_h]} duty samples — selection "
@@ -31994,11 +31999,12 @@ R.check(
 )
 
 
-R.section("#369/#370 — the duplication window can fire, and --record refuses a laundered regression")
+R.section("#369/#370/#1738 — the duplication window can fire, and --record refuses a laundered regression")
 
 # These drive tests/structure.py's OWN symbols, not a re-implementation of
 # them: the window scan and the re-record guard are the production code here,
 # and a test that rebuilt either would pin nothing (tests/README.md).
+import ast as _hpo_ast
 import contextlib as _hpo_g_ctx
 import io as _hpo_g_io
 import json as _hpo_g_json
@@ -32006,69 +32012,71 @@ import tempfile as _hpo_g_tmp
 
 import structure as _hpo_st
 
-_hpo_g_dup = getattr(_hpo_st, "duplicate_runs", None)
+_hpo_g_dup = getattr(_hpo_st, "duplicate_clones", None)
 _hpo_g_reg = getattr(_hpo_st, "regression_rows", None)
 
-
-def _hpo_g_sample(shared: int) -> dict:
-    """Two functions of one module sharing exactly ``shared`` normalized lines.
-
-    The shape ``duplicate_runs`` consumes: fid -> [(segment, text)], which is
-    what ``measure()`` builds per module once blanks, comment-only lines and
-    nested def spans are stripped.
-    """
-    body = [(0, f"shared_statement_{i} = compute({i})") for i in range(shared)]
-    return {
-        ("dup.py", "left", 10): [(0, "only_left = 1"), *body, (0, "return only_left")],
-        ("dup.py", "right", 90): [(0, "only_right = 2"), *body, (0, "return only_right")],
-    }
+# The body two functions share in the samples below: two statements, well
+# over DUP_MIN_NODES nodes. Each copy names its locals differently, so the
+# normalization (not the spelling) is what makes them one window.
+_HPO_G_BODY = (
+    "def {name}({a}, {b}):\n"
+    "    {t} = sum(v * {b} for v in {a} if v > 0)\n"
+    "    return max({t}, len({a}) * {b} - 1)\n"
+)
 
 
-def _hpo_g_runs(sample: dict, window: int):
+def _hpo_g_clones(*modules: str):
+    """``duplicate_clones`` over one parsed module per source string."""
     if _hpo_g_dup is None:
-        return "duplicate_runs is missing from tests/structure.py"
-    return _hpo_g_dup(sample, window)
+        return "duplicate_clones is missing from tests/structure.py"
+    return _hpo_g_dup([(_hpo_st.PACKAGE_DIR / f"dup{i}.py", _hpo_ast.parse(src))
+                       for i, src in enumerate(modules)])
 
 
-# ---- #369 ---------------------------------------------------------------
-# DUP_BLOCK_LINES was 30 against a longest real duplicated run of 19, so
-# duplication_blocks reported 0 because nothing in the tree could reach the
-# window -- not because the tree was clean. Measured on this fork at
-# a2c4982: window 30 -> 0, 25 -> 0, 20 -> 0, 15 -> 4, 12 -> 6, 10 -> 13.
-# Both ends of the window are pinned here on a constructed duplication, so
-# reverting the constant fails instead of silently going quiet again.
-_hpo_g_s12 = _hpo_g_sample(12)
+def _hpo_g_copies(*modules: str):
+    clones = _hpo_g_clones(*modules)
+    return clones if isinstance(clones, str) else sum(len(g) - 1 for g in clones)
+
+
+# ---- #369, #1738 ---------------------------------------------------------
+# #369: the line window was 30 against a longest real duplicated run of 19,
+# so the row could not fire. #1738: the 10-line window that replaced it saw a
+# copy only inside its own module, and a re-wrap of a parameter list moved it.
+# The detector is now AST windows of DUP_WINDOW_STATEMENTS statements of at
+# least DUP_MIN_NODES nodes, package-wide; each end is pinned here on a
+# constructed duplication, so reverting either fails instead of going quiet.
+_hpo_g_left = _HPO_G_BODY.format(name="left", a="xs", b="k", t="total")
+_hpo_g_right = _HPO_G_BODY.format(name="right", a="values", b="scale", t="acc")
 R.check(
-    "a 12-line duplication is invisible to the old 30-line window (#369)",
-    _hpo_g_runs(_hpo_g_s12, 30) == [],
-    f"duplicate_runs(sample, 30) = {_hpo_g_runs(_hpo_g_s12, 30)}",
+    "a copy in ANOTHER module is one copy, whatever its locals are called (#1738 a)",
+    _hpo_g_copies(_hpo_g_left, _hpo_g_right) == 1,
+    f"duplicate_clones(left, right) = {_hpo_g_clones(_hpo_g_left, _hpo_g_right)}",
 )
 R.check(
-    "and invisible at 20 too -- which is why duplication_blocks could only read 0",
-    _hpo_g_runs(_hpo_g_s12, 20) == [],
-    f"duplicate_runs(sample, 20) = {_hpo_g_runs(_hpo_g_s12, 20)}",
+    "a third copy costs one more, not two more: copies, not pairs",
+    _hpo_g_copies(_hpo_g_left, _hpo_g_right,
+                  _HPO_G_BODY.format(name="third", a="a", b="b", t="c")) == 2,
+    "three copies of one window",
 )
-_hpo_g_caught = _hpo_g_runs(_hpo_g_s12, _hpo_st.DUP_BLOCK_LINES)
+_hpo_g_rewrapped = _hpo_g_right.replace("(values, scale)", "(\n    values,\n    scale,\n)") \
+    .replace("    acc = ", "    # a comment moves nothing\n    acc = ")
 R.check(
-    "the shipped window catches it: one row per side, 12 normalized lines each",
-    isinstance(_hpo_g_caught, list)
-    and len(_hpo_g_caught) == 2
-    and sorted(row[1] for row in _hpo_g_caught) == ["left", "right"]
-    and [row[4] for row in _hpo_g_caught] == [12, 12],
-    f"duplicate_runs(sample, DUP_BLOCK_LINES={_hpo_st.DUP_BLOCK_LINES}) = {_hpo_g_caught}",
-)
-R.check(
-    "DUP_BLOCK_LINES is 10 -- the tree measures 0 at 20 and 13 at 10 (#369)",
-    _hpo_st.DUP_BLOCK_LINES == 10,
-    f"DUP_BLOCK_LINES = {_hpo_st.DUP_BLOCK_LINES}; the longest duplicated run in "
-    "the integration is 19 normalized lines, so any window above it leaves the "
-    "metric incapable of firing at all",
+    "a re-wrap or a comment moves nothing: the window is the AST, not the lines",
+    _hpo_g_copies(_hpo_g_left, _hpo_g_rewrapped) == 1,
+    f"duplicate_clones(left, re-wrapped right) = {_hpo_g_clones(_hpo_g_left, _hpo_g_rewrapped)}",
 )
 R.check(
-    "the window is still a floor: a 9-line shared run is not reported at 10",
-    _hpo_g_runs(_hpo_g_sample(9), _hpo_st.DUP_BLOCK_LINES) == [],
-    f"duplicate_runs(9-line sample, {_hpo_st.DUP_BLOCK_LINES}) = "
-    f"{_hpo_g_runs(_hpo_g_sample(9), _hpo_st.DUP_BLOCK_LINES)}",
+    "the node floor holds: two short shared statements are not a copy",
+    _hpo_g_copies("def a(x):\n    y = x\n    return y\n",
+                  "def b(z):\n    w = z\n    return w\n") == 0,
+    "a 2-statement window under DUP_MIN_NODES nodes",
+)
+R.check(
+    "the shipped window is 2 statements of at least 30 nodes (#1738)",
+    (getattr(_hpo_st, "DUP_WINDOW_STATEMENTS", None), getattr(_hpo_st, "DUP_MIN_NODES", None))
+    == (2, 30),
+    f"DUP_WINDOW_STATEMENTS={getattr(_hpo_st, 'DUP_WINDOW_STATEMENTS', None)}"
+    f" DUP_MIN_NODES={getattr(_hpo_st, 'DUP_MIN_NODES', None)}",
 )
 
 # ---- #370 ---------------------------------------------------------------
@@ -32539,54 +32547,57 @@ R.check(
     f"docstring mentions sum_cc: {'sum_cc' in (_hpo_st.__doc__ or '')}",
 )
 
-# ---- #1395 ---------------------------------------------------------------
-# The dead-METHOD census's boundary, pinned where its false positives came
-# from. Forcing both exemptions off is what prices them: the census then reads
-# 162 rows over 46 distinct names at this branch's merge base, every one a Home
-# Assistant hook the platform looks up on the INSTANCE (native_value,
-# async_step_*, is_on) or a @property, which is an attribute surface rather than
-# a call. The census is
-# name-based and CANNOT see #1395's own shape -- a method still CALLED but no
-# longer REACHABLE from production (that is `SystemIdentification.identify`,
-# reached by `_finish` but never on a declared plant) -- so that half is pinned
-# behaviourally in the sysid block above, not here.
+# ---- #1395, D7-s3-02 ------------------------------------------------------
+# The dead-member census's boundary, pinned where its false positives came
+# from. Forcing the HA exemption off is what prices it: the census then calls
+# every Home Assistant hook the platform looks up on the INSTANCE
+# (native_value, async_step_*, is_on, hvac_mode) dead. A property is a member
+# like any other (D7-s3-02: skipping it hid eight of the nine dead members
+# round 9 found), and a load reaches a member by its receiver, so a bare name
+# that happens to match keeps nothing alive. The census still cannot see
+# #1395's own shape -- a member CALLED from live code on a path production
+# never takes (`SystemIdentification.identify`, reached by `_finish` but never
+# on a declared plant) -- so that half is pinned behaviourally in the sysid
+# block above, not here.
 #
-# Driven through the two pure predicates and an AST check of structure.py's own
-# source, NOT by calling measure() (#374's rule: measure() walks
-# custom_components/ and would widen this script's closure with modules these
-# checks do not test).
+# Driven through the predicate and ``dead_members`` on a package of our own,
+# NOT by calling measure() (#374's rule: measure() walks custom_components/
+# and would widen this script's closure with modules these checks do not test).
 _hpo_i_conv = getattr(_hpo_st, "is_ha_convention_method", None)
-_hpo_i_prop = getattr(_hpo_st, "is_property_getter", None)
 R.check(
-    "the dead-method census exempts the names HA looks up on an instance (#1395)",
+    "the dead-member census exempts the names HA looks up on an instance (#1395)",
     _hpo_i_conv is not None
     and _hpo_i_conv("native_value")
     and _hpo_i_conv("is_on")
+    and _hpo_i_conv("hvac_mode")
     and _hpo_i_conv("async_step_thermal_model")
     and not _hpo_i_conv("identify")
     and not _hpo_i_conv("conditions_met"),
-    "a census that does not exempt the HA hooks calls every one of them dead; "
-    "measured with both exemptions forced off it reads 162 rows over 46 "
-    "distinct names at this branch's merge base, every one an HA hook or a "
-    f"property (is_ha_convention_method = {_hpo_i_conv!r})",
+    "a census that does not exempt the HA hooks calls every one of them dead "
+    f"(is_ha_convention_method = {_hpo_i_conv!r})",
+)
+
+
+def _hpo_i_dead(source: str):
+    """Dead (class, member) pairs of a one-module package, or why not."""
+    if not hasattr(_hpo_st, "dead_members"):
+        return "dead_members is missing from tests/structure.py"
+    _pkg = _hpo_st.Package([(_hpo_st.PACKAGE_DIR / "probe.py", _hpo_ast.parse(source))])
+    return {(_cls, _name) for _rel, _cls, _name, _line in _hpo_st.dead_members(_pkg)[0]}
+
+
+_hpo_i_src = (
+    "class Probe:\n"
+    "    @property\n    def read(self):\n        return 1\n"
+    "    @property\n    def unread(self):\n        return 2\n"
+    "    def native_value(self):\n        return self.read\n"
+    "def use(healthy=None):\n    unread = healthy\n    return unread\n"
 )
 R.check(
-    "and a @property is out of the method census by construction (#1395)",
-    _hpo_i_prop is not None
-    and _hpo_i_prop(
-        _hpo_ast.parse("class C:\n  @property\n  def x(self):\n    return 1\n")
-        .body[0].body[0]
-    )
-    and _hpo_i_prop(
-        _hpo_ast.parse("class C:\n  @x.setter\n  def x(self, v):\n    pass\n")
-        .body[0].body[0]
-    )
-    and not _hpo_i_prop(
-        _hpo_ast.parse("class C:\n  def x(self):\n    return 1\n").body[0].body[0]
-    ),
-    "a property is the object's named attribute surface, read by the platform; "
-    "the census is about functions reached by a CALL, so it is out of scope "
-    f"rather than exempted (is_property_getter = {_hpo_i_prop!r})",
+    "a @property nothing reads is a dead member; one a live member reads is not (D7-s3-02)",
+    _hpo_i_dead(_hpo_i_src) == {("Probe", "unread")},
+    f"dead_members = {_hpo_i_dead(_hpo_i_src)!r}: a bare local named `unread` "
+    "is not a load of Probe.unread, and native_value is live by convention",
 )
 R.check(
     "and measure() carries the count and print_report prints an evidence line (#1395)",
@@ -41951,7 +41962,7 @@ def _t6_drive(coord, method, *args, **kwargs):
     return coord
 
 
-# -- the published properties: eleven one-line readers ---------------------
+# -- the published properties: one-line readers ----------------------------
 # Each fronts one attribute for an entity or a service, and the check is
 # that the property reads THAT attribute rather than a neighbour. Asserting
 # the startup value alone would pass against any property returning the same
@@ -41959,7 +41970,6 @@ def _t6_drive(coord, method, *args, **kwargs):
 # fronts has been moved to a value nothing else holds.
 _T6_PROPERTY_PAIRS = (
     ("mode", "_mode", "boost"),
-    ("current_action", "_current_action", {"mode": "sentinel"}),
     ("prices", "_prices", [{"total": 9.99}]),
     ("dhw_temperature", "_dhw_temperature", 53.75),
     ("optimization_running", "_optimization_running", True),
@@ -41973,7 +41983,7 @@ _t6_prop_moved = _t6_coord()
 for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
     setattr(_t6_prop_moved, _t6_attr, _t6_value)
 R.check(
-    "eight published properties and views each read the attribute they front, not a neighbour",
+    "seven published properties and views each read the attribute they front, not a neighbour",
     all(
         getattr(_t6_prop_moved, name) == value
         and getattr(_t6_prop_start, name) != value

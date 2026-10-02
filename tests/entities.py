@@ -26334,7 +26334,7 @@ def _mut_structure_run(delta: int) -> "_mut.ScriptRun":
     import io as _io
     budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
     metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
-    metrics["cut_learning"] += delta
+    metrics["seam_cut_total"] += delta
     with _tempfile.TemporaryDirectory() as td:
         table = Path(td) / "structure_budgets.json"
         table.write_text(json.dumps(budgets))
@@ -26375,7 +26375,7 @@ R.check(
     "a status is a kill for no driver unless the output names a failing check",
     not _mut.killed("tests/features.py", _MUT_S_GAIN, _MUT_S_BASE)
     and _mut.killed("tests/structure.py",
-                    _MUT_S_GAIN._replace(stdout="FAIL cut_learning\n"),
+                    _MUT_S_GAIN._replace(stdout="FAIL seam_cut_total\n"),
                     _MUT_S_BASE)
     and not hasattr(_mut, "NON_VIOLATION_EXITS"),
     "rc 2 with no failing check reads the same from every driver; a FAIL "
@@ -26417,14 +26417,14 @@ def _cap_set(table: dict, path: tuple, value) -> dict:
 
 
 def _cap_structure_run(value) -> tuple:
-    """The REAL structure ratchet over a scratch table with cut_views set."""
+    """The REAL structure ratchet over a scratch table with seam_cut_total set."""
     import contextlib as _cl
     import io as _io
     budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
     metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
     with _tempfile.TemporaryDirectory() as td:
         table = Path(td) / "structure_budgets.json"
-        table.write_text(json.dumps(_cap_set(budgets, ("cut_views",), value)))
+        table.write_text(json.dumps(_cap_set(budgets, ("seam_cut_total",), value)))
         saved, _s5_structure.BUDGET_FILE = _s5_structure.BUDGET_FILE, table
         buf = _io.StringIO()
         try:
@@ -26440,10 +26440,10 @@ def _cap_structure_run(value) -> tuple:
 
 _CAP_S = {name: _cap_structure_run(v) for name, v in _CAP_BAD_COUNT.items()}
 _CAP_S_REAL = _cap_structure_run(
-    json.loads(_s5_structure.BUDGET_FILE.read_text())["cut_views"])
+    json.loads(_s5_structure.BUDGET_FILE.read_text())["seam_cut_total"])
 R.check(
     "the structure ratchet refuses a non-finite or malformed cap by name",
-    all(rc == 1 and "FAIL cut_views" in out for rc, out in _CAP_S.values())
+    all(rc == 1 and "FAIL seam_cut_total" in out for rc, out in _CAP_S.values())
     and _CAP_S_REAL[0] == 0,
     "; ".join(f"{n}: rc={rc}" for n, (rc, _o) in _CAP_S.items())
     + f"; real table rc={_CAP_S_REAL[0]} (the null control)",

@@ -321,20 +321,6 @@ class DefrostDerate:
             + f11 * tu * hu
         )
 
-    def samples(self, outdoor_temp: float, humidity: float | None = None) -> int:
-        """How many observations stand behind the derate actually in use."""
-        return self._decide(*self._bucket(outdoor_temp, humidity))[2]
-
-    def measured(self, outdoor_temp: float, humidity: float | None = None) -> bool:
-        """Whether this bucket's derate rests on a counted duty.
-
-        Answers about the value :meth:`factor` returns, not merely about
-        whether a duty sample exists: a bucket whose carried-over inference
-        is still the more careful of the two is reported as inferred, because
-        that is what the plan is using.
-        """
-        return self._decide(*self._bucket(outdoor_temp, humidity))[0] == "measured"
-
     # -- learning -----------------------------------------------------------
 
     def observe(

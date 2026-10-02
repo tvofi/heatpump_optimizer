@@ -272,10 +272,6 @@ check(
         0.0,
     ),
 )
-check(
-    "series start is one resolution before the first stamp",
-    conv.start == datetime(2026, 8, 20, 23, 0, tzinfo=UTC),
-)
 
 
 print("\n== resampling onto optimizer steps ==")
@@ -413,19 +409,16 @@ check("diagnostics report both series", d["forecast_points"] == 5 and d["observe
 
 print("\n== small getters, and current_irradiance's forecast fallback ==")
 
-# The three getters are asserted against three DISTINCT, non-default objects
+# The two getters are asserted against two DISTINCT, non-default objects
 # planted in the client's private state. Comparing a getter to the private
 # attribute it reads pins nothing: __init__ assigns _forecast and _observed the
-# SAME module-level `_EMPTY` singleton and _last_success `None`, so
-# `client.forecast is client._forecast` is `_EMPTY is _EMPTY` and
-# `client.last_success is client._last_success` is `None is None` -- both true
-# whatever the property body returns. That is tests/README.md's "a test that
+# SAME module-level `_EMPTY` singleton, so `client.forecast is client._forecast`
+# is `_EMPTY is _EMPTY` -- true whatever the property body returns. That is tests/README.md's "a test that
 # cannot fail" class. Naming the OTHER series in each check is what makes a
 # getter that returns the wrong series, or the untouched default, fail.
 ident_client = om.OpenMeteoSolar(hass=None, latitude=3.0, longitude=4.0)
 ident_forecast = om._parse_block(block(0, [0.0, 0.0, 0.0, 400.0, 800.0]), "shortwave_radiation")
 ident_observed = om._parse_block(block(0, [11.0, 22.0, 33.0, 44.0, 55.0]), "shortwave_radiation")
-ident_stamp = datetime(2026, 8, 21, 5, 0, tzinfo=UTC)
 # A fixture precondition, deliberately an assert and not a check(): it guards
 # the three checks below from silently degenerating back into tautologies if
 # _parse_block ever starts returning the _EMPTY singleton here. It is not a
@@ -439,7 +432,6 @@ assert (
 ), "getter fixture degenerated: the planted series are not distinct"
 ident_client._forecast = ident_forecast
 ident_client._observed = ident_observed
-ident_client._last_success = ident_stamp
 check(
     "forecast property returns the forecast series, not the observed one",
     ident_client.forecast is ident_forecast and ident_client.forecast is not ident_observed,
@@ -449,11 +441,6 @@ check(
     "observed property returns the observed series, not the forecast one",
     ident_client.observed is ident_observed and ident_client.observed is not ident_forecast,
     f"got {ident_client.observed.values}",
-)
-check(
-    "last_success property returns the recorded timestamp, not None",
-    ident_client.last_success is ident_stamp,
-    f"got {ident_client.last_success!r}",
 )
 
 getter_client = om.OpenMeteoSolar(hass=None, latitude=1.0, longitude=2.0)
