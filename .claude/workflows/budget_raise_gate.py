@@ -851,6 +851,36 @@ def self_test() -> int:
           rcm([agent(), rv(own, "CHANGES_REQUESTED")])[0], 1)
     check("mandate: a mandated approval from another account is not the owner's",
           rcm([{**agent(), "user": app}])[0], 1)
+    # Round 2 (fix review of #1843). The kill switch is matched loosely, since
+    # over-revoking fails safe and a near miss failed open: tvofi's comment
+    # naming the id with any form of "revoke" voids it, on any line.
+    for form in (f"MANDATE REVOKED {MID}.", f"MANDATE REVOKED #{MID}", f"MANDATE REVOKED: {MID}",
+                 f"Mandate revoked {MID}", f"Ending it now.\nMANDATE REVOKED {MID}",
+                 f"I revoke mandate https://github.com/{DEFAULT_REPO}/issues/201#issuecomment-{MID}"):
+        check(f"mandate: the revocation {form!r} revokes",
+              rcm([agent()], thread=[{**revoke(), "body": form}])[0], 1)
+    check("mandate: a revocation naming a longer id that contains this one revokes nothing (null control)",
+          rcm([agent()], thread=[{**revoke(), "body": f"MANDATE REVOKED {MID}9"}])[0], 0)
+    check("mandate: tvofi's comment naming the id with no revocation word revokes nothing (null control)",
+          rcm([agent()], thread=[{**revoke(), "body": f"Agents are working under mandate {MID}."}])[0], 0)
+    # A mandate comment edited at any time grants nothing: anyone with write
+    # access can edit tvofi's comment, and its user field stays tvofi.
+    check("mandate: a mandate edited before the review fails",
+          rcm([agent()], mandate(created="2026-09-01T00:00:00Z", updated="2026-10-02T06:30:00Z"))[0], 1)
+    check("mandate: ... and the refusal says it was edited",
+          any("edited" in ln for ln in rcm([agent()], mandate(updated="2026-10-02T05:31:00Z"))[1]), True)
+    check("mandate: a body that is not the grammar is refused as such, not as an unread mandate",
+          any("not the mandate grammar" in ln for ln in rcm([agent()], mandate("MANDATE: agents may approve"))[1]),
+          True)
+    # A mandate lets an agent approve; it does not let one overrule tvofi.
+    check("mandate: a mandated approval does not override tvofi's own earlier CHANGES_REQUESTED",
+          rcm([rv(own, "CHANGES_REQUESTED"), agent()])[0], 1)
+    check("mandate: ... and the refusal says so",
+          any("CHANGES_REQUESTED" in ln for ln in rcm([rv(own, "CHANGES_REQUESTED"), agent()])[1]), True)
+    check("mandate: tvofi's own later approval clears his CHANGES_REQUESTED, as before (null control)",
+          rcm([rv(own, "CHANGES_REQUESTED"), agent(), rv(own, "APPROVED")])[0], 0)
+    check("mandate: tvofi's own earlier DISMISSED blocks nothing",
+          rcm([rv(own, "DISMISSED"), agent()])[0], 0)
 
     # Every tracked budget file, as it stands: the schema must know it, a copy
     # must not raise against itself, every cap moved the strict way must be
