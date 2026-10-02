@@ -1,9 +1,8 @@
 # F10.6 resume note (comparison-bound mutation operator)
 
-- branch@commit: handoff/r9-f10-gate-infra-6@cd04771a17bdc6df6c91e9d9a852f211fec63de0
-- merge base: 8fa06663 (origin/main at 2026-10-02T17:08Z)
-- last completed step: tvofi ruled "enable now" (2026-10-02); CMP_BOUND added to RATCHETED at cd04771a, check inverted, steps 2-8 re-run, body re-taken, prepr clean; handed off again.
-- next step: orchestrator opens the PR from cd04771a; fix review (opus, another session) from a detached worktree at that head.
-- state: CMP_BOUND enabled in the ratchet (5466 sites, 4855 unpinned; ratchet base equal, no added site). Multi-line comparisons (C7) stay deferred.
-- open: main red at 8fa06663 (#1854 x #1848, always() check); hotfix #1859. Do not merge main until the orchestrator says it is green.
-- local runs: entities.py, harness_headers.py, structure.py via ~/hpo-seats/R9-F11.4-venv; everything else with hpo-seats/bin/python3.
+- branch@commit: handoff/r9-f10-gate-infra-6@307ecf6cb77f931460a6312c90fcf42d781e724f
+- merge base: aa7a8119 (origin/main, #1859 hotfix), merged via the orchestrator's 9a639794
+- last completed step: round 2 answering the #1861 review (blocked mutation-vacuous): `<` case and multi-line case in the fixture (R8, R5 now killed), two equivalent sites triaged (away.py _holiday_span, optimizer.py _dhw_planner_draws) via equiv_probe.py, refusal text names comparison bounds, drain-nights figure corrected, scan scope stated. entities 2075/2075, prepr clean.
+- next step: orchestrator re-adds the delivery row and requests the same reviewer for the round-2 delta (fix-review.md step 12).
+- state: CMP_BOUND enabled (5466 sites, 4853 unpinned vs 4855 at base). R6/R9 survive and are equivalent per the review. Multi-line comparisons (C7) deferred, now held by a check.
+- local runs: entities.py, harness_headers.py, structure.py, equiv_probe.py via ~/hpo-seats/R9-F11.4-venv; everything else with hpo-seats/bin/python3.
