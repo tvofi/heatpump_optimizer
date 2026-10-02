@@ -28677,6 +28677,138 @@ R.check(
 )
 
 
+R.section("#1743 — the DHW planner is its own class, built per solve")
+
+# The nineteen-method DHW planner core moved out of HeatPumpOptimizer into
+# DhwPlanner (dhw_planner.py). The optimizer builds one planner per solve from
+# explicit inputs and passes it down; the planner writes no attribute after
+# construction, so everything it decides is in what it returns -- the stash the
+# safety-release loop reads (`_dhw_requirement`) is the optimizer's, assigned
+# from the build's returned requirement.
+import ast as _ep_ast  # noqa: E402
+import importlib.util as _ep_util  # noqa: E402
+from pathlib import Path as _EpPath  # noqa: E402
+
+_EP_CORE = (
+    "_dhw_planning_prices", "_baseline_dhw_economics", "_effective_dhw_windows",
+    "_dhw_legionella_due", "_dhw_legionella_ceilings", "_dhw_legionella_plan",
+    "_dhw_coil_wood_forecast", "_dhw_planner_draws", "_dhw_window_floors",
+    "_build_dhw_requirements", "_dhw_cop_profile", "_plan_dhw_min_cost",
+    "_apply_dhw_pins", "_dhw_plan_temps", "_repair_dhw_floor",
+    "_clamp_dhw_to_capacity", "_apply_dhw_min_run", "_dhw_raise_fits",
+    "_plan_dhw_cheapest_first",
+)
+_ep_found = _ep_util.find_spec("heatpump_optimizer.dhw_planner") is not None
+_EpPlanner = (
+    __import__("heatpump_optimizer.dhw_planner", fromlist=["DhwPlanner"]).DhwPlanner
+    if _ep_found else None
+)
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _EpOpt  # noqa: E402
+
+R.check(
+    "the DHW planner core lives on DhwPlanner, not on HeatPumpOptimizer (#1743)",
+    _EpPlanner is not None
+    and all(m in vars(_EpPlanner) for m in _EP_CORE)
+    and not any(m in vars(_EpOpt) for m in _EP_CORE),
+    f"dhw_planner importable: {_ep_found}; still on the optimizer: "
+    f"{[m for m in _EP_CORE if m in vars(_EpOpt)]}",
+)
+
+
+def _ep_writes(src: str, cls: str) -> list[tuple[str, int]]:
+    """(method, line) of every attribute write on ``self`` outside __init__."""
+    out = []
+    for node in _ep_ast.walk(_ep_ast.parse(src)):
+        if not (isinstance(node, _ep_ast.ClassDef) and node.name == cls):
+            continue
+        for fn in node.body:
+            if not isinstance(fn, (_ep_ast.FunctionDef, _ep_ast.AsyncFunctionDef)):
+                continue
+            if fn.name == "__init__":
+                continue
+            for n in _ep_ast.walk(fn):
+                if (
+                    isinstance(n, _ep_ast.Attribute)
+                    and isinstance(n.ctx, (_ep_ast.Store, _ep_ast.Del))
+                    and isinstance(n.value, _ep_ast.Name)
+                    and n.value.id == "self"
+                ) or (
+                    isinstance(n, _ep_ast.Call)
+                    and isinstance(n.func, _ep_ast.Name)
+                    and n.func.id in ("setattr", "delattr")
+                ):
+                    out.append((fn.name, n.lineno))
+    return out
+
+
+_ep_path = _EpPath("custom_components/heatpump_optimizer/dhw_planner.py")
+_ep_src = _ep_path.read_text(encoding="utf-8") if _ep_path.exists() else ""
+# The rule's own control: the pre-move shape -- a stash written by a method --
+# must be found, so a green check below is not an empty walk.
+_ep_probe = _ep_writes(
+    "class P:\n"
+    "    def __init__(self):\n        self.a = 1\n"
+    "    def b(self):\n        self.c = 2\n        setattr(self, 'd', 3)\n"
+    "    def e(self):\n        return self.a\n",
+    "P",
+)
+R.check(
+    "and no DhwPlanner method but __init__ writes an attribute",
+    bool(_ep_src)
+    and "class DhwPlanner" in _ep_src
+    and not _ep_writes(_ep_src, "DhwPlanner")
+    and _ep_probe == [("b", 5), ("b", 6)],
+    f"writes: {_ep_writes(_ep_src, 'DhwPlanner') if _ep_src else 'no module'}; "
+    f"probe found {_ep_probe} (expected the two writes in b)",
+)
+
+if _EpPlanner is not None:
+    from golden import (  # noqa: E402
+        make as _ep_mk,
+        SCENARIOS as _EP_SC,
+        START as _EP_START,
+        external_heat_for as _ep_ext,
+    )
+
+    _ep_inits: list = []
+    _ep_builds: list = []
+    _ep_real_init = _EpPlanner.__init__
+    _ep_real_build = _EpPlanner._build_dhw_requirements
+
+    def _ep_init_spy(self, *a, **k):
+        _ep_inits.append(id(self))
+        _ep_real_init(self, *a, **k)
+
+    def _ep_build_spy(self, *a, **k):
+        _ep_builds.append(id(self))
+        return _ep_real_build(self, *a, **k)
+
+    _ep_b = _ep_mk(**_EP_SC["wood_coil"])
+    _EpPlanner.__init__ = _ep_init_spy
+    _EpPlanner._build_dhw_requirements = _ep_build_spy
+    try:
+        _ep_b["optimizer"].optimize(
+            _ep_b["state"], np.asarray(_ep_b["prices"], dtype=float) - 2.0,
+            _ep_b["outdoor"], _ep_b["wind"], _ep_b["rain"], _ep_b["solar"],
+            _EP_START, None, None,
+            external_heat_kw=_ep_ext(len(_ep_b["prices"])),
+        )
+    finally:
+        _EpPlanner.__init__ = _ep_real_init
+        _EpPlanner._build_dhw_requirements = _ep_real_build
+else:
+    _ep_inits, _ep_builds = [], []
+R.check(
+    "a solve builds one planner and every DHW build it makes runs on it, the "
+    "co-optimisation replan's among them",
+    len(_ep_inits) == 1 and len(_ep_builds) >= 2
+    and set(_ep_builds) == set(_ep_inits),
+    f"planners built: {len(_ep_inits)}; builds: {len(_ep_builds)}, on "
+    f"{len(set(_ep_builds))} planner(s) -- fewer than two builds means the "
+    "replan was not reached, so the check did not see the hand-down",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
