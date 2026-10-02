@@ -75,7 +75,7 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=67       (66 until R9 F2.5's batchmath.py;
+    RESULT arch_modules_on_disk=68       (67 until R9-EG-B3a's payload.py; 66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
                                          architecture.md said 45; 56 until
@@ -100,7 +100,7 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=67            (66 until R9 F2.5's batchmath.py;
+    RESULT arch_map_listed=68            (67 until R9-EG-B3a's payload.py; 66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
                                          architecture.md's module map)
