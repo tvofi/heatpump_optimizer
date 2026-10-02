@@ -47,6 +47,11 @@ CHANNEL_DHW = "dhw"
 Slot = tuple[datetime, datetime]
 
 
+def _pin_is_free(pin: float) -> bool:
+    """True when a pin leaves the step to the optimizer (NaN)."""
+    return pin != pin
+
+
 class ManualPlanError(ValueError):
     """A manual plan could not be parsed or is internally inconsistent.
 

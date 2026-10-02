@@ -79,8 +79,18 @@ from heatpump_optimizer.tariff import (
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
+from heatpump_optimizer.dhw_planner import DhwPlanner
 
 R = Results("Feature modules")
+
+
+def _dhw_planner(opt):
+    """The DhwPlanner ``opt.optimize`` would build from its current inputs.
+
+    The DHW planner core moved off HeatPumpOptimizer (#1743); a check that
+    drives one of its stages directly drives it on this planner.
+    """
+    return DhwPlanner(opt.model, opt.config, opt._pv_surplus, opt._price_known)
 
 
 # ===========================================================================
@@ -3905,12 +3915,12 @@ R.check(
     abs(_pv_opt._energy_cost_fn(_pw_prices, 1.0)(_pv_draw) - 16.0 * 1.5) < 1e-9,
 )
 _pv_opt._pv_surplus = np.array([0.0, 4.0, 0.0])
-_ranked = _pv_opt._dhw_planning_prices(np.array([1.5, 1.5, 1.5]), 4.0)
+_ranked = _dhw_planner(_pv_opt)._dhw_planning_prices(np.array([1.5, 1.5, 1.5]), 4.0)
 R.check(
     "hot-water planning ranks a fully covered step at the export price",
     abs(_ranked[1] - 0.3) < 1e-9 and abs(_ranked[0] - 1.5) < 1e-9,
 )
-_ranked_shared = _pv_opt._dhw_planning_prices(
+_ranked_shared = _dhw_planner(_pv_opt)._dhw_planning_prices(
     np.array([1.5, 1.5, 1.5]), 4.0, space_demand=np.array([0.0, 2.0, 0.0])
 )
 R.check(
@@ -4823,7 +4833,7 @@ def _weekly_requirement_hours(spec, start):
             + __import__("datetime").timedelta(hours=i * 0.25)).minute) / 60.0
         for i in range(_n)
     ])
-    _plan = _o._build_dhw_requirements(
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
         initial_state=ThermalState(
             room_temperature=21.0, slab_temperature=22.0,
             outdoor_temperature=-5.0, dhw_temperature=48.0,
@@ -5150,7 +5160,7 @@ def _pd_requirement_hours(spec, extra, start):
             + __import__("datetime").timedelta(hours=i * 0.25)).minute) / 60.0
         for i in range(_n)
     ])
-    _plan = _o._build_dhw_requirements(
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
         initial_state=ThermalState(
             room_temperature=21.0, slab_temperature=22.0,
             outdoor_temperature=-5.0, dhw_temperature=48.0,
@@ -12376,7 +12386,7 @@ from heatpump_optimizer.thermal_model import ThermalModel as _WfModel  # noqa: E
 import heatpump_optimizer.thermal_model as _wf_tm  # noqa: E402
 from golden import make as _wf_mk, START as _WF_START, SCENARIOS as _WF_SC  # noqa: E402
 
-_wf_real = _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
+_wf_real = DhwPlanner._dhw_coil_wood_forecast
 _wf_real_sim = _WfModel.simulate_trajectory_with_dhw
 _wf_seen: list = []
 _wf_reads: list = []
@@ -12404,8 +12414,8 @@ def _wf_sim_spy(self, *a, **k):
 # physics calls it -- not re-read through coil_wood_read, the channel the check
 # above verifies, so a read taken at the wrong instant cannot agree with itself.
 _wf_real_red = _wf_tm.dhw_coil_draw_reduction
-_wf_real_pd = _wf_mod.HeatPumpOptimizer._dhw_planner_draws
-_wf_real_build = _wf_mod.HeatPumpOptimizer._build_dhw_requirements
+_wf_real_pd = DhwPlanner._dhw_planner_draws
+_wf_real_build = DhwPlanner._build_dhw_requirements
 _wf_applied: list = []
 _wf_credited: list = []
 _wf_builds: list = []
@@ -12425,29 +12435,29 @@ def _wf_pd_spy(self, raw, wood):
 
 def _wf_build_spy(self, *a, **k):
     out = _wf_real_build(self, *a, **k)
-    _wf_builds.append((np.asarray(out.schedule, dtype=float), _wf_credited[-1]))
+    _wf_builds.append((np.asarray(out[0].schedule, dtype=float), _wf_credited[-1]))
     return out
 
 
 _wf_b = _wf_mk(**_WF_SC["wood_coil"])
 _wf_ext = np.zeros(len(_wf_b["prices"]))
 _wf_ext[:96] = 8.0 * (1.0 - np.arange(min(96, _wf_ext.size)) / 96.0)
-_wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_spy
+DhwPlanner._dhw_coil_wood_forecast = _wf_spy
 _WfModel.simulate_trajectory_with_dhw = _wf_sim_spy
 _wf_tm.dhw_coil_draw_reduction = _wf_red_spy
-_wf_mod.HeatPumpOptimizer._dhw_planner_draws = _wf_pd_spy
-_wf_mod.HeatPumpOptimizer._build_dhw_requirements = _wf_build_spy
+DhwPlanner._dhw_planner_draws = _wf_pd_spy
+DhwPlanner._build_dhw_requirements = _wf_build_spy
 try:
     _wf_res = _wf_b["optimizer"].optimize(
         _wf_b["state"], _wf_b["prices"], _wf_b["outdoor"], _wf_b["wind"],
         _wf_b["rain"], _wf_b["solar"], _WF_START, external_heat_kw=_wf_ext,
     )
 finally:
-    _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_real
+    DhwPlanner._dhw_coil_wood_forecast = _wf_real
     _WfModel.simulate_trajectory_with_dhw = _wf_real_sim
     _wf_tm.dhw_coil_draw_reduction = _wf_real_red
-    _wf_mod.HeatPumpOptimizer._dhw_planner_draws = _wf_real_pd
-    _wf_mod.HeatPumpOptimizer._build_dhw_requirements = _wf_real_build
+    DhwPlanner._dhw_planner_draws = _wf_real_pd
+    DhwPlanner._build_dhw_requirements = _wf_real_build
 _wf_priced = [np.asarray(f, dtype=float) for s, f in _wf_seen if s and f is not None]
 _wf_dhw = np.asarray(_wf_res.dhw_temp_trajectory, dtype=float)
 _wf_pubrun = [
@@ -12517,7 +12527,7 @@ def _coil_plan(*, enabled, wood, cop_scale=None):
 
 # The planner's floor is the demand windows' (outside them the requirement is
 # the idle floor), so the in-window steps are read off the plan it built.
-from heatpump_optimizer.optimizer import HeatPumpOptimizer as _CoilOpt
+_CoilOpt = DhwPlanner
 _coil_real_build = _CoilOpt._build_dhw_requirements
 _coil_builds: list = []
 _CoilOpt._build_dhw_requirements = (
@@ -12528,7 +12538,7 @@ try:
     _coil_on_res, _coil_on_p = _coil_plan(enabled=True, wood=85.0)
 finally:
     _CoilOpt._build_dhw_requirements = _coil_real_build
-_coil_on_window = np.asarray(_coil_builds[-1].in_window, dtype=bool)
+_coil_on_window = np.asarray(_coil_builds[-1][0].in_window, dtype=bool)
 _coil_on_in_window = np.asarray(_coil_on_res.dhw_temp_trajectory)[1:][_coil_on_window]
 _coil_off_res, _ = _coil_plan(enabled=False, wood=85.0)
 # Coil-off is HEAD: the planner never saw the coil. Repeating that
@@ -22622,7 +22632,7 @@ R.check(
 )
 # Mutation value: with the repair neutered, the same solve breaches — the
 # check above genuinely depends on the repair, not on planner luck.
-_FlOpt = type(_fl_opt)
+_FlOpt = DhwPlanner
 _fl_orig = _FlOpt._repair_dhw_floor
 try:
     _FlOpt._repair_dhw_floor = lambda self, *, plan, **kw: plan
@@ -27377,7 +27387,7 @@ from golden import (
 )
 import heatpump_optimizer.optimizer as _rb_mod
 
-_rb_real_build = _rb_mod.HeatPumpOptimizer._build_dhw_requirements
+_rb_real_build = DhwPlanner._build_dhw_requirements
 _rb_blocked_args: list = []
 
 
@@ -27387,7 +27397,7 @@ def _rb_build_spy(self, *a, **k):
 
 
 _rb_b = _rb_mk(**_RB_SC["wood_coil"])
-_rb_mod.HeatPumpOptimizer._build_dhw_requirements = _rb_build_spy
+DhwPlanner._build_dhw_requirements = _rb_build_spy
 try:
     _rb_res = _rb_b["optimizer"].optimize(
         _rb_b["state"], np.asarray(_rb_b["prices"], dtype=float) - 2.0,
@@ -27396,7 +27406,7 @@ try:
         external_heat_kw=_rb_ext(len(_rb_b["prices"])), dhw_blocked=True,
     )
 finally:
-    _rb_mod.HeatPumpOptimizer._build_dhw_requirements = _rb_real_build
+    DhwPlanner._build_dhw_requirements = _rb_real_build
 _rb_breach = _rb_res.predictive_info.get("dhw_floor_breach_c") or 0.0
 R.check(
     "a DHW-blocked plan ships no hot water when mostly negative prices tempt the co-optimisation replan (#1747)",
@@ -28222,10 +28232,10 @@ _de_sp = np.array([1.0, 1.0, 1.0])
 _de_dh = np.array([1.0, 1.0, 1.0])
 _de_set = float(_de_opt.model.params.dhw_setpoint)
 _de_state_wood = ThermalState(wood_tank_temperature=70.0)
-_de_bd, _de_bc, _de_pc, _de_dc = _de_opt._baseline_dhw_economics(
+_de_bd, _de_bc, _de_pc, _de_dc = _dhw_planner(_de_opt)._baseline_dhw_economics(
     _de_state_wood, _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
 )
-_de_bd_none, _, _, _ = _de_opt._baseline_dhw_economics(
+_de_bd_none, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
     ThermalState(wood_tank_temperature=None),
     _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
 )
@@ -28250,7 +28260,7 @@ R.check(
     f"be ~6.85 and would break the piecewise-in-PV contract",
 )
 
-_de_bd_idle, _, _, _ = _de_opt._baseline_dhw_economics(
+_de_bd_idle, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
     _de_state_wood, _de_out, 3, 10.0, _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
@@ -28261,7 +28271,7 @@ R.check(
     f"was charged for cooling",
 )
 
-_de_short, _, _, _ = _de_opt._baseline_dhw_economics(
+_de_short, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
     _de_state_wood, _de_out, 2, _de_set, _de_price, _de_bp[:2], _de_sp[:2], _de_dh[:2],
 )
 R.check(
@@ -28279,12 +28289,12 @@ _de_coil_params = ThermalParameters.from_config({
     "dhw_wood_coil_enabled": True,
 })
 _de_coil_opt = _MbOpt(ThermalModel(_de_coil_params), _MbCfg(horizon_hours=1))
-_de_coil_70, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+_de_coil_70, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
     ThermalState(wood_tank_temperature=70.0),
     _de_out, 3, float(_de_coil_params.dhw_setpoint),
     _de_price, _de_bp, _de_sp, _de_dh,
 )
-_de_coil_none, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+_de_coil_none, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
     ThermalState(wood_tank_temperature=None),
     _de_out, 3, float(_de_coil_params.dhw_setpoint),
     _de_price, _de_bp, _de_sp, _de_dh,
@@ -28300,7 +28310,7 @@ R.check(
     f"the full electric draw invents savings",
 )
 
-_de_coil_arg, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+_de_coil_arg, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
     ThermalState(wood_tank_temperature=70.0),
     _de_out, 3, 40.0, _de_price, _de_bp, _de_sp, _de_dh,
 )
@@ -28492,7 +28502,7 @@ from heatpump_optimizer.dhw_schedule import (  # noqa: E402
 _wf_params = ThermalParameters.from_config(_mb_profiles.house())
 _wf_params.dhw_enabled = True
 _wf_opt = _MbOpt(ThermalModel(_wf_params), _MbCfg(horizon_hours=1))
-_wf_windows, _ = _wf_opt._effective_dhw_windows()
+_wf_windows, _ = _dhw_planner(_wf_opt)._effective_dhw_windows()
 _wf_hours = np.array([0.0, 1.0, 2.0, 6.0, 7.0, 17.0, 22.0])
 _wf_n = int(_wf_hours.size)
 _wf_dt = 1.0
@@ -28500,7 +28510,7 @@ _wf_idle = min(_wf_params.dhw_idle_min_temp, _wf_params.dhw_min_temp)
 
 
 def _wf_run(weekdays=None, wood=None):
-    return _wf_opt._dhw_window_floors(
+    return _dhw_planner(_wf_opt)._dhw_window_floors(
         _wf_params, _wf_windows, _wf_hours, weekdays, _wf_dt, _wf_n, wood,
     )
 
@@ -28563,7 +28573,7 @@ R.check(
 
 _wf_wood = np.full(_wf_n, 70.0)
 _wf_c2, _, _, _wf_raw2, _wf_dr2, _, _ = _wf_run(wood=_wf_wood)
-_wf_coil = _wf_opt._dhw_planner_draws(_wf_raw2, _wf_wood)
+_wf_coil = _dhw_planner(_wf_opt)._dhw_planner_draws(_wf_raw2, _wf_wood)
 R.check(
     "wood_temps goes through the production planner-draw helper",
     np.array_equal(_wf_dr2, _wf_coil) and not np.array_equal(_wf_dr2, _wf_raw2),
@@ -28580,7 +28590,7 @@ R.section("#224 DhwPlan — 14-key return, frozen at the end")
 
 from dataclasses import FrozenInstanceError, fields, is_dataclass  # noqa: E402
 from heatpump_optimizer.dhw_schedule import format_windows as _dp_fmt  # noqa: E402
-from heatpump_optimizer.optimizer import DhwPlan  # noqa: E402
+from heatpump_optimizer.dhw_planner import DhwPlan  # noqa: E402
 
 _DHW_PLAN_KEYS = (
     "floor_temps",
@@ -28616,7 +28626,7 @@ _dp_state = ThermalState(
     dhw_hours_since_legionella=20.0,
     buffer_tank_temperature=40.0,
 )
-_dp_plan = _wf_opt._build_dhw_requirements(
+_dp_plan, _ = _dhw_planner(_wf_opt)._build_dhw_requirements(
     initial_state=_dp_state,
     prices=np.full(_wf_n, 1.0),
     outdoor_temps=np.full(_wf_n, -5.0),
@@ -28625,7 +28635,7 @@ _dp_plan = _wf_opt._build_dhw_requirements(
     dt=_wf_dt,
     p_max=4.0,
 )
-_dp_win, _dp_learned = _wf_opt._effective_dhw_windows()
+_dp_win, _dp_learned = _dhw_planner(_wf_opt)._effective_dhw_windows()
 (
     _,
     _,
@@ -28634,7 +28644,7 @@ _dp_win, _dp_learned = _wf_opt._effective_dhw_windows()
     _,
     _dp_fl,
     _dp_rdy,
-) = _wf_opt._dhw_window_floors(
+) = _dhw_planner(_wf_opt)._dhw_window_floors(
     _wf_params, _dp_win, _wf_hours, None, _wf_dt, _wf_n, None,
 )
 
@@ -28674,6 +28684,138 @@ R.check(
     _dp_froze,
     "assignment succeeded — this is a threaded state object, not "
     "frozen-at-the-end",
+)
+
+
+R.section("#1743 — the DHW planner is its own class, built per solve")
+
+# The nineteen-method DHW planner core moved out of HeatPumpOptimizer into
+# DhwPlanner (dhw_planner.py). The optimizer builds one planner per solve from
+# explicit inputs and passes it down; the planner writes no attribute after
+# construction, so everything it decides is in what it returns -- the stash the
+# safety-release loop reads (`_dhw_requirement`) is the optimizer's, assigned
+# from the build's returned requirement.
+import ast as _ep_ast  # noqa: E402
+import importlib.util as _ep_util  # noqa: E402
+from pathlib import Path as _EpPath  # noqa: E402
+
+_EP_CORE = (
+    "_dhw_planning_prices", "_baseline_dhw_economics", "_effective_dhw_windows",
+    "_dhw_legionella_due", "_dhw_legionella_ceilings", "_dhw_legionella_plan",
+    "_dhw_coil_wood_forecast", "_dhw_planner_draws", "_dhw_window_floors",
+    "_build_dhw_requirements", "_dhw_cop_profile", "_plan_dhw_min_cost",
+    "_apply_dhw_pins", "_dhw_plan_temps", "_repair_dhw_floor",
+    "_clamp_dhw_to_capacity", "_apply_dhw_min_run", "_dhw_raise_fits",
+    "_plan_dhw_cheapest_first",
+)
+_ep_found = _ep_util.find_spec("heatpump_optimizer.dhw_planner") is not None
+_EpPlanner = (
+    __import__("heatpump_optimizer.dhw_planner", fromlist=["DhwPlanner"]).DhwPlanner
+    if _ep_found else None
+)
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _EpOpt  # noqa: E402
+
+R.check(
+    "the DHW planner core lives on DhwPlanner, not on HeatPumpOptimizer (#1743)",
+    _EpPlanner is not None
+    and all(m in vars(_EpPlanner) for m in _EP_CORE)
+    and not any(m in vars(_EpOpt) for m in _EP_CORE),
+    f"dhw_planner importable: {_ep_found}; still on the optimizer: "
+    f"{[m for m in _EP_CORE if m in vars(_EpOpt)]}",
+)
+
+
+def _ep_writes(src: str, cls: str) -> list[tuple[str, int]]:
+    """(method, line) of every attribute write on ``self`` outside __init__."""
+    out = []
+    for node in _ep_ast.walk(_ep_ast.parse(src)):
+        if not (isinstance(node, _ep_ast.ClassDef) and node.name == cls):
+            continue
+        for fn in node.body:
+            if not isinstance(fn, (_ep_ast.FunctionDef, _ep_ast.AsyncFunctionDef)):
+                continue
+            if fn.name == "__init__":
+                continue
+            for n in _ep_ast.walk(fn):
+                if (
+                    isinstance(n, _ep_ast.Attribute)
+                    and isinstance(n.ctx, (_ep_ast.Store, _ep_ast.Del))
+                    and isinstance(n.value, _ep_ast.Name)
+                    and n.value.id == "self"
+                ) or (
+                    isinstance(n, _ep_ast.Call)
+                    and isinstance(n.func, _ep_ast.Name)
+                    and n.func.id in ("setattr", "delattr")
+                ):
+                    out.append((fn.name, n.lineno))
+    return out
+
+
+_ep_path = _EpPath("custom_components/heatpump_optimizer/dhw_planner.py")
+_ep_src = _ep_path.read_text(encoding="utf-8") if _ep_path.exists() else ""
+# The rule's own control: the pre-move shape -- a stash written by a method --
+# must be found, so a green check below is not an empty walk.
+_ep_probe = _ep_writes(
+    "class P:\n"
+    "    def __init__(self):\n        self.a = 1\n"
+    "    def b(self):\n        self.c = 2\n        setattr(self, 'd', 3)\n"
+    "    def e(self):\n        return self.a\n",
+    "P",
+)
+R.check(
+    "and no DhwPlanner method but __init__ writes an attribute",
+    bool(_ep_src)
+    and "class DhwPlanner" in _ep_src
+    and not _ep_writes(_ep_src, "DhwPlanner")
+    and _ep_probe == [("b", 5), ("b", 6)],
+    f"writes: {_ep_writes(_ep_src, 'DhwPlanner') if _ep_src else 'no module'}; "
+    f"probe found {_ep_probe} (expected the two writes in b)",
+)
+
+if _EpPlanner is not None:
+    from golden import (  # noqa: E402
+        make as _ep_mk,
+        SCENARIOS as _EP_SC,
+        START as _EP_START,
+        external_heat_for as _ep_ext,
+    )
+
+    _ep_inits: list = []
+    _ep_builds: list = []
+    _ep_real_init = _EpPlanner.__init__
+    _ep_real_build = _EpPlanner._build_dhw_requirements
+
+    def _ep_init_spy(self, *a, **k):
+        _ep_inits.append(id(self))
+        _ep_real_init(self, *a, **k)
+
+    def _ep_build_spy(self, *a, **k):
+        _ep_builds.append(id(self))
+        return _ep_real_build(self, *a, **k)
+
+    _ep_b = _ep_mk(**_EP_SC["wood_coil"])
+    _EpPlanner.__init__ = _ep_init_spy
+    _EpPlanner._build_dhw_requirements = _ep_build_spy
+    try:
+        _ep_b["optimizer"].optimize(
+            _ep_b["state"], np.asarray(_ep_b["prices"], dtype=float) - 2.0,
+            _ep_b["outdoor"], _ep_b["wind"], _ep_b["rain"], _ep_b["solar"],
+            _EP_START, None, None,
+            external_heat_kw=_ep_ext(len(_ep_b["prices"])),
+        )
+    finally:
+        _EpPlanner.__init__ = _ep_real_init
+        _EpPlanner._build_dhw_requirements = _ep_real_build
+else:
+    _ep_inits, _ep_builds = [], []
+R.check(
+    "a solve builds one planner and every DHW build it makes runs on it, the "
+    "co-optimisation replan's among them",
+    len(_ep_inits) == 1 and len(_ep_builds) >= 2
+    and set(_ep_builds) == set(_ep_inits),
+    f"planners built: {len(_ep_inits)}; builds: {len(_ep_builds)}, on "
+    f"{len(set(_ep_builds))} planner(s) -- fewer than two builds means the "
+    "replan was not reached, so the check did not see the hand-down",
 )
 
 
@@ -30314,6 +30456,28 @@ R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day"
 # evening window even after standby losses.
 from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _LG_REASON
 
+# The step the planner chose for the cycle is the last DHW plan's
+# `legionella_step` (#1743: the optimizer no longer stashes it). A spy on the
+# planner's build keeps each model's last plan for the sections below; it is
+# removed after the last of them.
+_lg_real_build = DhwPlanner._build_dhw_requirements
+_lg_last_plan: dict = {}
+
+
+def _lg_build_spy(self, *a, **k):
+    plan, requirement = _lg_real_build(self, *a, **k)
+    _lg_last_plan[id(self.model)] = plan
+    return plan, requirement
+
+
+def _lg_step(opt):
+    """The legionella step of the last DHW plan ``opt``'s solve built."""
+    plan = _lg_last_plan.get(id(opt.model))
+    return None if plan is None else plan.legionella_step
+
+
+DhwPlanner._build_dhw_requirements = _lg_build_spy
+
 
 def _lg_plan(setpoint, *, leg_temp=60.0, enabled=True, hours_since=20.0):
     built = _mk_golden(
@@ -30402,9 +30566,9 @@ R.check(
 # limit everywhere else. A cycle at hour X must not license a hot tank at
 # hour X + 12.
 # `predictive_info` publishes the cycle's HOUR, not its step; the step the
-# planner actually chose is stashed on the optimizer, which is what these two
-# checks are about.
-_lg_due_step = _lg_due_built["optimizer"]._dhw_legionella_step
+# planner actually chose is the last plan's (`_lg_step`), which is what these
+# two checks are about.
+_lg_due_step = _lg_step(_lg_due_built["optimizer"])
 if _lg_due_step is not None:
     _lg_late = _lg_due_traj[int(_lg_due_step) + 12 * 4 :]
     R.check(
@@ -30419,7 +30583,7 @@ if _lg_due_step is not None:
 _lg_over = {}
 for _hours in (170.0, 500.0, 2000.0):
     _b, _r, _t = _lg_plan(52.0, hours_since=_hours)
-    _lg_over[_hours] = (_b["optimizer"]._dhw_legionella_step, float(_t.max()))
+    _lg_over[_hours] = (_lg_step(_b["optimizer"]), float(_t.max()))
 R.check(
     "an overdue cycle is not pinned to step 0 of every plan",
     all(step not in (None, 0) for step, _ in _lg_over.values()),
@@ -30657,6 +30821,7 @@ R.section("v5.1.10 — a due cycle actually reaches the disinfection temperature
 # ceiling-pinned ramp lands just below the ceiling it was aimed at and the
 # cycle stops at 59.9 rather than 60.0.
 from heatpump_optimizer.optimizer import HeatPumpOptimizer as _LgOpt
+_LgPlanner = DhwPlanner
 
 
 def _lg_band(setpoint, *, hours_since=150.0, tank=37.0, volume=300.0, pump=6.0):
@@ -30766,12 +30931,12 @@ def _lg_whole_tail_repair(
     return plan
 
 
-_lg_saved_repair = _LgOpt._repair_dhw_floor
+_lg_saved_repair = _LgPlanner._repair_dhw_floor
 try:
-    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _LgPlanner._repair_dhw_floor = _lg_whole_tail_repair
     _lg_mut_peaks = {s: float(_lg_band(float(s))[2].max()) for s in _LG_BAND}
 finally:
-    _LgOpt._repair_dhw_floor = _lg_saved_repair
+    _LgPlanner._repair_dhw_floor = _lg_saved_repair
 R.check(
     "the whole-tail bound reproduces the cycle that never reaches "
     "temperature (mutation check)",
@@ -30795,7 +30960,7 @@ R.check(
 # The run-up must not turn into a licence to sit at the limit all day: it is
 # the LATEST ramp that still arrives, so the hours before it stay ordinary.
 _lg_ramp_built, _lg_ramp_res, _lg_ramp_traj = _lg_band(45.0)
-_lg_ramp_step = _lg_ramp_built["optimizer"]._dhw_legionella_step
+_lg_ramp_step = _lg_step(_lg_ramp_built["optimizer"])
 R.check(
     "the run-up is a ramp, not a day at the ceiling",
     _lg_ramp_step is not None
@@ -30831,7 +30996,7 @@ _fr_draws[4:9] = 2.2 * _fr_c / _FR_DT
 # the tail right up to the limit — the shape the whole-tail bound choked on.
 _fr_plan = np.zeros(_FR_N)
 _fr_plan[10:] = _FR_RUN
-_fr_plan = _fr_opt._clamp_dhw_to_capacity(
+_fr_plan = _dhw_planner(_fr_opt)._clamp_dhw_to_capacity(
     plan=_fr_plan, initial_temp=52.0, outdoor_temps=_fr_outdoor,
     draw_rates=_fr_draws, dt=_FR_DT, max_temp=_fr_ceiling,
 )
@@ -30874,7 +31039,7 @@ R.check(
     f"minimum run",
 )
 
-_fr_fixed = _fr_opt._repair_dhw_floor(
+_fr_fixed = _dhw_planner(_fr_opt)._repair_dhw_floor(
     plan=_fr_plan.copy(), initial_temp=52.0, outdoor_temps=_fr_outdoor,
     draw_rates=_fr_draws, dt=_FR_DT, requirement=_fr_req,
     max_temp=_fr_ceiling, p_dhw_max=_FR_RUN, min_run_power=_FR_MIN,
@@ -30952,7 +31117,7 @@ R.check(
     "; ".join(f"{k}: {v[1]:.2f}" for k, v in _lg_e2e_worst.items()),
 )
 try:
-    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _LgPlanner._repair_dhw_floor = _lg_whole_tail_repair
     _lg_e2e_mut = {
         k: _lg_e2e(h, s, p, w)
         for k, (h, s, p, w) in (
@@ -30961,7 +31126,7 @@ try:
         )
     }
 finally:
-    _LgOpt._repair_dhw_floor = _lg_saved_repair
+    _LgPlanner._repair_dhw_floor = _lg_saved_repair
 R.check(
     "the whole-tail bound puts the demand-window breach back (mutation "
     "check)",
@@ -31009,7 +31174,7 @@ def _lg_big(hours, volume, pump, tank=35.0, hours_since=300.0):
         ),
         dt_hours=0.25,
     )).max())
-    return opt._dhw_legionella_step, n, best, (res.dhw_reasons or [])
+    return _lg_step(opt), n, best, (res.dhw_reasons or [])
 
 
 for _label, _args in (
@@ -31040,6 +31205,7 @@ R.check(
     _lg_ok_best >= 60.0 and _lg_ok_step not in (None, 0),
     f"flat-out best {_lg_ok_best:.2f} °C, placed at step {_lg_ok_step}",
 )
+DhwPlanner._build_dhw_requirements = _lg_real_build
 
 
 # ---------------------------------------------------------------------------
@@ -33156,7 +33322,7 @@ def _g2_planning_sim_calls(**kw):
                 for i in range(n)
             ]
         )
-        opt._build_dhw_requirements(
+        _dhw_planner(opt)._build_dhw_requirements(
             initial_state=st,
             prices=built["prices"],
             outdoor_temps=built["outdoor"],
@@ -33270,7 +33436,7 @@ def _mr_run(plan, outdoor, draws):
     _G2Tm.simulate_dhw_only = only_h
     _G2Tm.simulate_dhw_step = step_h
     try:
-        out = _mr_opt._apply_dhw_min_run(
+        out = _dhw_planner(_mr_opt)._apply_dhw_min_run(
             plan=plan.copy(), initial_temp=50.0, outdoor_temps=outdoor,
             draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
             min_run_power=_MR_MIN, max_temp=np.full(plan.size, 50.0),
@@ -33439,7 +33605,7 @@ _mb_stage = 3.747060981420774
 _mb_plan[[4, 10, 75]] = _mb_stage
 _mb_plan[[67, 68, 69, 70]] = [0.5123444691241006, 0.507004671114509,
                              0.025442863317439675, 0.08387927216962915]
-_mb_out = _mb_opt._apply_dhw_min_run(
+_mb_out = _dhw_planner(_mb_opt)._apply_dhw_min_run(
     plan=_mb_plan.copy(), initial_temp=35.885047342513275,
     outdoor_temps=np.full(96, -5.0),
     draw_rates=_mb_model.dhw_draw_rates(np.arange(96) * 0.25), dt=0.25,
@@ -48995,7 +49161,7 @@ def _r7d203_coil_mismatches(wood_l):
         dhw_wood_coil_enabled=True,
     )
     h = _r7d203_horizon()
-    if opt._dhw_coil_wood_forecast(h) is None:
+    if _dhw_planner(opt)._dhw_coil_wood_forecast(h) is None:
         return None
     rates = opt.model.dhw_draw_rates(np.asarray(h.step_hours) % 24.0)
 
@@ -49034,8 +49200,8 @@ def _r7d203_coil_mismatches(wood_l):
 # 0.0058; at 200 L both are 0.232 (the null).
 def _r7d203_window_capacity(volume):
     opt, params = _r7d203_opt(volume)
-    windows, _ = opt._effective_dhw_windows()
-    res = opt._dhw_window_floors(
+    windows, _ = _dhw_planner(opt)._effective_dhw_windows()
+    res = _dhw_planner(opt)._dhw_window_floors(
         params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
     )
     return res[0], params.dhw_tank_thermal_mass
@@ -49051,7 +49217,7 @@ def _r7d203_window_capacity(volume):
 # comparison can tell two capacities apart, so it is not a dead arm.
 def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
     opt, _ = _r7d203_opt(200.0, dhw_cooling_rate=0.3)
-    plan = opt._plan_dhw_min_cost(
+    plan = _dhw_planner(opt)._plan_dhw_min_cost(
         45.0, np.full(n, 60.0), np.full(n, 1.0), np.full(n, -5.0),
         np.zeros(n), n, dt, 3.0, c_dhw, np.full(n, 60.0),
     )
@@ -49069,7 +49235,7 @@ def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
 # equal count is not a dead arm.
 def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=0.3)
-    plan = opt._plan_dhw_cheapest_first(
+    plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
         45.0, np.full(n, req), np.linspace(0.2, 2.0, n), np.full(n, -5.0),
         np.zeros(n), n, 1.0, 3.0, 0.1, 24, c_dhw, np.full(n, ceiling),
     )
@@ -49093,7 +49259,7 @@ _R7D203_FALL_REQ = [45.0] * 9 + [60.0] * 3
 
 def _r7d203_repair_steps(c_dhw, ceiling, requirement, volume=17.24, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=3.0)
-    plan = opt._repair_dhw_floor(
+    plan = _dhw_planner(opt)._repair_dhw_floor(
         plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
         draw_rates=np.zeros(n), dt=1.0,
         requirement=np.asarray(requirement, dtype=float),
@@ -49236,29 +49402,29 @@ R.check(
 # legionella boost that is skipped, and the three planners' declines.
 def _r7d203_zero_capacity():
     opt, params = _r7d203_opt(0.0, dhw_cooling_rate=0.3)
-    windows, _ = opt._effective_dhw_windows()
+    windows, _ = _dhw_planner(opt)._effective_dhw_windows()
     try:
-        window = float(opt._dhw_window_floors(
+        window = float(_dhw_planner(opt)._dhw_window_floors(
             params, windows, np.arange(24) * 1.0, None, 1.0, 24, None
         )[0])
-        legionella = opt._dhw_legionella_ceilings(
+        legionella = _dhw_planner(opt)._dhw_legionella_ceilings(
             params=params, n_steps=12, dt=1.0, c_dhw=0.0,
             draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
             outdoor_temps=np.full(12, -5.0), p_dhw_run=3.0,
             legionella_due=True, legionella_hour=6.0, legionella_step=5,
         )
-        min_cost = opt._plan_dhw_min_cost(
+        min_cost = _dhw_planner(opt)._plan_dhw_min_cost(
             45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
             np.zeros(12), 12, 1.0, 3.0, 0.0, np.full(12, 55.0),
         )
-        repair = opt._repair_dhw_floor(
+        repair = _dhw_planner(opt)._repair_dhw_floor(
             plan=np.zeros(12), initial_temp=45.0,
             outdoor_temps=np.full(12, -5.0), draw_rates=np.zeros(12), dt=1.0,
             requirement=np.full(12, 55.0), max_temp=np.full(12, 55.0),
             p_dhw_max=3.0, min_run_power=0.1, prices=np.full(12, 1.0),
             c_dhw=0.0,
         )
-        greedy = opt._plan_dhw_cheapest_first(
+        greedy = _dhw_planner(opt)._plan_dhw_cheapest_first(
             45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
             np.zeros(12), 12, 1.0, 3.0, 0.1, 6, 0.0, np.full(12, 55.0),
         )
@@ -49366,7 +49532,7 @@ R.check(
 # cheap steps have no room left and the four dear steps have all of it.
 _r7pin_opt, _ = _r7d203_opt(200.0)
 try:
-    _r7pin_plan = _r7pin_opt._plan_dhw_min_cost(
+    _r7pin_plan = _dhw_planner(_r7pin_opt)._plan_dhw_min_cost(
         45.0, np.array([45.0] * 7 + [55.0]), np.array([0.1] * 4 + [1.0] * 4),
         np.full(8, -5.0), np.zeros(8), 8, 1.0, 3.0, 0.232, np.full(8, 60.0),
         space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
@@ -49416,7 +49582,7 @@ def _r7ua_min_cost(volume):
     opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
     c = params.dhw_tank_thermal_mass
     n = 12
-    plan = opt._plan_dhw_min_cost(
+    plan = _dhw_planner(opt)._plan_dhw_min_cost(
         45.0, np.array([45.0] * 8 + [55.0] * 4), np.linspace(0.5, 1.5, n),
         np.full(n, -5.0), np.zeros(n), n, 1.0, 50.0 * c, c,
         np.full(n, 60.0),
@@ -49428,7 +49594,7 @@ def _r7ua_repair(volume):
     opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
     c = params.dhw_tank_thermal_mass
     n = 12
-    plan = opt._repair_dhw_floor(
+    plan = _dhw_planner(opt)._repair_dhw_floor(
         plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
         draw_rates=np.zeros(n), dt=1.0,
         requirement=np.array([45.0] * 9 + [60.0] * 3),
@@ -49442,7 +49608,7 @@ def _r7ua_legionella(volume):
     opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
     c = params.dhw_tank_thermal_mass
     n = 24
-    res = opt._dhw_legionella_ceilings(
+    res = _dhw_planner(opt)._dhw_legionella_ceilings(
         params=params, n_steps=n, dt=1.0, c_dhw=c, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0), outdoor_temps=np.full(n, -5.0),
         p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
@@ -52571,7 +52737,7 @@ R.check(
 # diurnal series and its flat mean give different trajectories. (Which seams
 # price per step and which at the horizon mean is the call site's choice, and
 # the static rule below pins only that each passes one.)
-from heatpump_optimizer.optimizer import _step_humidity as _p3_step_h  # noqa: E402
+from heatpump_optimizer.thermal_model import _step_humidity as _p3_step_h  # noqa: E402
 
 _p3_series = _p3_diurnal(96)
 _p3_sim_m = ThermalModel(ThermalParameters(defrost_derate=_p3_derate(), ambient_humidity=55.0))
@@ -52603,8 +52769,8 @@ R.check(
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _P3Opt,
     OptimizationConfig as _P3Cfg,
-    _mean_humidity as _p3_mean_h,
 )
+from heatpump_optimizer.thermal_model import _mean_humidity as _p3_mean_h  # noqa: E402
 
 _p3_nan_series = np.array([40.0, np.nan, 90.0, 80.0])
 _p3_opt = _P3Opt(ThermalModel(ThermalParameters(
@@ -52613,18 +52779,18 @@ _p3_opt = _P3Opt(ThermalModel(ThermalParameters(
 _p3_h4 = np.array([95.0, 60.0, 90.0, 55.0])
 _p3_out4 = np.full(4, 1.0)
 _p3_tank4 = np.array([45.0, 50.0, 55.0, 60.0])
-_p3_prof = _p3_opt._dhw_cop_profile(_p3_out4, _p3_tank4, _p3_h4)
+_p3_prof = _dhw_planner(_p3_opt)._dhw_cop_profile(_p3_out4, _p3_tank4, _p3_h4)
 _p3_prof_exp = [
     max(1.0, _p3_opt.model.compute_cop_dhw(1.0, float(t), humidity=float(h)))
     for t, h in zip(_p3_tank4, _p3_h4)
 ]
-_p3_prof_mean = _p3_opt._dhw_cop_profile(
+_p3_prof_mean = _dhw_planner(_p3_opt)._dhw_cop_profile(
     _p3_out4, _p3_tank4, np.full(4, float(np.mean(_p3_h4)))
 )
 
 
 def _p3_econ(hum):
-    return _p3_opt._baseline_dhw_economics(
+    return _dhw_planner(_p3_opt)._baseline_dhw_economics(
         ThermalState(), _p3_out4, 4, 55.0, lambda p: float(np.sum(p)),
         np.ones(4), np.ones(4), np.ones(4), hum,
     )[0]
@@ -52702,7 +52868,7 @@ R.check(
 # state a learner replays), so a forecast-step call added inside one of these
 # functions (``outdoor_temps[i]``) is not silenced by its entry.
 _P3_FUNCS = (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)
-_P3_FILES = ("optimizer.py", "thermal_model.py", "coordinator.py")
+_P3_FILES = ("optimizer.py", "dhw_planner.py", "thermal_model.py", "coordinator.py")
 _P3_ALLOWED = {
     # (file, function, callee, first argument): why the current humidity
     ("coordinator.py", "_dhw_setpoint_sweep", "compute_cop_dhw", "outdoor"):
@@ -52801,8 +52967,8 @@ _p3_sources = {f: (_PKG_DIR / f).read_text(encoding="utf-8") for f in _P3_FILES}
 _p3_used: set = set()
 _p3_open = _p3_seams(_p3_sources, hits=_p3_used)
 R.check(
-    "every humidity-aware call in optimizer.py, thermal_model.py and "
-    "coordinator.py passes a humidity, and every function taking one reads it "
+    "every humidity-aware call in optimizer.py, dhw_planner.py, thermal_model.py "
+    "and coordinator.py passes a humidity, and every function taking one reads it "
     "(the seam rule, #1520)",
     not _p3_open,
     f"open seams: {_p3_open}",
@@ -53311,8 +53477,8 @@ R.check(
 import sys as _f22_sys  # noqa: E402
 
 from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
+from heatpump_optimizer.dhw_planner import _DHW_MIN_RUN_CHUNK as _F22_CHUNK  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
-    _DHW_MIN_RUN_CHUNK as _F22_CHUNK,
     cycling_penalty as _f22_cyc,
     cycling_penalty_batch as _f22_cyc_batch,
 )
@@ -53531,7 +53697,7 @@ R.check(
 # ceiling one step out of line decides differently (review of #1710, m4),
 # and the recorded first-breach offsets must include both sides of the first
 # chunk boundary.
-_F22MrCls = type(_mr_opt)
+_F22MrCls = DhwPlanner
 _f22_breach_offsets: list[int] = []
 
 
@@ -53568,7 +53734,7 @@ def _f22_mr_decide(fits, sc):
     saved = _F22MrCls._dhw_raise_fits
     _F22MrCls._dhw_raise_fits = fits
     try:
-        return _mr_opt._apply_dhw_min_run(
+        return _dhw_planner(_mr_opt)._apply_dhw_min_run(
             plan=plan.copy(), initial_temp=t0, outdoor_temps=outdoor,
             draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
             min_run_power=_MR_MIN, max_temp=cap,
@@ -54349,8 +54515,8 @@ def _r9p3_ready(rate, cold):
         200.0, dhw_cooling_rate=rate, dhw_setpoint=hi, dhw_min_temp=lo,
         dhw_idle_min_temp=lo,
     )
-    windows, _ = opt._effective_dhw_windows()
-    res = opt._dhw_window_floors(
+    windows, _ = _dhw_planner(opt)._effective_dhw_windows()
+    res = _dhw_planner(opt)._dhw_window_floors(
         params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
     )
     return [round(float(v), 9) for v in res[6] if v]
