@@ -29,9 +29,13 @@ BASE = "_base"
 
 def extract_pin(into: Path) -> Path:
     """The pinned package (and seam map the perturbation scripts edit) under ``into``."""
-    archive = subprocess.run(
-        ["git", "-C", str(REPO), "archive", PINNED, "custom_components", "tests/seam_map.json"],
-        capture_output=True, check=True).stdout
+    try:
+        archive = subprocess.run(
+            ["git", "-C", str(REPO), "archive", PINNED, "custom_components", "tests/seam_map.json"],
+            capture_output=True, check=True).stdout
+    except subprocess.CalledProcessError as err:
+        raise SystemExit(f"the pinned commit {PINNED[:8]} is not in this clone ({err.stderr.decode()[-200:].strip()}); "
+                         "a shallow clone is the environment, not the tree: git fetch --unshallow origin main")
     into.mkdir(parents=True, exist_ok=True)
     subprocess.run(["tar", "-x", "-C", str(into)], input=archive, check=True)
     return into
