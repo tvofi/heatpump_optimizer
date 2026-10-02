@@ -118,7 +118,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
    cycle fencing), the PR extends or adds a census that drives every sibling it enumerates with
    the same input and compares their outputs, and **the census asserts its own preconditions**
-   (a census that skips a class of slots refuses the day a skipped slot gains a writer). This is step 11 applied to your own instrument: one
+   (a census that skips a class of slots refuses the day a skipped slot gains a writer).
+   A fix that changes one reader of a governance concept registers the concept in
+   `agreement.mjs` with every reader the enumeration returns. This is step 11 applied to your own instrument: one
    inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
    added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
 
