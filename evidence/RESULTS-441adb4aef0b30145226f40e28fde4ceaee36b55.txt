@@ -1,0 +1,29 @@
+head 441adb4aef0b30145226f40e28fde4ceaee36b55
+RESULT mutant [M0 none] rc=0 fails=0 last='0 failed'
+RESULT mutant [E1 CMP_BOUND out of RATCHETED] rc=1 fails=4 last='4 failed'
+RESULT mutant [M1 keep operator] rc=1 fails=1 last='1 failed'
+RESULT mutant [M4 listed_sites ignores ledger] rc=1 fails=1 last='1 failed'
+RESULT mutant [R2 chain left not advanced] rc=1 fails=2 last='2 failed'
+RESULT mutant [R3 no Gt/GtE] rc=1 fails=2 last='2 failed'
+RESULT mutant [R5 multi-line compares admitted] rc=1 fails=3 last='3 failed'
+RESULT mutant [R6 gap check dropped] rc=0 fails=0 last='0 failed'
+RESULT mutant [R7 bounds never generated] rc=1 fails=3 last='3 failed'
+RESULT mutant [R8 Lt flips wrong way] rc=1 fails=1 last='1 failed'
+RESULT mutant [R9 kinds filter dropped] rc=0 fails=0 last='0 failed'
+RESULT mutant [R10 LISTED empty] rc=1 fails=3 last='3 failed'
+RESULT _holiday_span cases=49 ties=17 mutant_differs=0 control_differs_at_tie=17 control_differs_untied=0
+RESULT _dhw_planner_draws cases=16 ties=11 mutant_differs=0 control_differs_at_tie=6 control_differs_untied=0
+RESULT _dhw_planner_draws tied_cases_with_last_0=5 (the control's `last > 0` cannot move them)
+perturbation (probe's tie counter forced False):
+RESULT _holiday_span cases=49 ties=0 mutant_differs=0 control_differs_at_tie=0 control_differs_untied=17
+RESULT _dhw_planner_draws cases=16 ties=0 mutant_differs=0 control_differs_at_tie=0 control_differs_untied=6
+  4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base 68b8cb97d911339a206fde141ecfdf0f57c6ccc4; the ledger agrees with the deterministic inventory
+MUTATION TABLE PASSED (empty scope)
+  pinned   custom_components/heatpump_optimizer/away.py:558 CMP_BOUND: if last <= first:
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:679 CMP_BOUND: idx = i if i < last else last
+LIST CMP_BOUND: 946 site(s) in 56 file(s), 944 unpinned, ratcheted
+RESULT inventory head sites=5466 sha1=3f04779a430a unpinned=4853
+RESULT inventory origin/main sites=4520 sha1=fe4c90319eb3 unpinned=3909
+RESULT rv move: DhwPlanner._dhw_planner_draws at head == HeatPumpOptimizer._dhw_planner_draws at 5009fe47 (ast source segment identical, 768 chars); one site with that line, dhw_planner.py:679; optimizer.py has no _dhw_planner_draws
+RESULT perturb: old optimizer.py row restored, new row removed -> MUTATION TABLE REFUSED ... disposition names no site the inventory generates; restored -> PASSED
+RESULT edac88f4 tree == merge-tree(307ecf6c, 68b8cb97); head tree == merge-tree(5009fe47, bdc14972); budgets keys_changed=['_comment']; VERSION/manifest/notes/claims untouched; merge-tree origin/main rc=0

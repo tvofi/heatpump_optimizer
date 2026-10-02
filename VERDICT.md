@@ -1,57 +1,56 @@
-Fix review: blocked 5009fe47254c6a3f2812b8a0e7eaa5b5df015573 null-control: equiv_probe.py's controls never differ at a tie (0 of 17 away, 0 of 11 optimizer), so the probe cited by both equivalent triage rows has no control on the arm it claims; the equivalence itself holds under the reviewer's tie-only controls
+Fix review: merge 441adb4aef0b30145226f40e28fde4ceaee36b55
 
-bus-nonce: 2ef701b4d19758b332ec3087c23978c8
+bus-nonce: f89d54412629646ae40049b28f585547
 
-Review round 2, PR #1861 (R9-F10.6), fix-review.md. Measured head 5009fe47254c6a3f2812b8a0e7eaa5b5df015573, which is the PR head when posting and is the head the body's `## Head` names. origin/main is 51ce8f2a. My briefs copy is current (the three-dot diff of tools/audit/briefs/ is empty).
+Review round 3, PR #1861 (R9-F10.6), fix-review.md. Measured head 441adb4aef0b30145226f40e28fde4ceaee36b55. It is the PR head at posting and the head the body's `## Head` names. origin/main is 68b8cb97. My briefs copy is current (the three-dot diff of tools/audit/briefs/ is empty).
 
-Resolution delta: the head tree equals `git merge-tree` of the authored commit 307ecf6c with origin/main 51ce8f2a, plus this PR's own `docs/delivery/1861.md` row. So there is no hand resolution. The authored delta is 307ecf6c only.
+What was reviewed:
+- The authored delta, bdc14972.
+- The two merges, which have no hand resolution:
+  - edac88f4's tree equals `git merge-tree` of 307ecf6c with 68b8cb97.
+  - The head's tree equals `git merge-tree` of 5009fe47 with bdc14972.
 
-## The one thing that blocks
+## Round-2 block: resolved
 
-The body (line 22) and both new `survivor_triage` rows rest on `tools/audit/round9/F10/f10_6/equiv_probe.py`. The body says "a differing control on the same line shows the probe can see a difference", and each row quotes its control's count ("differs on 18" and "differs on 11").
+The probe now has tie-only controls.
+- `equiv_probe.py` counts ties inside the compiled function and uses the review's tie-only controls. It cites rv_equiv_probe.py by sha1 6f7aee1d, which matches my file. That file is published in review/1861's evidence.
+- Probe output:
+  - `RESULT _holiday_span cases=49 ties=17 mutant_differs=0 control_differs_at_tie=17 control_differs_untied=0`
+  - `RESULT _dhw_planner_draws cases=16 ties=11 mutant_differs=0 control_differs_at_tie=6 control_differs_untied=0`
+  - `RESULT _dhw_planner_draws tied_cases_with_last_0=5`
+- The 5 cases that do not move are exactly m=1 (4 cases) plus n=m=1 (1 case), all with `last == 0`.
+- Perturbation, my own: I forced the probe's tie counter to `False`. The probe then reports `ties=0` and `control_differs_untied=17` / `6`. So the untied counter is a live self-check: a broken tie count cannot pass silently.
+- Both triage rows and the body quote these counts.
 
-Both controls differ only where the mutant cannot differ, which is off the tie:
-- away: the GUARD_OFF control changes `last` only when `last < first`. At `last == first` it returns the same tuple as the head.
-- optimizer: `idx = last` changes only iterations with `i < last`. At `i == last` it reads the same `wt[last]`.
+## The moved triage row: a real move
 
-My instrument `rv_probe_ctl_at_tie.py` measures where the probe's own controls differ:
-- `RESULT rv probe-control away differs_at_tie=0 differs_off_tie=18`
-- `RESULT rv probe-control optimizer differing_iterations_at_tie=0 off_tie=72`
+#1858 moved this function into dhw_planner.py.
+- `DhwPlanner._dhw_planner_draws` in dhw_planner.py at the head has an AST source segment identical to `HeatPumpOptimizer._dhw_planner_draws` in optimizer.py at 5009fe47 (768 characters each).
+- optimizer.py no longer defines it.
+- Exactly one inventory site carries `idx = i if i <= last else last`, at dhw_planner.py:679.
+- The new row keeps the same digest (56f3545d), the same `old` pin and the same verdict.
 
-So the quantified claim, "17 / 11 tied inputs, 0 differing", has no control that would have moved at a tie. A probe that compared outputs wrongly at ties would print the same RESULT lines.
+The mutation table accepts it, and refuses the alternative:
+- At the head it prints `4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base 68b8cb97...; the ledger agrees with the deterministic inventory`, then `MUTATION TABLE PASSED (empty scope)`.
+- `--list CMP_BOUND` shows only away.py:558 and dhw_planner.py:679 as `pinned`, then `946 site(s) in 56 file(s), 944 unpinned, ratcheted`.
+- Perturbation: with the old optimizer.py row restored and the new row removed, the table prints `MUTATION TABLE REFUSED ... disposition names no site the inventory generates`. Restored, it passes.
 
-**The conclusion is still right.** Two checks of my own (`rv_equiv_probe.py`) confirm it:
-- Ties counted inside the compiled production function, by an append in the comparison itself rather than by recomputing: `away ties_in_function=17 of 49` and `optimizer tie_iterations=11 of 144`. Both match the probe's `ties=` figures.
-- Tie-only controls, which change the result only when the two sides are equal, differ on the same grid:
-  - away: `if last < first or last == first and (first := first - timedelta(days=1)):` -> `control_differs=17`, which is every tie.
-  - optimizer: `idx = i if i < last else (last - 1 if i == last and last > 0 else last)` -> `control_differs=6`. The other 5 tied cases have `last == 0`, where this control cannot move.
+## Everything else, re-taken at this head
 
-**Owed (small):** give `equiv_probe.py` tie-only controls of this kind, so its control exercises the comparison at equality, and re-quote the counts in both triage rows and the body. Nothing else in round 2 needs to change.
+- My mutants.py: E1 (4 failed), M1 (1), M4 (1), R2 (2), R3 (2), R5 (3), R7 (3), R8 (1) and R10 (3) are killed. R6 and R9 survive, both equivalent as measured in round 1. M0 prints 0 failed.
+- Inventory: `head sites=5466 sha1=3f04779a430a unpinned=4853` and `origin/main sites=4520 sha1=fe4c90319eb3 unpinned=3909`. The sha1 moved because of #1858's file move, not because of this diff. The difference, +946 sites, equals the CMP_BOUND stock.
+- `mutation_budgets.json`: `keys_changed=['_comment']`, so no cap moved. VERSION, manifest, RELEASE_NOTES and both claim files are untouched (three-dot). `git merge-tree origin/main HEAD`: rc 0.
+- Earlier rounds still hold:
+  - The ratchet refuses one added one-line comparison and passes an `==` null (round 1).
+  - D3-s1-01's -5.0 is kept by production and dropped by the mutant, and each bound's mutant differs only at its own bound (round 1).
+  These rounds touched no operator code since round 2's entities.py change, which this mutants.py run re-covers.
+- Code owner: `tests/mutation_table.py` is `@tvofi`'s. Its approving review at this head comes under tvofi's mandate and is not this verdict.
 
-## What round 2 fixed (verified)
-
-- Owed item 1, R8: killed. `R8 Lt flips wrong way fails=1`; `h()` pins `<` to `<=`.
-- Owed item 2, R5: killed. `fails=3`, including the new C7 check that a comparison spanning two lines yields no site.
-- Owed item 3, the equivalents: disclosed in the body, and triaged as `equivalent` under keys that retire exactly those two sites.
-  - `--list CMP_BOUND` shows `pinned` only for away.py:558 and optimizer.py:4742, then `946 site(s) in 55 file(s), 944 unpinned, ratcheted`.
-  - Ratchet: `4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base 51ce8f2a...; the ledger agrees with the deterministic inventory`, then `MUTATION TABLE PASSED (empty scope)`.
-  - Inventory: `head sites=5466 sha1=1ba97b4cecd5 unpinned=4853` and `origin/main sites=4520 sha1=c141b52379cc unpinned=3909`.
-  - The equivalence is real: the probe prints `mutant_differs=0` at both sites, and my own tie-only controls above show the grid can see a tie.
-- Owed item 4, drain: the body now gives at least 944/40, about 24 nights, and about 944/37, roughly 26 nights, at F10.5's 37-of-40 slice. The arithmetic is correct. I did not re-measure the 37/40 figure.
-- Owed item 5, refusal text: it now names comparison bounds (mutation_table.py:2473).
-- My mutants.py re-run against this head:
-  - Killed: E1 (4 failed), M1 (1), M4 (1), R2 (2), R3 (2), R5 (3), R7 (3), R8 (1), R10 (3).
-  - Survivors: R6 and R9, both equivalent as measured in round 1. M0 prints 0 failed.
-- `mutation_budgets.json`: `keys_changed=['_comment']`, so no cap moved. VERSION, manifest, RELEASE_NOTES and both claim files are untouched. `git merge-tree` against origin/main: rc 0.
-- Code owner: `tests/mutation_table.py` is `@tvofi`'s. The approving review comes under tvofi's mandate, not this verdict.
-
-## CI (check-runs API, every run on 5009fe47; waitci DONE total=35)
+## CI (check-runs API, every run on 441adb4a; waitci DONE total=35)
 
 The only non-green conclusions:
-- `nightly-status=failure`. Its log reads `NIGHTLY ABSENT: ... mutation-ledger, mutation-ledger-push did not run in that scheduled run`. That is main's red, because the nightly predates the fix. This PR's three-dot diff touches no workflow, plan, HANDOVER or foreign delivery row, so the step-11 exemption applies and no Root cause section is owed.
+- `nightly-status=failure`. Its log reads `NIGHTLY ABSENT: ... mutation-ledger, mutation-ledger-push did not run in that scheduled run`. That is main's red. This PR's three-dot diff reaches no workflow, plan, HANDOVER or foreign delivery row, so the step-11 exemption applies and no Root cause section is owed.
 - `pr-contract` and `budget-raise-gate` each have a `cancelled` run, superseded by a `success` run on the same head.
-- 307ecf6c and 21fbd8cf carry no red run.
-
-Non-blocking: the body's Figures still names the ratchet base aa7a8119. The base is now 51ce8f2a, and the count is identical, 4855.
+- bdc14972 and edac88f4 carry no red run.
 
 Not run locally: entities.py in full, closures, features.py and the goldens. CI ran them on this head and they are green.
