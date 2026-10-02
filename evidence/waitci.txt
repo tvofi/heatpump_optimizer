@@ -1,2 +1,3 @@
-DONE 8527dbc2146afdc6ddc0d801518f6cf70094fd13 total=33
-NOTGREEN failure fast (3.14)
+DONE d5830a13cf705aa466e33169ade6d2136e4078f9 total=35
+NOTGREEN failure nightly-status
+NOTGREEN failure pr-contract

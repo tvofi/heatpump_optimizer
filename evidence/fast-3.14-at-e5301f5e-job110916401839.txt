@@ -1,7 +1,0 @@
-fast (3.14)	UNKNOWN STEP	2026-10-02T15:58:32.0229493Z   GOLDEN_MODE: drift
-fast (3.14)	UNKNOWN STEP	2026-10-02T15:58:32.3520835Z   MODE: FULL -- every test script runs, nothing is scoped out.
-fast (3.14)	UNKNOWN STEP	2026-10-02T16:03:19.6702224Z   FAIL the deployment-shape lane's closure is the whole tracked package, so any production diff selects it (#1218)  [closure reaches 85/85 production files and covers the tree's 67 package modules (True), full-coverage closures=['tests/arch_score_head.py', 'tests/deployment_shape.py'], a production diff selects it=True -- this is the cost the note beside the lane records]
-fast (3.14)	UNKNOWN STEP	2026-10-02T16:03:19.6702919Z   FAIL and the lane's docstring records those measured numbers as the selection-cost note (#1218)  [the note cites numbers this tree derives: 85 production files; 90 of 435 pairs at >= 0.80; 325 pairs comparable; no production closure in ['tests/arch_score.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/md_tables.mjs']; missing markers -> ['90 of the 435', '325 pairs']]
-fast (3.14)	UNKNOWN STEP	2026-10-02T16:03:48.9013338Z 2 of 2060 ENTITY CHECKS FAILED
-fast (3.14)	UNKNOWN STEP	2026-10-02T16:12:17.4630526Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
-fast (3.14)	UNKNOWN STEP	2026-10-02T16:22:44.8097385Z 1 TEST SCRIPT(S) FAILED
