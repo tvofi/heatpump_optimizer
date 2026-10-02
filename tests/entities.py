@@ -17827,18 +17827,24 @@ R.check(
 # refusal is `skip-merge-failed`, which reddens. Removing the early return
 # entirely yields exactly that -- measured -- so the status below restores a
 # refusal the early return had been pre-empting, with a remedy of its own.
-def _af_case(committed, records):
+def _af_case(committed, records, check_txt=None, inert=()):
     """Run the real apply function over a throwaway closures.json.
 
     Returns (status, bytes-unchanged). Files named must be real files in the
     tree: `check` rejects a recording of anything that is not a regular file.
+    `check_txt`, when given, is the closures job's tee of its own check;
+    `inert` paths are classified INERT for the call, whatever main's list says.
     """
+    real_is_inert = _closure.is_inert
+    _closure.is_inert = lambda rel: rel in inert or real_is_inert(rel)
     with _tempfile.TemporaryDirectory() as td:
         path = Path(td) / "closures.json"
         before = json.dumps({"closures": committed, "recorded": {}})
         path.write_text(before)
         rec = Path(td) / "rec"
         rec.mkdir()
+        if check_txt is not None:
+            (rec / "check.txt").write_text(check_txt)
         for i, r in enumerate(records):
             (rec / f"{i}.json").write_text(json.dumps(r))
         orig, _closure.CLOSURES = _closure.CLOSURES, path
@@ -17846,7 +17852,7 @@ def _af_case(committed, records):
             status = _closure.apply_under_scoped_recordings(rec, partial=True)
             return status, path.read_text() == before
         finally:
-            _closure.CLOSURES = orig
+            _closure.CLOSURES, _closure.is_inert = orig, real_is_inert
 
 
 _af3_status, _af3_kept = _af_case(
@@ -17937,6 +17943,51 @@ R.check(
     f"status={_af7_status}, closures unchanged={_af7_kept} -- a directory "
     "carries no content a closure can be stale against, so the repair must "
     "refuse rather than drop it",
+)
+# `closures-autofix` runs the BASE's tests/closure.py (D11-s1-03), `closures`
+# the pull request's. A PR that moves a file out of INERT and commits a
+# closure reading it makes the base's `check` stop at the INERT-pair refusal
+# before the comparison, so no UNDER-SCOPED is printed there and the job went
+# green on the quiet `skip-not-under-scoped` beside a red `closures` that had
+# printed one (#1846 at e42b1cdd, run 37019499517; #1851). The closures job
+# now tees its check to check.txt beside the recordings; a disagreement is
+# red. The two logs are the real check-step lines of those runs, timestamps
+# stripped: the defect, and a46a91c's by-design INERT READS failure, which
+# printed no UNDER-SCOPED and must stay quiet. DISCLAIMER.md is held INERT
+# for the case, as the base held it: #1846 itself moved it out of main's list.
+_AF8_DEFECT_LOG = (
+    "note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)\n"
+    "UNDER-SCOPED: tests/harness_headers.py really reads 1 file(s) the "
+    "committed closure does not list:\n"
+    "    DISCLAIMER.md\n\n"
+    "1 closure(s) are stale. Re-derive the named script:\n"
+    "    ./tests/derive_closures.sh --single <script>\n")
+_AF8_NULL_LOG = (
+    "INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the\n"
+    "  committed `inert_reads` does not list for it; the merge fast path\n"
+    "  would treat a change to it as unread (R9-F10.9d). Re-derive:\n"
+    "  ./tests/derive_closures.sh --single <script>\n"
+    "    tests/doc_claims.py: DISCLAIMER.md\n")
+_af8_s = "tests/harness_headers.py"
+_af8_args = ({_af8_s: [_af8_s, "DISCLAIMER.md"]},
+             [{"script": _af8_s, "rc": 0,
+               "files": [_af8_s, "DISCLAIMER.md", "tests/harness.py"]}])
+_af8 = {k: _af_case(*_af8_args, check_txt=v, inert={"DISCLAIMER.md"}) for k, v in (
+    ("defect", _AF8_DEFECT_LOG), ("null", _AF8_NULL_LOG), ("absent", None))}
+R.check(
+    "a pinned classifier that disagrees with the closures job's UNDER-SCOPED "
+    "reddens (#1846)",
+    _af8["defect"] == ("skip-classifier-disagrees", True)
+    and _closure.autofix_repair_failed("closures-autofix", _af8["defect"][0])
+    and "--single" in _closure.autofix_report("closures-autofix", _af8["defect"][0])[1],
+    f"{_af8}: green here is a repair nobody makes and nothing reports",
+)
+R.check(
+    "and stays quiet when the closures job printed no UNDER-SCOPED, or no "
+    "check.txt exists (a46a91c null control)",
+    _af8["null"] == ("skip-not-under-scoped", True)
+    and _af8["absent"] == ("skip-not-under-scoped", True),
+    f"{_af8}: an INERT READS failure owes no bot repair",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
@@ -18117,7 +18168,7 @@ _ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
     "every status the two apply functions return is classified here",
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
-                    "skip-failed-recording", "skip-merge-failed",
+                    "skip-classifier-disagrees", "skip-failed-recording", "skip-merge-failed",
                     "skip-still-fails", "skip-unchanged"}
     and _ac_returns == {"changed", "skip-not-inherited",
                         "skip-moves-nothing-claimable", "skip-cannot-compare"},
@@ -18127,6 +18178,19 @@ R.check(
 # whole finding is about, so the wiring is asserted against the YAML itself.
 _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
+
+# The disagreement check above reads a file only the closures job can write.
+_cl_step = [s for s in _workflow_job(_TESTS_YML, "closures").split("\n      - ")
+            if s.startswith("name: Fail if tests/closures.json under-approximates")]
+_cl_lines = [l.strip() for l in (_cl_step or [""])[0].splitlines()]
+_cl_if = [i for i, l in enumerate(_cl_lines) if l.startswith('if [ "$SCOPE_CASE"')]
+R.check(
+    "the closures job tees its check to check.txt beside the recordings",
+    len(_cl_step) == 1 and len(_cl_if) == 1
+    and "set -o pipefail" in _cl_lines[:_cl_if[0]]
+    and _cl_step[0].count('| tee "$RUNNER_TEMP/closures/check.txt"') == 2,
+    "without it closures-autofix cannot see that its pinned classifier disagrees",
+)
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
