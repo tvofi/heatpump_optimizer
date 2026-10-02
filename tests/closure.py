@@ -320,10 +320,6 @@ INERT = (
     # package-lock.json for `npm ci`. The lock is NOT listed: tests/entities.py
     # reads every tracked package-lock.json for its integrity fields.
     "tests/pwlane/package.json",
-    # R9-WEB-3: the docs build's mermaid pin, installed by `npm ci` in the
-    # Pages workflow only. Nothing in this gate opens it; its lock is
-    # entities.py's read, for the integrity fields, as pwlane's is.
-    "tools/site/package.json",
     # The workflows that are not the gate were listed here, individually
     # rather than as a `.github/workflows/` prefix, because that prefix would
     # also swallow `tests.yml` and silently undo the forced-full rule that is

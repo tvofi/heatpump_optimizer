@@ -2271,6 +2271,25 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
     return res
 
 
+SITE_PKG = ROOT / "tools" / "site" / "package.json"
+SITE_LOCK = ROOT / "tools" / "site" / "package-lock.json"
+
+
+def mermaid_pin_findings(pkg: str, lock: str) -> list[str]:
+    """The deploy installs mermaid by `npm ci`; the pin must be one exact version that the lockfile resolves to."""
+    try:
+        want = json.loads(pkg).get("dependencies", {}).get("mermaid", "")
+        have = json.loads(lock).get("packages", {}).get("node_modules/mermaid", {}).get("version", "")
+    except (ValueError, AttributeError) as exc:
+        return [f"package.json or its lockfile is not JSON: {exc}"]
+    out = []
+    if not re.fullmatch(r"\d+\.\d+\.\d+", want):
+        out.append(f"mermaid is {want!r} in package.json, not one exact version")
+    if want != have:
+        out.append(f"package.json pins mermaid {want!r} but the lockfile resolves {have!r}")
+    return out
+
+
 def check_docs_subpages() -> None:
     R.section("documentation sub-pages build (R9-WEB-3)")
     b = docs_build()
@@ -2285,6 +2304,12 @@ def check_docs_subpages() -> None:
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
+    pin = mermaid_pin_findings(SITE_PKG.read_text() if SITE_PKG.is_file() else "", SITE_LOCK.read_text() if SITE_LOCK.is_file() else "")
+    R.check("mermaid is one exact version in package.json, and the lockfile resolves that version", not pin, "; ".join(pin))
+    lock = SITE_LOCK.read_text() if SITE_LOCK.is_file() else "{}"
+    R.check("the mermaid pin fires on a range and on a lockfile that disagrees (null controls)",
+            bool(mermaid_pin_findings('{"dependencies":{"mermaid":"^12.1.0"}}', lock))
+            and bool(mermaid_pin_findings('{"dependencies":{"mermaid":"11.0.0"}}', lock)) and not pin)
     print(f"       ({b['stats']})")
 
 
