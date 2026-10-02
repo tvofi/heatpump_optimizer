@@ -1,0 +1,143 @@
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 6db94d0eb..a3c4e4a02 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
+ [how-it-works.md](how-it-works.md).
+ 
+ The shape is a thin Home Assistant layer wrapped around a much larger core that
+-knows nothing about Home Assistant: 68 modules, of which 25 import the
++knows nothing about Home Assistant: 69 modules, of which 25 import the
+ `homeassistant` package at module level, one more touches it inside a single
+ function, and the rest take numbers in and give numbers back.
+ 
+@@ -179,7 +179,7 @@ custom_components/heatpump_optimizer/
+ 
+ ## The Home Assistant boundary
+ 
+-25 of the 68 modules import `homeassistant` at module level: `__init__`,
++25 of the 69 modules import `homeassistant` at module level: `__init__`,
+ `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
+ platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
+ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
+@@ -188,7 +188,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
+ reaches for `homeassistant.util.dt` inside a function, as the fallback when no
+ clock function was injected.
+ 
+-The other 42 modules are deliberately free of it, so each can be driven
++The other 43 modules are deliberately free of it, so each can be driven
+ directly by `tests/features.py` with no Home Assistant running. That matters
+ because the failure mode of this integration is a *plausible* plan: a detector
+ that never fires, or a watchdog that lets a flatline through, produces output
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+index dc49744cf..cbe0b5584 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -37,15 +37,10 @@ child from ``inspect.getfile``.
+ 
+ COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
+ tracked package file by file (``_materialise``, below), and the gate's tracer
+-records every read, so this lane's recorded closure is the package: all 86
++records every read, so this lane's recorded closure is the package: all 87
+ files under ``custom_components/heatpump_optimizer/``, Python and non-Python
+-<<<<<<< e78ac3016
+-alike (85 until R9-EG-B3a's ``payload.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
++alike (86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+ images) -- the only closure in ``tests/closures.json`` that reaches every
+-=======
+-alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+-images, 85 until R9 EG-B5's ``dhw_planner.py``) -- the only closure in ``tests/closures.json`` that reaches every
+->>>>>>> HEAD^2
+ production file. A diff touching any production file therefore selects this
+ lane. That is a selection cost, not a duplicate-assertion one: the same
+ recording finds 82 of the 378 script pairs (28 choose 2) sharing 0.80 or more
+@@ -57,15 +52,11 @@ R9 F10.3's strace instrument recorded its round-harness children's imports;
+ doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
+ added icons.json and services.yaml to doc_claims.py's closure).
+ Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
+-(76 shared production files), structure.py/typing_ruler.py (68),
+-finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (68
+-each), plan_view.py/solar_alignment.py (51), the optimality.py/validate.py/
+-<<<<<<< e78ac3016
+-edge.py/backtest.py four (14, six pairs), golden.py/env_drift.py (84),
+-=======
+-edge.py/backtest.py four (16, six pairs), golden.py/env_drift.py (84),
+->>>>>>> HEAD^2
+-card.mjs/card_drift.mjs (52) -- and which
++(77 shared production files), structure.py/typing_ruler.py (69),
++finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (69
++each), plan_view.py/solar_alignment.py (52), the optimality.py/validate.py/
++edge.py/backtest.py four (16, six pairs), golden.py/env_drift.py (85),
++card.mjs/card_drift.mjs (53) -- and which
+ mutants each script actually kills
+ was never measured, so nothing here says those runs are redundant either:
+ the pre-screen stops at the first killer, and where a narrower closure here
+diff --git a/tools/audit/round4/D6/claims.json b/tools/audit/round4/D6/claims.json
+index 3e5d4ac43..68d9cf7b6 100644
+--- a/tools/audit/round4/D6/claims.json
++++ b/tools/audit/round4/D6/claims.json
+@@ -283,7 +283,7 @@
+   "source": "docs/architecture.md",
+   "claim": "45 modules",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+-  "result": "documented=68 measured=68",
++  "result": "documented=69 measured=69",
+   "verdict": "true",
+   "truth": ""
+  },
+@@ -292,7 +292,7 @@
+   "source": "docs/architecture.md",
+   "claim": "the module map is the package's module list",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+-  "result": "on disk=68, listed=68, missing=[], phantom=[]",
++  "result": "on disk=69, listed=69, missing=[], phantom=[]",
+   "verdict": "true",
+   "truth": "0 modules are absent from the map: "
+  },
+diff --git a/tools/audit/round4/D6/claims.md b/tools/audit/round4/D6/claims.md
+index 961ab1f69..77d572fda 100644
+--- a/tools/audit/round4/D6/claims.md
++++ b/tools/audit/round4/D6/claims.md
+@@ -35,8 +35,8 @@ Generated by `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` f
+ | C29 | `docs/architecture.md:module map` | config_flow.py -- Setup flow plus 23 option pages behind two menus | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | documented=23 measured=23 | **true** |  |
+ | C30 | `docs/configuration.md` | every documented Default (89 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | 89 compared, mismatches=[] | **true** |  |
+ | C31 | `docs/configuration.md` | every documented Range (91 rows) is the NumberSelector min/max the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | 91 compared, mismatches=[] | **true** |  |
+-| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | documented=68 measured=68 | **true** |  |
+-| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | on disk=68, listed=68, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
++| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | documented=69 measured=69 | **true** |  |
++| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | on disk=69, listed=69, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
+ | C34 | `docs/architecture.md:The Home Assistant boundary` | the boundary sentence's count of modules importing `homeassistant` at module level | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | documented=25 measured=25 | **true** |  |
+ | C35 | `docs/architecture.md:The Home Assistant boundary` | the named modules are the complete set of module-level importers | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | named=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], measured=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], unnamed=[] | **true** | unnamed module-level importers:  |
+ | C36 | `docs/architecture.md:The Home Assistant boundary` | everything outside the named set is free of homeassistant, so each module can be driven with no Home Assistant running | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` | 0 modules outside the named set import homeassistant at module level | **true** | modules outside the named set import homeassistant at module level and cannot be imported without it:  |
+diff --git a/tools/audit/round4/D6/claims.py b/tools/audit/round4/D6/claims.py
+index 8c3ec5053..b9bd801a6 100644
+--- a/tools/audit/round4/D6/claims.py
++++ b/tools/audit/round4/D6/claims.py
+@@ -75,12 +75,8 @@ against a document that is CORRECT.
+                                          #1495's same mold-floor breach warning
+                                          margin, whose 0-5 °C Range row is the
+                                          only one this re-record adds)
+-<<<<<<< e78ac3016
+-    RESULT arch_modules_on_disk=68       (67 until R9-EG-B3a's payload.py; 66 until R9 F2.5's batchmath.py;
+-=======
+-    RESULT arch_modules_on_disk=68       (67 until R9 EG-B5's dhw_planner.py;
++    RESULT arch_modules_on_disk=69       (68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+                                          66 until R9 F2.5's batchmath.py;
+->>>>>>> HEAD^2
+                                          65 until #1588's pump_arbiter.py; 64
+                                          until #1408's store.py;
+                                          architecture.md said 45; 56 until
+@@ -105,12 +101,8 @@ against a document that is CORRECT.
+                                          bytes of, so nothing compared these
+                                          numbers to a run between 2026-09-17
+                                          and then)
+-<<<<<<< e78ac3016
+-    RESULT arch_map_listed=68            (67 until R9-EG-B3a's payload.py; 66 until R9 F2.5's batchmath.py;
+-=======
+-    RESULT arch_map_listed=68            (67 until R9 EG-B5's dhw_planner.py;
++    RESULT arch_map_listed=69            (68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+                                          66 until R9 F2.5's batchmath.py;
+->>>>>>> HEAD^2
+                                          was 45; 11 were missing; 66 with
+                                          #1588's pump_arbiter.py added to
+                                          architecture.md's module map)

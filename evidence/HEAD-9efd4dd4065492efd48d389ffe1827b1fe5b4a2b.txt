@@ -1,0 +1,1 @@
+head measured: 9efd4dd4065492efd48d389ffe1827b1fe5b4a2b = e78ac3016 + origin/main 68b8cb97d (hand-resolved: deployment_shape.py, D6/claims.py; re-derived architecture.md, claims.json/md); round 5
