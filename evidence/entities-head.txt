@@ -23,14 +23,14 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-02 13:52:24.970905+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 13:52:25.572355+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 13:52:25.572355+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 13:52:25.572355+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 13:52:27.336883+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-02 16:09:39.293563+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 16:09:39.909551+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 16:09:39.909551+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 16:09:39.909551+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 16:09:41.654333+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 13:52:28.062930+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-02 13:52:42.066250+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 16:09:42.365910+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-02 16:09:57.032095+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
@@ -1502,7 +1502,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [12 registered after two entries; catalog 12; extra=[]; missing=[]]
-  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_schedule__dup', 'clear_manual_plan__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['clear_manual_plan__dup', 'restore_learned_snapshot__dup', 'set_thermal_parameters__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [12 registered after unload; catalog 12; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 12; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1600,7 +1600,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpbv_6p6f_/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpsbmhl8_z/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1618,7 +1618,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-wrezgm6y/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-ge13knxn/closures.json
   tests/layout.py               2 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1770,7 +1770,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 21b15a29cb27ba2c23cb93273b3b5fc6711508f9
+  DRIFT wood_coil: 1 leaves moved vs 1e70a8da11c882ab60fca244e549f4fd18158a87
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2159,7 +2159,6 @@ MUTATION LEDGER: changed -- nothing owed
 MUTATION LEDGER: skip-unchanged -- nothing owed
 MUTATION LEDGER: skip-nothing-killed -- nothing owed
 MUTATION LEDGER: skip-nothing-drivable -- nothing owed
-MUTATION LEDGER: skip-no-writer -- nothing owed
 MUTATION LEDGER: (no status) -- a measured slice did not reach main
 MUTATION LEDGER: skip-no-measurement -- a measured slice did not reach main
 MUTATION LEDGER: skip-head-moved -- a measured slice did not reach main
@@ -2167,10 +2166,16 @@ MUTATION LEDGER: skip-write-set -- a measured slice did not reach main
 MUTATION LEDGER: skip-push-refused -- a measured slice did not reach main
 MUTATION LEDGER: skip-fetch-failed -- a measured slice did not reach main
 MUTATION LEDGER: skip-apply-crashed -- a measured slice did not reach main
+MUTATION LEDGER: skip-commit-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-writer -- a measured slice did not reach main
 MUTATION LEDGER: measured -- a measured slice did not reach main
   ok   the ledger writer may only add killed_by rows, and its job reddens a slice that did not land
   ok   --drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched
   ok   mutation-ledger measures without a write grant and mutation-ledger-push writes only rows
+  ok   a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both
+  ok   the ledger writer's secrets are read by mutation-ledger-push alone, in the ledger environment
+  ok   mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed
+  ok   the ledger writer's token and auth header are masked before their first use
   ok   a mutant is driven only by the scripts whose closure reaches its file
   ok   the default driver list can reach tests/manual_plan.py's module (#1225)
   ok   and the default list still drives nothing into a file no closure reaches
@@ -2318,5 +2323,5 @@ MUTATION LEDGER: measured -- a measured slice did not reach main
   ok   EG-B2: every coordinator view the surfaces read is a read-only property
   ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
 
-ALL 2065 ENTITY CHECKS PASSED
+ALL 2069 ENTITY CHECKS PASSED
 rc=0

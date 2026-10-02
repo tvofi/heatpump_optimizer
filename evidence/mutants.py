@@ -26,6 +26,22 @@ M = {
  "A9": [(NS, 'REQUIRED_LANES = ("mutation-ledger", "mutation-nightly", "nightly-ha", "slow")', 'REQUIRED_LANES = ("mutation-nightly", "nightly-ha", "slow")')],
  "A10": [(WF, "    if: always() && needs.mutation-ledger.result == 'success'\n", "    if: always() && needs.mutation-ledger.result == 'success' && (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')\n")],
 }
+
+M.update({
+ "R_A7": [(MT, "    return diff.stdout.split() if diff.returncode == 0 else None", "    return diff.stdout.split()")],
+ "R_B1a": [(WF, "      always() && github.ref == 'refs/heads/main' && (\n        github.event_name == 'schedule'", "      always() && (\n        github.event_name == 'schedule'")],
+ "R_B1b": [(WF, "      always() && github.ref == 'refs/heads/main'\n      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')", "      always()\n      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')")],
+ "R_B1c": [(WF, "      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')\n", "      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')\n")],
+ "R_B2a": [(WF, "    environment: ledger\n", "")],
+ "R_B2b": [(MT, '               "skip-nothing-drivable")', '               "skip-nothing-drivable", "skip-no-writer")')],
+ "R_P1": [(MT, '    if git("rev-parse", "HEAD^") != git("rev-parse", "origin/main"):\n        out.append("HEAD\'s parent is not origin/main")\n', '')],
+ "R_P2": [(MT, '        if code != "A" or not path.startswith(DRAIN_ROWS):', '        if not path.startswith(DRAIN_ROWS):')],
+ "R_P3": [(MT, '    if git("log", "-1", "--format=%s", "HEAD") != DRAIN_SUBJECT:\n', '    if False:\n')],
+ "R_P4": [(MT, '    if len(commits) != 1:', '    if len(commits) > 1 and False:')],
+ "R_P5": [(WF, "bad = m.drain_push_problems(); print", "bad = []; print")],
+ "R_P6": [(MT, 'return r.stdout.strip() if r.returncode == 0 else "\\0"', 'return r.stdout.strip()')],
+})
+
 mid, wt = sys.argv[1], pathlib.Path(sys.argv[2])
 for f, old, new in M[mid]:
     p = wt / f; t = p.read_text(); n = t.count(old)

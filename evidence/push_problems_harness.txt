@@ -1,0 +1,12 @@
+RESULT S1 one row commit (null) -> []
+RESULT S2 branch commit under row commit -> ['2 commit(s) ahead of origin/main, not 1', "HEAD's parent is not origin/main", 'M src.py']
+RESULT S3 modifies a row -> ['M tests/mutation_ledger/killed_by/old.json']
+RESULT S4 wrong subject -> ["subject is not 'ci: record nightly kills'"]
+RESULT S5 row + src in one commit -> ['M src.py']
+RESULT S6 no origin/main -> ["HEAD's parent is not origin/main", '\x00 ']
+RESULT S7 nothing committed -> ['0 commit(s) ahead of origin/main, not 1', "HEAD's parent is not origin/main", "subject is not 'ci: record nightly kills'"]
+RESULT S8 deletes a row -> ['D tests/mutation_ledger/killed_by/old.json']
+RESULT drain_changed real ['src.py']
+RESULT drain_changed unknown sha None
+RESULT drain_changed empty at None
+RESULT drain_changed same []
