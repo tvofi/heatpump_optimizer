@@ -1,6 +1,0 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 40 policy file(s)
-
-FIXTURE VACUOUS: the token-hidden skip line no longer matches TOKEN_HIDDEN_SKIP_RE; env-matrix would refuse the line every Actions run prints

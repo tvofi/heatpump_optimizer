@@ -1,6 +1,0 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 40 policy file(s)
-
-FIXTURE VACUOUS: a recorded field the live read omits produced 3 finding(s) and 0 skip line(s); it must be a printed skip and no finding, or every Actions run goes red
