@@ -17,9 +17,9 @@ Test doubles follow the real interface: `tests/harness.py`'s `FakeCoordinator` g
 
 ## Head
 
-907eedf6c83e92d4a0a439c993c70d71ab008f7a
+b89293533431bd5e5c6cc81943bbb874582dae55
 
-Code head on `handoff/r9-eg-surface-identity`, measured against merge base `3bd6f122` (origin/main at 2026-10-02T01:45Z).
+Code head on `handoff/r9-eg-surface-identity`: the fix at `907eedf6` with origin/main `777c2318` (#1837) merged in at 2026-10-02T03:10Z. That merge brought no change to any `custom_components/heatpump_optimizer/*.py` file (`git diff --quiet 907eedf6 b8929353 -- 'custom_components/heatpump_optimizer/*.py' && echo PY_PACKAGE_IDENTICAL` printed it), so the snapshot, mutant and score figures below, taken at `907eedf6` against `3bd6f122`, describe this head's package. The scoped gate and `prepr.sh` were re-run at this head.
 
 ## Mutation proof
 
@@ -41,7 +41,7 @@ Survivors on the sites this diff touched: none. `mutation_table.py --scope chang
 
 - **Identity snapshot.** Every entity's (platform, unique_id, entity_id, translation_key) is snapshotted at the merge base and at the head with `hass.config.language` set to `en` and to `sv`: 75 entities (sensor 59, binary_sensor 6, button 4, switch 4, climate 1, datetime 1), byte-identical across all four. Perturbation: climate's `object_id` changed to `heat_pump_optimizer_climate` on the head. The snapshot then differs on exactly that row (`climate.heat_pump_optimizer` against `climate.heat_pump_optimizer_climate`), so an identity change would have shown. The ids are built in the constructors and no translation file is loaded, so en against sv shows that language does not reach the ids. It is not a test of display names.
 - **The scan's own control.** `EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins` passes at the base and at the head. It runs three planted reaches, a `.`-read, a `getattr` and a `{**data, **options}`, and their public twins.
-- `tests/entities.py` passes at the head (2058 checks; the 2053 at the merge base plus the five new).
+- `tests/entities.py` passes at the head (`ALL 2060 ENTITY CHECKS PASSED`, the five EG-B2 checks among them).
 - **Goldens.** The scoped gate runs `tests/golden.py` in drift mode against the merge base, green; no claim file is touched.
 
 ## Figures
@@ -49,7 +49,7 @@ Survivors on the sites this diff touched: none. `mutation_table.py --scope chang
 `$EV` is `/mnt/project-files/audit-r9/fix/evidence/EG-B2-907eedf6/` (project files, not in the tree). The snapshot script is `$EV/identity_snapshot.py`, sha1 `003ab58cc89772cc75efeb0d63d818816f20431f`.
 
 - **Scope:** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 21 script(s) run, 7 scoped out`.
-- **Scoped gate:** `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at 907eedf6. Every script passed except `tests/stress.py`: `FAIL every scenario's solve costs what it should, in CPU, for this machine [shoulder/tariff+cycle used 11664 ms of CPU = 273x the 42.8 ms reference measured beside it (budget 268x)]`. That run shared the box with a snapshot run of mine. Re-run alone, `PYTHONPATH=tests/hastub python tests/stress.py` at 907eedf6 failed the same check (`272x ... (budget 268x)`). At the merge base 3bd6f122 the same command failed it worse (`worst scenario: shoulder/tariff+cycle used 12215 ms of CPU = 284.5x its 42.9 ms reference`), and the first gate at 076f77a0 passed it (`257.2x`). The budget check is reading this machine, and the diff does not touch the solver. CI's runner is the judge.
+- **Scoped gate:** `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` at b8929353, `MODE: SCOPED -- 21 script(s) run, 7 scoped out`: every script passed except `tests/stress.py`, again on the CPU budget alone (`272.3x its 42.1 ms reference; budget is 268x`). At 907eedf6 the same gate failed only `tests/stress.py` too: `FAIL every scenario's solve costs what it should, in CPU, for this machine [shoulder/tariff+cycle used 11664 ms of CPU = 273x the 42.8 ms reference measured beside it (budget 268x)]`. That run shared the box with a snapshot run of mine. Re-run alone, `PYTHONPATH=tests/hastub python tests/stress.py` at 907eedf6 failed the same check (`272x ... (budget 268x)`). At the merge base 3bd6f122 the same command failed it worse (`worst scenario: shoulder/tariff+cycle used 12215 ms of CPU = 284.5x its 42.9 ms reference`), and the first gate at 076f77a0 passed it (`257.2x`). The budget check is reading this machine, and the diff does not touch the solver. CI's runner is the judge.
 - **Identity snapshot:** `cd <tree> && PYTHONPATH=tests/hastub:tests:. python $EV/identity_snapshot.py <en|sv>`, then `cmp base_<lang>.tsv head_<lang>.tsv && echo IDENTICAL`, which printed IDENTICAL for en and sv; the perturbed head printed `differ: ... line 11`.
 - **Private reaches:** this is the rule that enumerates the seams, the `_egb2_private_reads` scan in `tests/entities.py`. Over the seven surface modules (entity, sensor, binary_sensor, button, switch, climate, datetime) it returned 15 at the base: entity.py 199 `_thermal_params` and 208 `_config`; sensor.py 641 and 1716 `_thermal_model`, 681 and 2850 `_config`, 1091-1093 and 2164 `_thermal_params`; binary_sensor.py 179 `{**data, **options}` and 210 `_mold_floor_series`; switch.py 130 and datetime.py 45 `_away_state`; climate.py 106 `{**data, **options}`. It returns 0 at the head, and every one of the 15 is closed in this diff. `diagnostics.py` is not a surface, and the scan does not read it: its `_mode` and `_optimization_running` move here to the existing properties, and its six remaining reaches (`_tibber_outage_cycles`, `_tibber_reauth_started`, `_solve_failures`, `_cop_scale`, `_cop_samples`, `_house_heat_loss_scale`) have no public accessor and are R9-EG-B6's (#1739).
 - **Architecture score.** The prototype is exported from `92b3ecc9` into `$EV/archscore/proto/`, with sha1s arch_score 5312e86583a2…, measure_vec e78dbcc37e26…, metrics_v1 89c968bf0910… and counters d547b17cc711…. Each tree's vector is `python3 $EV/archscore/proto/b/measure_vec.py <tree>` merged with `python3 $EV/archscore/proto/b/metrics_v1.py <tree>`, and its counters come from `python3 $EV/archscore/proto/redteam/counters/counters.py <tree>`. The no-counter delta is `python3 $EV/archscore/proto/b/arch_score.py --delta $EV/archscore/base.json $EV/archscore/head.json`. The counter delta is `python3 $EV/archscore/score_with_counters.py` (sha1 `a6a5d61d7633…`), which applies `score_proto.py`'s swap, gate-only list and weights to these two trees, because `score_proto.py` reads only its own attempt files.
@@ -58,7 +58,7 @@ Survivors on the sites this diff touched: none. `mutation_table.py --scope chang
   - No score or gate metric rises under either.
   - Per file with counters: entity 2 → 0, sensor 8 → 0, binary_sensor 1 → 0, datetime 1 → 0, switch 4 → 3, diagnostics 8 → 8. C5 counts `mode` and `optimization_running` as passthroughs too.
   - The brief's carry expected +3.8, for `private_reach` 13 → 0 tree-wide after B6. The surface half reaches 0 here on the v1 count; the counters keep the passthrough views and properties.
-- **Structure:** `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED` at 907eedf6. The re-record was `python3 tests/structure.py --record`, on the commit whose message carries the reason.
+- **Structure:** `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED` at b8929353. The re-record was `python3 tests/structure.py --record`, on the commit whose message carries the reason.
 
 ## Red checks
 
