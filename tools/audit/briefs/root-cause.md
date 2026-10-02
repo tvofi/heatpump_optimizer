@@ -32,6 +32,10 @@ present or absent, obeyed or not. "Nobody checked X" is state (a) only if no
 check for X existed; if one existed in CI but in no local path, that is (c), and
 the countermeasure is different.
 
+An instance of an audit class that already carries a barrier is not state (a)
+because its shape was new: the barrier existed. Name why its unit did not reach
+the instance; the countermeasure changes the unit, not the arm count.
+
 **The most common error is recording (c) or (d) as (b)**, which produces a
 firmer instruction for something that was obeyed and wrong. If your proposed
 countermeasure is "tell the worker harder", suspect your state.
