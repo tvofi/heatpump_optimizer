@@ -598,6 +598,7 @@
    ".claude/**",
    ".cursor/**",
    "tools/**",
+   "docs/decisions/**",
    "CLAUDE.md",
    "AGENTS.md"
   ],
