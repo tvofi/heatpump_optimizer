@@ -2445,11 +2445,11 @@
         "R9-F11.3"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-4",
-        "commit": "e37cefc60a41b2cf2f134672b40dc02478dcd5a9",
-        "last_step": "PR #1838 head e37cefc6 (fast-forward from 46a70815; merge of origin/main 492d8401). Budget rows fell in the merge: coordinator_private_reach 89->74, dead_methods 3->0, max_class_loc 9003->8989, seam_cut_total 777->776; none rose. Delta review at e37cefc6 in flight 2026-10-02T09:00Z, verdict to handoff/verdict/1838",
-        "next_step": "needs: a merge verdict at e37cefc6, green CI (its briefs check goes green once #1842 merges), tvofi's own approving review (budget changes), then merge with --match-head-commit",
+        "commit": "2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d",
+        "last_step": "MERGED as #1838 at 2b6c5b87",
+        "next_step": "none: delivered",
         "note_file": "handoff/round9/fix/resume/F10.4.md on handoff/r9-f10-gate-infra-4",
         "review_branch": "handoff/r9-f10-gate-infra-4-review",
         "review_note_file": "handoff/round9/fix/resume/F10.4-review.md on handoff/r9-f10-gate-infra-4-review",
@@ -2499,11 +2499,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f10-dead-methods",
         "commit": null,
-        "last_step": null,
-        "next_step": "after #1838 merges: re-measure dead_methods at origin/main first; #1838's merge of main already reads dead_methods 3->0 (EG-B2 deleted the accessors), so the likely delivery is the cap re-record alone, or nothing; no budget raise is allowed",
+        "last_step": "retired: re-measured dead_methods 0 at 2b6c5b87 (#1838 merge); #1841 closed; no PR",
+        "next_step": "none: retired, nothing to deliver",
         "note_file": "handoff/round9/fix/resume/F10.4b.md on handoff/r9-f10-dead-methods",
         "review_branch": "handoff/r9-f10-dead-methods-review",
         "review_note_file": "handoff/round9/fix/resume/F10.4b-review.md on handoff/r9-f10-dead-methods-review",
@@ -2546,11 +2546,11 @@
         "R9-F11.2"
       ],
       "resume": {
-        "stage": "built",
+        "stage": "in-review",
         "branch": "handoff/r9-f10-gate-infra-5",
-        "commit": "f3e2e445bb981eff4fef38242bcb8ac520a7afa6",
-        "last_step": "code on handoff/r9-f10-gate-infra-5, body on handoff-body/r9-f10-gate-infra-5; 8 mutants killed, null survives; 40-site drain on a scratch ref pinned 37; touches code-owned tests.yml, tests/mutation_table.py, tests/nightly_status.py",
-        "next_step": "after #1838 merges: merge origin/main, re-run proofs, re-body, hand off; tvofi creates the hpo-ledger App (contents rw, HPO_LEDGER_PEM, HPO_LEDGER_APPID, main push bypass) before its push job records anything",
+        "commit": "4f594b42635be021152dec6e3934af1a674cec52",
+        "last_step": "PR #1848 head 4f594b42, round 2 (security block)",
+        "next_step": "a merge verdict at the round-2 head, green CI, then merge; after it merges tvofi removes App 5094721 from the bypass list of ruleset 22628467 and deletes the repo-level HPO_LEDGER_* secrets",
         "note_file": "handoff/round9/fix/resume/F10.5.md on handoff/r9-f10-gate-infra-5",
         "review_branch": "handoff/r9-f10-gate-infra-5-review",
         "review_note_file": "handoff/round9/fix/resume/F10.5-review.md on handoff/r9-f10-gate-infra-5-review",
@@ -2880,11 +2880,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "built",
+        "stage": "in-review",
         "branch": "handoff/r9-f11-governance-4",
-        "commit": "2391db77b4878d54e96279dd79301782f57fefa5",
-        "last_step": "review round-1 items fixed at 2391db77; codeowners_gap.py --check uncovered_files=0",
-        "next_step": "after #1838 merges: merge origin/main, prepr.sh, body, hand off to the same reviewer (F11.4 review)",
+        "commit": "1517fa2d6363cba80335a1db35623682aad177e4",
+        "last_step": "PR #1847 head 1517fa2d; its precursor PR #1850 (resolvePrFromCommit, policy_lint rulePaths) head b660da55 is open",
+        "next_step": "precursor #1850 merges first; then a merge verdict, and #1847 lands by option 3 with --admin past policy-docs",
         "note_file": "handoff/round9/fix/resume/F11.4.md on handoff/r9-f11-governance-4",
         "review_branch": "handoff/r9-f11-governance-4-review",
         "review_note_file": "handoff/round9/fix/resume/F11.4-review.md on handoff/r9-f11-governance-4-review",
@@ -3078,11 +3078,11 @@
         "R9-EG-B2"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "built",
         "branch": "handoff/r9-eg-typed-payload",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "8eba0f4989d211e3111e6966bea4c2acdebff5c5",
+        "last_step": "built at code head 8eba0f49 on handoff/r9-eg-typed-payload; delivers as B3a (a hastub Generic edit needs tvofi); PR opening",
+        "next_step": "open the PR as B3a with the issue left open (no closing keyword); a merge verdict, then merge; the remainder is R9-EG-B3b",
         "note_file": "handoff/round9/fix/resume/EG-B3.md on handoff/r9-eg-typed-payload",
         "review_branch": "handoff/r9-eg-typed-payload-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B3-review.md on handoff/r9-eg-typed-payload-review",
@@ -3091,6 +3091,56 @@
         "note": "Added by the round-9 endgame review (2026-09-28). The seat's resume note on its branch outranks this entry for in-flight state; the record seat updates stage, commit, last_step and next_step at each hand-off and merge."
       },
       "brief": "Round-9 endgame PR EG-B3 (lane EG, architecture: typed payload contract). Added by the endgame review (the ALT endgame plan on the handoff/audit-r9-alt branch); the lane owns no file until its after-edges merge, then borrows what its scope names. Issue #1737 (Fixes). A total=False TypedDict describing the published payload (the producer set R9-F1.11's P6 barrier registers; the coordinator's _build_data_dict and its views), with the coordinator's DataUpdateCoordinator type parameter set to it, and the hand-written payload shape in tests/entities.py derived from it. Measure the typing-census delta first with HPO_TYPING_PYTHON (gate-scoping.md); a read with no producer then becomes a census error, which is the point. No runtime change; goldens identical. If the type lands in a new module, classify it (the tests/entities.py orphan check) and record its closure with --single. After R9-F10.4 and R9-EG-B2. Carry (architecture score, handoff/round9/state/alt/archscore/PRE-STUDY.md section 8 at 92b3ecc9): expected delta-S +50.9, the largest single step of the 2x plan: untyped_payload_keys 164 -> 0, each key with its real value type (a key typed Any is not typed; the metric is tightened to say so in R9-EG-A1), and the one read with no producer (horizon_hours, sensor.py:1505 and :1539 at 5dfa6684) becomes a typing error, not a silent fallback. Measure delta-S before and after with the in-tree score (python3 tools/audit/archscore/score.py --diff <the stage's merge base>, which carries the red-team counters; code head 486b397a2, prototype at 92b3ecc9 retired) and put the per-metric deltas in the PR body; a gain that appears only without the counters is not a gain. The score is report-only: a shortfall is not a failure, a rise in any score metric is explained in the body, and none of the red-team moves in handoff/round9/state/alt/archscore/PRE-STUDY.md section 7 (an Any-typed payload key, a passthrough property over a private, a renamed or re-spelled defect) counts as progress. Measure updated by R9-EG-A1 (PR pending), accepted by tvofi 2026-10-02: the score is now in-tree (code head 486b397a2) and shares tests/structure.py's definitions (main af7660c74), so the prototype commands at 92b3ecc9 are retired."
+    },
+    {
+      "group": "R9-EG-B3b",
+      "lane": "EG",
+      "issues": [
+        1737
+      ],
+      "fixes": [
+        1737
+      ],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "architecture",
+      "wave": 10,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "re-routed opus->sonnet by tvofi 2026-09-30T11:34Z (clear brief, oracle exists); reverts to opus if review round 1 finds real defects (EG-B3/EG-B6). Was: a typed contract over the coordinator's whole published payload",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": null,
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-EG-B3"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-eg-typed-payload-b",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once R9-EG-B3 (B3a) has merged: read the brief, then write the failing check",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "the R9-EG-B3 pull request body, section \"Owed to R9-EG-B3b\" (ref handoff-body/r9-eg-typed-payload), and this roster",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Added 2026-10-02 by the record seat when R9-EG-B3 split into B3a and B3b. The seat resume note on its branch outranks this entry for in-flight state."
+      },
+      "brief": "Round-9 endgame PR EG-B3b (lane EG, architecture: the typed payload contract, remainder). Split from R9-EG-B3 because the full contract (about 620 lines drafted) does not fit one PR; B3a delivers the Payload class, B3b delivers the rest and the issue #1737 closes with it. B3b does not gate R9-UX-4 or R9-EG-B4, whose after-edges on R9-EG-B3 are met by B3a. Code head of B3a: 8eba0f4989d211e3111e6966bea4c2acdebff5c5. The following is the \"Owed to R9-EG-B3b\" section of the B3a pull request body (ref handoff-body/r9-eg-typed-payload, its body file), quoted with the names of one script and one counter in item 6 paraphrased so brief_lint resolves:\n\nB3b must do exactly this, and the issue closes with it:\n\n1. Give each of these a fixed-shape TypedDict in place of `dict[str, object]`, field types read from the producer and confirmed with `reveal_type`: `heat_pump_signals`, `battery`, `wood_fuel` (including `night_advice`, which `sensor.py` reads and `build_wood_fuel_view` does not set at the top level), `accuracy`, `price_prior`, `external_heat`, `system_identification`, `defrost_buckets` items, `comfort_learning`, `heat_curve`, `contract_comparison`, `power_headroom`, `pv`, `dhw_advisor`, `schedule` and `dhw_schedule` items, and `space_plan` / `dhw_plan` with their forecast and slot items. `PeakTariff` is already typed here.\n2. Confirm two shapes drafted from partial reads: the plan `slots` items (`_plan_slots`, `coordinator.py`) and `price_prior` (`PriceShapeModel.summary()` in `price_model.py`).\n3. Decide, per key, which of these stay open-ended and say why in `payload.py`: `predictive_info`, `last_diagnosis`, `monthly_report`, `fuse_advisor`, `ecl110_last_payload`, `solar_diagnostics`, `sensor_advisor`, `FreqControl.map`, `SystemIdentification.result`, `Narrative.items`, `ManualPlan.released_space` and `released_dhw`. Each is built by a producer typed `dict[str, Any]` or through `_plain_types(...) -> Any`.\n4. Remove `cast(Payload, data)` in `_build_data_dict`: give each view (`_thermal_view`, `_dhw_view`, `_learning_view`, `_measurement_view`, `_grid_view`, `_ecl110_view`, `_external_heat_view`, `_input_health_view`, `_mixing_valve_view`, `_plan_settings_view`, `_insight_view`, `_freq_view`, `_build_plan_views`, `_apply_result_payload`, `_apply_unsolved_payload`) a slice TypedDict return type, with `Payload` inheriting the slices, so mypy checks each producer against its slice. Many producer values are `Any` today (`result: Any`, `getattr(self, \"_ctx\", self)`), so this step needs those sources typed too, or each value read through a typed local.\n5. Derive the hand-written payload shape `DATA` in `tests/entities.py` from `Payload` (issue #1737's third bullet), and make a read with no producer fail there.\n6. Re-run the architecture-score prototype with its --delta flag with the counters swapped in and report the untyped-payload-keys counter where no key is `dict[str, object]`; per the issue, an `Any` or `object` typed key is not progress."
     },
     {
       "group": "R9-EG-B4",
@@ -3337,11 +3387,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "built",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-dhw-closure-dedupe-v2",
-        "commit": "5a69e8744ab52dd257884fd2c036689d7ed59bb5",
-        "last_step": "one builder; ratchet re-recorded downward (3 rows); env_drift 56 scenarios unchanged; both mutants caught by features.py",
-        "next_step": "after #1838 merges: merge origin/main, prepr.sh, hand off",
+        "commit": "c5dad85002d0482d5f78d834c39948be71843232",
+        "last_step": "PR #1845 head c5dad850",
+        "next_step": "a merge verdict at that head, green CI, then merge with --match-head-commit",
         "note_file": "handoff-body/r9-eg-dhw-closure-dedupe:RESUME.md",
         "review_branch": "handoff/r9-eg-dhw-closure-dedupe-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B5a-review.md on handoff/r9-eg-dhw-closure-dedupe-review",
@@ -4485,11 +4535,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-archscore",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
+        "commit": "c9d6168cae2be1b967848bf435238fb3cf7af8b3",
+        "last_step": "PR #1851 head c9d6168c (the calibration move is accepted by tvofi)",
+        "next_step": "a merge verdict at that head, green CI, then merge; it takes the stamp after 6.7.14",
         "note_file": "handoff/round9/fix/resume/EG-A1.md on handoff/r9-eg-archscore",
         "review_branch": "handoff/r9-eg-archscore-review",
         "review_note_file": "handoff/round9/fix/resume/EG-A1-review.md on handoff/r9-eg-archscore-review",
@@ -6059,11 +6109,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-web-page",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/state/alt/design/site/DESIGN-SITE.md, then write the failing test",
+        "commit": "e42b1cdd805b011701479b3e19e2bbf4d6876dcc",
+        "last_step": "PR #1846 head e42b1cdd",
+        "next_step": "a merge verdict at that head, green CI, then merge with --match-head-commit",
         "note_file": "handoff/round9/fix/resume/WEB-1.md on handoff/r9-web-page",
         "review_branch": "handoff/r9-web-page-review",
         "review_note_file": "handoff/round9/fix/resume/WEB-1-review.md on handoff/r9-web-page-review",
