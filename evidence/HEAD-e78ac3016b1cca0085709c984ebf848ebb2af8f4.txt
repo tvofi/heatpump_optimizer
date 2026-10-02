@@ -1,2 +1,0 @@
-head measured: e78ac3016b1cca0085709c984ebf848ebb2af8f4 = 6cbc5661 + mutation-autofix ci: pin killed mutants (carry); round 4
-head measured: 6cbc566164a4fbccac3df36ce0ea566474e1538a = 0135f1ac5 + origin/main aa7a81192 (automatic; merge-tree tree 12de0e13e4f1 == head tree); round 4

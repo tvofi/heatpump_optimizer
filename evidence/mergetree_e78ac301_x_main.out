@@ -1,0 +1,11 @@
+070b39acd152bf65e3eecdfe735dff1c7c2585d8
+tests/deployment_shape.py
+tools/audit/round4/D6/claims.py
+
+Auto-merging docs/architecture.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/entities.py
+Auto-merging tools/audit/round4/D6/claims.py
+CONFLICT (content): Merge conflict in tools/audit/round4/D6/claims.py
