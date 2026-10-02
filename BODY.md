@@ -20,16 +20,17 @@ Not in this diff: R9's own survivors cannot be checked until `tools/audit/round9
 Design points, for the reviewer:
 - The rule for an RCA citation (accepted by the coordinator): a class that met a trigger is answered by a barrier, or by a cited `rca` whose `_rca[...].in_tree_home` is an existing file under `tools/audit/rca`; every `in_tree_home` must be null or such a file, and every cited id must be indexed in `_rca`.
 - `in_tree_home` was aspirational in R0's data (80 dangling). A class's RCA now counts toward its trigger only if its document is in the tree, which turned P4, P8, P10 and N-name-sort from "cited" to "documented" (their bulk documents are `RCA-BULK-1.md` and `RCA-BULK-4.md`). The 66 RCAs whose records live only in issues or PR bodies keep `in_tree_home: null`; rebuilding the 9 lost ones stays refused (RCA-BULK-2 section 3.4).
+- The policy says a class owes a barrier at "five while open"; the code tests "total >= 5 and status is not barriered". The two differ only for P4 (status `detector`, not open).
 - A survivor placed in `_unclassified` with a reason counts as placed (R9 will have some); one in `_excluded` does not.
 - The checker runs as the branch's own copy, so a branch that edits it and the ledger together is stopped only by ownership; CODEOWNERS now names it, and the review at the head is where that is read.
 
 ## Head
 
-`22ebb9a9794c590f355bbd3a248b93c851fd0dbc` (a merge of `origin/main` `5f87e25a110ff0a6fad179283b21f3823d0cd1f1`, #1854, into e48202035; the three earlier commits were measured on `948671af1`, #1847, and re-measured here after the merge); commits 78f5c316 (fold_ledger.py and data), c73557bf (audit-verify.js, check-wave-script.mjs, governance.yml), 606ad289 (policy clauses and the three per-file caps), and the commits that add the prepr step and move the lane to the branch's own, owned copy.
+`46484ae35f685834e972f538b8983ada10ddd895` (a merge of `origin/main` at #1856 and #1859, over earlier merges of #1848 and #1854; every figure below was re-taken at this head); commits 78f5c316 (fold_ledger.py and data), c73557bf (audit-verify.js, check-wave-script.mjs, governance.yml), 606ad289 (policy clauses and the three per-file caps), and the commits that add the prepr step and move the lane to the branch's own, owned copy.
 
 ## Mutation proof
 
-`python3 tools/audit/fold_ledger.py --self-test` holds 28 of 28 expectations, on planted ledgers. Each predicate mutated in a copy, the self-test run (never a line past a return):
+`python3 tools/audit/fold_ledger.py --self-test` holds 31 of 31 expectations, on planted ledgers. Each predicate mutated in a copy, the self-test run (never a line past a return):
 
 | mutant | red expectations |
 |---|---|
@@ -43,6 +44,8 @@ Design points, for the reviewer:
 | cross-round window -> `False` | 1: three over three consecutive rounds |
 | sibling grouping `if False` | 1 |
 | `DANGLING` check `if False` | 1 |
+| the `_unclassified` reason requirement ignored | 1 (added in round 1) |
+| the `tools/audit/rca/` prefix check dropped | 1 (added in round 1) |
 
 `node .claude/workflows/check-wave-script.mjs` (160 passed, 0 failed) against `audit-verify.js` mutants: N ignores the flag, 1 red; fold refusal does not stop the pass, 1; fold step never runs, 3; the judge prompt loses reuse-before-minting, 1; the record step opens the PR whatever `args.file` says, 1. A first run of the self-test found the fold writing `R2_sw:` for `R2 sw:` (a replace over the whole string); fixed before step 1 was committed.
 
@@ -70,16 +73,16 @@ Null control for the green row: the self-test's first expectation (a ledger plac
 - Field coverage, 0 refused: `node .claude/workflows/field_coverage.mjs`
 - Agreement lane: `node .claude/workflows/agreement.mjs --self-test`
 - Pinned graders and the owners surface, 0 uncovered: `bash tools/audit/prepr.sh --self-test`, `python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check`
-- Scoped gate, `MODE: SCOPED`, two scripts: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`. Both run with numpy and scipy from the F11.4 venv, `PYTHONPATH=tests/hastub`, `GOLDEN_MODE=drift`: before the last merge of main (#1848) `tests/entities.py` ALL 2062 ENTITY CHECKS PASSED; at this head it reports 1 of 2071 failed, `no job-level if leads with always()` naming `tests.yml:mutation-ledger` and `mutation-ledger-push`, and `git diff origin/main -- .github/workflows/tests.yml` is empty, so that red is not from this diff's files. `tests/harness_headers.py` ALL 94 HARNESS HEADER CHECKS PASSED at this head.
+- Scoped gate, `MODE: SCOPED`, two scripts: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`. Both run with numpy and scipy from the F11.4 venv, `PYTHONPATH=tests/hastub`, `GOLDEN_MODE=drift`: at this head `tests/entities.py` reports ALL 2071 ENTITY CHECKS PASSED and `tests/harness_headers.py` ALL 94 HARNESS HEADER CHECKS PASSED (an intermediate head failed one entities pin on `tests.yml`, which #1859 fixed on main).
 - Step-8 instrument: the class is "the register decays after a round"; its seams are the places a round's result can be dropped or counted two ways. `fold_ledger.py check` enumerates the first (survivor in no class or two, derived field drift, trigger without answer, dangling rca), and `audit-verify.js`'s `classes` object enumerates the second (`judged` and `beyond_finding` printed beside `n`). Readers of the ledger checked for agreement: `agreement.mjs` (ledger ids vs `class_guess`) and `check-wave-script.mjs` (`class_guess` enum equals the ledger ids) both pass at this head.
 
 ## Red checks
 
-none. No CI run exists for this head yet. Expected on this pull request, stated now: `budget-raise-gate` red until tvofi's approving review at the head (three per-file policy caps rise).
+`nightly-status`: main's red, not this diff's. NIGHTLY ABSENT, because the last scheduled run predates #1848's ledger jobs, and every open PR head carries it. The exemption for these two is void here because the diff touches `governance.yml`, so the answer is owed: the cheaper detector is none (the nightly is the only run that can produce it), and the proof on main is the orchestrator's. No other CI run exists for this head yet. Expected on this pull request, stated now: `budget-raise-gate` red until tvofi's approving review at the head (three per-file policy caps rise).
 
 ## Approval
 
-Not yet given. This diff touches policy (`.claude/rules/defect-root-cause.md`, `tools/audit/briefs/judge.md`, `tools/audit/briefs/D8.md`, `.cursor/rules/defect-root-cause.mdc`), code-owned paths (`.github/workflows/governance.yml`, `.github/CODEOWNERS`, `.claude/workflows/audit-verify.js`, and `tools/audit/fold_ledger.py`, which this diff makes owned) and a budget raise (`.claude/workflows/policy_budgets.json`, per-file caps only: `defect-root-cause.md` 146 to 150 lines and 1774 to 1848 tokens, `D8.md` 55 to 56 and 789 to 808, `judge.md` 29 to 30 and 415 to 469, each the value `policy_lint --budgets` measures; the five aggregates stay inside their band; each clause was cut to its shortest form first). The four clauses were decided under the programme mandate (rev 3.1, D5: adopt as specified in RCA-BULK-2 section 3.4 and RCA-BULK-4 section 6); the raise is announced on #201 (comment 5957148777) under the programme mandate. #1856 (F11.5) also raises `defect-root-cause.md`'s caps: whichever PR merges second re-measures on the merged tree, so this PR's value for that file may need one re-record after #1856 merges. It merges only on tvofi's approving review at the head.
+Not yet given. This diff touches policy (`.claude/rules/defect-root-cause.md`, `tools/audit/briefs/judge.md`, `tools/audit/briefs/D8.md`, `.cursor/rules/defect-root-cause.mdc`), code-owned paths (`.github/workflows/governance.yml`, `.github/CODEOWNERS`, `.claude/workflows/audit-verify.js`, and `tools/audit/fold_ledger.py`, which this diff makes owned) and a budget raise (`.claude/workflows/policy_budgets.json`, per-file caps only: `defect-root-cause.md` 146 to 153 lines and 1774 to 1887 tokens (re-recorded after #1856, which raised it to 149 and 1813; the merged tree measures 153 and 1887 by `policy_lint --budgets`), `D8.md` 55 to 56 and 789 to 808, `judge.md` 29 to 30 and 415 to 469, each the value `policy_lint --budgets` measures; the five aggregates stay inside their band; each clause was cut to its shortest form first). The four clauses were decided under the programme mandate (rev 3.1, D5: adopt as specified in RCA-BULK-2 section 3.4 and RCA-BULK-4 section 6); the raise is announced on #201 (comment 5957148777) under the programme mandate. #1856 (F11.5) landed first and this head merges it, so the value above is the re-measured one. It merges only on tvofi's approving review at the head.
 
 ## Forward-carry
 
