@@ -29216,10 +29216,11 @@ R.check(
     "EG-B2: on a real coordinator each view is the very member it names, and "
     "effective_config is the merged entry the platforms used to copy",
     _egb2_real is not None
-    and _egb2_real.thermal_params is _egb2_real._thermal_params
-    and _egb2_real.thermal_model is _egb2_real._thermal_model
-    and _egb2_real.away_state is _egb2_real._away_state
-    and _egb2_real.mold_floor_series == _egb2_real._mold_floor_series
+    and getattr(_egb2_real, "thermal_params", None) is _egb2_real._thermal_params
+    and getattr(_egb2_real, "thermal_model", None) is _egb2_real._thermal_model
+    and getattr(_egb2_real, "away_state", None) is _egb2_real._away_state
+    and getattr(_egb2_real, "mold_floor_series", None)
+    == _egb2_real._mold_floor_series
     and _egb2_real.effective_config
     == {**_egb2_real.entry.data, **_egb2_real.entry.options},
     "no real coordinator" if _egb2_real is None else "a view diverged",
