@@ -112,7 +112,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
    not a description), run it, and put every seam it returns in `## Figures` against
    its disposition — closed in this diff, already guarded, or a distinct finding named
    by id. An un-dispositioned returned seam is an open seam, class not closed. If no such instrument
-   exists, say so, and say what you did instead.
+   exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
+   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
+   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
    For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
    owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
@@ -120,9 +122,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    the same input and compares their outputs, and **the census asserts its own preconditions**
    (a census that skips a class of slots refuses the day a skipped slot gains a writer).
    A fix that changes one reader of a governance concept registers the concept in
-   `agreement.mjs` with every reader the enumeration returns. This is step 11 applied to your own instrument: one
-   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
-   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
+   `agreement.mjs` with every reader the enumeration returns.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
