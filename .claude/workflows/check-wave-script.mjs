@@ -1227,6 +1227,22 @@ await block('the rotation yield', async () => {
     /step/.test(vsrc.match(/label: 'read'/) ? vsrc.slice(0, vsrc.indexOf("label: 'read'")).split('phase(\'Read the register\')')[1] ?? '' : ''), 'the read prompt names no step')
 })
 
+await block('group 15 -- the readers the agreement lane imports are exported by policy_lint.mjs', async () => {
+  // I4 (F11.4): agreement.mjs reads a rule's frontmatter paths through
+  // `rulePaths`, the one place those are parsed for the role budgets. An
+  // export that goes missing is a reader that throws inside the lane, and a
+  // lane whose reader throws proves nothing, so the export is pinned here on
+  // main, ahead of the lane that needs it.
+  const pl = await import(pathToFileURL(path.join(here, 'policy_lint.mjs')).href)
+  t('rulePaths is exported', typeof pl.rulePaths === 'function', `typeof ${typeof pl.rulePaths}`)
+  const rule = '.claude/rules/gate-scoping.md'
+  const raw = fs.readFileSync(path.join(here, '..', '..', rule), 'utf8')
+  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+  const want = fm && /^paths:/m.test(fm[1]) ? (fm[1].match(/^[ \t]*-[ \t]*"/gm) || []).length : 0
+  const got = typeof pl.rulePaths === 'function' ? (pl.rulePaths(rule) || []).length : -1
+  t('and reads every declared path glob of a real rule (null control: the rule declares some)', want > 0 && got === want, `declared ${want}, read ${got}`)
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
