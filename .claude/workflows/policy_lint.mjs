@@ -4353,13 +4353,15 @@ function assertAcceptance(derived) {
   // recover its number from the merge commit's own subject, not drop silently;
   // a commit that is neither an API hit nor that exact GitHub shape must still
   // drop, so the fix does not turn into a second unanchored subject scan.
-  pins += 4
+  pins += 5
   const gapFail = []
   const gapApi = resolvePrFromCommit('irrelevant subject', [{ number: 42 }])
   if (!gapApi || gapApi.pr !== '42' || gapApi.source !== 'api') gapFail.push('a real API row must win over the subject and report source api')
   const gapRecovered = resolvePrFromCommit('Merge pull request #900 from tvofi/some-branch', [])
   if (!gapRecovered || gapRecovered.pr !== '900') gapFail.push('an empty API answer on a real merge-commit subject did not recover the PR number')
   if (gapRecovered && gapRecovered.source !== 'subject-gap') gapFail.push('a recovered number must report source subject-gap, or a reader cannot tell it from a verified API hit')
+  const gapSquash = resolvePrFromCommit('fix: a squash (#1234)', [])
+  if (!gapSquash || gapSquash.pr !== '1234' || gapSquash.source !== 'subject-gap') gapFail.push('an empty API answer on a squash-shape subject (`(#N)` suffix) did not recover the PR number, though stamp.py and delivery_status.py read that shape')
   const gapStamp = resolvePrFromCommit('v6.3.19: stamp Seven leftover product features', [])
   if (gapStamp != null) gapFail.push('an empty API answer on a non-merge-commit subject (a stamp) invented a number instead of staying dropped')
   if (gapFail.length) {
