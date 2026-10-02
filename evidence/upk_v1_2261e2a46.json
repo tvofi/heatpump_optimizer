@@ -1,0 +1,470 @@
+{
+ "metric": "untyped_payload_keys",
+ "value": 0,
+ "details": {
+  "produced_keys": 3,
+  "typed_keys": 3,
+  "typeddict_classes": 21,
+  "dynamic_key_sites": [],
+  "surface_keys_read": 122,
+  "read_but_not_produced": {
+   "accuracy": [
+    "sensor.py:1927",
+    "sensor.py:1937",
+    "sensor.py:1944"
+   ],
+   "away_active": [
+    "binary_sensor.py:302"
+   ],
+   "away_dhw_min_temperature": [
+    "binary_sensor.py:311"
+   ],
+   "away_hours_until_return": [
+    "binary_sensor.py:309"
+   ],
+   "away_recovery_active": [
+    "binary_sensor.py:312"
+   ],
+   "away_return_time": [
+    "binary_sensor.py:308"
+   ],
+   "away_source": [
+    "binary_sensor.py:313"
+   ],
+   "away_target_temperature": [
+    "binary_sensor.py:310"
+   ],
+   "baseline_cost": [
+    "sensor.py:510",
+    "sensor.py:546"
+   ],
+   "battery": [
+    "sensor.py:2090",
+    "sensor.py:2097",
+    "sensor.py:2119",
+    "sensor.py:2126"
+   ],
+   "billed_peak_kw": [
+    "sensor.py:1985"
+   ],
+   "buffer_tank_temperature": [
+    "sensor.py:1118"
+   ],
+   "comfort_learning": [
+    "sensor.py:2246"
+   ],
+   "comfort_temp_day": [
+    "sensor.py:1566"
+   ],
+   "comfort_temp_night": [
+    "sensor.py:1567"
+   ],
+   "comfort_weight": [
+    "sensor.py:2241"
+   ],
+   "contract_comparison": [
+    "sensor.py:2277",
+    "sensor.py:2288",
+    "sensor.py:2295"
+   ],
+   "cop_samples": [
+    "sensor.py:1736"
+   ],
+   "cop_scale": [
+    "sensor.py:1735"
+   ],
+   "current_action": [
+    "climate.py:172",
+    "climate.py:238",
+    "sensor.py:582",
+    "sensor.py:589",
+    "sensor.py:611",
+    "sensor.py:828",
+    "sensor.py:835",
+    "sensor.py:1687"
+   ],
+   "current_price": [
+    "climate.py:242",
+    "sensor.py:565"
+   ],
+   "day_end_hour": [
+    "sensor.py:1565"
+   ],
+   "day_start_hour": [
+    "sensor.py:1564"
+   ],
+   "deferred_energy_cost": [
+    "sensor.py:515"
+   ],
+   "defrost_buckets": [
+    "sensor.py:1743"
+   ],
+   "defrost_derate": [
+    "sensor.py:1741"
+   ],
+   "defrost_samples": [
+    "sensor.py:1742"
+   ],
+   "dhw_advisor": [
+    "sensor.py:2388",
+    "sensor.py:2395",
+    "sensor.py:2401"
+   ],
+   "dhw_cooling_rate": [
+    "sensor.py:1181"
+   ],
+   "dhw_cooling_rate_learned": [
+    "sensor.py:1182"
+   ],
+   "dhw_cooling_samples": [
+    "sensor.py:1183"
+   ],
+   "dhw_draw_stats": [
+    "sensor.py:2490",
+    "sensor.py:2498",
+    "sensor.py:2509"
+   ],
+   "dhw_enabled": [
+    "climate.py:288",
+    "sensor.py:1170",
+    "sensor.py:1484"
+   ],
+   "dhw_heating_active": [
+    "climate.py:291",
+    "sensor.py:1169"
+   ],
+   "dhw_heating_cost": [
+    "climate.py:294",
+    "sensor.py:1267"
+   ],
+   "dhw_hold_hours": [
+    "sensor.py:1184"
+   ],
+   "dhw_idle_min_temperature": [
+    "sensor.py:1177"
+   ],
+   "dhw_in_demand_window": [
+    "sensor.py:1172",
+    "sensor.py:1239"
+   ],
+   "dhw_legionella_due_in_hours": [
+    "sensor.py:1178",
+    "sensor.py:1245"
+   ],
+   "dhw_min_temperature": [
+    "sensor.py:1168",
+    "sensor.py:1175",
+    "sensor.py:1586"
+   ],
+   "dhw_mixed": [
+    "sensor.py:2446",
+    "sensor.py:2451",
+    "sensor.py:2457"
+   ],
+   "dhw_next_window_in_hours": [
+    "sensor.py:1173",
+    "sensor.py:1240"
+   ],
+   "dhw_plan": [
+    "sensor.py:1213"
+   ],
+   "dhw_schedule": [
+    "sensor.py:1203",
+    "sensor.py:1236"
+   ],
+   "dhw_schedule_enabled": [
+    "sensor.py:1238"
+   ],
+   "dhw_setpoint": [
+    "climate.py:290",
+    "sensor.py:1167",
+    "sensor.py:1587",
+    "sensor.py:1596"
+   ],
+   "dhw_temperature": [
+    "sensor.py:1157"
+   ],
+   "dhw_usage_profile": [
+    "sensor.py:1341"
+   ],
+   "dhw_windows": [
+    "sensor.py:1171",
+    "sensor.py:1237",
+    "sensor.py:1578"
+   ],
+   "ecl110_command_topic": [
+    "climate.py:256",
+    "sensor.py:1401"
+   ],
+   "ecl110_displace": [
+    "sensor.py:1367"
+   ],
+   "ecl110_effective_displace": [
+    "climate.py:253",
+    "sensor.py:1393"
+   ],
+   "ecl110_state_topic": [
+    "sensor.py:1402"
+   ],
+   "energy_totals_counting_since": [
+    "sensor.py:1807"
+   ],
+   "external_heat": [
+    "binary_sensor.py:273"
+   ],
+   "external_heat_active": [
+    "binary_sensor.py:269"
+   ],
+   "external_heat_suppressing": [
+    "binary_sensor.py:283"
+   ],
+   "floor_return_temperature": [
+    "sensor.py:1053"
+   ],
+   "freq_control": [
+    "sensor.py:2699",
+    "sensor.py:2710",
+    "sensor.py:2716"
+   ],
+   "fuse_advisor": [
+    "sensor.py:2001"
+   ],
+   "heat_pump_power_series": [
+    "sensor.py:2849"
+   ],
+   "heat_pump_signals": [
+    "binary_sensor.py:248",
+    "sensor.py:1543"
+   ],
+   "horizon_hours": [
+    "sensor.py:1556",
+    "sensor.py:1523"
+   ],
+   "house_power_series": [
+    "sensor.py:2848"
+   ],
+   "indoor_temperature": [
+    "climate.py:146",
+    "sensor.py:661"
+   ],
+   "input_ages_minutes": [
+    "binary_sensor.py:115"
+   ],
+   "input_health": [
+    "binary_sensor.py:110"
+   ],
+   "input_problems": [
+    "binary_sensor.py:104",
+    "binary_sensor.py:112"
+   ],
+   "insight": [
+    "sensor.py:1948",
+    "sensor.py:2300",
+    "sensor.py:2545",
+    "sensor.py:2562",
+    "sensor.py:2595",
+    "sensor.py:2602",
+    "sensor.py:2609",
+    "sensor.py:2656",
+    "sensor.py:2666"
+   ],
+   "last_optimization": [
+    "sensor.py:812"
+   ],
+   "learner_freeze_reason": [
+    "binary_sensor.py:117"
+   ],
+   "learners_frozen": [
+    "binary_sensor.py:116"
+   ],
+   "lower_floor_temperature": [
+    "sensor.py:1020"
+   ],
+   "manual_plan": [
+    "sensor.py:1604",
+    "sensor.py:1490"
+   ],
+   "measured_cop": [
+    "sensor.py:1719",
+    "sensor.py:1728"
+   ],
+   "measured_energy": [
+    "sensor.py:1689"
+   ],
+   "measured_house_power": [
+    "sensor.py:1688"
+   ],
+   "measured_power": [
+    "sensor.py:1680"
+   ],
+   "measured_power_available": [
+    "sensor.py:1675",
+    "sensor.py:1717",
+    "sensor.py:1795",
+    "sensor.py:2650"
+   ],
+   "mixing_valve_mode": [
+    "sensor.py:2219"
+   ],
+   "mode": [
+    "sensor.py:391"
+   ],
+   "next_optimization": [
+    "sensor.py:797"
+   ],
+   "optimization_status": [
+    "climate.py:247",
+    "sensor.py:408",
+    "switch.py:87"
+   ],
+   "outage_recovery_active": [
+    "sensor.py:2004"
+   ],
+   "outdoor_forecast_temperature": [
+    "climate.py:231"
+   ],
+   "outdoor_temperature": [
+    "climate.py:230"
+   ],
+   "peak_month": [
+    "sensor.py:1991"
+   ],
+   "peak_tariff": [
+    "sensor.py:2850"
+   ],
+   "peak_tariff_enabled": [
+    "sensor.py:1980"
+   ],
+   "peak_threshold_kw": [
+    "sensor.py:1994"
+   ],
+   "power_headroom": [
+    "sensor.py:2336",
+    "sensor.py:2341",
+    "sensor.py:2348"
+   ],
+   "predicted_cost": [
+    "sensor.py:511",
+    "sensor.py:530"
+   ],
+   "predicted_savings": [
+    "climate.py:243",
+    "sensor.py:444"
+   ],
+   "predictive_info": [
+    "climate.py:299",
+    "sensor.py:1165",
+    "sensor.py:1234",
+    "sensor.py:1300",
+    "sensor.py:1318",
+    "sensor.py:1538"
+   ],
+   "prices_available": [
+    "sensor.py:418"
+   ],
+   "problem_inputs": [
+    "binary_sensor.py:113"
+   ],
+   "problem_messages": [
+    "binary_sensor.py:114"
+   ],
+   "projected_peak_cost": [
+    "sensor.py:1996"
+   ],
+   "projected_peak_kw": [
+    "sensor.py:1995"
+   ],
+   "pv": [
+    "sensor.py:2047",
+    "sensor.py:2055"
+   ],
+   "pv_enabled": [
+    "sensor.py:2041"
+   ],
+   "pv_self_consumed_kwh": [
+    "sensor.py:2056"
+   ],
+   "reading_ok": [
+    "binary_sensor.py:196",
+    "climate.py:133",
+    "climate.py:144",
+    "climate.py:215",
+    "climate.py:229"
+   ],
+   "savings_months": [
+    "sensor.py:465"
+   ],
+   "savings_percentage": [
+    "climate.py:244",
+    "sensor.py:500"
+   ],
+   "schedule": [
+    "sensor.py:887",
+    "sensor.py:895",
+    "sensor.py:925"
+   ],
+   "slab_temperature": [
+    "sensor.py:781"
+   ],
+   "solar_diagnostics": [
+    "sensor.py:748"
+   ],
+   "solar_forecast": [
+    "sensor.py:746"
+   ],
+   "solar_heat_gain": [
+    "climate.py:274",
+    "sensor.py:745",
+    "sensor.py:1074"
+   ],
+   "solar_radiation": [
+    "climate.py:277",
+    "sensor.py:731",
+    "sensor.py:1082"
+   ],
+   "solar_source": [
+    "sensor.py:744"
+   ],
+   "solve_time_ms": [
+    "sensor.py:417"
+   ],
+   "stale_inputs": [
+    "binary_sensor.py:104",
+    "binary_sensor.py:111"
+   ],
+   "two_zone_enabled": [
+    "binary_sensor.py:207",
+    "climate.py:262",
+    "sensor.py:422"
+   ],
+   "upper_floor_temperature": [
+    "sensor.py:979"
+   ],
+   "valve_target_recommendation": [
+    "sensor.py:2207",
+    "sensor.py:2213"
+   ],
+   "ventilation_active": [
+    "binary_sensor.py:144"
+   ],
+   "ventilation_evidence": [
+    "binary_sensor.py:149"
+   ],
+   "weather_forecast_available": [
+    "sensor.py:419"
+   ],
+   "wood_fuel": [
+    "binary_sensor.py:331",
+    "binary_sensor.py:336",
+    "binary_sensor.py:341",
+    "sensor.py:1620",
+    "sensor.py:1525",
+    "sensor.py:2897",
+    "sensor.py:2902"
+   ]
+  },
+  "produced_but_unread_by_surfaces": 2,
+  "untyped": []
+ },
+ "runtime_s": 0.471
+}

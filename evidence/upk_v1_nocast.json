@@ -1,0 +1,17 @@
+{
+ "metric": "untyped_payload_keys",
+ "value": 0,
+ "details": {
+  "produced_keys": 166,
+  "typed_keys": 166,
+  "typeddict_classes": 21,
+  "dynamic_key_sites": [
+   "coordinator.py:7585"
+  ],
+  "surface_keys_read": 122,
+  "read_but_not_produced": {},
+  "produced_but_unread_by_surfaces": 44,
+  "untyped": []
+ },
+ "runtime_s": 1.338
+}

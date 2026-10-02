@@ -1,0 +1,6 @@
+custom_components/heatpump_optimizer/sensor.py:1523: error: Argument 1 to "float" has incompatible type "object"; expected "str | Buffer | SupportsFloat | SupportsIndex"  [arg-type]
+custom_components/heatpump_optimizer/sensor.py:1556: error: Argument 1 to "float" has incompatible type "object"; expected "str | Buffer | SupportsFloat | SupportsIndex"  [arg-type]
+RESULT errors=2
+custom_components/heatpump_optimizer/sensor.py:1523: error: Argument 1 to "float" has incompatible type "object"; expected "str | Buffer | SupportsFloat | SupportsIndex"  [arg-type]
+custom_components/heatpump_optimizer/sensor.py:1556: error: Argument 1 to "float" has incompatible type "object"; expected "str | Buffer | SupportsFloat | SupportsIndex"  [arg-type]
+RESULT errors=2
