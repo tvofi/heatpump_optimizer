@@ -27620,6 +27620,7 @@ _DP_X1, _DP_X2 = _dp_site("p.py:g CLAMP_DROP x", "p.py", 1), _dp_site("p.py:g CL
 _DP_Y, _DP_Z = _dp_site("p.py:g CLAMP_DROP y", "p.py", 2), _dp_site("q.py:g CLAMP_DROP z", "q.py", 3)
 _DP_UN = [_DP_X1, _DP_X2, _DP_Y, _DP_Z]
 _DP_CL = {"tests/x.py": ["p.py"]}
+_DP_ROT = [_dp_site(f"p.py:g CLAMP_DROP r{i}", "p.py", 10 + i) for i in range(4)]
 try:
     _dp_anchors = lambda pool: sorted({s["anchor"] for s in pool})  # noqa: E731
     _dp_whole = lambda pool: all(  # noqa: E731
@@ -27634,15 +27635,17 @@ try:
         _dp_anchors(_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 1, 1)),
         _mut.drain_pool(_DP_UN, _DP_CL, ["tests/other.py"], 1, 40),
         {tuple(s["drivers"]) for s in _DP_POOLS[0]},
-        len({tuple(s["anchor"] for s in _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], seed, 1))
-             for seed in range(8)}),
+        # Four one-site anchors under a cap of one: the seed alone picks the
+        # slice, so eight seeds must not all pick the same anchor.
+        len({tuple(s["anchor"] for s in _mut.drain_pool(_DP_ROT, _DP_CL, ["tests/x.py"], seed, 1))
+             for seed in range(8)}) > 1,
     ]
 except Exception as _dp_exc:  # noqa: BLE001 -- one red check, never a partial run
     _DP_GOT = [f"{type(_dp_exc).__name__}: {_dp_exc}"]
 R.check(
     "--drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed",
     _DP_GOT == [True, ["p.py:g CLAMP_DROP x", "p.py:g CLAMP_DROP y"], True,
-                ["p.py:g CLAMP_DROP y"], [], {("tests/x.py",)}, 1],
+                ["p.py:g CLAMP_DROP y"], [], {("tests/x.py",)}, True],
     "(whole and capped, anchors reached over seeds, same seed same slice, cap 1 "
     "skips the twin, no driver no slice, drivers carried, distinct cap-1 "
     f"slices) -> {_DP_GOT}",
