@@ -35,10 +35,12 @@ on:
     types: [checks_requested]
 
 # Workflow-level and read-only: the reviews list needs `pull-requests: read`,
-# the checkout `contents: read`. No job widens it.
+# the checkout `contents: read`, and the owner's recorded mandate, a comment
+# on #201, `issues: read`. No job widens it.
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 # Superseded pull-request runs are cancelled, nothing else is: see the same
 # block in tests.yml (round-9 process review item 3).
