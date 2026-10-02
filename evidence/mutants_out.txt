@@ -1,0 +1,20 @@
+== D14-s2-03 CLASS_GUESS grammar
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT divergent=15 unregistered=0 dead=0 refused=0 seconds=0.3
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+rc=1
+== D13-s1-01 merge-commit shape only
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+rc=1
+== D11-s1-72 _GOV_FILES one file
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+RESULT divergent=4 unregistered=0 dead=0 refused=0 seconds=0.1
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+rc=1
+== D7-s3-02 reader gone: dead = []
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+rc=1
