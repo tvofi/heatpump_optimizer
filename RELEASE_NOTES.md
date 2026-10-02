@@ -1,5 +1,41 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.14
+
+round 9 continues: the merge queue gains a disjoint-closure fast path, every required context on a queue entry and a coverage cache that restores only main's push run (F10.9c, F10.9d); gate infrastructure advances with re-recorded closures, killed mutants drained into the ledger nightly, and cancellable superseded runs (F10.4, F10.5); the governance lane adds the agreement checks and their precursors (F11.4); the coordinator sheds its plan settings view and the dead-property surface and gains one builder for the two solve paths' objective closures (F1.11, EG-B2, EG-B5a); the card gets two-across stat tiles, the advisor inbox ranked by monthly value and an honest unavailable state (UX-1 to UX-3); a product page ships (WEB-1); and delivery rows are trued for the merges that read open (PROC-4); and a policy text for round-9 root causes, a deterministic audit-register fold, an extracted DHW planner, a CMP_BOUND mutation operator and a ledger-job hotfix (F11.5, EG-R1, EG-B5, F10.6).
+
+- #1823 — feat: disjoint-closure merge fast path, its self-test and its contract line (round-9 F10.9c)
+- #1824 — fix: the coverage cache restores only main's push run, keyed on the runner's OS (round-9 F10.9c)
+- #1829 — briefs: the bus in the role contracts; 0011's citation pinned (round-9 PROC-4)
+- #1830 — docs: regenerate the tile and idle-hover screenshots (round-9 UX-1)
+- #1831 — deps(typing): override PyJWT 2.13.0 to 2.15.0 in the typing toolchain lock
+- #1832 — feat: every required context runs on a merge-queue entry (round-9 F10.9c)
+- #1833 — fix: the bus self-test's keeps-waiting arm needs no GNU timeout on macOS
+- #1834 — refactor: the plan settings view leaves the coordinator; P2 and P6 barriered in tests/entities.py (round-9 F1.11)
+- #1835 — fix(card): stat tiles two across at every width, and on the plan page
+- #1836 — feat(card): advisor inbox ranked by monthly value, price of a degree row, interpolated hot-water price, honest unavailable state (round-9 UX-2)
+- #1837 — tools: fastpath_census.py counts eligible merge-fast-path pairs; HANDOVER owes the dominant refusal classes (round-9 F10.9d, #1812)
+- #1838 — gate: re-record doc_claims.py's closure on Linux (round-9 F10.4)
+- #1839 — refactor: the coordinator's surface identity, four views paid for by four dead properties (round-9 EG-B2)
+- #1840 — record: the Health tab's unpublished-data findings carried to UX-7 (round-9 UX-3)
+- #1842 — fix: the coordinator_loc pin in brief_lint holds only while that budget key exists (round-9 F10.4 precursor)
+- #1843 — fix: budget-raise-gate counts a declared agent approval that cites a tvofi mandate on #201
+- #1844 — record: 68 delivery rows that still read open for merged PRs trued
+- #1845 — refactor: one builder for the two solve paths' objective closures (round-9 EG-B5a)
+- #1846 — feat: the product page, docs/index.html, with its doc_claims arm (round-9 WEB-1)
+- #1847 — feat: the agreement lane, six governance pairs checked for divergence and Python readers pinned (round-9 F11.4)
+- #1848 — fix: killed mutants drained into the ledger nightly via the hpo-ledger App (round-9 F10.5)
+- #1849 — fixture: main-protect-checks' bypass list re-recorded after the hpo-ledger App joined it
+- #1850 — fix: resolvePrFromCommit reads both merge-subject shapes; policy_lint exports rulePaths (round-9 F11.4 precursor)
+- #1853 — record: delivery rows of #1838, #1842, #1843, #1844 and #1849 trued
+- #1854 — ci: superseded Tests runs cancel for real, !cancelled() in place of always() on 14 jobs
+- #1856 — policy: round-9 root-cause policy text (round-9 F11.5)
+- #1857 — ci: closures-autofix goes red when its pinned classifier disagrees with closures
+- #1858 — refactor: the DHW planner extracted, a verbatim move (round-9 EG-B5)
+- #1859 — fix(ci): the two ledger jobs lead with !cancelled(), main's red after #1854 and #1848
+- #1861 — test(mutation): the comparison-bound operator CMP_BOUND, ratcheted (round-9 F10.6)
+- #1862 — feat(audit): deterministic register fold and check (round-9 EG-R1)
+
 ## v6.7.13
 
 round 9 continues: the coordinator lane lands currency and unit seams with config-entry identity (F1.8), its regression pins (F1.9) and one floor per thermal parameter with a single horizon clock (F1.10); the DST barrier is completed across the census — config and straddle arms, then two sweeps of fold fixes (F10.1c, F10.1d, F10.1e); the CPU gate sees the event loop and valve plants (F10.2); gate infrastructure and its verdicts are lifted into pinned functions (F10.3); card hit-targets, language and the header, tile and chart work (F6.3, F6.4, UI-1 to UI-4); and the process changes tvofi adopted: carried merge-deltas, delivery rows at open, a closure-scoped gate with coverage reuse, a harness timeout bound by CPU, a nightly-status reader that re-asks, and inherited claims read as no-claim (PROC-1, PROC-3, PROC-5, F10.8, F10.9, F10.9b, F10.11).
