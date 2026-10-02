@@ -20,7 +20,7 @@ Decisions worth a reviewer's eye:
 
 ## Head
 
-bb75a44d6ccf2768090c77734ec01e13789d7a46 (code head on `handoff/r9-ux-events`; `origin/main` 03ba7f70 is the merge base and was still its tip when measured)
+fe03e7a8fc3e5d2dc565444d9e6a0f7bf9c765f9 (code head on `handoff/r9-ux-events`; `origin/main` merged in at 165510077)
 
 ## Mutation proof
 
@@ -58,7 +58,7 @@ Round 1 (#1865) re-run: the restart check pinning `lead=None` had a fixed expiry
 
 ## Forward-carry
 
-The comfort event's "why" (the design's "the fuse limit caps heating 02:00-05:00") is carried to R9-UX-5's brief by the coordinator, which owns that roster entry; this PR ships `peak_guard_suppressing` only.
+`.claude/workflows/wave-r9-groups.json` (group R9-UX-5, on `handoff/audit-r9-fixplan`): the comfort event's "why" (the design's "the fuse limit caps heating 02:00-05:00") is carried into that brief by the coordinator, which owns the roster entry; this PR ships `peak_guard_suppressing` only.
 
 ## Owner gate
 
