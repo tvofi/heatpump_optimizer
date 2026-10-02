@@ -17631,10 +17631,10 @@ R.check(
 # request, a red main, and a second pull request to repair it.
 # tests/README.md left this example in #938, when this script began reading
 # its annotations above: it is a dependency of this script now, so an edit to
-# it selects this script rather than skipping. DISCLAIMER.md keeps the third
+# it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["docs/audit-2026-09.md", "LICENSE", "DISCLAIMER.md"])
+    ["docs/audit-2026-09.md", "LICENSE", "SECURITY.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",

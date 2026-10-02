@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 4.9,
+   "seconds": 15.9,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -2255,6 +2255,7 @@
    "tools/audit/round4/D9/verify3_h9_profile.py"
   ],
   "tests/doc_claims.py": [
+   "DISCLAIMER.md",
    "README.md",
    "VERSION",
    "blueprints/automation/charge_ev_from_grid_headroom.yaml",
@@ -2345,6 +2346,7 @@
    "docs/img/dhw-store-decay.svg",
    "docs/img/make_model_figures.py",
    "docs/img/marginal-cop.svg",
+   "docs/index.html",
    "docs/setup.md",
    "tests/doc_claims.py",
    "tests/harness.py",
