@@ -142,6 +142,11 @@
       ],
       "bypass_actors": [
         {
+          "actor_id": 5094721,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        },
+        {
           "actor_id": null,
           "actor_type": "DeployKey",
           "bypass_mode": "always"
@@ -149,5 +154,5 @@
       ]
     }
   },
-  "_ruleset_objects": "Each ruleset object as the API returns it, less RULESET_VOLATILE (counts.mjs), recorded by hand from GET repos/tvofi/heatpump_optimizer/rulesets/23698884 on 2026-09-27. It records the ruleset as it stands, dismiss_stale_reviews_on_push false included: tvofi left that setting unchanged (round 9, D11-s1-01 refused)."
+  "_ruleset_objects": "Each ruleset object as the API returns it, less RULESET_VOLATILE (counts.mjs), recorded by hand from GET repos/tvofi/heatpump_optimizer/rulesets/23698884 on 2026-09-27; bypass_actors re-recorded 2026-10-02 when tvofi added the hpo-ledger App (5094721, decision 0011 amendment, R9-F10.5) ahead of the deploy key. It records the ruleset as it stands, dismiss_stale_reviews_on_push false included: tvofi left that setting unchanged (round 9, D11-s1-01 refused)."
 }
