@@ -268,7 +268,9 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 // agent's: a finding must carry its own seat as scope, an id under that seat,
 // and a class_guess the schema admits. A failure is rejected at intake with the
 // reason, never repaired.
-const CLASS_GUESS = /^([PI][0-9]+|new)$/
+// The ledger's ids (tools/audit/bugclasses.json) spelled out: agreement.mjs's
+// finding-class-id pair refuses this list the moment it parts from the ledger.
+const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
 const rejected = []
 const accepted = []
 for (const id of REPORTED) {

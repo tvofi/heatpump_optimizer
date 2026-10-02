@@ -1899,7 +1899,9 @@ const MERGE_COMMIT_SUBJECT_RE = /^Merge pull request #(\d+) from /
 // file's own "two modes must print different words" rule.
 function resolvePrFromCommit(subject, rows) {
   if (rows.length) return { pr: String(rows[0].number), source: 'api' }
-  const m = MERGE_COMMIT_SUBJECT_RE.exec(String(subject))
+  // Both shapes, as stamp.py's pr_from_subject and delivery_status.py's
+  // subject_number read them (agreement.mjs, merge-subject-pr).
+  const m = MERGE_COMMIT_SUBJECT_RE.exec(String(subject)) || MERGE_SUBJECT_RE.exec(String(subject))
   return m ? { pr: m[1], source: 'subject-gap' } : null
 }
 
@@ -6702,7 +6704,7 @@ function main() {
 // (used only when the API is entirely unreachable) still reads the squash
 // shape alone -- deliberately not widened here, so F11.4 registers that
 // asymmetry rather than assuming the two modes agree on both shapes.
-export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit }
+export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
 export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
 
