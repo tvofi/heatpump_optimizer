@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 67 modules, of which 25 import the
+knows nothing about Home Assistant: 68 modules, of which 25 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -69,6 +69,7 @@ custom_components/heatpump_optimizer/
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
 ├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
@@ -177,7 +178,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-25 of the 67 modules import `homeassistant` at module level: `__init__`,
+25 of the 68 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
@@ -186,7 +187,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 41 modules are deliberately free of it, so each can be driven
+The other 42 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
@@ -212,7 +213,8 @@ goes in for this long, where does everything end up".
 
 **`optimizer.py`** does the solve. Hot water is planned first as a deferrable
 on/off load, by a linear program plus a cheapest-first repair against the real
-tank simulation; space heating is then optimized around those fixed blocks by
+tank simulation -- the `DhwPlanner` in `dhw_planner.py`, built once per solve
+from that solve's inputs; space heating is then optimized around those fixed blocks by
 multi-start L-BFGS-B; and one co-optimization pass re-plans hot water where the
 two competed for the compressor. Comfort bounds are soft penalties rather than
 hard constraints, so a cold morning can never be infeasible.

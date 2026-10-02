@@ -115,6 +115,14 @@ background task, whose exit wakes you; never end a turn on a detached one.
    exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
    inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
    added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
+   For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
+   owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
+   command. Where the fact has no syntactic shape (physics consistency, failure signalling,
+   cycle fencing), the PR extends or adds a census that drives every sibling it enumerates with
+   the same input and compares their outputs, and **the census asserts its own preconditions**
+   (a census that skips a class of slots refuses the day a skipped slot gains a writer).
+   A fix that changes one reader of a governance concept registers the concept in
+   `agreement.mjs` with every reader the enumeration returns.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
@@ -218,6 +226,14 @@ background task, whose exit wakes you; never end a turn on a detached one.
     detector rows on the parity grid that separate the two summations
     (measured: ~12% of random three-term sums), so the interpreter class
     that diverges — CI's — runs the detector.
+
+    A per-row twin removes re-entry, not work; when it is the fix for a
+    recomputation finding, re-measure the finding's cost on the fixed tree and
+    report it; if parity forbids vectorising, the fix is a recorded partial with
+    its remaining share, not a close.
+
+16. **An age computed from a stamp ahead of the reading clock is unknowable,
+    never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for

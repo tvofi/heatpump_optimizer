@@ -1,5 +1,5 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_raise_fits GUARD_OFF 655157d4",
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_raise_fits GUARD_OFF 655157d4",
   "killed_by": "tests/features.py",
   "old": "            if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):",
   "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
