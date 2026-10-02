@@ -23629,9 +23629,11 @@ import fnmatch as _pt_fnmatch  # noqa: E402
 
 _PT_EXEMPT = {
     ".claude/workflows/policy_lint_envmatrix.mjs":
-        "its token-bearing shape runs policy_lint.mjs, which the arm runs under that token",
+        "its one principal-dependent row pins TOKEN_HIDDEN_SKIP_RE, which the arm's policy_lint "
+        "self-test drives; its since-ref shape uses a fixture token and no network",
     ".claude/workflows/budget_raise_gate.py":
-        "reads review objects; only the ruleset read depends on the principal (RCA-BULK-3 s1)",
+        "reads reviews and issue comments, and on --rerun-stale POSTs a rerun; it reads no "
+        "ruleset, and needs pull-requests/issues read, which graders-head-copy lacks",
     ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
     "tests/nightly_status.py":
         "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
@@ -23664,11 +23666,36 @@ def _pt_seams(docs: dict) -> "set[str]":
     return out
 
 
+_PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
+
+
 def _pt_armed(docs: dict) -> "set[str]":
     _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
     return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
-            and str(_s.get("if", "")).startswith("${{ !cancelled() && steps.changed.outputs.governance")
+            and str(_s.get("if", "")) == _PT_ARM_IF
             for _g in _PT_PROG.findall(str(_s.get("run") or ""))}
+
+
+def _pt_trigger(script: str, planted: str) -> str:
+    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    with tempfile.TemporaryDirectory() as _td:
+        _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
+        subprocess.run(["git", "init", "-q", _td], check=True)
+        Path(_td, "seed").write_text("0\n")
+        subprocess.run(_g + ["add", "-A"], check=True)
+        subprocess.run(_g + ["commit", "-qm", "base"], check=True)
+        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        Path(_td, planted).parent.mkdir(parents=True, exist_ok=True)
+        Path(_td, planted).write_text("1\n")
+        subprocess.run(_g + ["add", "-A"], check=True)
+        subprocess.run(_g + ["commit", "-qm", "head"], check=True)
+        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        _out = Path(_td, ".out")
+        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
+                       env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
+        _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
+        return _m[-1] if len(_m) == 1 else f"outputs={_m}"
 
 
 def _pt_spec(docs: dict, wf: str, job: str, marker: str) -> "list[str]":
@@ -23704,6 +23731,31 @@ R.check(
     "and the arm without its token is refused (null control)",
     ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
     "the predicate must read the step's env, not only its run line",
+)
+# The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
+# `false`, or steps keyed on 'false', passed every check above and reopened
+# #1721). The `changed` step's own script runs on planted diffs: a restored path
+# fires the arm, a path outside the pathspec does not. The job must lead with
+# `!cancelled()`, or a red `coverage` (its `needs`) skips the arm silently.
+_PT_JOB = _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]
+_PT_SCRIPT = next(str(_s.get("run")) for _s in _PT_JOB["steps"] if _s.get("id") == "changed")
+_PT_FIRES = {_f: _pt_trigger(_PT_SCRIPT, _f) for _f in (
+    ".claude/workflows/x.mjs", "tools/audit/round6/D11/fix/codeowners_gap.py", "README.md")}
+R.check(
+    "and the arm's trigger fires on a restored path and only there",
+    _PT_FIRES == {".claude/workflows/x.mjs": "true",
+                  "tools/audit/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"}
+    and str(_PT_JOB.get("if", "")).startswith("${{ !cancelled() && ")
+    and all(str(_s.get("if")) == _PT_ARM_IF for _s in _PT_JOB["steps"]
+            if "governance" in str(_s.get("if", ""))),
+    f"planted diff -> governance: {_PT_FIRES}; job if={_PT_JOB.get('if')!r}; arm steps "
+    f"keyed {sorted({str(_s.get('if')) for _s in _PT_JOB['steps'] if 'governance' in str(_s.get('if', ''))})}",
+)
+R.check(
+    "and a trigger whose firing branch writes false is refused (null control)",
+    _pt_trigger(_PT_SCRIPT.replace('echo "governance=true"', 'echo "governance=false"'),
+                ".claude/workflows/x.mjs") == "false",
+    "the trigger check must execute the script, not read the pathspec",
 )
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
