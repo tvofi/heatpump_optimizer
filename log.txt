@@ -20,3 +20,4 @@
 2026-10-01T23:47:51Z 1834 SKIP already merged at 23:47:33Z as 3bd6f122 (head 103f0ff8) by another seat before this seat's pinned merge; intended issues #1644 and #1651 closed, preflight clean with them declared
 2026-10-02T01:27:36Z 1837 APPROVED 851237fc on exact verdict (handoff/verdict/1837 names the live head); verdict comment posted; merge waits for CI
 2026-10-02T02:10:08Z 1836 APPROVED 66477d49 on carry of verdict 9cd19506 (delta = docs/delivery/1836.md only); carried verdict comment posted; marked ready; merge waits for CI
+2026-10-02T02:14:32Z 1837 SKIP head 851237fc: required check 'closures' FAILED (run 36949999009): INERT READS UNDER-APPROXIMATED, tests/entities.py opens LICENSE which inert_reads does not list (the PR's own R9-F10.9d check). 16/17 required green, verdict exact, tvofi APPROVED. Not merged; needs a fixer re-derive (Linux, --single tests/entities.py) and a delta verdict.
