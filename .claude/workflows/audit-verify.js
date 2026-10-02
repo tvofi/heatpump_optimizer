@@ -19,7 +19,7 @@
 //            3-4): its enumerator, controls, and the count of confirmed
 //            instances. RCA is owed at three instances of a class this round
 //            (judged plus swept), or at any instance of a barriered class
-//            (defect-root-cause.md).
+//            (defect-root-cause.md); the cross-round arms are the fold's check.
 //   Fold     tools/audit/fold_ledger.py, a script and not an agent, appends
 //            each survivor and each sweep seam marked beyond_finding to its
 //            class in tools/audit/bugclasses.json, recomputes the counts and
