@@ -17559,6 +17559,68 @@ R.check(
 )
 
 
+# --- the INERT reads the merge fast path trusts (R9-F10.9d round 2) ----------
+#
+# Three writers and one reader keep `inert_reads` honest, and each is driven on
+# synthetic input so deleting its line fails here rather than passing every
+# check (the round-1 reviewer's C1, C3 and C4): the audit-hook path alone (the
+# only one where strace is absent), the fold `merge` calls in full and
+# `--partial` form, and `check`'s refusal of a table that misses a read.
+import subprocess as _ir_sp  # noqa: E402
+
+_ir_dir = Path(_tempfile.mkdtemp(prefix="closure-inert-"))
+_ir_real = json.loads(_closure.CLOSURES.read_text())
+try:
+    # C1: a Python script run by the recorder's own audit hook, no strace.
+    (_ir_dir / "probe.py").write_text(
+        "from pathlib import Path\nPath('LICENSE').read_text()\n")
+    _ir_sp.run([sys.executable, str(_closure.ROOT / "tests/closure.py"), "--exec-record",
+                str(_ir_dir / "probe.py"), str(_ir_dir / "probe.out")],
+               cwd=_closure.ROOT, check=True, capture_output=True)
+    _IR_HOOK = json.loads((_ir_dir / "probe.out").read_text())
+    # C3: the fold, directly and through a --partial merge on a copy of the table.
+    _IR_TABLE = {"tests/old.py": ["x"], "tests/layout.py": ["x"]}
+    _closure._fold_inert_reads(_IR_TABLE, {
+        "tests/layout.py": {"inert_reads": []},
+        "tests/harness_headers.py": {"inert_reads": ["LICENSE", "tests/nope.txt"]}})
+    _IR_FOLD = _IR_TABLE
+    (_ir_dir / "rec").mkdir()
+    (_ir_dir / "rec" / "layout.py.json").write_text(json.dumps({
+        "script": "tests/layout.py", "rc": 0, "seconds": 0.1, "how": "audithook",
+        "files": _ir_real["closures"]["tests/layout.py"], "inert_reads": ["LICENSE"]}))
+    (_ir_dir / "closures.json").write_text(json.dumps(_ir_real))
+    _IR_RC = _closure.merge(_ir_dir / "rec", _ir_dir / "closures.json", partial=True)
+    _IR_MERGED = json.loads((_ir_dir / "closures.json").read_text()).get(
+        "inert_reads", {}).get("tests/layout.py")
+    # C4: check() against a committed table that lacks the read, then one that has it.
+    _saved_closures = _closure.CLOSURES
+    _closure.CLOSURES = _ir_dir / "closures.json"
+    try:
+        _ir_t = json.loads(_closure.CLOSURES.read_text())
+        _ir_t["inert_reads"] = {}
+        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+            _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
+        _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
+        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+            _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
+    finally:
+        _closure.CLOSURES = _saved_closures
+    _IR_GOT = (_IR_HOOK.get("inert_reads"), _IR_FOLD, _IR_RC, _IR_MERGED,
+               _IR_CHECK_MISSING, _IR_CHECK_LISTED)
+except Exception as _ir_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _IR_GOT = (f"{type(_ir_exc).__name__}: {_ir_exc}",)
+_rs_shutil.rmtree(_ir_dir, ignore_errors=True)
+R.check(
+    "inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, "
+    "a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)",
+    _IR_GOT == (["LICENSE"], {"tests/old.py": ["x"], "tests/harness_headers.py": ["LICENSE"]},
+                0, ["LICENSE"], 1, 0),
+    f"(hook inert_reads, fold, merge rc, merged table, check missing, check listed) -> {_IR_GOT}",
+)
+
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides
