@@ -93,15 +93,18 @@ AGENT_DECLARED = re.compile(
 # an agent may approve as tvofi, openly, while a mandate tvofi wrote is in
 # force. The record is a comment on the tracking issue by the pinned owner
 # account, read from the API at run time; no copy in the tree is trusted. Its
-# first line is MANDATE_GRAMMAR; a later first line `MANDATE REVOKED <id>` by
-# the same account voids it. An agent's review names the comment id, either as
+# first line is MANDATE_GRAMMAR, and a comment edited at any time grants
+# nothing (anyone with write access can edit it and its author stays tvofi).
+# Any later comment by the same account that names the id beside any form of
+# "revoke" voids it (MANDATE_REVOKED): the grant is strict and the kill switch
+# loose, because over-revoking fails safe. An agent's review names the id, as
 # "mandate <id>" or as the comment's `issuecomment-<id>` URL, and that word
 # keeps it declared an agent's: authorship is never hidden to pass.
 MANDATE_ISSUE = 201
 MANDATE_GRAMMAR = re.compile(
     rf"MANDATE: agents may approve as {OWNER_LOGIN}, scope (code-owned|budget-raise|all), "
     r"from (\S+) until (\S+)")
-MANDATE_REVOKED = re.compile(r"MANDATE REVOKED (\d+)")
+MANDATE_REVOKED = re.compile(r"revok", re.I)
 MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:? #?(\d{6,})\b|issuecomment-(\d{6,})\b", re.I)
 MANDATE_COVERS_RAISE = ("budget-raise", "all")
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
@@ -315,11 +318,12 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
         return False, f"{name} was not yet in force at {review.get('submitted_at')}"
     if end is not None and at >= end:
         return False, f"{name} expired at {until}, before the review at {review.get('submitted_at')}"
-    if updated > at:
-        return False, f"{name} was edited after the review, so the text it was given under is unknown"
+    if updated != created:
+        return False, f"{name} was edited, so the text tvofi gave it under is unknown"
     for c in thread:
-        r = MANDATE_REVOKED.fullmatch(((c.get("body") or "").strip().splitlines() or [""])[0].strip())
-        if r and int(r.group(1)) == cid and _is_owner(c.get("user")):
+        body = c.get("body") or ""
+        if (_is_owner(c.get("user")) and MANDATE_REVOKED.search(body)
+                and re.search(rf"(?<!\d){cid}(?!\d)", body)):
             return False, f"{name} was revoked by {OWNER_LOGIN}'s comment {c.get('id')}"
     return True, f"{name} (scope {scope}, from {m.group(2)} until {until})"
 
@@ -358,6 +362,10 @@ def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str
                           "agent-driven approval is the owner's only under a mandate in force" if agent else "")
                        + tail)
     last = decisive[-1]
+    theirs = [r for r in decisive if id(r) not in under]
+    if under and theirs and theirs[-1].get("state") == "CHANGES_REQUESTED":
+        return False, (f"{OWNER_LOGIN}'s own latest decisive review is CHANGES_REQUESTED, and a "
+                       f"mandated approval does not override it{tail}")
     if last.get("state") != "APPROVED":
         return False, f"{OWNER_LOGIN}'s latest decisive review is {last.get('state')}{tail}"
     if last.get("commit_id") != head:
