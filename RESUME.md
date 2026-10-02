@@ -1,8 +1,8 @@
 # R9-EG-B5 seat resume (handoff)
 
-- stage: handed off for review; code head cb7cd281a9dd01ee7ff58efc5bbca90baa458020 on handoff/r9-eg-dhw-planner,
-  merge base origin/main 948671af1dcb63b1e3ceebb0154ba5c5b9c2911e. The branch is frozen; only the orchestrator moves it.
+- stage: round 2 handed off; code head 2b6cd5cfa6fa7e61d2f1549b5e71643c93fe2260 on handoff/r9-eg-dhw-planner (PR #1858),
+  merge base 5f87e25a1. Round 1 blocked root-cause-unanswered; D6 header, closures (hand merge of CI recordings), deployment_shape note fixed. The branch is frozen; only the orchestrator moves it.
 - cap_exception (tvofi 2026-10-02, roster 6ddb9225): one verbatim-move PR. Proof: tools/audit/round9/EG-B5/provenance.py BASE HEAD.
-- Expected first-CI reds: closures UNDER-SCOPED for dhw_planner.py, and three tests/entities.py closure checks; wait for the closures-autofix bot commit.
+- Closures were re-recorded by hand: closures-autofix cannot repair while stress.py records rc=1 (instrumentation overhead).
 - Owed: the architecture-score delta (score.py --diff, R9-EG-A1 #1851); the pinned mypy census and stress/optimality, which run on CI only.
 - After any merge from main, re-run: provenance.py, tests/structure.py, ledger_check.py, a three-dot diff of custom_components and tests.
