@@ -29,3 +29,4 @@
 2026-10-02T05:14:55Z 1840 MERGED c168ec0a at approved head 17e1ac3e (CLEAN, --match-head-commit)
 2026-10-02T05:17:15Z 1838 APPROVED ce12cbd1 on exact verdict (round 3); includes budget re-baseline dead_methods 0->3, coordinator_multiassigned_attrs 117->120, covered by tvofi's grant 'approve all codeowned PRs under the mandate until programme end'; verdict comment posted; merge waits for CI
 2026-10-02T05:21:21Z 1838 NOT MERGED: approved ce12cbd1 but budget-raise-gate refuses it (agent-driven approval is not the owner's; run 36968257884). briefs also red (base brief_lint pins retired coordinator_loc). Needs tvofi's own review in the GitHub UI, then a decision on briefs. Held; not attempting admin bypass.
+2026-10-02T05:37:58Z 1838 head moved ce12cbd1 -> 46a70815 before merge (admin merge refused: head modified). Approvals at ce12cbd1 are stale; needs a verdict at the new head, and tvofi's own review again for the budget raise.
