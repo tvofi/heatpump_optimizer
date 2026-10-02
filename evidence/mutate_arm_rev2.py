@@ -1,6 +1,6 @@
 import re, subprocess, sys, os
 WT = os.path.abspath(sys.argv[1])
-base = subprocess.run(["git", "diff", "-U0", "687e15b6fcf20d23f4afc201e269e217e4414ca1", "HEAD", "--", "tests/doc_claims.py"], cwd=WT, capture_output=True, text=True).stdout
+base = subprocess.run(["git", "diff", "-U0", "03ba7f70f007147bda32ac0fc5dd83b11499bbaf", "HEAD", "--", "tests/doc_claims.py"], cwd=WT, capture_output=True, text=True).stdout
 added = set()
 cur = 0
 for l in base.splitlines():
