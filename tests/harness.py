@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from operator import attrgetter
 from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
@@ -315,6 +316,20 @@ class FakeCoordinator:
     real coordinator, which is precisely the fixture fragility the backlog
     warned about.
     """
+
+    # The real coordinator's read-only views (R9-EG-B2, #1739), over the same
+    # private names a test passes as keywords. A view over a member the test
+    # did not pass raises AttributeError, as the real one would, so a
+    # ``getattr(coordinator, "thermal_params", None)`` fallback still runs.
+    thermal_params = property(attrgetter("_thermal_params"))
+    thermal_model = property(attrgetter("_thermal_model"))
+    away_state = property(attrgetter("_away_state"))
+    mold_floor_series = property(attrgetter("_mold_floor_series"))
+
+    @property
+    def effective_config(self) -> dict:
+        """The merged entry config the real coordinator was built from."""
+        return getattr(self, "_config", None) or {}
 
     def __init__(self, data: dict | None = None, **extra) -> None:
         self.data = data

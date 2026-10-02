@@ -56,6 +56,7 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Switch to enable/disable the optimizer."""
 
     _attr_translation_key = "optimizer_active"
+    _platform_domain = "switch"
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
@@ -63,11 +64,7 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_optimizer_switch"
-        # Pin today's English object id for new installs (the integration
-        # suggested-object-id mechanism); see the sensor base class.
-        self.entity_id = "switch.heat_pump_optimizer_optimizer_active"
+        self._pin_identity(entry, "optimizer_switch")
 
     @property
     def is_on(self) -> bool:
@@ -114,6 +111,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
 
     _attr_translation_key = "away"
+    _platform_domain = "switch"
 
     def __init__(
         self,
@@ -121,13 +119,11 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_away"
-        self.entity_id = "switch.heat_pump_optimizer_away"
+        self._pin_identity(entry, "away")
 
     @property
     def is_on(self) -> bool:
-        return bool(self.coordinator._away_state.override_active)
+        return bool(self.coordinator.away_state.override_active)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_away(active=True, refresh=False)
@@ -142,6 +138,7 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
     """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527)."""
 
     _attr_translation_key = "dhw_boost"
+    _platform_domain = "switch"
 
     def __init__(
         self,
@@ -149,13 +146,11 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
         # The unique id keeps the pre-#1334 key: an existing install's registry
         # entry (and its history) is identified by this string, so the rename
         # moves the suggested object id for NEW installs only, exactly as #1227
         # and #1333 moved the sensors'.
-        self._attr_unique_id = f"{entry.entry_id}_boost_dhw"
-        self.entity_id = "switch.heat_pump_optimizer_dhw_boost"
+        self._pin_identity(entry, "boost_dhw")
 
     @property
     def is_on(self) -> bool:
@@ -174,6 +169,7 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Two-hour maximum space heat."""
 
     _attr_translation_key = "boost_space"
+    _platform_domain = "switch"
 
     def __init__(
         self,
@@ -181,9 +177,7 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_boost_space"
-        self.entity_id = "switch.heat_pump_optimizer_boost_space"
+        self._pin_identity(entry, "boost_space")
 
     @property
     def is_on(self) -> bool:
