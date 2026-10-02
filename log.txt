@@ -28,3 +28,4 @@
 2026-10-02T04:51:41Z 1840 APPROVED 17e1ac3e on exact verdict (handoff/verdict/1840 names the live head); no budget/workflow/closures files in the PR; verdict comment posted; merge waits for CI
 2026-10-02T05:14:55Z 1840 MERGED c168ec0a at approved head 17e1ac3e (CLEAN, --match-head-commit)
 2026-10-02T05:17:15Z 1838 APPROVED ce12cbd1 on exact verdict (round 3); includes budget re-baseline dead_methods 0->3, coordinator_multiassigned_attrs 117->120, covered by tvofi's grant 'approve all codeowned PRs under the mandate until programme end'; verdict comment posted; merge waits for CI
+2026-10-02T05:21:21Z 1838 NOT MERGED: approved ce12cbd1 but budget-raise-gate refuses it (agent-driven approval is not the owner's; run 36968257884). briefs also red (base brief_lint pins retired coordinator_loc). Needs tvofi's own review in the GitHub UI, then a decision on briefs. Held; not attempting admin bypass.
