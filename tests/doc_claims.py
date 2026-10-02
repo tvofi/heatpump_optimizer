@@ -2053,16 +2053,27 @@ def _site_requests(tags: list[tuple]) -> list[tuple[str, str]]:
     return out
 
 
-def subpage_findings(src: str) -> list[tuple[str, str]]:
-    """A page the docs build produced: it may request nothing from another origin (S11)."""
+def _site_css_external(css: str) -> list[str]:
+    return [m.group(1) for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", css) if _site_external(m.group(1))]
+
+
+def subpage_findings(src: str, root: pathlib.Path = ROOT) -> list[tuple[str, str]]:
+    """A page the docs build produced: it may request nothing from another origin (S11), and neither may the
+    stylesheet it links (an @import or a url() in docs/site/docs.css is a font or image from elsewhere)."""
     p = _SitePage()
     p.feed(src)
     out = [("third-party", m) for _, m in _site_requests(p.tags)]
     for t, a in p.tags:
-        if t in ("img", "source") and _site_external(a.get("src") or a.get("srcset") or ""):
-            out.append(("third-party", f"third-party image: {a.get('src') or a.get('srcset')}"))
-    out += [("third-party", f"third-party resource in CSS: {m.group(1)}")
-            for m in re.finditer(r"(?:@import|url\()\s*['\"]?([^'\")\s]+)", src) if _site_external(m.group(1))]
+        if t in ("img", "source"):
+            cands = [a.get("src") or ""] + [c.split()[0] for c in (a.get("srcset") or "").split(",") if c.split()]
+            out += [("third-party", f"third-party image: {u}") for u in cands if _site_external(u)]
+        if t == "link" and "stylesheet" in (a.get("rel") or "").split() and a.get("href") and not _site_external(a["href"]):
+            css = root / "docs" / a["href"]
+            if not css.is_file():
+                out.append(("third-party", f"linked stylesheet {a['href']} is not in the tree"))
+            else:
+                out += [("third-party", f"third-party resource in {a['href']}: {u}") for u in _site_css_external(css.read_text())]
+    out += [("third-party", f"third-party resource in CSS: {u}") for u in _site_css_external(src)]
     return out
 
 
@@ -2180,7 +2191,7 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
             doc = a.get("data-doc")
             if doc in pages and (a.get("href") or "").split("#")[0] != pages[doc]:
                 errs.append(("subpage", f"docs card {doc} links {a.get('href')!r}, not its page {pages[doc]}"))
-    for m in re.finditer(r"(?:@import|url\()\s*['\"]?([^'\")\s]+)", src):
+    for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", src):
         u = m.group(1)
         if re.match(r"[a-z][a-z0-9+.-]*:|//", u, re.I) and not u.startswith("data:"):
             errs.append(("third-party", f"third-party resource in CSS: {u}"))
@@ -2343,6 +2354,21 @@ def check_site_request_controls() -> None:
     card = page.replace('href="how-it-works.html"', f'href="{_SITE_REPO}docs/how-it-works.md"', 1)
     R.check("product page: a docs card for a built document linked to GitHub is refused",
             card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
+    for name, css in (
+        ("a Google Fonts @import", '@import url("https://fonts.googleapis.com/css2?family=Outfit");\n'),
+        ("a third-party @font-face src", '@font-face{font-family:X;src:url(https://fonts.gstatic.com/x.woff2)}\n'),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            planted = pathlib.Path(tmp) / "docs" / "site" / "docs.css"
+            planted.parent.mkdir(parents=True)
+            planted.write_text(css + (ROOT / "docs" / "site" / "docs.css").read_text())
+            R.check(f"the stylesheet a built page links: {name} is refused", bool(subpage_findings(sub, pathlib.Path(tmp))))
+    with tempfile.TemporaryDirectory() as tmp:
+        R.check("a linked stylesheet that is not in the tree is refused", any(
+            "not in the tree" in m for _, m in subpage_findings(sub, pathlib.Path(tmp))))
+    R.check("the real docs/site/docs.css is clean (baseline for the stylesheet scan)", not subpage_findings(sub))
+    R.check("a third-party srcset candidate is refused",
+            bool(subpage_findings(sub.replace("</head>", '<img src="a.png" srcset="b.png 1x, https://x.example/c.png 2x"></head>', 1))))
     own = ('<link rel="icon" href="data:image/svg+xml,%3Csvg%3E%3C/svg%3E">', '<link rel="icon" href="site/favicon.svg">')
     R.check("a same-origin icon is not refused (the rule is not over-broad)",
             not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
@@ -2375,6 +2401,16 @@ def check_docs_build_controls() -> None:
     crash = docs_build(corpus(readme=False))
     R.check("a build that dies without a FAIL line is red, naming its exit", crash["rc"] not in (0, None) and any(
         "no FAIL line" in f for f in crash["fails"]), f"rc {crash['rc']}, {crash['fails']}")
+    dup = corpus()
+    (dup / "docs" / "x").mkdir()
+    (dup / "docs" / "x" / "a.md").write_text("# A2\n\nNo anchors here.\n")
+    (dup / "docs" / "a.md").write_text("# A\n\nNo anchors here.\n")
+    readme = (dup / "README.md").read_text().replace("| [docs/backlog.md]", "| [docs/x/a.md](docs/x/a.md) | A second a |\n| [docs/backlog.md]")
+    (dup / "README.md").write_text(readme)
+    subprocess.run(["git", "add", "-A"], cwd=dup, check=True)
+    dupb = docs_build(dup)
+    R.check("two anchor-free documents with one page name are red, naming the collision (not only through a dead anchor)",
+            dupb["rc"] == 1 and any("one page name" in f for f in dupb["fails"]), f"rc {dupb['rc']}, {dupb['fails']}")
     nogit = docs_build(corpus(git=False))
     R.check("a tree with no tracked-file list is red", nogit["rc"] is None and any("git ls-files" in f for f in nogit["fails"]),
             f"rc {nogit['rc']}, {nogit['fails']}")
