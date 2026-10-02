@@ -38,9 +38,10 @@ WHAT IT REFUSES, every class conservative:
                   may read: a non-INERT file, one `inert_reads` in
                   tests/closures.json lists for it, or a sibling in a directory
                   it lists a file from. A `run_always` script runs whatever the
-                  plan says; `harness_headers.py` opens DISCLAIMER.md, LICENSE
-                  and three docs/ pages through D6's `claims.py` (#1823 review:
-                  a link the pull request adds to DISCLAIMER.md, to a file main
+                  plan says; `harness_headers.py` opens LICENSE and three docs/
+                  pages as INERT reads, and DISCLAIMER.md as a closure read, through
+                  D6's `claims.py` (#1823 review: a link the pull request adds to
+                  DISCLAIMER.md, to a file main
                   deletes, is a false claim on the merged tree that neither
                   side's CI saw). A docs/delivery row nothing opens is not one
                   (R9-F10.9d). A table with no `inert_reads` keeps the old
@@ -333,8 +334,8 @@ def self_test() -> int:
         check("a table in which one side never measured the reads keeps the old answer",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"],
                       t={"main": rt, "head": table}), ["unrecorded"])
-        check("this tree's table records harness_headers.py's INERT reads, DISCLAIMER.md among them",
-              "DISCLAIMER.md" in json.loads((ROOT / "tests/closures.json").read_text())
+        check("this tree's table records harness_headers.py's INERT reads, LICENSE among them",
+              "LICENSE" in json.loads((ROOT / "tests/closures.json").read_text())
               .get("inert_reads", {}).get("tests/harness_headers.py", ()), True)
         check("main changed what a run_always script reads, which the pull request never "
               "selected: overlap",

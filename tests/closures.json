@@ -1911,6 +1911,7 @@
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
    ".github/workflows/validate.yml",
+   "DISCLAIMER.md",
    "README.md",
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2508,7 +2509,6 @@
  },
  "inert_reads": {
   "tests/harness_headers.py": [
-   "DISCLAIMER.md",
    "LICENSE",
    "docs/audit-2026-08.md",
    "docs/audit-2026-09.md",
