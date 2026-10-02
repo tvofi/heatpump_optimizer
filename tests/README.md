@@ -238,7 +238,8 @@ nobody wrote, so the rule at the top of this section still stands.
 
 A test may build inputs and expected *values*. It must never contain its own
 copy of a production formula, constant or guard, and then assert against the
-copy.
+copy; and one governance tool must not re-implement another. Two readers of one
+governance concept are registered in `agreement.mjs`.
 
 This is a distinct failure from a test that cannot fail, and it survives the
 review that catches those. The assertion *can* fail — it just fails when the
