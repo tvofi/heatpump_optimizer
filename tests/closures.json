@@ -2566,6 +2566,9 @@
   ],
   "tests/entities.py": [
    "LICENSE"
+  ],
+  "tests/doc_claims.py": [
+   "docs/site/docs.css"
   ]
  }
 }
