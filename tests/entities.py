@@ -23961,7 +23961,9 @@ _SA_FILES = {
     for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
 _SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
 _ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
-                    if re.search(r"^  (issues|issue_comment):", _t, re.M)]
+                    # Keyed inside `on:` alone: a top-level `permissions:`
+                    # block's `issues: read` starts nothing.
+                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
 R.check(
     "the publishing lane writes nothing that lands on main, so its own "
     "write cannot re-run it",
@@ -24492,7 +24494,8 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
     return out
