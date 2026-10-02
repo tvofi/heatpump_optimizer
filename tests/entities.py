@@ -27680,11 +27680,15 @@ try:
     _mut.load_closures = lambda: {"tests/x.py": ["f.py"], "tests/y.py": ["a.py", "tests/lib/"]}
     _ad_m, _ad_e = _AD_DIR / "measured", _AD_DIR / "empty"
     _ad_fresh()
+    # `--drain` with nothing drivable writes its status alone (no pins, no head).
+    (_ad_d := _AD_DIR / "undrivable").mkdir()
+    (_ad_d / "status").write_text("skip-nothing-drivable\n")
     _AD_GOT = [_mut.write_drain(_ad_m, _ad_pins, "H1", ["f.py:9 GUARD_OFF"]),
                (_ad_m / "survivors.txt").read_text(),
                _mut.write_drain(_ad_e, {}, "H1", []),
                _mut.apply_drained(str(_ad_e), "H1", []),
                _mut.apply_drained(str(_AD_DIR / "absent"), "H1", []),
+               _mut.apply_drained(str(_ad_d), "H1", []),
                _mut.apply_drained(str(_ad_m), "H1", None), _ad_kb(),
                _mut.apply_drained(str(_ad_m), "H1", None)]
     _ad_fresh()
@@ -27705,10 +27709,12 @@ R.check(
     "mutation-ledger-push applies a drained slice once, and on a moved main only "
     "the pins whose killer read nothing that changed",
     _AD_GOT == ["measured", "f.py:9 GUARD_OFF\n", "skip-nothing-killed", "skip-nothing-killed",
-                "skip-no-measurement", "changed", _AD_BOTH, "skip-unchanged",
+                "skip-no-measurement", "skip-nothing-drivable", "changed", _AD_BOTH,
+                "skip-unchanged",
                 "skip-head-moved", [], "changed", [_ap_c["anchor"]],
                 "skip-head-moved", "changed", _AD_BOTH, [_ap_c["anchor"]], ["k"]],
-    "(written, survivors, empty, passed through, absent, measured head, rows, "
+    "(written, survivors, empty, passed through, absent, status-only passed "
+    "through, measured head, rows, "
     "again; moved+no diff, rows, moved past x's closure, rows; moved past "
     "both, moved past neither, rows, stale under a closure dir, no killer) "
     f"-> {_AD_GOT}",
