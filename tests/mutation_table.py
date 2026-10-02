@@ -43,7 +43,7 @@ clean branches touching different modules draw different pools and score
 differently through no fault of either, and an exact count over the sample would
 go red at random. Beside it sits the exact-count ratchet the sample could not
 carry: `unpinned_sites`, an exact count over a DETERMINISTIC inventory of every
-candidate site the six operators generate, which `tests/structure.py`'s ratchet
+candidate site the seven operators generate, which `tests/structure.py`'s ratchet
 could use only because it measures the whole tree. The inventory below is that
 whole tree, so an exact count over it is reproducible. A site is unpinned until
 it carries a disposition -- a `killed_by` driver or a `survivor_triage` verdict,
@@ -71,8 +71,9 @@ triage has called equivalent, and an unmarked survivor stays a gap (#1217).
 Prior art, deliberately not imported: `tools/audit/round3/D3/mutant_pool.py` and
 its `prescreen.py` measure the same property over a hand-recorded mutant list at
 a frozen baseline SHA. That is audit evidence and has to keep answering for the
-tree it was run against; a gate has to follow the tree instead. The six
-operators below are that tool's, and a change to either should read the other.
+tree it was run against; a gate has to follow the tree instead. Six of the
+operators below are that tool's, and a change to either should read the other;
+the seventh, CMP_BOUND, is this file's own (R9 F10.6).
 """
 from __future__ import annotations
 
@@ -184,13 +185,52 @@ def _indent(s: str) -> str:
     return s[: len(s) - len(s.lstrip())]
 
 
-def candidates(path: Path):
-    """Single-line mutants of one production file.
+# The operators the ratcheted inventory and the sampled pool draw from, and the
+# set `--list` reports: an operator can sit in LISTED alone while its stock and
+# per-PR pin burden are priced, and joins RATCHETED on the owner's ruling.
+# CMP_BOUND (R9 F10.6, the I1 RCA's residual (b)) moves one ordering bound by
+# one: before it no operator touched a comparison, so D3-s1-01's
+# `-5.0 <= value` could tighten to `<` and the ledger still read that line as
+# accounted for. tvofi priced it and ruled "enable now" (2026-10-02): every
+# diff that adds or edits a one-line ordering comparison now owes a pin.
+RATCHETED = frozenset(("CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL",
+                       "BOOLOP", "CONST", "CMP_BOUND"))
+LISTED = RATCHETED
+_BOUND_FLIP = {ast.Lt: ("<", "<="), ast.LtE: ("<=", "<"),
+               ast.Gt: (">", ">="), ast.GtE: (">=", ">")}
 
-    Six operators, each a change a careless edit could really make: a clamp
-    dropped, a guard switched off, a raise or a return removed, a conjunction
-    weakened, a module constant doubled.
+
+def _bound_mutants(node: ast.Compare, line: str):
+    """Each ordering operator of a one-line comparison, its bound moved by one.
+
+    The operator's text is the gap between its two operands (offsets are UTF-8
+    bytes), so a chain's second `<=` is rewritten in place and never its first.
     """
+    raw = line.encode()
+    left = node.left
+    for op, right in zip(node.ops, node.comparators):
+        flip = _BOUND_FLIP.get(type(op))
+        gap = raw[left.end_col_offset:right.col_offset].decode()
+        if flip and gap.strip(" \t()") == flip[0]:
+            yield (raw[:left.end_col_offset].decode()
+                   + gap.replace(flip[0], flip[1], 1)
+                   + raw[right.col_offset:].decode())
+        left = right
+
+
+def candidates(path: Path, kinds: frozenset = RATCHETED):
+    """Single-line mutants of one production file, of the operators in `kinds`.
+
+    Seven ratcheted operators, each a change a careless edit could really make:
+    a clamp dropped, a guard switched off, a raise or a return removed, a
+    conjunction weakened, a module constant doubled, a comparison bound moved
+    by one.
+    """
+    return (m for m in _generate(path, "CMP_BOUND" in kinds)
+            if m["kind"] in kinds)
+
+
+def _generate(path: Path, bounds: bool):
     src = path.read_text()
     lines = src.splitlines()
     try:
@@ -254,6 +294,10 @@ def candidates(path: Path):
                 and line.count(" and ") == 1):
             yield dict(kind="BOOLOP", file=rel, line=ln, old=line,
                        new=line.replace(" and ", " or "))
+        if bounds and isinstance(node, ast.Compare) and _one_line(node, lines):
+            for new in _bound_mutants(node, line):
+                yield dict(kind="CMP_BOUND", file=rel, line=ln, old=line,
+                           new=new)
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
             continue
@@ -640,8 +684,8 @@ def triage_problems(triage: dict) -> list[str]:
 # The fraction cap above is a sample: the seeded draw over `--per-file` and
 # `--max` reaches ~1% of the tree, so a guard the sample never draws cannot
 # fail the lane, and a cap parked at 1.0 cannot refuse anyway (the rate is a
-# fraction in [0, 1]). The inventory below enumerates EVERY candidate the six
-# operators generate, deterministically -- `candidates()` walks the AST in a
+# fraction in [0, 1]). The inventory below enumerates EVERY candidate the
+# ratcheted operators generate, deterministically -- `candidates()` walks the AST in a
 # fixed order -- so an exact count over it is reproducible and comparable
 # between clean branches, which is the property `tests/structure.py`'s ratchet
 # has and the sampled pool could not. A site carries a disposition (`killed_by`
@@ -650,8 +694,9 @@ def triage_problems(triage: dict) -> list[str]:
 # with the inventory in either direction.
 
 
-def inventory(files: list[Path] | None = None) -> list[dict]:
-    """Every candidate site the six operators generate, deterministically.
+def inventory(files: list[Path] | None = None,
+              kinds: frozenset = RATCHETED) -> list[dict]:
+    """Every candidate site the `kinds` operators generate, deterministically.
 
     `candidates()` walks the AST breadth-first in a fixed order and `rglob`
     sorts the files, so the list is stable across runs and across clean
@@ -662,9 +707,22 @@ def inventory(files: list[Path] | None = None) -> list[dict]:
     files = files if files is not None else sorted(PRODUCTION.rglob("*.py"))
     out: list[dict] = []
     for path in files:
-        out.extend(anchor_sites(path.read_text(), list(candidates(path))))
+        out.extend(anchor_sites(path.read_text(),
+                                list(candidates(path, kinds))))
     out.sort(key=lambda m: (m["file"], m["line"], m["kind"], m["old"]))
     return out
+
+
+def listed_sites(kind: str, budgets: dict,
+                 files: list[Path] | None = None) -> list[tuple[dict, bool]]:
+    """`--list KIND`: every site of one operator, and whether it is unpinned.
+
+    Read-only and outside the ratchet, so an operator can be priced -- its
+    stock, and what the ledger already covers -- before it joins RATCHETED.
+    """
+    sites = [s for s in inventory(files, LISTED) if s["kind"] == kind]
+    loose = {id(s) for s in unpinned_sites(budgets, sites)}
+    return [(s, id(s) in loose) for s in sites]
 
 
 def dispositions(budgets: dict) -> dict[str, dict]:
@@ -2306,6 +2364,9 @@ def main() -> int:
                          "content-anchored keys, sorted maps, no committed "
                          "count -- and exit; the one command a hand merge of "
                          "tests/mutation_budgets.json needs afterwards")
+    ap.add_argument("--list", metavar="KIND", choices=sorted(LISTED),
+                    help="print every inventory site of one operator, ratcheted "
+                         "or only listed, with its unpinned count, and exit")
     ap.add_argument("--carry-rows", nargs=2, metavar=("BASE", "HEAD"),
                     help="apply the dispositions HEAD changed since BASE to "
                          "the ledger on disk and exit: after `git merge "
@@ -2336,6 +2397,16 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
 
     budgets = load_budgets()
+    if args.list:
+        rows = listed_sites(args.list, budgets)
+        for site, loose in rows:
+            print(f"  {'UNPINNED' if loose else 'pinned  '} {triage_key(site)}: "
+                  f"{site['new'].strip()[:72]}")
+        print(f"LIST {args.list}: {len(rows)} site(s) in "
+              f"{len({s['file'] for s, _ in rows})} file(s), "
+              f"{sum(1 for _, u in rows if u)} unpinned, "
+              f"{'ratcheted' if args.list in RATCHETED else 'listed only'}")
+        return 0
     if args.normalize:
         fixed, unmapped = normalize(budgets, inventory())
         write_budgets(fixed)
@@ -2400,7 +2471,8 @@ def main() -> int:
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
               f"against {base_count} at the ratchet base {rbase}, {len(added)} "
               f"of them added by this diff. A new guard, "
-              f"clamp, removable return or doubled constant left the tree "
+              f"clamp, removable return, doubled constant or comparison "
+              f"bound left the tree "
               f"without a recorded disposition; record it under killed_by or "
               f"survivor_triage and the count falls back. `python3 "
               f"tests/mutation_table.py --pin-killed --base {args.base}` "
