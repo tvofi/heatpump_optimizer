@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 97b2f727",
+  "killed_by": "tests/features.py",
+  "old": "        confidence *= float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: CLAMP_DROP (`confidence *= float(((snr - 1.0) / 3.0))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

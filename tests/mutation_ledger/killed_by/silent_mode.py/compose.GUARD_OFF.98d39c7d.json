@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/silent_mode.py:compose GUARD_OFF 98d39c7d",
+  "killed_by": "tests/features.py",
+  "old": "    if caps_extra is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

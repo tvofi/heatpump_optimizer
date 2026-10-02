@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_grid GUARD_OFF 7b0d2fd2",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, \"\")):",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

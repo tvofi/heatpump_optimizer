@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_fold_flow_lift GUARD_OFF f9659957",
+  "killed_by": "tests/features.py",
+  "old": "    if total <= 1e-6 or dhw / total > coord._COP_CURVE_SHARE:",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._tibber_fetch_failed GUARD_OFF 53f8da35",
+  "killed_by": "tests/features.py",
+  "old": "        if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:  # D10-s1-03: Home Assistant stops retrying and asks for a token`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

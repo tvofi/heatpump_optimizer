@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action GUARD_OFF 239df7ad",
+  "killed_by": "tests/entities.py",
+  "old": "            if self.coordinator.mode == MODE_OFF:",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

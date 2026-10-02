@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_house_heat_loss_scale CLAMP_DROP c4dbbd03",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: CLAMP_DROP (`self._house_heat_loss_scale = float((scale))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:InputHealth.details RETURN_DEL 7edb83fa",
+  "killed_by": "tests/features.py",
+  "old": "        return out",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

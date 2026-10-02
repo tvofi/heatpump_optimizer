@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:detected_wood_slots GUARD_OFF 061f01dd",
+  "killed_by": "tests/features.py",
+  "old": "    if run_start is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

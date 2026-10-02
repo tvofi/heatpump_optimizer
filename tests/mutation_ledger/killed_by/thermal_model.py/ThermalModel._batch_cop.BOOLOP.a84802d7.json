@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop BOOLOP a84802d7",
+  "killed_by": "tests/features.py",
+  "old": "            if hum_i is not None and not np.isfinite(hum_i):",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: BOOLOP (`if hum_i is not None or not np.isfinite(hum_i):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

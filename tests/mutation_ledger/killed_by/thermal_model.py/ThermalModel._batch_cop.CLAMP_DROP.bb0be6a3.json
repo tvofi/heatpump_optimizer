@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop CLAMP_DROP bb0be6a3",
+  "killed_by": "tests/features.py",
+  "old": "        factor = max(0.3, 1.0 + 0.025 * delta)",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: CLAMP_DROP (`factor = (0.3)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=37."
+}

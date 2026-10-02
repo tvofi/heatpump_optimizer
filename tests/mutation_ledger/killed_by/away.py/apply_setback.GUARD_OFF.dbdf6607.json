@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:apply_setback GUARD_OFF dbdf6607",
+  "killed_by": "tests/features.py",
+  "old": "    if not state.active or state.recovery_active:",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

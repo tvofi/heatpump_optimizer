@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:<module> CONST 3c8941b1",
+  "killed_by": "tests/features.py",
+  "old": "_WATER_TEMPERATURE_CONTROL = 0",
+  "reason": "Recorded by `mutation_table.py --drain` against f3e2e445bb981eff4fef38242bcb8ac520a7afa6: CONST (`_WATER_TEMPERATURE_CONTROL = 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}
