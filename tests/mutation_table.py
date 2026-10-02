@@ -184,13 +184,51 @@ def _indent(s: str) -> str:
     return s[: len(s) - len(s.lstrip())]
 
 
-def candidates(path: Path):
-    """Single-line mutants of one production file.
+# The operators the ratcheted inventory and the sampled pool draw from, and the
+# wider set `--list` reports. CMP_BOUND (R9 F10.6, the I1 RCA's residual (b))
+# moves one ordering bound by one: before it no operator touched a comparison,
+# so D3-s1-01's `-5.0 <= value` could tighten to `<` and the ledger still read
+# that line as accounted for. It is listed, not ratcheted, until tvofi prices
+# its stock and per-PR pin burden: joining RATCHETED is a one-word edit here,
+# after which every later diff that adds a comparison owes a pin.
+RATCHETED = frozenset(
+    ("CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"))
+LISTED = RATCHETED | {"CMP_BOUND"}
+_BOUND_FLIP = {ast.Lt: ("<", "<="), ast.LtE: ("<=", "<"),
+               ast.Gt: (">", ">="), ast.GtE: (">=", ">")}
 
-    Six operators, each a change a careless edit could really make: a clamp
-    dropped, a guard switched off, a raise or a return removed, a conjunction
-    weakened, a module constant doubled.
+
+def _bound_mutants(node: ast.Compare, line: str):
+    """Each ordering operator of a one-line comparison, its bound moved by one.
+
+    The operator's text is the gap between its two operands (offsets are UTF-8
+    bytes), so a chain's second `<=` is rewritten in place and never its first.
     """
+    raw = line.encode()
+    left = node.left
+    for op, right in zip(node.ops, node.comparators):
+        flip = _BOUND_FLIP.get(type(op))
+        gap = raw[left.end_col_offset:right.col_offset].decode()
+        if flip and gap.strip(" \t()") == flip[0]:
+            yield (raw[:left.end_col_offset].decode()
+                   + gap.replace(flip[0], flip[1], 1)
+                   + raw[right.col_offset:].decode())
+        left = right
+
+
+def candidates(path: Path, kinds: frozenset = RATCHETED):
+    """Single-line mutants of one production file, of the operators in `kinds`.
+
+    Six ratcheted operators, each a change a careless edit could really make: a
+    clamp dropped, a guard switched off, a raise or a return removed, a
+    conjunction weakened, a module constant doubled; LISTED adds a comparison
+    bound moved by one.
+    """
+    return (m for m in _generate(path, "CMP_BOUND" in kinds)
+            if m["kind"] in kinds)
+
+
+def _generate(path: Path, bounds: bool):
     src = path.read_text()
     lines = src.splitlines()
     try:
@@ -254,6 +292,10 @@ def candidates(path: Path):
                 and line.count(" and ") == 1):
             yield dict(kind="BOOLOP", file=rel, line=ln, old=line,
                        new=line.replace(" and ", " or "))
+        if bounds and isinstance(node, ast.Compare) and _one_line(node, lines):
+            for new in _bound_mutants(node, line):
+                yield dict(kind="CMP_BOUND", file=rel, line=ln, old=line,
+                           new=new)
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
             continue
@@ -650,7 +692,8 @@ def triage_problems(triage: dict) -> list[str]:
 # with the inventory in either direction.
 
 
-def inventory(files: list[Path] | None = None) -> list[dict]:
+def inventory(files: list[Path] | None = None,
+              kinds: frozenset = RATCHETED) -> list[dict]:
     """Every candidate site the six operators generate, deterministically.
 
     `candidates()` walks the AST breadth-first in a fixed order and `rglob`
@@ -662,9 +705,22 @@ def inventory(files: list[Path] | None = None) -> list[dict]:
     files = files if files is not None else sorted(PRODUCTION.rglob("*.py"))
     out: list[dict] = []
     for path in files:
-        out.extend(anchor_sites(path.read_text(), list(candidates(path))))
+        out.extend(anchor_sites(path.read_text(),
+                                list(candidates(path, kinds))))
     out.sort(key=lambda m: (m["file"], m["line"], m["kind"], m["old"]))
     return out
+
+
+def listed_sites(kind: str, budgets: dict,
+                 files: list[Path] | None = None) -> list[tuple[dict, bool]]:
+    """`--list KIND`: every site of one operator, and whether it is unpinned.
+
+    Read-only and outside the ratchet, so an operator can be priced -- its
+    stock, and what the ledger already covers -- before it joins RATCHETED.
+    """
+    sites = [s for s in inventory(files, LISTED) if s["kind"] == kind]
+    loose = {id(s) for s in unpinned_sites(budgets, sites)}
+    return [(s, id(s) in loose) for s in sites]
 
 
 def dispositions(budgets: dict) -> dict[str, dict]:
@@ -2306,6 +2362,9 @@ def main() -> int:
                          "content-anchored keys, sorted maps, no committed "
                          "count -- and exit; the one command a hand merge of "
                          "tests/mutation_budgets.json needs afterwards")
+    ap.add_argument("--list", metavar="KIND", choices=sorted(LISTED),
+                    help="print every inventory site of one operator, ratcheted "
+                         "or only listed, with its unpinned count, and exit")
     ap.add_argument("--carry-rows", nargs=2, metavar=("BASE", "HEAD"),
                     help="apply the dispositions HEAD changed since BASE to "
                          "the ledger on disk and exit: after `git merge "
@@ -2336,6 +2395,16 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
 
     budgets = load_budgets()
+    if args.list:
+        rows = listed_sites(args.list, budgets)
+        for site, loose in rows:
+            print(f"  {'UNPINNED' if loose else 'pinned  '} {triage_key(site)}: "
+                  f"{site['new'].strip()[:72]}")
+        print(f"LIST {args.list}: {len(rows)} site(s) in "
+              f"{len({s['file'] for s, _ in rows})} file(s), "
+              f"{sum(1 for _, u in rows if u)} unpinned, "
+              f"{'ratcheted' if args.list in RATCHETED else 'listed only'}")
+        return 0
     if args.normalize:
         fixed, unmapped = normalize(budgets, inventory())
         write_budgets(fixed)
