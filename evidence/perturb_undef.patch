@@ -1,0 +1,10 @@
+--- ../wt/custom_components/heatpump_optimizer/optimizer.py	2026-10-02 14:12:21
++++ perturb_undef.py	2026-10-02 14:13:09
+@@ -3929,7 +3929,6 @@
+         # pull-to-target term is normalised by this, so widening the allowed
+         # band actually buys cheaper operation instead of being overwhelmed by
+         # a fixed quadratic penalty.
+-        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
+         terminal_cost, terminal_cost_batch = self._terminal_cost(
+             prices, outdoor_temps, h.solar_gains, h.humidity
+         )

@@ -1,0 +1,28 @@
+# base _optimize_with_dhw setup
+        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
+        terminal_cost, terminal_cost_batch = self._terminal_cost(
+            prices, outdoor_temps, solar_gains_per_step, h.humidity
+        )
+        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
+            self._grid_terms(n_steps, dt, start_time)
+        )
+        energy_cost_of = self._energy_cost_fn(prices, dt)
+# base _optimize_space_only setup
+        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
+        terminal_cost, terminal_cost_batch = self._terminal_cost(
+            prices, outdoor_temps, solar_gains_per_step, h.humidity
+        )
+        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
+            self._grid_terms(n_steps, dt, h.start_time)
+        )
+        energy_cost_of = self._energy_cost_fn(prices, dt)
+# head _solve_objectives setup
+        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
+        terminal_cost, terminal_cost_batch = self._terminal_cost(
+            prices, outdoor_temps, h.solar_gains, h.humidity
+        )
+        cycling, capacity, _, cycling_batch, capacity_batch = (
+            self._grid_terms(h.n_steps, dt, h.start_time)
+        )
+        energy_cost_of = self._energy_cost_fn(prices, dt)
+# substitutions (bindings files): n_steps=h.n_steps, start_time=h.start_time, solar_gains_per_step=h.solar_gains, prices=h.prices, dt=h.dt in both base paths

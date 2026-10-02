@@ -1,0 +1,15 @@
+== _optimize_with_dhw lines 6080..6168
+BIND 6089 dt initial_state, prices, dt, n_steps = (
+BIND 6089 initial_state initial_state, prices, dt, n_steps = (
+BIND 6089 n_steps initial_state, prices, dt, n_steps = (
+BIND 6089 prices initial_state, prices, dt, n_steps = (
+BIND 6092 outdoor_temps outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+BIND 6092 wind_speeds outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+BIND 6093 precipitation precipitation, solar_radiation = h.precipitation, h.solar_radiation
+BIND 6093 solar_radiation precipitation, solar_radiation = h.precipitation, h.solar_radiation
+BIND 6094 comfort_targets comfort_targets = h.comfort_targets
+BIND 6095 temp_max_bounds temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+BIND 6095 temp_min_bounds temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+BIND 6096 solar_gains_per_step step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
+BIND 6098 start_time start_time, t_start = h.start_time, h.t_start
+RESULT bindings _optimize_with_dhw 13

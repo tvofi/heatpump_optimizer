@@ -1,0 +1,11 @@
+--- ../wt/custom_components/heatpump_optimizer/optimizer.py	2026-10-02 14:12:21
++++ pert_spacepass.py	2026-10-02 14:16:01
+@@ -4204,7 +4204,7 @@
+         ) = _space_traj(optimal_power)
+         # The achieved objective, for candidate comparison across valve
+         # schedules. One extra evaluation, robust on the failure path too.
+-        achieved_objective = float(objective(optimal_power))
++        achieved_objective = float(objective(optimal_power, optimal_power))
+ 
+         baseline_cost = float(energy_cost_of(baseline_power))
+         predicted_cost = float(energy_cost_of(optimal_power))

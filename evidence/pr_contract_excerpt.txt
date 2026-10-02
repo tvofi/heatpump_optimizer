@@ -1,0 +1,4 @@
+658:pr-contract	List the red checks at this head	2026-10-02T13:26:49.0388997Z ^[[36;1mprintf 'red checks the body must answer: %s\n' \^[[0m
+665:pr-contract	List the red checks at this head	2026-10-02T13:26:49.9347519Z red checks the body must answer: mutation
+691:pr-contract	Check the body against the contract	2026-10-02T13:26:50.0120836Z   ERROR   [pr-body] /tmp/pr-body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+693:pr-contract	Check the body against the contract	2026-10-02T13:26:50.0122165Z PR-BODY: 1 error(s) in /tmp/pr-body.md

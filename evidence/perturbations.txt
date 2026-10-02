@@ -1,0 +1,24 @@
+== pert_M1 lines-changed=1
+RESULT ast-equal base._optimize_with_dhw.objective == head._solve_objectives.objective: False
+RESULT ast-equal base._optimize_with_dhw.objective_batch == head._solve_objectives.objective_batch: True
+RESULT ast-equal base._optimize_space_only.objective == head.objective[dhw_plan_power=None]: True  aliases={'combined':
+RESULT ast-equal base._optimize_space_only.objective_batch == head.objective_batch[dhw_plan_power=None]: True  aliases={'grid_power':
+call-sites: identical
+== pert_M2 lines-changed=1
+RESULT ast-equal base._optimize_with_dhw.objective == head._solve_objectives.objective: True
+RESULT ast-equal base._optimize_with_dhw.objective_batch == head._solve_objectives.objective_batch: False
+RESULT ast-equal base._optimize_space_only.objective == head.objective[dhw_plan_power=None]: True  aliases={'combined':
+RESULT ast-equal base._optimize_space_only.objective_batch == head.objective_batch[dhw_plan_power=None]: True  aliases={'grid_power':
+call-sites: identical
+== pert_swap lines-changed=1
+RESULT ast-equal base._optimize_with_dhw.objective == head._solve_objectives.objective: False
+RESULT ast-equal base._optimize_with_dhw.objective_batch == head._solve_objectives.objective_batch: True
+RESULT ast-equal base._optimize_space_only.objective == head.objective[dhw_plan_power=None]: True  aliases={'combined':
+RESULT ast-equal base._optimize_space_only.objective_batch == head.objective_batch[dhw_plan_power=None]: True  aliases={'grid_power':
+call-sites: identical
+== pert_spacepass lines-changed=1
+RESULT ast-equal base._optimize_with_dhw.objective == head._solve_objectives.objective: True
+RESULT ast-equal base._optimize_with_dhw.objective_batch == head._solve_objectives.objective_batch: True
+RESULT ast-equal base._optimize_space_only.objective == head.objective[dhw_plan_power=None]: True  aliases={'combined':
+RESULT ast-equal base._optimize_space_only.objective_batch == head.objective_batch[dhw_plan_power=None]: True  aliases={'grid_power':
+call-sites: DIFFER
