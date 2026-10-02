@@ -1,58 +1,38 @@
-Fix review: blocked 54bfc9934041d594510309310ec427896e6d715e root-cause-unanswered: closures went red, unanswered (INERT READS UNDER-APPROXIMATED: tests/doc_claims.py now reads docs/site/docs.css, which its inert_reads entry does not list; pr-contract, a required check, refuses on it)
+Fix review: blocked a771c0a0b7d664d24dab9caa3617c92d4593fcdf closures-under-scoped: closures is red again, UNDER-SCOPED tests/doc_claims.py really reads docs/site/docs.css, and closures-autofix printed skip-failed-recording, so the hand-merge of the Linux recording is owed
 
-bus-nonce: 6c4932190496f4206e243e4d3e7b98f0
+bus-nonce: 78cceb2f6baa48dc097017a5c28f5846
 
-Round 2. PR #1864 (R9-WEB-3), head 54bfc9934041d594510309310ec427896e6d715e. I re-read the live head after CI finished, and it had not moved. The authored code head is f415763d, carrying the fix commit dbf4aa30. The main merge brings in v6.7.14 at 03ba7f70. Evidence for this round is in ev2/; HEAD.txt names the head. All three round-1 items are closed. The round-1 stylesheet fix opened one new red check.
+Round 3. PR #1864 (R9-WEB-3), head a771c0a0b7d664d24dab9caa3617c92d4593fcdf. I re-read the live head at 2026-10-02T22:54:30Z, after CI had finished, and it had not moved. The authored delta is 61ac08eb (tests/closures.json +3 lines, tests/doc_claims.py +7/-1). There is no new main merge. Evidence is in ev3/; HEAD.txt names the head.
 
-## Owed (one item)
+## Owed (one line in tests/closures.json)
 
-**`closures` is red, and the round-1 fix caused it.** The CI closures job (job 111042803895, `SCOPE_CASE: full`) printed:
+The inert_reads repair worked: the closures job (CI job id in ev3/check-runs3.json) no longer prints INERT READS UNDER-APPROXIMATED. In round 2, that check returned first and hid the next one. It now prints:
 
-    INERT READS UNDER-APPROXIMATED: ... tests/doc_claims.py: docs/site/docs.css
+    UNDER-SCOPED: tests/doc_claims.py really reads 1 file(s) the committed closure does not list:
+        docs/site/docs.css
 
-`subpage_findings` now opens `docs/site/docs.css`, which is the round-1 stylesheet scan. That file is INERT, and `tests/closures.json` has no `inert_reads` entry for `tests/doc_claims.py`. The entry's keys are `tests/harness_headers.py` and `tests/entities.py` only.
+An INERT read goes in both places. The recorder puts it in `files` as well as `inert_reads` (tests/closure.py:883-884). `docs/index.html` already sits in both doc_claims.py lists for the same reason.
 
-The autofix does not repair it. `closures-autofix` printed `AUTOFIX: skip-not-under-scoped` and `nothing owed to a human`. That message is false for this red: the repair is owed to the fixer.
+closures-autofix printed `AUTOFIX: skip-failed-recording -- THE REPAIR DID NOT HAPPEN`. Under the dispatch's rule, the owed repair is therefore a hand-merge of the Linux recording.
+- Add `docs/site/docs.css` to `tests/closures.json["tests/doc_claims.py"]`, keeping the round-3 inert_reads entry.
+- The recording artifact is closure-recordings from run 37072797978.
+- The `done` lines in the closures log all show exit 0, so I could not tell which recording carries the nonzero rc that the autofix keyed on. I did not download the artifact. The orchestrator may want that answered for the RCA-4 seat; it does not change this PR's repair.
+- The body names `closures` already, so pr-contract is green. Its answer describes the round-2 cause and should add this half.
 
-- Fix: add `docs/site/docs.css` under `inert_reads["tests/doc_claims.py"]`. The Linux recording in the `closure-recordings` artifact 11254298147 is the source; do not take a Darwin `--single` recording whole, because round 1 showed it is lossy for entities.py.
-- Then name `closures` in `## Red checks` with its cheaper detector. pr-contract (job 111050506824) refuses with `check closures is red and ## Red checks does not name it`.
+My round-2 verdict named only the inert_reads half. I could not see the second half then, because the check returns before it reaches the UNDER-SCOPED comparison.
 
-## Round-1 owed list: all closed
+## The new CSS patterns: proof is in, no hand pass owed
 
-1. **briefs.** RESULT `node .claude/workflows/brief_lint.mjs` at the head: rc 0. CI briefs: success. The five citations in carry-1645.json moved by 8 lines. `## Red checks` answers briefs with its cause and its cheaper detector.
-2. **Stylesheet scan.** My round-1 controls (`reviewer_controls.sh`) at this head:
-   - RESULT C1, a Google Fonts `@import url(...)` in docs.css: `3 of 153 checks FAILED`
-   - RESULT C2, a third-party `@font-face src`: `3 of 153 checks FAILED`
-   - RESULT unplanted: `ALL 153 checks PASSED`
-   - RESULT `@IMPORT url(...)`: red, caught through the `url(` alternative.
-   - The in-arm controls cover both plants, a missing linked stylesheet, a third-party srcset candidate and the clean baseline. WEB-1's inline-CSS regex hole for `@import url(` is fixed too.
-3. **Duplicate page name.** I turned build line 50 (`errors.push('two documents would ...')`) into `void 0` in the real tools/site/build_docs.mjs. RESULT: doc_claims prints `FAIL two anchor-free documents with one page name are red, naming the collision [rc 0, []]`. The committed arm now kills it, which is better than a scratch-only control. mutate_build.py: RESULT 9 KILLED, 1 SURVIVED (line 227, zero pages, equivalent as ruled in round 1).
+Four targeted mutants on the round-3 lines of `_site_css_external`, each run through `tests/doc_claims.py`. Baseline: `ALL 155 checks PASSED`.
+- RESULT M1, `re.I` dropped from the url/@import regex: rc 1, `FAIL ... an uppercase URL() font is refused`
+- RESULT M2, the image-set loop emptied: rc 1, `FAIL ... an image-set() string candidate is refused`
+- RESULT M3, the image-set `findall` dropped: rc 1, the same FAIL
+- RESULT M4, the external filter forced false: rc 1, the @import, URL() and image-set plants all FAIL
 
-## Arm mutation and the three crashes
+Each new pattern is pinned by its own planted control, so the fixer owes no separate hand pass for it.
 
-`mutate_arm_rev2.py` is my harness, re-keyed to merge base 03ba7f70.
-- RESULT baseline: `in_tree_failures=0 anchor:RED untracked-link:RED`
-- RESULT: 33 mutable lines, 29 KILLED, 1 SURVIVED, 3 CRASH.
-- The survivor is L2350 `if kind == "third-party":` in the control loop. I accept it, as in round 1.
+## CI at this head
 
-**My ruling on the crashes: all three are killed.** My harness separates crashes so that a broken harness cannot count as kills; that is what happened to the fixer's original script in round 1. It does not make a crash a survivor. I ran each crash mutant through `tests/doc_claims.py` itself:
-- L2072 `if not css.is_file():` turned to `if False:`: RESULT rc 1, `FileNotFoundError ... docs/site/docs.css`. The missing-stylesheet control reaches the mutated branch, the read raises, and the run goes red.
-- L2384 `if readme:` and L2389 `if git:` are test-fixture code in the corpus builder. RESULT rc 1 for both (`FileNotFoundError ... README.md` and `CalledProcessError git add`).
-- A doc_claims run that crashes is a red CI run. The tally is 32 of 33 killed and 1 accepted survivor.
+waitci: `DONE total=35`, NOTGREEN `closures`, `closures-autofix` and `nightly-status`. briefs, pr-contract, fast (3.14), coverage, coverage-ratchet and mutation are green. nightly-status is main's red, as before. CI ran harness_headers, deployment_shape, layout and structure, and none is red. I did not re-run them locally at this head; round 2's local layout, structure and policy_lint passes stand for the unchanged files.
 
-## Checked at this head
-
-- RESULT local runs at this head:
-  - `tests/doc_claims.py`: `ALL 153 checks PASSED`
-  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`
-  - `policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`
-  - `tests/layout.py`: `layout self-test: ok`
-  - `git merge-tree --write-tree origin/main HEAD`: clean
-- Three-dot from the merge base: no VERSION, custom_components, golden or release-notes change.
-- RESULT waitci: `DONE total=35`, NOTGREEN `closures`, `nightly-status` and `pr-contract`.
-  - nightly-status is main's red. The diff reaches nothing it reads, and the body says so.
-  - `mutation` is green. This diff changes no production line, so no mutant was drawn.
-
-## Not blocking
-
-- `URL(https://...)` (uppercase) and `image-set("https://..." 1x)` in docs.css pass the scan. RESULT: `ALL 153 checks PASSED` for each. Both need deliberate spelling; an accidental Google Fonts paste is caught. A `re.I` on the url alternative would close the first.
+Everything closed in round 2 is unchanged by this delta. The delta touches only `_site_css_external`, its controls and closures.json.
