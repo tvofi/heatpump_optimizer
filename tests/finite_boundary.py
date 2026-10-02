@@ -1820,6 +1820,44 @@ def _version_arm(by_name) -> None:
         got == {"v": 1.0, "migrated": True} and saved_at == 2,
         f"got={got!r} saved_at={saved_at}",
     )
+    # The other side of that exemption: a save from any OTHER task still waits
+    # for the read in flight (D1-s2-52). The cycle writers wait before building
+    # their payload, so they do not pin async_save's own wait; this does.
+    wkey = f"{const.DOMAIN}_{ENTRY_ID}_version_writer"
+    orig_load = _storage.Store.async_load
+
+    async def _race():
+        gate = asyncio.Event()
+
+        async def _gated(self):
+            await gate.wait()
+            return await orig_load(self)
+
+        _storage.Store.async_load = _gated
+        st = QuarantiningStore(FakeHass(), 1, wkey)
+        load = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        save = asyncio.create_task(st.async_save({"v": 2.0}))
+        for _ in range(3):
+            await asyncio.sleep(0)
+        early = _storage.SAVE_COUNTS.get(wkey, 0)
+        gate.set()
+        await asyncio.wait_for(asyncio.gather(load, save), 5)
+        return early, _storage.SAVE_COUNTS.get(wkey, 0)
+
+    try:
+        early, late = asyncio.run(_race())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        early, late = type(exc).__name__, None
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage.SAVE_COUNTS.pop(wkey, None)
+    R.check(
+        "a save from another task waits for the store's read in flight, and lands after it",
+        early == 0 and late == 1,
+        f"saves before the read landed={early} after={late}",
+    )
     print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
 
 
