@@ -26938,6 +26938,65 @@ R.check(
     "IndentationError -- the refusal is in candidates(), not in the runner",
 )
 
+# The comparison-bound operator (R9 F10.6, the I1 RCA's residual (b)): no
+# operator mutated an ordering comparison, so D3-s1-01's `-5.0 <= value` bound
+# was tightenable unseen. CMP_BOUND moves one bound of a one-line comparison by
+# one -- `<`/`<=`, `>`/`>=` -- one mutant per operator of a chain, and leaves
+# `==`, `in` and `is` alone. It is LISTED (`--list CMP_BOUND`), not inventoried,
+# until tvofi prices it: the default candidates must not carry it.
+_CB_FILE = _mut_write(_MUT_DIR / "bounds.py", (
+    "def f(v):\n    return v if -5.0 <= v <= 35.0 else None\n\n\n"
+    "def g(a, b):\n    if (a) > b or a >= 2 or a == b or a in b:\n"
+    "        return 1\n    return 0\n"))
+_CB_SRC_LINES = _CB_FILE.read_text().splitlines(True)
+_CB_LISTED = getattr(_mut, "LISTED", None)
+_CB_GOT = [] if _CB_LISTED is None else [
+    _m for _m in _mut.candidates(_CB_FILE, kinds=_CB_LISTED)
+    if _m["kind"] == "CMP_BOUND"]
+
+
+def _cb_parses(m: dict) -> bool:
+    _l = list(_CB_SRC_LINES)
+    _l[m["line"] - 1] = m["new"] + "\n"
+    try:
+        ast.parse("".join(_l))
+    except SyntaxError:
+        return False
+    return True
+
+
+R.check(
+    "CMP_BOUND moves each ordering bound by one, one mutant per operator",
+    sorted(_m["new"] for _m in _CB_GOT) == sorted([
+        "    return v if -5.0 < v <= 35.0 else None",
+        "    return v if -5.0 <= v < 35.0 else None",
+        "    if (a) >= b or a >= 2 or a == b or a in b:",
+        "    if (a) > b or a > 2 or a == b or a in b:"])
+    and all(_cb_parses(_m) for _m in _CB_GOT),
+    f"generated: {[_m['new'].strip() for _m in _CB_GOT]}",
+)
+R.check(
+    "and it stays out of the ratcheted inventory until it is priced",
+    _CB_LISTED is not None and "CMP_BOUND" in _CB_LISTED
+    and not any(_m["kind"] == "CMP_BOUND"
+                for _m in _mut.candidates(_CB_FILE)),
+    f"default kinds: {sorted({_m['kind'] for _m in _mut.candidates(_CB_FILE)})}",
+)
+_CB_LIST = getattr(_mut, "listed_sites", None)
+_CB_ROWS = [] if _CB_LIST is None else _CB_LIST("CMP_BOUND", {}, [_CB_FILE])
+_CB_LEDGER = {"killed_by": {_s["anchor"]: {"killed_by": "tests/x.py",
+                                            "old": _s["old"]}
+                            for _s, _u in _CB_ROWS if _s["line"] == 2}}
+R.check(
+    "--list counts a CMP_BOUND anchor unpinned until the ledger covers it",
+    _CB_LIST is not None
+    and [_u for _s, _u in _CB_ROWS] == [True] * 4
+    and [_u for _s, _u in _CB_LIST("CMP_BOUND", _CB_LEDGER, [_CB_FILE])]
+    == [False, False, True, True],
+    f"unpinned with no ledger / with line 2 pinned: "
+    f"{[_u for _s, _u in _CB_ROWS]}",
+)
+
 # The deterministic inventory + completeness ledger + exact-count ratchet
 # (#1412). The class this closes: the sampled pool reached ~1% of the tree and
 # the fraction cap was parked at 1.0, so the gate could neither see a guard off
