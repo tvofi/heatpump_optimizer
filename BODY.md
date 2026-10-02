@@ -5,6 +5,10 @@ Part of #1743 (R9-EG-B5a). `_optimize_space_only` and `_optimize_with_dhw` each 
 
 The builder keeps its own unpacking statements distinct from the two paths', and stays at or under 150 LOC, so it joins no clone class and `methods_over_150` does not move.
 
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_014mDh6skwPhwdk5zLQAQP4K
+
 ## Head
 
 DRAFT: re-measured after #1838 merges and origin/main is merged in. Figures below are at 5a69e8744ab52dd257884fd2c036689d7ed59bb5 against its parent 46a708150f35534344039ef0ada7f12c81c77af6 (#1838's head).
@@ -42,8 +46,4 @@ none. R9-EG-B5's brief already assumes this PR's builder: the closures stay on t
 
 ## Friction
 
-- fixer.md step 6: contradiction: the roster's resume.note_file puts the seat note on the code branch (handoff/round9/fix/resume/EG-B5a.md on handoff/r9-eg-dhw-closure-dedupe), and prepr.sh's transport step refuses any handoff/ path in the code head's ancestry. The note moved to handoff-body/<topic>'s RESUME.md, and the code head moved to handoff/r9-eg-dhw-closure-dedupe-v2, because the never-force-push rule rules out re-cutting the first branch in place.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-https://claude.ai/code/session_014mDh6skwPhwdk5zLQAQP4K
+- `resume.note_file`: contradiction: the roster's resume.note_file puts the seat note on the code branch (handoff/round9/fix/resume/EG-B5a.md on handoff/r9-eg-dhw-closure-dedupe), and prepr.sh's transport step refuses any handoff/ path in the code head's ancestry. The note moved to handoff-body/<topic>'s RESUME.md, and the code head moved to handoff/r9-eg-dhw-closure-dedupe-v2, because the never-force-push rule rules out re-cutting the first branch in place.
