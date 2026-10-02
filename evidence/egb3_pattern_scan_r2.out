@@ -1,8 +1,0 @@
-HIT _build_data_dict 7616 return-non-literal return cast(Payload, data)
-HIT _republish_handover_ages 784 store-on-other-name handover['plan_age_minutes'] = round(age, 1) if age is not None else None
-HIT _republish_handover_ages 785 store-on-other-name handover['plan_stale'] = coord._plan_is_stale()
-HIT _build_plan_views 3779 return-non-literal return codes[index] if codes and index < len(codes) else None
-HIT _build_plan_views 3784 return-non-literal return bool(known[index]) if index < len(known) else True
-HIT _build_plan_views 3789 return-non-literal return surplus[index] if index < len(surplus) else None
-HIT _build_plan_views 3835 store-on-other-name space_plan['valve_target_schedule'] = [round(v, 1) for v in result.valve_target_
-RESULT pattern_hits 7

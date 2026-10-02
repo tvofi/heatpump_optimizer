@@ -1,0 +1,2 @@
+qs_rules at head: RESULT declared_mismatch=0
+null control (entity base -> Entity): RESULT declared_mismatch=1, mismatch_common_modules=executed:todo/declared:done
