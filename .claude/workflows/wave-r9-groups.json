@@ -3338,11 +3338,11 @@
       ],
       "resume": {
         "stage": "not-started",
-        "branch": "handoff/r9-eg-dhw-closure-dedupe",
+        "branch": "handoff/r9-eg-dhw-closure-dedupe-v2",
         "commit": null,
         "last_step": null,
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
-        "note_file": "handoff/round9/fix/resume/EG-B5a.md on handoff/r9-eg-dhw-closure-dedupe",
+        "note_file": "handoff-body/r9-eg-dhw-closure-dedupe:RESUME.md",
         "review_branch": "handoff/r9-eg-dhw-closure-dedupe-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B5a-review.md on handoff/r9-eg-dhw-closure-dedupe-review",
         "plan": "handoff/audit-r9-alt: handoff/round9/state/ALT-ENDGAME-PLAN.md, handoff/round9/state/ALT-ROSTER.json, handoff/round9/state/alt/EG-B5-DESIGN.md",
