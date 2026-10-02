@@ -56042,6 +56042,7 @@ import asyncio as _ux4_aio
 import re as _ux4_re
 from pathlib import Path as _ux4_Path
 
+import homeassistant.helpers.storage as _ux4_storage
 from heatpump_optimizer import notifier as _ux4_mod
 
 _UX4_ROOT = _ux4_Path(__file__).resolve().parent.parent
@@ -56228,6 +56229,23 @@ async def _ux4_scenarios():
     rebooted_again = _Ux4Rig("ux4_restart")
     await rebooted_again.load()
     out["restart_after_clear"] = await rebooted_again.feed(every)
+    # -- a plan with no readable room temperature fires nothing and does not crash
+    rig = _Ux4Rig("ux4_blank")
+    await rig.load()
+    out["blank_steps"] = await rig.feed(_ux4_payload(
+        schedule=[{"time": "2026-10-03T02:00:00+02:00", "room_temp": None}, {"time": "x"}]))
+    out["blank_none"] = await rig.feed(_ux4_payload(schedule=[]))
+
+    # -- what the store holds: its version, and only text read back from it ----
+    rig = _Ux4Rig("ux4_disk")
+    key = f"{_ux4_mod.DOMAIN}_ux4_disk_notifier"
+    _ux4_storage._DISK[key] = _ux4_storage.json.dumps(
+        {"sent": {"junk": 5, "plan_stale": "stale"}})
+    _ux4_storage._VERSIONS[key] = 1
+    await rig.load()
+    await rig.feed(_ux4_payload())
+    out["disk_after"] = _ux4_storage.json.loads(_ux4_storage._DISK[key])
+    out["disk_version"] = _ux4_storage._VERSIONS[key]
     return out
 
 
@@ -56342,6 +56360,13 @@ R.check(
 )
 
 R.check(
+    "UX-4 a plan with no readable room temperature fires nothing; a stored "
+    "value that is not text is dropped on load and the store stays at version 1",
+    _ux4["blank_steps"] == [] and _ux4["blank_none"] == []
+    and _ux4["disk_after"] == {"sent": {}} and _ux4["disk_version"] == 1,
+    str((_ux4["blank_steps"], _ux4["disk_after"], _ux4["disk_version"])),
+)
+R.check(
     "UX-4 a payload carrying none of the signals fires nothing and does not "
     "re-arm what was sent (an unchanged refresh stays silent)",
     _ux4["light_between"] == [] and _ux4["light_after"] == [],
@@ -56361,7 +56386,7 @@ R.check(
 )
 
 _ux4_fired_keys = {}
-for _ux4_group in _ux4.values():
+for _ux4_group in [v for k, v in _ux4.items() if not k.startswith("disk_")]:
     for _ux4_item in (_ux4_group if _ux4_group and isinstance(_ux4_group[0], list) else [_ux4_group]):
         for _ux4_t, _ux4_d in _ux4_item:
             _ux4_fired_keys.setdefault(_ux4_t, set()).add(tuple(_ux4_d))
