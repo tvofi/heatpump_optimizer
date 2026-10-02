@@ -4,7 +4,7 @@ W = pathlib.Path(sys.argv[1]); EV = pathlib.Path(sys.argv[2])
 T = '.github/workflows/tests.yml'; G = '.github/workflows/governance.yml'
 def rep(path, old, new, count=1):
     p = W / path; s = p.read_text(); assert s.count(old) >= 1, (path, old); p.write_text(s.replace(old, new, count))
-def m1(): subprocess.run(['git','checkout','1abfef56d081146d7a38828047d790a23ffcac27','--',T], cwd=W, check=True)
+def m1(): subprocess.run(['git','checkout','03ba7f70f007147bda32ac0fc5dd83b11499bbaf','--',T], cwd=W, check=True)
 def m2():
     s=(W/T).read_text(); i=s.index("The pull request's field_coverage.mjs, under the Actions token")
     j=s.index('run: node .claude/workflows/field_coverage.mjs', i); (W/T).write_text(s[:j]+'run: true'+s[j+len('run: node .claude/workflows/field_coverage.mjs'):])
@@ -21,7 +21,13 @@ def r3():  # arm keyed on the wrong value
 def r4(): rep(T, "if: ${{ !cancelled() && github.event_name == 'pull_request' }}\n    runs-on", "if: ${{ github.event_name == 'pull_request' }}\n    runs-on")  # job-level guard
 def r5(): rep(G, "      - name: Refuse a Cursor rule that is not the generated form of its source\n", "      - name: Refuse a Cursor rule that is not the generated form of its source\n        env:\n          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n")  # a new token-bearing pinned grader
 def r6(): rep(T, "if git diff --quiet \"$BASE\"...\"$HEAD\" -- \\\n              '.claude/workflows/*.mjs'", "if true || git diff --quiet \"$BASE\"...\"$HEAD\" -- \\\n              '.claude/workflows/*.mjs'")  # trigger short-circuited
-MUT = dict(M1=m1,M2=m2,M3=m3,M4=m4,R1=r1,R2=r2,R3=r3,R4=r4,R5=r5,R6=r6)
+
+def _step_edit(title, old, new):
+    s=(W/T).read_text(); i=s.index(title); j=s.index(old, i); (W/T).write_text(s[:j]+new+s[j+len(old):])
+def r7(): _step_edit("The pull request's field_coverage.mjs, under the Actions token", "run: node .claude/workflows/field_coverage.mjs", "run: node .claude/workflows/field_coverage.mjs || true")  # exit swallowed
+def r8(): _step_edit("The pull request's policy_lint.mjs, under the Actions token", "        env:\n", "        continue-on-error: true\n        env:\n")  # red never surfaces
+def r9(): _step_edit("The pull request's field_coverage.mjs, under the Actions token", "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}", 'GITHUB_TOKEN: ""')  # token key present, empty
+MUT = dict(M1=m1,M2=m2,M3=m3,M4=m4,R1=r1,R2=r2,R3=r3,R4=r4,R5=r5,R6=r6,R7=r7,R8=r8,R9=r9)
 env = dict(os.environ, PYTHONPATH='tests/hastub', PATH='/Users/timmalmstrom/hpo-seats/bin:'+os.environ['PATH'])
 for name in (sys.argv[3:] or MUT):
     try: MUT[name]()
