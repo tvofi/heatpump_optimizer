@@ -1752,10 +1752,12 @@ def _version_arm(by_name) -> None:
     # The default hook's two branches, directly: a major mismatch surfaces, and
     # a minor-only one (same major) does not -- Home Assistant then reads the
     # document as stored on the NotImplementedError the hook raises either way.
-    probe_hass = FakeHass()
-    probe = QuarantiningStore(probe_hass, 2, f"{const.DOMAIN}_{ENTRY_ID}_version_probe")
     verdicts = []
     for major in (1, 2):
+        # A fresh hass per call: the registry keeps one issue per id, so a
+        # shared one would read a second surfacing as the first.
+        probe_hass = FakeHass()
+        probe = QuarantiningStore(probe_hass, 2, f"{const.DOMAIN}_{ENTRY_ID}_version_probe")
         try:
             asyncio.run(probe._async_migrate_func(major, 1, {}))
             verdicts.append("returned")
@@ -1767,7 +1769,7 @@ def _version_arm(by_name) -> None:
     R.check(
         "the default hook raises NotImplementedError and surfaces a major mismatch "
         "only, not a minor-only one",
-        verdicts == ["not-implemented", 1, "not-implemented", 1],
+        verdicts == ["not-implemented", 1, "not-implemented", 0],
         f"verdicts={verdicts}",
     )
     # A store that does migrate: Home Assistant saves the migration's result
