@@ -477,7 +477,7 @@ lane_units() {
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
   # re-measured, #1812): tools/audit/round4/D6/claims.py opens INERT docs
-  # (docs/backlog.md, docs/audit-2026-09.md, DISCLAIMER.md) under this script,
+  # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
   # and an INERT path is in no closure, so a docs-only diff that moves one of
   # its RESULT lines would select nothing that runs it.
   run_always "$PYTHON" tests/harness_headers.py
