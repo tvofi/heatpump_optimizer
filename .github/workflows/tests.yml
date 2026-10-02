@@ -963,6 +963,213 @@ jobs:
           path: ${{ runner.temp }}/mutation-table-full.txt
           if-no-files-found: ignore
 
+  # The pre-ratchet stock's path to a disposition (R9 RCA I1, residual (a)).
+  # `mutation-nightly` samples the whole package and records nothing, and
+  # `--pin-killed` reaches only the sites a diff adds, so the unpinned sites
+  # that predate the ratchet had no way out. This job drives a slice of that
+  # stock -- whole anchors, walked by a date seed -- with the same kill rule,
+  # baseline and null control, and hands what it killed to the next job. It
+  # holds no write grant; the job that pushes runs no driver (D11-s1-03).
+  mutation-ledger:
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # Survivors are listed for a human verdict, never triaged here
+      # (ci-autofix.md); the step is green on them, and red only when the
+      # run itself refused or crashed, which leaves no status behind.
+      - name: Drive a slice of the unpinned stock
+        shell: bash
+        run: |
+          set -o pipefail
+          out="$RUNNER_TEMP/mutation-ledger"
+          python3 tests/mutation_table.py \
+            --scope full --drain "$out" --max 40 --jobs 3 \
+            --seed "$(date -u +%Y%m%d)" \
+            | tee "$RUNNER_TEMP/mutation-ledger.txt"
+          test -s "$out/status"
+          {
+            echo "### mutation-ledger: $(cat "$out/status")"
+            echo
+            echo "Sites left for a human verdict (killing check or survivor_triage):"
+            echo '```'
+            cat "$out/survivors.txt" 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cp "$RUNNER_TEMP/mutation-ledger.txt" "$out/"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: mutation-ledger
+          path: ${{ runner.temp }}/mutation-ledger
+          if-no-files-found: ignore
+
+  # Commits what `mutation-ledger` killed to main, as the ledger-writer App
+  # through its own installation token -- so this job keeps the workflow's
+  # read-only floor; GITHUB_TOKEN writes nothing here
+  # (decision 0011's amendment): only NEW rows under
+  # tests/mutation_ledger/killed_by/, under the subject `ci: record nightly
+  # kills`. No driver runs here. A main that moved since the measurement
+  # keeps only the pins whose killing script read nothing that changed
+  # (`stale_pins`), and every pin is re-checked against main's own inventory
+  # (`apply_drained`), so a second apply of one slice writes nothing. Absent
+  # credentials are a quiet skip until the App is installed.
+  mutation-ledger-push:
+    needs: [mutation-ledger]
+    if: always() && needs.mutation-ledger.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Download the slice mutation-ledger measured
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-ledger
+          path: ${{ runner.temp }}/mutation-ledger
+
+      - name: Mint the ledger-writer App token
+        id: mint
+        env:
+          REPO: ${{ github.repository }}
+          LEDGER_PEM: ${{ secrets.HPO_LEDGER_PEM }}
+          LEDGER_APPID: ${{ secrets.HPO_LEDGER_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$LEDGER_PEM" ] || [ -z "$LEDGER_APPID" ]; then
+            echo "::notice::HPO_LEDGER_PEM or HPO_LEDGER_APPID is not set; the slice stays unrecorded until the ledger-writer App is installed (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-ledger.pem"
+          jwt_h="$RUNNER_TEMP/hpo-ledger-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$LEDGER_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$LEDGER_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the ledger-writer App JWT failed"
+            exit 1
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the ledger-writer App has no installation on $REPO, or its JWT was refused"
+            exit 1
+          }
+          tok=$(curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" \
+            -d '{"permissions":{"contents":"write"}}' \
+            "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])') && [ -n "$tok" ] || {
+            echo "::warning::minting the ledger-writer App installation token failed"
+            exit 1
+          }
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
+      # Apply, check the write set, commit and push, re-applied onto a main
+      # that moved under the push (three tries; never a force). Every status
+      # reaches the report below, which reddens one a slice was owed.
+      - name: Record the killed sites on main
+        id: record
+        env:
+          PINS: ${{ runner.temp }}/mutation-ledger
+          TOKEN: ${{ steps.mint.outputs.token }}
+        run: |
+          set -uo pipefail
+          status=""
+          if [ -z "$TOKEN" ]; then
+            status="skip-no-writer"
+          else
+            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+            echo "::add-mask::$AUTH"
+            git config user.name "hpo-ledger[bot]"
+            git config user.email "hpo-ledger[bot]@users.noreply.github.com"
+            for try in 1 2 3; do
+              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              status=$(python3 -I - <<'PY'
+          import os, subprocess, sys
+          sys.path.append("tests")
+          import mutation_table as m
+          pins = os.environ["PINS"]
+          head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                text=True).stdout.strip()
+          try:
+              at = open(os.path.join(pins, "head")).read().strip()
+          except OSError:
+              at = ""
+          diff = subprocess.run(["git", "diff", "--name-only", at, head],
+                                capture_output=True, text=True) if at else None
+          changed = (diff.stdout.split() if diff is not None and diff.returncode == 0
+                     else None)
+          status = m.apply_drained(pins, head, changed)
+          if status == "changed":
+              st = subprocess.run(["git", "status", "--porcelain",
+                                   "--untracked-files=all"],
+                                  capture_output=True, text=True).stdout
+              bad = m.drain_write_set_problems(st)
+              for b in bad:
+                  print(f"outside the writer's grant: {b}", file=sys.stderr)
+              status = "skip-write-set" if bad else status
+          print(status)
+          PY
+              ) || status="skip-apply-crashed"
+              [ "$status" = "changed" ] || break
+              git add tests/mutation_ledger/killed_by/
+              git commit -q -m "ci: record nightly kills"
+              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                   push origin HEAD:refs/heads/main; then
+                break
+              fi
+              status="skip-push-refused"
+            done
+          fi
+          echo "MUTATION LEDGER: $status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Report whether the slice reached main
+        if: always()
+        run: |
+          python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; sys.exit(m.drain_report(sys.argv[1]))' \
+            "${{ steps.record.outputs.status }}"
+
   slow:
     needs: [recheck-gate]
     if: >-

@@ -22573,6 +22573,7 @@ _NS_LIVE = [_ns_job("nightly-ha (stable)", "success"),
             _ns_job("nightly-ha (2025.2.0)", "success"),
             _ns_job("slow", "success"),
             _ns_job("mutation-nightly", "success"),
+            _ns_job("mutation-ledger", "success"),
             _ns_job("fast", "skipped")]
 _NS_LAST_NIGHT = _ns_run(1, "2026-09-10T02:17:00Z")
 _NS_CASES = {
@@ -27605,6 +27606,164 @@ R.check(
     and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
     and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
     "the job's if:, its push grant, and the head it hands apply_pins",
+)
+
+# --drain (R9 F10.5): the pre-ratchet stock's path to a disposition. The slice
+# is whole anchors -- a split anchor spends runs on sites `pin_results` can
+# never pin -- reachable by a recorded closure, under the cap, fixed for one
+# seed and moved by another, so the nightly's date seed walks the stock rather
+# than retrying the same survivors.
+_dp_site = lambda anchor, file, line: {  # noqa: E731
+    "anchor": anchor, "file": file, "line": line, "kind": "CLAMP_DROP",
+    "old": f"    y{line} = 1", "new": "    pass"}
+_DP_X1, _DP_X2 = _dp_site("p.py:g CLAMP_DROP x", "p.py", 1), _dp_site("p.py:g CLAMP_DROP x", "p.py", 1)
+_DP_Y, _DP_Z = _dp_site("p.py:g CLAMP_DROP y", "p.py", 2), _dp_site("q.py:g CLAMP_DROP z", "q.py", 3)
+_DP_UN = [_DP_X1, _DP_X2, _DP_Y, _DP_Z]
+_DP_CL = {"tests/x.py": ["p.py"]}
+try:
+    _dp_anchors = lambda pool: sorted({s["anchor"] for s in pool})  # noqa: E731
+    _dp_whole = lambda pool: all(  # noqa: E731
+        sum(1 for s in pool if s["anchor"] == a) == sum(1 for s in _DP_UN if s["anchor"] == a)
+        for a in _dp_anchors(pool))
+    _DP_POOLS = [_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], seed, 3) for seed in range(8)]
+    _DP_GOT = [
+        all(_dp_whole(p) and len(p) <= 3 for p in _DP_POOLS),
+        sorted({a for p in _DP_POOLS for a in _dp_anchors(p)}),
+        _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3)
+        == _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3),
+        _dp_anchors(_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 1, 1)),
+        _mut.drain_pool(_DP_UN, _DP_CL, ["tests/other.py"], 1, 40),
+        {tuple(s["drivers"]) for s in _DP_POOLS[0]},
+        len({tuple(s["anchor"] for s in _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], seed, 1))
+             for seed in range(8)}),
+    ]
+except Exception as _dp_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DP_GOT = [f"{type(_dp_exc).__name__}: {_dp_exc}"]
+R.check(
+    "--drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed",
+    _DP_GOT == [True, ["p.py:g CLAMP_DROP x", "p.py:g CLAMP_DROP y"], True,
+                ["p.py:g CLAMP_DROP y"], [], {("tests/x.py",)}, 1],
+    "(whole and capped, anchors reached over seeds, same seed same slice, cap 1 "
+    "skips the twin, no driver no slice, drivers carried, distinct cap-1 "
+    f"slices) -> {_DP_GOT}",
+)
+
+# The push half. A kill is a measurement of one tree: on the measured head
+# every pin applies once and a second apply writes nothing; on a main that
+# moved, a pin whose killing script read a changed path is dropped, and an
+# unreadable diff applies nothing. The statuses `mutation-ledger` leaves when
+# there is nothing to apply pass through untouched.
+_AD_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-drained-"))
+_AD_SAVED = (_mut.BUDGETS, _mut.inventory, _mut.load_closures)
+_AD_LEDGER = _AD_SAVED[0].read_text()
+_ad_pins = {_ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:", "reason": "m"},
+            _ap_c["anchor"]: {"killed_by": "tests/y.py", "old": "    if c:", "reason": "m"}}
+
+
+def _ad_fresh() -> None:
+    (_AD_DIR / "ledger.json").write_text(_AD_LEDGER)
+    _mut_shutil.rmtree(_AD_DIR / "killed_by", ignore_errors=True)
+    _mut_shutil.rmtree(_AD_DIR / "mutation_ledger", ignore_errors=True)
+
+
+def _ad_kb() -> list[str]:
+    return sorted(k for k in _mut.load_budgets().get("killed_by", {})
+                  if k in _ad_pins)
+
+
+try:
+    _mut.BUDGETS = _AD_DIR / "ledger.json"
+    _mut.inventory = lambda *_a: [_ap_b, _ap_c]
+    _mut.load_closures = lambda: {"tests/x.py": ["f.py"], "tests/y.py": ["a.py", "tests/lib/"]}
+    _ad_m, _ad_e = _AD_DIR / "measured", _AD_DIR / "empty"
+    _ad_fresh()
+    _AD_GOT = [_mut.write_drain(_ad_m, _ad_pins, "H1", ["f.py:9 GUARD_OFF"]),
+               (_ad_m / "survivors.txt").read_text(),
+               _mut.write_drain(_ad_e, {}, "H1", []),
+               _mut.apply_drained(str(_ad_e), "H1", []),
+               _mut.apply_drained(str(_AD_DIR / "absent"), "H1", []),
+               _mut.apply_drained(str(_ad_m), "H1", None), _ad_kb(),
+               _mut.apply_drained(str(_ad_m), "H1", None)]
+    _ad_fresh()
+    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", None), _ad_kb(),
+                _mut.apply_drained(str(_ad_m), "H2", ["f.py"]), _ad_kb()]
+    _ad_fresh()
+    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["tests/lib/z.py", "tests/x.py"]),
+                _mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
+                _mut.stale_pins(_ad_pins, ["tests/lib/z.py"], _mut.load_closures()),
+                _mut.stale_pins({"k": {"old": "x"}}, [], {})]
+except Exception as _ad_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AD_GOT = [f"{type(_ad_exc).__name__}: {_ad_exc}"]
+finally:
+    _mut.BUDGETS, _mut.inventory, _mut.load_closures = _AD_SAVED
+    _mut_shutil.rmtree(_AD_DIR, ignore_errors=True)
+_AD_BOTH = sorted(_ad_pins)
+R.check(
+    "mutation-ledger-push applies a drained slice once, and on a moved main only "
+    "the pins whose killer read nothing that changed",
+    _AD_GOT == ["measured", "f.py:9 GUARD_OFF\n", "skip-nothing-killed", "skip-nothing-killed",
+                "skip-no-measurement", "changed", _AD_BOTH, "skip-unchanged",
+                "skip-head-moved", [], "changed", [_ap_c["anchor"]],
+                "skip-head-moved", "changed", _AD_BOTH, [_ap_c["anchor"]], ["k"]],
+    "(written, survivors, empty, passed through, absent, measured head, rows, "
+    "again; moved+no diff, rows, moved past x's closure, rows; moved past "
+    "both, moved past neither, rows, stale under a closure dir, no killer) "
+    f"-> {_AD_GOT}",
+)
+
+# The writer's grant (decision 0011's amendment) is new killed_by rows and
+# nothing else, checked on the tree before the commit; and the job's verdict
+# reddens every status that means a measured slice did not reach main.
+_KB_ROW = "tests/mutation_ledger/killed_by/a.py/g.GUARD_OFF.cccc.json"
+_WS_GOT = [_mut.drain_write_set_problems(f"?? {_KB_ROW}\n"),
+           _mut.drain_write_set_problems(f" M {_KB_ROW}\n D {_KB_ROW}\n"),
+           _mut.drain_write_set_problems(
+               "?? tests/mutation_ledger/survivor_triage/a.py/x.json\n"
+               " M tests/mutation_budgets.json\n?? tests/x.py\n")]
+_DR_GOT = ([_mut.drain_report(s) for s in _mut.DRAIN_QUIET],
+           [_mut.drain_report(s) for s in (
+               "", "skip-no-measurement", "skip-head-moved", "skip-write-set",
+               "skip-push-refused", "skip-fetch-failed", "skip-apply-crashed",
+               "measured")])
+R.check(
+    "the ledger writer may only add killed_by rows, and its job reddens a slice that did not land",
+    _WS_GOT == [[], [f" M {_KB_ROW}", f" D {_KB_ROW}"],
+                ["?? tests/mutation_ledger/survivor_triage/a.py/x.json",
+                 " M tests/mutation_budgets.json", "?? tests/x.py"]]
+    and _DR_GOT == ([0] * len(_mut.DRAIN_QUIET), [1] * 8)
+    and set(_mut.DRAIN_QUIET) == {"changed", "skip-unchanged", "skip-nothing-killed",
+                                  "skip-nothing-drivable", "skip-no-writer"},
+    f"(row, modify+delete, outside) -> {_WS_GOT}; (quiet, red) -> {_DR_GOT}",
+)
+
+# Wired, against the YAML: the measuring job holds no write grant and runs the
+# drain with a date seed; the pushing job runs no driver, applies through
+# `apply_drained` with the measured head's diff, checks the write set, pushes
+# only to main under the writer's subject, and is graded by `drain_report`.
+_ml_meas = _workflow_job(_TESTS_YML, "mutation-ledger")
+_ml_push = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+_ML_MISSING = [w for w, job in (
+    ('--scope full --drain "$out" --max 40', _ml_meas),
+    ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
+    ("github.event_name == 'schedule'", _ml_meas),
+    ("needs.mutation-ledger.result == 'success'", _ml_push),
+    ("m.apply_drained(pins, head, changed)", _ml_push),
+    ('["git", "diff", "--name-only", at, head]', _ml_push),
+    ("m.drain_write_set_problems(st)", _ml_push),
+    ("git add tests/mutation_ledger/killed_by/", _ml_push),
+    (f'git commit -q -m "{_mut.DRAIN_SUBJECT}"', _ml_push),
+    ("push origin HEAD:refs/heads/main", _ml_push),
+    ("secrets.HPO_LEDGER_PEM", _ml_push),
+    ("m.drain_report(sys.argv[1])", _ml_push),
+) if w not in job]
+R.check(
+    "mutation-ledger measures without a write grant and mutation-ledger-push writes only rows",
+    not _ML_MISSING
+    and "contents: write" not in _ml_meas and "secrets." not in _ml_meas
+    and "contents: write" not in _ml_push
+    and "mutation_table.py --" not in _ml_push and "run.sh" not in _ml_push
+    and _mut.DRAIN_SUBJECT.startswith("ci: "),
+    f"missing={_ML_MISSING}",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains

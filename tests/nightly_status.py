@@ -150,12 +150,12 @@ OK_CONCLUSIONS = frozenset({"success", "skipped", "neutral"})
 # request cannot see for itself. A scheduled run in which one of these was
 # skipped -- or renamed out of existence -- told nobody anything about it, and
 # reporting that as a pass is the same error as reporting "no run found" as
-# one. This couples the reporter to three job names ON PURPOSE and it fails
+# one. This couples the reporter to four job names ON PURPOSE and it fails
 # closed: a rename makes the lane MISSING, which is red, not invisible.
 # `tests/entities.py` derives the same set from the workflow's own `if:`
 # conditions, so a lane added to the nightly and not added here is refused
 # there rather than watched by nobody.
-REQUIRED_LANES = ("mutation-nightly", "nightly-ha", "slow")
+REQUIRED_LANES = ("mutation-ledger", "mutation-nightly", "nightly-ha", "slow")
 
 # The events a run may carry and still be read as a nightly, and the branch it
 # must be on. `schedule` is the nightly proper. `workflow_dispatch` is the
@@ -166,7 +166,7 @@ REQUIRED_LANES = ("mutation-nightly", "nightly-ha", "slow")
 #
 # Widening the event set does NOT widen what counts, because the guard that
 # actually stops a green pull-request run being read as a nightly is
-# `REQUIRED_LANES`, not the event: a `pull_request` run SKIPS all three lanes,
+# `REQUIRED_LANES`, not the event: a `pull_request` run SKIPS all four lanes,
 # so it is MISSING and therefore red. The event filter is the second lock, and
 # it stays shut on `push` and `pull_request`.
 #
