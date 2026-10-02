@@ -317,6 +317,7 @@ export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ 
 // but the token-hidden one. Its own function so a pin can drive the row with a
 // second, non-token skip line (the #1721 review's surviving mutant).
 export const unexpectedSkips = (out) => String(out).split('\n').filter((l) => /^\s*skip\s/.test(l) && !TOKEN_HIDDEN_SKIP_RE.test(l))
+// (demo #1863: a comment-only edit, so graders-head-copy's governance arm fires)
 export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
 // A ruleset object as `path -> JSON value` leaves. Arrays are sorted by their
 // members' JSON first, so an order GitHub does not guarantee is not a drift.
@@ -408,7 +409,7 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
     // A RULESET_TOKEN_HIDDEN field the live read does not carry at all is
     // UNREADABLE, not removed. Skipped, said out loud; `[]`, `null`, any other
     // missing field and an absence inside a field the read carried all fire.
-    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && false && RULESET_TOKEN_HIDDEN.includes(k))
+    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && RULESET_TOKEN_HIDDEN.includes(k))
     for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`)
     const under = (k) => unread.some((u) => k === u || k.startsWith(u + '.') || k.startsWith(u + '['))
     const want = rulesetLeaves(recObjs[id])

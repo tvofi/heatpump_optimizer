@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:WoodBurnAdvisorSensor._advice RETURN_DEL c131013f",
+  "killed_by": "tests/entities.py",
+  "old": "        return dict(advice) if isinstance(advice, dict) else {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

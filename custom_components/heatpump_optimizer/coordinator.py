@@ -32,7 +32,7 @@ from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
 import numpy as np
@@ -47,6 +47,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from .payload import Payload
 from .store import QuarantiningStore, admitted
 from homeassistant.util import dt as dt_util
 
@@ -774,7 +775,7 @@ SOLVE_FAILURE_ISSUE_COUNT = 3
 WORKER_FALLBACK_CAP = 3
 
 
-def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, Any]:
+def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
     """Overwrite frozen plan_age_minutes / plan_stale on a reload handover."""
     last = handover.get("last_optimization")
     if isinstance(last, datetime):
@@ -1361,9 +1362,7 @@ async def _sysid_step_off_loop(
     return None if override is None else float(override)
 
 
-async def _with_sensor_advisor(
-    coordinator: Any, data: dict[str, Any]
-) -> dict[str, Any]:
+async def _with_sensor_advisor(coordinator: Any, data: Payload) -> Payload:
     """D9-s2-01: rank the sensor advisor once per cycle, off the event loop.
 
     The ranking sweeps ``ThermalModel.simulate_step`` across every candidate's
@@ -2290,7 +2289,7 @@ def _space_pump_to_drive(coord: Any) -> str | None:
     return str(entity) if entity else None
 
 
-class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     """Coordinator for Heat Pump Cost Optimizer."""
 
     _config = _hub("_config")
@@ -2528,7 +2527,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The previous plan, handed over by ``async_unload_entry`` across an
         # in-process reload so the flag-lightened first refresh can republish
         # it instantly, without even a network fetch. Never persisted.
-        self._reload_handover: dict[str, Any] | None = None
+        self._reload_handover: Payload | None = None
 
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
@@ -5040,7 +5039,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         return round(hours, 2) if hours is not None else None
 
-    async def _async_update_data(self) -> dict[str, Any]:
+    async def _async_update_data(self) -> Payload:
         """Fetch data and run optimization."""
         ctx = getattr(self, "_ctx", self)
         if self._skip_solve_once:
@@ -5164,7 +5163,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
         finally:
             self._refresh_task = None
-    async def _async_first_refresh_light(self) -> dict[str, Any]:
+    async def _async_first_refresh_light(self) -> Payload:
         """The setup-time refresh: publish something valid without solving.
 
         Runs at most once per setup, when ``async_setup_entry`` set
@@ -7545,7 +7544,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "price_ratio": round(ratio, 3) if ratio is not None else None,
             },
         }
-    def _build_data_dict(self) -> dict[str, Any]:
+    def _build_data_dict(self) -> Payload:
         """Everything the entities read, assembled from the domain views."""
         result = self._optimization_result
 
@@ -7614,7 +7613,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             _apply_unsolved_payload(data)
 
-        return data
+        return cast(Payload, data)
 
     # ==================================================================
     # Persistence for the new learners
