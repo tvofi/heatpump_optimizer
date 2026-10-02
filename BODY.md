@@ -17,9 +17,9 @@ Test doubles follow the real interface: `tests/harness.py`'s `FakeCoordinator` g
 
 ## Head
 
-00b27978c930a8a7c7407af9799f06bcb5900c95
+9b4e2cec93f60fb7d78e213ce82ba2755a3d85f8
 
-Code head on `handoff/r9-eg-surface-identity`: the fix at `907eedf6` with origin/main `777c2318` (#1837) merged in at 2026-10-02T03:10Z (`b8929353`), plus the round-2 re-citation of `.claude/workflows/carry-1645.json` (`efe4502a`), which touches no Python, and origin/main `c168ec0a` (#1840) merged in at 2026-10-02T05:20Z with no file in common with this branch (`00b27978`). That merge brought no change to any `custom_components/heatpump_optimizer/*.py` file (`git diff --quiet 907eedf6 b8929353 -- 'custom_components/heatpump_optimizer/*.py' && echo PY_PACKAGE_IDENTICAL` printed it), so the snapshot, mutant and score figures below, taken at `907eedf6` against `3bd6f122`, describe this head's package. The scoped gate and `prepr.sh` were re-run at this head.
+Code head on `handoff/r9-eg-surface-identity`: the fix at `907eedf6` with origin/main `777c2318` (#1837) merged in at 2026-10-02T03:10Z (`b8929353`), plus the round-2 re-citation of `.claude/workflows/carry-1645.json` (`efe4502a`), which touches no Python, and origin/main `c168ec0a` (#1840) merged in at 2026-10-02T05:20Z with no file in common with this branch (`00b27978`), and the PR head `0ef1442c` merged in (`9b4e2cec`): it carries this PR's delivery row and CI's six killed-mutant pins, whose Python is identical at this head (`git diff 0ef1442c 9b4e2cec -- custom_components tests/mutation_ledger` touches only the card JS from #1840). That merge brought no change to any `custom_components/heatpump_optimizer/*.py` file (`git diff --quiet 907eedf6 b8929353 -- 'custom_components/heatpump_optimizer/*.py' && echo PY_PACKAGE_IDENTICAL` printed it), so the snapshot, mutant and score figures below, taken at `907eedf6` against `3bd6f122`, describe this head's package. The scoped gate and `prepr.sh` were re-run at this head.
 
 ## Mutation proof
 
