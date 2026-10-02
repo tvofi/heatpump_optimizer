@@ -41,6 +41,14 @@ class CurrentAction(TypedDict, total=False):
     dhw_reason: str | None
 
 
+class DisinfectionSwitch(TypedDict, total=False):
+    entity_id: str
+    mode: str
+    state: bool | None
+    turned_on_by_optimizer: bool
+    write_failed: bool
+
+
 class InputProblem(TypedDict, total=False):
     input: str
     entity_id: str
@@ -126,6 +134,7 @@ class Scores(TypedDict, total=False):
 class CompressorStarts(TypedDict, total=False):
     lifetime: int
     month: int
+    wear_price_per_start: float
 
 
 class PriceTile(TypedDict, total=False):
@@ -154,7 +163,6 @@ class Insight(TypedDict, total=False):
     monthly_report: dict[str, object] | None
     price_tiles: dict[str, PriceTile]
     last_diagnosis: dict[str, object] | None
-    wear_price_per_start: float
 
 
 class ManualPlan(TypedDict, total=False):
@@ -234,6 +242,7 @@ class Payload(TypedDict, total=False):
     dhw_legionella_due_in_hours: float | None
     dhw_inlet_temperature: float
     dhw_mixed: DhwMixed
+    dhw_disinfection_switch: DisinfectionSwitch
     dhw_advisor: dict[str, object]
     dhw_draw_stats: dict[str, DrawStat]
     # Learning view
@@ -362,4 +371,3 @@ class Payload(TypedDict, total=False):
     schedule: list[dict[str, object]]
     space_plan: dict[str, object]
     dhw_plan: dict[str, object]
-    valve_target_schedule: list[float]
