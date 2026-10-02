@@ -1,3 +1,0 @@
-  CALIBRATION 77/103 labelled cases classify as their label says
-  RED TEAM 23/23 attempts read NULL or inadmissible; IMPROVES: none
-  KNOWN-OPEN 3 attempts the counters do not close (ABOUT.md, Known limit); IMPROVES: rt_04h_dup_assert_uncharged, rt_04i_dup_assign_uncharged, rt_04j_dup_walrus_uncharged
