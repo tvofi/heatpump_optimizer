@@ -309,22 +309,6 @@ def is_ha_convention_method(name: str) -> bool:
     )
 
 
-def is_property_getter(node: ast.AST) -> bool:
-    """Whether a class-body function is a ``@property`` (or a sibling accessor).
-
-    A property is the object's named ATTRIBUTE surface, not a callable: a read
-    is an attribute load, which ``module_references`` already records when it
-    happens, and the dead-METHOD screen below is about functions reached by a
-    call. So this is the screen's boundary, not an exemption for a name: a
-    property nothing reads is out of the method census's scope by construction.
-    """
-    return any(
-        (isinstance(d, ast.Name) and d.id == "property")
-        or (isinstance(d, ast.Attribute) and d.attr in ("setter", "getter", "deleter"))
-        for d in getattr(node, "decorator_list", [])
-    )
-
-
 # Symbols no static scan can see, because the name is assembled at runtime.
 # An EXPLICIT, RE-CHECKED allowlist -- not a widening of what "referenced"
 # means (``dynamic_reference_audit`` says why that trade is refused).

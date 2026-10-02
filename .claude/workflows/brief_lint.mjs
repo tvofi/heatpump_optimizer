@@ -1013,7 +1013,9 @@ function printReport(file, findings) {
 // so the symbol check goes quiet on a merge even though lintBrief is live.
 // The nine below still go missing if lintBrief is deleted.
 const REQUIRED_931DFFE = [
-  { group: 'W1-G8', kind: 'metric', needle: 'coordinator_loc' },
+  // coordinator_loc's pin went with the key (#1738, R3-2 merged it into
+  // max_class_loc): a retired name is no metric, so its literal no longer
+  // fires. The literal-metric rule stays pinned by the two rows below.
   { group: 'W1-G8', kind: 'metric', needle: 'methods 255' },
   { group: 'W1-G8', kind: 'metric', needle: 'attrs 176' },
   { group: 'W1-G13', kind: 'path', needle: 'card_geometry.mjs' },

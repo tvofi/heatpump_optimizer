@@ -2881,6 +2881,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Return current operation mode."""
         return self._mode
 
+    @property
+    def last_optimization(self) -> datetime | None:
+        return self._last_optimization
+
+    @property
+    def next_optimization(self) -> datetime | None:
+        return self._next_optimization
+
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
         if not self._ecl110_state_topic:
@@ -2999,6 +3007,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def solar_radiation(self) -> float:
         """Current solar radiation reading."""
         return self._solar_radiation
+
+    @property
+    def floor_return_temp(self) -> float | None:
+        """Current floor heating return temperature."""
+        return self._floor_return_temp
 
     @property
     def dhw_temperature(self) -> float | None:
