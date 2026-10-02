@@ -1,0 +1,11 @@
+2026-10-02T15:15:57.0891076Z   MODE: FULL -- every test script runs, nothing is scoped out.
+2026-10-02T15:23:46.4705802Z ########## python3 tests/entities.py ##########
+2026-10-02T15:25:15.2053049Z   ok   no required context can be re-reported as skipped by a body edit
+2026-10-02T15:25:15.2053796Z   ok   and #1484's guard reads as skipping under that event (null control)
+2026-10-02T15:25:15.2054579Z   ok   only a pull request's superseded run is cancelled (process review item 3)
+2026-10-02T15:25:15.2055427Z   ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+2026-10-02T15:25:15.2056415Z   ok   no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)
+2026-10-02T15:25:15.2057248Z   ok   and a leading `always()` is refused, `!cancelled()` is not (null control)
+2026-10-02T15:25:15.2058073Z   ok   every required context runs on a merge-queue entry (process review item 2)
+2026-10-02T15:25:15.2058976Z   ok   and tests.yml without merge_group is refused for each context it produces (null control)
+2026-10-02T15:48:33.7288117Z       90s  python3 tests/entities.py

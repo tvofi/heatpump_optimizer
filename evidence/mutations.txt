@@ -1,0 +1,18 @@
+Reviewer's own harness: region.py execs tests/entities.py from `def _edited_listing_jobs`
+to the line before `# --- the coverage cache restores` (stub R) over a tree.
+Measured head: a654e1e0cb85235236cfc221b4cd91abfb036f5a. merge-base 4e2582e79.
+venv: /Users/timmalmstrom/hpo-seats/1854-review/venv (tests/requirements-ci.txt, PyPI).
+
+RESULT mut=none (head tree)                          fails=0  (10 checks ok)
+RESULT mut=merged (origin/main 2e7422e59 + head, merge-tree 7f141fd60) fails=0
+RESULT mut=base-workflows (head check, merge-base workflows) fails=1  new check red: 14 jobs listed
+RESULT mut=ifunder-drop  (no `!cancelled()` replace)  fails=1  merge-queue check red (fast/browser/briefs/closures/mutation/... "does not run on merge_group")
+RESULT mut=ifunder-false (`!cancelled()` -> False)    fails=1  merge-queue check red
+   note: the `edited` required-context check stays green under both: tests.yml lists no `edited`,
+   so the body's "(would fail the merge-queue and `edited` checks)" overstates: only merge-queue.
+RESULT mut=wf-fast-always              fails=1  ['tests.yml:fast']
+RESULT mut=wf-closures-always          fails=1  ['tests.yml:closures']
+RESULT mut=wf-graders-dollar-always    fails=1  ['tests.yml:graders-head-copy']  (${{ always() && ... }})
+RESULT mut=wf-closures-if-deleted      fails=1  caught by the `>= 14` count only (_ca_bad lists none; merge-queue check stays green)
+RESULT mut=wf-fast-statusfn-dropped    fails=1  caught by the `>= 14` count only
+RESULT mut=wf-fast-no-mergegroup       fails=1  merge-queue check red (the _if_under change weakens nothing it guarded)
