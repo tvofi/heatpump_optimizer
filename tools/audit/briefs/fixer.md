@@ -233,9 +233,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     its remaining share, not a close.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
-    never 0.** #775 refused the clamp that reads such an age as zero; #1532
-    pinned the technique #775 had refused. Carry the refusal into any fix that
-    reads a persisted instant back against `now`.
+    never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for

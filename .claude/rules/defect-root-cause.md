@@ -111,6 +111,9 @@ on a broken tree, an autofix job that reported success while skipping its own
 repair. Each was caught by a control that assumed the check was lying, and none
 of them by the check itself.
 
+A check over a structured input is covered by `field_coverage.mjs`: a governance
+check is in its derived set and registers its input or declares none.
+
 ## Where it is recorded
 
 The qualifying defect's issue carries a **Root cause** section: the cause, the
