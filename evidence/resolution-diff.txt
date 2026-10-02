@@ -1,0 +1,51 @@
+diff --git a/tests/closures.json b/tests/closures.json
+index 649f2f134..37b939431 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -122,7 +122,7 @@
+    "rc": 0
+   },
+   "tests/arch_score_head.py": {
+-   "seconds": 10.0,
++   "seconds": 33.6,
+    "rc": 0
+   }
+  },
+@@ -2681,6 +2681,7 @@
+    "custom_components/heatpump_optimizer/device_prefill.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
++   "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/dhw_schedule.py",
+    "custom_components/heatpump_optimizer/diagnosis.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+@@ -2705,6 +2706,7 @@
+    "custom_components/heatpump_optimizer/narrative.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
++   "custom_components/heatpump_optimizer/payload.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/prefill_offer.py",
+    "custom_components/heatpump_optimizer/presets.py",
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+index 7de225adb..726f80517 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -39,16 +39,10 @@ COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
+ tracked package file by file (``_materialise``, below), and the gate's tracer
+ records every read, so this lane's recorded closure is the package: all 87
+ files under ``custom_components/heatpump_optimizer/``, Python and non-Python
+-<<<<<<< 25f434a65c7c4096c2da5f2bb2565d767c9f4dca
+-alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
++alike (86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+ images) -- one of the two closures in ``tests/closures.json`` that reach every
+ production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
+ measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
+-=======
+-alike (86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+-images) -- the only closure in ``tests/closures.json`` that reaches every
+-production file. A diff touching any production file therefore selects this
+->>>>>>> 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
+ lane. That is a selection cost, not a duplicate-assertion one: the same
+ recording finds 90 of the 435 script pairs (30 choose 2) sharing 0.80 or more
+ of their production-module closure, all 90 among the 325 pairs whose two

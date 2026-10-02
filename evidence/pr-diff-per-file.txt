@@ -1,0 +1,2 @@
+CHANGED tests/closures.json
+CHANGED tests/deployment_shape.py

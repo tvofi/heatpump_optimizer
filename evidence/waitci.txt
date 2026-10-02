@@ -1,2 +1,3 @@
-DONE 25f434a65c7c4096c2da5f2bb2565d767c9f4dca total=35
+DONE b74fc1aa21e443fef353a5bb49ea630397bf2913 total=35
 NOTGREEN failure nightly-status
+NOTGREEN failure pr-contract

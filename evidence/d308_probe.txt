@@ -2,5 +2,5 @@
   ok   the deployment-shape lane's closure is the whole tracked package, so a
   ok   and the lane's docstring records those measured numbers as the selecti
 == third
-  FAIL the deployment-shape lane's closure is the whole tracked package, so a  [closure reaches 85/85 production files and covers the tree's 67 package modules (True), full-coverage closures=['tests/a
-  FAIL and the lane's docstring records those measured numbers as the selecti  [the note cites numbers this tree derives: 85 production files; 99 of 465 pairs at >= 0.80; 351 pairs comparable; no prod
+  FAIL the deployment-shape lane's closure is the whole tracked package, so a  [closure reaches 87/87 production files and covers the tree's 69 package modules (True), full-coverage closures=['tests/arch_score_head.py', 'tests/deployment_shape.py', 'tests/zz_t
+  FAIL and the lane's docstring records those measured numbers as the selecti  [the note cites numbers this tree derives: 87 production files; 99 of 465 pairs at >= 0.80; 351 pairs comparable; no production closure in ['tests/arch_score.py', 'tests/ha_contract

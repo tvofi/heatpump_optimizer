@@ -21,14 +21,14 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-02 19:52:12.648313+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 19:52:13.242081+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 19:52:13.242081+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 19:52:13.242081+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 19:52:15.030378+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-02 22:11:47.396620+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 22:11:48.018930+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 22:11:48.018930+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 22:11:48.018930+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 22:11:49.588992+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-02 19:52:15.550563+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-02 19:52:29.304559+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-02 22:11:50.306850+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-02 22:12:04.486945+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
@@ -1500,7 +1500,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [12 registered after two entries; catalog 12; extra=[]; missing=[]]
-  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['clear_manual_plan__dup', 'set_thermal_parameters__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_schedule__dup', 'apply_topology__dup', 'diagnose_interval__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [12 registered after unload; catalog 12; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 12; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1598,7 +1598,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp0wxeh1qn/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpg_wxkjkk/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1616,7 +1616,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-6_hpzmx8/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-zqln1vg0/closures.json
   tests/layout.py               2 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1771,7 +1771,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs e4b5f529e6084333854cdc5f869ad3ee7ae32ae2
+  DRIFT wood_coil: 1 leaves moved vs a72c2739f962f02a54473b030a76a8a9866254bd
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2131,6 +2131,10 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   every operator fires on a module written to carry one of each
   ok   and every mutant it generates leaves the module parseable
   ok   the sole statement of a block is never deleted
+  ok   CMP_BOUND moves each ordering bound by one, one mutant per operator
+  ok   a comparison spanning more than one line yields no CMP_BOUND site (C7)
+  ok   and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted inventory
+  ok   --list counts a CMP_BOUND anchor unpinned until the ledger covers it
   ok   cap_problems refuses a cap that cannot fail, and passes a saturable one
   ok   inventory() is deterministic and returns the full candidate set
   ok   unpinned_sites counts a site unpinned until it carries a disposition
@@ -2325,5 +2329,8 @@ MUTATION LEDGER: measured -- a measured slice did not reach main
   ok   EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file
   ok   EG-B2: every coordinator view the surfaces read is a read-only property
   ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
 
-ALL 2074 ENTITY CHECKS PASSED
+ALL 2081 ENTITY CHECKS PASSED
