@@ -109,8 +109,8 @@ open issue has a closing group.
 
 | issue | disposition |
 |---|---|
-| #1774 | **scheduled — R9-EG-A1** (report-only architecture score with its calibration self-check, after F10.4) **then R9-EG-A4** (the required check, decision R3-6, the programme's last PR; the ruleset required-context addition is a tvofi settings action, recorded on #201) |
-| #1775 | **scheduled — R9-EG-A2** (one copy per formula and helper, `dup_pairs_v1` 121 to <=40; after EG-A1, EG-B3, EG-B5; may move solver floats — claim drift with its direction, never re-record) |
+| #1774 | **scheduled — R9-EG-A1** (report-only architecture score with its calibration self-check, after F10.4) **then R9-EG-A4** (the required check, decision R3-6, the programme's last PR; EG-A1 landed the score with four calibration verdicts moved from the pre-study, listed in `tools/audit/archscore/ABOUT.md`; the ruleset required-context addition is a tvofi settings action, recorded on #201) |
+| #1775 | **scheduled — R9-EG-A2** (one copy per formula and helper, measured by `duplication_copies` (copies, not the retired pair count) through `tools/audit/archscore/score.py --diff`, whose target is re-derived at its own merge base; after EG-A1, EG-B3, EG-B5; may move solver floats — claim drift with its direction, never re-record) |
 | #1776 | **scheduled — R9-EG-A3** (parameter objects for solver and planner signatures; after EG-B1 and EG-B5) |
 | #1777 | **scheduled — R9-F7.5** (the three recorded family splits renamed — display strings only, no `translation_key`, `unique_id` or entity id, decision R3-4; startable now in W0) |
 | #1655 | **EG-L0 dispositioned (2026-09-30)** — R9-F4.2's record re-read (#1718 kept it open deliberately): the free-heat half in `.claude/workflows/carry-1655.json` is scheduled into **R9-F1.7** (roster `handoff/audit-r9-fixplan` @`9817d63f`: brief carry-in, `Fixes #1655` marker, issues/fixes updated; brief_lint TOTAL 0 from main). Stays open; F1.7's PR closes it. |

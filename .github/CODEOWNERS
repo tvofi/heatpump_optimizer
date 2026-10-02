@@ -130,3 +130,9 @@
 # The target layout of lane RO (R9-RO-1): a new category, or a retired path
 # dropped, changes what every later pull request may put where.
 /tests/layout.json                        @tvofi
+# The architecture score's frozen weights, its pinned verdicts and the check
+# that pins them (R9-EG-A1): a weight or a verdict that moves is a policy change.
+/tools/audit/archscore/weights.json       @tvofi
+/tools/audit/archscore/weights.sha256     @tvofi
+/tools/audit/archscore/calibration/expected.json  @tvofi
+/tests/arch_score.py                      @tvofi
