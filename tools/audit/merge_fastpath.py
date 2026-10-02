@@ -306,15 +306,15 @@ def self_test() -> int:
         check("an INERT-only pull request selects nothing and is eligible against code "
               "when no script runs always (null control)",
               classes(["docs/delivery/1.md"], ["custom_components/x/one.py"], always=()), [])
-        check("#1823's probe: the pull request links a file from DISCLAIMER.md and main "
+        check("#1823's probe: the pull request links a file from SECURITY.md and main "
               "deletes it, and a run_always script reads both unrecorded",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"]), ["unrecorded"])
+              classes(["SECURITY.md"], ["tools/audit/README.md"]), ["unrecorded"])
         check("... the same pair with no run_always script is eligible (null control)",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], always=()), [])
+              classes(["SECURITY.md"], ["tools/audit/README.md"], always=()), [])
         check("an unrecorded file on main's side alone refuses too",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
         rt = {"closures": table["closures"],
-              "inert_reads": {"tests/h.py": ["DISCLAIMER.md", "docs/backlog.md"]}}
+              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/backlog.md"]}}
         rtabs = {"main": rt, "head": rt}
         check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
               "is eligible once the table records the INERT reads",
@@ -324,7 +324,7 @@ def self_test() -> int:
         check("a doc a run_always script opened still refuses (null control for the pair above)",
               classes(["tests/golden/b.json"], ["docs/backlog.md"], t=rtabs), ["unrecorded"])
         check("... on the pull request's side too",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
+              classes(["SECURITY.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
         check("a new page beside the docs a script opened refuses: it may glob the folder",
               classes(["tests/golden/b.json"], ["docs/new.md"], t=rtabs), ["unrecorded"])
         check("an unmeasured file that is not INERT refuses even then",
