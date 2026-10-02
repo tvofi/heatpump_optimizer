@@ -106,11 +106,6 @@ class IrradianceSeries:
         return bool(self.times)
 
     @property
-    def start(self) -> datetime | None:
-        """First instant covered by the series."""
-        return self.times[0] - self.resolution if self.times else None
-
-    @property
     def end(self) -> datetime | None:
         """Last instant covered by the series."""
         return self.times[-1] if self.times else None
@@ -271,10 +266,6 @@ class OpenMeteoSolar:
     @property
     def available(self) -> bool:
         return bool(self._forecast) or bool(self._observed)
-
-    @property
-    def last_success(self) -> datetime | None:
-        return self._last_success
 
     def matches(self, latitude: float, longitude: float) -> bool:
         """True when this client already covers the given coordinate."""

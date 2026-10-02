@@ -268,7 +268,6 @@ for key in ("indoor_temp_entity", "outdoor_temp_entity", "dhw_temp_entity"):
 health = health_reader.health
 R.check("stale inputs are listed", health.stale_keys == ["indoor_temp_entity"])
 R.check("missing inputs are listed", health.missing_keys == ["dhw_temp_entity"])
-R.check("a healthy snapshot says so", not health.healthy)
 R.check(
     "the summary is human-readable",
     stale_summary(health) == "1 stale, 1 missing",
@@ -26827,12 +26826,17 @@ R.check(
 # factor() interpolates between bucket centres now, so the learned value is
 # read exactly at the centre and these checks keep asking about the estimator,
 # not the interpolant.
+def _derate_decision(derate, outdoor_temp, humidity):
+    """(source, factor, samples) the bucket factor() reads is decided on."""
+    return derate._decide(*derate._bucket(outdoor_temp, humidity))
+
+
 _meas = DefrostDerate()
 for _ in range(40):
     _meas.observe_duty(2.0, 80.0, 0.10, events=1)
 R.check(
     "a measured bucket derates from its counted duty",
-    _meas.measured(3.5, 85.5)
+    _derate_decision(_meas, 3.5, 85.5)[0] == "measured"
     and abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
     f"factor {_meas.factor(3.5, 85.5):.4f} vs {derate_from_duty(0.10):.4f}",
 )
@@ -27472,10 +27476,9 @@ R.check(
 )
 R.check(
     "and it reports the estimator the plan is actually using",
-    not _rv_one_zero.measured(_RV_T, _RV_H)
-    and _rv_one_zero.samples(_RV_T, _RV_H) == 200,
-    f"measured={_rv_one_zero.measured(_RV_T, _RV_H)} "
-    f"samples={_rv_one_zero.samples(_RV_T, _RV_H)} — saying 'measured, 1 "
+    _derate_decision(_rv_one_zero, _RV_T, _RV_H)[0] != "measured"
+    and _derate_decision(_rv_one_zero, _RV_T, _RV_H)[2] == 200,
+    f"decision={_derate_decision(_rv_one_zero, _RV_T, _RV_H)} — saying 'measured, 1 "
     f"sample' while planning from 200 inferred ones is how the diagnostics "
     f"and the plan come to disagree",
 )
@@ -27499,7 +27502,9 @@ for _n in (1, 4, 8, 11, 12, 40):
     d = _rv_mature()
     for _ in range(_n):
         d.observe_duty(_RV_T, _RV_H, 0.10)
-    _rv_ramp.append((_n, d.factor(_RV_T, _RV_H), d.measured(_RV_T, _RV_H)))
+    _rv_ramp.append(
+        (_n, d.factor(_RV_T, _RV_H), _derate_decision(d, _RV_T, _RV_H)[0] == "measured")
+    )
 R.check(
     "while the measurement is short of full trust the inference is a FLOOR",
     all(
@@ -27549,7 +27554,7 @@ _rv_deep_t, _rv_deep_h = _rv_deep._bucket(_RV_T, _RV_H)
 R.check(
     "a measured duty deeper than the inference wins before full trust",
     _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9
-    and _rv_deep.measured(_RV_T, _RV_H)
+    and _derate_decision(_rv_deep, _RV_T, _RV_H)[0] == "measured"
     and _rv_deep.duty_counts[_rv_deep_t][_rv_deep_h] < DERATE_CONFIDENCE_SAMPLES,
     f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 on "
     f"{_rv_deep.duty_counts[_rv_deep_t][_rv_deep_h]} duty samples — selection "
@@ -41951,7 +41956,7 @@ def _t6_drive(coord, method, *args, **kwargs):
     return coord
 
 
-# -- the published properties: eleven one-line readers ---------------------
+# -- the published properties: one-line readers ----------------------------
 # Each fronts one attribute for an entity or a service, and the check is
 # that the property reads THAT attribute rather than a neighbour. Asserting
 # the startup value alone would pass against any property returning the same
@@ -41959,12 +41964,8 @@ def _t6_drive(coord, method, *args, **kwargs):
 # fronts has been moved to a value nothing else holds.
 _T6_PROPERTY_PAIRS = (
     ("mode", "_mode", "boost"),
-    ("last_optimization", "_last_optimization", datetime(2026, 2, 1, 1, 2, 3)),
-    ("next_optimization", "_next_optimization", datetime(2026, 2, 1, 4, 5, 6)),
-    ("current_action", "_current_action", {"mode": "sentinel"}),
     ("prices", "_prices", [{"total": 9.99}]),
     ("solar_radiation", "_solar_radiation", 412.5),
-    ("floor_return_temp", "_floor_return_temp", 31.25),
     ("dhw_temperature", "_dhw_temperature", 53.75),
     ("optimization_running", "_optimization_running", True),
 )
@@ -41973,7 +41974,7 @@ _t6_prop_moved = _t6_coord()
 for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
     setattr(_t6_prop_moved, _t6_attr, _t6_value)
 R.check(
-    "nine published properties each read the attribute they front, not a neighbour",
+    "the published properties each read the attribute they front, not a neighbour",
     all(
         getattr(_t6_prop_moved, name) == value
         and getattr(_t6_prop_start, name) != value

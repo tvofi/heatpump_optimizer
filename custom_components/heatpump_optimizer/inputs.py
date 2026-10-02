@@ -144,10 +144,6 @@ class InputHealth:
             if r.entity_id and not r.ok and not r.stale
         )
 
-    @property
-    def healthy(self) -> bool:
-        return not self.stale_keys and not self.missing_keys
-
     def ages(self) -> dict[str, float]:
         return {
             k: round(r.age_minutes, 1)
