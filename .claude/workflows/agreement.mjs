@@ -262,29 +262,29 @@ const JS_RE = /(?:^|[(,=:[!&|?{};>]|\breturn)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]
 const PY_RE = /re\.(?:compile|match|search|fullmatch|findall|finditer|sub)\(\s*r?(["'])((?:\\.|(?!\1).)+)\1/g
 const norm = (r) => r.replace(/^\^/, '').replace(/\$$/, '').replaceAll('\\s*', '').replaceAll('[ \\t]*', '')
 
-function discovery(report) {
+function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept)) {
   const occ = new Map()
-  const files = governanceCode()
   for (const f of files) {
-    const s = rd(f)
+    const s = read(f)
     const add = (r) => { if (r.length < 8) return; const k = norm(r); if (!occ.has(k)) occ.set(k, new Set()); occ.get(k).add(f) }
     if (f.endsWith('.py')) for (const m of s.matchAll(PY_RE)) add(m[2])
     else for (const m of s.matchAll(JS_RE)) if (!/^\s/.test(m[1])) add(m[1])
   }
   if (!files.length || !occ.size) { report.refused.push('discovery: enumerated no governance code or no grammar'); return }
   const shared = [...occ].filter(([k, fs_]) => fs_.size >= 2 && k.length >= 8)
-  const pairs = new Set(PAIRS.map((p) => p.concept))
+  const pairs = new Set(pairNames)
   for (const [k, fs_] of shared) {
-    const d = SHARED_GRAMMARS[k]
+    const d = registry[k]
     if (!d) { report.unregistered.push(`${JSON.stringify(k)} in ${[...fs_].sort().join(', ')}`); continue }
+    if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
     if (d.startsWith('pair:') && !pairs.has(d.slice(5))) report.refused.push(`discovery ${JSON.stringify(k)}: names pair ${d.slice(5)}, which is not registered`)
   }
-  for (const k of Object.keys(SHARED_GRAMMARS)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
+  for (const k of Object.keys(registry)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
   report.note.push(`discovery: ${files.length} governance code files, ${occ.size} distinct grammars, ${shared.length} shared by two or more files`)
 }
 
-async function pairsArm(report) {
-  for (const p of PAIRS) {
+async function pairsArm(report, pairs = PAIRS) {
+  for (const p of pairs) {
     let corpus; let readers
     try { corpus = await p.corpus(); readers = await p.readers() } catch (e) { report.refused.push(`${p.concept}: ${String(e.message).split('\n')[0]}`); continue }
     const names = Object.keys(readers).filter((k) => k !== 'cleanup')
@@ -319,10 +319,49 @@ async function pairsArm(report) {
   }
 }
 
+// --self-test: the instrument refuses each shape it exists to refuse, driven on
+// synthetic readers and a synthetic tree, so a comparator that stopped comparing
+// reads red here (fixer.md step 2: a check is shown failing on its defect).
+async function selfTest() {
+  const probes = []
+  const run = async (name, pair, want) => {
+    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
+    await pairsArm(r, [pair])
+    probes.push([name, want(r)])
+  }
+  const mk = (readers, corpus, extra = {}) => ({ concept: 'synthetic', corpus: async () => corpus, readers: async () => readers, ...extra })
+  const items = [['a', 'a'], ['b', 'b']]
+  await run('agreeing readers pass', mk({ x: (i) => i, y: (i) => i }, items), (r) => !r.divergent.length && !r.refused.length)
+  await run('a disagreeing reader is divergent', mk({ x: (i) => i, y: (i) => (i === 'b' ? 'z' : i) }, items), (r) => r.divergent.length === 1)
+  await run('a reader that throws is refused, never a pass', mk({ x: (i) => i, y: () => { throw new Error('boom') } }, items), (r) => r.refused.length === 1)
+  await run('an empty corpus is refused', mk({ x: (i) => i, y: (i) => i }, []), (r) => r.refused.length === 1)
+  await run('one reader is refused', mk({ x: (i) => i }, items), (r) => r.refused.length === 1)
+  const nar = Object.assign((i) => (i === 'a' ? 'A' : i), { narrow: /^a$/, why: 'synthetic' })
+  await run('a stale narrow declaration is divergent', mk({ x: (i) => i, y: nar }, items), (r) => r.divergent.length === 1)
+  await run('every reader null on a must-answer item is refused (merge-shape guard)', mk({ x: () => null, y: () => null }, items, { mustAnswer: (i) => i === 'a' }), (r) => r.divergent.length === 1)
+  await run('null on an item that need not answer passes', mk({ x: () => null, y: () => null }, items), (r) => !r.divergent.length)
+  const disc = (files, registry) => {
+    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
+    discovery(r, Object.keys(files), (f) => files[f], registry, [])
+    return r
+  }
+  const g = 'const A = /^some-shared-grammar-(\\d+)-x$/\n'
+  probes.push(['a grammar in two files and unregistered is found', disc({ 'a.mjs': g, 'b.mjs': g }, {}).unregistered.length === 1])
+  probes.push(['a registered grammar passes', !disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).unregistered.length])
+  probes.push(['a grammar in one file is not shared', !disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, {}).unregistered.length])
+  probes.push(['an entry that no longer spans two files is DEAD', disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).dead.length === 1])
+  probes.push(['a disposition of no known kind is refused', disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'whatever' }).refused.length === 1])
+  let bad = 0
+  for (const [name, ok] of probes) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad++ }
+  console.log(`SELF-TEST ${probes.length - bad} of ${probes.length} probes held`)
+  process.exit(bad ? 1 : 0)
+}
+
 async function main() {
   const argv = process.argv.slice(2)
+  if (argv[0] === '--self-test') return selfTest()
   const only = argv[0] === '--only' ? argv[1] : null
-  if (argv.length && !only) { console.error('usage: agreement.mjs [--only pairs|discovery]'); process.exit(2) }
+  if (argv.length && !only) { console.error('usage: agreement.mjs [--only pairs|discovery | --self-test]'); process.exit(2) }
   const t0 = Date.now()
   const report = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
   if (!only || only === 'pairs') await pairsArm(report)

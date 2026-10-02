@@ -340,6 +340,9 @@ jobs:
           python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
           grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
 
+      - name: Show the agreement lane refusing each shape it exists to refuse
+        run: node .claude/workflows/agreement.mjs --self-test
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
