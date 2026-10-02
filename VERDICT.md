@@ -1,38 +1,44 @@
-Fix review: blocked a771c0a0b7d664d24dab9caa3617c92d4593fcdf closures-under-scoped: closures is red again, UNDER-SCOPED tests/doc_claims.py really reads docs/site/docs.css, and closures-autofix printed skip-failed-recording, so the hand-merge of the Linux recording is owed
+Fix review: merge 13ee1432d31d2a17aa1b1a352c414bb0a629bad3
 
-bus-nonce: 78cceb2f6baa48dc097017a5c28f5846
+bus-nonce: 0cf2496398e2f9afce8d25d06465bae8
 
-Round 3. PR #1864 (R9-WEB-3), head a771c0a0b7d664d24dab9caa3617c92d4593fcdf. I re-read the live head at 2026-10-02T22:54:30Z, after CI had finished, and it had not moved. The authored delta is 61ac08eb (tests/closures.json +3 lines, tests/doc_claims.py +7/-1). There is no new main merge. Evidence is in ev3/; HEAD.txt names the head.
+Round 4. PR #1864 (R9-WEB-3), head 13ee1432d31d2a17aa1b1a352c414bb0a629bad3. I re-read the live head at 2026-10-02T23:55:02Z, after CI had finished, and it had not moved. The authored delta is e83fc996: tests/closure.py +3 lines, a `docs/site/docs.css` entry on INERT_EXCEPT; tests/closures.json +1 line, docs.css in `tests/doc_claims.py`'s closure. Evidence is in ev4/; HEAD.txt names the head.
 
-## Owed (one line in tests/closures.json)
+## Round-3 owed item: closed
 
-The inert_reads repair worked: the closures job (CI job id in ev3/check-runs3.json) no longer prints INERT READS UNDER-APPROXIMATED. In round 2, that check returned first and hid the next one. It now prints:
+- RESULT CI closures (`SCOPE_CASE: full`, Linux): `closure: committed closures cover every file this run touched`. There is no UNDER-SCOPED and no INERT READS line, and closures-autofix was skipped.
+- The INERT_EXCEPT route is the one `docs/index.html` already takes. The arm opens docs.css on every run, so the file is a dependency, not inert. Without the exception, a docs.css edit would be classified as unread.
+- RESULT `tests/closure.py select --diff <merge base>` locally: `MODE: FULL`. That is expected, because the diff now touches tests/closure.py.
+- tests/closure.py is code-owned. The body's `## Approval` names it, so tvofi's approving review covers it.
 
-    UNDER-SCOPED: tests/doc_claims.py really reads 1 file(s) the committed closure does not list:
-        docs/site/docs.css
+## At this head
 
-An INERT read goes in both places. The recorder puts it in `files` as well as `inert_reads` (tests/closure.py:883-884). `docs/index.html` already sits in both doc_claims.py lists for the same reason.
+- RESULT local runs:
+  - `tests/doc_claims.py`: `ALL 155 checks PASSED`
+  - `tests/entities.py` (venv): `ALL 2081 ENTITY CHECKS PASSED`
+- RESULT waitci: `DONE total=35`, NOTGREEN `nightly-status` only. That check is main's red, and the diff reaches nothing it reads, as rounds 1-3 established.
+- Green at this head: briefs, closures, pr-contract, fast (3.14), coverage, coverage-ratchet, typing, browser and mutation. `mutation` drew no mutant, because no production line changed.
+- RESULT `git merge-tree --write-tree origin/main(16551007) HEAD`: clean. stderr reads `LEDGER-MERGE: resolved tests/closures.json`, so the driver resolved it.
+- Main has moved past this head's merge base. The next main merge carries this verdict under `orchestrator.md` section 11, or comes back as its resolution delta.
+- Body: re-cut minimal for round 4. `## Head` names e83fc996 as the code head, inside 13ee1432. `## Red checks` names briefs, both closures causes and nightly-status, each with its answer.
 
-closures-autofix printed `AUTOFIX: skip-failed-recording -- THE REPAIR DID NOT HAPPEN`. Under the dispatch's rule, the owed repair is therefore a hand-merge of the Linux recording.
-- Add `docs/site/docs.css` to `tests/closures.json["tests/doc_claims.py"]`, keeping the round-3 inert_reads entry.
-- The recording artifact is closure-recordings from run 37072797978.
-- The `done` lines in the closures log all show exit 0, so I could not tell which recording carries the nonzero rc that the autofix keyed on. I did not download the artifact. The orchestrator may want that answered for the RCA-4 seat; it does not change this PR's repair.
-- The body names `closures` already, so pr-contract is green. Its answer describes the round-2 cause and should add this half.
+## Carried from earlier rounds (unchanged by this delta)
 
-My round-2 verdict named only the inert_reads half. I could not see the second half then, because the check returns before it reaches the UNDER-SCOPED comparison.
+- Build arm:
+  - 9 pages built, docs/backlog.md excluded.
+  - The fixer's 12 planted controls are red against a green baseline.
+  - Build mutation: 9 of 10 sites killed. The survivor is the zero-pages site, which is unreachable.
+- Arm mutation: 32 of 33 killed. Three of those runs end in a crash that reddens doc_claims.py; I ruled them killed. The one survivor is a control-loop test mutant, which I accepted.
+- Round-3 CSS patterns: 4 targeted mutants, all killed.
+- Third-party refusal: covers icon, preload, iframe, script, image and srcset on the product page and every built page, plus the linked stylesheet (`@import`, `url()` in any case, `image-set()`).
+- The mermaid 12.1.0 exact pin is consistent with the lockfile; I checked it statically and did not run `npm ci`.
+- Classification: `tools/site/**` in tests/layout.json and `/tools/site/ @tvofi` in CODEOWNERS.
+- Forward-carry: the R9-WEB-2 brief carries npm ci, the generator run and the mermaid copy.
+- VERSION, the manifest, the release notes and the goldens are untouched.
 
-## The new CSS patterns: proof is in, no hand pass owed
+## Not blocking
 
-Four targeted mutants on the round-3 lines of `_site_css_external`, each run through `tests/doc_claims.py`. Baseline: `ALL 155 checks PASSED`.
-- RESULT M1, `re.I` dropped from the url/@import regex: rc 1, `FAIL ... an uppercase URL() font is refused`
-- RESULT M2, the image-set loop emptied: rc 1, `FAIL ... an image-set() string candidate is refused`
-- RESULT M3, the image-set `findall` dropped: rc 1, the same FAIL
-- RESULT M4, the external filter forced false: rc 1, the @import, URL() and image-set plants all FAIL
-
-Each new pattern is pinned by its own planted control, so the fixer owes no separate hand pass for it.
-
-## CI at this head
-
-waitci: `DONE total=35`, NOTGREEN `closures`, `closures-autofix` and `nightly-status`. briefs, pr-contract, fast (3.14), coverage, coverage-ratchet and mutation are green. nightly-status is main's red, as before. CI ran harness_headers, deployment_shape, layout and structure, and none is red. I did not re-run them locally at this head; round 2's local layout, structure and policy_lint passes stand for the unchanged files.
-
-Everything closed in round 2 is unchanged by this delta. The delta touches only `_site_css_external`, its controls and closures.json.
+- `tests/closures.json` still carries `inert_reads["tests/doc_claims.py"] = ["docs/site/docs.css"]` from round 3. With docs.css now on INERT_EXCEPT, `is_inert` is False for it, so no recording will list it again. The entry is stale.
+  - It errs on the safe side: the fast path treats a change to docs.css as read, and docs.css is in the closure anyway.
+  - Nothing checks for extra entries in `inert_reads`.
+  - Dropping the entry is a one-line cleanup for a later re-derive; it does not need another round here.
