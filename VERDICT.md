@@ -1,56 +1,57 @@
-Fix review: blocked 2c8f2bacc796af7b29cda621ccb9a48dfc255c6f mutation-vacuous: the `<` to `<=` arm and the one-line restriction survive reviewer mutants R8 and R5, and the operator emits two provably equivalent mutants (away.py:558, optimizer.py:4742) the body does not disclose
+Fix review: blocked 5009fe47254c6a3f2812b8a0e7eaa5b5df015573 null-control: equiv_probe.py's controls never differ at a tie (0 of 17 away, 0 of 11 optimizer), so the probe cited by both equivalent triage rows has no control on the arm it claims; the equivalence itself holds under the reviewer's tie-only controls
 
-bus-nonce: c4054e89ab39063e836eca3b32e49277
+bus-nonce: 2ef701b4d19758b332ec3087c23978c8
 
-Review round 1, PR #1861 (R9-F10.6), fix-review.md. Measured head 2c8f2bacc796af7b29cda621ccb9a48dfc255c6f, merge base and origin/main aa7a81192. The body's `## Head` names this head. Worktree: detached at the head, ~/hpo-seats/1861-review/wt. My copy of fix-review.md is current (the three-dot diff of tools/audit/briefs/ against origin/main is empty). tvofi's ruling to enable at the measured cost is not re-opened here. Nothing below argues against the cost, only against the test and the disclosure.
+Review round 2, PR #1861 (R9-F10.6), fix-review.md. Measured head 5009fe47254c6a3f2812b8a0e7eaa5b5df015573, which is the PR head when posting and is the head the body's `## Head` names. origin/main is 51ce8f2a. My briefs copy is current (the three-dot diff of tools/audit/briefs/ is empty).
 
-## What blocks (three repairs, all small)
+Resolution delta: the head tree equals `git merge-tree` of the authored commit 307ecf6c with origin/main 51ce8f2a, plus this PR's own `docs/delivery/1861.md` row. So there is no hand resolution. The authored delta is 307ecf6c only.
 
-1. **Equivalent mutants are emitted and not disclosed** (dispatch item 1). `rv_equiv.py` (my own instrument, in evidence/) scans for the max/min idiom, where both arms are equal at equality. Two production sites match, and both are in the 946:
-   - `away.py:558`, `if last < first:` then `last = first`. With `<=`, the equal case assigns the same value.
-   - `optimizer.py:4742`, `idx = i if i <= last else last`. With `<`, the equal case yields `last == i`.
-   No driver can kill either one. Each leaves the unpinned count only through a `survivor_triage` `equivalent` verdict. The body's figures are silent on this: the "about 24 nights at a 100% kill rate" estimate assumes they do not exist.
-   - Owed: disclose the class in the body, with these two sites and that rule, or exclude the idiom from the operator.
-   - My scan covers only that idiom and the integer-against-fraction shape (0 hits for the second). It is not a proof that no other equivalents exist, and the disclosure should say so too.
-2. **R8 survives.** Mutating `ast.Lt: ("<", "<=")` to `("<", ">")` passes all three new checks plus the operator-coverage check: 0 failed. The fixture module (`bounds.py`) carries `<=`, `>` and `>=` but no `<`, so the body's first named flip, `<` to `<=`, is pinned by nothing.
-   - Owed: a `<` in the fixture.
-3. **R5 survives.** Dropping `_one_line(node, lines)` from the CMP_BOUND arm passes the block (0 failed). It moves the production inventory from 946 to 948 sites: `defrost.py:373` `was < DERATE_CONFIDENCE_SAMPLES` and `optimizer.py:4502` `if float(dhw_prices[idx]) <= float(` (a mutant of a line that does not parse alone). The ratchet would not refuse that change either, because `mutation_table.py` is not a production file. The body states multi-line comparisons stay out (C7's residual), and no check holds that.
-   - Owed: a two-line comparison in the fixture, generating nothing.
+## The one thing that blocks
 
-## What holds (RESULT lines, all at the head above)
+The body (line 22) and both new `survivor_triage` rows rest on `tools/audit/round9/F10/f10_6/equiv_probe.py`. The body says "a differing control on the same line shows the probe can see a difference", and each row quotes its control's count ("differs on 18" and "differs on 11").
 
-- Inventory, both ends (fixer's `inventory_identity.py`, sha1 064b4c50):
-  - `RESULT inventory head sites=5466 sha1=1ba97b4cecd5 unpinned=4855`
-  - `RESULT inventory origin/main sites=4520 sha1=c141b52379cc unpinned=3909`
-  - The difference, +946 sites and +946 unpinned, equals `LIST CMP_BOUND: 946 site(s) in 55 file(s), 946 unpinned, ratcheted`.
-- Generation, my own instrument (`rv_check.py`): `RESULT rv sites=946 expected=946 line_mismatch=0 bad=0`.
-  - It makes an independent AST count of ordering operators in one-line `Compare` nodes, per line.
-  - Every mutant changes exactly one operator, by one step (`<`/`<=`, `>`/`>=`), with no parse-status change.
-  - `==`, `in` and `is` are never touched, and a chain yields one mutant per operator.
-- Ratchet at the head: `4855 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base aa7a8119...` then `MUTATION TABLE PASSED (empty scope)`. CI's `mutation` job prints the same lines.
-- Perturbation (mine, different file from the fixer's): adding `_rv_probe = first >= last` at away.py:560 printed `ADDED UNPINNED ...away.py:560 CMP_BOUND` and `MUTATION TABLE REFUSED -- 4856 unpinned site(s) against 4855`. The null control, the same line with `==`, printed `4855 ... PASSED`. Restored, tree clean.
-- D3-s1-01:
-  - Fixer's `d3s101_mutant.py` (sha1 df943039): `-5.0 production=-5.0 mutant=None DIFFERS`. At `0.0` and `35.0` the two agree.
-  - My own eval of both mutants on coordinator.py:1735: `-5.0 -> [None, -5.0]` and `35.0 -> [35.0, None]`. At `0.0`, `-5.000001`, `35.000001` and `None` every result equals production. So each bound's mutant differs exactly at its own bound.
-- The fixer's mutants, re-run with the fixer's block runner (`run_block.py`, sha1 1cc0dcf8): M0 0 failed, E1 4 failed, M1 1 failed, M4 1 failed. All as the body says.
-- My own mutants:
-  - Killed: R2 (chain not advanced, 2 failed), R3 (no `>`/`>=`, 2 failed), R7 (bounds never generated, 3 failed), R10 (LISTED empty, 3 failed).
-  - Survivors:
-    - R5 and R8: the blocks above.
-    - R6, the gap check dropped: equivalent. The production inventory is identical, 946 sites.
-    - R9, the kinds filter dropped: equivalent today, because `LISTED == RATCHETED`.
-- `mutation_budgets.json`: `RESULT budgets keys_changed=['_comment']`. No cap, no `last_measured` value and no ledger row moved.
-- VERSION, manifest, RELEASE_NOTES and both claim files: untouched (three-dot).
-- `git merge-tree --write-tree origin/main HEAD`: rc 0.
-- Code owner: `tests/mutation_table.py` is `@tvofi` in CODEOWNERS. Its approving review at the head comes under tvofi's mandate and is not this verdict's to give.
+Both controls differ only where the mutant cannot differ, which is off the tie:
+- away: the GUARD_OFF control changes `last` only when `last < first`. At `last == first` it returns the same tuple as the head.
+- optimizer: `idx = last` changes only iterations with `i < last`. At `i == last` it reads the same `wt[last]`.
 
-## CI (check-runs API, every run, head 2c8f2bac; waitci DONE total=35)
+My instrument `rv_probe_ctl_at_tie.py` measures where the probe's own controls differ:
+- `RESULT rv probe-control away differs_at_tie=0 differs_off_tie=18`
+- `RESULT rv probe-control optimizer differing_iterations_at_tie=0 off_tie=72`
+
+So the quantified claim, "17 / 11 tied inputs, 0 differing", has no control that would have moved at a tie. A probe that compared outputs wrongly at ties would print the same RESULT lines.
+
+**The conclusion is still right.** Two checks of my own (`rv_equiv_probe.py`) confirm it:
+- Ties counted inside the compiled production function, by an append in the comparison itself rather than by recomputing: `away ties_in_function=17 of 49` and `optimizer tie_iterations=11 of 144`. Both match the probe's `ties=` figures.
+- Tie-only controls, which change the result only when the two sides are equal, differ on the same grid:
+  - away: `if last < first or last == first and (first := first - timedelta(days=1)):` -> `control_differs=17`, which is every tie.
+  - optimizer: `idx = i if i < last else (last - 1 if i == last and last > 0 else last)` -> `control_differs=6`. The other 5 tied cases have `last == 0`, where this control cannot move.
+
+**Owed (small):** give `equiv_probe.py` tie-only controls of this kind, so its control exercises the comparison at equality, and re-quote the counts in both triage rows and the body. Nothing else in round 2 needs to change.
+
+## What round 2 fixed (verified)
+
+- Owed item 1, R8: killed. `R8 Lt flips wrong way fails=1`; `h()` pins `<` to `<=`.
+- Owed item 2, R5: killed. `fails=3`, including the new C7 check that a comparison spanning two lines yields no site.
+- Owed item 3, the equivalents: disclosed in the body, and triaged as `equivalent` under keys that retire exactly those two sites.
+  - `--list CMP_BOUND` shows `pinned` only for away.py:558 and optimizer.py:4742, then `946 site(s) in 55 file(s), 944 unpinned, ratcheted`.
+  - Ratchet: `4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base 51ce8f2a...; the ledger agrees with the deterministic inventory`, then `MUTATION TABLE PASSED (empty scope)`.
+  - Inventory: `head sites=5466 sha1=1ba97b4cecd5 unpinned=4853` and `origin/main sites=4520 sha1=c141b52379cc unpinned=3909`.
+  - The equivalence is real: the probe prints `mutant_differs=0` at both sites, and my own tie-only controls above show the grid can see a tie.
+- Owed item 4, drain: the body now gives at least 944/40, about 24 nights, and about 944/37, roughly 26 nights, at F10.5's 37-of-40 slice. The arithmetic is correct. I did not re-measure the 37/40 figure.
+- Owed item 5, refusal text: it now names comparison bounds (mutation_table.py:2473).
+- My mutants.py re-run against this head:
+  - Killed: E1 (4 failed), M1 (1), M4 (1), R2 (2), R3 (2), R5 (3), R7 (3), R8 (1), R10 (3).
+  - Survivors: R6 and R9, both equivalent as measured in round 1. M0 prints 0 failed.
+- `mutation_budgets.json`: `keys_changed=['_comment']`, so no cap moved. VERSION, manifest, RELEASE_NOTES and both claim files are untouched. `git merge-tree` against origin/main: rc 0.
+- Code owner: `tests/mutation_table.py` is `@tvofi`'s. The approving review comes under tvofi's mandate, not this verdict.
+
+## CI (check-runs API, every run on 5009fe47; waitci DONE total=35)
 
 The only non-green conclusions:
-- `nightly-status=failure`. Its log reads `NIGHTLY ABSENT: ... mutation-ledger, mutation-ledger-push did not run in that scheduled run`. That is main's `always()` defect, fixed by #1859. This diff does not reach the reporter (no workflow, plan, HANDOVER or foreign delivery row), so it is exempt under fix-review.md step 11 and owes no Root cause section.
-- `pr-contract` and `budget-raise-gate` show `cancelled` runs, each superseded by a `success` run on the same head.
-- Earlier branch heads (a5f4e1c1, 97fba3f0, c117c2b3, cd04771a) carry no red run.
+- `nightly-status=failure`. Its log reads `NIGHTLY ABSENT: ... mutation-ledger, mutation-ledger-push did not run in that scheduled run`. That is main's red, because the nightly predates the fix. This PR's three-dot diff touches no workflow, plan, HANDOVER or foreign delivery row, so the step-11 exemption applies and no Root cause section is owed.
+- `pr-contract` and `budget-raise-gate` each have a `cancelled` run, superseded by a `success` run on the same head.
+- 307ecf6c and 21fbd8cf carry no red run.
 
-Non-blocking, for the repair round:
-- The refusal text at mutation_table.py:2473 still lists "guard, clamp, removable return or doubled constant" and does not mention a comparison bound.
-- Not run locally: entities.py in full, closures, features.py and goldens. CI ran them on this head and they are green.
+Non-blocking: the body's Figures still names the ratchet base aa7a8119. The base is now 51ce8f2a, and the count is identical, 4855.
+
+Not run locally: entities.py in full, closures, features.py and the goldens. CI ran them on this head and they are green.
