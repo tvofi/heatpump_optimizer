@@ -20,6 +20,11 @@ sides for seven claim shapes, and fails closed on a contradiction:
   * quality_scale exception-translation census -- R8-D10-s1-02 #1546 (the
     yaml marks every raise site translated while four UpdateFailed raises
     carried no translation_domain / translation_key)
+  * product page pin -- R9-WEB-1 (docs/index.html: every data-src claim is in
+    its section of the README or a reader doc, the page's features and docs
+    cards equal the README's "What it does" leads and Documentation table, and
+    it refuses a stray number, a version, a dead link or image and any
+    third-party request)
 
 The fact set is derived by importing and executing production code; the claim
 set is derived by scanning the reader documents and the shipped blueprints.
@@ -1907,8 +1912,249 @@ def check_py_typed_claim() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 1b -- the product page is pinned to the reader documents (R9-WEB-1)
+# ---------------------------------------------------------------------------
+#
+# docs/index.html persuades, so it is where stale prose would live longest. Its
+# claim set is derived from the page (every element carrying data-src="<doc>#<
+# GitHub heading slug>") and its fact set from the reader documents in the
+# working tree, never a hand list or a git ref. Two claim modes: verbatim (the
+# default -- every text node, split on the ellipsis, must be in the section's
+# reader text) and key phrase (data-q: the phrase must be there and every number
+# in the element a number the section states). data-copy marks page copy that
+# states no fact. Refused: a digit outside any claim, an image that does not
+# resolve or has no alt text, a repository link whose path or slug does not
+# resolve, a third-party script, stylesheet, url() or image, the stamped VERSION
+# or a version literal. Two-sided: README "What it does" bold leads == the
+# page's data-feature headings; the page's data-doc set == the README
+# Documentation table's link targets. Anchor: no page, or zero claims, features
+# or docs rows, is red.
+
+import html  # noqa: E402
+from html.parser import HTMLParser  # noqa: E402
+
+SITE_PAGE = ROOT / "docs" / "index.html"
+_SITE_REPO = "https://github.com/tvofi/heatpump_optimizer/blob/main/"
+_SITE_NUM = re.compile(r"\d+(?:[.,]\d+)*")
+_SITE_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "use",
+              "path", "circle", "rect"}
+
+
+def _site_norm(s: str) -> str:
+    s = s.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
+    return re.sub(r"\s+", " ", s.replace("\xa0", " ")).strip().lower()
+
+
+def _site_slug(title: str) -> str:
+    return re.sub(r"[^\w\- ]", "", title.strip().lower()).replace(" ", "-")
+
+
+def _site_sections(md: str) -> dict[str, str]:
+    """GitHub heading slug -> section text; a section runs to the next heading of level <= max(own, 2)."""
+    lines, heads, fence = md.splitlines(), [], False
+    for i, line in enumerate(lines):
+        if line.startswith("```"):
+            fence = not fence
+        m = None if fence else re.match(r"^(#{1,6})\s+(.*)", line)
+        if m:
+            heads.append((i, len(m.group(1)), m.group(2)))
+    out, seen = {}, {}
+    for k, (i, lvl, title) in enumerate(heads):
+        stop = next((j for j, l2, _ in heads[k + 1:] if l2 <= max(lvl, 2)), len(lines))
+        s = _site_slug(title)
+        n = seen.get(s, 0)
+        seen[s] = n + 1
+        out[s if n == 0 else f"{s}-{n}"] = "\n".join(lines[i:stop])
+    return out
+
+
+def _site_reader(md: str) -> str:
+    t = re.sub(r"<!--.*?-->", " ", md, flags=re.S)
+    t = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    t = t.replace("**", "").replace("*", "").replace("`", "")
+    t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    return _site_norm(html.unescape(re.sub(r"<[^>]+>", " ", t)))
+
+
+class _SitePage(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.stack: list[dict] = []
+        self.texts: list[tuple] = []
+        self.elems: list[dict] = []
+        self.tags: list[tuple] = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        self.tags.append((tag, a))
+        if tag not in _SITE_VOID:
+            rec = {"tag": tag, "a": a, "text": []}
+            self.stack.append(rec)
+            self.elems.append(rec)
+
+    def handle_startendtag(self, tag, attrs):
+        self.tags.append((tag, dict(attrs)))
+
+    def handle_endtag(self, tag):
+        if tag in _SITE_VOID:
+            return
+        for k in range(len(self.stack) - 1, -1, -1):
+            if self.stack[k]["tag"] == tag:
+                del self.stack[k:]
+                return
+
+    def handle_data(self, data):
+        if not data.strip():
+            return
+        for r in self.stack:
+            r["text"].append(data)
+        owner = next((r for r in reversed(self.stack) if "data-src" in r["a"] or "data-copy" in r["a"]), None)
+        inert = any(r["tag"] in ("script", "style", "svg", "title") for r in self.stack)
+        self.texts.append((data, owner, inert))
+
+
+def site_findings(src: str | None, root: pathlib.Path = ROOT) -> tuple[list[tuple[str, str]], dict[str, int]]:
+    """(kind, message) findings for a page's source against the reader documents under `root`."""
+    errs: list[tuple[str, str]] = []
+    st = {"claims": 0, "fragments": 0, "numbers": 0, "copy": 0, "features": 0, "docs": 0, "images": 0, "links": 0}
+    if src is None:
+        return [("anchor", "docs/index.html is absent")], st
+    p = _SitePage()
+    p.feed(src)
+    secs: dict[str, dict[str, str] | None] = {}
+    raw: dict[str, str | None] = {}
+
+    def read(path: str) -> str | None:
+        if path not in raw:
+            f = root / path
+            raw[path] = f.read_text() if f.is_file() else None
+        return raw[path]
+
+    def section(ds: str) -> str | None:
+        path, _, frag = ds.partition("#")
+        if path not in secs:
+            md = read(path)
+            secs[path] = None if md is None else {k: _site_reader(v) for k, v in _site_sections(md).items()}
+        if secs[path] is None:
+            errs.append(("claim", f"data-src {ds}: {path} is not in the tree"))
+            return None
+        if frag not in secs[path]:
+            errs.append(("claim", f"data-src {ds}: no heading with slug #{frag} in {path}"))
+            return None
+        return secs[path][frag]
+
+    for e in p.elems:
+        st["copy"] += "data-copy" in e["a"]
+        ds = e["a"].get("data-src")
+        if not ds:
+            continue
+        st["claims"] += 1
+        sec = section(ds)
+        if sec is not None and "data-q" in e["a"]:
+            if _site_norm(e["a"]["data-q"]) not in sec:
+                errs.append(("claim", f"{ds}: key phrase not in section: {e['a']['data-q']!r}"))
+            have = set(_SITE_NUM.findall(sec))
+            for n in _SITE_NUM.findall(" ".join(e["text"])):
+                st["numbers"] += 1
+                if n not in have:
+                    errs.append(("claim", f"{ds}: number {n} is not stated in the section"))
+    for data, owner, inert in p.texts:
+        if inert:
+            continue
+        if owner is None:
+            if _SITE_NUM.search(data):
+                errs.append(("number", f"a number outside any claim: {_site_norm(data)[:80]!r}"))
+            continue
+        if "data-copy" in owner["a"] or "data-q" in owner["a"]:
+            continue
+        sec = section(owner["a"]["data-src"])
+        for frag in re.split(r"…|\.\.\.", data) if sec is not None else ():
+            f = _site_norm(frag).strip(" .,;:")
+            if f:
+                st["fragments"] += 1
+                if f not in sec:
+                    errs.append(("claim", f"{owner['a']['data-src']}: not in the section: {f[:90]!r}"))
+
+    readme = read("README.md") or ""
+    rsec = _site_sections(readme)
+    leads = {_site_norm(m).rstrip(".") for m in re.findall(r"^\*\*(.+?)\*\*", rsec.get("what-it-does", ""), flags=re.M)}
+    feats = {_site_norm(" ".join(e["text"])).rstrip(".") for e in p.elems if "data-feature" in e["a"]}
+    st["features"] = len(feats)
+    errs += [("feature", f"README 'What it does' lead missing from the page: {x!r}") for x in sorted(leads - feats)]
+    errs += [("feature", f"page feature README 'What it does' does not lead with: {x!r}") for x in sorted(feats - leads)]
+    rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)]+)\)", rsec.get("documentation", ""), flags=re.M))
+    docs = {a["data-doc"] for _, a in p.tags if a.get("data-doc")}
+    st["docs"] = len(docs)
+    errs += [("docs", f"README Documentation row missing from the page: {x}") for x in sorted(rows - docs)]
+    errs += [("docs", f"page docs entry the README Documentation table does not list: {x}") for x in sorted(docs - rows)]
+
+    for t, a in p.tags:
+        if t in ("img", "source"):
+            st["images"] += 1
+            rp, ref = a.get("data-repo"), a.get("src") or a.get("srcset") or ""
+            if t == "img" and not (a.get("alt") or "").strip():
+                errs.append(("image", f"image without alt text: {ref}"))
+            if not rp or not (root / rp).is_file():
+                errs.append(("image", f"image data-repo {rp!r} is not in the tree"))
+            elif ref != rp.removeprefix("docs/"):
+                errs.append(("image", f"image {ref} is not the path under docs/ that data-repo {rp} names"))
+            if ref.startswith("http"):
+                errs.append(("third-party", f"third-party image: {ref}"))
+        href = a.get("href") or ""
+        if t == "a" and href.startswith(_SITE_REPO):
+            st["links"] += 1
+            path, _, frag = href[len(_SITE_REPO):].partition("#")
+            if not (root / path).is_file():
+                errs.append(("link", f"link to {path}: not in the tree"))
+            elif frag and path.endswith(".md") and frag not in _site_sections(read(path) or ""):
+                errs.append(("link", f"link to {path}#{frag}: no such heading"))
+        if t == "script" and a.get("src"):
+            errs.append(("third-party", f"external script: {a['src']}"))
+        if t == "link" and "stylesheet" in (a.get("rel") or ""):
+            errs.append(("third-party", f"stylesheet: {a.get('href')}"))
+    for m in re.finditer(r"(?:@import|url\()\s*['\"]?([^'\")\s]+)", src):
+        u = m.group(1)
+        if re.match(r"[a-z][a-z0-9+.-]*:|//", u, re.I) and not u.startswith("data:"):
+            errs.append(("third-party", f"third-party resource in CSS: {u}"))
+        elif not u.startswith(("data:", "#")) and not (root / "docs" / u).is_file():
+            errs.append(("third-party", f"CSS resource not in the tree: {u}"))
+
+    visible = " ".join(t for t, _, inert in p.texts if not inert)
+    version = (read("VERSION") or "").strip()
+    if version and version in visible:
+        errs.append(("version", f"the page states the version {version} (CLAUDE.md rule 4)"))
+    errs += [("version", f"a version literal on the page: {m.group(0)}") for m in re.finditer(r"\bv\d+\.\d+(?:\.\d+)?\b", visible)]
+    for k in ("claims", "features", "docs"):
+        if st[k] == 0:
+            errs.append(("anchor", f"zero {k} found; the check cannot pass by finding nothing"))
+    return errs, st
+
+
+def check_product_page() -> None:
+    R.section("product page pinned to the reader documents (R9-WEB-1)")
+    errs, st = site_findings(SITE_PAGE.read_text() if SITE_PAGE.is_file() else None)
+    counts = ", ".join(f"{k} {v}" for k, v in st.items())
+    R.check("docs/index.html exists with claims, features and docs rows (anchor)",
+            not any(k == "anchor" for k, _ in errs), "; ".join(m for k, m in errs if k == "anchor"))
+    for kind, what in (
+        ("claim", "every data-src claim is in its section of the reader documents"),
+        ("number", "no digit sits outside a claim"),
+        ("feature", "the page's features are the README 'What it does' leads, both ways"),
+        ("docs", "the page's docs cards are the README Documentation table, both ways"),
+        ("image", "every image resolves, names its path under docs/ and has alt text"),
+        ("link", "every repository link resolves to a file and a heading"),
+        ("third-party", "the page requests nothing from a third party"),
+        ("version", "the page states no version"),
+    ):
+        bad = [m for k, m in errs if k == kind]
+        R.check(what, not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    print(f"       ({counts})")
+
+
 def main() -> int:
     check_figures()
+    check_product_page()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()

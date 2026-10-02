@@ -38,9 +38,10 @@ WHAT IT REFUSES, every class conservative:
                   may read: a non-INERT file, one `inert_reads` in
                   tests/closures.json lists for it, or a sibling in a directory
                   it lists a file from. A `run_always` script runs whatever the
-                  plan says; `harness_headers.py` opens DISCLAIMER.md, LICENSE
-                  and three docs/ pages through D6's `claims.py` (#1823 review:
-                  a link the pull request adds to DISCLAIMER.md, to a file main
+                  plan says; `harness_headers.py` opens LICENSE and three docs/
+                  pages as INERT reads, and DISCLAIMER.md as a closure read, through
+                  D6's `claims.py` (#1823 review: a link the pull request adds to
+                  DISCLAIMER.md, to a file main
                   deletes, is a false claim on the merged tree that neither
                   side's CI saw). A docs/delivery row nothing opens is not one
                   (R9-F10.9d). A table with no `inert_reads` keeps the old
@@ -306,15 +307,15 @@ def self_test() -> int:
         check("an INERT-only pull request selects nothing and is eligible against code "
               "when no script runs always (null control)",
               classes(["docs/delivery/1.md"], ["custom_components/x/one.py"], always=()), [])
-        check("#1823's probe: the pull request links a file from DISCLAIMER.md and main "
+        check("#1823's probe: the pull request links a file from SECURITY.md and main "
               "deletes it, and a run_always script reads both unrecorded",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"]), ["unrecorded"])
+              classes(["SECURITY.md"], ["tools/audit/README.md"]), ["unrecorded"])
         check("... the same pair with no run_always script is eligible (null control)",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], always=()), [])
+              classes(["SECURITY.md"], ["tools/audit/README.md"], always=()), [])
         check("an unrecorded file on main's side alone refuses too",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
         rt = {"closures": table["closures"],
-              "inert_reads": {"tests/h.py": ["DISCLAIMER.md", "docs/backlog.md"]}}
+              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/backlog.md"]}}
         rtabs = {"main": rt, "head": rt}
         check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
               "is eligible once the table records the INERT reads",
@@ -324,7 +325,7 @@ def self_test() -> int:
         check("a doc a run_always script opened still refuses (null control for the pair above)",
               classes(["tests/golden/b.json"], ["docs/backlog.md"], t=rtabs), ["unrecorded"])
         check("... on the pull request's side too",
-              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
+              classes(["SECURITY.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
         check("a new page beside the docs a script opened refuses: it may glob the folder",
               classes(["tests/golden/b.json"], ["docs/new.md"], t=rtabs), ["unrecorded"])
         check("an unmeasured file that is not INERT refuses even then",
@@ -333,8 +334,8 @@ def self_test() -> int:
         check("a table in which one side never measured the reads keeps the old answer",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"],
                       t={"main": rt, "head": table}), ["unrecorded"])
-        check("this tree's table records harness_headers.py's INERT reads, DISCLAIMER.md among them",
-              "DISCLAIMER.md" in json.loads((ROOT / "tests/closures.json").read_text())
+        check("this tree's table records harness_headers.py's INERT reads, LICENSE among them",
+              "LICENSE" in json.loads((ROOT / "tests/closures.json").read_text())
               .get("inert_reads", {}).get("tests/harness_headers.py", ()), True)
         check("main changed what a run_always script reads, which the pull request never "
               "selected: overlap",
