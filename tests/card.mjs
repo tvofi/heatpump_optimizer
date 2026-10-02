@@ -10474,6 +10474,60 @@ check("without an indoor reading the corner now label is absent",
     !/_contract_comparison|_dhw_heavy_day|_wood_burn_advisor|_measured_power/.test(
       cardSrc.slice(cardSrc.indexOf("const HEALTH_WAITING"), cardSrc.indexOf("const HEALTH_WAITING") + 600)));
 
+  // A plan older than its limit is stale (warn); a fresh one stays ok.
+  const planPill = (states) => {
+    const p = pageOf(mkHealth(states).html());
+    return /health-plan[\s\S]*?status-pill tone-(\w+)">([^<]*)</.exec(p);
+  };
+  const oldPlan = healthStates();
+  oldPlan[`${PFX}_last_optimization`].state = iso(FROZEN - 5 * 24 * 60 * 60e3);
+  const pOld = planPill(oldPlan), pNew = planPill(healthStates());
+  check("a plan older than its limit shows a warn Stale pill on the plan row",
+    !!pOld && pOld[1] === "warn" && pOld[2] === "Stale", JSON.stringify(pOld));
+  check("a fresh plan shows an ok Fresh pill on the plan row",
+    !!pNew && pNew[1] === "ok" && pNew[2] === "Fresh", JSON.stringify(pNew));
+
+  const hasPower = healthStates();
+  hasPower[DEFAULT_SPACE].attributes.setup_topology.slots[2].entity = "sensor.hp_power";
+  const pwPage = pageOf(mkHealth(hasPower).html());
+  check("an assigned power meter shows the power step done, with no Assign action",
+    (new RegExp('data-check="power" data-done="(true|false)"').exec(pwPage) || [])[1] === "true"
+    && !/data-act="assign"/.test(pwPage));
+
+  // Unavailable or unknown Input Problem sensor: attributes are untrustworthy.
+  for (const state of ["unavailable", "unknown"]) {
+    const g = healthStates();
+    g[BIN] = { state, last_updated: "t1", attributes: { problems: [], input_ages_minutes: { indoor_temp_entity: 3 } } };
+    const gh = mkHealth(g).html();
+    check(`with the Input Problem sensor ${state} the header pill does not claim All inputs fresh`,
+      !/data-health-pill/.test(gh) && !/All inputs fresh/.test(gh));
+    check(`with the Input Problem sensor ${state} the inputs block claims no healthy inputs`,
+      !/data-health-input/.test(gh) && !/health-h">Inputs/.test(pageOf(gh)));
+  }
+
+  // Every problem code the integration publishes has words in both languages.
+  const inputsPy = fs.readFileSync("custom_components/heatpump_optimizer/inputs.py", "utf8");
+  const codes = [...new Set([...inputsPy.matchAll(/reading\.problem = "(\w+)"/g)].map((m) => m[1]))]
+    .filter((k) => k !== "not_configured");
+  check("inputs.py publishes problem codes the card can be enumerated against",
+    codes.includes("unknown_unit") && codes.includes("stale") && codes.length >= 8, codes.join(","));
+  const wordsFor = (lang, code) => {
+    const w = healthStates();
+    w[BIN].attributes.problems = [{ input: `in_${code}`, entity_id: "sensor.x", problem: code,
+      age_minutes: null, max_age_minutes: null }];
+    const m = new RegExp(`data-health-input="in_${code}"[\\s\\S]*?status-pill tone-warn">([^<]*)<`)
+      .exec(mkHealth(w, lang).html());
+    return m && m[1];
+  };
+  for (const lang of [undefined, "sv-SE"]) {
+    const raw = codes.filter((k) => { const t = wordsFor(lang, k); return !t || t === k || /^[a-z]+(_[a-z]+)+$/.test(t); });
+    check(`every published problem code has words in ${lang || "en"}, none prints as a raw token`,
+      raw.length === 0, raw.join(","));
+  }
+  check("an unknown_unit problem reads as words in English and Swedish",
+    wordsFor(undefined, "unknown_unit") === "Unknown unit" && wordsFor("sv-SE", "unknown_unit") === "Okänd enhet",
+    `${wordsFor(undefined, "unknown_unit")} / ${wordsFor("sv-SE", "unknown_unit")}`);
+
   // The other four tabs still render.
   for (const [page_, marker] of [["plan", /stat-row|tile/], ["setup", /setup-page/],
     ["savings", /savings/i], ["advisor", /advisor-page/]]) {
