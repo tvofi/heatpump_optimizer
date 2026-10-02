@@ -63,8 +63,7 @@
   -- 0 error(s), 0 warning(s)
 
 == .claude/workflows/carry-1645.json ==
-  ERROR   [carry-1645.json carry 0] path:line: tests/doc_claims.py:468: 'check_simulate_plan_fields' not found near tests/doc_claims.py:468; found at line 567 instead
-  -- 1 error(s), 0 warning(s)
+  -- 0 error(s), 0 warning(s)
 
 == .claude/workflows/carry-1646.json ==
   -- 0 error(s), 0 warning(s)
@@ -137,7 +136,7 @@
 
 CARRY: 39 carry file(s) (.claude/workflows/carry-<issue>.json)
 
-TOTAL: 1 error(s) across 45 file(s)
+TOTAL: 0 error(s) across 45 file(s)
 
 == .claude/workflows/fixtures/wave-1b-931dffe.json ==
   ERROR   [W1-G2] counts: states 22 for metrics in tests/structure_budgets.json; derived 16. Derive the count, do not carry one. (brief line 5)
@@ -152,7 +151,7 @@ TOTAL: 1 error(s) across 45 file(s)
   ERROR   [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree, and not present at its cited tag ref(s) [291ae76, 2385df6]
   WARNING [W1-G14] path: card.js: not in the tree and no tag cited; could be shorthand for custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, docs/dashboard-card.md, docs/img/card-advisor-page.png, docs/img/card-dhw-band-weekly.png, docs/img/card-plan-chart.png -- verify by hand
   ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 18571 instead
-  ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 6.7.13
+  ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 6.7.14
   WARNING [W1-G15] path:line: env_drift.py:934-948: no anchor text extracted near the citation; line range only
   ERROR   [W1-G9] path: model_sanity.py: not in the tree, and no tag SHA is cited alongside it
   ERROR   [W1-G9] path:line (anchored): thermal_model.wood_share:1152 (custom_components/heatpump_optimizer/thermal_model.py): 'return' not found near custom_components/heatpump_optimizer/thermal_model.py:1152; found at line 157 instead
