@@ -1,0 +1,36 @@
+cancelled	budget-raise-gate
+cancelled	pr-contract
+skipped	claims-autofix
+skipped	closures-autofix
+skipped	delivery-status-publish
+skipped	mutation-autofix
+skipped	mutation-nightly
+skipped	nightly-ha
+skipped	recheck-gate
+skipped	record
+skipped	slow
+success	Analyze (actions)
+success	Analyze (javascript-typescript)
+success	Analyze (python)
+success	CodeQL
+success	briefs
+success	browser
+success	budget-raise-gate
+success	closure-scope
+success	closures
+success	coverage
+success	coverage-ratchet
+success	delivery-status
+success	env-matrix
+success	fast (3.14)
+success	graders-head-copy
+success	hassfest
+success	instrument-self-tests
+success	mutation
+success	nightly-status
+success	policy-docs
+success	pr-contract
+success	typing
+success	validate-hacs
+success	wave-script
+total=35
