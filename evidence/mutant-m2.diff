@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 51c0ca865..fdb14245a 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -1043,7 +1043,7 @@ jobs:
+   mutation-ledger-push:
+     needs: [mutation-ledger]
+     if: >-
+-      !cancelled() && github.ref == 'refs/heads/main'
++      always() && github.ref == 'refs/heads/main'
+       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+       && needs.mutation-ledger.result == 'success'
+     environment: ledger
