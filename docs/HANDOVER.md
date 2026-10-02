@@ -103,8 +103,9 @@ return verdicts to the merge seat, which merges one pull request at a time on
   (created 2026-09-19), carries the merge guards: the required checks its
   endpoint returns, never a count from here, the `pull_request` rule — one
   approving review and the code owner's review on a path `.github/CODEOWNERS`
-  names (0009 step 6, 2026-09-17 04:58Z) — and the one bypass, the deploy key
-  `hpo-stamp`, `always`. The admin role no longer bypasses, so the rule binds
+  names (0009 step 6, 2026-09-17 04:58Z) — and two `always` bypasses, the deploy
+  key `hpo-stamp` and, since 2026-10-02 (tvofi, R9-F10.5's ledger push), the
+  `hpo-ledger` App 5094721. The admin role no longer bypasses, so the rule binds
   the orchestrator's merges as `tvofi` too; GitHub refuses the merge rather
   than a policy asking you not to. **The merge flow**: seats author as
   `tvofi-seat-author`; an ordinary pull request merges after an adversarial
@@ -114,7 +115,7 @@ return verdicts to the merge seat, which merges one pull request at a time on
   wait. That bypass and the rollback below are the owner's levers, not a
   seat's. **The rollback is one DELETE per ruleset, not one**: deleting
   `main-protect-checks` drops the required checks, the review rule and the
-  bypass; deleting `main-protect` drops the push guards. Deleting either alone
+  bypasses; deleting `main-protect` drops the push guards. Deleting either alone
   leaves the other half of the boundary standing (#1300).
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
@@ -807,6 +808,8 @@ handover bullet is a record, not a carry.)
   ruleset: **ratify and document it** (if the ledger/record lane legitimately
   pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30 (comment
   `5902383542`); the #1191 close cites this. Neither half is a seat's to decide.
+  2026-10-02: tvofi added the same App to 23698884 as well (fixture re-recorded);
+  R9-F10.5's 0011 amendment is the record that ratifies it — retire this on its merge.
 
 ## The machine this runs on — measure it, do not read it
 
