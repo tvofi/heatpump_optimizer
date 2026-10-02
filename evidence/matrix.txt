@@ -1,0 +1,8 @@
+RESULT policy_lint tree=main view=admin rc=0
+RESULT field_coverage(ruleset) tree=main view=admin rc=0
+RESULT policy_lint tree=main view=actions rc=0
+RESULT field_coverage(ruleset) tree=main view=actions rc=0
+RESULT policy_lint tree=demo view=admin rc=1
+RESULT field_coverage(ruleset) tree=demo view=admin rc=0
+RESULT policy_lint tree=demo view=actions rc=1
+RESULT field_coverage(ruleset) tree=demo view=actions rc=1
