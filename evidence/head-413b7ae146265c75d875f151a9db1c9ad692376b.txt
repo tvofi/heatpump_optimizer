@@ -1,0 +1,2 @@
+head 413b7ae146265c75d875f151a9db1c9ad692376b; base aab94eea2211b41a224fd23980e084e77c529ec0
+see real.txt (5/5 pass) and null.txt (corrupted sha caught, FAIL=1)
