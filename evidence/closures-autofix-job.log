@@ -1,0 +1,249 @@
+﻿2026-10-02T23:10:24.8384171Z Current runner version: '2.337.0'
+2026-10-02T23:10:24.8407929Z ##[group]Runner Image Provisioner
+2026-10-02T23:10:24.8408809Z Hosted Compute Agent
+2026-10-02T23:10:24.8409428Z Version: 20260901.588
+2026-10-02T23:10:24.8410004Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-02T23:10:24.8410684Z Build Date: 2026-09-01T19:56:44Z
+2026-10-02T23:10:24.8411350Z Worker ID: {447a0522-2dd5-4f53-91ab-7d94e18ae80b}
+2026-10-02T23:10:24.8411989Z Azure Region: centralus
+2026-10-02T23:10:24.8412576Z ##[endgroup]
+2026-10-02T23:10:24.8413618Z ##[group]Operating System
+2026-10-02T23:10:24.8414181Z Ubuntu
+2026-10-02T23:10:24.8414933Z 24.04.5
+2026-10-02T23:10:24.8415484Z LTS
+2026-10-02T23:10:24.8415982Z ##[endgroup]
+2026-10-02T23:10:24.8416533Z ##[group]Runner Image
+2026-10-02T23:10:24.8417169Z Image: ubuntu-24.04
+2026-10-02T23:10:24.8417674Z Version: 20260927.320.1
+2026-10-02T23:10:24.8418753Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-02T23:10:24.8419927Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-02T23:10:24.8420758Z ##[endgroup]
+2026-10-02T23:10:24.8421819Z ##[group]GITHUB_TOKEN Permissions
+2026-10-02T23:10:24.8423530Z Actions: write
+2026-10-02T23:10:24.8424122Z Contents: write
+2026-10-02T23:10:24.8424857Z Metadata: read
+2026-10-02T23:10:24.8425389Z ##[endgroup]
+2026-10-02T23:10:24.8427062Z Secret source: Actions
+2026-10-02T23:10:24.8427948Z Cache mode: write
+2026-10-02T23:10:24.8428744Z Prepare workflow directory
+2026-10-02T23:10:24.8779140Z Prepare all required actions
+2026-10-02T23:10:24.8817901Z Getting action download info
+2026-10-02T23:10:25.1388039Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-02T23:10:25.6074478Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-02T23:10:25.8535826Z Download action repository 'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131' (SHA:37930b1c2abaa49bbe596cd826c3c89aef350131)
+2026-10-02T23:10:26.5335316Z Complete job name: closures-autofix
+2026-10-02T23:10:26.6034929Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-02T23:10:26.6036268Z with:
+2026-10-02T23:10:26.6037021Z   ref: fix/r9-ux-events
+2026-10-02T23:10:26.6042489Z   token: ***
+2026-10-02T23:10:26.6043286Z   persist-credentials: false
+2026-10-02T23:10:26.6044300Z   repository: tvofi/heatpump_optimizer
+2026-10-02T23:10:26.6045250Z   ssh-strict: true
+2026-10-02T23:10:26.6046029Z   ssh-user: git
+2026-10-02T23:10:26.6046796Z   clean: true
+2026-10-02T23:10:26.6047603Z   sparse-checkout-cone-mode: true
+2026-10-02T23:10:26.6048515Z   fetch-depth: 1
+2026-10-02T23:10:26.6049297Z   fetch-tags: false
+2026-10-02T23:10:26.6050107Z   show-progress: true
+2026-10-02T23:10:26.6050925Z   lfs: false
+2026-10-02T23:10:26.6051685Z   submodules: false
+2026-10-02T23:10:26.6052534Z   set-safe-directory: true
+2026-10-02T23:10:26.6053419Z   allow-unsafe-pr-checkout: false
+2026-10-02T23:10:26.6054550Z ##[endgroup]
+2026-10-02T23:10:26.6761035Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-02T23:10:26.6763529Z ##[group]Getting Git version info
+2026-10-02T23:10:26.6764993Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-02T23:10:26.6767064Z [command]/usr/bin/git version
+2026-10-02T23:10:26.6812436Z git version 2.55.0
+2026-10-02T23:10:26.6828360Z ##[endgroup]
+2026-10-02T23:10:26.6838449Z Temporarily overriding HOME='/home/runner/work/_temp/d1f41e25-b906-47f2-9e1d-6a4df6a8467c' before making global git config changes
+2026-10-02T23:10:26.6841797Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-02T23:10:26.6844992Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-02T23:10:26.6914710Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-02T23:10:26.6918664Z ##[group]Initializing the repository
+2026-10-02T23:10:26.6921008Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-02T23:10:26.7124662Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-02T23:10:26.7127912Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-02T23:10:26.7130483Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-02T23:10:26.7133064Z hint: call:
+2026-10-02T23:10:26.7134618Z hint:
+2026-10-02T23:10:26.7136170Z hint: 	git config --global init.defaultBranch <name>
+2026-10-02T23:10:26.7137954Z hint:
+2026-10-02T23:10:26.7139638Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-02T23:10:26.7142219Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-02T23:10:26.7144133Z hint:
+2026-10-02T23:10:26.7145205Z hint: 	git branch -m <name>
+2026-10-02T23:10:26.7146144Z hint:
+2026-10-02T23:10:26.7147242Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-02T23:10:26.7149044Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-02T23:10:26.7152791Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-02T23:10:26.7217837Z ##[endgroup]
+2026-10-02T23:10:26.7220050Z ##[group]Disabling automatic garbage collection
+2026-10-02T23:10:26.7221871Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-02T23:10:26.7310105Z ##[endgroup]
+2026-10-02T23:10:26.7311412Z ##[group]Setting up auth
+2026-10-02T23:10:26.7314750Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-02T23:10:26.7345854Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-02T23:10:26.7636766Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-02T23:10:26.7669425Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-02T23:10:26.7847650Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-02T23:10:26.7878031Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-02T23:10:26.8056354Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-02T23:10:26.8307252Z ##[endgroup]
+2026-10-02T23:10:26.8309674Z ##[group]Fetching the repository
+2026-10-02T23:10:26.8316330Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/fix/r9-ux-events*:refs/remotes/origin/fix/r9-ux-events* +refs/tags/fix/r9-ux-events*:refs/tags/fix/r9-ux-events*
+2026-10-02T23:10:28.7830642Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-02T23:10:28.7832318Z  * [new branch]      fix/r9-ux-events -> origin/fix/r9-ux-events
+2026-10-02T23:10:28.7834638Z ##[endgroup]
+2026-10-02T23:10:28.7835200Z ##[group]Determining the checkout info
+2026-10-02T23:10:28.7840411Z [command]/usr/bin/git branch --list --remote origin/fix/r9-ux-events
+2026-10-02T23:10:28.7866531Z   origin/fix/r9-ux-events
+2026-10-02T23:10:28.7875101Z ##[endgroup]
+2026-10-02T23:10:28.7879063Z [command]/usr/bin/git sparse-checkout disable
+2026-10-02T23:10:28.7926701Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-02T23:10:28.7953857Z ##[group]Checking out the ref
+2026-10-02T23:10:28.7956804Z [command]/usr/bin/git checkout --progress --force -B fix/r9-ux-events refs/remotes/origin/fix/r9-ux-events
+2026-10-02T23:10:29.1065311Z Switched to a new branch 'fix/r9-ux-events'
+2026-10-02T23:10:29.1068627Z branch 'fix/r9-ux-events' set up to track 'origin/fix/r9-ux-events'.
+2026-10-02T23:10:29.1086355Z ##[endgroup]
+2026-10-02T23:10:29.1127365Z [command]/usr/bin/git log -1 --format=%H
+2026-10-02T23:10:29.1151936Z a5060e6a61f1d4583cf4d0517e1a13573ef2d29a
+2026-10-02T23:10:29.1160123Z ##[group]Removing auth
+2026-10-02T23:10:29.1162834Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-02T23:10:29.1189950Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-02T23:10:29.1371616Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-02T23:10:29.1396583Z http.https://github.com/.extraheader
+2026-10-02T23:10:29.1402982Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-02T23:10:29.1433161Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-02T23:10:29.1612676Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-02T23:10:29.1642362Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-02T23:10:29.1820906Z ##[endgroup]
+2026-10-02T23:10:29.1990686Z ##[group]Run set -euo pipefail
+2026-10-02T23:10:29.1990997Z set -euo pipefail
+2026-10-02T23:10:29.1991243Z git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+2026-10-02T23:10:29.1991560Z   || git fetch --no-tags --depth=1 origin "$PINNED"
+2026-10-02T23:10:29.1991863Z git checkout "$PINNED" -- tests/closure.py
+2026-10-02T23:10:29.1992108Z git reset -q -- tests/closure.py
+2026-10-02T23:10:29.1992394Z # The report runs after `pull --rebase --autostash`, which can leave
+2026-10-02T23:10:29.1992749Z # the pull request's copy in the tree; it runs this copy instead.
+2026-10-02T23:10:29.1993084Z install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
+2026-10-02T23:10:29.2226051Z shell: /usr/bin/bash -e {0}
+2026-10-02T23:10:29.2226296Z env:
+2026-10-02T23:10:29.2226494Z   PINNED: 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
+2026-10-02T23:10:29.2226727Z ##[endgroup]
+2026-10-02T23:10:29.6510292Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-02T23:10:29.6512145Z  * branch            03ba7f70f007147bda32ac0fc5dd83b11499bbaf -> FETCH_HEAD
+2026-10-02T23:10:29.7882918Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-10-02T23:10:29.7883231Z with:
+2026-10-02T23:10:29.7883413Z   python-version: 3.13
+2026-10-02T23:10:29.7883596Z   check-latest: false
+2026-10-02T23:10:29.7885220Z   token: ***
+2026-10-02T23:10:29.7885395Z   update-environment: true
+2026-10-02T23:10:29.7885607Z   allow-prereleases: false
+2026-10-02T23:10:29.7885795Z   freethreaded: false
+2026-10-02T23:10:29.7885976Z ##[endgroup]
+2026-10-02T23:10:29.8742035Z ##[group]Installed versions
+2026-10-02T23:10:29.8798778Z Successfully set up CPython (3.13.15)
+2026-10-02T23:10:29.8799366Z ##[endgroup]
+2026-10-02T23:10:29.8953062Z ##[group]Run actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+2026-10-02T23:10:29.8953732Z with:
+2026-10-02T23:10:29.8954147Z   name: closure-recordings
+2026-10-02T23:10:29.8954790Z   path: /home/runner/work/_temp/closures
+2026-10-02T23:10:29.8955205Z   merge-multiple: false
+2026-10-02T23:10:29.8955502Z   repository: tvofi/heatpump_optimizer
+2026-10-02T23:10:29.8955821Z   run-id: 37073640871
+2026-10-02T23:10:29.8956101Z env:
+2026-10-02T23:10:29.8956319Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:29.8956914Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-02T23:10:29.8957255Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:29.8957962Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:29.8958370Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:29.8958773Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-02T23:10:29.8959116Z ##[endgroup]
+2026-10-02T23:10:29.9966118Z Downloading single artifact
+2026-10-02T23:10:30.1637817Z Preparing to download the following artifacts:
+2026-10-02T23:10:30.1638750Z - closure-recordings (ID: 11257255394, Size: 227409, Expected Digest: sha256:8af5d236cefa01fba376978b15e442eba38d68e0d887ff345588c084892a7635)
+2026-10-02T23:10:30.5022331Z Redirecting to blob download url: https://productionresultssa0.blob.core.windows.net/actions-results/17070e9c-c736-86fc-b6c8-a0591a586712/workflow-job-run-9ce00846-c129-54f6-8b62-a40ccfd086f0/artifacts/f607497981b53bfa43c416e8c0719f1419ae2bd5f407830f1fa7e6d38c90c571.zip
+2026-10-02T23:10:30.5023101Z Starting download of artifact to: /home/runner/work/_temp/closures
+2026-10-02T23:10:30.6312017Z (node:2196) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-02T23:10:30.6313101Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-02T23:10:30.7260784Z SHA256 digest of downloaded artifact is 8af5d236cefa01fba376978b15e442eba38d68e0d887ff345588c084892a7635
+2026-10-02T23:10:30.7261232Z Artifact download completed successfully.
+2026-10-02T23:10:30.7261474Z Total of 1 artifact(s) downloaded
+2026-10-02T23:10:30.7264178Z Download artifact has finished successfully
+2026-10-02T23:10:30.7362920Z ##[group]Run export SUBJECT=$(git log -1 --pretty=%s)
+2026-10-02T23:10:30.7363238Z export SUBJECT=$(git log -1 --pretty=%s)
+2026-10-02T23:10:30.7363479Z python3 -I - <<'PY'
+2026-10-02T23:10:30.7363677Z import os, sys
+2026-10-02T23:10:30.7363871Z sys.path.append("tests")
+2026-10-02T23:10:30.7364094Z import closure
+2026-10-02T23:10:30.7364637Z allowed = closure.autofix_allowed(
+2026-10-02T23:10:30.7364931Z     event_name=os.environ["EVENT_NAME"],
+2026-10-02T23:10:30.7365189Z     closures_result=os.environ["CLOSURES_RESULT"],
+2026-10-02T23:10:30.7365446Z     head_repo=os.environ["HEAD_REPO"],
+2026-10-02T23:10:30.7365679Z     repo=os.environ["REPO"],
+2026-10-02T23:10:30.7365912Z     commit_subject=os.environ["SUBJECT"],
+2026-10-02T23:10:30.7366131Z )
+2026-10-02T23:10:30.7366306Z print(f"allowed={allowed}")
+2026-10-02T23:10:30.7366538Z if not allowed:
+2026-10-02T23:10:30.7366731Z     status = "skip-not-allowed"
+2026-10-02T23:10:30.7366945Z else:
+2026-10-02T23:10:30.7367145Z     status = closure.apply_under_scoped_recordings(
+2026-10-02T23:10:30.7367440Z         os.environ["RUNNER_TEMP"] + "/closures", partial=True)
+2026-10-02T23:10:30.7367705Z print(f"AUTOFIX: {status}")
+2026-10-02T23:10:30.7367950Z with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+2026-10-02T23:10:30.7368201Z     fh.write(f"status={status}\n")
+2026-10-02T23:10:30.7368415Z PY
+2026-10-02T23:10:30.7506222Z shell: /usr/bin/bash -e {0}
+2026-10-02T23:10:30.7506450Z env:
+2026-10-02T23:10:30.7506667Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:30.7506979Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-02T23:10:30.7507281Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:30.7507572Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:30.7507850Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:30.7508127Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-02T23:10:30.7508375Z   EVENT_NAME: pull_request
+2026-10-02T23:10:30.7508558Z   CLOSURES_RESULT: failure
+2026-10-02T23:10:30.7508917Z   HEAD_REPO: tvofi/heatpump_optimizer
+2026-10-02T23:10:30.7509130Z   REPO: tvofi/heatpump_optimizer
+2026-10-02T23:10:30.7509327Z ##[endgroup]
+2026-10-02T23:10:31.4029080Z allowed=True
+2026-10-02T23:10:31.4029382Z AUTOFIX: skip-classifier-disagrees
+2026-10-02T23:10:31.4177747Z ##[group]Run python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \
+2026-10-02T23:10:31.4178209Z python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \
+2026-10-02T23:10:31.4178547Z   --status "skip-classifier-disagrees"
+2026-10-02T23:10:31.4230546Z shell: /usr/bin/bash -e {0}
+2026-10-02T23:10:31.4230738Z env:
+2026-10-02T23:10:31.4230956Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:31.4231268Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-02T23:10:31.4231572Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:31.4231846Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:31.4232133Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-02T23:10:31.4232411Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-02T23:10:31.4232657Z ##[endgroup]
+2026-10-02T23:10:31.4726207Z closures-autofix: skip-classifier-disagrees -- THE REPAIR DID NOT HAPPEN.
+2026-10-02T23:10:31.4726831Z No commit will be pushed, so waiting for one waits forever. This is
+2026-10-02T23:10:31.4727320Z the case `.cursor/rules/ci-autofix.mdc` already lists as a human
+2026-10-02T23:10:31.4727835Z judgment call, and its rule against re-recording an UNDER-SCOPED
+2026-10-02T23:10:31.4728309Z yourself does not apply once the bot has reported that it did not.
+2026-10-02T23:10:31.4728790Z The closures job (this PR's tests/closure.py) printed UNDER-SCOPED;
+2026-10-02T23:10:31.4729266Z the base's copy this job is pinned to stops before that comparison
+2026-10-02T23:10:31.4729725Z (usually: this PR moves a file out of INERT), and its merge would
+2026-10-02T23:10:31.4730213Z refuse the same pair. Re-derive the script the closures log names:
+2026-10-02T23:10:31.4730647Z     ./tests/derive_closures.sh --single <script>
+2026-10-02T23:10:31.4731019Z and commit tests/closures.json.
+2026-10-02T23:10:31.4731215Z 
+2026-10-02T23:10:31.4791201Z ##[error]Process completed with exit code 1.
+2026-10-02T23:10:31.4888383Z Post job cleanup.
+2026-10-02T23:10:31.5468836Z [command]/usr/bin/git version
+2026-10-02T23:10:31.5504153Z git version 2.55.0
+2026-10-02T23:10:31.5530848Z Temporarily overriding HOME='/home/runner/work/_temp/696040dd-e675-48c7-b7cc-a32fd4595324' before making global git config changes
+2026-10-02T23:10:31.5531610Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-02T23:10:31.5534520Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-02T23:10:31.5572083Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-02T23:10:31.5598899Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-02T23:10:31.5816912Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-02T23:10:31.5848018Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-02T23:10:31.6059486Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-02T23:10:31.6091382Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-02T23:10:31.6423873Z Cleaning up orphan processes
