@@ -1,4 +1,5 @@
-25f434a65c7c4096c2da5f2bb2565d767c9f4dca
+b74fc1aa21e443fef353a5bb49ea630397bf2913
+2026-10-02T22:08:58Z
 _Requested by **tvofi**_
 
 Part of #1774.
@@ -7,13 +8,13 @@ The report-only architecture score under `tools/audit/archscore/`: `score.py --d
 
 Where `tests/structure.py` has a metric the score reads that definition on a loaded copy (the counters are applied to the copy, never to the file); the rest are `metrics/`. The planted cases anchor on the text of `7952d8f9`, so the calibration measures a `git archive` of it; `arch_score_head.py` is the one script that reads the working tree. Four calibration verdicts moved from PRE-STUDY section 6 (listed with causes in `tools/audit/archscore/ABOUT.md`). C3 enumerates the junk spellings it drops: by tvofi's ruling (2026-10-02, option B) the list is not extended, the limit is in `ABOUT.md` and pinned as three KNOWN-OPEN cases, and the class fix is owed to R9-EG-A2.
 
+**Conflict with main (#1852, #1858, #1861, #1862, v6.7.14 at 754845d0), resolved by re-deriving.** `tests/deployment_shape.py` conflicted in the cost-of-the-shape note: main moved the file count to 87 and its history of the count, this branch added the `arch_score_head.py` exception; both are kept, and the note's pair figures were re-derived, not picked (they still read 90 of 435 and 325, which `entities.py` checks). `tests/closures.json` merged by the ledger driver, but `arch_score_head.py`'s recorded closure then covered only 85 of the 87 package files (main added `payload.py` and `dhw_planner.py`), so the #1218 lane's admitted set failed; it is re-recorded with `--single` (107 files). `.github/CODEOWNERS`, `tests/entities.py` and the `tools/audit/round4/D6` claims files merged without a conflict (the last taken from main after a harness run regenerated them). Main did not change `tests/structure.py` or `tools/audit/archscore/`, and the calibration measures the pinned tree, so no verdict could move and the full calibration was not re-run; `arch_score.py --smoke` and `arch_score_head.py` pass on the merged tree, as do `entities.py`, `harness_headers.py`, `deployment_shape.py` and `structure.py` under the seat venv, and `brief_lint.mjs`.
+
 ## Head
 
-`25f434a65c7c4096c2da5f2bb2565d767c9f4dca` merges origin/main `51ce8f2a7`, with no hand resolution, into this PR's previous head.
+`b74fc1aa21e443fef353a5bb49ea630397bf2913` merges the authored code head `b74fc1aa21e443fef353a5bb49ea630397bf2913` and then merges origin/main `03ba7f70f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`d5830a13cf705aa466e33169ade6d2136e4078f9` merges the authored code head `1c43a6c9d182fcf2ea3a7e1d2439bf058daf86ea` and then merges origin/main `aa7a81192`, with no hand resolution, into this PR's previous head.
-
-1c43a6c9d182fcf2ea3a7e1d2439bf058daf86ea
+b74fc1aa21e443fef353a5bb49ea630397bf2913
 
 ## Approval
 
@@ -46,8 +47,6 @@ The rename null `rt_00` reads NULL; `a1_N1`, `a1_N1b`, `a1_N1c`, `a1_N2`, `a1_N3
 
 fast (3.14) at e5301f5e and 8527dbc2: `tests/entities.py`, the #1218 deployment-shape lane. Cause: `tests/arch_score_head.py` reads the whole package to measure it, so its closure is a second full-coverage closure and the lane allowed exactly one; the note's derived numbers moved with the two new scripts. Fix: the lane admits that script by name (a third is still refused) and the note is re-derived. Narrowing the closure was refused: the script would stop reading the tree it exists to read. Process state: the check was runnable here and was not run. I judged the gate CI's because the full gate is `MODE: FULL` and I took `entities.py` for a numpy lane; the cheaper detector is `entities.py` itself under a seat venv (`~/hpo-seats/R9-F11.4-venv/bin/python3`, `PYTHONPATH=tests/hastub`), about three minutes, which found both failures at once and now passes. Standing cost: one entities run before every push that adds a script to `tests/closures.json`.
 
-- `nightly-status` is red: NIGHTLY ABSENT for `mutation-ledger` and `mutation-ledger-push`. That is main's red, not this diff's. The last scheduled nightly (08:36Z on 492d840) predates #1848, which added both jobs, and every open PR head carries the same red. This diff touches `docs/plan-2026-09-open-issues.md`, so the check is not exempt here. Cheaper detector: none; it measures a nightly that had not happened. The orchestrator owns the proof on main: dispatched run 37050037132 (`tests.yml` on main at aa7a8119), where `mutation-ledger` is running, and then the next scheduled run.
-
 ## Forward-carry
 
 `docs/plan-2026-09-open-issues.md`: the #1774 and #1775 rows name the in-tree measure and the moved verdicts. The R9-EG-A2 roster brief carries the C3 class fix and the flip of the KNOWN-OPEN cases; the orchestrator owns that file.
@@ -56,5 +55,4 @@ fast (3.14) at e5301f5e and 8527dbc2: `tests/entities.py`, the #1218 deployment-
 
 - `fixer.md`: stale: step 5 says run what `scope.run` names; a diff that edits `tests/closure.py` is `MODE: FULL`, and this seat took the numpy lanes for CI's until a venv existed.
 - `ratchet-budgets.md`: cost: the template at zero token headroom made one optional line cost three deleted sentences.
-
 

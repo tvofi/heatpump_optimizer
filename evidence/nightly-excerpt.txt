@@ -1,0 +1,32 @@
+»¿2026-10-02T22:09:09.8512430Z ##[group]Run set -euo pipefail
+026-10-02T22:09:09.8512995Z ^[[36;1mset -euo pipefail^[[0m
+026-10-02T22:09:09.8513688Z ^[[36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"^[[0m
+026-10-02T22:09:09.8514421Z ^[[36;1mgit checkout "$PINNED" -- \^[[0m
+026-10-02T22:09:09.8514839Z ^[[36;1m  'tests/nightly_status.py'^[[0m
+026-10-02T22:09:09.8515548Z ^[[36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"^[[0m
+026-10-02T22:09:09.8516342Z ^[[36;1mpython -I -S tests/nightly_status.py^[[0m
+026-10-02T22:09:09.9072894Z shell: /usr/bin/bash -e {0}
+026-10-02T22:09:09.9073301Z env:
+026-10-02T22:09:09.9073599Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+026-10-02T22:09:09.9074056Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+026-10-02T22:09:09.9074466Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+026-10-02T22:09:09.9074830Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+026-10-02T22:09:09.9075266Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+026-10-02T22:09:09.9075631Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+026-10-02T22:09:09.9078031Z   GITHUB_TOKEN: ***
+026-10-02T22:09:09.9078440Z   PINNED: 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
+026-10-02T22:09:09.9078747Z ##[endgroup]
+026-10-02T22:09:14.2987423Z NIGHTLY FAILED: mutation-ledger-push, mutation-nightly failed in the last verification dispatch.
+026-10-02T22:09:14.2988607Z   dispatched run 37050037132, 2026-10-02T18:49:28+00:00, head aa7a811, run conclusion 'failure'
+026-10-02T22:09:14.2989267Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/37050037132
+026-10-02T22:09:14.2989699Z   failing jobs:
+026-10-02T22:09:14.2990293Z     mutation-ledger-push  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37050037132/job/111044417786
+026-10-02T22:09:14.2991281Z     mutation-nightly  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37050037132/job/110980930989
+026-10-02T22:09:14.2991869Z 
+026-10-02T22:09:14.2992982Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+026-10-02T22:09:14.2994285Z 
+026-10-02T22:09:14.2994675Z A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+026-10-02T22:09:14.2995748Z     gh workflow run tests.yml --ref main
+026-10-02T22:09:14.2996823Z and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+026-10-02T22:09:14.2998704Z If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+026-10-02T22:09:14.3083329Z ##[error]Process completed with exit code 1.

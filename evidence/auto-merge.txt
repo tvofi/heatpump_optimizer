@@ -1,0 +1,8 @@
+e66bbf209f713af97b415aa93848fe67c139740f
+tests/deployment_shape.py
+
+Auto-merging .github/CODEOWNERS
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/entities.py

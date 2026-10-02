@@ -1,0 +1,5 @@
+arch_score_head files 107 prod tracked 87 covers all prod True
+main-delta files 73 in arch_score.py closure: []
+  MODE: SCOPED -- 26 script(s) run, 4 scoped out.
+      RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
+      SKIP  tests/arch_score.py  (closure: 89 files, no changed file is in its measured closure)
