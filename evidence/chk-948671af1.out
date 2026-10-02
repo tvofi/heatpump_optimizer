@@ -1,0 +1,95 @@
+fold_ledger: 28 classes, 549 instances, 39 in-tree judge survivors (rounds [8]), 95 rca entries
+DRIFT: P1.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: P2.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: P3.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+OWED: P4 met a trigger (per_round, cross_round) and has no barrier and no rca document in tools/audit/rca
+DRIFT: P6.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+OWED: P8 met a trigger (cross_round) and has no barrier and no rca document in tools/audit/rca
+DRIFT: P9.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+OWED: P10 met a trigger (cross_round) and has no barrier and no rca document in tools/audit/rca
+DRIFT: I1.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: I2.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: I5.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: N-solve-recompute.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+DRIFT: N-structure-blind.trigger.barriered_any is False, derived True (fold_ledger.py refresh)
+OWED: N-name-sort met a trigger (per_round, cross_round) and has no barrier and no rca document in tools/audit/rca
+DANGLING: _rca[RCA-546-paired-artifacts].in_tree_home 'tools/audit/rca/RCA-546-paired-artifacts.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-593-preflight].in_tree_home 'tools/audit/rca/RCA-593-preflight.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-0002-self-witnessed-proxy].in_tree_home 'tools/audit/rca/RCA-0002-self-witnessed-proxy.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-hassfest-toomanyrequests].in_tree_home 'tools/audit/rca/RCA-hassfest-toomanyrequests.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-690-record-status].in_tree_home 'tools/audit/rca/RCA-690-record-status.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-scratchpad-body-swap].in_tree_home 'tools/audit/rca/RCA-scratchpad-body-swap.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-678-refusal-not-acted].in_tree_home 'tools/audit/rca/RCA-678-refusal-not-acted.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-533-nightly-unrun].in_tree_home 'tools/audit/rca/RCA-533-nightly-unrun.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-stated-number].in_tree_home 'tools/audit/rca/RCA-stated-number.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-541-wrong-audience].in_tree_home 'tools/audit/rca/RCA-541-wrong-audience.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-541-stale-body-figures].in_tree_home 'tools/audit/rca/RCA-541-stale-body-figures.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-541-gh-api-f].in_tree_home 'tools/audit/rca/RCA-541-gh-api-f.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-dev-record-quantity].in_tree_home 'tools/audit/rca/RCA-dev-record-quantity.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-check-does-not-bind].in_tree_home 'tools/audit/rca/RCA-check-does-not-bind.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-865-pr-body-live-object].in_tree_home 'tools/audit/rca/RCA-865-pr-body-live-object.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-trap13-instance-vs-property].in_tree_home 'tools/audit/rca/RCA-trap13-instance-vs-property.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1041-plan-d6-conflicts].in_tree_home 'tools/audit/rca/RCA-1041-plan-d6-conflicts.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1041-silent-zero].in_tree_home 'tools/audit/rca/RCA-1041-silent-zero.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-delivery-row-seam].in_tree_home 'tools/audit/rca/RCA-delivery-row-seam.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-ledger-self-loop].in_tree_home 'tools/audit/rca/RCA-ledger-self-loop.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-gate-lease-full].in_tree_home 'tools/audit/rca/RCA-gate-lease-full.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-scratch-collide].in_tree_home 'tools/audit/rca/RCA-scratch-collide.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1087-friction-measurement].in_tree_home 'tools/audit/rca/RCA-1087-friction-measurement.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1094-relative-scratch].in_tree_home 'tools/audit/rca/RCA-1094-relative-scratch.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1095-typing-census].in_tree_home 'tools/audit/rca/RCA-1095-typing-census.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-mutation-lane-baseline].in_tree_home 'tools/audit/rca/RCA-mutation-lane-baseline.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-vacuous-acceptance-arm].in_tree_home 'tools/audit/rca/RCA-vacuous-acceptance-arm.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1336-d9-memory-arm].in_tree_home 'tools/audit/rca/RCA-1336-d9-memory-arm.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1293-d0-refutation].in_tree_home 'tools/audit/rca/RCA-1293-d0-refutation.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1485-ledger-line-shift].in_tree_home 'tools/audit/rca/RCA-1485-ledger-line-shift.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1499].in_tree_home 'tools/audit/rca/RCA-1499.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1514].in_tree_home 'tools/audit/rca/RCA-1514.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1515].in_tree_home 'tools/audit/rca/RCA-1515.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1525].in_tree_home 'tools/audit/rca/RCA-1525.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P9-1522].in_tree_home 'tools/audit/rca/RCA-R8-P9-1522.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P8-1513].in_tree_home 'tools/audit/rca/RCA-R8-P8-1513.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-I5b].in_tree_home 'tools/audit/rca/RCA-R8-I5b.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-I1a-kill-rule].in_tree_home 'tools/audit/rca/RCA-R8-I1a-kill-rule.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P12-1517-1529].in_tree_home 'tools/audit/rca/RCA-R8-P12-1517-1529.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P1].in_tree_home 'tools/audit/rca/RCA-R8-P1.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P2].in_tree_home 'tools/audit/rca/RCA-R8-P2.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P6-1526].in_tree_home 'tools/audit/rca/RCA-R8-P6-1526.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P5-1523].in_tree_home 'tools/audit/rca/RCA-R8-P5-1523.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1546].in_tree_home 'tools/audit/rca/RCA-1546.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-P3].in_tree_home 'tools/audit/rca/RCA-R8-P3.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-R8-I3-1516].in_tree_home 'tools/audit/rca/RCA-R8-I3-1516.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1567-unpinned-installs].in_tree_home 'tools/audit/rca/RCA-1567-unpinned-installs.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1566-stats-head-moved].in_tree_home 'tools/audit/rca/RCA-1566-stats-head-moved.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1595-nan-ratchets].in_tree_home 'tools/audit/rca/RCA-1595-nan-ratchets.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1565-mutation-timeouts].in_tree_home 'tools/audit/rca/RCA-1565-mutation-timeouts.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1577-ledger-anchors].in_tree_home 'tools/audit/rca/RCA-1577-ledger-anchors.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1584-root-cause-unanswered].in_tree_home 'tools/audit/rca/RCA-1584-root-cause-unanswered.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1596-gate-lease-wait].in_tree_home 'tools/audit/rca/RCA-1596-gate-lease-wait.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-1589-policy-docs-red].in_tree_home 'tools/audit/rca/RCA-1589-policy-docs-red.md' is not a file under tools/audit/rca
+DANGLING: _rca[RCA-coil-drain].in_tree_home 'tools/audit/rca/RCA-coil-drain.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-bug5-switch].in_tree_home 'tools/audit/rca/V6612-bug5-switch.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-listener-callback].in_tree_home 'tools/audit/rca/V6612-listener-callback.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-bug3-4-echo].in_tree_home 'tools/audit/rca/V6612-bug3-4-echo.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-bug1-6-ownership].in_tree_home 'tools/audit/rca/V6612-bug1-6-ownership.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-bug2-lease].in_tree_home 'tools/audit/rca/V6612-bug2-lease.md' is not a file under tools/audit/rca
+DANGLING: _rca[V6612-bug7-card-history].in_tree_home 'tools/audit/rca/V6612-bug7-card-history.md' is not a file under tools/audit/rca
+DANGLING: _rca[R9-RC1-pinned-local].in_tree_home 'tools/audit/rca/R9-RC1-pinned-local.md' is not a file under tools/audit/rca
+DANGLING: _rca[R9-1638-clobbered-store].in_tree_home 'tools/audit/rca/R9-1638-clobbered-store.md' is not a file under tools/audit/rca
+DANGLING: _rca[R9-1728-stamp-invariant].in_tree_home 'tools/audit/rca/R9-1728-stamp-invariant.md' is not a file under tools/audit/rca
+DANGLING: _rca[PRE-70-v511-freeze].in_tree_home 'tools/audit/rca/PRE-70-v511-freeze.md' is not a file under tools/audit/rca
+DANGLING: _rca[PRE-1249-picker-revert].in_tree_home 'tools/audit/rca/PRE-1249-picker-revert.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-1-P4].in_tree_home 'tools/audit/rca/BULK-1-P4.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-1-P7].in_tree_home 'tools/audit/rca/BULK-1-P7.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-1-P8].in_tree_home 'tools/audit/rca/BULK-1-P8.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-1-P10].in_tree_home 'tools/audit/rca/BULK-1-P10.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-2-I2].in_tree_home 'tools/audit/rca/BULK-2-I2.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-2-N-structure-blind].in_tree_home 'tools/audit/rca/BULK-2-N-structure-blind.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-2-R-register].in_tree_home 'tools/audit/rca/BULK-2-R-register.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-3-1721].in_tree_home 'tools/audit/rca/BULK-3-1721.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-3-1545].in_tree_home 'tools/audit/rca/BULK-3-1545.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-3-1070].in_tree_home 'tools/audit/rca/BULK-3-1070.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-3-v660-freeze].in_tree_home 'tools/audit/rca/BULK-3-v660-freeze.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-4-N-name-sort].in_tree_home 'tools/audit/rca/BULK-4-N-name-sort.md' is not a file under tools/audit/rca
+DANGLING: _rca[BULK-3-1041-rerun].in_tree_home 'tools/audit/rca/BULK-3-1041-rerun.md' is not a file under tools/audit/rca
+fold_ledger: 93 violation(s)
