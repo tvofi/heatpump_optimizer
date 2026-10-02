@@ -30820,7 +30820,8 @@ R.section("v5.1.10 — a due cycle actually reaches the disinfection temperature
 # END of a step — draw and standby loss included — or every step of a
 # ceiling-pinned ramp lands just below the ceiling it was aimed at and the
 # cycle stops at 59.9 rather than 60.0.
-_LgOpt = DhwPlanner
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _LgOpt
+_LgPlanner = DhwPlanner
 
 
 def _lg_band(setpoint, *, hours_since=150.0, tank=37.0, volume=300.0, pump=6.0):
@@ -30930,12 +30931,12 @@ def _lg_whole_tail_repair(
     return plan
 
 
-_lg_saved_repair = _LgOpt._repair_dhw_floor
+_lg_saved_repair = _LgPlanner._repair_dhw_floor
 try:
-    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _LgPlanner._repair_dhw_floor = _lg_whole_tail_repair
     _lg_mut_peaks = {s: float(_lg_band(float(s))[2].max()) for s in _LG_BAND}
 finally:
-    _LgOpt._repair_dhw_floor = _lg_saved_repair
+    _LgPlanner._repair_dhw_floor = _lg_saved_repair
 R.check(
     "the whole-tail bound reproduces the cycle that never reaches "
     "temperature (mutation check)",
@@ -31116,7 +31117,7 @@ R.check(
     "; ".join(f"{k}: {v[1]:.2f}" for k, v in _lg_e2e_worst.items()),
 )
 try:
-    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _LgPlanner._repair_dhw_floor = _lg_whole_tail_repair
     _lg_e2e_mut = {
         k: _lg_e2e(h, s, p, w)
         for k, (h, s, p, w) in (
@@ -31125,7 +31126,7 @@ try:
         )
     }
 finally:
-    _LgOpt._repair_dhw_floor = _lg_saved_repair
+    _LgPlanner._repair_dhw_floor = _lg_saved_repair
 R.check(
     "the whole-tail bound puts the demand-window breach back (mutation "
     "check)",
