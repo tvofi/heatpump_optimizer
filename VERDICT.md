@@ -1,58 +1,69 @@
-Fix review: blocked 8b523cc690ac170acc2b039a2b01afdefb70432b class-open: the revocation is fail-open on any near-miss spelling, and a tvofi comment that someone else edits before the review counts as a mandate
+Fix review: merge 229f638cb285db895771f825d4ce634e84fe5fa6
+bus-nonce: 9156439357764341de3da888be2a07de
 
-Round 1. Reviewed at the head 8b523cc690ac170acc2b039a2b01afdefb70432b, a detached worktree. The authored code head is d741a894, and the merge base is 492d8401. I re-read the live head before writing this verdict and it had not moved. My contract copy is current: `git diff <mb>...origin/main -- tools/audit/briefs/` is empty. This is a policy PR, so tvofi approves the merge. This verdict covers the authored work only.
+Round 2. Reviewed at PR head 229f638cb285db895771f825d4ce634e84fe5fa6 from a fresh detached worktree. That head is code head 459d05c3 merged into round 1's head 8b523cc6, which carried only `docs/delivery/1843.md`. Merge base 492d8401. I read the live head again just before publishing and it had not moved. My contract copy is current: `git diff <mb>...origin/main -- tools/audit/briefs/` is empty. This is a policy PR, so tvofi's own approving review is still needed to merge it.
 
-## Blocking findings (my own probe, `probe.py`, output `probe_head.txt`)
+## Round-1 blockers, re-measured with the reviewer's own harness
 
-**B1. A revocation with any near-miss spelling is silently ignored.** `MANDATE_REVOKED.fullmatch` is applied to the first line only, so it accepts exactly `MANDATE REVOKED <id>` and nothing else. Each revocation below was posted by the pinned owner account (login, id and type) and cites the right id. Each one leaves the mandate in force, so `approved=True`:
-- `MANDATE REVOKED <id>.` (a trailing period)
-- `MANDATE REVOKED #<id>`
-- `MANDATE REVOKED: <id>`
-- `Mandate revoked <id>`
-- `Ending it now.\nMANDATE REVOKED <id>` (the revocation on a second line)
+`probe.py` is round 1's probe. Its two unjudged cases are now expected to refuse, and I added 10 cases of my own for round 2.
+- At 229f638c: **0 of 36** RESULT lines are UNEXPECTED (`probe_head.txt`).
+- The same probe at round-1 head 8b523cc6 shows **11 UNEXPECTED** (`probe_round1head_8b523cc6.txt`). So the harness moves on the fix, and every null-control case (expect=True) holds at both ends.
+- **B1 (revocation fail-open): closed.** All five near-miss forms now revoke: trailing period, `#id`, `: id`, lower case, and a second line. An `issuecomment-<id>` URL beside "revoking" also revokes. The over-revoke controls hold: a longer number containing the id, the same login with another id, and the mandate comment itself in the thread all revoke nothing.
+- **B2 (edit before review): closed.** `updated_at != created_at` refuses, including an edit 1 second after creation and a missing `updated_at`.
+- **Earlier CHANGES_REQUESTED: now refused.** This includes a CHANGES_REQUESTED on an older commit and a later one. tvofi's own DISMISSED and tvofi's own approval on an older commit still let a mandated approval at the head pass.
+- **Another repository's #201: refused** (full `/repos/tvofi/heatpump_optimizer/issues/201` suffix).
+- `--self-test`: 200 checks, 0 failed (`selftest_head.txt`).
 
-The grant must be strict, and it is. The kill switch must be lenient, because over-matching a revocation fails safe while under-matching fails open. As written, tvofi can believe a mandate is revoked while the gate still passes agent approvals under it, and nothing reports the near miss. Suggested repair: any tvofi comment on #201, with a line matching something like `(?i)\brevok\w*\b.*?#?<id>\b`, revokes `<id>`. Add tests for the five forms above.
+## Mutation proof (reviewer's own mutants, `mutate.py`, `mutants_reviewer.txt`)
 
-**B2. Someone other than tvofi can turn an existing tvofi comment into a mandate by editing it.** `mandate_check` refuses an edit only when `updated_at > review.submitted_at`. An edit made *before* the review passes. Because `start = max(from, created_at)` and an old comment has an early `created_at`, the rewritten text governs. My probe case "EDITED BEFORE review" sets created 2026-09-01, updated 2026-10-02T06:30Z and a review at 07:00Z, and it returns `approved=True`. GitHub lets anyone with write access edit other users' issue comments. The collaborator list, read live, shows `tvofi-seat-author  User  write`. That account is retired by decision 0011 but still holds write access. An App with issues:write may also be able to edit, but I did not test that because it would be a write. The comment's `user` stays tvofi, so `_is_owner` passes. The gate never reads who made the edit. Suggested repair: refuse any mandate whose `updated_at != created_at`. An edited mandate would then grant nothing, and tvofi posts a fresh one. The alternative is to read the editor through GraphQL `userContentEdits`, which is heavier. Add a test where the edit happens before the review.
+The copies run out of tree. The unmutated copy (`none`) fails exactly 2 environment checks; every other count below is in addition to those.
+- revocation off: 9 checks fail.
+- revoker-must-be-owner dropped: 1.
+- whole-number boundary dropped: 1.
+- "revok" word requirement dropped: 1.
+- revocation reverted to round 1's strict grammar: 3.
+- edit refusal off: 3.
+- edit refusal reverted to round 1's `updated > at`: 2.
+- CHANGES_REQUESTED override off: 1 (2 checks).
+- issue URL reverted to `/issues/201`: 1.
+- grammar refusal off: 1. **Round 1's surviving mutant is now killed.**
 
-Both findings are seams of the class the PR set out to close: a refusal predicate that the harness's configurations reach and the tests never exercised. Hence `class-open`.
+Every mutant is killed by a named check.
 
-## Residual for tvofi (not blocking, and the PR cannot fix it)
+## The fixer's edit-rate figure, re-derived
 
-- The seats run `gh` authenticated as **tvofi**. This machine's `gh auth status` shows the active account is tvofi, via keyring. Any seat holding that token can post a `MANDATE:` comment on #201 that passes every check in `mandate_check`, because author login, id and type are all genuinely tvofi's. Forging an undeclared approval already needed this same token, so the mandate adds no new forgery capability. It does make a forged grant look exactly like a real one. The forward-carry text says tvofi posts the first MANDATE comment. That only holds if no seat ever posts one, even when told to in a chat. tvofi should decide whether to accept this or require the mandate through a channel the seats' token cannot reach.
-- An agent's mandated APPROVED review overrides tvofi's own **earlier** CHANGES_REQUESTED (probe case `approved=True`). Only a *later* CHANGES_REQUESTED from tvofi is pinned to override. This may be intended, since a mandate lets the agent approve as tvofi. It is still tvofi's call, and the amendment text does not say it.
+The figure is "7 of 285 tvofi comments since 2026-09-15 were edited". I read all of #201's comments, 1329 in 14 pages. tvofi wrote 1185 of them, and 16 of those are edited across all time. Restricted to `updated_at >= 2026-09-15`, which is how the API's `since=` filters, it is **285 tvofi comments, 7 edited**, matching the body exactly (`edit_rate_201.txt`).
 
-## Mutation proof (my own mutants, `mutate.py`, output `mutants_reviewer.txt`)
+**Choosing not to treat an edited tvofi comment as a revocation:** tvofi decided this (relayed by the orchestrator), so it is not judged here. Factually, an edit-as-revocation rule would not close the deletion path either. The amendment already records that a write-access account can edit or delete a revocation, and that the mandate's `until` bounds that.
 
-Each mutant disables one predicate in an out-of-tree copy. Control `mutant_none_outoftree.txt`: the unmutated copy gives exactly 2 environment failures (`git rev-parse` in the copy's directory), so any failure beyond those 2 is the mutant's.
-- expired +2, not-yet +1, revoked +3, revoker-must-be-owner +1, author +3, author-id +2, issue +1, scope +1, edited-after +1, two-cites +1, agent-state +1: each is killed by a named check.
-- **grammar (`if not m` → `if False`): survives the self-test (+0).** The next line, `m.group`, raises. `decide` catches the exception and refuses ("could not be read"), so the gate still fails closed. The refusal therefore has no distinguishing test: the unit test that claims to pin the grammar arm would pass without it. This is minor, and fixing it with B1/B2 means asserting the refusal text ("first line is not the mandate grammar").
-- I did not re-run the fixer's `mutants.py`. These are my own.
+## Seams (class rule in the body: every field of a GitHub object the gate reads)
 
-## Null controls (re-run, `probe_head.txt`)
+The rule names the mandate body, the revocation body, `issue_url` and the review body. Each is closed in this diff or dispositioned in the body and the amendment. I found no seam outside that list.
 
-- An agent approval that cites no mandate: refused.
-- A revocation by another account: revokes nothing, so the mandate stays in force.
-- An undeclared approval from the owner: unchanged (passes as before).
-- The approver App's own approval: refused.
-- `self-test`: 184 checks, 0 failed (head, python 3.14). I did not re-run the e2e "no raise reads no mandate" check separately. It is inside that count.
+## Advisory, non-blocking
 
-## Other probes
+- **The `until` bound.** The amendment says `until` is "the bound that no such edit can remove". With `until programme-end`, that bound is the end of the programme. A finite `until` keeps the residual window of a deleted or edited revocation short.
+- **Seats hold tvofi's token** (carried from round 1). `gh` on this machine is signed in as tvofi, so any seat can post a comment on #201 that passes the mandate checks. The mandate adds no forgery capability that the token did not already give. Seats must never post a `MANDATE:` line.
+- **Status comments can revoke a mandate.** Any comment a seat posts on #201 as tvofi that names a mandate id near any form of "revoke" revokes that mandate, wherever the word appears. This fails safe, but the orchestrator should know that a status comment discussing revocation will trigger it.
 
-- **Wrong-author login, id and type; wrong issue; scope code-owned; non-head approval; review after `until` and before `from`; a mandate quoted (`> `) or on the second line; trailing text; edited after the review:** all refused (`probe_head.txt`).
-- **#201 in another repository:** `mandate_check`'s `endswith("/issues/201")` check accepts it (probe `approved=True`), but no live call can reach that path. `GET repos/tvofi/heatpump_optimizer/issues/comments/<foreign id 539473254 from cli/cli>` answers 404, so `_mandate` returns None. This is defence-in-depth only. Comparing the full `repos/<repo>/issues/201` suffix would make the check robust, but it is not blocking.
-- **The issue-trigger regex in tests/entities.py:** the old pattern matched only `budget-raise-gate.yml`, and only because of the new `permissions: issues: read`. The new pattern matches nothing. No workflow is issue-triggered at either end, so the protected check runs over an empty set, both at the base and at the head. Synthetic controls: an `on:` block with `issues:` or `issue_comment:` (including indented and comment lines in between) matches. `permissions:\n  issues: read` does not. `on: [issues]` and `"on":` match under neither the old nor the new pattern, so this is not a regression (`issue_trigger_sets.txt`).
-- **Conflict:** `git merge-tree --write-tree origin/main <head>` exits 0.
-- **VERSION, the manifest and the notes heading:** untouched. The diff is 5 files.
+## CI at 229f638c (check-runs API, `check_runs_head.txt`, read after the Tests run completed)
 
-## CI at the head (check-runs API, `check_runs_head.txt`, read 2026-10-02)
+- 24 success, 9 skipped, 2 cancelled, 0 failure.
+- Both cancelled runs (budget-raise-gate, pr-contract) are superseded duplicates. The same names concluded success at this head.
+- Tests run 36998454762 concluded **success**: fast (3.14), closures, closure-scope, coverage, mutation, typing, briefs, browser, nightly-status, delivery-status, env-matrix and the rest.
+- There is no red, so step 11 owes nothing.
+- I did not run the gate myself, so I key on no MODE line. Locally, `tests/entities.py` cannot import numpy in my venv, so CI's `fast` is the cited evidence.
+- `git merge-tree --write-tree origin/main <head>` exits 0.
+- VERSION, the manifest and the notes heading are untouched. The diff touches 5 files.
 
-- **Green:** budget-raise-gate, pr-contract, policy-docs, instrument-self-tests, wave-script, delivery-status, env-matrix, hassfest, validate-hacs, Analyze (actions/js-ts).
-- **Cancelled:** one each of budget-raise-gate and pr-contract. These are superseded duplicate runs; the same names also concluded success.
-- **Still running or not started:** CodeQL python. The **Tests workflow (run 36996228877) is `pending`**, so no fast/closures/mutation result exists at this head yet. I did not run the gate. I key on no MODE line because I ran no scoped gate.
+## Evidence (this directory)
 
-## Evidence
+- `HEAD_MEASURED.txt` (names the head)
+- `probe.py`, `probe_head.txt`, `probe_round1head_8b523cc6.txt`
+- `mutate.py`, `mutants_reviewer.txt`
+- `selftest_head.txt`
+- `edit_rate_201.txt`
+- `check_runs_head.txt`, `workflow_runs_head.txt`
+- `pr_body.txt`
 
-All on branch `review/1843`: `probe.py`, `probe_head.txt`, `mutate.py`, `mutants_reviewer.txt`, `mutant_none_outoftree.txt`, `issue_trigger_sets.txt`, `check_runs_head.txt`. All harnesses are the reviewer's own, not the fixer's.
-
-Publication note: the contract names `bus.sh push-verdict`. This seat's dispatch forbade any GitHub write other than this branch push, so the verdict was not posted to the PR.
+All harnesses are the reviewer's own.
