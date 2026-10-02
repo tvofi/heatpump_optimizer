@@ -1,0 +1,14 @@
+  ok   agreeing readers pass
+  ok   a disagreeing reader is divergent
+  ok   a reader that throws is refused, never a pass
+  ok   an empty corpus is refused
+  ok   one reader is refused
+  ok   a stale narrow declaration is divergent
+  ok   every reader null on a must-answer item is refused (merge-shape guard)
+  ok   null on an item that need not answer passes
+  ok   a grammar in two files and unregistered is found
+  ok   a registered grammar passes
+  ok   a grammar in one file is not shared
+  ok   an entry that no longer spans two files is DEAD
+  ok   a disposition of no known kind is refused
+SELF-TEST 13 of 13 probes held
