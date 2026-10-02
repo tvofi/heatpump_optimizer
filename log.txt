@@ -19,3 +19,4 @@
 2026-10-01T23:47:40Z 1834 MERGED 3bd6f122 at head 103f0ff8: approved by tvofi at that head, fresh hpo-approver verdict 5942611272 names 103f0ff8, state CLEAN, --match-head-commit. Supersedes the earlier 1834 SKIP.
 2026-10-01T23:47:51Z 1834 SKIP already merged at 23:47:33Z as 3bd6f122 (head 103f0ff8) by another seat before this seat's pinned merge; intended issues #1644 and #1651 closed, preflight clean with them declared
 2026-10-02T01:27:36Z 1837 APPROVED 851237fc on exact verdict (handoff/verdict/1837 names the live head); verdict comment posted; merge waits for CI
+2026-10-02T02:10:08Z 1836 APPROVED 66477d49 on carry of verdict 9cd19506 (delta = docs/delivery/1836.md only); carried verdict comment posted; marked ready; merge waits for CI
