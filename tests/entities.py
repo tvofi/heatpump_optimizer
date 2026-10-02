@@ -26925,7 +26925,7 @@ R.check(
     "HASTUB_TZ is the positive control",
 )
 
-# The six operators, driven over a module written to carry one of each. A
+# The seven operators, driven over a module written to carry one of each. A
 # generated mutant that does not PARSE cannot run, and a mutant that cannot
 # run reports as a survivor -- which reads as a finding about production.
 # W5-G7 tranche 5 measured two of those.
@@ -26965,7 +26965,8 @@ _MUT_GOT = list(_mut.candidates(_MUT_FILE))
 R.check(
     "every operator fires on a module written to carry one of each",
     {_m["kind"] for _m in _MUT_GOT} == {
-        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"},
+        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST",
+        "CMP_BOUND"},
     f"kinds generated: {sorted({_m['kind'] for _m in _MUT_GOT})}",
 )
 _MUT_LINES = _MUT_SRC.splitlines(True)
@@ -27000,6 +27001,78 @@ R.check(
             for _m in _MUT_GOT),
     "a `raise` alone under its `if` cannot become `pass` without an "
     "IndentationError -- the refusal is in candidates(), not in the runner",
+)
+
+# The comparison-bound operator (R9 F10.6, the I1 RCA's residual (b)): no
+# operator mutated an ordering comparison, so D3-s1-01's `-5.0 <= value` bound
+# was tightenable unseen. CMP_BOUND moves one bound of a one-line comparison by
+# one -- `<`/`<=`, `>`/`>=` -- one mutant per operator of a chain, and leaves
+# `==`, `in` and `is` alone. tvofi priced it and ruled "enable now"
+# (2026-10-02), so the default candidates, and with them the ratchet, carry it.
+_CB_FILE = _mut_write(_MUT_DIR / "bounds.py", (
+    "def f(v):\n    return v if -5.0 <= v <= 35.0 else None\n\n\n"
+    "def g(a, b):\n    if (a) > b or a >= 2 or a == b or a in b:\n"
+    "        return 1\n    return 0\n\n\n"
+    "def h(a, b):\n    return a < b\n\n\n"
+    "def k(a, b):\n    return a < max(\n        b, 1)\n"))
+_CB_SRC_LINES = _CB_FILE.read_text().splitlines(True)
+_CB_LISTED = getattr(_mut, "LISTED", None)
+_CB_GOT = [] if _CB_LISTED is None else [
+    _m for _m in _mut.candidates(_CB_FILE, kinds=_CB_LISTED)
+    if _m["kind"] == "CMP_BOUND"]
+
+
+def _cb_parses(m: dict) -> bool:
+    _l = list(_CB_SRC_LINES)
+    _l[m["line"] - 1] = m["new"] + "\n"
+    try:
+        ast.parse("".join(_l))
+    except SyntaxError:
+        return False
+    return True
+
+
+R.check(
+    "CMP_BOUND moves each ordering bound by one, one mutant per operator",
+    sorted(_m["new"] for _m in _CB_GOT) == sorted([
+        "    return v if -5.0 < v <= 35.0 else None",
+        "    return v if -5.0 <= v < 35.0 else None",
+        "    if (a) >= b or a >= 2 or a == b or a in b:",
+        "    if (a) > b or a > 2 or a == b or a in b:",
+        "    return a <= b"])
+    and all(_cb_parses(_m) for _m in _CB_GOT),
+    f"generated: {[_m['new'].strip() for _m in _CB_GOT]}",
+)
+# A comparison spanning lines (k's `a < max(` ... `)`) is card C7's residual,
+# ruled "Not now": the one-line format cannot carry it, so it yields nothing.
+R.check(
+    "a comparison spanning more than one line yields no CMP_BOUND site (C7)",
+    _CB_LISTED is not None
+    and not [_m for _m in _CB_GOT if _m["line"] >= 15],
+    f"sites at k's lines: {[_m['new'] for _m in _CB_GOT if _m['line'] >= 15]}",
+)
+R.check(
+    "and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted "
+    "inventory",
+    _CB_LISTED is not None and "CMP_BOUND" in _mut.RATCHETED
+    and sorted(_m["new"] for _m in _mut.candidates(_CB_FILE)
+               if _m["kind"] == "CMP_BOUND")
+    == sorted(_m["new"] for _m in _CB_GOT),
+    f"default kinds: {sorted({_m['kind'] for _m in _mut.candidates(_CB_FILE)})}",
+)
+_CB_LIST = getattr(_mut, "listed_sites", None)
+_CB_ROWS = [] if _CB_LIST is None else _CB_LIST("CMP_BOUND", {}, [_CB_FILE])
+_CB_LEDGER = {"killed_by": {_s["anchor"]: {"killed_by": "tests/x.py",
+                                            "old": _s["old"]}
+                            for _s, _u in _CB_ROWS if _s["line"] == 2}}
+R.check(
+    "--list counts a CMP_BOUND anchor unpinned until the ledger covers it",
+    _CB_LIST is not None
+    and [_u for _s, _u in _CB_ROWS] == [True] * 5
+    and [_u for _s, _u in _CB_LIST("CMP_BOUND", _CB_LEDGER, [_CB_FILE])]
+    == [False, False, True, True, True],
+    f"unpinned with no ledger / with line 2 pinned: "
+    f"{[_u for _s, _u in _CB_ROWS]}",
 )
 
 # The deterministic inventory + completeness ledger + exact-count ratchet
