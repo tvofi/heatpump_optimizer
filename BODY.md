@@ -6,9 +6,11 @@ The report-only architecture score under `tools/audit/archscore/`: `score.py --d
 
 Where `tests/structure.py` has a metric the score reads that definition on a loaded copy (the counters are applied to the copy, never to the file); the rest are `metrics/`. The planted cases anchor on the text of `7952d8f9`, so the calibration measures a `git archive` of it; `arch_score_head.py` is the one script that reads the working tree. Four calibration verdicts moved from PRE-STUDY section 6 (listed with causes in `tools/audit/archscore/ABOUT.md`). C3 enumerates the junk spellings it drops: by tvofi's ruling (2026-10-02, option B) the list is not extended, the limit is in `ABOUT.md` and pinned as three KNOWN-OPEN cases, and the class fix is owed to R9-EG-A2.
 
+**Conflict with main (#1852, #1858, #1861, #1862, v6.7.14 at 754845d0), resolved by re-deriving.** `tests/deployment_shape.py` conflicted in the cost-of-the-shape note: main moved the file count to 87 and its history of the count, this branch added the `arch_score_head.py` exception; both are kept, and the note's pair figures were re-derived, not picked (they still read 90 of 435 and 325, which `entities.py` checks). `tests/closures.json` merged by the ledger driver, but `arch_score_head.py`'s recorded closure then covered only 85 of the 87 package files (main added `payload.py` and `dhw_planner.py`), so the #1218 lane's admitted set failed; it is re-recorded with `--single` (107 files). `.github/CODEOWNERS`, `tests/entities.py` and the `tools/audit/round4/D6` claims files merged without a conflict (the last taken from main after a harness run regenerated them). Main did not change `tests/structure.py` or `tools/audit/archscore/`, and the calibration measures the pinned tree, so no verdict could move and the full calibration was not re-run; `arch_score.py --smoke` and `arch_score_head.py` pass on the merged tree, as do `entities.py`, `harness_headers.py`, `deployment_shape.py` and `structure.py` under the seat venv, and `brief_lint.mjs`.
+
 ## Head
 
-1c43a6c9d182fcf2ea3a7e1d2439bf058daf86ea
+b74fc1aa21e443fef353a5bb49ea630397bf2913
 
 ## Approval
 
