@@ -14,7 +14,7 @@ Lands the report-only architecture score under `tools/audit/archscore/`. `score.
 
 ## Head
 
-486b397a2ea758f605d753599d0c6971ea2adb7c
+f6b39ccd931a190372a4d4a46590a115aee9cc01
 
 ## Approval
 
@@ -22,7 +22,7 @@ Policy files in this diff: `.github/PULL_REQUEST_TEMPLATE.md`. tvofi adopted R3-
 
 ## Mutation proof
 
-The check's own mutation is the counters switched off (`ARCHSCORE_ABLATE`, which exists for this and for nothing else). `ARCHSCORE_ABLATE=C1,C2,C3,C4,C5,C6,C7,C11 python3 tests/arch_score.py` fails 16 checks: `rt_01`, `rt_02`, `rt_03`, `rt_04`, `rt_05`, `rt_05b`, `rt_05c`, `rt_05d`, `rt_07`, `rt_08`, `rt_10`, `rt_11`, `rt_12`, `rt_12b` (each now reads IMPROVES, or `rt_05` WORSENS by a side effect), `a3_private_reach_fix` (IMPROVES, recorded NULL), and "no red-team attempt reads IMPROVES".
+The check's own mutation is the counters switched off (`ARCHSCORE_ABLATE`, which exists for this and for nothing else). `ARCHSCORE_ABLATE=C1,C2,C3,C4,C5,C6,C7,C11 python3 tests/arch_score.py` (round 1, before the `04b`-`04g` cases) failed 16 checks: `rt_01`, `rt_02`, `rt_03`, `rt_04`, `rt_05`, `rt_05b`, `rt_05c`, `rt_05d`, `rt_07`, `rt_08`, `rt_10`, `rt_11`, `rt_12`, `rt_12b` (each now reads IMPROVES, or `rt_05` WORSENS by a side effect), `a3_private_reach_fix` (IMPROVES, recorded NULL), and "no red-team attempt reads IMPROVES".
 
 Counter by counter, each alone off (`ARCHSCORE_ABLATE=<C> python3 tools/audit/archscore/calibrate.py --only <ids>`, base measured under the same switch), the game reads:
 
@@ -43,18 +43,23 @@ Counter by counter, each alone off (`ARCHSCORE_ABLATE=<C> python3 tools/audit/ar
 
 No line of `custom_components/` changes, so `python3 tests/mutation_table.py --scope changed` has no site on this diff.
 
+**Round 2.** B2 (C3 evaded by `pass`): `counters.is_noop` now covers `pass`, constant, name, attribute and pure-call expression statements and an `if` on a constant whose branches are all such. The reviewer's game (`pass` in the uncharged functions) is `rt_04c`; `rt_04b` is `pass` everywhere, `rt_04d` `...`, `rt_04e` `None`, `rt_04f` a string (structure's docstring filter already drops it, so it is a control), `rt_04g` `if False: pass`. With `ARCHSCORE_ABLATE=C3`, `rt_04c`, `rt_04d`, `rt_04e` and `rt_04g` each read IMPROVES, admissible, delta-S +14.15 (the reviewer's figure); with the widening they read NULL, and `rt_04b` WORSENS through `coord_footprint` as before. No pinned verdict moved from the round-2 re-run; the six new cases are recorded.
+
+B1 (closure): the smoke path now loads `tests/structure.py` in-process, so the recorded closure of `tests/arch_score.py` lists it. A scratch commit changing only `DUP_WINDOW_STATEMENTS` in `tests/structure.py` (the reviewer's mutation) now selects `tests/arch_score.py` (`MODE: SCOPED`, 8 scripts, `scope.run` names it); before it did not.
+
 Three counters are not alone what stops their game, and the body says so rather than credit them. `rt_13` (a hub handle behind a computed-name accessor) reads WORSENS with C2b off too, through a coordinator footprint rise (`coord_footprint`), so C2b is a second stop that would hold only if the accessor cost no logic statement. `rt_05` (the mixin move of every method) reads WORSENS with C4 off, through `public_unused`. `rt_06` (public `raw_<x>` properties) reads WORSENS with C5 off, through `dead_members`; C5 is what takes its delta-S from positive to not. `rt_09` (delete the away setback) reads WORSENS through `dead_members` +1 and nothing else: no structural counter exists, only the behaviour suite sees a deleted feature.
 
 ## Null control
 
-The unmodified calibration: `python3 tests/arch_score.py` passes at this head, 129 checks, and `python3 tests/arch_score_head.py` passes. The rename null `rt_00` reads NULL; the pre-study's nulls `a1_N1`, `a1_N1b`, `a1_N1c`, `a1_N2`, `a1_N3` read NULL; `a1_N4` (a `const.X` namespace import) reads WORSENS, a recorded miss. The report on an unchanged tree is `score.py --diff origin/main`, which prints delta-S 0 NULL. The same instrument against the pre-study's pin prints a non-zero report, so it is not a constant.
+The unmodified calibration: `python3 tests/arch_score.py` passes at this head, 135 checks, and `python3 tests/arch_score_head.py` passes. The rename null `rt_00` reads NULL; the pre-study's nulls `a1_N1`, `a1_N1b`, `a1_N1c`, `a1_N2`, `a1_N3` read NULL; `a1_N4` (a `const.X` namespace import) reads WORSENS, a recorded miss. The report on an unchanged tree is `score.py --diff origin/main`, which prints delta-S 0 NULL. The same instrument against the pre-study's pin prints a non-zero report, so it is not a constant.
 
 **The pre-study's bar, and the one decision for tvofi.** PRE-STUDY section 6 asked that every case classify as it records, amended by the counters' one correction. Four verdicts moved, each listed with its cause in `tools/audit/archscore/ABOUT.md`: `97dc04f2` (that recorded correction), `ca937daa` and `a3_dead_by_reachability_fix` (sharing `structure.py`'s clone and dead-member definitions: copies where the prototype counted pairs, and a name two classes define keeps a member live), and `a3_private_reach_fix` (C5: the public property it swaps in is a passthrough). The alternative was to keep the prototype's own copy of each census and match section 6 exactly, at two definitions of each; the brief asked for one, so `expected.json` records the four. Weight sensitivity is unchanged: no weight halved, doubled or equalised moves a verdict.
 
 ## Figures
 
+- A `tests/structure.py`-only mutation selects the calibration (the probe is a scratch worktree commit changing `DUP_WINDOW_STATEMENTS`; the instrument): `python3 tests/closure.py select --diff HEAD~1`
 - Score vector of today's tree (the table of metrics at main `af7660c74`, 2026-10-02T13:06Z): `python3 tools/audit/archscore/vector.py .`
-- Calibration totals and every verdict (77 of 103 labelled cases classify as labelled; 17 of 17 red-team attempts read NULL or inadmissible; none reads IMPROVES): `python3 tools/audit/archscore/calibrate.py --jobs 4`
+- Calibration totals and every verdict (77 of 103 labelled cases classify as labelled; 23 of 23 red-team attempts read NULL or inadmissible; none reads IMPROVES): `python3 tools/audit/archscore/calibrate.py --jobs 4`
 - Frozen weights hash `2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978`, equal to the recorded one: `shasum -a 256 tools/audit/archscore/weights.json`
 - The template at its caps (38 of 38 lines, 304 of 305 tokens): `node .claude/workflows/policy_lint.mjs --budgets`
 - The same instrument against the pre-study's pin prints a non-zero report: `python3 tools/audit/archscore/score.py --diff 7952d8f9`
@@ -63,7 +68,7 @@ The unmodified calibration: `python3 tests/arch_score.py` passes at this head, 1
 - The calibration's closure lists no `custom_components/` file, and the head script's lists them (the control): `python3 -c "import json; c = json.load(open('tests/closures.json'))['closures']; print([sum(f.startswith('custom_components/') for f in c[s]) for s in ('tests/arch_score.py', 'tests/arch_score_head.py')])"`
 - No new orphan file: `python3 -c "import sys; sys.path.insert(0, 'tests'); import closure; print(closure.orphan_files())"`
 - Gate mode of this diff (`MODE: FULL`, reason: `tests/closure.py` changes the gate itself): `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`
-- Cost of the full check, about 14 minutes at 161 percent CPU on a loaded seat machine with four workers (CI's figure is the one to use): `time python3 tests/arch_score.py`
+- Cost of the full check, about 9 minutes at 256 percent CPU on a loaded seat machine with four workers (CI's figure is the one to use): `time python3 tests/arch_score.py`
 - `policy_lint` on a clean `origin/main` checkout reads the same `[required-contexts]` errors as on this head: `node .claude/workflows/policy_lint.mjs`
 - The scopes the gate named and this seat could not run: `tests/entities.py` and every numpy lane; the gate is CI's.
 
