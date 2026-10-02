@@ -120,6 +120,10 @@ const STRINGS = {
     "advisor.valve_detail": "Now {from} °C. {reason}",
     "advisor.act_apply": "Apply",
     "advisor.act_settings": "Open settings",
+    "advisor.degree_title": "A degree cooler is cheaper",
+    "advisor.degree_detail": "A degree warmer costs {up} {currency}/month more.",
+    "advisor.act_degree": "Try in what-if",
+    "advisor.optin_degree": "Price of a degree",
     "advisor.applied": "Valve target set to {to} °C.",
     "advisor.apply_failed": "Could not apply: {error}",
     "advisor.optin_wood": "Wood-stove timing",
@@ -661,6 +665,10 @@ const STRINGS = {
     "advisor.valve_detail": "Nu {from} °C. {reason}",
     "advisor.act_apply": "Verkställ",
     "advisor.act_settings": "Öppna inställningar",
+    "advisor.degree_title": "En grad svalare är billigare",
+    "advisor.degree_detail": "En grad varmare kostar {up} {currency}/månad mer.",
+    "advisor.act_degree": "Prova i what-if",
+    "advisor.optin_degree": "Pris på en grad",
     "advisor.applied": "Ventilmålet satt till {to} °C.",
     "advisor.apply_failed": "Kunde inte verkställa: {error}",
     "advisor.optin_wood": "Vedpannans timing",
@@ -7890,6 +7898,7 @@ const ADVISOR_SUFFIXES = {
   valve: "_valve_target_recommendation",
 };
 const ADVISOR_OPT_IN = ["wood", "fuse", "frequency"];
+// Shown only while the score sensor publishes no price_tiles (their switch is off).
 const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
 const DAYS_PER_MONTH = 30;
 
@@ -7906,22 +7915,49 @@ function advisorSignature(plan) {
 function advisorRow(plan, kind, build) {
   const st = plan.statEntity(ADVISOR_SUFFIXES[kind]);
   if (!st) return null;
+  // Home Assistant drops extra attributes while an entity is unavailable, so
+  // nothing but the state is trusted there; "unknown" keeps its attributes,
+  // which is where a sensor says what it is still waiting for.
+  if (st.state === "unavailable") return { kind, status: "error" };
   const attrs = st.attributes || {};
-  if (st.state === "unavailable" || st.state === "unknown") {
+  if (st.state === "unknown") {
     return attrs.waiting_for
       ? { kind, status: "waiting", reason: String(attrs.waiting_for) }
-      : { kind, status: "error", reason: attrs.reason ? String(attrs.reason) : "" };
+      : { kind, status: "error" };
   }
   const row = build(Number(st.state), attrs);
   return row ? { kind, status: "ready", ...row } : null;
 }
 
+/** Price of a degree: the score sensor's `price_tiles` (target -1 / +1 degC),
+ * present only while the backend computes them. Null when it does not. */
+function priceTiles(plan) {
+  const st = plan.statEntity("_plan_optimization_score");
+  const tiles = st && st.attributes && st.attributes.price_tiles;
+  const down = tiles && tiles.target_minus_1;
+  const up = tiles && tiles.target_plus_1;
+  return down && up && Number.isFinite(Number(down.monthly_cost_delta)) ? { down, up } : null;
+}
+
+/** Linear cost per day at an off-grid setpoint, clamped to the swept range. */
+function dhwCostPerDay(candidates, setpoint) {
+  const pts = (candidates || [])
+    .map((c) => [Number(c.setpoint), Number(c.cost_per_day)])
+    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y))
+    .sort((p, q) => p[0] - q[0]);
+  if (!pts.length) return NaN;
+  if (setpoint <= pts[0][0]) return pts[0][1];
+  const last = pts[pts.length - 1];
+  if (setpoint >= last[0]) return last[1];
+  const i = pts.findIndex((p) => p[0] >= setpoint);
+  const [x0, y0] = pts[i - 1];
+  const [x1, y1] = pts[i];
+  return y0 + ((y1 - y0) * (setpoint - x0)) / (x1 - x0);
+}
+
 function advisorRows(host) {
   const plan = host.plan;
-  const cost = (attrs, setpoint) => {
-    const hit = (attrs.candidates || []).find((c) => c.setpoint === setpoint);
-    return hit ? Number(hit.cost_per_day) : NaN;
-  };
+  const tiles = priceTiles(plan);
   const rows = [
     advisorRow(plan, "gap", (value, attrs) => {
       if (!(value > 0) || !attrs.top_slot) return null;
@@ -7935,7 +7971,7 @@ function advisorRows(host) {
     advisorRow(plan, "dhw", (to, attrs) => {
       const from = Number(attrs.current_setpoint);
       if (!Number.isFinite(to) || !Number.isFinite(from) || to === from) return null;
-      const perDay = cost(attrs, from) - cost(attrs, to);
+      const perDay = dhwCostPerDay(attrs.candidates, from) - dhwCostPerDay(attrs.candidates, to);
       return {
         value: perDay > 0 ? perDay * DAYS_PER_MONTH : null, act: "open_schedule",
         title: L("advisor.dhw_title", { from, to }), detail: L("advisor.dhw_detail"),
@@ -7954,6 +7990,15 @@ function advisorRows(host) {
         detail: L("advisor.valve_detail", { from, reason: attrs.reason || "" }),
       };
     }),
+    tiles && {
+      kind: "degree", status: "ready", act: "try_degree",
+      // Only a saving is a value; a degree that costs more is still shown.
+      value: Number(tiles.down.monthly_cost_delta) < 0 ? -Number(tiles.down.monthly_cost_delta) : null,
+      target: Number(tiles.down.overrides && tiles.down.overrides.target_temp),
+      title: L("advisor.degree_title"),
+      detail: L("advisor.degree_detail", {
+        up: Math.round(Number(tiles.up.monthly_cost_delta)), currency: plan.currency() }),
+    },
   ].filter(Boolean);
   // Ranked by monthly value; a row with no money in it follows every priced one.
   return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
@@ -7962,12 +8007,12 @@ function advisorRows(host) {
 function advisorRowHtml(host, row) {
   const act = {
     assign: "advisor.act_assign", open_schedule: "advisor.act_schedule",
-    apply_valve: "advisor.act_apply",
+    apply_valve: "advisor.act_apply", try_degree: "advisor.act_degree",
   };
   if (row.status !== "ready") {
     const text = row.status === "waiting"
       ? L("advisor.waiting", { reason: row.reason })
-      : `${L("advisor.unavailable")}${row.reason ? ` (${row.reason})` : ""}`;
+      : L("advisor.unavailable");
     return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
   }
   const value = row.value === null ? L("advisor.no_value")
@@ -7983,7 +8028,7 @@ function advisorRowHtml(host, row) {
 
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
-  const optIn = ADVISOR_OPT_IN.map((id) => `<div class="adv-inbox-row">
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
       <span class="adv-text">${esc(L(`advisor.optin_${id}`))}</span>
       <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
@@ -8108,6 +8153,15 @@ function attachAdvisorInbox(host, root) {
         host.dialog.page = "setup";
       } else if (act === "open_schedule") {
         host.dialog.page = "plan";
+      } else if (act === "try_degree") {
+        // Seed the what-if slider with the tile's target and run it.
+        const to = Number(btn.dataset.target);
+        if (Number.isFinite(to)) host.whatIf.draft().comfort = Math.min(24, Math.max(16, to));
+        host.dialog.page = "plan";
+        host.dialog.scroll = 0;
+        host._render();
+        host.whatIf.run();
+        return;
       } else if (act === "settings") {
         navigateTo(SETTINGS_PATH);
         return;
