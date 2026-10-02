@@ -45490,6 +45490,9 @@ R.check(
 
 # -- datetime.AwayReturnDateTime: the published return instant --------------
 class _G8DtCoord:
+    # The real coordinator's read-only view over the live override (R9-EG-B2).
+    away_state = property(lambda self: self._away_state)
+
     def __init__(self, data=None):
         self.data = data
         self.away_calls = []
