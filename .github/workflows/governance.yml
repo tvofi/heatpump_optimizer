@@ -511,24 +511,16 @@ jobs:
       # Class R-register (round 9, #1759): every in-tree judge survivor sits in
       # exactly one class, every class that met an adopted trigger carries a
       # barrier or an rca document under tools/audit/rca, and the counts the
-      # ledger carries are the ones its instances derive. The BASE's copy of
-      # the checker grades the pull request's ledger, so a branch
-      # cannot edit the grader it is graded by; the pull request that lands the
-      # checker is graded by no copy of it and the step says so, as the
-      # agreement lane's does.
+      # ledger carries are the ones its instances derive. The checker is the
+      # pull request's own copy, not a pinned one: a pinned grader must be
+      # declared in field_coverage.mjs, which is itself pinned, so the pull
+      # request that adds one cannot pass (#1847). Its protection is ownership
+      # instead, as merge_fastpath.py's is: CODEOWNERS names it.
       - name: Check the bug-class register against the rounds in the tree
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:tools/audit/fold_ledger.py" 2>/dev/null; then
-            echo "register check: the base does not carry tools/audit/fold_ledger.py, so no copy of it can grade this pull request; skipped"
-          else
-            git checkout "$PINNED" -- \
-              'tools/audit/fold_ledger.py'
-            python3 -I tools/audit/fold_ledger.py --self-test
-            python3 -I tools/audit/fold_ledger.py check
-          fi
+          python3 -I tools/audit/fold_ledger.py --self-test
+          python3 -I tools/audit/fold_ledger.py check
 
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
