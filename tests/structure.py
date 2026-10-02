@@ -1521,7 +1521,7 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
 
     ``name-kept`` is the shape this cannot measure, printed so its size is on
     the record: live members whose only live loads are untyped ``x.n`` reads
-    of a name more than one class defines. One of them may be dead behind
+    of a name another class also defines, as a member or as a field. One of them may be dead behind
     another's field (D7-s3-01's ``DefrostDerate.samples`` stood alive behind
     ``AccuracyTracker.samples`` in every name-based view).
     """
@@ -1533,6 +1533,27 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
                 key = (mod, cname, item.name)
                 members.setdefault(key, (pkg.mods[mod][0], item.lineno))
                 by_name[item.name].add(key)
+    # Fields: a class-body assignment or annotation, or a ``self.n`` store in
+    # a method. An untyped ``x.n`` may be reading another class's field n, so
+    # a member that shares its name with one is name-kept, not measured-live.
+    fields: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    for (mod, cname), cls in pkg.classes.items():
+        for item in cls.body:
+            targets = item.targets if isinstance(item, ast.Assign) else \
+                [item.target] if isinstance(item, ast.AnnAssign) else []
+            for t in targets:
+                if isinstance(t, ast.Name):
+                    fields[t.id].add((mod, cname))
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                params = fn_params(item)
+                if params and not _is_static(item):
+                    for n in ast.walk(item):
+                        if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Store) \
+                                and isinstance(n.value, ast.Name) and n.value.id == params[0]:
+                            fields[n.attr].add((mod, cname))
+
+    def unique(key: tuple[str, str, str]) -> bool:
+        return len(by_name[key[2]]) == 1 and not fields[key[2]] - {(key[0], key[1])}
 
     def is_root_member(key: tuple[str, str, str]) -> bool:
         name = key[2]
@@ -1588,7 +1609,7 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
                 if key not in live:
                     live.add(key)
                     changed = True
-                if typed or len(by_name[key[2]]) == 1:
+                if typed or unique(key):
                     typed_live.add(key)
     dead = sorted((members[k][0], k[1], k[2], members[k][1]) for k in members if k not in live)
     name_kept = sorted((members[k][0], k[1], k[2]) for k in live
@@ -2478,6 +2499,26 @@ CYCLE_SELF_CHECK_SOURCES = {
 }
 CYCLE_SELF_CHECK_GUARDED = "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from . import a\n"
 
+# A member whose only load is an untyped x.n, where another class holds a
+# FIELD n (a self.n store, or a class-body annotation), not a method n: the
+# shape D7-s3-01's DefrostDerate.samples hid behind AccuracyTracker.samples.
+FIELD_SELF_CHECK_SOURCE = (
+    "class Tracker:\n"
+    "    def __init__(self):\n"
+    "        self.samples = []\n"
+    "class Record:\n"
+    "    count: int = 0\n"
+    "class Derate:\n"
+    "    @property\n"
+    "    def samples(self):\n"
+    "        return 1\n"
+    "    @property\n"
+    "    def count(self):\n"
+    "        return 2\n"
+    "def read(thing):\n"
+    "    return thing.samples + thing.count\n"
+)
+
 
 def role_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin the member census, the role engine and the #1738 rows on our own trees."""
@@ -2515,6 +2556,9 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         return sum(len(g) - 1 for g in duplicate_clones(
             [(PACKAGE_DIR / f"m{i}.py", ast.parse(s)) for i, s in enumerate(srcs)]))
 
+    field_dead, field_kept = dead_members(
+        Package([(PACKAGE_DIR / "fields.py", ast.parse(FIELD_SELF_CHECK_SOURCE))]))
+
     def cycles(b_source: str) -> list[list[str]]:
         return import_cycle_modules([
             (PACKAGE_DIR / "a.py", ast.parse(CYCLE_SELF_CHECK_SOURCES["a.py"])),
@@ -2529,6 +2573,10 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         ("an untyped x.n keeps every class's n alive, and says so",
          not {(coord, "shared"), ("Other", "shared")} & dead_names
          and {name for _rel, _cls, name in name_kept} == {"shared"}),
+        ("an untyped x.n of a name another class holds as a field is name-kept",
+         not field_dead
+         and {(cls, name) for _rel, cls, name in field_kept}
+         == {("Derate", "samples"), ("Derate", "count")}),
         ("a coordinator.py function handed the coordinator is a helper",
          set(helpers) == {"coordinator._helper"}
          and helpers["coordinator._helper"][1] == {"owner"}),

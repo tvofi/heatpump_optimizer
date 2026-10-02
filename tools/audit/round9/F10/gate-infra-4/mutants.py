@@ -27,6 +27,11 @@ MUTANTS = [
         "                name = child.id\n            elif isinstance(child, ast.Attribute) and isinstance(child.ctx, ast.Load):",
     ),
     (
+        "another class's field does not make a name ambiguous",
+        "        return len(by_name[key[2]]) == 1 and not fields[key[2]] - {(key[0], key[1])}",
+        "        return len(by_name[key[2]]) == 1",
+    ),
+    (
         "liveness by name, not reachability",
         "            if src is not None and src not in live:\n                continue",
         "            pass",
