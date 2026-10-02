@@ -203,7 +203,7 @@ jobs:
           set -euo pipefail
           if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix tests/structure.py; then
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
             node .claude/workflows/field_coverage.mjs
