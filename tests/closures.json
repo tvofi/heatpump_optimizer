@@ -2415,7 +2415,8 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
-   "tools/release/stamp.py"
+   "tools/release/stamp.py",
+   "tools/site/build_docs.mjs"
   ],
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",

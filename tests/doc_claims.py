@@ -2288,10 +2288,36 @@ def check_docs_subpages() -> None:
     print(f"       ({b['stats']})")
 
 
+def check_site_request_controls() -> None:
+    """Null controls for the third-party and sub-page rules: a planted tag turns the arm red; a same-origin one does not."""
+    R.section("third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)")
+    built = docs_build()
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    sub = next(iter(built["html"].values()), "")
+    plants = (
+        ("a third-party icon", '<link rel="icon" href="https://cdn.example.com/f.ico">', "third-party"),
+        ("a third-party preload font", '<link rel="preload" as="font" href="https://fonts.gstatic.com/x.woff2" crossorigin>', "third-party"),
+        ("a third-party iframe", '<iframe src="https://www.youtube.com/embed/x"></iframe>', "third-party"),
+        ("a link to a page the build does not produce", '<a href="tuning.html">t</a>', "subpage"),
+    )
+    R.check("the product page and a built page are the unplanted baseline (anchor)", bool(page) and bool(sub))
+    base = [k for k, _ in site_findings(page, pages=built["pages"])[0] if k in ("third-party", "subpage")]
+    R.check("the product page is clean before planting", not base, str(base))
+    for name, tag, kind in plants:
+        errs, _ = site_findings(page.replace("</head>", tag + "</head>", 1), pages=built["pages"])
+        R.check(f"product page: {name} is refused", any(k == kind for k, _ in errs))
+        if kind == "third-party":
+            R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    own = ('<link rel="icon" href="data:image/svg+xml,%3Csvg%3E%3C/svg%3E">', '<link rel="icon" href="site/favicon.svg">')
+    R.check("a same-origin icon is not refused (the rule is not over-broad)",
+            not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
+
+
 def main() -> int:
     check_figures()
     check_product_page()
     check_docs_subpages()
+    check_site_request_controls()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()
