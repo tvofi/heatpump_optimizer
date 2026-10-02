@@ -1,0 +1,205 @@
+  ok   _dhw_planning_prices           22 lines  IDENTICAL  (optimizer.py:2536-2557 -> dhw_planner.py:185-206)
+  ok   _baseline_dhw_economics        62 lines  IDENTICAL  (optimizer.py:3445-3506 -> dhw_planner.py:208-269)
+  ok   _effective_dhw_windows         33 lines  IDENTICAL  (optimizer.py:4339-4371 -> dhw_planner.py:275-307)
+  ok   _dhw_legionella_due           141 lines  IDENTICAL  (optimizer.py:4373-4513 -> dhw_planner.py:309-449)
+  ok   _dhw_legionella_ceilings      110 lines  IDENTICAL  (optimizer.py:4515-4624 -> dhw_planner.py:451-560)
+  ok   _dhw_legionella_plan           49 lines  IDENTICAL  (optimizer.py:4625-4673 -> dhw_planner.py:562-610)
+  ok   _dhw_coil_wood_forecast        51 lines  IDENTICAL  (optimizer.py:4675-4725 -> dhw_planner.py:612-662)
+  ok   _dhw_planner_draws             20 lines  IDENTICAL  (optimizer.py:4727-4746 -> dhw_planner.py:664-683)
+  ok   _dhw_window_floors            135 lines  IDENTICAL  (optimizer.py:4748-4882 -> dhw_planner.py:685-819)
+  ok   _build_dhw_requirements       352 lines  IDENTICAL after 3 listed substitution(s)  (optimizer.py:4884-5235 -> dhw_planner.py:821-1169)
+  ok   _dhw_cop_profile               19 lines  IDENTICAL  (optimizer.py:5237-5255 -> dhw_planner.py:1171-1189)
+  FAIL _plan_dhw_min_cost           DIFFERS (optimizer.py:5257-5467 -> dhw_planner.py:1191-1400; substitutions applied once each: True)
+--- base (after substitutions)
++++ head
+@@ -18,3 +18,2 @@
+         """Minimum-cost DHW schedule over the whole horizon, as a linear program.
+-
+         ``forced_off`` marks steps a manual plan has pinned off. They enter as
+  ok   _apply_dhw_pins                21 lines  IDENTICAL  (optimizer.py:5469-5489 -> dhw_planner.py:1402-1422)
+  ok   _dhw_plan_temps                19 lines  IDENTICAL  (optimizer.py:5491-5509 -> dhw_planner.py:1424-1442)
+  ok   _repair_dhw_floor             198 lines  IDENTICAL  (optimizer.py:5511-5708 -> dhw_planner.py:1444-1641)
+  ok   _clamp_dhw_to_capacity        101 lines  IDENTICAL  (optimizer.py:5710-5810 -> dhw_planner.py:1643-1743)
+  ok   _apply_dhw_min_run            103 lines  IDENTICAL  (optimizer.py:5812-5914 -> dhw_planner.py:1745-1847)
+  ok   _dhw_raise_fits                34 lines  IDENTICAL  (optimizer.py:5916-5949 -> dhw_planner.py:1849-1882)
+  ok   _plan_dhw_cheapest_first      171 lines  IDENTICAL  (optimizer.py:5951-6121 -> dhw_planner.py:1884-2054)
+  ok   _dhw_windows_at                21 lines  IDENTICAL  (optimizer.py:179-199 -> dhw_planner.py:55-75)
+  ok   _DHW_REFILL_WINDOW_HOURS        5 lines  IDENTICAL  (optimizer.py:228-232 -> dhw_planner.py:78-82)
+  ok   _DHW_MIN_RUN_CHUNK              4 lines  IDENTICAL  (optimizer.py:525-528 -> dhw_planner.py:85-88)
+  ok   _DhwLegionellaPlan              9 lines  IDENTICAL  (optimizer.py:1730-1738 -> dhw_planner.py:91-99)
+  ok   DhwPlan                        22 lines  IDENTICAL  (optimizer.py:1741-1762 -> dhw_planner.py:102-123)
+  ok   _step_humidity                  3 lines  IDENTICAL  (optimizer.py:1076-1078 -> thermal_model.py:1502-1504)
+  ok   _mean_humidity                  3 lines  IDENTICAL  (optimizer.py:1081-1083 -> thermal_model.py:1507-1509)
+  ok   _pin_is_free                    3 lines  IDENTICAL  (optimizer.py:1071-1073 -> manual_plan.py:50-52)
+  ok   (section banner)                3 lines  IDENTICAL
+
+  still defined on HeatPumpOptimizer at HEAD: []
+  DhwPlanner methods the table does not name (besides __init__): []
+  dhw_planner.py module-level names that are not moved code: ['DhwPlanner', '_Horizon', '_LOGGER', '_PlannerConfig']
+
+  residual diff in optimizer.py: +29 -31 lines
+--- optimizer.py at BASE, moved units cut
++++ optimizer.py at HEAD
+@@ -7,5 +7,5 @@
+ **How the solve is structured.** Hot water is a deferrable on/off load, so it
+ is planned first by a linear program plus a cheapest-first repair against the
+-real tank simulation (`_build_dhw_requirements`); a gradient solver would
++real tank simulation (`dhw_planner.DhwPlanner`); a gradient solver would
+ smear it into an unrealizable trickle. Space heating is then optimized around
+ the fixed DHW blocks by multi-start L-BFGS-B, and one co-optimization pass
+@@ -45,8 +45,8 @@
+ from dataclasses import dataclass, field
+ from datetime import date, datetime, timedelta, timezone
+-from typing import Any, Callable, Iterable, NamedTuple
++from typing import Any, Callable, Iterable
+ 
+ import numpy as np
+-from scipy.optimize import linprog, minimize
++from scipy.optimize import minimize
+ 
+ from . import mixing_valve, pv
+@@ -81,9 +81,9 @@
+     DEFAULT_TARGET_TEMP,
+     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
+-    DHW_QUANTILE_MIN_EVENTS,
+     WOOD_TANK_MAX_TEMP,
+ )
+ from .batchmath import row_sums
+-from .dhw_draws import window_label as draw_window_label
++from .dhw_planner import DhwPlanner
++from .manual_plan import _pin_is_free
+ from .thermal_model import (
+     TANK_ROOM_AMBIENT_TEMP,
+@@ -92,6 +92,6 @@
+     ThermalParameters,
+     ThermalState,
+-    dhw_coil_draw_reduction,
+-    dhw_draw_scale,
++    _mean_humidity,
++    _step_humidity,
+     planned_draw_runs,
+     planned_draws_run,
+@@ -108,14 +108,5 @@
+     window_factors,
+ )
+-from .dhw_schedule import (
+-    FULL_DAY,
+-    Window,
+-    format_resolved_day_spec,
+-    format_windows,
+-    hour_in_windows,
+-    hours_until_next_window,
+-    parse_windows,
+-    windows_for_day,
+-)
++from .dhw_schedule import format_resolved_day_spec
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -1756,9 +1747,8 @@
+         self._price_known: np.ndarray | None = None
+         self._pv_surplus: np.ndarray | None = None
+-        # Stashed by ``_build_dhw_requirements`` for the safety-release loop:
+-        # the tank temperature the plan must keep the DHW trajectory above, and
+-        # which step (if any) carries the legionella cycle.
++        # The requirement the last DHW build returned, for the safety-release
++        # loop: the tank temperature the plan must keep the DHW trajectory
++        # above. Assigned at each build, so the last build of a solve wins.
+         self._dhw_requirement: np.ndarray | None = None
+-        self._dhw_legionella_step: int | None = None
+         #: The solve's starting buffer temperature; floors the settlement
+         #: value cap so pre-stored heat cannot be drained for free.
+@@ -2329,4 +2319,5 @@
+         solve_space: Callable[..., Any],
+         p_max: float,
++        planner: DhwPlanner,
+     ) -> tuple[np.ndarray, np.ndarray, str]:
+         """Re-plan hot water against the space heating it competes with.
+@@ -2349,15 +2340,15 @@
+             # demand there is at least the full compressor.
+             pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)
+-            wood_temps = self._dhw_coil_wood_forecast(h, space_power, dhw_power)
++            wood_temps = planner._dhw_coil_wood_forecast(h, space_power, dhw_power)
+             coil_replan = False
+             if wood_temps is not None:
+                 hours = np.asarray(h.step_hours, dtype=float) % 24.0
+                 raw = self.model.dhw_draw_rates(hours)
+-                credited = self._dhw_planner_draws(raw, wood_temps)
++                credited = planner._dhw_planner_draws(raw, wood_temps)
+                 coil_replan = not np.allclose(credited, raw, atol=1e-9)
+             if not bool(np.any(pinned)) and not coil_replan:
+                 return space_power, dhw_power, status
+ 
+-            replanned = self._build_dhw_requirements(
++            replanned_plan, self._dhw_requirement = planner._build_dhw_requirements(
+                 initial_state=h.initial_state,
+                 prices=h.prices,
+@@ -2381,5 +2372,6 @@
+                 wood_temps=wood_temps,
+                 humidity=h.humidity,
+-            ).schedule
++            )
++            replanned = replanned_plan.schedule
+             if np.allclose(replanned, dhw_power, atol=1e-4):
+                 return space_power, dhw_power, status
+@@ -2780,4 +2772,8 @@
+             initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
+         )
++        # One hot-water planner per solve, from this solve's inputs (#1743).
++        planner = DhwPlanner(
++            self.model, self.config, self._pv_surplus, self._price_known
++        )
+ 
+         # Forecast humidity (#21), normalised to horizon length; short
+@@ -2871,5 +2867,4 @@
+         dhw_pins = self._normalise_pins(dhw_pins, n_steps)
+         self._dhw_requirement = None
+-        self._dhw_legionella_step = None
+         released_space: set[int] = set()
+         released_dhw: set[int] = set()
+@@ -2923,5 +2918,5 @@
+             )
+             if dhw_enabled:
+-                return self._optimize_with_dhw(horizon)
++                return self._optimize_with_dhw(horizon, planner)
+             return self._optimize_space_only(horizon)
+ 
+@@ -4162,5 +4157,7 @@
+         return round(float(np.sum(served) * dt), 3)
+ 
+-    def _optimize_with_dhw(self, h: _Horizon) -> OptimizationResult:
++    def _optimize_with_dhw(
++        self, h: _Horizon, planner: DhwPlanner
++    ) -> OptimizationResult:
+         """Optimize coordinated space heating + DHW heating.
+ 
+@@ -4200,5 +4197,5 @@
+         # the only reason to run the pump is to be ready for the *next* window
+         # — and the energy-cost term then decides *when* that happens.
+-        dhw_plan = self._build_dhw_requirements(
++        dhw_plan, self._dhw_requirement = planner._build_dhw_requirements(
+             initial_state=initial_state,
+             prices=prices,
+@@ -4217,5 +4214,5 @@
+             step_weekdays=h.step_weekdays,
+             holiday_flags=h.holiday_flags,
+-            wood_temps=self._dhw_coil_wood_forecast(h),
++            wood_temps=planner._dhw_coil_wood_forecast(h),
+             humidity=h.humidity,
+         )
+@@ -4289,4 +4286,5 @@
+             solve_space=solve_space,
+             p_max=p_max,
++            planner=planner,
+         )
+ 
+@@ -4329,5 +4327,5 @@
+         )
+         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
+-            self._baseline_dhw_economics(
++            planner._baseline_dhw_economics(
+                 initial_state, outdoor_temps, n_steps, dhw_setpoint,
+                 energy_cost_of, baseline_power, optimal_space, optimal_dhw, h.humidity,
+
+  control: 27 of 27 single-character perturbations detected
+
+PROVENANCE FAILED: 27 units, 1 problem(s)
