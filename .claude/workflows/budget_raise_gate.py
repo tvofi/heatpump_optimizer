@@ -38,7 +38,10 @@ exit 0 only when the owner's latest decisive review (APPROVED,
 CHANGES_REQUESTED or DISMISSED; a COMMENTED review decides nothing) is APPROVED
 and was submitted on this exact head SHA, by the login AND numeric id AND
 account type pinned below, and does not say in its own body that an agent gave
-it (AGENT_DECLARED below). Anything else, a failed API read included, is exit 1.
+it (AGENT_DECLARED below) -- or, if it does, cites one mandate the owner
+recorded on #201 that covers budget raises and was in force when the review
+was submitted (MANDATE_GRAMMAR, mandate_check). Anything else, a failed API
+read included, is exit 1.
 
 WHAT IT DOES NOT SEE. A ledger disposition (`survivor_triage`, `killed_by`)
 is a per-site record, not a cap, and is `free` here: an `equivalent` verdict
