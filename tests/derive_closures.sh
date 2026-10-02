@@ -56,6 +56,8 @@ if [ -n "$SINGLE" ]; then
   # the same reasons. Parsed here, executed after rec() exists.
   case "$SINGLE" in
     tests/golden.py) set -- "--only" "__no_such_scenario__" ;;
+    # The calibration builds every planted tree and measures none of them.
+    tests/arch_score.py) set -- "--smoke" ;;
     tests/env_drift.py) set -- "--cache-key" "$GOLDEN_REF" "--all" ;;
     # Its lane's environment, below: the scoped `closures` job re-derives it
     # beside features.py, its driver (R9-F10.9).
@@ -128,6 +130,11 @@ p1=$!
   # run.sh. Reads the whole integration, so its closure is large on
   # purpose -- a change to any integration file must put it in scope.
   rec tests/structure.py
+  # The architecture score's checks (R9-EG-A1), in run.sh's lane order. The
+  # calibration is recorded with --smoke: it builds every planted tree without
+  # measuring it, which reads every file the full run reads.
+  rec tests/arch_score.py --smoke
+  rec tests/arch_score_head.py
   # The typing ratchet's source-only half (#303), in run.sh's lane order next
   # to the structural ratchet. Same reason ha_contract.py is recorded here and
   # not only with --single: this job RE-DERIVES from these lanes, so a
