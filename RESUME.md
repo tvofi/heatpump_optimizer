@@ -1,9 +1,8 @@
 # R9-F10.5 resume note
 
-- branch: handoff/r9-f10-gate-infra-5 @ f3e2e445bb981eff4fef38242bcb8ac520a7afa6 (code). Draft body on handoff-body/r9-f10-gate-infra-5.
-- base: #1838 head 46a70815 (F10.4, not yet merged). WAITING on #1838's merge: then `git merge origin/main`, re-run fixer.md steps 2-8 (entities.py on py3.13, mutants via evidence run_mutants.sh, structure.py, prepr.sh), re-take figures, re-body, hand off to the coordinator.
-- done: code, tests, mutation proof (M0 null passes, M1-M8 killed), 40-site drain demo on handoff/r9-f10-gate-infra-5-demo @ f59380e0 (37 pinned, 3 survivors, re-apply skip-unchanged).
-- evidence: /mnt/project-files/audit-r9/fix/evidence/F10.5-drain-f3e2e445/
-- the remaining prepr refusals at this head are #1838's own red checks (briefs, budget-raise-gate, fast (3.14)) in the range; they leave the range once main carries #1838.
-- environment traps: python3 3.11 here (use /tmp venv with 3.13 + tests/requirements-ci.txt); clone was shallow; stress.py timing kills the null control on a contended 4-core box (left out of the demo).
-- open: hpo-ledger App + secrets are tvofi's setup.
+- branch: handoff/r9-f10-gate-infra-5 @ cb6870bc4fea680ef1faf9db2c8e2d8a8a5543c1 (code); body on handoff-body/r9-f10-gate-infra-5.
+- base: origin/main af7660c7 (#1838 and #1843 merged in, both clean, no semantic conflict).
+- done (2026-10-02, Mac seat): merged main, re-ran fixer.md steps 2-8: entities.py 2065 pass, M0 null passes, M1-M8 killed (M8 survived at 0f39c486; check arm added in 728594ec), structure.py PASSED, policy_lint 0 errors, stock re-derived (3911 unpinned, all drivable), prepr.sh on the merged head.
+- not run here: features.py/solver goldens, stress.py, the 40-site drain demo (measured at f3e2e445, drain files byte-identical since), closures (PREPR_SKIP_CLOSURES=1).
+- next: handed off; the orchestrator opens the PR as hpo-author; review by an opus fix-review seat; tvofi reviews (code-owned tests.yml, tests/mutation_table.py, tests/nightly_status.py, decision 0011).
+- open: none for the seat. hpo-ledger App 5094721 + secrets + both bypasses set by tvofi 2026-10-02; the first nightly push is the live test of the bypass. required-contexts.json re-recorded in cb6870bc (policy_lint red on main until it merges).
