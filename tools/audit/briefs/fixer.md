@@ -227,6 +227,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
     (measured: ~12% of random three-term sums), so the interpreter class
     that diverges — CI's — runs the detector.
 
+    A per-row twin removes re-entry, not work; when it is the fix for a
+    recomputation finding, re-measure the finding's cost on the fixed tree and
+    report it; if parity forbids vectorising, the fix is a recorded partial with
+    its remaining share, not a close.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
