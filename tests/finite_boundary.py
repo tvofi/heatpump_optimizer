@@ -1604,6 +1604,167 @@ def _i1_pins_arm() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 5 -- the store version seam (#1740, R9-EG-B4)
+# ---------------------------------------------------------------------------
+
+def _version_names() -> list[tuple[str, str | None]]:
+    """(site, version constant) per ``QuarantiningStore(...)`` construction.
+
+    Arm 1's enumeration rule; the version is the second positional argument or
+    ``version=``, and a literal (or anything not a name) reads as ``None``.
+    """
+    out: list[tuple[str, str | None]] = []
+    for path in sorted(PKG.rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(), filename=str(path))):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "QuarantiningStore"):
+                continue
+            arg = node.args[1] if len(node.args) > 1 else next(
+                (k.value for k in node.keywords if k.arg == "version"), None)
+            name = arg.id if isinstance(arg, ast.Name) else (
+                arg.attr if isinstance(arg, ast.Attribute) else None)
+            out.append((f"{path.relative_to(ROOT)}:{node.lineno}", name))
+    return out
+
+
+def _version_arm(by_name) -> None:
+    """Every store's version mismatch is surfaced, and a bump carries a migration.
+
+    A store's loader catches a failed load and resets at DEBUG (legionella
+    re-stamps its last cycle), so a version mismatch the store does not surface
+    is invisible. Each store is seeded with its healthy payload stamped at its
+    own version (the control: nothing surfaced), one below (what a bump leaves
+    on disk: the migration hook) and one above (a downgrade: Home Assistant's
+    UnsupportedStorageVersionError), and read through its real loader.
+    """
+    names = _version_names()
+    literal = [site for site, name in names if name is None]
+    R.check(
+        "every store's version is a named constant, never a literal (#1740)",
+        not literal and len(names) == len(_quarantined),
+        f"literal={literal} constructions={len(names)} boundaries={len(_quarantined)}",
+    )
+    used: dict[str, list[str]] = {}
+    for site, name in names:
+        used.setdefault(name or "", []).append(site)
+    shared = {n: s for n, s in used.items() if n and len(s) > 1}
+    R.check(
+        "no two stores share a version constant, so a bump migrates one store (#1740)",
+        not shared,
+        f"shared={shared}",
+    )
+
+    seen: list[tuple[int, str]] = []
+
+    class _Tap(logging.Handler):
+        def emit(self, record):
+            seen.append((record.levelno, record.getMessage()))
+
+    reads: list = []
+    real_load = QuarantiningStore.async_load
+
+    async def _recording(self):
+        reads.append(self)
+        return await real_load(self)
+
+    def _surfaced(coord, key: str) -> tuple[bool, bool]:
+        warned = any(lvl >= logging.WARNING and key in msg for lvl, msg in seen)
+        issued = any(
+            kw.get("translation_key") == "store_version"
+            and kw.get("translation_placeholders", {}).get("store") == key
+            for _d, _i, kw in getattr(coord.hass, "issues", None) or []
+        )
+        return warned, issued
+
+    tap, log = _Tap(), _store._LOGGER
+    old, floor = log.level, logging.root.manager.disable
+    logging.disable(logging.NOTSET)
+    log.addHandler(tap)
+    log.setLevel(logging.DEBUG)
+    QuarantiningStore.async_load = _recording
+    stores: dict[str, object] = {}
+    noisy: list[str] = []
+    unsurfaced: list[str] = []
+    try:
+        for name, loader in LOADERS.items():
+            key, healthy = by_name[name]
+            for lag in (0, 1, -1):
+                _storage._DISK.clear()
+                _storage._VERSIONS.clear()
+                reads.clear()
+                seen.clear()
+                _storage._DISK[key] = json.dumps(healthy)
+                if lag:
+                    _storage._VERSIONS[key] = stores[key]._version - lag
+                coord = _build_coord()
+                coord.entry.runtime_data = coord
+                try:
+                    asyncio.run(loader(coord))
+                except Exception as exc:  # noqa: BLE001 -- an escape is a finding too
+                    unsurfaced.append(f"{name}@{lag}:raised {type(exc).__name__}")
+                    continue
+                if not lag:
+                    stores[key] = next(s for s in reads if s._key == key)
+                warned, issued = _surfaced(coord, key)
+                if not lag and (warned or issued):
+                    noisy.append(name)
+                elif lag and not (warned and issued):
+                    unsurfaced.append(f"{name}@{lag}:warned={warned},issued={issued}")
+    finally:
+        QuarantiningStore.async_load = real_load
+        log.removeHandler(tap)
+        log.setLevel(old)
+        logging.disable(floor)
+        _storage._DISK.clear()
+        _storage._VERSIONS.clear()
+    R.check(
+        "a store read at its own version surfaces nothing (the control)",
+        not noisy and len(stores) == len(LOADERS),
+        f"noisy={noisy} stores={len(stores)} loaders={len(LOADERS)}",
+    )
+    R.check(
+        "every store's version mismatch, older or newer, logs a WARNING and raises "
+        "a repair issue naming its key (#1740)",
+        not unsurfaced,
+        f"unsurfaced={unsurfaced}",
+    )
+    default = getattr(QuarantiningStore, "_async_migrate_func", None)
+    unmigrated = sorted(
+        k for k, s in stores.items()
+        if s._version > 1 and getattr(type(s), "_async_migrate_func", None) is default
+    )
+    R.check(
+        "a store whose version exceeds 1 overrides the default migration hook, so a "
+        "bump without a migration fails here (#1740)",
+        not unmigrated,
+        f"unmigrated={unmigrated}",
+    )
+
+    # The default hook's two branches, directly: a major mismatch surfaces, and
+    # a minor-only one (same major) does not -- Home Assistant then reads the
+    # document as stored on the NotImplementedError the hook raises either way.
+    probe_hass = FakeHass()
+    probe = QuarantiningStore(probe_hass, 2, f"{const.DOMAIN}_{ENTRY_ID}_version_probe")
+    verdicts = []
+    for major in (1, 2):
+        try:
+            asyncio.run(probe._async_migrate_func(major, 1, {}))
+            verdicts.append("returned")
+        except NotImplementedError:
+            verdicts.append("not-implemented")
+        except Exception as exc:  # noqa: BLE001 -- a base without the hook
+            verdicts.append(type(exc).__name__)
+        verdicts.append(len(getattr(probe_hass, "issues", None) or []))
+    R.check(
+        "the default hook raises NotImplementedError and surfaces a major mismatch "
+        "only, not a minor-only one",
+        verdicts == ["not-implemented", 1, "not-implemented", 1],
+        f"verdicts={verdicts}",
+    )
+    print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -1778,6 +1939,7 @@ def _main() -> int:
     _publish_arm()
     _no_rewrap_check()
     _i1_pins_arm()
+    _version_arm(by_name)
     return R.close("FINITE BOUNDARY CHECKS")
 
 
