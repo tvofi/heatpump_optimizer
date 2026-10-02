@@ -56046,6 +56046,10 @@ import homeassistant.helpers.storage as _ux4_storage
 from heatpump_optimizer import notifier as _ux4_mod
 
 _UX4_ROOT = _ux4_Path(__file__).resolve().parent.parent
+# The block runs on a frozen clock, and the manual plan's expiry is derived from
+# it: the store bounds an instant ahead of the clock, so an expiry fixed in the
+# calendar stops testing the bound the day it passes (review of #1865).
+_UX4_NOW = datetime(2026, 10, 2, 12, 0, tzinfo=timezone.utc)
 
 
 class _Ux4Bus:
@@ -56124,15 +56128,24 @@ def _ux4_stale(*names, age=190.0, limit=60.0, problem="stale"):
     ])
 
 
-def _ux4_released(expires="2026-10-03T08:00:00+02:00", space=(3, 4), dhw=()):
+def _ux4_released(hours=20, space=(3, 4), dhw=()):
     return _ux4_payload(manual_plan={
-        "active": True, "expires_at": expires,
+        "active": True, "expires_at": (_UX4_NOW + timedelta(hours=hours)).isoformat(),
         "released_space": [{"step": i, "reason": "safety"} for i in space],
         "released_dhw": [{"step": i, "reason": "safety"} for i in dhw],
     })
 
 
 async def _ux4_scenarios():
+    from homeassistant.util import dt as _ux4_dt
+    _ux4_dt.freeze(_UX4_NOW)
+    try:
+        return await _ux4_scenarios_frozen()
+    finally:
+        _ux4_dt.freeze(None)
+
+
+async def _ux4_scenarios_frozen():
     out = {}
     E = _ux4_mod
 
@@ -56192,7 +56205,7 @@ async def _ux4_scenarios():
     out["manual_repeat"] = [await rig.feed(_ux4_released(space=(3, 4, 5))) for _ in range(3)]
     out["manual_dhw"] = await rig.feed(_ux4_released(space=(3, 4), dhw=(9,)))
     out["manual_over"] = await rig.feed(_ux4_payload())
-    out["manual_new"] = await rig.feed(_ux4_released(expires="2026-10-04T08:00:00+02:00"))
+    out["manual_new"] = await rig.feed(_ux4_released(hours=44))
 
     # -- a payload that carries none of the signals neither fires nor re-arms -
     rig = _Ux4Rig("ux4_light")

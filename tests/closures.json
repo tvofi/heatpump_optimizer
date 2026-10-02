@@ -855,6 +855,7 @@
    "tests/hastub/homeassistant/util/dt.py"
   ],
   "tests/features.py": [
+   "blueprints/automation/notifications.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/away.py",
@@ -929,6 +930,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "docs/automations.md",
    "tests/dst_checks.py",
    "tests/features.py",
    "tests/fixtures/localtuya_local_dp.json",

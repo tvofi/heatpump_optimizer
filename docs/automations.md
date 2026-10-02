@@ -137,7 +137,9 @@ an automation decides where a message goes. Every event carries `entry_id`, the
 config entry that fired it. What has been sent is remembered across restarts,
 so a condition that is still true after a restart is not announced again, and an
 unchanged refresh fires nothing. A condition that clears and comes back fires
-again.
+again. That includes a manual plan whose released slots lapse
+for one solve and return, which fires again, and a plan that crosses your minimum
+temperature and back on successive refreshes, which fires at each crossing.
 
 | Event | Fires when | Data |
 |---|---|---|
@@ -145,7 +147,7 @@ again.
 | `heatpump_optimizer_comfort_at_risk` | the coldest step of the plan is below your minimum temperature | `entry_id`, `predicted_min_c`, `at` (the step's time), `floor_c`, `peak_guard_suppressing` (the peak guard is holding heating back) |
 | `heatpump_optimizer_input_stale` | a required input has not updated within its limit; once per input | `entry_id`, `input`, `age_minutes`, `max_age_minutes` |
 | `heatpump_optimizer_plan_stale` | the plan is older than three solve cycles (at least 90 minutes) | `entry_id`, `age_minutes` |
-| `heatpump_optimizer_manual_plan_released` | safety released slots of a manual plan; once per channel and override | `entry_id`, `channel` (`space` or `dhw`), `steps` (the released step numbers when it fired), `reason`, `expires_at` |
+| `heatpump_optimizer_manual_plan_released` | safety released slots of a manual plan; once per channel for each release | `entry_id`, `channel` (`space` or `dhw`), `steps` (the released step numbers when it fired), `reason`, `expires_at` |
 
 A receipt that already exists when the integration is updated to the release
 that adds these events is not announced; the next month's is.
