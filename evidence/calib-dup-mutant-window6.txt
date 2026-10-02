@@ -1,0 +1,133 @@
+case                                         set      label    verdict   adm         dS  rises / top terms
+8827452e                                     corpus   BAD      WORSENS   n      -0.6631  untyped_payload_keys 37->38; coord_footprint 264->304; coordinator_multiassigned_attrs 19->22
+5f6ada5e                                     corpus   BAD      WORSENS   n     -35.2200  hub_solve_writes 0->19; shared_inplace_writes 1->3; duplication_copies 27->28
+c27a6d32                                     corpus   BAD      WORSENS   n       4.0346  hub_solve_writes 20->23; coord_footprint 1008->1089; coordinator_private_reach 5->6
+f2d7a502                                     corpus   BAD      WORSENS   n      -4.2111  hub_solve_writes 32->34; shared_inplace_writes 4->6; duplication_copies 31->32
+9ac2d02c                                     corpus   BAD      WORSENS   n      -4.8200  hub_solve_writes 34->40; shared_inplace_writes 6->9; untyped_payload_keys 128->132
+2e0d3d96                                     corpus   BAD      WORSENS   n      -4.2667  shared_inplace_writes 10->14; duplication_copies 33->37; untyped_payload_keys 142->143
+364d9b41                                     corpus   BAD      WORSENS   n      -0.4289  untyped_payload_keys 113->114; coord_footprint 919->955; coordinator_multiassigned_attrs 60->61
+ca711b56                                     corpus   BAD      NULL      y       0.0000  
+07bdc557                                     corpus   BAD      WORSENS   n      -3.1912  shared_inplace_writes 26->38; coord_footprint 2539->2564; coordinator_private_reach 35->43
+a1bdb11c                                     corpus   BAD      NULL      y       0.0000  
+546b4924                                     corpus   BAD      NULL      y       0.0000  
+3b320405                                     corpus   BAD      WORSENS   n      -1.0570  duplication_copies 59->61; coord_footprint 2355->2472; coordinator_private_reach 47->70
+3e5aba6a                                     corpus   BAD      WORSENS   n     -19.9978  shared_inplace_writes 0->1; duplication_copies 6->13; untyped_payload_keys 17->24
+aa2677ba                                     corpus   BAD      WORSENS   n      -2.7363  untyped_payload_keys 152->153; family_splits 4->6; coord_footprint 2451->2463
+e4bc3756                                     corpus   NEUTRAL  WORSENS   n      -5.9262  shared_inplace_writes 17->26; untyped_payload_keys 157->159; family_splits 5->7
+9a0d4c5e                                     corpus   NEUTRAL  WORSENS   n      -0.0323  untyped_payload_keys 146->147; coord_footprint 2186->2188
+c5fcfb17                                     corpus   NEUTRAL  WORSENS   n      -0.6337  hub_solve_writes 23->25; coord_footprint 1104->1108
+97dc04f2                                     corpus   NEUTRAL  WORSENS   n       0.9280  reflective_writes 14->15; computed_attr_access 24->28
+44a6351d                                     corpus   NEUTRAL  WORSENS   n      -0.0268  coord_footprint 2540->2550; coordinator_multiassigned_attrs 135->137; reflective_writes 10->11
+c197b018                                     corpus   NEUTRAL  WORSENS   n      -0.0006  coord_footprint 2573->2574
+7d47e80e                                     corpus   NEUTRAL  NULL      y       0.0000  
+ca937daa                                     corpus   GOOD     NULL      y       0.0000  
+4a7bdb69                                     corpus   GOOD     WORSENS   n      -0.2065  params_over_10 12->14
+4b6e0765                                     corpus   GOOD     NULL      y       0.0000  
+67e1cf33                                     corpus   GOOD     WORSENS   n       0.2637  duplication_copies 41->42; coord_footprint 2574->2602; reflective_writes 11->13
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.0039  coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+52d38d95                                     corpus   GOOD     NULL      y       0.0000  
+8bc4c661                                     corpus   GOOD     NULL      y       0.0000  
+0323c5b8                                     corpus   GOOD     WORSENS   n      -2.6931  duplication_copies 42->52
+69781076                                     corpus   GOOD     IMPROVES  y       0.8213  shared_inplace_writes+0.413, duplication_copies+0.220, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+137b6d59                                     corpus   GOOD     NULL      y       0.0000  
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+043ed159                                     corpus   GOOD     WORSENS   n      -0.0641  params_over_10 21->22
+56cb0027                                     corpus   GOOD     WORSENS   n      -0.2116  duplication_copies 58->59
+2a451021                                     corpus   GOOD     NULL      y       0.0000  
+3e9f1878                                     corpus   GOOD     WORSENS   n      -0.1375  dead_members 9->10
+ff30236d                                     corpus   GOOD     NULL      y       0.0000  
+3bae92d9                                     corpus   GOOD     WORSENS   n      -0.0017  coord_footprint 2517->2520
+c2a0448d                                     corpus   GOOD     IMPROVES  y       0.0017  coord_footprint+0.002
+5395394d                                     corpus   GOOD     WORSENS   n       4.1369  coordinator_private_reach 95->96
+a1_B1_copy_cross_module                      planted  BAD      NULL      y       0.0000  
+a1_G2_dedupe                                 planted  GOOD     NULL      y       0.0000  
+rt_04_dup_noop_interleave                    redteam  GAME     NULL      y       0.0000  
+  planted  GOOD       0/1   blind  1  wrong-way  0
+  planted  BAD        0/1   blind  1  wrong-way  0
+  corpus   GOOD       9/24  blind  7  wrong-way  8
+  corpus   BAD       11/14  blind  3  wrong-way  0
+  corpus   NEUTRAL    7/7   blind  0  wrong-way  0
+  CALIBRATION 27/47 labelled cases classify as their label says
+  RED TEAM 1/1 attempts read NULL or inadmissible; IMPROVES: none
+weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978
+MOVED a1_B1_copy_cross_module: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now {'set': 'planted', 'label': 'BAD', 'verdict': 'NULL', 'admissible': True}
+MOVED a1_B1c_copy_same_module_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B2_private_reach: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B3a_passthrough_chain_optimize: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B3b_passthrough_chain_coordinator: recorded {'admissible': True, 'label': 'BAD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_B3c_passthrough_chain_greedy: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B4a_inplace_write_shared_dict: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B4b_inplace_write_new_attr: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B4c_inplace_write_via_helper: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B5a_dead_method: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B5b_dead_property: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B5c_dead_method_common_name: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B5d_dead_method_selfcalled: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B5e_dead_top_level: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B6_cyclic_import: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B6b_cyclic_import_local: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B7_god_helper_module: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_B8_star_import_const: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_G1_extract_block: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_G2_dedupe: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now {'set': 'planted', 'label': 'GOOD', 'verdict': 'NULL', 'admissible': True}
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4b_public_accessor_new: recorded {'admissible': False, 'label': 'GOOD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_N1_rename_local: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_N1b_reformat_signature: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_N1c_reformat_explode_call: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_N2_docstring: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_N3_seam_relabel: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a1_N4_const_namespace_import: recorded {'admissible': False, 'label': 'NULL', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_dead_by_reachability_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_dead_by_reachability_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_dead_by_reachability_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_family_splits_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_hub_solve_writes_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_import_cycles_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_private_reach_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_private_reach_control_write: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_private_reach_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_private_reach_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_public_surface_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_public_surface_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_public_surface_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_shared_inplace_writes_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_untyped_payload_keys_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_xmodule_duplication_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_xmodule_duplication_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_xmodule_duplication_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED rt_00_null_rename: recorded {'admissible': True, 'label': 'NULL', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_01_typeddict_all_any: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_02_hub_object_setattr: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_03_shared_dunder_spelling: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_05_coord_mixin_relocation: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_05b_coord_mixin_private_only: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_05c_coord_base_class_all: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_05d_coord_empty_subclass: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_06_private_passthrough_props: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_07_family_declare_away: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_08_keepalive_registry: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_09_delete_away_setback: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_10_writers_setattr_init: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_11_params_kwargs_bag: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_12_combined_evasions: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_12b_combined_without_06: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_13_hub_handle_accessor: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+calibration moved on 75 case(s)

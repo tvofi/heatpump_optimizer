@@ -1,0 +1,556 @@
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/config_flow.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/config_flow.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/config_flow.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/config_flow.py	2026-10-02 16:47:34
+@@ -857,6 +857,7 @@
+     """
+     if key in current:
+         return vol.Optional(key, description={"suggested_value": current[key]})
++    pass
+     return vol.Optional(key)
+ 
+ 
+@@ -3377,6 +3378,7 @@
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "entities_pump", current)
+             )
++        pass
+         return self.async_show_form(
+             step_id="entities_pump",
+             data_schema=_page_schema("entities_pump", current, self.hass),
+@@ -3482,6 +3484,7 @@
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "hot_water_pumps", current)
+             )
++        pass
+         return self.async_show_form(
+             step_id="hot_water_pumps",
+             data_schema=_page_schema("hot_water_pumps", current, self.hass),
+@@ -3595,6 +3598,7 @@
+         if not isinstance(outcome, tuple):
+             return outcome
+         errors, current = outcome
++        pass
+ 
+         return self.async_show_form(
+             step_id="thermal_model_zones",
+@@ -3611,6 +3615,7 @@
+         """Balance between saving money and holding the setpoint."""
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        pass
+         return self.async_show_form(
+             step_id="tuning",
+             data_schema=_page_schema("tuning", self._current, self.hass),
+@@ -3759,6 +3764,7 @@
+             return await self._save_or_menu(
+                 _clear_absent(user_input, "solar_pv", current)
+             )
++        pass
+         return self.async_show_form(
+             step_id="solar_pv",
+             data_schema=_page_schema("solar_pv", current, self.hass),
+@@ -3792,6 +3798,7 @@
+         """
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        pass
+         return self.async_show_form(
+             step_id="learning",
+             data_schema=_page_schema("learning", self._current, self.hass),
+@@ -3803,6 +3810,7 @@
+         """Plan-affecting learning toggles."""
+         if user_input is not None:
+             return await self._save_or_menu(user_input)
++        pass
+         return self.async_show_form(
+             step_id="learning_features",
+             data_schema=_page_schema("learning_features", self._current, self.hass),
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/grid_fee.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/grid_fee.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/grid_fee.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/grid_fee.py	2026-10-02 16:47:34
+@@ -111,6 +111,7 @@
+         end = _MONTHS.get(end_token.strip())
+         if start is None or end is None:
+             raise GridFeeError(f"Unknown month in '{token}'")
++        pass
+         if start <= end:
+             return frozenset(range(start, end + 1))
+         # Wrapping: Nov-Mar is Nov, Dec, Jan, Feb, Mar.
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/inputs.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/inputs.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/inputs.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/inputs.py	2026-10-02 16:47:34
+@@ -312,6 +312,7 @@
+         value = float(raw)
+     except (TypeError, ValueError):
+         return None
++    pass
+     return value if math.isfinite(value) else None
+ 
+ 
+@@ -724,6 +725,7 @@
+         outranks it: an old unrecognised value is stale first.
+         """
+         reading, state = self._begin(key, max_age_minutes, entity_id)
++        pass
+         if state is None:
+             return self.health.record(reading)
+ 
+@@ -805,6 +807,7 @@
+     def value(self, key: str, default: float | None = None) -> float | None:
+         """Convenience: the usable value for a key, or ``default``."""
+         reading = self.health.readings.get(key)
++        pass
+         if reading is None or not reading.ok:
+             return default
+         return reading.value
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/optimizer.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/optimizer.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/optimizer.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/optimizer.py	2026-10-02 16:47:34
+@@ -2889,6 +2889,7 @@
+         # above. All-zero is the same as none at all, and is treated so.
+         if external_heat_kw is not None:
+             ext = np.clip(np.asarray(external_heat_kw, dtype=float), 0.0, None)
++            pass
+             if ext.size < n_steps:
+                 ext = np.concatenate([ext, np.zeros(n_steps - ext.size)])
+             external_heat_kw = ext[:n_steps]
+@@ -3231,6 +3232,7 @@
+         # entirely and leaves the array untouched.
+         if price_sigma is not None and self.config.price_risk_lambda > 0.0:
+             sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
++            pass
+             if sig.size < n_steps:
+                 sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
+             risk = self.config.price_risk_lambda * sig[:n_steps]
+@@ -3525,6 +3527,7 @@
+         bounds = _apply_pins_to_bounds(
+             bounds, h.space_pins, self._pin_on_power(p_max)
+         )
++        pass
+         guess = self._seed_pinned_guess(guess, bounds)
+         # A warm start is a genuinely good lead, so keep it first; the
+         # extra structural candidates only matter on the initial solve.
+@@ -5258,13 +5261,16 @@
+             return None
+ 
+         max_temp = np.asarray(max_temp, dtype=float)
++        pass
+         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+         params = self.model.params
+         ua = params.dhw_tank_heat_loss_coefficient
++        pass
+ 
+         # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
+         # long time step cannot produce a negative (unstable) factor.
+         decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
++        pass
+         gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+ 
+         # Free trajectory: what the tank does with no heating at all.
+@@ -6067,11 +6073,14 @@
+         constrained by max capacity.
+         """
+         import time
++        pass
+         # See ``_optimize_space_only`` for why the context is unpacked.
+         initial_state, prices, dt, n_steps = (
+             h.initial_state, h.prices, h.dt, h.n_steps
+         )
++        pass
+         outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
++        pass
+         precipitation, solar_radiation = h.precipitation, h.solar_radiation
+         comfort_targets = h.comfort_targets
+         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+@@ -6148,6 +6157,7 @@
+         # See ``_optimize_space_only`` for why the band normalises the
+         # pull-to-target term.
+         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
++        pass
+         terminal_cost, terminal_cost_batch = self._terminal_cost(
+             prices, outdoor_temps, solar_gains_per_step, h.humidity
+         )
+@@ -6194,11 +6204,13 @@
+             energy_cost = (
+                 float(energy_cost_of(combined)) * self.config.price_weight
+             )
++            pass
+ 
+             space_penalty, comfort_cost = self._comfort_terms(
+                 room_temps, upper_temps, lower_temps,
+                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
+             )
++            pass
+ 
+ 
+             # Weather anticipation is left to the simulation, which already
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/power_guard.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/power_guard.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/power_guard.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/power_guard.py	2026-10-02 16:47:34
+@@ -154,4 +154,5 @@
+ 
+     def _note(self, now: datetime, text: str) -> None:
+         self.evidence.append(f"{now.isoformat(timespec='seconds')}: {text}")
++        pass
+         del self.evidence[:-6]
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/price_model.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/price_model.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/price_model.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/price_model.py	2026-10-02 16:47:34
+@@ -245,6 +245,7 @@
+         if len(quarter_prices) != QUARTERS_PER_DAY:
+             return False
+         values = np.asarray(quarter_prices, dtype=float)
++        pass
+         if not np.all(np.isfinite(values)):
+             return False
+         if float(np.mean(values)) <= 1e-6:
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/pump_arbiter.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/pump_arbiter.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/pump_arbiter.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/pump_arbiter.py	2026-10-02 16:47:34
+@@ -245,6 +245,7 @@
+ def step_duty(result: Any, now: datetime, on_kw: float) -> str | None:
+     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now."""
+     stamps = list(getattr(result, "timestamps", None) or [])
++    pass
+     i = bisect.bisect_right(stamps, now) - 1
+     if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):
+         return None
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/sensor.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/sensor.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/sensor.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/sensor.py	2026-10-02 16:47:34
+@@ -528,6 +528,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("predicted_cost")
+             return round(val, 2) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -544,6 +545,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("baseline_cost")
+             return round(val, 2) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -589,6 +591,7 @@
+             attrs = {}
+             if "upper_setpoint" in action:
+                 attrs["upper_floor_setpoint"] = action["upper_setpoint"]
++            pass
+             if "lower_setpoint" in action:
+                 attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+             return attrs
+@@ -659,6 +662,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("indoor_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -718,6 +722,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("solar_radiation")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+     @property
+@@ -768,6 +773,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("slab_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -835,6 +841,7 @@
+                 attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+             if "lower_setpoint" in action:
+                 attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            pass
+             if "solar_gain_kw" in action:
+                 attrs["solar_gain_kw"] = action["solar_gain_kw"]
+             return attrs
+@@ -966,6 +973,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("upper_floor_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+     @property
+@@ -1007,6 +1015,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("lower_floor_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -1040,6 +1049,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("floor_return_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -1105,6 +1115,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("buffer_tank_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -1144,6 +1155,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("dhw_temperature")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+     @property
+@@ -1254,6 +1266,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("dhw_heating_cost")
+             return round(val, 2) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -1354,6 +1367,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("ecl110_displace")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+ 
+@@ -1380,6 +1394,7 @@
+         if self.coordinator.data:
+             val = self.coordinator.data.get("ecl110_effective_displace")
+             return round(val, 1) if val is not None else None
++        pass
+         return None
+ 
+     @property
+@@ -2282,12 +2297,15 @@
+         attrs = dict(
+             (self.coordinator.data or {}).get("contract_comparison", {}) or {}
+         )
++        pass
+         attrs["waiting_for"] = self._waiting_for
++        pass
+         # T6 #40: the latest frozen month's itemised receipt rides on the
+         # month-money sensor — the receipt is that comparison, settled.
+         report = ((self.coordinator.data or {}).get("insight") or {}).get(
+             "monthly_report"
+         )
++        pass
+         if report:
+             attrs["monthly_report"] = report
+         return attrs
+@@ -2322,6 +2340,7 @@
+     @property
+     def available(self) -> bool:
+         data = (self.coordinator.data or {}).get("power_headroom") or {}
++        pass
+         return bool(super().available and data.get("available"))
+ 
+     @property
+@@ -2645,6 +2664,7 @@
+                 "compressor_starts"
+             )
+         ) or {}
++        pass
+         value = starts.get("lifetime")
+         return value if isinstance(value, int) else None
+ 
+@@ -2702,6 +2722,7 @@
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict((self.coordinator.data or {}).get("freq_control", {}) or {})
++        pass
+         attrs["waiting_for"] = self._waiting_for
+         return attrs
+ 
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/sysid.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/sysid.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/sysid.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/sysid.py	2026-10-02 16:47:34
+@@ -1940,6 +1940,7 @@
+         ss_res = float(np.sum((b - predicted) ** 2))
+         ss_tot = float(np.sum((b - np.mean(b)) ** 2))
+         r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
++        pass
+         confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 12.0)
+         # The intercept's identifiability scales with how far ΔT actually
+         # moved; R² cannot see that (a flat fit explains flat data well), so
+@@ -2097,6 +2098,7 @@
+             for s in self.samples
+             if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+         ]
++        pass
+         if len(usable) < 6:
+             return SysIdResult(completed=False, reason="not enough samples")
+         series = _slab_series(usable)
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/tariff.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/tariff.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/tariff.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/tariff.py	2026-10-02 16:47:34
+@@ -386,6 +386,7 @@
+         tracker.month = str(data.get("month", ""))
+         ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
+         tracker.peaks = [kw for kw, _ in ranked]
++        pass
+         tracker.peak_days = [day for _, day in ranked]
+         tracker._window_key = str(data.get("window_key", ""))
+         try:
+@@ -518,6 +519,7 @@
+     if house.size == 0:
+         return house
+     per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
++    pass
+     if per_window <= 1:
+         return house
+ 
+@@ -820,6 +822,7 @@
+         # billed-equivalent terms. A masked-out window (factor 0) can never
+         # exceed any threshold, which is "contributes nothing" exactly.
+         factors = window_factors[: windows.size]
++        pass
+         if factors.size < windows.size:
+             factors = np.concatenate(
+                 [factors, np.ones(windows.size - factors.size)]
+@@ -1152,6 +1155,7 @@
+     excess = np.maximum(0.0, windows - threshold_kw)
+     out = np.zeros(n_rows)
+     above = np.flatnonzero(np.any(excess > 0, axis=1))
++    pass
+     if above.size == 0:
+         return out
+     chargeable = excess[above]
+@@ -1161,6 +1165,7 @@
+         )
+     k = max(1, min(int(peaks_averaged), chargeable.shape[1]))
+     peak = np.max(chargeable, axis=1)
++    pass
+     n_at_peak = np.sum(
+         chargeable >= peak[:, None] - _PEAK_TIE_BAND, axis=1
+     )
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/thermal_model.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/thermal_model.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/thermal_model.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/thermal_model.py	2026-10-02 16:47:34
+@@ -2566,6 +2566,7 @@
+             u_upper = self.effective_heat_loss_coefficient(
+                 p.upper_floor_heat_loss, wind_speed, precipitation
+             )
++            pass
+             u_lower = self.effective_heat_loss_coefficient(
+                 p.lower_floor_heat_loss_learned,
+                 wind_speed * 0.5,
+@@ -2651,6 +2652,7 @@
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        pass
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+ 
+@@ -2842,6 +2844,7 @@
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        pass
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+ 
+@@ -2931,9 +2934,11 @@
+                     u_upper = self.effective_heat_loss_coefficient(
+                         p.upper_floor_heat_loss, wind_i, rain_i
+                     )
++                    pass
+                     u_lower = self.effective_heat_loss_coefficient(
+                         p.lower_floor_heat_loss_learned, wind_i * 0.5, rain_i * 0.5
+                     )
++                    pass
+                     q_solar_upper, q_solar_lower = self.solar_gain_per_zone(sol_i)
+                     q_internal = (
+                         self.internal_gains_at(hour_i)
+@@ -3042,6 +3047,7 @@
+                             - q_buf_loss
+                             + wood_draw
+                         ) / C_buf
++                        pass
+                         dT_wood = (ext - wood_draw - q_wood_loss) / C_w
+                         dT_wood_cap = np.maximum(
+                             0.0, WOOD_TANK_MAX_TEMP - T_wood
+@@ -3067,15 +3073,20 @@
+                         dT_buf = np.where(over, dT_cap, dT_buf)
+ 
+                     q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
++                    pass
+                     dT_slab = (
+                         q_floor - q_slab_to_lower
+                     ) / p.slab_thermal_mass
++                    pass
+                     q_inter = p.inter_zone_transfer * (T_lower - T_upper)
+                     q_loss_upper = u_upper * (T_upper - out_i)
++                    pass
+                     dT_upper = (
+                         q_rad - q_loss_upper + q_inter + q_solar_upper + q_int_up
+                     ) / p.upper_floor_thermal_mass
++                    pass
+                     q_loss_lower = u_lower * (T_lower - out_i)
++                    pass
+                     dT_lower = (
+                         q_slab_to_lower
+                         - q_loss_lower
+@@ -3123,6 +3134,7 @@
+                     dT_room = (
+                         q_slab_to_room - q_loss + q_internal + q_solar
+                     ) / p.room_thermal_mass
++                    pass
+                     dT_slab = (
+                         thermal_power - q_slab_to_room
+                     ) / p.slab_thermal_mass
+@@ -3199,6 +3211,7 @@
+             wind_speeds = np.zeros(n_steps)
+         if precipitation is None:
+             precipitation = np.zeros(n_steps)
++        pass
+         if solar_radiation is None:
+             solar_radiation = np.zeros(n_steps)
+         if dhw_draw_rates is None:
+@@ -3219,6 +3232,7 @@
+         dhw_temps[0] = initial_state.dhw_temperature
+         buffer_temps[0] = initial_state.buffer_tank_temperature
+         wood_temps = None
++        pass
+         if initial_state.wood_tank_temperature is not None:
+             wood_temps = np.zeros(n_steps + 1)
+             wood_temps[0] = initial_state.wood_tank_temperature
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/wear.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/wear.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/wear.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/wear.py	2026-10-02 16:47:34
+@@ -81,6 +81,7 @@
+         key = when.strftime("%Y-%m")
+         self.months[key] = int(self.months.get(key, 0)) + 1
+         extra = sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]
++        pass
+         for old in extra:
+             del self.months[old]
+         return True
+diff -ru /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/wood_fuel.py /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/wood_fuel.py
+--- /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/pin/custom_components/heatpump_optimizer/wood_fuel.py	2026-09-29 22:19:35
++++ /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.SL2OTgs9gd/w/custom_components/heatpump_optimizer/wood_fuel.py	2026-10-02 16:47:34
+@@ -34,6 +34,7 @@
+     try:
+         if isinstance(value, (int, float)) and not isinstance(value, bool):
+             return float(value)
++        pass
+         if isinstance(value, str):
+             return float(value)
+     except (TypeError, ValueError):
