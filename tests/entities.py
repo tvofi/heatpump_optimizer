@@ -23615,6 +23615,96 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
+# the #1721 RCA). A job that restores its check source from the base grades a
+# pull request with the base's copy, so a changed grader first runs on main,
+# and one given a token first reads there as the Actions GITHUB_TOKEN, which a
+# seat's local run never is: #1715's comparator read `bypass_actors`, a field
+# that token cannot see, and main went red. The class is DERIVED: every program
+# a base-restoring job runs, matched against that job's restored pathspec, in a
+# step whose env carries a token. Each has a step in tests.yml's
+# `graders-head-copy` running it with GITHUB_TOKEN, or its reason here.
+import copy as _pt_copy  # noqa: E402
+import fnmatch as _pt_fnmatch  # noqa: E402
+
+_PT_EXEMPT = {
+    ".claude/workflows/policy_lint_envmatrix.mjs":
+        "its token-bearing shape runs policy_lint.mjs, which the arm runs under that token",
+    ".claude/workflows/budget_raise_gate.py":
+        "reads review objects; only the ruleset read depends on the principal (RCA-BULK-3 s1)",
+    ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
+    "tests/nightly_status.py":
+        "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
+}
+_PT_PROG = re.compile(r"(?:^|\s)(?:node|python3?)(?:\s+-\S+)*\s+([\w./-]+\.(?:mjs|py))", re.M)
+
+
+def _pt_quoted_after(run: str, marker: str) -> "list[str]":
+    """The quoted paths on `marker`'s backslash-continued logical line."""
+    blk = []
+    for _ln in run.partition(marker)[2].split("\n"):
+        blk.append(_ln)
+        if not _ln.rstrip().endswith("\\"):
+            break
+    return re.findall(r"'([^']+)'", "\n".join(blk))
+
+
+def _pt_seams(docs: dict) -> "set[str]":
+    out = set()
+    for _doc in docs.values():
+        for _job in ((_doc or {}).get("jobs") or {}).values():
+            _steps = _job.get("steps") or []
+            _pins = [_p for _s in _steps
+                     for _p in _pt_quoted_after(_s.get("run") or "", 'git checkout "$PINNED" --')]
+            for _s in _steps:
+                if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
+                    continue
+                out |= {_g for _g in _PT_PROG.findall(_s.get("run") or "")
+                        if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
+    return out
+
+
+def _pt_armed(docs: dict) -> "set[str]":
+    _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
+    return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
+            and str(_s.get("if", "")).startswith("${{ !cancelled() && steps.changed.outputs.governance")
+            for _g in _PT_PROG.findall(_s.get("run") or "")}
+
+
+def _pt_spec(docs: dict, wf: str, job: str, marker: str) -> "list[str]":
+    return [_p for _s in docs[wf]["jobs"][job]["steps"]
+            for _p in _pt_quoted_after(_s.get("run") or "", marker)]
+
+
+_PT_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text())
+            for _wf in Path(".github/workflows").glob("*.yml")}
+_PT_SEAMS = _pt_seams(_PT_DOCS)
+_PT_OPEN = sorted(_PT_SEAMS - _pt_armed(_PT_DOCS) - set(_PT_EXEMPT))
+R.check(
+    "every pinned grader given a token runs its own copy under the Actions token on the pull request",
+    {".claude/workflows/policy_lint.mjs", ".claude/workflows/field_coverage.mjs"} <= _PT_SEAMS
+    and not _PT_OPEN and set(_PT_EXEMPT) <= _PT_SEAMS,
+    f"seams={sorted(_PT_SEAMS)} unarmed={_PT_OPEN} "
+    f"stale exemptions={sorted(set(_PT_EXEMPT) - _PT_SEAMS)}: add a step to "
+    "graders-head-copy keyed on `steps.changed.outputs.governance`, or a reason to _PT_EXEMPT",
+)
+_PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
+R.check(
+    "and the arm fires on exactly the pathspec policy-docs restores from the base",
+    _pt_spec(_PT_DOCS, "tests.yml", "graders-head-copy", _PT_DIFF)
+    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
+    f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
+)
+# Null control: the same workflows with the arm's token removed leave the seam open.
+_PT_NULL = _pt_copy.deepcopy(_PT_DOCS)
+for _s in _PT_NULL["tests.yml"]["jobs"]["graders-head-copy"]["steps"]:
+    if "policy_lint.mjs" in (_s.get("run") or ""):
+        _s.pop("env", None)
+R.check(
+    "and the arm without its token is refused (null control)",
+    ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
+    "the predicate must read the step's env, not only its run line",
+)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
