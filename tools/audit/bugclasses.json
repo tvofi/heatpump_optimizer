@@ -1781,10 +1781,10 @@
     "per_round": {},
     "total": 0,
     "max_per_round": 0,
-    "detector": null,
+    "detector": "node .claude/workflows/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
     "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The census arm of field_coverage.mjs (round 9, F11.4; decided under the programme mandate, D8): each registered count-printing instrument runs on a temporary copy of the tree, as it is and with one planted member of what it counts, and its printed count must rise by exactly one; a count that does not move is BLIND and an unreadable count line is REFUSED, so a failure path that prints the same zero as success cannot pass. Registered: structure.py dead_methods and dead_top_level_symbols. The merge-subject derivation's silent zero is agreement.mjs's merge-shape guard (a live merge commit every reader answers null for is refused). Not registered, so not reached: policy_lint --stats (needs the live API), stress sampling, and any census nobody lists",
+    "status": "barriered",
     "nearest_existing": "I1",
     "mechanism_difference": "I1 is a mutation kill miscounted or a vacuous guard; this is any derivation (a census, a sample, a --stats line) whose failure is indistinguishable from an empty success",
     "members_elsewhere": [
