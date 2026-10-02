@@ -3912,18 +3912,17 @@ class HeatPumpOptimizer:
         Callable[..., np.ndarray],
         Callable[..., Any],
     ]:
-        """The space trajectory, the objective and its batch twin, once.
+        """Both solve paths' trajectory, objective, batch twin and price (#1743).
 
-        Both solve paths minimise the same objective (#1743): the DHW path
-        passes its fixed DHW plan as ``dhw_plan_power``, and with ``None``
-        the arithmetic is the space-only path's, operand for operand.
-        Returns the electricity cost function too, which both paths price
-        their baseline and their plan with.
+        The DHW path passes its fixed plan as ``dhw_plan_power``; with
+        ``None`` the arithmetic is the space-only path's, operand for operand.
         """
-        initial_state, prices, dt = h.initial_state, h.prices, h.dt
-        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
-        precipitation, solar_radiation = h.precipitation, h.solar_radiation
-        comfort_targets = h.comfort_targets
+        initial_state, prices, dt, comfort_targets = (
+            h.initial_state, h.prices, h.dt, h.comfort_targets
+        )
+        outdoor_temps, wind_speeds, precipitation, solar_radiation = (
+            h.outdoor_temps, h.wind_speeds, h.precipitation, h.solar_radiation
+        )
         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
 
         # How far the user is willing to let the house drift below target. The
@@ -3968,8 +3967,7 @@ class HeatPumpOptimizer:
             # cycling term and the house peak are all properties of the sum,
             # not of space heating alone.
             combined = (
-                space_power
-                if dhw_plan_power is None
+                space_power if dhw_plan_power is None
                 else space_power + dhw_plan_power
             )
 
