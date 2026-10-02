@@ -1,0 +1,5 @@
+# nightly-status check-run 110955998517 at head 1f5b0aa4a7a8828bcbfaa2dee362082b950a5d1c (failure; pinned script at 8fa06663)
+2026-10-02T17:42:52.9387089Z NIGHTLY ABSENT: nothing failed, but mutation-ledger, mutation-ledger-push did not run in that scheduled run (last night).
+2026-10-02T17:42:52.9388182Z   scheduled run 36984959667, 2026-10-02T08:36:04+00:00, head 492d840, run conclusion 'success'
+2026-10-02T17:42:52.9388842Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/36984959667
+2026-10-02T17:42:52.9390464Z   A lane that was skipped or renamed away reported nothing, and nothing is not a pass. Green here would mean this check had stopped watching the thing it was written for.

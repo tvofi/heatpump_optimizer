@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 51c0ca865..4b8f565c8 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -975,7 +975,7 @@ jobs:
+   mutation-ledger:
+     needs: [recheck-gate]
+     if: >-
+-      !cancelled() && github.ref == 'refs/heads/main' && (
++      always() && github.ref == 'refs/heads/main' && (
+         github.event_name == 'schedule'
+         || (github.event_name == 'workflow_dispatch'
+             && needs.recheck-gate.outputs.recheck != 'true')

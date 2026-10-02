@@ -1,0 +1,37 @@
+# entities.py run; tree: ent-m2; head under review 1f5b0aa4a7a8828bcbfaa2dee362082b950a5d1c; base 8fa06663cf64a32cf19a3a2f2742ce3225f06e3a
+  ok   a configured slot ranks 0 extra (null control)
+  ok   an already-configured sensor appears nowhere in the ranking (null control)
+  ok   a sensor no model term reads ranks exactly 0.0 and last (null control)
+  ok   a fully wired install publishes no advisor payload at all (null control)
+  ok   renaming one member re-splits its family (null control)
+  ok   and stays silent on a branch that authors a policy edit (null control)
+  ok   and on a checkout level with origin/main (second null control)
+  ok   and it IS judged on a branch that moved a fixture (null control)
+  ok   and the same fixture still answers an ordinary comparison (null control)
+  ok   and a listing with the guard and the RED filter stripped is not (null control)
+  ok   and a job with the poster's step removed is not (null control)
+  ok   and a body naming the real head passes with no autofix line (null control)
+  ok   and the split survives: the code gate's own jobs are not governance (null control)
+  ok   and #1484's shape -- `edited` listed, a second job guarded -- is refused (null control)
+  ok   and #1484's guard reads as skipping under that event (null control)
+  ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+  FAIL no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)  [['tests.yml:mutation-ledger-push']]
+  ok   and a leading `always()` is refused, `!cancelled()` is not (null control)
+  ok   and tests.yml without merge_group is refused for each context it produces (null control)
+  ok   and the same file with its restore removed is refused (null control)
+  ok   and the same file checking out the pull request's head is refused (null control)
+  ok   and the same tests.yml with its restores and token hygiene undone is refused on each of the three autofix jobs (null control)
+  ok   and a report run from the working tree after the push step's pull is refused on each of the three autofix jobs, though the program was restored (null control)
+  ok   and the same file checking out the pull request's head, or missing a pull-request workflow, is refused (null control)
+  ok   and an unreadable grammar yields null rather than a guessed class set (null control)
+  ok   and the bare blocked verdict still routes to `other` (null control)
+  ok   and the coverage line tracks the histogram rather than a constant (null control)
+  ok   and a verdict naming the same head twice, or a first line the grammar refuses, is not rework (null control)
+  ok   and the list excludes only what it names (null control)
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+  ok   mutation-ledger measures without a write grant and mutation-ledger-push writes only rows
+  ok   a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both
+  ok   off CI a mutant's stress.py run waits for the gate lease; on a CI runner it runs at once (null control)
+  ok   EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins (the scan's null control)
+1 of 2071 ENTITY CHECKS FAILED
+rc=1

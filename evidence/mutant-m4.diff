@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 2938b0259..ccaa59466 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -27832,7 +27832,7 @@ def _gh_if(job: str) -> str:
+ def _gh_eval(expr: str, ctx: dict) -> bool:
+     for k, v in ctx.items():
+         expr = expr.replace(k, repr(v))
+-    expr = (expr.replace("always()", "True").replace("!cancelled()", "True").replace("&&", " and ")
++    expr = (expr.replace("always()", "True").replace("&&", " and ")
+             .replace("||", " or ").replace("!=", "<>"))
+     expr = _re.sub(r"!(?!=)", " not ", expr).replace("<>", "!=")
+     return bool(eval(expr, {"__builtins__": {}}))  # noqa: S307 -- literals only
