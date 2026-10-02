@@ -35,3 +35,4 @@
 2026-10-02T06:59:50Z 1839 MERGED 492d84011512e1240e45b5cb4cc5d931e0a046d1 at approved head 9b4e2cec
 2026-10-02T08:57:34Z 1838 SKIP head e37cefc6: verdict still 46a70815; e37cefc6 is a merge with conflict resolution and a budget re-record authored by this seat (job 3), so no carry and no self-review. Needs a reviewer verdict at e37cefc6.
 2026-10-02T08:59:54Z 1842 verdict posted (exact, b69961d7). NOT approved by this seat: I wrote the brief_lint change (job 2), so approving would be self-approval. Needs tvofi's own review; PR is still a draft with no delivery row.
+2026-10-02T09:45:09Z 1838 verdict at e37cefc6 posted. NOT approved by this seat: e37cefc6's conflict resolution and budget re-record are mine (job 3). Needs tvofi's own review (also required for the budget change).
