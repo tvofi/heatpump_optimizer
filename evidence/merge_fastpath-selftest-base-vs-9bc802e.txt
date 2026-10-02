@@ -1,0 +1,7 @@
+== base aab94eea2
+merge_fastpath self-test: 33 checks, 0 failed
+== wt 9bc802e69
+  FAIL #1823's probe: the pull request links a file from DISCLAIMER.md and main deletes it, and a run_always script reads both unrecorded: got ['full', 'unrecorded'], want ['unrecorded']
+  FAIL ... the same pair with no run_always script is eligible (null control): got ['full'], want []
+  FAIL ... on the pull request's side too: got ['full', 'unrecorded'], want ['unrecorded']
+merge_fastpath self-test: 33 checks, 3 failed

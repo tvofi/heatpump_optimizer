@@ -1,0 +1,20 @@
+RESULT null: 0 findings at head page {'claims': 47, 'fragments': 110, 'numbers': 3, 'copy': 14, 'features': 9, 'docs': 10, 'images': 11, 'links': 16}
+KILLED key-phrase number: plant num red 1 -> mutant 0  [[('claim', 'README.md#what-it-does: number 21 is not stated in the section')]]
+KILLED key phrase: plant keyq red 1 -> mutant 0  [[('claim', "README.md#your-first-week: key phrase not in section: '45 minutes by default'")]]
+KILLED verbatim test: plant reword red 1 -> mutant 0  [[('claim', "README.md#known-limitations: not in the section: 'there is no cooling mode and no heating pla
+KILLED slug test: plant slug red 3 -> mutant 1  [[('claim', 'data-src README.md#known-limitationz: no heading with slug #known-limitationz in README.md')]]
+KILLED feature leads-feats: plant feat red 1 -> mutant 0  [[('feature', "README 'What it does' lead missing from the page: 'plans ahead instead of reacting'")]]
+KILLED docs feats-rows: plant doc+ red 1 -> mutant 0  [[('docs', 'page docs entry the README Documentation table does not list: docs/HANDOVER.md')]]
+KILLED stray number: plant stray red 1 -> mutant 0  [[('number', "a number outside any claim: 'cuts the bill 31 percent'")]]
+KILLED version literal: plant ver red 1 -> mutant 0  [[('version', 'a version literal on the page: v1.2')]]
+SURVIVED image in tree: plant img red 1 -> mutant 1  [[('image', "image data-repo 'docs/setup/03-menuX.png' is not in the tree")]]
+KILLED alt text: plant alt red 1 -> mutant 0  [[('image', 'image without alt text: img/card-plan-chart.png')]]
+KILLED link path: plant link red 1 -> mutant 0  [[('link', 'link to docs/ecl111.md: not in the tree')]]
+KILLED link slug: plant linkslug red 1 -> mutant 0  [[('link', 'link to docs/ecl110.md#no-such-head: no such heading')]]
+KILLED external script: plant script red 1 -> mutant 0  [[('third-party', 'external script: https://x.example/a.js')]]
+SURVIVED css third-party: plant css red 1 -> mutant 1  [[('third-party', 'third-party resource in CSS: https://x.example/f.woff2')]]
+KILLED css in tree: plant cssmissing red 1 -> mutant 0  [[('third-party', 'CSS resource not in the tree: site/fonts/nope.woff2')]]
+KILLED anchor: plant zero red 19 -> mutant 18  [[('number', "a number outside any claim: 'model-predictive heating control for home assistant. it plans your hea
+RESULT mutants killed 14/16
+KILLED image in tree (src agrees): 'not in the tree' 1 -> 0
+KILLED css third-party (message): 'third-party resource in CSS' 1 -> 0

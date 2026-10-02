@@ -1,69 +1,39 @@
-Fix review: blocked ddaf6bf73c4bbb5d604a9348ab9ccdacb50feb5e root-cause-unanswered: briefs and closures went red at code head a46a91c, unanswered; the closures-autofix the body waits for reported skip-not-under-scoped, so no bot commit is coming
+Fix review: blocked e42b1cdd805b011701479b3e19e2bbf4d6876dcc root-cause-unanswered: closures went red at this head (UNDER-SCOPED tests/harness_headers.py: DISCLAIMER.md, caused by this PR moving DISCLAIMER.md onto INERT_EXCEPT), unanswered; closures-autofix reported skip-not-under-scoped, so no bot commit is coming
 
-bus-nonce: 89ae95e3814b0e57ce5f5a85f419a727
+bus-nonce: bcaa06ba1b00785784975eb3a1a72995
 
-Round 1. Measured head `ddaf6bf73c4bbb5d604a9348ab9ccdacb50feb5e` (code head `a46a91c88f282b567bf78b4899e3dff92defe5aa` plus `docs/delivery/1846.md`), merge base `2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d`, detached worktree. The contract and rules have no diff from origin/main (`git diff $(merge-base)...origin/main -- tools/audit/briefs/ .claude/rules/ CLAUDE.md` is empty).
+Round 2. The fixer's round-2 code is 910993833. 9bc802e merged it with main aab94eea, and e42b1cd is the orchestrator's merge_fastpath fixture commit on top. Measured head `e42b1cdd805b011701479b3e19e2bbf4d6876dcc`; it was still the live head when I posted. My round-1 measurements at ddaf6bf are carried forward only where the delta does not touch them; each one is marked below.
 
 ## Blocking
 
-1. **`briefs` is red, and this PR caused it.** Check run 110839480762 at a46a91c ends `TOTAL: 2 error(s) across 45 file(s)`. Both errors are in `.claude/workflows/carry-1645.json`: `tests/doc_claims.py:463` and `:552`, `'check_simulate_plan_fields' not found near ...; found at line 798 instead`. The new arm adds 244 lines above `check_simulate_plan_fields`, which moves it from line 554 to 798. My reproduction with `node .claude/workflows/brief_lint.mjs .claude/workflows/carry-1645.json` gives `TOTAL: 0 error(s)` at the merge base and `TOTAL: 2 error(s)` at the head (`evidence/brief_lint-carry1645-base-vs-head.txt`).
-   - The body's `## Red checks` names only the entities.py classification line. pr-contract run 110839686184 at a46a91c already refused on this: `check 'briefs' is red and '## Red checks' does not name it`. pr-contract is green at ddaf6bf only because it ran before that head's Tests run had produced a `briefs` result. The Tests run at ddaf6bf will carry the same red, since carry-1645.json and doc_claims.py are unchanged between the two heads.
-   - Repair: put the arm somewhere that moves no pinned line (for example after the last pinned function), or re-point carry-1645.json's two `path:line` pins. Re-pointing means editing a carry file, so it must keep its meaning (`brief-citations.md`). Then name the red in the body. The cheaper detector already exists: running `brief_lint.mjs` locally before the push (fixer.md, gate on every instrument).
+1. **`closures` is red at e42b1cd (job 110886379255).** The log reads: `UNDER-SCOPED: tests/harness_headers.py really reads 1 file(s) the committed closure does not list: DISCLAIMER.md`.
+   - Cause: this PR's reclassification. Until this PR, `DISCLAIMER.md` was INERT, so harness_headers.py's read of it (through D6 `claims.py`, the #1823 seam) was recorded under `inert_reads`. Now `DISCLAIMER.md` is on `INERT_EXCEPT`. The same read is a closure read, and harness_headers.py's committed closure lacks it.
+   - Only doc_claims.py was re-derived. At the head, `closure.affected(['DISCLAIMER.md'])` selects `['tests/doc_claims.py']` alone.
+   - Gate impact is nil, because `tests/run.sh` runs harness_headers.py as `run_always`. The check is still red, and the body does not name it.
+   - `closures-autofix` (same run) printed `AUTOFIX: skip-not-under-scoped`, so no `ci: re-record closures` commit is coming. It is green while `closures` printed UNDER-SCOPED. My reading is that the autofix classifies with a pinned `$RUNNER_TEMP/pinned/closure.py`, whose INERT list (main's) still holds DISCLAIMER.md. I did not open that job's source to confirm. It looks like a fourth green-unrepaired path beyond the three `ci-autofix.md` lists, and that is the orchestrator's to route (root-cause seat or the autofix lane), not this PR's.
+2. **The owed repair turns a self-test red.** The repair is `./tests/derive_closures.sh --single tests/harness_headers.py`; Python lanes record through `sys.addaudithook`, so Darwin is sound.
+   - That re-derive moves `DISCLAIMER.md` from harness_headers.py's `inert_reads` into its closure.
+   - `tools/audit/merge_fastpath.py`'s check "this tree's table records harness_headers.py's INERT reads, DISCLAIMER.md among them" (around line 336) then fails. I simulated the table change in place and restored it: `merge_fastpath self-test: 33 checks, 1 failed` (`evidence/merge_fastpath-after-simulated-rederive.txt`).
+   - e42b1cd's probe swap left that check, and the docstring at lines 38-46, naming DISCLAIMER.md.
+   - The fixer owes three things in one commit: the re-derive, a re-pointed check naming an INERT file harness_headers.py still reads (`LICENSE` or one of the docs/ pages its `inert_reads` lists), and the stale comment at `tests/run.sh` around line 471 ("opens INERT docs ... DISCLAIMER.md"). Then name the red in `## Red checks`.
+   - Alternative for tvofi: keep `DISCLAIMER.md` INERT and record it in doc_claims.py's `inert_reads`. That is exactly what round-1's `INERT READS UNDER-APPROXIMATED` asked for. The cost is that a DISCLAIMER.md-only edit would skip doc_claims.py on a branch. `closure.py`'s own docstring calls moving these files into a closure "a reclassification for the owner". `tests/closure.py` is code-owned, so this choice is tvofi's at the review in either case.
 
-2. **The bot commit the body waits for will not come.** In Tests run 37007613365 at a46a91c:
-   - `closures` (job 110839553394) is red, but not on UNDER-SCOPED. It fails `INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the committed inert_reads does not list for it ... tests/doc_claims.py: DISCLAIMER.md`. The new arm opens `DISCLAIMER.md` for the page's `DISCLAIMER.md#disclaimer` claims.
-   - `closures-autofix` (job 110848603697) is green with `AUTOFIX: skip-not-under-scoped -- nothing owed to a human`. By `ci-autofix.md`, that green means no repair is owed to the bot and no `ci: re-record closures` commit will come.
-   - So the body's account under `## Red checks`, that "CI's closures-autofix records `doc_claims.py`'s closure with `docs/index.html`", is false as measured. The entities.py orphan (`docs/index.html` not in `tests/closures.json`) stays red too.
-   - Repair, owed by the fixer: the log's own instruction, `./tests/derive_closures.sh --single tests/doc_claims.py`. Python lanes record through `sys.addaudithook`, so Darwin is sound for a `--single` (`ci-autofix.md`). Commit `tests/closures.json`, then re-check that `closures` and the entities.py classification line go green. This is a single re-derive, not a full one.
-   - `fast (3.14)` and `coverage` in that run were cancelled, so CI has not printed entities.py's result at either head. `coverage-ratchet` is red only because `Artifact not found for name: coverage-json`, which follows from the cancelled `coverage`. The ddaf6bf Tests run (37007942153) was still pending when I posted.
+## The round-2 delta: what I verified
 
-## Verified (RESULT lines are mine, taken at ddaf6bf)
+- **carry-1645.json:** all five re-pointed pins (468, 479, 557, 597-611, 604) land on the same text the old pins (463, 474, 552, 592-606, 599) held at the merge base, line for line, +5 for the docstring's five lines. `brief_lint.mjs` on that file gives `TOTAL: 0 error(s)`; on all carry files, `TOTAL: 0 error(s) across 45 file(s)`. CI `briefs` is green at 9bc802e and e42b1cd.
+- **The arm:** it moved below the pinned functions, and its body is byte-identical apart from the two imports, now placed beside it with `# noqa: E402`. CI `typing` is green.
+- RESULT null control at 9bc802e (arm and page unchanged in e42b1cd): 0 findings. Counts are identical to round 1 (claims 47, fragments 110, numbers 3, copy 14, features 9, docs 10, images 11, links 16).
+- RESULT finder's `check_site.py` (design at 2b5031bf, impl profile): `RESULT: PASS`, same counts.
+- RESULT my mutants: 16 of 16 killed. 14 are killed directly; image-in-tree and CSS-third-party need a plant keyed on their own message (`evidence/rev_mut-9bc802e.txt`).
+- **closures.json:** doc_claims.py now holds `DISCLAIMER.md` and `docs/index.html`; the entities.py orphan is gone. CI `fast (3.14)` is green at e42b1cd. The `a3:` FAIL lines in its log are that script's own planted controls, present at round 1 too.
+- **entities.py docs-only example → SECURITY.md:** correct. At the head `is_inert('SECURITY.md')` is True, and SECURITY.md sits in no closure and no `inert_reads`.
+- **merge_fastpath.py probe swap (e42b1cd):** `--self-test` gives `33 checks, 3 failed` at 9bc802e and `33 checks, 0 failed` at e42b1cd (`evidence/merge_fastpath-selftest-base-vs-9bc802e.txt`). The probes still exercise an INERT, unrecorded file, which is their intent. CI `instrument-self-tests` is green at e42b1cd.
+- `git merge-tree --write-tree origin/main HEAD` gives rc 0. `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched (three-dot). `structure.py` passes.
+- **CI at e42b1cd:** everything completed is success or skipped except `closures`. `pr-contract` was re-running when I posted, and I do not report its result. The check-run list is in `evidence/checkruns-e42b1cd.tsv`.
 
-- RESULT null control: `site_findings` on the head page gives 0 findings. Counts are claims 47, fragments 110, numbers 3, copy 14, features 9, docs 10, images 11, links 16, which match the body.
-- RESULT finder's harness: the design's own `check_site.py` (2b5031bf, `--repo <head wt> --ref HEAD --profile impl`) gives `RESULT: PASS` with the same counts (`evidence/finder-check_site-head.txt`). The arm is a faithful port of the prototype, and stricter in two places: it refuses any `<script src>` or `<link rel=stylesheet>`, and any CSS `url()` that is not in the tree.
-- RESULT my own mutants: 16 of 16 predicates are killed by my own plants (`evidence/rev_mut.py`, `rev_mut-ddaf6bf.txt`). The 16 predicates are:
-  - key-phrase number and key phrase
-  - verbatim fragment and heading slug
-  - feature leads minus feats, and docs minus rows
-  - stray digit and version literal
-  - image in tree and alt text
-  - link path and link slug
-  - external script
-  - CSS third-party and CSS in tree
-  - anchor
+## Carried from round 1 (unchanged by the delta)
 
-  Two of them, image-in-tree and CSS third-party, are masked by a neighbouring branch when the plant moves only one side. Their plant stays red under a different message. With a plant keyed on the message of the branch under test, both are killed, which confirms the fixer's account of the first-pass survivors.
-- Doc side: the fixer's README-changed control was not re-run by me. My verbatim and key-phrase plants show the section text is read from the working tree. I did not separately reproduce the symlink-root control.
-- Deviations from the brief, judged:
-  - (a) Only `docs/index.html` goes on INERT_EXCEPT. This is justified: the arm only `stat()`s fonts and images, the recorder traces `openat`, and an unrecorded INERT_EXCEPT entry is an orphan that forces FULL. Residual: an edit to a font file does not select doc_claims.py on a branch. main's forced full catches it.
-  - (b) Two layout globs instead of one. This is justified: `glob_re` escapes `{a,b}`.
-  - (c) Cards link to GitHub sources rather than sub-pages. This is justified: R9-WEB-3's sub-pages do not exist yet, so sub-page links would be dead links. Every repository link resolves (links 16, 0 findings), and all 10 in-page `#id` targets exist.
-  - (d) Advisor slot caption. This is justified: the design's caption was no longer in the rewritten section. The new quote passes the verbatim pin.
-- No savings percentage (S3) and no version on the page. `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched (three-dot diff is empty). `git merge-tree --write-tree origin/main HEAD` gives rc 0.
-- Cheap checks at the head:
-  - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-  - `node tests/md_tables.mjs`: three doc RESULT lines all 0.
-  - policy_lint: the fixture line is ok.
-- The entities.py red (`docs/index.html` forces FULL): `docs/index.html` is absent from `tests/closures.json` at the head. Whether CI repairs that is settled under blocking item 2 below.
-- Page rendering: static checks only, because this seat has no browser.
-  - The four `.woff2` files carry the `wOF2` magic and are referenced only by relative `url(site/fonts/...)`.
-  - All 11 image paths exist under `docs/`.
-  - There is a viewport meta and media queries at 640, 720, 820, 860 and 900 px.
-  - There is no `width:` in px above 40 outside a media query.
-
-  I did not measure mobile overflow myself. The body's browser figure is the fixer's.
-
-## Not blocking: holes shared with the design of record
-
-Neither the arm nor the finder's `check_site.py` refuses any of these (`evidence/rev_holes-ddaf6bf.txt`):
-- `<link rel="icon" href="https://...">`, a third-party image
-- `<link rel="preload" as="font" href="https://...">`, a third-party font
-- `<iframe src="https://...">`
-
-DESIGN-SITE.md rule 3 and check_site.py's docstring ("any third-party script, stylesheet, font or image") cover the first two in words. The page carries none of them today. This is a gap in the port's oracle, not in this port, and it goes to R9-WEB-3's brief if the orchestrator wants it closed. Digits inside `data-copy` and the `<meta name=description>` are unpinned by design.
-
-## Not run locally
-
-- entities.py and doc_claims.py's full run need numpy, which is not installed (no installs).
-- Mutation table, stress and the gate are left to CI's runs.
-- The fixer's body says it installed numpy, scipy, aiohttp, pyyaml and voluptuous into a venv. SEAT-BLOCK forbids package installs, so this is for the orchestrator to note.
+- Deviations (a) to (d) are justified.
+- The page checks are static only.
+- The design-level third-party gaps (`<link rel=icon|preload>`, `<iframe>`) are non-blocking and shared with `check_site.py`.
+- The fixer installed packages into a venv; the orchestrator relays that tvofi approved it.
