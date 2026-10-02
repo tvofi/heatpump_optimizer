@@ -1236,6 +1236,14 @@ python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/p
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 
+# --- 3f5. the register check (class R-register), which `wave-script` runs from
+# the base once the base carries it: this head's ledger and the rounds in the
+# tree, under the head's copy of the checker. Well under a second.
+python3 -I tools/audit/fold_ledger.py --self-test >/tmp/prepr-fl.$$ 2>&1 \
+  && python3 -I tools/audit/fold_ledger.py check >>/tmp/prepr-fl.$$ 2>&1
+step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
+rm -f /tmp/prepr-fl.$$
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)

@@ -512,7 +512,7 @@ jobs:
       # exactly one class, every class that met an adopted trigger carries a
       # barrier or an rca document under tools/audit/rca, and the counts the
       # ledger carries are the ones its instances derive. The BASE's copy of
-      # the checker grades the pull request's ledger (--root), so a branch
+      # the checker grades the pull request's ledger, so a branch
       # cannot edit the grader it is graded by; the pull request that lands the
       # checker is graded by no copy of it and the step says so, as the
       # agreement lane's does.
@@ -524,9 +524,10 @@ jobs:
           if ! git cat-file -e "$PINNED:tools/audit/fold_ledger.py" 2>/dev/null; then
             echo "register check: the base does not carry tools/audit/fold_ledger.py, so no copy of it can grade this pull request; skipped"
           else
-            git show "$PINNED:tools/audit/fold_ledger.py" > "$RUNNER_TEMP/fold_ledger.py"
-            python3 -I "$RUNNER_TEMP/fold_ledger.py" --self-test
-            python3 -I "$RUNNER_TEMP/fold_ledger.py" check --root "$PWD"
+            git checkout "$PINNED" -- \
+              'tools/audit/fold_ledger.py'
+            python3 -I tools/audit/fold_ledger.py --self-test
+            python3 -I tools/audit/fold_ledger.py check
           fi
 
   # The loop around the corpus, rather than the corpus itself: is every merge
