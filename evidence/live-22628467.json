@@ -1,0 +1,11 @@
+{
+  "name": "main-protect",
+  "bypass_actors": [
+    {
+      "actor_id": 5094721,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ],
+  "updated_at": "2026-09-27T11:19:58.571+02:00"
+}

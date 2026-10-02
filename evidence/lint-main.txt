@@ -1,0 +1,13 @@
+
+.claude/workflows/fixtures/required-contexts.json
+  ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: ruleset 23698884 field `bypass_actors[0].actor_id` is 5094721 live, null recorded. The boundary changed or the record is wrong: re-record .claude/workflows/fixtures/required-contexts.json by hand and re-read every assertion site against it.
+  ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: ruleset 23698884 field `bypass_actors[0].actor_type` is "Integration" live, "DeployKey" recorded. The boundary changed or the record is wrong: re-record .claude/workflows/fixtures/required-contexts.json by hand and re-read every assertion site against it.
+  ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: ruleset 23698884 field `bypass_actors[1].actor_id` is null live, (absent) recorded. The boundary changed or the record is wrong: re-record .claude/workflows/fixtures/required-contexts.json by hand and re-read every assertion site against it.
+  ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: ruleset 23698884 field `bypass_actors[1].actor_type` is "DeployKey" live, (absent) recorded. The boundary changed or the record is wrong: re-record .claude/workflows/fixtures/required-contexts.json by hand and re-read every assertion site against it.
+  ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: ruleset 23698884 field `bypass_actors[1].bypass_mode` is "always" live, (absent) recorded. The boundary changed or the record is wrong: re-record .claude/workflows/fixtures/required-contexts.json by hand and re-read every assertion site against it.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+
+TOTAL: 5 error(s) across 40 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
