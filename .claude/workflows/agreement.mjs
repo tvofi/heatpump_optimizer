@@ -48,9 +48,6 @@ function constFromSource(rel, name) {
   return new Function(`return ${m[1]}`)()
 }
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href)
-function python(code, input) {
-  return JSON.parse(execFileSync('python3', ['-c', code], { cwd: ROOT, input: JSON.stringify(input), encoding: 'utf8' }))
-}
 
 
 const CC = 'custom_components/heatpump_optimizer'
@@ -62,46 +59,18 @@ function entityLeaves(rel) {
   return out
 }
 
-// The readers below are run in a Python subprocess against the live tree.
-const PY_STRUCTURE = `
-import ast, json, sys
-sys.path.insert(0, "tests")
-import structure
-trees = structure.module_trees(); pkg = structure.Package(trees)
-dead, _ = structure.dead_members(pkg)
-dead_set = {(r, c, m) for r, c, m, _ in dead}
-bound = structure.bound_references(trees)
-rows = []
-for (mod, cname), cls in pkg.classes.items():
-    rel = pkg.mods[mod][0]
-    ms = [i.name for i in cls.body if isinstance(i, (ast.FunctionDef, ast.AsyncFunctionDef)) and not (i.name.startswith("__") and i.name.endswith("__"))]
-    if not ms: continue
-    flow = any(getattr(b, "id", getattr(b, "attr", "")).endswith(("ConfigFlow", "OptionsFlow")) for b in cls.bases)
-    rows.append({"item": rel + "::" + cname,
-                 "bound": ((rel, cname) in bound) or cname in structure.HA_CONVENTION_NAMES or flow,
-                 "live_methods": any((rel, cname, m) not in dead_set for m in ms)})
-if not rows: raise SystemExit("no production class measured")
-`
-const PY_GOV = `
-import importlib.util, json, re
-from pathlib import Path
-spec = importlib.util.spec_from_file_location("gc", "tools/audit/round4/D11/governance_cost.py")
-gc = importlib.util.module_from_spec(spec); spec.loader.exec_module(gc)
-def job_ids(t):
-    i = t.rfind("\\njobs:\\n")
-    return set(re.findall(r"^  ([A-Za-z][\\w-]*):", t[i:], re.M)) if i >= 0 else set()
-src = Path("tests/entities.py").read_text()
-m = re.search(r"_GOV_FILES = \\[(.*?)\\]", src, re.S)
-files = re.findall(r'"(\\.github/[^"]+\\.yml)"', m.group(1)) if m else []
-w = re.search(r'^_GOV_WF = "([^"]+)"', src, re.M)
-if m and "_GOV_WF" in m.group(1) and w: files.append(w.group(1))
-if not files: raise SystemExit("entities.py: no _GOV_FILES list")
-pin = {"briefs"}
-for f in files: pin |= job_ids(Path(f).read_text())
-jobs = set()
-for f in sorted(Path(".github/workflows").glob("*.y*ml")): jobs |= job_ids(f.read_text())
-gov = set(gc.GOV)
-`
+// The Python-side readers run in agreement_py.py (its own step, under `python3 -I`
+// after the job's restore from the base); this reads the JSON it wrote.
+let PY = null
+function py(key) {
+  if (!PY) {
+    const i = process.argv.indexOf('--py-json')
+    if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I .claude/workflows/agreement_py.py --run`')
+    PY = JSON.parse(fs.readFileSync(process.argv[i + 1], 'utf8'))
+  }
+  if (!PY[key]) throw new Error(`the Python readers' JSON has no ${key}`)
+  return PY[key]
+}
 
 // ---- the registered concepts ------------------------------------------------
 
@@ -165,10 +134,7 @@ const PAIRS = [
     concept: 'merge-subject-pr',
     what: 'the pull request a first-parent subject on main names',
     async corpus() {
-      const since = git(['describe', '--tags', '--abbrev=0', '--match', 'v6.5.0']).trim() || 'v6.5.0'
-      const live = git(['log', '--first-parent', '--format=%s', `${since}..HEAD`]).split('\n').filter(Boolean)
-      const shapes = ['Merge pull request #1052 from tvofi/fix/d11-pins', 'fix: a squash (#1234)', 'v6.7.1: stamp', 'ci: re-record closures']
-      return [...new Set([...live, ...shapes])].map((s) => [s, s])
+      return Object.keys(py('merge')).map((s) => [s, s])
     },
     // A live item that is a merge commit and that EVERY reader answers null for
     // is refused (merge_shape_guard, RCA-BULK-3 section 5, #1041): agreement
@@ -177,12 +143,10 @@ const PAIRS = [
     mustAnswer: (s) => /^Merge pull request #\d+ from /.test(s),
     async readers() {
       const pl = await load('.claude/workflows/policy_lint.mjs')
-      const subjects = (await this.corpus()).map(([s]) => s)
-      const stamp = python('import json,sys; sys.path[:0]=["tools/release"]; import stamp; print(json.dumps({s: stamp.pr_from_subject(s) for s in json.load(sys.stdin)}))', subjects)
-      const ds = python('import json,sys; sys.path[:0]=["tests"]; import delivery_status as d; print(json.dumps({s: (str(d.subject_number(s)) if d.subject_number(s) is not None else None) for s in json.load(sys.stdin)}))', subjects)
+      const m = py('merge')
       return {
-        'stamp.py pr_from_subject': (s) => stamp[s],
-        'delivery_status.py subject_number': (s) => ds[s],
+        'stamp.py pr_from_subject': (s) => m[s].stamp,
+        'delivery_status.py subject_number': (s) => m[s].delivery_status,
         'policy_lint.mjs resolvePrFromCommit (gap recovery)': (s) => (pl.resolvePrFromCommit(s, []) || {}).pr || null,
         'policy_lint.mjs enumerateMerges (offline subject mode)': Object.assign(
           (s) => (pl.enumerateMerges([{ sha: 'x', subject: s }], null).prs[0] || {}).pr || null,
@@ -199,10 +163,10 @@ const PAIRS = [
     concept: 'dead-member-liveness',
     what: 'whether a production class is live: structure.py dead_top_level_symbols (bound_references) against dead_members (reachability over methods), D7-s3-02',
     async corpus() {
-      return python(PY_STRUCTURE + 'print(json.dumps(sorted(r["item"] for r in rows)))', null).map((i) => [i, i])
+      return Object.keys(py('structure')).sort().map((i) => [i, i])
     },
     async readers() {
-      const rows = python(PY_STRUCTURE + 'print(json.dumps({r["item"]: r for r in rows}))', null)
+      const rows = py('structure')
       return {
         'structure.py bound_references (top-level)': (i) => rows[i].bound,
         'structure.py dead_members (methods)': (i) => rows[i].live_methods,
@@ -213,10 +177,10 @@ const PAIRS = [
     concept: 'governance-workflow-jobs',
     what: 'which workflow jobs are governance: tests/entities.py\'s pinned file list against governance_cost.py\'s GOV derivation, D11-s1-72',
     async corpus() {
-      return python(PY_GOV + 'print(json.dumps(sorted(jobs)))', null).map((j) => [j, j])
+      return py('governance_jobs').jobs.map((j) => [j, j])
     },
     async readers() {
-      const out = python(PY_GOV + 'print(json.dumps({"gov": sorted(gov), "pin": sorted(pin)}))', null)
+      const out = py('governance_jobs')
       const gov = new Set(out.gov); const pin = new Set(out.pin)
       return { 'governance_cost.py GOV': (j) => gov.has(j), "tests/entities.py _GOV_FILES (+ the 'briefs' null control)": (j) => pin.has(j) }
     },
@@ -381,6 +345,8 @@ async function selfTest() {
 
 async function main() {
   const argv = process.argv.slice(2)
+  const pj = argv.indexOf('--py-json')
+  if (pj >= 0) argv.splice(pj, 2)
   if (argv[0] === '--self-test') return selfTest()
   const only = argv[0] === '--only' ? argv[1] : null
   if (argv.length && !only) { console.error('usage: agreement.mjs [--only pairs|discovery | --self-test]'); process.exit(2) }

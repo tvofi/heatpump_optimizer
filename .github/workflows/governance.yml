@@ -340,9 +340,6 @@ jobs:
           python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
           grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
 
-      - name: Show the agreement lane refusing each shape it exists to refuse
-        run: node .claude/workflows/agreement.mjs --self-test
-
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
@@ -466,7 +463,16 @@ jobs:
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tests/coverage_ratchet.py' \
+            'tests/entities.py' \
+            'tests/gate_lock.py' \
+            'tests/issue996_count.py' \
+            'tests/nightly_ha.py' \
+            'tests/replay.py' \
+            'tests/structure.py' \
+            'tools/audit/round4/D11/d11lib.py' \
+            'tools/audit/round4/D11/governance_cost.py'
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs
 
@@ -476,13 +482,20 @@ jobs:
       # Class I4 (round 9): two readers of one governance concept must give one
       # answer, and a regex grammar written in two governance files must be
       # registered. The base's copy once the base carries the program (the
-      # restore above); the pull request that lands it runs its own.
+      # restore above); the pull request that lands it runs its own. The tests
+      # and audit scripts its Python readers load are restored from the base
+      # above too, so a pull request cannot change a reader it is graded by.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
 
       - name: Refuse two readers of one concept that disagree
-        run: node .claude/workflows/agreement.mjs
+        run: |
+          python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
+          node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
+
+      - name: Show the agreement lane refusing each shape it exists to refuse
+        run: node .claude/workflows/agreement.mjs --self-test
 
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
