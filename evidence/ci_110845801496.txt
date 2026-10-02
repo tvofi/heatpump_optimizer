@@ -1,7 +1,0 @@
-HEAD is now at 1b500997 Merge f6af0c50c47ec3e0d1d6de12e85635eb2cc3d9ca into af7660c749a65762934d45b7c91957102253e209
-echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-  PINNED: af7660c749a65762934d45b7c91957102253e209
-  DIVERGENT     merge-subject-pr "fix: a squash (#1234)": stamp.py pr_from_subject="1234"  delivery_status.py subject_number="1234"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)="1234"
-  REFUSED       rule-frontmatter-paths: a reader threw: pl.rulePaths is not a function
-RESULT divergent=1 unregistered=0 dead=0 refused=1 seconds=0.1
-AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

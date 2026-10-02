@@ -1,6 +1,0 @@
-HEAD is now at 1b500997 Merge f6af0c50c47ec3e0d1d6de12e85635eb2cc3d9ca into af7660c749a65762934d45b7c91957102253e209
-echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-  PINNED: af7660c749a65762934d45b7c91957102253e209
-printf 'red checks the body must answer: %s\n' \
-red checks the body must answer: policy-docs,wave-script
-  ERROR   [pr-body] /tmp/pr-body.md: check `wave-script` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
