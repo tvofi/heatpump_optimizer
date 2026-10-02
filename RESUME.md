@@ -1,9 +1,9 @@
 # R9-F10.5 resume note
 
-- branch: handoff/r9-f10-gate-infra-5 @ f3e2e445bb981eff4fef38242bcb8ac520a7afa6
-- base: #1838 head 46a708150f35534344039ef0ada7f12c81c77af6 (F10.4, not yet merged); merge origin/main once it lands, then re-run fixer.md steps 2-8.
-- done: --drain mode + push half in tests/mutation_table.py; mutation-ledger / mutation-ledger-push jobs in tests.yml; REQUIRED_LANES gains mutation-ledger; 0011 amendment; entities.py checks (2060 pass on py3.13); mutation proof M0-M8 all killed (M3 after the seed check was fixed).
-- running: a 40-site drain demo (seed 20261002) on a scratch worktree at f3e2e445.
-- next: apply the demo's pins on a scratch ref, re-run the ratchet, show idempotency; scoped gate; prepr.sh; body.
-- environment traps: python3 is 3.11 here, entities.py needs 3.12+ (use a 3.13 venv with tests/requirements-ci.txt); the clone was shallow (git fetch --unshallow origin main).
-- open: the ledger-writer App (hpo-ledger) and its secrets are tvofi's setup; push job is fail-soft until then.
+- branch: handoff/r9-f10-gate-infra-5 @ f3e2e445bb981eff4fef38242bcb8ac520a7afa6 (code). Draft body on handoff-body/r9-f10-gate-infra-5.
+- base: #1838 head 46a70815 (F10.4, not yet merged). WAITING on #1838's merge: then `git merge origin/main`, re-run fixer.md steps 2-8 (entities.py on py3.13, mutants via evidence run_mutants.sh, structure.py, prepr.sh), re-take figures, re-body, hand off to the coordinator.
+- done: code, tests, mutation proof (M0 null passes, M1-M8 killed), 40-site drain demo on handoff/r9-f10-gate-infra-5-demo @ f59380e0 (37 pinned, 3 survivors, re-apply skip-unchanged).
+- evidence: /mnt/project-files/audit-r9/fix/evidence/F10.5-drain-f3e2e445/
+- the remaining prepr refusals at this head are #1838's own red checks (briefs, budget-raise-gate, fast (3.14)) in the range; they leave the range once main carries #1838.
+- environment traps: python3 3.11 here (use /tmp venv with 3.13 + tests/requirements-ci.txt); clone was shallow; stress.py timing kills the null control on a contended 4-core box (left out of the demo).
+- open: hpo-ledger App + secrets are tvofi's setup.
