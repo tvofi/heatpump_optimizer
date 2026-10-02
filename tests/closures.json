@@ -2394,6 +2394,7 @@
    "docs/img/marginal-cop.svg",
    "docs/index.html",
    "docs/setup.md",
+   "docs/site/docs.css",
    "tests/doc_claims.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
