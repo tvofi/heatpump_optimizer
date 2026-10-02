@@ -83,7 +83,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -208,7 +208,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     },
     "non_round_instances": [
@@ -288,7 +288,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -501,7 +501,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -680,7 +680,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -878,7 +878,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     },
     "barrier_parts": {
@@ -930,7 +930,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -1236,7 +1236,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -1443,7 +1443,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     },
     "residual": "Known, not a finding: a per-call slowdown that adds no Python call (a vectorised operation done twice, a larger array) moves CPU without moving the count -- the doubled peak_cost_batch arm reads 1.04x and stays under; the CPU factors remain its only gate."
@@ -1501,7 +1501,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -2004,7 +2004,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5562486191",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5562840457"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-546-paired-artifacts.md"
+      "in_tree_home": null
     },
     "RCA-593-preflight": {
       "class": null,
@@ -2020,7 +2020,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/593"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-593-preflight.md"
+      "in_tree_home": null
     },
     "RCA-0002-self-witnessed-proxy": {
       "class": null,
@@ -2037,7 +2037,7 @@
         "origin/main:docs/decisions/0002-self-witnessed-proxy-assertion.md",
         "https://github.com/tvofi/heatpump_optimizer/pull/616"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-0002-self-witnessed-proxy.md"
+      "in_tree_home": null
     },
     "RCA-hassfest-toomanyrequests": {
       "class": null,
@@ -2053,7 +2053,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5605144092"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-hassfest-toomanyrequests.md"
+      "in_tree_home": null
     },
     "RCA-690-record-status": {
       "class": null,
@@ -2069,7 +2069,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5607513338"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-690-record-status.md"
+      "in_tree_home": null
     },
     "RCA-scratchpad-body-swap": {
       "class": null,
@@ -2087,7 +2087,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5608473260"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-scratchpad-body-swap.md"
+      "in_tree_home": null
     },
     "RCA-678-refusal-not-acted": {
       "class": null,
@@ -2105,7 +2105,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/678#issuecomment-5608946006",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5608945813"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-678-refusal-not-acted.md"
+      "in_tree_home": null
     },
     "RCA-533-nightly-unrun": {
       "class": null,
@@ -2122,7 +2122,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/533#issuecomment-5616087353",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5616090514"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-533-nightly-unrun.md"
+      "in_tree_home": null
     },
     "RCA-stated-number": {
       "class": null,
@@ -2138,7 +2138,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5618564043"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-stated-number.md"
+      "in_tree_home": null
     },
     "RCA-541-wrong-audience": {
       "class": null,
@@ -2155,7 +2155,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5622000848",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5622010287"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-541-wrong-audience.md"
+      "in_tree_home": null
     },
     "RCA-541-stale-body-figures": {
       "class": null,
@@ -2172,7 +2172,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5624579071",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5624585324"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-541-stale-body-figures.md"
+      "in_tree_home": null
     },
     "RCA-541-gh-api-f": {
       "class": null,
@@ -2189,7 +2189,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/541#issuecomment-5625671141",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5625684379"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-541-gh-api-f.md"
+      "in_tree_home": null
     },
     "RCA-dev-record-quantity": {
       "class": null,
@@ -2206,7 +2206,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5631076704",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5631258087"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-dev-record-quantity.md"
+      "in_tree_home": null
     },
     "RCA-check-does-not-bind": {
       "class": null,
@@ -2222,7 +2222,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5632481833"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-check-does-not-bind.md"
+      "in_tree_home": null
     },
     "RCA-865-pr-body-live-object": {
       "class": null,
@@ -2239,7 +2239,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/865",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5636576381"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-865-pr-body-live-object.md"
+      "in_tree_home": null
     },
     "RCA-trap13-instance-vs-property": {
       "class": null,
@@ -2257,7 +2257,7 @@
       "doc": [
         "origin/main:docs/HANDOVER.md (trap 13)"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-trap13-instance-vs-property.md"
+      "in_tree_home": null
     },
     "RCA-1041-plan-d6-conflicts": {
       "class": null,
@@ -2274,7 +2274,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5673831824",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5673843364"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1041-plan-d6-conflicts.md"
+      "in_tree_home": null
     },
     "RCA-1041-silent-zero": {
       "class": "N-silent-zero",
@@ -2294,7 +2294,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1041#issuecomment-5694083243",
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5693138924"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1041-silent-zero.md"
+      "in_tree_home": null
     },
     "RCA-delivery-row-seam": {
       "class": null,
@@ -2311,7 +2311,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5704098870",
         "origin/main:docs/delivery/1081.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-delivery-row-seam.md"
+      "in_tree_home": null
     },
     "RCA-ledger-self-loop": {
       "class": null,
@@ -2330,7 +2330,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5705776367 (NOT FOUND: deleted)",
         "origin/main:docs/delivery/1086.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-ledger-self-loop.md"
+      "in_tree_home": null
     },
     "RCA-gate-lease-full": {
       "class": null,
@@ -2350,7 +2350,7 @@
         "RCA comment on #201 (not found)",
         "origin/main:docs/delivery/1089.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-gate-lease-full.md"
+      "in_tree_home": null
     },
     "RCA-scratch-collide": {
       "class": null,
@@ -2369,7 +2369,7 @@
         "RCA comment on #201 (not found)",
         "origin/main:docs/delivery/1092.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-scratch-collide.md"
+      "in_tree_home": null
     },
     "RCA-1087-friction-measurement": {
       "class": null,
@@ -2386,7 +2386,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299 (NOT FOUND)",
         "origin/main:docs/plan-2026-09-open-issues.md (#1087 disposition)"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1087-friction-measurement.md"
+      "in_tree_home": null
     },
     "RCA-1094-relative-scratch": {
       "class": null,
@@ -2405,7 +2405,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1094#issuecomment-5720431439 (NOT FOUND)",
         "origin/main:docs/delivery/1123.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1094-relative-scratch.md"
+      "in_tree_home": null
     },
     "RCA-1095-typing-census": {
       "class": null,
@@ -2424,7 +2424,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924 (NOT FOUND)",
         "origin/main:docs/delivery/1122.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1095-typing-census.md"
+      "in_tree_home": null
     },
     "RCA-mutation-lane-baseline": {
       "class": null,
@@ -2444,7 +2444,7 @@
         "root-cause seat on #201 (comment not found)",
         "origin/main:docs/delivery/1120.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-mutation-lane-baseline.md"
+      "in_tree_home": null
     },
     "RCA-vacuous-acceptance-arm": {
       "class": "I1",
@@ -2463,7 +2463,7 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-5720829142 (NOT FOUND)",
         "origin/main:docs/HANDOVER.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-vacuous-acceptance-arm.md"
+      "in_tree_home": null
     },
     "RCA-1336-d9-memory-arm": {
       "class": "I1",
@@ -2481,7 +2481,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1371"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1336-d9-memory-arm.md"
+      "in_tree_home": null
     },
     "RCA-1293-d0-refutation": {
       "class": null,
@@ -2497,7 +2497,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1372"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1293-d0-refutation.md"
+      "in_tree_home": null
     },
     "RCA-1485-ledger-line-shift": {
       "class": "I1",
@@ -2515,7 +2515,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1485"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1485-ledger-line-shift.md"
+      "in_tree_home": null
     },
     "RCA-1499": {
       "class": "P2",
@@ -2531,7 +2531,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/1499#issuecomment-5803725714"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1499.md"
+      "in_tree_home": null
     },
     "RCA-1514": {
       "class": "I3",
@@ -2547,7 +2547,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/1514#issuecomment-5805916237"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1514.md"
+      "in_tree_home": null
     },
     "RCA-1515": {
       "class": "I3",
@@ -2563,7 +2563,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/1515#issuecomment-5805916471"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1515.md"
+      "in_tree_home": null
     },
     "RCA-1525": {
       "class": "P5",
@@ -2579,7 +2579,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/issues/1525#issuecomment-5819869321"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1525.md"
+      "in_tree_home": null
     },
     "RCA-R8-P9-1522": {
       "class": "P9",
@@ -2595,7 +2595,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1553"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P9-1522.md"
+      "in_tree_home": null
     },
     "RCA-R8-P8-1513": {
       "class": "P8",
@@ -2611,7 +2611,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1559"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P8-1513.md"
+      "in_tree_home": null
     },
     "RCA-R8-I5b": {
       "class": "I5",
@@ -2627,7 +2627,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1560"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-I5b.md"
+      "in_tree_home": null
     },
     "RCA-R8-I1a-kill-rule": {
       "class": "I1",
@@ -2643,7 +2643,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1561"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-I1a-kill-rule.md"
+      "in_tree_home": null
     },
     "RCA-R8-P12-1517-1529": {
       "class": "N-shared-config",
@@ -2659,7 +2659,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1563"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P12-1517-1529.md"
+      "in_tree_home": null
     },
     "RCA-R8-P1": {
       "class": "P1",
@@ -2675,7 +2675,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1569"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P1.md"
+      "in_tree_home": null
     },
     "RCA-R8-P2": {
       "class": "P2",
@@ -2691,7 +2691,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1572"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P2.md"
+      "in_tree_home": null
     },
     "RCA-R8-P6-1526": {
       "class": "P6",
@@ -2707,7 +2707,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1576"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P6-1526.md"
+      "in_tree_home": null
     },
     "RCA-R8-P5-1523": {
       "class": "P5",
@@ -2723,7 +2723,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1581"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P5-1523.md"
+      "in_tree_home": null
     },
     "RCA-1546": {
       "class": "I5",
@@ -2739,7 +2739,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1590"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1546.md"
+      "in_tree_home": null
     },
     "RCA-R8-P3": {
       "class": "P3",
@@ -2755,7 +2755,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1602"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-P3.md"
+      "in_tree_home": null
     },
     "RCA-R8-I3-1516": {
       "class": "I3",
@@ -2771,7 +2771,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1558"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-R8-I3-1516.md"
+      "in_tree_home": null
     },
     "RCA-1567-unpinned-installs": {
       "class": "I3",
@@ -2787,7 +2787,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1567"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1567-unpinned-installs.md"
+      "in_tree_home": null
     },
     "RCA-1566-stats-head-moved": {
       "class": null,
@@ -2803,7 +2803,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1566"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1566-stats-head-moved.md"
+      "in_tree_home": null
     },
     "RCA-1595-nan-ratchets": {
       "class": "I1",
@@ -2819,7 +2819,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1595"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1595-nan-ratchets.md"
+      "in_tree_home": null
     },
     "RCA-1565-mutation-timeouts": {
       "class": null,
@@ -2839,7 +2839,7 @@
         "origin/main:docs/delivery/1565.md",
         "RELEASE_NOTES.md (#1565)"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1565-mutation-timeouts.md"
+      "in_tree_home": null
     },
     "RCA-1577-ledger-anchors": {
       "class": null,
@@ -2855,7 +2855,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1577"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1577-ledger-anchors.md"
+      "in_tree_home": null
     },
     "RCA-1584-root-cause-unanswered": {
       "class": null,
@@ -2871,7 +2871,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1601"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1584-root-cause-unanswered.md"
+      "in_tree_home": null
     },
     "RCA-1596-gate-lease-wait": {
       "class": null,
@@ -2887,7 +2887,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1603"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1596-gate-lease-wait.md"
+      "in_tree_home": null
     },
     "RCA-1589-policy-docs-red": {
       "class": "I3",
@@ -2905,7 +2905,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1604"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-1589-policy-docs-red.md"
+      "in_tree_home": null
     },
     "RCA-coil-drain": {
       "class": "P3",
@@ -2924,7 +2924,7 @@
       "doc": [
         "origin/main commit e6a26880"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-coil-drain.md"
+      "in_tree_home": null
     },
     "V6612-bug5-switch": {
       "class": "P11",
@@ -2941,7 +2941,7 @@
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
         "https://github.com/tvofi/heatpump_optimizer/pull/1621"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-bug5-switch.md"
+      "in_tree_home": null
     },
     "V6612-listener-callback": {
       "class": "P11",
@@ -2957,7 +2957,7 @@
       "doc": [
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-listener-callback.md"
+      "in_tree_home": null
     },
     "V6612-bug3-4-echo": {
       "class": "P11",
@@ -2974,7 +2974,7 @@
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
         "origin/handoff/v6612-rc-policy:tools/audit/handoff/v6612-rc-policy.md"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-bug3-4-echo.md"
+      "in_tree_home": null
     },
     "V6612-bug1-6-ownership": {
       "class": "P11",
@@ -2992,7 +2992,7 @@
       "doc": [
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-bug1-6-ownership.md"
+      "in_tree_home": null
     },
     "V6612-bug2-lease": {
       "class": "P11",
@@ -3010,7 +3010,7 @@
       "doc": [
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-bug2-lease.md"
+      "in_tree_home": null
     },
     "V6612-bug7-card-history": {
       "class": "P11",
@@ -3027,7 +3027,7 @@
         "origin/handoff/v6612-root-cause:tools/audit/handoff/v6612-root-cause.md",
         "origin/handoff/v6612-history-shape:tools/audit/handoff/v6612-history-shape.md"
       ],
-      "in_tree_home": "tools/audit/rca/V6612-bug7-card-history.md"
+      "in_tree_home": null
     },
     "R9-RC1-pinned-local": {
       "class": "I3",
@@ -3045,7 +3045,7 @@
         "origin/handoff/r9-rc1-pinned-local-r2:tools/audit/handoff/r9-rc1-pinned-local.md",
         "https://github.com/tvofi/heatpump_optimizer/pull/1637"
       ],
-      "in_tree_home": "tools/audit/rca/R9-RC1-pinned-local.md"
+      "in_tree_home": null
     },
     "R9-RC2-bug5-reboot": {
       "class": "N-restart",
@@ -3081,7 +3081,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1638"
       ],
-      "in_tree_home": "tools/audit/rca/R9-1638-clobbered-store.md"
+      "in_tree_home": null
     },
     "R9-P2": {
       "class": "P2",
@@ -3385,7 +3385,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1728"
       ],
-      "in_tree_home": "tools/audit/rca/R9-1728-stamp-invariant.md"
+      "in_tree_home": null
     },
     "PRE-70-v511-freeze": {
       "class": "P10",
@@ -3405,7 +3405,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/70"
       ],
-      "in_tree_home": "tools/audit/rca/PRE-70-v511-freeze.md"
+      "in_tree_home": null
     },
     "PRE-1249-picker-revert": {
       "class": "N-restart",
@@ -3425,7 +3425,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1249"
       ],
-      "in_tree_home": "tools/audit/rca/PRE-1249-picker-revert.md"
+      "in_tree_home": null
     },
     "BULK-1-P4": {
       "class": "P4",
@@ -3441,7 +3441,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-1-P4.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P7": {
       "class": "P7",
@@ -3457,7 +3457,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-1-P7.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P8": {
       "class": "P8",
@@ -3473,7 +3473,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-1-P8.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P10": {
       "class": "P10",
@@ -3489,7 +3489,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-1-P10.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
     },
     "BULK-2-I2": {
       "class": "I2",
@@ -3505,7 +3505,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-2-I2.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
     },
     "BULK-2-N-structure-blind": {
       "class": "N-structure-blind",
@@ -3521,7 +3521,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-2-N-structure-blind.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
     },
     "BULK-2-R-register": {
       "class": null,
@@ -3537,7 +3537,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-2-R-register.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
     },
     "BULK-3-1721": {
       "class": "P11",
@@ -3553,7 +3553,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-3-1721.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-1545": {
       "class": "I5",
@@ -3569,7 +3569,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-3-1545.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-1070": {
       "class": null,
@@ -3585,7 +3585,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-3-1070.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-v660-freeze": {
       "class": "P10",
@@ -3601,7 +3601,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-3-v660-freeze.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
     },
     "BULK-4-N-name-sort": {
       "class": "N-name-sort",
@@ -3617,7 +3617,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-4.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-4-N-name-sort.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-4.md"
     },
     "BULK-3-1041-rerun": {
       "class": "N-silent-zero",
@@ -3633,7 +3633,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/BULK-3-1041-rerun.md"
+      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
     }
   }
 }
