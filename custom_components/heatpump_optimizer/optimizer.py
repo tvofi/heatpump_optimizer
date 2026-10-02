@@ -95,6 +95,7 @@ from .thermal_model import (
     _step_humidity,
     planned_draw_runs,
     planned_draws_run,
+    weather_or_calm,
     wood_share,
 )
 from .tariff import (
@@ -110,6 +111,15 @@ from .tariff import (
 from .dhw_schedule import format_resolved_day_spec
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
+    """A per-step series clipped at zero and fitted to the horizon: cut to
+    ``n_steps``, or padded with zeros when the forecast is shorter."""
+    series = np.clip(np.asarray(values, dtype=float), 0.0, None)
+    if series.size < n_steps:
+        series = np.concatenate([series, np.zeros(n_steps - series.size)])
+    return series[:n_steps]
 
 
 def _holiday_flags_for(
@@ -2748,12 +2758,9 @@ class HeatPumpOptimizer:
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
 
-        if wind_speeds is None:
-            wind_speeds = np.zeros(n_steps)
-        if precipitation is None:
-            precipitation = np.zeros(n_steps)
-        if solar_radiation is None:
-            solar_radiation = np.zeros(n_steps)
+        wind_speeds, precipitation, solar_radiation = weather_or_calm(
+            n_steps, wind_speeds, precipitation, solar_radiation
+        )
         if price_known is None:
             price_known = np.ones(n_steps, dtype=bool)
         if pv_surplus is None:
@@ -2794,10 +2801,7 @@ class HeatPumpOptimizer:
         # Free-heat forecast, normalised to horizon length like the arrays
         # above. All-zero is the same as none at all, and is treated so.
         if external_heat_kw is not None:
-            ext = np.clip(np.asarray(external_heat_kw, dtype=float), 0.0, None)
-            if ext.size < n_steps:
-                ext = np.concatenate([ext, np.zeros(n_steps - ext.size)])
-            external_heat_kw = ext[:n_steps]
+            external_heat_kw = _padded_nonneg(external_heat_kw, n_steps)
             if not np.any(external_heat_kw > 0.0):
                 external_heat_kw = None
 
@@ -3135,10 +3139,7 @@ class HeatPumpOptimizer:
         # sigma 0 by construction and λ defaults to 0, which skips this
         # entirely and leaves the array untouched.
         if price_sigma is not None and self.config.price_risk_lambda > 0.0:
-            sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
-            if sig.size < n_steps:
-                sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
-            risk = self.config.price_risk_lambda * sig[:n_steps]
+            risk = self.config.price_risk_lambda * _padded_nonneg(price_sigma, n_steps)
             risk = np.where(price_known, 0.0, risk)
             if np.any(risk > 0.0):
                 prices = np.asarray(prices, dtype=float) + risk
@@ -3180,10 +3181,7 @@ class HeatPumpOptimizer:
         # None for both is byte-for-byte the previous bounds.
         if min_temp_margins is not None or min_temp_floors is not None:
             if min_temp_margins is not None:
-                m = np.clip(np.asarray(min_temp_margins, dtype=float), 0.0, None)
-                if m.size < n_steps:
-                    m = np.concatenate([m, np.zeros(n_steps - m.size)])
-                temp_min_bounds = temp_min_bounds + m[:n_steps]
+                temp_min_bounds = temp_min_bounds + _padded_nonneg(min_temp_margins, n_steps)
             if min_temp_floors is not None:
                 f = np.asarray(min_temp_floors, dtype=float)
                 if f.size < n_steps:

@@ -30,6 +30,8 @@ from typing import Any, Callable
 
 import numpy as np
 
+from .inputs import _finite
+
 #: The two stages. Anything unrecognised in config reads as observe.
 FREQ_MODE_OBSERVE = "observe"
 FREQ_MODE_CONTROL = "control"
@@ -56,14 +58,6 @@ FREQ_WATCHDOG_TICKS = 3
 FREQ_WRITE_MIN_INTERVAL_S = 300.0
 #: Re-writing the same value is noise on the wire.
 FREQ_WRITE_EPSILON_HZ = 1.0
-
-
-def _finite(value: Any) -> float | None:
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return result if np.isfinite(result) else None
 
 
 def resolve_reading(

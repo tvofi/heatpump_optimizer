@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from weakref import WeakKeyDictionary
 
-from .store import QuarantiningStore
+from .store import QuarantiningStore, load_mapping
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
@@ -209,12 +209,8 @@ async def persist(coord: _BoostCoord) -> None:
 
 
 async def restore(coord: Any) -> None:
-    try:
-        raw = await _store(coord).async_load()
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not load boost state: %s", err)
-        raw = None
-    if not isinstance(raw, dict):
+    raw = await load_mapping(_store(coord), "boost state")
+    if raw is None:
         return
     now = dt_util.now()
     held = held_for(coord)

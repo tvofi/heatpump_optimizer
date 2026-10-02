@@ -8,7 +8,7 @@ C1  an ``Any`` / ``object`` key is untyped              ``metrics/untyped_payloa
 C2  ``reflective_writes``, C2b ``computed_attr_access``  here; gate-only, weight 0. A write spelled
     reflectively is a write; the role engine does not yet read one as a write, so these
     only stop the count falling by re-spelling. They retire when it does.
-C3  effect-free statements do not split a clone         ``NOOP_PATTERNS``; applied to the shared
+C3  a statement dead by data flow does not split a clone  ``inert_statements``; applied to the shared
     clone window by ``vector.py``
 C4  the coordinator is its whole package class hierarchy  ``flatten``
 C5  a passthrough property is a reach                    ``passthrough_properties``; applied to the
@@ -104,24 +104,94 @@ def computed_attr_access(ts: dict[str, ast.Module]) -> int:
 
 
 # ---------------------------------------------------------------- C3
-def is_noop(s: ast.AST) -> bool:
-    """A statement with no effect, dropped before a clone window is cut so junk interleaved in every
-    window does not split the clone (attempt 04: 121 -> 7; the reviewer's ``pass`` variant read +14.15).
+# An expression is effect-free when every node in it is one of these, every call calls a PURE builtin or a
+# lambda, and every name it binds is dead. A class by grammar, closed under composition, not a spelling list.
+_PURE_NODES = (ast.Constant, ast.Name, ast.Load, ast.Store, ast.Attribute, ast.Tuple, ast.List, ast.Set,
+               ast.Dict, ast.Starred, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp, ast.Lambda,
+               ast.arguments, ast.arg, ast.NamedExpr, ast.Call, ast.keyword, ast.JoinedStr, ast.FormattedValue,
+               ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
 
-    The class: ``pass``; an expression statement of a constant (``...``, ``None``, a string), a name,
-    an attribute, or a call of a pure builtin on names and constants; and an ``if`` on a constant
-    whose branches are all such statements."""
+
+def _pure(e: ast.AST | None, dead: set[str]) -> bool:
+    return e is None or all(
+        isinstance(n, _PURE_NODES)
+        and not (isinstance(n, ast.Call) and not (isinstance(n.func, ast.Lambda)
+                                                  or (isinstance(n.func, ast.Name) and n.func.id in PURE)))
+        and not (isinstance(n, ast.NamedExpr) and n.target.id not in dead)
+        for n in ast.walk(e))
+
+
+def _fold(e: ast.AST, dead: set[str]):
+    """``(True, value)`` for an effect-free expression reading no name but a PURE builtin, else
+    ``(False, None)``. No ``**`` or ``<<``, so evaluating it is bounded."""
+    if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.NamedExpr, ast.Lambda)) for n in ast.walk(e)) \
+            or any(isinstance(n, ast.Name) and n.id not in PURE for n in ast.walk(e)):
+        return False, None
+    try:
+        return True, eval(compile(ast.Expression(e), "<c3>", "eval"),  # noqa: S307 -- grammar above
+                          {"__builtins__": {k: __builtins__[k] if isinstance(__builtins__, dict)
+                                            else getattr(__builtins__, k) for k in PURE}})
+    except Exception:  # noqa: BLE001 -- an expression that raises is not inert
+        return False, None
+
+
+def _inert(s: ast.stmt, dead: set[str]) -> bool:
+    """A statement whose execution changes nothing the function can observe afterwards."""
+    every = lambda body: all(_inert(x, dead) for x in body)  # noqa: E731
     if isinstance(s, ast.Pass):
         return True
-    if isinstance(s, ast.If) and isinstance(s.test, ast.Constant):
-        return all(is_noop(x) for x in (*s.body, *s.orelse))
-    if not isinstance(s, ast.Expr):
-        return False
-    v = s.value
-    if isinstance(v, (ast.Constant, ast.Name, ast.Attribute)):
-        return True
-    return isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id in PURE \
-        and all(isinstance(a, (ast.Constant, ast.Name)) for a in v.args)
+    if isinstance(s, ast.Expr):
+        return _pure(s.value, dead)
+    if isinstance(s, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete)):
+        targets = s.targets if isinstance(s, (ast.Assign, ast.Delete)) else [s.target]
+        return all(isinstance(n, (ast.Name, ast.Tuple, ast.List, ast.Starred, ast.Store, ast.Del))
+                   and not (isinstance(n, ast.Name) and n.id not in dead)
+                   for x in targets for n in ast.walk(x)) and _pure(getattr(s, "value", None), dead)
+    if isinstance(s, ast.Assert):
+        ok, v = _fold(s.test, dead)
+        return ok and bool(v)
+    if isinstance(s, (ast.If, ast.While)):
+        ok, v = _fold(s.test, dead)
+        if isinstance(s, ast.While):
+            return ok and not v and every(s.orelse)
+        return every(s.body if v else s.orelse) if ok else _pure(s.test, dead) and every(s.body) and every(s.orelse)
+    if isinstance(s, ast.For):
+        ok, v = _fold(s.iter, dead)
+        return ok and not list(v) and every(s.orelse) if ok and hasattr(v, "__iter__") else False
+    if isinstance(s, ast.Try):
+        return every(s.body) and every(s.orelse) and every(s.finalbody) and all(every(h.body) for h in s.handlers)
+    return False
+
+
+def _dead_names(fn: ast.AST) -> set[str]:
+    """Names ``fn`` binds and nothing in it reads: not loaded anywhere in its body, nested scopes
+    included, and not declared ``global`` or ``nonlocal``."""
+    stored, live = set(), set()
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Name):
+            (live if isinstance(n.ctx, ast.Load) else stored).add(n.id)
+        elif isinstance(n, (ast.Global, ast.Nonlocal)):
+            live |= set(n.names)
+    return stored - live
+
+
+def inert_statements(trees, all_functions) -> set[int]:
+    """``id()`` of every statement dead by data flow in the package's functions, dropped before a clone
+    window is cut so junk interleaved in every window does not split the clone (attempt 04: 121 -> 7;
+    04h to 04m are the spellings an enumeration missed). Dead: effect-free by ``_PURE_NODES`` and binding
+    only names nothing reads; an ``assert``, ``if``, ``while`` or ``for`` whose test folds to a constant
+    is judged on the branch that runs, and a ``try`` on its every part. Each function is judged with its
+    own reads; an enclosing function reads a superset, so the union never drops a live statement.
+
+    Out of the class, and so still open: junk with an effect (a call of anything not PURE), which is
+    logic in the diff. A gap tolerance in the window would close that too, but it redefines the shared
+    window (59 -> 72 copies on main at 16551007), so it is not here."""
+    out: set[int] = set()
+    for _path, tree in trees:
+        for fn in all_functions(tree):
+            dead = _dead_names(fn)
+            out |= {id(s) for s in ast.walk(fn) if isinstance(s, ast.stmt) and s is not fn and _inert(s, dead)}
+    return out
 
 
 # ---------------------------------------------------------------- C5

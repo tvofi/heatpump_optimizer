@@ -818,6 +818,15 @@ def _slab_refusal(
     return None
 
 
+def _r2_confidence(residual: np.ndarray, observed: np.ndarray, samples: int) -> tuple[float, float]:
+    """The fit's R² clipped to [0, 1] and tempered by sample count (full at 12), and its residual
+    sum of squares: the one confidence base both fits share."""
+    ss_res = float(np.sum(np.square(residual)))
+    ss_tot = float(np.sum(np.square(observed - np.mean(observed))))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
+    return float(np.clip(r2, 0.0, 1.0)) * min(1.0, samples / 12.0), ss_res
+
+
 def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     """Confidence for the two-state fit, mirroring identify()'s ingredients.
 
@@ -826,11 +835,7 @@ def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     nonlinear form's stand-in for the one-state noise gate until the wave
     rebuilds that program (a noisy window is discounted, not refused).
     """
-    ss_res = float(np.sum(np.square(error)))
-    tail = rooms[1:]
-    ss_tot = float(np.sum(np.square(tail - np.mean(tail))))
-    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
-    confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(error) / 12.0)
+    confidence, ss_res = _r2_confidence(error, rooms[1:], len(error))
     excursion = float(np.max(rooms) - np.min(rooms))
     confidence *= float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
     signal = float(np.percentile(rooms, 90) - np.percentile(rooms, 10))
@@ -1696,6 +1701,15 @@ class SystemIdentification:
     # BEHAVIOURAL, because a name-based scan cannot see this shape -- ``_finish``
     # does reference ``identify`` by name, so ``tests/structure.py``'s
     # ``dead_methods`` census correctly reads 0.
+    def _usable_samples(self) -> list[Any]:
+        """The samples both fits read: settling, step and relax, never the
+        phases before the experiment holds its setpoint."""
+        return [
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+        ]
+
     def identify(self) -> SysIdResult:
         """Fit a first-order model to the recorded step response.
 
@@ -1718,11 +1732,7 @@ class SystemIdentification:
         to the historical two-column form rather than failing outright,
         and reports no gains figure. Harness-only: see the note above (#1395).
         """
-        usable = [
-            s
-            for s in self.samples
-            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
-        ]
+        usable = self._usable_samples()
         if len(usable) < 6:
             return SysIdResult(completed=False, reason="not enough samples")
 
@@ -1976,11 +1986,7 @@ class SystemIdentification:
 
         # Confidence from how well the fit explains the data, tempered by how
         # much data there was.
-        predicted = a @ solution
-        ss_res = float(np.sum((b - predicted) ** 2))
-        ss_tot = float(np.sum((b - np.mean(b)) ** 2))
-        r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
-        confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 12.0)
+        confidence, _ = _r2_confidence(b - a @ solution, b, len(rows))
         # The intercept's identifiability scales with how far ΔT actually
         # moved; R² cannot see that (a flat fit explains flat data well), so
         # the blend weight is tempered by the achieved excursion directly.
@@ -2132,11 +2138,7 @@ class SystemIdentification:
             # arrive without a plant, so neither branch is a production path.
             self._slab_fit_used = False
             return self.identify()
-        usable = [
-            s
-            for s in self.samples
-            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
-        ]
+        usable = self._usable_samples()
         if len(usable) < 6:
             return SysIdResult(completed=False, reason="not enough samples")
         series = _slab_series(usable)

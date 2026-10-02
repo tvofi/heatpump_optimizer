@@ -88,6 +88,24 @@ _DHW_REFILL_WINDOW_HOURS = 6.0
 _DHW_MIN_RUN_CHUNK = 8
 
 
+def _tank_decay(ua: float, dt: float, c_dhw: float) -> tuple[float, float]:
+    """The tank's per-step recursion ``T' = decay * T + gain - draw``: the share of stored heat kept,
+    guarded so an absurdly leaky tank or a long step cannot make it negative (unstable), and the
+    standby gain from the room around the tank. The one copy the LP, the run-up walk and the
+    floor repair share."""
+    return float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0)), ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
+
+
+def _within_ceiling(requirement: Any, max_temp: Any) -> tuple[np.ndarray, np.ndarray]:
+    """The requirement held to each step's own ceiling, and the ceiling, as float arrays.
+
+    A requirement above the ceiling can never be met, and asking for it would only make a planner
+    give up; elementwise, so the disinfection requirement survives at the one step whose ceiling
+    was raised for it."""
+    ceiling = np.asarray(max_temp, dtype=float)
+    return np.minimum(np.asarray(requirement, dtype=float), ceiling), ceiling
+
+
 class _DhwLegionellaPlan(NamedTuple):
     """What the anti-legionella stage decides, and the ceilings it sets."""
 
@@ -482,8 +500,7 @@ class DhwPlanner:
             boost_top > float(params.dhw_max_temp)
         ):
             ua = params.dhw_tank_heat_loss_coefficient
-            decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
-            gain = ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
+            decay, gain = _tank_decay(ua, dt, c_dhw)
             everyday = float(params.dhw_max_temp)
             max_temp[legionella_step] = boost_top
 
@@ -1252,15 +1269,10 @@ class DhwPlanner:
         if n_steps == 0 or c_dhw <= 0.0:
             return None
 
-        max_temp = np.asarray(max_temp, dtype=float)
-        requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+        requirement, max_temp = _within_ceiling(requirement, max_temp)
         params = self.model.params
         ua = params.dhw_tank_heat_loss_coefficient
-
-        # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
-        # long time step cannot produce a negative (unstable) factor.
-        decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
-        gain = ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
+        decay, gain = _tank_decay(ua, dt, c_dhw)
 
         # Free trajectory: what the tank does with no heating at all.
         free = np.zeros(n_steps + 1)
@@ -1486,16 +1498,16 @@ class DhwPlanner:
         n = plan.size
         if n == 0 or requirement is None or c_dhw <= 0.0:
             return plan
-        ceiling = np.asarray(max_temp, dtype=float)[:n]
         # Clipped to the ceiling, exactly as both planners clip it: a floor
         # the tank is not allowed to reach is not a target, it is a loop that
         # keeps buying blocks the tank cannot hold.
-        req = np.minimum(np.asarray(requirement, dtype=float)[:n], ceiling)
+        req, ceiling = _within_ceiling(
+            np.asarray(requirement, dtype=float)[:n], np.asarray(max_temp, dtype=float)[:n]
+        )
         # The tank's own per-step decay, the same factor the linear program
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
-        ua = self.model.params.dhw_tank_heat_loss_coefficient
-        decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+        decay, _ = _tank_decay(self.model.params.dhw_tank_heat_loss_coefficient, dt, c_dhw)
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
         # giving up at the first step the tank cannot quite reach, and a
@@ -1933,12 +1945,7 @@ class DhwPlanner:
         if n_steps == 0 or c_dhw <= 0.0:
             return plan
 
-        # A requirement above the step's own ceiling can never be met; asking
-        # for it would only make the planner give up. Elementwise, so the
-        # disinfection requirement survives at the one step whose ceiling was
-        # raised for it while everything else is held to the charge limit.
-        max_temp = np.asarray(max_temp, dtype=float)
-        requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+        requirement, max_temp = _within_ceiling(requirement, max_temp)
 
         # Fraction of stored heat lost per hour of storage: raising the tank by
         # ΔT stores C·ΔT kWh but adds U·ΔT kW of standby loss.
