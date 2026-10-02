@@ -53,6 +53,15 @@ function python(code, input) {
 }
 
 
+const CC = 'custom_components/heatpump_optimizer'
+function entityLeaves(rel) {
+  const out = {}
+  const walk = (o, pre) => { for (const [k, v] of Object.entries(o)) (v && typeof v === 'object') ? walk(v, `${pre}${k}.`) : (out[`${pre}${k}`] = v) }
+  walk(JSON.parse(rd(`${CC}/${rel}`)).entity ?? {}, '')
+  if (!Object.keys(out).length) throw new Error(`${rel}: no entity section`)
+  return out
+}
+
 // The readers below are run in a Python subprocess against the live tree.
 const PY_STRUCTURE = `
 import ast, json, sys
@@ -210,6 +219,19 @@ const PAIRS = [
       const out = python(PY_GOV + 'print(json.dumps({"gov": sorted(gov), "pin": sorted(pin)}))', null)
       const gov = new Set(out.gov); const pin = new Set(out.pin)
       return { 'governance_cost.py GOV': (j) => gov.has(j), "tests/entities.py _GOV_FILES (+ the 'briefs' null control)": (j) => pin.has(j) }
+    },
+  },
+  {
+    concept: 'entity-names',
+    what: "the display name of each entity key: strings.json (what tests/entities.py's entity-name resolver reads for the contiguity check) against translations/en.json (what the archscore family_splits enumerator reads); hassfest never compares the two files' values. R9-F7.5 carry-in, route A",
+    async corpus() {
+      const keys = new Set()
+      for (const f of ['strings.json', 'translations/en.json']) for (const k of Object.keys(entityLeaves(f))) keys.add(k)
+      return [...keys].sort().map((k) => [k, k])
+    },
+    async readers() {
+      const a = entityLeaves('strings.json'); const b = entityLeaves('translations/en.json')
+      return { 'strings.json entity section': (k) => a[k] ?? null, 'translations/en.json entity section': (k) => b[k] ?? null }
     },
   },
 ]

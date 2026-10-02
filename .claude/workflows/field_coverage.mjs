@@ -47,7 +47,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { RULESET_VOLATILE } from './counts.mjs'
+import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips } from './counts.mjs'
 import { checkBudgets, sizes, policyBudgets, CHECKS } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -392,6 +392,16 @@ async function selfTest() {
   t('a load failure is REFUSED', r.refused.length === 1)
   r = fresh(); await jsonRun({ ...reg({}), skipOnLoad: true, load: () => { throw new Error('down') } }, r)
   t('the ruleset arm\'s load failure is a printed skip, not a refusal', !r.refused.length && !r.read.length)
+  // The #1721 hotfix review's two surviving mutants: (1) env-matrix's "nothing
+  // skipped" row accepting any skip once the token-hidden line is present; (2)
+  // the UNCHECKED pattern loosened past the one field a token cannot see.
+  const hiddenLine = (f) => `  skip  required-contexts  ruleset 23698884 field \`${f}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`
+  const other = '  skip  checkProvenance-pin  no origin/main to drive against'
+  t('env-matrix\'s nothing-skipped row passes the token-hidden line alone', unexpectedSkips(hiddenLine('bypass_actors')).length === 0)
+  t('and fails on a second, non-token skip line beside it', unexpectedSkips(`${hiddenLine('bypass_actors')}\n${other}`).length === 1)
+  t('and fails on a lone non-token skip line', unexpectedSkips(other).length === 1)
+  t('the UNCHECKED pattern matches every field the token cannot see', RULESET_TOKEN_HIDDEN.length > 0 && RULESET_TOKEN_HIDDEN.every((f) => TOKEN_HIDDEN_SKIP_RE.test(hiddenLine(f))))
+  t('and refuses the same line for any other field (pinned to bypass_actors)', !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('dismiss_stale_reviews_on_push')) && !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('rules')))
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
