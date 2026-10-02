@@ -17,9 +17,9 @@ Comparisons spanning several lines stay out of the operator. That is card C7's r
 **Equivalent mutants, disclosed.** The #1861 fix review's scan found two production sites where the operator's mutant is provably equivalent: the max/min idiom, whose two arms agree at equality.
 
 - `away.py` `_holiday_span`: `if last < first:` then `last = first`, over `date` values.
-- `optimizer.py` `HeatPumpOptimizer._dhw_planner_draws`: `idx = i if i <= last else last`, over ints.
+- `dhw_planner.py` `DhwPlanner._dhw_planner_draws` (in `optimizer.py` until #1858 moved it unchanged): `idx = i if i <= last else last`, over ints.
 
-No driver can kill either one, so each is recorded here as a `survivor_triage` `equivalent` row in `tests/mutation_ledger/survivor_triage/`. Each row is measured by `tools/audit/round9/F10/f10_6/equiv_probe.py`: the inputs reach the comparison with tied sides, no input separates head from mutant, and a differing control on the same line shows the probe can see a difference.
+No driver can kill either one, so each is recorded here as a `survivor_triage` `equivalent` row in `tests/mutation_ledger/survivor_triage/`. Each row is measured by `tools/audit/round9/F10/f10_6/equiv_probe.py`. It counts ties inside the compiled production function, by an append in the comparison itself. No input separates head from mutant. A tie-only control on the same line, an edit that changes the result only when the two sides are equal, shows the grid can see a difference at the one place a `<`/`<=` mutant could differ. The tie counter and both controls are the #1861 review's own (`~/hpo-seats/1861-review/own/rv_equiv_probe.py`, sha1 6f7aee1d6f4e01b0d637d5cb91f64b6694b0e725).
 
 The scan behind this list covers two patterns only: the max/min idiom, and an integer compared against a fractional constant (0 hits). It does not prove that no other equivalent `CMP_BOUND` mutant exists. Any further one surfaces as a survivor in `--pin-killed` or the nightly drain and needs the same verdict.
 
@@ -30,15 +30,17 @@ The scan behind this list covers two patterns only: the max/min idiom, and an in
 
 ## Head
 
-307ecf6cb77f931460a6312c90fcf42d781e724f (merge base and `origin/main` aa7a8119, 2026-10-02)
+bdc14972515b7bbca4175159acb644860928e5c9 (merge base and `origin/main` 68b8cb97, 2026-10-02)
 
-Round 2 answers the #1861 review (round 1 blocked: mutation-vacuous on R8 and R5, and two undisclosed equivalent mutants). It builds on 9a639794, the orchestrator's merge of `origin/main` aa7a8119 (#1859, the `always()` hotfix) into round 1's code head cd04771a.
+Round 3 answers the #1861 review's round 2 (blocked: null-control). There, `equiv_probe.py`'s controls differed only off the tie, 0 of 17 and 0 of 11 tied cases, so they did not cover the arm the equivalence claim is about. bdc14972 gives the probe tie-only controls and re-quotes both triage rows.
+
+edac88f4 merges `origin/main` 68b8cb97 (#1856, #1857, #1858) into round 2's code head 307ecf6c. #1858 moved `_dhw_planner_draws` unchanged from `optimizer.py` to `dhw_planner.py`, which left that row's anchor naming no site (`completeness_problems` refused). bdc14972 re-keys the row to the moved site, with the same `old` pin and verdict.
 
 ## Mutation proof
 
 Failing test first: at a5f4e1c1 (checks only) the original three checks in `tests/entities.py` failed, with `CMP_BOUND` generating `[]`.
 
-This round's repairs are pinned by the review's own mutants. They were run at 307ecf6c with the reviewer's `~/hpo-seats/1861-review/own/mutants.py` (sha1 e32144cf47af3f55dd9b0c3154979a67e9a29403). It applies each mutant in place, drives `tests/entities.py`'s operator block through `/Users/timmalmstrom/hpo-seats/R9-F10.6/scratch/run_block.py` (out of tree, sha1 1cc0dcf8b4a1aa92e17bef72a64fe5b5e773d4e1), and restores the file.
+Round 2's repairs are pinned by the review's own mutants. They were re-run at bdc14972 (results identical to 307ecf6c) with the reviewer's `~/hpo-seats/1861-review/own/mutants.py` (sha1 e32144cf47af3f55dd9b0c3154979a67e9a29403). It applies each mutant in place, drives `tests/entities.py`'s operator block through `/Users/timmalmstrom/hpo-seats/R9-F10.6/scratch/run_block.py` (out of tree, sha1 1cc0dcf8b4a1aa92e17bef72a64fe5b5e773d4e1), and restores the file.
 
 - R8 (`<` flips to `>`): `fails=1`, FAIL `CMP_BOUND moves each ordering bound by one, one mutant per operator`. At round 1 it printed 0.
 - R5 (the one-line restriction dropped): `fails=3`, including FAIL `a comparison spanning more than one line yields no CMP_BOUND site (C7)`. At round 1 it printed 0.
@@ -68,15 +70,19 @@ Survivors on the sites touched: `--scope changed` draws only from production lin
 
 ## Figures
 
-At code head 307ecf6c, merge base aa7a8119, 2026-10-02.
+At code head bdc14972, merge base 68b8cb97, 2026-10-02.
 
-- Ratchet at the head: `python3 tests/mutation_table.py --scope changed --base origin/main` -> `4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base aa7a81192325614999803e40e3cedc024e22ce2b; the ledger agrees with the deterministic inventory`, then `MUTATION TABLE PASSED (empty scope)`. No `ADDED UNPINNED` line was printed.
-- Inventory, both ends: `python3 tools/audit/round9/F10/f10_6/inventory_identity.py origin/main` (sha1 064b4c50fa7a3f2111d1650b6d550671044854f0) -> `RESULT inventory head sites=5466 sha1=1ba97b4cecd5 unpinned=4853` and `RESULT inventory origin/main sites=4520 sha1=c141b52379cc unpinned=3909`. At the list-mode head c117c2b3 the head line equalled `origin/main`'s.
-- Stock: `python3 tests/mutation_table.py --list CMP_BOUND` -> `LIST CMP_BOUND: 946 site(s) in 55 file(s), 944 unpinned, ratcheted`. Rule: every ordering operator of a one-line `ast.Compare` in every production module.
-  - Control: `python3 tools/audit/round9/F10/f10_6/cmp_cost.py 1936d5ca 8fa06663` (sha1 359281f1464b34274048cb92575afdc9a565ff9f) -> `RESULT stock_sites=946 unpinned=944 anchors=805 files=55` and `RESULT control ordering_ops_all=961 one_line=946 multi_line=15`.
+- Ratchet at the head: `python3 tests/mutation_table.py --scope changed --base origin/main` -> `4853 unpinned site(s) of 5466 candidate sites, 4855 at the ratchet base 68b8cb97d911339a206fde141ecfdf0f57c6ccc4; the ledger agrees with the deterministic inventory`, then `MUTATION TABLE PASSED (empty scope)`. No `ADDED UNPINNED` line was printed.
+- Inventory, both ends: `python3 tools/audit/round9/F10/f10_6/inventory_identity.py origin/main` (sha1 064b4c50fa7a3f2111d1650b6d550671044854f0) -> `RESULT inventory head sites=5466 sha1=3f04779a430a unpinned=4853` and `RESULT inventory origin/main sites=4520 sha1=fe4c90319eb3 unpinned=3909`. The digests moved with #1858's file move, and the counts did not. At the list-mode head c117c2b3 the head line equalled `origin/main`'s.
+- Stock: `python3 tests/mutation_table.py --list CMP_BOUND` -> `LIST CMP_BOUND: 946 site(s) in 56 file(s), 944 unpinned, ratcheted`. Rule: every ordering operator of a one-line `ast.Compare` in every production module.
+  - Control: `python3 tools/audit/round9/F10/f10_6/cmp_cost.py 1936d5ca 8fa06663` (sha1 359281f1464b34274048cb92575afdc9a565ff9f) -> `RESULT stock_sites=946 unpinned=944 anchors=805 files=56` and `RESULT control ordering_ops_all=961 one_line=946 multi_line=15`.
   - A chain's operators share a ledger anchor, which is why the sites sit under fewer anchors. `pin_results` pins an anchor only when every site under it was killed, so a pinned upper bound cannot cover an unpinned lower one.
-- Equivalents: `PYTHONPATH=tests/hastub python3 tools/audit/round9/F10/f10_6/equiv_probe.py` (sha1 4ba36ee6d6d36d166a29fde41dcebf9d3b216906, run with numpy) -> `RESULT away._holiday_span cases=49 ties=17 mutant_differs=0 control_differs=18` and `RESULT optimizer._dhw_planner_draws cases=16 ties=11 mutant_differs=0 control_differs=11`.
-  - The review's scan, `python3 ~/hpo-seats/1861-review/own/rv_equiv.py` (sha1 beb4a3e17b7afeb4a7b68633a246b4a0ef8ab5eb), -> `RESULT rv_equiv candidates=2`: away.py:558 and optimizer.py:4742.
+- Equivalents: `PYTHONPATH=tests/hastub python3 tools/audit/round9/F10/f10_6/equiv_probe.py` (sha1 8acccbc63a035b8226de2dcf1708130ecbc8e33a, run with numpy) ->
+  - `RESULT _holiday_span cases=49 ties=17 mutant_differs=0 control_differs_at_tie=17 control_differs_untied=0`
+  - `RESULT _dhw_planner_draws cases=16 ties=11 mutant_differs=0 control_differs_at_tie=6 control_differs_untied=0`
+  - `RESULT _dhw_planner_draws tied_cases_with_last_0=5`: in those 5 tied cases `last == 0`, where the tie-only control (`last - 1 if i == last and last > 0`) cannot move. So it covers 6 of the 11 tied cases there, and all 17 in `_holiday_span`.
+  - Round 2's probe used off-tie controls (`if False:`; `idx = last`), which the review measured moving 0 tied cases. They are replaced.
+  - The review's scan, `python3 ~/hpo-seats/1861-review/own/rv_equiv.py` (sha1 beb4a3e17b7afeb4a7b68633a246b4a0ef8ab5eb), at 307ecf6c -> `RESULT rv_equiv candidates=2`: away.py:558 and optimizer.py:4742 (now dhw_planner.py:679).
   - Its scope is the max/min idiom and the integer-against-fraction shape. It is not proven exhaustive.
 - Generation, the review's instrument: `python3 ~/hpo-seats/1861-review/own/rv_check.py` (sha1 1ba7dcf847a4bff65022a3605a9443d6eb8e9ecf) -> `RESULT rv sites=946 expected=946 line_mismatch=0 bad=0`.
 - Per-merge pin burden: `python3 tools/audit/round9/F10/f10_6/cmp_cost.py 1936d5ca 8fa06663` -> `RESULT burden CMP_BOUND: merges=121 adding=25 total=122 mean=1.01 median=0 max=15`. The scale it is read against is the operator the ratchet already charges: `RESULT burden GUARD_OFF: merges=121 adding=36 total=192 mean=1.59 median=0 max=18`.
@@ -91,15 +97,15 @@ At code head 307ecf6c, merge base aa7a8119, 2026-10-02.
   - **At a measured kill rate.** At the one kill fraction measured for this drain (37 of 40 in F10.5's demonstration slice) it is about 944 / 37, roughly 26 nights.
   - **Not measured.** The real figure depends on the survivor rate of these sites, which is unmeasured.
 - Per-PR CI cost, by rule: burden x about 2.2 min through `mutation-autofix`'s `--pin-killed`. That is a mean of about 2.2 min per merge and a maximum of about 33 min over the window. This is an estimate from the nightly's per-mutant rate, not a measured PR run.
-- Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` -> `MODE: SCOPED -- 2 script(s) run, 26 scoped out`, running `tests/entities.py` and `tests/harness_headers.py`. Both ran at 307ecf6c under `~/hpo-seats/R9-F11.4-venv/bin/python3` with `PYTHONPATH=tests/hastub`.
-  - `tests/entities.py`: `ALL 2075 ENTITY CHECKS PASSED`.
+- Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` -> `MODE: SCOPED -- 2 script(s) run, 26 scoped out`, running `tests/entities.py` and `tests/harness_headers.py`. Both ran at bdc14972 under `~/hpo-seats/R9-F11.4-venv/bin/python3` with `PYTHONPATH=tests/hastub`.
+  - `tests/entities.py`: `ALL 2078 ENTITY CHECKS PASSED`.
   - `tests/harness_headers.py`: `ALL 94 HARNESS HEADER CHECKS PASSED`.
 - `python3 tests/structure.py` (same venv) -> `STRUCTURE RATCHET PASSED`.
 - Not run locally (CI's): closures (`PREPR_SKIP_CLOSURES=1`), the mutation lane's drives, `features.py` and the solver goldens.
 
 ## Red checks
 
-The review's CI read at round 1's head 2c8f2bac found one red, `nightly-status`, which reported `mutation-ledger` and `mutation-ledger-push` absent from the scheduled run. That is `main`'s `always()` defect, fixed by #1859 (aa7a8119, merged into this branch). This diff does not touch what that reporter reads. No check went red on a commit this branch made.
+The review's CI reads at round 1's head 2c8f2bac and round 2's 5009fe47 found one red, `nightly-status`, which reported `mutation-ledger` and `mutation-ledger-push` absent from the scheduled run. That is `main`'s `always()` defect, fixed by #1859 (aa7a8119, merged into this branch). This diff does not touch what that reporter reads. No check went red on a commit this branch made.
 
 ## Forward-carry
 
