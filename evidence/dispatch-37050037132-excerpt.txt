@@ -1,0 +1,7 @@
+== 110980930989
+      tests/harness_headers.py: tools/audit/round4/D7/sysid_estimator_frontier.py exits 0  [rc=-24 stderr=]; tools/audit/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header  [header='2' printed=None]; tools/audit/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header  [header='16' printed=None]; 
+##[error]Process completed with exit code 1.
+== 111044417786
+58Z MUTATION LEDGER: skip-head-moved
+87Z MUTATION LEDGER: skip-head-moved -- a measured slice did not reach main
+55Z ##[error]Process completed with exit code 1.
