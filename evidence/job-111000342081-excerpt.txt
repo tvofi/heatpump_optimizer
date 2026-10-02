@@ -1,7 +1,0 @@
-pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-02T19:42:44.0809918Z   clean: true
-pr-contract	Check the body against the contract	2026-10-02T19:42:54.9350061Z   skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
-pr-contract	Check the body against the contract	2026-10-02T19:42:54.9353948Z   ERROR   [pr-body] /tmp/pr-body.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (docs/plan-2026-09-open-issues.md), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-pr-contract	Check the body against the contract	2026-10-02T19:42:54.9355348Z PR-BODY: 1 error(s) in /tmp/pr-body.md
-pr-contract	Every figure's command resolves at this head	2026-10-02T19:42:54.9931246Z FIGURES: 10 resolved, 1 not verified, 0 refused
-pr-contract	Pre-flight the body for unmeasured claims	2026-10-02T19:42:55.1864664Z   clean    no refusal (the 'check' lines above are yours to answer)
-pr-contract	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-02T19:42:55.5337730Z Post job cleanup.
