@@ -100,14 +100,15 @@ AGENT_DECLARED = re.compile(
 # loose, because over-revoking fails safe. An agent's review names the id, as
 # "mandate <id>" or as the comment's `issuecomment-<id>` URL, and that word
 # keeps it declared an agent's: authorship is never hidden to pass.
+DEFAULT_REPO = "tvofi/heatpump_optimizer"
 MANDATE_ISSUE = 201
+MANDATE_ISSUE_URL = f"/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}"
 MANDATE_GRAMMAR = re.compile(
     rf"MANDATE: agents may approve as {OWNER_LOGIN}, scope (code-owned|budget-raise|all), "
     r"from (\S+) until (\S+)")
 MANDATE_REVOKED = re.compile(r"revok", re.I)
 MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:? #?(\d{6,})\b|issuecomment-(\d{6,})\b", re.I)
 MANDATE_COVERS_RAISE = ("budget-raise", "all")
-DEFAULT_REPO = "tvofi/heatpump_optimizer"
 SUFFIX = "_budgets.json"
 
 FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
@@ -296,8 +297,8 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
     name = f"mandate {cid}"
     if comment is None:
         return False, f"{name} is not a comment that exists"
-    if not str(comment.get("issue_url") or "").endswith(f"/issues/{MANDATE_ISSUE}"):
-        return False, f"{name} is not a comment on #{MANDATE_ISSUE}"
+    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
+        return False, f"{name} is not a comment on {DEFAULT_REPO}#{MANDATE_ISSUE}"
     if not _is_owner(comment.get("user")):
         return False, (f"{name} was not written by {OWNER_LOGIN} (id {OWNER_ID}), "
                        "and only the owner grants a mandate")
@@ -441,7 +442,7 @@ def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
             return None, []
         raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
     comment = json.loads(out.stdout)
-    if not str(comment.get("issue_url") or "").endswith(f"/issues/{MANDATE_ISSUE}"):
+    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
         return comment, []
     out = subprocess.run(
         ["gh", "api", "--paginate", "--slurp",
