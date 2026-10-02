@@ -23670,10 +23670,16 @@ _PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
 
 
 def _pt_armed(docs: dict) -> "set[str]":
-    _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
-            and str(_s.get("if", "")) == _PT_ARM_IF
-            for _g in _PT_PROG.findall(str(_s.get("run") or ""))}
+    """Programs an arm step can report red on: run is exactly `node <prog>`
+    (no `|| true`), under the real Actions token, with no `continue-on-error`
+    on the step or the job (#1863 review R7-R9)."""
+    _job = docs["tests.yml"]["jobs"]["graders-head-copy"]
+    if "continue-on-error" in _job:
+        return set()
+    return {_m.group(1) for _s in _job.get("steps") or []
+            if (_s.get("env") or {}).get("GITHUB_TOKEN") == "${{ secrets.GITHUB_TOKEN }}"
+            and str(_s.get("if", "")) == _PT_ARM_IF and "continue-on-error" not in _s
+            for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or "").strip())] if _m}
 
 
 def _pt_trigger(script: str, planted: str) -> str:
@@ -23722,15 +23728,27 @@ R.check(
     == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
     f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
 )
-# Null control: the same workflows with the arm's token removed leave the seam open.
-_PT_NULL = _pt_copy.deepcopy(_PT_DOCS)
-for _s in _PT_NULL["tests.yml"]["jobs"]["graders-head-copy"]["steps"]:
-    if "policy_lint.mjs" in str(_s.get("run") or ""):
-        _s.pop("env", None)
+# Null controls: each perturbation leaves the arm looking wired but unable to
+# report red, and each must leave the seam open.
+def _pt_perturbed(edit) -> "set[str]":
+    _d = _pt_copy.deepcopy(_PT_DOCS)
+    for _s in _d["tests.yml"]["jobs"]["graders-head-copy"]["steps"]:
+        if "policy_lint.mjs" in str(_s.get("run") or ""):
+            edit(_s)
+    return _PT_SEAMS - _pt_armed(_d)
+
+
+_PT_PERTURB = {
+    "token removed": lambda s: s.pop("env", None),
+    "|| true": lambda s: s.update(run=s["run"] + " || true"),
+    "continue-on-error": lambda s: s.update({"continue-on-error": True}),
+    "empty token": lambda s: s.update(env={"GITHUB_TOKEN": ""}),
+}
+_PT_NC = {_k: ".claude/workflows/policy_lint.mjs" in _pt_perturbed(_f) for _k, _f in _PT_PERTURB.items()}
 R.check(
-    "and the arm without its token is refused (null control)",
-    ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
-    "the predicate must read the step's env, not only its run line",
+    "and an arm that cannot report red is refused (null controls)",
+    all(_PT_NC.values()),
+    f"perturbation -> seam left open: {_PT_NC}",
 )
 # The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
 # `false`, or steps keyed on 'false', passed every check above and reopened
