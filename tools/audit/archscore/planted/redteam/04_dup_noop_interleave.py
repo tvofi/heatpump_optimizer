@@ -1,4 +1,4 @@
-"""Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse), argv[3] == "uncharged"
+"""Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | assign | walrus), argv[3] == "uncharged"
 leaves the coordinator and every footprint-charged function alone so no other metric stops it.
 Game duplication_copies: every duplicated statement window is kept, but in each clone except the
 first a no-op call statement id(<distinct int per function>) is inserted
@@ -10,7 +10,9 @@ from pathlib import Path
 from rt_lib import pkg, structure, metric
 root = sys.argv[1]
 JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "None\n", "str": '"junk"\n',
-        "iffalse": "if False:\n{ind}    pass\n"}
+        "iffalse": "if False:\n{ind}    pass\n",
+        # KNOWN-OPEN (round 3): spellings outside is_noop's enumeration; see ABOUT.md "Known limit"
+        "assert": "assert True\n", "assign": "_ = None\n", "walrus": "(_ := 0)\n"}
 kind = sys.argv[2] if len(sys.argv) > 2 else "id"
 uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
 CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()

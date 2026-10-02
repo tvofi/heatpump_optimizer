@@ -684,6 +684,24 @@
   "set": "redteam",
   "verdict": "NULL"
  },
+ "rt_04h_dup_assert_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
+ "rt_04i_dup_assign_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
+ "rt_04j_dup_walrus_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
  "rt_05_coord_mixin_relocation": {
   "admissible": true,
   "label": "GAME",

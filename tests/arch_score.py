@@ -114,6 +114,10 @@ def main() -> int:
         R.check("no red-team attempt reads IMPROVES",
                 not [r["id"] for r in games if r["verdict"] == "IMPROVES"],
                 f"{[r['id'] for r in games if r['verdict'] == 'IMPROVES']}")
+        known = [r for r in rows if r["label"] == "KNOWN-OPEN"]
+        R.check("the known-open attempts are present and still read IMPROVES (a class fix flips them: re-record)",
+                len(known) == 3 and all(r["verdict"] == "IMPROVES" for r in known),
+                f"{[(r['id'], r['verdict']) for r in known]}")
         R.check("the rename null reads NULL",
                 next(r for r in rows if r["id"] == "rt_00_null_rename")["verdict"] == "NULL")
 

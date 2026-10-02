@@ -83,6 +83,17 @@ inadmissible.
 A verdict that moves is a diff to `expected.json`: `calibrate.py --record` prints each one. Say why in
 the commit. A new evasion found is a new case in `planted/redteam/` with its counter.
 
+### Known limit: interleaved effect-free statements
+
+Effect-free statements interleaved in every clone split its windows, and the score reads that as a
+dedupe (IMPROVES, admissible, the same delta-S as `id(N)` gave). C3 drops a statement only if it is on
+its enumerated list (`counters.is_noop`), so the class stays open: `assert True`, `_ = None` and
+`(_ := 0)` are not on it and each reads IMPROVES (`rt_04h`, `rt_04i`, `rt_04j`, marked KNOWN-OPEN and
+expected IMPROVES, so a class fix flips them and the check asks for the re-record). Extending the list
+was refused by tvofi (2026-10-02): a sixth spelling beats a fifth widening. A reviewer reads a
+duplication-driven IMPROVES against the diff, as a report and not as evidence. The class fix, a clone
+comparison that tolerates interleaved statements or drops dead ones by data flow, is owed to R9-EG-A2.
+
 Known limits, so a reader does not credit the score with more than it does:
 
 - It prices the coordinator and the structures around it; a decomposition elsewhere (the optimizer) reads NULL.
