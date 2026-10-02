@@ -279,6 +279,8 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
     statistics — never moves.
     """
 
+    _platform_domain = "sensor"
+
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
@@ -288,18 +290,7 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_translation_key = translation_key
-        # Pin today's English object id for NEW installs. Assigning
-        # ``entity_id`` before the entity is added is Home Assistant's
-        # integration-suggested-object-id mechanism: it is used verbatim at
-        # first registration and ignored for entities that already exist.
-        # Without it, a Home Assistant running in a language with native
-        # entity ids (Swedish is one) would derive *translated* object ids
-        # from the translation-keyed name, breaking the dashboard card's
-        # id-suffix contract on fresh installs.
-        self.entity_id = f"sensor.heat_pump_optimizer_{translation_key}"
-        self._entry = entry
+        self._pin_identity(entry, key, translation_key)
         self._key = key
         self._stamped_currency = coordinator.currency
 
@@ -470,7 +461,7 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
         self._attr_native_unit_of_measurement = coordinator.currency
 
     def _rows(self) -> list[Any]:
-        rows = (self.coordinator.data or {}).get("savings_months")
+        rows = (self._data()).get("savings_months")
         return rows if isinstance(rows, list) else []
 
     @property
@@ -511,7 +502,7 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         return {
             # Card headline-stat marker; see PredictedSavingsSensor.
             "stat_kind": "savings_percentage",
@@ -638,7 +629,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
             outdoor_temp, _source = _effective_outdoor(self.coordinator)
             if outdoor_temp is None:
                 return None
-            cop = self.coordinator._thermal_model.compute_cop(outdoor_temp)
+            cop = self.coordinator.thermal_model.compute_cop(outdoor_temp)
             return round(cop, 2) if isinstance(cop, (int, float)) else None
         return None
 
@@ -678,7 +669,7 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
         the thermometer's own state is still valid, so the card needs its id
         to draw the raw trace through that gap. ``None`` with no thermometer.
         """
-        config = getattr(self.coordinator, "_config", None) or {}
+        config = self.coordinator.effective_config
         return {"source_entity": config.get(CONF_INDOOR_TEMP_ENTITY) or None}
 
 
@@ -742,7 +733,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         attrs: dict[str, Any] = {
             # A stable marker the dashboard card discovers this sensor by.
             # Entity ids are derived from the device name, so they are not a
@@ -1088,9 +1079,9 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
         if self.coordinator.data:
             return {
                 "solar_radiation_wm2": self.coordinator.data.get("solar_radiation", 0),
-                "window_area_m2": self.coordinator._thermal_params.window_area,
-                "shgc": self.coordinator._thermal_params.solar_heat_gain_coefficient,
-                "orientation_factor": self.coordinator._thermal_params.solar_orientation_factor,
+                "window_area_m2": self.coordinator.thermal_params.window_area,
+                "shgc": self.coordinator.thermal_params.solar_heat_gain_coefficient,
+                "orientation_factor": self.coordinator.thermal_params.solar_orientation_factor,
             }
         return {}
 
@@ -1489,13 +1480,13 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
         # publishing them unconditionally made a space-heating plan
         # advertise a hot-water schedule nobody configured (round-5 D12-01,
         # #1237).
-        dhw_configured = bool((self.coordinator.data or {}).get("dhw_enabled"))
+        dhw_configured = bool((self._data()).get("dhw_enabled"))
         # plan_kind is emitted even with no plan yet so the card can still find
         # the entity and report *why* it is empty rather than "not found".
         if not plan:
             return {
                 "plan_kind": self._plan_kind,
-                "manual_override": (self.coordinator.data or {}).get("manual_plan"),
+                "manual_override": (self._data()).get("manual_plan"),
                 # Published here too: it is a fixed property of the integration,
                 # not something derived from a plan, and the card needs it to
                 # bound editing before the first plan has arrived.
@@ -1528,9 +1519,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     "on every replan. Not a measurement and not accumulated."
                 ),
                 "horizon_hours": float(
-                    (self.coordinator.data or {}).get("horizon_hours", 24.0)
+                    (self._data()).get("horizon_hours", 24.0)
                 ),
-                "wood_fuel": (self.coordinator.data or {}).get("wood_fuel"),
+                "wood_fuel": (self._data()).get("wood_fuel"),
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -1538,7 +1529,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             next_slot = slots[0].get("start")
         elif plan.get("active_now") and len(slots) > 1:
             next_slot = slots[1].get("start")
-        data = self.coordinator.data or {}
+        data = self._data()
         # The resolved per-day schedule the plan was made against (#1260),
         # straight from the optimizer's predictive info -- None whenever no
         # override is in force, which is what keeps the attribute absent
@@ -1561,7 +1552,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 "planned for the optimization horizon ahead; recomputed on "
                 "every replan. Not a measurement and not accumulated."
             ),
-            "horizon_hours": float((self.coordinator.data or {}).get("horizon_hours", 24.0)),
+            "horizon_hours": float((self._data()).get("horizon_hours", 24.0)),
             "total_energy_kwh": plan.get("total_energy_kwh", 0.0),
             "total_cost": plan.get("total_cost", 0.0),
             "active_now": plan.get("active_now", False),
@@ -1679,18 +1670,18 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        data = self.coordinator.data or {}
+        data = self._data()
         return bool(super().available and data.get("measured_power_available"))
 
     @property
     def native_value(self) -> float | None:
-        data = self.coordinator.data or {}
+        data = self._data()
         value = data.get("measured_power")
         return round(value, 3) if value is not None else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         return {
             "recommended_power": commanded_power_kw(data.get("current_action")),
             "house_power": data.get("measured_house_power"),
@@ -1713,7 +1704,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
         super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
 
     def _modelled_cop(self, data: dict[str, Any]) -> float | None:
-        model = getattr(self.coordinator, "_thermal_model", None)
+        model = getattr(self.coordinator, "thermal_model", None)
         if model is None:
             return None
         cop = model.compute_cop(data.get("outdoor_temperature", 5.0))
@@ -1721,7 +1712,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def _waiting_for(self) -> str | None:
-        data = self.coordinator.data or {}
+        data = self._data()
         if not data.get("measured_power_available"):
             return "measured_power_entity"
         if not isinstance(data.get("measured_cop"), (int, float)):
@@ -1732,12 +1723,12 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> float | None:
-        data = self.coordinator.data or {}
+        data = self._data()
         return data.get("measured_cop")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         return {
             "waiting_for": self._waiting_for,
             "cop_scale": data.get("cop_scale"),
@@ -1785,7 +1776,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> float | None:
-        data = self.coordinator.data or {}
+        data = self._data()
         value = data.get(self._data_key)
         return round(value, 3) if isinstance(value, (int, float)) else None
 
@@ -1800,7 +1791,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
                 "total is measured when a power entity is configured"
             ),
             "measured": bool(
-                (self.coordinator.data or {}).get("measured_power_available")
+                (self._data()).get("measured_power_available")
             ),
             # The period, in words and as a date: "very high" was the owner
             # reading a lifetime figure with no stated period. The date is
@@ -1812,7 +1803,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
                 "this_month_kwh / this_month_cost carry the current month."
             ),
         }
-        since = (self.coordinator.data or {}).get("energy_totals_counting_since")
+        since = (self._data()).get("energy_totals_counting_since")
         if since:
             attrs["counting_since"] = since
         if self._ledger_line:
@@ -1932,7 +1923,7 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 
     @property
     def _waiting_for(self) -> str | None:
-        accuracy = (self.coordinator.data or {}).get("accuracy") or {}
+        accuracy = (self._data()).get("accuracy") or {}
         if not isinstance(accuracy.get("temperature_mae"), (int, float)):
             # The tracker scores an interval only once its prediction can be
             # held against what the room actually did.
@@ -1942,18 +1933,18 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
     @property
     def native_value(self) -> float | None:
         return _as_float(
-            _mapping((self.coordinator.data or {}).get("accuracy", {})).get(
+            _mapping((self._data()).get("accuracy", {})).get(
                 "temperature_mae"
             )
         )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self.coordinator.data or {}).get("accuracy", {}) or {})
+        attrs = dict((self._data()).get("accuracy", {}) or {})
         attrs["waiting_for"] = self._waiting_for
         # T6 #52: the last interval's residual, attributed input by input —
         # accuracy's "how wrong" gets its "why" on the same sensor.
-        report = ((self.coordinator.data or {}).get("insight") or {}).get(
+        report = ((self._data()).get("insight") or {}).get(
             "last_diagnosis"
         )
         if report:
@@ -1985,16 +1976,16 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     def available(self) -> bool:
         return bool(
             super().available
-            and (self.coordinator.data or {}).get("peak_tariff_enabled")
+            and (self._data()).get("peak_tariff_enabled")
         )
 
     @property
     def native_value(self) -> float | None:
-        return (self.coordinator.data or {}).get("billed_peak_kw")
+        return (self._data()).get("billed_peak_kw")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         out = {
             "month": data.get("peak_month"),
             # Below this a new hour is free: the bill is already set by the
@@ -2046,20 +2037,20 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         return bool(
-            super().available and (self.coordinator.data or {}).get("pv_enabled")
+            super().available and (self._data()).get("pv_enabled")
         )
 
     @property
     def native_value(self) -> float | None:
         return _as_float(
-            _mapping((self.coordinator.data or {}).get("pv", {})).get(
+            _mapping((self._data()).get("pv", {})).get(
                 "forecast_surplus_kwh"
             )
         )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         attrs = dict(data.get("pv", {}) or {})
         attrs["self_consumed_kwh"] = data.get("pv_self_consumed_kwh")
         return attrs
@@ -2095,14 +2086,14 @@ class ThermalBatterySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         return _as_float(
-            _mapping((self.coordinator.data or {}).get("battery", {})).get(
+            _mapping((self._data()).get("battery", {})).get(
                 "state_of_charge_percent"
             )
         )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("battery", {}) or {})
+        return dict((self._data()).get("battery", {}) or {})
 
 
 class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
@@ -2124,14 +2115,14 @@ class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBas
     @property
     def native_value(self) -> float | None:
         return _as_float(
-            _mapping((self.coordinator.data or {}).get("battery", {})).get(
+            _mapping((self._data()).get("battery", {})).get(
                 "stored_energy_kwh"
             )
         )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        battery = (self.coordinator.data or {}).get("battery", {}) or {}
+        battery = (self._data()).get("battery", {}) or {}
         return {
             "usable_capacity_kwh": battery.get("usable_capacity_kwh"),
             "charge_rate_kw": battery.get("charge_rate_kw"),
@@ -2155,13 +2146,13 @@ class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBas
 def valve_throttling(coordinator: Any) -> bool:
     """Whether a throttling mixing valve is configured on this install.
 
-    The configured mode via ``_thermal_params``, because the registry asks
+    The configured mode via ``thermal_params``, because the registry asks
     before the first refresh; the payload's copy where a test double has
     only that — ``has_hot_water``'s two paths. ``is_throttling`` answers
     false for no valve and for the passive ``none`` mode alike, so "no
     readout" is one state both ways.
     """
-    params = getattr(coordinator, "_thermal_params", None)
+    params = getattr(coordinator, "thermal_params", None)
     if params is not None:
         return is_throttling(getattr(params, "mixing_valve_mode", None))
     return is_throttling(
@@ -2212,12 +2203,12 @@ class ValveTargetRecommendationSensor(_MixingValveGate, HeatPumpOptimizerSensorB
 
     @property
     def native_value(self) -> float | None:
-        rec = (self.coordinator.data or {}).get("valve_target_recommendation")
+        rec = (self._data()).get("valve_target_recommendation")
         return rec.get("target") if isinstance(rec, dict) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self.coordinator.data or {}
+        data = self._data()
         rec = data.get("valve_target_recommendation")
         if not isinstance(rec, dict):
             return {}
@@ -2246,12 +2237,12 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> float | None:
-        value = (self.coordinator.data or {}).get("comfort_weight")
+        value = (self._data()).get("comfort_weight")
         return round(value, 2) if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("comfort_learning", {}) or {})
+        return dict((self._data()).get("comfort_learning", {}) or {})
 
 
 class ContractComparisonSensor(
@@ -2282,7 +2273,7 @@ class ContractComparisonSensor(
 
     @property
     def _waiting_for(self) -> str | None:
-        data = (self.coordinator.data or {}).get("contract_comparison") or {}
+        data = (self._data()).get("contract_comparison") or {}
         if not data:
             return "contract_comparison_configuration"
         if not isinstance(data.get("load_profile_value_per_kwh"), (int, float)):
@@ -2293,19 +2284,19 @@ class ContractComparisonSensor(
 
     @property
     def native_value(self) -> float | None:
-        data = (self.coordinator.data or {}).get("contract_comparison") or {}
+        data = (self._data()).get("contract_comparison") or {}
         value = data.get("load_profile_value_per_kwh")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         attrs = dict(
-            (self.coordinator.data or {}).get("contract_comparison", {}) or {}
+            (self._data()).get("contract_comparison", {}) or {}
         )
         attrs["waiting_for"] = self._waiting_for
         # T6 #40: the latest frozen month's itemised receipt rides on the
         # month-money sensor — the receipt is that comparison, settled.
-        report = ((self.coordinator.data or {}).get("insight") or {}).get(
+        report = ((self._data()).get("insight") or {}).get(
             "monthly_report"
         )
         if report:
@@ -2341,19 +2332,19 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        data = (self.coordinator.data or {}).get("power_headroom") or {}
+        data = (self._data()).get("power_headroom") or {}
         return bool(super().available and data.get("available"))
 
     @property
     def native_value(self) -> float | None:
-        data = (self.coordinator.data or {}).get("power_headroom") or {}
+        data = (self._data()).get("power_headroom") or {}
         value = data.get("headroom_kw")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = dict(
-            (self.coordinator.data or {}).get("power_headroom", {}) or {}
+            (self._data()).get("power_headroom", {}) or {}
         )
         data.pop("available", None)
         return data
@@ -2393,20 +2384,20 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        data = (self.coordinator.data or {}).get("dhw_advisor") or {}
+        data = (self._data()).get("dhw_advisor") or {}
         return bool(
             super().available and data.get("recommended_setpoint") is not None
         )
 
     @property
     def native_value(self) -> float | None:
-        data = (self.coordinator.data or {}).get("dhw_advisor") or {}
+        data = (self._data()).get("dhw_advisor") or {}
         value = data.get("recommended_setpoint")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("dhw_advisor", {}) or {})
+        return dict((self._data()).get("dhw_advisor", {}) or {})
 
 
 class MixedHotWaterSensor(
@@ -2451,18 +2442,18 @@ class MixedHotWaterSensor(
     @property
     def available(self) -> bool:
         return bool(
-            super().available and (self.coordinator.data or {}).get("dhw_mixed")
+            super().available and (self._data()).get("dhw_mixed")
         )
 
     @property
     def native_value(self) -> float | None:
-        data = (self.coordinator.data or {}).get("dhw_mixed") or {}
+        data = (self._data()).get("dhw_mixed") or {}
         value = data.get("litres_40c")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("dhw_mixed", {}) or {})
+        return dict((self._data()).get("dhw_mixed", {}) or {})
 
 
 class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
@@ -2495,7 +2486,7 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        stats = (self.coordinator.data or {}).get("dhw_draw_stats") or {}
+        stats = (self._data()).get("dhw_draw_stats") or {}
         return bool(
             super().available
             and any((v or {}).get("events") for v in stats.values())
@@ -2503,7 +2494,7 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> float | None:
-        stats = (self.coordinator.data or {}).get("dhw_draw_stats") or {}
+        stats = (self._data()).get("dhw_draw_stats") or {}
         values = [
             v.get("p90_kwh")
             for v in stats.values()
@@ -2514,7 +2505,7 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return dict(
-            (self.coordinator.data or {}).get("dhw_draw_stats", {}) or {}
+            (self._data()).get("dhw_draw_stats", {}) or {}
         )
 
 
@@ -2550,7 +2541,7 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> str | None:
         items = (
-            ((self.coordinator.data or {}).get("insight") or {})
+            ((self._data()).get("insight") or {})
             .get("narrative", {})
             .get("items")
         ) or []
@@ -2567,7 +2558,7 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         attrs = dict(
-            ((self.coordinator.data or {}).get("insight") or {}).get(
+            ((self._data()).get("insight") or {}).get(
                 "narrative", {}
             )
             or {}
@@ -2600,21 +2591,21 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         scores = (
-            ((self.coordinator.data or {}).get("insight") or {}).get("scores")
+            ((self._data()).get("insight") or {}).get("scores")
         ) or {}
         return bool(super().available and scores.get("overall") is not None)
 
     @property
     def native_value(self) -> float | None:
         scores = (
-            ((self.coordinator.data or {}).get("insight") or {}).get("scores")
+            ((self._data()).get("insight") or {}).get("scores")
         ) or {}
         value = scores.get("overall")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        insight = (self.coordinator.data or {}).get("insight") or {}
+        insight = (self._data()).get("insight") or {}
         scores = insight.get("scores") or {}
         attrs = {
             # Card headline-stat marker; see PredictedSavingsSensor.
@@ -2655,13 +2646,13 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        data = (self.coordinator.data or {}).get("measured_power_available")
+        data = (self._data()).get("measured_power_available")
         return bool(super().available and data)
 
     @property
     def native_value(self) -> int | None:
         starts = (
-            ((self.coordinator.data or {}).get("insight") or {}).get(
+            ((self._data()).get("insight") or {}).get(
                 "compressor_starts"
             )
         ) or {}
@@ -2671,7 +2662,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         starts = (
-            ((self.coordinator.data or {}).get("insight") or {}).get(
+            ((self._data()).get("insight") or {}).get(
                 "compressor_starts"
             )
         ) or {}
@@ -2704,7 +2695,7 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
 
     @property
     def _waiting_for(self) -> str | None:
-        view = (self.coordinator.data or {}).get("freq_control") or {}
+        view = (self._data()).get("freq_control") or {}
         if view.get("mode") in (None, "unconfigured"):
             # A compressor frequency number or sensor: either one configures it.
             return "compressor_frequency_entity"
@@ -2715,13 +2706,13 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
 
     @property
     def native_value(self) -> float | None:
-        view = (self.coordinator.data or {}).get("freq_control") or {}
+        view = (self._data()).get("freq_control") or {}
         value = view.get("recommended_hz")
         return value if isinstance(value, (int, float)) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self.coordinator.data or {}).get("freq_control", {}) or {})
+        attrs = dict((self._data()).get("freq_control", {}) or {})
         attrs["waiting_for"] = self._waiting_for
         return attrs
 
@@ -2847,8 +2838,8 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
         self._attr_native_unit_of_measurement = coordinator.currency
 
     def _gaps(self) -> list[dict[str, Any]]:
-        config = getattr(self.coordinator, "_config", None) or {}
-        data = self.coordinator.data or {}
+        config = self.coordinator.effective_config
+        data = self._data()
         # Sanitise once, HERE, so every reader below sees numbers only --
         # the house meter's peak term inside rank_sensor_gaps reads the
         # series too, and a hole left raw there becomes a NaN window (a
@@ -2903,7 +2894,7 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
 
     def _advice(self) -> dict[str, Any]:
         return dict(
-            ((self.coordinator.data or {}).get("wood_fuel") or {}).get(
+            ((self._data()).get("wood_fuel") or {}).get(
                 "night_advice"
             )
             or {}
@@ -2911,7 +2902,7 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
 
     @property
     def _waiting_for(self) -> str | None:
-        fuel = (self.coordinator.data or {}).get("wood_fuel") or {}
+        fuel = (self._data()).get("wood_fuel") or {}
         if not fuel.get("ready"):
             return "wood_furnace"
         return None

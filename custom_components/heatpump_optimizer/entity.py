@@ -5,11 +5,14 @@ and the five of them re-declared the same two members -- the
 ``_attr_has_entity_name`` flag and the ``device_info`` property that lands
 every entity on the coordinator's device. Those live here once now (issue
 #298); each platform's base classes build on ``HeatPumpOptimizerEntity``
-instead of re-declaring them. Everything that differs per platform (the
-unique-id key, the pinned ``entity_id``, the translation key) stays in the
-platform file that owns it. The plain-and-finite publication scrub lives here
-too, so it covers all six platforms rather than the sensor platform alone
-(#1541).
+instead of re-declaring them. The rule that derives an entity's three ids
+lives here too (#1742), and the platform file keeps only the values it feeds
+that rule: the unique-id key, the translation key and the platform. The
+plain-and-finite publication scrub lives here as well, so it covers all six
+platforms rather than the sensor platform alone (#1541).
+
+Nothing here imports from the package, so the core never imports the surface
+layer; the coordinator is read through its public names only (#1739).
 """
 from __future__ import annotations
 
@@ -111,6 +114,9 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
 
     _attr_has_entity_name = True
 
+    #: The platform the pinned ``entity_id`` is registered under.
+    _platform_domain: str = ""
+
     #: The properties Home Assistant reads to build a state write, on every
     #: platform this integration has. Every number it publishes leaves through
     #: one of them, which is why the plain-and-finite scrub is installed here
@@ -149,6 +155,42 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
         """Return device info."""
         info: DeviceInfo = self.coordinator.device_info
         return info
+
+    def _pin_identity(
+        self,
+        entry: Any,
+        key: str,
+        translation_key: str | None = None,
+        object_id: str | None = None,
+    ) -> None:
+        """Pin the unique id, the translation key and today's object id.
+
+        ``unique_id`` is what the registry, history and statistics key on, so
+        ``key`` is the stable one and never follows a rename. A translation
+        key left out is the class's own ``_attr_translation_key``.
+
+        Assigning ``entity_id`` before the entity is added is Home Assistant's
+        integration-suggested-object-id mechanism: it is used verbatim at first
+        registration and ignored for entities that already exist. Without it,
+        a Home Assistant running in a language with native entity ids (Swedish
+        is one) would derive *translated* object ids from the translation-keyed
+        name, breaking the dashboard card's id-suffix contract on fresh
+        installs. The object id is ``heat_pump_optimizer_`` plus the
+        translation key; ``object_id`` replaces it only for the climate entity,
+        whose id predates the scheme.
+        """
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
+        if object_id is None:
+            object_id = f"heat_pump_optimizer_{self._attr_translation_key}"
+        self.entity_id = f"{self._platform_domain}.{object_id}"
+
+    def _data(self) -> dict[str, Any]:
+        """The coordinator's published payload, empty before the first refresh."""
+        data: dict[str, Any] = self.coordinator.data or {}
+        return data
 
 
 def publish_then_refresh(
@@ -191,12 +233,12 @@ def off_the_action(entity: Any, work: Coroutine[Any, Any, Any]) -> None:
 def has_hot_water(coordinator: Any) -> bool:
     """Whether this install has hot water: the one answer every reader takes.
 
-    The configured flag via ``_thermal_params``, because the registry asks
+    The configured flag via ``thermal_params``, because the registry asks
     before the first refresh; the payload's copy where a test double has
     only that. The boost overlay asks here too (#1527), so a no-DHW install
     cannot be handed hot-water power by a switch it should never have used.
     """
-    params = getattr(coordinator, "_thermal_params", None)
+    params = getattr(coordinator, "thermal_params", None)
     if params is not None:
         return bool(params.dhw_enabled)
     return bool((getattr(coordinator, "data", None) or {}).get("dhw_enabled"))
@@ -205,7 +247,7 @@ def has_hot_water(coordinator: Any) -> bool:
 def input_configured(coordinator: Any, slot: str) -> bool:
     """Whether the user configured this input slot. Read from the config,
     because the registry asks before the first refresh builds a payload."""
-    config = getattr(coordinator, "_config", None) or {}
+    config = getattr(coordinator, "effective_config", None) or {}
     return bool(config.get(slot))
 
 
