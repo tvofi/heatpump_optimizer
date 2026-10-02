@@ -27901,6 +27901,15 @@ try:
     _pp_git("reset", "-q", "--hard", _pp_main)
     _pp_row("old.json", "{\"x\": 1}\n", _mut.DRAIN_SUBJECT)
     _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
+    # A merge on main's tip under the writer's subject, whose other parent
+    # adds only rows: parent, subject and diff all pass; only the count of
+    # commits sent catches the side commit riding along.
+    _pp_git("checkout", "-q", "-B", "side", _pp_main)
+    _pp_row("side.json", "{}\n", _mut.DRAIN_SUBJECT)
+    _pp_side = _pp_git("rev-parse", "HEAD")
+    _pp_git("checkout", "-q", "-B", "main", _pp_main)
+    _pp_git("merge", "-q", "--no-ff", "-m", _mut.DRAIN_SUBJECT, _pp_side)
+    _PP_GOT.append(_mut.drain_push_problems(str(_PP_DIR)))
 except Exception as _pp_exc:  # noqa: BLE001 -- one red check, never a partial run
     _PP_GOT = [f"{type(_pp_exc).__name__}: {_pp_exc}"]
 finally:
@@ -27908,11 +27917,13 @@ finally:
 _pp_push = _ml_push.find("push origin HEAD:refs/heads/main")
 R.check(
     "mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed",
-    _PP_GOT == [[], [_mut.DRAIN_ROWS + "new.json"], None, None, True, True, True]
+    _PP_GOT == [[], [_mut.DRAIN_ROWS + "new.json"], None, None, True, True, True,
+                ["2 commit(s) ahead of origin/main, not 1"]]
     and "          ref: main\n" in _ml_push
     and "fetch -q origin main && git reset -q --hard origin/main" in _ml_push
     and 0 < _ml_push.find("m.drain_push_problems()") < _pp_push,
-    f"(clean, diff, unreadable diff, no head, branch under it, subject, rewrite) -> {_PP_GOT}; "
+    f"(clean, diff, unreadable diff, no head, branch under it, subject, rewrite, "
+    f"row-only merge) -> {_PP_GOT}; "
     f"push at {_pp_push}",
 )
 
