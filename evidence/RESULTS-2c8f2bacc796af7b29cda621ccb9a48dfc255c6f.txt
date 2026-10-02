@@ -1,0 +1,30 @@
+head 2c8f2bacc796af7b29cda621ccb9a48dfc255c6f
+RESULT rv sites=946 expected=946 line_mismatch=0 bad=0
+RESULT rv equivalence_suspects=8
+RESULT rv_equiv candidates=2
+  IF-ASSIGN-MAXMIN custom_components/heatpump_optimizer/away.py:558
+  IFEXP-MAXMIN custom_components/heatpump_optimizer/optimizer.py:4742
+RESULT mutant [M0 none] rc=0 fails=0 last='0 failed'
+RESULT mutant [E1 CMP_BOUND out of RATCHETED] rc=1 fails=4 last='4 failed'
+RESULT mutant [M1 keep operator] rc=1 fails=1 last='1 failed'
+RESULT mutant [M4 listed_sites ignores ledger] rc=1 fails=1 last='1 failed'
+RESULT mutant [R2 chain left not advanced] rc=1 fails=2 last='2 failed'
+RESULT mutant [R3 no Gt/GtE] rc=1 fails=2 last='2 failed'
+RESULT mutant [R5 multi-line compares admitted] rc=0 fails=0 last='0 failed'
+RESULT mutant [R6 gap check dropped] rc=0 fails=0 last='0 failed'
+RESULT mutant [R7 bounds never generated] rc=1 fails=3 last='3 failed'
+RESULT mutant [R8 Lt flips wrong way] rc=0 fails=0 last='0 failed'
+RESULT mutant [R9 kinds filter dropped] rc=0 fails=0 last='0 failed'
+RESULT mutant [R10 LISTED empty] rc=1 fails=3 last='3 failed'
+RESULT ratchet head: 4855 unpinned of 5466, 4855 at ratchet base aa7a81192325614999803e40e3cedc024e22ce2b; PASSED (empty scope)
+RESULT perturb `_rv_probe = first >= last` at away.py:560: ADDED UNPINNED away.py:560 CMP_BOUND; REFUSED 4856 vs 4855
+RESULT null `_rv_probe = first == last` at away.py:560: 4855 vs 4855; PASSED (empty pool)
+RESULT inventory head sites=5466 sha1=1ba97b4cecd5 unpinned=4855 / origin/main(aa7a8119) sites=4520 sha1=c141b52379cc unpinned=3909
+RESULT list CMP_BOUND: 946 site(s) in 55 file(s), 946 unpinned, ratcheted
+RESULT d3s101 fixer script: -5.0 production=-5.0 mutant=None DIFFERS; 0.0 same; 35.0 same
+RESULT rv d3s101 own eval, 2 mutants on coordinator.py:1735: -5.0 -> [None, -5.0]; 35.0 -> [35.0, None]; 0.0, -5.000001, 35.000001, None -> equal to production
+RESULT budgets keys_changed=['_comment']
+RESULT VERSION/manifest/RELEASE_NOTES/claim files untouched (three-dot)
+RESULT merge-tree origin/main aa7a8119 rc=0
+RESULT R5 inventory: 948 CMP_BOUND sites (+2: defrost.py:373 'was < DERATE_CONFIDENCE_SAMPLES', optimizer.py:4502 'if float(dhw_prices[idx]) <= float(')
+RESULT R6 inventory: 946, identical (equivalent mutant of the defensive gap check)
