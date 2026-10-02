@@ -101,6 +101,34 @@ const STRINGS = {
     "advisor.reason_no_clamped_parameter":
       "Its learners fit quantities this estimate has no measurement band for.",
     "advisor.act_hint": "Choose a sensor to assign it on the Setup page.",
+    // The advisor inbox (R9-UX-2, #1795): ranked by monthly value.
+    "advisor.inbox_heading": "Worth doing",
+    "advisor.inbox_empty":
+      "Nothing to do: the plan is already as cheap as your settings allow.",
+    "advisor.optin_heading": "More advice, once turned on",
+    "advisor.value_month": "≈ {value} {currency}/month",
+    "advisor.no_value": "no estimate",
+    "advisor.waiting": "Still learning: {reason}",
+    "advisor.unavailable": "This advice is unavailable right now",
+    "advisor.gap_title": "Add a {label} sensor",
+    "advisor.gap_detail": "The model prices the missing sensor.",
+    "advisor.act_assign": "Assign sensor",
+    "advisor.dhw_title": "Hot-water setpoint {from} → {to} °C",
+    "advisor.dhw_detail": "Cheapest setpoint that still covers your heaviest draw.",
+    "advisor.act_schedule": "Open schedule",
+    "advisor.valve_title": "Valve target {to} °C",
+    "advisor.valve_detail": "Now {from} °C. {reason}",
+    "advisor.act_apply": "Apply",
+    "advisor.act_settings": "Open settings",
+    "advisor.degree_title": "A degree cooler is cheaper",
+    "advisor.degree_detail": "A degree warmer costs {up} {currency}/month more.",
+    "advisor.act_degree": "Try in what-if",
+    "advisor.optin_degree": "Price of a degree",
+    "advisor.applied": "Valve target set to {to} °C.",
+    "advisor.apply_failed": "Could not apply: {error}",
+    "advisor.optin_wood": "Wood-stove timing",
+    "advisor.optin_fuse": "Fuse size",
+    "advisor.optin_frequency": "Compressor frequency",
     "savings.col_month": "Month",
     "savings.col_baseline": "Baseline",
     "savings.col_actual": "Actual",
@@ -619,6 +647,33 @@ const STRINGS = {
       "Dess lärande anpassar storheter denna uppskattning saknar mätband för.",
     "advisor.act_hint":
       "Välj en givare för att tilldela den på anläggningssidan.",
+    "advisor.inbox_heading": "Värt att göra",
+    "advisor.inbox_empty":
+      "Inget att göra: planen är redan så billig som dina inställningar tillåter.",
+    "advisor.optin_heading": "Fler råd, när de slås på",
+    "advisor.value_month": "≈ {value} {currency}/månad",
+    "advisor.no_value": "ingen uppskattning",
+    "advisor.waiting": "Lär sig fortfarande: {reason}",
+    "advisor.unavailable": "Rådet är inte tillgängligt just nu",
+    "advisor.gap_title": "Lägg till en {label}-givare",
+    "advisor.gap_detail": "Modellen prissätter den saknade givaren.",
+    "advisor.act_assign": "Tilldela givare",
+    "advisor.dhw_title": "Varmvattenbörvärde {from} → {to} °C",
+    "advisor.dhw_detail": "Billigaste börvärdet som ändå täcker ditt tyngsta uttag.",
+    "advisor.act_schedule": "Öppna schema",
+    "advisor.valve_title": "Ventilmål {to} °C",
+    "advisor.valve_detail": "Nu {from} °C. {reason}",
+    "advisor.act_apply": "Verkställ",
+    "advisor.act_settings": "Öppna inställningar",
+    "advisor.degree_title": "En grad svalare är billigare",
+    "advisor.degree_detail": "En grad varmare kostar {up} {currency}/månad mer.",
+    "advisor.act_degree": "Prova i what-if",
+    "advisor.optin_degree": "Pris på en grad",
+    "advisor.applied": "Ventilmålet satt till {to} °C.",
+    "advisor.apply_failed": "Kunde inte verkställa: {error}",
+    "advisor.optin_wood": "Vedpannans timing",
+    "advisor.optin_fuse": "Huvudsäkring",
+    "advisor.optin_frequency": "Kompressorfrekvens",
     "savings.col_month": "Månad",
     "savings.col_baseline": "Referens",
     "savings.col_actual": "Faktisk",
@@ -3400,7 +3455,7 @@ function cardStyleBlock(darkMode) {
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
-        .adv-row,
+        .adv-row, .adv-act,
         .hl-stat.hl-score,
         /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
            control -- role="button", tabindex="0" and a click handler open the
@@ -4178,6 +4233,22 @@ function cardStyleBlock(darkMode) {
         padding: 4px 0 2px 0;
       }
       .adv-title { font-weight: 600; }
+      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
+         a tabular value and at most one action, which wraps under the text
+         on a narrow card. */
+      .adv-inbox-row {
+        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        background: var(--secondary-background-color, #f5f5f5);
+      }
+      .adv-text { flex: 1 1 14em; min-width: 0; }
+      .adv-text .adv-sub { display: block; font-size: 0.85em; opacity: 0.8; }
+      .adv-act {
+        font: inherit; cursor: pointer; padding: 0.3em 0.9em;
+        color: inherit; background: none;
+        border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
+      }
+      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
       .adv-basis { font-size: 0.85em; opacity: 0.75; }
       .adv-note { font-size: 0.85em; padding: 0 0 8px 0; }
       .adv-row {
@@ -7813,6 +7884,169 @@ function headlineHtml(plan, cfg, scoreOpen) {
     </div>`;
 }
 
+// ---- The advisor inbox (R9-UX-2, #1795) ------------------------------------
+//
+// The Advisor tab leads with an inbox ranked by monthly value. It reads only
+// the advisor sensors that are on by default; an advisor that is off by
+// default (wood-stove timing, fuse size, compressor frequency) is offered as
+// an "enable to see" row and never read -- tests/entities.py refuses a card
+// read of a disabled-by-default sensor. The advisor sensors join the render
+// signature through this list, not through HEADLINE_SUFFIXES.
+const ADVISOR_SUFFIXES = {
+  gap: "_sensor_gap_advisor",
+  dhw: "_dhw_setpoint_advisor",
+  valve: "_valve_target_recommendation",
+};
+const ADVISOR_OPT_IN = ["wood", "fuse", "frequency"];
+// Shown only while the score sensor publishes no price_tiles (their switch is off).
+const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
+const DAYS_PER_MONTH = 30;
+
+function advisorSignature(plan) {
+  return Object.values(ADVISOR_SUFFIXES).map((sfx) => {
+    const st = plan.statEntity(sfx);
+    return st ? `${st.state}@${st.last_updated}` : "-";
+  }).join("|");
+}
+
+/** One advisor sensor as an inbox row, or null when it has nothing to say
+ * (not installed, or already at its recommendation). `ready` rows carry the
+ * monthly value (null when the advisor publishes no money) and one action. */
+function advisorRow(plan, kind, build) {
+  const st = plan.statEntity(ADVISOR_SUFFIXES[kind]);
+  if (!st) return null;
+  // Home Assistant drops extra attributes while an entity is unavailable, so
+  // nothing but the state is trusted there; "unknown" keeps its attributes,
+  // which is where a sensor says what it is still waiting for.
+  if (st.state === "unavailable") return { kind, status: "error" };
+  const attrs = st.attributes || {};
+  if (st.state === "unknown") {
+    return attrs.waiting_for
+      ? { kind, status: "waiting", reason: String(attrs.waiting_for) }
+      : { kind, status: "error" };
+  }
+  const row = build(Number(st.state), attrs);
+  return row ? { kind, status: "ready", ...row } : null;
+}
+
+/** Price of a degree: the score sensor's `price_tiles` (target -1 / +1 degC),
+ * present only while the backend computes them. Null when it does not. */
+function priceTiles(plan) {
+  const st = plan.statEntity("_plan_optimization_score");
+  const tiles = st && st.attributes && st.attributes.price_tiles;
+  const down = tiles && tiles.target_minus_1;
+  const up = tiles && tiles.target_plus_1;
+  return down && up && Number.isFinite(Number(down.monthly_cost_delta)) ? { down, up } : null;
+}
+
+/** Linear cost per day at an off-grid setpoint, clamped to the swept range. */
+function dhwCostPerDay(candidates, setpoint) {
+  const pts = (candidates || [])
+    .map((c) => [Number(c.setpoint), Number(c.cost_per_day)])
+    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y))
+    .sort((p, q) => p[0] - q[0]);
+  if (!pts.length) return NaN;
+  if (setpoint <= pts[0][0]) return pts[0][1];
+  const last = pts[pts.length - 1];
+  if (setpoint >= last[0]) return last[1];
+  const i = pts.findIndex((p) => p[0] >= setpoint);
+  const [x0, y0] = pts[i - 1];
+  const [x1, y1] = pts[i];
+  return y0 + ((y1 - y0) * (setpoint - x0)) / (x1 - x0);
+}
+
+function advisorRows(host) {
+  const plan = host.plan;
+  const tiles = priceTiles(plan);
+  const rows = [
+    advisorRow(plan, "gap", (value, attrs) => {
+      if (!(value > 0) || !attrs.top_slot) return null;
+      const gap = (attrs.gaps || []).find((g) => g.key === attrs.top_slot) || {};
+      return {
+        value, act: "assign", key: attrs.top_slot,
+        title: L("advisor.gap_title", { label: String(gap.label || attrs.top_slot) }),
+        detail: L("advisor.gap_detail"),
+      };
+    }),
+    advisorRow(plan, "dhw", (to, attrs) => {
+      const from = Number(attrs.current_setpoint);
+      if (!Number.isFinite(to) || !Number.isFinite(from) || to === from) return null;
+      const perDay = dhwCostPerDay(attrs.candidates, from) - dhwCostPerDay(attrs.candidates, to);
+      return {
+        value: perDay > 0 ? perDay * DAYS_PER_MONTH : null, act: "open_schedule",
+        title: L("advisor.dhw_title", { from, to }), detail: L("advisor.dhw_detail"),
+      };
+    }),
+    advisorRow(plan, "valve", (to, attrs) => {
+      const from = Number(attrs.configured_target);
+      if (!Number.isFinite(to) || !Number.isFinite(from) || Math.abs(to - from) < 0.5) return null;
+      const target = Math.min(30, Math.max(0, Math.round(to * 2) / 2));
+      return {
+        value: null, target,
+        // Apply writes a manual setpoint, which only a valve with no target
+        // entity assigned holds: any other mode is advice without a button.
+        act: attrs.mixing_valve_mode === "manual" ? "apply_valve" : "",
+        title: L("advisor.valve_title", { to: target }),
+        detail: L("advisor.valve_detail", { from, reason: attrs.reason || "" }),
+      };
+    }),
+    tiles && {
+      kind: "degree", status: "ready", act: "try_degree",
+      // Only a saving is a value; a degree that costs more is still shown.
+      value: Number(tiles.down.monthly_cost_delta) < 0 ? -Number(tiles.down.monthly_cost_delta) : null,
+      target: Number(tiles.down.overrides && tiles.down.overrides.target_temp),
+      title: L("advisor.degree_title"),
+      detail: L("advisor.degree_detail", {
+        up: Math.round(Number(tiles.up.monthly_cost_delta)), currency: plan.currency() }),
+    },
+  ].filter(Boolean);
+  // Ranked by monthly value; a row with no money in it follows every priced one.
+  return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+}
+
+function advisorRowHtml(host, row) {
+  const act = {
+    assign: "advisor.act_assign", open_schedule: "advisor.act_schedule",
+    apply_valve: "advisor.act_apply", try_degree: "advisor.act_degree",
+  };
+  if (row.status !== "ready") {
+    const text = row.status === "waiting"
+      ? L("advisor.waiting", { reason: row.reason })
+      : L("advisor.unavailable");
+    return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
+  }
+  const value = row.value === null ? L("advisor.no_value")
+    : L("advisor.value_month", {
+      value: Math.round(row.value), currency: host.plan.currency() });
+  return `<div class="adv-inbox-row">
+      <span class="adv-text">${esc(row.title)}<span class="adv-sub">${esc(row.detail)}</span></span>
+      <span class="adv-value">${esc(value)}</span>
+      ${row.act ? `<button type="button" class="adv-act" data-act="${row.act}"
+        data-key="${esc(row.key || "")}" data-target="${row.target ?? ""}">${esc(L(act[row.act]))}</button>` : ""}
+    </div>`;
+}
+
+function advisorInboxHtml(host) {
+  const rows = advisorRows(host);
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
+      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}</span>
+      <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
+    </div>`).join("");
+  return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+    ${rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
+      : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`}
+    <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
+    ${optIn}`;
+}
+
+/** Open the integration's settings through Home Assistant's own router. */
+function navigateTo(path) {
+  try {
+    globalThis.history.pushState(null, "", path);
+    globalThis.dispatchEvent(new CustomEvent("location-changed"));
+  } catch (_err) { /* no router: the row stays advice */ }
+}
+
 // ---- The sensor advisor page (#1269) ---------------------------------------
 //
 // Draws the `sensor_advisor` attribute the plan sensors publish: the
@@ -7826,12 +8060,14 @@ function headlineHtml(plan, cfg, scoreOpen) {
 function advisorPageHtml(host) {
   const adv = host.plan.attrRaw("sensor_advisor", null);
   const rows = adv && Array.isArray(adv.candidates) ? adv.candidates : [];
+  const inbox = advisorInboxHtml(host);
   if (!rows.length) {
     // Absent means the backend ranked nothing: every optional temperature
     // sensor is configured. Same shape as the savings page's empty copy
     // -- a page that explains itself rather than drawing an empty table.
-    return `<div class="setup-page"><div class="empty">
-      ${esc(L("advisor.empty"))}</div></div>`;
+    return `<div class="setup-page advisor-page">${inbox}<div class="empty">
+      ${esc(L("advisor.empty"))}</div>
+      <div class="setup-result" role="status"></div></div>`;
   }
   const spread = (row) => {
     const value = Number(row.spread_c);
@@ -7854,6 +8090,7 @@ function advisorPageHtml(host) {
       </span>
     </button>`;
   return `<div class="setup-page advisor-page">
+    ${inbox}
     <div class="adv-head">
       <span class="adv-title">${esc(L("advisor.heading"))}</span>
       <span class="adv-basis">${esc(L(
@@ -7873,6 +8110,7 @@ function advisorPageHtml(host) {
  * page's assign picker for that exact slot, pre-opened -- the one editing
  * lane the card already owns, rather than a second one grown here. */
 function attachAdvisorPage(host, root) {
+  attachAdvisorInbox(host, root);
   for (const row of root.querySelectorAll(".adv-row")) {
     row.addEventListener("click", (ev) => {
       stop(ev);
@@ -7888,6 +8126,57 @@ function attachAdvisorPage(host, root) {
       host.setup.pickerFocus = viaKeyboard;
       host.setup.pickerViaKeyboard = viaKeyboard;
       host.dialog.page = "setup";
+      host.dialog.scroll = 0;
+      host._render();
+    });
+  }
+}
+
+/** The inbox's actions, each through a lane the card already owns: the
+ * setup picker, the plan page's schedule editor, the `assign_entity`
+ * service, or Home Assistant's own settings page. */
+function attachAdvisorInbox(host, root) {
+  const note = (text) => {
+    const out = root.querySelector(".setup-result");
+    if (out) out.textContent = text;
+  };
+  for (const btn of root.querySelectorAll(".adv-act")) {
+    btn.addEventListener("click", async (ev) => {
+      stop(ev);
+      const act = btn.dataset.act;
+      if (act === "assign") {
+        const viaKeyboard = !(ev && ev.detail > 0);
+        host.setup.closePicker();
+        host.setup.pickerKey = btn.dataset.key;
+        host.setup.pickerFocus = viaKeyboard;
+        host.setup.pickerViaKeyboard = viaKeyboard;
+        host.dialog.page = "setup";
+      } else if (act === "open_schedule") {
+        host.dialog.page = "plan";
+      } else if (act === "try_degree") {
+        // Seed the what-if slider with the tile's target and run it.
+        const to = Number(btn.dataset.target);
+        if (Number.isFinite(to)) host.whatIf.draft().comfort = Math.min(24, Math.max(16, to));
+        host.dialog.page = "plan";
+        host.dialog.scroll = 0;
+        host._render();
+        host.whatIf.run();
+        return;
+      } else if (act === "settings") {
+        navigateTo(SETTINGS_PATH);
+        return;
+      } else if (act === "apply_valve") {
+        const to = Number(btn.dataset.target);
+        try {
+          await host.hass.callService("heatpump_optimizer", "assign_entity", {
+            key: "mixing_valve_target_entity", entity_id: "", manual_setpoint: to,
+          });
+          note(L("advisor.applied", { to }));
+        } catch (err) {
+          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+        }
+        return;
+      }
       host.dialog.scroll = 0;
       host._render();
     });
@@ -12015,6 +12304,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // indoor sensor and the clock, and the pill the clock (R9-UI-3).
       headlineSignature(this.plan, this._config, indoorState(this), Date.now()),
       statusSignature(this.plan, Date.now()),
+      // The advisor inbox reads its own sensors (R9-UX-2).
+      advisorSignature(this.plan),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
       this.plan.awaySignature(),
       // A dark-mode toggle redraws the whatif result colours (D4-s1-01)
