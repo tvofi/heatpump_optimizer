@@ -975,7 +975,7 @@ jobs:
   mutation-ledger:
     needs: [recheck-gate]
     if: >-
-      always() && github.ref == 'refs/heads/main' && (
+      !cancelled() && github.ref == 'refs/heads/main' && (
         github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
@@ -1043,7 +1043,7 @@ jobs:
   mutation-ledger-push:
     needs: [mutation-ledger]
     if: >-
-      always() && github.ref == 'refs/heads/main'
+      !cancelled() && github.ref == 'refs/heads/main'
       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
       && needs.mutation-ledger.result == 'success'
     environment: ledger
