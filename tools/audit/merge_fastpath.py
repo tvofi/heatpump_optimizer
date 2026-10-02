@@ -33,13 +33,18 @@ WHAT IT REFUSES, every class conservative:
   * full       -- the pull request's own selection was FULL (a gate file, an
                   unmeasured file, a table that does not describe the tree),
                   under `main`'s table or the head's: every script graded it.
-  * unrecorded -- either side changes a file no closure records (an INERT
-                  doc, say) while `tests/run.sh` has a `run_always` script: such
-                  a script runs whatever the plan says and may read that file
-                  unrecorded. `harness_headers.py` does, through D6's
-                  `claims.py` (#1823 review: a link the pull request adds to
-                  DISCLAIMER.md, to a file main deletes, is a false claim on
-                  the merged tree that neither side's CI saw).
+  * unrecorded -- either side changes a file no closure records while `tests/run.sh`
+                  has a `run_always` script, and the file is one such a script
+                  may read: a non-INERT file, one `inert_reads` in
+                  tests/closures.json lists for it, or a sibling in a directory
+                  it lists a file from. A `run_always` script runs whatever the
+                  plan says; `harness_headers.py` opens DISCLAIMER.md, LICENSE
+                  and three docs/ pages through D6's `claims.py` (#1823 review:
+                  a link the pull request adds to DISCLAIMER.md, to a file main
+                  deletes, is a false claim on the merged tree that neither
+                  side's CI saw). A docs/delivery row nothing opens is not one
+                  (R9-F10.9d). A table with no `inert_reads` keeps the old
+                  answer: every unrecorded file is a read.
   * overlap    -- a file `main` changed since the CI base is in the closure of
                   a script the pull request selected, or of a `run_always`
                   script, which is selected on every run, under either table.
@@ -126,11 +131,26 @@ def select_under(table: dict, files: list[str]) -> dict:
             closure.CLOSURES = saved
 
 
+def inert_read_dirs(tables: dict[str, dict], always) -> "tuple[set[str], set[str]] | None":
+    """(files, their directories) the `run_always` scripts opened among INERT files.
+
+    None when a table carries no `inert_reads` (the recorder never measured it):
+    the caller then keeps the old answer, every unrecorded file is a read.
+    A directory counts because a script that globs a folder reads files nobody
+    recorded yet, whatever the one it happened to open.
+    """
+    if any("inert_reads" not in t for t in tables.values()):
+        return None
+    files = {f for t in tables.values() for s in always for f in t["inert_reads"].get(s, ())}
+    return files, {str(Path(f).parent) for f in files}
+
+
 def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
            graders: list[str], conflict: str | None,
            always: "list[str] | tuple[str, ...]" = ()) -> list[tuple[str, str]]:
     """Every refusal, as (class, detail); empty means eligible. Pure: no git."""
     out: list[tuple[str, str]] = []
+    reads = inert_read_dirs(tables, always)
     if conflict:
         out.append(("conflict", conflict))
     if not main_files:
@@ -147,7 +167,9 @@ def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
             out.append(("grader", f"{side} changes {f}, a grader required jobs restore from the base"))
         elif f.endswith("_budgets.json") and closure.unit_of(f) not in measured:
             out.append(("budget", f"{side} changes {f}, a cap no closure measures"))
-        elif always and closure.unit_of(f) not in measured:
+        elif always and closure.unit_of(f) not in measured and (
+                reads is None or not closure.is_inert(f)
+                or f in reads[0] or str(Path(f).parent) in reads[1]):
             out.append(("unrecorded", f"{side} changes {f}, which no closure records, and "
                         f"run_always {', '.join(always)} read the tree whatever is selected"))
     if not pr_files:
@@ -291,6 +313,29 @@ def self_test() -> int:
               classes(["DISCLAIMER.md"], ["tools/audit/README.md"], always=()), [])
         check("an unrecorded file on main's side alone refuses too",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
+        rt = {"closures": table["closures"],
+              "inert_reads": {"tests/h.py": ["DISCLAIMER.md", "docs/backlog.md"]}}
+        rtabs = {"main": rt, "head": rt}
+        check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
+              "is eligible once the table records the INERT reads",
+              classes(["tests/golden/b.json"], ["docs/delivery/1.md"], t=rtabs), [])
+        check("... and the pull request's own delivery row beside a code change main made",
+              classes(["docs/delivery/2.md"], ["custom_components/x/one.py"], t=rtabs), [])
+        check("a doc a run_always script opened still refuses (null control for the pair above)",
+              classes(["tests/golden/b.json"], ["docs/backlog.md"], t=rtabs), ["unrecorded"])
+        check("... on the pull request's side too",
+              classes(["DISCLAIMER.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
+        check("a new page beside the docs a script opened refuses: it may glob the folder",
+              classes(["tests/golden/b.json"], ["docs/new.md"], t=rtabs), ["unrecorded"])
+        check("an unmeasured file that is not INERT refuses even then",
+              classes(["tests/golden/b.json"], ["custom_components/x/new.py"], t=rtabs),
+              ["unrecorded"])
+        check("a table in which one side never measured the reads keeps the old answer",
+              classes(["tests/golden/b.json"], ["docs/delivery/1.md"],
+                      t={"main": rt, "head": table}), ["unrecorded"])
+        check("this tree's table records harness_headers.py's INERT reads, DISCLAIMER.md among them",
+              "DISCLAIMER.md" in json.loads((ROOT / "tests/closures.json").read_text())
+              .get("inert_reads", {}).get("tests/harness_headers.py", ()), True)
         check("main changed what a run_always script reads, which the pull request never "
               "selected: overlap",
               classes(["tests/golden/b.json"], ["tools/audit/x/claims.py"]), ["overlap"])

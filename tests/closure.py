@@ -873,6 +873,7 @@ def _exec_record(script: str, out_path: str, extra_args: list[str]) -> int:
         "rc": rc,
         "seconds": round(time.time() - started, 1),
         "files": sorted(opened | modules),
+        "inert_reads": sorted(f for f in opened if _is_real_file(f) and is_inert(f)),
         "spawned": [" ".join(a) for a in spawned][:200],
         "how": "audithook+sys.modules",
         "argv": [script, *extra_args],
@@ -1061,8 +1062,11 @@ _STRACE_SPAWN = re.compile(r"\b(clone3?|v?fork)\(")
 _STRACE_RET = re.compile(r"\)\s*=\s*(-?\d+)")
 
 
-def strace_files(trace: Path) -> set[str]:
+def strace_files(trace: Path, inert: bool = False) -> set[str]:
     """The repo files Python processes in a `strace -f -y` log opened.
+
+    With `inert=True` it returns the opposite set: the INERT files those same
+    processes opened, which `_union_strace` files under `inert_reads` (R9-F10.9d).
 
     Only a process whose last exec was a Python interpreter, and what it forks
     without exec, counts. The class this instrument exists for is a Python
@@ -1112,7 +1116,7 @@ def strace_files(trace: Path) -> set[str]:
         m = _STRACE_FD.search(line)
         if m:
             r = _rel(m.group(1))
-            if r and _is_real_file(r) and not is_inert(r):
+            if r and _is_real_file(r) and is_inert(r) == inert:
                 files.add(r)
     return files
 
@@ -1121,12 +1125,14 @@ def _union_strace(out: Path, trace: Path) -> None:
     """Fold a traced run's repo reads into the audit-hook record at `out`."""
     try:
         seen = strace_files(trace)
+        inert_seen = strace_files(trace, inert=True)
         rec = json.loads(out.read_text())
     except (OSError, json.JSONDecodeError):
         return
     finally:
         trace.unlink(missing_ok=True)
     rec["files"] = sorted(set(rec["files"]) | seen)
+    rec["inert_reads"] = sorted(set(rec.get("inert_reads", ())) | inert_seen)
     rec["how"] = rec.get("how", "") + "+strace"
     out.write_text(json.dumps(rec, indent=1))
 
@@ -1369,6 +1375,24 @@ def prune(out: Path = CLOSURES) -> int:
 
 
 
+def _fold_inert_reads(table: dict, records: dict) -> None:
+    """File each recording's INERT reads under its script, in place (R9-F10.9d).
+
+    INERT files stay out of every closure -- that classification is the owner's
+    -- but a `run_always` script runs whatever the plan says, so the merge
+    fast path (`tools/audit/merge_fastpath.py`) must know which INERT files such
+    a script actually opened, to tell a `docs/delivery` row nothing reads from a
+    doc `harness_headers.py` does. A script that read none has no key; the
+    table's own presence says the recorder measured it.
+    """
+    for k, r in records.items():
+        reads = sorted(f for f in r.get("inert_reads", ()) if _is_real_file(f))
+        if reads:
+            table[k] = reads
+        else:
+            table.pop(k, None)
+
+
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
           partial: bool = False) -> int:
     records = {}
@@ -1484,6 +1508,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                   file=sys.stderr)
             return 1
         payload["closures"] = closures
+        _fold_inert_reads(payload.setdefault("inert_reads", {}), records)
         out.write_text(json.dumps(payload, indent=1) + "\n")
         print(f"closure: updated {len(touched)} closure(s) in {out}")
         for k in sorted(touched):
@@ -1506,7 +1531,9 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         "recorded": {k: {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
                      for k in sorted(records)},
         "closures": closures,
+        "inert_reads": {},
     }
+    _fold_inert_reads(payload["inert_reads"], records)
     out.write_text(json.dumps(payload, indent=1) + "\n")
     print(f"closure: wrote {out} ({len(closures)} scripts)")
     for k, v in closures.items():
@@ -1636,7 +1663,8 @@ def check(in_dir: Path, partial: bool = False) -> int:
     if not CLOSURES.exists():
         print("closure: tests/closures.json is missing", file=sys.stderr)
         return 1
-    committed = json.loads(CLOSURES.read_text())["closures"]
+    table = json.loads(CLOSURES.read_text())
+    committed = table["closures"]
     # Same contradiction `merge` refuses, checked here too (#357): the
     # closures CI job runs `derive_closures.sh --record-only`, which never
     # calls `merge`, so a file that is both INERT and inside a recorded
@@ -1702,6 +1730,23 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("  a directory carries no content a closure can be stale against,")
         print("  and recording one makes the scoped and full re-derives disagree (#365).")
         for script, name in non_files:
+            print(f"    {script}: {name}")
+        return 1
+    # The INERT reads the merge fast path trusts (R9-F10.9d) are an
+    # under-approximation the same way a closure is: a read the table misses
+    # lets a change to that file merge without the run that would grade it.
+    missed = sorted(
+        (script, name)
+        for script, rec in records.items()
+        for name in rec.get("inert_reads", ())
+        if _is_real_file(name)
+        and name not in table.get("inert_reads", {}).get(script, ()))
+    if missed:
+        print("INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the")
+        print("  committed `inert_reads` does not list for it; the merge fast path")
+        print("  would treat a change to it as unread (R9-F10.9d). Re-derive:")
+        print("  ./tests/derive_closures.sh --single <script>")
+        for script, name in missed:
             print(f"    {script}: {name}")
         return 1
     # LOUD, before anything else: a selectable script with no recording at

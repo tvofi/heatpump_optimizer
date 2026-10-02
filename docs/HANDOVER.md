@@ -39,6 +39,15 @@ in the standing template. Reviewer seats work detached at the head SHA and
 return verdicts to the merge seat, which merges one pull request at a time on
 `Fix review: merge <sha>` with green CI.
 
+- **Owed from R9-F10.9d (the merge fast path has no ELIGIBLE pair yet):**
+  `N=120 INJECT=1 python3 tools/audit/fastpath_census.py` counts 0 ELIGIBLE
+  pairs in main's last 120 merges at `3bd6f122`, with F10.9d's `inert_reads`
+  applied. No docs/delivery row is left among the `unrecorded` causes; every
+  moved pair also carries `full`, `claim`, `grader`, `workflow` or `overlap`,
+  `full` first because the pull request itself edits a gate file. The next
+  owner of `merge_fastpath.py` prices those classes before expecting the path
+  to fire.
+
 ## Decisions taken — do not relitigate
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
