@@ -27815,10 +27815,10 @@ R.check(
     f"slices) -> {_DP_GOT}",
 )
 
-# The push half. A kill is a measurement of one tree: on the measured head
-# every pin applies once and a second apply writes nothing; on a main that
-# moved, a pin whose killing script read a changed path is dropped, and an
-# unreadable diff applies nothing. The statuses `mutation-ledger` leaves when
+# The push half. On the measured head every pin applies once and a second
+# apply writes nothing; on a main that moved, a pin lands while its killer's
+# closure still holds the mutated module and its line is unchanged, whatever
+# else the merges touched, and an unreadable diff applies nothing. The statuses `mutation-ledger` leaves when
 # there is nothing to apply pass through untouched.
 _AD_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-drained-"))
 _AD_SAVED = (_mut.BUDGETS, _mut.inventory, _mut.load_closures)
@@ -27859,10 +27859,10 @@ try:
     _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", None), _ad_kb(),
                 _mut.apply_drained(str(_ad_m), "H2", ["f.py"]), _ad_kb()]
     _ad_fresh()
-    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["tests/lib/z.py", "tests/x.py"]),
-                _mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
-                _mut.stale_pins(_ad_pins, ["tests/lib/z.py"], _mut.load_closures()),
-                _mut.stale_pins({"k": {"old": "x"}}, [], {})]
+    _mut.load_closures = lambda: {"tests/x.py": ["a.py"], "tests/y.py": ["a.py", "tests/lib/"]}
+    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
+                _mut.stale_pins(_ad_pins, _mut.load_closures()),
+                _mut.stale_pins({"k": {"old": "x"}}, {})]
 except Exception as _ad_exc:  # noqa: BLE001 -- one red check, never a partial run
     _AD_GOT = [f"{type(_ad_exc).__name__}: {_ad_exc}"]
 finally:
@@ -27871,17 +27871,83 @@ finally:
 _AD_BOTH = sorted(_ad_pins)
 R.check(
     "mutation-ledger-push applies a drained slice once, and on a moved main only "
-    "the pins whose killer read nothing that changed",
+    "the pins whose killer still reaches the mutated module",
     _AD_GOT == ["measured", "f.py:9 GUARD_OFF\n", "skip-nothing-killed", "skip-nothing-killed",
                 "skip-no-measurement", "skip-nothing-drivable", "changed", _AD_BOTH,
                 "skip-unchanged",
-                "skip-head-moved", [], "changed", [_ap_c["anchor"]],
-                "skip-head-moved", "changed", _AD_BOTH, [_ap_c["anchor"]], ["k"]],
+                "skip-head-moved", [], "changed", _AD_BOTH,
+                "changed", [_ap_c["anchor"]], [_ap_b["anchor"]], ["k"]],
     "(written, survivors, empty, passed through, absent, status-only passed "
     "through, measured head, rows, "
-    "again; moved+no diff, rows, moved past x's closure, rows; moved past "
-    "both, moved past neither, rows, stale under a closure dir, no killer) "
+    "again; moved+no diff, rows, moved past x's own module, rows; x no longer "
+    "reaching f.py, rows, stale, no killer) "
     f"-> {_AD_GOT}",
+)
+
+# A night's drain meets a main that moved during the round (run 37050037132):
+# the merges in between touched both killing scripts and modules inside their
+# recorded closures, which a closure-wide staleness rule reads as "every pin
+# stale". The ledger's rule for a row is its anchor and `old` text (it keeps a
+# standing row through any change to its killer), so the pins are re-keyed
+# against the moved head's inventory and land. The null controls: a pin whose
+# mutated line changed, a killer gone from the closures, and a killer whose
+# closure no longer holds the mutated module are each dropped.
+_HM_DIR = Path(_tempfile.mkdtemp(prefix="hpo-head-moved-"))
+_HM_SAVED = (_mut.BUDGETS, _mut.inventory, _mut.load_closures)
+_HM_KILLERS = ("tests/features.py", "tests/entities.py")
+
+
+def _hm_site(i: int, old: str) -> dict:
+    return {"anchor": f"{_mut.PKG}p{i}.py:g GUARD_OFF {i:08x}", "old": old,
+            "new": "    if False:", "file": f"{_mut.PKG}p{i}.py", "line": 3,
+            "kind": "GUARD_OFF"}
+
+
+def _hm_apply(pins: dict, sites: list[dict], closures: dict,
+              changed: list[str]) -> tuple[str, list[str]]:
+    (_HM_DIR / "ledger.json").write_text(_HM_SAVED[0].read_text())
+    _mut_shutil.rmtree(_HM_DIR / "mutation_ledger", ignore_errors=True)
+    _mut.inventory = lambda *_a: sites
+    _mut.load_closures = lambda: closures
+    _mut.write_drain(_HM_DIR / "m", pins, "H1", [])
+    got = _mut.apply_drained(str(_HM_DIR / "m"), "H2", changed)
+    return got, sorted(k for k in _mut.load_budgets().get("killed_by", {}) if k in pins)
+
+
+try:
+    _mut.BUDGETS = _HM_DIR / "ledger.json"
+    _hm_sites = [_hm_site(i, f"    if s{i}:") for i in range(42)]
+    _hm_pins = {s["anchor"]: {"killed_by": _HM_KILLERS[i % 2], "old": s["old"],
+                              "reason": "m"} for i, s in enumerate(_hm_sites)}
+    _hm_mods = [s["file"] for s in _hm_sites]
+    _hm_cl = {k: [*_hm_mods, "tests/lib/"] for k in _HM_KILLERS}
+    _hm_changed = [*_HM_KILLERS, *_hm_mods, "tests/lib/z.py"]
+    _hm_39 = dict(list(_hm_pins.items())[:39])
+    _HM_GOT = [_hm_apply(_hm_39, _hm_sites, _hm_cl, _hm_changed)]
+    # p0's line changed at the head; p39's killer left the closures; p40's
+    # killer no longer reaches p40.py; p41 stays the positive arm beside them.
+    _hm_head = [_hm_site(0, "    if s0 and edited:"), *_hm_sites[1:]]
+    _hm_ctl = dict(_hm_pins)
+    _hm_ctl[_hm_sites[39]["anchor"]] = dict(_hm_ctl[_hm_sites[39]["anchor"]],
+                                            killed_by="tests/gone.py")
+    _hm_cl2 = dict(_hm_cl, **{"tests/entities.py": [
+        m for m in _hm_cl["tests/entities.py"] if m != _hm_mods[40]]})
+    _HM_GOT.append(_hm_apply(_hm_ctl, _hm_head, _hm_cl2, _hm_changed))
+except Exception as _hm_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _HM_GOT = [f"{type(_hm_exc).__name__}: {_hm_exc}"]
+finally:
+    _mut.BUDGETS, _mut.inventory, _mut.load_closures = _HM_SAVED
+    _mut_shutil.rmtree(_HM_DIR, ignore_errors=True)
+_HM_WANT = [("changed", sorted(_hm_39)),
+            ("changed", sorted(k for k in _hm_pins if k not in {
+                _hm_sites[i]["anchor"] for i in (0, 39, 40)}))]
+R.check(
+    "mutation-ledger-push lands a drained slice on a main whose merges touched every "
+    "killer's closure, and drops only the pins whose site or driver the head lost",
+    _HM_GOT == _HM_WANT,
+    "(39 pins, both killers and every mutated module changed -> all 39 land; "
+    "edited line, killer gone, killer no longer reaching the module -> each dropped, "
+    f"the other 39 land) -> {[(g[0], len(g[1])) if isinstance(g, tuple) else g for g in _HM_GOT]}",
 )
 
 # The writer's grant (decision 0011's amendment) is new killed_by rows and
