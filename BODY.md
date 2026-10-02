@@ -14,7 +14,15 @@ This PR makes the autofix notice when its pinned classifier disagrees with the g
 
 ## Head
 
-`4fe5c0374d44433598ce98848ed650a82a53e237`. That is the merge of `origin/main` 948671af1 into the fix at 05540e8f4. The test-first commit is 07b4701ee. All measurements were taken at 4fe5c0374, except the red run at 07b4701ee and the mutants at 05540e8f4.
+`640ef43fa4c224cc5b85c8ebfe54f32843ff6e57`. Merge base with `origin/main`: 5f87e25a1.
+
+The head contains, in order:
+- the test-first commit 07b4701ee;
+- the fix 05540e8f4;
+- the orchestrator's main merge 5b660cd92 and the delivery row 40b41179e;
+- round 2's test repair 640ef43fa.
+
+Every figure below was re-taken at 640ef43fa, except the RED arm and the mutants. Those ran at 640ef43fa with the named file swapped, and each was restored with `git checkout HEAD --`.
 
 ## Root cause
 
@@ -27,38 +35,49 @@ From the root-cause seat's analysis on `handoff/r9-rca-closures-autofix-skip` (6
 
 ## Mutation proof
 
-Each mutant was applied to the committed fix at 05540e8f4, run with `PYTHONPATH=tests/hastub:<numpy/scipy target> python3 tests/entities.py`, and then restored with `git checkout`.
+Each arm was run at 640ef43fa with `PYTHONPATH=tests/hastub ~/hpo-seats/R9-F11.4-venv/bin/python3 tests/entities.py` (Python 3.14 with numpy and scipy). The edited file was restored with `git checkout HEAD --` after each arm, and the tree was clean after every restore.
 
-- **M1, guard deleted** (`disagree = False and any(...)` in `apply_under_scoped_recordings`): `1 of 2063 ENTITY CHECKS FAILED`, namely `FAIL a pinned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)  [{'defect': ('skip-not-under-scoped', True), ...}]`.
-- **M2, pipefail dropped** (`set -o pipefail` → `true`): `1 of 2063 ENTITY CHECKS FAILED`, namely `FAIL the closures job tees its check to check.txt beside the recordings`. This sed hit every `tests.yml` line that is exactly ten spaces plus `set -o pipefail` (3 lines, this step's among them). Only this check went red.
-- **M3, new status classified quiet** (added to `AUTOFIX_QUIET["closures-autofix"]`): `1 of 2063 ENTITY CHECKS FAILED`, namely `FAIL a pinned classifier ... reddens (#1846)  [{'defect': ('skip-classifier-disagrees', True), ...}]`.
+- **RED, the fix withdrawn** (`tests/closure.py` and `tests.yml` at 5f87e25a1): `3 of 2065 ENTITY CHECKS FAILED`. The three are the #1846 case (`skip-not-under-scoped` for the defect), the apply-function status roster, and the tee wiring check.
+- **M1, guard deleted** (`disagree = False and any(...)`): `1 of 2065`, namely `FAIL a pinned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)`.
+- **M3, new status classified quiet** (added to `AUTOFIX_QUIET["closures-autofix"]`): `1 of 2065`, the same check.
+- **M8, loose match** (`"UNDER" in l` for `l.startswith("UNDER-SCOPED: ")`): `1 of 2065`, namely `FAIL and stays quiet when the closures job printed no UNDER-SCOPED, or no check.txt exists (a46a91c null control)`. The real a46a91c line `INERT READS UNDER-APPROXIMATED` kills it.
+- **P1, this step's `set -o pipefail` deleted:** `1 of 2065`, namely `FAIL the closures job tees its check to check.txt beside the recordings`.
+- **P2, commented out:** `1 of 2065`, the same check.
+- **P3, moved after `fi`:** `1 of 2065`, the same check.
 
-**Red first:** at 07b4701ee (test only; `closure.py` and `tests.yml` as on main) the result was `3 of 2063 ENTITY CHECKS FAILED`. The failures were the #1846 case (`skip-not-under-scoped` for the defect), the tee wiring check, and the apply-function status roster. The null-control check passed there too. At 05540e8f4 and at 4fe5c0374: `ALL 2063 ENTITY CHECKS PASSED`.
+P2 and P3 survived round 1. They are now killed because the wiring check requires an uncommented `set -o pipefail` line before the step's `if [ "$SCOPE_CASE"`. Each mutant edits only this step's lines, matched by the exact block.
 
-`python3 tests/mutation_table.py --scope changed --base 2e7422e59` reports `no production code line added or modified against the base` and `MUTATION TABLE PASSED (empty scope)`. The diff touches no file under `custom_components/`, so no ledger sites are involved.
+`tests/mutation_table.py --scope changed --base 5f87e25a1` prints `no production file in scope; nothing to mutate` and `MUTATION TABLE PASSED (empty scope)`. The diff touches nothing under `custom_components/`.
 
 ## Null control
 
-- **a46a91c's by-design failure.** In #1846's earlier run (Tests 37007613365, `closures` job 110839553394), `closures` printed `INERT READS UNDER-APPROXIMATED ... tests/doc_claims.py: DISCLAIMER.md` and no UNDER-SCOPED. Given that real check output as `check.txt` beside the same INERT-pair recordings, the head returns `skip-not-under-scoped` and the job exit is 0. That run owes no bot repair, and the result stays quiet.
-- **No `check.txt`** (an artifact from before this change, or the fast arm): the result is `skip-not-under-scoped`.
-- **The unmodified tree** (`tests/closure.py` at 2e7422e59) returns `skip-not-under-scoped` with job exit 0 for all three inputs, the defect included. That is the defect.
-- The predicate keys only on `skip-not-under-scoped`. `skip-clean` (the 89572df0 moved-head case in the RCA scan) and `skip-not-allowed` (the loop guard) are untouched. All existing autofix checks in `tests/entities.py` (#523, #1569, R9-F10.9) still pass.
+- **a46a91c's by-design failure.** In #1846's earlier run (Tests 37007613365, `closures` job 110839553394), `closures` printed `INERT READS UNDER-APPROXIMATED ... tests/doc_claims.py: DISCLAIMER.md` and no UNDER-SCOPED. Given that real check output as `check.txt` beside the same INERT-pair recordings, the head returns `skip-not-under-scoped`, job exit 0. The result is quiet.
+- **No `check.txt`** (an artifact from before this change, or the fast arm): `skip-not-under-scoped`.
+- **The fix withdrawn** (`tests/closure.py` at 5f87e25a1) gives `skip-not-under-scoped`, job exit 0, for all three inputs, the defect included. That is the defect.
+- **The fixture no longer reads main's live INERT list.** `_af_case` takes the INERT set it needs (`inert={"DISCLAIMER.md"}` for these cases), so the base's classification is reproduced whatever main's `INERT_EXCEPT` holds. Round 1 failed because #1846 moved `DISCLAIMER.md` to `INERT_EXCEPT` on main.
+- The predicate keys only on `skip-not-under-scoped`. `skip-clean` and `skip-not-allowed` are untouched. All earlier autofix checks in `tests/entities.py` (#523, #1569, R9-F10.9) still pass.
 
 ## Figures
 
-- The 3 / 15 / 22 / 423 run counts are stated without a command here. They rest on the RCA seat's GitHub API scan, which lives only on the ref handoff/r9-rca-closures-autofix-skip at 6d4a51b3e (its rca/ directory holds the scan scripts and tables, none of them in this tree), and they were not re-taken.
-- `2063 entity checks: 3 red at 07b4701ee, 0 red at 05540e8f4 and 4fe5c0374`. Command: `PYTHONPATH=tests/hastub:$PYLIB python3 tests/entities.py`, where `$PYLIB` is a `pip install --target` of CI's pins `numpy==2.4.6 scipy==1.17.1` (from `tests/requirements-ci.txt`) on Python 3.14, macOS.
-- Real-log demonstration, against `$EXPORT/demo2.py` sha1 3a715f6698f7 (scratch, not in the tree). It runs `apply_under_scoped_recordings` over `{harness_headers.py: [it, DISCLAIMER.md]}` with recordings reading `DISCLAIMER.md`, which is INERT at main, and `check.txt` set to the timestamp-stripped check-step output of `closures` job 110886379255 (run 37019499517, e42b1cdd, 10 lines, sha1 e40d679b245a) or job 110839553394 (a46a91c, 5 lines, sha1 775720c7983c). Head: `e42b1cd defect: status=skip-classifier-disagrees job_rc=1`, `a46a91c null: status=skip-not-under-scoped job_rc=0`, `no check.txt: status=skip-not-under-scoped job_rc=0`. Base 2e7422e59: all three `skip-not-under-scoped job_rc=0`.
-- `MODE: FULL -- every test script runs` from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` (reason: `.github/workflows/tests.yml changes the gate itself`). The full gate is CI's; it was not reproduced locally.
+- The 3 / 15 / 22 / 423 run counts are stated without a command here. They rest on the RCA seat's GitHub API scan, which lives only on the ref handoff/r9-rca-closures-autofix-skip at 6d4a51b3e (its rca/ directory holds the scan scripts and tables, none of them in this tree), and they were not re-taken. The round-1 fix reviewer independently re-derived 22 and 15 from those tables and replayed all five real CI runs.
+- `ALL 2065 ENTITY CHECKS PASSED` at 640ef43fa, and the arm counts in `## Mutation proof`. Command: `PYTHONPATH=tests/hastub ~/hpo-seats/R9-F11.4-venv/bin/python3 tests/entities.py`.
+- Real-log demonstration, against `$EXPORT/demo2.py` sha1 148756cbf202 (scratch, not in the tree). The script holds `DISCLAIMER.md` INERT, as the base did. It runs `apply_under_scoped_recordings` over `{harness_headers.py: [it, DISCLAIMER.md]}` with recordings reading `DISCLAIMER.md`, and with `check.txt` set to the timestamp-stripped check-step output of `closures` job 110886379255 (run 37019499517, e42b1cdd, sha1 e40d679b245a) or job 110839553394 (a46a91c, sha1 775720c7983c).
+  - Head 640ef43fa: `e42b1cd defect: status=skip-classifier-disagrees job_rc=1`, `a46a91c null: status=skip-not-under-scoped job_rc=0`, `no check.txt: status=skip-not-under-scoped job_rc=0`.
+  - `tests/closure.py` at 5f87e25a1: all three `skip-not-under-scoped job_rc=0`.
+- `MODE: FULL -- every test script runs` from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` (because `tests.yml` changed). The full gate is CI's.
 - `STRUCTURE RATCHET PASSED`, from `python3 tests/structure.py`.
 - `ci-autofix.md` measures 1428 tokens against a cap of 1428, and 92 lines against a cap of 96, from `node .claude/workflows/policy_lint.mjs --budgets`. `TOTAL: 0 error(s)`, from `node .claude/workflows/policy_lint.mjs`.
 - `RULES-SYNC ok`, from `node .claude/workflows/rules_sync.mjs --check`.
 
-Not run locally: the full gate (MODE: FULL, left to CI), `tests/stress.py`, `features.py` and the solver goldens (numeric, CI only), and closure recordings (`PREPR_SKIP_CLOSURES=1`; off Linux).
+Not run locally: the full gate, `tests/stress.py`, `features.py` and the solver goldens (numeric, CI only), and closure recordings (`PREPR_SKIP_CLOSURES=1`; off Linux).
 
 ## Red checks
 
-none so far on this branch. The new `closures-autofix` status cannot fire on this PR itself, because that job runs main's pinned `closure.py` (see the bootstrap note above). If `closures` goes red here, `closures-autofix` reports main's verdict.
+- **fast (3.14)** went red at 40b41179e (job 110935386372, `2 of 2065 ENTITY CHECKS FAILED`). The two failures were this PR's own new checks.
+  - **Cause:** they relied on main's live INERT list. The main merge 5b660cd92 brought in #1846, which moved `DISCLAIMER.md` to `INERT_EXCEPT`, so the INERT-pair fixture became a real UNDER-SCOPED that the base merged (`changed`). 640ef43fa makes the case pin its own INERT set.
+  - **Cheaper detector:** it already exists. Running `tests/entities.py` locally after the main merge (seconds to minutes, under the 3.14 numpy/scipy venv) shows the same 2 failures before the push. That run was skipped at 40b41179e, because the merge was made after the seat's last local run. Its standing cost is one local `entities.py` run per main merge on a branch that touches `tests/closure.py` or `tests/entities.py`. No new countermeasure is built: the obligation to re-run steps 2–8 after a merge is already in `fixer.md` step 6.
+- **pr-contract** went red at 40b41179e (job 110945652795). The cause was that the body did not answer `fast (3.14)`; this section now does.
+- The new `closures-autofix` status cannot fire on this PR itself, because that job runs main's pinned `closure.py` (see the bootstrap note above).
 
 ## Forward-carry
 
