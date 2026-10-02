@@ -618,8 +618,22 @@ def _is_header_corpus(rel: str) -> bool:
     )
 
 
+def _is_archscore(rel: str) -> bool:
+    """The architecture score's own files, all but its prose (R9-EG-A1).
+
+    ``tests/arch_score.py`` imports the code, measures through
+    ``tests/structure.py``, reads the stored corpus vectors and the pinned
+    verdicts, and runs every planted and red-team script, so each of them is a
+    dependency of that script and none is inert. Stated as the directory's shape
+    and not as one line per file: the corpus alone is a vector per commit, and a
+    list nobody keeps honest is what ``_is_header_corpus`` replaced. The prose
+    (``ABOUT.md``) is read by nothing and stays under the ``tools/audit/`` prefix.
+    """
+    return rel.startswith("tools/audit/archscore/") and not rel.endswith(".md")
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel):
+    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel) or _is_archscore(rel):
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 

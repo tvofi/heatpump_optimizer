@@ -439,6 +439,13 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
+  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
+  # the red-team games that must stay closed. Report-only instrument, never a
+  # gate on other pull requests; this guards the instrument. Scoped to the
+  # score's own files and structure.py; it measures a pinned tree, so the
+  # integration does not select it. The second script reads today's tree.
+  run "$PYTHON" tests/arch_score.py
+  run "$PYTHON" tests/arch_score_head.py
   # The typing ratchet (#303). The `# type: ignore` count is a source scan and
   # runs here on every pull request. The error count and its per-code split
   # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
