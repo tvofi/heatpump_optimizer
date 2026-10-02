@@ -130,13 +130,50 @@ The pins constrain timing only — safety still releases any slot the tank
 minimum, the legionella clock or the comfort floor cannot honour, and released
 slots are reported in the same `manual_override` attribute.
 
+## Events: what the optimizer tells you
+
+The integration fires five Home Assistant events, each once per occurrence, so
+an automation decides where a message goes. Every event carries `entry_id`, the
+config entry that fired it. What has been sent is remembered across restarts,
+so a condition that is still true after a restart is not announced again, and an
+unchanged refresh fires nothing. A condition that clears and comes back fires
+again.
+
+| Event | Fires when | Data |
+|---|---|---|
+| `heatpump_optimizer_monthly_receipt` | a month has closed and its receipt is published | `entry_id`, `month` (`YYYY-MM`), `total_sek`, `saving_sek` and `saving_pct` (against a plain thermostat, `null` when the month has no savings row), `currency` |
+| `heatpump_optimizer_comfort_at_risk` | the coldest step of the plan is below your minimum temperature | `entry_id`, `predicted_min_c`, `at` (the step's time), `floor_c`, `peak_guard_suppressing` (the peak guard is holding heating back) |
+| `heatpump_optimizer_input_stale` | a required input has not updated within its limit; once per input | `entry_id`, `input`, `age_minutes`, `max_age_minutes` |
+| `heatpump_optimizer_plan_stale` | the plan is older than three solve cycles (at least 90 minutes) | `entry_id`, `age_minutes` |
+| `heatpump_optimizer_manual_plan_released` | safety released slots of a manual plan; once per channel and override | `entry_id`, `channel` (`space` or `dhw`), `steps` (the released step numbers when it fired), `reason`, `expires_at` |
+
+A receipt that already exists when the integration is updated to the release
+that adds these events is not announced; the next month's is.
+
+```yaml
+automation:
+  - alias: Tell me when the house may get cold
+    trigger:
+      - platform: event
+        event_type: heatpump_optimizer_comfort_at_risk
+    action:
+      - action: notify.mobile_app_phone
+        data:
+          message: >-
+            The plan expects {{ trigger.event.data.predicted_min_c }} °C,
+            below your {{ trigger.event.data.floor_c }} °C minimum.
+```
+
+The blueprint below turns all five into messages for one notify target.
+
 ## Blueprints
 
-Each example above is also shipped as an importable Home Assistant blueprint,
-one per example, taking the sensor and thresholds as inputs instead of the
+The three examples above, and the events, are also shipped as importable Home Assistant blueprints,
+taking the sensor and thresholds as inputs instead of the
 hard-coded entity ids. Import them from Settings → Automations & Scenes →
 Blueprints → Import Blueprint:
 
 - [Charge an EV from grid headroom](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml) — from the first example above.
 - [Economy mode through the evening price peak](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml) — from the second example above.
 - [Notify when a manual plan takes over](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml) — from the third example above.
+- [Notifications](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml) — sends the five events above to a notify target, one switch per event, with quiet hours that the comfort alert passes through.

@@ -315,6 +315,12 @@ async def async_setup_entry(
     # succeeded, so a ``ConfigEntryNotReady`` leaves nothing half-built behind.
     entry.runtime_data = coordinator
 
+    # The documented events (docs/automations.md) are fired by a listener on
+    # the coordinator's updates, so the coordinator itself knows nothing of them.
+    await (await _async_lazy(hass, "notifier")).async_setup_notifier(
+        hass, entry, coordinator
+    )
+
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
     await (await _async_lazy(hass, "frontend")).async_register_frontend(
         hass, coordinator.integration_version

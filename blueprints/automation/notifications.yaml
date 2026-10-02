@@ -1,0 +1,182 @@
+blueprint:
+  name: Heat Pump Optimizer - notifications
+  description: >-
+    Send the optimizer's documented events to one notify target: the monthly
+    receipt, comfort at risk, an input gone stale, a stale plan and a manual
+    plan whose slots safety released. Each event has its own switch. Quiet
+    hours hold back everything except the comfort alert, which always gets
+    through. An event that fires during quiet hours is dropped, not sent
+    later. Every event carries the config entry id as entry_id, so with more
+    than one entry add the blueprint once per entry and filter on it in your
+    own automation.
+  domain: automation
+  author: tvofi
+  source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml
+  input:
+    notify_entity:
+      name: Notify target
+      description: >-
+        The notify entity that receives the messages, for example your
+        phone's. The messages are sent with the notify.send_message action.
+      selector:
+        entity:
+          domain: notify
+    notify_receipt:
+      name: Monthly receipt
+      description: >-
+        Once a month, when the month closes: the total and the saving against
+        a plain thermostat.
+      default: true
+      selector:
+        boolean: {}
+    notify_comfort:
+      name: Comfort at risk
+      description: >-
+        When the plan expects the house to fall below your minimum
+        temperature. Sent through quiet hours.
+      default: true
+      selector:
+        boolean: {}
+    notify_input_stale:
+      name: Input gone stale
+      description: >-
+        When a required sensor has not updated for longer than its limit.
+      default: true
+      selector:
+        boolean: {}
+    notify_plan_stale:
+      name: Plan gone stale
+      description: >-
+        When the optimizer has not produced a fresh plan in time.
+      default: true
+      selector:
+        boolean: {}
+    notify_manual_release:
+      name: Manual plan released
+      description: >-
+        When safety releases slots of a manual plan you pinned.
+      default: true
+      selector:
+        boolean: {}
+    quiet_start:
+      name: Quiet hours start
+      description: >-
+        From this time only the comfort alert is sent. Set the same time as
+        the end to turn quiet hours off.
+      default: "22:00:00"
+      selector:
+        time: {}
+    quiet_end:
+      name: Quiet hours end
+      description: Until this time, which may be after midnight.
+      default: "07:00:00"
+      selector:
+        time: {}
+mode: queued
+max_exceeded: silent
+variables:
+  notify_receipt: !input notify_receipt
+  notify_comfort: !input notify_comfort
+  notify_input_stale: !input notify_input_stale
+  notify_plan_stale: !input notify_plan_stale
+  notify_manual_release: !input notify_manual_release
+  quiet_start: !input quiet_start
+  quiet_end: !input quiet_end
+  # Quiet hours may run past midnight; equal times mean none.
+  now_time: "{{ now().strftime('%H:%M:%S') }}"
+  quiet: >-
+    {{ (quiet_start <= quiet_end and quiet_start <= now_time < quiet_end)
+       or (quiet_start > quiet_end
+           and (now_time >= quiet_start or now_time < quiet_end)) }}
+trigger:
+  - platform: event
+    event_type: heatpump_optimizer_monthly_receipt
+  - platform: event
+    event_type: heatpump_optimizer_comfort_at_risk
+  - platform: event
+    event_type: heatpump_optimizer_input_stale
+  - platform: event
+    event_type: heatpump_optimizer_plan_stale
+  - platform: event
+    event_type: heatpump_optimizer_manual_plan_released
+action:
+  - variables:
+      data: "{{ trigger.event.data }}"
+  - choose:
+      - alias: Monthly receipt
+        conditions:
+          - "{{ trigger.event.event_type == 'heatpump_optimizer_monthly_receipt' }}"
+          - "{{ notify_receipt }}"
+          - "{{ not quiet }}"
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: !input notify_entity
+            data:
+              title: Heat pump optimizer, {{ data.month }}
+              message: >-
+                Heating and hot water cost {{ data.total_sek | round(0) }}
+                {{ data.currency }}{% if data.saving_sek is not none %},
+                {{ data.saving_sek | round(0) }} {{ data.currency }}
+                {% if data.saving_pct is not none
+                %}({{ data.saving_pct | round(0) }} %) {% endif
+                %}less than a plain thermostat would have{% endif %}.
+      - alias: Comfort at risk
+        conditions:
+          - "{{ trigger.event.event_type == 'heatpump_optimizer_comfort_at_risk' }}"
+          - "{{ notify_comfort }}"
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: !input notify_entity
+            data:
+              title: Heat pump optimizer, comfort at risk
+              message: >-
+                The plan expects {{ data.predicted_min_c }} °C at
+                {{ as_timestamp(data.at) | timestamp_custom('%H:%M') }},
+                below your {{ data.floor_c }} °C minimum{% if
+                data.peak_guard_suppressing %}: the peak guard is holding
+                heating back{% endif %}.
+      - alias: Input gone stale
+        conditions:
+          - "{{ trigger.event.event_type == 'heatpump_optimizer_input_stale' }}"
+          - "{{ notify_input_stale }}"
+          - "{{ not quiet }}"
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: !input notify_entity
+            data:
+              title: Heat pump optimizer, input stale
+              message: >-
+                The {{ data.input }} input has not updated for
+                {{ data.age_minutes | round(0) }} min (limit
+                {{ data.max_age_minutes | round(0) }} min).
+      - alias: Plan gone stale
+        conditions:
+          - "{{ trigger.event.event_type == 'heatpump_optimizer_plan_stale' }}"
+          - "{{ notify_plan_stale }}"
+          - "{{ not quiet }}"
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: !input notify_entity
+            data:
+              title: Heat pump optimizer, plan stale
+              message: >-
+                The plan is {{ data.age_minutes | round(0) }} min old, past
+                three solve cycles.
+      - alias: Manual plan released
+        conditions:
+          - "{{ trigger.event.event_type == 'heatpump_optimizer_manual_plan_released' }}"
+          - "{{ notify_manual_release }}"
+          - "{{ not quiet }}"
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: !input notify_entity
+            data:
+              title: Heat pump optimizer, manual plan released
+              message: >-
+                Safety released {{ data.steps | length }} {{ data.channel }}
+                step(s) of your manual plan ({{ data.reason }}).
