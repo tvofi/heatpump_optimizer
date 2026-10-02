@@ -1,0 +1,17 @@
+== null: policy_lint fixture and check-wave-script unmutated
+policy_lint rc=0
+153 passed, 0 failed
+== P1: resolvePrFromCommit loses the squash alternative (D13-s1-01 back)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FIXTURE VACUOUS: resolvePrFromCommit ["an empty API answer on a squash-shape subject (`(#N)` suffix) did not recover the PR number, though stamp.py and delivery_status.py read that shape"]. Measured D13-s1-01: 52 of 253 window merges answered [] and were dropped rather than recovered.
+policy_lint rc=1
+== P2: rulePaths dropped from the export
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL rulePaths is exported typeof undefined
+  FAIL and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some) declared ["tests/**","custom_components/**"], read null
+  FAIL (probe, expected) threw: deliberate
+== P3: rulePaths returns [] (reader alive, wrong answer)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some) declared ["tests/**","custom_components/**"], read []
+  FAIL (probe, expected) threw: deliberate
+152 passed, 1 failed

@@ -1,0 +1,6 @@
+budgets rc=0
+rules_sync rc=0
+FIXTURE ok: 92 error(s) hold 233 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+RESULT read=62 ignored=25 declared_none=31 blind=0 dead=0 refused=0 runs=139 seconds=33.4
+FIELD COVERAGE ok
+  MODE: SCOPED -- 1 script(s) run, 27 scoped out.
