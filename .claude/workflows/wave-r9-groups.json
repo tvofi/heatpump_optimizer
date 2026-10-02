@@ -3413,7 +3413,7 @@
       ],
       "findings": [],
       "covers": [],
-      "cap_exception": null,
+      "cap_exception": "tvofi 2026-10-02: one PR for the DHW-planner extraction (~1,915 production lines measured at main 4e2582e7 by the seat's scratch/measure.py) instead of a five-slice split, on condition that it is a verbatim move: every moved line byte-identical to its source (provenance check in the body and re-run by the reviewer), only call sites, imports and the (plan, requirement) return shape changed, and no behaviour change (goldens and env_drift unchanged on CI).",
       "sweep_instances": [],
       "class": "architecture",
       "wave": 11,
