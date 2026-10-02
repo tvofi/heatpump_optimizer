@@ -1,9 +1,9 @@
   pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
   pair finding-class-id: 3 readers, 37 items, 0 divergent
-  pair merge-subject-pr: 4 readers, 459 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 462 items, 0 divergent
   pair dead-member-liveness: 2 readers, 138 items, 0 divergent
   pair governance-workflow-jobs: 2 readers, 33 items, 0 divergent
   pair entity-names: 2 readers, 107 items, 0 divergent
-  discovery: 107 governance code files, 1133 distinct grammars, 27 shared by two or more files
+  discovery: 107 governance code files, 1134 distinct grammars, 27 shared by two or more files
 RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
 AGREEMENT ok

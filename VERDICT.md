@@ -1,51 +1,74 @@
-Fix review: blocked f6af0c50c47ec3e0d1d6de12e85635eb2cc3d9ca root-cause-unanswered: wave-script and policy-docs went red, unanswered; both are base-pinned graders that cannot pass on the landing PR
+Fix review: merge 1517fa2d6363cba80335a1db35623682aad177e4
 
-bus-nonce: 1d131a974d5c10c0ec7000664cb03af9
+bus-nonce: 2efcb41abffaca931a431197ed524bb1
 
-Round 2 (round 1 was the cloud reviewer's prep at e35026f6, `handoff/r9-f11-governance-4-review` a0791786; its findings are taken over here). Measured head f6af0c50c47ec3e0d1d6de12e85635eb2cc3d9ca, live head re-read before posting: unchanged. Main at measurement af7660c7. Contract diff `tools/audit/briefs/` merge-base...origin/main: empty.
+This is round 3; round 2 blocked f6af0c50. The verdict is merge, with `policy-docs` red as ruled. tvofi ruled on 2026-10-02 that `policy-docs` is the accepted bootstrap red on #1847, and the orchestrator merges past it with `--admin` under the mandate.
 
-## Blocking
+Measured head: 1517fa2d6363cba80335a1db35623682aad177e4. I re-read the live head before posting and it was unchanged. Main at measurement: aab94eea. The contract diff for `tools/audit/briefs/` (merge-base...origin/main) is empty. `git merge-tree --write-tree origin/main 1517fa2d` exits 0 with no conflict.
 
-1. **Three required checks are red at the head, and the body says no CI run exists** (`## Red checks`: "No CI run exists yet at this head"). Commit check-runs API, read by me:
-   - `wave-script` failure: the agreement lane runs over readers restored from the base (af7660c7), not the PR's. `REFUSED rule-frontmatter-paths: a reader threw: pl.rulePaths is not a function` (the base `policy_lint.mjs` does not export `rulePaths`; this PR adds it) and `DIVERGENT merge-subject-pr "fix: a squash (#1234)"`: base `resolvePrFromCommit`=null (the D13-s1-01 bug this PR fixes). `RESULT divergent=1 refused=1`.
-   - `policy-docs` failure: `field_coverage.mjs` is restored from the base, so e166a15a's three DECLARED entries are not in the copy that runs. `REFUSED registry: pinned .claude/workflows/agreement.mjs / agreement_py.py / tests/structure.py is unregistered`, `refused=3`. e166a15a fixes the refusal only for prepr's unpinned run. The pinned copy CI uses still refuses.
-   - `pr-contract` failure: `check wave-script is red and ## Red checks does not name it`.
-   I reproduced both lane reds from scratch. I simulated the merge with `git merge-tree` against origin/main (rc 0, no conflict), then restored the files `governance.yml` pins from origin/main. Unpinned lane: `RESULT divergent=0 ... refused=0`, rc 0. Pinned lane: `divergent=1 refused=1`, rc 1. Pinned field_coverage: `refused=3`, rc 1. Evidence: `lane_unpinned.txt`, `lane_pinned.txt`, `fc_pinned.txt`.
+## The guard does not skip once main carries the lane (perturbed)
 
-   This is more than a missing sentence. The governance.yml comment says "the pull request that lands it runs its own". That holds for `agreement.mjs`, but the readers it loads are pinned from the base, so **the landing PR cannot turn `wave-script` green as wired**. A body answer alone does not unblock it. The fixer must either guard the agreement step until the base carries the lane, as the `field coverage` step already does with "the base does not carry it ... skipped", or get a decision from the orchestrator or tvofi on how a pinned-grader bootstrap lands. The `policy-docs` red has the same bootstrap shape for new pinned inputs. Is that red expected for any PR that extends the pinned list, and is it answered by naming? That is the orchestrator's call to state. The body must name it either way.
-   Process note for the RCA seat if this recurs: prepr's new `agreement lane` step runs the lane unpinned, so a local prepr goes green while the pinned CI copy goes red. That is how this reached handoff unseen.
+`sim.sh` runs the step's own shell, extracted verbatim from `governance.yml` into `guard_step.sh`, over trees restored as CI restores them.
 
-## Round-1 items, re-verified with my own runs at the head
-
-| item | my measurement |
-|---|---|
-| 1 codeowners_gap | `codeowners_gap.py --check`: `RESULT uncovered_files=0`, rc 0 (round 1: 9 at e35026f6). Fixed. |
-| 2 dead-member-liveness boundary | mutant `dead = []` in `structure.dead_members`: `RESULT divergent=1`, rc 1. Unmutated: 0. The probe now detects a reader that stops finding dead members. Fixed. The disclosure that structure.py's counting-rule self-check detects D7-s3-02 itself is in the body. |
-| 3 governance-workflow-jobs reads a copy | disclosed in the body and registered `identical:`. Accepted as disclosure. |
-| 4 bugclasses I4 lists five pairs | lane prints six pairs, including entity-names. Fixed. |
-
-## Mutation proof (my mutants, `mutants.sh`; `git status` clean after)
-
-| instance | mutant | lane |
+| base (PINNED) | tree | guard step |
 |---|---|---|
-| D14-s2-03 | `CLASS_GUESS = /^([PI][0-9]+\|new)$/` | divergent=15, rc 1 |
-| D13-s1-01 | `resolvePrFromCommit` without the `MERGE_SUBJECT_RE` alternative (merge-commit shape only) | divergent=1, rc 1 (the body's 405 is for its opposite-direction mutant, which I did not re-derive) |
-| D11-s1-72 | `_GOV_FILES = [_GOV_WF]` | divergent=4, rc 1 |
-| D7-s3-02 | `dead = []` | divergent=1, rc 1 |
+| main aab94eea (no lane) | unmutated | `skipped` with its reason printed, rc 0 |
+| main + precursor (B1 50eb8064, no lane) | unmutated | `skipped`, rc 0 |
+| the PR merged (M2 c376da5c, carries the lane) | unmutated | runs: `RESULT divergent=0 ... refused=0`, `AGREEMENT ok`, rc 0 |
+| M2 | `CLASS_GUESS` grammar mutant | runs: `divergent=15`, `AGREEMENT REFUSED`, rc 1 |
+| main aab94eea | same mutant | `skipped`, rc 0. This is the bootstrap window and nothing else. |
 
-Null control at the head: lane `RESULT divergent=0 unregistered=0 dead=0 refused=0`, rc 0, six pairs. `--self-test`: 13 of 13. field_coverage unpinned: `refused=0`.
+The guard keys only on `$PINNED:.claude/workflows/agreement.mjs`. `PINNED` comes from the event's base sha, not from the PR's tree, so a PR cannot make the lane skip once main carries it. On a push to main, `PINNED` is `github.sha`, so the lane runs on the merge commit itself. The `--self-test` step runs unconditionally, and at this head CI printed `SELF-TEST 13 of 13`. One limit remains: if `cat-file` fails for a reason other than absence, the step skips rather than fails. The restore step fetches `PINNED` first, so I judge that residual and not blocking.
 
-## The two new commits
+## The precursor pieces (07b0704b on af7660c7), with my mutants at this head (`precursor_mutants.sh`)
 
-- e166a15a, the `'tests/structure*'` glob: git's default pathspec matches `tests/structure.py` and `tests/structure_budgets.json` (`git ls-files`). The `git diff --quiet` guard's path set therefore only grows, and field coverage can only run more often, never be skipped more often. The skip does not widen. The DECLARED entries are fine as content, but see Blocking 1: CI cannot see them on this PR.
-- 4a3b49de, the prepr `agreement lane` step: it sits on the body path after `field coverage` and is not reached by `--self-test` or `--version-edit`, the two modes CI runs. `prepr.sh --self-test`: 148 passed, 0 failed, no agreement output. For other PRs it adds a local run of the unpinned lane, which needs full history. That is fine in seat worktrees, but see the process note above.
+| mutant | detector |
+|---|---|
+| null (unmutated) | `policy_lint.mjs` rc 0; `check-wave-script` 153 passed, 0 failed |
+| P1: `resolvePrFromCommit` loses `\|\| MERGE_SUBJECT_RE` (D13-s1-01 back) | `policy_lint.mjs` `FIXTURE VACUOUS ... squash-shape subject`, rc 1 |
+| P2: `rulePaths` dropped from the export | `check-wave-script` group 15: `FAIL rulePaths is exported` |
+| P3: `rulePaths` returns `[]` | `FAIL and reads the same declared path globs as parseRuleFrontmatter`, 152 passed, 1 failed |
 
-## Other steps
+Both pins compare against an independent reader: `parseRuleFrontmatter`, and the shapes that stamp.py and delivery_status.py read. Neither re-implements the formula under test. `git status` was clean after each mutant.
 
-- Step 7: the body names code head 4a3b49de and the PR head f6af0c50, matching what I measured.
-- Step 10: the carry is present in the R9-F11.5 brief on `handoff/audit-r9-fixplan` ("registers the concept in the agreement lane (I4 RCA)"), not only in the ledger. The body checked only the ledger and can say so.
-- Step 13: `git merge-tree --write-tree origin/main f6af0c50`: rc 0, no conflict.
-- Not run here (numpy is absent): `tests/entities.py` and `tests/harness_headers.py`. `fast (3.14)` was still in progress at posting, so they are uncited.
-- Step 6 enumerator: not re-run, because `enumerate.py` is outside the tree. The body's export figures are unverified by me.
+## The round-1 and round-2 items at this head
 
-Evidence: `evidence/` (HEAD.txt names the head).
+- codeowners_gap: `RESULT uncovered_files=0`.
+- Unpinned lane: six pairs, `RESULT divergent=0 unregistered=0 dead=0 refused=0`.
+- Field coverage on the PR's own copy: `refused=0`.
+- My four instance mutants (`mutants.sh`), lane divergent counts:
+  - D14-s2-03: 15
+  - D13-s1-01: 1
+  - D11-s1-72: 4
+  - D7-s3-02 (`dead = []`): 1
+
+## Red checks: the body answers each one, and I checked each against this head's CI
+
+This head's check-runs are in `checks_final.tsv`, read from the commit's `check-runs` API by a background watch until every run completed.
+
+- **`policy-docs` failure.** The log's only error is base-pinned `field_coverage.mjs` with `REFUSED registry: pinned agreement.mjs / agreement_py.py / tests/structure.py`, `refused=3`. It is the job's last step, so no later step is masked. Its `policy_lint.mjs` step passed. The body's speculation that live-ruleset drift might also turn `policy-docs` red did not happen at this head.
+- **`wave-script` success.** `check-wave-script` printed 151 passed, 0 failed. The agreement step printed its skip, and the self-test held 13 of 13.
+- **`pr-contract` success**, on the body that names the three reds of f6af0c50 (`wave-script`, `policy-docs`, `pr-contract`) with their causes.
+- **`budget-raise-gate` and `pr-contract` each have one cancelled run**, superseded by a later run of the same name that succeeded.
+- Every other completed check passed or was skipped. That includes `fast (3.14)`, which carries `tests/entities.py` and `tests/harness_headers.py`, the two scripts this Mac cannot run without numpy.
+
+## After the precursor merges, only policy-docs stays red
+
+I simulated it: B1 is main plus 07b0704b (merge-tree rc 0), with this head merged onto it (rc 0) and the pinned files restored from B1.
+
+| check | result |
+|---|---|
+| `check-wave-script` | rc 0 |
+| agreement step | skipped, rc 0 |
+| lane self-test | rc 0 |
+| `policy_lint.mjs` | rc 0 |
+| `field_coverage.mjs` | `refused=3`, rc 1 |
+
+So `policy-docs` is the only one of these jobs that stays red. The other governance jobs are not in this diff's reach beyond what this head's CI already ran green.
+
+## Not verified by me
+
+- I did not re-derive the body's step-8 enumerator export figures; `enumerate.py` is outside the tree.
+- I did not re-derive the body's D13 figure of 405 divergent; my mutant runs in the other direction and gives 1.
+
+Evidence: `evidence/`. `HEAD.txt` names the head and the simulation commits.

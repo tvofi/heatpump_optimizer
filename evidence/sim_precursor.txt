@@ -1,0 +1,17 @@
+## base = main+precursor
+153 passed, 0 failed
+check-wave-script rc=
+fatal: path '.claude/workflows/agreement.mjs' exists on disk, but not in '50eb80642e0116ec97067372f3e5a2c8d3c019f4'
+agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped
+guard step rc=
+SELF-TEST 13 of 13 probes held
+self-test rc=
+  REFUSED  registry: `pinned .claude/workflows/agreement.mjs` is unregistered: DECLARED names neither an arm for its input nor none
+  REFUSED  registry: `pinned .claude/workflows/agreement_py.py` is unregistered: DECLARED names neither an arm for its input nor none
+  REFUSED  registry: `pinned tests/structure.py` is unregistered: DECLARED names neither an arm for its input nor none
+RESULT read=62 ignored=25 declared_none=31 blind=0 dead=0 refused=3 runs=139 seconds=24.9
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+field_coverage rc=
+
+FIXTURE ok: 92 error(s) hold 233 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+policy_lint rc=
