@@ -1,42 +1,37 @@
-Fix review: blocked c9d6168cae2be1b967848bf435238fb3cf7af8b3 closures: tests/arch_score.py's recorded closure omits tests/structure.py, which its full run measures through, so a structure.py-only diff skips it while moving two pinned verdicts
+Fix review: blocked e5301f5e5a070ae3c691df72296a2122691b689e harness: class-open C3 is still an enumeration of junk spellings; `assert True`, `_ = None` and `(_ := 0)` interleaved in uncharged clones each read IMPROVES admissible +14.15
 
-bus-nonce: c9f40ab86223536d213a4384045b620f
+bus-nonce: e4e642c3c5b9d17e58bb81c3c072c08c
 
-Round 1. PR #1851 (R9-EG-A1), head c9d6168cae2be1b967848bf435238fb3cf7af8b3 (live head re-read 2026-10-02T14:48:40Z, unchanged). Evidence: evidence/ev-c9d6168c/ (HEAD.txt names the head).
+Round 2. PR #1851 (R9-EG-A1), head e5301f5e5a070ae3c691df72296a2122691b689e (live head re-read 2026-10-02T15:42:29Z, unchanged). Evidence: evidence/ev-e5301f5e/ (HEAD.txt names the head). The harness is the reviewer's (round-1 rt_14..16 plus round-2 rt_17*), not the finder's or the fixer's.
 
-## Blocking 1 -- closure under-recorded (focus 1)
+## Round-1 Blocking 1 (closure) -- RESOLVED
 
-`tests/arch_score.py`'s closures.json entry (79 files) does not list `tests/structure.py`. Its full run reads that file: `vector.load_structure` loads `REPO/tests/structure.py` (working tree) for every planted and red-team case, but it does so inside `calibrate`'s `multiprocessing.get_context("spawn").Pool` children. The audit hook does not see those reads, and the closure is recorded with `--smoke`, which never calls `vector.measure` at all. The `smoke()` docstring already concedes "a script runs as a child process, whose own reads the recorder does not see", and covers the planted helpers by parsing them, but not structure.py. The PR states the dependency itself: `_is_archscore`'s docstring ("measures through tests/structure.py") and the run.sh comment ("Scoped to the score's own files and structure.py").
+RESULT select(['tests/structure.py']) -> scoped, tests/arch_score.py run: True (round 1: False)   (select-probe.txt)
+RESULT control: select(coordinator.py) -> arch_score.py False, arch_score_head.py True (the integration still does not select the calibration, as designed)
+RESULT calibration re-run under tests/structure.py DUP_WINDOW_STATEMENTS 2->6 (the run the fixer did not do): a1_B1_copy_cross_module MOVED WORSENS->NULL and a1_G2_dedupe MOVED IMPROVES->NULL, so arch_score.py, now selected, refuses it   (calib-dup-mutant-window6.txt)
+RESULT restored: a1_B1 WORSENS -0.2129, a1_G2 IMPROVES +0.2165, as recorded   (calib-r1-harness.txt)
 
-RESULT select(['tests/structure.py']) -> scoped, tests/arch_score.py run: False; tests/arch_score_head.py run: True   (evidence/select-probe.txt)
-RESULT baseline at head: a1_B1_copy_cross_module WORSENS (dup 59->60), a1_G2_dedupe IMPROVES, rt_04 NULL   (calib-dup-baseline.txt)
-RESULT tests/structure.py DUP_WINDOW_STATEMENTS 2->6 only: a1_B1_copy_cross_module MOVED WORSENS->NULL, a1_G2_dedupe MOVED IMPROVES->NULL   (calib-dup-mutant-window6.txt)
+## Round-1 Blocking 2 (C3, `pass`) -- the named spellings are closed, the class is not
 
-So a PR that edits only structure.py moves pinned verdicts in `expected.json` that arch_score.py would refuse, but the scoped gate does not run arch_score.py. `arch_score_head.py` is selected, but it checks only that metrics are numbers and that a tree compared with itself reads NULL, so it cannot see a verdict move. The forced FULL on the push to main is what finds it: main goes red one merge later. CI's `closures` job re-derives the same way (`rec tests/arch_score.py --smoke`), so it agrees with the under-record and cannot flag it. This is not a Darwin-vs-Linux artefact. Fix: add `tests/structure.py` (and anything else that measure-in-child reads: the metrics modules are already listed) to the recording. Do this by having `--smoke` measure one tree in-process, or have the smoke path import `vector.load_structure(...)` once. Then show the select probe above returning True.
+RESULT rt_16 (pass, uncharged; round 1 IMPROVES +14.15) now NULL. rt_14 and rt_15 now WORSENS via coord_footprint, with delta-S -0.0029 and -0.0006 (round 1: +16.24 and +14.81). rt_04 NULL. Null rt_00 NULL.   (calib-r1-harness.txt)
 
-## Blocking 2 -- red-team class open: C3 (focus 3)
+The round-2 games are built from the fixer's own 04 script, with the junk chosen outside the widened `is_noop` and coordinator plus footprint-charged functions skipped (rt_17_rv_base.py and three wrappers in the evidence):
 
-C3 is stated as "an effect-free statement does not split a clone". `counters.is_noop` drops only `ast.Expr` of a constant, name, attribute or pure-builtin call. A `pass` statement is effect-free and is not dropped. My own attempt (evidence/rt_14..16, built from rt_04 with `pass` in place of `id(N)`; it is the reviewer's instrument, not the finder's or the fixer's):
+RESULT rt_17a_rv_assert_uncharged (`assert True`): IMPROVES, admissible, +14.1502, duplication_copies+14.150
+RESULT rt_17a_rv_assign_uncharged (`_ = None`): IMPROVES, admissible, +14.1502, duplication_copies+14.150
+RESULT rt_17w_rv_walrus_uncharged (`(_ := 0)`): IMPROVES, admissible, +14.1502, duplication_copies+14.150   (calib-r2-games.txt)
 
-RESULT rt_14 (pass everywhere): WORSENS, inadmissible, delta-S +16.24, stopped only by the coord_footprint gate (2512->2517), not by a counter
-RESULT rt_15 (coordinator.py skipped): WORSENS, delta-S +14.81, coord_footprint 2512->2513
-RESULT rt_16 (coordinator.py and footprint-charged functions skipped; 71 `pass` lines in 13 modules, 52 functions): IMPROVES, admissible, delta-S +14.15, duplication_copies+14.150   (calib-reviewer-game16.txt, rt16-tree.diff)
+Each is junk with no observable effect, and each splits every clone window exactly as `id(N)` and `pass` did. The widened `is_noop` lists spellings (`pass`, constants, names, attributes, pure calls, `if <const>`), and every spelling it omits is an open game at the same +14.15. A fifth widening will lose to a sixth spelling, so this is class-open (fix-review step 6) and not a missing case. Two ways out, either acceptable:
 
-That is an admissible IMPROVES from pure junk, which is the shape the PR's check "no red-team attempt reads IMPROVES" exists to refuse. Fix: widen `is_noop` to the class (at least `pass`, `...`, and a bare constant or name expression in any position; consider any statement with no Store/Call), and add `pass` as a red-team case.
+1. Close it structurally. Make the clone comparison tolerate an interleaved statement: for example, match a window when its statements appear in order within the block, with at most g statements between them. Or drop dead statements by data flow: a statement with no call to a non-pure function and no store that is later loaded. Then add the three rt_17 spellings as cases.
+2. Record it as a known limit of a report-only instrument. "no red-team attempt reads IMPROVES" then holds only for the listed attempts. ABOUT.md and the body would say that interleaved junk of any unlisted spelling reads as a dedupe, and the reviewer of a later EG stage would be told to look for it. That is tvofi's call, not mine. I would return merge on it once it is in ABOUT.md and in the A2 brief, which is where the clone target lives.
 
-## Passed
+## Unchanged from round 1 (re-checked only where the delta reaches)
 
-- Counter ablation (my own): rt_04 at head NULL; with ARCHSCORE_ABLATE=C3 it reads IMPROVES +32.0057. This matches the body's +32.01, so C3 is load-bearing for `id(N)`.   (calib-reviewer-game.txt, calib-ablate-C3.txt)
-- Null control: rt_00_null_rename NULL at head.
-- Gate edits (focus 2): `_is_archscore` only removes files from INERT, so a touched archscore file must hit a closure or force FULL. Nothing that ran before is skipped now. The run.sh and derive_closures.sh edits add two lanes and nothing else. All 72 non-.md archscore files are in some closure (no orphan). The one scoping hole is Blocking 1.
-- Template deletions (focus 4), each restated elsewhere at this head:
-  - "Every cost, gain or timing claim needs one" is in `tools/audit/briefs/fixer.md:36` ("Every quantified claim carries a null control, not only cost, gain and time").
-  - "A pull-request comment is not propagation" is in `.claude/rules/finding-propagation.md:33-35` ("A comment is not propagation").
-  - "CI compares it with the head it ran" is in `.claude/workflows/policy_lint.mjs:5978`, the pr-contract check that `## Head` names the head it ran on.
-- Forward-carry: the R9-EG-A2 and A3 briefs on handoff/audit-r9-fixplan (255cc4fe0) already name `python3 tools/audit/archscore/score.py --diff <merge base>`, and A2 maps dup_pairs_v1 to duplication_copies. B1, B2, B3, B6, B7 and B11 cite the in-tree command. B5 cites the pre-study only as a known limit. A4 cites neither.
-- VERSION, manifest, RELEASE_NOTES and the claim files are untouched. `git merge-tree --write-tree origin/main HEAD` rc=0.
-- weights hash, template caps and the 77/103 total are not re-derived by me; they are not verified here.
+- The round-2 delta is `tests/arch_score.py` (smoke loads structure.py, red-team floor 17->23), `counters.py` C3, the 04 variants, `expected.json` (+36 lines: the six new cases), and `closures.json` (+structure.py, +6 scripts; it is the only entry that moved).
+- The main merge brought optimizer.py, policy_lint, check-wave-script, structure_budgets and the mutation ledger. That is main's content with no hand resolution claimed, and it is not judged here.
+- Gate edits, the template-sentence sources, forward-carry and untouched version files are as in round 1 and not re-taken.
 
-## CI at the head (focus 5 and step 11)
+## CI at this head
 
-These are check-runs at c9d6168 as of 14:41Z (check-runs.json). Every completed run is success, neutral (CodeQL) or skipped. Two cancelled duplicates (pr-contract, budget-raise-gate) were each superseded by a success. "Tests" run 37020976777 is still `pending` with 0 jobs at 14:48Z, so closures, fast, mutation and the calibration's CI runtime are not yet measurable. The calibration runtime on CI (focus 5) is UNVERIFIED. The body's local figure is about 14 min at 4 workers, and arch_score.py now runs in lane_units on every FULL run and every selection. I will re-take this when Tests completes, in the next round.
+Check-runs at e5301f5e (check-runs.json, 15:42Z) are all success, neutral (CodeQL) or skipped. The cancelled pr-contract and budget-raise-gate runs were each superseded by a success, and Analyze (python) is still in progress. "Tests" run 37028348773 is `pending` with no jobs, so closures (whether Linux agrees with the Darwin --single recording of 86 files), fast, mutation and the calibration's CI runtime are UNVERIFIED this round as well. The fixer's ~9 min local figure is theirs, not re-taken.

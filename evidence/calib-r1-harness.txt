@@ -46,14 +46,18 @@ c2a0448d                                     corpus   GOOD     IMPROVES  y      
 5395394d                                     corpus   GOOD     WORSENS   n       4.1369  coordinator_private_reach 95->96
 a1_B1_copy_cross_module                      planted  BAD      WORSENS   n      -0.2129  duplication_copies 59->60
 a1_G2_dedupe                                 planted  GOOD     IMPROVES  y       0.2165  duplication_copies+0.216
+rt_00_null_rename                            redteam  NULL     NULL      y       0.0000  
 rt_04_dup_noop_interleave                    redteam  GAME     NULL      y       0.0000  
+rt_14_dup_pass_interleave                    redteam  GAME     WORSENS   n      -0.0029  coord_footprint 2512->2517
+rt_15_dup_pass_noncoord                      redteam  GAME     WORSENS   n      -0.0006  coord_footprint 2512->2513
+rt_16_dup_pass_uncharged                     redteam  GAME     NULL      y       0.0000  
   planted  GOOD       1/1   blind  0  wrong-way  0
   planted  BAD        1/1   blind  0  wrong-way  0
   corpus   GOOD       9/24  blind  7  wrong-way  8
   corpus   BAD       11/14  blind  3  wrong-way  0
   corpus   NEUTRAL    7/7   blind  0  wrong-way  0
   CALIBRATION 29/47 labelled cases classify as their label says
-  RED TEAM 1/1 attempts read NULL or inadmissible; IMPROVES: none
+  RED TEAM 4/4 attempts read NULL or inadmissible; IMPROVES: none
 weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978
 MOVED a1_B1c_copy_same_module_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a1_B2_private_reach: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
@@ -111,10 +115,15 @@ MOVED a3_untyped_payload_keys_null: recorded {'admissible': True, 'label': 'NULL
 MOVED a3_xmodule_duplication_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_xmodule_duplication_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
 MOVED a3_xmodule_duplication_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
-MOVED rt_00_null_rename: recorded {'admissible': True, 'label': 'NULL', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_01_typeddict_all_any: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_02_hub_object_setattr: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
 MOVED rt_03_shared_dunder_spelling: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_04b_dup_pass_interleave: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_04c_dup_pass_uncharged: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_04d_dup_ellipsis_uncharged: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_04e_dup_none_uncharged: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_04f_dup_str_uncharged: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_04g_dup_iffalse_uncharged: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_05_coord_mixin_relocation: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_05b_coord_mixin_private_only: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_05c_coord_base_class_all: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
@@ -128,4 +137,7 @@ MOVED rt_11_params_kwargs_bag: recorded {'admissible': True, 'label': 'GAME', 's
 MOVED rt_12_combined_evasions: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
 MOVED rt_12b_combined_without_06: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
 MOVED rt_13_hub_handle_accessor: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
-calibration moved on 73 case(s)
+MOVED rt_14_dup_pass_interleave: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'WORSENS', 'admissible': False}
+MOVED rt_15_dup_pass_noncoord: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'WORSENS', 'admissible': False}
+MOVED rt_16_dup_pass_uncharged: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+calibration moved on 81 case(s)
