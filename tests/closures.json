@@ -2509,6 +2509,9 @@
    "docs/audit-2026-08.md",
    "docs/audit-2026-09.md",
    "docs/backlog.md"
+  ],
+  "tests/entities.py": [
+   "LICENSE"
   ]
  }
 }
