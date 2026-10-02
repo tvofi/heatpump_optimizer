@@ -17958,18 +17958,26 @@ _AF8_DEFECT_LOG = (
     "    DISCLAIMER.md\n\n"
     "1 closure(s) are stale. Re-derive the named script:\n"
     "    ./tests/derive_closures.sh --single <script>\n")
+# #1864 at 54bfc993 (run 37068702869, artifact 11254298147): the closures job
+# printed this, its only failure, and closures-autofix said `skip-not-under-
+# scoped -- nothing owed to a human` and stayed green. Byte-for-byte check.txt.
 _AF8_NULL_LOG = (
     "INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the\n"
     "  committed `inert_reads` does not list for it; the merge fast path\n"
     "  would treat a change to it as unread (R9-F10.9d). Re-derive:\n"
     "  ./tests/derive_closures.sh --single <script>\n"
-    "    tests/doc_claims.py: DISCLAIMER.md\n")
+    "    tests/doc_claims.py: docs/site/docs.css\n")
+# A passing check ends on this line; with it the closures job was green here.
+_AF8_PASS_LOG = (
+    "note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)\n"
+    + _closure._CHECK_OK_LINE + "\n")
 _af8_s = "tests/harness_headers.py"
 _af8_args = ({_af8_s: [_af8_s, "DISCLAIMER.md"]},
              [{"script": _af8_s, "rc": 0,
                "files": [_af8_s, "DISCLAIMER.md", "tests/harness.py"]}])
 _af8 = {k: _af_case(*_af8_args, check_txt=v, inert={"DISCLAIMER.md"}) for k, v in (
-    ("defect", _AF8_DEFECT_LOG), ("null", _AF8_NULL_LOG), ("absent", None))}
+    ("defect", _AF8_DEFECT_LOG), ("inert-reads", _AF8_NULL_LOG),
+    ("passed", _AF8_PASS_LOG), ("empty", ""), ("absent", None))}
 R.check(
     "a pinned classifier that disagrees with the closures job's UNDER-SCOPED "
     "reddens (#1846)",
@@ -17978,12 +17986,25 @@ R.check(
     and "--single" in _closure.autofix_report("closures-autofix", _af8["defect"][0])[1],
     f"{_af8}: green here is a repair nobody makes and nothing reports",
 )
+# a46a91c's premise was that an INERT READS failure owes the bot nothing, so
+# it stayed quiet. That was the false answer on #1864: the closures job is red
+# and only a human repairs it, so the quiet is now earned by a PASSING check
+# (its success line) or an absent check.txt, not by the failure being foreign.
 R.check(
-    "and stays quiet when the closures job printed no UNDER-SCOPED, or no "
-    "check.txt exists (a46a91c null control)",
-    _af8["null"] == ("skip-not-under-scoped", True)
+    "a closures check that failed without UNDER-SCOPED reddens naming the "
+    "owed manual repair (#1864 INERT READS)",
+    _af8["inert-reads"] == ("skip-manual-repair-owed", True)
+    and _af8["empty"] == ("skip-manual-repair-owed", True)
+    and _closure.autofix_repair_failed("closures-autofix", "skip-manual-repair-owed")
+    and "by hand" in _closure.autofix_report("closures-autofix", "skip-manual-repair-owed")[1],
+    f"{_af8}: `nothing owed to a human` beside a red closures job is false",
+)
+R.check(
+    "and stays quiet only when the closures check passed, or no check.txt "
+    "exists",
+    _af8["passed"] == ("skip-not-under-scoped", True)
     and _af8["absent"] == ("skip-not-under-scoped", True),
-    f"{_af8}: an INERT READS failure owes no bot repair",
+    f"{_af8}: a green closures job owes nothing",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
@@ -18165,7 +18186,7 @@ R.check(
     "every status the two apply functions return is classified here",
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
                     "skip-classifier-disagrees", "skip-failed-recording", "skip-merge-failed",
-                    "skip-still-fails", "skip-unchanged"}
+                    "skip-manual-repair-owed", "skip-still-fails", "skip-unchanged"}
     and _ac_returns == {"changed", "skip-not-inherited",
                         "skip-moves-nothing-claimable", "skip-cannot-compare"},
     f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
