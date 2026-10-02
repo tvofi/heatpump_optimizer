@@ -25,9 +25,9 @@ sys.path.insert(0, str(HERE))
 
 PINNED = "7952d8f9e4fbe9945bc8742e8dc02be8fbe4582c"
 BASE = "_base"
-# Attempts the counters do not close: C3 enumerates the junk spellings it drops, and these are not on the list.
-# Expected IMPROVES; a class fix flips them, and the check then asks for them to be re-recorded.
-KNOWN_OPEN = {"04h_dup_assert_uncharged", "04i_dup_assign_uncharged", "04j_dup_walrus_uncharged"}
+# Attempts the counters do not close, expected IMPROVES; a fix flips one and the check asks for the re-record.
+# Empty since R9-EG-A2: C3 drops a statement dead by data flow, so 04h, 04i and 04j are GAMEs.
+KNOWN_OPEN: set[str] = set()
 
 
 def extract_pin(into: Path) -> Path:
