@@ -1,0 +1,80 @@
+37012336731	fix/r9-eg-dhw-closure-dedupe	skipped
+36967562962	fix/r9-eg-surface-identity	skipped
+36932764171	fix/r9-f1-11	skipped
+36897082497	fix/r9-f10-gate-infra-1e	skipped
+36845654925	fix/r9-f6-card-4	skipped
+36830783910	fix/r9-f10-gate-infra-2	skipped
+36797378636	fix/r9-f10-1b	skipped
+36752506542	fix/r9-f1-coordinator-7	skipped
+36721692997	fix/r9-f9-test-pins-3	skipped
+36500886525	fix/r9-f7-entities-2	skipped
+36340796646	fix/r9-f1-2-f12hk	skipped
+36285911754	fix/r9-f4-inputs-sysid-1c	skipped
+36233885100	fix/r9-rc2-user-state-durable	skipped
+36222889787	fix/r9-r6-reboot-toggles	skipped
+36060108477	fix/ratchet-finite-caps	skipped
+36054841924	fix/r8-i5a	skipped
+36020247491	fix/r8-p2	skipped
+36015138192	fix/r8-i5b	skipped
+35977400461	fix/r8-i5b	skipped
+35975365344	fix/r8-i5b	skipped
+35974064719	fix/r7-heatpump-action	skipped
+35971797895	fix/r8-i5b	skipped
+35971639885	fix/r8-i1a	skipped
+35971465871	fix/r8-i5b	skipped
+35970835812	fix/r8-p8	skipped
+35955602175	fix/r7-d2-03-wood-capacity-floor	skipped
+35951362705	fix/r7-heatpump-action	skipped
+35931278851	fix/r7-d3-02-mutation-kill	skipped
+35883161992	fix/r7-coordinator	skipped
+35782543210	fix/r6-class-sysid	skipped
+35782211809	fix/r6-d8-01	skipped
+35691790251	fix/r5-sysid-adoption	skipped
+35633480745	fix/r5-ages	skipped
+35570073588	fix/r5-defaults	skipped
+35519379593	fix/dhw-minrun-quadratic	skipped
+35513805427	fix/polish-every-candidate	skipped
+35500363726	fix/economics-1210	skipped
+35479741537	fix/quicksetup-existing	skipped
+35442745241	feat/fix-d1-01	skipped
+35400506675	feat/1067-g7b3-fuzzy-fallback	skipped
+35387776315	feat/1067-g7b2-tuya-local	skipped
+35218889835	fix/options-noop-reload	skipped
+35218832971	fix/options-noop-reload	skipped
+35165099175	fix/ecl110-mqtt-finite	skipped
+35123296906	claude/rotenso-windmi-entity-eval-2ip0n7	skipped
+34844399348	fix/nightly-real-provider-frame-guard	success
+34772367405	fix/r4-942	skipped
+34771098451	fix/r4-943	skipped
+34770432060	fix/r4-951	skipped
+34747817811	fix/r4-D12-01	skipped
+34695172324	claude/nightly-verify-dispatch	success
+34688468227	claude/delivery-status-ledger	skipped
+34687413134	claude/delivery-status-ledger	skipped
+34686271798	claude/delivery-status-ledger	
+34685027878	cursor/nightly-a8-sections	
+34658441338	claude/w5-g8-residual	skipped
+34605161550	cursor/r3-d5-836	
+34603278649	cursor/r3-d5-836	
+34593641150	cursor/r3-d9-782	
+34539632659	claude/nightly-probe-and-a5-detail	
+34496784114	feat/boost-toggles	
+34491025742	claude/nightly-lane-abort-533	
+34456269514	claude/shutdown-blocking-lane-demo	
+34453886319	claude/nightly-diagnosis	
+34305318617	cursor/nightly-533-a4-cae7	
+34305005172	audit/queue-13-handover-graduation	
+34304700550	audit/queue-11-record-anchor	
+34299708991	cursor/e4-516-sections-97a0	
+34281420724	claude-web/w4-g10-224	
+34279802177	audit/queue-07-loop	
+34279448845	audit/queue-07-loop	
+34160006575	claude/repo-governance-audit-tgt5j4	
+34157180681	claude-web/final-record	
+34147003056	claude-web/w5-g1-ruler	
+34145868573	claude-web/features-metric-count	
+34145808390	claude-web/preflight-at-merge	
+34122788571	claude-web/fix-536-hastub	
+34122437528	claude-web/fix-533-nightly	
+34122174222	claude-web/fix-533-nightly	
+34120472252	claude-web/fix-536-hastub	

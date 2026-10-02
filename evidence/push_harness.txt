@@ -1,0 +1,14 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/timmalmstrom/hpo-seats/1848-review/venv, got /Users/timmalmstrom/hpo-seats/1848-review/push-wt/../venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/timmalmstrom/hpo-seats/1848-review/venv, got /Users/timmalmstrom/hpo-seats/1848-review/push-wt/../venv
+RESULT stock 4520 3911 3911 3857
+RESULT slice20261002 40 anchors 40 whole True
+RESULT slice-overlap-next-night 0
+RESULT write_drain measured
+RESULT apply1 changed
+RESULT porcelain-lines 40 problems []
+RESULT apply2 skip-unchanged
+RESULT porcelain-after-apply2-equal True
+RESULT moved-from af7660c74 changed 7 dropped 0 of 40 status changed rows 40
+RESULT moved-from e1f11a7a8 changed 2017 dropped 40 of 40 status skip-head-moved rows 0
+RESULT null-README dropped 0
+RESULT unreadable skip-head-moved
