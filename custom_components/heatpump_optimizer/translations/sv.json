@@ -1726,6 +1726,10 @@
     "pump_write_ignored": {
       "title": "Värmepumpen behåller inte en inställning som optimeraren skrev",
       "description": "Optimeraren skrev ett värde till värmepumpen och skrev det igen, men pumpen visar fortfarande något annat: {detail}. Så länge Optimerare aktiv är på är optimeraren den enda som skriver till pumpen: den skickar värdet igen var femte minut, och meddelandet försvinner så snart pumpen behåller det. Stäng av Optimerare aktiv först om du vill ändra pumpen för hand. Om ingen ändrade det, kontrollera att pumpens entitet tar emot värdet (dess intervall, molnanslutningen, den lokala nyckeln, skrivbehörigheten)."
+    },
+    "store_version": {
+      "title": "Sparad inlärning kunde inte läsas",
+      "description": "Optimerarens sparade data {store} kan inte läsas: {detail}. Den här versionen kan inte flytta över den, så den delen av det inlärda börjar om från standardvärden. Det händer när en äldre version installeras över en nyare, eller en nyare som ändrade hur datan sparas. Inget behöver göras för att optimeraren ska fortsätta köras; om du gick tillbaka till en äldre version av misstag, installera den nyare igen innan datan skrivs över."
     }
   },
   "entity": {

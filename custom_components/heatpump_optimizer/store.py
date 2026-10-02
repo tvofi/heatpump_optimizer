@@ -32,7 +32,8 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from typing import Any, NamedTuple, TypeVar, cast
 
-from homeassistant.helpers.storage import Store
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store, UnsupportedStorageVersionError
 from homeassistant.util import dt as dt_util
 
 from . import const as c
@@ -46,6 +47,7 @@ from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
+from .setpoint_check import create_issue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -489,6 +491,9 @@ class QuarantiningStore(Store[_StorePayload]):
 
     def __init__(
         self,
+        hass: Any,
+        version: int,
+        key: str,
         *args: Any,
         lead: timedelta | None = timedelta(0),
         naive_zone: tzinfo | None = timezone.utc,
@@ -503,7 +508,10 @@ class QuarantiningStore(Store[_StorePayload]):
         passes ``drift.stored_instant`` -- Home Assistant's where the loader
         reads it so, or the bound is off by the zone's offset either way.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(hass, version, key, *args, **kwargs)
+        #: Where a version mismatch is surfaced (``_surface_version``).
+        self._issue_hass = hass
+        self._major = version
         self._lead = lead
         self._naive_zone = naive_zone
         #: Paths of the instants the last load rewrote to the bound.
@@ -512,7 +520,11 @@ class QuarantiningStore(Store[_StorePayload]):
     async def async_load(self) -> _StorePayload | None:
         self._reading = reading = asyncio.get_running_loop().create_future()
         try:
-            data = _sanitize(await super().async_load())
+            try:
+                data = _sanitize(await super().async_load())
+            except UnsupportedStorageVersionError:  # a downgrade
+                self._surface_version("it was saved by a newer release than this one")
+                raise
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
@@ -523,6 +535,37 @@ class QuarantiningStore(Store[_StorePayload]):
             return cast(_StorePayload | None, data)
         finally:
             reading.set_result(None)
+
+    async def _async_migrate_func(
+        self, old_major_version: int, old_minor_version: int, old_data: Any
+    ) -> Any:
+        """Home Assistant's migration hook; this default migrates nothing.
+
+        Home Assistant calls it when a stored document's version differs from
+        this store's. A store whose version is bumped overrides it (a subclass),
+        and the standing sweep refuses a version above 1 on a store that does
+        not (``tests/finite_boundary.py``, #1740). Reached anyway -- an override
+        handed a version it does not know -- a major mismatch is surfaced, where
+        the loader would otherwise reset at DEBUG; then ``NotImplementedError``,
+        the base hook's own answer, so the document is not re-saved unmigrated
+        and a minor-only mismatch is read as stored, as Home Assistant does.
+        """
+        if old_major_version != self._major:
+            self._surface_version(
+                f"it was saved at version {old_major_version} and this release reads {self._major}"
+            )
+        raise NotImplementedError
+
+    def _surface_version(self, detail: str) -> None:
+        """A WARNING and a repair issue naming this store's unreadable version."""
+        where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
+        _LOGGER.warning("%s: %s; no migration reads it, so its loader starts afresh", where, detail)
+        create_issue(
+            self._issue_hass, c.DOMAIN, f"store_version_{where}",
+            is_fixable=False, severity=ir.IssueSeverity.WARNING,
+            translation_key="store_version",
+            translation_placeholders={"store": where, "detail": detail},
+        )
 
     async def async_save(self, data: Any) -> None:
         """Save, once this store's read in flight, if any, has landed.
