@@ -43,7 +43,7 @@ clean branches touching different modules draw different pools and score
 differently through no fault of either, and an exact count over the sample would
 go red at random. Beside it sits the exact-count ratchet the sample could not
 carry: `unpinned_sites`, an exact count over a DETERMINISTIC inventory of every
-candidate site the six operators generate, which `tests/structure.py`'s ratchet
+candidate site the seven operators generate, which `tests/structure.py`'s ratchet
 could use only because it measures the whole tree. The inventory below is that
 whole tree, so an exact count over it is reproducible. A site is unpinned until
 it carries a disposition -- a `killed_by` driver or a `survivor_triage` verdict,
@@ -71,8 +71,9 @@ triage has called equivalent, and an unmarked survivor stays a gap (#1217).
 Prior art, deliberately not imported: `tools/audit/round3/D3/mutant_pool.py` and
 its `prescreen.py` measure the same property over a hand-recorded mutant list at
 a frozen baseline SHA. That is audit evidence and has to keep answering for the
-tree it was run against; a gate has to follow the tree instead. The six
-operators below are that tool's, and a change to either should read the other.
+tree it was run against; a gate has to follow the tree instead. Six of the
+operators below are that tool's, and a change to either should read the other;
+the seventh, CMP_BOUND, is this file's own (R9 F10.6).
 """
 from __future__ import annotations
 
@@ -185,15 +186,16 @@ def _indent(s: str) -> str:
 
 
 # The operators the ratcheted inventory and the sampled pool draw from, and the
-# wider set `--list` reports. CMP_BOUND (R9 F10.6, the I1 RCA's residual (b))
-# moves one ordering bound by one: before it no operator touched a comparison,
-# so D3-s1-01's `-5.0 <= value` could tighten to `<` and the ledger still read
-# that line as accounted for. It is listed, not ratcheted, until tvofi prices
-# its stock and per-PR pin burden: joining RATCHETED is a one-word edit here,
-# after which every later diff that adds a comparison owes a pin.
-RATCHETED = frozenset(
-    ("CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"))
-LISTED = RATCHETED | {"CMP_BOUND"}
+# set `--list` reports: an operator can sit in LISTED alone while its stock and
+# per-PR pin burden are priced, and joins RATCHETED on the owner's ruling.
+# CMP_BOUND (R9 F10.6, the I1 RCA's residual (b)) moves one ordering bound by
+# one: before it no operator touched a comparison, so D3-s1-01's
+# `-5.0 <= value` could tighten to `<` and the ledger still read that line as
+# accounted for. tvofi priced it and ruled "enable now" (2026-10-02): every
+# diff that adds or edits a one-line ordering comparison now owes a pin.
+RATCHETED = frozenset(("CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL",
+                       "BOOLOP", "CONST", "CMP_BOUND"))
+LISTED = RATCHETED
 _BOUND_FLIP = {ast.Lt: ("<", "<="), ast.LtE: ("<=", "<"),
                ast.Gt: (">", ">="), ast.GtE: (">=", ">")}
 
@@ -219,10 +221,10 @@ def _bound_mutants(node: ast.Compare, line: str):
 def candidates(path: Path, kinds: frozenset = RATCHETED):
     """Single-line mutants of one production file, of the operators in `kinds`.
 
-    Six ratcheted operators, each a change a careless edit could really make: a
-    clamp dropped, a guard switched off, a raise or a return removed, a
-    conjunction weakened, a module constant doubled; LISTED adds a comparison
-    bound moved by one.
+    Seven ratcheted operators, each a change a careless edit could really make:
+    a clamp dropped, a guard switched off, a raise or a return removed, a
+    conjunction weakened, a module constant doubled, a comparison bound moved
+    by one.
     """
     return (m for m in _generate(path, "CMP_BOUND" in kinds)
             if m["kind"] in kinds)
@@ -682,8 +684,8 @@ def triage_problems(triage: dict) -> list[str]:
 # The fraction cap above is a sample: the seeded draw over `--per-file` and
 # `--max` reaches ~1% of the tree, so a guard the sample never draws cannot
 # fail the lane, and a cap parked at 1.0 cannot refuse anyway (the rate is a
-# fraction in [0, 1]). The inventory below enumerates EVERY candidate the six
-# operators generate, deterministically -- `candidates()` walks the AST in a
+# fraction in [0, 1]). The inventory below enumerates EVERY candidate the
+# ratcheted operators generate, deterministically -- `candidates()` walks the AST in a
 # fixed order -- so an exact count over it is reproducible and comparable
 # between clean branches, which is the property `tests/structure.py`'s ratchet
 # has and the sampled pool could not. A site carries a disposition (`killed_by`
@@ -694,7 +696,7 @@ def triage_problems(triage: dict) -> list[str]:
 
 def inventory(files: list[Path] | None = None,
               kinds: frozenset = RATCHETED) -> list[dict]:
-    """Every candidate site the six operators generate, deterministically.
+    """Every candidate site the `kinds` operators generate, deterministically.
 
     `candidates()` walks the AST breadth-first in a fixed order and `rglob`
     sorts the files, so the list is stable across runs and across clean

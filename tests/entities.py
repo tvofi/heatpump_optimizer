@@ -26861,7 +26861,7 @@ R.check(
     "HASTUB_TZ is the positive control",
 )
 
-# The six operators, driven over a module written to carry one of each. A
+# The seven operators, driven over a module written to carry one of each. A
 # generated mutant that does not PARSE cannot run, and a mutant that cannot
 # run reports as a survivor -- which reads as a finding about production.
 # W5-G7 tranche 5 measured two of those.
@@ -26901,7 +26901,8 @@ _MUT_GOT = list(_mut.candidates(_MUT_FILE))
 R.check(
     "every operator fires on a module written to carry one of each",
     {_m["kind"] for _m in _MUT_GOT} == {
-        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"},
+        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST",
+        "CMP_BOUND"},
     f"kinds generated: {sorted({_m['kind'] for _m in _MUT_GOT})}",
 )
 _MUT_LINES = _MUT_SRC.splitlines(True)
@@ -26942,8 +26943,8 @@ R.check(
 # operator mutated an ordering comparison, so D3-s1-01's `-5.0 <= value` bound
 # was tightenable unseen. CMP_BOUND moves one bound of a one-line comparison by
 # one -- `<`/`<=`, `>`/`>=` -- one mutant per operator of a chain, and leaves
-# `==`, `in` and `is` alone. It is LISTED (`--list CMP_BOUND`), not inventoried,
-# until tvofi prices it: the default candidates must not carry it.
+# `==`, `in` and `is` alone. tvofi priced it and ruled "enable now"
+# (2026-10-02), so the default candidates, and with them the ratchet, carry it.
 _CB_FILE = _mut_write(_MUT_DIR / "bounds.py", (
     "def f(v):\n    return v if -5.0 <= v <= 35.0 else None\n\n\n"
     "def g(a, b):\n    if (a) > b or a >= 2 or a == b or a in b:\n"
@@ -26976,10 +26977,12 @@ R.check(
     f"generated: {[_m['new'].strip() for _m in _CB_GOT]}",
 )
 R.check(
-    "and it stays out of the ratcheted inventory until it is priced",
-    _CB_LISTED is not None and "CMP_BOUND" in _CB_LISTED
-    and not any(_m["kind"] == "CMP_BOUND"
-                for _m in _mut.candidates(_CB_FILE)),
+    "and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted "
+    "inventory",
+    _CB_LISTED is not None and "CMP_BOUND" in _mut.RATCHETED
+    and sorted(_m["new"] for _m in _mut.candidates(_CB_FILE)
+               if _m["kind"] == "CMP_BOUND")
+    == sorted(_m["new"] for _m in _CB_GOT),
     f"default kinds: {sorted({_m['kind'] for _m in _mut.candidates(_CB_FILE)})}",
 )
 _CB_LIST = getattr(_mut, "listed_sites", None)
