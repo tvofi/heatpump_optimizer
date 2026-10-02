@@ -23646,7 +23646,7 @@ def _pt_quoted_after(run: str, marker: str) -> "list[str]":
         blk.append(_ln)
         if not _ln.rstrip().endswith("\\"):
             break
-    return re.findall(r"'([^']+)'", "\n".join(blk))
+    return re.findall(r"'([^'\n]+)'", "\n".join(blk))
 
 
 def _pt_seams(docs: dict) -> "set[str]":

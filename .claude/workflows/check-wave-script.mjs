@@ -1120,7 +1120,7 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
   const d1 = ['D1-s1-01', 'D1-s1-02', 'D1-s1-03'].map((x) => F(x, 'D1'))
   const d2 = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)].map((f) => F(f.id, 'D2'))
   const PLAN = { 'D1-s1-01': ['refute', 'refute', 'verify'], 'D1-s1-02': ['refute', 'verify', 'verify'] }
-  const drive = async (args, { nullLabel } = {}) => {
+  const drive = async (args, { nullLabel, flagged, foldRc } = {}) => {
     const calls = []
     let judged = []
     const agent = async (prompt, o) => {
@@ -1139,7 +1139,15 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
       }
       if (label.startsWith('judge/runner')) return { table: 't.md', rows: judged.length, rc: 0 }
       if (label === 'judge') return { verdicts: judged.map((id) => ({ id, verdict: 'verified', class: id.startsWith('D1') ? 'P1' : 'P2' })) }
+      if (label.startsWith('sweep/') && flagged) {
+        // Two seams, one beyond the findings and one the judged site itself, beside an `instances` that says 5:
+        // the unit of N is the flag, so only the first counts.
+        return { instances: 5, barriered: false, enumerator: 'e', instance_list: label === 'sweep/P1'
+          ? [{ file: 'a.py', symbol: 'f', probe: 'p', beyond_finding: true }, { file: 'b.py', symbol: 'g', probe: 'p', beyond_finding: false }] : [] }
+      }
       if (label.startsWith('sweep/')) return { instances: label === 'sweep/P1' ? 1 : 0, barriered: false, enumerator: 'e' }
+      if (label === 'fold') return { rc: foldRc ?? 0, check_rc: 0, output: 'folded' }
+      if (label === 'record') return { branch: 'b', body_path: '/x/body.md', pr: null, command: 'c' }
       return { issues: [] }
     }
     const pipeline = (items, ...stages) => Promise.all(items.map(async (it, i) => { let v = it; for (const s of stages) v = await s(v, it, i); return v }))
@@ -1164,6 +1172,28 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
     J(order))
   t('one sweep per surviving class, and the class count adds its swept instances (P1: 2 judged + 1 swept = 3, owed; P2: 16, owed)',
     J(r.out?.classes?.map((c) => [c.class, c.n, c.rca])) === J([['P1', 3, true], ['P2', 16, true]]), J(r.out?.classes))
+  // R-register (#1759): the unit of N is a field the sweep sets, the fold is a script run after the sweeps,
+  // a class is minted only with its nearest class and the difference, and the round record is one branch.
+  const fl = await drive({}, { flagged: true })
+  t('a sweep that flags its seams counts only the beyond_finding ones, and the class carries both terms (P1: 2 judged + 1 flagged = 3, not 2 + 5)',
+    J(fl.out?.classes?.map((c) => [c.class, c.judged, c.beyond_finding, c.n])) === J([['P1', 2, 1, 3], ['P2', 16, 0, 16]]), J(fl.out?.classes))
+  const sw = r.calls.find((c) => c.label === 'sweep/P1')?.prompt ?? ''
+  t('the sweep is told to flag every seam beyond_finding and to write the JSON the fold reads', /beyond_finding/.test(sw) && /sweep-P1\.json/.test(sw) && /fold_ledger\.py/.test(sw), 'sweep prompt')
+  const jd = r.calls.find((c) => c.label === 'judge')?.prompt ?? ''
+  t('the judge reuses before minting: nearest and differs are named, and a class is a mechanism never a site', /Reuse before minting/.test(jd) && /nearest/.test(jd) && /differs/.test(jd) && /never a site/.test(jd), 'judge prompt')
+  const lab = r.calls.map((c) => c.label)
+  t('the fold runs once after every sweep and before the writer, then the round record last',
+    lab.filter((l) => l === 'fold').length === 1 && lab.indexOf('fold') > lab.lastIndexOf('sweep/P2') && lab.indexOf('fold') < lab.indexOf('register') && lab[lab.length - 1] === 'record', J(lab.slice(-5)))
+  const fp = r.calls.find((c) => c.label === 'fold')?.prompt ?? ''
+  t('the fold step runs the script for this round and edits no ledger by hand', /fold_ledger\.py fold --round 9/.test(fp) && /fold_ledger\.py check/.test(fp) && /by hand/.test(fp), fp.slice(0, 200))
+  let refused = ''
+  try { await drive({}, { foldRc: 1 }) } catch (e) { refused = String(e.message) }
+  t('a fold that refuses stops the pass before the writer commits anything', /fold_ledger\.py refused/.test(refused), refused)
+  const rec = r.calls.find((c) => c.label === 'record')?.prompt ?? ''
+  const filed = await drive({ file: true })
+  const rec2 = filed.calls.find((c) => c.label === 'record')?.prompt ?? ''
+  t('the round record stops with the app_push.sh command unless args.file; with it, the step runs app_push.sh',
+    /Do not push/.test(rec) && !/Filing is on/.test(rec) && /Filing is on[^]*app_push\.sh/.test(rec2), 'record prompts')
   const w = r.calls.find((c) => c.label === 'register')?.prompt ?? ''
   t('the writer drafts one issue per class and the roster, and files nothing unless args.file',
     /ISSUES\.json/.test(w) && /wave-r9-groups\.json/.test(w) && /brief_lint\.mjs/.test(w) && /Do not file issues/.test(w) && !/gh issue list/.test(w), 'writer prompt')
