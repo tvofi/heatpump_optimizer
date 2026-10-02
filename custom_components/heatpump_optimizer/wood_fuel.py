@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_MIN_TEMP,
     WOOD_TANK_MAX_TEMP,
 )
+from .payload import NightAdvice, WoodFuel, WoodSlot
 
 WOOD_KWH_M3 = {
     "birch": {"packed": 1900.0, "loose": 1140.0},
@@ -190,7 +191,7 @@ def night_advice(
     cops: Sequence[object],
     wood_sek: float,
     tank_soc: float,
-) -> dict[str, Any]:
+) -> NightAdvice:
     """48 h light/skip advice. Advisory only — never lights the stove."""
     if wood_sek <= 0.0 or not prices or not timestamps:
         return {"action": "none", "text": "", "when": None, "reason": ""}
@@ -366,7 +367,7 @@ def simulate_wood_slots(
 
 def detected_wood_slots(
     timestamps: Sequence[datetime], forecast_kw: Sequence[object]
-) -> list[dict[str, Any]]:
+) -> list[WoodSlot]:
     """Merge consecutive steps with ``forecast_kw > 0`` into detected slots."""
     if not timestamps:
         return []
@@ -376,7 +377,7 @@ def detected_wood_slots(
             dt = timestamps[1] - timestamps[0]
         except TypeError:
             dt = None
-    out: list[dict[str, Any]] = []
+    out: list[WoodSlot] = []
     run_start = None
     n = min(len(timestamps), len(forecast_kw))
     for i in range(n):
@@ -431,7 +432,7 @@ def build_wood_fuel_view(
     suppressing: bool,
     wood_tank_temperature: float | None = None,
     comfort_min: float | None = None,
-) -> dict[str, Any]:
+) -> WoodFuel:
     """Ready/cheaper/slots. cheaper is False when not ready."""
     wtype = config.get(CONF_WOOD_TYPE)
     packing = config.get(CONF_WOOD_PACKING)
@@ -458,7 +459,7 @@ def build_wood_fuel_view(
         count = cheaper_hour_count(sek, prices, cops, space_kw, dhw_kw)
         cheaper = wood_cheaper(sek, prices, cops, space_kw, dhw_kw)
     slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
-    view = {
+    view: WoodFuel = {
         "ready": ready,
         "cheaper": cheaper,
         "show_whatif": wood_furnace_on(config),
@@ -485,7 +486,7 @@ def build_wood_fuel_view(
 
 
 def _attach_night_advice(
-    view: dict[str, Any],
+    view: WoodFuel,
     config: dict[str, Any],
     prices: list[float],
     timestamps: Sequence[datetime],
@@ -514,7 +515,7 @@ def _attach_night_advice(
         view["night_advice"] = advice
 
 
-def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
+def wood_fuel_from_coordinator(coord: Any, result: Any) -> WoodFuel:
     """Publish helper so the coordinator does not grow a method (#463)."""
     n = len(result.timestamps) if result is not None else 0
     det = coord._external_heat

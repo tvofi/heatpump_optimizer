@@ -34,6 +34,7 @@ from .const import (
     WATER_SPECIFIC_HEAT,
     WOOD_TANK_MIN_MARGIN,
 )
+from .payload import ExternalHeat
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ class ExternalHeatState:
     #: ``None`` when the tank pair is not sensed.
     wood_energy_kwh: float | None = None
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> ExternalHeat:
         return {
             "active": self.active,
             "confidence": round(self.confidence, 2),
@@ -163,14 +164,14 @@ class ExternalHeatState:
             ),
         } | self._displacement_dict()
 
-    def _displacement_dict(self) -> dict[str, Any]:
+    def _displacement_dict(self) -> ExternalHeat:
         """The item-28 fields, present only when the topology produces them.
 
         Conditional so that a configuration without the wood-furnace sensors
         publishes exactly the dictionary it always did — the golden captures
         of the coordinator's data hold every existing install to that.
         """
-        out: dict[str, Any] = {}
+        out: ExternalHeat = {}
         if self.displacement > 0.0 or self.free_heat_kw > 0.0:
             out["displacement"] = round(self.displacement, 2)
             out["free_heat_kw"] = round(self.free_heat_kw, 2)
