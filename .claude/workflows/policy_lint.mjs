@@ -1899,7 +1899,9 @@ const MERGE_COMMIT_SUBJECT_RE = /^Merge pull request #(\d+) from /
 // file's own "two modes must print different words" rule.
 function resolvePrFromCommit(subject, rows) {
   if (rows.length) return { pr: String(rows[0].number), source: 'api' }
-  const m = MERGE_COMMIT_SUBJECT_RE.exec(String(subject))
+  // Both shapes, as stamp.py's pr_from_subject and delivery_status.py's
+  // subject_number read them (agreement.mjs, merge-subject-pr).
+  const m = MERGE_COMMIT_SUBJECT_RE.exec(String(subject)) || MERGE_SUBJECT_RE.exec(String(subject))
   return m ? { pr: m[1], source: 'subject-gap' } : null
 }
 
@@ -4351,13 +4353,15 @@ function assertAcceptance(derived) {
   // recover its number from the merge commit's own subject, not drop silently;
   // a commit that is neither an API hit nor that exact GitHub shape must still
   // drop, so the fix does not turn into a second unanchored subject scan.
-  pins += 4
+  pins += 5
   const gapFail = []
   const gapApi = resolvePrFromCommit('irrelevant subject', [{ number: 42 }])
   if (!gapApi || gapApi.pr !== '42' || gapApi.source !== 'api') gapFail.push('a real API row must win over the subject and report source api')
   const gapRecovered = resolvePrFromCommit('Merge pull request #900 from tvofi/some-branch', [])
   if (!gapRecovered || gapRecovered.pr !== '900') gapFail.push('an empty API answer on a real merge-commit subject did not recover the PR number')
   if (gapRecovered && gapRecovered.source !== 'subject-gap') gapFail.push('a recovered number must report source subject-gap, or a reader cannot tell it from a verified API hit')
+  const gapSquash = resolvePrFromCommit('fix: a squash (#1234)', [])
+  if (!gapSquash || gapSquash.pr !== '1234' || gapSquash.source !== 'subject-gap') gapFail.push('an empty API answer on a squash-shape subject (`(#N)` suffix) did not recover the PR number, though stamp.py and delivery_status.py read that shape')
   const gapStamp = resolvePrFromCommit('v6.3.19: stamp Seven leftover product features', [])
   if (gapStamp != null) gapFail.push('an empty API answer on a non-merge-commit subject (a stamp) invented a number instead of staying dropped')
   if (gapFail.length) {
@@ -6702,7 +6706,7 @@ function main() {
 // (used only when the API is entirely unreachable) still reads the squash
 // shape alone -- deliberately not widened here, so F11.4 registers that
 // asymmetry rather than assuming the two modes agree on both shapes.
-export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit }
+export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
 export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
 
