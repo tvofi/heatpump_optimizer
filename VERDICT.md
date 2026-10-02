@@ -1,29 +1,39 @@
-Fix review: merge 9c4e4516cf9cb0c1a35a6c57aaceaee940e13768
+Fix review: merge ce12cbd10b4f58ab2b72311da79847f73cda988f
 
-PR #1838, R9-F10.4, round 2. Round 1 blocked a980e165 on census-hole (the verdict is in F10.4-review-a980e165). Code head measured: 9c4e4516, which is the PR head at posting. Body: 90fba84c, whose Head section names 9c4e4516. Base 3bd6f122 = origin/main.
+PR #1838, R9-F10.4, round 3, reviewing the resolution delta. Round 2 passed 9c4e4516 (F10.4-review-9c4e4516); round 1 blocked a980e165 on census-hole. The measured head is ce12cbd1, which is the PR head and handoff/r9-f10-gate-infra-4 at posting. Body fca2e4ff names ce12cbd1.
 
-## Resolution delta (832e640c..9c4e4516, one commit)
+## The delta since 9c4e4516
 
-`dead_members()` now treats a member's name as ambiguous when another class holds it as a field: a class-body assign or annotation, or a store on the method's first parameter. This changes classification only and leaves liveness alone. A planted self-check case and a matching mutant are added.
+1. **9f9e8bcc merges main 777c2318 (#1836, #1837) into 9c4e4516.** `git merge-tree --write-tree 777c2318 9c4e4516` exits 0 and yields tree a59bca5c, and `git diff a59bca5c 9f9e8bcc` is empty, so the committed merge is git's own merge with no hand resolution. The ledger driver printed `LEDGER-MERGE: resolved tests/closures.json`. `tests/entities.py` merged with no conflict.
+2. **ce12cbd1 changes only tests/deployment_shape.py's #1218 docstring:** 83 pairs becomes 82, and it adds the doc_claims/manual_plan reason.
 
-- My round-1 probe (probe_head.txt): RESULT field_collision_unprinted=0 count; RESULT name_kept_reported=113 count (it was 21 and 92).
-- structure.py at head: rc=0, 41 counting rules hold, STRUCTURE RATCHET PASSED. Every RESULT equals round 1: dead_methods=3, coordinator_multiassigned_attrs=120, seam_cut_total=777. `solar_radiation` is now printed name-kept. See structure_head.txt.
-- Base under the new definition (structure_base_newdef.txt): dead_methods=9, coordinator_multiassigned_attrs=120, 114 name-kept, `DefrostDerate.samples` among them. The body's 113 and 114 are re-derived.
-- mutants.py: unmutated rc=0 []; 13 of 13 mutants red. The new one ("another class's field does not make a name ambiguous") fails "an untyped x.n of a name another class holds as a field is name-kept". See mutants_head.txt.
+## The two-sided files, checked by measurement rather than by the clean merge
 
-Round 1's other measurements stand unchanged at this head, because the delta touches only `tests/structure.py`'s census and self-check and `mutants.py`: the finders 10→4 and 11→3, doc_claims 112 PASS with the anchor perturbation named, the untouched VERSION/manifest/notes/golden, and the clean merge-tree.
+On Linux with strace, I recorded closures fresh at ce12cbd1 with `closure.py record` for tests/doc_claims.py, tests/structure.py, tests/deployment_shape.py and tests/entities.py, then ran `closure.py check --partial`. Result: rc=0, "committed closures cover every file this run touched". entities.py has 1 over-scoped file, which is safe. See closure_check_partial.txt and the *.log files.
 
-## Red checks (step 11)
+The recordings' own runs at this head:
+- doc_claims ALL 112 PASSED
+- STRUCTURE RATCHET PASSED
+- ALL DEPLOYMENT SHAPE CHECKS PASSED
+- ALL 2055 ENTITY CHECKS PASSED (2053 at the branch plus main's two)
 
-- `briefs`: the body's claim holds. tests.yml's `briefs` job restores `.claude/workflows/*.mjs` from the base sha before linting.
-  - Measured: base 3bd6f122's brief_lint.mjs over this head's tree gives rc=1 with `FIXTURE VACUOUS: 931dffe acceptance pins missing: [W1-G8] metric: coordinator_loc` (brief_lint_base_on_head.txt).
-  - The head's own brief_lint.mjs over the same tree gives rc=0 (brief_lint_head.txt), and the base linter on the base tree gives rc=0.
-  - The red therefore comes from retiring the `coordinator_loc` key while the pinned linter is the base's. Nothing inside this PR can turn it green. Answered in the body with a cheaper detector named and costed.
-  - Merging past it, or landing the pin change first, is the owner's call, since brief_lint.mjs is policy.
-- `budget-raise-gate`: red by design until tvofi's approving review. Answered.
-- Tests (gate, mutation) had not reported on 9c4e4516 at posting. This verdict does not cite them, and the merge rule's CI-green condition still applies.
+## The 82-pair figure, re-derived with my own count
 
-## Still owed to tvofi (not this verdict's to grant)
+I counted Jaccard overlap of production-module closures over tests/closures.json, using my own definition (the one the docstring describes). It may differ from deployment_shape's internals.
+- At ce12cbd1: RESULT pairs=378, comparable=300, at_or_above_0.80=82; doc_claims/manual_plan = 0.787.
+- At main 777c2318: 83.
+- The −1 is the I5 arms' two new reads in doc_claims.py's closure, as the docstring now says.
 
-- The budget re-baselines `dead_methods` 0→3 and `coordinator_multiassigned_attrs` 117→120. Both are redefinitions at measured values, and base measures 9 and 120 under the new definitions. Plan card B5 pre-allows them on tvofi's approving review.
-- The `briefs` bootstrap decision above. The brief_lint.mjs edit is also policy, needing tvofi's approval before merge.
+## The PR's own work, unchanged by the merge
+
+The merge brings no production code.
+- structure.py: rc=0, every RESULT and budget equal to round 2 (dead_methods 3, coordinator_multiassigned_attrs 120).
+- My field-collision probe: field_collision_unprinted=0, name_kept_reported=113.
+- mutants.py: unmutated rc=0 []; all 13 mutants red.
+
+## Carried from round 2, still owed to tvofi
+
+- The budget re-baselines (`dead_methods` 0→3, `coordinator_multiassigned_attrs` 117→120). Both are redefinitions at measured values, under plan card B5.
+- The `briefs` red: base-pinned brief_lint.mjs against the retired `coordinator_loc` pin. It cannot go green from inside this PR, and that is the owner's call.
+- The brief_lint.mjs edit is policy and needs tvofi's approving review.
+- CI's gate and mutation runs on ce12cbd1 are not cited here. The merge rule's CI-green condition still applies.
