@@ -41959,21 +41959,21 @@ def _t6_drive(coord, method, *args, **kwargs):
 # fronts has been moved to a value nothing else holds.
 _T6_PROPERTY_PAIRS = (
     ("mode", "_mode", "boost"),
-    ("last_optimization", "_last_optimization", datetime(2026, 2, 1, 1, 2, 3)),
-    ("next_optimization", "_next_optimization", datetime(2026, 2, 1, 4, 5, 6)),
     ("current_action", "_current_action", {"mode": "sentinel"}),
     ("prices", "_prices", [{"total": 9.99}]),
-    ("solar_radiation", "_solar_radiation", 412.5),
-    ("floor_return_temp", "_floor_return_temp", 31.25),
     ("dhw_temperature", "_dhw_temperature", 53.75),
     ("optimization_running", "_optimization_running", True),
+    # The read-only views the entity platforms read (R9-EG-B2, #1739).
+    ("thermal_params", "_thermal_params", "sentinel-params"),
+    ("thermal_model", "_thermal_model", "sentinel-model"),
+    ("away_state", "_away_state", "sentinel-away"),
 )
 _t6_prop_start = _t6_coord()
 _t6_prop_moved = _t6_coord()
 for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
     setattr(_t6_prop_moved, _t6_attr, _t6_value)
 R.check(
-    "nine published properties each read the attribute they front, not a neighbour",
+    "eight published properties and views each read the attribute they front, not a neighbour",
     all(
         getattr(_t6_prop_moved, name) == value
         and getattr(_t6_prop_start, name) != value
@@ -45490,6 +45490,9 @@ R.check(
 
 # -- datetime.AwayReturnDateTime: the published return instant --------------
 class _G8DtCoord:
+    # The real coordinator's read-only view over the live override (R9-EG-B2).
+    away_state = property(lambda self: self._away_state)
+
     def __init__(self, data=None):
         self.data = data
         self.away_calls = []

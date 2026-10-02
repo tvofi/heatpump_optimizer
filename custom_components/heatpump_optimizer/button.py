@@ -60,6 +60,8 @@ async def async_setup_entry(
 class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
     """Shared plumbing so the buttons land on the existing device."""
 
+    _platform_domain = "button"
+
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
@@ -68,13 +70,8 @@ class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
         translation_key: str,
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
         self._key = key
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_translation_key = translation_key
-        # Pin today's English object id for new installs (the integration
-        # suggested-object-id mechanism); see the sensor base class.
-        self.entity_id = f"button.heat_pump_optimizer_{translation_key}"
+        self._pin_identity(entry, key, translation_key)
 
 
 class ForceOptimizationButton(_OptimizerButtonBase):
