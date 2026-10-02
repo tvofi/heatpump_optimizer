@@ -10328,5 +10328,164 @@ check("without an indoor reading the corner now label is absent",
     lightFallbacks.length === 0, lightFallbacks.join(", "));
 }
 
+// --- Scenario: the Health tab (R9-UX-3) -------------------------------------
+//
+// Inputs from the Input Problem binary sensor, the plan's age from the last and
+// next optimization sensors, the sensors still waiting for evidence from
+// their own unavailable state (HA hides their attributes), a first-plan
+// checklist from what the card can read, and a header pill.
+{
+  const PFX = "sensor.heat_pump_optimizer";
+  const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  const iso = (ms) => new Date(ms).toISOString();
+  const healthStates = () => {
+    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    s[DEFAULT_SPACE].attributes.setup_topology = {
+      two_zone: false, dhw: true, valve_mode: "manual", buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+      wood: { present: false, volume_l: 500 }, edges: [],
+      slots: [
+        { key: "indoor_temp_entity", label: "Indoor temperature", place: "upper_zone", entity: "sensor.indoor", domains: ["sensor"] },
+        { key: "heat_pump_switch_entity", label: "Heat pump switch", place: "heat_pump", entity: "switch.hp", domains: ["switch"] },
+        { key: "heat_pump_power_entity", label: "Power meter", place: "heat_pump", entity: null, domains: ["sensor"] },
+      ],
+    };
+    s[BIN] = { state: "on", last_updated: "t1", attributes: {
+      problems: [{ input: "outdoor_temp_entity", entity_id: "sensor.outdoor", problem: "stale",
+        age_minutes: 130, max_age_minutes: 60 }],
+      problem_messages: ["sensor.outdoor: stale (last report 130 min)"],
+      input_ages_minutes: { indoor_temp_entity: 3, outdoor_temp_entity: 130, dhw_temp_entity: 4 } } };
+    s[`${PFX}_last_optimization`] = { state: iso(FROZEN - 12 * 60e3), last_changed: iso(FROZEN - 12 * 60e3), attributes: {} };
+    s[`${PFX}_next_optimization`] = { state: iso(FROZEN + 18 * 60e3), last_changed: iso(FROZEN - 12 * 60e3), attributes: {} };
+    s[`${PFX}_optimization_status`] = { state: "optimal", last_updated: "t1", attributes: {
+      solve_time_ms: 1400, prices_available: 96, weather_forecast_available: 48 } };
+    s[`${PFX}_plan_monthly_savings`] = { state: "unavailable", attributes: {} };
+    s[`${PFX}_learning_observed_cop`] = { state: "unavailable", attributes: {} };
+    s[`${PFX}_prediction_accuracy`] = { state: "0.3", last_updated: "t1", attributes: { waiting_for: null } };
+    s[`${PFX}_plan_optimization_score`] = { state: "unavailable", attributes: {} };
+    return s;
+  };
+  const mkHealth = (states, lang) => {
+    const calls = [];
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states, ...(lang ? { language: lang } : {}), callService: async (...a) => { calls.push(a); } };
+    c._onCardClick({});
+    c.dialog.page = "health";
+    c._render();
+    return { c, calls, html: () => collect(c.shadowRoot).join("\n") };
+  };
+  const pageOf = (h) => h.slice(h.indexOf('health-page"'));
+  const { c, calls, html } = mkHealth(healthStates());
+  const h = html();
+  const page = pageOf(h);
+  check("the dialog has a Health tab after Advisor",
+    /data-page="advisor"[\s\S]*data-page="health"/.test(h));
+  check("the Health page renders", /health-page"/.test(h) && /Inputs/.test(page));
+  const stale = page.match(/<div class="health-row"[^>]*data-health-input="outdoor_temp_entity"[\s\S]*?<\/div>\s*<\/div>/);
+  check("a stale input says what is wrong with its age and its limit",
+    !!stale && /Stale/.test(stale[0]) && /2 h 10 min/.test(stale[0]) && /limit 1 h/.test(stale[0]),
+    stale && stale[0]);
+  const fresh = page.match(/data-health-input="indoor_temp_entity"[\s\S]*?<\/div>\s*<\/div>/);
+  check("a healthy input shows Fresh with its age",
+    !!fresh && /Fresh/.test(fresh[0]) && /3 min ago/.test(fresh[0]), fresh && fresh[0]);
+  check("no 'plan uses X instead' text is invented (the fallback is not published)",
+    !/instead/i.test(page.slice(0, page.indexOf("health-learning"))));
+  check("the plan block shows solved-ago, next solve, steps and solve time",
+    /Solved 12 min ago/.test(page) && /Next solve in 18 min/.test(page) && /1\.4 s/.test(page)
+    && /\d+ steps/.test(page), page.slice(page.indexOf("health-plan"), page.indexOf("health-plan") + 600));
+  const pill = h.match(/<span data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
+  check("the header pill reads 1 input stale (warn)",
+    !!pill && pill[2] === "warn" && pill[3] === "1 input stale", JSON.stringify(pill));
+  const two = healthStates();
+  two[BIN].attributes.problems.push({ input: "dhw_temp_entity", entity_id: "sensor.tank",
+    problem: "unavailable", age_minutes: null, max_age_minutes: 60 });
+  const pill2 = mkHealth(two).html().match(/data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
+  check("two failing inputs read 2 inputs stale", !!pill2 && pill2[3] === "2 inputs stale", JSON.stringify(pill2));
+  check("an unavailable input says so in words",
+    /Unavailable/.test(pageOf(mkHealth(two).html())));
+  const ok = healthStates();
+  ok[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [],
+    input_ages_minutes: { indoor_temp_entity: 3 } } };
+  const okHtml = mkHealth(ok).html();
+  const pillOk = okHtml.match(/data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
+  check("with no problems the pill reads All inputs fresh (ok)",
+    !!pillOk && pillOk[2] === "ok" && pillOk[3] === "All inputs fresh", JSON.stringify(pillOk));
+  const noBin = healthStates();
+  delete noBin[BIN];
+  const nbHtml = mkHealth(noBin).html();
+  check("without the Input Problem sensor there is no health pill and no input rows",
+    !/data-health-pill/.test(nbHtml) && !/data-health-input/.test(nbHtml));
+
+  check("still learning lists unavailable waiting sensors with a reason in words",
+    /Savings this month/.test(page) && /first settled month/i.test(page)
+    && /Heat pump COP/.test(page) && /power meter/i.test(page)
+    && /Optimization score/.test(page));
+  check("a sensor that has evidence is not listed as learning",
+    !/Prediction accuracy/.test(page.slice(page.indexOf("health-learning"), page.indexOf("health-support"))));
+  const allDone = healthStates();
+  for (const k of ["plan_monthly_savings", "learning_observed_cop", "plan_optimization_score"]) {
+    allDone[`${PFX}_${k}`] = { state: "1", last_updated: "t1", attributes: {} };
+  }
+  check("when nothing is waiting the learning block is absent",
+    !/health-learning/.test(mkHealth(allDone).html()));
+
+  const done = (key) => new RegExp(`data-check="${key}" data-done="(true|false)"`).exec(page);
+  check("the checklist marks price, weather, indoor and heat pump control done from what the card reads",
+    ["price", "weather", "indoor", "control"].every((k) => (done(k) || [])[1] === "true"),
+    ["price", "weather", "indoor", "control"].map((k) => `${k}=${(done(k) || [])[1]}`).join(" "));
+  check("a missing power meter is recommended with an Assign action; insight sensors have a Show action",
+    (done("power") || [])[1] === "false" && /data-act="assign" data-key="heat_pump_power_entity"/.test(page)
+    && /data-check="insight"[\s\S]*?data-act="settings"/.test(page));
+  check("the insight-sensor row carries no invented count", !/\d+ insight sensors/.test(page));
+  const noPrice = healthStates();
+  noPrice[`${PFX}_optimization_status`].attributes.prices_available = 0;
+  check("the price step is not done without prices",
+    /data-check="price" data-done="false"/.test(pageOf(mkHealth(noPrice).html())));
+  check("the diagnostics link goes to the integration page",
+    /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
+  const dg = mkHealth(healthStates());
+  const hist = [];
+  const push = globalThis.history && globalThis.history.pushState;
+  globalThis.history = globalThis.history || {};
+  globalThis.history.pushState = (_a, _b, path) => hist.push(path);
+  const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
+  if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  globalThis.history.pushState = push;
+  check("pressing it opens /config/integrations/integration/heatpump_optimizer",
+    hist.includes("/config/integrations/integration/heatpump_optimizer"), JSON.stringify(hist));
+  const pw = mkHealth(healthStates());
+  const assignBtn = pw.c.shadowRoot.querySelector('[data-check="power"] [data-act="assign"]');
+  if (assignBtn) await Promise.all((assignBtn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  check("Assign on the power meter opens the Setup picker for that slot",
+    pw.c.dialog.page === "setup" && pw.c.setup.pickerKey === "heat_pump_power_entity",
+    `${pw.c.dialog.page} ${pw.c.setup.pickerKey}`);
+
+  const sig1 = c._signature();
+  const s2 = healthStates();
+  s2[BIN] = { ...s2[BIN], last_updated: "t2", state: "off", attributes: { problems: [], input_ages_minutes: {} } };
+  c.hass = { states: s2, callService: async () => {} };
+  check("the render signature follows the Input Problem sensor", c._signature() !== sig1);
+  const s3 = healthStates();
+  s3[`${PFX}_plan_monthly_savings`] = { state: "5", last_updated: "t3", attributes: {} };
+  c.hass = { states: s3, callService: async () => {} };
+  check("and the waiting sensors", c._signature() !== sig1 && c._signature() !== undefined);
+
+  const sv = mkHealth(healthStates(), "sv-SE").html();
+  check("the Health page and pill speak Swedish",
+    /Indata/.test(sv) && /1 indata inaktuell/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
+  check("the card never reads a disabled-by-default sensor for the Health page",
+    !/_contract_comparison|_dhw_heavy_day|_wood_burn_advisor|_measured_power/.test(
+      cardSrc.slice(cardSrc.indexOf("const HEALTH_WAITING"), cardSrc.indexOf("const HEALTH_WAITING") + 600)));
+
+  // The other four tabs still render.
+  for (const [page_, marker] of [["plan", /stat-row|tile/], ["setup", /setup-page/],
+    ["savings", /savings/i], ["advisor", /advisor-page/]]) {
+    const o = mkHealth(healthStates());
+    o.c.dialog.page = page_;
+    o.c._render();
+    check(`the ${page_} tab still renders beside Health`, marker.test(o.html()));
+  }
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
