@@ -132,9 +132,11 @@ edit would get:
   `hpo-author`. The push job therefore declares `environment: ledger`, and
   the secrets must live **only** in that environment, whose deployment
   branches are `main` alone. GitHub still hands repository-level secrets to an
-  environment job, so the code cannot tell the two scopes apart: the
-  repository-level copies must be deleted, and until the environment holds
-  them the push job has no token and is red (`skip-no-writer` is outside
+  environment job, so the code cannot tell the two scopes apart: only
+  deleting the repository-level copies confines the credential. Until then
+  the push job still works, bounded by the `refs/heads/main` guard alone,
+  and any branch's workflow can read the secrets. After it, a job with no
+  credential from the environment is red (`skip-no-writer` is outside
   `DRAIN_QUIET`), never green.
 - The App's bypass on `main-protect-checks` (23698884) lets its push skip the
   required checks and the pull-request rule, which is what a direct row
