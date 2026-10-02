@@ -9,7 +9,7 @@ After: the dialog has a fifth tab, Health, with the Input Problem rows (failing 
 
 ## Head
 
-f512f8266673389b341bc2f6e1e363e695844dd5
+03576be71c1c1c5d57cc96a27e574bbfc8716835
 
 ## Mutation proof
 
@@ -17,6 +17,12 @@ f512f8266673389b341bc2f6e1e363e695844dd5
 - pill threshold `n === 0` -> `n <= 1` in healthPillHtml: "the header pill reads 1 input stale (warn)" FAILS.
 - waiting-row filter `=== "unavailable"` -> `=== "unknown"` in healthLearningHtml: a Health check FAILS (2 card checks failed).
 - singular pill key `n === 1` -> `n === 2`: "the header pill reads 1 input stale (warn)" FAILS.
+
+Round 2 (review at f512f826 found four survivors and one raw token), each restored after, all against `node tests/card.mjs`:
+- stale plan (`stale = age.minutes > age.limit` -> `false`): "a plan older than its limit shows a warn Stale pill on the plan row" FAILS.
+- assigned power meter (`assigned("heat_pump_power_entity")` -> `false`): "an assigned power meter shows the power step done, with no Assign action" FAILS.
+- unavailable/unknown guard dropped in healthPillHtml: the two header-pill checks FAIL; dropped in healthInputsHtml: the two inputs-block checks FAIL (each mutant killed only by its own pair).
+- health.p_unknown_unit added in en and sv; a check derives every problem code from inputs.py by regexp (not_configured excluded, it never reaches details()) and fails any code that prints as a raw token, which also fails before the strings exist.
 
 ## Null control
 
