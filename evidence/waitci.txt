@@ -1,0 +1,7 @@
+DONE 403803daebf1870df2f5fd76c1fa7556865645d5 total=35
+NOTGREEN failure closures
+NOTGREEN failure closures-autofix
+NOTGREEN failure mutation
+NOTGREEN failure mutation-autofix
+NOTGREEN failure nightly-status
+NOTGREEN failure pr-contract
