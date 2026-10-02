@@ -1,4 +1,0 @@
-2026-10-02T16:54:35.4337132Z   FAIL a pinned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)  [{'defect': ('changed', False), 'null': ('changed', False), 'absent': ('changed', False)}: green here is a repair nobody makes and nothing reports]
-2026-10-02T16:54:35.4337877Z   FAIL and stays quiet when the closures job printed no UNDER-SCOPED, or no check.txt exists (a46a91c null control)  [{'defect': ('changed', False), 'null': ('changed', False), 'absent': ('changed', False)}: an INERT READS failure owes no bot repair]
-2026-10-02T16:55:10.8270077Z 2 of 2065 ENTITY CHECKS FAILED
-2026-10-02T16:55:12.2232976Z >>> FAILED: python3 tests/entities.py
