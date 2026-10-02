@@ -1772,6 +1772,25 @@ def _version_arm(by_name) -> None:
         verdicts == ["not-implemented", 1, "not-implemented", 0],
         f"verdicts={verdicts}",
     )
+    # A downgrade leaves the store as Home Assistant's own exception, after the
+    # surfacing: the loaders catch any exception alike, so only the type tells
+    # a re-raise from a fall-through that fails on unbound data.
+    dkey = f"{const.DOMAIN}_{ENTRY_ID}_version_downgrade"
+    _storage._DISK[dkey] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[dkey] = 3
+    try:
+        asyncio.run(QuarantiningStore(FakeHass(), 2, dkey).async_load())
+        escaped = "returned"
+    except BaseException as exc:  # noqa: BLE001 -- the type is the measurement
+        escaped = type(exc).__name__
+    _storage._DISK.clear()
+    _storage._VERSIONS.clear()
+    R.check(
+        "a downgrade leaves the store as UnsupportedStorageVersionError (#1740)",
+        escaped == "UnsupportedStorageVersionError",
+        f"escaped={escaped}",
+    )
+
     # A store that does migrate: Home Assistant saves the migration's result
     # from inside the load, while async_save waits for the read in flight --
     # its own. That write-back must not wait on itself.
