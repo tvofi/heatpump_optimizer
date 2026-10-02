@@ -508,6 +508,27 @@ jobs:
       - name: Show the agreement lane refusing each shape it exists to refuse
         run: node .claude/workflows/agreement.mjs --self-test
 
+      # Class R-register (round 9, #1759): every in-tree judge survivor sits in
+      # exactly one class, every class that met an adopted trigger carries a
+      # barrier or an rca document under tools/audit/rca, and the counts the
+      # ledger carries are the ones its instances derive. The BASE's copy of
+      # the checker grades the pull request's ledger (--root), so a branch
+      # cannot edit the grader it is graded by; the pull request that lands the
+      # checker is graded by no copy of it and the step says so, as the
+      # agreement lane's does.
+      - name: Check the bug-class register against the rounds in the tree
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:tools/audit/fold_ledger.py" 2>/dev/null; then
+            echo "register check: the base does not carry tools/audit/fold_ledger.py, so no copy of it can grade this pull request; skipped"
+          else
+            git show "$PINNED:tools/audit/fold_ledger.py" > "$RUNNER_TEMP/fold_ledger.py"
+            python3 -I "$RUNNER_TEMP/fold_ledger.py" --self-test
+            python3 -I "$RUNNER_TEMP/fold_ledger.py" check --root "$PWD"
+          fi
+
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
   # their reason.
