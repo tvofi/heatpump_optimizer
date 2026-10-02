@@ -208,6 +208,7 @@ const PAIRS = [
 // instances only; the barrier pull request classifies every entry the
 // discovery arm prints.
 const SHARED_GRAMMARS = {
+  "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
   "wave-.*-groups\\.json": "identical:three directory filters over the wave rosters, one listing rule",
   "const VERDICT_CLASSES = \\[([^\\]]*)\\]": "identical:the wave script's verdict-class list extractor, read in three tools",
   "const VERDICT_RE = new RegExp\\(\\n([\\s\\S]*?)\\n\\)": "identical:the wave script's verdict-regex extractor, read in two tools",

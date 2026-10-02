@@ -49,7 +49,20 @@ def merge():
 
 def structure_rows():
     import structure
-    trees = structure.module_trees()
+    # Boundary items the live tree may not hold (D7-s3-02): a class nothing
+    # references whose methods only call each other, and one a live function
+    # reaches. Both readers must call the first dead and the second live, so a
+    # reader that stops finding dead members (`dead = []`) disagrees here.
+    probe = (
+        "class ProbeOrphanKind:\n"
+        "    def probe_orphan_run(self):\n        return self.probe_orphan_help()\n"
+        "    def probe_orphan_help(self):\n        return 1\n"
+        "class ProbeUsedKind:\n"
+        "    def probe_used_go(self):\n        return 1\n"
+        "def probe_entry():\n    return ProbeUsedKind().probe_used_go()\n"
+    )
+    probe_path = structure.PACKAGE_DIR / "zz_agreement_probe.py"
+    trees = structure.module_trees() + [(probe_path, ast.parse(probe))]
     pkg = structure.Package(trees)
     dead, _ = structure.dead_members(pkg)
     dead_set = {(r, c, m) for r, c, m, _ in dead}
