@@ -167,7 +167,8 @@ def bronze() -> None:
     )
 
     shared = (PKG / "entity.py").exists() and (PKG / "coordinator.py").exists()
-    base = "class HeatPumpOptimizerEntity(CoordinatorEntity)" in src(PKG / "entity.py")
+    # A prefix, so a parameterised base (`CoordinatorEntity["Coordinator"]`) matches.
+    base = "class HeatPumpOptimizerEntity(CoordinatorEntity" in src(PKG / "entity.py")
     users = sum(
         1 for n in PLATFORMS if "HeatPumpOptimizerEntity" in src(PKG / f"{n}.py")
     )

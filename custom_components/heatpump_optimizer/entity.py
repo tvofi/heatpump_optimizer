@@ -18,12 +18,17 @@ from __future__ import annotations
 
 import math
 from collections.abc import Awaitable, Coroutine
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .payload import Payload
+
+if TYPE_CHECKING:  # coordinator imports this module
+    from .coordinator import HeatPumpOptimizerCoordinator
 
 
 def commanded_power_kw(action: Any) -> float | None:
@@ -103,7 +108,7 @@ def _finite(value: Any) -> Any:
     return value
 
 
-class HeatPumpOptimizerEntity(CoordinatorEntity):
+class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"]):
     """What every Heat Pump Optimizer entity has in common.
 
     Display names come from the translation files (``strings.json`` /
@@ -187,10 +192,9 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
             object_id = f"heat_pump_optimizer_{self._attr_translation_key}"
         self.entity_id = f"{self._platform_domain}.{object_id}"
 
-    def _data(self) -> dict[str, Any]:
+    def _data(self) -> Payload:
         """The coordinator's published payload, empty before the first refresh."""
-        data: dict[str, Any] = self.coordinator.data or {}
-        return data
+        return self.coordinator.data or Payload()
 
 
 def publish_then_refresh(

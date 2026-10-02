@@ -64,6 +64,11 @@
 # its self-test cannot stop a pull request that weakens a class and its fixture
 # together, which only ownership does.
 /tools/audit/merge_fastpath.py            @tvofi
+# The register checker the wave-script lane runs as the pull request's own copy:
+# a pinned grader must be declared in the pinned field_coverage.mjs, so the
+# branch that adds one cannot pass, and ownership is what stops a branch that
+# weakens the check and the ledger together (class R-register, #1759).
+/tools/audit/fold_ledger.py               @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset
