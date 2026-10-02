@@ -975,12 +975,12 @@ def apply_pins(pins_dir: str, head: str) -> str:
 
 
 def pin_entry(site: dict, script: str, run: "ScriptRun",
-              baseline: "ScriptRun", ref: str) -> dict:
+              baseline: "ScriptRun", ref: str, how: str = "--pin-killed") -> dict:
     """The `killed_by` disposition one measured kill earns."""
     return {
         "killed_by": script,
         "old": site["old"],
-        "reason": (f"Recorded by `mutation_table.py --pin-killed` against "
+        "reason": (f"Recorded by `mutation_table.py {how}` against "
                    f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
                    f"{script} from rc={baseline.rc} failed={baseline.failed} "
                    f"to rc={run.rc} failed={run.failed}."),
@@ -990,7 +990,7 @@ def pin_entry(site: dict, script: str, run: "ScriptRun",
 def pin_results(results: list[tuple[dict, str]],
                 kill_runs: dict[tuple[int, str], "ScriptRun"],
                 baseline: dict[str, "ScriptRun"], sites: list[dict],
-                ref: str) -> tuple[dict, list[str], int]:
+                ref: str, how: str = "--pin-killed") -> tuple[dict, list[str], int]:
     """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
 
     A disposition covers EVERY inventory site under its anchor, and an anchor
@@ -1027,7 +1027,8 @@ def pin_results(results: list[tuple[dict, str]],
                 report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
         if whole:
             mut, script, run, _ = got[0]
-            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref)
+            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref,
+                                        how)
             if len(got) > 1:
                 entries[anchor]["reason"] += (
                     f" Each of the {len(got)} sites under this anchor was killed.")
@@ -1095,6 +1096,204 @@ LEDGER_DIRNAME = "mutation_ledger"
 def ledger_dir() -> Path:
     """The row directory beside whatever BUDGETS currently points at."""
     return BUDGETS.parent / LEDGER_DIRNAME
+
+
+# ---------------------------------------------------------------- --drain
+#
+# `--pin-killed` reaches only the sites a diff ADDS, so the stock that predates
+# the ratchet has no path to a disposition: `mutation-nightly` draws a seeded
+# sample over the whole package and records nothing (R9 RCA I1, residual (a)).
+# `--drain` is that path. It drives a slice of the unpinned stock with the same
+# kill rule, baseline and null control, and writes what it killed as
+# `killed_by` rows for `mutation-ledger-push` to commit to main; a survivor is
+# listed for a human verdict and never written, exactly as under --pin-killed.
+# The measuring job holds no write grant and the pushing job runs no driver,
+# the split `mutation` / `mutation-autofix` already keeps (D11-s1-03).
+
+DRAIN_SUBJECT = "ci: record nightly kills"
+DRAIN_ROWS = f"tests/{LEDGER_DIRNAME}/killed_by/"
+# The statuses `drain_report` lets end green: a row pushed, or nothing owed.
+# Every other status means a slice was measured and its rows did not reach
+# main -- `skip-no-writer` included: the writer App exists, so a credential the
+# `ledger` environment did not hand over is a fault, never a quiet skip.
+DRAIN_QUIET = ("changed", "skip-unchanged", "skip-nothing-killed",
+               "skip-nothing-drivable")
+
+
+def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
+               seed: int, cap: int) -> list[dict]:
+    """The slice of the unpinned stock one `--drain` run drives.
+
+    Whole anchors only: a disposition covers every site under its anchor, so
+    `pin_results` pins one only when all of them were driven and killed, and a
+    slice that split an anchor would spend runs on sites it can never pin. The
+    anchors are ordered by a hash of (seed, anchor), so the slice is fixed for
+    one seed and the nightly's date seed walks the stock rather than retrying
+    the same survivors every night; an anchor no recorded closure reaches is
+    left out, and anchors are taken while their sites fit under `cap`.
+    """
+    by_anchor: dict[str, list[dict]] = {}
+    for s in unpinned:
+        by_anchor.setdefault(s["anchor"], []).append(s)
+    order = sorted(by_anchor, key=lambda a: hashlib.sha1(
+        f"{seed}:{a}".encode()).hexdigest())
+    pool: list[dict] = []
+    for anchor in order:
+        group = by_anchor[anchor]
+        drivers = drivers_for(group[0]["file"], closures, allow)
+        if not drivers or len(pool) + len(group) > cap:
+            continue
+        pool.extend(dict(s, drivers=drivers) for s in group)
+    return pool
+
+
+def write_drain(out: Path, entries: dict, head: str,
+                survivors: list[str]) -> str:
+    """The measurement `mutation-ledger-push` applies: status, pins, head.
+
+    The status says whether there is anything to apply; `survivors.txt` is the
+    human's list, one `triage_key` line per site no driver killed.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    status = "measured" if entries else "skip-nothing-killed"
+    (out / "pins.json").write_text(json.dumps(entries, indent=2, sort_keys=True))
+    (out / "head").write_text(head + "\n")
+    (out / "survivors.txt").write_text("".join(f"{s}\n" for s in survivors))
+    (out / "status").write_text(status + "\n")
+    return status
+
+
+def _in_closure(path: str, closure: list[str]) -> bool:
+    """True when a changed path is a file of the closure or under one of its
+    directory entries."""
+    return any(path == c or (c.endswith("/") and path.startswith(c))
+               for c in closure)
+
+
+def stale_pins(pins: dict, changed: list[str], closures: dict) -> list[str]:
+    """The pins a move of main since the measurement may have invalidated.
+
+    A kill is a measurement of one tree. When main moved between the drive and
+    the push, a pin stays valid only if nothing its killing script reads
+    changed: the script itself and every file of its recorded closure, which
+    includes the mutated module, since that closure is how the driver was
+    chosen. Anything else is dropped and stays unpinned for the next night.
+    """
+    out = []
+    for key, entry in pins.items():
+        script = entry.get("killed_by", "") if isinstance(entry, dict) else ""
+        reads = [script, *closures.get(script, ())]
+        if not script or any(_in_closure(p, reads) for p in changed):
+            out.append(key)
+    return sorted(out)
+
+
+def apply_drained(pins_dir: str, head: str, changed: list[str] | None) -> str:
+    """Merge a `--drain` measurement into this checkout's ledger.
+
+    `changed` is the paths main changed between the measured head and `head`
+    (None when the diff could not be read, which applies nothing). The pins
+    `stale_pins` names are dropped, and the rest go through `apply_pins`'s own
+    check against this tree's inventory -- same anchor, same `old` text, not
+    already disposed -- so a second apply of the same measurement writes
+    nothing.
+    """
+    d = Path(pins_dir)
+    try:
+        status = (d / "status").read_text().strip()
+    except OSError:
+        return "skip-no-measurement"
+    if status != "measured":
+        return status or "skip-no-measurement"
+    try:
+        measured_at = (d / "head").read_text().strip()
+        pins = json.loads((d / "pins.json").read_text())
+    except (OSError, ValueError):
+        return "skip-no-measurement"
+    if measured_at != head:
+        if changed is None:
+            return "skip-head-moved"
+        drop = set(stale_pins(pins, changed, load_closures()))
+        pins = {k: v for k, v in pins.items() if k not in drop}
+        if not pins:
+            return "skip-head-moved"
+    tmp = d / "applied"
+    tmp.mkdir(exist_ok=True)
+    (tmp / "status").write_text("measured\n")
+    (tmp / "pins.json").write_text(json.dumps(pins))
+    (tmp / "head").write_text(head + "\n")
+    return apply_pins(str(tmp), head)
+
+
+def drain_write_set_problems(porcelain: str) -> list[str]:
+    """Every path `git status --porcelain` shows outside the writer's grant.
+
+    The ledger writer may only ADD `killed_by` rows (decision 0011's
+    amendment): a modified, deleted or renamed path, or any path outside
+    `DRAIN_ROWS`, is refused before the commit.
+    """
+    out = []
+    for line in porcelain.splitlines():
+        if not line.strip():
+            continue
+        code, path = line[:2], line[3:]
+        if code != "??" or not path.startswith(DRAIN_ROWS):
+            out.append(f"{code} {path}")
+    return out
+
+
+def drain_changed(at: str, head: str, cwd: str | None = None) -> list[str] | None:
+    """The paths main changed between the measured head `at` and `head`.
+
+    None -- which `apply_drained` turns into applying nothing on a moved head --
+    when there is no measured head or git cannot diff it (a head outside
+    main's history, a shallow clone); never an empty list, which would read as
+    "nothing changed" and keep every pin.
+    """
+    if not at:
+        return None
+    diff = subprocess.run(["git", "diff", "--name-only", at, head], cwd=cwd,
+                          capture_output=True, text=True)
+    return diff.stdout.split() if diff.returncode == 0 else None
+
+
+def drain_push_problems(cwd: str | None = None) -> list[str]:
+    """What is wrong with the commits `origin/main..HEAD` the writer would push.
+
+    The write-set check reads the working tree; this reads what is SENT:
+    exactly one commit, whose parent is main's tip, under DRAIN_SUBJECT, that
+    only adds files under DRAIN_ROWS. A checkout of any other ref, or a reset
+    that did not happen, puts that ref's own commits under the row commit and
+    is refused here, before the push.
+    """
+    def git(*a: str) -> str:
+        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+        return r.stdout.strip() if r.returncode == 0 else "\0"
+    out = []
+    commits = git("rev-list", "origin/main..HEAD").split()
+    if len(commits) != 1:
+        out.append(f"{len(commits)} commit(s) ahead of origin/main, not 1")
+    if git("rev-parse", "HEAD^") != git("rev-parse", "origin/main"):
+        out.append("HEAD's parent is not origin/main")
+    if git("log", "-1", "--format=%s", "HEAD") != DRAIN_SUBJECT:
+        out.append(f"subject is not {DRAIN_SUBJECT!r}")
+    for line in git("diff", "--name-status", "origin/main", "HEAD").splitlines():
+        code, _, path = line.partition("\t")
+        if code != "A" or not path.startswith(DRAIN_ROWS):
+            out.append(f"{code} {path}")
+    return out
+
+
+def drain_report(status: str) -> int:
+    """`mutation-ledger-push`'s verdict: 0 when nothing was owed or it landed.
+
+    The #523 shape: a status that skipped an owed repair must not fall through
+    to green, so anything outside DRAIN_QUIET -- an empty one included -- is 1.
+    """
+    ok = status in DRAIN_QUIET
+    print(f"MUTATION LEDGER: {status or '(no status)'} -- "
+          + ("nothing owed" if ok else "a measured slice did not reach main"))
+    return 0 if ok else 1
 
 
 def ledger_relpath(m: str, anchor: str) -> str | None:
@@ -2096,6 +2295,12 @@ def main() -> int:
                     help="drive every candidate site this diff added without "
                          "a disposition, record each one a driver kills "
                          "under killed_by, and leave the survivors unpinned")
+    ap.add_argument("--drain", metavar="OUT_DIR",
+                    help="with --scope full: drive a --max slice of the "
+                         "unpinned stock, chosen by --seed (drain_pool), and "
+                         "write what it killed to OUT_DIR for "
+                         "mutation-ledger-push; the ledger here is untouched "
+                         "and survivors are listed in OUT_DIR/survivors.txt")
     ap.add_argument("--normalize", action="store_true",
                     help="rewrite the ledger into its canonical form -- "
                          "content-anchored keys, sorted maps, no committed "
@@ -2109,6 +2314,10 @@ def main() -> int:
                          "it (BASE = the old merge base, HEAD = the branch "
                          "before the merge); refuses a row both changed")
     args = ap.parse_args()
+    if args.drain and (args.scope != "full" or args.pin_killed):
+        print("--drain drives the whole package's stock: use it with --scope "
+              "full and without --pin-killed")
+        return 2
     if args.carry_rows:
         carried, clash = carry_rows(*args.carry_rows)
         if clash:
@@ -2185,7 +2394,7 @@ def main() -> int:
         return 1
     added = added_unpinned(unpinned, base_sites or [], diff_sides(rbase))
     if ((ratchet_refusal(base_count, unpinned) == 1 or added)
-            and not args.pin_killed):
+            and not (args.pin_killed or args.drain)):
         for s in added:
             print(f"    ADDED UNPINNED {triage_key(s)}: {s['old'].strip()[:72]}")
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
@@ -2232,13 +2441,22 @@ def main() -> int:
         if not pool:
             print("\nPIN KILLED: nothing to pin")
             return 0
+    elif args.drain:
+        pool = drain_pool(unpinned, closures, allow, args.seed, args.max)
+        print(f"DRAIN -- {len(pool)} of {len(unpinned)} unpinned site(s), "
+              f"whole anchors under --seed {args.seed}, to drive")
+        if not pool:
+            (Path(args.drain)).mkdir(parents=True, exist_ok=True)
+            (Path(args.drain) / "status").write_text("skip-nothing-drivable\n")
+            print("\nDRAIN: nothing drivable")
+            return 0
     elif not files:
         print("  no production file in scope; nothing to mutate")
         print("\nMUTATION TABLE PASSED (empty scope)")
         return 0
 
     rng = random.Random(args.seed)
-    if not args.pin_killed:
+    if not (args.pin_killed or args.drain):
         pool = []
         # A pull request draws only from the lines it wrote (`changed_lines`).
         touched = changed_lines(args.base) if args.scope == "changed" else None
@@ -2423,6 +2641,17 @@ def main() -> int:
                        capture_output=True)
         shutil.rmtree(work, ignore_errors=True)
 
+    if args.drain:
+        head = _rev(ROOT, "HEAD") or ""
+        entries, report, _ = pin_results(results, kill_runs, baseline, sites,
+                                         head, how="--drain")
+        print("\n".join(report))
+        survivors = [triage_key(m) for m, _ in results
+                     if m["anchor"] not in entries]
+        status = write_drain(Path(args.drain), entries, head, survivors)
+        print(f"DRAIN: {status}, {len(entries)} anchor(s) to record, "
+              f"{len(survivors)} site(s) left for a human verdict")
+        return 0
     if args.pin_killed:
         entries, report, pin_rc = pin_results(results, kill_runs, baseline,
                                               sites, rbase)
