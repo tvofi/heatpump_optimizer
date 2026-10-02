@@ -182,10 +182,10 @@
     },
     "total": 66,
     "max_per_round": 27,
-    "detector": null,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P2: one fact, one owner': a registry keyed per fact on an AST shape (a decision-context read of a proxy key the canonical predicate's own body reads, a node pattern, a literal service domain, a bare call of a fenced cycle step on the cycle path, a literal running threshold on a power), its owner functions and reasoned dispositions; any other hit fails, as do OWNER-MISSING, DEAD-RULE, STALE-DISPOSITION and CENSUS-MISSING, with a planted sibling per fact",
     "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The P2 owners registry in tests/entities.py on the PR gate (round 9, F1.11; prototype handoff/r9-rca-p2@3938c8ea): eight facts (two_zone_enabled, wood_furnace_on, dhw_enabled, state_age, on_threshold_kw, entity_write_domain, fenced_cycle_step, plan_running_rule) each decided only by its owner, shown failing at baseline 1936d5ca on the round-9 instances, passing on the fixed tree and firing on a planted sibling per fact. Facts with no syntactic shape rest on censuses that assert their own reach, named in _P2_CENSUSES (the #1747 DHW-block census, the #1526 routing census). Covers the registered facts only: a new fact is a new entry, and stored-instant parses outside drift.stored_instant are measured and not registered (F1.11's body).",
+    "status": "barriered",
     "mechanism_note": "Stretched. Used as the catch-all for sibling-seam guard gaps; R8/R9 add entity default-enabled/availability (N-dup-entity, N-availability, R8 D8-s2-02), a try opened after the call it should fence (N-late-try) and a state-blind flow menu (N-menu), all 'guard present at a sibling, missing here'. R1-7 misfits flagged in reclassifications.md (coordinator size, name sort).",
     "aliases": [
       "N-availability",
@@ -210,7 +210,10 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "non_round_instances": [
+      "#1747 the DHW mode block passed to the first DHW build and missing at its sibling, the co-optimisation replan (R9-RCA-1747; fixed by R9-EG-B8, #1786)"
+    ]
   },
   "P3": {
     "kind": "production",
@@ -479,10 +482,10 @@
     },
     "total": 22,
     "max_per_round": 5,
-    "detector": null,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P6: every read has a producer': seven arms (K payload keys, B built entity ids, G getattr/hasattr probes, E flow error codes, P offered modes, F pre-fill preview fields, S solve seeds), each taking its universe from production, asserting it non-empty, with a planted defect per arm",
     "detector_idea": "Static cross-reference of coordinator.data/hass.data reads against the keys _build_data_dict writes",
-    "barrier": null,
-    "status": "open",
+    "barrier": "The P6 section in tests/entities.py on the PR gate (round 9, F1.11; prototype handoff/r9-rca-p6@aa2026b7): every read across the seven arms has a producer, exemption tables refuse an entry that matches nothing, and arm S solves the flow's own install twice (hot water on) so a seed left at its constructor default is named. Covers reads the seven universes reach: a read of a new kind of producer is a new arm.",
+    "status": "barriered",
     "mechanism_note": "Stretched. R1-7 already held swallowed failures (R1 D10-07, R2 D10-04) that read no missing key; R9 N-debug-swallow (persistent failure logged at DEBUG) re-mapped here; R8 D7-s1-03 is a refusal path that writes no reason, read back as the default 'ok'.",
     "aliases": [
       "N-debug-swallow",
