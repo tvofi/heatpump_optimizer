@@ -14,7 +14,7 @@ Lands the report-only architecture score under `tools/audit/archscore/`. `score.
 
 ## Head
 
-f6b39ccd931a190372a4d4a46590a115aee9cc01
+5df8cff6e3037ccd4398df36e25d7b4a561d5ec3
 
 ## Approval
 
@@ -46,6 +46,8 @@ No line of `custom_components/` changes, so `python3 tests/mutation_table.py --s
 **Round 2.** B2 (C3 evaded by `pass`): `counters.is_noop` now covers `pass`, constant, name, attribute and pure-call expression statements and an `if` on a constant whose branches are all such. The reviewer's game (`pass` in the uncharged functions) is `rt_04c`; `rt_04b` is `pass` everywhere, `rt_04d` `...`, `rt_04e` `None`, `rt_04f` a string (structure's docstring filter already drops it, so it is a control), `rt_04g` `if False: pass`. With `ARCHSCORE_ABLATE=C3`, `rt_04c`, `rt_04d`, `rt_04e` and `rt_04g` each read IMPROVES, admissible, delta-S +14.15 (the reviewer's figure); with the widening they read NULL, and `rt_04b` WORSENS through `coord_footprint` as before. No pinned verdict moved from the round-2 re-run; the six new cases are recorded.
 
 B1 (closure): the smoke path now loads `tests/structure.py` in-process, so the recorded closure of `tests/arch_score.py` lists it. A scratch commit changing only `DUP_WINDOW_STATEMENTS` in `tests/structure.py` (the reviewer's mutation) now selects `tests/arch_score.py` (`MODE: SCOPED`, 8 scripts, `scope.run` names it); before it did not.
+
+**Round 3, tvofi's ruling (2026-10-02, option B now, A later).** The reviewer's `assert True`, `_ = None` and `(_ := 0)` interleaved in uncharged clones read IMPROVES, admissible, +14.15: C3 enumerates the spellings it drops, so the class is open and a further widening would lose to the next spelling. The list is not extended. `ABOUT.md` has a "Known limit" section (interleaved effect-free statements can split a clone and score as a dedupe; a reviewer reads a duplication-driven IMPROVES against the diff); the class fix is owed to R9-EG-A2, whose brief the orchestrator is writing. The three spellings are `rt_04h`, `rt_04i`, `rt_04j`, labelled KNOWN-OPEN and pinned at IMPROVES, so the limit is measured and a class fix flips them (`tests/arch_score.py` then asks for the re-record). "No red-team attempt reads IMPROVES" holds for the attempts labelled GAME, not for these three. No other pinned verdict moved.
 
 Three counters are not alone what stops their game, and the body says so rather than credit them. `rt_13` (a hub handle behind a computed-name accessor) reads WORSENS with C2b off too, through a coordinator footprint rise (`coord_footprint`), so C2b is a second stop that would hold only if the accessor cost no logic statement. `rt_05` (the mixin move of every method) reads WORSENS with C4 off, through `public_unused`. `rt_06` (public `raw_<x>` properties) reads WORSENS with C5 off, through `dead_members`; C5 is what takes its delta-S from positive to not. `rt_09` (delete the away setback) reads WORSENS through `dead_members` +1 and nothing else: no structural counter exists, only the behaviour suite sees a deleted feature.
 
