@@ -1,8 +1,0 @@
-== D14-s2-03 CLASS_GUESS grammar
-RESULT divergent=15 unregistered=0 dead=0 refused=0 seconds=0.2
-== D13-s1-01 merge-commit shape only
-RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=0.3
-== D11-s1-72 _GOV_FILES one file
-RESULT divergent=4 unregistered=0 dead=0 refused=0 seconds=0.4
-== D7-s3-02 reader gone: dead = []
-RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=0.3

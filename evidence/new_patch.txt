@@ -1,0 +1,1033 @@
+diff --git a/.claude/workflows/agreement.mjs b/.claude/workflows/agreement.mjs
+new file mode 100644
+--- /dev/null
++++ b/.claude/workflows/agreement.mjs
+@@ -0,0 +1,369 @@
++// agreement.mjs -- two readers of one governance concept must give one answer
++// (round-9 class I4 barrier, prototype from the root-cause seat;
++// handoff/r9-rca-i4).
++//
++// THE SHAPE IT REFUSES. A governance concept -- which globs a rule's `paths:`
++// declares, which ids a finding's class_guess may carry, which pull request a
++// first-parent subject names -- gets a second reader written beside the first,
++// usually across a file or a language boundary, and nothing compares them. The
++// two agree on the cases their authors tried and part on the rest. `#615` wrote
++// both frontmatter parsers in one diff; `#1538` moved dead_top_level_symbols off
++// bare names and left dead_methods, "the same screen", on them. tests/README.md
++// forbids a TEST re-implementing production (closure.py no-copies enforces it);
++// nothing forbids one governance tool re-implementing another.
++//
++// TWO ARMS.
++//  1. PAIRS. Each registered concept names its readers and a corpus -- the live
++//     tree's own instances plus the boundary cases a finding has shown. Every
++//     reader answers every corpus item; any disagreement is refused. A reader
++//     that throws, or a corpus that is empty, is a refusal, never a pass.
++//  2. DISCOVERY (the bounded direction, decision 0003). A regex source that
++//     appears in two or more governance code files is a grammar written twice.
++//     Each such grammar must be named in SHARED_GRAMMARS with a disposition --
++//     a PAIR above that drives it, the one module that now holds it, or why it
++//     is not a concept -- and an entry whose grammar no longer spans two files
++//     is DEAD. A second reader written tomorrow with a copied grammar is found
++//     without anyone listing it; one with a DIFFERENT grammar is not, which is
++//     why the pairs arm exists and why a fix that finds a sibling registers it.
++//
++//   node .claude/workflows/agreement.mjs [--only pairs|discovery]
++// exit 0: no disagreement, no unregistered or dead grammar, no refusal.
++
++import fs from 'node:fs'
++import path from 'node:path'
++import { fileURLToPath, pathToFileURL } from 'node:url'
++import { execFileSync } from 'node:child_process'
++
++const HERE = path.dirname(fileURLToPath(import.meta.url))
++const ROOT = path.resolve(HERE, '..', '..')
++const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
++const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
++
++// A definition that lives in a script with no exports is read from its source
++// text, as policy_lint.mjs reads web-fix-wave.js's VERDICT_RE: the reader
++// compared is the one that runs, never a copy made here.
++function constFromSource(rel, name) {
++  const m = new RegExp(`\\nconst ${name} = (/(?:\\\\.|[^/\\n])+/[a-z]*)\\n`).exec(rd(rel))
++  if (!m) throw new Error(`${rel}: no top-level const ${name} regex`)
++  return new Function(`return ${m[1]}`)()
++}
++const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href)
++
++
++const CC = 'custom_components/heatpump_optimizer'
++function entityLeaves(rel) {
++  const out = {}
++  const walk = (o, pre) => { for (const [k, v] of Object.entries(o)) (v && typeof v === 'object') ? walk(v, `${pre}${k}.`) : (out[`${pre}${k}`] = v) }
++  walk(JSON.parse(rd(`${CC}/${rel}`)).entity ?? {}, '')
++  if (!Object.keys(out).length) throw new Error(`${rel}: no entity section`)
++  return out
++}
++
++// The Python-side readers run in agreement_py.py (its own step, under `python3 -I`
++// after the job's restore from the base); this reads the JSON it wrote.
++let PY = null
++function py(key) {
++  if (!PY) {
++    const i = process.argv.indexOf('--py-json')
++    if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I .claude/workflows/agreement_py.py --run`')
++    PY = JSON.parse(fs.readFileSync(process.argv[i + 1], 'utf8'))
++  }
++  if (!PY[key]) throw new Error(`the Python readers' JSON has no ${key}`)
++  return PY[key]
++}
++
++// ---- the registered concepts ------------------------------------------------
++
++// The six legal `paths:` shapes round 9 drove (D11-s1-71), plus every live rule.
++const FM_SHAPES = {
++  quoted_list: '---\ndescription: d\npaths:\n  - "tests/**"\n  - "docs/**"\n---\nbody\n',
++  trailing_comment: '---\ndescription: d\npaths:\n  - "tests/**"   # the suite\n  - "custom_components/**"\n---\nbody\n',
++  list_under_other_key: '---\ndescription: d\npaths:\n  - "tests/**"\nsee_also:\n  - "docs/**"\n---\nbody\n',
++  single_quoted: "---\ndescription: d\npaths:\n  - 'tests/**'\n---\nbody\n",
++  unquoted: '---\ndescription: d\npaths:\n  - tests/**\n---\nbody\n',
++  flow_style: '---\ndescription: d\npaths: ["tests/**"]\n---\nbody\n',
++  tab_indent: '---\ndescription: d\npaths:\n\t- "tests/**"\n---\nbody\n',
++}
++
++const PAIRS = [
++  {
++    concept: 'rule-frontmatter-paths',
++    what: 'the globs a .claude/rules/*.md `paths:` key declares (decides when the harness loads the rule)',
++    async corpus() {
++      const live = git(['ls-files', '.claude/rules']).split('\n').filter((f) => /\.md$/.test(f)).map((f) => [f, rd(f)])
++      return [...live, ...Object.entries(FM_SHAPES).map(([k, t]) => [`shape:${k}`, t])]
++    },
++    async readers() {
++      const pl = await load('.claude/workflows/policy_lint.mjs')
++      const { parse } = await load('.claude/workflows/rules_sync.mjs')
++      const tmpDir = fs.mkdtempSync(path.join(ROOT, '.agreement-fm-'))
++      return {
++        'policy_lint.mjs rulePaths': (text, name) => {
++          const rel = path.relative(ROOT, path.join(tmpDir, name.replace(/[/:]/g, '_')))
++          fs.writeFileSync(path.join(ROOT, rel), text)
++          return pl.rulePaths(rel) || []
++        },
++        'rules_sync.mjs parse': (text, name) => parse(text, name).paths,
++        cleanup: () => fs.rmSync(tmpDir, { recursive: true, force: true }),
++      }
++    },
++  },
++  {
++    concept: 'finding-class-id',
++    what: 'the class ids a finding\'s class_guess may carry (the ledger, the schema, the intake)',
++    async corpus() {
++      const ledger = Object.keys(JSON.parse(rd('tools/audit/bugclasses.json'))).filter((k) => !k.startsWith('_'))
++      const probes = ['new', 'P99', 'I99', 'P0', 'p1', 'P1x', 'xP1', 'X1', '']
++      return [...new Set([...ledger, ...probes])].map((id) => [id, id])
++    },
++    async readers() {
++      const ledger = new Set([...Object.keys(JSON.parse(rd('tools/audit/bugclasses.json'))).filter((k) => !k.startsWith('_')), 'new'])
++      const schema = JSON.parse(rd('tools/audit/finding.schema.json'))
++      const enumOf = (o) => (o && typeof o === 'object' ? (o.class_guess && o.class_guess.enum) || Object.values(o).map(enumOf).find(Boolean) : null)
++      const schemaEnum = new Set(enumOf(schema) || [])
++      if (!schemaEnum.size) throw new Error('finding.schema.json: no class_guess enum found')
++      const intake = constFromSource('.claude/workflows/audit-find.js', 'CLASS_GUESS')
++      return {
++        'bugclasses.json ids + "new"': (id) => ledger.has(id),
++        'finding.schema.json enum': (id) => schemaEnum.has(id),
++        'audit-find.js CLASS_GUESS (intake)': (id) => intake.test(id),
++      }
++    },
++  },
++  {
++    concept: 'merge-subject-pr',
++    what: 'the pull request a first-parent subject on main names',
++    async corpus() {
++      return Object.keys(py('merge')).map((s) => [s, s])
++    },
++    // A live item that is a merge commit and that EVERY reader answers null for
++    // is refused (merge_shape_guard, RCA-BULK-3 section 5, #1041): agreement
++    // cannot see a misreading all readers share, and a count of zero PRs read
++    // from a non-empty window is the alarm. Stamps are direct commits, never merges.
++    mustAnswer: (s) => /^Merge pull request #\d+ from /.test(s),
++    async readers() {
++      const pl = await load('.claude/workflows/policy_lint.mjs')
++      const m = py('merge')
++      return {
++        'stamp.py pr_from_subject': (s) => m[s].stamp,
++        'delivery_status.py subject_number': (s) => m[s].delivery_status,
++        'policy_lint.mjs resolvePrFromCommit (gap recovery)': (s) => (pl.resolvePrFromCommit(s, []) || {}).pr || null,
++        'policy_lint.mjs enumerateMerges (offline subject mode)': Object.assign(
++          (s) => (pl.enumerateMerges([{ sha: 'x', subject: s }], null).prs[0] || {}).pr || null,
++          // ACCEPTED ASYMMETRY (F11.1 forward-carry): the
++          // offline mode reads the squash `(#N)` shape only. Its zero is the
++          // could-not-enumerate signal (`enumSkipLine`); widening it would change
++          // what that zero means. The merge-commit shape must therefore answer
++          // null HERE: an answer means the asymmetry is stale and is refused.
++          { narrow: /^Merge pull request #\d+ from /, why: 'offline subject mode reads the squash shape only (enumSkipLine)' }),
++      }
++    },
++  },
++  {
++    concept: 'dead-member-liveness',
++    what: 'whether a production class is live: structure.py dead_top_level_symbols (bound_references) against dead_members (reachability over methods), D7-s3-02',
++    async corpus() {
++      return Object.keys(py('structure')).sort().map((i) => [i, i])
++    },
++    async readers() {
++      const rows = py('structure')
++      return {
++        'structure.py bound_references (top-level)': (i) => rows[i].bound,
++        'structure.py dead_members (methods)': (i) => rows[i].live_methods,
++      }
++    },
++  },
++  {
++    concept: 'governance-workflow-jobs',
++    what: 'which workflow jobs are governance: tests/entities.py\'s pinned file list against governance_cost.py\'s GOV derivation, D11-s1-72',
++    async corpus() {
++      return py('governance_jobs').jobs.map((j) => [j, j])
++    },
++    async readers() {
++      const out = py('governance_jobs')
++      const gov = new Set(out.gov); const pin = new Set(out.pin)
++      return { 'governance_cost.py GOV': (j) => gov.has(j), "tests/entities.py _GOV_FILES (+ the 'briefs' null control)": (j) => pin.has(j) }
++    },
++  },
++  {
++    concept: 'entity-names',
++    what: "the display name of each entity key: strings.json (what tests/entities.py's entity-name resolver reads for the contiguity check) against translations/en.json (what the archscore family_splits enumerator reads); hassfest never compares the two files' values. R9-F7.5 carry-in, route A",
++    async corpus() {
++      const keys = new Set()
++      for (const f of ['strings.json', 'translations/en.json']) for (const k of Object.keys(entityLeaves(f))) keys.add(k)
++      return [...keys].sort().map((k) => [k, k])
++    },
++    async readers() {
++      const a = entityLeaves('strings.json'); const b = entityLeaves('translations/en.json')
++      return { 'strings.json entity section': (k) => a[k] ?? null, 'translations/en.json entity section': (k) => b[k] ?? null }
++    },
++  },
++]
++
++// ---- discovery ---------------------------------------------------------------
++
++// Normalized regex source -> disposition. `pair:<concept>` (driven above),
++// `module:<path>` (one module holds it; the other files import it), or
++// `not-a-concept:<why>`. Seeded by the root-cause seat with the round-9
++// instances only; the barrier pull request classifies every entry the
++// discovery arm prints.
++const SHARED_GRAMMARS = {
++  "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
++  "wave-.*-groups\\.json": "identical:three directory filters over the wave rosters, one listing rule",
++  "const VERDICT_CLASSES = \\[([^\\]]*)\\]": "identical:the wave script's verdict-class list extractor, read in three tools",
++  "const VERDICT_RE = new RegExp\\(\\n([\\s\\S]*?)\\n\\)": "identical:the wave script's verdict-regex extractor, read in two tools",
++  "'([a-z][a-z0-9-]*)'": "identical:the word extractor applied to the VERDICT_CLASSES array text",
++  "\\/rules\\/branches\\/main": "not-a-concept:an API path suffix; counts.mjs strips it, field_coverage.mjs matches whole paths",
++  "rulesets": "not-a-concept:the GitHub endpoint word, no grammar of ours",
++  "(?:\\||-\\[#\\d+\\])": "identical:the Delivery-status row anchor, counts.mjs and policy_lint.mjs",
++  "[.+^${}()|[\\]\\\\]": "not-a-concept:the standard regexp-escape idiom",
++  "\\.{0,2}\\/?[\\w.@-]+(\\/[\\w.@-]+)+\\.(sh|py|mjs|js)": "identical:figure_census and figure_lint's script-path word grammar (one census, one lint)",
++  "[A-Za-z_][A-Za-z0-9_]*=": "identical:figure_census and figure_lint's env-assignment word",
++  "##\\s+(.*?)": "identical:the h2 heading grammar, policy_lint.mjs and the record-predicate sweep",
++  "\\|[\\s|:-]+\\|": "identical:the markdown table separator row, three readers",
++  "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
++  "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
++  "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
++  "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
++  "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
++  "\\*\\*(\\d+)\\xb7([^*]+?)\\.?\\*\\*": "identical:the README flow-diagram bold-step grammar, doc_claims.py and entities.py",
++  "[^a-z0-9 ]": "identical:the README table-label normaliser, doc_claims.py and entities.py",
++  "const CARD_VERSION = \"(\\d+\\.\\d+\\.\\d+)\";": "identical:the card version constant, doc_claims.py and stamp.py",
++  "[^a-z0-9]+": "not-a-concept:two unrelated slug normalisers (entities.py prose, gen_device_fixtures.py ids)",
++  "\\{(\\w+)\\}": "not-a-concept:the Python format-placeholder token",
++  "[^:\\s]+:\\d+ [A-Z_]+": "identical:the mutation ledger line key, mutation_table.py and ledger_merge.py",
++  "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
++  '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
++  'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
++}
++
++function governanceCode() {
++  return git(['ls-files']).split('\n').filter((f) => /\.(py|mjs|js|cjs)$/.test(f)
++    && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
++    && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f))
++}
++// A regex literal can start only where an operand can: after one of these
++// punctuators or `return`. Anything else between two slashes is division or
++// text in a string, which the round-9 seed run showed matching otherwise.
++const JS_RE = /(?:^|[(,=:[!&|?{};>]|\breturn)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[*])(?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])*)\/[gimsuy]*/gm
++const PY_RE = /re\.(?:compile|match|search|fullmatch|findall|finditer|sub)\(\s*r?(["'])((?:\\.|(?!\1).)+)\1/g
++const norm = (r) => r.replace(/^\^/, '').replace(/\$$/, '').replaceAll('\\s*', '').replaceAll('[ \\t]*', '')
++
++function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept)) {
++  const occ = new Map()
++  for (const f of files) {
++    const s = read(f)
++    const add = (r) => { if (r.length < 8) return; const k = norm(r); if (!occ.has(k)) occ.set(k, new Set()); occ.get(k).add(f) }
++    if (f.endsWith('.py')) for (const m of s.matchAll(PY_RE)) add(m[2])
++    else for (const m of s.matchAll(JS_RE)) if (!/^\s/.test(m[1])) add(m[1])
++  }
++  if (!files.length || !occ.size) { report.refused.push('discovery: enumerated no governance code or no grammar'); return }
++  const shared = [...occ].filter(([k, fs_]) => fs_.size >= 2 && k.length >= 8)
++  const pairs = new Set(pairNames)
++  for (const [k, fs_] of shared) {
++    const d = registry[k]
++    if (!d) { report.unregistered.push(`${JSON.stringify(k)} in ${[...fs_].sort().join(', ')}`); continue }
++    if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
++    if (d.startsWith('pair:') && !pairs.has(d.slice(5))) report.refused.push(`discovery ${JSON.stringify(k)}: names pair ${d.slice(5)}, which is not registered`)
++  }
++  for (const k of Object.keys(registry)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
++  report.note.push(`discovery: ${files.length} governance code files, ${occ.size} distinct grammars, ${shared.length} shared by two or more files`)
++}
++
++async function pairsArm(report, pairs = PAIRS) {
++  for (const p of pairs) {
++    let corpus; let readers
++    try { corpus = await p.corpus(); readers = await p.readers() } catch (e) { report.refused.push(`${p.concept}: ${String(e.message).split('\n')[0]}`); continue }
++    const names = Object.keys(readers).filter((k) => k !== 'cleanup')
++    if (!corpus.length || names.length < 2) { report.refused.push(`${p.concept}: ${corpus.length} corpus item(s), ${names.length} reader(s)`); readers.cleanup?.(); continue }
++    let diverge = 0
++    try {
++      for (const [name, item] of corpus) {
++        const ans = {}
++        const comparing = []
++        for (const n of names) {
++          const a = readers[n](item, name)
++          const nar = readers[n].narrow
++          if (nar && nar.test(String(item))) {
++            // A declared narrow reader must stay narrow on its shape; an answer there is a stale asymmetry.
++            if (a != null) { diverge++; report.divergent.push(`${p.concept} ${JSON.stringify(name)}: ${n} was declared blind to this shape (${readers[n].why}) and now answers ${JSON.stringify(a)}: drop its \`narrow\``) }
++            continue
++          }
++          ans[n] = JSON.stringify(a)
++          comparing.push(n)
++        }
++        if (p.mustAnswer && p.mustAnswer(item) && comparing.every((n) => ans[n] === 'null')) {
++          diverge++
++          report.divergent.push(`${p.concept} ${JSON.stringify(name)}: every reader answers null for a live item that must name one (merge-shape guard)`)
++          continue
++        }
++        if (new Set(comparing.map((n) => ans[n])).size === 1) continue
++        diverge++
++        report.divergent.push(`${p.concept} ${JSON.stringify(name.length > 60 ? name.slice(0, 57) + '...' : name)}: ${comparing.map((n) => `${n}=${ans[n]}`).join('  ')}`)
++      }
++    } catch (e) { report.refused.push(`${p.concept}: a reader threw: ${String(e.message).split('\n')[0]}`) } finally { readers.cleanup?.() }
++    report.note.push(`pair ${p.concept}: ${names.length} readers, ${corpus.length} items, ${diverge} divergent`)
++  }
++}
++
++// --self-test: the instrument refuses each shape it exists to refuse, driven on
++// synthetic readers and a synthetic tree, so a comparator that stopped comparing
++// reads red here (fixer.md step 2: a check is shown failing on its defect).
++async function selfTest() {
++  const probes = []
++  const run = async (name, pair, want) => {
++    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
++    await pairsArm(r, [pair])
++    probes.push([name, want(r)])
++  }
++  const mk = (readers, corpus, extra = {}) => ({ concept: 'synthetic', corpus: async () => corpus, readers: async () => readers, ...extra })
++  const items = [['a', 'a'], ['b', 'b']]
++  await run('agreeing readers pass', mk({ x: (i) => i, y: (i) => i }, items), (r) => !r.divergent.length && !r.refused.length)
++  await run('a disagreeing reader is divergent', mk({ x: (i) => i, y: (i) => (i === 'b' ? 'z' : i) }, items), (r) => r.divergent.length === 1)
++  await run('a reader that throws is refused, never a pass', mk({ x: (i) => i, y: () => { throw new Error('boom') } }, items), (r) => r.refused.length === 1)
++  await run('an empty corpus is refused', mk({ x: (i) => i, y: (i) => i }, []), (r) => r.refused.length === 1)
++  await run('one reader is refused', mk({ x: (i) => i }, items), (r) => r.refused.length === 1)
++  const nar = Object.assign((i) => (i === 'a' ? 'A' : i), { narrow: /^a$/, why: 'synthetic' })
++  await run('a stale narrow declaration is divergent', mk({ x: (i) => i, y: nar }, items), (r) => r.divergent.length === 1)
++  await run('every reader null on a must-answer item is refused (merge-shape guard)', mk({ x: () => null, y: () => null }, items, { mustAnswer: (i) => i === 'a' }), (r) => r.divergent.length === 1)
++  await run('null on an item that need not answer passes', mk({ x: () => null, y: () => null }, items), (r) => !r.divergent.length)
++  const disc = (files, registry) => {
++    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
++    discovery(r, Object.keys(files), (f) => files[f], registry, [])
++    return r
++  }
++  const g = 'const A = /^some-shared-grammar-(\\d+)-x$/\n'
++  probes.push(['a grammar in two files and unregistered is found', disc({ 'a.mjs': g, 'b.mjs': g }, {}).unregistered.length === 1])
++  probes.push(['a registered grammar passes', !disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).unregistered.length])
++  probes.push(['a grammar in one file is not shared', !disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, {}).unregistered.length])
++  probes.push(['an entry that no longer spans two files is DEAD', disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).dead.length === 1])
++  probes.push(['a disposition of no known kind is refused', disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'whatever' }).refused.length === 1])
++  let bad = 0
++  for (const [name, ok] of probes) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad++ }
++  console.log(`SELF-TEST ${probes.length - bad} of ${probes.length} probes held`)
++  process.exit(bad ? 1 : 0)
++}
++
++async function main() {
++  const argv = process.argv.slice(2)
++  const pj = argv.indexOf('--py-json')
++  if (pj >= 0) argv.splice(pj, 2)
++  if (argv[0] === '--self-test') return selfTest()
++  const only = argv[0] === '--only' ? argv[1] : null
++  if (argv.length && !only) { console.error('usage: agreement.mjs [--only pairs|discovery | --self-test]'); process.exit(2) }
++  const t0 = Date.now()
++  const report = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
++  if (!only || only === 'pairs') await pairsArm(report)
++  if (!only || only === 'discovery') discovery(report)
++  for (const x of report.note) console.log(`  ${x}`)
++  for (const x of report.divergent) console.log(`  DIVERGENT     ${x}`)
++  for (const x of report.unregistered) console.log(`  UNREGISTERED  ${x}`)
++  for (const x of report.dead) console.log(`  DEAD          ${x}`)
++  for (const x of report.refused) console.log(`  REFUSED       ${x}`)
++  const bad = report.divergent.length + report.unregistered.length + report.dead.length + report.refused.length
++  console.log(`RESULT divergent=${report.divergent.length} unregistered=${report.unregistered.length} dead=${report.dead.length} refused=${report.refused.length} seconds=${((Date.now() - t0) / 1000).toFixed(1)}`)
++  console.log(bad ? 'AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered' : 'AGREEMENT ok')
++  process.exit(bad ? 1 : 0)
++}
++
++main()
+diff --git a/.claude/workflows/agreement_py.py b/.claude/workflows/agreement_py.py
+new file mode 100644
+--- /dev/null
++++ b/.claude/workflows/agreement_py.py
+@@ -0,0 +1,129 @@
++"""The Python-side readers of agreement.mjs, run as their own step.
++
++    python3 -I .claude/workflows/agreement_py.py --out FILE   # writes the JSON
++    python3 -I .claude/workflows/agreement_py.py --run        # writes it, then runs agreement.mjs on it
++
++agreement.mjs compares readers of one governance concept (class I4). The
++readers written in Python load production and test code (structure.py,
++stamp.py, delivery_status.py, governance_cost.py). They run here, under
++`python3 -I` after the job's restore from the base, so a pull request cannot
++change a reader it is graded by (codeowners_gap.py reads the interpreter off
++the line that starts the process); agreement.mjs only reads the JSON this
++writes and never names those files.
++"""
++import ast
++import importlib.util
++import json
++import os
++import re
++import subprocess
++import sys
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++os.chdir(ROOT)
++sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tools/release"), str(ROOT / "tools/audit/round4/D11")]
++
++
++def git(*args):
++    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
++
++
++def merge_subjects():
++    since = git("describe", "--tags", "--abbrev=0", "--match", "v6.5.0").strip() or "v6.5.0"
++    live = [s for s in git("log", "--first-parent", "--format=%s", f"{since}..HEAD").split("\n") if s]
++    shapes = ["Merge pull request #1052 from tvofi/fix/d11-pins", "fix: a squash (#1234)",
++              "v6.7.1: stamp", "ci: re-record closures"]
++    return list(dict.fromkeys(live + shapes))
++
++
++def merge():
++    import delivery_status as d
++    import stamp
++    out = {}
++    for s in merge_subjects():
++        n = d.subject_number(s)
++        out[s] = {"stamp": stamp.pr_from_subject(s), "delivery_status": str(n) if n is not None else None}
++    return out
++
++
++def structure_rows():
++    import structure
++    # Boundary items the live tree may not hold (D7-s3-02): a class nothing
++    # references whose methods only call each other, and one a live function
++    # reaches. Both readers must call the first dead and the second live, so a
++    # reader that stops finding dead members (`dead = []`) disagrees here.
++    probe = (
++        "class ProbeOrphanKind:\n"
++        "    def probe_orphan_run(self):\n        return self.probe_orphan_help()\n"
++        "    def probe_orphan_help(self):\n        return 1\n"
++        "class ProbeUsedKind:\n"
++        "    def probe_used_go(self):\n        return 1\n"
++        "def probe_entry():\n    return ProbeUsedKind().probe_used_go()\n"
++    )
++    probe_path = structure.PACKAGE_DIR / "zz_agreement_probe.py"
++    trees = structure.module_trees() + [(probe_path, ast.parse(probe))]
++    pkg = structure.Package(trees)
++    dead, _ = structure.dead_members(pkg)
++    dead_set = {(r, c, m) for r, c, m, _ in dead}
++    bound = structure.bound_references(trees)
++    rows = {}
++    for (mod, cname), cls in pkg.classes.items():
++        rel = pkg.mods[mod][0]
++        ms = [i.name for i in cls.body if isinstance(i, (ast.FunctionDef, ast.AsyncFunctionDef))
++              and not (i.name.startswith("__") and i.name.endswith("__"))]
++        if not ms:
++            continue
++        flow = any(getattr(b, "id", getattr(b, "attr", "")).endswith(("ConfigFlow", "OptionsFlow")) for b in cls.bases)
++        rows[f"{rel}::{cname}"] = {
++            "bound": ((rel, cname) in bound) or cname in structure.HA_CONVENTION_NAMES or flow,
++            "live_methods": any((rel, cname, m) not in dead_set for m in ms)}
++    if not rows:
++        raise SystemExit("no production class measured")
++    return rows
++
++
++def job_ids(text):
++    i = text.rfind("\njobs:\n")
++    return set(re.findall(r"^  ([A-Za-z][\w-]*):", text[i:], re.M)) if i >= 0 else set()
++
++
++def governance_jobs():
++    spec = importlib.util.spec_from_file_location("gc", "tools/audit/round4/D11/governance_cost.py")
++    gc = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(gc)
++    src = Path("tests/entities.py").read_text()
++    m = re.search(r"_GOV_FILES = \[(.*?)\]", src, re.S)
++    files = re.findall(r'"(\.github/[^"]+\.yml)"', m.group(1)) if m else []
++    w = re.search(r'^_GOV_WF = "([^"]+)"', src, re.M)
++    if m and "_GOV_WF" in m.group(1) and w:
++        files.append(w.group(1))
++    if not files:
++        raise SystemExit("entities.py: no _GOV_FILES list")
++    pin = {"briefs"}
++    for f in files:
++        pin |= job_ids(Path(f).read_text())
++    jobs = set()
++    for f in sorted(Path(".github/workflows").glob("*.y*ml")):
++        jobs |= job_ids(f.read_text())
++    return {"jobs": sorted(jobs), "gov": sorted(gc.GOV), "pin": sorted(pin)}
++
++
++def main(argv):
++    data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs()}
++    if argv[:1] == ["--out"] and len(argv) == 2:
++        Path(argv[1]).write_text(json.dumps(data))
++        return 0
++    if argv == ["--run"]:
++        out = ROOT / ".agreement-py.json"
++        out.write_text(json.dumps(data))
++        try:
++            return subprocess.run(["node", ".claude/workflows/agreement.mjs", "--py-json", str(out)], cwd=ROOT).returncode
++        finally:
++            out.unlink(missing_ok=True)
++    print(__doc__)
++    return 2
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
+diff --git a/.claude/workflows/audit-find.js b/.claude/workflows/audit-find.js
+--- a/.claude/workflows/audit-find.js
++++ b/.claude/workflows/audit-find.js
+@@ -31,6 +31,8 @@ const rotation = args?.rotation
+ const scopes = args?.scopes
+ const box = args?.box
+ const from = args?.from
++const defer = Array.isArray(args?.defer) ? args.defer : []
++const judgeFlags = typeof args?.judge_flags === 'string' ? args.judge_flags : ''
+ if (!Number.isInteger(round) || !baseline || !repo) throw new Error('args.round (integer), args.baseline (sha) and args.repo (absolute path of a checkout) are required')
+ // The ledger and the scopes are passed, not read: this runtime has no
+ // filesystem. The prepare agent below compares both against the committed
+@@ -193,11 +195,11 @@ const reportSchema = {
+ phase('Prepare the baseline')
+ const prep = await agent(
+   `Prepare the round ${round} audit baseline from the repository at ${repo} (do not modify that checkout)${box ? ` for box ${box} (this container)` : ''}.
+-1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them. Create tools/audit/round${round}/ in the export.
+-2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way.
+-3. Warm the shared drift cache once: from ${repo}, run \`python tests/env_drift.py --cache-key ${baseline} --all\` and, if the cache misses, capture the baseline with \`--capture\` as tests/README.md describes so later runs hit.
+-4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path under ~/.cache/pw-browsers in tools/audit/round${round}/BASELINE.md inside the export.
+-5. Read tools/audit/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension step lists are exactly these: ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, rotation[d]?.steps ?? null])))}, and its rounds maps equal the ones passed to this run; otherwise false, with the difference in rotation_note.
++1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so no earlier round's evidence the gate does not read stays in the export (the strip is that script's own, never a second list). Create tools/audit/round${round}/ in the export.
++2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way and strip it the same way.
++3. Warm the shared drift cache once: from ${repo}, run \`DRIFT_WARM_CACHE=1 PYTHONPATH=tests/hastub python3 tests/env_drift.py --all ${baseline}\` (the cache is warmed by a run with that variable set; \`--cache-key [ref] [--all]\` only prints the key, and there is no warm mode behind it).
++4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in tools/audit/round${round}/BASELINE.md inside the export.
++5. Read tools/audit/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension {steps, rounds} are exactly these (compare parsed JSON): ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, { steps: rotation[d]?.steps ?? null, rounds: rotation[d]?.rounds ?? null }])))}; otherwise false, with the difference in rotation_note.
+ 6. Read tools/audit/scopes.json in ${repo}. scopes_ok is true only if it parses to exactly this object (compare parsed JSON, not bytes): ${JSON.stringify(scopes)}; otherwise false, with the difference in scopes_note.
+ 7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
+ Return JSON {exportDir, worktrees: {<seat id>: <absolute path>} for the seats of step 2, python, node, rotation_ok, rotation_note, scopes_ok, scopes_note, scopes_rc, scopes_out}.`,
+@@ -260,7 +262,8 @@ if (from) {
+   if (gathered.absent_boxes?.length) log(`boxes with no evidence branch: ${gathered.absent_boxes.join(', ')}`)
+ }
+ 
+-const missing = SEATS.map((s) => s.id).filter((id) => !reports[id])
++const missing = SEATS.map((s) => s.id).filter((id) => !reports[id] && !defer.includes(id))
++if (defer.length) log(`deferred to the catch-up batch (tvofi 2026-09-26): ${defer.join(', ')}`)
+ if (missing.length) log(`seats not reported: ${missing.join(', ')}`)
+ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
+ 
+@@ -268,7 +271,9 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
+ // agent's: a finding must carry its own seat as scope, an id under that seat,
+ // and a class_guess the schema admits. A failure is rejected at intake with the
+ // reason, never repaired.
+-const CLASS_GUESS = /^([PI][0-9]+|new)$/
++// The ledger's ids (tools/audit/bugclasses.json) spelled out: agreement.mjs's
++// finding-class-id pair refuses this list the moment it parts from the ledger.
++const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
+ const rejected = []
+ const accepted = []
+ for (const id of REPORTED) {
+@@ -352,7 +357,7 @@ Return JSON {quiet_path, d3_confirmed: [{mutant, finding_id, survived, killed_by
+ // which measures that two findings are one mechanism rather than reading it.
+ const provisional = accepted.filter((f) => f.provisional || ['cpu', 'wall'].includes(f.evidence?.cpu_or_wall)).map((f) => f.id)
+ const intake = await agent(
+-  `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.
++  `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.${defer.length ? ` This is BATCH 1 of round ${round}: seats ${defer.join(', ')} have not reported and are deferred to a catch-up batch by tvofi's decision of 2026-09-26; list them in the dimension status table as "deferred (catch-up)", and note that the catch-up batch adds their rows and updates their dimensions' rotation entries.` : ''}${judgeFlags ? ` Add a "Judge flags" subsection to the register section with exactly this text: ${JSON.stringify(judgeFlags)}.` : ''}
+ 1. Validate every accepted finding's JSON against tools/audit/finding.schema.json in ${repo} (pip install jsonschema into a venv if needed); one that fails is moved to rejected-at-intake with the validator's message. Already rejected by the driver, with reasons: ${JSON.stringify(rejected)}.
+ 2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${round}-register created from origin/main in a worktree of your own: the dimension status table (seats reported, findings accepted, rejected at intake), one table per dimension with id, scope, step, severity, class_guess, title, status=reported, provisional (${JSON.stringify(provisional)} are provisional until the judge's batch re-run), a leads table (raised by, owner seat, file, symbol, converted to / closed because), and ${quiet ? `D3's confirmations from ${quiet.quiet_path}: ${JSON.stringify(quiet.d3_confirmed)} -- a D3 finding is registered only if its mutant survived the full gate, otherwise it is rejected at intake with the killing checks` : 'no D3 confirmations (no D3 seat reported)'}.
+ 3. Copy tools/audit/round${round}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set tools/audit/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
+diff --git a/.claude/workflows/counts.mjs b/.claude/workflows/counts.mjs
+--- a/.claude/workflows/counts.mjs
++++ b/.claude/workflows/counts.mjs
+@@ -313,6 +313,10 @@ export const RULESET_TOKEN_HIDDEN = ['bypass_actors']
+ // The one skip line that omission prints; env-matrix's "nothing skipped" row
+ // accepts exactly this shape and no other skip.
+ export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ field `(bypass_actors)` is absent from the live read \(this token cannot see it\); it is UNCHECKED this run, not confirmed$/
++// The skip lines env-matrix's "nothing skipped" row refuses: every `skip` line
++// but the token-hidden one. Its own function so a pin can drive the row with a
++// second, non-token skip line (the #1721 review's surviving mutant).
++export const unexpectedSkips = (out) => String(out).split('\n').filter((l) => /^\s*skip\s/.test(l) && !TOKEN_HIDDEN_SKIP_RE.test(l))
+ export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
+ // A ruleset object as `path -> JSON value` leaves. Arrays are sorted by their
+ // members' JSON first, so an order GitHub does not guarantee is not a drift.
+diff --git a/.claude/workflows/field_coverage.mjs b/.claude/workflows/field_coverage.mjs
+--- a/.claude/workflows/field_coverage.mjs
++++ b/.claude/workflows/field_coverage.mjs
+@@ -36,7 +36,7 @@
+ // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
+ // So a new check is refused until someone says what it reads.
+ //
+-//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry]
++//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+ //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
+ //   node .claude/workflows/field_coverage.mjs --self-test
+ //
+@@ -47,7 +47,7 @@ import os from 'node:os'
+ import path from 'node:path'
+ import { fileURLToPath, pathToFileURL } from 'node:url'
+ import { execFileSync, spawn, spawnSync } from 'node:child_process'
+-import { RULESET_VOLATILE } from './counts.mjs'
++import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips } from './counts.mjs'
+ import { checkBudgets, sizes, policyBudgets, CHECKS } from './policy_lint.mjs'
+ 
+ const HERE = path.dirname(fileURLToPath(import.meta.url))
+@@ -326,6 +326,8 @@ const DECLARED = {
+   'check render': { none: PROSE },
+   'check stats': { none: 'a report; refuses nothing' },
+   'check sunset': { none: PROSE },
++  'pinned .claude/workflows/agreement.mjs': { none: 'the agreement lane; its corpora are live instances of registered concepts, not a check input field' },
++  'pinned .claude/workflows/agreement_py.py': { none: 'the lane\'s Python readers, run under -I; no input field of its own' },
+   'pinned .claude/workflows/brief_lint.mjs': { none: 'reads the wave rosters and carries; residual, no arm here' },
+   'pinned .claude/workflows/check-wave-script.mjs': { none: 'drives the wave script\'s branches, code not data' },
+   'pinned .claude/workflows/counts.mjs': { arm: 'ruleset' },
+@@ -338,6 +340,7 @@ const DECLARED = {
+   'pinned .claude/workflows/rules_sync.mjs': { none: 'byte-compares generated rules, no field to skip' },
+   'pinned .claude/workflows/vendor/markdown-it.min.js': { none: 'a vendored parser, not a check' },
+   'pinned tests/coverage_ratchet.py': { none: 'reads the coverage budget file; residual, no arm here' },
++  'pinned tests/structure.py': { none: 'the structural ratchet, graded by its own self-check; the census arm plants members in it' },
+   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
+   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
+   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
+@@ -369,6 +372,59 @@ function registryRun(report) {
+   for (const k of Object.keys(DECLARED)) if (!set.includes(k)) report.dead.push(`registry: DECLARED \`${k}\` is no longer in the derived set`)
+ }
+ 
++
++// ---- the census arm (class N-silent-zero, round 9) --------------------------
++// A count-printing instrument whose failure path prints the same number as its
++// success path reads a clean zero over a set it never enumerated (D7-s3-02,
++// D13-s1-01, D9-s2-71). Each registered census is run on a temporary copy of
++// the tree, once as it is and once with ONE planted member of the thing it
++// counts; its printed count must rise by exactly that one. A count that does not
++// move is BLIND, and an instrument whose count line cannot be read is REFUSED,
++// never a pass: the unreadable output is the silent zero itself.
++const CENSUSES = [
++  {
++    name: 'structure.py dead_methods',
++    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusPlant:\n    def _planted_dead_method(self):\n        return 1\n' },
++    read: (out) => /^  dead_methods = (\d+)\b/m.exec(out)?.[1],
++  },
++  {
++    name: 'structure.py dead_top_level_symbols',
++    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
++    read: (out) => /^RESULT dead_top_level_symbols=(\d+)\b/m.exec(out)?.[1],
++  },
++]
++// The copy of the tree an instrument runs on: only what structure.py reads.
++function censusTree() {
++  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'census-'))
++  fs.mkdirSync(path.join(dir, 'tests'), { recursive: true })
++  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
++  fs.mkdirSync(path.join(dir, 'custom_components'), { recursive: true })
++  fs.cpSync(path.join(ROOT, 'custom_components', 'heatpump_optimizer'), path.join(dir, 'custom_components', 'heatpump_optimizer'), { recursive: true, filter: (src) => !src.includes('__pycache__') })
++  return dir
++}
++function censusCount(c, dir) {
++  const r = spawnSync('python3', ['tests/structure.py'], { cwd: dir, encoding: 'utf8' })
++  const n = c.read(`${r.stdout}\n${r.stderr}`)
++  return n === undefined ? null : Number(n)
++}
++function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censusCount) {
++  let dir = null
++  try {
++    dir = tree()
++    for (const c of censuses) {
++      const base = count(c, dir)
++      if (base === null) { report.refused.push(`census ${c.name}: its count line cannot be read at the unplanted tree`); continue }
++      const f = path.join(dir, c.plant.file); const was = fs.readFileSync(f, 'utf8')
++      fs.writeFileSync(f, was + c.plant.add)
++      const planted = count(c, dir)
++      fs.writeFileSync(f, was)
++      if (planted === null) report.refused.push(`census ${c.name}: its count line cannot be read once a member is planted`)
++      else if (planted === base + 1) report.read.push(`census ${c.name}: ${base} -> ${planted} with one planted member`)
++      else report.blind.push(`census ${c.name}: one planted member moved the count ${base} -> ${planted}, not by one`)
++    }
++  } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
++}
++
+ // --self-test: each verdict this program can return, driven on a synthetic
+ // registration and a doctored DECLARED, so that emptying a refusal is seen.
+ async function selfTest() {
+@@ -392,6 +448,27 @@ async function selfTest() {
+   t('a load failure is REFUSED', r.refused.length === 1)
+   r = fresh(); await jsonRun({ ...reg({}), skipOnLoad: true, load: () => { throw new Error('down') } }, r)
+   t('the ruleset arm\'s load failure is a printed skip, not a refusal', !r.refused.length && !r.read.length)
++  // The #1721 hotfix review's two surviving mutants: (1) env-matrix's "nothing
++  // skipped" row accepting any skip once the token-hidden line is present; (2)
++  // the UNCHECKED pattern loosened past the one field a token cannot see.
++  const hiddenLine = (f) => `  skip  required-contexts  ruleset 23698884 field \`${f}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`
++  const other = '  skip  checkProvenance-pin  no origin/main to drive against'
++  t('env-matrix\'s nothing-skipped row passes the token-hidden line alone', unexpectedSkips(hiddenLine('bypass_actors')).length === 0)
++  t('and fails on a second, non-token skip line beside it', unexpectedSkips(`${hiddenLine('bypass_actors')}\n${other}`).length === 1)
++  t('and fails on a lone non-token skip line', unexpectedSkips(other).length === 1)
++  t('the UNCHECKED pattern matches every field the token cannot see', RULESET_TOKEN_HIDDEN.length > 0 && RULESET_TOKEN_HIDDEN.every((f) => TOKEN_HIDDEN_SKIP_RE.test(hiddenLine(f))))
++  t('and refuses the same line for any other field (pinned to bypass_actors)', !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('dismiss_stale_reviews_on_push')) && !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('rules')))
++  // The census arm, driven on a synthetic tree and counter so no real instrument runs.
++  const synth = (counter) => { const rr = fresh(); censusRun(rr, [{ name: 'probe', plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
++  const lenCount = (c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
++  r = synth(lenCount)
++  t('a census whose count rises by one for one planted member is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
++  r = synth(() => 0)
++  t('a count that never moves is BLIND (the silent zero)', r.blind.length === 1)
++  r = synth((c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length * 2)
++  t('a count that moves by the wrong amount is BLIND', r.blind.length === 1)
++  r = synth(() => null)
++  t('a count line that cannot be read is REFUSED, never a pass', r.refused.length === 1)
+   const saved = { ...DECLARED }
+   try {
+     delete DECLARED['check budgets']
+@@ -416,9 +493,9 @@ async function main() {
+   for (let i = 0; i < argv.length; i++) {
+     if (argv[i] === '--only') only = argv[++i]
+     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
+-    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry] [--ruleset-json FILE]`); process.exit(2) }
++    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
+   }
+-  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
++  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry', 'census'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
+   const t0 = Date.now()
+   const report = { read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 }
+   if (!only || only === 'hooks') await jsonRun(HOOKS, report)
+@@ -426,6 +503,7 @@ async function main() {
+   if (!only || only === 'budgets') await budgetsRun(report)
+   if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
+   if (!only || only === 'registry') registryRun(report)
++  if (!only || only === 'census') censusRun(report)
+   for (const x of report.read) console.log(`  read     ${x}`)
+   for (const x of report.ignored) console.log(`  ignored  ${x}`)
+   for (const x of report.none) console.log(`  none     ${x}`)
+diff --git a/.claude/workflows/policy_lint_envmatrix.mjs b/.claude/workflows/policy_lint_envmatrix.mjs
+--- a/.claude/workflows/policy_lint_envmatrix.mjs
++++ b/.claude/workflows/policy_lint_envmatrix.mjs
+@@ -9,7 +9,7 @@
+ import { execFileSync } from 'node:child_process'
+ import fs from 'node:fs'
+ import path from 'node:path'
+-import { TOKEN_HIDDEN_SKIP_RE } from './counts.mjs'
++import { unexpectedSkips } from './counts.mjs'
+ 
+ const SRC = process.argv[2]
+ const WORK = process.argv[3]
+@@ -103,7 +103,7 @@ else {
+       `rc=${r.rc} pins=${basePins}`)
+   // Except the one skip a job token cannot avoid: GitHub hides the ruleset's
+   // bypass_actors from a non-admin token, and that line says so exactly.
+-  const skips = r.out.split('\n').filter((l) => /^\s*skip\s/.test(l) && !TOKEN_HIDDEN_SKIP_RE.test(l))
++  const skips = unexpectedSkips(r.out)
+   add('pr / nothing skipped in a full clone', !skips.length, (skips[0] || 'none').trim())
+   const m = sh('node', ['.claude/workflows/policy_lint_mutants.mjs'], { cwd: pr.dir })
+   add('pr / every corpus and record-mode check measured and pinned',
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -203,7 +203,7 @@ jobs:
+           set -euo pipefail
+           if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
+-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix; then
++          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
+             echo "field coverage: no input changed since $SINCE; skipped"
+           else
+             node .claude/workflows/field_coverage.mjs
+@@ -433,9 +433,14 @@ jobs:
+     # and the script did not share, a verdict class no script read) both shipped
+     # and stayed shipped. Never scoped, on the tests.yml `briefs` precedent.
+     runs-on: ubuntu-latest
+-    timeout-minutes: 5
++    timeout-minutes: 10
+     steps:
++      # Full history and tags: agreement.mjs's merge-subject corpus is every
++      # first-parent subject since v6.5.0, and a shallow clone hands it an
++      # empty window.
+       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
++        with:
++          fetch-depth: 0
+ 
+       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+         with:
+@@ -458,13 +463,51 @@ jobs:
+             '.claude/workflows/vendor' \
+             'tools/audit/*.sh' \
+             'tools/audit/record-predicate' \
+-            'tools/audit/round6/D11/fix/codeowners_gap.py'
++            'tools/audit/round6/D11/fix/codeowners_gap.py' \
++            'tests/coverage_ratchet.py' \
++            'tests/entities.py' \
++            'tests/gate_lock.py' \
++            'tests/issue996_count.py' \
++            'tests/nightly_ha.py' \
++            'tests/replay.py' \
++            'tests/structure.py' \
++            'tools/audit/round4/D11/d11lib.py' \
++            'tools/audit/round4/D11/governance_cost.py'
+           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+           test -f .claude/workflows/policy_lint.mjs
+ 
+       - name: Drive the wave script's branching
+         run: node .claude/workflows/check-wave-script.mjs
+ 
++      # Class I4 (round 9): two readers of one governance concept must give one
++      # answer, and a regex grammar written in two governance files must be
++      # registered. The base's copy once the base carries the program (the
++      # restore above); the pull request that lands it skips the lane, below. The tests
++      # and audit scripts its Python readers load are restored from the base
++      # above too, so a pull request cannot change a reader it is graded by.
++      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
++        with:
++          python-version: "3.13"
++
++      # Skipped, with the reason printed, while the base does not carry the
++      # lane: its readers are restored from the base above, so a pull request
++      # that lands the lane would be graded by readers written before it, which
++      # is no verdict on either (the `field coverage` step's own rule).
++      - name: Refuse two readers of one concept that disagree
++        env:
++          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
++        run: |
++          set -euo pipefail
++          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
++            echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
++          else
++            python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
++            node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
++          fi
++
++      - name: Show the agreement lane refusing each shape it exists to refuse
++        run: node .claude/workflows/agreement.mjs --self-test
++
+   # The loop around the corpus, rather than the corpus itself: is every merge
+   # dispositioned, what is costing seats time, and which rules have outlived
+   # their reason.
+diff --git a/docs/delivery/1847.md b/docs/delivery/1847.md
+new file mode 100644
+--- /dev/null
++++ b/docs/delivery/1847.md
+@@ -0,0 +1 @@
++- [#1847](https://github.com/tvofi/heatpump_optimizer/pull/1847) — **open**, R9-F11.4: the agreement lane — six governance pairs checked for divergence, Python readers pinned (R9-F11.4)
+diff --git a/tools/audit/README.md b/tools/audit/README.md
+--- a/tools/audit/README.md
++++ b/tools/audit/README.md
+@@ -128,6 +128,8 @@ moves.
+   consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
+   between the DHW stage and the space stage. Neither sits inside an iteration.
+ 
++`check_scopes.py` proves `scopes.json`'s seats disjoint and complete.
++
+ ## Running the gate on the audit box
+ 
+ Run the gate the way CI runs it — drift mode against the merge base; the
+@@ -200,8 +202,7 @@ passing the model explicitly per call.
+ `stress.py` runs, and is one per box across worktrees.
+ 
+ **Fan-out concurrency is a judgement, not a measured capacity.** At most
+-three compute-heavy finders share a box (each cloud container is its own
+-box), and the Chromium finder (D4) does not sit beside them. The basis is the
++three compute-heavy finders share a box and the Chromium finder (D4) does not sit beside them. The basis is the
+ 8-core / 8 GB box and the stress-lock incident on 2026-09-03, not a measured
+ exclusivity proof beyond that lock. `.claude/workflows/audit-find.js` schedules from this
+ paragraph.
+@@ -216,7 +217,7 @@ worktree and it silently measures the tag's production code instead of the tree
+ under review -- with plausible numbers and no error.
+ 
+ **Copy a harness into the tree under test before running it**, and say in your
+-report which root rule it used. Three reviewers have been caught by this.
++report which root rule it used.
+ 
+ **Cite the SHA you actually ran, not the tag name.** The tag has moved once
+ already, by name only: the round-2 numbers were recorded at `c398fc84`;
+diff --git a/tools/audit/bugclasses.json b/tools/audit/bugclasses.json
+--- a/tools/audit/bugclasses.json
++++ b/tools/audit/bugclasses.json
+@@ -1073,20 +1073,17 @@
+     },
+     "total": 26,
+     "max_per_round": 8,
+-    "detector": null,
++    "detector": "node .claude/workflows/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
+     "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
+-    "barrier": null,
+-    "status": "open",
++    "barrier": "agreement.mjs on the PR gate (round 9, F11.4; prototype handoff/r9-rca-i4@06bae072): every registered concept's real readers, imported or read from source and never copied (rule-frontmatter-paths, finding-class-id, merge-subject-pr, dead-member-liveness, governance-workflow-jobs, entity-names), answer one corpus (the Python readers run first under python3 -I, restored from the base, and hand agreement.mjs their answers as JSON) of live instances plus the findings' boundary cases, and any disagreement, a reader that throws, an empty corpus, or a live merge commit every reader answers null for is refused; a regex source in two or more governance code files must be registered with a disposition (pair:, module:, identical:, not-a-concept:) and a stale entry is DEAD. Declared and accepted: policy_lint.mjs's offline subject mode reads the squash shape only (enumSkipLine), a narrow declaration the lane refuses the moment it answers. The governance-workflow-jobs pair re-derives entities.py's _workflow_job_ids by regex in agreement_py.py (a disclosed copy of a three-line job-id scan, null-controlled by the 'briefs' job). Not reached (tvofi's card C11, accepted): a second reader with a different grammar for a concept nobody registered; the A7/A8 policy text is F11.5's",
++    "status": "barriered",
+     "rca": [
+       "R9-I4"
+     ],
+-    "rca_planned": [
+-      "R9-F11.4"
+-    ],
+     "trigger": {
+       "per_round": true,
+       "cross_round": true,
+-      "barriered_any": false,
++      "barriered_any": true,
+       "class_rca_on_record": true
+     }
+   },
+@@ -1784,10 +1781,10 @@
+     "per_round": {},
+     "total": 0,
+     "max_per_round": 0,
+-    "detector": null,
++    "detector": "node .claude/workflows/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
+     "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
+-    "barrier": null,
+-    "status": "open",
++    "barrier": "The census arm of field_coverage.mjs (round 9, F11.4; decided under the programme mandate, D8): each registered count-printing instrument runs on a temporary copy of the tree, as it is and with one planted member of what it counts, and its printed count must rise by exactly one; a count that does not move is BLIND and an unreadable count line is REFUSED, so a failure path that prints the same zero as success cannot pass. Registered: structure.py dead_methods and dead_top_level_symbols. The merge-subject derivation's silent zero is agreement.mjs's merge-shape guard (a live merge commit every reader answers null for is refused). Not registered, so not reached: policy_lint --stats (needs the live API), stress sampling, and any census nobody lists",
++    "status": "barriered",
+     "nearest_existing": "I1",
+     "mechanism_difference": "I1 is a mutation kill miscounted or a vacuous guard; this is any derivation (a census, a sample, a --stats line) whose failure is indistinguishable from an empty success",
+     "members_elsewhere": [
+@@ -3639,4 +3636,4 @@
+       "in_tree_home": "tools/audit/rca/BULK-3-1041-rerun.md"
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/tools/audit/prepare_baseline.sh b/tools/audit/prepare_baseline.sh
+--- a/tools/audit/prepare_baseline.sh
++++ b/tools/audit/prepare_baseline.sh
+@@ -15,6 +15,47 @@
+ # and writes tools/audit/round<round>/BASELINE.md into each with the paths the
+ # finders need. Idempotent: refuses to overwrite an existing export.
+ set -euo pipefail
++strip_earlier_rounds() {
++  "$PYTHON" - "$1" "$ROUND" <<'PY'
++import json, re, sys
++from pathlib import Path
++root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
++rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
++keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
++        for f in fs if f.startswith("tools/audit/round")}
++lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
++for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
++    for m in lit.findall(t.read_text(errors="replace")):
++        p = root / m.rstrip("/.")
++        if p.is_file():
++            keep.add(p.relative_to(root).as_posix())
++        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
++            keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
++removed = kept = 0
++for d in rounds:
++    for f in sorted(d.rglob("*")):
++        if f.is_file() or f.is_symlink():
++            if f.relative_to(root).as_posix() in keep:
++                kept += 1
++            else:
++                f.unlink()
++                removed += 1
++    for sub in sorted((d, *(p for p in d.rglob("*") if p.is_dir())), key=lambda p: -len(p.parts)):
++        if not any(sub.iterdir()):
++            sub.rmdir()
++print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
++PY
++}
++# `prepare_baseline.sh --strip <export-dir> <round>` runs ONLY the earlier-round
++# strip, on an export or a worktree some other path made: audit-find.js's Prepare
++# (and the leads seat's own export) run it, so the driver and this script cannot
++# disagree on what the wall leaves in (R9 box B1's wall breach: the driver copied
++# tools/audit/ whole and nothing stripped it).
++if [ "${1:-}" = "--strip" ]; then
++  PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
++  strip_earlier_rounds "$(cd "${2:?export dir}" && pwd)"
++  exit 0
++fi
+ ROUND="${1:?round}"; SHA="${2:?baseline sha}"; SRC="${3:-$(git rev-parse --show-toplevel)}"
+ cd "$(git rev-parse --show-toplevel)"
+ PARENT="$(cd .. && pwd)"
+@@ -79,37 +120,6 @@ mkdir -p "$EXPORT/tools/audit/round${ROUND}"
+ # removed. The instruments that survive are the ones tools/audit/harnesses/
+ # README.md's rule would keep live anyway: evidence is archived, instruments
+ # are kept.
+-strip_earlier_rounds() {
+-  "$PYTHON" - "$1" "$ROUND" <<'PY'
+-import json, re, sys
+-from pathlib import Path
+-root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
+-rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
+-keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
+-        for f in fs if f.startswith("tools/audit/round")}
+-lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
+-for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
+-    for m in lit.findall(t.read_text(errors="replace")):
+-        p = root / m.rstrip("/.")
+-        if p.is_file():
+-            keep.add(p.relative_to(root).as_posix())
+-        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
+-            keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
+-removed = kept = 0
+-for d in rounds:
+-    for f in sorted(d.rglob("*")):
+-        if f.is_file() or f.is_symlink():
+-            if f.relative_to(root).as_posix() in keep:
+-                kept += 1
+-            else:
+-                f.unlink()
+-                removed += 1
+-    for sub in sorted((d, *(p for p in d.rglob("*") if p.is_dir())), key=lambda p: -len(p.parts)):
+-        if not any(sub.iterdir()):
+-            sub.rmdir()
+-print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
+-PY
+-}
+ strip_earlier_rounds "$EXPORT"
+ 
+ # One list, read three times below. audit-find.js's ISOLATED must agree with it;
+diff --git a/tools/audit/prepr.sh b/tools/audit/prepr.sh
+--- a/tools/audit/prepr.sh
++++ b/tools/audit/prepr.sh
+@@ -1228,6 +1228,14 @@ node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1
+ step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
+ rm -f /tmp/prepr-fc.$$
+ 
++# --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
++# base once the base carries it: the Python readers first, under -I, then the
++# lane over their answers. Needs full history for its merge-subject corpus.
++python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1 \
++  && node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1
++step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
++rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
++
+ # --- 3g. every grader a pinned job runs has a local path here, or a reason,
+ # and the reader understood every pinned job (`pinned_verdict` above).
+ VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)
+diff --git a/tools/audit/scopes.json b/tools/audit/scopes.json
+--- a/tools/audit/scopes.json
++++ b/tools/audit/scopes.json
+@@ -598,6 +598,7 @@
+    ".claude/**",
+    ".cursor/**",
+    "tools/**",
++   "docs/decisions/**",
+    "CLAUDE.md",
+    "AGENTS.md"
+   ],
