@@ -2,7 +2,7 @@ _Requested by **tvofi**_
 
 Before: `merge_fastpath.py` refused any file no closure records whenever a `run_always` script exists, because `tests/closure.py` drops INERT reads from every record. A `docs/delivery` row, which every merge adds, therefore refused the fast path as "unrecorded", the same as a doc `harness_headers.py` really opens.
 
-After: the recorder files the INERT files a recording opened under `inert_reads` in `tests/closures.json` (INERT stays out of every closure; that classification is untouched), `check` refuses a table that misses one, and `decide()` refuses `unrecorded` only for a non-INERT file, a file listed there for a `run_always` script, or a sibling in a directory it lists a file from. A table without `inert_reads` keeps the old answer. Main's push stays FULL. Closes #1812's F10.9d item (part of #1812).
+After: the recorder files the INERT files a recording opened under `inert_reads` in `tests/closures.json` (INERT stays out of every closure; that classification is untouched), `check` refuses a table that misses one, and `decide()` refuses `unrecorded` only for a non-INERT file, a file listed there for a `run_always` script, or a sibling in a directory it lists a file from. A table without `inert_reads` keeps the old answer. Main's push stays FULL. Part of #1812 (F10.9d item).
 
 ## Head
 
