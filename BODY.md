@@ -2,97 +2,53 @@ _Requested by **tvofi**_
 
 Part of #1798
 
-Before: the project had a README and reader documents and no product page. After: `docs/index.html` is the page tvofi asked for on 2026-09-30 ("a full product web page, based on the user facing documentation in the repo, in the same design language as the showcase page"), ported from the design of record, and `tests/doc_claims.py` gains one arm that pins it to the master documentation (test-pinned and linked). Every sentence of fact on the page is quoted from the README or a reader doc and carries a source anchor; a test refuses drift; the README links the page (a Product page row in its Documentation table and one line under the badges, pointing at the file until R9-WEB-2 serves it). The page states no savings percentage (S3) and no version (rule 4). No Python module under `custom_components` is touched, so every value-bearing golden is byte-identical and `tests/golden/*claimed_drift.txt` is untouched.
+Before: no product page. After: `docs/index.html`, the page tvofi asked for on 2026-09-30, ported from the design of record, with its self-hosted fonts under `docs/site/fonts/`; a new arm in `tests/doc_claims.py` (`check_product_page`) pins every claim on it to the README or a reader doc (a `data-src` heading anchor, verbatim or key-phrase), refuses a stray digit, a version, a dead link or image and any third-party request, and holds both directions of the README's "What it does" leads and Documentation table; the README links the page (a Product page row and a line under the badges, pointing at the file until R9-WEB-2). No savings figure, no version, no `custom_components` file, no golden touched. Classification: `docs/index.html` and `DISCLAIMER.md` on `INERT_EXCEPT` (the arm opens both), `docs/site/**` and `docs/index.html` in the layout manifest's docs category, `tests/closures.json` carries the two-path closure of `doc_claims.py` and moves `DISCLAIMER.md` from `harness_headers.py`'s `inert_reads` into its closure.
 
-What the port changed against the design page, because main moved after it was written:
-- The hero is the README hero `docs/img/card-plan-chart.png` that R9-UI-4 regenerated (one `<img>`, the design's 375 px sources and design note are gone); the how-it-works figure is the pair R9-UI-2 landed under `docs/img/readme/`.
-- The Advisor gallery slot now shows `docs/img/card/advisor-{light,dark}.png` and quotes the current "The advisor page" opening: R9-UX-2 rewrote that section, and the design's caption was no longer in it (the arm went red on exactly that, which is its job).
-- The documentation cards, the card and setup links and the footer link to the sources on GitHub, not to `*.html` sub-pages. The sub-pages are R9-WEB-3 (rev 4.3) and do not exist at this point, so a sub-page link would be a dead link; WEB-3 switches them and adds the sub-page rule to this arm.
-- A `docs/index.html` card was added to the page's docs section, because the arm requires the page's docs set to equal the README Documentation table.
+Against the design page: the hero is the README hero `docs/img/card-plan-chart.png` as one image; the Advisor slot shows `docs/img/card/advisor-{light,dark}.png` and quotes the rewritten section; the documentation cards link to the sources on GitHub, since R9-WEB-3's sub-pages do not exist yet.
 
 ## Head
 
-e42b1cdd805b011701479b3e19e2bbf4d6876dcc
+699c4996ee77eb30b614b9ea315e85081696da1f
 
 ## Mutation proof
 
-`PATH=<venv>:$PATH PYTHONPATH=tests/hastub python tests/mutation_table.py --scope changed --base origin/main --max 5` reports `scope changed: no production code line added or modified against the base` (the diff touches no `custom_components` file), so the table has nothing to draw. The arm is test code, so its predicates were mutated by hand: each of 21 predicate lines in `site_findings` replaced by `if False:` / an empty comprehension in an in-memory copy (the tree is untouched), then the planted-error controls below run against the mutant. Instrument: `bash mutate.sh` over `controls.py` (both in the seat scratch, sha1 `ea6a23f9509b` and `da92737b765e`; run from the worktree root). Result: 21 of 21 mutants make at least one control print MISS (the run prints `A CONTROL DID NOT MEASURE`), and the unmutated run prints `every control red, baseline green`. Mutated sites: the verbatim fragment test, the number test of a key-phrase claim, the key-phrase test, the digit-outside-a-claim test, the image `src` vs `data-repo` test, the image-in-tree test, the alt-text test, the third-party image test, both directions of the feature set difference, both directions of the docs-row set difference, the stamped-version test, the version-literal scan, the external-script test, the stylesheet test, the CSS absolute-URL branch, the CSS not-in-tree branch, the zero-claims/features/docs anchor, the repository-link heading test and the repository-link path test.
-
-Two survivors in a first pass were real and are why the control table has what it has: the CSS absolute-URL branch and the image-in-tree test were each masked by a neighbouring branch reporting the same kind, so those controls now require the message of the branch under test, and a control was added for a page feature the README does not lead with and for a key phrase absent from its section.
+`tests/mutation_table.py --scope changed` draws nothing (no production line changed), so the arm's predicates were mutated by hand: 21 predicate lines in `site_findings`, each turned into `if False:` or an empty comprehension in an in-memory copy, then the planted-error controls run on the mutant. 21 of 21 mutants make a control print MISS; the unmutated run prints `every control red, baseline green`.
 
 ## Null control
 
-Failing test first, at `0e6b4391e09ad1c754004c3a0c84710657b25914` (arm only, no page): `PYTHONPATH=tests/hastub:tests:custom_components python tests/doc_claims.py` prints `FAIL docs/index.html exists with claims, features and docs rows (anchor)  [docs/index.html is absent]` with `claims 0, ... docs 0`. At the head the same line is `ok` with `claims 47, fragments 110, numbers 3, copy 14, features 9, docs 10, images 11, links 16`.
-
-Planted errors at the head, `HPO_REPO unset, python controls.py` (baseline: 0 findings; 24 controls, every one RED):
-
-| planted error | kind | red with |
-|---|---|---|
-| a wrong number in a tile (20 -> 48) | claim | number 48 is not stated in the section |
-| a reworded quote ("up to 20 hours" -> 48) | claim | not in the section |
-| a dead heading slug | claim | no heading with slug |
-| a key phrase absent from its section | claim | key phrase not in section |
-| a README sentence changed under an unchanged page (README says 12 hours) | claim | key phrase not in section |
-| a dropped feature heading | feature | README lead missing from the page |
-| a page feature the README does not lead with | feature | does not lead with |
-| an extra docs card | docs | the Documentation table does not list it |
-| the new Product page card removed | docs | README row missing from the page |
-| a number outside any claim | number | a number outside any claim |
-| a version literal (v6.7.12) | version | a version literal on the page |
-| the stamped VERSION on the page | version | the page states the version |
-| a data-repo image not in the tree (src and data-repo agreeing) | image | not in the tree |
-| a src that is not the data-repo path under docs/ | image | not the path under docs/ |
-| an image without alt text | image | image without alt text |
-| a repository link to a missing file | link | not in the tree |
-| a repository link to a missing heading | link | no such heading |
-| an external script | third-party | external script |
-| a third-party stylesheet | third-party | stylesheet |
-| a font `url()` to a third party | third-party | third-party resource in CSS |
-| a font `url()` to a file not in the tree | third-party | CSS resource not in the tree |
-| a third-party image | third-party | third-party image |
-| zero claims (every `data-src` renamed) | anchor | zero claims found |
-| no page | anchor | docs/index.html is absent |
-
-The doc-side control builds a root of symlinks to the real tree with only `README.md` replaced, so a red there proves the fact set is read from the working tree's documents and not carried in the arm.
+Failing test first at `0e6b4391e09ad1c754004c3a0c84710657b25914`: the arm printed `FAIL docs/index.html exists with claims, features and docs rows (anchor)  [docs/index.html is absent]`. At the head, 24 planted errors are RED with a 0-finding baseline: a wrong tile number, a reworded quote, a dead slug, a key phrase absent from its section, a README sentence changed under an unchanged page, a dropped feature, an extra feature, an extra docs card, the Product page card removed, a digit outside a claim, a version literal, the stamped VERSION, an image missing from the tree, a `src` that is not its `data-repo` path, missing alt text, a link to a missing file and to a missing heading, an external script, a third-party stylesheet, a third-party font `url()`, a CSS file not in the tree, a third-party image, zero claims, no page.
 
 ## Figures
 
-Rules: a count is what the named instrument prints at the head `e42b1cdd805b011701479b3e19e2bbf4d6876dcc` on a main-equivalent tree (`origin/main` was `2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d` at the merge base and at the head); the numeric arms of `doc_claims.py` and `entities.py` ran in a Python 3.14 venv with the CI pins' versions of numpy, scipy, aiohttp, pyyaml and voluptuous installed unhashed, because the Mac has no numpy of its own.
-- `PYTHONPATH=tests/hastub python /Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/controls.py` (sha1 prefix `da92737b765e`, run from the worktree root): `baseline: 0 finding(s)`, 24 `RED` lines, `RESULT: every control red, baseline green`; the count is the lines starting `RED`, and a control that measured nothing prints `MISS` and turns the result line into `A CONTROL DID NOT MEASURE`.
-- `bash /Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/mutate.sh` (sha1 prefix `ea6a23f9509b`): 21 `MUTANT` lines, 21 of them ending `A CONTROL DID NOT MEASURE`, 0 ending `every control red`; the unmutated control run above is its null.
-- `PYTHONPATH=tests/hastub:tests:custom_components python tests/doc_claims.py`: the baseline at the merge base printed `ALL 112 checks PASSED`; at the head `ALL 121 checks PASSED` (the 9 new checks are the arm's anchor and its eight kinds).
-- `PYTHONPATH=tests/hastub python tests/entities.py`: the baseline at the merge base printed `ALL 2060 ENTITY CHECKS PASSED`; at the head `1 of 2060 ENTITY CHECKS FAILED`, and the one failure is `the template arm turns the acceptance red ... the real template -> rc=1` (see Red checks): it runs `policy_lint.mjs` live against GitHub's ruleset, which now differs from `.claude/workflows/fixtures/required-contexts.json`. The classification check (`every tracked file is either measured or deliberately classified`) is green at the head after the closure re-record. The other red lines in that run are its own null-control self-tests, present at the baseline too.
-- `./tests/derive_closures.sh --single tests/doc_claims.py` with `PYTHON=<venv>/bin/python`: `closure: updated 1 closure(s)`, `tests/doc_claims.py 132 files`; the diff of `tests/closures.json` is the two added paths (`DISCLAIMER.md`, `docs/index.html`) and the recorded seconds. The venv is `/Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/v` (Python 3.14.7, tvofi approved installs), with numpy 2.5.3, scipy 1.18.1, aiohttp 3.14.3, PyYAML 6.0.3, voluptuous 0.16.0 and yarl 1.25.1 (`pip list`), unhashed and newer than some of CI's pins; the lane records through `sys.addaudithook`, so Darwin is sound for a single script (`ci-autofix.md`).
-- `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)` at the head; at the previous head it was 2 errors in `carry-1645.json` (the arm sat above `check_simulate_plan_fields`).
-- `node tests/md_tables.mjs`: three `RESULT ... =0 count` lines at the merge base and at the head.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; no metric measures `docs/` or `tests/`, no budget is touched. `node .claude/workflows/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`.
-- `python3 tests/layout.py`: report mode (R9-RO-9 flips it); `category` findings went from the 6 font files outside the allowed categories (with a brace-alternation glob, which `glob_re` escapes literally) to none for `docs/index.html` and `docs/site/**`; the `reference` arm now also lists the page's `data-repo` and link paths against the planned moves, which the RO lane must edit together with the pin (the pin requires each `src` to be its `data-repo` path under `docs/`).
-- `python3 tests/harness_headers.py`: at the first head one check was red, `the executed harnesses leave their committed output byte-identical [uncommitted: tools/audit/round4/D6/claims.json, claims.md]`: `tools/audit/round4/D6/claims.py` counts relative links and the README gained two (91 to 93). The regenerated files are in the second commit (`fixer.md` step 10: run the generator); the rerun at the head prints `ALL 94 HARNESS HEADER CHECKS PASSED`.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL -- every test script runs, nothing is scoped out`, reason `tests/closure.py changes the gate itself`. It is the diff's own gate file (the brief requires the `INERT_EXCEPT` line), not an instruction to reproduce CI's full run; what ran here is the files that read what changed: `doc_claims.py`, `entities.py`, `md_tables.mjs`, `layout.py`, `harness_headers.py`, `structure.py`, `policy_lint.mjs`.
-- The page loads in a browser: served from `docs/` over localhost, at 375 px wide `scrollWidth` equals `innerWidth` (no horizontal overflow), and all 9 `<img>` elements report `complete` with `naturalWidth` above 0 once lazy loading is forced; the four self-hosted font faces report `loaded` (68617 bytes of font files in all, no request leaves the host: the arm refuses one).
-- `stress.py`, the mutation autofix and the closure re-record are left to CI. `features.py` and `optimality.py` were not run (no numeric surface touched; they need the Linux container, which is gone).
+Rules: counts are what the named instrument prints at the head `699c4996ee77eb30b614b9ea315e85081696da1f`, in a Python 3.14.7 venv at `/Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/v` (numpy 2.5.3, scipy 1.18.1, aiohttp 3.14.3, PyYAML 6.0.3, voluptuous 0.16.0, yarl 1.25.1; installs approved by tvofi).
+- `PYTHONPATH=tests/hastub python /Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/controls.py` (sha1 prefix `da92737b765e`): `baseline: 0 finding(s)`, 24 lines starting `RED`, `RESULT: every control red, baseline green`; a control that measured nothing prints `MISS`.
+- `bash /Users/timmalmstrom/hpo-seats/R9-WEB-1-scratch/mutate.sh` (sha1 prefix `ea6a23f9509b`): 21 `MUTANT` lines, 21 ending `A CONTROL DID NOT MEASURE`.
+- `PYTHONPATH=tests/hastub:tests:custom_components python tests/doc_claims.py`: `ALL 121 checks PASSED` (112 at the merge base).
+- `PYTHONPATH=tests/hastub python tests/entities.py`: `ALL 2060 ENTITY CHECKS PASSED`.
+- `python tools/audit/merge_fastpath.py --self-test`: `33 checks, 0 failed`.
+- `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
+- `./tests/derive_closures.sh --single tests/doc_claims.py` (same venv): `tests/doc_claims.py 132 files`, adding `DISCLAIMER.md` and `docs/index.html`. The same command for `tests/harness_headers.py` was run and discarded: Darwin recording does not see that script's child processes, and it would have dropped 132 listed files and the whole `inert_reads` entry, so its two-line change (the `DISCLAIMER.md` entry moves from `inert_reads` into the closure) is made by hand and CI's strace recording is the check.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `node .claude/workflows/policy_lint.mjs --pr-body` of this body: 0 errors. Left to CI: `closures`, `stress.py`, the mutation autofix, `features.py`, `optimality.py`.
 
 ## Red checks
 
-Round 2; each check red at the previous head `a46a91c88f282b567bf78b4899e3dff92defe5aa` and what answers it:
-- `briefs` (pr-contract refused on it): the arm was inserted above `check_simulate_plan_fields`, so two `path:line` pins in `.claude/workflows/carry-1645.json` no longer found it. Cause: I did not run `brief_lint.mjs` before the push. Cheaper detector: that command, which exists and is seconds; the arm now sits before `main()`, and the five pins in that carry file moved by the five lines the module docstring entry adds, same functions, same meaning.
-- `closures`: `INERT READS UNDER-APPROXIMATED ... tests/doc_claims.py: DISCLAIMER.md`, not `UNDER-SCOPED`; the arm opens `DISCLAIMER.md` for the page's `DISCLAIMER.md#disclaimer` claims and that file sat on INERT. closures-autofix skips this shape, so my earlier statement that it would record the closure was wrong. Fixed by the `--single` re-derive above and `DISCLAIMER.md` on `INERT_EXCEPT`. Cheaper detector: `tests/closure.py check` on the recording at the push; it exists, and I skipped it with `PREPR_SKIP_CLOSURES=1`.
-- `tests/entities.py` classification (`docs/index.html` forces FULL): the same cause, green after the re-record.
-- `tests/entities.py` `a docs-only change still costs the closures check nothing`: a consequence of the above, since that example named `DISCLAIMER.md` as its inert file and it is now read; the example names `SECURITY.md`, which is inert and in no closure.
-- (Resolved at this head: main's #1849 fixture fix is merged in, and `prepr.sh` is clean again.) `tests/entities.py` template arm (`the real template -> rc=1`): not caused by this diff. It runs `policy_lint.mjs` live and the live ruleset 23698884 differs from the recorded `required-contexts.json` (`bypass_actors`), so `policy_lint` exits 1 on any tree; it passed at this tree earlier today and fails now with no file of the diff involved. Detector: none cheaper is owed here; the record needs re-recording by whoever changed the ruleset.
-- (Same resolution.) `prepr.sh` at the round-2 head printed REFUSE on `policy_lint`, `mutants` and `field coverage`, and clean on everything else. All five errors `node .claude/workflows/policy_lint.mjs` prints are `[required-contexts]` drift of live ruleset 23698884 against the fixture (`grep ERROR | grep -vc required-contexts` prints 0), the same cause as the template arm above; the same `prepr.sh` was clean at the previous head earlier today. No file of this diff is involved.
-- `instrument-self-tests` at 9bc802e6 (step `Show the merge fast path refusing its own fixtures`, the only `##[error]` in that job): this diff. `tools/audit/merge_fastpath.py`'s synthetic probes used `DISCLAIMER.md` as an inert, unrecorded file; this PR moved it to `INERT_EXCEPT`, so the probes read it as unmeasured (`full`). The probes now name `SECURITY.md`; `python tools/audit/merge_fastpath.py --self-test` prints `33 checks, 0 failed` (it printed `3 failed` before the edit). Cause: my first answer treated DISCLAIMER.md as moving only the doc_claims closure and I did not grep the tree for other users of that file's inert status. Cheaper detector: `grep -rn DISCLAIMER.md tools tests` when a file leaves INERT; no standing check is proposed.
-- `coverage-ratchet` was red only because the cancelled `coverage` job produced no artifact; not this diff.
+Each check red at an earlier head of this PR, and what answers it:
+- `briefs` (round 1): the arm sat above `check_simulate_plan_fields` and moved two `path:line` pins in `carry-1645.json`. Cause: `brief_lint.mjs` not run before the push; cheaper detector: that command. Fixed: the arm sits before `main()` and the five pins moved by the docstring's five lines.
+- `closures` (round 1, `INERT READS UNDER-APPROXIMATED`): the arm opens `DISCLAIMER.md`, which was INERT; closures-autofix skips this shape. Fixed by `DISCLAIMER.md` on `INERT_EXCEPT` and the `doc_claims.py` re-derive.
+- `closures` (round 2, `UNDER-SCOPED tests/harness_headers.py: DISCLAIMER.md`): the same reclassification turns the read `harness_headers.py` makes through `claims.py` into a closure read, and I re-derived only the script I had changed. Fixed by the two-line edit above. Cheaper detector: grep every reader of a file when it leaves INERT, and read the `closures` job's log, which names the script; no standing check is proposed.
+- `instrument-self-tests` (round 3): `tools/audit/merge_fastpath.py`'s probes used `DISCLAIMER.md` as an inert file; they now name `SECURITY.md`. Its real-tree check now names `LICENSE`, which `harness_headers.py` still reads as INERT (`33 checks, 0 failed`). `tests/entities.py`'s docs-only example and `tests/run.sh`'s comment moved off `DISCLAIMER.md` the same way.
+- Live ruleset drift against `required-contexts.json` (`policy_lint`, the template arm): not this diff; cleared by main's #1849.
 
 ## Forward-carry
 
-none. The one constraint this puts on a later stage, that a move of `docs/img/**` or `docs/setup/**` must edit the page's `src` and `data-repo` together, is held by the new arm itself: a move that leaves either dangling turns `tests/doc_claims.py` red in that PR (the image-in-tree and `src`-is-the-`data-repo`-path controls above), so it needs no brief to be read first. R9-WEB-3 (rev 4.3) already carries the switch of the docs cards to sub-pages and the sub-page rule.
+none. A later move of `docs/img/**` or `docs/setup/**` must edit the page's `src` and `data-repo` together, and the arm turns red in that PR if it does not. R9-WEB-3 already carries the sub-page switch.
 
 ## Friction
 
-gate-scoping: contradiction: the R9-WEB-1 roster brief says to put `docs/site/` on `INERT_EXCEPT`, but `closure.py`'s `is_inert` matches an exact path there (a trailing slash is not honoured) and the recorder traces `openat` only, so a file the arm merely stats (fonts, images) is not a read and listing it would create an orphan that forces the FULL suite; only `docs/index.html` and `DISCLAIMER.md`, which the arm opens, went on the list.
-gate-scoping: unclear: `tests/layout.py`'s `glob_re` escapes a `{a,b}` alternative literally, so `docs/{index.html,site/**}` matched only the first path; the brief's one category glob became two.
+gate-scoping: contradiction: the R9-WEB-1 roster brief says to put `docs/site/` on `INERT_EXCEPT`, but that list matches exact paths and the recorder traces `openat` only, so files the arm merely stats (fonts, images) stay INERT; only the two files it opens went on the list.
+gate-scoping: unclear: `tests/layout.py`'s `glob_re` escapes a `{a,b}` alternative literally, so the brief's one category glob became two.
+gate-scoping: unenforced: `derive_closures.sh --single` on Darwin cannot see a script's child processes, so for `tests/harness_headers.py` it proposes dropping 132 files and an `inert_reads` entry; nothing refuses a lossy Darwin record except the human reading its "would drop" line.
 
 ## Approval
 
-tvofi's approving review is owed: `tests/closure.py` and `tests/layout.json` are code-owned.
+tvofi's approving review is owed: `tests/closure.py`, `tests/layout.json` and `tests/entities.py` are code-owned.
