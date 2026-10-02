@@ -8,7 +8,7 @@ Before: `closures-autofix` printed `skip-not-under-scoped -- nothing owed to a h
 
 **A premise changes, and I say so.** #1857's null control (a46a91c: INERT READS must stay quiet) assumed a failure the bot does not repair owes nothing. #1864 shows it owes a human. That control is rewritten, not deleted: the quiet status is now pinned to a *passing* check.txt (and to an absent one); the INERT READS log, now byte-for-byte #1864's, expects the new red. Untouched on purpose: `skip-clean` (the documented moved-head case, where `closures` printed UNDER-SCOPED and the newer head is measured by its own run), `skip-not-allowed`. Not covered, named: a `closures` failure from a step after `check` (`no-copies`, NOT-A-FILE is in `check` and is covered) leaves a passing `check.txt`, so the job stays quiet; `claims-autofix` and `mutation-autofix` keep their own quiet statuses (the RCA's optional item 4).
 
-`.claude/rules/ci-autofix.md` (policy) is edited: the red list and "What green means" name `skip-manual-repair-owed`; the bullet that said a red on failed recordings would fire on "INERT failures" is corrected, since INERT READS now reddens by design. It is paid for inside the file (net -`28` tokens against the cap: policy_lint `TOTAL: 0 error(s)`), no cap raised; `.cursor/rules/ci-autofix.mdc` is regenerated.
+`.claude/rules/ci-autofix.md` (policy) is edited: the red list and "What green means" name `skip-manual-repair-owed`; the bullet that said a red on failed recordings would fire on "INERT failures" is corrected, since INERT READS now reddens by design. It is paid for inside the file (under the cap: `policy_lint.mjs` `TOTAL: 0 error(s)`), no cap raised; `.cursor/rules/ci-autofix.mdc` is regenerated.
 
 ## Root cause
 
