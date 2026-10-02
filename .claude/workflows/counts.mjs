@@ -313,6 +313,10 @@ export const RULESET_TOKEN_HIDDEN = ['bypass_actors']
 // The one skip line that omission prints; env-matrix's "nothing skipped" row
 // accepts exactly this shape and no other skip.
 export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ field `(bypass_actors)` is absent from the live read \(this token cannot see it\); it is UNCHECKED this run, not confirmed$/
+// The skip lines env-matrix's "nothing skipped" row refuses: every `skip` line
+// but the token-hidden one. Its own function so a pin can drive the row with a
+// second, non-token skip line (the #1721 review's surviving mutant).
+export const unexpectedSkips = (out) => String(out).split('\n').filter((l) => /^\s*skip\s/.test(l) && !TOKEN_HIDDEN_SKIP_RE.test(l))
 export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
 // A ruleset object as `path -> JSON value` leaves. Arrays are sorted by their
 // members' JSON first, so an order GitHub does not guarantee is not a drift.
