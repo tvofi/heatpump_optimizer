@@ -27736,6 +27736,21 @@ R.check(
     f"(row, modify+delete, outside) -> {_WS_GOT}; (quiet, red) -> {_DR_GOT}",
 )
 
+# Wired in the driver: the drain slice comes from `drain_pool` over the whole
+# unpinned list, its kills go through the same `pin_results` the pin mode
+# uses, and it returns after `write_drain` -- before the --pin-killed branch
+# that writes this checkout's ledger.
+_dr_at = _MUT_BODY.find("    if args.drain:\n        head = ")
+R.check(
+    "--drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched",
+    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max)" in _MUT_BODY
+    and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
+    and 'how="--drain"' in _MUT_BODY
+    and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
+    and "and not (args.pin_killed or args.drain)):" in _MUT_BODY,
+    f"drain branch at {_dr_at}",
+)
+
 # Wired, against the YAML: the measuring job holds no write grant and runs the
 # drain with a date seed; the pushing job runs no driver, applies through
 # `apply_drained` with the measured head's diff, checks the write set, pushes
