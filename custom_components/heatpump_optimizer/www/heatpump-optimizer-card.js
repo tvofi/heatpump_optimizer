@@ -78,6 +78,65 @@ const STRINGS = {
     "header.tab_setup": "Setup",
     "header.tab_savings": "Savings",
     "header.tab_advisor": "Advisor",
+    "header.tab_health": "Health",
+    // The Health page (R9-UX-3): input freshness, the plan's age, what is
+    // still learning, and the first-plan checklist.
+    "health.inputs": "Inputs",
+    "health.plan": "Plan",
+    "health.learning": "Still learning",
+    "health.checklist": "First-plan checklist",
+    "health.fresh": "Fresh",
+    "health.stale": "Stale",
+    "health.p_unavailable": "Unavailable",
+    "health.p_missing_entity": "Entity not found",
+    "health.p_not_numeric": "Not a number",
+    "health.p_implausible": "Out of range",
+    "health.p_unknown_value": "Unrecognised state",
+    "health.p_not_boolean": "Not a yes/no flag",
+    "health.p_not_configured": "Not set up",
+    "health.ago": "{age} ago",
+    "health.limit": "limit {limit}",
+    "health.no_age": "no reading",
+    "health.pill_ok": "All inputs fresh",
+    "health.pill_one": "1 input stale",
+    "health.pill_other": "{n} inputs stale",
+    "health.solved": "Solved {age} ago",
+    "health.next_solve": "Next solve in {age}",
+    "health.next_due": "Next solve due now",
+    "health.steps": "{n} steps",
+    "health.solve_time": "{s} s",
+    "health.input_indoor_temp_entity": "Indoor temperature",
+    "health.input_outdoor_temp_entity": "Outdoor temperature",
+    "health.input_dhw_temp_entity": "Hot-water tank",
+    "health.input_floor_return_temp_entity": "Floor loop return",
+    "health.input_lower_floor_temp_entity": "Lower floor",
+    "health.input_buffer_tank_temp_entity": "Buffer tank",
+    "health.input_solar_radiation_entity": "Solar radiation",
+    "health.input_pv_production_entity": "PV production",
+    "health.input_heat_pump_power_entity": "Heat pump power",
+    "health.input_heat_pump_energy_entity": "Heat pump energy",
+    "health.input_house_power_entity": "House power",
+    "health.learn_savings": "Savings this month",
+    "health.learn_savings_why": "Waiting for the first settled month",
+    "health.learn_cop": "Heat pump COP",
+    "health.learn_cop_why": "Needs a power meter on the heat pump, then some running time",
+    "health.learn_accuracy": "Prediction accuracy",
+    "health.learn_accuracy_why": "Waiting for the first scored interval",
+    "health.learn_score": "Optimization score",
+    "health.learn_score_why": "Waiting for the first scored day",
+    "health.support_title": "Something looks wrong?",
+    "health.support_detail":
+      "Open the integration page and choose Download diagnostics in its menu: " +
+      "the file holds the last diagnosis, input states and the current plan.",
+    "health.act_diagnostics": "Download diagnostics",
+    "health.check_price": "Price source connected",
+    "health.check_weather": "Weather forecast available",
+    "health.check_indoor": "Indoor temperature sensor",
+    "health.check_control": "Heat pump control connected",
+    "health.check_power": "Power meter on the heat pump: makes savings measured instead of modelled",
+    "health.check_insight": "Some insight sensors are off by default; turn them on in the integration's settings",
+    "health.act_assign": "Assign",
+    "health.act_show": "Show",
     // The sensor advisor page (#1269): the backend's ranking of which
     // UNCONFIGURED optional temperature sensors would tighten the thermal
     // model most. Every quantified row is an estimate and says so.
@@ -624,6 +683,63 @@ const STRINGS = {
     "header.tab_setup": "Anläggning",
     "header.tab_savings": "Sparande",
     "header.tab_advisor": "Rådgivare",
+    "header.tab_health": "Hälsa",
+    "health.inputs": "Indata",
+    "health.plan": "Plan",
+    "health.learning": "Lär sig fortfarande",
+    "health.checklist": "Checklista för första planen",
+    "health.fresh": "Aktuell",
+    "health.stale": "Inaktuell",
+    "health.p_unavailable": "Otillgänglig",
+    "health.p_missing_entity": "Entiteten saknas",
+    "health.p_not_numeric": "Inte ett tal",
+    "health.p_implausible": "Utanför rimligt intervall",
+    "health.p_unknown_value": "Okänt tillstånd",
+    "health.p_not_boolean": "Ingen ja/nej-flagga",
+    "health.p_not_configured": "Inte inställd",
+    "health.ago": "{age} sedan",
+    "health.limit": "gräns {limit}",
+    "health.no_age": "ingen avläsning",
+    "health.pill_ok": "Alla indata aktuella",
+    "health.pill_one": "1 indata inaktuell",
+    "health.pill_other": "{n} indata inaktuella",
+    "health.solved": "Löst för {age} sedan",
+    "health.next_solve": "Nästa lösning om {age}",
+    "health.next_due": "Nästa lösning är försenad",
+    "health.steps": "{n} steg",
+    "health.solve_time": "{s} s",
+    "health.input_indoor_temp_entity": "Inomhustemperatur",
+    "health.input_outdoor_temp_entity": "Utomhustemperatur",
+    "health.input_dhw_temp_entity": "Varmvattenberedare",
+    "health.input_floor_return_temp_entity": "Golvslingans retur",
+    "health.input_lower_floor_temp_entity": "Nedre våning",
+    "health.input_buffer_tank_temp_entity": "Buffertank",
+    "health.input_solar_radiation_entity": "Solinstrålning",
+    "health.input_pv_production_entity": "Solcellsproduktion",
+    "health.input_heat_pump_power_entity": "Värmepumpens effekt",
+    "health.input_heat_pump_energy_entity": "Värmepumpens energi",
+    "health.input_house_power_entity": "Husets effekt",
+    "health.learn_savings": "Sparande den här månaden",
+    "health.learn_savings_why": "Väntar på den första avslutade månaden",
+    "health.learn_cop": "Värmepumpens COP",
+    "health.learn_cop_why": "Behöver en effektmätare på värmepumpen och en tids drift",
+    "health.learn_accuracy": "Prognosträffsäkerhet",
+    "health.learn_accuracy_why": "Väntar på det första bedömda intervallet",
+    "health.learn_score": "Optimeringspoäng",
+    "health.learn_score_why": "Väntar på den första bedömda dagen",
+    "health.support_title": "Ser något fel ut?",
+    "health.support_detail":
+      "Öppna integrationssidan och välj Ladda ner diagnostik i menyn: " +
+      "filen innehåller senaste diagnosen, indatas tillstånd och den aktuella planen.",
+    "health.act_diagnostics": "Ladda ner diagnostik",
+    "health.check_price": "Priskälla ansluten",
+    "health.check_weather": "Väderprognos tillgänglig",
+    "health.check_indoor": "Inomhusgivare",
+    "health.check_control": "Värmepumpsstyrning ansluten",
+    "health.check_power": "Effektmätare på värmepumpen: gör att sparandet mäts i stället för modelleras",
+    "health.check_insight": "Vissa insiktsgivare är avstängda som standard; slå på dem i integrationens inställningar",
+    "health.act_assign": "Tilldela",
+    "health.act_show": "Visa",
     "advisor.heading": "Givare som skulle skärpa modellen",
     "advisor.empty":
       "Alla valfria temperaturgivare på denna anläggning är redan konfigurerade.",
@@ -4233,6 +4349,26 @@ function cardStyleBlock(darkMode) {
         padding: 4px 0 2px 0;
       }
       .adv-title { font-weight: 600; }
+      .health-cols {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+        gap: 4px 16px; align-items: start;
+      }
+      .health-h { margin: 12px 0 4px 0; font-size: 1em; }
+      .health-row {
+        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        background: var(--secondary-background-color, #f5f5f5);
+      }
+      .health-support { margin-top: 12px; }
+      .health-mark {
+        flex: 0 0 auto; width: 1.4em; height: 1.4em; border-radius: 50%;
+        border: 1.5px solid var(--hpo-divider, currentColor);
+        display: inline-flex; align-items: center; justify-content: center;
+        color: var(--hpo-ok, #1c7350); font-size: 0.85em;
+      }
+      .health-row[data-done="true"] .health-mark {
+        background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
+      }
       /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
          a tabular value and at most one action, which wraps under the text
          on a narrow card. */
@@ -8047,6 +8183,158 @@ function navigateTo(path) {
   } catch (_err) { /* no router: the row stays advice */ }
 }
 
+// ---- The Health page (R9-UX-3) ---------------------------------------------
+//
+// Reads the Input Problem binary sensor (the failing inputs and every input's
+// age), the last/next optimization sensors, the status sensor's counts and
+// solve time, and the unavailable state of the sensors that wait for evidence
+// (Home Assistant hides an unavailable entity's attributes, so `waiting_for`
+// is not readable and the reason is keyed by sensor). Only sensors that are
+// on by default are read; none of this is a new backend field. Not published,
+// so not shown: which fallback the plan uses for a stale input, and how many
+// insight sensors are off by default.
+const HEALTH_WAITING = [
+  ["savings", "_plan_monthly_savings"],
+  ["cop", "_learning_observed_cop"],
+  ["accuracy", "_prediction_accuracy"],
+  ["score", "_plan_optimization_score"],
+];
+const HEALTH_STATUS_SUFFIX = "_optimization_status";
+
+/** The Input Problem binary sensor's state: the binary twin of the plan id. */
+function inputProblemState(plan) {
+  for (const kind of ["space", "dhw"]) {
+    const planId = plan.resolveEntity(kind);
+    if (!planId) continue;
+    for (const sfx of PLAN_ID_DERIVE[kind]) {
+      if (!planId.endsWith(sfx)) continue;
+      const st = plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}_input_problem`);
+      if (st) return st;
+    }
+  }
+  return null;
+}
+
+function healthSignature(plan, minute) {
+  const sig = (st) => (st ? `${st.state}@${st.last_updated}` : "-");
+  return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
+    sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
+    ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
+    minute ? Math.floor(minute / 60000) : 0].join("|");
+}
+
+/** "3 min", "2 h 10 min", "1 h". */
+function fmtMinutes(m) {
+  const t = Math.max(0, Math.round(m));
+  const h = Math.floor(t / 60);
+  return h ? (t % 60 ? `${h} h ${t % 60} min` : `${h} h`) : `${t} min`;
+}
+
+/** The header pill over every page of the dialog, or "" with no sensor. */
+function healthPillHtml(plan) {
+  const st = inputProblemState(plan);
+  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  const n = ((st.attributes || {}).problems || []).length;
+  const text = n === 0 ? L("health.pill_ok")
+    : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
+  return `<span data-health-pill="${n ? "stale" : "fresh"}" class="status-pill tone-${n ? "warn" : "ok"}">${esc(text)}</span>`;
+}
+
+function healthInputLabel(key) {
+  const k = `health.input_${key}`;
+  return L(k) === k ? String(key).replace(/_entity$/, "").replace(/_/g, " ") : L(k);
+}
+
+function healthRow(attrs, title, detail, pill) {
+  return `<div class="health-row"${attrs}><span class="adv-text">${esc(title)}` +
+    `<span class="adv-sub">${esc(detail)}</span></span>${pill}</div>`;
+}
+
+function healthInputsHtml(plan) {
+  const st = inputProblemState(plan);
+  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  const a = st.attributes || {};
+  const problems = Array.isArray(a.problems) ? a.problems : [];
+  const bad = new Set(problems.map((p) => p.input));
+  const pill = (tone, text) => `<span class="status-pill tone-${tone}">${esc(text)}</span>`;
+  const rows = problems.map((p) => {
+    const word = p.problem === "stale" ? L("health.stale")
+      : L(`health.p_${p.problem}`) === `health.p_${p.problem}` ? String(p.problem) : L(`health.p_${p.problem}`);
+    const age = Number(p.age_minutes), limit = Number(p.max_age_minutes);
+    const detail = [p.entity_id,
+      Number.isFinite(age) && p.age_minutes !== null ? L("health.ago", { age: fmtMinutes(age) }) : L("health.no_age"),
+      Number.isFinite(limit) && p.max_age_minutes !== null ? L("health.limit", { limit: fmtMinutes(limit) }) : ""]
+      .filter(Boolean).join(" · ");
+    return healthRow(` data-health-input="${esc(p.input)}" data-tone="warn"`,
+      healthInputLabel(p.input), detail, pill("warn", word));
+  });
+  for (const [key, age] of Object.entries(a.input_ages_minutes || {})) {
+    if (bad.has(key)) continue;
+    rows.push(healthRow(` data-health-input="${esc(key)}" data-tone="ok"`, healthInputLabel(key),
+      L("health.ago", { age: fmtMinutes(Number(age)) }), pill("ok", L("health.fresh"))));
+  }
+  return rows.length ? `<h3 class="health-h">${esc(L("health.inputs"))}</h3>${rows.join("")}` : "";
+}
+
+function healthPlanHtml(plan) {
+  const age = planAge(plan, Date.now());
+  if (!age) return "";
+  const next = plan.statEntity("_next_optimization");
+  const due = next ? (Date.parse(next.state) - Date.now()) / 60000 : NaN;
+  const steps = plan.forecast(plan.resolveEntity("space")) || plan.forecast(plan.resolveEntity("dhw"));
+  const ms = Number(((plan.statEntity(HEALTH_STATUS_SUFFIX) || {}).attributes || {}).solve_time_ms);
+  const parts = [
+    Number.isFinite(due) ? (due > 0.5 ? L("health.next_solve", { age: fmtMinutes(due) }) : L("health.next_due")) : "",
+    steps && steps.length ? L("health.steps", { n: steps.length }) : "",
+    ms > 0 ? L("health.solve_time", { s: (ms / 1000).toFixed(1) }) : "",
+  ].filter(Boolean).join(" · ");
+  const stale = age.minutes > age.limit;
+  return `<h3 class="health-h">${esc(L("health.plan"))}</h3><div class="health-plan">` +
+    healthRow("", L("health.solved", { age: fmtMinutes(age.minutes) }), parts,
+      `<span class="status-pill tone-${stale ? "warn" : "ok"}">${esc(L(stale ? "health.stale" : "health.fresh"))}</span>`) +
+    `</div>`;
+}
+
+function healthLearningHtml(plan) {
+  const rows = HEALTH_WAITING.filter(([, sfx]) => (plan.statEntity(sfx) || {}).state === "unavailable")
+    .map(([id]) => healthRow("", L(`health.learn_${id}`), L(`health.learn_${id}_why`), ""));
+  return rows.length ? `<div class="health-learning"><h3 class="health-h">${esc(L("health.learning"))}</h3>${rows.join("")}</div>` : "";
+}
+
+function healthChecklistHtml(plan) {
+  const topo = plan.attrRaw("setup_topology", null);
+  const ages = (inputProblemState(plan) || { attributes: {} }).attributes.input_ages_minutes || {};
+  const assigned = (key) => !!((topo && topo.slots) || []).find((s) => s.key === key && s.entity) || key in ages;
+  const status = (plan.statEntity(HEALTH_STATUS_SUFFIX) || {}).attributes || {};
+  const items = [
+    ["price", Number(status.prices_available) > 0, ""],
+    ["weather", Number(status.weather_forecast_available) > 0, ""],
+    ["indoor", assigned("indoor_temp_entity"), ""],
+    ["control", assigned("heat_pump_switch_entity"), ""],
+    ["power", assigned("heat_pump_power_entity"), "assign"],
+    ["insight", false, "settings"],
+  ];
+  return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
+    `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
+    `<span class="adv-text">${esc(L(`health.check_${id}`))}</span>` +
+    (!done && act ? `<button type="button" class="adv-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
+      `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
+}
+
+function healthPageHtml(host) {
+  const plan = host.plan;
+  return `<div class="setup-page health-page">
+    <div class="health-cols">
+      <div class="health-col">${healthInputsHtml(plan)}</div>
+      <div class="health-col">${healthPlanHtml(plan)}${healthLearningHtml(plan)}</div>
+    </div>
+    <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
+      <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
+      <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    ${healthChecklistHtml(plan)}
+    <div class="setup-result" role="status"></div></div>`;
+}
+
 // ---- The sensor advisor page (#1269) ---------------------------------------
 //
 // Draws the `sensor_advisor` attribute the plan sensors publish: the
@@ -8162,7 +8450,7 @@ function attachAdvisorInbox(host, root) {
         host._render();
         host.whatIf.run();
         return;
-      } else if (act === "settings") {
+      } else if (act === "settings" || act === "diagnostics") {
         navigateTo(SETTINGS_PATH);
         return;
       } else if (act === "apply_valve") {
@@ -8214,6 +8502,7 @@ class ExpandedDialog {
     if (this.page === "setup") return "setup";
     if (this.page === "savings") return "savings";
     if (this.page === "advisor") return "advisor";
+    if (this.page === "health") return "health";
     return "plan";
   }
 
@@ -8242,7 +8531,7 @@ class ExpandedDialog {
 
   /** The dialog's markup: head, tabs, the legend when the plan page has
    * one, and `body` -- the page the host composed for `activePage()`. */
-  html({ title, legend, body }) {
+  html({ title, legend, body, pill }) {
     const page = this.activePage();
     const tab = (id, label) =>
       `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
@@ -8251,12 +8540,13 @@ class ExpandedDialog {
     return `
       <dialog class="expanded" aria-label="${esc(title)}">
         <div class="dlg-head">
-          <span class="title">${esc(title)}</span>
+          <span class="title">${esc(title)}</span>${pill || ""}
           <div class="dlg-tabs" role="tablist">
             ${tab("plan", esc(L("header.tab_plan")))}
             ${tab("setup", esc(L("header.tab_setup")))}
             ${tab("savings", esc(L("header.tab_savings")))}
             ${tab("advisor", esc(L("header.tab_advisor")))}
+            ${tab("health", esc(L("header.tab_health")))}
           </div>
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
@@ -12306,6 +12596,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
       statusSignature(this.plan, Date.now()),
       // The advisor inbox reads its own sensors (R9-UX-2).
       advisorSignature(this.plan),
+      // The Health page reads its own sensors, and its "ago" figures move
+      // with the clock while it is open (R9-UX-3).
+      healthSignature(this.plan, this.dialog.expanded && this.dialog.activePage() === "health" ? Date.now() : 0),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
       this.plan.awaySignature(),
       // A dark-mode toggle redraws the whatif result colours (D4-s1-01)
@@ -12458,6 +12751,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
             ? this._savingsPageHtml()
             : page === "advisor"
               ? advisorPageHtml(this)
+              : page === "health"
+              ? healthPageHtml(this)
               : anyData
                 ? `${stats}${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
                 : `<div class="empty">${L("errors.no_plan_data")}<br>
@@ -12465,6 +12760,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ${this.plan.diagnose("dhw")}</div>`;
       dialog = this.dialog.html({
         title: this._title(),
+        pill: healthPillHtml(this.plan),
         legend: page === "plan" && anyData ? this.legend.html(this._series, "dlg-") : "",
         body,
       });

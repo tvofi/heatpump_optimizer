@@ -10445,12 +10445,9 @@ check("without an indoor reading the corner now label is absent",
     /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
   const dg = mkHealth(healthStates());
   const hist = [];
-  const push = globalThis.history && globalThis.history.pushState;
-  globalThis.history = globalThis.history || {};
-  globalThis.history.pushState = (_a, _b, path) => hist.push(path);
+  ctx.history = { pushState: (_a, _b, path) => hist.push(path) };
   const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
   if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
-  globalThis.history.pushState = push;
   check("pressing it opens /config/integrations/integration/heatpump_optimizer",
     hist.includes("/config/integrations/integration/heatpump_optimizer"), JSON.stringify(hist));
   const pw = mkHealth(healthStates());
