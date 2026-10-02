@@ -23655,11 +23655,11 @@ def _pt_seams(docs: dict) -> "set[str]":
         for _job in ((_doc or {}).get("jobs") or {}).values():
             _steps = _job.get("steps") or []
             _pins = [_p for _s in _steps
-                     for _p in _pt_quoted_after(_s.get("run") or "", 'git checkout "$PINNED" --')]
+                     for _p in _pt_quoted_after(str(_s.get("run") or ""), 'git checkout "$PINNED" --')]
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
-                out |= {_g for _g in _PT_PROG.findall(_s.get("run") or "")
+                out |= {_g for _g in _PT_PROG.findall(str(_s.get("run") or ""))
                         if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
     return out
 
@@ -23668,12 +23668,12 @@ def _pt_armed(docs: dict) -> "set[str]":
     _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
     return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
             and str(_s.get("if", "")).startswith("${{ !cancelled() && steps.changed.outputs.governance")
-            for _g in _PT_PROG.findall(_s.get("run") or "")}
+            for _g in _PT_PROG.findall(str(_s.get("run") or ""))}
 
 
 def _pt_spec(docs: dict, wf: str, job: str, marker: str) -> "list[str]":
     return [_p for _s in docs[wf]["jobs"][job]["steps"]
-            for _p in _pt_quoted_after(_s.get("run") or "", marker)]
+            for _p in _pt_quoted_after(str(_s.get("run") or ""), marker)]
 
 
 _PT_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text())
@@ -23698,7 +23698,7 @@ R.check(
 # Null control: the same workflows with the arm's token removed leave the seam open.
 _PT_NULL = _pt_copy.deepcopy(_PT_DOCS)
 for _s in _PT_NULL["tests.yml"]["jobs"]["graders-head-copy"]["steps"]:
-    if "policy_lint.mjs" in (_s.get("run") or ""):
+    if "policy_lint.mjs" in str(_s.get("run") or ""):
         _s.pop("env", None)
 R.check(
     "and the arm without its token is refused (null control)",
