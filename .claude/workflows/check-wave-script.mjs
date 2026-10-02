@@ -1237,10 +1237,10 @@ await block('group 15 -- the readers the agreement lane imports are exported by 
   t('rulePaths is exported', typeof pl.rulePaths === 'function', `typeof ${typeof pl.rulePaths}`)
   const rule = '.claude/rules/gate-scoping.md'
   const raw = fs.readFileSync(path.join(here, '..', '..', rule), 'utf8')
-  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
-  const want = fm && /^paths:/m.test(fm[1]) ? (fm[1].match(/^[ \t]*-[ \t]*"/gm) || []).length : 0
-  const got = typeof pl.rulePaths === 'function' ? (pl.rulePaths(rule) || []).length : -1
-  t('and reads every declared path glob of a real rule (null control: the rule declares some)', want > 0 && got === want, `declared ${want}, read ${got}`)
+  // The parsed frontmatter, through the other exported reader of the same bytes.
+  const want = pl.parseRuleFrontmatter(raw, rule).paths
+  const got = typeof pl.rulePaths === 'function' ? pl.rulePaths(rule) : null
+  t('and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some)', want.length > 0 && JSON.stringify(got) === JSON.stringify(want), `declared ${JSON.stringify(want)}, read ${JSON.stringify(got)}`)
 })
 
 // The guard above is only worth having if it is actually called.
