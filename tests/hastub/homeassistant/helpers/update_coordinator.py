@@ -18,6 +18,7 @@ the 2025.2.0 floor it warns and continues, so skipping it changes nothing).
 """
 
 import asyncio
+from typing import Generic, TypeVar
 
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -130,7 +131,10 @@ class Debouncer:
         self._timer_task = loop.call_later(self.cooldown, self._on_debounce)
 
 
-class DataUpdateCoordinator:
+_DataT = TypeVar("_DataT")
+
+
+class DataUpdateCoordinator(Generic[_DataT]):
     def __init__(self, hass, logger=None, *, name=None, update_interval=None,
                  config_entry=None, always_update=True, **_ignored):
         self.hass = hass
@@ -297,7 +301,7 @@ class UpdateFailed(HomeAssistantError):
     """
 
 
-class CoordinatorEntity:
+class CoordinatorEntity(Generic[_DataT]):
     """Just enough of the real thing to construct an entity in a test."""
 
     def __init__(self, coordinator, context=None):
