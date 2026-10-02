@@ -24492,7 +24492,8 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
     return out
