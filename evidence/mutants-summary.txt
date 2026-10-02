@@ -1,0 +1,46 @@
+== M0:  ALL 2065 ENTITY CHECKS PASSED rc=0 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'restore_learned_snapshot__dup', 'run_optimization__dup']; missing
+== M1:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seeds, same seed same slice, cap 1
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'apply_topology__dup', 'restore_learned_snapshot__dup']; missing=[
+== M2:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seeds, same seed same slice, cap 1
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['assign_entity__dup', 'diagnose_interval__dup', 'restore_learned_snapshot__dup']; missing=[]
+== M3:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seeds, same seed same slice, cap 1
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_topology__dup', 'set_mode__dup', 'simulate_plan__dup']; missing=[]]
+== M4:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_schedule__dup', 'apply_topology__dup', 'set_mode__dup']; missing=[]]
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(written, survivors, empty, passed th
+== M5:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_topology__dup', 'diagnose_interval__dup', 'restore_learned_snapshot__dup']; missing=[
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(written, survivors, empty, passed th
+== M6:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'apply_topology__dup', 'clear_manual_plan__dup']; missing=[]]
+  FAIL the ledger writer may only add killed_by rows, and its job reddens a slice that did not land  [(row, modify+delete, outside) -> [[], [], ['?? tests/mutation_ledger
+== M7:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'apply_schedule__dup', 'set_away__dup']; missing=[]]
+  FAIL the ledger writer may only add killed_by rows, and its job reddens a slice that did not land  [(row, modify+delete, outside) -> [[], [' M tests/mutation_ledger/kil
+== M8:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['run_optimization__dup', 'set_away__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(written, survivors, empty, passed th
+== A1:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['set_mode__dup', 'set_thermal_parameters__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL the reporter watches exactly the lanes a pull request cannot see  [REQUIRED_LANES=['mutation-ledger', 'mutation-nightly', 'nightly-ha', 'slow'] schedule-only jobs 
+== A2:  ALL 2065 ENTITY CHECKS PASSED rc=0 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['diagnose_interval__dup', 'set_mode__dup', 'simulate_plan__dup']; missing=[]]
+== A3:  ALL 2065 ENTITY CHECKS PASSED rc=0 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['clear_manual_plan__dup', 'diagnose_interval__dup', 'run_optimization__dup']; missing=[]]
+== A5:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['assign_entity__dup', 'clear_manual_plan__dup', 'set_away__dup']; missing=[]]
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(written, survivors, empty, passed th
+== A6:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['diagnose_interval__dup', 'set_away__dup', 'set_mode__dup']; missing=[]]
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(written, survivors, empty, passed th
+== A7:  ALL 2065 ENTITY CHECKS PASSED rc=0 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'run_optimization__dup', 'set_mode__dup']; missing=[]]
+== A9:  1 of 2065 ENTITY CHECKS FAILED rc=1 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_schedule__dup', 'run_optimization__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL the reporter watches exactly the lanes a pull request cannot see  [REQUIRED_LANES=['mutation-nightly', 'nightly-ha', 'slow'] schedule-only jobs in tests.yml=['muta
+== A10:  ALL 2065 ENTITY CHECKS PASSED rc=0 
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_topology__dup', 'set_away__dup', 'simulate_plan__dup']; missing=[]]
