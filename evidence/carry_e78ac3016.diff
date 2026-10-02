@@ -1,0 +1,66 @@
+commit e78ac3016b1cca0085709c984ebf848ebb2af8f4
+Author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+Date:   Fri Oct 2 19:28:18 2026 +0000
+
+    ci: pin killed mutants
+
+diff --git a/tests/mutation_ledger/killed_by/binary_sensor.py/MoldFloorBreachBinarySensor._plan_outdoor_now.GUARD_OFF.383937cb.json b/tests/mutation_ledger/killed_by/binary_sensor.py/MoldFloorBreachBinarySensor._plan_outdoor_now.GUARD_OFF.383937cb.json
+new file mode 100644
+index 000000000..fcedd08be
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/binary_sensor.py/MoldFloorBreachBinarySensor._plan_outdoor_now.GUARD_OFF.383937cb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 383937cb",
++  "killed_by": "tests/entities.py",
++  "old": "        if not isinstance(forecast, list):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._build_data_dict.RETURN_DEL.54602010.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._build_data_dict.RETURN_DEL.54602010.json
+new file mode 100644
+index 000000000..2004ab8ab
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._build_data_dict.RETURN_DEL.54602010.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict RETURN_DEL 54602010",
++  "killed_by": "tests/env_drift.py",
++  "old": "        return cast(Payload, data)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/@module.GUARD_OFF.401f7540.json b/tests/mutation_ledger/killed_by/entity.py/@module.GUARD_OFF.401f7540.json
+new file mode 100644
+index 000000000..9b7fa01e8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/@module.GUARD_OFF.401f7540.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:<module> GUARD_OFF 401f7540",
++  "killed_by": "tests/structure.py",
++  "old": "if TYPE_CHECKING:  # coordinator imports this module",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: GUARD_OFF (`if False:  # coordinator imports this module`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity._data.RETURN_DEL.6eeeba7b.json b/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity._data.RETURN_DEL.6eeeba7b.json
+new file mode 100644
+index 000000000..8324fe2db
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity._data.RETURN_DEL.6eeeba7b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:HeatPumpOptimizerEntity._data RETURN_DEL 6eeeba7b",
++  "killed_by": "tests/entities.py",
++  "old": "        return self.coordinator.data or Payload()",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/WoodBurnAdvisorSensor._advice.RETURN_DEL.c131013f.json b/tests/mutation_ledger/killed_by/sensor.py/WoodBurnAdvisorSensor._advice.RETURN_DEL.c131013f.json
+new file mode 100644
+index 000000000..1f2f8cdd2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/WoodBurnAdvisorSensor._advice.RETURN_DEL.c131013f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:WoodBurnAdvisorSensor._advice RETURN_DEL c131013f",
++  "killed_by": "tests/entities.py",
++  "old": "        return dict(advice) if isinstance(advice, dict) else {}",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}

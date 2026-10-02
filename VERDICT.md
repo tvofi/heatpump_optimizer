@@ -1,34 +1,42 @@
-Fix review: blocked 0135f1ac582481049672becfe48fdaa5702397a2 ci-red: fast (3.14) is main's own red (8fa06663c fails the same always() check); mutation refuses the 5 unpinned sites this diff adds, which mutation-autofix could not pin because that red left the baseline inconclusive
+Fix review: blocked e78ac3016b1cca0085709c984ebf848ebb2af8f4 root-cause-unanswered: mutation went red at 0135f1ac and 6cbc5661 (5 unpinned sites, repaired by the mutation-autofix carry e78ac301) and fast went red at 0135f1ac (main's always() red), unnamed in the body; body-only, no head change owed
 
-bus-nonce: 241d230e3b3b1af4d2a69bece889303f
+bus-nonce: 1b9464d79aeded3883e0169b8789a8b6
 
-Round 3. PR #1852 (R9-EG-B3a, Part of #1737). Measured head `0135f1ac582481049672becfe48fdaa5702397a2` (code `02603da35d0871c53d790b47ac5b4d7bdaf2a9b1`). The live head was re-read when this verdict was posted and had not moved. The evidence directory names the head. Round 3 changed no production code (`git diff 684b5a1e3 02603da35 -- custom_components` is empty), so the round-2 contract results (census, probe, EG-B3, goldens) carry over unchanged.
+Round 4. PR #1852 (R9-EG-B3a, Part of #1737). Measured head: `e78ac3016b1cca0085709c984ebf848ebb2af8f4`, the live head when I posted. It is the dispatched head `6cbc566164a4fbccac3df36ce0ea566474e1538a` plus the `mutation-autofix` commit `ci: pin killed mutants`, which I reviewed as a carry, as the dispatch asked. **The nonce was minted for 6cbc5661, so the orchestrator should expect `BUS undispatched` for e78ac301 and re-dispatch if the bus requires it.** The evidence directory names both heads.
 
-**The fixer's work is complete. Nothing in the PR is wrong.** The block is two red gate checks. The first is main's. The second follows from it, and the PR cannot clear it until main is green.
+**The code is ready.** Every gate check is green at e78ac301. What is owed is one paragraph in the body, plus `## Head` naming the current head. After that edit, the same head can take `merge`.
 
-## Items owed from round 2: all delivered
+## The resolution delta and the carry
 
-1. **`payload.py` classified.** It is now listed in the 17 closures CI's Linux recording names, and the hand merge adds exactly those 17 lines and nothing else. **CI's `closures` check at this head: success**, so the hand merge is accepted. `closures-autofix`: skipped (nothing to repair). `closure-scope`: success.
-2. **`docs/architecture.md`.** Now 68 modules (25 importing Home Assistant at module level, 42 free of it) and `payload.py` is in the module map. The `D6/claims.py` header and its committed output say 68, and the `deployment_shape.py` cost note is re-derived. At this head, CI's `entities.py` and `harness_headers.py` no longer print any of the round-2 failures.
-3. **qs_rules.** The harness pattern changed to a prefix; the class line did not. I ran it: `RESULT declared_mismatch=0` at the head. Null control: with the entity base swapped to `Entity`, it reads `declared_mismatch=1` (`executed:todo/declared:done`). See `evidence/qs_rules_r3.out`.
-4. **Mutation pin.** The stale `_data RETURN_DEL 35920c59` pin is removed. The body says the ledger normalises with no other file moved. CI's mutation table now reports that "the ledger agrees with the deterministic inventory", so the round-2 refusal is gone.
-5. **Root cause in the body.** Every round-2 red is named and answered. The cause given is that derived figures were not updated. The process state given is (c). The body names a cheaper detector: `entities.py`, `harness_headers.py` and `deployment_shape.py` run locally in about 5 minutes with an existing venv. The countermeasure proposed is a change to SEAT-BLOCK.md, which is the orchestrator's to make, with a cost test. This answers the red-check trigger.
+- **6cbc5661 = 0135f1ac + origin/main `aa7a81192`** (hotfix #1859). `git merge-tree --write-tree 0135f1ac5 aa7a81192` gives tree `12de0e13e4f1…`, identical to the head's tree, so the merge is fully automatic with no hand resolution. The PR's three-dot diff is unchanged (16 files).
+- **e78ac301, carry (`ci: pin killed mutants`, github-actions[bot]).** It touches 5 `tests/mutation_ledger/killed_by/` files and nothing else (`evidence/carry_e78ac3016.diff`). It pins exactly the 5 sites the round-3 table named as added by this diff:
+  - `binary_sensor.py` `_plan_outdoor_now` GUARD_OFF, killed by `entities.py`
+  - `coordinator.py` `_build_data_dict` RETURN_DEL `return cast(Payload, data)`, killed by `env_drift.py`
+  - `entity.py` `<module>` GUARD_OFF `if TYPE_CHECKING`, killed by `structure.py`
+  - `entity.py` `_data` RETURN_DEL, killed by `entities.py`
+  - `sensor.py` `_advice` RETURN_DEL, killed by `entities.py`
 
-## Red at this head (check-runs API, `evidence/check_runs_r3.tsv`; logs in `evidence/ci/`)
+  Each pin was recorded `rc=0 failed=0 → rc=1 failed=1` against `aa7a81192`.
 
-- **`fast (3.14)`: `tests/entities.py` fails 1 of 2074 checks**, "no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)", naming `tests.yml:mutation-ledger` and `tests.yml:mutation-ledger-push`. **This is main's red, not this PR's.** The PR does not touch `.github/`. On main, `f268e3ab2` (#1848) added those two jobs with a job-level `always()`, and `179a8c2a4` added the check that forbids that. Main's own head `8fa06663c` fails `fast (3.14)` on the same single check, 1 of 2071 (`evidence/ci/main_fast.log`, `evidence/main_8fa06663_check_runs.tsv`). The PR's check run shows it because CI tests the merge with current main.
-- **`mutation`: `MUTATION TABLE REFUSED`, 3913 unpinned sites against 3909 at base `8fa06663c`, 5 of them added by this diff.** The 5 are all this PR's lines: `binary_sensor.py:222` GUARD_OFF, `coordinator.py:7616` RETURN_DEL (`return cast(Payload, data)`), `entity.py:30` GUARD_OFF (`if TYPE_CHECKING`), `entity.py:197` RETURN_DEL (`_data`), and `sensor.py:2898` RETURN_DEL (`_advice`). The pin-killed pass in the same job printed `MUTATION TABLE INCONCLUSIVE`, because the baseline is already red in `tests/entities.py`. That is main's red above: the long list of `a3:`/`a4:` lines it prints is the negative controls inside entities.py, and the one real failure is the `always()` check. So no mutant was measured.
-- **`mutation-autofix`: `skip-measure-failed`, "THE REPAIR DID NOT HAPPEN"** (0 anchors). It follows directly from the red above.
+## CI at e78ac301 (`evidence/check_runs_e78ac301.tsv`, `workflow_runs_e78ac301.tsv`)
 
-**What clears it:**
-1. Main fixes its `tests.yml` `always()` conflict, between #1848 and #1854's check. That is outside this PR.
-2. This PR merges main in. `mutation-autofix` then pins the 5 sites on Linux. If it does not, run `tests/mutation_table.py --pin-killed --base origin/main` on Linux.
-3. The body names the new head's reds, and only if any remain. A fast red that is still main's carries the `check-main-before-your-diff` answer.
+- **Everything that ran is green:** `fast (3.14)`, `mutation`, `typing`, `closures`, `coverage`, `coverage-ratchet`, `env-matrix`, `recheck-gate`, `nightly-ha (2025.2.0, stable)`, `budget-raise-gate`, `delivery-status`, `policy-docs`, `instrument-self-tests`, `wave-script`, `hassfest`, `validate-hacs` and CodeQL. These Tests results come from a `workflow_dispatch` run on this head.
+- **The `pull_request` runs of `Tests` and `PR contract` at e78ac301 are `action_required`:** the bot's push is waiting for approval, so **`pr-contract` (the body check) has not run at this head.**
 
-I expect no code change from the fixer. That new head is a main-merge plus a pin commit. Under `fix-review.md` step 12, a main merge comes back to me as its resolution delta.
+## What the body owes (the red-check trigger, `fix-review.md` step 11, "the head's runs are not the range's")
 
-## Recorded as asked
+The body's `## Red checks` answers the four reds at 29b763d7, but nothing after them. These reds in the range are unnamed:
 
-- **The previous head's Tests run** (29b763d7, run 37026062126) shows **completed / failure, attempt 1, updated 2026-10-02T16:16:10Z. It is not cancelled.** It ran to completion before #1854 merged (`evidence/prior_head_tests_run.tsv`).
-- At this head, `pr-contract` has one `cancelled` run (superseded) and one `success`. `typing`, `coverage`, `coverage-ratchet`, `browser`, `briefs` and `nightly-status`: success.
-- This is round 3. Under the three-round rule a fourth round owes a re-cut body. The block here is not a defect in the body or the code, so whether that rule applies is the orchestrator's call.
+1. **`mutation` at 0135f1ac5 and at 6cbc5661 (`MUTATION TABLE REFUSED`, 5 unpinned sites added by this diff).** This is the killed-unpinned case that `ci-autofix.md` assigns to `mutation-autofix`. It was repaired by carry `e78ac301`, and naming it is the answer.
+2. **`mutation-autofix` at 0135f1ac5 (`skip-measure-failed`).** It followed from item 3, which made the pin baseline inconclusive.
+3. **`fast (3.14)` at 0135f1ac5.** One `entities.py` check, "no job-level `if` leads with `always()`", naming `tests.yml:mutation-ledger` and `-push`. It was main's red: main's own `8fa06663c` failed the same check, the PR touches no `.github/`, and hotfix #1859 (`aa7a81192`) fixed it.
+4. `nightly-status` at 6cbc5661: "NIGHTLY ABSENT: mutation-ledger, mutation-ledger-push did not run in that scheduled run". This is **not this PR's** (step 11: the diff reaches no script, job, plan, HANDOVER or delivery row other than its own), and the check is unrequired. Naming it is optional. It reads skipped at e78ac301.
+
+Also update `## Head` to name `e78ac3016b1cca0085709c984ebf848ebb2af8f4` as the PR head (the autofix carry on 6cbc5661). Then approve the held `pull_request` runs so `pr-contract` judges the body at this head. Neither step changes the head, so this verdict's measurements carry and I would return `merge` on the same SHA.
+
+## Carried from earlier rounds (no production change since round 2)
+
+- Contract: census 0 errors, my probe inverts as designed, golden type mismatches 0, EG-B3 at 173 = 173 (null control red against round-1 `payload.py`).
+- Round-3 owed items all delivered: the qs_rules null control holds; `closures` is green with the hand-merged recordings; the architecture figures are right.
+- B3b carries: the enumeration check's missed patterns, the `handover` store, the 23 `dict[str, object]` keys, and the overstated `untyped_payload_keys` figure.
+- Fourth round: under the three-round rule, a re-cut body is owed from here. The edit above is that re-cut, and only the red-check and head sections change.

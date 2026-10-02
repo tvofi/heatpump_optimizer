@@ -1,0 +1,11 @@
+Budget raise gate	pull_request	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334662
+CodeQL	pull_request	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334682
+CodeQL	workflow_dispatch	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054341676
+Governance	pull_request	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334526
+Hassfest	pull_request	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334666
+Hassfest	workflow_dispatch	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054333450
+PR contract	pull_request	completed	action_required	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334640
+Tests	pull_request	completed	action_required	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334721
+Tests	workflow_dispatch	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054329784
+Validate	pull_request	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054334689
+Validate	workflow_dispatch	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37054338184
