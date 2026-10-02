@@ -2054,7 +2054,11 @@ def _site_requests(tags: list[tuple]) -> list[tuple[str, str]]:
 
 
 def _site_css_external(css: str) -> list[str]:
-    return [m.group(1) for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", css) if _site_external(m.group(1))]
+    """Every other-origin URL a stylesheet names: @import (either form), url() in any case, image-set() candidates."""
+    found = [m.group(1) for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", css, re.I)]
+    for m in re.finditer(r"image-set\(([^;{}]*)\)", css, re.I):
+        found += re.findall(r"['\"]((?:[a-z][a-z0-9+.-]*:|//)[^'\"]*)['\"]", m.group(1), re.I)
+    return [u for u in found if _site_external(u)]
 
 
 def subpage_findings(src: str, root: pathlib.Path = ROOT) -> list[tuple[str, str]]:
@@ -2356,6 +2360,8 @@ def check_site_request_controls() -> None:
             card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
     for name, css in (
         ("a Google Fonts @import", '@import url("https://fonts.googleapis.com/css2?family=Outfit");\n'),
+        ("an uppercase URL() font", '@font-face{font-family:X;src:URL("https://fonts.gstatic.com/x.woff2")}\n'),
+        ("an image-set() string candidate", '.a{background:image-set("https://cdn.example.com/a.png" 1x)}\n'),
         ("a third-party @font-face src", '@font-face{font-family:X;src:url(https://fonts.gstatic.com/x.woff2)}\n'),
     ):
         with tempfile.TemporaryDirectory() as tmp:
