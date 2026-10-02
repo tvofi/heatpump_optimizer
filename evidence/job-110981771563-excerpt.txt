@@ -1,0 +1,27 @@
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-02T18:51:59.3583655Z   clean: true
+nightly-status	Report the last scheduled run's conclusion	﻿2026-10-02T18:52:02.1215472Z ##[group]Run set -euo pipefail
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1517505Z shell: /usr/bin/bash -e {0}
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1517868Z env:
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1518084Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1518396Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1518662Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1519002Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1519323Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1519566Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1521412Z   GITHUB_TOKEN: ***
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1521589Z   PINNED: aa7a81192325614999803e40e3cedc024e22ce2b
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:02.1521807Z ##[endgroup]
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4227079Z NIGHTLY ABSENT: nothing failed, but mutation-ledger, mutation-ledger-push did not run in that scheduled run (last night).
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4227937Z   scheduled run 36984959667, 2026-10-02T08:36:04+00:00, head 492d840, run conclusion 'success'
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4228450Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/36984959667
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4229170Z   (run 37050037132 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4229990Z   A lane that was skipped or renamed away reported nothing, and nothing is not a pass. Green here would mean this check had stopped watching the thing it was written for.
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4230499Z 
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4231218Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4232035Z 
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4232284Z A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4233013Z     gh workflow run tests.yml --ref main
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4233640Z and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4234600Z If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+nightly-status	Report the last scheduled run's conclusion	2026-10-02T18:52:06.4320085Z ##[error]Process completed with exit code 1.
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-02T18:52:06.4424499Z Post job cleanup.
