@@ -1,3 +1,1 @@
-head measured: c9d6168cae2be1b967848bf435238fb3cf7af8b3 (code 486b397a2ea758f605d753599d0c6971ea2adb7c + origin/main aab94eea2 + docs/delivery/1851.md)
-merge base: aab94eea2211b41a224fd23980e084e77c529ec0; origin/main at review time: aab94eea2211b41a224fd23980e084e77c529ec0
-reviewer worktree: /Users/timmalmstrom/hpo-seats/1851-review/wt (detached at the head)
+8527dbc2146afdc6ddc0d801518f6cf70094fd13

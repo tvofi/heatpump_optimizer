@@ -1,42 +1,40 @@
-Fix review: blocked c9d6168cae2be1b967848bf435238fb3cf7af8b3 closures: tests/arch_score.py's recorded closure omits tests/structure.py, which its full run measures through, so a structure.py-only diff skips it while moving two pinned verdicts
+Fix review: blocked 8527dbc2146afdc6ddc0d801518f6cf70094fd13 root-cause-unanswered: fast (3.14) went red, unanswered (entities.py's deployment-shape lane, #1218: tests/arch_score_head.py's closure is a second full-coverage closure; the PR's own red, at e5301f5e and again at this head)
 
-bus-nonce: c9f40ab86223536d213a4384045b620f
+bus-nonce: 880f4b3b1d176048c6706e898ec69708
 
-Round 1. PR #1851 (R9-EG-A1), head c9d6168cae2be1b967848bf435238fb3cf7af8b3 (live head re-read 2026-10-02T14:48:40Z, unchanged). Evidence: evidence/ev-c9d6168c/ (HEAD.txt names the head).
+Round 3. PR #1851 (R9-EG-A1), head 8527dbc2146afdc6ddc0d801518f6cf70094fd13 (live head re-read 2026-10-02T17:45:07Z, unchanged). Evidence: evidence/ (HEAD.txt names the head). Reviewed from a detached worktree at the head. The C3 class question is closed by tvofi's ruling (option B) and not re-litigated here. From the next round the fixer owes a re-cut body (fixer.md).
 
-## Blocking 1 -- closure under-recorded (focus 1)
+## The round-3 delta (cb1d68eb6): it does what the ruling asked
 
-`tests/arch_score.py`'s closures.json entry (79 files) does not list `tests/structure.py`. Its full run reads that file: `vector.load_structure` loads `REPO/tests/structure.py` (working tree) for every planted and red-team case, but it does so inside `calibrate`'s `multiprocessing.get_context("spawn").Pool` children. The audit hook does not see those reads, and the closure is recorded with `--smoke`, which never calls `vector.measure` at all. The `smoke()` docstring already concedes "a script runs as a child process, whose own reads the recorder does not see", and covers the planted helpers by parsing them, but not structure.py. The PR states the dependency itself: `_is_archscore`'s docstring ("measures through tests/structure.py") and the run.sh comment ("Scoped to the score's own files and structure.py").
+1. ABOUT.md "Known limit: interleaved effect-free statements" is present. It says that C3 enumerates spellings and that the class is open. It names rt_04h/i/j as KNOWN-OPEN, tells a reviewer to read a duplication-driven IMPROVES against the diff, and owes the class fix to R9-EG-A2. That is accurate, with one exception: "the same delta-S as `id(N)` gave" is not re-derived. The three spellings read +14.1502, which is the uncharged `pass` figure. The body's own table gives `id(N)` (rt_04) +32.01. My C3-ablated re-run of rt_04 was stopped at its time limit, so the phrase is UNVERIFIED and contradicts the body's figure.
+2. RESULT rt_04h_dup_assert_uncharged KNOWN-OPEN IMPROVES admissible +14.1502; rt_04i_dup_assign_uncharged likewise; rt_04j_dup_walrus_uncharged likewise. Each is pinned in expected.json at IMPROVES/KNOWN-OPEN.   (calib-summary.txt)
+3. tests/arch_score.py: `games` is filtered to label == "GAME", and a new check pins `len(known) == 3` and all IMPROVES. Mutants, replayed against the same recorded collection (cached_run.py is my driver, not the fixer's). The control M0 is the unmodified copy: ALL 139 PASSED.
+   - RESULT M1 games filter widened to GAME+KNOWN-OPEN: KILLED, "no red-team attempt reads IMPROVES" FAIL [rt_04h, rt_04i, rt_04j]
+   - RESULT M2 known check expects != IMPROVES: KILLED
+   - RESULT M3 known check expects 4: KILLED
+   - RESULT M4 rt_04h relabelled GAME (a KNOWN_OPEN entry dropped): KILLED, 3 FAIL (row pin, no-IMPROVES, known count)
+   - The known check partly duplicates the per-row "classifies as recorded" pins. What it adds alone is the count, which M3 shows is live.
+4. RESULT CALIBRATION 77/103 labelled cases classify as their label says. RESULT GAME 23: NULL admissible 12 and WORSENS inadmissible 11, none IMPROVES. RESULT expected.json vs e5301f5e: the only diff is the three added KNOWN-OPEN rows, and _sensitivity is unchanged. No other verdict moved.
+5. RESULT full `tests/arch_score.py` at this head, run locally after the main merge: ALL 139 ARCHITECTURE SCORE CHECKS PASSED, rc=0, real 355.6s (arch_score_full.txt). CI agrees: fast (3.14) job 110933687925 prints "ALL 139 ARCHITECTURE SCORE CHECKS PASSED" and "ALL 4 ARCHITECTURE SCORE HEAD CHECKS PASSED", and arch_score.py takes 580s there.
+- Forward-carry: present in R9-EG-A2's brief on handoff/audit-r9-fixplan (0ae4eb67d). It names the three spellings and states the fix, the flip to NULL/inadmissible and the re-calibration as owed.
+- VERSION, the manifest and RELEASE_NOTES.md are untouched (three-dot diff). `git merge-tree --write-tree origin/main HEAD` exits 0.
 
-RESULT select(['tests/structure.py']) -> scoped, tests/arch_score.py run: False; tests/arch_score_head.py run: True   (evidence/select-probe.txt)
-RESULT baseline at head: a1_B1_copy_cross_module WORSENS (dup 59->60), a1_G2_dedupe IMPROVES, rt_04 NULL   (calib-dup-baseline.txt)
-RESULT tests/structure.py DUP_WINDOW_STATEMENTS 2->6 only: a1_B1_copy_cross_module MOVED WORSENS->NULL, a1_G2_dedupe MOVED IMPROVES->NULL   (calib-dup-mutant-window6.txt)
+## Blocking: fast (3.14) is red, and the red is this PR's
 
-So a PR that edits only structure.py moves pinned verdicts in `expected.json` that arch_score.py would refuse, but the scoped gate does not run arch_score.py. `arch_score_head.py` is selected, but it checks only that metrics are numbers and that a tree compared with itself reads NULL, so it cannot see a verdict move. The forced FULL on the push to main is what finds it: main goes red one merge later. CI's `closures` job re-derives the same way (`rec tests/arch_score.py --smoke`), so it agrees with the under-record and cannot flag it. This is not a Darwin-vs-Linux artefact. Fix: add `tests/structure.py` (and anything else that measure-in-child reads: the metrics modules are already listed) to the recording. Do this by having `--smoke` measure one tree in-process, or have the smoke path import `vector.load_structure(...)` once. Then show the select probe above returning True.
+RESULT check-runs at 8527dbc2: every check is success, skipped or neutral except fast (3.14), which is a failure (job 110933687925, MODE: FULL). "1 TEST SCRIPT(S) FAILED" = tests/entities.py, "2 of 2062 ENTITY CHECKS FAILED":
+- `the deployment-shape lane's closure is the whole tracked package, so any production diff selects it (#1218)`. It asserts `_D308_FULLCOV == [tests/deployment_shape.py]`, and the result is full-coverage closures=['tests/arch_score_head.py', 'tests/deployment_shape.py'].
+- `and the lane's docstring records those measured numbers as the selection-cost note (#1218)`, with missing markers ['90 of the 435', '325 pairs'].
 
-## Blocking 2 -- red-team class open: C3 (focus 3)
+Attribution:
+- The same two checks fail at the previous head e5301f5e (job 110916401839).
+- The merged base 5f87e25a is green on fast (3.14) (job 110927136599).
+- Current main 8fa06663 is red on a different check: `no job-level if leads with always()` (job 110936760309). That red is main's, not this PR's.
 
-C3 is stated as "an effect-free statement does not split a clone". `counters.is_noop` drops only `ast.Expr` of a constant, name, attribute or pure-builtin call. A `pass` statement is effect-free and is not dropped. My own attempt (evidence/rt_14..16, built from rt_04 with `pass` in place of `id(N)`; it is the reviewer's instrument, not the finder's or the fixer's):
+The cause is in this diff: `tests/arch_score_head.py` reads the whole package, so it is a second full-coverage closure, and the #1218 note's derived numbers no longer match. The body has no Root cause section, and its only mention is "tests/entities.py ... the gate is CI's". The check also has to go green, not only be answered. Either amend the #1218 lane to admit arch_score_head.py with a re-derived note, or narrow arch_score_head.py's closure.
 
-RESULT rt_14 (pass everywhere): WORSENS, inadmissible, delta-S +16.24, stopped only by the coord_footprint gate (2512->2517), not by a counter
-RESULT rt_15 (coordinator.py skipped): WORSENS, delta-S +14.81, coord_footprint 2512->2513
-RESULT rt_16 (coordinator.py and footprint-charged functions skipped; 71 `pass` lines in 13 modules, 52 functions): IMPROVES, admissible, delta-S +14.15, duplication_copies+14.150   (calib-reviewer-game16.txt, rt16-tree.diff)
+## Owed in the same push (would not block alone; listed so round 4 is the last)
 
-That is an admissible IMPROVES from pure junk, which is the shape the PR's check "no red-team attempt reads IMPROVES" exists to refuse. Fix: widen `is_noop` to the class (at least `pass`, `...`, and a bare constant or name expression in any position; consider any statement with no Store/Call), and add `pass` as a red-team case.
-
-## Passed
-
-- Counter ablation (my own): rt_04 at head NULL; with ARCHSCORE_ABLATE=C3 it reads IMPROVES +32.0057. This matches the body's +32.01, so C3 is load-bearing for `id(N)`.   (calib-reviewer-game.txt, calib-ablate-C3.txt)
-- Null control: rt_00_null_rename NULL at head.
-- Gate edits (focus 2): `_is_archscore` only removes files from INERT, so a touched archscore file must hit a closure or force FULL. Nothing that ran before is skipped now. The run.sh and derive_closures.sh edits add two lanes and nothing else. All 72 non-.md archscore files are in some closure (no orphan). The one scoping hole is Blocking 1.
-- Template deletions (focus 4), each restated elsewhere at this head:
-  - "Every cost, gain or timing claim needs one" is in `tools/audit/briefs/fixer.md:36` ("Every quantified claim carries a null control, not only cost, gain and time").
-  - "A pull-request comment is not propagation" is in `.claude/rules/finding-propagation.md:33-35` ("A comment is not propagation").
-  - "CI compares it with the head it ran" is in `.claude/workflows/policy_lint.mjs:5978`, the pr-contract check that `## Head` names the head it ran on.
-- Forward-carry: the R9-EG-A2 and A3 briefs on handoff/audit-r9-fixplan (255cc4fe0) already name `python3 tools/audit/archscore/score.py --diff <merge base>`, and A2 maps dup_pairs_v1 to duplication_copies. B1, B2, B3, B6, B7 and B11 cite the in-tree command. B5 cites the pre-study only as a known limit. A4 cites neither.
-- VERSION, manifest, RELEASE_NOTES and the claim files are untouched. `git merge-tree --write-tree origin/main HEAD` rc=0.
-- weights hash, template caps and the 77/103 total are not re-derived by me; they are not verified here.
-
-## CI at the head (focus 5 and step 11)
-
-These are check-runs at c9d6168 as of 14:41Z (check-runs.json). Every completed run is success, neutral (CodeQL) or skipped. Two cancelled duplicates (pr-contract, budget-raise-gate) were each superseded by a success. "Tests" run 37020976777 is still `pending` with 0 jobs at 14:48Z, so closures, fast, mutation and the calibration's CI runtime are not yet measurable. The calibration runtime on CI (focus 5) is UNVERIFIED. The body's local figure is about 14 min at 4 workers, and arch_score.py now runs in lane_units on every FULL run and every selection. I will re-take this when Tests completes, in the next round.
+- ABOUT.md, in the calibration section: "All 17 red-team attempts read NULL or inadmissible." This is false at this head. There are 23 GAME attempts, and 3 more red-team attempts read IMPROVES admissible. The sentence contradicts the new Known-limit section in the same file.
+- calibrate.py's report prints "RED TEAM 23/23 attempts read NULL or inadmissible; IMPROVES: none" and says nothing about KNOWN-OPEN. A reader of the instrument's own report does not see the documented limit. Add a KNOWN-OPEN line.
+- Body: "passes at this head, 135 checks" should be 139. "23 of 23 red-team attempts read NULL or inadmissible; none reads IMPROVES" needs the scope "attempts labelled GAME", as the Round-3 paragraph already says.
+- ABOUT.md "the same delta-S as id(N) gave": see item 1.
