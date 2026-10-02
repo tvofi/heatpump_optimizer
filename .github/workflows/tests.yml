@@ -1484,11 +1484,15 @@ jobs:
           # --partial drops one check and one only: "a selectable script with
           # no recording at all", which a scoped re-derive fails by
           # construction. The under-approximation comparison -- the thing this
-          # job exists for -- is identical on both paths.
+          # job exists for -- is identical on both paths. The output goes to
+          # check.txt in the uploaded recordings: closures-autofix runs the
+          # base's closure.py, and reddens where this one printed UNDER-SCOPED
+          # and that one did not (#1846).
+          set -o pipefail
           if [ "$SCOPE_CASE" = "scoped" ]; then
-            python tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
           else
-            python tests/closure.py check --in-dir "$RUNNER_TEMP/closures"
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
           fi
 
       - name: Fail if a test file re-implements a production symbol
