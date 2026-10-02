@@ -1,0 +1,11 @@
+UNDER-SCOPED: tests/arch_score.py really reads 1 file(s) the committed closure does not list:
+    tests/structure.py
+note: tests/card_drift.mjs lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+
+1 closure(s) are stale. Re-derive the named script:
+    ./tests/derive_closures.sh --single <script>
+and commit tests/closures.json. A full derive_closures.sh off
+Linux replaces node-lane recordings; --single cannot shrink them.

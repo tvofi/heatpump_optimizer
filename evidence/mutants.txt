@@ -1,0 +1,22 @@
+H:  -> 2 of 2065 ENTITY CHECKS FAILED
+M1-guard: 1	1	tests/closure.py  -> 2 of 2065 ENTITY CHECKS FAILED
+M2a-thisstep-pipefail: 1	1	.github/workflows/tests.yml  -> 3 of 2065 ENTITY CHECKS FAILED
+M2c-decoy-other-two: 2	2	.github/workflows/tests.yml  -> 2 of 2065 ENTITY CHECKS FAILED
+M2b-scoped-arm-tee: 1	1	.github/workflows/tests.yml  -> 3 of 2065 ENTITY CHECKS FAILED
+M6-pipefail-commented: 1	1	.github/workflows/tests.yml  -> 2 of 2065 ENTITY CHECKS FAILED
+          # job exists for -- is identical on both paths. The output goes to
+          # check.txt in the uploaded recordings: closures-autofix runs the
+          # base's closure.py, and reddens where this one printed UNDER-SCOPED
+          # and that one did not (#1846).
+          if [ "$SCOPE_CASE" = "scoped" ]; then
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+          else
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+          fi
+          set -o pipefail
+
+M7-pipefail-after-fi: 1	1	.github/workflows/tests.yml  -> 2 of 2065 ENTITY CHECKS FAILED
+M3-quiet: 1	1	tests/closure.py  -> 2 of 2065 ENTITY CHECKS FAILED
+M8-loose-predicate: 1	1	tests/closure.py  -> 2 of 2065 ENTITY CHECKS FAILED
+
+[exited with code 0]
