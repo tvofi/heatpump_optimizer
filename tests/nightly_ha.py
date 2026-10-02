@@ -126,7 +126,6 @@ import sys
 import tempfile
 import threading
 import time
-import traceback
 import types
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -1764,8 +1763,14 @@ class LoopHeartbeat:
                     self.dumps.append(self.dump(stalled))
 
     def dump(self, stalled: float) -> str:
-        frame = sys._current_frames().get(self._loop_tid)
-        stack = "".join(traceback.format_stack(frame)) if frame else "<no loop frame>\n"
+        # Frame attributes only: format_stack reads every source file through
+        # linecache, which held this thread past the end of a 0.6 s stall.
+        frame, lines = sys._current_frames().get(self._loop_tid), []
+        while frame is not None:
+            code = frame.f_code
+            lines.append(f'  File "{code.co_filename}", line {frame.f_lineno}, in {code.co_name}\n')
+            frame = frame.f_back
+        stack = "".join(reversed(lines)) or "<no loop frame>\n"
         text = f"stall >= {stalled * 1000:.0f} ms; loop thread:\n{stack}"
         if self.py_spy:
             try:
