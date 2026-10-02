@@ -5,15 +5,15 @@
  "coordinator_private_reach": 74,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
- "duplication_copies": 60,
+ "duplication_copies": 59,
  "functions_cc_over_15": 34,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 48,
  "max_class_loc": 8989,
- "max_method_loc": 386,
+ "max_method_loc": 385,
  "methods_over_150": 18,
- "methods_over_200": 11,
+ "methods_over_200": 10,
  "recorded_at": "c168ec0ad583e040aa6446710d49f666f046a0a2",
  "seam_cut_total": 776
 }
