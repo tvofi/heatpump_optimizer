@@ -38,7 +38,10 @@ exit 0 only when the owner's latest decisive review (APPROVED,
 CHANGES_REQUESTED or DISMISSED; a COMMENTED review decides nothing) is APPROVED
 and was submitted on this exact head SHA, by the login AND numeric id AND
 account type pinned below, and does not say in its own body that an agent gave
-it (AGENT_DECLARED below). Anything else, a failed API read included, is exit 1.
+it (AGENT_DECLARED below) -- or, if it does, cites one mandate the owner
+recorded on #201 that covers budget raises and was in force when the review
+was submitted (MANDATE_GRAMMAR, mandate_check). Anything else, a failed API
+read included, is exit 1.
 
 WHAT IT DOES NOT SEE. A ledger disposition (`survivor_triage`, `killed_by`)
 is a per-site record, not a cap, and is `free` here: an `equivalent` verdict
@@ -57,6 +60,7 @@ cannot edit the gate that grades it; the workflow re-runs it on
 """
 from __future__ import annotations
 
+import datetime
 import fnmatch
 import json
 import math
@@ -85,7 +89,26 @@ OWNER_TYPE = "User"
 AGENT_DECLARED = re.compile(
     r"orchestrator|\bseats?\b|\bmandate\b|\b(?:on|under) tvofi's|on behalf of|delegat"
     r"|claude\.ai/code|generated (?:by|with) \[?claude", re.I)
+# The owner's recorded mandate (tvofi, 2026-10-02, amending the refusal above):
+# an agent may approve as tvofi, openly, while a mandate tvofi wrote is in
+# force. The record is a comment on the tracking issue by the pinned owner
+# account, read from the API at run time; no copy in the tree is trusted. Its
+# first line is MANDATE_GRAMMAR, and a comment edited at any time grants
+# nothing (anyone with write access can edit it and its author stays tvofi).
+# Any later comment by the same account that names the id beside any form of
+# "revoke" voids it (MANDATE_REVOKED): the grant is strict and the kill switch
+# loose, because over-revoking fails safe. An agent's review names the id, as
+# "mandate <id>" or as the comment's `issuecomment-<id>` URL, and that word
+# keeps it declared an agent's: authorship is never hidden to pass.
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
+MANDATE_ISSUE = 201
+MANDATE_ISSUE_URL = f"/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}"
+MANDATE_GRAMMAR = re.compile(
+    rf"MANDATE: agents may approve as {OWNER_LOGIN}, scope (code-owned|budget-raise|all), "
+    r"from (\S+) until (\S+)")
+MANDATE_REVOKED = re.compile(r"revok", re.I)
+MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:? #?(\d{6,})\b|issuecomment-(\d{6,})\b", re.I)
+MANDATE_COVERS_RAISE = ("budget-raise", "all")
 SUFFIX = "_budgets.json"
 
 FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
@@ -252,31 +275,110 @@ def file_raises(path: str, old_text: str | None, new_text: str | None,
     return out
 
 
-def approval(reviews: list[dict], head: str) -> tuple[bool, str]:
+def _is_owner(user) -> bool:
+    user = user or {}
+    return (user.get("login") == OWNER_LOGIN and user.get("id") == OWNER_ID
+            and user.get("type") == OWNER_TYPE)
+
+
+def _when(text):
+    """An ISO 8601 instant with a zone, or None: a time with no zone is no time."""
+    try:
+        t = datetime.datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo is not None else None
+
+
+def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[bool, str]:
+    """(in force, why) for the mandate comment `cid` that `review` cites.
+    `comment` is that comment as the API returns it (None: it does not exist);
+    `thread` is the tracking issue's comments, where a revocation would be."""
+    name = f"mandate {cid}"
+    if comment is None:
+        return False, f"{name} is not a comment that exists"
+    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
+        return False, f"{name} is not a comment on {DEFAULT_REPO}#{MANDATE_ISSUE}"
+    if not _is_owner(comment.get("user")):
+        return False, (f"{name} was not written by {OWNER_LOGIN} (id {OWNER_ID}), "
+                       "and only the owner grants a mandate")
+    m = MANDATE_GRAMMAR.fullmatch(((comment.get("body") or "").strip().splitlines() or [""])[0].strip())
+    if not m:
+        return False, f"{name}'s first line is not the mandate grammar"
+    scope, start, until = m.group(1), _when(m.group(2)), m.group(3)
+    end = None if until == "programme-end" else _when(until)
+    created, updated = _when(comment.get("created_at")), _when(comment.get("updated_at"))
+    if start is None or created is None or updated is None or (end is None and until != "programme-end"):
+        return False, f"{name} carries a time that is not an ISO 8601 instant with a zone"
+    if scope not in MANDATE_COVERS_RAISE:
+        return False, f"{name} has scope {scope}, which does not cover budget raises"
+    at = _when(review.get("submitted_at"))
+    if at is None:
+        return False, f"the review citing {name} carries no submission time"
+    if at < max(start, created):
+        return False, f"{name} was not yet in force at {review.get('submitted_at')}"
+    if end is not None and at >= end:
+        return False, f"{name} expired at {until}, before the review at {review.get('submitted_at')}"
+    if updated != created:
+        return False, f"{name} was edited, so the text tvofi gave it under is unknown"
+    for c in thread:
+        body = c.get("body") or ""
+        if (_is_owner(c.get("user")) and MANDATE_REVOKED.search(body)
+                and re.search(rf"(?<!\d){cid}(?!\d)", body)):
+            return False, f"{name} was revoked by {OWNER_LOGIN}'s comment {c.get('id')}"
+    return True, f"{name} (scope {scope}, from {m.group(2)} until {until})"
+
+
+def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str]:
     """(approved, why): the owner's latest decisive review is an APPROVED one
     submitted on `head`. A review under the owner's account whose body says an
-    agent gave it is not the owner's (AGENT_DECLARED)."""
-    own = [r for r in reviews
-           if (r.get("user") or {}).get("login") == OWNER_LOGIN
-           and (r.get("user") or {}).get("id") == OWNER_ID
-           and (r.get("user") or {}).get("type") == OWNER_TYPE]
-    mine = [r for r in own if not AGENT_DECLARED.search(r.get("body") or "")]
-    decisive = [r for r in mine if r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")]
+    agent gave it is not the owner's (AGENT_DECLARED), unless it is an approval
+    that cites one mandate `mandate_fn(id)` -> (comment, thread) shows in force
+    (mandate_check). An agent's other reviews decide nothing, as before."""
+    own = [r for r in reviews if _is_owner(r.get("user"))]
+    decisive, under, notes = [], {}, []
+    for r in own:
+        if not AGENT_DECLARED.search(r.get("body") or ""):
+            if r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+                decisive.append(r)
+            continue
+        cited = {int(a or b) for a, b in MANDATE_CITE.findall(r.get("body") or "")}
+        if r.get("state") != "APPROVED" or not cited:
+            continue
+        if len(cited) > 1:
+            notes.append(f"review {r.get('id')} cites {len(cited)} mandates, and one decides")
+            continue
+        cid = cited.pop()
+        ok, why = (False, "no mandate could be read") if mandate_fn is None else mandate_check(r, cid, *mandate_fn(cid))
+        if ok:
+            decisive.append(r)
+            under[id(r)] = why
+        else:
+            notes.append(f"review {r.get('id')}: {why}")
+    tail = "".join(f"; {n}" for n in notes)
     if not decisive:
-        agent = len(own) - len(mine)
+        agent = len(own) - len([r for r in own if not AGENT_DECLARED.search(r.get("body") or "")])
         return False, (f"no decisive review by {OWNER_LOGIN} (id {OWNER_ID}) on this pull request"
                        + (f"; {agent} under that account declare an agent gave them, and an "
-                          "agent-driven approval is not the owner's" if agent else ""))
+                          "agent-driven approval is the owner's only under a mandate in force" if agent else "")
+                       + tail)
     last = decisive[-1]
+    theirs = [r for r in decisive if id(r) not in under]
+    if under and theirs and theirs[-1].get("state") == "CHANGES_REQUESTED":
+        return False, (f"{OWNER_LOGIN}'s own latest decisive review is CHANGES_REQUESTED, and a "
+                       f"mandated approval does not override it{tail}")
     if last.get("state") != "APPROVED":
-        return False, f"{OWNER_LOGIN}'s latest decisive review is {last.get('state')}"
+        return False, f"{OWNER_LOGIN}'s latest decisive review is {last.get('state')}{tail}"
     if last.get("commit_id") != head:
         return False, (f"{OWNER_LOGIN}'s approval is on {str(last.get('commit_id'))[:12]}, "
-                       f"not this head {head[:12]}: an approval covers only the commit it was given on")
+                       f"not this head {head[:12]}: an approval covers only the commit it was given on{tail}")
+    if id(last) in under:
+        return True, (f"an agent approved this head {head[:12]} under {OWNER_LOGIN}'s account, "
+                      f"declared as an agent's, under {under[id(last)]}")
     return True, f"{OWNER_LOGIN} approved this head {head[:12]}"
 
 
-def decide(raises: list[str], reviews_fn, head: str) -> tuple[int, list[str]]:
+def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None) -> tuple[int, list[str]]:
     lines = [f"RAISE {r}" for r in raises]
     lines.append(f"RESULT budget_raises={len(raises)} count")
     if not raises:
@@ -288,7 +390,18 @@ def decide(raises: list[str], reviews_fn, head: str) -> tuple[int, list[str]]:
         lines.append(f"REFUSED: the reviews could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
                      "a raise needs the owner's approval, and an unread approval is none")
         return 1, lines
-    ok, why = approval(reviews, head)
+    read: dict = {}
+
+    def mandate(cid):  # each cited mandate is read once per run
+        if cid not in read:
+            read[cid] = mandate_fn(cid)
+        return read[cid]
+    try:
+        ok, why = approval(reviews, head, mandate if mandate_fn else None)
+    except Exception as e:  # fail closed: an unread mandate grants nothing
+        lines.append(f"REFUSED: a cited mandate could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+                     "a raise needs the owner's approval, and an unread mandate grants none")
+        return 1, lines
     lines.append(("PASS: " if ok else "REFUSED: ") + why)
     return (0 if ok else 1), lines
 
@@ -319,6 +432,27 @@ def _reviews(repo: str, pr: str) -> list[dict]:
     return [r for page in pages for r in page]
 
 
+def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
+    """The cited comment (None when the API answers 404) and the tracking
+    issue's comments since it was written, where a revocation would be."""
+    out = subprocess.run(["gh", "api", f"repos/{repo}/issues/comments/{cid}"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        if "HTTP 404" in out.stderr:
+            return None, []
+        raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
+    comment = json.loads(out.stdout)
+    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
+        return comment, []
+    out = subprocess.run(
+        ["gh", "api", "--paginate", "--slurp",
+         f"repos/{repo}/issues/{MANDATE_ISSUE}/comments?per_page=100&since={comment.get('created_at')}"],
+        capture_output=True, text=True)
+    if out.returncode != 0:
+        raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
+    return comment, [c for page in json.loads(out.stdout) for c in page]
+
+
 def gate(base: str, head: str, pr: str, repo: str) -> int:
     mb = _git("merge-base", base, head).strip()
     head_files = set(_git("ls-tree", "-r", "--name-only", head).splitlines())
@@ -327,7 +461,7 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
     for p in paths:
         raises += file_raises(p, _show(mb, p), _show(head, p), head_files.__contains__)
     print(f"# merge base {mb[:12]}, head {head[:12]}: {len(paths)} budget file(s): {', '.join(paths)}")
-    rc, lines = decide(raises, lambda: _reviews(repo, pr), head)
+    rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid))
     print("\n".join(lines))
     return rc
 
@@ -623,6 +757,142 @@ def self_test() -> int:
     check("the refusal names why",
           "agent" in approval([decl], H)[1], True)
 
+    # The owner's recorded mandate (tvofi, 2026-10-02): an agent's review under
+    # the owner's account, declared as such, is decisive when it cites a
+    # MANDATE comment tvofi wrote on #201 that covers budget raises and was in
+    # force when the review was submitted. Each refusal arm below has a passing
+    # neighbour that differs from it in the one field the arm reads.
+    MID, RID = 4100000001, 4100000002
+    MAND = (f"MANDATE: agents may approve as {OWNER_LOGIN}, scope budget-raise, "
+            "from 2026-10-02T06:00Z until 2026-10-03T06:00Z")
+
+    def mandate(body=MAND, user=own, created="2026-10-02T05:30:00Z", updated=None,
+                issue=MANDATE_ISSUE, cid=MID) -> dict:
+        return {"id": cid, "user": user, "body": body, "created_at": created,
+                "updated_at": updated or created,
+                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{issue}"}
+
+    def revoke(cid=MID, user=own, rid=RID) -> dict:
+        return {"id": rid, "user": user, "body": f"MANDATE REVOKED {cid}",
+                "created_at": "2026-10-02T08:00:00Z", "updated_at": "2026-10-02T08:00:00Z",
+                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}"}
+
+    def agent(sha=H, at="2026-10-02T07:00:00Z", cite=f"mandate {MID}", state="APPROVED") -> dict:
+        return {**rv(own, state, sha), "submitted_at": at,
+                "body": f"Agent review of the raise, under {OWNER_LOGIN}'s {cite}.\n\n"
+                        "---\n_Generated by [Claude Code](https://claude.ai/code)_"}
+
+    def rcm(reviews, comment=None, thread=(), raises=R):
+        if comment is None:
+            comment = mandate()
+        calls.clear()
+
+        def fetch(cid):
+            calls.append(cid)
+            if isinstance(comment, Exception):
+                raise comment
+            return (comment if comment != "missing" else None), list(thread)
+        try:
+            return decide(raises, lambda: reviews, H, fetch)
+        except Exception as e:  # an escape is a verdict too, and never 0 or 1
+            return f"raised {type(e).__name__}", []
+    calls: list = []
+
+    ok_ = rcm([agent()])
+    check("mandate: an agent's approval at the head under a budget-raise mandate passes", ok_[0], 0)
+    check("mandate: ... and the verdict names the mandate it used",
+          any(ln.startswith("PASS: ") and f"mandate {MID}" in ln for ln in ok_[1]), True)
+    check("mandate: ... and the review stays declared an agent's (nothing hides authorship)",
+          bool(AGENT_DECLARED.search(agent()["body"])), True)
+    check("mandate: scope all covers a raise",
+          rcm([agent()], mandate(MAND.replace("budget-raise", "all")))[0], 0)
+    check("mandate: until programme-end is open-ended",
+          rcm([agent(at="2027-06-01T00:00:00Z")],
+              mandate(MAND.replace("2026-10-03T06:00Z", "programme-end")))[0], 0)
+    check("mandate: the review's comment URL is a citation too",
+          rcm([agent(cite=f"mandate https://github.com/{DEFAULT_REPO}/issues/201#issuecomment-{MID}")])[0], 0)
+    check("mandate: no raise reads no mandate (null control)",
+          (rcm([agent()], raises=[])[0], calls), (0, []))
+    # Refusal arm: the mandate has expired.
+    check("mandate: a review submitted after `until` fails",
+          rcm([agent(at="2026-10-03T06:00:01Z")])[0], 1)
+    check("mandate: a review submitted exactly at `until` fails", rcm([agent(at="2026-10-03T06:00:00Z")])[0], 1)
+    check("mandate: a review submitted before `from` fails", rcm([agent(at="2026-10-02T05:59:59Z")])[0], 1)
+    check("mandate: a `from` back-dated before the comment existed starts at the comment",
+          rcm([agent(at="2026-10-02T06:30:00Z")], mandate(created="2026-10-02T06:45:00Z"))[0], 1)
+    check("mandate: a mandate edited after the review fails",
+          rcm([agent()], mandate(updated="2026-10-02T07:30:00Z"))[0], 1)
+    check("mandate: a review with no submitted_at fails", rcm([{**agent(), "submitted_at": None}])[0], 1)
+    # Refusal arm: the mandate was revoked.
+    check("mandate: a mandate tvofi revoked fails", rcm([agent()], thread=[revoke()])[0], 1)
+    check("mandate: ... and the refusal names the revocation",
+          any(str(RID) in ln and "revoked" in ln for ln in rcm([agent()], thread=[revoke()])[1]), True)
+    check("mandate: a revocation by another account revokes nothing (null control)",
+          rcm([agent()], thread=[revoke(user={"login": "someone", "id": 1, "type": "User"})])[0], 0)
+    check("mandate: a revocation of another mandate revokes nothing (null control)",
+          rcm([agent()], thread=[revoke(cid=MID + 7)])[0], 0)
+    # Refusal arm: the mandate comment is not tvofi's.
+    check("mandate: a mandate comment by another account fails",
+          rcm([agent()], mandate(user={"login": "someone", "id": 1, "type": "User"}))[0], 1)
+    check("mandate: a mandate comment by an account named tvofi with another id fails",
+          rcm([agent()], mandate(user={**own, "id": OWNER_ID + 1}))[0], 1)
+    check("mandate: a mandate comment by the approver App fails", rcm([agent()], mandate(user=app))[0], 1)
+    check("mandate: a mandate comment on another issue fails", rcm([agent()], mandate(issue=1838))[0], 1)
+    check("mandate: a cited comment that does not exist fails", rcm([agent()], "missing")[0], 1)
+    check("mandate: a mandate comment on #201 of another repository fails",
+          rcm([agent()], {**mandate(), "issue_url": "https://api.github.com/repos/evil/other/issues/201"})[0], 1)
+    check("mandate: a mandate read that fails, fails closed", rcm([agent()], RuntimeError("HTTP 502"))[0], 1)
+    check("mandate: a body that is not the grammar fails",
+          rcm([agent()], mandate("agents may approve as tvofi for budget raises until Friday"))[0], 1)
+    check("mandate: a time with no zone fails",
+          rcm([agent()], mandate(MAND.replace("2026-10-02T06:00Z", "2026-10-02T06:00")))[0], 1)
+    # Refusal arm: the scope does not cover budget raises.
+    check("mandate: scope code-owned does not cover a raise",
+          rcm([agent()], mandate(MAND.replace("budget-raise", "code-owned")))[0], 1)
+    # Refusal arm: the review is not on the head.
+    check("mandate: a mandated approval on a non-head commit fails", rcm([agent(sha=OLD)])[0], 1)
+    # What the mandate leaves as it was.
+    check("mandate: an agent's approval citing no mandate still fails (null control)",
+          rcm([agent(cite="explicit mandate")])[0], 1)
+    check("mandate: a review citing two mandates fails",
+          rcm([agent(cite=f"mandate {MID} and mandate {MID + 1}")])[0], 1)
+    check("mandate: an agent's CHANGES_REQUESTED under a mandate decides nothing",
+          rcm([agent(), agent(state="CHANGES_REQUESTED")])[0], 0)
+    check("mandate: the owner's own later CHANGES_REQUESTED still decides",
+          rcm([agent(), rv(own, "CHANGES_REQUESTED")])[0], 1)
+    check("mandate: a mandated approval from another account is not the owner's",
+          rcm([{**agent(), "user": app}])[0], 1)
+    # Round 2 (fix review of #1843). The kill switch is matched loosely, since
+    # over-revoking fails safe and a near miss failed open: tvofi's comment
+    # naming the id with any form of "revoke" voids it, on any line.
+    for form in (f"MANDATE REVOKED {MID}.", f"MANDATE REVOKED #{MID}", f"MANDATE REVOKED: {MID}",
+                 f"Mandate revoked {MID}", f"Ending it now.\nMANDATE REVOKED {MID}",
+                 f"I revoke mandate https://github.com/{DEFAULT_REPO}/issues/201#issuecomment-{MID}"):
+        check(f"mandate: the revocation {form!r} revokes",
+              rcm([agent()], thread=[{**revoke(), "body": form}])[0], 1)
+    check("mandate: a revocation naming a longer id that contains this one revokes nothing (null control)",
+          rcm([agent()], thread=[{**revoke(), "body": f"MANDATE REVOKED {MID}9"}])[0], 0)
+    check("mandate: tvofi's comment naming the id with no revocation word revokes nothing (null control)",
+          rcm([agent()], thread=[{**revoke(), "body": f"Agents are working under mandate {MID}."}])[0], 0)
+    # A mandate comment edited at any time grants nothing: anyone with write
+    # access can edit tvofi's comment, and its user field stays tvofi.
+    check("mandate: a mandate edited before the review fails",
+          rcm([agent()], mandate(created="2026-09-01T00:00:00Z", updated="2026-10-02T06:30:00Z"))[0], 1)
+    check("mandate: ... and the refusal says it was edited",
+          any("edited" in ln for ln in rcm([agent()], mandate(updated="2026-10-02T05:31:00Z"))[1]), True)
+    check("mandate: a body that is not the grammar is refused as such, not as an unread mandate",
+          any("not the mandate grammar" in ln for ln in rcm([agent()], mandate("MANDATE: agents may approve"))[1]),
+          True)
+    # A mandate lets an agent approve; it does not let one overrule tvofi.
+    check("mandate: a mandated approval does not override tvofi's own earlier CHANGES_REQUESTED",
+          rcm([rv(own, "CHANGES_REQUESTED"), agent()])[0], 1)
+    check("mandate: ... and the refusal says so",
+          any("CHANGES_REQUESTED" in ln for ln in rcm([rv(own, "CHANGES_REQUESTED"), agent()])[1]), True)
+    check("mandate: tvofi's own later approval clears his CHANGES_REQUESTED, as before (null control)",
+          rcm([rv(own, "CHANGES_REQUESTED"), agent(), rv(own, "APPROVED")])[0], 0)
+    check("mandate: tvofi's own earlier DISMISSED blocks nothing",
+          rcm([rv(own, "DISMISSED"), agent()])[0], 0)
+
     # Every tracked budget file, as it stands: the schema must know it, a copy
     # must not raise against itself, every cap moved the strict way must be
     # routine, and every cap moved the loose way must be a raise. A key the
@@ -742,6 +1012,11 @@ d = os.environ["BRG_STUB"]
 with open(os.path.join(d, "calls"), "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\\n")
 spec = json.load(open(os.path.join(d, "reviews.json")))
+for key, route in spec.get("routes", {}).items():
+    if key in sys.argv[-1]:
+        sys.stderr.write(route.get("err", ""))
+        sys.stdout.write(json.dumps(route.get("out")))
+        sys.exit(route.get("rc", 0))
 sys.stdout.write(json.dumps(spec["pages"]))
 sys.exit(spec["rc"])
 """
@@ -809,9 +1084,10 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         kept = branch("kept-file", {P: {**p0, "files": {"A.md": 10}}})
         own = {"login": OWNER_LOGIN, "id": OWNER_ID, "type": OWNER_TYPE}
 
-        def run(head: str, pages=None, rc=0, argv=None, repo_env=None):
+        def run(head: str, pages=None, rc=0, argv=None, repo_env=None, routes=None):
             with open(os.path.join(stub, "reviews.json"), "w") as f:
-                json.dump({"pages": pages if pages is not None else [[]], "rc": rc}, f)
+                json.dump({"pages": pages if pages is not None else [[]], "rc": rc,
+                           "routes": routes or {}}, f)
             open(os.path.join(stub, "calls"), "w").close()
             e = dict(env)
             if repo_env:
@@ -841,6 +1117,40 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         out.append(("e2e: a raise approved on the head, on the second page, exits 0", rc_, 0))
         rc_, _, _ = run(raise_, pages=[[approved(raise_)], [approved(fork)]])
         out.append(("e2e: a raise whose latest approval is stale exits 1", rc_, 1))
+        # The mandate, read live: the cited comment by id, then #201's comments
+        # since it was written, where a revocation would be.
+        cid = 4100000001
+        mand = {"id": cid, "user": own, "created_at": "2026-10-02T05:30:00Z",
+                "updated_at": "2026-10-02T05:30:00Z",
+                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}",
+                "body": (f"MANDATE: agents may approve as {OWNER_LOGIN}, scope budget-raise, "
+                         "from 2026-10-02T06:00Z until 2026-10-03T06:00Z")}
+        agent_rv = {**approved(raise_), "id": 9, "submitted_at": "2026-10-02T07:00:00Z",
+                    "body": f"Agent review under mandate {cid}.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_"}
+        thread_key = f"issues/{MANDATE_ISSUE}/comments"
+        rc_, text, calls = run(raise_, pages=[[agent_rv]],
+                               routes={f"issues/comments/{cid}": {"out": mand},
+                                       thread_key: {"out": [[]]}})
+        out.append(("e2e: a raise approved at the head under a mandate in force exits 0",
+                    (rc_, f"under mandate {cid}" in text), (0, True)))
+        out.append(("e2e: ... after reading the comment, then #201 since it was written",
+                    [c[-1] for c in calls][1:],
+                    [f"repos/tvofi/heatpump_optimizer/issues/comments/{cid}",
+                     f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z"]))
+        revoked = {**mand, "id": cid + 1, "created_at": "2026-10-02T08:00:00Z",
+                   "body": f"MANDATE REVOKED {cid}"}
+        rc_, text, _ = run(raise_, pages=[[agent_rv]],
+                           routes={f"issues/comments/{cid}": {"out": mand},
+                                   thread_key: {"out": [[revoked]]}})
+        out.append(("e2e: ... and exits 1 once tvofi revokes it", (rc_, "revoked" in text), (1, True)))
+        rc_, text, _ = run(raise_, pages=[[agent_rv]],
+                           routes={f"issues/comments/{cid}": {"rc": 1, "err": "gh: Not Found (HTTP 404)"}})
+        out.append(("e2e: a cited mandate that does not exist exits 1",
+                    (rc_, "not a comment that exists" in text), (1, True)))
+        rc_, text, _ = run(raise_, pages=[[agent_rv]],
+                           routes={f"issues/comments/{cid}": {"rc": 1, "err": "HTTP 502"}})
+        out.append(("e2e: a mandate read that fails otherwise exits 1",
+                    (rc_, "could not be read" in text), (1, True)))
         rc_, _, _ = run(raise_, pages=[[approved(raise_)]], rc=1)
         out.append(("e2e: a reviews read that exits non-zero exits 1, whatever it printed", rc_, 1))
         rc_, text, _ = run(nan, pages=[[]])
