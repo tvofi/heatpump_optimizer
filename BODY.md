@@ -55,9 +55,9 @@ How: a role engine (`CoordinatorRoles`) seeds from `self`, the annotation, `Coor
 
 ## Head
 
-ce12cbd10b4f58ab2b72311da79847f73cda988f
+46a708150f35534344039ef0ada7f12c81c77af6
 
-Main 777c2318 (#1837, F10.9d) is merged in.
+Main c168ec0a (#1840, UX-3) is merged in, as was 777c2318 (#1837, F10.9d) before it.
 
 ## Mutation proof
 
