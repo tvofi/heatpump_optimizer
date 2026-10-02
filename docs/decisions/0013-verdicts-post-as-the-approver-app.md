@@ -236,3 +236,51 @@ forms found so far refused.
     base.
   - A change that must move a pinned grader and its caller together lands in
     two pull requests, the grader's tolerant form first.
+
+## Amendment, 2026-10-02: an agent approves a raise openly, under a recorded mandate
+
+The owner's direction of 2026-10-02, given in the project thread that
+dispatched this amendment: a temporary mandate lets an agent approve as
+`tvofi`. Until then `budget-raise-gate` dropped every review under the
+owner's account whose body declared an agent (D11-s1-04, card C17), so the
+only ways through were the owner's own click or an agent hiding its
+authorship. The hiding must never be the fix, so the mandate is a record the
+gate reads, and the agent stays declared.
+
+- **The record.** A comment by `tvofi` (login, id 70032254 and type `User`,
+  pinned as for reviews) on the tracking issue #201 whose first line is
+  `MANDATE: agents may approve as tvofi, scope <code-owned|budget-raise|all>,
+  from <ISO> until <ISO|programme-end>`. The gate reads it from the API at
+  run time and trusts no copy in the tree. A mandate comment that was ever
+  edited grants nothing: anyone with write access can edit it while its
+  author stays `tvofi`, so `tvofi` posts a fresh one instead.
+- **The revocation is matched loosely, on purpose.** Any later comment by the
+  same account on #201 that names the mandate's id beside any form of
+  "revoke", on any line and in any case, voids it. The grant is strict and
+  the kill switch is lenient, because over-revoking fails safe and a near
+  miss would fail open. Residual: an account with write access can edit or
+  delete a revocation, which the comments API does not show; the mandate's
+  `until` is the bound that no such edit can remove.
+- **The review.** An agent's review under the owner's account counts as
+  decisive only when it is APPROVED, cites exactly one mandate id ("mandate
+  <id>" or its `issuecomment-<id>` URL), and that mandate covers budget raises
+  (`budget-raise` or `all`) and was in force at the review's `submitted_at`.
+  The approval must still be on the head, like the owner's own. The verdict
+  line names the mandate it used.
+- **Still refused:** a mandate expired at the review, revoked, not written by
+  `tvofi`, posted on another issue or repository, scoped `code-owned`, or not the grammar; a
+  review on a non-head commit. Also refused, as stricter than asked: a `from`
+  set before the comment was posted counts from the posting time, and a
+  review citing two mandates decides nothing.
+- **Authorship stays visible.** The word that cites a mandate is itself an
+  `AGENT_DECLARED` match, so a mandated review is an agent's on its face. An
+  agent's CHANGES_REQUESTED or DISMISSED review still decides nothing.
+- **A mandate does not overrule the owner.** While `tvofi`'s own latest
+  decisive review is CHANGES_REQUESTED, earlier or later than the mandated
+  approval, the gate refuses; only `tvofi`'s own approval or a dismissal
+  clears it.
+- The workflow gains `issues: read` for the #201 read.
+- The gate is pinned to the base, so this amendment grades pull requests only
+  once it is on `main`. After that merge the approval seat cites the mandate
+  comment id in each approval body, and `tvofi` posts the first MANDATE
+  comment on #201.
