@@ -1,0 +1,1 @@
+custom_components/heatpump_optimizer/coordinator.py:787: error: TypedDict "Payload" has no key "zzz5_handover"  [typeddict-unknown-key]

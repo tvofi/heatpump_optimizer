@@ -1,0 +1,4 @@
+== probe 403803dae
+custom_components/heatpump_optimizer/coordinator.py:7456: error: Extra key "zzz_undeclared" for TypedDict "MeasurementView"  [typeddict-unknown-key]
+custom_components/heatpump_optimizer/coordinator.py:7457: error: Incompatible types (expression has type "str", TypedDict item "measured_power" has type "float | None")  [typeddict-item]
+== probe-base 03ba7f70f

@@ -1,0 +1,11 @@
+custom_components/heatpump_optimizer/coordinator.py:822: error: TypedDict "Payload" has no key "zzz5_handover"  [typeddi
+custom_components/heatpump_optimizer/coordinator.py:7669: error: TypedDict "Payload" has no key "zzz1_setdefault"  [type
+custom_components/heatpump_optimizer/coordinator.py:7670: error: Unexpected TypedDict key "zzz2_ior"  [misc]
+custom_components/heatpump_optimizer/coordinator.py:7671: error: Unexpected keyword argument "zzz3_kw" for "update" of "
+custom_components/heatpump_optimizer/coordinator.py:7672: error: TypedDict "Payload" has no key "zzz4_const"  [typeddict
+custom_components/heatpump_optimizer/coordinator.py:7674: error: TypedDict "Payload" has no key "zzz6_loopvar"  [typeddi
+custom_components/heatpump_optimizer/coordinator.py:7675: error: Invalid index type "Payload" for "type[dict[_KT, _VT]]"
+custom_components/heatpump_optimizer/coordinator.py:7678: error: Unsupported type "dict[str, Any]" for ** expansion in T
+custom_components/heatpump_optimizer/coordinator.py:7680: error: TypedDict "Insight" has no key "zzz11_nested"  [typeddi
+custom_components/heatpump_optimizer/coordinator.py:7681: error: Unexpected TypedDict key "zzz12_updlit"  [misc]
+custom_components/heatpump_optimizer/coordinator.py:7682: error: Argument 1 to "update" of "TypedDict" has incompatible 
