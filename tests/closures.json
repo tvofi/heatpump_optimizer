@@ -2720,6 +2720,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
