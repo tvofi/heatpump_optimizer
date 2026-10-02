@@ -838,6 +838,8 @@ def self_test() -> int:
     check("mandate: a mandate comment by the approver App fails", rcm([agent()], mandate(user=app))[0], 1)
     check("mandate: a mandate comment on another issue fails", rcm([agent()], mandate(issue=1838))[0], 1)
     check("mandate: a cited comment that does not exist fails", rcm([agent()], "missing")[0], 1)
+    check("mandate: a mandate comment on #201 of another repository fails",
+          rcm([agent()], {**mandate(), "issue_url": "https://api.github.com/repos/evil/other/issues/201"})[0], 1)
     check("mandate: a mandate read that fails, fails closed", rcm([agent()], RuntimeError("HTTP 502"))[0], 1)
     check("mandate: a body that is not the grammar fails",
           rcm([agent()], mandate("agents may approve as tvofi for budget raises until Friday"))[0], 1)
