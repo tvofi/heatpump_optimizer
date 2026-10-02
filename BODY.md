@@ -6,7 +6,7 @@ After: the recorder files the INERT files a recording opened under `inert_reads`
 
 ## Head
 
-851237fcb9d3bb41b67e94a460323fd6d1f1e4f1 (branch handoff/r9-f10-closure-runalways; code commits dfb57a51, the census tool 39fda423 and the round-2 pins 851237fc, merged with #1837's e77b1f99 and origin/main 3bd6f12207a1a48c94ff6f302e533207f6c5fba0, 2026-10-02T01:10Z).
+c590bbafed2beaa4783d669aeb227eaccd07f89a (branch handoff/r9-f10-closure-runalways; code commits dfb57a51, the census tool 39fda423, the round-2 pins 851237fc and the table row c590bbaf, on #1837's e77b1f99 and origin/main 3bd6f12207a1a48c94ff6f302e533207f6c5fba0, 2026-10-02T02:30Z).
 
 ## Mutation proof
 
@@ -29,7 +29,9 @@ The new pair is red-first above. Null controls kept: `docs/backlog.md` (opened b
 
 ## Red checks
 
-`tests/stress.py` fails one of 95 checks in this sandbox, "production calls were captured on this tree and the baseline": `AttributeError: module 'sys' has no attribute 'monitoring'`, because the sandbox runs Python 3.11 and `sys.monitoring` is 3.12+ (`GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) python3 tests/stress.py`, evidence/F10.9d/stress_head.log). The diff touches no solver code. Left to CI's 3.12+ runner. No other check went red on a commit in the branch.
+`tests/stress.py` fails one of 95 checks in this sandbox, "production calls were captured on this tree and the baseline": `AttributeError: module 'sys' has no attribute 'monitoring'`, because the sandbox runs Python 3.11 and `sys.monitoring` is 3.12+ (`GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) python3 tests/stress.py`, evidence/F10.9d/stress_head.log). The diff touches no solver code. Left to CI's 3.12+ runner. 
+Round 3: the required check `closures` went red at 851237fc (Tests run 36949999009): "INERT READS UNDER-APPROXIMATED", tests/entities.py opens LICENSE (the round-2 check's audit-hook probe, a Python child) but the committed `inert_reads` lacked it. Repaired by `PYTHON=python3.12 ./tests/derive_closures.sh --single tests/entities.py` (adds `tests/entities.py: [LICENSE]`; recorded seconds left as committed). Why the local runs missed it: `closures` is a CI job that re-records and runs `closure.py check`, and I ran entities.py, structure.py and the self-tests but never a record-then-check of the script whose test code I changed. Cheaper detector: it exists, `./tests/derive_closures.sh --single <script> --record-only --out-dir D` then `python3 tests/closure.py check --in-dir D --partial`, about 7.5 minutes for entities.py, and process state (b), the step was not followed. No new countermeasure: a test change that opens a file owes that re-record before handoff, which `fixer.md` step 5's `scope.run` list does not name because `closures` is not a test script.
+No other check went red on a commit in the branch.
 
 ## Forward-carry
 
