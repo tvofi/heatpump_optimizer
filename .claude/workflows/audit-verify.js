@@ -19,11 +19,21 @@
 //            3-4): its enumerator, controls, and the count of confirmed
 //            instances. RCA is owed at three instances of a class this round
 //            (judged plus swept), or at any instance of a barriered class
-//            (defect-root-cause.md).
+//            (defect-root-cause.md); the cross-round arms are the fold's check.
+//   Fold     tools/audit/fold_ledger.py, a script and not an agent, appends
+//            each survivor and each sweep seam marked beyond_finding to its
+//            class in tools/audit/bugclasses.json, recomputes the counts and
+//            prints both terms of every class's N; it refuses a survivor with
+//            no class and a new class without `nearest` and `differs`. Its
+//            `check` then lists what the round owes (OWED).
 //   Issues   the register, rotation.json's yield, one issue DRAFT per class and
 //            the draft roster `.claude/workflows/wave-r<N>-groups.json`. Filing
 //            is the Mac seat's as tvofi (decision 0011): only `args.file: true`
 //            lets the writer run `gh`.
+//            The round record (the folded ledger, the register section, the
+//            reports) is one branch; with `args.file: true` the record step
+//            opens its pull request through tools/audit/app_push.sh, else it
+//            stops with the command, because the App key is the Mac seat's.
 //
 // args.from: "panels" (default) runs every phase; "judge" skips the panels and
 // hands every reported finding to the judge unvoted (a relaunch after the
@@ -38,7 +48,7 @@
 export const meta = {
   name: 'audit-verify',
   description: 'Three lens verifiers per dimension with majority kill, one judge (dedup, scripted re-runs, classes), class sweep, issue drafts',
-  phases: ['Read the register', 'Panels', 'Judge', 'Class sweep', 'Issues and register'],
+  phases: ['Read the register', 'Panels', 'Judge', 'Class sweep', 'Fold the register', 'Issues and register', 'Round record'],
 }
 
 const round = args?.round ?? 9
@@ -174,8 +184,8 @@ It takes and releases the gate lease itself and runs every command serially. Rea
 
 const judge = await agent(
   `You are the judge of audit round ${round}, continuing in ../audit-r${round}-judge (from ${repo}) after your dedup (${JSON.stringify(dedup)}). Hold the gate lease for any measurement: ${lease}.
-The scripted re-runs are in ${JSON.stringify(runnerRows.map((r) => r?.table ?? null))} (one row per canonical finding, with load1 and thread_factor; a null entry is a runner that died -- run judge_batch.py for its shard yourself). Read every row. Re-run by hand every finding whose row is disputed at panel, void, by-hand, not reproduced, flagged for a re-take (thread_factor > 1.05), or whose null control is by-hand. Then follow judge.md steps 1-7 for every canonical finding: compare the finder's and the verifiers' metric definitions, leave-one-out on aggregates, the null control on cost, gain and time claims, stop_rule_class from the number, and a class for every survivor: a tools/audit/bugclasses.json id, or a new one (P13..., I6...) with its mechanism in one line.
-Write tools/audit/round${round}/JUDGE.md and JUDGE.json and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, class, class_mechanism, note}]} for the canonical findings.`,
+The scripted re-runs are in ${JSON.stringify(runnerRows.map((r) => r?.table ?? null))} (one row per canonical finding, with load1 and thread_factor; a null entry is a runner that died -- run judge_batch.py for its shard yourself). Read every row. Re-run by hand every finding whose row is disputed at panel, void, by-hand, not reproduced, flagged for a re-take (thread_factor > 1.05), or whose null control is by-hand. Then follow judge.md steps 1-7 for every canonical finding: compare the finder's and the verifiers' metric definitions, leave-one-out on aggregates, the null control on cost, gain and time claims, stop_rule_class from the number, and a class for every survivor. Reuse before minting: compare the finding's mechanism with the nearest class in tools/audit/bugclasses.json and use its id unless the mechanism differs; a class is a mechanism, never a site. A new class (P13..., I6..., N-<name>) carries its mechanism in one line, the id of the nearest existing class as nearest, and in differs what the mechanism does that the nearest does not; tools/audit/fold_ledger.py refuses a new id without both, and two ids minted this round with one nearest are counted as one for the trigger.
+Write tools/audit/round${round}/JUDGE.md and JUDGE.json (the round, and the verdicts as returned) and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, class, class_mechanism, nearest, differs, note}]} for the canonical findings; nearest and differs only on a verdict whose class is new.`,
   { label: 'judge', schema: { type: 'object', required: ['verdicts'] } },
 )
 if (!judge) throw new Error('judge failed (agent returned null); relaunch to re-run the judge')
@@ -205,22 +215,46 @@ const classIds = Object.keys(byClass).sort()
 const sweeps = await pipeline(classIds, (cls) => agent(
   `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree from ${repo}: git worktree add ../audit-r${round}-sweep-${cls} ${branch}. Read tools/audit/briefs/D14.md and run its method steps 3-4 for this class: an enumerator listing every seam of the class across the whole package (start from the findings' seam_rules), its positive control (it re-finds every finding below), its null control (zero on a clean fixture) and its perturbation (it moves under a one-line re-introduction); then disposition every seam it returns as instance (with a probe that fails on it), guarded (name the guard) or not applicable (the reason). Read the class's status in tools/audit/bugclasses.json.
 Findings in the class: ${JSON.stringify(byClass[cls])}.
-Write tools/audit/round${round}/sweep-${cls}.md and return JSON {class, instances, barriered, enumerator, instance_list: [{file, symbol, probe}]}; instances counts confirmed instances that are NOT among the findings above.`,
+Write tools/audit/round${round}/sweep-${cls}.md, and the JSON you return as tools/audit/round${round}/sweep-${cls}.json, which tools/audit/fold_ledger.py reads: {class, instances, barriered, enumerator, instance_list: [{file, symbol, probe, beyond_finding}]}. Every seam in instance_list carries a boolean beyond_finding: true when it is NOT the site of a finding above, false when it is a judged site itself; instances is the count of true ones.`,
   { label: `sweep/${cls}`, phase: 'Class sweep', schema: { type: 'object', required: ['instances', 'barriered', 'enumerator'] } },
 ))
 const classes = classIds.map((cls, i) => {
   const s = sweeps[i]
-  const n = byClass[cls].length + Number(s?.instances ?? 0)
-  return { class: cls, findings: byClass[cls].map((v) => v.id), sweep_instances: s?.instance_list ?? [], enumerator: s?.enumerator ?? null, swept: Boolean(s), n, rca: rcaOwed(n, Boolean(s?.barriered)) }
+  // The unit of N is a field: a seam counts only when the sweep marks it
+  // beyond_finding, and a list with none is a list of none. A sweep that returns
+  // no list, or one with an unmarked seam (an older one), falls back to its own
+  // `instances` count, which is what mechanism R-register-4 left two ways.
+  const flagged = Array.isArray(s?.instance_list) && s.instance_list.every((x) => typeof x?.beyond_finding === 'boolean')
+  const judged = byClass[cls].length
+  const beyond = flagged ? s.instance_list.filter((x) => x.beyond_finding === true).length : Number(s?.instances ?? 0)
+  const n = judged + beyond
+  return { class: cls, findings: byClass[cls].map((v) => v.id), sweep_instances: s?.instance_list ?? [], enumerator: s?.enumerator ?? null, swept: Boolean(s), judged, beyond_finding: beyond, n, rca: rcaOwed(n, Boolean(s?.barriered)) }
 })
 for (const c of classes) if (!c.swept) log(`class ${c.class}: the sweep seat returned nothing; its count is the judged findings alone and the issue must say the sweep is owed`)
 
+phase('Fold the register')
+const fold = await agent(
+  `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${round}; then python3 tools/audit/fold_ledger.py check. Do not edit tools/audit/bugclasses.json or tools/audit/finding.schema.json by hand: the script writes both. If fold exits non-zero it has refused (a survivor with no class, a new class without nearest and differs, a sweep seam without beyond_finding): change nothing, and return its output verbatim. Otherwise commit tools/audit/bugclasses.json, tools/audit/finding.schema.json and tools/audit/round${round}/ with the subject "audit round ${round}: fold the register".
+Return JSON {rc: <fold's exit code>, check_rc: <check's exit code>, output: <both outputs, verbatim>}.`,
+  { label: 'fold', phase: 'Fold the register', schema: { type: 'object', required: ['rc', 'output'] } },
+)
+if (!fold) throw new Error('fold failed (agent returned null); relaunch to re-run it')
+if (typeof fold.rc === 'number' && fold.rc !== 0) throw new Error(`fold_ledger.py refused: ${String(fold.output).slice(0, 600)}`)
+if (typeof fold.check_rc === 'number' && fold.check_rc !== 0) log(`the register check lists work this round owes: ${String(fold.output).slice(-600)}`)
+
 phase('Issues and register')
 const writer = await agent(
-  `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${round} register tables in docs/audit-2026-09.md with each verdict from ${JSON.stringify(verdicts)} and each finding's panel ${JSON.stringify(tally)} (killed at panel: ${JSON.stringify(killed)}); add today's date to the section header; commit tools/audit/round${round}/ verifier, judge, judge-batch and sweep reports. In tools/audit/rotation.json set rounds["${round}"].yield for each dimension to exactly ${JSON.stringify(sortedYield)} (a dimension's map replaces its yield whole; keys sorted, two-space indent, trailing newline).
+  `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${round} register tables in docs/audit-2026-09.md with each verdict from ${JSON.stringify(verdicts)} and each finding's panel ${JSON.stringify(tally)} (killed at panel: ${JSON.stringify(killed)}); add today's date to the section header; commit tools/audit/round${round}/ verifier, judge, judge-batch and sweep reports. tools/audit/bugclasses.json is already folded (the fold step): do not edit it. In tools/audit/rotation.json set rounds["${round}"].yield for each dimension to exactly ${JSON.stringify(sortedYield)} (a dimension's map replaces its yield whole; keys sorted, two-space indent, trailing newline).
 One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write tools/audit/round${round}/ISSUES.json: per class {class, title: "[R${round}-<class>] <mechanism>", labels: ["audit", "round-${round}", "class:<class>", "sev:<highest severity in the class>"], body}, the body carrying the class mechanism, each finding (id, severity, harness, verdict), each sweep instance, the enumerator command, and "RCA: owed" when rca is true or "RCA: not triggered (N=<n>)". Write the draft roster .claude/workflows/wave-r${round}-groups.json: one group per class with its issue (null until filed), its file set from the sweep, after dependencies, and the RCA flag; run node .claude/workflows/brief_lint.mjs and read its exit code and error lines, not the summary.
 ${fileIssues ? `Filing is on (args.file): as tvofi, for each class run gh issue list --search "\\"[R${round}-<class>]\\" in:title" and skip one that exists, else create it; put the numbers in ISSUES.json, the register rows and the roster.` : 'Do not file issues, push, or open a pull request: filing and pushing are the Mac seat\'s (decision 0011). Commit on the branch and stop.'}
 Return JSON {issues: [{class, number}], issues_path, roster, brief_lint_rc}.`,
   { label: 'register', schema: { type: 'object', required: ['issues'] } },
 )
-return { panel: { killed, tally }, dedup, verdicts, classes, writer, rotation_yield: sortedYield }
+phase('Round record')
+const record = await agent(
+  `The round record of audit round ${round} is branch ${branch} in ${repo}: the folded register (tools/audit/bugclasses.json), its reports under tools/audit/round${round}/, the register section of docs/audit-2026-09.md. Write its pull request body to a file outside the worktree under the form of .github/PULL_REQUEST_TEMPLATE.md (the first line \`_Requested by **tvofi**_\`, the head sha, the fold's output: ${JSON.stringify(String(fold.output ?? '').slice(0, 1500))}).
+${fileIssues ? `Filing is on (args.file): run tools/audit/app_push.sh <owner/repo> <worktree> ${branch} <body> as the Mac seat, which checks the body, pushes and opens the pull request as the hpo-author App, and return its output.` : 'Do not push or open the pull request: the App key is the Mac seat\'s (decision 0011). Return the exact app_push.sh command line for the orchestrator.'}
+Return JSON {branch, body_path, pr: <number or null>, command}.`,
+  { label: 'record', phase: 'Round record', schema: { type: 'object', required: ['branch'] } },
+)
+return { panel: { killed, tally }, dedup, verdicts, classes, fold, writer, record, rotation_yield: sortedYield }
