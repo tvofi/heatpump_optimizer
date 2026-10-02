@@ -1,0 +1,783 @@
+{
+ "0323c5b8": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "043ed159": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "07bdc557": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "0f9eb71a": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "137b6d59": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "2a451021": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "2e0d3d96": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "33cedffa": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "364d9b41": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "3b320405": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "3bae92d9": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "3e5aba6a": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "3e9f1878": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "44a6351d": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "4a7bdb69": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "4b6e0765": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "52d38d95": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "5395394d": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "546b4924": {
+  "admissible": true,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "56cb0027": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "5a4e6ff9": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "5f6ada5e": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "67e1cf33": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "69781076": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "7d47e80e": {
+  "admissible": true,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "8281f544": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "8827452e": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "8bc4c661": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "97dc04f2": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "9a0d4c5e": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "9ac2d02c": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "_sensitivity": {},
+ "a1_B1_copy_cross_module": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B1c_copy_same_module_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B2_private_reach": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B3a_passthrough_chain_optimize": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B3b_passthrough_chain_coordinator": {
+  "admissible": true,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_B3c_passthrough_chain_greedy": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B4a_inplace_write_shared_dict": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B4b_inplace_write_new_attr": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B4c_inplace_write_via_helper": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B5a_dead_method": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B5b_dead_property": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B5c_dead_method_common_name": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B5d_dead_method_selfcalled": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B5e_dead_top_level": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B6_cyclic_import": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B6b_cyclic_import_local": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B7_god_helper_module": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_B8_star_import_const": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_G1_extract_block": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_G2_dedupe": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a1_G3_move_cluster_with_state": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a1_G4a_public_accessor_existing": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a1_G4b_public_accessor_new": {
+  "admissible": false,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1_G5_frozen_record_arg": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a1_N1_rename_local": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_N1b_reformat_signature": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_N1c_reformat_explode_call": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_N2_docstring": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_N3_seam_relabel": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a1_N4_const_namespace_import": {
+  "admissible": false,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a1bdb11c": {
+  "admissible": true,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "a3_dead_by_reachability_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_dead_by_reachability_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_dead_by_reachability_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_family_splits_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_family_splits_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_family_splits_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_hub_solve_writes_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_hub_solve_writes_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_hub_solve_writes_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_import_cycles_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_import_cycles_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_import_cycles_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_private_reach_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_private_reach_control_write": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_private_reach_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_private_reach_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_public_surface_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_public_surface_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_public_surface_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shared_inplace_writes_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_shared_inplace_writes_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_shared_inplace_writes_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_untyped_payload_keys_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_untyped_payload_keys_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_untyped_payload_keys_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_xmodule_duplication_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_xmodule_duplication_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_xmodule_duplication_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "aa2677ba": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "c197b018": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "c27a6d32": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "c2a0448d": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "c5fcfb17": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "ca711b56": {
+  "admissible": true,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "ca937daa": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "d04ed89f": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "d979110c": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "e4bc3756": {
+  "admissible": false,
+  "label": "NEUTRAL",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "ec263d82": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "IMPROVES"
+ },
+ "f2d7a502": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "corpus",
+  "verdict": "WORSENS"
+ },
+ "ff30236d": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "corpus",
+  "verdict": "NULL"
+ },
+ "rt_00_null_rename": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_01_typeddict_all_any": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_02_hub_object_setattr": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_03_shared_dunder_spelling": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_04_dup_noop_interleave": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04b_dup_pass_interleave": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_04c_dup_pass_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04d_dup_ellipsis_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04e_dup_none_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04f_dup_str_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04g_dup_iffalse_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04h_dup_assert_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
+ "rt_04i_dup_assign_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
+ "rt_04j_dup_walrus_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
+ "rt_05_coord_mixin_relocation": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_05b_coord_mixin_private_only": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_05c_coord_base_class_all": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_05d_coord_empty_subclass": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_06_private_passthrough_props": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_07_family_declare_away": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_08_keepalive_registry": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_09_delete_away_setback": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_10_writers_setattr_init": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_11_params_kwargs_bag": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_12_combined_evasions": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_12b_combined_without_06": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_13_hub_handle_accessor": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ }
+}

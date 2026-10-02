@@ -14838,6 +14838,10 @@ _D308_COMPARABLE = _D308_TOTAL - sum(
     for _b in sorted(_D308)[_i + 1:]
     if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
 _D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
+# The lane is the only full-coverage closure but for one measured exception, admitted by name: the
+# architecture score's head check (R9-EG-A1) measures today's tree, so its closure is the package by
+# purpose. A third script reaching every file is still refused here.
+_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py"])
 _D308_SELECTED = _D308_DS in _closure.select(
     ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
 R.check(
@@ -14845,7 +14849,7 @@ R.check(
     "any production diff selects it (#1218)",
     _D308_PROD <= set(_D308.get(_D308_DS, []))
     and _integration_py <= set(_D308.get(_D308_DS, []))
-    and _D308_FULLCOV == [_D308_DS]
+    and _D308_FULLCOV == _D308_ADMITTED
     and _D308_SELECTED,
     f"closure reaches {len(set(_D308.get(_D308_DS, [])) & _D308_PROD)}/"
     f"{len(_D308_PROD)} production files and covers the tree's "
