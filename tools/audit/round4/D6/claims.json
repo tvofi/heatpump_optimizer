@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=68 measured=68",
+  "result": "documented=69 measured=69",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=68, listed=68, missing=[], phantom=[]",
+  "result": "on disk=69, listed=69, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.7.13' measured='6.7.13'",
+  "result": "documented='6.7.14' measured='6.7.14'",
   "verdict": "true",
   "truth": ""
  },
