@@ -1,0 +1,6 @@
+== base 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d
+TOTAL: 0 error(s) across 1 file(s)
+== wt ddaf6bf73c4bbb5d604a9348ab9ccdacb50feb5e
+  ERROR   [carry-1645.json carry 0] path:line: tests/doc_claims.py:463: 'check_simulate_plan_fields' not found near tests/doc_claims.py:463; found at line 798 instead
+  ERROR   [carry-1645.json carry 0] path:line: tests/doc_claims.py:552: 'check_simulate_plan_fields' not found near tests/doc_claims.py:552; found at line 798 instead
+TOTAL: 2 error(s) across 1 file(s)

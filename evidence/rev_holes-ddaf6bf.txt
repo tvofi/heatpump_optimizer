@@ -1,0 +1,8 @@
+GREEN icon from a third party (an image): []
+GREEN preload font from a third party: []
+RED  @import of a third-party sheet: [('third-party', 'third-party resource in CSS: https://x.example/a.css')]
+RED  inline style url() third party: [('third-party', 'third-party resource in CSS: https://x.example/b.png')]
+RED  picture source third-party srcset: [('image', 'image https://x.example/a.png is not the path under docs/ that data-repo docs/img/card/advisor-dark.png names')]
+GREEN iframe from a third party: []
+GREEN number in data-copy: []
+GREEN number in the meta description: []

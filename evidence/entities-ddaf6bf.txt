@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/1846-review/wt/tests/entities.py", line 100, in <module>
+    from heatpump_optimizer import (
+    ...<6 lines>...
+    )
+  File "/Users/timmalmstrom/hpo-seats/1846-review/wt/custom_components/heatpump_optimizer/binary_sensor.py", line 22, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
