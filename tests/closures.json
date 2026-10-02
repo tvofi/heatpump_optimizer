@@ -664,7 +664,8 @@
    "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
-   "tools/replay/synthesize.py"
+   "tools/replay/synthesize.py",
+   "tools/site/package-lock.json"
   ],
   "tests/env_drift.py": [
    "VERSION",

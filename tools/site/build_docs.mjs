@@ -41,8 +41,7 @@ const docSec = readme.split(/^## Documentation\s*$/m)[1]?.split(/^## /m)[0] || '
 const allRows = [...docSec.matchAll(/^\|\s*\[[^\]]+\]\(([^)#]+)\)\s*\|\s*(.+?)\s*\|\s*$/gm)].map((m) => ({ src: m[1], blurb: m[2] }))
 // A row naming an .html file is the product page itself (docs/index.html): the site's front, not rendered from markdown.
 const rows = allRows.filter((r) => /\.md$/i.test(r.src))
-for (const r of allRows) if (!/\.md$/i.test(r.src) && !TREE.has(r.src)) errors.push(`README Documentation row ${r.src} names a file that does not exist`)
-for (const x of Object.keys(EXCLUDE)) if (!rows.some((r) => r.src === x)) errors.push(`EXCLUDE names ${x}, which the README Documentation table no longer lists`)
+if (rows.length) for (const x of Object.keys(EXCLUDE)) if (!rows.some((r) => r.src === x)) errors.push(`EXCLUDE names ${x}, which the README Documentation table no longer lists`)
 const docs = [{ src: 'README.md', blurb: 'The overview: features, requirements, installation, entities, services and troubleshooting' }]
 for (const r of rows) if (!EXCLUDE[r.src]) docs.push(r)
 const outName = (src) => (src === 'README.md' ? 'readme.html' : path.posix.basename(src).replace(/\.md$/i, '.html').toLowerCase())

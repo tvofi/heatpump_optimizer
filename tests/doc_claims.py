@@ -2246,7 +2246,7 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
         return _BUILD_CACHE[key]
     res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}}
     if not SITE_BUILD.is_file():
-        res["fails"] = [f"{SITE_BUILD.relative_to(ROOT)} does not exist"]
+        res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
     else:
         with tempfile.TemporaryDirectory() as tmp:
             tree = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True)
@@ -2300,6 +2300,10 @@ def check_site_request_controls() -> None:
         ("a third-party iframe", '<iframe src="https://www.youtube.com/embed/x"></iframe>', "third-party"),
         ("a link to a page the build does not produce", '<a href="tuning.html">t</a>', "subpage"),
     )
+    built_only = (
+        ("a third-party script", '<script src="https://cdn.example.com/x.js"></script>'),
+        ("a third-party image", '<img src="https://example.com/x.png" alt="x">'),
+    )
     R.check("the product page and a built page are the unplanted baseline (anchor)", bool(page) and bool(sub))
     base = [k for k, _ in site_findings(page, pages=built["pages"])[0] if k in ("third-party", "subpage")]
     R.check("the product page is clean before planting", not base, str(base))
@@ -2308,9 +2312,56 @@ def check_site_request_controls() -> None:
         R.check(f"product page: {name} is refused", any(k == kind for k, _ in errs))
         if kind == "third-party":
             R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    for name, tag in built_only:
+        R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    card = page.replace('href="how-it-works.html"', f'href="{_SITE_REPO}docs/how-it-works.md"', 1)
+    R.check("product page: a docs card for a built document linked to GitHub is refused",
+            card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
     own = ('<link rel="icon" href="data:image/svg+xml,%3Csvg%3E%3C/svg%3E">', '<link rel="icon" href="site/favicon.svg">')
     R.check("a same-origin icon is not refused (the rule is not over-broad)",
             not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
+
+
+def check_docs_build_controls() -> None:
+    """Null controls for docs_build itself: a planted tree turns the arm's core red, and a missing build or tree is red."""
+    R.section("docs build arm fires on a planted tree (R9-WEB-3 null controls)")
+
+    def corpus(readme_doc: str | None = "# A\n\nText [self](#a).\n", git: bool = True, readme: bool = True) -> pathlib.Path:
+        d = pathlib.Path(tempfile.mkdtemp())
+        files = {"docs/site/docs.css": "", "docs/a.md": readme_doc or "", "docs/backlog.md": "# Archive\n"}
+        if readme:
+            files["README.md"] = "# T\n\n## Documentation\n\n| Document | What is in it |\n|---|---|\n| [docs/a.md](docs/a.md) | The a page |\n| [docs/backlog.md](docs/backlog.md) | The archive |\n"
+        for name, text in files.items():
+            (d / name).parent.mkdir(parents=True, exist_ok=True)
+            (d / name).write_text(text)
+        if git:
+            subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=d, check=True)
+        return d
+
+    base = docs_build(c := corpus())
+    R.check("a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)",
+            base["rc"] == 0 and not base["fails"] and set(base["pages"]) == {"README.md", "docs/a.md"},
+            f"rc {base['rc']}, {base['fails']}, {sorted(base['pages'])}")
+    bad = docs_build(corpus("# A\n\nText [dead](#no-such-heading).\n"))
+    R.check("a dead anchor makes the build red", bad["rc"] == 1 and any("no-such-heading" in f for f in bad["fails"]),
+            f"rc {bad['rc']}, {bad['fails']}")
+    crash = docs_build(corpus(readme=False))
+    R.check("a build that dies without a FAIL line is red, naming its exit", crash["rc"] not in (0, None) and any(
+        "no FAIL line" in f for f in crash["fails"]), f"rc {crash['rc']}, {crash['fails']}")
+    nogit = docs_build(corpus(git=False))
+    R.check("a tree with no tracked-file list is red", nogit["rc"] is None and any("git ls-files" in f for f in nogit["fails"]),
+            f"rc {nogit['rc']}, {nogit['fails']}")
+    global SITE_BUILD
+    real, SITE_BUILD = SITE_BUILD, pathlib.Path(tempfile.gettempdir()) / "no-such-build.mjs"
+    try:
+        gone = docs_build(corpus())
+    finally:
+        SITE_BUILD = real
+    R.check("a missing build script is red with no page built",
+            not gone["pages"] and any("does not exist" in f for f in gone["fails"]), f"{gone['fails']}")
+    again = docs_build(c)
+    R.check("a second run over one root reuses the first result", again is base)
 
 
 def main() -> int:
@@ -2318,6 +2369,7 @@ def main() -> int:
     check_product_page()
     check_docs_subpages()
     check_site_request_controls()
+    check_docs_build_controls()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()
