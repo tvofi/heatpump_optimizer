@@ -1,12 +1,12 @@
-head 5619ead8eee2841e75b50f27dbe54b1e07be1479
-merge-base 5f87e25a110ff0a6fad179283b21f3823d0cd1f1
+head a8bba2e6861c03f4aaef3f8ccfeaa011b2b0ca61
+merge-base aa7a81192325614999803e40e3cedc024e22ce2b
 TOTAL: 0 error(s) across 40 policy file(s)
 tests/README.md                                  459  800     6671  6686 
 tools/audit/briefs/fixer.md                      295  295     4866  4866 
-.claude/rules/defect-root-cause.md               149  149     1812  1812 
+.claude/rules/defect-root-cause.md               149  149     1813  1813 
 tools/audit/briefs/root-cause.md                  84   84      998   998 
-tools/audit/briefs/D1.md                          60   60      818   818 
-corpus:        ~56037 tokens, cap 56037 +band 500 = 56537
+tools/audit/briefs/D1.md                          60   60      819   819 
+corpus:        ~56039 tokens, cap 56039 +band 500 = 56539
 
 RULES-SYNC ok: every .cursor rule is the generated form of its source
 STRUCTURE RATCHET PASSED

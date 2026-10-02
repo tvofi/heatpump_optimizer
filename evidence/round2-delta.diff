@@ -1,0 +1,102 @@
+commit 4fa6bbe8633be2b9e2b02f26f292e8d7d2cf7b98
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Fri Oct 2 19:05:50 2026 +0200
+
+    policy: move A1/A7 below step 8's closing sentences; restore the A4 and A9 draft wording
+    
+    Reviewer round 1 (root-cause-unanswered): the A1/A7 paragraphs sat between step 8's
+    'say what you did instead.' and its 'This is step 11 ... #592 added this step' sentences,
+    detaching them from their text; they now follow 'a reviewer refuted all three a draft
+    quoted.', same words. A4 restored to 'one perturbation to the store-fuzz set'; A9 to the
+    'registered in field_coverage.mjs' lead, with only the derived-set clause adjusted.
+    Caps re-recorded to the exact measured values, the same raise announced on #201 comment
+    5956454383, moved by a token or two: D1.md tokens 818 -> 819, defect-root-cause.md tokens
+    1812 -> 1813, corpus_tokens 56037 -> 56039. Nothing else changes.
+    
+    Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+diff --git a/.claude/rules/defect-root-cause.md b/.claude/rules/defect-root-cause.md
+index 45ead444e..f68cfe31b 100644
+--- a/.claude/rules/defect-root-cause.md
++++ b/.claude/rules/defect-root-cause.md
+@@ -111,8 +111,8 @@ on a broken tree, an autofix job that reported success while skipping its own
+ repair. Each was caught by a control that assumed the check was lying, and none
+ of them by the check itself.
+ 
+-A check over a structured input is covered by `field_coverage.mjs`: a governance
+-check is in its derived set and registers its input or declares none.
++A check over a structured input is registered in `field_coverage.mjs`: a governance
++check is in the derived set and registers its input or declares none.
+ 
+ ## Where it is recorded
+ 
+diff --git a/.claude/workflows/policy_budgets.json b/.claude/workflows/policy_budgets.json
+index 24dcfb2cf..a083dfc41 100644
+--- a/.claude/workflows/policy_budgets.json
++++ b/.claude/workflows/policy_budgets.json
+@@ -6,7 +6,7 @@
+   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
+   "_band": 500,
+   "_band_note": "Applies to the five aggregate caps only -- always_loaded_tokens, corpus_tokens and the three roles caps -- which are compared against cap+_band. Per-file caps below are compared exactly and keep zero headroom deliberately. A cap re-recorded to the measured value every time leaves the NEXT pull request refused by the previous seat's arithmetic rather than by its own prose: measured over 2026-09-08..17, twenty consecutive commits sat at exactly zero corpus headroom, 24 of 39 capped files sit there now, and the corpus still rose across a window where the cap was pinned at measured every commit. The recorded cap is the last measurement; the band is the room a seat works in without touching it. Re-record down when the measurement falls more than _band below the cap, and on any reclassification -- .claude/rules/ratchet-budgets.md.",
+-  "corpus_tokens": 56037,
++  "corpus_tokens": 56039,
+   "roles": {
+     "fixer": {
+       "opens": [
+@@ -80,7 +80,7 @@
+     ".claude/rules/ci-autofix.md": 1428,
+     ".claude/rules/claim-files.md": 681,
+     ".claude/rules/comment-readback.md": 883,
+-    ".claude/rules/defect-root-cause.md": 1812,
++    ".claude/rules/defect-root-cause.md": 1813,
+     ".claude/rules/delivery-status-tracking.md": 606,
+     ".claude/rules/finding-propagation.md": 1336,
+     ".claude/rules/gate-scoping.md": 794,
+@@ -96,7 +96,7 @@
+     "tools/audit/README.md": 3604,
+     "tools/audit/briefs/COMMON.md": 1598,
+     "tools/audit/briefs/D0.md": 926,
+-    "tools/audit/briefs/D1.md": 818,
++    "tools/audit/briefs/D1.md": 819,
+     "tools/audit/briefs/D10.md": 574,
+     "tools/audit/briefs/D11.md": 1499,
+     "tools/audit/briefs/D12.md": 916,
+diff --git a/tools/audit/briefs/D1.md b/tools/audit/briefs/D1.md
+index 0ecfb847f..e11cf278b 100644
+--- a/tools/audit/briefs/D1.md
++++ b/tools/audit/briefs/D1.md
+@@ -27,7 +27,7 @@ Home Assistant semantics, not the test stub's.
+    wrong nesting, truncation, strings where dicts go. Load through the real
+    loader, run one cycle, assert it completes, the corrupt part is quarantined
+    or reset with one log line, and the *next* cycle does not repeat the failure.
+-   Add one more perturbation to the set: an instant written by a clock ahead of
++   Add one perturbation to the store-fuzz set: an instant written by a clock ahead of
+    the one that reads it back, driven across a restart.
+ 3. **Staleness.** Drive the watchdog and every "age" sensor under: a frozen
+    clock jump forward/back, DST transitions (`tests/hastub` `dt.freeze`,
+diff --git a/tools/audit/briefs/fixer.md b/tools/audit/briefs/fixer.md
+index a833e67c5..628a5c73e 100644
+--- a/tools/audit/briefs/fixer.md
++++ b/tools/audit/briefs/fixer.md
+@@ -112,7 +112,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
+    not a description), run it, and put every seam it returns in `## Figures` against
+    its disposition — closed in this diff, already guarded, or a distinct finding named
+    by id. An un-dispositioned returned seam is an open seam, class not closed. If no such instrument
+-   exists, say so, and say what you did instead.
++   exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
++   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
++   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
+    For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
+    owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
+    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
+@@ -120,9 +122,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
+    the same input and compares their outputs, and **the census asserts its own preconditions**
+    (a census that skips a class of slots refuses the day a skipped slot gains a writer).
+    A fix that changes one reader of a governance concept registers the concept in
+-   `agreement.mjs` with every reader the enumeration returns. This is step 11 applied to your own instrument: one
+-   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
+-   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
++   `agreement.mjs` with every reader the enumeration returns.
+ 
+ 9. **A claim should be true; if wrong, correct it — anchored to a lane,
+    function, marker or SHA, never a bare line number — and delete only when
