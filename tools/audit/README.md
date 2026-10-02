@@ -128,6 +128,16 @@ moves.
   consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
   between the DHW stage and the space stage. Neither sits inside an iteration.
 
+## Finder scopes
+
+`scopes.json` is the one list of what each finder seat owns, per dimension: a
+universe of file globs, and the seats that partition it. `check_scopes.py`
+proves each dimension's seats are disjoint and complete over its universe, and
+`--seat <D<k>-s<n>>` prints the cells one seat owns. The driver's Prepare step
+runs it and refuses the round on a nonzero exit. A directory no dimension's
+universe names is audited by nobody: `docs/decisions/` was one until D11's
+universe took it.
+
 ## Running the gate on the audit box
 
 Run the gate the way CI runs it — drift mode against the merge base; the
