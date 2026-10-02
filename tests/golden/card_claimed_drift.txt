@@ -757,3 +757,49 @@ whatif_weekly # R9-UX-2: stylesheet only (advisor inbox rules)
 wood_alert # R9-UX-2: stylesheet only (advisor inbox rules)
 wood_lane # R9-UX-2: stylesheet only (advisor inbox rules)
 wood_whatif # R9-UX-2: stylesheet only (advisor inbox rules)
+
+# R9-UX-3 (2026-10-02): the Health tab. The card's one <style> block gains the
+# .health-* rules, so 39 of the 40 states move by stylesheet text; the
+# states that render the expanded dialog also gain a fifth tab button
+# (data-page="health") in the tab list. No fixture publishes the Input
+# Problem sensor, so no state gains the header pill. editor_schema renders no
+# stylesheet and is not claimed.
+no_plan # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+no_plan_expanded # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+plan_inline # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+plan_inline_sv # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+plan_short_window # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+custom_title_currency # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+hidden_series # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+score_open # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+expanded_plan # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+what_if_off # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+expanded_zoomed # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+draft_dirty_menu_open # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+draft_mid_drag # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+whatif_edited # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+whatif_weekly # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+override_active # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+shared_steps # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+shared_steps_hover # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+tooltip_hover # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+coarse_pointer # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+reduced_motion # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+setup_single_buffer # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+setup_two_tank # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+setup_coil # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+advisor_page # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+layout_editing_dragged # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+layout_editing_tidy # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+picker_open_filtered # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+wood_alert # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+wood_lane # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+wood_whatif # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+away_toggle # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+away_return # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+away_status # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+history_panned # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+history_deep_panned # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+history_no_power # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+history_unavailable # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab
+history_pending # R9-UX-3: stylesheet (health page rules); expanded dialogs also gain the Health tab

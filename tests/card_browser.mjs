@@ -228,6 +228,8 @@ function gridStates(plan) {
     S("away_status", { states: away({ resolved: true }), steps: [["cardClick"]] }),
     S("setup_two_tank", { states: setupStates(qaTopologies().twoTank), steps: [["cardClick"], ["page", "setup"]] }),
     S("advisor_page", { states: advisor(), steps: [["cardClick"], ["page", "advisor"]] }),
+    S("health_page", { states: healthPageStates(pageStates(plan), Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR),
+      steps: [["cardClick"], ["page", "health"]] }),
     S("savings_page", { states: { ...planStates(plan), "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1",
       attributes: { unit_of_measurement: "SEK", savings_months: [
         { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
@@ -389,9 +391,32 @@ async function themeMismatch({ browser, check, plan }) {
   }
 }
 
+/** The Health page's fixture (R9-UX-3): one stale input, a plan solved 12
+ * minutes ago, the savings and COP sensors still waiting, and no power meter. */
+function healthPageStates(st, now) {
+  const iso = (ms) => new Date(ms).toISOString();
+  const topo = qaTopologies().base;
+  return { ...st,
+    [DEFAULT_SPACE]: { ...st[DEFAULT_SPACE], attributes: { ...st[DEFAULT_SPACE].attributes,
+      setup_topology: { ...topo, slots: topo.slots.map((x) =>
+        x.key === "heat_pump_power_entity" ? { ...x, entity: null } : x) } } },
+    "binary_sensor.heat_pump_optimizer_input_problem": { state: "on", last_updated: "t1", attributes: {
+      problems: [{ input: "outdoor_temp_entity", entity_id: "sensor.outdoor", problem: "stale",
+        age_minutes: 130, max_age_minutes: 60 }],
+      input_ages_minutes: { indoor_temp_entity: 3, outdoor_temp_entity: 130, dhw_temp_entity: 4 } } },
+    "sensor.heat_pump_optimizer_last_optimization": { state: iso(now - 12 * 60e3), last_changed: iso(now - 12 * 60e3), attributes: {} },
+    "sensor.heat_pump_optimizer_next_optimization": { state: iso(now + 18 * 60e3), last_changed: iso(now - 12 * 60e3), attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_status": { state: "optimal", last_updated: "t1", attributes: {
+      solve_time_ms: 1400, prices_available: 96, weather_forecast_available: 48 } },
+    "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "unavailable", attributes: {} },
+    "sensor.heat_pump_optimizer_learning_observed_cop": { state: "unavailable", attributes: {} },
+  };
+}
+
 async function cardPages({ browser, check, plan, out }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const states = pageStates(plan);
+  const healthStates = healthPageStates(states, FROZEN);
   const shots = [];
   for (const theme of ["light", "dark"]) {
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 860 }, deviceScaleFactor: 1,
@@ -402,7 +427,7 @@ async function cardPages({ browser, check, plan, out }) {
       // "plan-why" is the Plan page with the pointer on the dearest idle
       // space-heating step, so the "likely because" hover (R9-UX-1) is
       // documented from the code rather than from a hand capture.
-      for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor"]) {
+      for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor", "health"]) {
         await page.goto("about:blank");
         await page.addScriptTag({ path: CARD_SRC });
         await page.evaluate(([themeCss, st, dark, view]) => {
@@ -418,7 +443,7 @@ async function cardPages({ browser, check, plan, out }) {
           card.hass = { states: st, language: "en", themes: { darkMode: dark } };
           if (view !== "tile") { card._onCardClick({}); card.dialog.page = view === "plan-why" ? "plan" : view; card._render(); }
           window.__card = card;
-        }, [THEMES[theme], states, theme === "dark", view]);
+        }, [THEMES[theme], view === "health" ? healthStates : states, theme === "dark", view]);
         await page.waitForTimeout(250);
         // Opening a page focuses its tab; a picture of the page should not
         // show a focus ring on a tab the reader did not press.
@@ -466,8 +491,8 @@ async function cardPages({ browser, check, plan, out }) {
     }
   }
   const pics = shots.filter((s) => !s.probe);
-  check("U5 page-screenshot mode takes the tile, all four pages and the idle-step hover in both themes",
-    pics.length === 12 && shots.every((s) => s.ok),
+  check("U5 page-screenshot mode takes the tile, all five pages and the idle-step hover in both themes",
+    pics.length === 14 && shots.every((s) => s.ok),
     shots.filter((s) => !s.ok).map((s) => `${s.name} ${s.bytes} bytes`).join(", "));
 }
 
