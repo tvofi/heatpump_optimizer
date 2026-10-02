@@ -13,17 +13,17 @@ Why a separate PR: the landing PR for the I4 agreement lane (#1847) cannot be gr
 
 ## Head
 
-`9d03708beaffc5af90336fbf81068524df606707` is one commit on origin/main `af7660c749a65762934d45b7c91957102253e209`.
+`07b0704b82b57f6c60bdccd1a0e293d51ec09305` is two commits on origin/main `af7660c749a65762934d45b7c91957102253e209`.
 
 ## Mutation proof
 
 Both tests were written first and red on main's code, then green with the fix, and each fix line was removed again:
 - Removing `|| MERGE_SUBJECT_RE.exec(String(subject))` from `resolvePrFromCommit`: `node .claude/workflows/policy_lint.mjs` prints `FIXTURE VACUOUS: resolvePrFromCommit [... squash-shape subject ... did not recover the PR number ...]`.
-- Removing `rulePaths` from the export list: `node .claude/workflows/check-wave-script.mjs` prints `FAIL rulePaths is exported typeof undefined` and `FAIL and reads every declared path glob of a real rule ... declared 2, read -1`, so 151 passed, 2 failed (the deliberate harness probe's own FAIL is discounted by the script).
+- Removing `rulePaths` from the export list: `node .claude/workflows/check-wave-script.mjs` prints `FAIL rulePaths is exported typeof undefined` and `FAIL and reads the same declared path globs as parseRuleFrontmatter ... read null`, so 151 passed, 2 failed (the deliberate harness probe's own FAIL is discounted by the script).
 
 ## Null control
 
-Main's own checks stay green with the change: `check-wave-script.mjs` 153 passed, 0 failed (151 at main plus the two new rows); `policy_lint.mjs` fixture ok, 233 pins (232 plus the one new row), 92 errors held; `policy_lint.mjs --budgets`, `rules_sync.mjs --check`, `brief_lint.mjs` and `field_coverage.mjs` (refused=0) all ok. The stamp-subject row (`v6.3.19: stamp ...`) still resolves to null, which is the fix's own null control that it did not become an unanchored subject scan. The null control for the `rulePaths` row is that the rule it reads (`.claude/rules/gate-scoping.md`) declares 2 globs (`want > 0`).
+Main's own checks stay green with the change: `check-wave-script.mjs` 153 passed, 0 failed (151 at main plus the two new rows); `policy_lint.mjs` fixture ok, 233 pins (232 plus the one new row), 92 errors held; `policy_lint.mjs --budgets`, `rules_sync.mjs --check`, `brief_lint.mjs` and `field_coverage.mjs` (refused=0) all ok. The stamp-subject row (`v6.3.19: stamp ...`) still resolves to null, which is the fix's own null control that it did not become an unanchored subject scan. The `rulePaths` row compares `rulePaths` with the other exported reader of the same bytes, `parseRuleFrontmatter`, on `.claude/rules/gate-scoping.md`; its null control is that the rule declares globs (`want.length > 0`). The second commit replaced a first draft that copied a frontmatter regex into `check-wave-script.mjs`, which the agreement lane's grammar discovery of #1847 refuses as a regex written in two governance files.
 
 `tests/entities.py`, the one script the scoped gate selects (`MODE: SCOPED -- 1 script(s) run`), was run in a venv with numpy: 1 of 2060 failed, `the template arm turns the acceptance red ...`, and the same single check fails the same way at pristine main `af7660c7` in a second worktree, so it is main's, in this environment.
 
