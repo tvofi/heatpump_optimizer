@@ -88,13 +88,13 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     derivable).
     """
     snap: dict[str, Any] = {
-        "mode": getattr(coord, "_mode", None),
+        "mode": getattr(coord, "mode", None),
         "tibber_outage_cycles": getattr(coord, "_tibber_outage_cycles", None),
         "tibber_reauth_started": getattr(coord, "_tibber_reauth_started", None),
         "weather_stale_hours": coord.weather_stale_hours()
         if hasattr(coord, "weather_stale_hours")
         else None,
-        "optimization_running": getattr(coord, "_optimization_running", None),
+        "optimization_running": getattr(coord, "optimization_running", None),
         "solve_failures": getattr(coord, "_solve_failures", None),
         "cop_scale": getattr(coord, "_cop_scale", None),
         "cop_samples": getattr(coord, "_cop_samples", None),

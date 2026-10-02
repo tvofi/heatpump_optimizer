@@ -29159,4 +29159,144 @@ R.check(
 )
 
 
+# --- R9-EG-B2 (#1742, #1739 surface half): identity and coordinator reads ---
+# The entity platforms read the coordinator through public names only, keep
+# no merged copy of the entry's data and options, and pin their three ids
+# through one rule in entity.py. The scan is the rule that enumerates the
+# class's seams: any ``<coordinator>._x`` attribute read, any
+# ``getattr(<coordinator>, "_x")`` and any ``{**entry.data, **entry.options}``
+# in a surface module. ``diagnostics.py`` is not a surface: its six remaining
+# reaches are R9-EG-B6's (#1739, collaborators).
+_EGB2_SURFACES = (
+    "entity.py", "sensor.py", "binary_sensor.py", "button.py",
+    "switch.py", "climate.py", "datetime.py",
+)
+
+
+def _egb2_is_coord(node: ast.AST) -> bool:
+    """``coordinator``, ``coord`` or ``<anything>.coordinator``."""
+    if isinstance(node, ast.Name):
+        return node.id in ("coordinator", "coord")
+    return isinstance(node, ast.Attribute) and node.attr == "coordinator"
+
+
+def _egb2_private_reads(tree: ast.AST) -> list[str]:
+    found = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr.startswith("_")
+            and not node.attr.startswith("__")
+            and _egb2_is_coord(node.value)
+        ):
+            found.append(f"{node.lineno}:.{node.attr}")
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("getattr", "hasattr", "setattr")
+            and len(node.args) >= 2
+            and _egb2_is_coord(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and str(node.args[1].value).startswith("_")
+        ):
+            found.append(f"{node.lineno}:{node.func.id}({node.args[1].value!r})")
+        elif isinstance(node, ast.Dict) and None in node.keys:
+            spread = {
+                ast.unparse(v) for k, v in zip(node.keys, node.values) if k is None
+            }
+            if any(x.endswith(".data") for x in spread) and any(
+                x.endswith(".options") for x in spread
+            ):
+                found.append(f"{node.lineno}:{{**data, **options}}")
+    return found
+
+
+def _egb2_id_writes(tree: ast.AST) -> list[str]:
+    """Assignments to ``self.entity_id`` or ``self._attr_unique_id``."""
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for t in targets:
+                if (
+                    isinstance(t, ast.Attribute)
+                    and isinstance(t.value, ast.Name)
+                    and t.value.id == "self"
+                    and t.attr in ("entity_id", "_attr_unique_id")
+                ):
+                    found.append(f"{node.lineno}:{t.attr}")
+    return found
+
+
+_egb2_trees = {n: ast.parse((ROOT / n).read_text()) for n in _EGB2_SURFACES}
+_egb2_reads = {
+    n: r for n, r in ((n, _egb2_private_reads(t)) for n, t in _egb2_trees.items()) if r
+}
+R.check(
+    "EG-B2: no entity platform reads a coordinator private member or keeps "
+    "its own merged copy of the entry's data and options",
+    not _egb2_reads,
+    repr(_egb2_reads),
+)
+# The scan's own null control: it names a planted reach of each spelling and
+# stays silent on the public twin of the same lines.
+_egb2_planted = ast.parse(
+    "x = self.coordinator._away_state\n"
+    "y = getattr(coordinator, '_config', None)\n"
+    "z = {**entry.data, **entry.options}\n"
+)
+_egb2_public = ast.parse(
+    "x = self.coordinator.away_state\n"
+    "y = getattr(coordinator, 'effective_config', None)\n"
+    "z = {**entry.data}\n"
+)
+R.check(
+    "EG-B2: the private-read scan names a planted reach of each spelling and "
+    "none of their public twins (the scan's null control)",
+    len(_egb2_private_reads(_egb2_planted)) == 3
+    and not _egb2_private_reads(_egb2_public),
+    f"planted={_egb2_private_reads(_egb2_planted)!r} "
+    f"public={_egb2_private_reads(_egb2_public)!r}",
+)
+_egb2_ids = {
+    n: w
+    for n, w in ((n, _egb2_id_writes(t)) for n, t in _egb2_trees.items())
+    if w and n != "entity.py"
+}
+_egb2_pin_writes = _egb2_id_writes(_egb2_trees["entity.py"])
+R.check(
+    "EG-B2: the unique id and the pinned object id are assigned in the entity "
+    "base's one rule, and in no platform file",
+    not _egb2_ids
+    and sorted(w.split(":")[1] for w in _egb2_pin_writes)
+    == ["_attr_unique_id", "entity_id"],
+    f"platforms={_egb2_ids!r} entity.py={_egb2_pin_writes!r}",
+)
+_egb2_views = ("thermal_params", "thermal_model", "away_state", "mold_floor_series")
+_egb2_cls = coordinator_module.HeatPumpOptimizerCoordinator
+R.check(
+    "EG-B2: every coordinator view the surfaces read is a read-only property",
+    all(
+        isinstance(_egb2_cls.__dict__.get(v), property)
+        and _egb2_cls.__dict__[v].fset is None
+        for v in _egb2_views
+    ),
+    repr({v: type(_egb2_cls.__dict__.get(v)).__name__ for v in _egb2_views}),
+)
+_egb2_real = globals().get("_blind_coord")
+R.check(
+    "EG-B2: on a real coordinator each view is the very member it names, and "
+    "effective_config is the merged entry the platforms used to copy",
+    _egb2_real is not None
+    and getattr(_egb2_real, "thermal_params", None) is _egb2_real._thermal_params
+    and getattr(_egb2_real, "thermal_model", None) is _egb2_real._thermal_model
+    and getattr(_egb2_real, "away_state", None) is _egb2_real._away_state
+    and getattr(_egb2_real, "mold_floor_series", None)
+    == _egb2_real._mold_floor_series
+    and _egb2_real.effective_config
+    == {**_egb2_real.entry.data, **_egb2_real.entry.options},
+    "no real coordinator" if _egb2_real is None else "a view diverged",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
