@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heat Pump Cost Optimizer</title>
+<meta name="description" content="Model-predictive heating control for Home Assistant: a 24-hour plan for your heat pump and hot water against hourly prices, the weather forecast and a thermal model of your own house.">
+<style>
+/* Product page, design of record (rev 4.2). The showcase's system: frost/ink/slate/fjord/ember, Outfit + Source Sans 3,
+   the dusk mark, 12 px surfaces. Every claim-bearing element carries data-src (a README or docs section) and is quoted
+   from it; data-copy marks page copy that states no fact. Fonts are self-hosted (OFL, latin subset): no third-party
+   request leaves the page. */
+@font-face { font-family: "Outfit"; font-weight: 600; font-display: swap; src: url(site/fonts/outfit-latin-600-normal.woff2) format("woff2") }
+@font-face { font-family: "Outfit"; font-weight: 700; font-display: swap; src: url(site/fonts/outfit-latin-700-normal.woff2) format("woff2") }
+@font-face { font-family: "Source Sans 3"; font-weight: 400; font-display: swap; src: url(site/fonts/source-sans-3-latin-400-normal.woff2) format("woff2") }
+@font-face { font-family: "Source Sans 3"; font-weight: 600; font-display: swap; src: url(site/fonts/source-sans-3-latin-600-normal.woff2) format("woff2") }
+:root {
+  --bg: #f3f8fc; --surface: #ffffff; --surface-2: #eef4f9; --ink: #0f2233; --ink-2: #4d5d6c; --line: #d6e0e8;
+  --accent: #026aa8; --accent-ink: #ffffff; --heat: #b4501a; --heat-mark: #d2601f; --ok: #1c7350; --well: #e8f0f6;
+  --stage: #ffffff; --hero-a: #e3eef7; --hero-b: #f3f8fc;
+  --f-display: "Outfit", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --r: 12px;
+  --mk-line: #026aa8; --mk-heat: #d2601f;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1a28; --surface: #11263a; --surface-2: #16304a; --ink: #eaf2f8; --ink-2: #a9bccb; --line: #24405a;
+  --accent: #4fb3f0; --accent-ink: #0b1a28; --heat: #f08a3c; --heat-mark: #f08a3c; --ok: #3cc488; --well: #16304a;
+  --stage: #ffffff; --hero-a: #10263b; --hero-b: #0b1a28; --mk-line: #4fb3f0; --mk-heat: #f08a3c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1a28; --surface: #11263a; --surface-2: #16304a; --ink: #eaf2f8; --ink-2: #a9bccb; --line: #24405a;
+  --accent: #4fb3f0; --accent-ink: #0b1a28; --heat: #f08a3c; --heat-mark: #f08a3c; --ok: #3cc488; --well: #16304a;
+  --stage: #ffffff; --hero-a: #10263b; --hero-b: #0b1a28; --mk-line: #4fb3f0; --mk-heat: #f08a3c; color-scheme: dark }
+
+* { box-sizing: border-box }
+html { -webkit-text-size-adjust: 100% }
+body { background: var(--bg); color: var(--ink); font: 17px/1.55 var(--f-body); margin: 0 }
+.wrap { max-width: 74rem; margin: 0 auto; padding-inline: 20px }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15 }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.25rem); font-weight: 700; letter-spacing: -.005em }
+h3 { font-size: 1.12rem; font-weight: 600 }
+p { margin: 0; max-width: 66ch }
+a { color: var(--accent) }
+code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: .86em; background: var(--well); padding: 1px 5px; border-radius: 5px }
+.eyebrow { font: 600 .74rem/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2) }
+.muted { color: var(--ink-2) }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; border-radius: 8px; z-index: 20 }
+.skip:focus { left: 12px }
+
+/* top bar */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line) }
+.top .wrap { display: flex; align-items: center; gap: 16px; min-height: 60px }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; color: var(--ink); font: 700 1.05rem var(--f-display); white-space: nowrap }
+.brand span { overflow: hidden; text-overflow: ellipsis }
+.brand svg { width: 30px; height: 30px; flex: none }
+nav.links { flex: 1; overflow-x: auto; scrollbar-width: none }
+nav.links ol { list-style: none; display: flex; gap: 2px; margin: 0; padding: 0; white-space: nowrap }
+nav.links a { display: block; padding: 7px 11px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: .92rem }
+nav.links a:hover { background: var(--well); color: var(--ink) }
+.top .act { display: flex; gap: 8px; align-items: center; margin-left: auto; flex: none }
+.iconbtn { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none }
+.iconbtn svg { width: 20px; height: 20px }
+@media (max-width: 860px) { nav.links { display: none } }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 20px; border-radius: 12px; font: 600 1rem var(--f-body); text-decoration: none; border: 1px solid transparent }
+.btn.primary { background: var(--accent); color: var(--accent-ink) }
+.btn.primary:hover { filter: brightness(1.08) }
+.btn.ghost { border-color: var(--line); color: var(--ink); background: var(--surface) }
+.btn.ghost:hover { background: var(--well) }
+
+/* hero */
+.hero { background: linear-gradient(180deg, var(--hero-a), var(--hero-b)); border-bottom: 1px solid var(--line) }
+.hero .wrap { padding-block: 64px 56px; display: grid; gap: 28px }
+.hero h1 { font-size: clamp(2.3rem, 6vw, 4rem); font-weight: 700; letter-spacing: -.02em; max-width: 16ch }
+.hero h1 em { font-style: normal; color: var(--heat) }
+.hero .lede { font-size: clamp(1.08rem, 1.6vw, 1.25rem); max-width: 60ch }
+.cta { display: flex; flex-wrap: wrap; gap: 12px }
+.stage { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--stage) }
+.stage img { display: block; width: 100%; height: auto }
+.hero figure { margin: 8px 0 0; display: grid; gap: 10px }
+.hero .stage { box-shadow: 0 18px 40px -24px rgb(15 34 51 / .45) }
+:root[data-theme="dark"] .hero .stage.chart, .dark-stage { background: #111417 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero .stage.chart { background: #111417 } }
+figcaption { font-size: .92rem; color: var(--ink-2); max-width: 72ch }
+
+/* tiles, in the card's stat-tile style */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 2px; align-content: start }
+.tile .v { font: 700 clamp(1.5rem, 3vw, 2rem)/1.1 var(--f-display); font-variant-numeric: tabular-nums; color: var(--accent) }
+.tile .v small { font: 600 .95rem var(--f-body); color: var(--ink-2); margin-left: 3px }
+.tile .l { font-size: .9rem; color: var(--ink-2) }
+@media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+
+section.band { padding-block: 80px 8px; scroll-margin-top: 64px }
+.sec-head { display: grid; gap: 12px; margin-bottom: 30px }
+.sec-head p { font-size: 1.08rem; color: var(--ink-2) }
+
+/* features */
+.features { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 16px }
+.feat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px 22px; display: grid; gap: 10px; align-content: start }
+.feat .ic { width: 38px; height: 38px; border-radius: 10px; background: var(--well); display: grid; place-items: center; color: var(--accent) }
+.feat .ic svg { width: 22px; height: 22px }
+.feat p { font-size: .97rem; color: var(--ink-2) }
+
+/* how */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; counter-reset: st }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 8px; align-content: start; counter-increment: st }
+.step h3::before { content: counter(st); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: .9rem; margin-right: 10px; vertical-align: 1px }
+.step p { font-size: .95rem; color: var(--ink-2) }
+@media (max-width: 820px) { .steps { grid-template-columns: 1fr } }
+
+/* gallery */
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--well); border-radius: 12px; padding: 4px; gap: 2px; max-width: 100% }
+.seg button { font: 600 .95rem var(--f-body); border: 0; background: transparent; color: var(--ink-2); padding: 0 16px; min-height: 40px; border-radius: 9px; cursor: pointer }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .14) }
+.gallery { display: grid; gap: 14px }
+.gallery [role="tabpanel"] { display: grid; gap: 10px }
+.gallery [role="tabpanel"][hidden] { display: none }
+.gallery .stage img { max-height: 560px; object-fit: contain; background: #fff }
+.gallery .stage.tall img { max-height: 620px; width: auto; margin-inline: auto }
+.cardlead { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: start; margin-bottom: 26px }
+@media (max-width: 860px) { .cardlead { grid-template-columns: 1fr } }
+pre.yaml { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; font: .86rem/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace; overflow-x: auto }
+pre.yaml .k { color: var(--accent) } pre.yaml .c { color: var(--ink-2) }
+
+/* works with */
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+@media (max-width: 860px) { .cols3 { grid-template-columns: 1fr } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 8px; align-content: start }
+.panel p { font-size: .96rem; color: var(--ink-2) }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); margin-top: 16px }
+table { border-collapse: collapse; width: 100%; font-size: .94rem }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font: 600 .74rem var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); background: var(--well) }
+tr:last-child td { border-bottom: 0 }
+td:first-child { font-weight: 600; white-space: nowrap }
+@media (max-width: 640px) {
+  thead { display: none }
+  table, tbody, tr, td { display: block; width: 100% }
+  tr { padding: 12px 16px; border-bottom: 1px solid var(--line) }
+  tr:last-child { border-bottom: 0 }
+  td { border: 0; padding: 3px 0 }
+  td:first-child { white-space: normal; font: 600 1.02rem var(--f-display); padding-bottom: 6px }
+  td[data-label]::before { content: attr(data-label); display: block; font: 600 .7rem var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2) }
+}
+
+/* get started */
+.start { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px }
+@media (max-width: 860px) { .start { grid-template-columns: 1fr } }
+ol.hacs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: h }
+ol.hacs li { counter-increment: h; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start }
+ol.hacs li::before { content: counter(h); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font: 700 .9rem var(--f-display) }
+ul.req { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; color: var(--ink-2) }
+ul.req b { color: var(--ink) }
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 22px }
+@media (max-width: 900px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.strip figure { margin: 0; display: grid; gap: 8px; align-content: start }
+.strip .stage { aspect-ratio: 1 / 1 }
+.strip .stage img { height: 100%; object-fit: cover; object-position: top }
+.strip .stage.fit img { object-fit: contain; object-position: center; background: #fff }
+.strip figcaption { font-size: .88rem }
+
+/* limits */
+.limits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 14px }
+.lim { border-left: 3px solid var(--heat-mark); background: var(--surface); border-radius: 0 var(--r) var(--r) 0; padding: 14px 18px; display: grid; gap: 6px; align-content: start }
+.lim p { font-size: .95rem; color: var(--ink-2) }
+.note { background: var(--well); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 6px; margin-top: 18px }
+
+/* ai */
+.ai { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px }
+.ai blockquote { margin: 0; font: 600 clamp(1.2rem, 2.2vw, 1.5rem)/1.3 var(--f-display) }
+.ai .body { display: grid; gap: 12px; color: var(--ink-2) }
+@media (max-width: 860px) { .ai { grid-template-columns: 1fr; padding: 22px } }
+
+/* docs */
+.docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); gap: 12px }
+.doc { display: grid; gap: 4px; padding: 14px 18px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink) }
+.doc:hover { border-color: var(--accent) }
+.doc b { font: 600 .98rem var(--f-display); color: var(--accent); overflow-wrap: anywhere }
+.doc span { font-size: .92rem; color: var(--ink-2) }
+
+footer { margin-top: 96px; border-top: 1px solid var(--line); background: var(--surface) }
+footer .wrap { padding-block: 32px 40px; display: grid; gap: 14px; font-size: .92rem; color: var(--ink-2) }
+footer .row { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center }
+footer .brand { font-size: 1rem }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="dusk" viewBox="0 0 48 48"><path d="M20 22 V26 H27 V35 H36 V22 Z" fill="var(--mk-heat)"/><path d="M6 12 H13 V19 H20 V26 H27 V35 H36 V13 H42" fill="none" stroke="var(--mk-line)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="#top" aria-label="Heat Pump Cost Optimizer, top of page"><svg aria-hidden="true"><use href="#dusk"/></svg><span>Heat Pump Cost Optimizer</span></a>
+  <nav class="links" aria-label="Sections"><ol>
+    <li><a href="#features">Features</a></li><li><a href="#how">How it works</a></li><li><a href="#card">The card</a></li>
+    <li><a href="#works-with">Works with</a></li><li><a href="#install">Get started</a></li><li><a href="#limits">Limits</a></li><li><a href="#docs">Docs</a></li><li><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/README.md">Reference</a></li>
+  </ol></nav>
+  <div class="act">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch to dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <a class="iconbtn" href="https://github.com/tvofi/heatpump_optimizer" aria-label="Source on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.26 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+  </div>
+</div></header>
+
+<main id="main">
+<div class="hero" id="top"><div class="wrap">
+  <span class="eyebrow">Home Assistant integration · installs with HACS</span>
+  <h1 data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">As warm as you asked, <em>bought in better hours</em>.</h1>
+  <p class="lede" data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">Model-predictive heating control for Home Assistant. It plans your heat pump and your hot water 24 hours ahead against hourly electricity prices, the weather forecast, and a thermal model of your own house that it keeps correcting from your own sensors.</p>
+  <div class="cta">
+    <a class="btn primary" href="#install">Install with HACS</a>
+    <a class="btn ghost" href="#docs">Read the documentation</a>
+  </div>
+  <figure>
+    <div class="stage chart"><img src="img/card-plan-chart.png" data-repo="docs/img/card-plan-chart.png" width="1864" height="1280" alt="The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose"></div>
+    <figcaption data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">The next 24 hours as the optimizer sees them — price, forecast, solar, and the slots it picked for heating and for hot water.</figcaption>
+  </figure>
+  <div class="tiles" aria-label="At a glance">
+    <div class="tile" data-src="README.md#what-it-does" data-q="A 24-hour model-predictive plan is re-solved on every interval"><span class="v">24<small>h</small></span><span class="l">plan, re-solved every interval</span></div>
+    <div class="tile" data-src="README.md#your-first-week" data-q="30 minutes by default"><span class="v">30<small>min</small></span><span class="l">between solves, by default</span></div>
+    <div class="tile" data-src="README.md#what-it-does" data-q="pins exact run slots for up to 20 hours"><span class="v">20<small>h</small></span><span class="l">of run slots you can pin yourself</span></div>
+    <div class="tile" data-src="README.md#what-it-does" data-q="entity names are translated (English and Swedish)"><span class="v">EN<small>·</small>SV</span><span class="l">entity names follow your language</span></div>
+  </div>
+</div></div>
+
+<div class="wrap">
+<section class="band" id="features" aria-labelledby="features-h">
+  <div class="sec-head"><span class="eyebrow">What it does</span><h2 id="features-h">A plan, a model of your house, and the reasons behind both</h2></div>
+  <div class="features">
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h4v-5h4v7h4V8h6"/></svg></span>
+      <h3 data-feature>Plans ahead instead of reacting.</h3>
+      <p>A 24-hour model-predictive plan is re-solved on every interval against the full forecast trajectory, not against the weather right now. Space heating and hot water share one compressor, so they are planned against each other rather than one after the other.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg></span>
+      <h3 data-feature>Learns your house.</h3>
+      <p>The heat-loss scale, tank cooling rates, the COP curve and its defrost derate, the solar aperture, internal gains … are all estimated from your own house. Every learner is snapshotted weekly (the last eight are kept), and a drift watchdog can roll them back to the last healthy snapshot.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
+      <h3 data-feature>Knows what your electricity actually costs.</h3>
+      <p>Tibber spot prices, time-of-use grid transfer fees, the monthly capacity (effekt) tariff and its billing clock, PV self-consumption priced at what consuming actually costs you … a contract comparison settles the month three ways so you can see what your tariff choice is worth.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6a4 4 0 0 0 4 4h8a4 4 0 0 1 4 4v2"/><circle cx="4" cy="4" r="1.5"/><circle cx="20" cy="20" r="1.5"/></svg></span>
+      <h3 data-feature>Handles real plumbing.</h3>
+      <p>A mixing valve is what lets a buffer tank store anything, so it is modelled explicitly. A wood furnace tank is a store of its own, drawn wood-first while it is usable … circulation pumps — the hot-water loop and the space pump — are scheduled instead of left running.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></span>
+      <h3 data-feature>Hot water that fits your household.</h3>
+      <p>Hot water is guaranteed inside demand time frames rather than kept permanently hot, which is where most of the saving comes from … a heavy-day (90th percentile) target so the second shower is not the one that runs cold.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg></span>
+      <h3 data-feature>Shows its work.</h3>
+      <p>The plan is published as sentences grouped by reason, and graded 0–100 across envelope, machine and operation. Energy and cost accumulate into the Energy dashboard split by hot water versus space heating.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M8 12h8"/><path d="M12 9v6"/></svg></span>
+      <h3 data-feature>You stay in charge.</h3>
+      <p>The card's editor pins exact run slots for up to 20 hours and the optimizer plans around them; a what-if simulator prices a comfort change before you commit to it … it observes and advises until you explicitly turn writing on.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>
+      <h3 data-feature>Stays out of trouble.</h3>
+      <p>A staleness watchdog treats a sensor that stopped updating as missing and pauses learning rather than training on a flatline … Away and holiday mode sets back deeply and buys the recovery heat in the cheapest hours before you get home.</p></article>
+    <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+      <h3 data-feature>Fits your Home Assistant.</h3>
+      <p>Entity names are translated (English and Swedish) and follow your Home Assistant language, without touching entity ids or history. Monetary units follow your instance currency.</p></article>
+  </div>
+</section>
+
+<section class="band" id="how" aria-labelledby="how-h">
+  <div class="sec-head"><span class="eyebrow">How it works</span><h2 id="how-h">One solve every interval: read, plan, act, learn</h2></div>
+  <figure style="margin:0" class="stage">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="img/readme/how-it-works-dark.png" data-theme-src="dark" data-repo="docs/img/readme/how-it-works-dark.png">
+      <img src="img/readme/how-it-works.png" data-repo="docs/img/readme/how-it-works.png" width="2400" height="880" alt="One optimization interval: prices, the weather entity and your sensors feed the coordinator; forecast arrays go to the thermal model, whose predictions feed the optimizer; the optimizer switches the heat pump and publishes the plan to the sensors and the card; afterwards, prediction against reality nudges the learners">
+    </picture>
+  </figure>
+  <div class="steps">
+    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Read</h3><p>Published hourly prices … temperature, wind, rain, forecast irradiance … indoor/outdoor temps, tank temps, power</p></div>
+    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Plan</h3><p>Solve: minimize cost + comfort penalty subject to comfort floor, tank limits, legionella clock, fuse and peak caps</p></div>
+    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Act, then learn</h3><p>Publish plan sensors, switch the heat pump, ECL110 displace / frequency advice … afterwards: compare prediction against reality, nudge the learned parameters</p></div>
+  </div>
+</section>
+
+<section class="band" id="card" aria-labelledby="card-h">
+  <div class="cardlead">
+    <div class="sec-head" style="margin:0"><span class="eyebrow">The dashboard card</span><h2 id="card-h">See what it intends to do, and change it</h2>
+      <p data-src="README.md#dashboard-card">Each series has a legend chip that toggles it, hovering a slot shows why it was planned, and the stretch of the horizon whose prices are estimated rather than published is shaded. Click the card to enlarge it: the plan becomes two editable lanes you can drag, stretch, add to and remove from, with a running total and an Apply this plan button that pins your arrangement.</p></div>
+    <div style="display:grid;gap:10px">
+      <p class="muted" data-src="README.md#dashboard-card">The integration serves and registers the card automatically. Add it with:</p>
+      <pre class="yaml" data-copy><span class="k">type</span>: custom:heatpump-optimizer-card</pre>
+      <p class="muted" data-copy>Options and interactions: <a href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/dashboard-card.md">the dashboard card documentation</a></p>
+    </div>
+  </div>
+  <div class="gallery" id="gallery">
+    <div class="seg" role="tablist" aria-label="Card pages">
+      <button role="tab" id="t-adv" aria-controls="p-adv" aria-selected="true">Advisor</button>
+      <button role="tab" id="t-dhw" aria-controls="p-dhw" aria-selected="false" tabindex="-1">Hot water by weekday</button>
+      <button role="tab" id="t-opt" aria-controls="p-opt" aria-selected="false" tabindex="-1">Weekday options</button>
+    </div>
+    <figure role="tabpanel" id="p-adv" aria-labelledby="t-adv" style="margin:0">
+      <div class="stage"><picture>
+        <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png" data-theme-src="dark" data-repo="docs/img/card/advisor-dark.png">
+        <img src="img/card/advisor-light.png" data-repo="docs/img/card/advisor-light.png" width="1056" height="616" loading="lazy" alt="The card's Advisor tab: a Worth doing section of ranked rows, each with one button, a More advice section of advisors that are off by default, then the ranking of sensors that would tighten the model">
+      </picture></div>
+      <figcaption data-src="docs/dashboard-card.md#the-advisor-page">The Advisor tab is an inbox: what the integration would change to make your plan cheaper, ranked by what each change is worth per month.</figcaption>
+    </figure>
+    <figure role="tabpanel" id="p-dhw" aria-labelledby="t-dhw" hidden style="margin:0">
+      <div class="stage"><img src="img/card-dhw-band-weekly.png" data-repo="docs/img/card-dhw-band-weekly.png" width="2460" height="1280" loading="lazy" alt="The enlarged chart across a Friday and a Saturday, the hot-water tank's lower edge held at the minimum inside each day's own windows"></div>
+      <figcaption data-src="docs/dashboard-card.md#the-two-kinds-of-dashed-line">A weekly hot-water schedule — different windows per weekday — resolves to one day's windows at a time, so the floored stretch follows each timestamp's own weekday across midnight.</figcaption>
+    </figure>
+    <figure role="tabpanel" id="p-opt" aria-labelledby="t-opt" hidden style="margin:0">
+      <div class="stage tall"><img src="img/options-hot-water-by-day.png" data-repo="docs/img/options-hot-water-by-day.png" width="1240" height="3256" loading="lazy" alt="The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields"></div>
+      <figcaption data-src="docs/configuration.md#hot-water">The Hot water options page with the Customize by weekday switch on</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band" id="works-with" aria-labelledby="ww-h">
+  <div class="sec-head"><span class="eyebrow">Works with</span><h2 id="ww-h">Ordinary Home Assistant entities, and nothing you have to buy</h2></div>
+  <div class="cols3">
+    <div class="panel" data-src="README.md#requirements"><h3 data-copy>Prices</h3><p>A Tibber account with an API token … or a price entity — a Home Assistant price sensor such as Nord Pool exposing raw_today / raw_tomorrow</p></div>
+    <div class="panel" data-src="README.md#requirements"><h3 data-copy>Weather</h3><p>A weather integration with hourly forecasts (Met.no or similar)</p></div>
+    <div class="panel" data-src="README.md#requirements"><h3 data-copy>Your sensors</h3><p>Everything else — indoor and outdoor thermometers, tank probes, a power meter — is optional. The optimizer runs without them and gets steadily better with each one you add.</p></div>
+  </div>
+  <div class="tbl" data-src="README.md#supported-heat-pumps-and-controls">
+    <table>
+      <thead><tr><th scope="col">Control path</th><th scope="col">You provide</th><th scope="col">The optimizer writes</th></tr></thead>
+      <tbody>
+        <tr><td>On/off switch</td><td data-label="You provide">a switch that turns the heat pump on and off</td><td data-label="The optimizer writes">may turn it off during expensive hours</td></tr>
+        <tr><td>ECL110 heat curve</td><td data-label="You provide">a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT</td><td data-label="The optimizer writes">a heat-pump on/off decision and an integer parallel shift (displace) onto the controller's own heat curve</td></tr>
+        <tr><td>Compressor frequency</td><td data-label="You provide">the compressor frequency exposed as a number entity (typically from Modbus or ESPHome)</td><td data-label="The optimizer writes">the recommended frequency via number.set_value — but only once you switch the mode to Control</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:12px" data-src="README.md#supported-heat-pumps-and-controls">Each path is optional, the three are independent of each other, and with none of them configured “the plan is published on sensors for your own automations to act on”</p>
+</section>
+
+<section class="band" id="install" aria-labelledby="in-h">
+  <div class="sec-head"><span class="eyebrow">Get started</span><h2 id="in-h">From HACS to a first plan</h2></div>
+  <div class="start">
+    <div class="panel" data-src="README.md#hacs-recommended"><h3 data-copy>HACS (recommended)</h3>
+      <ol class="hacs">
+        <li><span>Add this repository to HACS as a custom repository.</span></li>
+        <li><span>Install Heat Pump Cost Optimizer.</span></li>
+        <li><span>Restart Home Assistant.</span></li>
+        <li><span>Go to Settings → Devices &amp; services → Add integration → Heat Pump Cost Optimizer.</span></li>
+      </ol></div>
+    <div style="display:grid;gap:16px;align-content:start">
+      <div class="panel" data-src="README.md#requirements"><h3 data-copy>Requirements</h3>
+        <ul class="req"><li><b>Home Assistant 2025.2.0 or newer</b></li><li>Python 3.13 or newer</li><li>numpy, scipy and threadpoolctl, installed automatically from the integration manifest</li></ul></div>
+      <div class="panel" data-src="README.md#your-first-week"><h3 data-copy>Immediately</h3>
+        <p>The first plan is solved within one optimization interval (30 minutes by default). Add the dashboard card and you can see what it intends to do.</p></div>
+    </div>
+  </div>
+  <div class="strip">
+    <figure><div class="stage"><img src="setup/01-first-screen.png" data-repo="docs/setup/01-first-screen.png" width="1360" height="1716" loading="lazy" alt="The first screen: a name, the electricity price source, a Tibber token field, a price-sensor picker and the required weather forecast picker"></div><figcaption data-src="docs/setup.md#screen-1--price-source-and-weather">Screen 1 · Price source and weather</figcaption></figure>
+    <figure><div class="stage fit"><img src="setup/03-menu.png" data-repo="docs/setup/03-menu.png" width="1360" height="866" loading="lazy" alt="The finish-setup menu: Quick setup (recommended), Continue setup, Finish setup now"></div><figcaption data-src="docs/setup.md#the-choice-three-ways-to-finish">The choice: three ways to finish</figcaption></figure>
+    <figure><div class="stage"><img src="setup/04-quick-setup.png" data-repo="docs/setup/04-quick-setup.png" width="1360" height="3242" loading="lazy" alt="The Quick setup page: five toggles, two wood-tank sensor pickers, and the building questionnaire"></div><figcaption data-src="docs/setup.md#quick-setup-recommended">Quick setup (recommended)</figcaption></figure>
+    <figure><div class="stage"><img src="setup/08-setup-overview.png" data-repo="docs/setup/08-setup-overview.png" width="1360" height="2018" loading="lazy" alt="The overview: a read-only summary of the system as the flow configured it"></div><figcaption data-src="docs/setup.md#finish-setup-now">The overview: a read-only summary of the system as the flow configured it</figcaption></figure>
+  </div>
+  <p class="muted" style="margin-top:14px" data-copy>Every screen, in order: <a href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/setup.md">setting up the integration</a></p>
+</section>
+
+<section class="band" id="limits" aria-labelledby="lim-h">
+  <div class="sec-head"><span class="eyebrow">Known limitations</span><h2 id="lim-h">What it will not do, before you install</h2></div>
+  <div class="limits">
+    <div class="lim" data-src="README.md#known-limitations"><h3>Heating, not cooling.</h3><p>There is no cooling mode and no cooling plan.</p></div>
+    <div class="lim" data-src="README.md#known-limitations"><h3>It plans on a cycle, not in real time.</h3><p>This is a planner, not a real-time controller.</p></div>
+    <div class="lim" data-src="README.md#known-limitations"><h3>Prices come from Tibber or a price entity — nothing else.</h3><p>There is no built-in way to feed prices from any other source.</p></div>
+    <div class="lim" data-src="README.md#known-limitations"><h3>The tariff model is Swedish/Nordic in shape.</h3><p>Other markets' tariff structures are not modelled.</p></div>
+    <div class="lim" data-src="README.md#known-limitations"><h3>No discovery.</h3><p>You add the integration yourself and pick every entity it reads.</p></div>
+    <div class="lim" data-src="README.md#known-limitations"><h3>Frequency control needs a number entity and your explicit say-so.</h3><p>The default Observe mode “learns and recommends but never writes”</p></div>
+  </div>
+  <div class="note" data-src="DISCLAIMER.md#disclaimer"><h3>Savings figures are estimates.</h3><p>Every cost, saving and percentage this integration reports is the output of a model, computed against forecast prices and forecast weather … Treat the numbers as a guide to relative decisions, not as an accounting record.</p></div>
+</section>
+
+<section class="band" id="ai" aria-labelledby="ai-h">
+  <h2 id="ai-h" class="eyebrow" style="font-family:var(--f-body);margin-bottom:14px">Written with AI, and what that costs</h2>
+  <div class="ai" data-src="README.md#written-with-ai-and-what-that-costs">
+    <blockquote>The characteristic failure mode is not bad code — it is confident wrong claims about code.</blockquote>
+    <div class="body"><p>Nearly every one caught here was caught by re-measuring rather than by re-reading.</p>
+      <p>This is not a claim that the code is correct — it is a claim that assertions about it are recomputable, and that a wrong one is more likely to be caught than believed.</p>
+      <p data-copy>Every sentence of fact on this page is quoted from the documentation, and a test refuses one the documentation no longer makes.</p></div>
+  </div>
+</section>
+
+<section class="band" id="docs" aria-labelledby="docs-h">
+  <div class="sec-head"><span class="eyebrow">Documentation</span><h2 id="docs-h">Everything in full</h2><p data-copy>Each document is read in full on GitHub, from its source in the repository, and changes only when that file does. The <a href="https://github.com/tvofi/heatpump_optimizer/blob/main/README.md">README</a> holds the entity and service reference.</p></div>
+  <div class="docs" data-src="README.md#documentation">
+    <a class="doc" data-doc="docs/index.html" href="#top"><b>docs/index.html</b><span>The product page: what the project does, quoted from this README and the docs, with the card and the setup in pictures</span></a>
+    <a class="doc" data-doc="docs/how-it-works.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/how-it-works.md"><b>docs/how-it-works.md</b><span>The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds</span></a>
+    <a class="doc" data-doc="docs/configuration.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/configuration.md"><b>docs/configuration.md</b><span>Every setup field and options page, every service field, and the hydronic layout catalog</span></a>
+    <a class="doc" data-doc="docs/setup.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/setup.md"><b>docs/setup.md</b><span>The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard</span></a>
+    <a class="doc" data-doc="docs/dashboard-card.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/dashboard-card.md"><b>docs/dashboard-card.md</b><span>The card: options, interactions, editing limits</span></a>
+    <a class="doc" data-doc="docs/automations.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/automations.md"><b>docs/automations.md</b><span>Complete automation examples using only the entities and services the integration creates</span></a>
+    <a class="doc" data-doc="docs/architecture.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/architecture.md"><b>docs/architecture.md</b><span>Module map and how a plan is made, for anyone reading or changing the code</span></a>
+    <a class="doc" data-doc="docs/ecl110.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/ecl110.md"><b>docs/ecl110.md</b><span>ECL110 MQTT control</span></a>
+    <a class="doc" data-doc="docs/backlog.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/docs/backlog.md"><b>docs/backlog.md</b><span>The archive of what was built and why, plus what is open</span></a>
+    <a class="doc" data-doc="DISCLAIMER.md" href="https://github.com/tvofi/heatpump_optimizer/blob/main/DISCLAIMER.md"><b>DISCLAIMER.md</b><span>The full disclaimer</span></a>
+  </div>
+</section>
+</div>
+</main>
+
+<footer><div class="wrap">
+  <div class="row"><span class="brand"><svg aria-hidden="true" style="width:26px;height:26px"><use href="#dusk"/></svg>Heat Pump Cost Optimizer</span>
+    <a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE">MIT License</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/DISCLAIMER.md">Disclaimer</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/README.md">README</a></div>
+  <p data-src="README.md#acknowledgement">This project began as a fork of strutsfarm/heatpump_optimizer … Both projects are MIT licensed.</p>
+  <p data-src="DISCLAIMER.md#disclaimer">This software controls real heating equipment … They, not this integration, are what protect your home.</p>
+</div></footer>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById("theme");
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  let saved = null; try { saved = localStorage.getItem("hpo-theme") } catch (e) {}
+  const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : mq.matches;
+  function apply(t) {
+    if (t) root.dataset.theme = t; else delete root.dataset.theme;
+    // <source media> follows the OS, so an explicit theme rewrites which render the pictures show.
+    document.querySelectorAll("source[data-theme-src]").forEach(s => {
+      const base = s.dataset.base || "", mine = s.dataset.themeSrc;
+      if (!t) s.media = mine === "dark" ? (base ? base + " and " : "") + "(prefers-color-scheme: dark)" : (base || "all");
+      else s.media = mine === t ? (base || "all") : "not all";
+    });
+    btn.setAttribute("aria-label", isDark() ? "Switch to light theme" : "Switch to dark theme");
+  }
+  apply(saved);
+  btn.addEventListener("click", () => {
+    const t = isDark() ? "light" : "dark"; apply(t);
+    try { localStorage.setItem("hpo-theme", t) } catch (e) {}
+  });
+  mq.addEventListener?.("change", () => apply(root.dataset.theme || null));
+
+  const tabs = [...document.querySelectorAll('#gallery [role="tab"]')];
+  function select(tab) {
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => select(t));
+    t.addEventListener("keydown", e => {
+      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; select(n); n.focus(); e.preventDefault() }
+    });
+  });
+})();
+</script>
+</body>
+</html>

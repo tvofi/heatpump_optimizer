@@ -13,6 +13,8 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
 
+[Product page](docs/index.html): the project at a glance, every sentence of it quoted from this README and the docs.
+
 ![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.png)
 
 *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
@@ -996,6 +998,7 @@ before installing; it applies with full force.
 
 | Document | What is in it |
 |---|---|
+| [docs/index.html](docs/index.html) | The product page: what the project does, quoted from this README and the docs, with the card and the setup in pictures |
 | [docs/how-it-works.md](docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
 | [docs/configuration.md](docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
 | [docs/setup.md](docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
