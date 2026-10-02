@@ -128,15 +128,7 @@ moves.
   consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
   between the DHW stage and the space stage. Neither sits inside an iteration.
 
-## Finder scopes
-
-`scopes.json` is the one list of what each finder seat owns, per dimension: a
-universe of file globs, and the seats that partition it. `check_scopes.py`
-proves each dimension's seats are disjoint and complete over its universe, and
-`--seat <D<k>-s<n>>` prints the cells one seat owns. The driver's Prepare step
-runs it and refuses the round on a nonzero exit. A directory no dimension's
-universe names is audited by nobody: `docs/decisions/` was one until D11's
-universe took it.
+`check_scopes.py` proves `scopes.json`'s seats disjoint and complete.
 
 ## Running the gate on the audit box
 
@@ -210,8 +202,7 @@ passing the model explicitly per call.
 `stress.py` runs, and is one per box across worktrees.
 
 **Fan-out concurrency is a judgement, not a measured capacity.** At most
-three compute-heavy finders share a box (each cloud container is its own
-box), and the Chromium finder (D4) does not sit beside them. The basis is the
+three compute-heavy finders share a box and the Chromium finder (D4) does not sit beside them. The basis is the
 8-core / 8 GB box and the stress-lock incident on 2026-09-03, not a measured
 exclusivity proof beyond that lock. `.claude/workflows/audit-find.js` schedules from this
 paragraph.
@@ -226,7 +217,7 @@ worktree and it silently measures the tag's production code instead of the tree
 under review -- with plausible numbers and no error.
 
 **Copy a harness into the tree under test before running it**, and say in your
-report which root rule it used. Three reviewers have been caught by this.
+report which root rule it used.
 
 **Cite the SHA you actually ran, not the tag name.** The tag has moved once
 already, by name only: the round-2 numbers were recorded at `c398fc84`;
