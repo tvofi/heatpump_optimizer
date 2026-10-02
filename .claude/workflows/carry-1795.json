@@ -5,7 +5,7 @@
     "so this file is the in-tree destination. While the two disagree the newer one is right. Shape: .claude/rules/finding-propagation.md."
   ],
   "issue": 1795,
-  "stage": "R9-UX-5, or any later seat that adds lines to the chart's hover tooltip (tooltipHtml, idleWhyHtml) or turns an advisor inbox row into an apply action (advisorRows, attachAdvisorInbox)",
+  "stage": "R9-UX-5, or any later seat that adds lines to the chart's hover tooltip (tooltipHtml, idleWhyHtml) or turns an advisor inbox row into an apply action (advisorRows, attachAdvisorInbox); and R9-UX-7 (model status and diagnostics, which adds to the Health tab), see the third entry",
   "carries": [
     {
       "from": "the pull request for R9-UX-1, which put the idle step's likely-because block in the tooltip",
@@ -20,6 +20,13 @@
       "control": "Established by tests/card.mjs's scenario 'the advisor inbox (R9-UX-2, #1795)': the hot-water row has act open_schedule, which only sets dialog.page to plan and calls no service (check 'the hot-water row opens the schedule editor, and calls no service'). Null control: the valve row's apply_valve calls assign_entity with a manual setpoint, so a row that applies something is already pinned there.",
       "remeasure": "Do not trust this description of the code: read advisorRows and attachAdvisorInbox in the card at your merge base and run node tests/card.mjs; the hot-water check above is the one that must change.",
       "brief": "R9-UX-5 turns the hot-water row's Open schedule action into an apply action: the row's act becomes a service call that writes the recommended setpoint, the Plan-page fallback goes, and the check that the row calls no service is rewritten to pin the call. Price of a degree is delivered by R9-UX-2 as the degree row, whose action opens the what-if panel seeded with the tile's target; nothing is owed on it. A hot-water price is interpolated linearly between the swept candidates (dhwCostPerDay) because the default setpoint is off the sweep's grid; an apply action must write the recommended setpoint, not an interpolated one."
+    },
+    {
+      "from": "the pull request for R9-UX-3, which put the Health tab on the card",
+      "effect": "removes",
+      "control": "Established by tests/card.mjs's scenario 'the Health tab (R9-UX-3)': the card lists a waiting sensor from its unavailable state and a fixed per-sensor reason (HEALTH_WAITING), because Home Assistant publishes no attributes for an unavailable entity, so waiting_for is unreadable by the card at the moment it matters. Null control: with the sensor available the row does not appear, and the card reads nothing from the unavailable sensor's attributes.",
+      "remeasure": "Do not trust this description of the code: read healthPageHtml and HEALTH_WAITING in the card at your merge base and run node tests/card.mjs. Three facts the Health tab could not read, each re-checked at your merge base: the plan's fallback input ('the plan uses X instead') is not published; a count of insight sensors that are off by default has no card-side source (the card has no entity registry, and tests/entities.py refuses card reads of disabled-by-default sensors); the Input Problem sensor's limit (max_age_minutes) is published only for a failing input.",
+      "brief": "R9-UX-7 adds model status to the Health tab and must not expect waiting_for from an unavailable sensor: if it needs the reason in words it publishes it on an always-available enabled sensor (a per-sensor map, or a field on an existing one), or keeps the card's per-sensor reason map in step with any sensor it adds to HEALTH_WAITING. A row that needs the fallback input, the default-off insight count or the limit of a healthy input needs the backend to publish it first; the Health tab shows those rows as plain text today and says so in docs/dashboard-card.md. Where this entry and the roster's R9-UX-7 brief disagree, the newer is right and the other is the bug."
     }
   ]
 }
