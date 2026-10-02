@@ -1,6 +1,0 @@
-M1
-RESULT errors=2
-  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
-RESULT egb3_fails 1 published 173 declared 172 unresolved []
-M2
-RESULT errors=2

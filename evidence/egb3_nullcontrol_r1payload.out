@@ -1,4 +1,0 @@
-  ok   EG-B3: every merge source in the payload producers is resolved
-  FAIL EG-B3: Payload declares exactly the keys the producers publish  :: published-not-declared=['dhw_disinfection_switch'] declared-not-published=['valve_target_schedule']
-  FAIL EG-B3: Insight and CompressorStarts declare the keys _insight_view writes  :: insight=['wear_price_per_start'] compressor_starts=['wear_price_per_start']
-RESULT egb3_fails 2 published 173 declared 173 unresolved []
