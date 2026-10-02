@@ -1,0 +1,12 @@
+{"deployment_branch_policy":{"custom_branch_policies":true,"protected_branches":false},"name":"ledger","protection_rules":[{"id":67446200,"node_id":"GA_kwDOT-9fds4EBSW4","type":"branch_policy"}]}
+[{"id":61751620,"name":"main","node_id":"MDE2OkdhdGVCcmFuY2hQb2xpY3k2MTc1MTYyMA==","type":"branch"}]
+env-secrets
+HPO_LEDGER_APPID	2026-10-02T14:19:50Z
+HPO_LEDGER_PEM	2026-10-02T14:20:15Z
+repo-secrets
+HPO_LEDGER_APPID	2026-10-02T13:12:50Z
+HPO_LEDGER_PEM	2026-10-02T13:13:13Z
+HPO_RUNS_APPID	2026-09-20T10:47:52Z
+HPO_RUNS_PEM	2026-09-20T10:47:52Z
+main-protect	deletion,non_fast_forward	[{"actor_id":5094721,"actor_type":"Integration","bypass_mode":"always"}]
+main-protect-checks	required_status_checks,pull_request	[{"actor_id":null,"actor_type":"DeployKey","bypass_mode":"always"},{"actor_id":5094721,"actor_type":"Integration","bypass_mode":"always"}]
