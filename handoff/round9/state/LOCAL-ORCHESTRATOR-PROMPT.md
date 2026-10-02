@@ -26,7 +26,7 @@ That file is the current state: open PRs, built branches, owed record and traps.
 GitHub and git outrank the resume file. Check `gh pr list --state open`, `git ls-remote origin 'refs/heads/handoff/*'` and the verdict refs, and correct the resume file before you act on a disagreement.
 
 ## 3. Do these first, in order
-1. If this Mac holds unpushed commits for `handoff/budget-gate-mandate` (for example `d741a894`), push them with `tools/audit/app_push.sh`, as a fast-forward with no force.
+1. The budget-gate mandate branch `handoff/budget-gate-mandate` is at `d741a894` on origin. Open its draft PR once the cloud fixer's prepr/closures result on that head is back (its body goes to `handoff-body/budget-gate-mandate`). It needs tvofi's approving review because it is policy.
 2. **#1842** (`fix/r9-f10-4-pin-precursor`, `b69961d7`) has a merge verdict on `handoff/verdict/1842`. Write its delivery row, mark it ready, approve it (`tools/audit/app_approve.sh`), and merge it with `--match-head-commit` once CI is green. It goes before #1838.
 3. **#1838** (`fix/r9-f10-gate-infra-4`, `e37cefc6`): wait for the delta-review verdict at e37cefc6 on `handoff/verdict/1838`. If no verdict for that head arrives, dispatch a local reviewer (section 5) for the delta from 46a70815. After #1842 merges, merge main in if `briefs` needs it, as a carry or a resolution delta. tvofi gives his own approving review, because it carries budget changes. Merge with `--match-head-commit`. features.py R9-F2.1 P3 fails on this Mac with identical numbers at main; that is BLAS, so judge it on CI.
 4. After #1838 merges, the built fixers each merge origin/main, run `tools/audit/prepr.sh` on the merged head, push the body, and hand off:
