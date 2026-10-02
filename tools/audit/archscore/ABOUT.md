@@ -75,8 +75,8 @@ is the correction the pre-study already recorded (section 7).
 | `a3_private_reach_fix` | GOOD | IMPROVES | NULL | it swaps a private read for the public `mode` passthrough property, which C5 reads as the same reach |
 
 Nothing else moved: the corpus holdout, every other planted case, and weight sensitivity (no weight
-perturbation moves a verdict) read as the pre-study recorded them. All 17 red-team attempts read NULL or
-inadmissible.
+perturbation moves a verdict) read as the pre-study recorded them. Every red-team attempt labelled GAME reads
+NULL or inadmissible; the three labelled KNOWN-OPEN (below) read IMPROVES.
 
 ## Changing it
 
@@ -86,7 +86,7 @@ the commit. A new evasion found is a new case in `planted/redteam/` with its cou
 ### Known limit: interleaved effect-free statements
 
 Effect-free statements interleaved in every clone split its windows, and the score reads that as a
-dedupe (IMPROVES, admissible, the same delta-S as `id(N)` gave). C3 drops a statement only if it is on
+dedupe (IMPROVES, admissible; +14.15 for the three below, the figure an uncharged `pass` gave). C3 drops a statement only if it is on
 its enumerated list (`counters.is_noop`), so the class stays open: `assert True`, `_ = None` and
 `(_ := 0)` are not on it and each reads IMPROVES (`rt_04h`, `rt_04i`, `rt_04j`, marked KNOWN-OPEN and
 expected IMPROVES, so a class fix flips them and the check asks for the re-record). Extending the list

@@ -141,6 +141,10 @@ def summary(rows: list[dict]) -> list[str]:
     games = [r for r in rows if r["set"] == "redteam" and r["label"] == "GAME"]
     lines.append(f"  RED TEAM {sum(r['verdict'] != 'IMPROVES' for r in games)}/{len(games)} attempts read NULL or "
                  f"inadmissible; IMPROVES: {', '.join(r['id'] for r in games if r['verdict'] == 'IMPROVES') or 'none'}")
+    known = [r for r in rows if r["set"] == "redteam" and r["label"] == "KNOWN-OPEN"]
+    if known:
+        lines.append(f"  KNOWN-OPEN {len(known)} attempts the counters do not close (ABOUT.md, Known limit); IMPROVES: "
+                     f"{', '.join(r['id'] for r in known if r['verdict'] == 'IMPROVES') or 'none (a class fix? re-record)'}")
     return lines
 
 

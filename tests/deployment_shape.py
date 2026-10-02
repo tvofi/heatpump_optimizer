@@ -40,13 +40,14 @@ tracked package file by file (``_materialise``, below), and the gate's tracer
 records every read, so this lane's recorded closure is the package: all 85
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
-images) -- the only closure in ``tests/closures.json`` that reaches every
-production file. A diff touching any production file therefore selects this
+images) -- one of the two closures in ``tests/closures.json`` that reach every
+production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
+measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 82 of the 378 script pairs (28 choose 2) sharing 0.80 or more
-of their production-module closure, all 82 among the 300 pairs whose two
-scripts each have a non-empty production closure (``tests/ha_contract.py``,
-``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
+recording finds 90 of the 435 script pairs (30 choose 2) sharing 0.80 or more
+of their production-module closure, all 90 among the 325 pairs whose two
+scripts each have a non-empty production closure (``tests/arch_score.py``,
+``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
 R9 F10.3's strace instrument recorded its round-harness children's imports;
 doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
