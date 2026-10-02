@@ -56368,7 +56368,7 @@ for _ux4_group in _ux4.values():
 R.check(
     "UX-4 each event carries exactly the data keys the module declares for it, "
     "and all five were seen firing",
-    set(_ux4_fired_keys) == set(_ux4_mod.EVENTS)
+    set(_ux4_fired_keys) == set(tuple(_ux4_mod.EVENT_DATA))
     and all(keys == {tuple(_ux4_mod.EVENT_DATA[t])} for t, keys in _ux4_fired_keys.items()),
     str(_ux4_fired_keys),
 )
@@ -56440,9 +56440,9 @@ _ux4_bp = (_UX4_ROOT / "blueprints/automation/notifications.yaml").read_text()
 R.check(
     "UX-4 every event the notifier can fire is documented in "
     "docs/automations.md with each key of its data, and routed by the blueprint",
-    len(_ux4_mod.EVENTS) == 5
+    len(tuple(_ux4_mod.EVENT_DATA)) == 5
     and all(f"`{ev}`" in _ux4_docs and f"event_type: {ev}" in _ux4_bp
-            for ev in _ux4_mod.EVENTS)
+            for ev in tuple(_ux4_mod.EVENT_DATA))
     and all(f"`{key}`" in _ux4_docs
             for keys in _ux4_mod.EVENT_DATA.values() for key in keys),
     "an event or one of its data keys is missing from the docs or the blueprint",

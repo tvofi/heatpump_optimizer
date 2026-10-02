@@ -40,6 +40,7 @@ EVENT_PLAN_STALE = f"{DOMAIN}_plan_stale"
 EVENT_MANUAL_PLAN_RELEASED = f"{DOMAIN}_manual_plan_released"
 
 #: The data each event carries, in the order ``docs/automations.md`` lists it.
+#: What an event fires is exactly these keys, filled from its occurrence.
 EVENT_DATA: dict[str, tuple[str, ...]] = {
     EVENT_MONTHLY_RECEIPT: (
         "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
@@ -53,7 +54,6 @@ EVENT_DATA: dict[str, tuple[str, ...]] = {
         "entry_id", "channel", "steps", "reason", "expires_at",
     ),
 }
-EVENTS = tuple(EVENT_DATA)
 
 
 class Occurrence(NamedTuple):
@@ -223,9 +223,10 @@ class Notifier:
                 self._sent[oid] = occurrence.key
                 changed = True
                 if not (adopt and prefix == "receipt"):
+                    fields = {"entry_id": self._entry_id, **occurrence.data}
                     self._hass.bus.async_fire(
                         occurrence.event,
-                        {"entry_id": self._entry_id, **occurrence.data},
+                        {k: fields.get(k) for k in EVENT_DATA[occurrence.event]},
                     )
             for oid in [o for o in self._sent if o.startswith(prefix) and o not in seen]:
                 del self._sent[oid]
