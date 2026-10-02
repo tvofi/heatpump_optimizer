@@ -27930,8 +27930,8 @@ try:
     _hm_ctl = dict(_hm_pins)
     _hm_ctl[_hm_sites[39]["anchor"]] = dict(_hm_ctl[_hm_sites[39]["anchor"]],
                                             killed_by="tests/gone.py")
-    _hm_cl2 = dict(_hm_cl, **{"tests/entities.py": [
-        m for m in _hm_cl["tests/entities.py"] if m != _hm_mods[40]]})
+    _hm_k40 = _hm_pins[_hm_sites[40]["anchor"]]["killed_by"]
+    _hm_cl2 = dict(_hm_cl, **{_hm_k40: [m for m in _hm_cl[_hm_k40] if m != _hm_mods[40]]})
     _HM_GOT.append(_hm_apply(_hm_ctl, _hm_head, _hm_cl2, _hm_changed))
 except Exception as _hm_exc:  # noqa: BLE001 -- one red check, never a partial run
     _HM_GOT = [f"{type(_hm_exc).__name__}: {_hm_exc}"]
