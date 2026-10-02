@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 86
+records every read, so this lane's recorded closure is the package: all 87
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (85 until R9-EG-B3a's ``payload.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+alike (86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images) -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
@@ -52,11 +52,11 @@ R9 F10.3's strace instrument recorded its round-harness children's imports;
 doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
 added icons.json and services.yaml to doc_claims.py's closure).
 Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
-(76 shared production files), structure.py/typing_ruler.py (68),
-finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (68
-each), plan_view.py/solar_alignment.py (51), the optimality.py/validate.py/
-edge.py/backtest.py four (14, six pairs), golden.py/env_drift.py (84),
-card.mjs/card_drift.mjs (52) -- and which
+(77 shared production files), structure.py/typing_ruler.py (69),
+finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (69
+each), plan_view.py/solar_alignment.py (52), the optimality.py/validate.py/
+edge.py/backtest.py four (16, six pairs), golden.py/env_drift.py (85),
+card.mjs/card_drift.mjs (53) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here
