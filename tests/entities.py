@@ -23961,7 +23961,9 @@ _SA_FILES = {
     for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
 _SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
 _ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
-                    if re.search(r"^  (issues|issue_comment):", _t, re.M)]
+                    # Keyed inside `on:` alone: a top-level `permissions:`
+                    # block's `issues: read` starts nothing.
+                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
 R.check(
     "the publishing lane writes nothing that lands on main, so its own "
     "write cannot re-run it",
