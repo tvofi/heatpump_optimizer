@@ -1,11 +1,11 @@
-﻿2026-10-02T22:11:18.7529609Z Current runner version: '2.337.0'
+﻿2026-10-02T22:30:16.3640270Z Current runner version: '2.337.0'
 ##[group]Runner Image Provisioner
 Hosted Compute Agent
 Version: 20260901.588
 Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
 Build Date: 2026-09-01T19:56:44Z
-Worker ID: {92a7d832-fef7-4ade-94db-2b2019c51c1b}
-Azure Region: westus
+Worker ID: {5395041e-c5e6-40f1-966f-6e76f2dc8f4b}
+Azure Region: westus3
 ##[endgroup]
 ##[group]Operating System
 Ubuntu
@@ -19,10 +19,8 @@ Included Software: https://github.com/actions/runner-images/blob/ubuntu24/202609
 Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
 ##[endgroup]
 ##[group]GITHUB_TOKEN Permissions
-Checks: read
 Contents: read
 Metadata: read
-PullRequests: read
 ##[endgroup]
 Secret source: Actions
 Cache mode: write
@@ -30,8 +28,10 @@ Prepare workflow directory
 Prepare all required actions
 Getting action download info
 Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
 Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
-Complete job name: pr-contract
+Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+Complete job name: closures
 ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 with:
   fetch-depth: 0
@@ -48,6 +48,8 @@ with:
   submodules: false
   set-safe-directory: true
   allow-unsafe-pr-checkout: false
+env:
+  DOCS_ONLY_FAST: false
 ##[endgroup]
 Syncing repository: tvofi/heatpump_optimizer
 ##[group]Getting Git version info
@@ -55,7 +57,7 @@ Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
 [command]/usr/bin/git version
 git version 2.55.0
 ##[endgroup]
-Temporarily overriding HOME='/home/runner/work/_temp/dee0d9fd-0f9e-409f-b74e-30ef9cb52bba' before making global git config changes
+Temporarily overriding HOME='/home/runner/work/_temp/65e3ea06-b3e4-42ef-8a1a-03288c55c153' before making global git config changes
 Adding repository directory to the temporary git global config as a safe directory
 [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
 Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
@@ -90,7 +92,7 @@ Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpum
 [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
 ##[endgroup]
 ##[group]Fetching the repository
-[command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +9ba2475491c1e2c5c4e83f363a1de5f4c84d866f:refs/remotes/pull/1864/merge
+[command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +0bae358d137c8f7192f0df1384db3aaf4ac8e52e:refs/remotes/pull/1864/merge
 From https://github.com/tvofi/heatpump_optimizer
  * [new branch]        bus/approvals           -> origin/bus/approvals
  * [new branch]        claude/project-thread-1ekb7n -> origin/claude/project-thread-1ekb7n
@@ -145,6 +147,7 @@ From https://github.com/tvofi/heatpump_optimizer
  * [new branch]        handoff-body/r9-ruleset-fixture-ledger -> origin/handoff-body/r9-ruleset-fixture-ledger
  * [new branch]        handoff-body/r9-ux-1    -> origin/handoff-body/r9-ux-1
  * [new branch]        handoff-body/r9-ux-2    -> origin/handoff-body/r9-ux-2
+ * [new branch]        handoff-body/r9-ux-events -> origin/handoff-body/r9-ux-events
  * [new branch]        handoff-body/r9-ux-health -> origin/handoff-body/r9-ux-health
  * [new branch]        handoff-body/r9-web-3   -> origin/handoff-body/r9-web-3
  * [new branch]        handoff-body/r9-web-page -> origin/handoff-body/r9-web-page
@@ -593,7 +596,7 @@ From https://github.com/tvofi/heatpump_optimizer
  * [new tag]           v6.7.7                  -> v6.7.7
  * [new tag]           v6.7.8                  -> v6.7.8
  * [new tag]           v6.7.9                  -> v6.7.9
- * [new ref]           9ba2475491c1e2c5c4e83f363a1de5f4c84d866f -> pull/1864/merge
+ * [new ref]           0bae358d137c8f7192f0df1384db3aaf4ac8e52e -> pull/1864/merge
 ##[endgroup]
 ##[group]Determining the checkout info
 ##[endgroup]
@@ -618,10 +621,24 @@ Or undo this operation with:
 
 Turn off this advice by setting config variable advice.detachedHead to false
 
-HEAD is now at 9ba24754 Merge 54bfc9934041d594510309310ec427896e6d715e into 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
+HEAD is now at 0bae358d Merge a771c0a0b7d664d24dab9caa3617c92d4593fcdf into 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
 ##[endgroup]
 [command]/usr/bin/git log -1 --format=%H
-9ba2475491c1e2c5c4e83f363a1de5f4c84d866f
+0bae358d137c8f7192f0df1384db3aaf4ac8e52e
+##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+with:
+  python-version: 3.13
+  check-latest: false
+  token: ***
+  update-environment: true
+  allow-prereleases: false
+  freethreaded: false
+env:
+  DOCS_ONLY_FAST: false
+##[endgroup]
+##[group]Installed versions
+Successfully set up CPython (3.13.15)
+##[endgroup]
 ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
 with:
   node-version: 22
@@ -629,222 +646,292 @@ with:
   check-latest: false
   token: ***
   package-manager-cache: true
+env:
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
 ##[endgroup]
 Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
-(node:2269) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:2080) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 ##[group]Environment details
 node: v22.23.3
 npm: 10.9.9
 yarn: 1.22.22
 ##[endgroup]
-##[group]Run set -euo pipefail
-set -euo pipefail
-rm -rf .claude/workflows/vendor
-git checkout "$PINNED" -- \
-  '.claude/workflows/*.mjs' \
-  '.claude/workflows/*.py' \
-  '.claude/workflows/vendor' \
-  'tools/audit/*.sh' \
-  'tools/audit/record-predicate' \
-  'tools/audit/round6/D11/fix/codeowners_gap.py'
-echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-test -f .claude/workflows/policy_lint.mjs
+##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
 shell: /usr/bin/bash -e {0}
 env:
-  PINNED: 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
 ##[endgroup]
-check source restored from 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: 0 file(s) differ from the pull request's copy
-##[group]Run set -euo pipefail
-set -euo pipefail
-if [ "$EVENT" = "merge_group" ]; then
-  NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
-  HEAD=$(git rev-parse --verify 'HEAD^2^{commit}')
-  test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
-  echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
-  echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
-  echo "head=$HEAD" >> "$GITHUB_OUTPUT"
-  echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
-fi
-shell: /usr/bin/bash -e {0}
-env:
-  GH_TOKEN: ***
-  EVENT: pull_request
-  QUEUE_REF: 
-  QUEUE_BASE: 
-##[endgroup]
-##[group]Run set -euo pipefail
-set -euo pipefail
-BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
-printf '%s' "$BODY" > /tmp/pr-body.md
-AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
-printf '%s' "$AUTHOR" > /tmp/pr-author.txt
-# The title too, which a queue entry's payload does not carry; on a
-# pull request the payload's title below is used, as before.
-if [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
-  gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
-fi
-shell: /usr/bin/bash -e {0}
-env:
-  GH_TOKEN: ***
-  PR_NUMBER: 1864
-##[endgroup]
-##[group]Run set -euo pipefail
-set -euo pipefail
-# --no-renames, and it is not cosmetic: a rename is reported by its
-# DESTINATION only, so moving CLAUDE.md to RENAMED.md yields a list
-# matching no glob and the approval gate would not fire on the change
-# that removed a policy file. Measured both ways before wiring it.
-git diff --no-renames --name-only "$PR_BASE...$PR_HEAD" > /tmp/pr-files.txt
-wc -l < /tmp/pr-files.txt
-# The same diff less its additions: what the base already had. A
-# reporter that grades `main` is exempt from `## Red checks` only
-# while the diff touches none of its inputs, and a delivery row the
-# pull request ADDS (its own) is not one; a row it edits or deletes is.
-git diff --no-renames --name-only --diff-filter=a "$PR_BASE...$PR_HEAD" > /tmp/pr-existing.txt
-shell: /usr/bin/bash -e {0}
-env:
-  PR_BASE: 03ba7f70f007147bda32ac0fc5dd83b11499bbaf
-  PR_HEAD: 54bfc9934041d594510309310ec427896e6d715e
-##[endgroup]
-11
-##[group]Run set -euo pipefail
-set -euo pipefail
-# Fail-closed, on the paths-file step's own principle: a derivation
-# that fails must fail the step, because an empty red list read from
-# a failed fetch is "no reds" -- the fail-open this wiring closes.
-gh api --paginate \
-  "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
-  --jq '.check_runs[]
-         | select(.status == "completed" and .conclusion == "failure")
-         | select(.name != "pr-contract")
-         | .name' | sort -u > /tmp/pr-reds.txt
-printf 'red checks the body must answer: %s\n' \
-  "$(paste -sd, /tmp/pr-reds.txt)"
-shell: /usr/bin/bash -e {0}
-env:
-  GH_TOKEN: ***
-  PR_HEAD: 54bfc9934041d594510309310ec427896e6d715e
-##[endgroup]
-red checks the body must answer: closures,nightly-status
-##[group]Run set -euo pipefail
-set -euo pipefail
-# One --red flag per name, never one comma-joined value: a check
-# name containing a comma would split into fragments neither the
-# refusal nor `## Red checks` can match.
-RED_ARGS=()
-while IFS= read -r name; do
-  RED_ARGS+=(--red "$name")
-done < /tmp/pr-reds.txt
-if [ -f /tmp/pr-title.txt ]; then
-  PR_TITLE=$(cat /tmp/pr-title.txt)
-fi
-node .claude/workflows/policy_lint.mjs \
-  --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
-  --author "$(cat /tmp/pr-author.txt)" \
-  --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-  "${RED_ARGS[@]}"
-shell: /usr/bin/bash -e {0}
-env:
-  PR_TITLE: feat(site): documentation sub-pages rendered over the vendored markdown-it (R9-WEB-3)
-  PR_HEAD: 54bfc9934041d594510309310ec427896e6d715e
-##[endgroup]
-  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+  Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+  Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 11.8 MB/s  0:00:00
+Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+  Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+  Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+  Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+  Downloading idna-3.20-py3-none-any.whl (69 kB)
+Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+  Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+  Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 43.2 MB/s  0:00:00
+Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+  Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+  Downloading PyYAML-6.0.1.tar.gz (125 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+  Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 71.0 MB/s  0:00:00
+Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+  Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+  Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+Building wheels for collected packages: pyyaml
+  Building wheel for pyyaml (pyproject.toml): started
+  Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+  Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=fff4a5ce6b547fc5cec9c4da546453b6108b73f1a855969dffcc8698f75fbf25
+  Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+Successfully built pyyaml
+Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
 
-/tmp/pr-body.md
-  ERROR   [pr-body] /tmp/pr-body.md: check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+##[group]Run sudo apt-get update && sudo apt-get install -y strace
+sudo apt-get update && sudo apt-get install -y strace
+shell: /usr/bin/bash -e {0}
+env:
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+##[endgroup]
+Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1364 kB]
+Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [304 kB]
+Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1699 kB]
+Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [341 kB]
+Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1720 kB]
+Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [394 kB]
+Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:16 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5764 B]
+Get:17 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1069 kB]
+Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [221 kB]
+Get:26 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [458 kB]
+Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+Get:27 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [511 kB]
+Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1216 kB]
+Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [244 kB]
+Get:28 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.6 kB]
+Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1566 kB]
+Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [361 kB]
+Fetched 12.6 MB in 1s (9923 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+strace is already the newest version (6.8-0ubuntu2).
+strace set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 25 not upgraded.
+##[group]Run REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
+REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
+# --record-only, on both paths: merging here would overwrite the
+# committed tests/closures.json with what this run just measured, and
+# the check below would then compare the file against itself.
+if [ "$SCOPE_CASE" = "scoped" ]; then
+  printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"
+  echo "Scoped re-derive; every other closure is left as committed:"
+  cat "$RUNNER_TEMP/rederive.txt"
+  while read -r s; do
+    [ -n "$s" ] || continue
+    GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+      --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only
+  done < "$RUNNER_TEMP/rederive.txt"
+else
+  GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+    --out-dir "$RUNNER_TEMP/closures" --record-only
+fi
+shell: /usr/bin/bash -e {0}
+env:
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  SCOPE_CASE: full
+  SCOPE_SCRIPTS: 
+##[endgroup]
+  [22:30:56] record tests/stress.py 
+  [22:30:56] record tests/features.py 
+  [22:38:00] done   tests/features.py (exit 0)
+  [22:38:00] record tests/entities.py 
+  [22:39:55] done   tests/stress.py (exit 0)
+  [22:41:32] done   tests/entities.py (exit 0)
+  [22:41:32] record tests/doc_claims.py 
+  [22:41:39] done   tests/doc_claims.py (exit 0)
+  [22:41:39] record tests/md_tables.mjs 
+  [22:41:39] done   tests/md_tables.mjs (exit 0)
+  [22:41:39] record tests/wood_advisor.py 
+  [22:41:40] done   tests/wood_advisor.py (exit 0)
+  [22:41:40] record tests/config_flow_steps.py 
+  [22:42:00] done   tests/config_flow_steps.py (exit 0)
+  [22:42:00] record tests/structure.py 
+  [22:42:08] done   tests/structure.py (exit 0)
+  [22:42:08] record tests/typing_ruler.py 
+  [22:42:08] done   tests/typing_ruler.py (exit 0)
+  [22:42:08] record tests/edge.py 
+  [22:42:32] done   tests/edge.py (exit 0)
+  [22:42:32] record tests/validate.py 
+  [22:42:55] done   tests/validate.py (exit 0)
+  [22:42:55] record tests/backtest.py 
+  [22:44:08] done   tests/backtest.py (exit 0)
+  [22:44:08] record tests/ha_contract.py 
+  [22:44:08] done   tests/ha_contract.py (exit 0)
+  [22:44:08] record tests/manual_plan.py 
+  [22:44:14] done   tests/manual_plan.py (exit 0)
+  [22:44:14] record tests/open_meteo.py 
+  [22:44:14] done   tests/open_meteo.py (exit 0)
+  [22:44:14] record tests/solar_alignment.py 
+  [22:44:16] done   tests/solar_alignment.py (exit 0)
+  [22:44:16] record tests/guard_pins.py 
+  [22:44:17] done   tests/guard_pins.py (exit 0)
+  [22:44:17] record tests/finite_boundary.py 
+  [22:45:28] done   tests/finite_boundary.py (exit 0)
+  [22:45:28] record tests/harness_headers.py 
+  [22:48:10] done   tests/harness_headers.py (exit 0)
+  [22:48:10] record tests/layout.py 
+  [22:48:21] done   tests/layout.py (exit 0)
+  [22:48:21] record tests/deployment_shape.py 
+  [22:48:24] done   tests/deployment_shape.py (exit 0)
+  [22:48:24] record tests/optimality.py 
+  [22:50:42] done   tests/optimality.py (exit 0)
+  [22:50:42] record tests/dst_checks.py 
+  [22:52:01] done   tests/dst_checks.py (exit 0)
+  [22:52:01] record tests/golden.py --only __no_such_scenario__
+  [22:52:02] done   tests/golden.py (exit 0)
+  [22:52:02] record tests/env_drift.py --cache-key 03ba7f70f007147bda32ac0fc5dd83b11499bbaf --all
+  [22:52:03] done   tests/env_drift.py (exit 0)
+  [22:52:03] record tests/plan_view.py 
+  [22:52:05] done   tests/plan_view.py (exit 0)
+  [22:52:05] record tests/frontend.py 
+  [22:52:05] done   tests/frontend.py (exit 0)
+  [22:52:05] record tests/card.mjs 
+  [22:52:19] done   tests/card.mjs (exit 0)
+  [22:52:19] record tests/card_drift.mjs 
+  [22:52:23] done   tests/card_drift.mjs (exit 0)
 
-PR-BODY: 1 error(s) in /tmp/pr-body.md
+recorded into /home/runner/work/_temp/closures; tests/closures.json left untouched (--record-only)
+##[group]Run # --partial drops one check and one only: "a selectable script with
+# --partial drops one check and one only: "a selectable script with
+# no recording at all", which a scoped re-derive fails by
+# construction. The under-approximation comparison -- the thing this
+# job exists for -- is identical on both paths. The output goes to
+# check.txt in the uploaded recordings: closures-autofix runs the
+# base's closure.py, and reddens where this one printed UNDER-SCOPED
+# and that one did not (#1846).
+set -o pipefail
+if [ "$SCOPE_CASE" = "scoped" ]; then
+  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+else
+  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+fi
+shell: /usr/bin/bash -e {0}
+env:
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+  PYTHONPATH: tests/hastub
+  SCOPE_CASE: full
+##[endgroup]
+note: tests/card_drift.mjs lists 4 file(s) this run did not touch (safe: over-scoped)
+UNDER-SCOPED: tests/doc_claims.py really reads 1 file(s) the committed closure does not list:
+    docs/site/docs.css
+note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+
+1 closure(s) are stale. Re-derive the named script:
+    ./tests/derive_closures.sh --single <script>
+and commit tests/closures.json. A full derive_closures.sh off
+Linux replaces node-lane recordings; --single cannot shrink them.
 ##[error]Process completed with exit code 1.
-##[group]Run node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
-node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
-shell: /usr/bin/bash -e {0}
-##[endgroup]
-  ok         node tools/site/build_docs.mjs --root . --tree <(git ls-files) --out DIR
-             `tools/site/build_docs.mjs` is in the tree at this head
-  unverified /Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/docs_controls.py .
-             `/Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/docs_controls.py` resolves outside this repository, so whether it is in the tree at this head is not a question this check can answer
-  unverified /Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/mutate_build.py .
-             `/Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/mutate_build.py` resolves outside this repository, so whether it is in the tree at this head is not a question this check can answer
-  unverified /Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/mutate_arm_rev.py .
-             `/Users/timmalmstrom/hpo-seats/R9-WEB-3/scratch/mutate_arm_rev.py` resolves outside this repository, so whether it is in the tree at this head is not a question this check can answer
-  ok         PYTHONPATH=tests/hastub:tests:custom_components python tests/doc_claims.py
-             `tests/doc_claims.py` is in the tree at this head
-  unverified git archive
-             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         python tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         python tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
-  ok         python tests/deployment_shape.py
-             `tests/deployment_shape.py` is in the tree at this head
-  ok         python tests/layout.py
-             `tests/layout.py` is in the tree at this head
-  ok         node tests/md_tables.mjs
-             `tests/md_tables.mjs` is in the tree at this head
-  ok         node .claude/workflows/brief_lint.mjs
-             `.claude/workflows/brief_lint.mjs` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         node .claude/workflows/policy_lint.mjs
-             `.claude/workflows/policy_lint.mjs` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
-             `tests/closure.py` is in the tree at this head
-  ok         tests/doc_claims.py
-             `tests/doc_claims.py` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         tests/layout.py
-             `tests/layout.py` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/doc_claims.py
-             `tests/derive_closures.sh` is in the tree at this head
-  ok         tests/doc_claims.py 136 files
-             `tests/doc_claims.py` is in the tree at this head
-  ok         tools/site/build_docs.mjs
-             `tools/site/build_docs.mjs` is in the tree at this head
-  unverified git diff --stat origin/main...HEAD
-             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         tests/closure.py
-             `tests/closure.py` is in the tree at this head
-
-FIGURES: 18 resolved, 5 not verified, 0 refused
-##[group]Run bash tools/audit/preflight.sh < /tmp/pr-body.md || true
-bash tools/audit/preflight.sh < /tmp/pr-body.md || true
-shell: /usr/bin/bash -e {0}
-##[endgroup]
-  check    quantifiers -- did you enumerate the SET, or sample it?
-             5:every
-             5:each
-             5:never
-             7:every
-             7:every
-             7:every
-             17:each
-             18:all
-  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
-             13 p
-             9 of 10
-             33 a
-             29 k
-             4 of 126
-             14 s
-             39 a
-             13 l
-  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
-  clean    no refusal (the 'check' lines above are yours to answer)
-##[group]Run set -euo pipefail
-set -euo pipefail
-git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"
-shell: /usr/bin/bash -e {0}
+##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+with:
+  name: closure-recordings
+  path: /home/runner/work/_temp/closures
+  if-no-files-found: ignore
+  retention-days: 3
+  compression-level: 6
+  overwrite: false
+  include-hidden-files: false
 env:
-  PR_HEAD: 54bfc9934041d594510309310ec427896e6d715e
+  DOCS_ONLY_FAST: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
 ##[endgroup]
-no version edit: origin/main...54bfc9934041d594510309310ec427896e6d715e moves none of VERSION, the manifest version or a notes heading
+With the provided path, there will be 59 files uploaded
+Artifact name is valid!
+Root directory input is valid!
+Beginning upload of artifact content to blob storage
+Uploaded bytes 227525
+Finished uploading artifact content to blob storage!
+SHA256 digest of uploaded artifact zip is 52efc5bb47d0aa5de574c3fdd62ea49eba05350ae95cb8ce738b7085eb5fd913
+Finalizing artifact upload
+Artifact closure-recordings.zip successfully finalized. Artifact ID 11255508357
+Artifact closure-recordings has been successfully uploaded! Final size is 227525 bytes. Artifact ID is 11255508357
+Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/37072797978/artifacts/11255508357
 Post job cleanup.
 [command]/usr/bin/git version
 git version 2.55.0
-Temporarily overriding HOME='/home/runner/work/_temp/af50d208-507f-4518-9803-a0de6038604f' before making global git config changes
+Temporarily overriding HOME='/home/runner/work/_temp/3adf0ed5-b7c4-465b-aa38-ca2f6fd9c433' before making global git config changes
 Adding repository directory to the temporary git global config as a safe directory
 [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
 [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
