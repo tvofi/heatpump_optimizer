@@ -1770,6 +1770,35 @@ def _version_arm(by_name) -> None:
         verdicts == ["not-implemented", 1, "not-implemented", 1],
         f"verdicts={verdicts}",
     )
+    # A store that does migrate: Home Assistant saves the migration's result
+    # from inside the load, while async_save waits for the read in flight --
+    # its own. That write-back must not wait on itself.
+    class _Migrating(QuarantiningStore):
+        async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+            if old_major_version == 1:
+                return {**old_data, "migrated": True}
+            return await super()._async_migrate_func(old_major_version, old_minor_version, old_data)
+
+    mkey = f"{const.DOMAIN}_{ENTRY_ID}_version_migrating"
+    _storage._DISK[mkey] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[mkey] = 1
+
+    async def _migrate_load():
+        return await asyncio.wait_for(_Migrating(FakeHass(), 2, mkey).async_load(), 5)
+
+    try:
+        got = asyncio.run(_migrate_load())
+    except BaseException as exc:  # noqa: BLE001 -- a timeout is the measurement
+        got = type(exc).__name__
+    saved_at = _storage._VERSIONS.get(mkey)
+    _storage._DISK.clear()
+    _storage._VERSIONS.clear()
+    R.check(
+        "a store that migrates loads the migrated payload and saves it at its own "
+        "version, without waiting on its own read (#1740)",
+        got == {"v": 1.0, "migrated": True} and saved_at == 2,
+        f"got={got!r} saved_at={saved_at}",
+    )
     print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
 
 
