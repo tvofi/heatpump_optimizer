@@ -486,8 +486,9 @@ class QuarantiningStore(Store[_StorePayload]):
     the live model — whatever store, field or class the poison arrived in.
     """
 
-    #: The read in flight, kept until the next one.
+    #: The read in flight, kept until the next one, and the task reading it.
     _reading: asyncio.Future[None] | None = None
+    _reader: asyncio.Task[Any] | None = None
 
     def __init__(
         self,
@@ -519,6 +520,7 @@ class QuarantiningStore(Store[_StorePayload]):
 
     async def async_load(self) -> _StorePayload | None:
         self._reading = reading = asyncio.get_running_loop().create_future()
+        self._reader = asyncio.current_task()
         try:
             try:
                 data = _sanitize(await super().async_load())
@@ -534,6 +536,7 @@ class QuarantiningStore(Store[_StorePayload]):
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:
+            self._reader = None
             reading.set_result(None)
 
     async def _async_migrate_func(
@@ -576,9 +579,12 @@ class QuarantiningStore(Store[_StorePayload]):
         coordinator writers lost persisted learned state this way; R6's
         mode setter hit it before them). Waiting here, in the store itself,
         is the property rather than a per-writer discipline: no save this
-        type can express clobbers its own pending read.
+        type can express clobbers its own pending read. The read's own task
+        does not wait: Home Assistant saves a migration's result from inside
+        the load, and waiting there would wait on itself (#1740).
         """
-        await self.async_wait_for_read()
+        if asyncio.current_task() is not self._reader:
+            await self.async_wait_for_read()
         await super().async_save(data)
 
     async def async_wait_for_read(self) -> None:
