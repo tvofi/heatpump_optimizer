@@ -1,0 +1,5 @@
+fast (3.14)	Run the suite	2026-10-02T16:51:57.1602670Z   GOLDEN_MODE: drift
+fast (3.14)	Run the suite	2026-10-02T17:01:19.1377759Z   FAIL no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)  [['tests.yml:mutation-ledger', 'tests.yml:mutation-ledger-push']]
+fast (3.14)	Run the suite	2026-10-02T17:01:19.1555534Z 1 of 2071 ENTITY CHECKS FAILED
+fast (3.14)	Run the suite	2026-10-02T17:06:01.1527967Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+fast (3.14)	Run the suite	2026-10-02T17:24:36.5910943Z 1 TEST SCRIPT(S) FAILED

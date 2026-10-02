@@ -1,2 +1,0 @@
-['tests/structure.py'] scoped arch_score.py True head True
-['custom_components/heatpump_optimizer/coordinator.py'] scoped arch_score.py False head True

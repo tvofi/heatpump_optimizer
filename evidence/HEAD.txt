@@ -1,2 +1,1 @@
-head measured: e5301f5e5a070ae3c691df72296a2122691b689e (c9d6168c + fixer round-2 code f6b39ccd931a190372a4d4a46590a115aee9cc01 + origin/main 2e7422e59)
-reviewer worktree: /Users/timmalmstrom/hpo-seats/1851-review/wt, detached at the head; clean after every probe
+8527dbc2146afdc6ddc0d801518f6cf70094fd13

@@ -1,0 +1,21 @@
+  planted  GOOD       9/15  blind  5  wrong-way  1
+  planted  BAD       27/28  blind  1  wrong-way  0
+  planted  NULL      14/15  blind  0  wrong-way  1
+  corpus   GOOD       9/24  blind  7  wrong-way  8
+  corpus   BAD       11/14  blind  3  wrong-way  0
+  corpus   NEUTRAL    7/7   blind  0  wrong-way  0
+  CALIBRATION 77/103 labelled cases classify as their label says
+  RED TEAM 23/23 attempts read NULL or inadmissible; IMPROVES: none
+rt_00_null_rename NULL NULL True 0
+rt_04_dup_noop_interleave GAME NULL True 0
+rt_04b_dup_pass_interleave GAME WORSENS False -0.0029
+rt_04c_dup_pass_uncharged GAME NULL True 0
+rt_04d_dup_ellipsis_uncharged GAME NULL True 0
+rt_04e_dup_none_uncharged GAME NULL True 0
+rt_04f_dup_str_uncharged GAME NULL True 0
+rt_04g_dup_iffalse_uncharged GAME NULL True 0
+rt_04h_dup_assert_uncharged KNOWN-OPEN IMPROVES True 14.1502
+rt_04i_dup_assign_uncharged KNOWN-OPEN IMPROVES True 14.1502
+rt_04j_dup_walrus_uncharged KNOWN-OPEN IMPROVES True 14.1502
+GAME 23 IMPROVES-admissible []
+GAME IMPROVES any []
