@@ -3906,40 +3906,35 @@ class HeatPumpOptimizer:
             out[i] = min(max(out[i], low), high)
         return out
 
-    def _optimize_space_only(self, h: _Horizon) -> OptimizationResult:
-        """Optimize space heating only (no DHW)."""
-        import time
+    def _solve_objectives(self, h: _Horizon) -> tuple[
+        Callable[..., Any],
+        Callable[..., float],
+        Callable[..., np.ndarray],
+        Callable[..., Any],
+    ]:
+        """Both solve paths' trajectory, objective, batch twin and price (#1743).
 
-        # Unpacked rather than accessed through ``h`` throughout: the body is
-        # dense numpy, and ``h.prices * h.dt`` forty times over reads far worse
-        # than the equations it is meant to express.
-        initial_state, prices, dt, n_steps = (
-            h.initial_state, h.prices, h.dt, h.n_steps
+        The DHW path passes its fixed plan as ``dhw_plan_power``; with
+        ``None`` the arithmetic is the space-only path's, operand for operand.
+        """
+        initial_state, prices, dt, comfort_targets = (
+            h.initial_state, h.prices, h.dt, h.comfort_targets
         )
-        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
-        precipitation, solar_radiation = h.precipitation, h.solar_radiation
-        comfort_targets = h.comfort_targets
+        outdoor_temps, wind_speeds, precipitation, solar_radiation = (
+            h.outdoor_temps, h.wind_speeds, h.precipitation, h.solar_radiation
+        )
         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
-        solar_gains_per_step = h.solar_gains
-        forecast_heat_loss_factors = h.heat_loss_factors
-        forecast_analysis, t_start = h.forecast, h.t_start
 
-        p_min = self.model.params.min_electrical_power
-        p_max = self.model.params.max_electrical_power
-
-        anticipatory_weights = self._anticipatory_weights(
-            n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
-        )
         # How far the user is willing to let the house drift below target. The
         # pull-to-target term is normalised by this, so widening the allowed
         # band actually buys cheaper operation instead of being overwhelmed by
         # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost, terminal_cost_batch = self._terminal_cost(
-            prices, outdoor_temps, solar_gains_per_step, h.humidity
+            prices, outdoor_temps, h.solar_gains, h.humidity
         )
-        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
-            self._grid_terms(n_steps, dt, h.start_time)
+        cycling, capacity, _, cycling_batch, capacity_batch = (
+            self._grid_terms(h.n_steps, dt, h.start_time)
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
@@ -3958,23 +3953,34 @@ class HeatPumpOptimizer:
                 start_hour=float(h.step_hours[0]),
             )
 
-        def objective(power_schedule: np.ndarray) -> float:
+        def objective(
+            space_power: np.ndarray,
+            dhw_plan_power: np.ndarray | None = None,
+        ) -> float:
             """Compute the total cost with predictive weather anticipation."""
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
-                _space_traj(power_schedule)
+                _space_traj(space_power)
+            )
+
+            # The compressor is one machine: the grid sees the *combined*
+            # draw, so the energy cost, the PV surplus it may consume, the
+            # cycling term and the house peak are all properties of the sum,
+            # not of space heating alone.
+            combined = (
+                space_power if dhw_plan_power is None
+                else space_power + dhw_plan_power
             )
 
             # Electricity cost, piecewise in PV surplus. ``float()`` is
             # identity on the 1-D branch's return and states it.
             energy_cost = (
-                float(energy_cost_of(power_schedule)) * self.config.price_weight
+                float(energy_cost_of(combined)) * self.config.price_weight
             )
 
             penalty, comfort_cost = self._comfort_terms(
                 room_temps, upper_temps, lower_temps,
                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
             )
-
 
             # --- Weather anticipation is the simulation's job ----------------
             # ``simulate_trajectory`` already applies the solar gain and the
@@ -3985,16 +3991,16 @@ class HeatPumpOptimizer:
             # thing in invented currency: a penalty for heating before sun, and
             # a *negative* cost that paid the plan to burn electricity before
             # bad weather. Both double-counted, and the second existed only on
-            # this path and not on the DHW one, so simply enabling hot water
-            # changed the space heating objective. Removing them made the
-            # shoulder season 4-6% cheaper at identical comfort.
+            # the space-only path and not on the DHW one, so simply enabling
+            # hot water changed the space heating objective. Removing them made
+            # the shoulder season 4-6% cheaper at identical comfort.
 
             return (
                 energy_cost + penalty + comfort_cost
                 # Currency terms scale with price_weight as the energy cost
                 # does, or a non-default weight silently re-prices starts and
                 # peaks relative to the electricity they trade against.
-                + (cycling(power_schedule) + capacity(power_schedule))
+                + (cycling(combined) + capacity(combined))
                 * self.config.price_weight
                 + terminal_cost(
                     room_temps,
@@ -4005,7 +4011,10 @@ class HeatPumpOptimizer:
                 )
             )
 
-        def objective_batch(power_matrix: np.ndarray) -> np.ndarray:
+        def objective_batch(
+            space_matrix: np.ndarray,
+            dhw_plan_power: np.ndarray | None = None,
+        ) -> np.ndarray:
             """The same objective, for B schedules at once (issue #97).
 
             One batched simulation replaces B scalar ones, and the cost
@@ -4018,7 +4027,7 @@ class HeatPumpOptimizer:
             """
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
-                power_matrix=power_matrix,
+                power_matrix=space_matrix,
                 outdoor_temps=outdoor_temps,
                 wind_speeds=wind_speeds,
                 precipitation=precipitation,
@@ -4029,8 +4038,13 @@ class HeatPumpOptimizer:
                 humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
+            # The grid sees the combined draw: space plus the fixed DHW plan.
+            grid_power = (
+                space_matrix if dhw_plan_power is None
+                else space_matrix + dhw_plan_power
+            )
             return self._cost_terms_batch(
-                traj, power_matrix,
+                traj, grid_power,
                 energy_cost_of=energy_cost_of,
                 cycling_batch=cycling_batch,
                 capacity_batch=capacity_batch,
@@ -4040,6 +4054,35 @@ class HeatPumpOptimizer:
                 temp_max_bounds=temp_max_bounds,
                 comfort_band=comfort_band,
             )
+
+        return _space_traj, objective, objective_batch, energy_cost_of
+
+    def _optimize_space_only(self, h: _Horizon) -> OptimizationResult:
+        """Optimize space heating only (no DHW)."""
+        import time
+
+        # Unpacked rather than accessed through ``h`` throughout: the body is
+        # dense numpy, and ``h.prices * h.dt`` forty times over reads far worse
+        # than the equations it is meant to express.
+        initial_state, prices, dt, n_steps = (
+            h.initial_state, h.prices, h.dt, h.n_steps
+        )
+        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+        precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        comfort_targets = h.comfort_targets
+        solar_gains_per_step = h.solar_gains
+        forecast_heat_loss_factors = h.heat_loss_factors
+        forecast_analysis, t_start = h.forecast, h.t_start
+
+        p_min = self.model.params.min_electrical_power
+        p_max = self.model.params.max_electrical_power
+
+        anticipatory_weights = self._anticipatory_weights(
+            n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
+        )
+        _space_traj, objective, objective_batch, energy_cost_of = (
+            self._solve_objectives(h)
+        )
 
         # Initial guess: smart initialization considering forecasts
         initial_power = p_max * _price_guess_weights(prices)
@@ -6092,7 +6135,6 @@ class HeatPumpOptimizer:
         outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
         precipitation, solar_radiation = h.precipitation, h.solar_radiation
         comfort_targets = h.comfort_targets
-        temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
         step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
         forecast_heat_loss_factors = h.heat_loss_factors
         start_time, t_start = h.start_time, h.t_start
@@ -6163,121 +6205,10 @@ class HeatPumpOptimizer:
         # split is iterated below, re-planning DHW against the space-heating
         # profile it actually has to share the pump with.
 
-        # See ``_optimize_space_only`` for why the band normalises the
-        # pull-to-target term.
-        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-        terminal_cost, terminal_cost_batch = self._terminal_cost(
-            prices, outdoor_temps, solar_gains_per_step, h.humidity
+        # ``_solve_objectives`` builds the objective both paths share.
+        _, objective, objective_batch, energy_cost_of = (
+            self._solve_objectives(h)
         )
-        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
-            self._grid_terms(n_steps, dt, start_time)
-        )
-        energy_cost_of = self._energy_cost_fn(prices, dt)
-
-        def _space_traj(power_schedule: np.ndarray) -> Any:
-            return self.model.simulate_trajectory(
-                initial_state=initial_state,
-                power_schedule=power_schedule,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
-                dt_hours=dt,
-                external_heat_kw=h.external_heat_kw,
-                valve_targets=h.valve_targets,
-                humidity=h.humidity,
-                start_hour=float(h.step_hours[0]),
-            )
-
-        def objective(
-            space_power: np.ndarray,
-            dhw_plan_power: np.ndarray | None = None,
-        ) -> float:
-            """Space heating objective given the fixed DHW schedule."""
-            room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
-                _space_traj(space_power)
-            )
-
-            # The compressor is one machine: the grid sees the *combined*
-            # draw, so the energy cost, the PV surplus it may consume, the
-            # cycling term and the house peak are all properties of the sum,
-            # not of space heating alone.
-            combined = (
-                space_power
-                if dhw_plan_power is None
-                else space_power + dhw_plan_power
-            )
-
-            # --- Electricity cost (total: space + DHW), piecewise in PV ---
-            energy_cost = (
-                float(energy_cost_of(combined)) * self.config.price_weight
-            )
-
-            space_penalty, comfort_cost = self._comfort_terms(
-                room_temps, upper_temps, lower_temps,
-                comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
-            )
-
-
-            # Weather anticipation is left to the simulation, which already
-            # applies solar gain and the wind/rain loss factors; see the
-            # space-only objective for why the extra heuristic terms were
-            # removed.
-
-            return (
-                energy_cost + space_penalty + comfort_cost
-                # Same price_weight scaling as the space-only objective.
-                + (cycling(combined) + capacity(combined))
-                * self.config.price_weight
-                + terminal_cost(
-                    room_temps,
-                    slab_temps,
-                    upper_temps,
-                    lower_temps,
-                    buffer_temps,
-                )
-            )
-
-        def objective_batch(
-            space_matrix: np.ndarray,
-            dhw_plan_power: np.ndarray | None = None,
-        ) -> np.ndarray:
-            """The same objective, for B space schedules at once (#97).
-
-            Same shape as ``objective``'s batch twin on the space-only
-            path: one batched simulation, cost terms batched per term
-            through ``_cost_terms_batch`` (#948), equivalence asserted by
-            test.
-            """
-            traj = self.model.simulate_trajectory_batch(
-                initial_state=initial_state,
-                power_matrix=space_matrix,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
-                dt_hours=dt,
-                external_heat_kw=h.external_heat_kw,
-                valve_targets=h.valve_targets,
-                humidity=h.humidity,
-                start_hour=float(h.step_hours[0]),
-            )
-            # The grid sees the combined draw: space plus the fixed DHW plan.
-            grid_power = (
-                space_matrix if dhw_plan_power is None
-                else space_matrix + dhw_plan_power
-            )
-            return self._cost_terms_batch(
-                traj, grid_power,
-                energy_cost_of=energy_cost_of,
-                cycling_batch=cycling_batch,
-                capacity_batch=capacity_batch,
-                terminal_cost_batch=terminal_cost_batch,
-                comfort_targets=comfort_targets,
-                temp_min_bounds=temp_min_bounds,
-                temp_max_bounds=temp_max_bounds,
-                comfort_band=comfort_band,
-            )
 
         # Initial guess: space heating inversely proportional to price.
         init_base = p_max * 0.6 * _price_guess_weights(prices)
