@@ -1,0 +1,8 @@
+## Red checks
+
+Main's `tests` job on `entities.py`, red at 8fa06663. Cheaper detector: none that runs before the merge. See Root cause.
+
+`nightly-status` is red: NIGHTLY ABSENT for `mutation-ledger` and `mutation-ledger-push`. That is main's red, not this diff's. Last night's scheduled run 36984959667 (head 492d840) predates #1848, which added both jobs, so they could not have run. This PR edits `tests.yml`, so the check is not exempt here. Cheaper detector: none; it measures a nightly that has not happened yet. Proof is owed after the merge: a completed `gh workflow run tests.yml --ref main`, or the next scheduled run, with both jobs present.
+
+## Forward-carry
+# head 1f5b0aa4a7a8828bcbfaa2dee362082b950a5d1c
