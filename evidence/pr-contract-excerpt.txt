@@ -1,8 +1,0 @@
-3f7fcc4a7b6c09	2026-10-02T22:59:07.6808554Z   clean: true
-3f7fcc4a7b6c09	2026-10-02T22:59:15.3825655Z  * [new branch]        handoff/r9-rca-closures-autofix-skip -> origin/handoff/r9-rca-closures-autofix-skip
-22:59:19.2988213Z   skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
-22:59:19.2992155Z   ERROR   [pr-body] /tmp/pr-body.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (docs/plan-2026-09-open-issues.md), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-22:59:19.2994329Z PR-BODY: 1 error(s) in /tmp/pr-body.md
-26-10-02T22:59:19.3603038Z FIGURES: 10 resolved, 1 not verified, 0 refused
-10-02T22:59:19.5483626Z   clean    no refusal (the 'check' lines above are yours to answer)
-8ff273f7fcc4a7b6c09	﻿2026-10-02T22:59:19.9286532Z Post job cleanup.

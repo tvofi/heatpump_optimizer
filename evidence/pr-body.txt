@@ -1,5 +1,5 @@
 b74fc1aa21e443fef353a5bb49ea630397bf2913
-2026-10-02T22:08:58Z
+2026-10-02T23:06:11Z
 _Requested by **tvofi**_
 
 Part of #1774.
@@ -12,7 +12,9 @@ Where `tests/structure.py` has a metric the score reads that definition on a loa
 
 ## Head
 
-`b74fc1aa21e443fef353a5bb49ea630397bf2913` merges the authored code head `b74fc1aa21e443fef353a5bb49ea630397bf2913` and then merges origin/main `03ba7f70f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`b74fc1aa21e443fef353a5bb49ea630397bf2913` merges origin/main `03ba7f70f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`b74fc1aa21e443fef353a5bb49ea630397bf2913` merges origin/main into the authored code head `25f434a65c7c4096c2da5f2bb2565d767c9f4dca` and then merges origin/main `03ba7f70f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 b74fc1aa21e443fef353a5bb49ea630397bf2913
 
@@ -47,6 +49,8 @@ The rename null `rt_00` reads NULL; `a1_N1`, `a1_N1b`, `a1_N1c`, `a1_N2`, `a1_N3
 
 fast (3.14) at e5301f5e and 8527dbc2: `tests/entities.py`, the #1218 deployment-shape lane. Cause: `tests/arch_score_head.py` reads the whole package to measure it, so its closure is a second full-coverage closure and the lane allowed exactly one; the note's derived numbers moved with the two new scripts. Fix: the lane admits that script by name (a third is still refused) and the note is re-derived. Narrowing the closure was refused: the script would stop reading the tree it exists to read. Process state: the check was runnable here and was not run. I judged the gate CI's because the full gate is `MODE: FULL` and I took `entities.py` for a numpy lane; the cheaper detector is `entities.py` itself under a seat venv (`~/hpo-seats/R9-F11.4-venv/bin/python3`, `PYTHONPATH=tests/hastub`), about three minutes, which found both failures at once and now passes. Standing cost: one entities run before every push that adds a script to `tests/closures.json`.
 
+- `nightly-status` is red, and it is main's red, not this diff's. It first read NIGHTLY ABSENT: the last scheduled nightly predates #1848's ledger lanes. It now reads NIGHTLY FAILED: the orchestrator's dispatch 37050037132 on main (aa7a8119) failed in `mutation-nightly` (harness_headers, on a D7 harness at rc=-24) and in `mutation-ledger-push`. Neither job runs this PR's code. The diff touches `docs/plan-2026-09-open-issues.md`, which nightly-status reads, so the check is not exempt here. Cheaper detector: none on this branch. The orchestrator is diagnosing the main failure in its own seat.
+
 ## Forward-carry
 
 `docs/plan-2026-09-open-issues.md`: the #1774 and #1775 rows name the in-tree measure and the moved verdicts. The R9-EG-A2 roster brief carries the C3 class fix and the flip of the KNOWN-OPEN cases; the orchestrator owns that file.
@@ -55,4 +59,5 @@ fast (3.14) at e5301f5e and 8527dbc2: `tests/entities.py`, the #1218 deployment-
 
 - `fixer.md`: stale: step 5 says run what `scope.run` names; a diff that edits `tests/closure.py` is `MODE: FULL`, and this seat took the numpy lanes for CI's until a venv existed.
 - `ratchet-budgets.md`: cost: the template at zero token headroom made one optional line cost three deleted sentences.
+
 
