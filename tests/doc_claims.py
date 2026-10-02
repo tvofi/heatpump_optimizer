@@ -2308,8 +2308,9 @@ def check_docs_subpages() -> None:
     R.check("mermaid is one exact version in package.json, and the lockfile resolves that version", not pin, "; ".join(pin))
     lock = SITE_LOCK.read_text() if SITE_LOCK.is_file() else "{}"
     R.check("the mermaid pin fires on a range and on a lockfile that disagrees (null controls)",
-            bool(mermaid_pin_findings('{"dependencies":{"mermaid":"^12.1.0"}}', lock))
-            and bool(mermaid_pin_findings('{"dependencies":{"mermaid":"11.0.0"}}', lock)) and not pin)
+            any("exact" in f for f in mermaid_pin_findings(
+                '{"dependencies":{"mermaid":"^12.1.0"}}', '{"packages":{"node_modules/mermaid":{"version":"^12.1.0"}}}'))
+            and any("lockfile resolves" in f for f in mermaid_pin_findings('{"dependencies":{"mermaid":"11.0.0"}}', lock)) and not pin)
     print(f"       ({b['stats']})")
 
 
