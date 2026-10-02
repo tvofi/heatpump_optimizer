@@ -1,0 +1,48 @@
+_Requested by **tvofi**_
+
+Part of #201
+
+On 2026-10-02 (about 13:10Z) tvofi added the `hpo-ledger` App (App id 5094721) as an `always` bypass actor on ruleset 23698884 `main-protect-checks`, for R9-F10.5's ledger push to main. Before this change, `node .claude/workflows/policy_lint.mjs` at origin/main printed 5 `[required-contexts]` errors with an admin token, because `.claude/workflows/fixtures/required-contexts.json` recorded only the deploy key. This PR re-records that fixture by hand from `gh api repos/tvofi/heatpump_optimizer/rulesets/23698884`. The fixture is byte-identical to R9-F10.5's copy at `cb6870bc`, so the two branches merge without conflict. The comparison sorts arrays, so it does not depend on the order the API returns the actors in. This PR also corrects `docs/HANDOVER.md`, which said the deploy key was the only bypass on `main-protect-checks`.
+
+Ruleset 22628467 `main-protect` was read live too: its `bypass_actors` is `[{5094721, Integration, always}]` and its rules are `deletion` and `non_fast_forward`. Neither changed. The fixture does not record that ruleset by design (#1300), so nothing there is re-recorded.
+
+**CI today: not red.** CI's `policy-docs` reads the live ruleset with the Actions `GITHUB_TOKEN`, and that token cannot see `bypass_actors`. The class prints the `TOKEN_HIDDEN_SKIP_RE` line (`skip required-contexts ruleset 23698884 field \`bypass_actors\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`), as job 110835592950 on main did at 12:23Z. So CI does not report this drift, and only a local run with an admin token sees it. That is why main stayed green.
+
+**Assertion sites re-read** (`git grep -n required-contexts` over `.claude/workflows`, `tests`, `tools`, `.github`, `docs/decisions`, plus every bypass and deploy-key mention in CLAUDE.md, AGENTS.md, `.claude/rules`, `tools/audit/briefs` and `docs/HANDOVER.md`):
+- Made false by the change, and corrected here: `docs/HANDOVER.md` said "the one bypass, the deploy key `hpo-stamp`" on 23698884, and that the rollback drops "the bypass". Both now name both actors. The 22628467 "undocumented bypass" bullet gains a dated line: the same App is now on 23698884 too, and R9-F10.5's 0011 amendment is the record that ratifies it. The bullet retires when that PR merges.
+- Left to R9-F10.5, on the orchestrator's instruction: `docs/decisions/0011-app-authored-identity.md`. F10.5's `cb6870bc` rewrites its amendment.
+- Still says only the deploy key, but kept byte-identical with F10.5: the fixture's `_comment` ends "the deploy key's `always` bypass -- everything this file is about". This is incomplete rather than false: it lists what 23698884 carries, and the recorded object below it names both actors. F10.5 owns the wording, so it is not changed here.
+- Re-read and still true: `docs/decisions/0009-...md` (historical notes from 2026-09; each one is dated, and "A stamp pushes over the deploy key alone" is still true, because the App does not stamp). Also still true: CLAUDE.md:58 (stamps push over the deploy key), `tools/audit/briefs/orchestrator.md:272` (the stamp command), `docs/decisions/0013-...md:42` (the approver App is not on the bypass list; it still is not), `counts.mjs` (`RULESET_TOKEN_HIDDEN`, `RULESET_VOLATILE`, sorted-array compare), `field_coverage.mjs` (reads the fixture's ruleset arm; it passes), `tests/entities.py` 25943ff (synthetic ruleset objects, not the fixture), `tests/closure.py:553` (classification only), `tools/audit/round6/D11/fix/codeowners_gap.py:617` (reads `contexts` only, which did not change), `carry-1300.json` and `tools/audit/rca/R9-I3.md` (historical records of the two-ruleset split and of class I3), `.github/workflows/governance.yml` 158/417 (token mapping), and `fixtures/policy-rot/required-contexts.md` (graded literal shapes, not the live boundary). The round-5..9 audit reports and fixtures that cite the file are dated evidence, and they are not edited.
+
+## Head
+
+a6e9df23952ba80402e00573f3d5887b5f5ef276
+
+## Mutation proof
+
+Mutant fixture: the re-recorded file with the Integration entry dropped from `ruleset_objects["23698884"].bypass_actors` (`jq '.ruleset_objects["23698884"].bypass_actors |= map(select(.actor_type!="Integration"))'`). `node .claude/workflows/policy_lint.mjs` then exits 1 with 5 `[required-contexts]` errors and `TOTAL: 5 error(s) across 40 policy file(s)`, the same 5 as at origin/main. Restored after.
+
+## Null control
+
+At origin/main `af7660c7` (old fixture, admin token): `node .claude/workflows/policy_lint.mjs` exits 1 with exactly 5 `[required-contexts]` errors, on `bypass_actors[0].actor_id`, `[0].actor_type`, `[1].actor_id`, `[1].actor_type` and `[1].bypass_mode`, and `TOTAL: 5 error(s)`. With this fixture: 0 `[required-contexts]` errors and `TOTAL: 0 error(s) across 40 policy file(s)`. The whole live object is compared apart from the volatile fields, so a value of 0 also confirms the rest of the recording.
+
+## Figures
+
+- `node .claude/workflows/policy_lint.mjs`: TOTAL: 0 error(s) across 40 policy file(s) (admin token, live read).
+- `node .claude/workflows/field_coverage.mjs`: FIELD COVERAGE ok, blind=0 dead=0 refused=0.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
+
+## Approval
+
+Owed: tvofi's approving review (`docs/HANDOVER.md` and the governance fixture are policy surface). The ruleset change itself is tvofi's own act of 2026-10-02. This PR only records it.
