@@ -267,11 +267,22 @@ def bronze() -> None:
          f"subscriptions={subs}, all in coordinator.py, released via "
          f"entry.async_on_unload) -> vacuous for the entity lifecycle rule")
 
-    uid_sites = grep_count(r"_attr_unique_id\s*=", pkg_files())
-    rule("entity-unique-id", "bronze", "done" if uid_sites >= 6 else "todo",
-         "grep -c '_attr_unique_id =' package",
-         f"_attr_unique_id assignment sites={uid_sites}; every one is "
-         f"f'{{entry.entry_id}}_...'")
+    # The rule's subject is that every entity carries a unique id. Since
+    # R9-EG-B2 (#1742) one rule in entity.py derives it for every platform, so
+    # the property is "every assignment site is keyed on the entry", not a
+    # count of sites: six platforms once meant six copies of the same line.
+    uid_values = [
+        m.group(1).strip()
+        for f in pkg_files()
+        for m in re.finditer(r"_attr_unique_id\s*=\s*(.+)", src(f))
+    ]
+    uid_keyed = bool(uid_values) and all(
+        v.startswith('f"{entry.entry_id}_') for v in uid_values
+    )
+    rule("entity-unique-id", "bronze", "done" if uid_keyed else "todo",
+         "grep '_attr_unique_id = <value>' package; every value f'{entry.entry_id}_...'",
+         f"_attr_unique_id assignment sites={len(uid_values)}; every one is "
+         f"f'{{entry.entry_id}}_...'={uid_keyed}")
 
     hen = "_attr_has_entity_name = True" in src(PKG / "entity.py")
     rule("has-entity-name", "bronze", "done" if hen else "todo",
