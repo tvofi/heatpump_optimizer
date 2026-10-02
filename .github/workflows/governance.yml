@@ -482,17 +482,28 @@ jobs:
       # Class I4 (round 9): two readers of one governance concept must give one
       # answer, and a regex grammar written in two governance files must be
       # registered. The base's copy once the base carries the program (the
-      # restore above); the pull request that lands it runs its own. The tests
+      # restore above); the pull request that lands it skips the lane, below. The tests
       # and audit scripts its Python readers load are restored from the base
       # above too, so a pull request cannot change a reader it is graded by.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
 
+      # Skipped, with the reason printed, while the base does not carry the
+      # lane: its readers are restored from the base above, so a pull request
+      # that lands the lane would be graded by readers written before it, which
+      # is no verdict on either (the `field coverage` step's own rule).
       - name: Refuse two readers of one concept that disagree
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
-          python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
-          node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
+            echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
+          else
+            python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
+            node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
+          fi
 
       - name: Show the agreement lane refusing each shape it exists to refuse
         run: node .claude/workflows/agreement.mjs --self-test
