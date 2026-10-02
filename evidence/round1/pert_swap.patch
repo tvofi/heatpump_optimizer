@@ -1,0 +1,11 @@
+--- ../wt/custom_components/heatpump_optimizer/optimizer.py	2026-10-02 14:12:21
++++ pert_swap.py	2026-10-02 14:16:01
+@@ -3968,7 +3968,7 @@
+             # not of space heating alone.
+             combined = (
+                 space_power if dhw_plan_power is None
+-                else space_power + dhw_plan_power
++                else dhw_plan_power + space_power
+             )
+ 
+             # Electricity cost, piecewise in PV surplus. ``float()`` is

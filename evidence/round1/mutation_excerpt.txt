@@ -1,0 +1,7 @@
+639:mutation	Drive the table over what this diff tested	2026-10-02T12:47:17.6979461Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:4058 RETURN_DEL: return _space_traj, objective, objective_batch, energy_cost_of
+640:mutation	Drive the table over what this diff tested	2026-10-02T12:47:17.6983182Z MUTATION TABLE REFUSED -- 3911 unpinned site(s) against 3911 at the ratchet base 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d, 1 of them added by this diff. A new guard, clamp, removable return or doubled constant left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count 
+697:mutation	Measure pins for the sites this diff added unpinned	2026-10-02T12:47:18.4422125Z ^[[36;1mif grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \^[[0m
+734:mutation	Measure pins for the sites this diff added unpinned	2026-10-02T12:47:20.6192919Z PIN KILLED -- 2 new unpinned site(s) against 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d to drive
+780:mutation	Measure pins for the sites this diff added unpinned	2026-10-02T13:20:05.6894841Z   pinned   custom_components/heatpump_optimizer/optimizer.py:3932 CLAMP_DROP -- killed by tests/env_drift.py
+781:mutation	Measure pins for the sites this diff added unpinned	2026-10-02T13:20:05.6896270Z   pinned   custom_components/heatpump_optimizer/optimizer.py:4058 RETURN_DEL -- killed by tests/doc_claims.py
+783:mutation	Measure pins for the sites this diff added unpinned	2026-10-02T13:20:05.6897449Z PIN KILLED: 2 pinned, 0 left unpinned

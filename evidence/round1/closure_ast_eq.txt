@@ -1,0 +1,6 @@
+RESULT ast-equal base._optimize_space_only._space_traj == head._solve_objectives._space_traj: True
+RESULT ast-equal base._optimize_space_only.objective == head._solve_objectives.objective: False
+RESULT ast-equal base._optimize_space_only.objective_batch == head._solve_objectives.objective_batch: False
+RESULT ast-equal base._optimize_with_dhw._space_traj == head._solve_objectives._space_traj: True
+RESULT ast-equal base._optimize_with_dhw.objective == head._solve_objectives.objective: True
+RESULT ast-equal base._optimize_with_dhw.objective_batch == head._solve_objectives.objective_batch: True

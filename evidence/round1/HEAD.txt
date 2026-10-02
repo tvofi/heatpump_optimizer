@@ -1,0 +1,4 @@
+measured head: edb67c665910d30ba1fa12585d324e46d4652d7c
+code head: dafa803ca025876621db0fb2d1f8c0ab794af3dd
+merge base: 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d
+worktree: /Users/timmalmstrom/hpo-seats/1845-review/wt (detached)

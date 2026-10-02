@@ -1,0 +1,11 @@
+--- ../wt/custom_components/heatpump_optimizer/optimizer.py	2026-10-02 14:12:21
++++ pert_M2.py	2026-10-02 14:16:01
+@@ -4041,7 +4041,7 @@
+             # The grid sees the combined draw: space plus the fixed DHW plan.
+             grid_power = (
+                 space_matrix if dhw_plan_power is None
+-                else space_matrix + dhw_plan_power
++                else space_matrix
+             )
+             return self._cost_terms_batch(
+                 traj, grid_power,

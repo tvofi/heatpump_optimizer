@@ -1,0 +1,14 @@
+== _optimize_space_only lines 3909..3937
+BIND 3916 dt initial_state, prices, dt, n_steps = (
+BIND 3916 initial_state initial_state, prices, dt, n_steps = (
+BIND 3916 n_steps initial_state, prices, dt, n_steps = (
+BIND 3916 prices initial_state, prices, dt, n_steps = (
+BIND 3919 outdoor_temps outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+BIND 3919 wind_speeds outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+BIND 3920 precipitation precipitation, solar_radiation = h.precipitation, h.solar_radiation
+BIND 3920 solar_radiation precipitation, solar_radiation = h.precipitation, h.solar_radiation
+BIND 3921 comfort_targets comfort_targets = h.comfort_targets
+BIND 3922 temp_max_bounds temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+BIND 3922 temp_min_bounds temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+BIND 3923 solar_gains_per_step solar_gains_per_step = h.solar_gains
+RESULT bindings _optimize_space_only 12

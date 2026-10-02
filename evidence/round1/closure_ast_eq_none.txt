@@ -1,0 +1,2 @@
+RESULT ast-equal base._optimize_space_only.objective == head.objective[dhw_plan_power=None]: True  aliases={'combined': 'space_power'}
+RESULT ast-equal base._optimize_space_only.objective_batch == head.objective_batch[dhw_plan_power=None]: True  aliases={'grid_power': 'space_matrix'}

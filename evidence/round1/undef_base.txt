@@ -1,0 +1,3 @@
+RESULT undef HeatPumpOptimizer._optimize_space_only: []
+RESULT undef HeatPumpOptimizer._optimize_with_dhw: []
+RESULT undef-total 0

@@ -1,0 +1,11 @@
+auto-merge tree of dfd383ae+aab94eea: 3dd37b065247e8808b197f5828c19828fc20c173
+head tree: 3dd37b065247e8808b197f5828c19828fc20c173
+same-as-main .claude/workflows/budget_raise_gate.py
+same-as-main .claude/workflows/fixtures/required-contexts.json
+same-as-main .github/workflows/budget-raise-gate.yml
+same-as-main docs/HANDOVER.md
+same-as-main docs/decisions/0013-verdicts-post-as-the-approver-app.md
+same-as-main docs/delivery/1843.md
+same-as-main docs/delivery/1849.md
+same-as-main tests/entities.py
+custom_components identical edb67c66 vs head

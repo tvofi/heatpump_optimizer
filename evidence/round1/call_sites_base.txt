@@ -1,0 +1,7 @@
+_optimize_space_only CALL _space_traj(optimal_power)
+_optimize_space_only CALL objective(optimal_power)
+_optimize_space_only CALL energy_cost_of(baseline_power)
+_optimize_space_only CALL energy_cost_of(optimal_power)
+_optimize_space_only LOADS ['_space_traj', 'energy_cost_of', 'energy_cost_of', 'objective', 'objective', 'objective', 'objective_batch']
+_optimize_with_dhw CALL objective(optimal_space, optimal_dhw)
+_optimize_with_dhw LOADS ['energy_cost_of', 'objective']
