@@ -36,7 +36,7 @@
 // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
 // So a new check is refused until someone says what it reads.
 //
-//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry]
+//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
 //   node .claude/workflows/field_coverage.mjs --self-test
 //
@@ -47,7 +47,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { RULESET_VOLATILE } from './counts.mjs'
+import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips } from './counts.mjs'
 import { checkBudgets, sizes, policyBudgets, CHECKS } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -326,6 +326,8 @@ const DECLARED = {
   'check render': { none: PROSE },
   'check stats': { none: 'a report; refuses nothing' },
   'check sunset': { none: PROSE },
+  'pinned .claude/workflows/agreement.mjs': { none: 'the agreement lane; its corpora are live instances of registered concepts, not a check input field' },
+  'pinned .claude/workflows/agreement_py.py': { none: 'the lane\'s Python readers, run under -I; no input field of its own' },
   'pinned .claude/workflows/brief_lint.mjs': { none: 'reads the wave rosters and carries; residual, no arm here' },
   'pinned .claude/workflows/check-wave-script.mjs': { none: 'drives the wave script\'s branches, code not data' },
   'pinned .claude/workflows/counts.mjs': { arm: 'ruleset' },
@@ -338,6 +340,7 @@ const DECLARED = {
   'pinned .claude/workflows/rules_sync.mjs': { none: 'byte-compares generated rules, no field to skip' },
   'pinned .claude/workflows/vendor/markdown-it.min.js': { none: 'a vendored parser, not a check' },
   'pinned tests/coverage_ratchet.py': { none: 'reads the coverage budget file; residual, no arm here' },
+  'pinned tests/structure.py': { none: 'the structural ratchet, graded by its own self-check; the census arm plants members in it' },
   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
@@ -369,6 +372,59 @@ function registryRun(report) {
   for (const k of Object.keys(DECLARED)) if (!set.includes(k)) report.dead.push(`registry: DECLARED \`${k}\` is no longer in the derived set`)
 }
 
+
+// ---- the census arm (class N-silent-zero, round 9) --------------------------
+// A count-printing instrument whose failure path prints the same number as its
+// success path reads a clean zero over a set it never enumerated (D7-s3-02,
+// D13-s1-01, D9-s2-71). Each registered census is run on a temporary copy of
+// the tree, once as it is and once with ONE planted member of the thing it
+// counts; its printed count must rise by exactly that one. A count that does not
+// move is BLIND, and an instrument whose count line cannot be read is REFUSED,
+// never a pass: the unreadable output is the silent zero itself.
+const CENSUSES = [
+  {
+    name: 'structure.py dead_methods',
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusPlant:\n    def _planted_dead_method(self):\n        return 1\n' },
+    read: (out) => /^  dead_methods = (\d+)\b/m.exec(out)?.[1],
+  },
+  {
+    name: 'structure.py dead_top_level_symbols',
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
+    read: (out) => /^RESULT dead_top_level_symbols=(\d+)\b/m.exec(out)?.[1],
+  },
+]
+// The copy of the tree an instrument runs on: only what structure.py reads.
+function censusTree() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'census-'))
+  fs.mkdirSync(path.join(dir, 'tests'), { recursive: true })
+  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
+  fs.mkdirSync(path.join(dir, 'custom_components'), { recursive: true })
+  fs.cpSync(path.join(ROOT, 'custom_components', 'heatpump_optimizer'), path.join(dir, 'custom_components', 'heatpump_optimizer'), { recursive: true, filter: (src) => !src.includes('__pycache__') })
+  return dir
+}
+function censusCount(c, dir) {
+  const r = spawnSync('python3', ['tests/structure.py'], { cwd: dir, encoding: 'utf8' })
+  const n = c.read(`${r.stdout}\n${r.stderr}`)
+  return n === undefined ? null : Number(n)
+}
+function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censusCount) {
+  let dir = null
+  try {
+    dir = tree()
+    for (const c of censuses) {
+      const base = count(c, dir)
+      if (base === null) { report.refused.push(`census ${c.name}: its count line cannot be read at the unplanted tree`); continue }
+      const f = path.join(dir, c.plant.file); const was = fs.readFileSync(f, 'utf8')
+      fs.writeFileSync(f, was + c.plant.add)
+      const planted = count(c, dir)
+      fs.writeFileSync(f, was)
+      if (planted === null) report.refused.push(`census ${c.name}: its count line cannot be read once a member is planted`)
+      else if (planted === base + 1) report.read.push(`census ${c.name}: ${base} -> ${planted} with one planted member`)
+      else report.blind.push(`census ${c.name}: one planted member moved the count ${base} -> ${planted}, not by one`)
+    }
+  } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
+}
+
 // --self-test: each verdict this program can return, driven on a synthetic
 // registration and a doctored DECLARED, so that emptying a refusal is seen.
 async function selfTest() {
@@ -392,6 +448,27 @@ async function selfTest() {
   t('a load failure is REFUSED', r.refused.length === 1)
   r = fresh(); await jsonRun({ ...reg({}), skipOnLoad: true, load: () => { throw new Error('down') } }, r)
   t('the ruleset arm\'s load failure is a printed skip, not a refusal', !r.refused.length && !r.read.length)
+  // The #1721 hotfix review's two surviving mutants: (1) env-matrix's "nothing
+  // skipped" row accepting any skip once the token-hidden line is present; (2)
+  // the UNCHECKED pattern loosened past the one field a token cannot see.
+  const hiddenLine = (f) => `  skip  required-contexts  ruleset 23698884 field \`${f}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`
+  const other = '  skip  checkProvenance-pin  no origin/main to drive against'
+  t('env-matrix\'s nothing-skipped row passes the token-hidden line alone', unexpectedSkips(hiddenLine('bypass_actors')).length === 0)
+  t('and fails on a second, non-token skip line beside it', unexpectedSkips(`${hiddenLine('bypass_actors')}\n${other}`).length === 1)
+  t('and fails on a lone non-token skip line', unexpectedSkips(other).length === 1)
+  t('the UNCHECKED pattern matches every field the token cannot see', RULESET_TOKEN_HIDDEN.length > 0 && RULESET_TOKEN_HIDDEN.every((f) => TOKEN_HIDDEN_SKIP_RE.test(hiddenLine(f))))
+  t('and refuses the same line for any other field (pinned to bypass_actors)', !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('dismiss_stale_reviews_on_push')) && !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('rules')))
+  // The census arm, driven on a synthetic tree and counter so no real instrument runs.
+  const synth = (counter) => { const rr = fresh(); censusRun(rr, [{ name: 'probe', plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
+  const lenCount = (c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
+  r = synth(lenCount)
+  t('a census whose count rises by one for one planted member is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
+  r = synth(() => 0)
+  t('a count that never moves is BLIND (the silent zero)', r.blind.length === 1)
+  r = synth((c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length * 2)
+  t('a count that moves by the wrong amount is BLIND', r.blind.length === 1)
+  r = synth(() => null)
+  t('a count line that cannot be read is REFUSED, never a pass', r.refused.length === 1)
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
@@ -416,9 +493,9 @@ async function main() {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') only = argv[++i]
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
-    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry] [--ruleset-json FILE]`); process.exit(2) }
+    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
   }
-  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
+  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry', 'census'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()
   const report = { read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 }
   if (!only || only === 'hooks') await jsonRun(HOOKS, report)
@@ -426,6 +503,7 @@ async function main() {
   if (!only || only === 'budgets') await budgetsRun(report)
   if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
   if (!only || only === 'registry') registryRun(report)
+  if (!only || only === 'census') censusRun(report)
   for (const x of report.read) console.log(`  read     ${x}`)
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
   for (const x of report.none) console.log(`  none     ${x}`)
