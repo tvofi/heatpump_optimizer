@@ -1,0 +1,11 @@
+0614d7e450a089f6ca8ea8c5485bdc3d6c4b232f
+100644 d6a30147b6041e6fb69afe8f9b1263b98662ef90 1	.claude/workflows/brief_lint.mjs
+100644 4e2f9a0bcb11207ae0847f7b0c65af1dc8db67b8 2	.claude/workflows/brief_lint.mjs
+100644 95e02dd50c68883b35c90fe33971973e817d7529 3	.claude/workflows/brief_lint.mjs
+
+Auto-merging .claude/workflows/brief_lint.mjs
+CONFLICT (content): Merge conflict in .claude/workflows/brief_lint.mjs
+--- git diff --stat <merge-tree tree 0614d7e4> a30b9d94:
+ .claude/workflows/brief_lint.mjs | 6 ------
+ 1 file changed, 6 deletions(-)
+head brief_lint blob 95e02dd50c68883b35c90fe33971973e817d7529 = main 7c94526f blob 95e02dd50c68883b35c90fe33971973e817d7529
