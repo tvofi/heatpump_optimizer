@@ -16,13 +16,12 @@ the toolkit's habit, not a measurement.
 
 Metrics (definitions, one line each; the code is the authority):
 
-  classes_over_300            classes whose source span (ClassDef lineno to
-                              end_lineno) is more than 300 lines
-  attrbag_classes_over_30     classes assigning more than 30 distinct
-                              ``self.*`` attributes anywhere in their methods
   methods_over_200 /          functions (methods included, nested included)
   methods_over_150            whose span is more than 200 / 150 lines
-  max_class_loc               the largest class span in the integration
+  max_class_loc               the largest class span in the integration --
+                              the coordinator's while it is the largest
+                              class (coordinator_loc, equal to it at every
+                              measured point, merged in by #1738)
   max_method_loc              the largest function span in the integration --
                               the WORST offender, not a count of offenders
                               (#374). Reads 0 when nothing exceeds
@@ -65,18 +64,21 @@ Metrics (definitions, one line each; the code is the authority):
   (simulate_trajectory_batch CC 43 -> 86, _optimize_with_dhw 483 -> 539 LOC),
   gaps of 44 and 57 today and shrinking as #224 lands. Pretending otherwise
   would make this the same kind of half-blind gate it exists to fix.
-  coordinator_loc /           the same span, method count, distinct assigned
-  coordinator_methods /       self-attrs and attrs assigned in more than one
-  coordinator_attrs /         method, for the TOP attr-bag class -- which
-  coordinator_multiassigned   this harness asserts is the coordinator; if
-                              another class ever out-attrs it, this fails so
-                              the budget is re-recorded deliberately
-  duplication_blocks          maximal runs of >= DUP_BLOCK_LINES consecutive
-                              normalized lines (whitespace/comments stripped)
-                              that appear in more than one function of the
-                              same module, nested defs excluded from their
-                              parents so containment is not reported as
-                              duplication
+  coordinator_attrs /         distinct attributes stored on the coordinator,
+  coordinator_multiassigned   and those stored by more than one function --
+                              wherever the store is: in its methods, in a
+                              helper, or in another module holding it, which
+                              the census used to drop (#1738). The
+                              coordinator is found by role, not by name
+                              (``CoordinatorRoles``)
+  duplication_copies          clone classes of functions sharing a window of
+                              DUP_WINDOW_STATEMENTS statements of one block,
+                              at least DUP_MIN_NODES AST nodes, normalized
+                              (a function's own names renamed in order of use,
+                              ``mod.X`` read as ``X``, a string a placeholder)
+                              and compared PACKAGE-wide; each class counts its
+                              members past the first -- the copies that would
+                              go if the logic were shared (#1738 arm a)
   functions_cc_over_25 /      cyclomatic complexity 1 + decision points
   functions_cc_over_15        (if/elif, for, while, ternary, except, assert,
                               boolean operator terms beyond the first, each
@@ -85,8 +87,9 @@ Metrics (definitions, one line each; the code is the authority):
                               including nested defs
   const_modules_over_50       modules importing more than 50 names from
                               ``.const``
-  local_imports               Import/ImportFrom statements inside a function
-                              scope, anywhere in the integration
+  import_cycle_modules        modules in a cycle of the package's import
+                              graph, function-scope imports in and imports
+                              under ``if TYPE_CHECKING:`` out (#1738)
   dead_top_level_symbols      top-level defs/classes/assignments no load in
                               the integration resolves to (dunder, HA entry
                               points, HA convention constants and
@@ -94,40 +97,52 @@ Metrics (definitions, one line each; the code is the authority):
                               Home Assistant finds those by convention, not by
                               import). A load resolves through the module's
                               own bindings and its imports, not by bare name
-                              (``bound_references``, #1538); the four
-                              constants a runtime ``getattr`` assembles are
-                              exempted by name, with their proof re-checked
-                              on every run (``DYNAMIC_REFERENCES``)
-  dead_methods                the same screen one level in (#1395): class-body
-                              functions whose NAME is never referenced
-                              anywhere in the integration, excluding dunders,
-                              ``HA_CONVENTION_METHODS`` (the names HA looks up
-                              on an instance -- an entity's ``native_value``,
-                              a config flow's ``async_step_*``) and
-                              ``@property`` getters (an attribute surface, not
-                              a call). NAME-based, so it cannot see a method
-                              that is still called from inside its own class
-                              but no longer reachable from production; that
-                              shape is pinned behaviourally, not here
-  internal_call_edges         ``self.m(...)`` call occurrences inside the
-                              coordinator where ``m`` is one of its own methods
-  cross_seam_edges            those edges whose endpoints sit in different
-                              name-regex seam buckets (dhw / learning / fetch /
-                              grid / views, first regex wins, everything else
-                              is core). A COUNT, since 2026-09-10: it replaced
-                              the ratio cross_edges / internal_call_edges,
-                              whose denominator every cohesive extraction
-                              shrinks faster than its numerator, so the ratio
-                              rose on exactly the moves it was meant to price
-                              (the legionella guard: 17 edges out, 6 of them
-                              cross, ratio up, count down)
-  cut_<seam>                  per-seam cut cost: cross attr refs + cross
-                              method refs the extraction would have to make
-                              explicit -- attribute references on self
-                              crossing the ownership boundary (an attr is
-                              owned by a seam when any of its methods assigns
-                              it) in EITHER direction, plus self-method call
-                              occurrences crossing in either direction
+                              (``bound_references``, #1538), and ``from .m
+                              import *`` binds m's public names (#1738); the
+                              four constants a runtime ``getattr`` assembles
+                              are exempted by name, with their proof
+                              re-checked on every run (``DYNAMIC_REFERENCES``)
+  dead_methods                class members -- methods AND properties -- no
+                              live attribute load reaches (#1395, #1686,
+                              D7-s3-02). The receiver decides whose member a
+                              load reaches: ``self.n`` in class C reaches C's
+                              in-package family only, an untyped ``x.n`` every
+                              class's ``n``, and a bare name ``n`` is a local
+                              that reaches none. Live is REACHABILITY: a load
+                              counts from module-level code, a module-level
+                              function, a dunder, a Home Assistant convention
+                              member (``HA_CONVENTION_METHODS``) or a live
+                              member, so a member reached only from its own
+                              body, or from dead members, is dead. The live
+                              members an untyped load of a name two classes
+                              define keeps alive are printed: the shape this
+                              cannot measure, on the record
+  coordinator_private_reach   ``<coordinator>._x`` reads, plus
+                              PRIVATE_WRITE_WEIGHT x each write (a store, a
+                              delete, an in-place mutation of what the slot
+                              holds), anywhere outside the coordinator's
+                              methods and helpers (#1738 arm b)
+  seam_cut_total              the sum over the seams (dhw / learning / fetch /
+                              grid / views; a unit's seam is its entry in
+                              ``tests/seam_map.json``, #1539) of what an
+                              extraction of the seam would have to make
+                              explicit: attribute references crossing the
+                              ownership boundary in either direction (an
+                              attribute is owned by a seam when one of its
+                              units stores it), plus calls between units
+                              crossing it. The units are the coordinator's
+                              methods and ``coordinator.py``'s module-level
+                              helpers handed the coordinator, priced alike
+                              (#1686): a body moved into ``_helper(self, ...)``
+                              used to leave the cut. The per-seam rows print
+                              as evidence
+
+  Retired by #1738 (its pre-study's decision R3-2, where each one's
+  perturbation evidence is recorded): classes_over_300,
+  attrbag_classes_over_30, internal_call_edges and coordinator_methods;
+  coordinator_loc, merged into max_class_loc; cross_seam_edges and the five
+  cut_<seam> rows, into seam_cut_total; duplication_blocks, replaced by
+  duplication_copies; and local_imports, replaced by import_cycle_modules.
 
 Run:
 
@@ -191,33 +206,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_DIR = REPO_ROOT / "custom_components" / "heatpump_optimizer"
 BUDGET_FILE = REPO_ROOT / "tests" / "structure_budgets.json"
 
-# The class the whole program (#193) is about. The attr-bag metrics below are
-# "for the top one (the coordinator)": if some other class ever becomes the
-# biggest attr bag, the numbers change meaning, so the harness fails loudly
-# instead of quietly ratcheting the wrong thing.
+# The class the whole program (#193) is about. The coordinator_* rows and the
+# seam cut price it wherever its role reaches (``CoordinatorRoles``).
 COORDINATOR_CLASS_NAME = "HeatPumpOptimizerCoordinator"
 
 GOD_CLASS_LOC_LIMIT = 300
-ATTR_BAG_LIMIT = 30
 MONSTER_LIMITS = (200, 150)
-# The duplication window (#369). It was 30, and the longest duplicated
-# normalized run that exists anywhere in the integration is 19 -- so the
-# metric could not fire, and its recorded 0 described the detector, not the
-# tree. Measured over the whole package at a2c4982, changing only this
-# constant and re-running measure():
-#
-#     window     30   25   20   15   12   10    8    6
-#     blocks      0    0    0    4    6   13   32   76
-#
-# 10 is where the evidence stops: it is the largest window that sees the
-# optimizer's objective / objective_batch closure pairs (11 and 10 normalized
-# lines), which are the most-cited duplication in this codebase and the one
-# 15 misses; 8 and below buy volume at a precision nobody has measured. No
-# Home Assistant entity boilerplate is caught at any window down to 10 -- the
-# 154 single-call __init__ bodies, the obvious false-positive class, appear
-# in no row. Every one of the 13 rows sits inside an open decomposition issue
-# (#193, #223, #224, #225), so the count ratchets down as that program lands.
-DUP_BLOCK_LINES = 10
+# The duplication window (#369, #1738): DUP_WINDOW_STATEMENTS statements of one
+# block, carrying at least DUP_MIN_NODES AST nodes, compared after
+# normalization across the whole package. It replaced DUP_BLOCK_LINES' text
+# windows of 10 normalized lines, which a re-wrap moved (8 of their 14 rows
+# were parameter lists) and which saw only copies inside one module, so a
+# copy placed in another module cost nothing.
+DUP_WINDOW_STATEMENTS = 2
+DUP_MIN_NODES = 30
 CC_LIMITS = (25, 15)
 CONST_FANOUT_LIMIT = 50
 
@@ -283,9 +285,16 @@ HA_CONVENTION_METHODS = {
     "is_on",
     "current_temperature",
     "hvac_action",
+    # ClimateEntity state HA reads off the instance (D7-s3-02: the member
+    # census now counts properties, so these two must be named).
+    "hvac_mode",
+    "preset_mode",
     # Entity properties the platform reads as attributes.
     "native_value",
     "extra_state_attributes",
+    "native_unit_of_measurement",
+    "device_info",
+    "entity_registry_enabled_default",
     # ConfigFlow / OptionsFlow: the flow engine dispatches on the step name.
     "async_get_options_flow",
 }
@@ -476,7 +485,8 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
     resolves the way Python resolves it:
 
     1. ``N`` in the defining module, outside ``N``'s own body (recursion);
-    2. ``A`` wherever ``from .m import N as A`` bound it, through re-exports;
+    2. ``A`` wherever ``from .m import N as A`` bound it, through re-exports,
+       and ``N`` wherever ``from .m import *`` did (#1738);
     3. ``m.N`` where ``m`` is bound to the defining module;
     4. ``x.N`` where ``x`` is neither a module binding nor ``self``/``cls``
        reaches every top-level ``N``: the AST cannot type it (the module
@@ -486,22 +496,8 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
     mods = {p.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", "."): (p, t)
             for p, t in trees}
     tops = {(m, n) for m, (_p, t) in mods.items() for n in top_level_names(t)}
-    sym_bind: dict[tuple[str, str], tuple[str, str]] = {}
-    mod_bind: dict[tuple[str, str], str] = {}
-    for mod, (_p, tree) in mods.items():
-        package = mod.split(".")[:-1]
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ImportFrom) or node.level == 0:
-                continue
-            base = package[:len(package) - node.level + 1]
-            src = ".".join(base + [node.module] if node.module else base)
-            for alias in node.names:
-                bound = alias.asname or alias.name
-                target = f"{src}.{alias.name}" if src else alias.name
-                if target in mods:
-                    mod_bind[(mod, bound)] = target
-                else:
-                    sym_bind[(mod, bound)] = (src or "__init__", alias.name)
+    sym_bind, mod_bind = import_bindings(
+        {m: (str(p), t) for m, (p, t) in mods.items()})
 
     def resolve(mod: str, name: str) -> tuple[str, str]:
         seen = set()
@@ -655,79 +651,182 @@ def cyclomatic_complexity(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
 # the metrics
 
 
-def normalized_function_lines(
-    fn: ast.FunctionDef | ast.AsyncFunctionDef, src_lines: list[str]
-) -> list[tuple[int, str]]:
-    """``fn``'s body as (segment, stripped-source) pairs, nested defs removed.
+def _is_docstring(stmt: ast.AST) -> bool:
+    return isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) \
+        and isinstance(stmt.value.value, str)
 
-    Blank and comment-only lines are dropped, so reformatting and commentary
-    are not duplication. Each nested def/class span is cut out and bumps the
-    segment counter, so a window is never allowed to span the hole a nested
-    definition left behind -- containment is not a copy.
+
+def _module_aliases(tree: ast.Module) -> set[str]:
+    """Names a module binds to whole modules (``import x``, ``from . import m``)."""
+    out = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            out |= {(a.asname or a.name).split(".")[0] for a in n.names}
+        elif isinstance(n, ast.ImportFrom) and n.module is None:
+            out |= {a.asname or a.name for a in n.names}
+    return out
+
+
+def _local_names(fn: ast.AST) -> set[str]:
+    names = set(fn_params(fn))
+    a = fn.args  # type: ignore[attr-defined]
+    names |= {x.arg for x in (a.vararg, a.kwarg) if x}
+    names |= {n.id for n in ast.walk(fn) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+    return names
+
+
+def normalized_window(stmts: list[ast.stmt], local: set[str], modalias: set[str]) -> str:
+    """A statement window as a string two copies of one logic share.
+
+    The AST, not the text, so a re-wrap or a comment moves nothing (#1738's
+    fourth defect: 8 of the 14 rows the line windows found were parameter
+    lists, and an AST-identical re-wrap read -2). A function's own names are
+    renamed in order of first use, ``mod.X`` for an imported module reads as
+    ``X`` (a ``const.X`` spelling is the same logic as ``X``), and a string
+    constant is a placeholder.
     """
-    excluded = nested_spans(fn)
-    normalized: list[tuple[int, str]] = []
-    segment = 0
-    for lineno in range(fn.lineno, fn.end_lineno + 1):  # type: ignore[arg-type]
-        if any(a <= lineno <= b for a, b in excluded):
-            segment += 1
-            continue
-        stripped = src_lines[lineno - 1].strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        normalized.append((segment, stripped))
-    return normalized
+    mapping: dict[str, str] = {}
+
+    class Normalize(ast.NodeTransformer):
+        def visit_Attribute(self, n):
+            self.generic_visit(n)
+            if isinstance(n.value, ast.Name) and n.value.id in modalias and n.value.id not in local:
+                return ast.copy_location(ast.Name(id=n.attr, ctx=n.ctx), n)
+            return n
+
+        def visit_Name(self, n):
+            if n.id in local:
+                n.id = mapping.setdefault(n.id, f"v{len(mapping)}")
+            return n
+
+        def visit_Constant(self, n):
+            if isinstance(n.value, str):
+                n.value = "S"
+            return n
+
+    return "".join(
+        ast.dump(Normalize().visit(ast.parse(ast.unparse(s)).body[0])) for s in stmts)
 
 
-def duplicate_runs(
-    normalized_functions: dict[tuple, list[tuple[int, str]]], window: int
-) -> list[tuple[str, str, int, str, int]]:
-    """Maximal runs of >= ``window`` normalized lines shared by two functions.
+def duplicate_clones(trees: list[tuple[Path, ast.Module]],
+                     window: int = DUP_WINDOW_STATEMENTS,
+                     min_nodes: int = DUP_MIN_NODES) -> list[list[tuple[str, str, int]]]:
+    """Clone classes: functions sharing a normalized statement window, package-wide.
 
-    ``window`` is a parameter and not a read of ``DUP_BLOCK_LINES`` for one
-    reason: it is the only knob this metric has, and #369 was the case of a
-    knob set past the point where the detector could see anything at all --
-    30, against a longest real run of 19. A caller can therefore ask what the
-    same tree looks like at another window, which is how that was established
-    and how the tests pin both ends of it.
-
-    Returns one row per (function, run): ``(file, func, func_line, "norm
-    a-b", length)``, sorted, with overlapping windows merged into the longest
-    run that covers them.
+    A window is ``window`` consecutive statements of one block (a body, an
+    ``else``, a handler) carrying at least ``min_nodes`` AST nodes, nested
+    defs excluded. Two functions sharing any window are joined, IN ANY MODULE
+    (#1738 arm a: a copy placed in another module used to move nothing, the
+    same copy in its own module moved it). Each connected group of functions
+    is one clone class; ``duplication_copies`` counts every member past the
+    first, the copies that would go if the logic were shared -- a count of
+    copies, not of pairs, so a third copy costs one more, not two.
     """
-    windows: dict[str, list[tuple[tuple, int]]] = defaultdict(list)
-    for fid, normalized in normalized_functions.items():
-        for i in range(len(normalized) - window + 1):
-            if normalized[i][0] != normalized[i + window - 1][0]:
-                continue  # the window spans an excluded (nested) gap
-            digest = hashlib.sha1(
-                "\n".join(line for _, line in normalized[i : i + window]).encode()
-            ).hexdigest()
-            windows[digest].append((fid, i))
+    windows: dict[str, set[tuple[str, str, int]]] = defaultdict(set)
+    for path, tree in trees:
+        rel = str(path.relative_to(REPO_ROOT))
+        modalias = _module_aliases(tree)
+        for fn in all_functions(tree):
+            local = _local_names(fn)
+            owner = (rel, fn.name, fn.lineno)
+            stack = [fn]
+            while stack:
+                node = stack.pop()
+                for child in ast.iter_child_nodes(node):
+                    if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                              ast.Lambda, ast.ClassDef)):
+                        stack.append(child)
+                blocks = [getattr(node, f) for f in ("body", "orelse", "finalbody")
+                          if isinstance(getattr(node, f, None), list) and getattr(node, f)
+                          and isinstance(getattr(node, f)[0], ast.stmt)]
+                blocks += [h.body for h in getattr(node, "handlers", []) or []]
+                for block in blocks:
+                    block = [s for s in block if not _is_docstring(s)]
+                    for i in range(len(block) - window + 1):
+                        stmts = block[i:i + window]
+                        if any(isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                               for s in stmts):
+                            continue
+                        if sum(1 for s in stmts for _ in ast.walk(s)) < min_nodes:
+                            continue
+                        digest = hashlib.sha1(
+                            normalized_window(stmts, local, modalias).encode()).hexdigest()
+                        windows[digest].add(owner)
+    parent: dict[tuple[str, str, int], tuple[str, str, int]] = {}
 
-    covered: dict[tuple, list[tuple[int, int]]] = defaultdict(list)
-    for sites in windows.values():
-        owners = {fid for fid, _ in sites}
-        if len(owners) < 2:
-            continue
-        for fid, start in sites:
-            covered[fid].append((start, start + window))
+    def find(x):
+        while parent.setdefault(x, x) != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
 
-    rows: list[tuple[str, str, int, str, int]] = []
-    for fid, spans in covered.items():
-        spans.sort()
-        runs = []
-        run_start, run_end = spans[0]
-        for a, b in spans[1:]:
-            if a <= run_end:
-                run_end = max(run_end, b)
+    for owners in windows.values():
+        first, *rest = sorted(owners)
+        for other in rest:
+            parent[find(other)] = find(first)
+    groups: dict[tuple[str, str, int], list[tuple[str, str, int]]] = defaultdict(list)
+    for member in parent:
+        groups[find(member)].append(member)
+    return sorted(sorted(g) for g in groups.values() if len(g) > 1)
+
+
+def import_cycle_modules(trees: list[tuple[Path, ast.Module]]) -> list[list[str]]:
+    """Every non-trivial strongly connected group of the package's import graph.
+
+    Function-scope imports are edges -- a deferred import is still a
+    dependency, and a cycle made of one was the pre-study's missed case B6b
+    -- and imports under ``if TYPE_CHECKING:`` are not, since they never
+    run. It replaces ``local_imports``, which counted the deferral and could
+    not see the cycle (#1738's eleventh defect: the package's first
+    module-level cycle read 0 on every row).
+    """
+    mods = {p.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", "."): t for p, t in trees}
+    graph: dict[str, set[str]] = defaultdict(set)
+    for mod, tree in mods.items():
+        skip = type_checking_ids(tree)
+        package = mod.split(".")[:-1]
+        for n in ast.walk(tree):
+            if id(n) in skip or not isinstance(n, ast.ImportFrom) or n.level == 0:
+                continue
+            base = package[:len(package) - n.level + 1]
+            if n.module:
+                src = ".".join(base + [n.module])
+                graph[mod].add(src if src in mods else src.rsplit(".", 1)[0])
             else:
-                runs.append((run_start, run_end))
-                run_start, run_end = a, b
-        runs.append((run_start, run_end))
-        for a, b in runs:
-            rows.append((fid[0], fid[1], fid[2], f"norm {a}-{b - 1}", b - a))
-    return sorted(rows)
+                graph[mod] |= {".".join(base + [a.name]) for a in n.names}
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    stack: list[str] = []
+    on_stack: set[str] = set()
+    out: list[list[str]] = []
+
+    def connect(v: str) -> None:
+        index[v] = low[v] = len(index)
+        stack.append(v)
+        on_stack.add(v)
+        for w in sorted(graph[v]):
+            if w not in mods or w == v:
+                continue
+            if w not in index:
+                connect(w)
+                low[v] = min(low[v], low[w])
+            elif w in on_stack:
+                low[v] = min(low[v], index[w])
+        if low[v] == index[v]:
+            group = []
+            while True:
+                w = stack.pop()
+                on_stack.discard(w)
+                group.append(w)
+                if w == v:
+                    break
+            if len(group) > 1:
+                out.append(sorted(group))
+
+    for v in sorted(mods):
+        if v not in index:
+            connect(v)
+    return sorted(out)
 
 
 def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
@@ -775,11 +874,14 @@ def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
 # the same object -- ``self.X``; ``getattr(self, "_ctx", self).X``, #500's
 # migration idiom, whose fallback IS ``self``; and ``self._ctx.X`` -- and any
 # of them may be bound to a local first. An extraction has to make every one
-# of them explicit, so the cut has to price every one of them (#510).
+# of them explicit, so the cut has to price every one of them (#510). A helper
+# handed the coordinator spells ``self`` as its parameter (#1686), so the root
+# is a set of names, ``{"self"}`` for a method.
 STATE_CONTEXT_ATTR = "_ctx"
+SELF_ROOT = frozenset({"self"})
 
 
-def _is_context_getattr(node: ast.AST) -> bool:
+def _is_context_getattr(node: ast.AST, roots: frozenset[str] = SELF_ROOT) -> bool:
     """``getattr(self, "_ctx", self)`` -- self-rooted by its own default."""
     return (
         isinstance(node, ast.Call)
@@ -788,7 +890,7 @@ def _is_context_getattr(node: ast.AST) -> bool:
         and not node.keywords
         and len(node.args) == 3
         and all(
-            isinstance(arg, ast.Name) and arg.id == "self"
+            isinstance(arg, ast.Name) and arg.id in roots
             for arg in (node.args[0], node.args[2])
         )
         and isinstance(node.args[1], ast.Constant)
@@ -796,25 +898,27 @@ def _is_context_getattr(node: ast.AST) -> bool:
     )
 
 
-def _is_context_hop(node: ast.AST) -> bool:
+def _is_context_hop(node: ast.AST, roots: frozenset[str] = SELF_ROOT) -> bool:
     """A ``self._ctx`` read: the state ``self`` reaches, one hop out."""
     return (
         isinstance(node, ast.Attribute)
         and node.attr == STATE_CONTEXT_ATTR
         and isinstance(node.value, ast.Name)
-        and node.value.id == "self"
+        and node.value.id in roots
         and isinstance(node.ctx, ast.Load)
     )
 
 
-def is_state_root(node: ast.AST, aliases: frozenset[str]) -> bool:
+def is_state_root(node: ast.AST, aliases: frozenset[str],
+                  roots: frozenset[str] = SELF_ROOT) -> bool:
     """Does ``node`` evaluate to the coordinator's own state?"""
     if isinstance(node, ast.Name):
-        return node.id == "self" or node.id in aliases
-    return _is_context_getattr(node) or _is_context_hop(node)
+        return node.id in roots or node.id in aliases
+    return _is_context_getattr(node, roots) or _is_context_hop(node, roots)
 
 
-def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
+def state_root_bindings(fn: ast.AST, roots: frozenset[str] = SELF_ROOT,
+                        ) -> tuple[frozenset[str], frozenset[int]]:
     """The locals this method binds to its own state, and the hops to discount.
 
     A ``self._ctx`` that something is read THROUGH is a hop, not a reference.
@@ -828,12 +932,12 @@ def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
     aliases: set[str] = set()
     hops: set[int] = set()
     for node in ast.walk(fn):
-        if isinstance(node, ast.Attribute) and _is_context_hop(node.value):
+        if isinstance(node, ast.Attribute) and _is_context_hop(node.value, roots):
             hops.add(id(node.value))
-        elif isinstance(node, ast.Assign) and is_state_root(node.value, frozenset()):
+        elif isinstance(node, ast.Assign) and is_state_root(node.value, frozenset(), roots):
             aliases.update(t.id for t in node.targets if isinstance(t, ast.Name))
             hops.add(id(node.value))
-        elif isinstance(node, ast.NamedExpr) and is_state_root(node.value, frozenset()):
+        elif isinstance(node, ast.NamedExpr) and is_state_root(node.value, frozenset(), roots):
             aliases.add(node.target.id)
             hops.add(id(node.value))
     return frozenset(aliases), frozenset(hops)
@@ -858,65 +962,79 @@ def load_seam_map() -> dict[str, str]:
 
 
 def seed_seam_map() -> int:
-    """Rewrite SEAM_MAP_FILE from ``regex_seam`` over every coordinator method.
+    """Rewrite SEAM_MAP_FILE from ``regex_seam`` over every coordinator unit.
 
     The introduction's null control and the re-seed after a coordinator merge:
-    the result measures byte-identically to the retired name rule. Every later
-    change to the map is a hand edit, a seam decision a reviewer reads.
+    each method and each ``coordinator.<helper>`` (#1686) gets the seam its
+    name gives. Every later change to the map is a hand edit, a seam decision
+    a reviewer reads.
     """
-    tree = ast.parse((PACKAGE_DIR / "coordinator.py").read_text())
-    cls = next(n for n in ast.walk(tree)
-               if isinstance(n, ast.ClassDef) and n.name == COORDINATOR_CLASS_NAME)
+    pkg = Package(module_trees())
+    cls = pkg.classes[(COORDINATOR_MODULE, COORDINATOR_CLASS_NAME)]
     seams = {m.name: regex_seam(m.name) for m in cls.body
              if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    seams.update({key: regex_seam(key.split(".", 1)[1])
+                  for key in CoordinatorRoles(pkg).coordinator_helpers()})
     SEAM_MAP_FILE.write_text(json.dumps(
-        {"_comment": "Each coordinator method's seam for tests/structure.py (#1539)."
-                     " Seeded by `python3 tests/structure.py --seed-seam-map`;"
-                     " a method missing here fails the ratchet.",
+        {"_comment": "Each coordinator method's seam for tests/structure.py (#1539),"
+                     " and each coordinator.py helper handed the coordinator, as"
+                     " coordinator.<name> (#1686). Seeded by `python3 tests/structure.py"
+                     " --seed-seam-map`; a unit missing here fails the ratchet.",
          "seams": dict(sorted(seams.items()))}, indent=1, ensure_ascii=False) + "\n")
-    print(f"wrote {len(seams)} methods to {SEAM_MAP_FILE.relative_to(REPO_ROOT)}")
+    print(f"wrote {len(seams)} units to {SEAM_MAP_FILE.relative_to(REPO_ROOT)}")
     return 0
 
 
-def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None) -> dict:
+def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
+                 helpers: dict[str, tuple[ast.AST, frozenset[str]]] | None = None) -> dict:
     """The coordinator's seam partition: cut costs, call edges, per-seam rows.
 
     Split out of ``measure`` so the counting rules can be pinned on sources of
     our own (``self_check``) rather than only on whatever ``coordinator.py``
     happens to hold. #510 was a counting rule that was wrong across four
     merges with nothing in the suite able to fail on it. ``seams`` defaults to
-    SEAM_MAP_FILE, and must name exactly the class's methods.
+    SEAM_MAP_FILE, and must name exactly the class's methods and ``helpers``.
+
+    ``helpers`` are ``coordinator.py``'s module-level functions handed the
+    coordinator (``CoordinatorRoles.coordinator_helpers``), each with the
+    parameters that hold it. A helper is priced as the method it is in all
+    but its ``def`` line (#1686): before, moving a method's body into
+    ``_helper(self, ...)`` took every reference in it out of the cut, and
+    inlining one back ADDED to rows -- the ranking the D7 round-9 finder
+    measured upside down.
     """
     methods = {
         m.name: m
         for m in coord_class.body
         if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
+    helpers = helpers or {}
+    units: dict[str, tuple[ast.AST, frozenset[str]]] = {
+        name: (fn, SELF_ROOT) for name, fn in methods.items()}
+    units.update(helpers)
+    helper_names = {key.split(".", 1)[1]: key for key in helpers}
     seams = load_seam_map() if seams is None else seams
-    unmapped = sorted(set(methods) - set(seams))
-    stale = sorted(set(seams) - set(methods))
+    unmapped = sorted(set(units) - set(seams))
+    stale = sorted(set(seams) - set(units))
     unknown = sorted(n for n, label in seams.items() if label not in (*SEAM_LABELS, "core"))
     if unmapped or stale or unknown:
         raise SeamMapError(
             f"seam map disagrees with {coord_class.name}: unmapped {unmapped},"
             f" stale {stale}, unknown seam {unknown}. Give each new or renamed"
-            f" method its seam in {SEAM_MAP_FILE.name} (#1539)")
-    buckets = {name: seams[name] for name in methods}
+            f" method, and each coordinator.py helper handed the coordinator, its"
+            f" seam in {SEAM_MAP_FILE.name} (#1539, #1686)")
+    buckets = {name: seams[name] for name in units}
     attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
     attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
-    for name, fn in methods.items():
+    for name, (fn, roots) in units.items():
         bucket = buckets[name]
-        aliases, hops = state_root_bindings(fn)
+        aliases, hops = state_root_bindings(fn, roots)
         for node in ast.walk(fn):
-            # The call-edge arm below stays keyed on a literal ``self``: no
-            # ctx-rooted reference in coordinator.py names a coordinator
-            # method, and widening it would move internal_call_edges and
-            # cross_seam_edges, which this change must not touch.
             if (
                 isinstance(node, ast.Attribute)
                 and id(node) not in hops
-                and is_state_root(node.value, aliases)
+                and is_state_root(node.value, aliases, roots)
                 and node.attr not in methods
             ):
                 attr_refs[node.attr][bucket] += 1
@@ -926,10 +1044,18 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None)
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Attribute)
                 and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "self"
+                and node.func.value.id in roots
                 and node.func.attr in methods
             ):
                 call_edges[(bucket, buckets[node.func.attr])] += 1
+            elif (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in helper_names
+                and any(is_state_root(a, aliases, roots)
+                        for a in [*node.args, *(k.value for k in node.keywords)])
+            ):
+                call_edges[(bucket, buckets[helper_names[node.func.id]])] += 1
 
     total_edges = sum(call_edges.values())
     cross_edges = sum(c for (a, b), c in call_edges.items() if a != b)
@@ -956,7 +1082,9 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None)
 
     return {
         "method_count": len(methods),
+        "helper_count": len(helpers),
         "cut_costs": cut_costs,
+        "seam_cut_total": sum(cut_costs.values()),
         "seam_rows": seam_rows,
         "internal_call_edges": total_edges,
         "cross_edges": cross_edges,
@@ -964,29 +1092,533 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None)
     }
 
 
+
+
+# ---------------------------------------------------------------------------
+# the package index, the coordinator by role, and the member census
+#
+# Three rows below need to know which value IS the coordinator outside its own
+# class: the seam cut (a module-level ``_helper(self, ...)`` carries methods'
+# state out of the class, #1686), the private reach (pump_arbiter.py, boost.py
+# and the surfaces read coordinator privates no row priced, #1738 arm b) and
+# the attribute census (writes from outside the class vanished from it). They
+# find it by ROLE -- a value the coordinator was passed into, stored into or
+# constructed as -- never by a parameter's name: renaming ``coord`` to
+# ``owner`` hid 232 statements from the pre-study's name-keyed prototype.
+
+COORDINATOR_ENTITY_BASES = ("CoordinatorEntity",)
+COORDINATOR_MODULE = "coordinator"
+MUTATOR_METHODS = frozenset({
+    "append", "extend", "insert", "pop", "remove", "clear", "update",
+    "setdefault", "add", "discard", "popitem", "sort", "reverse",
+})
+PRIVATE_WRITE_WEIGHT = 3
+
+
+def fn_params(fn: ast.AST) -> list[str]:
+    a = fn.args  # type: ignore[attr-defined]
+    return [p.arg for p in a.posonlyargs + a.args + a.kwonlyargs]
+
+
+def names_coordinator(ann: ast.AST | None) -> bool:
+    """An annotation naming the coordinator class: bare, dotted or a string."""
+    if ann is None:
+        return False
+    if isinstance(ann, ast.Constant) and isinstance(ann.value, str):
+        return re.search(rf"\b{COORDINATOR_CLASS_NAME}\b", ann.value) is not None
+    return any(
+        (isinstance(n, ast.Name) and n.id == COORDINATOR_CLASS_NAME)
+        or (isinstance(n, ast.Attribute) and n.attr == COORDINATOR_CLASS_NAME)
+        for n in ast.walk(ann)
+    )
+
+
+def type_checking_ids(tree: ast.Module) -> set[int]:
+    """Every node under an ``if TYPE_CHECKING:`` block, which never runs."""
+    out: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If) and (
+            (isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING")
+            or (isinstance(node.test, ast.Attribute) and node.test.attr == "TYPE_CHECKING")
+        ):
+            for stmt in node.body:
+                out.update(id(n) for n in ast.walk(stmt))
+    return out
+
+
+class Package:
+    """The integration's modules, functions, classes and import bindings.
+
+    ``units`` is every function the role engine and the member census look
+    inside: each module-level function and each class-body function, keyed by
+    ``id(node)`` with its module, class and node. A def nested in one is part
+    of its unit, as its closure is.
+    """
+
+    def __init__(self, trees: list[tuple[Path, ast.Module]]):
+        self.mods: dict[str, tuple[str, ast.Module]] = {}
+        for path, tree in trees:
+            mod = path.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", ".")
+            self.mods[mod] = (str(path.relative_to(REPO_ROOT)), tree)
+        self.top: dict[tuple[str, str], ast.AST] = {}
+        self.classes: dict[tuple[str, str], ast.ClassDef] = {}
+        self.units: dict[int, tuple[str, str | None, ast.AST]] = {}
+        for mod, (_rel, tree) in self.mods.items():
+            for node in tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    self.top[(mod, node.name)] = node
+                    self.units[id(node)] = (mod, None, node)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    self.classes.setdefault((mod, node.name), node)
+                    if node in tree.body:
+                        self.top[(mod, node.name)] = node
+                    for item in node.body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            self.units[id(item)] = (mod, node.name, item)
+        self.sym_bind, self.mod_bind = import_bindings(self.mods, self.top)
+
+    def resolve(self, mod: str, name: str) -> tuple[str, str]:
+        """``(defining module, name)`` of what ``name`` is bound to in ``mod``."""
+        seen = set()
+        while (mod, name) not in self.top and (mod, name) in self.sym_bind \
+                and (mod, name) not in seen:
+            seen.add((mod, name))
+            mod, name = self.sym_bind[(mod, name)]
+        return mod, name
+
+    def base_keys(self, key: tuple[str, str]) -> list[tuple[str, str]]:
+        """The in-package classes ``key`` derives from, nearest first."""
+        out, todo = [], [key]
+        while todo:
+            mod, name = todo.pop(0)
+            cls = self.classes.get((mod, name))
+            if cls is None:
+                continue
+            for base in cls.bases:
+                if isinstance(base, ast.Name):
+                    found = self.resolve(mod, base.id)
+                elif isinstance(base, ast.Attribute) and isinstance(base.value, ast.Name) \
+                        and (mod, base.value.id) in self.mod_bind:
+                    found = (self.mod_bind[(mod, base.value.id)], base.attr)
+                else:
+                    continue
+                if found in self.classes and found not in out and found != key:
+                    out.append(found)
+                    todo.append(found)
+        return out
+
+    def family(self, key: tuple[str, str]) -> set[tuple[str, str]]:
+        """``key``, its in-package bases and every in-package subclass."""
+        out = {key, *self.base_keys(key)}
+        out |= {k for k in self.classes if key in self.base_keys(k)}
+        return out
+
+    def external_bases(self, key: tuple[str, str]) -> set[str]:
+        """Last names of the bases ``key`` or its in-package bases take from outside."""
+        names = set()
+        for mod, name in [key, *self.base_keys(key)]:
+            for base in self.classes[(mod, name)].bases:
+                last = base.id if isinstance(base, ast.Name) else \
+                    base.attr if isinstance(base, ast.Attribute) else None
+                if last and self.resolve(mod, last) not in self.classes:
+                    names.add(last)
+        return names
+
+    def callee(self, mod: str, cls: str | None, self_name: str | None,
+               call: ast.Call) -> tuple[ast.AST, int] | None:
+        """The package function ``call`` runs and how many leading params it binds.
+
+        A module-level function binds none; a class (its ``__init__``) and a
+        ``self.m(...)`` method bind one. Anything the AST cannot place -- a
+        call on an untyped value, ``super()`` -- is None.
+        """
+        f = call.func
+        target = None
+        if isinstance(f, ast.Name):
+            target = self.resolve(mod, f.id)
+        elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
+            if (mod, f.value.id) in self.mod_bind:
+                target = self.resolve(self.mod_bind[(mod, f.value.id)], f.attr)
+            elif cls is not None and f.value.id == self_name:
+                for owner in [(mod, cls), *self.base_keys((mod, cls))]:
+                    for item in self.classes[owner].body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                                and item.name == f.attr:
+                            return item, 1
+                return None
+        node = self.top.get(target) if target else None
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return node, 0
+        if isinstance(node, ast.ClassDef):
+            for owner in [target, *self.base_keys(target)]:
+                for item in self.classes[owner].body:
+                    if isinstance(item, ast.FunctionDef) and item.name == "__init__":
+                        return item, 1
+        return None
+
+
+def import_bindings(mods: dict[str, tuple[str, ast.Module]],
+                    top: dict[tuple[str, str], ast.AST] | None = None,
+                    ) -> tuple[dict[tuple[str, str], tuple[str, str]], dict[tuple[str, str], str]]:
+    """``(symbol bindings, module bindings)`` every relative import makes.
+
+    ``from .m import *`` binds each public top-level name of ``m`` (#1738's
+    tenth defect: the screen called 42 live constants dead under a star
+    import, because nothing bound them).
+    """
+    sym_bind: dict[tuple[str, str], tuple[str, str]] = {}
+    mod_bind: dict[tuple[str, str], str] = {}
+    for mod, (_rel, tree) in mods.items():
+        package = mod.split(".")[:-1]
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.level == 0:
+                continue
+            base = package[:len(package) - node.level + 1]
+            src = ".".join(base + [node.module] if node.module else base)
+            for alias in node.names:
+                if alias.name == "*":
+                    if src in mods:
+                        for name in top_level_names(mods[src][1]):
+                            if not name.startswith("_"):
+                                sym_bind[(mod, name)] = (src, name)
+                    continue
+                bound = alias.asname or alias.name
+                target = f"{src}.{alias.name}" if src else alias.name
+                if target in mods:
+                    mod_bind[(mod, bound)] = target
+                else:
+                    sym_bind[(mod, bound)] = (src or "__init__", alias.name)
+    return sym_bind, mod_bind
+
+
+class CoordinatorRoles:
+    """Which values in the package are the coordinator, found by role.
+
+    Seeds: ``self`` in the coordinator's own methods; a parameter annotated
+    with the coordinator's class; ``self.coordinator`` on a class deriving
+    from Home Assistant's ``CoordinatorEntity``, which stores the coordinator
+    it is constructed with there; ``entry.runtime_data``, where
+    ``__init__.py`` stores it (HA's runtime-data convention); and a call of
+    the class itself. Then to a fixpoint: a parameter of any package function
+    a coordinator value is passed into, and any ``self.X`` a class stores one
+    into. A local bound to a coordinator value, and the context hop
+    (``x._ctx``, ``getattr(x, "_ctx", x)``), carry the role.
+    """
+
+    def __init__(self, pkg: Package):
+        self.pkg = pkg
+        self.params: dict[int, set[str]] = defaultdict(set)
+        self.slots: set[tuple[str, str, str]] = set()
+        for (mod, name), cls in pkg.classes.items():
+            if name == COORDINATOR_CLASS_NAME:
+                for item in cls.body:
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                            and fn_params(item) and not _is_static(item):
+                        self.params[id(item)].add(fn_params(item)[0])
+            if set(COORDINATOR_ENTITY_BASES) & pkg.external_bases((mod, name)):
+                self.slots.add((mod, name, "coordinator"))
+        for fid, (_mod, _cls, fn) in pkg.units.items():
+            a = fn.args  # type: ignore[attr-defined]
+            for p in a.posonlyargs + a.args + a.kwonlyargs:
+                if names_coordinator(p.annotation):
+                    self.params[fid].add(p.arg)
+        self._propagate()
+
+    def self_name(self, fid: int) -> str | None:
+        mod, cls, fn = self.pkg.units[fid]
+        params = fn_params(fn)
+        return params[0] if cls is not None and params and not _is_static(fn) else None
+
+    def is_coord(self, e: ast.AST, roots: set[str], fid: int) -> bool:
+        mod, cls, _fn = self.pkg.units[fid]
+        if isinstance(e, ast.Name):
+            return e.id in roots
+        if isinstance(e, ast.Attribute) and isinstance(e.ctx, ast.Load):
+            if e.attr == "runtime_data":
+                return True
+            if e.attr == STATE_CONTEXT_ATTR:
+                return self.is_coord(e.value, roots, fid)
+            sn = self.self_name(fid)
+            if cls is not None and isinstance(e.value, ast.Name) and e.value.id == sn:
+                return any((m, c, e.attr) in self.slots
+                           for m, c in [(mod, cls), *self.pkg.base_keys((mod, cls))])
+            return False
+        if isinstance(e, ast.Call):
+            if isinstance(e.func, ast.Name) and e.func.id == "getattr" and len(e.args) >= 2 \
+                    and isinstance(e.args[1], ast.Constant):
+                if e.args[1].value == "runtime_data":
+                    return True
+                if e.args[1].value == STATE_CONTEXT_ATTR:
+                    return self.is_coord(e.args[0], roots, fid)
+            name = e.func.id if isinstance(e.func, ast.Name) else \
+                e.func.attr if isinstance(e.func, ast.Attribute) else None
+            return name == COORDINATOR_CLASS_NAME
+        if isinstance(e, ast.IfExp):
+            return self.is_coord(e.body, roots, fid) or self.is_coord(e.orelse, roots, fid)
+        if isinstance(e, ast.NamedExpr):
+            return self.is_coord(e.value, roots, fid)
+        return False
+
+    def roots(self, fid: int) -> set[str]:
+        """The names that hold the coordinator anywhere in unit ``fid``."""
+        roots = set(self.params.get(fid, ()))
+        fn = self.pkg.units[fid][2]
+        while True:
+            before = len(roots)
+            for node in ast.walk(fn):
+                if isinstance(node, ast.Assign) and self.is_coord(node.value, roots, fid):
+                    roots.update(t.id for t in node.targets if isinstance(t, ast.Name))
+                elif isinstance(node, (ast.AnnAssign, ast.NamedExpr)) and node.value is not None \
+                        and isinstance(node.target, ast.Name) \
+                        and self.is_coord(node.value, roots, fid):
+                    roots.add(node.target.id)
+            if len(roots) == before:
+                return roots
+
+    def _propagate(self) -> None:
+        pkg = self.pkg
+        changed = True
+        while changed:
+            changed = False
+            for fid, (mod, cls, fn) in pkg.units.items():
+                roots = self.roots(fid)
+                sn = self.self_name(fid)
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.Call):
+                        hit = pkg.callee(mod, cls, sn, node)
+                        if hit is None:
+                            continue
+                        target, skip = hit
+                        params = fn_params(target)[skip:]
+                        tid = id(target)
+                        for i, arg in enumerate(node.args):
+                            if i < len(params) and self.is_coord(arg, roots, fid) \
+                                    and params[i] not in self.params[tid]:
+                                self.params[tid].add(params[i])
+                                changed = True
+                        for kw in node.keywords:
+                            if kw.arg in params and self.is_coord(kw.value, roots, fid) \
+                                    and kw.arg not in self.params[tid]:
+                                self.params[tid].add(kw.arg)
+                                changed = True
+                    elif cls is not None and isinstance(node, ast.Assign) \
+                            and self.is_coord(node.value, roots, fid):
+                        for t in node.targets:
+                            if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) \
+                                    and t.value.id == sn and (mod, cls, t.attr) not in self.slots:
+                                self.slots.add((mod, cls, t.attr))
+                                changed = True
+
+    def coordinator_helpers(self) -> dict[str, tuple[ast.AST, frozenset[str]]]:
+        """``coordinator.py``'s module-level functions that are handed the coordinator.
+
+        Each is a method in all but its ``def`` line (#1686): it reads and
+        writes the coordinator's state through a parameter, so the seam cut
+        charges it as one, under a ``coordinator.<name>`` entry in the seam map.
+        """
+        out = {}
+        for fid, (mod, cls, fn) in sorted(self.pkg.units.items(), key=lambda kv: kv[1][2].lineno):
+            if mod == COORDINATOR_MODULE and cls is None and self.params.get(fid):
+                out[f"{COORDINATOR_MODULE}.{fn.name}"] = (fn, frozenset(self.params[fid]))
+        return out
+
+    def is_charged(self, fid: int) -> bool:
+        """Inside the coordinator: one of its methods, or one of its helpers."""
+        mod, cls, _fn = self.pkg.units[fid]
+        return mod == COORDINATOR_MODULE and (cls == COORDINATOR_CLASS_NAME or (
+            cls is None and bool(self.params.get(fid))))
+
+
+def _is_static(fn: ast.AST) -> bool:
+    return any(isinstance(d, ast.Name) and d.id == "staticmethod"
+               for d in getattr(fn, "decorator_list", []))
+
+
+def private_member(name: str) -> bool:
+    return name.startswith("_") and not name.startswith("__") and name != STATE_CONTEXT_ATTR
+
+
+def private_reach_sites(roles: CoordinatorRoles) -> list[tuple[str, int, str, str, str]]:
+    """``(file, line, member, read|write, function)`` of every private reach (#1738 b).
+
+    A private reach is ``<coordinator>._x`` -- or ``getattr``/``hasattr``/
+    ``setattr``/``delattr`` on it with a literal ``"_x"`` -- anywhere outside
+    the coordinator's own methods and helpers. A write is a store or delete of
+    the slot, or an in-place mutation of what it holds (``c._x[k] = v``,
+    ``c._x.append(..)``): the shape behind the boost overlay's shared-state
+    defect (#1752), where a foreign module wrote the coordinator's invariants.
+    """
+    pkg = roles.pkg
+    sites = set()
+    for fid, (mod, _cls, fn) in pkg.units.items():
+        if roles.is_charged(fid):
+            continue
+        roots = roles.roots(fid)
+        rel = pkg.mods[mod][0]
+        mutated: set[int] = set()
+        for n in ast.walk(fn):
+            targets = n.targets if isinstance(n, (ast.Assign, ast.Delete)) else \
+                [n.target] if isinstance(n, (ast.AugAssign, ast.AnnAssign)) else []
+            for t in targets:
+                for x in (t.elts if isinstance(t, (ast.Tuple, ast.List)) else [t]):
+                    if isinstance(x, (ast.Attribute, ast.Subscript)):
+                        mutated.add(id(x.value))
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                    and n.func.attr in MUTATOR_METHODS:
+                mutated.add(id(n.func.value))
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Attribute) and private_member(n.attr) \
+                    and roles.is_coord(n.value, roots, fid):
+                kind = "write" if isinstance(n.ctx, (ast.Store, ast.Del)) or id(n) in mutated \
+                    else "read"
+                sites.add((rel, n.lineno, n.col_offset, n.attr, kind, fn.name))
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                    and n.func.id in ("getattr", "hasattr", "setattr", "delattr") \
+                    and len(n.args) >= 2 and isinstance(n.args[1], ast.Constant) \
+                    and isinstance(n.args[1].value, str) and private_member(n.args[1].value) \
+                    and roles.is_coord(n.args[0], roots, fid):
+                kind = "write" if n.func.id in ("setattr", "delattr") or id(n) in mutated \
+                    else "read"
+                sites.add((rel, n.lineno, n.col_offset, n.args[1].value, kind, fn.name))
+    return sorted((rel, line, member, kind, fn) for rel, line, _c, member, kind, fn in sites)
+
+
+def coordinator_writers(roles: CoordinatorRoles) -> dict[str, set[str]]:
+    """attr -> every function, in or out of the class, that stores it on the coordinator."""
+    pkg = roles.pkg
+    writers: dict[str, set[str]] = defaultdict(set)
+    for fid, (mod, cls, fn) in pkg.units.items():
+        roots = roles.roots(fid)
+        if not roots:
+            continue
+        where = f"{mod}:{cls + '.' if cls else ''}{fn.name}"
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Store) \
+                    and n.attr != STATE_CONTEXT_ATTR and roles.is_coord(n.value, roots, fid):
+                writers[n.attr].add(where)
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                    and n.func.id == "setattr" and len(n.args) >= 2 \
+                    and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str) \
+                    and roles.is_coord(n.args[0], roots, fid):
+                writers[n.args[1].value].add(where)
+    return writers
+
+
+def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tuple[str, str, str]]]:
+    """``(dead, name-kept)``: class-body functions no live code reaches (#1395, D7-s3-02).
+
+    A member is a method or a property -- a property is a member like any
+    other, and skipping it hid eight of the nine dead members round 9 found.
+    A load reaches it only as an ATTRIBUTE: a bare name ``healthy`` read
+    somewhere is a local, not ``InputHealth.healthy``. The receiver decides
+    which class's member it is: ``self.n`` (or ``cls.n``) inside class C
+    reaches ``n`` in C's in-package family -- C, its bases, its subclasses --
+    and nothing else; ``x.n`` on a value the AST cannot type reaches every
+    class's ``n``, and ``getattr(x, "n")`` likewise. Liveness is then
+    REACHABILITY: a load counts only from a live place -- module-level code,
+    a module-level function, a dunder, a Home Assistant convention member, or
+    a member already live -- so a member reached only from its own body, or
+    from other dead members, stays dead.
+
+    ``name-kept`` is the shape this cannot measure, printed so its size is on
+    the record: live members whose only live loads are untyped ``x.n`` reads
+    of a name more than one class defines. One of them may be dead behind
+    another's field (D7-s3-01's ``DefrostDerate.samples`` stood alive behind
+    ``AccuracyTracker.samples`` in every name-based view).
+    """
+    members: dict[tuple[str, str, str], tuple[str, int]] = {}
+    by_name: dict[str, set[tuple[str, str, str]]] = defaultdict(set)
+    for (mod, cname), cls in pkg.classes.items():
+        for item in cls.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                key = (mod, cname, item.name)
+                members.setdefault(key, (pkg.mods[mod][0], item.lineno))
+                by_name[item.name].add(key)
+
+    def is_root_member(key: tuple[str, str, str]) -> bool:
+        name = key[2]
+        return (name.startswith("__") and name.endswith("__")) \
+            or name in HA_CONVENTION_NAMES or is_ha_convention_method(name)
+
+    # (from-member or None for a root place, reached members, typed?)
+    edges: list[tuple[tuple[str, str, str] | None, set[tuple[str, str, str]], bool]] = []
+    families: dict[tuple[str, str], set[tuple[str, str]]] = {}
+
+    def visit(node: ast.AST, mod: str, cls: str | None,
+              unit: tuple[str, str, str] | None, self_name: str | None) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.ClassDef):
+                for item in child.body:
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        params = fn_params(item)
+                        sn = params[0] if params and not _is_static(item) else None
+                        visit(item, mod, child.name, (mod, child.name, item.name), sn)
+                    else:
+                        visit(item, mod, child.name, unit, self_name)
+                for deco in child.decorator_list + child.bases:
+                    visit(deco, mod, cls, unit, self_name)
+                continue
+            name = None
+            if isinstance(child, ast.Attribute) and isinstance(child.ctx, ast.Load):
+                name = child.attr
+            elif isinstance(child, ast.Call) and isinstance(child.func, ast.Name) \
+                    and child.func.id in ("getattr", "hasattr") and len(child.args) >= 2 \
+                    and isinstance(child.args[1], ast.Constant) and isinstance(child.args[1].value, str):
+                name = child.args[1].value
+            if name is not None and name in by_name:
+                recv = child.value if isinstance(child, ast.Attribute) else None
+                if cls is not None and isinstance(recv, ast.Name) and recv.id == self_name:
+                    fam = families.setdefault((mod, cls), pkg.family((mod, cls)))
+                    edges.append((unit, {k for k in by_name[name] if (k[0], k[1]) in fam}, True))
+                else:
+                    edges.append((unit, set(by_name[name]), False))
+            visit(child, mod, cls, unit, self_name)
+
+    for mod, (_rel, tree) in pkg.mods.items():
+        visit(tree, mod, None, None, None)
+
+    live = {k for k in members if is_root_member(k)}
+    typed_live: set[tuple[str, str, str]] = set()
+    changed = True
+    while changed:
+        changed = False
+        for src, reached, typed in edges:
+            if src is not None and src not in live:
+                continue
+            for key in reached:
+                if key not in live:
+                    live.add(key)
+                    changed = True
+                if typed or len(by_name[key[2]]) == 1:
+                    typed_live.add(key)
+    dead = sorted((members[k][0], k[1], k[2], members[k][1]) for k in members if k not in live)
+    name_kept = sorted((members[k][0], k[1], k[2]) for k in live
+                       if k not in typed_live and not is_root_member(k))
+    return dead, name_kept
+
+
+# ---------------------------------------------------------------------------
+# the metrics
+
+
 def measure() -> dict:
     """Recompute every metric from the working tree. Returns a dict with the
     flat metric values (the budget keys) under ``metrics`` and everything the
     evidence tables print under ``tables``."""
     trees = module_trees()
+    pkg = Package(trees)
 
-    god_classes = []       # (loc, file, span, name, methods, attrs)
-    attrbag_classes = []   # (attrs, file, line, name)
-    per_class_attrs = {}   # (file, name) -> {attr: set(method names)}
+    god_classes = []       # (loc, file, span, name, methods)
     monsters = []          # (loc, file, span, name)
     cc_scores = []         # (cc, file, line, name)
     const_fanout = {}      # file -> imported names from .const
-    local_imports = []     # (file, line, statement)
-    dead_methods = []      # (file, class, method, line)
-    duplication = []       # (file, func_name, func_line, start-end, length)
 
     # -- classes, functions, imports, dead symbols -------------------------
     top_level_defs: dict[tuple[str, str], int] = {}
-    referenced_names: set[str] = set()
 
     for path, tree in trees:
         rel = str(path.relative_to(REPO_ROOT))
-        src_lines = path.read_text().splitlines()
 
         for node in tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -1008,33 +1640,12 @@ def measure() -> dict:
                 if not node.target.id.startswith("__"):
                     top_level_defs[(rel, node.target.id)] = node.lineno
 
-        referenced_names |= module_references(tree)
-
         for cls in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
-            methods = [
-                m
-                for m in cls.body
-                if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
-            ]
-            attr_writers: dict[str, set[str]] = defaultdict(set)
-            for method in methods:
-                for node in ast.walk(method):
-                    if (
-                        isinstance(node, ast.Attribute)
-                        and isinstance(node.value, ast.Name)
-                        and node.value.id == "self"
-                        and isinstance(node.ctx, ast.Store)
-                    ):
-                        attr_writers[node.attr].add(method.name)
             loc = span_loc(cls)
             if loc > GOD_CLASS_LOC_LIMIT:
-                god_classes.append(
-                    (loc, rel, f"{cls.lineno}-{cls.end_lineno}", cls.name,
-                     len(methods), len(attr_writers))
-                )
-            if len(attr_writers) > ATTR_BAG_LIMIT:
-                attrbag_classes.append((len(attr_writers), rel, cls.lineno, cls.name))
-            per_class_attrs[(rel, cls.name)] = attr_writers
+                methods = sum(1 for m in cls.body
+                              if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)))
+                god_classes.append((loc, rel, f"{cls.lineno}-{cls.end_lineno}", cls.name, methods))
 
         for fn in all_functions(tree):
             loc = span_loc(fn)
@@ -1054,36 +1665,6 @@ def measure() -> dict:
         if fanout:
             const_fanout[rel] = fanout
 
-        # Local (function-scope) imports: an Import/ImportFrom statement is
-        # local when it sits inside any def. Walked from the module root so
-        # each statement is seen exactly once; nesting depth only decides
-        # the scope, and an import inside a nested def is still one local
-        # import.
-        def scan_scope(nodes, inside_function: bool) -> None:
-            for node in nodes:
-                if isinstance(node, (ast.Import, ast.ImportFrom)) and inside_function:
-                    local_imports.append((rel, node.lineno, type(node).__name__))
-                for field in ("body", "finalbody", "orelse"):
-                    for child in getattr(node, field, []):
-                        scan_scope(
-                            [child],
-                            inside_function
-                            or isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)),
-                        )
-        scan_scope(tree.body, False)
-
-        # Duplication: normalized DUP_BLOCK_LINES-line windows shared by more
-        # than one function of this module. Normalization strips whitespace
-        # and comment-only lines; nested def/class spans are dropped from the
-        # parent so a handler defined inside a registrar is not "a copy" of
-        # its own container.
-        normalized_functions: dict[tuple, list[tuple[int, str]]] = {}
-        for fn in all_functions(tree):
-            normalized_functions[(rel, fn.name, fn.lineno)] = normalized_function_lines(
-                fn, src_lines
-            )
-        duplication.extend(duplicate_runs(normalized_functions, DUP_BLOCK_LINES))
-
     # -- dead top-level symbols --------------------------------------------
     bound = bound_references(trees)
     dynamic_exempt, dynamic_problems = dynamic_reference_audit(
@@ -1092,76 +1673,28 @@ def measure() -> dict:
     dead_symbols = [(rel, lineno, name) for (rel, name), lineno in sorted(top_level_defs.items())
                     if is_dead_symbol((rel, name), bound, dynamic_exempt)]
 
-    # -- dead methods (#1395) ----------------------------------------------
-    # The same screen as ``dead_top_level_symbols``, one level in: a method
-    # whose NAME is never referenced anywhere in the package. Methods were
-    # outside every budgeted metric until this one -- ``dead_top_level_symbols``
-    # walks ``tree.body`` -- so a method the tree stopped calling was invisible
-    # to the ratchet. Dunders and the names HA looks up on the instance by
-    # convention (``HA_CONVENTION_METHODS``) are excluded for the same reason
-    # as their module-level twins; a ``@property`` is the object's attribute
-    # surface, not a call (``is_property_getter``), so it is out of scope here.
-    # The screen is deliberately name-based and therefore cannot see a method
-    # that is still CALLED but no longer REACHABLE from production -- #1395's
-    # ``SystemIdentification.identify`` is exactly that shape, and it is pinned
-    # behaviourally (``tests/features.py``) rather than by this count.
-    for path, tree in trees:
-        rel = str(path.relative_to(REPO_ROOT))
-        for cls in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
-            for node in cls.body:
-                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    continue
-                if node.name.startswith("__") and node.name.endswith("__"):
-                    continue
-                if node.name in HA_CONVENTION_NAMES:
-                    continue
-                if is_ha_convention_method(node.name):
-                    continue
-                if is_property_getter(node):
-                    continue
-                if node.name in referenced_names:
-                    continue
-                dead_methods.append((rel, cls.name, node.name, node.lineno))
+    # -- dead members (#1395, D7-s3-02) ------------------------------------
+    dead_methods, name_kept = dead_members(pkg)
 
-    # -- the coordinator's seam metrics ------------------------------------
-    coordinator = None
-    coord_file = PACKAGE_DIR / "coordinator.py"
-    coord_tree = next(t for p, t in trees if p == coord_file)
-    coord_class = next(
-        n
-        for n in ast.walk(coord_tree)
-        if isinstance(n, ast.ClassDef) and n.name == COORDINATOR_CLASS_NAME
-    )
-    seam = seam_metrics(coord_class)
+    # -- the coordinator, by role (#1686, #1738) ---------------------------
+    roles = CoordinatorRoles(pkg)
+    helpers = roles.coordinator_helpers()
+    coord_class = pkg.classes[(COORDINATOR_MODULE, COORDINATOR_CLASS_NAME)]
+    seam = seam_metrics(coord_class, helpers=helpers)
+    reach = private_reach_sites(roles)
+    writers = coordinator_writers(roles)
 
-    coord_attr_writers = per_class_attrs[
-        (str(coord_file.relative_to(REPO_ROOT)), COORDINATOR_CLASS_NAME)
-    ]
-    coordinator = {
-        "coordinator_loc": span_loc(coord_class),
-        "coordinator_methods": seam["method_count"],
-        "coordinator_attrs": len(coord_attr_writers),
-        "coordinator_multiassigned_attrs": sum(
-            1 for writers in coord_attr_writers.values() if len(writers) > 1
-        ),
-    }
-
-    # The attr-bag metrics are "for the top one (the coordinator)". If that
-    # ever stops being true the budget changes meaning, so say it here
-    # instead of ratcheting a different class's numbers by accident.
-    attrbag_classes.sort(reverse=True)
-    top_attrbag = attrbag_classes[0] if attrbag_classes else None
-    top_is_coordinator = bool(
-        top_attrbag and top_attrbag[3] == COORDINATOR_CLASS_NAME
-    )
-
+    clones = duplicate_clones(trees)
+    cycles = import_cycle_modules(trees)
     max_method_loc, max_cc = table_maxima(monsters, cc_scores)
 
     metrics = {
-        "classes_over_300": len(god_classes),
-        "attrbag_classes_over_30": len(attrbag_classes),
         "methods_over_200": sum(1 for loc, *_ in monsters if loc > MONSTER_LIMITS[0]),
         "methods_over_150": len(monsters),
+        # The coordinator's span, while it is the largest class; any class's
+        # when it is not, so an extraction that moves the bulk elsewhere is
+        # still priced (coordinator_loc merged in, identical in 30 of 30 of the
+        # pre-study's perturbations).
         "max_class_loc": max((g[0] for g in god_classes), default=0),
         # The worst offender, off tables that are already built and already
         # sorted (#374). The four threshold counts above stop pricing a
@@ -1171,32 +1704,39 @@ def measure() -> dict:
         # says why: it would fail #224's own refactor.
         "max_method_loc": max_method_loc,
         "max_cc": max_cc,
-        "duplication_blocks": len(duplication),
+        "duplication_copies": sum(len(g) - 1 for g in clones),
         "functions_cc_over_25": sum(1 for cc, *_ in cc_scores if cc > CC_LIMITS[0]),
         "functions_cc_over_15": len(cc_scores),
         "const_modules_over_50": sum(1 for n in const_fanout.values() if n > CONST_FANOUT_LIMIT),
-        "local_imports": len(local_imports),
+        "import_cycle_modules": sum(len(c) for c in cycles),
         "dead_top_level_symbols": len(dead_symbols),
         "dead_methods": len(dead_methods),
-        "internal_call_edges": seam["internal_call_edges"],
-        "cross_seam_edges": seam["cross_edges"],
-        **coordinator,
-        **seam["cut_costs"],
+        "coordinator_attrs": len(writers),
+        "coordinator_multiassigned_attrs": sum(1 for w in writers.values() if len(w) > 1),
+        "coordinator_private_reach": sum(
+            PRIVATE_WRITE_WEIGHT if kind == "write" else 1 for *_x, kind, _f in reach),
+        "seam_cut_total": seam["seam_cut_total"],
     }
     tables = {
         "god_classes": sorted(god_classes, reverse=True),
-        "attrbag_classes": attrbag_classes,
-        "top_is_coordinator": top_is_coordinator,
         "monsters": sorted(monsters, reverse=True),
         "cc_scores": sorted(cc_scores, reverse=True),
         "const_fanout": dict(sorted(const_fanout.items(), key=lambda kv: -kv[1])),
-        "local_imports": sorted(local_imports),
+        "import_cycles": cycles,
         "dead_symbols": dead_symbols,
-        "dead_methods": sorted(dead_methods),
+        "dead_methods": dead_methods,
+        "name_kept": name_kept,
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
-        "duplication": sorted(duplication),
+        "clones": clones,
         "seam_rows": seam["seam_rows"],
+        "helpers": sorted(helpers),
+        "private_reach": reach,
+        "outside_writers": sorted(
+            (attr, sorted(w for w in ws if not w.startswith(f"{COORDINATOR_MODULE}:{COORDINATOR_CLASS_NAME}.")))
+            for attr, ws in writers.items()
+            if any(not w.startswith(f"{COORDINATOR_MODULE}:{COORDINATOR_CLASS_NAME}.") for w in ws)),
+        "internal_call_edges": seam["internal_call_edges"],
         "cross_edges": seam["cross_edges"],
         "cross_seam_fraction": round(seam["cross_seam_fraction"], 4),
     }
@@ -1211,20 +1751,10 @@ def print_report(result: dict) -> None:
     tables = result["tables"]
     metrics = result["metrics"]
 
-    print("########## god classes (> %d LOC) ##########" % GOD_CLASS_LOC_LIMIT)
-    for loc, rel, span, name, methods, attrs in tables["god_classes"]:
-        print(f"  {rel}:{span}  {loc} LOC  {methods} methods  {attrs} self-attrs  {name}")
-
-    print()
-    print("########## attr bags (> %d assigned self-attrs) ##########" % ATTR_BAG_LIMIT)
-    for attrs, rel, line, name in tables["attrbag_classes"]:
-        note = "  <- top attr bag" if (attrs, rel, line, name) == tables["attrbag_classes"][0] else ""
-        print(f"  {rel}:{line}  {attrs} self-attrs  {name}{note}")
-    if not tables["top_is_coordinator"]:
-        print(
-            f"  NOTE: the top attr bag is no longer {COORDINATOR_CLASS_NAME}; the"
-        )
-        print("  coordinator_* budgets describe a different class. Re-record on purpose.")
+    print("########## classes over %d LOC (evidence; max_class_loc is the row) ##########"
+          % GOD_CLASS_LOC_LIMIT)
+    for loc, rel, span, name, methods in tables["god_classes"]:
+        print(f"  {rel}:{span}  {loc} LOC  {methods} methods  {name}")
 
     print()
     print("########## monster methods: top 10 of %d over %d LOC ##########"
@@ -1249,9 +1779,9 @@ def print_report(result: dict) -> None:
         print(f"  {rel}: {n}{flag}")
 
     print()
-    print("########## function-scope imports ##########")
-    for rel, line, kind in tables["local_imports"]:
-        print(f"  {rel}:{line}  {kind}")
+    print("########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########")
+    for group in tables["import_cycles"]:
+        print("  " + " <-> ".join(group))
 
     print()
     print("########## dead top-level symbols ##########")
@@ -1259,12 +1789,15 @@ def print_report(result: dict) -> None:
         print(f"  {rel}:{line}  {name}")
 
     print()
-    print("########## dead methods (name never referenced in the package) ##########")
+    print("########## dead members (no live attribute load reaches them) ##########")
     for rel, cls, name, line in tables["dead_methods"]:
         print(f"  {rel}:{line}  {cls}.{name}")
-    print("  dead_methods = %d (name never referenced in the package; the same"
-          " screen as dead_top_level_symbols, one level in)"
-          % metrics["dead_methods"])
+    print("  dead_methods = %d (methods and properties; receiver-resolved,"
+          " reachability from live code)" % metrics["dead_methods"])
+    print("  unmeasured: %d live member(s) kept only by an untyped x.name load of a"
+          " name another class also defines" % len(tables["name_kept"]))
+    for rel, cls, name in tables["name_kept"]:
+        print(f"    {rel}  {cls}.{name}")
 
     print()
     print("########## dynamic-reference allowlist (not counted above) ##########")
@@ -1279,18 +1812,32 @@ def print_report(result: dict) -> None:
         print(f"  FAIL {message}")
 
     print()
-    print("########## duplication (>= %d normalized lines, across functions) ##########"
-          % DUP_BLOCK_LINES)
-    for rel, name, line, span, length in tables["duplication"]:
-        print(f"  {rel}:{line}  {name}  {span}  {length} lines")
+    print("########## duplication: clone classes (%d-statement AST windows, package-wide) ##########"
+          % DUP_WINDOW_STATEMENTS)
+    for group in tables["clones"]:
+        print("  " + "  ==  ".join(f"{rel}:{line} {name}" for rel, name, line in group))
 
     print()
-    print("########## coordinator seam table ##########")
-    print("  internal self-method call occurrences: %d, crossing a seam: %d (ratio %.4f, evidence only)"
-          % (metrics["internal_call_edges"], tables["cross_edges"], tables["cross_seam_fraction"]))
-    print("  %-8s %8s %6s %6s %6s %6s" % ("seam", "methods", "attrs", "xattr", "xmeth", "cut"))
-    for label, methods, owned, xattr, xmeth, cut in tables["seam_rows"]:
-        print("  %-8s %8d %6d %6d %6d %6d" % (label, methods, owned, xattr, xmeth, cut))
+    print("########## coordinator private reach (outside its methods and helpers) ##########")
+    for rel, line, member, kind, fn in tables["private_reach"]:
+        print(f"  {rel}:{line}  {member}  {kind}  in {fn}")
+    print("  coordinator_private_reach = %d (reads + %d x writes)"
+          % (metrics["coordinator_private_reach"], PRIVATE_WRITE_WEIGHT))
+
+    print()
+    print("########## coordinator attributes written outside its methods ##########")
+    for attr, where in tables["outside_writers"]:
+        print(f"  {attr}: {', '.join(where)}")
+
+    print()
+    print("########## coordinator seam table (helpers charged: %d) ##########"
+          % len(tables["helpers"]))
+    print("  internal call occurrences: %d, crossing a seam: %d (ratio %.4f, evidence only)"
+          % (tables["internal_call_edges"], tables["cross_edges"], tables["cross_seam_fraction"]))
+    print("  %-8s %8s %6s %6s %6s %6s" % ("seam", "units", "attrs", "xattr", "xmeth", "cut"))
+    for label, units, owned, xattr, xmeth, cut in tables["seam_rows"]:
+        print("  %-8s %8d %6d %6d %6d %6d" % (label, units, owned, xattr, xmeth, cut))
+    print("  seam_cut_total = %d" % metrics["seam_cut_total"])
 
     print()
     print("########## RESULT lines ##########")
@@ -1628,10 +2175,6 @@ def ratchet(result: dict) -> int:
         print("non-negative integer count; restore the recorded value, or re-record")
         print("with tests/structure.py --record.")
         return 1
-    if not result["tables"]["top_is_coordinator"]:
-        print(f"FAIL {COORDINATOR_CLASS_NAME} is no longer the top attr-bag class;")
-        print("  the coordinator_* budgets describe something else. Re-record deliberately.")
-        return 1
 
     failures = 0
     print()
@@ -1883,6 +2426,135 @@ def bound_self_check() -> tuple[tuple[str, bool], ...]:
     )
 
 
+ROLE_SELF_CHECK_SOURCES = {
+    "coordinator.py":
+        "class HeatPumpOptimizerCoordinator:\n"
+        "    def __init__(self):\n"
+        "        self._depth = 0\n"
+        "    def tick(self):\n"
+        "        return _helper(self) + self.used\n"
+        "    @property\n"
+        "    def used(self):\n"
+        "        return 1\n"
+        "    @property\n"
+        "    def unread(self):\n"
+        "        return 2\n"
+        "    def recur(self):\n"
+        "        return self.recur()\n"
+        "    def shared(self):\n"
+        "        return 3\n"
+        "def _helper(owner):\n"
+        "    return owner._depth\n",
+    "pump.py":
+        "from .coordinator import HeatPumpOptimizerCoordinator\n"
+        "from .other import *\n"
+        "def poke(coord: HeatPumpOptimizerCoordinator, thing):\n"
+        "    unread = coord.tick() + thing.shared() + STARRED\n"
+        "    coord._depth += 1\n"
+        "    return relay(coord) + unread\n"
+        "def relay(c):\n"
+        "    return inner(c)\n"
+        "def inner(renamed):\n"
+        "    renamed._log.append(1)\n"
+        "    return renamed._depth\n",
+    "other.py":
+        "STARRED = 1\n"
+        "class Other:\n"
+        "    def shared(self):\n"
+        "        return 4\n",
+}
+
+# One window, three spellings of it: a second copy in another module is a
+# copy, and a third costs one more, not two more.
+DUP_SELF_CHECK_BODY = (
+    "def {name}({a}, {b}):\n"
+    "    {t} = sum(v * {b} for v in {a} if v > 0)\n"
+    "    return max({t}, len({a}) * {b} - 1)\n"
+)
+
+# A cycle through a function-scope import, and the same edge under
+# TYPE_CHECKING, which never runs.
+CYCLE_SELF_CHECK_SOURCES = {
+    "a.py": "def f():\n    from . import b\n    return b\n",
+    "b.py": "from . import a\n",
+}
+CYCLE_SELF_CHECK_GUARDED = "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from . import a\n"
+
+
+def role_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin the member census, the role engine and the #1738 rows on our own trees."""
+    trees = [(PACKAGE_DIR / m, ast.parse(src)) for m, src in ROLE_SELF_CHECK_SOURCES.items()]
+    pkg = Package(trees)
+    dead, name_kept = dead_members(pkg)
+    dead_names = {(cls, name) for _rel, cls, name, _line in dead}
+    coord = COORDINATOR_CLASS_NAME
+    roles = CoordinatorRoles(pkg)
+    helpers = roles.coordinator_helpers()
+    reach = private_reach_sites(roles)
+    sites = {(fn, member, kind) for _rel, _line, member, kind, fn in reach}
+    writers = coordinator_writers(roles)
+    bound = bound_references(trees)
+
+    def seam_cut(source: str) -> int:
+        local = Package([(PACKAGE_DIR / "coordinator.py", ast.parse(source))])
+        local_helpers = CoordinatorRoles(local).coordinator_helpers()
+        cls = local.classes[(COORDINATOR_MODULE, coord)]
+        seams = {"__init__": "core", "tick": "fetch",
+                 **{key: "fetch" for key in local_helpers}}
+        return seam_metrics(cls, seams, local_helpers)["seam_cut_total"]
+
+    inline = ("class HeatPumpOptimizerCoordinator:\n"
+              "    def __init__(self):\n        self._depth = 0\n"
+              "    def tick(self):\n        return self._depth\n")
+    helped = ("class HeatPumpOptimizerCoordinator:\n"
+              "    def __init__(self):\n        self._depth = 0\n"
+              "    def tick(self):\n        return _helper(self)\n"
+              "def _helper(owner):\n    return owner._depth\n")
+
+    def copies(*names: str) -> int:
+        srcs = [DUP_SELF_CHECK_BODY.format(name=f"f{i}", a=a, b=b, t=t)
+                for i, (a, b, t) in enumerate(names)]
+        return sum(len(g) - 1 for g in duplicate_clones(
+            [(PACKAGE_DIR / f"m{i}.py", ast.parse(s)) for i, s in enumerate(srcs)]))
+
+    def cycles(b_source: str) -> list[list[str]]:
+        return import_cycle_modules([
+            (PACKAGE_DIR / "a.py", ast.parse(CYCLE_SELF_CHECK_SOURCES["a.py"])),
+            (PACKAGE_DIR / "b.py", ast.parse(b_source))])
+
+    return (
+        ("a property nothing reads is a dead member", (coord, "unread") in dead_names),
+        ("a bare name is a local, and keeps no member alive", (coord, "unread") in dead_names),
+        ("a member reached only from its own body is dead", (coord, "recur") in dead_names),
+        ("a property read through self from a live member is live",
+         (coord, "used") not in dead_names and (coord, "tick") not in dead_names),
+        ("an untyped x.n keeps every class's n alive, and says so",
+         not {(coord, "shared"), ("Other", "shared")} & dead_names
+         and {name for _rel, _cls, name in name_kept} == {"shared"}),
+        ("a coordinator.py function handed the coordinator is a helper",
+         set(helpers) == {"coordinator._helper"}
+         and helpers["coordinator._helper"][1] == {"owner"}),
+        ("a helper is priced as the method it was cut from (#1686)",
+         seam_cut(helped) == seam_cut(inline) > 0),
+        ("a private read and write outside the class are reach, by role",
+         {("poke", "_depth", "write"), ("inner", "_depth", "read")} <= sites),
+        ("an in-place mutation is a write, through a renamed parameter",
+         ("inner", "_log", "write") in sites),
+        ("the helper's own reads are the coordinator's, not reach",
+         not any(fn == "_helper" for fn, _m, _k in sites)),
+        ("an attribute stored from another module is in the census",
+         "pump:poke" in writers.get("_depth", set())
+         and "coordinator:HeatPumpOptimizerCoordinator.__init__" in writers["_depth"]),
+        ("a star import binds the public names it brings",
+         (str((PACKAGE_DIR / "other.py").relative_to(REPO_ROOT)), "STARRED") in bound),
+        ("a copy in another module is one copy, renamed or not",
+         copies(("xs", "k", "t"), ("values", "scale", "total")) == 1),
+        ("a third copy costs one more", copies(("a", "b", "c"), ("d", "e", "f"), ("g", "h", "i")) == 2),
+        ("a function-scope import closes a cycle", cycles(CYCLE_SELF_CHECK_SOURCES["b.py"]) == [["a", "b"]]),
+        ("a TYPE_CHECKING import is not an edge", cycles(CYCLE_SELF_CHECK_GUARDED) == []),
+    )
+
+
 def self_check() -> int:
     """Pin the counting rules on sources of our own (#364, #510).
 
@@ -1912,6 +2584,7 @@ def self_check() -> int:
         *bound_self_check(),
         *audit_self_check(),
         *seam_self_check(),
+        *role_self_check(),
     )
     failures = [message for message, ok in rules if not ok]
     print("########## counting-rule self-check ##########")
@@ -1919,7 +2592,7 @@ def self_check() -> int:
         print(f"FAIL  {message}")
     if failures:
         print(f"{len(failures)} COUNTING RULE(S) BROKEN -- "
-              "dead_top_level_symbols and cut_<seam> cannot be trusted")
+              "the structure rows cannot be trusted")
         return 1
     print(f"  ok   {len(rules)} counting rules hold")
     return 0
