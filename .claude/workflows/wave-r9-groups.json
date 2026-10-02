@@ -2546,11 +2546,11 @@
         "R9-F11.2"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f10-gate-infra-5",
-        "commit": "4f594b42635be021152dec6e3934af1a674cec52",
-        "last_step": "PR #1848 head 4f594b42, round 2 (security block)",
-        "next_step": "a merge verdict at the round-2 head, green CI, then merge; after it merges tvofi removes App 5094721 from the bypass list of ruleset 22628467 and deletes the repo-level HPO_LEDGER_* secrets",
+        "commit": "8fa06663cf64a32cf19a3a2f2742ce3225f06e3a",
+        "last_step": "MERGED as #1848 at 8fa06663",
+        "next_step": "tvofi removes App 5094721 from the bypass list of ruleset 22628467 and deletes the repo-level HPO_LEDGER_* secrets",
         "note_file": "handoff/round9/fix/resume/F10.5.md on handoff/r9-f10-gate-infra-5",
         "review_branch": "handoff/r9-f10-gate-infra-5-review",
         "review_note_file": "handoff/round9/fix/resume/F10.5-review.md on handoff/r9-f10-gate-infra-5-review",
@@ -2594,11 +2594,11 @@
         "R9-F10.5"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-f10-gate-infra-6",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "5009fe47254c6a3f2812b8a0e7eaa5b5df015573",
+        "last_step": "PR #1861 head 5009fe47",
+        "next_step": "a merge verdict at that head, green CI, then merge",
         "note_file": "handoff/round9/fix/resume/F10.6.md on handoff/r9-f10-gate-infra-6",
         "review_branch": "handoff/r9-f10-gate-infra-6-review",
         "review_note_file": "handoff/round9/fix/resume/F10.6-review.md on handoff/r9-f10-gate-infra-6-review",
@@ -2928,11 +2928,11 @@
         "R9-F11.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-f11-governance-5",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure each finding, then write the failing test",
+        "commit": "e5b3fe162839ad0da1ea4e4fbbf1571b9a65e25b",
+        "last_step": "MERGED as #1856 at e5b3fe16",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F11.5.md on handoff/r9-f11-governance-5",
         "review_branch": "handoff/r9-f11-governance-5-review",
         "review_note_file": "handoff/round9/fix/resume/F11.5-review.md on handoff/r9-f11-governance-5-review",
@@ -3078,11 +3078,11 @@
         "R9-EG-B2"
       ],
       "resume": {
-        "stage": "built",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-typed-payload",
-        "commit": "8eba0f4989d211e3111e6966bea4c2acdebff5c5",
-        "last_step": "built at code head 8eba0f49 on handoff/r9-eg-typed-payload; delivers as B3a (a hastub Generic edit needs tvofi); PR opening",
-        "next_step": "open the PR as B3a with the issue left open (no closing keyword); a merge verdict, then merge; the remainder is R9-EG-B3b",
+        "commit": "e78ac3016b1cca0085709c984ebf848ebb2af8f4",
+        "last_step": "PR #1852 head e78ac301",
+        "next_step": "a merge verdict at that head, green CI, then merge",
         "note_file": "handoff/round9/fix/resume/EG-B3.md on handoff/r9-eg-typed-payload",
         "review_branch": "handoff/r9-eg-typed-payload-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B3-review.md on handoff/r9-eg-typed-payload-review",
@@ -3441,11 +3441,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "done",
         "branch": "handoff/r9-eg-dhw-planner",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "68b8cb97d911339a206fde141ecfdf0f57c6ccc4",
+        "last_step": "MERGED as #1858 at 68b8cb97",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/EG-B5.md on handoff/r9-eg-dhw-planner",
         "review_branch": "handoff/r9-eg-dhw-planner-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B5-review.md on handoff/r9-eg-dhw-planner-review",
@@ -3694,11 +3694,11 @@
         "R9-EG-R0"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-eg-register-fold",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
+        "commit": "a8f86edd6b2508ce6ff8fdca831f88516895a37e",
+        "last_step": "PR #1862 head a8f86edd",
+        "next_step": "a merge verdict at that head, green CI, then merge",
         "note_file": "handoff/round9/fix/resume/EG-R1.md on handoff/r9-eg-register-fold",
         "review_branch": "handoff/r9-eg-register-fold-review",
         "review_note_file": "handoff/round9/fix/resume/EG-R1-review.md on handoff/r9-eg-register-fold-review",
@@ -4436,7 +4436,7 @@
         "R9-F11.5"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-f11-governance-7",
         "commit": null,
         "last_step": null,
@@ -4537,9 +4537,9 @@
       "resume": {
         "stage": "in-review",
         "branch": "handoff/r9-eg-archscore",
-        "commit": "c9d6168cae2be1b967848bf435238fb3cf7af8b3",
-        "last_step": "PR #1851 head c9d6168c (the calibration move is accepted by tvofi)",
-        "next_step": "a merge verdict at that head, green CI, then merge; it takes the stamp after 6.7.14",
+        "commit": "25f434a65c7c4096c2da5f2bb2565d767c9f4dca",
+        "last_step": "PR #1851 head 25f434a6",
+        "next_step": "a merge verdict at that head, green CI, then merge",
         "note_file": "handoff/round9/fix/resume/EG-A1.md on handoff/r9-eg-archscore",
         "review_branch": "handoff/r9-eg-archscore-review",
         "review_note_file": "handoff/round9/fix/resume/EG-A1-review.md on handoff/r9-eg-archscore-review",
@@ -6109,11 +6109,11 @@
         "R9-F10.4"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-web-page",
-        "commit": "e42b1cdd805b011701479b3e19e2bbf4d6876dcc",
-        "last_step": "PR #1846 head e42b1cdd",
-        "next_step": "a merge verdict at that head, green CI, then merge with --match-head-commit",
+        "commit": "95960e724d14608d90fc5548398cdfa2e0d66c37",
+        "last_step": "MERGED as #1846 at 95960e72",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/WEB-1.md on handoff/r9-web-page",
         "review_branch": "handoff/r9-web-page-review",
         "review_note_file": "handoff/round9/fix/resume/WEB-1-review.md on handoff/r9-web-page-review",
@@ -6208,7 +6208,7 @@
         "R9-WEB-1"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-web-docs",
         "commit": null,
         "last_step": null,
