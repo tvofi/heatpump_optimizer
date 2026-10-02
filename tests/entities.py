@@ -22574,6 +22574,7 @@ _NS_LIVE = [_ns_job("nightly-ha (stable)", "success"),
             _ns_job("slow", "success"),
             _ns_job("mutation-nightly", "success"),
             _ns_job("mutation-ledger", "success"),
+            _ns_job("mutation-ledger-push", "success"),
             _ns_job("fast", "skipped")]
 _NS_LAST_NIGHT = _ns_run(1, "2026-09-10T02:17:00Z")
 _NS_CASES = {

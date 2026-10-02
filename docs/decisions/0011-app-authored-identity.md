@@ -92,34 +92,69 @@ identity, and none of the existing ones may carry it:
 - **Not `GITHUB_TOKEN`**: its pushes trigger no workflow, so the push to
   `main` would never run the forced `full` gate.
 
-So the writer is a **fourth App, `hpo-ledger`**, with exactly this grant:
+So the writer is a **fourth App, `hpo-ledger`**. What the workflow does with
+it and what the credential itself can do are two different grants, and only
+the second bounds a misuse; both are stated.
 
+**What the workflow does** (`.github/workflows/tests.yml`, pinned in
+`tests/entities.py`):
+
+- **Reach**: `mutation-ledger` and `mutation-ledger-push` run only when
+  `github.ref` is `refs/heads/main`, on `schedule` or a non-recheck
+  `workflow_dispatch`. A dispatch on any other ref would drive that ref's tree
+  and kill rule and push the kills to `main` (#1848 review, B1).
 - **Write set**: new files under `tests/mutation_ledger/killed_by/` and
-  nothing else. `mutation_table.drain_write_set_problems` refuses any
-  modified, deleted or renamed path, or any path outside that directory,
-  before the commit; a survivor is never written (`ci-autofix.md`).
+  nothing else, checked twice before the push: on the working tree
+  (`mutation_table.drain_write_set_problems`) and on the commits sent
+  (`mutation_table.drain_push_problems`: exactly one commit, on `main`'s tip,
+  under the subject below, adding rows only). A survivor is never written
+  (`ci-autofix.md`).
 - **Subject**: `ci: record nightly kills` (`mutation_table.DRAIN_SUBJECT`),
   the `ci:` prefix every bot commit carries. The measuring job runs on
   `schedule` and `workflow_dispatch` alone, so a push of rows cannot start
   another drain: the loop guard is the trigger, not the subject.
 - **Target**: `main` only, fast-forward, never forced; a refused push is a
   red job, not a retry loop (three tries against a moving `main`, then red).
-- **Credential**: `HPO_LEDGER_PEM` and `HPO_LEDGER_APPID`, read only by
-  `mutation-ledger-push`, which runs no driver; the job measuring the slice
-  holds no secret and no write grant (D11-s1-03). The installation token is
-  minted with `contents: write` alone.
+- **Token**: minted with `contents: write` alone, masked before it is written
+  to a step output; the measuring job holds no secret and no write grant
+  (D11-s1-03).
 
-**The owner's setup, not any seat's**: the App with `contents` read & write on
-this repository, installed, the two secrets stored, and the App on the push
-bypass. Done by the owner on 2026-10-02: `hpo-ledger` is App 5094721, an
-`always` bypass actor on both `main-protect` (22628467, where it already stood
-on 2026-09-30, `docs/HANDOVER.md`) and `main-protect-checks` (23698884,
-re-recorded in `.claude/workflows/fixtures/required-contexts.json`), and
-`HPO_LEDGER_APPID` and `HPO_LEDGER_PEM` are set. A ruleset read cannot prove
-the bypass lets the push through (the rules endpoint is not bypass-aware), so
-the first nightly `ci: record nightly kills` push is its live test. Were the
-secrets ever absent, the push job reports `skip-no-writer` and stays green, as
-`hpo-runs`' step does, and the slice is kept only as the run's artifact.
+**What the credential can do**, which is what a leaked secret or a workflow
+edit would get:
+
+- `HPO_LEDGER_PEM` and `HPO_LEDGER_APPID` mint an installation token with the
+  App's full installation grant, `contents` read & write on this repository,
+  for any path and any branch. Nothing in the App narrows it to the rows.
+- Who can read the secrets is set by where they are stored, not by the YAML.
+  A **repository** secret is handed to every same-repository workflow run, on
+  any branch, so any branch -- including one `hpo-author` pushes -- could
+  mint the token; that is the path around review this amendment refuses
+  `hpo-author`. The push job therefore declares `environment: ledger`, and
+  the secrets must live **only** in that environment, whose deployment
+  branches are `main` alone. GitHub still hands repository-level secrets to an
+  environment job, so the code cannot tell the two scopes apart: the
+  repository-level copies must be deleted, and until the environment holds
+  them the push job has no token and is red (`skip-no-writer` is outside
+  `DRAIN_QUIET`), never green.
+- The App's bypass on `main-protect-checks` (23698884) lets its push skip the
+  required checks and the pull-request rule, which is what a direct row
+  commit needs. Its `always` bypass on `main-protect` (22628467) grants
+  something else: that ruleset holds only the `deletion` and
+  `non_fast_forward` rules, which a fast-forward push never meets, so that
+  entry lets the credential **force-push or delete `main`** and buys this
+  workflow nothing. It should be removed unless a reason is recorded here.
+
+**The owner's setup, not any seat's.** Done by the owner on 2026-10-02:
+`hpo-ledger` is App 5094721, installed, an `always` bypass actor on both
+rulesets (22628467, where it already stood on 2026-09-30, `docs/HANDOVER.md`;
+and 23698884, recorded in `.claude/workflows/fixtures/required-contexts.json`),
+with `HPO_LEDGER_APPID` and `HPO_LEDGER_PEM` set as repository secrets. Owed
+by the owner (#1848): create the `ledger` environment with deployment branches
+restricted to `main`, store the two secrets there, delete the repository-level
+copies, and decide on the 22628467 bypass (the recommendation above is to
+remove it). A ruleset read cannot prove the 23698884 bypass admits the push
+(the rules endpoint is not bypass-aware), so the first nightly
+`ci: record nightly kills` push is its live test.
 
 The App is no code owner (above), and a row it writes merges no policy: the
 ledger rows are dispositions the ratchet reads, not caps

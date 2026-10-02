@@ -1113,11 +1113,11 @@ def ledger_dir() -> Path:
 DRAIN_SUBJECT = "ci: record nightly kills"
 DRAIN_ROWS = f"tests/{LEDGER_DIRNAME}/killed_by/"
 # The statuses `drain_report` lets end green: a row pushed, or nothing owed.
-# `skip-no-writer` is the writer App's credential being absent, the state
-# before its owner installs it (decision 0011's amendment); every other status
-# means a slice was measured and its rows did not reach main.
+# Every other status means a slice was measured and its rows did not reach
+# main -- `skip-no-writer` included: the writer App exists, so a credential the
+# `ledger` environment did not hand over is a fault, never a quiet skip.
 DRAIN_QUIET = ("changed", "skip-unchanged", "skip-nothing-killed",
-               "skip-nothing-drivable", "skip-no-writer")
+               "skip-nothing-drivable")
 
 
 def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
@@ -1238,6 +1238,48 @@ def drain_write_set_problems(porcelain: str) -> list[str]:
             continue
         code, path = line[:2], line[3:]
         if code != "??" or not path.startswith(DRAIN_ROWS):
+            out.append(f"{code} {path}")
+    return out
+
+
+def drain_changed(at: str, head: str, cwd: str | None = None) -> list[str] | None:
+    """The paths main changed between the measured head `at` and `head`.
+
+    None -- which `apply_drained` turns into applying nothing on a moved head --
+    when there is no measured head or git cannot diff it (a head outside
+    main's history, a shallow clone); never an empty list, which would read as
+    "nothing changed" and keep every pin.
+    """
+    if not at:
+        return None
+    diff = subprocess.run(["git", "diff", "--name-only", at, head], cwd=cwd,
+                          capture_output=True, text=True)
+    return diff.stdout.split() if diff.returncode == 0 else None
+
+
+def drain_push_problems(cwd: str | None = None) -> list[str]:
+    """What is wrong with the commits `origin/main..HEAD` the writer would push.
+
+    The write-set check reads the working tree; this reads what is SENT:
+    exactly one commit, whose parent is main's tip, under DRAIN_SUBJECT, that
+    only adds files under DRAIN_ROWS. A checkout of any other ref, or a reset
+    that did not happen, puts that ref's own commits under the row commit and
+    is refused here, before the push.
+    """
+    def git(*a: str) -> str:
+        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+        return r.stdout.strip() if r.returncode == 0 else "\0"
+    out = []
+    commits = git("rev-list", "origin/main..HEAD").split()
+    if len(commits) != 1:
+        out.append(f"{len(commits)} commit(s) ahead of origin/main, not 1")
+    if git("rev-parse", "HEAD^") != git("rev-parse", "origin/main"):
+        out.append("HEAD's parent is not origin/main")
+    if git("log", "-1", "--format=%s", "HEAD") != DRAIN_SUBJECT:
+        out.append(f"subject is not {DRAIN_SUBJECT!r}")
+    for line in git("diff", "--name-status", "origin/main", "HEAD").splitlines():
+        code, _, path = line.partition("\t")
+        if code != "A" or not path.startswith(DRAIN_ROWS):
             out.append(f"{code} {path}")
     return out
 

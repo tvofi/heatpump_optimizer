@@ -970,10 +970,12 @@ jobs:
   # stock -- whole anchors, walked by a date seed -- with the same kill rule,
   # baseline and null control, and hands what it killed to the next job. It
   # holds no write grant; the job that pushes runs no driver (D11-s1-03).
+  # Main only (#1848): a dispatch on any other ref would drive that ref's
+  # tree and kill rule, and its kills would be pushed to main.
   mutation-ledger:
     needs: [recheck-gate]
     if: >-
-      always() && (
+      always() && github.ref == 'refs/heads/main' && (
         github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
@@ -1034,11 +1036,17 @@ jobs:
   # kills`. No driver runs here. A main that moved since the measurement
   # keeps only the pins whose killing script read nothing that changed
   # (`stale_pins`), and every pin is re-checked against main's own inventory
-  # (`apply_drained`), so a second apply of one slice writes nothing. Absent
-  # credentials are a quiet skip until the App is installed.
+  # (`apply_drained`), so a second apply of one slice writes nothing. The
+  # credential lives in the `ledger` environment, whose deployment branches
+  # are main alone, so no other ref's job can mint it; absent, the job is red.
+  # The commits sent are checked before the push (`drain_push_problems`).
   mutation-ledger-push:
     needs: [mutation-ledger]
-    if: always() && needs.mutation-ledger.result == 'success'
+    if: >-
+      always() && github.ref == 'refs/heads/main'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && needs.mutation-ledger.result == 'success'
+    environment: ledger
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1068,7 +1076,7 @@ jobs:
         run: |
           { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
           if [ -z "$LEDGER_PEM" ] || [ -z "$LEDGER_APPID" ]; then
-            echo "::notice::HPO_LEDGER_PEM or HPO_LEDGER_APPID is not set; the slice stays unrecorded until the ledger-writer App is installed (fail-soft)"
+            echo "::error::HPO_LEDGER_PEM or HPO_LEDGER_APPID is not set in the ledger environment; the slice is not recorded (fail-closed: the report step reddens skip-no-writer)"
             exit 0
           fi
           umask 077
@@ -1135,10 +1143,7 @@ jobs:
               at = open(os.path.join(pins, "head")).read().strip()
           except OSError:
               at = ""
-          diff = subprocess.run(["git", "diff", "--name-only", at, head],
-                                capture_output=True, text=True) if at else None
-          changed = (diff.stdout.split() if diff is not None and diff.returncode == 0
-                     else None)
+          changed = m.drain_changed(at, head)
           status = m.apply_drained(pins, head, changed)
           if status == "changed":
               st = subprocess.run(["git", "status", "--porcelain",
@@ -1154,6 +1159,10 @@ jobs:
               [ "$status" = "changed" ] || break
               git add tests/mutation_ledger/killed_by/
               git commit -q -m "ci: record nightly kills"
+              if ! python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; bad = m.drain_push_problems(); print("\n".join(bad), file=sys.stderr); sys.exit(1 if bad else 0)'; then
+                status="skip-commit-set"
+                break
+              fi
               if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
                    push origin HEAD:refs/heads/main; then
                 break
