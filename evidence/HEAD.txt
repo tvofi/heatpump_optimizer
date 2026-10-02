@@ -1,3 +1,3 @@
-measured head: e42b1cdd805b011701479b3e19e2bbf4d6876dcc
-previous heads reviewed: ddaf6bf73c4bbb5d604a9348ab9ccdacb50feb5e (round 1), 9bc802e690fbc77e69312bc96e105b851ad2805b (round 2 delta)
-merge base: aab94eea2 (origin/main #1849)
+measured head: 834dbf7eeba71d1b8ed120621505b0138c7e6413
+code head: 699c4996ee77eb30b614b9ea315e85081696da1f
+earlier heads reviewed: ddaf6bf73c4b (r1), 9bc802e690fb and e42b1cdd805b (r2/r3)
