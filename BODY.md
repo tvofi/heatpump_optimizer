@@ -11,7 +11,7 @@ How: `mandate_check` in `.claude/workflows/budget_raise_gate.py` reads the cited
 
 ## Head
 
-4e719611 (code; merge base c168ec0a, measured 2026-10-02T08:50Z). The author seat merges main into it, so the head it opens moves.
+d741a894 (code; merge base 492d8401, measured 2026-10-02T09:12Z)
 
 ## Mutation proof
 
