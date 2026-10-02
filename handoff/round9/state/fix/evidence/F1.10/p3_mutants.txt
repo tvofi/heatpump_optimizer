@@ -1,0 +1,20 @@
+== MUTANT D14-s3-01
+FAIL R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=1 groups=1 wall_s=0.97 cpu_s=0.96
+== MUTANT slab-two-constants
+FAIL R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=1 groups=1 wall_s=0.88 cpu_s=0.85
+== MUTANT M2-band-floor
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=0 groups=0 wall_s=0.85 cpu_s=0.84
+== MUTANT R7-D2-01
+FAIL R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid  [67 modules; 
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=1 groups=1 wall_s=0.80 cpu_s=0.78
+== MUTANT on-threshold-4th-copy
+FAIL R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid  [67 modules; 
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=1 groups=1 wall_s=0.85 cpu_s=0.78
+== MUTANT cop-inline
+FAIL R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid  [67 modules; 
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=1 groups=1 wall_s=0.97 cpu_s=0.89
+== MUTANT D2-s2-81
+FAIL R9-P3: one kelvin-step under the floor in the upper zone costs what it costs a single-zone room (sca  [two-zone 5.0
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/__init__.py fails=4 groups=0 wall_s=0.79 cpu_s=0.78

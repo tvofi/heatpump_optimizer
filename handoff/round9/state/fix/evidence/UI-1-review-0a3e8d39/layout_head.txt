@@ -1,0 +1,68 @@
+layout: 3139 tracked path(s) enumerated
+  category  2276 finding(s)
+    outside the allowed categories: .abacus.donotdelete
+    outside the allowed categories: .claude/workflows/brief_lint.mjs
+    outside the allowed categories: .claude/workflows/budget_raise_gate.py
+    outside the allowed categories: .claude/workflows/carry-1067.json
+    outside the allowed categories: .claude/workflows/carry-1295.json
+    outside the allowed categories: .claude/workflows/carry-1300.json
+    outside the allowed categories: .claude/workflows/carry-1308.json
+    outside the allowed categories: .claude/workflows/carry-1320.json
+    outside the allowed categories: .claude/workflows/carry-1330.json
+    outside the allowed categories: .claude/workflows/carry-1336.json
+    ... 2266 more (--verbose)
+  retired   2274 finding(s)
+    planned move not yet made: .abacus.donotdelete -> nothing (deleted)
+    planned move not yet made: .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs
+    planned move not yet made: .claude/workflows/budget_raise_gate.py -> tools/policy/budget_raise_gate.py
+    planned move not yet made: .claude/workflows/carry-1067.json -> dev/archive/carries/carry-1067.json
+    planned move not yet made: .claude/workflows/carry-1295.json -> dev/archive/carries/carry-1295.json
+    planned move not yet made: .claude/workflows/carry-1300.json -> dev/archive/carries/carry-1300.json
+    planned move not yet made: .claude/workflows/carry-1308.json -> dev/archive/carries/carry-1308.json
+    planned move not yet made: .claude/workflows/carry-1320.json -> dev/archive/carries/carry-1320.json
+    planned move not yet made: .claude/workflows/carry-1330.json -> dev/archive/carries/carry-1330.json
+    planned move not yet made: .claude/workflows/carry-1336.json -> dev/archive/carries/carry-1336.json
+    ... 2264 more (--verbose)
+  reference 1528 finding(s)
+    .claude/hooks/always-fails.sh:11 cites retired path .claude/workflows/fixtures/; use tools/policy/fixtures/
+    .claude/hooks/pre-edit.sh:85 cites retired path .claude/workflows/rules_sync.mjs; use tools/policy/rules_sync.mjs
+    .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:95 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:100 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:195 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:197 cites retired path tools/audit/prepr.sh; use tools/pr/prepr.sh
+    .claude/rules/brief-citations.md:6 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    ... 1518 more (--verbose)
+  dead      27 finding(s)
+    category docs: glob matches no tracked file: docs/img/card/*
+    category docs: glob matches no tracked file: docs/img/model/*
+    category docs: glob matches no tracked file: docs/img/setup/*
+    category docs: glob matches no tracked file: docs/design/*/{design,plan}.md
+    category dev/governance: glob matches no tracked file: dev/governance/rules/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/roles/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/dimensions/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/decisions/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/config/*.json
+    category dev/programme: glob matches no tracked file: dev/programme/HANDOVER.md
+    ... 17 more (--verbose)
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 208 of 208 listed
+  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 208 of 208 listed
+  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 208 of 208 listed
+  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 208 of 208 listed
+  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 209 of 209 listed
+  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 208 of 208 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 208 of 208 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 208 of 208 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 208 of 208 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 208 of 208 listed
+layout self-test: ok

@@ -1,0 +1,3 @@
+RESULT downgrade no-migrate 2->1 (['NotImplementedError'], 1, 2)
+RESULT downgrade migrate 2->1 ([{'from': 2, 'n': 1}], 1, 2)
+RESULT bump migrate 1->2 loaded twice ([{'from': 1, 'n': 1}, {'from': 1, 'n': 1}], 1, 1)

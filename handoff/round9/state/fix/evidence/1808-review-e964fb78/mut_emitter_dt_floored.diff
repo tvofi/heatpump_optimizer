@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 5f08f465..0ca81eae 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -639,7 +639,7 @@ class ThermalParameters:
+     @property
+     def emitter_design_delta_t_floored(self) -> float:
+         """``emitter_design_delta_t`` in kelvin, never below 1.0, for dividing by."""
+-        return max(self.emitter_design_delta_t, 1.0)
++        return (self.emitter_design_delta_t)
+ 
+     @property
+     def ecl110_pid_tau_hours(self) -> float:

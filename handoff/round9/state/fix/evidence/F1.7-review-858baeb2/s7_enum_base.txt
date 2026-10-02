@@ -1,0 +1,7 @@
+RESULT candidate_sites=6
+  10819:        if self._sysid.arm(
+  10853:        override = self._sysid.step(
+  custom_components/heatpump_optimizer/sensor.py:112:    ranking = topology.rank_sensor_advisor(
+  custom_components/heatpump_optimizer/topology.py:836:        state = model.simulate_step(
+  custom_components/heatpump_optimizer/topology.py:877:def rank_sensor_advisor(
+  custom_components/heatpump_optimizer/topology.py:888:    clamp band is swept through ``ThermalModel.simulate_step`` and the

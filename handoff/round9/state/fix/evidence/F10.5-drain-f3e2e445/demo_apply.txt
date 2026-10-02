@@ -1,0 +1,13 @@
+head f3e2e445bb981eff4fef38242bcb8ac520a7afa6
+unpinned before 3915
+apply 1: changed
+write-set problems: []
+new row files: 37
+unpinned after 3878 delta 37
+pinned anchors now covered: 37 of 37
+survivor sites still unpinned: 3 of 3
+rows written for survivors: 0
+form/layout/completeness problems: []
+ratchet refusal vs HEAD^1 base: None
+apply 2 (same slice): skip-unchanged
+same-seed slice after recording: anchors 39 overlapping recorded 0

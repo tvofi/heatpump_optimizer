@@ -1,0 +1,31 @@
+## tags containing 81aa0c3b (v*)
+v6.3.16
+v6.7.12
+38
+## tags containing 64a54195 not 81aa0c3b
+56
+## is 81aa0c3b first tag v6.3.16 dated
+2026-09-06 19:16:22 +0200 v6.3.16: stamp the solve worker could not unpickle its job
+2026-09-30 16:57:05 +0200
+## v5.3.0 contains 64a54195?
+v5.3.0
+v5.3.0
+c1b53971 2026-08-22 15:06:15 +0200 Extract the DHW/space co-optimization pass; compute step hours once
+64a54195 2026-08-28 16:32:02 +0200 v5.3.0: Tuya heat pump support — operation-mode gating and three internal signals (#80)
+81aa0c3b 2026-09-06 00:37:57 +0200 3L-G1: DHW planner credits the wood-tank refill coil (#400) (#470)
+894b3310 2026-09-06 00:29:23 +0200 Record v6.3.15 release: Wave 3 done.
+4a7bdb69 2026-09-03 17:13:00 +0200 The anti-legionella stage leaves the 625-line builder (#224 stage 1) (#358)
+5ec32572 2026-09-09 07:05:05 +0200 W4-G10 S9: _build_dhw_requirements A-half leaves as _dhw_window_floors (max_method_loc 420 -> 394) (#663)
+## 894b3310 is 81aa0c3b^
+894b3310
+## coil_replan guard
+40:+            coil_replan = False
+45:+                coil_replan = not np.allclose(credited, raw, atol=1e-9)
+46:+            if not bool(np.any(pinned)) and not coil_replan:
+## log -G between
+5ec32572
+4a7bdb69
+## blocked= first build at 64a54195
+1005:+            blocked=h.dhw_blocked,
+## commit msg
+129:the floor repair all plan around it and the requirement stays visibly

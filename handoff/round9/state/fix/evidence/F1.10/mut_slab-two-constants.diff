@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/sysid.py	2026-10-01 09:11:33.757784160 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/sysid.py	2026-10-01 09:12:08.093118828 +0000
+@@ -171,7 +171,7 @@
+     two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
+     """
+     p = model.params
+-    k_slab = p.slab_heat_transfer_floored
++    k_slab = max(p.slab_heat_transfer, 1e-9)
+     gains = p.internal_gains
+     if not p.two_zone_enabled:
+         ua = p.heat_loss_coefficient * p.house_heat_loss_scale

@@ -1,0 +1,2 @@
+90335cbd:docs/HANDOVER.md:443:   budget table. Only a three-dot comparison against current main catches it.
+90335cbd:tools/audit/briefs/fix-review.md:81:    only on CI green at a head containing current main; if main moved, it merges main and waits.

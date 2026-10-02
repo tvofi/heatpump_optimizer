@@ -1,0 +1,241 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..efc3900d 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -324,15 +324,15 @@ def apply_setback(
+     if not state.active or state.recovery_active:
+         return original
+     target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+-    opt_config.target_temp = min(original["target_temp"], target)
+-    opt_config.min_temp = min(original["min_temp"], target)
+-    opt_config.comfort_temp_day = target
+-    opt_config.comfort_temp_night = target
++    object.__setattr__(opt_config, "target_temp", min(original["target_temp"], target))
++    object.__setattr__(opt_config, "min_temp", min(original["min_temp"], target))
++    object.__setattr__(opt_config, "comfort_temp_day", target)
++    object.__setattr__(opt_config, "comfort_temp_night", target)
+     dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+-    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+-    thermal_params.dhw_idle_min_temp = min(
++    object.__setattr__(thermal_params, "dhw_min_temp", min(original["dhw_min_temp"], dhw_floor))
++    object.__setattr__(thermal_params, "dhw_idle_min_temp", min(
+         original["dhw_idle_min_temp"], dhw_floor
+-    )
++    ))
+     original.written = _setback_fields(opt_config, thermal_params)
+     return original
+ 
+@@ -344,7 +344,7 @@ def lower_floor(record: SetbackRecord, opt_config: _SetbackConfig, by: float) ->
+     and rely on its unwind; recording the value here is what lets the
+     compare-and-restore take it back off.
+     """
+-    opt_config.min_temp = max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by)
++    object.__setattr__(opt_config, "min_temp", max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by))
+     record.written["min_temp"] = opt_config.min_temp
+ 
+ 
+@@ -357,7 +357,7 @@ def restore_setback(
+     for obj, names in ((opt_config, _OPT_FIELDS), (thermal_params, _DHW_FIELDS)):
+         for name in names:
+             if getattr(obj, name) is original.written[name]:
+-                setattr(obj, name, original[name])
++                object.__setattr__(obj, name, original[name])
+ 
+ 
+ def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..036c2b69 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2730,16 +2730,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+         # #18: today's blended pattern. With no day-type evidence this IS
+         # the pooled profile, byte for byte.
+-        params.dhw_hourly_draw_pattern = self._dhw_learner.pattern_for(
++        object.__setattr__(params, "dhw_hourly_draw_pattern", self._dhw_learner.pattern_for(
+             now.weekday() >= 5
+-        )
++        ))
+ 
+         # The inlet: live sensor wins, then the seasonal model, whose
+         # default amplitude of zero keeps it at the configured mean.
+         inlet = _dhw_inlet_c(self.hass, ctx._config.get(CONF_DHW_INLET_ENTITY))
+         if inlet is None:
+             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
+-        params.dhw_inlet_current = inlet
++        object.__setattr__(params, "dhw_inlet_current", inlet)
+ 
+         # #20: the learned heavy-day targets, only when opted in — and
+         # only with CONFIGURED time frames. With none, the optimizer plans
+@@ -2747,7 +2747,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # can never match statistics keyed by the configured spec; rather
+         # than let the feature silently do nothing, it is explicitly
+         # scoped to configured frames (the option text says so too).
+-        params.dhw_window_ready_energy = None
++        object.__setattr__(params, "dhw_window_ready_energy", None)
+         if params.dhw_enabled and params.dhw_windows_active and bool(
+             ctx._config.get(
+                 CONF_DHW_QUANTILE_TARGETS_ENABLED,
+@@ -2760,17 +2760,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 p90 = self._dhw_learner.draw_stats.quantile(label, 0.9)
+                 if count > 0 and p90 is not None:
+                     table[label] = (p90, count)
+-            params.dhw_window_ready_energy = table or None
++            object.__setattr__(params, "dhw_window_ready_energy", table or None)
+ 
+         # T4a #11 (gated): a recurring immersion rescue asks the plan to
+         # arrive a little earlier. 0.0 with the flag off — byte-inert.
+-        params.dhw_ready_margin_c = self._immersion_dhw_margin(now)
++        object.__setattr__(params, "dhw_ready_margin_c", self._immersion_dhw_margin(now))
+         # #1067: what a direct plant's priced flow is read against (inert off).
+-        params.flow_curve_bias, params.flow_curve_indoor_target = (
+-            self._flow_bias.bias_k, self.target_temperature)
++        for _o, _n, _v in zip((params, params), ("flow_curve_bias", "flow_curve_indoor_target"), (
++            self._flow_bias.bias_k, self.target_temperature)):
++            object.__setattr__(_o, _n, _v)
+ 
+         # #47: what a typical remaining day is expected to bottom out at.
+-        params.dhw_legionella_price_ceiling = None
++        object.__setattr__(params, "dhw_legionella_price_ceiling", None)
+         if (
+             params.dhw_elastic_legionella_enabled
+             and params.dhw_legionella_enabled
+@@ -2797,11 +2798,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # answer, which is the fail-safe one for hygiene. Same guard
+             # style as ``_record_quiet_comfort_period``.
+             if level > 1e-6:
+-                params.dhw_legionella_price_ceiling = (
+-                    self._price_model.expected_daily_min(
++                object.__setattr__(params, "dhw_legionella_price_ceiling", self._price_model.expected_daily_min(
+                         sorted(set(day_types)), level
+-                    )
+-                )
++                    ))
+     def _dhw_mixed_water(self) -> dict[str, Any]:
+         """#28: what the tank actually holds, in shower terms.
+ 
+@@ -4156,7 +4155,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     def _apply_house_heat_loss_scale(self, scale: float) -> None:
+         """Clamp the house heat loss correction and push it to the model."""
+         self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))
+-        getattr(self, "_ctx", self)._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
++        object.__setattr__(getattr(self, "_ctx", self)._thermal_params, "house_heat_loss_scale", self._house_heat_loss_scale)
+ 
+     @_refuses_non_finite
+     def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+@@ -5003,9 +5002,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             # immediately before the solve, so an options change takes effect
+             # on the next run rather than on the next restart.
+             tariff = self._capacity_tariff()
+-            ctx._opt_config.peak_price_per_kw = tariff.marginal_price_per_kw
++            object.__setattr__(ctx._opt_config, "peak_price_per_kw", tariff.marginal_price_per_kw)
+             tracker = self._peak_tracker
+-            ctx._opt_config.peak_threshold_kw = tracker.threshold_kw(tariff)
++            object.__setattr__(ctx._opt_config, "peak_threshold_kw", tracker.threshold_kw(tariff))
+             # Post-outage recovery (#22): every neighbour restarts at once,
+             # so the fresh-month "no reference yet" free pass is exactly
+             # wrong now. Force the peak term active by pricing from zero
+@@ -5013,36 +5012,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             if self._outage_recovery_active(dt_util.now()) and not np.isfinite(
+                 ctx._opt_config.peak_threshold_kw
+             ):
+-                ctx._opt_config.peak_threshold_kw = 0.0
+-            ctx._opt_config.peak_window_minutes = tariff.window_minutes
+-            ctx._opt_config.peak_count = tariff.peaks_averaged
+-            ctx._opt_config.peak_distinct_days = tariff.distinct_days
+-            ctx._opt_config.peak_months = tariff.months
+-            ctx._opt_config.peak_hours = tariff.peak_hours
+-            ctx._opt_config.peak_weekdays_only = tariff.weekdays_only
+-            ctx._opt_config.peak_offpeak_factor = tariff.offpeak_factor
+-            ctx._opt_config.price_risk_lambda = _as_float(
++                object.__setattr__(ctx._opt_config, "peak_threshold_kw", 0.0)
++            object.__setattr__(ctx._opt_config, "peak_window_minutes", tariff.window_minutes)
++            object.__setattr__(ctx._opt_config, "peak_count", tariff.peaks_averaged)
++            object.__setattr__(ctx._opt_config, "peak_distinct_days", tariff.distinct_days)
++            object.__setattr__(ctx._opt_config, "peak_months", tariff.months)
++            object.__setattr__(ctx._opt_config, "peak_hours", tariff.peak_hours)
++            object.__setattr__(ctx._opt_config, "peak_weekdays_only", tariff.weekdays_only)
++            object.__setattr__(ctx._opt_config, "peak_offpeak_factor", tariff.offpeak_factor)
++            object.__setattr__(ctx._opt_config, "price_risk_lambda", _as_float(
+                 ctx._config.get(CONF_PRICE_RISK_LAMBDA),
+                 DEFAULT_PRICE_RISK_LAMBDA,
+-            )
+-            ctx._opt_config.baseline_load_kw = self._baseline_house_load(
++            ))
++            object.__setattr__(ctx._opt_config, "baseline_load_kw", self._baseline_house_load(
+                 len(prices)
+-            )
+-            ctx._opt_config.cycling_cost = self._effective_cycling_cost()
++            ))
++            object.__setattr__(ctx._opt_config, "cycling_cost", self._effective_cycling_cost())
+             # The optimizer prices surplus consumption at this, so it has to
+             # travel with the same freshness as the tariff settings above —
+             # an entity-supplied compensation can change between runs.
+-            ctx._opt_config.pv_export_price = self._pv_export_price()
++            object.__setattr__(ctx._opt_config, "pv_export_price", self._pv_export_price())
+             self._apply_comfort_weight()
+ 
+             # Away mode is applied around the solve and unwound afterwards, so
+             # a setback can never leak past the end of the holiday.
+             self._resolve_away()
+-            ctx._opt_config.holiday_dates = away_mode.holiday_dates(
++            object.__setattr__(ctx._opt_config, "holiday_dates", away_mode.holiday_dates(
+                 self.hass,
+                 ctx._config.get(CONF_HOLIDAY_CALENDAR_ENTITY),
+                 dt_util.now(),
+-            )
++            ))
+             away_original = away_mode.apply_setback(
+                 self._away_state, ctx._opt_config, ctx._thermal_params
+             )
+@@ -5086,31 +5085,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                     DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+                 )
+             )
+-            ctx._thermal_params.solar_aperture_scale = (
+-                float(self._solar_aperture["scale"])
++            object.__setattr__(ctx._thermal_params, "solar_aperture_scale", float(self._solar_aperture["scale"])
+                 if aperture_on
+                 and self._solar_aperture["n"] >= SOLAR_APERTURE_MIN_SAMPLES
+-                else 1.0
+-            )
++                else 1.0)
+             gains_on = bool(
+                 ctx._config.get(
+                     CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+                     DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+                 )
+             )
+-            ctx._thermal_params.internal_gains_profile = (
+-                list(self._internal_gains_profile)
++            object.__setattr__(ctx._thermal_params, "internal_gains_profile", list(self._internal_gains_profile)
+                 if gains_on and self._internal_gains_profile is not None
+-                else None
+-            )
++                else None)
+ 
+-            ctx._current_state.external_heat_active = self._external_heat_active
++            object.__setattr__(ctx._current_state, "external_heat_active", self._external_heat_active)
+             # T2: the live guard's suppression and the post-outage DHW queue
+             # both ride the same discretionary-DHW gate in the solve (#7/#22).
+-            ctx._current_state.peak_guard_active = (
+-                self._peak_guard.suppressing
+-                or self._outage_dhw_hold(dt_util.now())
+-            )
++            object.__setattr__(ctx._current_state, "peak_guard_active", self._peak_guard.suppressing
++                or self._outage_dhw_hold(dt_util.now()))
+ 
+             # T3: everything the hot-water plan reads is refreshed here, in
+             # one place, immediately before the solve.
+@@ -10521,9 +10514,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         if not ctx._config.get(
+             CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
+         ):
+-            ctx._opt_config.comfort_weight = self._comfort_learner.configured_weight
++            object.__setattr__(ctx._opt_config, "comfort_weight", self._comfort_learner.configured_weight)
+             return
+-        ctx._opt_config.comfort_weight = self._comfort_learner.effective_weight
++        object.__setattr__(ctx._opt_config, "comfort_weight", self._comfort_learner.effective_weight)
+     def record_setpoint_override(self, requested: float) -> None:
+         """Note that the user overrode the plan's setpoint.
+ 

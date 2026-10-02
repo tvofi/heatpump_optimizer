@@ -1,0 +1,35 @@
+M1 byte comparison always passes: rc=1 KILLED
+    FAIL NO CARRY: a merge from main that changed a context line of the branch's hunk (got '0', want '1')
+    FAIL NO CARRY: a driver the branch gave its own file, since drivers are read at main (got '0', want '1')
+M2 no commit-shape check: rc=1 KILLED
+    FAIL NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass (got '0', want '1')
+M3 no ancestor check: rc=1 KILLED
+    FAIL NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it) (got '0', want '1')
+M4 merge parents need not be on main: rc=1 KILLED
+    FAIL NO CARRY: a merge of a branch that is not main (got '0', want '1')
+M11 hand-resolved merges pass: rc=1 KILLED
+    FAIL refused as a hand-resolved merge (got '0', want '1')
+    FAIL NO CARRY: a hand resolution that moves the branch's change to another function with the same context (got '0', want '1')
+    FAIL refused as a hand-resolved merge, whatever the diffs compare (got '0', want '1')
+M12 octopus merges pass: rc=1 KILLED
+    FAIL NO CARRY: one merge of main and another branch at once (got '0', want '1')
+M13 ci: commits may touch any file: rc=1 KILLED
+    FAIL refused as a ci: commit outside the driver files (got '0', want '1')
+    FAIL NO CARRY: a ci: commit that moves the branch's change to another function with the same context (got '0', want '1')
+    FAIL refused by the ci: guard (got '0', want '1')
+M5 evidence read at the head, not the verdict: rc=1 KILLED
+    FAIL a merge verdict at V is approved at a head it carries to (got '1', want '0')
+    FAIL at the live head, and the review says it was carried (got '', want 'ca434fc9fcd0035150dd081e937780ec56d622af True')
+M6 approve never carries: rc=1 KILLED
+    FAIL a merge verdict at V is approved at a head it carries to (got '1', want '0')
+    FAIL at the live head, and the review says it was carried (got '', want 'e5238cd5461d5b05c34a017094e8a932bda203a6 True')
+    FAIL printing the carry it relied on (got '0', want '1')
+M7 driver files read at the head, not main: rc=1 KILLED
+    FAIL NO CARRY: a driver the branch gave its own file, since drivers are read at main (got '0', want '1')
+M8 hunk headers compared raw: rc=1 KILLED
+    FAIL CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file (got '1', want '0')
+M9 no driver-file exclusion: rc=1 KILLED
+    FAIL CARRY: a ci: commit that rewrites only a merge-driver file (got '1', want '0')
+    FAIL CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file (got '1', want '0')
+M10 index lines compared raw: rc=1 KILLED
+    FAIL CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file (got '1', want '0')

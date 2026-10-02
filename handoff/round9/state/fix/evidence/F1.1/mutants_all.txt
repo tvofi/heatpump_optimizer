@@ -1,0 +1,69 @@
+P-grid [dst_checks.py] rc=1 ['2 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL at noon on every transition day the grid starts at now's own quarter  [{'plain': 0, 'spring': 96, 'autumn': 96, 'spring2025': 96, 'autumn2025': 96, 'spring2027': 96, 'autumn2027': 96}]
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_forecast_arrays')] autumn [('coordinator.py', '_forecast_arrays')]]
+    2 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-record-accuracy [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_record_accuracy')] autumn [('coordinator.py', '_record_accuracy')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-dhw-lead [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_file_dhw_lead_predictions')] autumn [('coordinator.py', '_file_dhw_lead_predictions')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-room-lead [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('coordinator.py', '_file_lead_predictions')] autumn [('coordinator.py', '_file_lead_predictions')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-next-opt [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [] autumn [('coordinator.py', '_async_update_data')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-score [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('accuracy.py', 'score_lead_predictions')] autumn [('accuracy.py', 'score_lead_predictions')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-ext-rate [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('external_heat.py', '_rate')] autumn [('external_heat.py', '_rate')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+P-dhw-dyn [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('dhw_learning.py', 'async_learn_dynamics')] autumn [('dhw_learning.py', 'async_learn_dynamics')]]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-replay-step [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL the replay lane steps a zoned clock in UTC: every day runs its true cycles  [(cycles, cycle failures) per day {'spring': (12, 0), 'autumn': (8, 0), 'plain': (10, 0)}, want 10]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+I1-outage-guard [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL a naive last tick past the gap floor opens the outage window  [recovery until None]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+I1-immersion-guard [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL three naive immersion events inside 14 days ask for the readiness margin  [margin TypeError("can't compare offset-naive and offset-aware datetimes")]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+I1-M02-open-meteo [open_meteo.py] rc=1 ['1 CHECK(S) FAILED']
+    FAIL a naive Open-Meteo stamp is UTC under a non-UTC process zone too  [zone took True, first instant 2026-08-20 22:00:00+00:00]
+    1 CHECK(S) FAILED
+N-target [f11_block.py] rc=1 ['1 of 2 F11 FAILED']
+    FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [16.0], after 21.0]
+    1 of 2 F11 FAILED
+R-as_utc-aware [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL utc_elapsed_seconds reads 01:30 to 03:30 as 3 h on the autumn day and 1 h on the spring day  [{'autumn': 2.0, 'spring': 2.0, 'plain': 2.0}]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-utc_shift-wall [dst_checks.py] rc=1 ['3 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL utc_shift of 01:30 by 2 h lands on 02:30+01:00 (autumn) and by 1 h on 03:30+02:00 (spring)  [autumn 2026-10-25T03:30:00+01:00 spring 2026-03-29T02:30:00+01:00]
+    FAIL an outage across the autumn fold opens both windows at their true instants  [now 2026-10-25T00:30:00+00:00 recovery datetime.datetime(2026, 10, 25, 4, 30, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')) dhw datetime.datetime(2026, 10, 25, 3, 15, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm'))]
+    FAIL no production seam does wall-clock arithmetic across either transition  [spring [('accuracy.py', 'utc_shift')] autumn [('accuracy.py', 'utc_shift')]]
+    3 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-outage-recovery [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL an outage across the autumn fold opens both windows at their true instants  [now 2026-10-25T00:30:00+00:00 recovery datetime.datetime(2026, 10, 25, 4, 30, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')) dhw datetime.datetime(2026, 10, 25, 2, 15, fold=1, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm'))]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-outage-dhw [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL an outage across the autumn fold opens both windows at their true instants  [now 2026-10-25T00:30:00+00:00 recovery datetime.datetime(2026, 10, 25, 3, 30, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')) dhw datetime.datetime(2026, 10, 25, 3, 15, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm'))]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-replay-forecast-walk [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL the replay lane's forecast walk steps one true hour, across both transitions  [(forecast calls, steps) {'spring': (12, {3600.0, 0.0}), 'autumn': (12, {3600.0, 7200.0}), 'plain': (12, {3600.0})}]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-replay-price-walk [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL the replay lane's price walk labels every true quarter of the day in the zone  [(quarters, steps, labels in zone) {'spring': (96, {-2700.0, 900.0}, False), 'autumn': (96, {4500.0, 900.0}, True), 'plain': (96, {900.0}, True)}]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+R-replay-price-label [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL the replay lane's price walk labels every true quarter of the day in the zone  [(quarters, steps, labels in zone) {'spring': (92, {900.0}, False), 'autumn': (100, {900.0}, False), 'plain': (96, {900.0}, False)}]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED
+CONTROL-unmutated [dst_checks.py] rc=0 ['ALL 66 DST / QUARTER-GRID CHECKS PASSED']
+CONTROL-unmutated [open_meteo.py] rc=0 ['ALL OPEN-METEO CHECKS PASSED']
+CONTROL-unmutated [f11_block.py] rc=0 ['ALL 2 F11 PASSED']
+R-as_utc-naive [dst_checks.py] rc=1 ['1 of 66 DST / QUARTER-GRID CHECKS FAILED']
+    FAIL a naive stamp is UTC to utc_elapsed_seconds under a non-UTC process zone  [zone took True, gap 7200.0 s]
+    1 of 66 DST / QUARTER-GRID CHECKS FAILED

@@ -1,0 +1,10 @@
+
+none (null control): idle-not-killed=True spin-killed=True wall-124=True -> SURVIVES
+
+A no RLIMIT_CPU (preexec_fn dropped): idle-not-killed=True spin-killed=False wall-124=True -> KILLED
+
+B no wall timeout: idle-not-killed=True spin-killed=True wall-124=False -> KILLED
+
+C rlimit on wall arg: idle-not-killed=True spin-killed=False wall-124=True -> KILLED
+
+D comment-only: idle-not-killed=True spin-killed=True wall-124=True -> SURVIVES

@@ -1,0 +1,166 @@
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+  ok   a fresh sensor reads normally
+  ok   an over-age value is rejected
+  ok   the rejected value is still available for a graceful fallback
+  ok   the age is reported so a user can see why
+  ok   an outdoor reading may be older than an indoor one
+  ok   the watchdog can be switched off entirely
+  ok   the age limit can be relaxed
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a future-stamped state is stale, not age 0
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a 4 h backward host-clock step flags the reading stale
+  ok   unavailable is distinguished from stale
+  ok   a missing entity is reported as such
+  ok   an unconfigured input is not a problem
+  ok   a non-numeric state does not raise
+  ok   a non-finite state string is refused exactly like a word
+  ok   a non-finite value is refused after unit conversion too
+  ok   the °F path itself keeps working (null control for the guard above)
+  ok   an untimestamped state is used rather than discarded
+  ok   stale inputs are listed
+  ok   missing inputs are listed
+  ok   a healthy snapshot says so
+  ok   the summary is human-readable
+  ok   the evidence names the entity
+  ok   the failing entity ids are listed
+  ok   each failure reads as one line naming entity and class
+  ok   watts are converted to kW
+  ok   kilowatts pass through
+  ok   an unrecognised unit is refused rather than guessed
+  ok   a missing unit is refused
+  ok   a power entity is normalised on read
+  ok   a wrongly-united power entity yields nothing
+  ok   an unknown unit reads as words, not a token
+  ok   every word-valued failure class renders in words a user can read
+  ok   an unconfigured slot contributes no source and no line
+  ok   a °F temperature is converted to °C on read
+  ok   the DHW tank's °F reading converts exactly
+  ok   a Wh energy meter is converted to kWh on read
+  ok   a kelvin reading is converted to °C on read
+  ok   a °C state still reads bit-for-bit
+  ok   an unrecognised unit keeps today's raw read instead of a guess
+
+-- R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)
+  ok   D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, not pinned 15 K over the curve
+  ok   D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve
+  ok   D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused as a sample, not absorbed
+  ok   D2-s2-02: a plant at the supply ceiling is learned all the way up
+  ok   D2-s2-02: a stored bias this version learns loads as stored; a wild one is re-clamped to the supply ceiling
+  ok   D2-s2-02: a restored bias at the ceiling prices no supply past FLOW_SUPPLY_MAX_C on the coldest curve
+  ok   D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is refused as a sample
+  ok   D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not negative: a positive bias lands at 0 and the cold clamp still holds
+  ok   D2-s2-02: a non-finite outdoor temperature prices no curve flow at all
+
+-- R9 N-plausibility: live inputs meet their physical window (D1-s2-02, D1-s1-03)
+  ok   a forecast row's out-of-window field is dropped to its consumer's fallback and a non-dict row is not stored at all (D1-s2-02)
+  ok   a forecast that is not a list of rows stores nothing (D1-s2-02)
+  ok   the stored forecast is the validated one: an out-of-window field is None and a non-dict row never reaches storage (D1-s2-02)
+  ok   a fabricated forecast windows its source attributes too: an absurd temperature falls to the 5.0 C fallback and an absurd wind to the consumers' 0.0, while a healthy entity fabricates unchanged (D1-s2-02)
+  ok   an ECL110 displace outside the commanded window never lands; an in-window one still does (D1-s2-02)
+  ok   an out-of-window DHW sample is refused before any learner state moves, and an in-window one is learned as before (D1-s1-03)
+
+-- R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)
+  ok   D1-s5-51: indoor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: lower_floor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: floor_return_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: buffer_tank_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: dhw_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+
+-- R9 P2: the cycle's own outcome -- covering quarter, fenced steps, failed solves, an honest press (D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)
+  ok   D2-s3-01: under quarter-hour entries the current price is the covering quarter's, agreeing with the plan's own step-0 reader on every quarter
+  ok   D2-s3-01: hourly entries (the null control) still read their own hour
+Pump arbiter apply skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-51: an arbiter raise fails neither the cycle nor the steps after it
+Accuracy pairing skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+Realised-peak tracking skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-91: a raise in the accuracy pipeline fails neither the cycle nor the saves after it
+Quiet comfort learning skipped: injected learner fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
+Optimization failed: injected L-BFGS-B blow-up
+Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/3464227d-12bc-5805-9927-bb99eae1da65/scratchpad/head/custom_components/heatpump_optimizer/coordinator.py", line 5463, in async_run_optimization
+    raise RuntimeError(
+        f"solver returned a failed plan: {result.status}"
+    )
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+  ok   D1-s4-02 (control): the inline transport solves and publishes
+  ok   D1-s4-02: a returned plan whose status starts 'failed' is a failed solve -- refused, counted, and never published
+  ok   D10-s1-02: the press raises the action's own no-prices refusal when the solve did not run
+  ok   D10-s1-02: the press returns normally when the solve ran, still off the refresh it asked for
+  ok   D10-s1-02: the press raises the action's solve-failed refusal when the solve died (the reason-is-not-None arm of the same refusal -- the mutation survivor at button.py's second guard)
+  ok   D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, the v6.6.12 bug 5 mechanism)
+  ok   D1-s2-04: every cycle-path fence surfaces its persistent failure at WARNING exactly once, repeats at DEBUG, and the cycle survives
+
+-- R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)
+  ok   D14-s2-01: the questionnaire derives single-zone physics for two_zone_mode=off however many zone keys survive
+  ok   D14-s2-01: two_zone_mode=on derives two-zone physics with no zone key stored
+  ok   D14-s2-01: an upper mass of 0.0 is presence, like any value (auto mode)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (mode off with zone keys)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (mode on, no keys)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (auto, upper mass 0.0)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (auto, nothing (null control))
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (flag on)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (flag off, probes stored)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, valve outlet alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, wood coil alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, top probe alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, nothing (null control))
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: an untouched expert wizard creates a single-zone, no-hot-water plant
+  ok   D12-s3-01: the wizard writes the explicit presence flags (two_zone_mode off, dhw_enabled off)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: a quick-setup 'yes, hot water' still plans hot water (null control)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: the wizard's own yes answers turn both plants on
+  ok   D12-s3-01: the hot-water page asks presence and suggests a stored yes back
+  ok   D12-s3-01: the zones page asks the zone question and suggests a stored on back
+  ok   D12-s3-01: an untouched options page stores no DHW presence over a no-hot-water entry
+  ok   D12-s3-01: an edited windows spec is a deliberate answer and stays (null control)
+  ok   D12-s3-01: a hot-water entry keeps an untouched pair post, as before (null control)
+  ok   D12-s3-01: an entry that affirmed hot water keeps an untouched pair post without the pair stored (the guard's affirmed arm)
+  ok   D12-s3-01: and so does an entry whose hot water is presence-inferred (volume stored, windows never)
+
+-- R9 P6: the unprobed plant state advances from the plan (D12-s1-01)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   D12-s1-01: with no tank probe the solver's DHW seed follows the previous plan, not the 55 degC default
+  ok   D12-s1-01: and the slab seed follows the previous plan, not the one-time room+1 K seed
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   D12-s1-01: a mapped tank probe still wins the seed (null control)
+  ok   D12-s1-01: a mapped floor-return probe still drives the slab seed (null control)
+  ok   D12-s1-01: a plan starting within one step of now seeds its first step
+  ok   D12-s1-01: a plan starting more than a step after now seeds nothing
+
+-- R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)
+  ok   D1-s5-01: age_of reads the reader's stamp precedence and refuses a future stamp, in every cell
+  ok   D1-s5-01: state_stamp is the only function in inputs.py reading a stamp
+  ok   D1-s5-52: every CONF_*TEMP*_ENTITY key has a plausibility window
+  ok   D1-s5-52: -127 degC is refused as implausible on every temperature key, with no value left to read
+  ok   D1-s5-52: 85 degC is refused in a room, outdoors and in a floor circuit
+  ok   D1-s5-52: an ordinary 21.3 degC passes on every key (the null control)
+  ok   D1-s5-52: an implausible reading is a missing input with words for it
+  ok   D2-s4-02: the sized step's noiseless peak leaves the noise headroom under the abort bound, and uses the allowance below it
+
+-- R9 P11: the stub clock is aware by default and the stub Store honours version (D1-s1-52, #1740)
+  FAIL with no zone configured the clock is aware, in UTC  [datetime.datetime(2026, 9, 30, 22, 14, 7, 975991)]
+  ok   ...and the configured zone is UTC, not None, as upstream's is
+  FAIL a naive freeze is read as UTC wall time by both clocks  [datetime.datetime(2026, 3, 4, 12, 30) / datetime.datetime(2026, 3, 4, 12, 30, tzinfo=datetime.timezone.utc)]
+  FAIL a naive stored stamp read against the clock raises, as it does upstream
+  FAIL null control: an aware stamp against the same clock subtracts
+  ok   a stored instant typed without an offset loads aware through the stub's zone (the away picker string, D1-s3-01)
+  ok   as_local is still the identity under the UTC default (every golden fixture was recorded that way)
+  ok   control: a store saved and loaded at one version returns its data
+  ok   a store loaded at a newer major version with no migration raises NotImplementedError
+  ok   ...and one that defines _async_migrate_func is migrated from the stored version

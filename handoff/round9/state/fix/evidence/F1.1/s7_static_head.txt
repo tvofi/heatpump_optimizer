@@ -1,0 +1,70 @@
+# unreached __init__.py:184 dt_util.as_utc(dt_util.now()) ± dt_util.as_utc(stamped_at)
+# unreached away.py:469 return_time ± now
+# unreached away.py:556 last ± timedelta(days=1)
+# unreached coordinator.py:1442 start ± timedelta(hours=i)
+# unreached coordinator.py:2611 self._legionella.last_cycle ± timedelta(
+                days=float(params.dhw_legionella_
+# unreached coordinator.py:2615 now ± timedelta(days=1)
+# unreached coordinator.py:2618 day ± timedelta(days=1)
+# unreached coordinator.py:2776 now.hour ± now.minute / 60.0
+# REACHED coordinator.py:3168 timestamps[-1] ± timedelta(hours=dt_hours)
+# unreached coordinator.py:4141 now ± previous_time
+# unreached coordinator.py:4250 now ± previous_time
+# unreached coordinator.py:4283 previous_time.hour ± previous_time.minute / 60.0
+# unreached coordinator.py:4439 now ± previous_time
+# unreached coordinator.py:4459 previous_time.hour ± previous_time.minute / 60.0
+# unreached coordinator.py:4556 now.hour ± now.minute / 60.0
+# unreached coordinator.py:5936 now ± timedelta(hours=hours)
+# unreached coordinator.py:6033 starts[idx] ± timedelta(hours=1)
+# unreached coordinator.py:6293 now ± last
+# unreached coordinator.py:6305 now ± self._last_heavy_snow
+# unreached coordinator.py:6332 ts ± timedelta(hours=1)
+# unreached coordinator.py:8023 now ± self._fuse_advisor_at
+# unreached coordinator.py:8050 now ± timedelta(days=6)
+# unreached coordinator.py:8326 now.hour ± now.minute / 60.0
+# unreached coordinator.py:8376 now ± timedelta(days=14)
+# unreached coordinator.py:9033 now.hour ± now.minute / 60.0
+# unreached coordinator.py:10044 now.hour ± now.minute / 60.0
+# unreached curve_learning.py:114 now ± last
+# unreached dhw_learning.py:394 now.hour ± now.minute / 60.0
+# unreached disinfection.py:190 now ± since
+# unreached grid_fee.py:158 when.hour ± when.minute / 60.0
+# unreached inputs.py:537 now ± stamp
+# unreached inputs.py:842 now ± stamp
+# unreached legionella.py:628 dt_util.as_utc(dt_util.now()) ± dt_util.as_utc(last)
+# unreached open_meteo.py:317 now ± timedelta(minutes=15)
+# unreached open_meteo.py:464 coarse.end ± timedelta(hours=6)
+# unreached optimizer.py:150 [(step_datetimes[0] - timedelta(hours=dt)).weekday()] ± [d.weekday() for d in step_datetim
+# unreached optimizer.py:150 step_datetimes[0] ± timedelta(hours=dt)
+# unreached optimizer.py:201 start ± timedelta(hours=i * dt_hours)
+# unreached optimizer.py:204 utc ± timedelta(hours=i * dt_hours)
+# unreached optimizer.py:2297 time.monotonic() ± h.t_start
+# unreached optimizer.py:2503 start_time.hour * 60 ± start_time.minute
+# unreached optimizer.py:4085 time.monotonic() ± t_start
+# unreached optimizer.py:5974 start_time.hour ± start_time.minute / 60.0
+# unreached optimizer.py:6254 time.monotonic() ± t_start
+# unreached price_model.py:242 (when.hour % HOURS_PER_DAY) * QUARTERS_PER_HOUR ± (
+            when.minute // 15
+        
+# unreached pump_arbiter.py:373 now ± held.dhw_since
+# unreached pump_arbiter.py:424 now ± timedelta(minutes=RETRY_MINUTES)
+# unreached pump_arbiter.py:481 now.minute ± now.minute % 15
+# unreached services.py:873 now ± timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+# unreached snapshots.py:79 now ± last
+# unreached sysid.py:728 b.when ± a.when
+# unreached sysid.py:1510 current.when ± previous.when
+# unreached sysid.py:1605 usable[i].when ± usable[i - 1].when
+# unreached sysid.py:1840 last.room_temp ± last.outdoor_temp
+# unreached tariff.py:57 when.hour * 60 ± when.minute
+# REACHED tariff.py:58 midnight ± timedelta(minutes=minutes)
+# unreached tariff.py:139 when.hour ± when.minute / 60.0
+# unreached tariff.py:582 base ± timedelta(minutes=window * i)
+# unreached tariff.py:605 base ± timedelta(minutes=window * i)
+# unreached wood_fuel.py:162 timestamps[0] ± timedelta(hours=48)
+# unreached wood_fuel.py:175 when.hour ± when.minute / 60.0
+# unreached wood_fuel.py:212 now ± timedelta(days=1)
+# unreached wood_fuel.py:349 anchor ± timedelta(hours=i * dt_hours)
+RESULT candidates=63 count
+RESULT reached=2 count
+RESULT reached_not_in_candidates=0 count
+RESULT load1=0 thread_factor=1.0 swapins=0 (static, no timing)

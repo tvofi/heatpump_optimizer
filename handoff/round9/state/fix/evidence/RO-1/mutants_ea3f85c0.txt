@@ -1,0 +1,29 @@
+A ** stops crossing dirs: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+B brace keeps first alt only: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+C dir ref drops trailing-dot form: selftest rc=1 KILLED; enforce rc=1; by: live citation of a retired directory ending a sentence
+D under(): dir entry matches exact only: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+E target(): dir rename drops tail: selftest rc=1 KILLED; enforce rc=1; by: 
+F manifest not skipped: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+G enforce never fails (verdict): selftest rc=1 KILLED; enforce rc=0; by: file outside every category | path in two categories | retired file re-added | live citation of a retired path (+8)
+G2 enforce ignores the flag (verdict): selftest rc=1 KILLED; enforce rc=1; by: file outside every category | path in two categories | retired file re-added | live citation of a retired path (+8)
+H grep error ignored: selftest rc=0 SURVIVED; enforce rc=1; by: 
+I file ref head boundary dropped: selftest rc=1 KILLED; enforce rc=1; by: negative: a longer name that contains it
+J enumerate guard dropped (main): selftest rc=0 SURVIVED; enforce rc=1; by: 
+K self-test vacuity guard n>=len(files) dropped: selftest rc=0 SURVIVED; enforce rc=1; by: 
+L ? matches slash: selftest rc=0 SURVIVED; enforce rc=1; by: 
+M * crosses dirs: selftest rc=1 KILLED; enforce rc=1; by: file one directory below a single-star glob
+N retired arm skips since!=null entries: selftest rc=1 KILLED; enforce rc=1; by: moved path re-added after its move landed
+O dead arm: news ignored: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+M1 two-category refusal: selftest rc=1 KILLED; enforce rc=1; by: path in two categories
+M3 historical exclusion: selftest rc=1 KILLED; enforce rc=1; by: negative: the citation under the archive | negative: the citation in a delivery row
+M3b retired-into-historical exclusion: selftest rc=1 KILLED; enforce rc=1; by: negative: the citation in a row not yet moved
+M4 dead glob arm: selftest rc=1 KILLED; enforce rc=1; by: dead category glob
+M5 dir citation without slash: selftest rc=1 KILLED; enforce rc=1; by: live citation of a retired directory, no slash | live citation of a retired directory ending a sentence
+M6 retired file arm: selftest rc=1 KILLED; enforce rc=1; by: retired file re-added | retired target outside every category | moved path re-added after its move landed | negative: the citation in a row not yet moved
+M7 enumeration: selftest rc=1 KILLED; enforce rc=1; by: base tree | file outside every category | path in two categories | retired file re-added (+13)
+M8 retired target category: selftest rc=1 KILLED; enforce rc=1; by: retired target outside every category
+M9 outside refusal: selftest rc=1 KILLED; enforce rc=1; by: file outside every category | retired file re-added | retired target outside every category | moved path re-added after its move landed (+2)
+M10 reference file entry tail: selftest rc=1 KILLED; enforce rc=1; by: negative: a longer name that contains it
+M11 dead retired entry: selftest rc=1 KILLED; enforce rc=1; by: dead retired entry
+N2 since-set entry reads as planned: selftest rc=1 KILLED; enforce rc=1; by: moved path re-added after its move landed
+M0 unmutated: selftest rc=0

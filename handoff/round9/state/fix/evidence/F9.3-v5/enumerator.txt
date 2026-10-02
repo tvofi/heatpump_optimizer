@@ -1,0 +1,14 @@
+== 1f1ec731 enumerator sha1 59212b6b
+RESULT fixture_clean_unguarded=0 count
+RESULT fixture_reintro_unguarded=1 count
+RESULT numfield_seams=28 count
+RESULT numfield_unguarded=13 count
+RESULT dtnaive_seams=3 count
+RESULT dtnaive_instance=0 count
+== a027a5b6 enumerator sha1 59212b6b
+RESULT fixture_clean_unguarded=0 count
+RESULT fixture_reintro_unguarded=1 count
+RESULT numfield_seams=28 count
+RESULT numfield_unguarded=13 count
+RESULT dtnaive_seams=3 count
+RESULT dtnaive_instance=0 count

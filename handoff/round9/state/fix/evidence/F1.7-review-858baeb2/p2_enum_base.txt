@@ -1,0 +1,16 @@
+RESULT cells=40 count
+RESULT derive_preset_disagree=0 count
+RESULT prefill_refused_or_missed=0 count
+RESULT null_control_cells=20 count
+RESULT null_control_disagree=0 count
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/83bafe80-6c7f-5cd6-aa07-6e655185a3a9/scratchpad/enum/c44e7bcd60/tools/audit/round9/D14/sweep/P2/enumerator.py", line 329, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/claude-0/-home-claude/83bafe80-6c7f-5cd6-aa07-6e655185a3a9/scratchpad/enum/c44e7bcd60/tools/audit/round9/D14/sweep/P2/enumerator.py", line 302, in main
+    dp = perturbed(config_flow._derive_preset, "two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),",
+                   "two_zone=ThermalParameters.from_config(dict(current)).two_zone_enabled,")
+  File "/tmp/claude-0/-home-claude/83bafe80-6c7f-5cd6-aa07-6e655185a3a9/scratchpad/enum/c44e7bcd60/tools/audit/round9/D14/sweep/P2/enumerator.py", line 251, in perturbed
+    assert old in src, (fn.__name__, old)
+           ^^^^^^^^^^
+AssertionError: ('_derive_preset', 'two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),')

@@ -1,0 +1,46 @@
+== D1-s1-51: hastub Store decodes with stdlib json, not orjson: 6 of 6 hostile number tokens load where HA drops the file ==
+Traceback (most recent call last):
+  File "/tmp/claude-0/r9f11/comb-b2e3560671-head/tools/audit/round9/D1/leads/stub_store_codec.py", line 20, in <module>
+    import orjson
+ModuleNotFoundError: No module named 'orjson'
+
+== D1-s1-52: hastub dt_util.now() is naive by default: 6 of 6 aware/naive cells invert their verdict ==
+s=1 ha_raises=0
+RESULT cell_curve._step_down_aware: stub_raises=1 ha_raises=0
+RESULT cell_comfort._decay_aware: stub_raises=1 ha_raises=0
+RESULT cell_ring.due_naive: stub_raises=1 ha_raises=0
+RESULT cell_curve._step_down_naive: stub_raises=1 ha_raises=0
+RESULT cell_comfort._decay_naive: stub_raises=0 ha_raises=1
+RESULT divergent=6 of_6
+RESULT thread_factor=1.000
+RESULT load1=1.84
+RESULT swapins=0
+
+== D1-s2-71: hastub DataUpdateCoordinator drops update_interval: 4 of 4 cells unreadable ==
+terval=0:05:00
+cell interval= 15 min update_interval=0:15:00
+cell interval= 30 min update_interval=0:30:00
+cell interval= 60 min update_interval=1:00:00
+RESULT unreadable_cells=0 of 4 count
+RESULT matching_cells=4 of 4 count
+RESULT null_control_kept_attrs_readable=4 of 4 count
+RESULT undeclared_in_ha_contract=1 count
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=1.84
+RESULT swapins=0
+
+== D6-s1-81 (currency fallback) ==
+{'under_real_ha_default_config_currency': 'EUR', 'under_hastub_double_currency_none': 'SEK', 'readme_claims': 'SEK when the instance has none configured', 'instance': True}
+== D10-s1-03 (Tibber reauth) ==
+{'reauth_falls_through_to_fetch_failed': True, 'ConfigEntryAuthFailed_referenced_anywhere': False, 'instance': True}
+== D14-s4-02 (replay clock) call sites ==
+tests/replay.py: 2 freeze() call(s)
+tests/dst_checks.py: 33 freeze() call(s)
+tests/golden.py: 2 freeze() call(s)
+tests/rolling.py: 2 freeze() call(s)
+tests/entities.py: 12 freeze() call(s)
+tests/features.py: 54 freeze() call(s)
+tests/finite_boundary.py: 2 freeze() call(s)
+tests/ha_contract.py: 2 freeze() call(s)
+tests/guard_pins.py: 2 freeze() call(s)

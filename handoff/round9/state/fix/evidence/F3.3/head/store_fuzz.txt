@@ -1,0 +1,21 @@
+MODE perturb=False perturb_label=False N=250 seed=9104
+RESULT load_exceptions=0 count
+RESULT stuck_duty=0 count
+RESULT stuck_duty_pinned_at_derate_min=0 count
+RESULT stuck_duty_silent=0 count
+RESULT duty_targeted_stuck=0 count
+RESULT duty_targeted_pinned_at_derate_min=0 count
+RESULT duty_targeted_silent=0 count
+RESULT sibling_factors_stuck=0 count
+RESULT sibling_factors_load_exceptions=0 count
+RESULT healthy_null_control_stuck=0 count
+RESULT flow_bias_load_exceptions=0 count
+RESULT flow_bias_bad=6 count
+RESULT v2_one_bad_cell_flagged_migrated=0 count
+RESULT v2_one_bad_cell_measured_buckets_discarded=250 count
+RESULT nan_bucket_factor_after_200_zero_folds=1.0000 ratio
+RESULT healthy_bucket_factor_after_200_zero_folds=1.0000 ratio
+RESULT thread_factor=1.000
+RESULT load1=3.21
+RESULT swapins=0
+rc=0

@@ -1,0 +1,2 @@
+subprocess.TimeoutExpired: Command '['/tmp/claude-0/-home-user/4734ca49-ed5f-572b-b86a-c35eb6d351c9/scratchpad/venv/bin/python', 'tools/audit/round4/D7/sysid_estimator_frontier.py']' timed out after 240 seconds
+rc=1 wall=250s

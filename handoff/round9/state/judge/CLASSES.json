@@ -1,0 +1,515 @@
+[
+ {
+  "class": "P2",
+  "n": 27,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D1-s2-51",
+   "D1-s2-91",
+   "D1-s3-01",
+   "D1-s3-02",
+   "D1-s4-02",
+   "D1-s5-01",
+   "D1-s5-03",
+   "D1-s5-52",
+   "D2-s1-02",
+   "D2-s2-01",
+   "D2-s2-03",
+   "D2-s3-01",
+   "D2-s4-02",
+   "D4-s2-06",
+   "D7-s1-71",
+   "D7-s2-02",
+   "D8-s1-02",
+   "D8-s1-03",
+   "D8-s2-02",
+   "D8-s2-03",
+   "D8-s3-61",
+   "D10-s1-01",
+   "D10-s1-02",
+   "D12-s2-01",
+   "D12-s2-02",
+   "D12-s3-01",
+   "D14-s2-01"
+  ]
+ },
+ {
+  "class": "I5",
+  "n": 19,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D4-s2-09",
+   "D5-s1-01",
+   "D5-s1-02",
+   "D5-s1-03",
+   "D5-s1-05",
+   "D5-s2-01",
+   "D5-s2-02",
+   "D5-s2-03",
+   "D5-s2-51",
+   "D6-s1-01",
+   "D6-s1-02",
+   "D6-s1-03",
+   "D6-s2-01",
+   "D6-s2-02",
+   "D6-s2-03",
+   "D6-s2-04",
+   "D6-s2-05",
+   "D8-s3-02",
+   "D11-s2-04"
+  ]
+ },
+ {
+  "class": "I1",
+  "n": 11,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D3-s1-01",
+   "D3-s1-91",
+   "D3-s2-01",
+   "D3-s2-02",
+   "D3-s3-01",
+   "D3-s3-02",
+   "D3-s3-03",
+   "D3-s3-04",
+   "D3-s3-05",
+   "D7-s1-02",
+   "D14-s5-02"
+  ]
+ },
+ {
+  "class": "P1",
+  "n": 9,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D1-s1-01",
+   "D1-s1-02",
+   "D1-s2-03",
+   "D1-s3-03",
+   "D1-s3-06",
+   "D1-s4-01",
+   "D1-s4-03",
+   "D1-s5-02",
+   "D14-s1-01"
+  ]
+ },
+ {
+  "class": "I3",
+  "n": 7,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D11-s1-01",
+   "D11-s1-02",
+   "D11-s1-03",
+   "D11-s1-04",
+   "D11-s2-01",
+   "D11-s2-02",
+   "D13-s1-03"
+  ]
+ },
+ {
+  "class": "P11",
+  "n": 6,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D1-s1-51",
+   "D1-s1-52",
+   "D1-s2-71",
+   "D6-s1-81",
+   "D10-s1-03",
+   "D14-s4-02"
+  ]
+ },
+ {
+  "class": "I4",
+  "n": 5,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D7-s3-02",
+   "D11-s1-71",
+   "D11-s1-72",
+   "D13-s1-01",
+   "D14-s2-03"
+  ]
+ },
+ {
+  "class": "P6",
+  "n": 5,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D2-s1-51",
+   "D4-s2-01",
+   "D10-s2-01",
+   "D12-s1-01",
+   "D14-s1-02"
+  ]
+ },
+ {
+  "class": "P9",
+  "n": 4,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D4-s1-01",
+   "D4-s1-02",
+   "D4-s1-03",
+   "D4-s1-05"
+  ]
+ },
+ {
+  "class": "new: avoidable interpreter-bound recomputation in the solve",
+  "n": 4,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D9-s1-01",
+   "D9-s1-02",
+   "D9-s1-04",
+   "D9-s1-71"
+  ]
+ },
+ {
+  "class": "P3",
+  "n": 3,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D2-s2-81",
+   "D12-s2-03",
+   "D14-s3-01"
+  ]
+ },
+ {
+  "class": "P5",
+  "n": 3,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D2-s4-01",
+   "D2-s4-81",
+   "D14-s3-03"
+  ]
+ },
+ {
+  "class": "new: CPU gate blind to a regression outside its sampled work",
+  "n": 3,
+  "rca": true,
+  "why": "N >= 3",
+  "findings": [
+   "D9-s2-02",
+   "D9-s2-03",
+   "D9-s2-71"
+  ]
+ },
+ {
+  "class": "P8",
+  "n": 2,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D12-s3-81",
+   "D14-s2-02"
+  ]
+ },
+ {
+  "class": "new: CPU work inline on the event loop",
+  "n": 2,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D9-s1-03",
+   "D9-s2-01"
+  ]
+ },
+ {
+  "class": "new: live input with no physical-plausibility bound",
+  "n": 2,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s1-03",
+   "D1-s2-02"
+  ]
+ },
+ {
+  "class": "new: persisted future instant trusted without bound",
+  "n": 2,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s1-04",
+   "D1-s3-05"
+  ]
+ },
+ {
+  "class": "new: production member reached by no production code",
+  "n": 2,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D7-s3-01",
+   "D7-s3-72"
+  ]
+ },
+ {
+  "class": "new: user state not surviving restart",
+  "n": 2,
+  "rca": true,
+  "why": "class already barriered by RC2 (#1641, merged 4f25b5e3)",
+  "findings": [
+   "D1-s2-52",
+   "D1-s2-53"
+  ]
+ },
+ {
+  "class": "I2",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D14-s5-01"
+  ]
+ },
+ {
+  "class": "P4",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D0-s2-02"
+  ]
+ },
+ {
+  "class": "P7",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D14-s4-01"
+  ]
+ },
+ {
+  "class": "new: a sign floor on a price margin breaks the stated piecewise identity",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D2-s3-02"
+  ]
+ },
+ {
+  "class": "new: an approval bound to an exact head is re-bought on a diff-identical move",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D13-s1-02"
+  ]
+ },
+ {
+  "class": "new: an entity family whose names do not lead with a shared token splits under the name sort",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D8-s3-01"
+  ]
+ },
+ {
+  "class": "new: compatibility duplicate entity enabled by default",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D8-s3-03"
+  ]
+ },
+ {
+  "class": "new: error-translating try opened after the call it should cover",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s2-55"
+  ]
+ },
+ {
+  "class": "new: explicit-Euler stability judged per store instead of on the coupled step matrix",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D2-s1-01"
+  ]
+ },
+ {
+  "class": "new: fit integrator differs from the simulated plant",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D7-s2-01"
+  ]
+ },
+ {
+  "class": "new: learned-correction clamp sized against an assumed range, not the model's curve",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D2-s2-02"
+  ]
+ },
+ {
+  "class": "new: markdown the renderer misplaces",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D5-s1-04"
+  ]
+ },
+ {
+  "class": "new: missing icons.json services block",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s2-08"
+  ]
+ },
+ {
+  "class": "new: persistent failure swallowed at DEBUG",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s2-04"
+  ]
+ },
+ {
+  "class": "new: pointer-only editing with no keyboard route",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s1-04"
+  ]
+ },
+ {
+  "class": "new: return inside finally",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D7-s3-51"
+  ]
+ },
+ {
+  "class": "new: selector minimum off its own step grid",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s2-05"
+  ]
+ },
+ {
+  "class": "new: series resolution inferred from the minimum gap",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s5-04"
+  ]
+ },
+ {
+  "class": "new: service input without an upper-bound clamp",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s2-54"
+  ]
+ },
+ {
+  "class": "new: shutdown reap waits on the lock a solve holds",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s2-05"
+  ]
+ },
+ {
+  "class": "new: solve-scoped mutation of shared live config seen by a concurrent reader",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s3-04"
+  ]
+ },
+ {
+  "class": "new: staleness limit shorter than a report-on-change sensor's quiet interval",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D1-s5-51"
+  ]
+ },
+ {
+  "class": "new: state-blind menu re-offers a completed path",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s2-07"
+  ]
+ },
+ {
+  "class": "new: structure metric blind to a code shape",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D7-s1-01"
+  ]
+ },
+ {
+  "class": "new: text producer takes no language parameter",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s2-81"
+  ]
+ },
+ {
+  "class": "new: translation leaf double-escaped",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D4-s2-03"
+  ]
+ },
+ {
+  "class": "new: whole-entity availability gated on an optional input",
+  "n": 1,
+  "rca": false,
+  "why": "",
+  "findings": [
+   "D8-s2-01"
+  ]
+ }
+]

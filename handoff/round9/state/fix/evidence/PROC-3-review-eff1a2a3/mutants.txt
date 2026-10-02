@@ -1,0 +1,2 @@
+mutant s/git log --full-history -c --diff/git log --full-history --no-merges --diff/:   FAIL transport: a body written in a merge's own resolution is refused (got 0, wanted 1)   ok   transport: an unreadable range is refused, never passed 145 passed, 1 failed 
+mutant s/git log --full-history -c --diff/git log --full-history -m --diff/:   FAIL transport: merging a main that carries a transport file passes (null control) (got 1, wanted 0)   ok   transport: an unreadable range is refused, never passed 145 passed, 1 failed 

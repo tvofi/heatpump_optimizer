@@ -1,0 +1,20 @@
+RESULT candidate_fromisoformat_sites=19
+  widen custom_components/heatpump_optimizer/accuracy.py:446
+  widen custom_components/heatpump_optimizer/coordinator.py:3408
+  widen custom_components/heatpump_optimizer/coordinator.py:3417
+  widen custom_components/heatpump_optimizer/coordinator.py:643
+  widen custom_components/heatpump_optimizer/coordinator.py:8023
+  widen custom_components/heatpump_optimizer/coordinator.py:8035
+  widen custom_components/heatpump_optimizer/coordinator.py:826
+  widen custom_components/heatpump_optimizer/coordinator.py:8833
+  widen custom_components/heatpump_optimizer/drift.py:50
+  widen custom_components/heatpump_optimizer/manual_plan.py:238
+  widen custom_components/heatpump_optimizer/manual_plan.py:248
+  widen custom_components/heatpump_optimizer/manual_plan.py:84
+  widen custom_components/heatpump_optimizer/open_meteo.py:207
+  widen custom_components/heatpump_optimizer/price_model.py:519
+  widen custom_components/heatpump_optimizer/store.py:129
+  widen custom_components/heatpump_optimizer/store.py:199
+  widen custom_components/heatpump_optimizer/store.py:200
+  widen custom_components/heatpump_optimizer/store.py:201
+  widen custom_components/heatpump_optimizer/wood_fuel.py:246

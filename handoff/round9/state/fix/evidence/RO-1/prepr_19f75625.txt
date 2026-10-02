@@ -1,0 +1,44 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             830f84ad7a25453248a7709f4dfd13769b2d9684
+  ok       gate mode              MODE: FULL
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 830f84ad7a25453248a7709f4dfd13769b2d9684 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             6:all
+             6:every
+             8:each
+             8:each
+             18:each
+             24:never
+             39:each
+             39:none
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             155 r
+             1519 f
+             16 a
+             3094 t
+             14 c
+             2251 p
+             1,471
+             40 p
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/f1acd7f4-54d8-592e-8221-75dde444d56b/scratchpad/ro1/body.md
+  ok       figures                FIGURES: 18 resolved, 1 not verified, 0 refused
+  skip     push order             HEAD is detached, so no branch of this repository is the pull request's head
+
+PRE-PR: 19f75625b25981c69ef6a51fdc828c6b57421aa0 00000000000000000

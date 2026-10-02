@@ -1,0 +1,10 @@
+
+def _comment_lines(text: str) -> list[str]:
+    """Everything a claim line is not: header prose, the stamp, notes, blanks."""
+    return [ln for ln in text.splitlines() if not ln.partition("#")[0].strip()]
+
+
+def _is_may_drift(line: str) -> bool:
+    body, _, note = line.partition("#")
+    return not body.strip() and note.strip().startswith(MAY_DRIFT_MARKER)
+

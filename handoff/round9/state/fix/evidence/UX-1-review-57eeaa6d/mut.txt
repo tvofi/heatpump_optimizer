@@ -1,0 +1,17 @@
+R1_no_solar: rc 1, failing 1
+    FAIL  UX-1 it names the solar surplus ahead
+R2_dhwmin_attr_renamed: rc 0, failing 0
+R3_dhw_ctx_is_space: rc 0, failing 0
+R4_coast_no_step: rc 1, failing 1
+    FAIL  UX-1 it names the run it coasts on and the next run
+R5_rank_strict: rc 1, failing 2
+    FAIL  UX-1 a dear idle step gives its price rank within the horizon
+    FAIL  UX-1 a step in the cheaper half claims no price reason
+R6_flip_at_60: rc 0, failing 0
+R7_no_coast: rc 1, failing 2
+    FAIL  UX-1 it names the run it coasts on and the next run
+    FAIL  UX-1 both channels idle share one block and one price line
+R8_narrative_first_only: rc 1, failing 1
+    FAIL  headline shows every narrative line
+R9_narrative_reversed: rc 0, failing 0
+R10_tank_on_space_ch: rc 0, failing 0

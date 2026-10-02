@@ -1,0 +1,5 @@
+custom_components/heatpump_optimizer/config_flow.py 39
+custom_components/heatpump_optimizer/coordinator.py 7
+custom_components/heatpump_optimizer/optimizer.py 11
+custom_components/heatpump_optimizer/thermal_model.py 6
+RESULT ref=754d2319 package_seams=63

@@ -1,0 +1,1 @@
+RESULT cases=20002 restart_moved=19475 worst_move=5.037e-01 out_of_range=0 mean_off_1=19142 default_moved=1

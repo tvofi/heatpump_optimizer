@@ -1,0 +1,177 @@
+
+=== DST / quarter-grid (subprocess, HASTUB_TZ) ===
+
+-- the stub honours HASTUB_TZ
+  ok   dt_util carries the configured zone
+
+-- solve anchor snaps to the quarter grid (coordinator path)
+  ok   12:07:33 floors to 12:00:00 with tz and date intact
+  ok   a boundary instant is its own anchor
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   optimize() receives the snapped anchor, not the raw 12:07 instant
+  ok   every published plan timestamp lands on a :00/:15/:30/:45 boundary
+  ok   step 0's price is the quarter in force at 12:07 — the 12:00 hour's
+  ok   the wall-clock action lookup lands on step 0, no pre-horizon clamp
+  ok   filed lead promises mature on quarter boundaries
+  ok   an override expiring 12:05 still pins the [12:00, 12:15) step at 12:07
+  ok   and frees every step starting at or past the expiry
+  ok   the not-yet-expired override is kept, not dropped eagerly
+
+-- window snap: day-anchored, across both DST transitions
+  ok   15/30/60-minute snaps match the old keys exactly, fold included
+  ok   the 25-hour autumn day meters 25 distinct 60-minute windows
+  ok   120-minute windows advance the hour on the fold day (0,0,2,2,4,4,…)
+  ok   and on the gap day, straight through the missing wall hour
+  ok   a 12:10 and a 13:30 sample share one 120-minute window
+  ok   elapsed inside a 120-minute window can exceed an hour
+  ok   the window closes on the 2-hour boundary, not every wall hour
+  ok   window_factors samples 12:00/14:00/16:00, not 13:00/15:00/17:00
+
+-- planning grid on DST days (#243)
+  ok   all six transition days align prices to real instants
+  ok   the plain day stays a zero null
+  ok   _forecast_arrays and _price_series agree on the spring grid
+  ok   _Horizon.timestamps invents no spring phantom
+  ok   coordinator and optimizer stamp the same spring grid
+  ok   spring and autumn UTC gaps are 15 minutes, plain day too
+  ok   spring plan books no energy on a phantom step
+  ok   autumn plan max gap is one 15-minute step
+
+-- window_factors across a transition INSIDE the horizon (#777)
+  ok   the transition really is inside the autumn and spring horizons
+  ok   autumn fold: every window bills under the hour the meter keys it at
+  ok   spring gap: every window bills under the hour the meter keys it at
+  ok   NULL CONTROL: the ordinary Saturday a week earlier never disagreed
+  ok   and the comparison is not vacuous — both rates occur in every cell
+
+-- age seams across the DST transitions (#1299)
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   a 2 h fold-night outage reads its true age, not the wall clock's
+  ok   and crosses the 90-minute stale floor a 2 h outage must cross
+  ok   weather staleness across the fold is the true 2 h
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   spring gap: the plan age is the true 2 h, not 3 h of wall clock
+  ok   spring gap: weather staleness is the true 2 h
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   NULL CONTROL: the plain night's ages were always true
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   a backward clock step publishes 0 h staleness, not a negative age
+  ok   the plan age stays clamped at 0 after the same step
+  ok   a fold-night handover 2 h old is refused against a 60-min window
+  ok   NULL CONTROL: the plain-night 2 h handover is refused identically
+  ok   legionella hours_since reads true elapsed across the fold
+  ok   the pump walks the plan by TRUE elapsed steps across the fold
+  ok   and that agreement is the OFF the true index commands
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (Heating and hot water) has stopped acting and the plan is back to assuming full capability
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (Heating and hot water) has stopped acting and the plan is back to assuming full capability
+  ok   the fold-night outage stamped its last-good at the pre-fold instant
+  ok   a mode unreadable for a TRUE 3 h 20 min is expired, not held good
+  ok   NULL CONTROL: the plain night expires the same-age mode identically
+  ok   a defrost running the fold's true 2 h books 7200 s of duty
+  ok   NULL CONTROL: the plain night books the same 7200 s
+  ok   and a mixed naive/aware pair is still declined, not guessed
+
+-- the forecast grid after the transition (round-9 D14-s4-01)
+  ok   at noon on every transition day the grid starts at now's own quarter
+  ok   NULL CONTROL: the plain day's noon grid was always aligned
+
+-- naive stored stamps under the aware clock (round-9 D3-s1-91)
+Update gap of 150 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   a naive last tick past the gap floor opens the outage window
+  ok   NULL CONTROL: a naive last tick 10 min ago opens nothing
+  ok   three naive immersion events inside 14 days ask for the readiness margin
+  ok   a naive stamp is UTC to utc_elapsed_seconds under a non-UTC process zone
+
+-- the UTC helpers themselves across both transitions (round-9 P7)
+  ok   utc_elapsed_seconds reads 01:30 to 03:30 as 3 h on the autumn day and 1 h on the spring day
+  ok   NULL CONTROL: on a plain day 01:30 to 03:30 is 2 h
+  ok   utc_shift of 01:30 by 2 h lands on 02:30+01:00 (autumn) and by 1 h on 03:30+02:00 (spring)
+Update gap of 150 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   an outage across the autumn fold opens both windows at their true instants
+
+-- the DST tracer over replayed transition days (round-9 P7 barrier)
+
+=== Stress and economics ===
+  ok   the replay lane steps a zoned clock in UTC: every day runs its true cycles
+  ok   the replay lane's forecast walk steps one true hour, across both transitions
+  ok   the replay lane's price walk labels every true quarter of the day in the zone
+  ok   no production seam does wall-clock arithmetic across either transition
+  ok   NULL CONTROL: the plain day reads no seam, and the tracer did run
+
+-- the manual override lasts its stated length in true time (#1756, D9)
+  ok   a default override applied the evening before either transition lasts 20 true hours
+  ok   a far expires_at is clamped to the same 20 true hours
+  ok   NULL CONTROL: on a plain day the 20 hours were always right
+  ok   a step ending at the autumn fold stays off for a slot that starts 30 true minutes after it
+  ok   NULL CONTROL: a slot that starts inside the step still pins it on
+
+-- the DST tracer: config arm and straddle arm (#1756)
+  ok   every arm runs its true cycles on every day, none failing outright
+  ok   arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition
+  ok   NULL CONTROL arm [tariff 15 min]: the plain day reads no seam
+  ok   arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition
+  ok   NULL CONTROL arm [tariff 60 min]: the plain day reads no seam
+  ok   arm [straddle]: no production seam does wall-clock arithmetic across either transition
+  ok   NULL CONTROL arm [straddle]: the plain day reads no seam
+
+-- rate limiters, retry stamps and manual-plan compares across the fold (round-9 F10.1d)
+  ok   the fold hour: a meter event a true hour on is not throttled
+  ok   NULL CONTROL: a plain hour: a meter event a true hour on is not throttled
+Pump duty: the pump does not hold a write, x; retrying
+  ok   a pump write retry set on the fold night waits a true 5 minutes
+  ok   and is due once those 5 true minutes have passed, not an hour of wall clock later
+  ok   a pump write read back a true 60 s later across the fold is past its 20 s echo grace
+  ok   NULL CONTROL: a plain-hour write read back an hour later is past its grace
+  ok   a pump write retry stamped 5 true minutes after a 02:58 CEST failure still holds at 02:58 CEST
+  ok   spring gap: a meter event a true 5 s after the last is throttled, not 62 minutes of wall clock on
+  ok   the roof-snow hold has lapsed 2 days 30 true minutes after the last heavy fall
+  ok   NULL CONTROL: the same hold is still on a true 1 day 23 h 30 min after
+  ok   snow memory decays over the true hour of the fold, not the wall zero
+  ok   the what-if limiter lets a call a true hour after the last one through
+  ok   the meter fold weighs a sample by its true 10 minutes across the fold
+  ok   a compressor frequency write a true hour after the last one is not rate-limited
+  ok   a far expiry applied the morning before the fold clamps to 20 true hours
+  ok   an override expiring 02:30 CET is still running at 02:45 CEST, a true 45 minutes before
+  ok   an expiry 02:30 CET is in the future of 02:45 CEST, so it is accepted
+  ok   NULL CONTROL: on a plain day the same far expiry was always 20 hours
+
+-- R9-F10.1e: the census-missed sites measure true time across the fold and the spring gap
+  ok   legionella: a hot-to-hot gap across the fold adds its true 1 minute to the hold
+  ok   legionella: a credit a true hour after the last is not refused across the fold
+  ok   legionella: a credit a true 2 minutes after the last is refused across the spring gap
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+  ok   legionella: the 12 h boost bound closes at 12 true hours across the fold
+  ok   legionella: a cycle credited a true 20 minutes into the boost counts as credited
+  ok   drift: a latch starved for a true hour releases on the fold only if the hour passed
+  ok   drift: a latch starved for a true hour releases on the spring gap only if the hour passed
+  ok   comfort learning: evidence decays over the true minute, not by a negative wall span
+  ok   external heat: confidence fades over the fold's true hour, not its wall zero
+  ok   sysid: arming after a true 30 days is allowed across the autumn fold
+  ok   sysid: the 2 h step ends at 2 true hours across the fold, not the 1 h of wall clock
+  ok   house learner: a replay across the fold weighs the true hour, not a wall zero
+  ok   NULL CONTROL: the house learner takes no sample across the spring gap (a true 2 minutes, under its floor)
+  ok   lower-floor learner: a replay across the fold weighs the true hour, not a wall zero
+  ok   NULL CONTROL: the lower-floor learner takes no sample across the spring gap (a true 2 minutes, under its floor)
+  ok   buffer cooling learner: a sample a true hour on across the fold is accepted
+Update gap of 3584130 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   outage recovery: still active a true 45 minutes before its end across the fold
+Update gap of 3584090 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   outage recovery: over once the true end has passed, though the wall clock reads before it
+Update gap of 3584180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   outage DHW hold: still queueing a true 35 minutes before its end across the fold
+Update gap of 3584165 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   outage DHW hold: released a true 30 minutes after its end
+  ok   boost: set on the fold night lasts a true two hours
+  ok   boost: inactive once its true end has passed, though the wall clock reads before it
+  ok   boost: kept with a true 45 minutes still to run across the fold
+  ok   boost: an end three true hours out is clamped to two true hours from now
+  ok   away: hours until a presence end time typed across the fold are the true 4, not the wall 3
+  ok   sysid identify: samples straddling the fold fit as the same instants labelled in UTC
+  ok   sysid slab series: the interval lengths across the fold are the true quarters
+  ok   sysid adoption gate: the settle interval across the fold is the true hour, as in UTC
+  ok   wood fuel: a typed slot across the fold spreads its liters over the true three hours
+  ok   open_meteo's loader finds every package module it imports among those it loads
+  ok   and every Home Assistant module those import is one of the loader's stubs (stdlib and numpy aside)
+
+ALL 127 DST / QUARTER-GRID CHECKS PASSED

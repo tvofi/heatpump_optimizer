@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s3/sentinel.py", line 109, in <module>
+    dead_keys = [instrument(c, n) for c, n in DEAD]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s3/sentinel.py", line 109, in <listcomp>
+    dead_keys = [instrument(c, n) for c, n in DEAD]
+                 ^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s3/sentinel.py", line 86, in instrument
+    raw = cls.__dict__[name]
+          ~~~~~~~~~~~~^^^^^^
+KeyError: 'current_action'
+rc=1

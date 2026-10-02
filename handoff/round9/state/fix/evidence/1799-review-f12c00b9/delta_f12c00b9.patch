@@ -1,0 +1,224 @@
+commit f12c00b9115f9de0a20df947c97a8dbdf71e1eb8
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Wed Sep 30 22:25:59 2026 +0000
+
+    F1.8: a held unique id is left alone; currency is derived, not multi-written
+    
+    #1799 review B1: identity_update wrote a re-derived unique id without
+    asking whether another heatpump_optimizer entry already held it, so
+    editing a stale D10-s1-01 duplicate would index two entries under one id
+    (real Home Assistant 2026.9.3 logs that as an integration error). It now
+    takes hass and returns {} when async_entry_for_domain_unique_id finds
+    another entry, as the reconfigure step aborts there. Reauth, both
+    options-save exits and assign_entity pass hass. Pinned in
+    tests/entities.py; the check fails with the guard removed.
+    
+    Ratchet: coordinator.currency is now a class property, the feed code
+    adopted per cycle (_feed_code, one writer in _update_current_state) or,
+    before the first cycle, the feed's live declaration, else the configured
+    currency. The __init__ write is gone, so coordinator_multiassigned_attrs
+    stays at 116 and the budget is restored to 116; coordinator_loc and
+    coordinator_attrs are unchanged.
+    
+    Optional review note: declared_currency reads an ISO code only as three
+    ASCII letters, so "ÖRE/kWh" declares nothing (pinned in features.py).
+    
+    Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01Pj9jmSDxWihZsBLYgyTqbE
+
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index c4156961..eaa3af2f 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -506,6 +506,7 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
+ 
+ 
+ def identity_update(
++    hass: HomeAssistant,
+     entry: Any,
+     *,
+     data: Mapping[str, Any] | None = None,
+@@ -516,7 +517,9 @@ def identity_update(
+ 
+     Empty when no identity answer changes, so an entry keeps the id its
+     setup gave it; a token or entity slot edited anywhere else used to leave
+-    the old id, and a fresh setup of the same plant was then accepted.
++    the old id, and a fresh setup of the same plant was then accepted. Empty
++    too when another entry already holds the new id: the reconfigure step
++    aborts there, and a write here would index two entries under one id.
+     """
+     new = {
+         **(entry.data if data is None else data),
+@@ -525,6 +528,9 @@ def identity_update(
+     unique_id = entry_identity(new)
+     if unique_id == entry_identity({**entry.data, **entry.options}):
+         return {}
++    held = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
++    if held is not None and held is not entry:
++        return {}
+     return {"unique_id": unique_id}
+ 
+ 
+@@ -3076,7 +3082,7 @@ class HeatPumpOptimizerConfigFlow(
+                 # The token is identity: a unique id left on the old one let
+                 # a fresh setup with the new token add the plant twice.
+                 self.hass.config_entries.async_update_entry(
+-                    entry, data=data, **identity_update(entry, data=data)
++                    entry, data=data, **identity_update(self.hass, entry, data=data)
+                 )
+                 await self.hass.config_entries.async_reload(entry.entry_id)
+                 return self.async_abort(reason="reauth_successful")
+@@ -3148,7 +3154,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         options = {**self._entry.options, **user_input}
+         # The identity half of ``_save_or_menu``'s write (D10-s1-01); the
+         # options themselves are written by the flow manager, as always.
+-        if changed := identity_update(self._entry, options=options):
++        if changed := identity_update(self.hass, self._entry, options=options):
+             self.hass.config_entries.async_update_entry(self._entry, **changed)
+         return self.async_create_entry(title="", data=options)
+ 
+@@ -3186,7 +3192,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         # An identity slot edited here is the plant's identity too
+         # (D10-s1-01), exactly as the reconfigure step re-derives it.
+         self.hass.config_entries.async_update_entry(
+-            self._entry, options=options, **identity_update(self._entry, options=options)
++            self._entry,
++            options=options,
++            **identity_update(self.hass, self._entry, options=options),
+         )
+         step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
+         if step_id in self._ADVANCED_MENU:
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index af735b35..82da6814 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2244,6 +2244,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     """Coordinator for Heat Pump Cost Optimizer."""
+ 
+     _config = _hub("_config")
++    currency = property(lambda self: getattr(self, "_feed_code", None) or (
++        _feed_currency(self.hass, self._config) or resolve_currency(self.hass)))
+     _thermal_params = _hub("_thermal_params")
+     _current_state = _hub("_current_state")
+     _opt_config = _hub("_opt_config")
+@@ -2252,8 +2254,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
+         self.entry = entry
+         config = {**entry.data, **entry.options}
+-        # The feed's code where it declares one (#1657), adopted per cycle.
+-        self.currency = _feed_currency(hass, config) or resolve_currency(hass)
+ 
+         super().__init__(
+             hass,
+@@ -5758,7 +5758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 DEFAULT_STALENESS_SCALE,
+             ),
+         )
+-        self.currency = _feed_currency(self.hass, ctx._config) or self.currency
++        self._feed_code = _feed_currency(self.hass, ctx._config) or self.currency
+         # Indoor temperature
+         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
+         if indoor.ok:
+diff --git a/custom_components/heatpump_optimizer/currency.py b/custom_components/heatpump_optimizer/currency.py
+index dfd81251..a890979e 100644
+--- a/custom_components/heatpump_optimizer/currency.py
++++ b/custom_components/heatpump_optimizer/currency.py
+@@ -15,6 +15,7 @@ only where it does not.
+ """
+ from __future__ import annotations
+ 
++import re
+ from typing import Any
+ 
+ from homeassistant.core import HomeAssistant
+@@ -54,10 +55,10 @@ def declared_currency(unit: Any, attributes: Any = None) -> str | None:
+     """
+     money = str(unit or "").partition("/")[0].strip()
+     code = _SYMBOL_CODES.get(money)
+-    if code is None and len(money) == 3 and money.isalpha() and money.isupper():
++    if code is None and re.fullmatch("[A-Z]{3}", money):  # not "ÖRE"
+         code = money
+     attr = (attributes or {}).get("currency") if isinstance(attributes, dict) else None
+-    if code is None and isinstance(attr, str) and len(attr) == 3 and attr.isalpha():
++    if code is None and isinstance(attr, str) and re.fullmatch("[A-Za-z]{3}", attr):
+         code = attr.upper()
+     return code
+ 
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index 912bb0fd..53d19615 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -630,7 +630,7 @@ async def handle_assign_entity(hass: HomeAssistant, call: ServiceCall) -> dict[s
+         # A slot can be an identity slot: re-derive the unique id with it,
+         # as the options flow does (D10-s1-01).
+         hass.config_entries.async_update_entry(
+-            entry, options=options, **identity_update(entry, options=options)
++            entry, options=options, **identity_update(hass, entry, options=options)
+         )
+ 
+     _LOGGER.info(
+diff --git a/tests/entities.py b/tests/entities.py
+index 6dd29707..02b7a7f5 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -12738,6 +12738,28 @@ R.check(
+     f"unique_id {_uid_before!r} -> {_svc_entry.unique_id!r}",
+ )
+ 
++# #1799 review B1: an id another entry already holds is left alone, as the
++# reconfigure step aborts on it; two entries indexed under one id is what
++# real Home Assistant logs as an integration error.
++from heatpump_optimizer.config_flow import identity_update as _svc_idupd  # noqa: E402
++import types as _svc_types  # noqa: E402
++
++_svc_next = {**_svc_entry.options, const.CONF_DHW_TEMP_ENTITY: "sensor.dhw_probe2"}
++_svc_free = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
++_svc_holder = _svc_types.SimpleNamespace(
++    domain=const.DOMAIN, entry_id="holder", data={}, options={},
++    unique_id=_svc_identity({**_svc_entry.data, **_svc_next}),
++)
++_svc_hass.config_entries.entries.append(_svc_holder)
++_svc_held = _svc_idupd(_svc_hass, _svc_entry, options=_svc_next)
++_svc_hass.config_entries.entries.remove(_svc_holder)
++R.check(
++    "an identity edit whose id another entry holds leaves the id alone; a "
++    "free id is still written (#1799 B1)",
++    _svc_held == {} and _svc_free == {"unique_id": _svc_holder.unique_id},
++    f"held={_svc_held!r} free={_svc_free!r}",
++)
++
+ _man_assigned = _svc_call(
+     const.SERVICE_ASSIGN_ENTITY,
+     {
+diff --git a/tests/features.py b/tests/features.py
+index 5ab8a041..f0dd0f56 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -1920,11 +1920,11 @@ def _r9p8_hass(instance, unit=None, attributes=None):
+ 
+ R.check(
+     "D14-s2-02: the feed's code is read from its unit, an unambiguous symbol, "
+-    "or its currency attribute; 'kr' and a bare minor unit name none",
++    "or its currency attribute; 'kr' and a minor unit in any case name none",
+     [_r9p8_cur.declared_currency(u, a) for u, a in (
+         ("EUR/kWh", None), ("€/MWh", None), ("öre/kWh", {"currency": "SEK"}),
+-        ("öre/kWh", None), ("kr/kWh", None), (None, None),
+-    )] == ["EUR", "EUR", "SEK", None, None, None],
++        ("öre/kWh", None), ("kr/kWh", None), (None, None), ("ÖRE/kWh", None),
++    )] == ["EUR", "EUR", "SEK", None, None, None, None],
+ )
+ _r9p8_units = {}
+ for _r9p8_inst, _r9p8_unit in (("SEK", "EUR/kWh"), ("SEK", "SEK/kWh"), ("EUR", "öre/kWh")):
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index ebe05450..700c308c 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -5,7 +5,7 @@
+  "coordinator_attrs": 154,
+  "coordinator_loc": 9022,
+  "coordinator_methods": 224,
+- "coordinator_multiassigned_attrs": 117,
++ "coordinator_multiassigned_attrs": 116,
+  "cross_seam_edges": 131,
+  "cut_dhw": 73,
+  "cut_fetch": 118,

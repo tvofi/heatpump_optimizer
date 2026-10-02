@@ -1,0 +1,7 @@
+== unrecorded class disabled
+  FAIL #1823's probe: the pull request links a file from DISCLAIMER.md and main deletes it, and a run_always script reads both unrecorded: got [], want ['unrecorded']
+  FAIL an unrecorded file on main's side alone refuses too: got [], want ['unrecorded']
+merge_fastpath self-test: 25 checks, 2 failed
+== run_always not counted as selected
+  FAIL main changed what a run_always script reads, which the pull request never selected: overlap: got [], want ['overlap']
+merge_fastpath self-test: 25 checks, 1 failed

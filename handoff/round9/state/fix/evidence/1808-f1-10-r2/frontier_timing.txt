@@ -1,0 +1,7 @@
+main run1 rc=0 wall=106.8s load=1.35
+head run1 rc=0 wall=97.7s load=1.07
+main run2 rc=0 wall=93.8s load=1.01
+head run2 rc=0 wall=93.9s load=1.00
+main run3 rc=0 wall=100.0s load=1.00
+head run3 rc=0 wall=96.3s load=1.00
+1

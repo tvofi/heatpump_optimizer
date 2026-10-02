@@ -1,0 +1,750 @@
+﻿2026-09-30T17:35:46.8798159Z Current runner version: '2.337.0'
+2026-09-30T17:35:46.8824336Z ##[group]Runner Image Provisioner
+2026-09-30T17:35:46.8825515Z Hosted Compute Agent
+2026-09-30T17:35:46.8826019Z Version: 20260828.587
+2026-09-30T17:35:46.8826671Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-30T17:35:46.8827312Z Build Date: 2026-08-28T16:44:25Z
+2026-09-30T17:35:46.8827977Z Worker ID: {5eed81c2-0ebc-4112-9856-570470cc60e1}
+2026-09-30T17:35:46.8828654Z Azure Region: centralus
+2026-09-30T17:35:46.8829160Z ##[endgroup]
+2026-09-30T17:35:46.8830733Z ##[group]Operating System
+2026-09-30T17:35:46.8831293Z Ubuntu
+2026-09-30T17:35:46.8831734Z 24.04.5
+2026-09-30T17:35:46.8832361Z LTS
+2026-09-30T17:35:46.8832809Z ##[endgroup]
+2026-09-30T17:35:46.8833346Z ##[group]Runner Image
+2026-09-30T17:35:46.8833880Z Image: ubuntu-24.04
+2026-09-30T17:35:46.8834361Z Version: 20260920.314.1
+2026-09-30T17:35:46.8835801Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260920.314/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-30T17:35:46.8837281Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260920.314
+2026-09-30T17:35:46.8838144Z ##[endgroup]
+2026-09-30T17:35:46.8839244Z ##[group]GITHUB_TOKEN Permissions
+2026-09-30T17:35:46.8841035Z Contents: read
+2026-09-30T17:35:46.8841997Z Metadata: read
+2026-09-30T17:35:46.8842574Z ##[endgroup]
+2026-09-30T17:35:46.8844602Z Secret source: Actions
+2026-09-30T17:35:46.8845729Z Cache mode: write
+2026-09-30T17:35:46.8846381Z Prepare workflow directory
+2026-09-30T17:35:46.9130714Z Prepare all required actions
+2026-09-30T17:35:46.9162475Z Getting action download info
+2026-09-30T17:35:47.1805293Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-09-30T17:35:47.5117404Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-09-30T17:35:48.0667368Z Complete job name: nightly-ha (stable)
+2026-09-30T17:35:48.1269696Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-09-30T17:35:48.1270725Z with:
+2026-09-30T17:35:48.1271275Z   repository: tvofi/heatpump_optimizer
+2026-09-30T17:35:48.1276863Z   token: ***
+2026-09-30T17:35:48.1277391Z   ssh-strict: true
+2026-09-30T17:35:48.1277927Z   ssh-user: git
+2026-09-30T17:35:48.1278481Z   persist-credentials: true
+2026-09-30T17:35:48.1279080Z   clean: true
+2026-09-30T17:35:48.1279629Z   sparse-checkout-cone-mode: true
+2026-09-30T17:35:48.1280271Z   fetch-depth: 1
+2026-09-30T17:35:48.1280798Z   fetch-tags: false
+2026-09-30T17:35:48.1281343Z   show-progress: true
+2026-09-30T17:35:48.1281892Z   lfs: false
+2026-09-30T17:35:48.1282408Z   submodules: false
+2026-09-30T17:35:48.1282957Z   set-safe-directory: true
+2026-09-30T17:35:48.1283584Z   allow-unsafe-pr-checkout: false
+2026-09-30T17:35:48.1284324Z ##[endgroup]
+2026-09-30T17:35:48.1970247Z Syncing repository: tvofi/heatpump_optimizer
+2026-09-30T17:35:48.1972810Z ##[group]Getting Git version info
+2026-09-30T17:35:48.1974305Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-09-30T17:35:48.1976542Z [command]/usr/bin/git version
+2026-09-30T17:35:48.2053991Z git version 2.55.0
+2026-09-30T17:35:48.2068709Z ##[endgroup]
+2026-09-30T17:35:48.2078742Z Temporarily overriding HOME='/home/runner/work/_temp/b661b6e3-0846-45f4-833a-eb47424288db' before making global git config changes
+2026-09-30T17:35:48.2081426Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-30T17:35:48.2083841Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-09-30T17:35:48.2156051Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-09-30T17:35:48.2157963Z ##[group]Initializing the repository
+2026-09-30T17:35:48.2163406Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-09-30T17:35:48.2371340Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-30T17:35:48.2374039Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-30T17:35:48.2377804Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-30T17:35:48.2379333Z hint: call:
+2026-09-30T17:35:48.2380644Z hint:
+2026-09-30T17:35:48.2381694Z hint: 	git config --global init.defaultBranch <name>
+2026-09-30T17:35:48.2382910Z hint:
+2026-09-30T17:35:48.2384051Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-30T17:35:48.2386131Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-30T17:35:48.2387993Z hint:
+2026-09-30T17:35:48.2388960Z hint: 	git branch -m <name>
+2026-09-30T17:35:48.2389932Z hint:
+2026-09-30T17:35:48.2391219Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-30T17:35:48.2395629Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-09-30T17:35:48.2407203Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-09-30T17:35:48.2545232Z ##[endgroup]
+2026-09-30T17:35:48.2546587Z ##[group]Disabling automatic garbage collection
+2026-09-30T17:35:48.2548024Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-30T17:35:48.2648525Z ##[endgroup]
+2026-09-30T17:35:48.2649412Z ##[group]Setting up auth
+2026-09-30T17:35:48.2653415Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-30T17:35:48.2682829Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-30T17:35:48.3023955Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-30T17:35:48.3053694Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-30T17:35:48.3224452Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-30T17:35:48.3253278Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-30T17:35:48.3423993Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-30T17:35:48.3643738Z ##[endgroup]
+2026-09-30T17:35:48.3645387Z ##[group]Fetching the repository
+2026-09-30T17:35:48.3650426Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +351b5ce74614427e46c8f79f96f25af15236058b:refs/remotes/origin/fix/r9-f1-coordinator-7
+2026-09-30T17:35:50.8921616Z From https://github.com/tvofi/heatpump_optimizer
+2026-09-30T17:35:50.8922401Z  * [new ref]         351b5ce74614427e46c8f79f96f25af15236058b -> origin/fix/r9-f1-coordinator-7
+2026-09-30T17:35:50.8924554Z ##[endgroup]
+2026-09-30T17:35:50.8925064Z ##[group]Determining the checkout info
+2026-09-30T17:35:50.8930785Z ##[endgroup]
+2026-09-30T17:35:50.8932114Z [command]/usr/bin/git sparse-checkout disable
+2026-09-30T17:35:50.8977929Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-30T17:35:50.9004117Z ##[group]Checking out the ref
+2026-09-30T17:35:50.9006849Z [command]/usr/bin/git checkout --progress --force -B fix/r9-f1-coordinator-7 refs/remotes/origin/fix/r9-f1-coordinator-7
+2026-09-30T17:35:51.1997973Z Switched to a new branch 'fix/r9-f1-coordinator-7'
+2026-09-30T17:35:51.2000685Z branch 'fix/r9-f1-coordinator-7' set up to track 'origin/fix/r9-f1-coordinator-7'.
+2026-09-30T17:35:51.2018927Z ##[endgroup]
+2026-09-30T17:35:51.2058302Z [command]/usr/bin/git log -1 --format=%H
+2026-09-30T17:35:51.2082288Z 351b5ce74614427e46c8f79f96f25af15236058b
+2026-09-30T17:35:51.2278941Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-09-30T17:35:51.2279356Z with:
+2026-09-30T17:35:51.2279478Z   python-version: 3.13
+2026-09-30T17:35:51.2279607Z   check-latest: false
+2026-09-30T17:35:51.2281003Z   token: ***
+2026-09-30T17:35:51.2281184Z   update-environment: true
+2026-09-30T17:35:51.2281324Z   allow-prereleases: false
+2026-09-30T17:35:51.2281462Z   freethreaded: false
+2026-09-30T17:35:51.2281590Z ##[endgroup]
+2026-09-30T17:35:51.3120164Z ##[group]Installed versions
+2026-09-30T17:35:51.3186762Z Successfully set up CPython (3.13.15)
+2026-09-30T17:35:51.3187247Z ##[endgroup]
+2026-09-30T17:35:51.3318631Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+2026-09-30T17:35:51.3319474Z [36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt[0m
+2026-09-30T17:35:51.3579222Z shell: /usr/bin/bash -e {0}
+2026-09-30T17:35:51.3579451Z env:
+2026-09-30T17:35:51.3579661Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:35:51.3579944Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-09-30T17:35:51.3580183Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:35:51.3580400Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:35:51.3580620Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:35:51.3580835Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-09-30T17:35:51.3581017Z ##[endgroup]
+2026-09-30T17:35:53.5947316Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+2026-09-30T17:35:53.6827001Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-09-30T17:35:54.0199596Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+2026-09-30T17:35:54.0361057Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+2026-09-30T17:35:54.1415520Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 24.7 MB/s  0:00:00
+2026-09-30T17:35:54.1633648Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+2026-09-30T17:35:54.1790935Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-09-30T17:35:54.2009462Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+2026-09-30T17:35:54.2167069Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-09-30T17:35:54.2609002Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+2026-09-30T17:35:54.2765755Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+2026-09-30T17:35:54.2988234Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+2026-09-30T17:35:54.3143397Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-09-30T17:35:54.4482196Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+2026-09-30T17:35:54.4642773Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+2026-09-30T17:35:54.6999527Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+2026-09-30T17:35:54.7157843Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+2026-09-30T17:35:54.8935926Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 93.2 MB/s  0:00:00
+2026-09-30T17:35:54.9523609Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+2026-09-30T17:35:54.9681986Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+2026-09-30T17:35:54.9997203Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+2026-09-30T17:35:55.0153045Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+2026-09-30T17:35:55.0883313Z   Installing build dependencies: started
+2026-09-30T17:35:56.5075467Z   Installing build dependencies: finished with status 'done'
+2026-09-30T17:35:56.5080133Z   Getting requirements to build wheel: started
+2026-09-30T17:35:57.5876553Z   Getting requirements to build wheel: finished with status 'done'
+2026-09-30T17:35:57.5883762Z   Preparing metadata (pyproject.toml): started
+2026-09-30T17:35:57.7318870Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-09-30T17:35:57.8018485Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+2026-09-30T17:35:57.8193234Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+2026-09-30T17:35:58.0921225Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 128.2 MB/s  0:00:00
+2026-09-30T17:35:58.1393178Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+2026-09-30T17:35:58.1549301Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+2026-09-30T17:35:58.1764812Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+2026-09-30T17:35:58.1918428Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+2026-09-30T17:35:58.3479527Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+2026-09-30T17:35:58.3637553Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+2026-09-30T17:35:58.3773627Z Building wheels for collected packages: pyyaml
+2026-09-30T17:35:58.3779975Z   Building wheel for pyyaml (pyproject.toml): started
+2026-09-30T17:35:59.4790523Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+2026-09-30T17:35:59.4794046Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=822bb10c352a4b743689cb85663c77075331eacaa4cd81413638398ba74b65f7
+2026-09-30T17:35:59.4794943Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+2026-09-30T17:35:59.4807390Z Successfully built pyyaml
+2026-09-30T17:35:59.5136568Z Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+2026-09-30T17:36:04.0084339Z 
+2026-09-30T17:36:04.0115807Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+2026-09-30T17:36:04.1212870Z ##[group]Run docker pull "homeassistant/home-assistant:stable"
+2026-09-30T17:36:04.1213148Z [36;1mdocker pull "homeassistant/home-assistant:stable"[0m
+2026-09-30T17:36:04.1267401Z shell: /usr/bin/bash -e {0}
+2026-09-30T17:36:04.1267545Z env:
+2026-09-30T17:36:04.1267698Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:04.1267937Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-09-30T17:36:04.1268176Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:04.1268396Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:04.1268624Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:04.1268840Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-09-30T17:36:04.1269019Z ##[endgroup]
+2026-09-30T17:36:04.8024147Z stable: Pulling from homeassistant/home-assistant
+2026-09-30T17:36:04.9515717Z c5cfc437e4cd: Pulling fs layer
+2026-09-30T17:36:04.9516204Z a0599c81070e: Pulling fs layer
+2026-09-30T17:36:04.9516439Z 37f806cc4461: Pulling fs layer
+2026-09-30T17:36:04.9516775Z 9077abe198c0: Pulling fs layer
+2026-09-30T17:36:04.9516950Z bb63c4cacedb: Pulling fs layer
+2026-09-30T17:36:04.9517219Z 2c1ce468d9f3: Pulling fs layer
+2026-09-30T17:36:04.9517569Z 7787303eb4c2: Pulling fs layer
+2026-09-30T17:36:04.9517780Z b5c7d9056a22: Pulling fs layer
+2026-09-30T17:36:04.9518012Z 338f09b2964b: Pulling fs layer
+2026-09-30T17:36:04.9518359Z d2a5bb1a42cc: Pulling fs layer
+2026-09-30T17:36:04.9518566Z f2f052bcb674: Pulling fs layer
+2026-09-30T17:36:04.9518774Z ada65c4cb763: Pulling fs layer
+2026-09-30T17:36:04.9519258Z 12065220a54f: Pulling fs layer
+2026-09-30T17:36:04.9519389Z f32b405762ec: Pulling fs layer
+2026-09-30T17:36:04.9519564Z 4031052f2f42: Pulling fs layer
+2026-09-30T17:36:04.9519701Z 5a682f7b46a8: Pulling fs layer
+2026-09-30T17:36:04.9519950Z fead206261cb: Pulling fs layer
+2026-09-30T17:36:04.9520166Z eb6b7d1cf9da: Pulling fs layer
+2026-09-30T17:36:04.9520379Z fbaf824860e6: Pulling fs layer
+2026-09-30T17:36:04.9520585Z 8dd02b9df097: Pulling fs layer
+2026-09-30T17:36:04.9520787Z 977b12040c8c: Pulling fs layer
+2026-09-30T17:36:04.9520940Z 9077abe198c0: Waiting
+2026-09-30T17:36:04.9521062Z 12065220a54f: Waiting
+2026-09-30T17:36:04.9521180Z bb63c4cacedb: Waiting
+2026-09-30T17:36:04.9521293Z 2c1ce468d9f3: Waiting
+2026-09-30T17:36:04.9521406Z f32b405762ec: Waiting
+2026-09-30T17:36:04.9521515Z 4031052f2f42: Waiting
+2026-09-30T17:36:04.9521624Z 5a682f7b46a8: Waiting
+2026-09-30T17:36:04.9521737Z 7787303eb4c2: Waiting
+2026-09-30T17:36:04.9521849Z fead206261cb: Waiting
+2026-09-30T17:36:04.9521962Z eb6b7d1cf9da: Waiting
+2026-09-30T17:36:04.9522079Z fbaf824860e6: Waiting
+2026-09-30T17:36:04.9522190Z b5c7d9056a22: Waiting
+2026-09-30T17:36:04.9522302Z 8dd02b9df097: Waiting
+2026-09-30T17:36:04.9522415Z 977b12040c8c: Waiting
+2026-09-30T17:36:04.9522524Z 338f09b2964b: Waiting
+2026-09-30T17:36:04.9522636Z d2a5bb1a42cc: Waiting
+2026-09-30T17:36:04.9522748Z ada65c4cb763: Waiting
+2026-09-30T17:36:04.9522861Z f2f052bcb674: Waiting
+2026-09-30T17:36:05.1714220Z c5cfc437e4cd: Download complete
+2026-09-30T17:36:05.2079048Z a0599c81070e: Verifying Checksum
+2026-09-30T17:36:05.2079351Z a0599c81070e: Download complete
+2026-09-30T17:36:05.2192254Z 37f806cc4461: Download complete
+2026-09-30T17:36:05.2561444Z c5cfc437e4cd: Pull complete
+2026-09-30T17:36:05.3893419Z 2c1ce468d9f3: Verifying Checksum
+2026-09-30T17:36:05.3894060Z 2c1ce468d9f3: Download complete
+2026-09-30T17:36:05.4402208Z bb63c4cacedb: Verifying Checksum
+2026-09-30T17:36:05.4402534Z bb63c4cacedb: Download complete
+2026-09-30T17:36:05.5399760Z 7787303eb4c2: Verifying Checksum
+2026-09-30T17:36:05.5401400Z 7787303eb4c2: Download complete
+2026-09-30T17:36:05.5420810Z 9077abe198c0: Download complete
+2026-09-30T17:36:05.6104878Z b5c7d9056a22: Verifying Checksum
+2026-09-30T17:36:05.6105193Z b5c7d9056a22: Download complete
+2026-09-30T17:36:05.6736677Z 338f09b2964b: Verifying Checksum
+2026-09-30T17:36:05.6737604Z 338f09b2964b: Download complete
+2026-09-30T17:36:05.7559679Z f2f052bcb674: Verifying Checksum
+2026-09-30T17:36:05.7560009Z f2f052bcb674: Download complete
+2026-09-30T17:36:05.8018450Z ada65c4cb763: Verifying Checksum
+2026-09-30T17:36:05.8018734Z ada65c4cb763: Download complete
+2026-09-30T17:36:05.8572360Z d2a5bb1a42cc: Verifying Checksum
+2026-09-30T17:36:05.8572664Z d2a5bb1a42cc: Download complete
+2026-09-30T17:36:05.8967661Z 12065220a54f: Verifying Checksum
+2026-09-30T17:36:05.8967944Z 12065220a54f: Download complete
+2026-09-30T17:36:05.9732663Z 4031052f2f42: Verifying Checksum
+2026-09-30T17:36:05.9733228Z 4031052f2f42: Download complete
+2026-09-30T17:36:06.0959025Z f32b405762ec: Verifying Checksum
+2026-09-30T17:36:06.0959429Z f32b405762ec: Download complete
+2026-09-30T17:36:06.1095351Z fead206261cb: Verifying Checksum
+2026-09-30T17:36:06.1095799Z fead206261cb: Download complete
+2026-09-30T17:36:06.3492125Z 5a682f7b46a8: Verifying Checksum
+2026-09-30T17:36:06.3492599Z 5a682f7b46a8: Download complete
+2026-09-30T17:36:06.4948916Z fbaf824860e6: Verifying Checksum
+2026-09-30T17:36:06.4949492Z fbaf824860e6: Download complete
+2026-09-30T17:36:06.6584384Z 977b12040c8c: Verifying Checksum
+2026-09-30T17:36:06.6584980Z 977b12040c8c: Download complete
+2026-09-30T17:36:06.6742912Z 8dd02b9df097: Verifying Checksum
+2026-09-30T17:36:06.6743369Z 8dd02b9df097: Download complete
+2026-09-30T17:36:07.3284035Z eb6b7d1cf9da: Verifying Checksum
+2026-09-30T17:36:07.3284277Z eb6b7d1cf9da: Download complete
+2026-09-30T17:36:14.2147440Z a0599c81070e: Pull complete
+2026-09-30T17:36:15.6024101Z 37f806cc4461: Pull complete
+2026-09-30T17:36:17.0804938Z 9077abe198c0: Pull complete
+2026-09-30T17:36:17.2612015Z bb63c4cacedb: Pull complete
+2026-09-30T17:36:17.2687966Z 2c1ce468d9f3: Pull complete
+2026-09-30T17:36:17.2808982Z 7787303eb4c2: Pull complete
+2026-09-30T17:36:17.3410011Z b5c7d9056a22: Pull complete
+2026-09-30T17:36:17.3526955Z 338f09b2964b: Pull complete
+2026-09-30T17:36:17.4164092Z d2a5bb1a42cc: Pull complete
+2026-09-30T17:36:17.4262615Z f2f052bcb674: Pull complete
+2026-09-30T17:36:17.4334237Z ada65c4cb763: Pull complete
+2026-09-30T17:36:17.4458527Z 12065220a54f: Pull complete
+2026-09-30T17:36:17.6013914Z f32b405762ec: Pull complete
+2026-09-30T17:36:17.6116036Z 4031052f2f42: Pull complete
+2026-09-30T17:36:20.9079774Z 5a682f7b46a8: Pull complete
+2026-09-30T17:36:20.9151455Z fead206261cb: Pull complete
+2026-09-30T17:36:43.3137892Z eb6b7d1cf9da: Pull complete
+2026-09-30T17:36:53.4397385Z fbaf824860e6: Pull complete
+2026-09-30T17:36:56.6073658Z 8dd02b9df097: Pull complete
+2026-09-30T17:36:56.6188220Z 977b12040c8c: Pull complete
+2026-09-30T17:36:56.6220304Z Digest: sha256:3e6710a7ab2a61311d9d899b719f6c3657791c63e8f4942cec4ebc42401d6b76
+2026-09-30T17:36:56.6231064Z Status: Downloaded newer image for homeassistant/home-assistant:stable
+2026-09-30T17:36:56.6238573Z docker.io/homeassistant/home-assistant:stable
+2026-09-30T17:36:56.6281303Z ##[group]Run python tests/nightly_ha.py \
+2026-09-30T17:36:56.6281529Z [36;1mpython tests/nightly_ha.py \[0m
+2026-09-30T17:36:56.6281723Z [36;1m  --image "homeassistant/home-assistant:stable"[0m
+2026-09-30T17:36:56.6335702Z shell: /usr/bin/bash -e {0}
+2026-09-30T17:36:56.6335843Z env:
+2026-09-30T17:36:56.6335995Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:56.6336237Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-09-30T17:36:56.6336472Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:56.6336687Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:56.6336903Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-09-30T17:36:56.6337124Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-09-30T17:36:56.6337321Z ##[endgroup]
+2026-09-30T17:36:57.8704832Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-k74_o4no/config:/config -v /tmp/nightly-ha-k74_o4no/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0
+2026-09-30T17:37:29.8214589Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-a3e-jyk4eiom/config:/config -v /tmp/nightly-ha-a3e-jyk4eiom/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --a3e-only
+2026-09-30T17:37:40.8441866Z   ok   run:driver_reported  [1 result markers in the container's output]
+2026-09-30T17:37:40.8442263Z --- inside the container ---
+2026-09-30T17:37:40.8442791Z   ok   shape:package_at_config_path  [/config/custom_components/heatpump_optimizer is not an integration]
+2026-09-30T17:37:40.8443209Z   ok   shape:no_tests_sibling  [a tests/ sibling puts _worker_env on the branch no install takes]
+2026-09-30T17:37:40.8443801Z   ok   shape:inherited_pythonpath_cannot_mask  [inherited PYTHONPATH already resolves custom_components: []]
+2026-09-30T17:37:40.8444294Z   FAIL contract:real_provider  [exit 1; tegory through the public property
+2026-09-30T17:37:40.8445076Z   ok   helpers.entity.Entity: every platform entity base resolves entity_category
+2026-09-30T17:37:40.8445471Z   ok   walker refuses a NumberSelector built outside _number
+2026-09-30T17:37:40.8445767Z   ok   walker accepts _number and _widen_to_fit
+2026-09-30T17:37:40.8446032Z   ok   walker refuses _number that omits mode
+2026-09-30T17:37:40.8446296Z   ok   walker refuses description={advanced: True}
+2026-09-30T17:37:40.8446633Z   ok   contract:stub_provider  [exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN
+2026-09-30T17:37:40.8446990Z   ok   walker refuses a NumberSelector built outside _number
+2026-09-30T17:37:40.8447273Z   ok   walker accepts _number and _widen_to_fit
+2026-09-30T17:37:40.8447850Z   ok   walker refuses _number that omits mode
+2026-09-30T17:37:40.8448103Z   ok   walker refuses description={advanced: True}
+2026-09-30T17:37:40.8448380Z   ok   the two reports are one stub run and one real run
+2026-09-30T17:37:40.8448812Z   ok   every member of components.binary_sensor.BinarySensorDeviceClass exists upstream with the same value
+2026-09-30T17:37:40.8449393Z   ok   every member of components.climate.ClimateEntityFeature exists upstream with the same value
+2026-09-30T17:37:40.8449915Z   ok   every member of components.climate.HVACAction exists upstream with the same value
+2026-09-30T17:37:40.8450392Z   ok   every member of components.climate.HVACMode exists upstream with the same value
+2026-09-30T17:37:40.8450828Z   ok   components.diagnostics.REDACTED equals upstream's
+2026-09-30T17:37:40.8451212Z   ok   every entry of components.sensor.DEVICE_CLASS_STATE_CLASSES matches upstream's
+2026-09-30T17:37:40.8451724Z   ok   every member of components.sensor.NON_NUMERIC_DEVICE_CLASSES exists upstream with the same value
+2026-09-30T17:37:40.8452600Z   ok   every member of components.sensor.SensorDeviceClass exists upstream with the same value
+2026-09-30T17:37:40.8453157Z   ok   every member of components.sensor.SensorStateClass exists upstream with the same value
+2026-09-30T17:37:40.8453684Z   ok   every member of config_entries.ConfigEntryState exists upstream with the same value
+2026-09-30T17:37:40.8454101Z   ok   config_entries.SOURCE_RECONFIGURE equals upstream's
+2026-09-30T17:37:40.8454467Z   ok   every member of const.Platform exists upstream with the same value
+2026-09-30T17:37:40.8455099Z   ok   every member of const.units exists upstream with the same value
+2026-09-30T17:37:40.8455486Z   ok   every member of core.SupportsResponse exists upstream with the same value
+2026-09-30T17:37:40.8455797Z   ok   every member of helpers.device_registry.DeviceEntryType exists upstream with the same value
+2026-09-30T17:37:40.8456117Z   ok   every member of helpers.entity.EntityCategory exists upstream with the same value
+2026-09-30T17:37:40.8456449Z   ok   every member of helpers.issue_registry.IssueSeverity exists upstream with the same value
+2026-09-30T17:37:40.8456793Z   ok   every member of helpers.selector.NumberSelectorMode exists upstream with the same value
+2026-09-30T17:37:40.8457124Z   ok   every member of helpers.selector.SelectSelectorMode exists upstream with the same value
+2026-09-30T17:37:40.8457456Z   ok   every member of helpers.selector.TextSelectorType exists upstream with the same value
+2026-09-30T17:37:40.8457748Z   ok   helpers.storage: how a stored document decodes equals upstream's
+2026-09-30T17:37:40.8458150Z   ok   contract:probes_agree  [exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+2026-09-30T17:37:40.8458519Z   ok   ha:home_assistant_is_real  [bootstrap returned None]
+2026-09-30T17:37:40.8458708Z   ok   ha:core_running  [core state is RUNNING]
+2026-09-30T17:37:40.8458928Z   ok   entry:loaded  [entry state is ConfigEntryState.LOADED (reason: None)]
+2026-09-30T17:37:40.8459155Z   ok   a6:loaded  [entry loaded after corrupt stores]
+2026-09-30T17:37:40.8459335Z   ok   a6:list  [corrupt payload dropped]
+2026-09-30T17:37:40.8459501Z   ok   a6:string  [corrupt payload dropped]
+2026-09-30T17:37:40.8459661Z   ok   a6:number  [corrupt payload dropped]
+2026-09-30T17:37:40.8459823Z   ok   a12:migrates  [after=7 expected=7]
+2026-09-30T17:37:40.8460000Z   ok   a13:currency  [coordinator='EUR' instance='EUR']
+2026-09-30T17:37:40.8460307Z   ok   entities:registered  [48 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']]
+2026-09-30T17:37:40.8460698Z   ok   entities:coordinator_healthy  [last_update_success is False: every entity is unavailable at once]
+2026-09-30T17:37:40.8461014Z   ..   75 registered, 27 disabled by default, 8 unavailable, 8 of those self-gated
+2026-09-30T17:37:40.8461310Z   ok   entities:none_unavailable_by_coordinator  [0 unavailable without gating themselves: []]
+2026-09-30T17:37:40.8461774Z   ok   a3:roster  [75 registered, 75 in the committed collect() roster; missing=[]; extra=[]]
+2026-09-30T17:37:40.8462010Z   ok   a3:orjson  [0 failed HA json_bytes]
+2026-09-30T17:37:40.8462169Z   ok   a3:finite  [0 non-finite]
+2026-09-30T17:37:40.8462339Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+2026-09-30T17:37:40.8462536Z   ok   a10:no_credential  [no demanded token in payload]
+2026-09-30T17:37:40.8462736Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+2026-09-30T17:37:40.8462999Z   ok   plan:optimization_result  [no solve completed; solve_failures=0]
+2026-09-30T17:37:40.8463302Z   ok   plan:last_optimization_published  [the payload's last_optimization is the repair notice's em-dash]
+2026-09-30T17:37:40.8464268Z   ok   plan:current_action_published  [current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 1.15, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}]
+2026-09-30T17:37:40.8465491Z   ok   plan:setpoints_non_empty  [96 setpoints in the plan]
+2026-09-30T17:37:40.8465778Z   ok   plan:no_solve_repair  [solve-route repairs raised: []; everything raised: ['lower_floor_modelled']]
+2026-09-30T17:37:40.8466044Z   ok   a4:failed  [last_update_success=False]
+2026-09-30T17:37:40.8466209Z   ok   a4:unavailable  [48 unavailable]
+2026-09-30T17:37:40.8466509Z   ok   a4:buttons  [4 button(s) unavailable]
+2026-09-30T17:37:40.8466709Z   ok   a4:no_stale  [40 pre-break value(s) gone]
+2026-09-30T17:37:40.8466911Z   ok   a4:recovered  [recovered 40 after last_update_success=True]
+2026-09-30T17:37:40.8467113Z   ok   a5:pages_ok  [25 step(s) save-or-menu]
+2026-09-30T17:37:40.8467276Z   ok   a5:byte_unchanged  [4636B identical]
+2026-09-30T17:37:40.8467451Z   ok   a5:service_examples  [6 example(s) accepted]
+2026-09-30T17:37:40.8467627Z   ok   a5:service_bounds  [84 bound(s) accepted]
+2026-09-30T17:37:40.8467815Z   ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+2026-09-30T17:37:40.8468002Z   ok   a9:roster_unchanged  [75 id(s) unchanged]
+2026-09-30T17:37:40.8468212Z   ok   a9:no_growth  [ceiling tasks=1 listeners=88 stop=55; max t/l/s=1/88/55]
+2026-09-30T17:37:40.8468421Z   ok   a11:invalid  [service raised]
+2026-09-30T17:37:40.8468571Z   ok   a11:no_entry  [service raised]
+2026-09-30T17:37:40.8468723Z   ok   a11:run_failed  [service raised]
+2026-09-30T17:37:40.8468930Z   ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+2026-09-30T17:37:40.8469218Z   ok   a8:register_once  [12 registered after two entries; catalog 12; extra=[]; missing=[]]
+2026-09-30T17:37:40.8469765Z   ok   a8:deregister  [12 registered after unload; catalog 12; extra=[]; missing=[]]
+2026-09-30T17:37:40.8470218Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+2026-09-30T17:37:40.8470606Z   FAIL run:exit_status  [the container exited 1]
+2026-09-30T17:37:40.8470884Z   ok   log:no_module_not_found  [0 line(s)]
+2026-09-30T17:37:40.8471131Z   ok   log:no_worker_exit  [0 line(s)]
+2026-09-30T17:37:40.8471386Z   ok   log:no_integration_traceback  [0 traceback(s) naming heatpump_optimizer]
+2026-09-30T17:37:40.8471653Z   ok   log:blocking_report_parsed  [0 report(s) blame this package, 0 unparsed]
+2026-09-30T17:37:40.8471895Z   ok   log:no_new_blocking_call  [0 offender(s) seen; new: []]
+2026-09-30T17:37:40.8472121Z   ok   log:blocking_pin_not_stale  [0 pinned; fixed but still pinned: []]
+2026-09-30T17:37:40.8472603Z   ok   log:blocking_positive_control  [1 report(s) inside the probe window: [('import_module', 'custom_components/heatpump_optimizer/__init__.py', 'return importlib.import_module(f".{module}", __package__)')]]
+2026-09-30T17:37:40.8473069Z   ok   run:all_checks_ran  [58 of 58 ran; missing: []; undeclared: []]
+2026-09-30T17:37:40.8473359Z 
+2026-09-30T17:37:40.8473421Z --- container output ---
+2026-09-30T17:37:40.8473556Z uns it inline
+2026-09-30T17:37:40.8473808Z     ok   data_entry_flow.section: presentation config lands on options, not on config, and collapsed defaults to False
+2026-09-30T17:37:40.8474192Z     ok   data_entry_flow.section: the inner schema is kept as an attribute rather than merged into the parent
+2026-09-30T17:37:40.8474497Z     ok   data_entry_flow.section: an unknown presentation option is refused
+2026-09-30T17:37:40.8475049Z     ok   components.sensor.SensorEntity: a state outside the declared options raises, on every read  (stub-only)
+2026-09-30T17:37:40.8475490Z     ok   components.sensor.SensorEntity: None short-circuits before the options check, so an unavailable enum sensor is unknown  (stub-only)
+2026-09-30T17:37:40.8475972Z     ok   components.sensor.SensorEntity: options without the enum device class raise, and a unit on a non-numeric class raises  (stub-only)
+2026-09-30T17:37:40.8476401Z     ok   components.sensor.SensorEntity: device_class reads _attr_device_class through the public property
+2026-09-30T17:37:40.8476865Z     ok   components.sensor.SensorEntity: state_class reads _attr_state_class through the public property
+2026-09-30T17:37:40.8477258Z     ok   components.binary_sensor.BinarySensorEntity: device_class reads _attr_device_class through the public property
+2026-09-30T17:37:40.8477646Z     ok   helpers.entity.Entity: entity_category reads _attr_entity_category through the public property
+2026-09-30T17:37:40.8477967Z     ok   helpers.entity.Entity: every platform entity base resolves entity_category
+2026-09-30T17:37:40.8478204Z     ok   every public stub symbol has a disposition
+2026-09-30T17:37:40.8478401Z     ok   every inventory entry still names a live stub symbol
+2026-09-30T17:37:40.8478592Z     ok   every disposition is a declared one
+2026-09-30T17:37:40.8478776Z     ok   every FAITHFUL symbol carries at least one contract
+2026-09-30T17:37:40.8478993Z     ok   every UNVERIFIED symbol is at least pinned against the stub
+2026-09-30T17:37:40.8479244Z     ok   every DIVERGENT symbol carries a contract stating upstream's behaviour
+2026-09-30T17:37:40.8479483Z     ok   every DIVERGENT symbol names the issue tracking it
+2026-09-30T17:37:40.8479677Z     ok   no member declared absent has appeared
+2026-09-30T17:37:40.8479851Z     ok   every parameter the stub drops is declared
+2026-09-30T17:37:40.8480025Z     ok   every declared drop is still dropped
+2026-09-30T17:37:40.8480186Z     ok   the drop scan read the stub
+2026-09-30T17:37:40.8480381Z     ok   util.dt.utcnow: returns an aware datetime in UTC  (frozen naive)
+2026-09-30T17:37:40.8480631Z     ok   util.dt.now: returns a datetime in the configured zone  (frozen naive)
+2026-09-30T17:37:40.8480897Z     ok   util.dt.utcnow: returns an aware datetime in UTC  (frozen at a fixed offset)
+2026-09-30T17:37:40.8481182Z     ok   util.dt.now: returns a datetime in the configured zone  (frozen at a fixed offset)
+2026-09-30T17:37:40.8481412Z     ok   the hook re-runs ran
+2026-09-30T17:37:40.8481586Z     ok   walker refuses a NumberSelector built outside _number
+2026-09-30T17:37:40.8481787Z     ok   walker accepts _number and _widen_to_fit
+2026-09-30T17:37:40.8481961Z     ok   walker refuses _number that omits mode
+2026-09-30T17:37:40.8482139Z     ok   walker refuses description={advanced: True}
+2026-09-30T17:37:40.8482365Z   ok   contract:stub_provider  [exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN
+2026-09-30T17:37:40.8482589Z        holder     homeassistant.util.dt.freeze
+2026-09-30T17:37:40.8482704Z 
+2026-09-30T17:37:40.8482786Z probes written to /tmp/ha-contract-73db8a63/stub.json
+2026-09-30T17:37:40.8482910Z 
+2026-09-30T17:37:40.8482964Z ALL 89 contracts PASSED
+2026-09-30T17:37:40.8483046Z 
+2026-09-30T17:37:40.8483117Z === #590 NumberSelector / advanced convention ===
+2026-09-30T17:37:40.8483311Z   ok   walker refuses a NumberSelector built outside _number
+2026-09-30T17:37:40.8483500Z   ok   walker accepts _number and _widen_to_fit
+2026-09-30T17:37:40.8483761Z   ok   walker refuses _number that omits mode
+2026-09-30T17:37:40.8483935Z   ok   walker refuses description={advanced: True}
+2026-09-30T17:37:40.8484051Z 
+2026-09-30T17:37:40.8484112Z ALL 4 convention checks PASSED
+2026-09-30T17:37:40.8484266Z Error fetching contract data: source refused
+2026-09-30T17:37:40.8484430Z Error fetching contract data: down
+2026-09-30T17:37:40.8484622Z Authentication failed while fetching contract data: token refused]
+2026-09-30T17:37:40.8484931Z 
+2026-09-30T17:37:40.8485000Z === tests/hastub against real Home Assistant ===
+2026-09-30T17:37:40.8485111Z 
+2026-09-30T17:37:40.8485198Z -- probes: the stub's values against real Home Assistant's
+2026-09-30T17:37:40.8485406Z   ok   the two reports are one stub run and one real run
+2026-09-30T17:37:40.8485696Z   ok   every member of components.binary_sensor.BinarySensorDeviceClass exists upstream with the same value
+2026-09-30T17:37:40.8486060Z   ok   every member of components.climate.ClimateEntityFeature exists upstream with the same value
+2026-09-30T17:37:40.8486390Z   ok   every member of components.climate.HVACAction exists upstream with the same value
+2026-09-30T17:37:40.8486784Z   ok   every member of components.climate.HVACMode exists upstream with the same value
+2026-09-30T17:37:40.8487042Z   ok   components.diagnostics.REDACTED equals upstream's
+2026-09-30T17:37:40.8487287Z   ok   every entry of components.sensor.DEVICE_CLASS_STATE_CLASSES matches upstream's
+2026-09-30T17:37:40.8487609Z   ok   every member of components.sensor.NON_NUMERIC_DEVICE_CLASSES exists upstream with the same value
+2026-09-30T17:37:40.8487949Z   ok   every member of components.sensor.SensorDeviceClass exists upstream with the same value
+2026-09-30T17:37:40.8488280Z   ok   every member of components.sensor.SensorStateClass exists upstream with the same value
+2026-09-30T17:37:40.8488597Z   ok   every member of config_entries.ConfigEntryState exists upstream with the same value
+2026-09-30T17:37:40.8488857Z   ok   config_entries.SOURCE_RECONFIGURE equals upstream's
+2026-09-30T17:37:40.8489087Z   ok   every member of const.Platform exists upstream with the same value
+2026-09-30T17:37:40.8489335Z   ok   every member of const.units exists upstream with the same value
+2026-09-30T17:37:40.8489589Z   ok   every member of core.SupportsResponse exists upstream with the same value
+2026-09-30T17:37:40.8489895Z   ok   every member of helpers.device_registry.DeviceEntryType exists upstream with the same value
+2026-09-30T17:37:40.8490219Z   ok   every member of helpers.entity.EntityCategory exists upstream with the same value
+2026-09-30T17:37:40.8490537Z   ok   every member of helpers.issue_registry.IssueSeverity exists upstream with the same value
+2026-09-30T17:37:40.8490867Z   ok   every member of helpers.selector.NumberSelectorMode exists upstream with the same value
+2026-09-30T17:37:40.8491198Z   ok   every member of helpers.selector.SelectSelectorMode exists upstream with the same value
+2026-09-30T17:37:40.8491523Z   ok   every member of helpers.selector.TextSelectorType exists upstream with the same value
+2026-09-30T17:37:40.8491813Z   ok   helpers.storage: how a stored document decodes equals upstream's
+2026-09-30T17:37:40.8491961Z 
+2026-09-30T17:37:40.8492049Z -- upstream names the stub does not model (informational)
+2026-09-30T17:37:40.8492472Z        homeassistant.helpers.entity_component: the per-domain entity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+2026-09-30T17:37:40.8493467Z        homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.
+2026-09-30T17:37:40.8494225Z        real provider reported 21 probes
+2026-09-30T17:37:40.8494410Z 
+2026-09-30T17:37:40.8494469Z ALL 22 probe comparisons PASSED
+2026-09-30T17:37:40.8494560Z 
+2026-09-30T17:37:40.8494969Z   ok   contract:probes_agree  [exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+2026-09-30T17:37:40.8495893Z        homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.
+2026-09-30T17:37:40.8496629Z        real provider reported 21 probes
+2026-09-30T17:37:40.8496732Z 
+2026-09-30T17:37:40.8496792Z ALL 22 probe comparisons PASSED]
+2026-09-30T17:37:40.8496968Z   ok   ha:home_assistant_is_real  [bootstrap returned None]
+2026-09-30T17:37:40.8497158Z   ok   ha:core_running  [core state is RUNNING]
+2026-09-30T17:37:40.8497380Z   ok   entry:loaded  [entry state is ConfigEntryState.LOADED (reason: None)]
+2026-09-30T17:37:40.8497773Z   ok   a6:loaded  [entry loaded after corrupt stores]
+2026-09-30T17:37:40.8498044Z   ok   a6:list  [corrupt payload dropped]
+2026-09-30T17:37:40.8498289Z   ok   a6:string  [corrupt payload dropped]
+2026-09-30T17:37:40.8498544Z   ok   a6:number  [corrupt payload dropped]
+2026-09-30T17:37:40.8498803Z   ok   a12:migrates  [after=7 expected=7]
+2026-09-30T17:37:40.8499084Z   ok   a13:currency  [coordinator='EUR' instance='EUR']
+2026-09-30T17:37:40.8499411Z   ok   entities:registered  [48 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']]
+2026-09-30T17:37:40.8499801Z   ok   entities:coordinator_healthy  [last_update_success is False: every entity is unavailable at once]
+2026-09-30T17:37:40.8500115Z   ..   75 registered, 27 disabled by default, 8 unavailable, 8 of those self-gated
+2026-09-30T17:37:40.8500357Z        binary_sensor.heat_pump_optimizer_away_mode = off
+2026-09-30T17:37:40.8500570Z        binary_sensor.heat_pump_optimizer_external_heat_source = off
+2026-09-30T17:37:40.8500795Z        binary_sensor.heat_pump_optimizer_input_problem = on
+2026-09-30T17:37:40.8501010Z        binary_sensor.heat_pump_optimizer_mold_floor_breach = off
+2026-09-30T17:37:40.8501237Z        binary_sensor.heat_pump_optimizer_open_window_detected = off
+2026-09-30T17:37:40.8501463Z        binary_sensor.heat_pump_optimizer_wood_cheaper = <no state>
+2026-09-30T17:37:40.8501685Z        button.heat_pump_optimizer_diagnose_last_interval = unknown
+2026-09-30T17:37:40.8501917Z        button.heat_pump_optimizer_learning_reset_comfort_weight = unknown
+2026-09-30T17:37:40.8502175Z        button.heat_pump_optimizer_learning_run_system_identification = unknown
+2026-09-30T17:37:40.8502406Z        button.heat_pump_optimizer_optimize_now = unknown
+2026-09-30T17:37:40.8502590Z        climate.heat_pump_optimizer = unavailable
+2026-09-30T17:37:40.8502803Z        datetime.heat_pump_optimizer_away_return = unknown
+2026-09-30T17:37:40.8503029Z        sensor.heat_pump_optimizer_buffer_tank_temperature_model = <no state>
+2026-09-30T17:37:40.8503287Z        sensor.heat_pump_optimizer_compressor_frequency_advisor = <no state>
+2026-09-30T17:37:40.8503526Z        sensor.heat_pump_optimizer_compressor_starts = <no state>
+2026-09-30T17:37:40.8503732Z        sensor.heat_pump_optimizer_cost_baseline = 19.96
+2026-09-30T17:37:40.8503947Z        sensor.heat_pump_optimizer_cost_contract_comparison = <no state>
+2026-09-30T17:37:40.8504185Z        sensor.heat_pump_optimizer_cost_current_electricity_price = 1.15
+2026-09-30T17:37:40.8504421Z        sensor.heat_pump_optimizer_cost_monthly_peak_power = <no state>
+2026-09-30T17:37:40.8504837Z        sensor.heat_pump_optimizer_cost_power_headroom = <no state>
+2026-09-30T17:37:40.8505055Z        sensor.heat_pump_optimizer_cost_predicted = 8.23
+2026-09-30T17:37:40.8505247Z        sensor.heat_pump_optimizer_cost_total_heating = 0.0
+2026-09-30T17:37:40.8505768Z        sensor.heat_pump_optimizer_dhw_cost = <no state>
+2026-09-30T17:37:40.8505955Z        sensor.heat_pump_optimizer_dhw_energy = <no state>
+2026-09-30T17:37:40.8506160Z        sensor.heat_pump_optimizer_dhw_heating_cost = <no state>
+2026-09-30T17:37:40.8506381Z        sensor.heat_pump_optimizer_dhw_heating_schedule = <no state>
+2026-09-30T17:37:40.8506604Z        sensor.heat_pump_optimizer_dhw_heavy_day_demand = <no state>
+2026-09-30T17:37:40.8506816Z        sensor.heat_pump_optimizer_dhw_mixed_water = <no state>
+2026-09-30T17:37:40.8507028Z        sensor.heat_pump_optimizer_dhw_setpoint_advisor = <no state>
+2026-09-30T17:37:40.8507242Z        sensor.heat_pump_optimizer_dhw_temperature = <no state>
+2026-09-30T17:37:40.8507448Z        sensor.heat_pump_optimizer_ecl110_displace = <no state>
+2026-09-30T17:37:40.8507669Z        sensor.heat_pump_optimizer_ecl110_effective_displace = <no state>
+2026-09-30T17:37:40.8507927Z        sensor.heat_pump_optimizer_floor_heating_return_temperature = <no state>
+2026-09-30T17:37:40.8508160Z        sensor.heat_pump_optimizer_heat_pump_action = off
+2026-09-30T17:37:40.8508466Z        sensor.heat_pump_optimizer_indoor_temperature_optimizer = unavailable
+2026-09-30T17:37:40.8508726Z        sensor.heat_pump_optimizer_last_optimization = 2026-09-30T17:37:09+00:00
+2026-09-30T17:37:40.8508968Z        sensor.heat_pump_optimizer_learning_comfort_weight = 5.0
+2026-09-30T17:37:40.8509187Z        sensor.heat_pump_optimizer_learning_estimated_cop = unknown
+2026-09-30T17:37:40.8509413Z        sensor.heat_pump_optimizer_learning_observed_cop = unavailable
+2026-09-30T17:37:40.8509645Z        sensor.heat_pump_optimizer_lower_floor_temperature = <no state>
+2026-09-30T17:37:40.8509869Z        sensor.heat_pump_optimizer_measured_power = <no state>
+2026-09-30T17:37:40.8510101Z        sensor.heat_pump_optimizer_next_optimization = 2026-09-30T18:07:09+00:00
+2026-09-30T17:37:40.8510330Z        sensor.heat_pump_optimizer_optimal_setpoint = 19.0
+2026-09-30T17:37:40.8510529Z        sensor.heat_pump_optimizer_optimization_mode = auto
+2026-09-30T17:37:40.8510736Z        sensor.heat_pump_optimizer_optimization_schedule = 96 steps
+2026-09-30T17:37:40.8510963Z        sensor.heat_pump_optimizer_optimization_schedule_steps = 96
+2026-09-30T17:37:40.8527347Z        sensor.heat_pump_optimizer_optimization_status = optimal
+2026-09-30T17:37:40.8527781Z        sensor.heat_pump_optimizer_outdoor_temperature_optimizer = unknown
+2026-09-30T17:37:40.8528148Z        sensor.heat_pump_optimizer_plan_dhw_heating = <no state>
+2026-09-30T17:37:40.8528489Z        sensor.heat_pump_optimizer_plan_monthly_savings = unavailable
+2026-09-30T17:37:40.8528834Z        sensor.heat_pump_optimizer_plan_narrative = cheap_price
+2026-09-30T17:37:40.8529180Z        sensor.heat_pump_optimizer_plan_optimization_score = unavailable
+2026-09-30T17:37:40.8529547Z        sensor.heat_pump_optimizer_plan_predicted_savings = 10.26
+2026-09-30T17:37:40.8529901Z        sensor.heat_pump_optimizer_plan_savings_percentage = 51.4
+2026-09-30T17:37:40.8530277Z        sensor.heat_pump_optimizer_plan_space_heating = 6 slots planned
+2026-09-30T17:37:40.8530663Z        sensor.heat_pump_optimizer_prediction_accuracy = unavailable
+2026-09-30T17:37:40.8531030Z        sensor.heat_pump_optimizer_predictive_optimization_insight = normal
+2026-09-30T17:37:40.8531391Z        sensor.heat_pump_optimizer_recommended_power = 0.0
+2026-09-30T17:37:40.8531602Z        sensor.heat_pump_optimizer_sensor_gap_advisor = 0.0
+2026-09-30T17:37:40.8531830Z        sensor.heat_pump_optimizer_slab_temperature_estimated = <no state>
+2026-09-30T17:37:40.8532060Z        sensor.heat_pump_optimizer_solar_heat_gain = 0.0
+2026-09-30T17:37:40.8532257Z        sensor.heat_pump_optimizer_solar_irradiance = 0.0
+2026-09-30T17:37:40.8532467Z        sensor.heat_pump_optimizer_solar_surplus_forecast = <no state>
+2026-09-30T17:37:40.8532683Z        sensor.heat_pump_optimizer_space_heating_cost = 0.0
+2026-09-30T17:37:40.8532887Z        sensor.heat_pump_optimizer_space_heating_energy = 0.0
+2026-09-30T17:37:40.8533317Z        sensor.heat_pump_optimizer_thermal_battery_charge = unavailable
+2026-09-30T17:37:40.8533556Z        sensor.heat_pump_optimizer_thermal_battery_energy = unavailable
+2026-09-30T17:37:40.8533770Z        sensor.heat_pump_optimizer_total_energy = 0.0
+2026-09-30T17:37:40.8533980Z        sensor.heat_pump_optimizer_upper_floor_temperature = <no state>
+2026-09-30T17:37:40.8534227Z        sensor.heat_pump_optimizer_valve_target_recommendation = <no state>
+2026-09-30T17:37:40.8534466Z        sensor.heat_pump_optimizer_wood_burn_advisor = <no state>
+2026-09-30T17:37:40.8534830Z        switch.heat_pump_optimizer_away = off
+2026-09-30T17:37:40.8535044Z        switch.heat_pump_optimizer_boost_space = off
+2026-09-30T17:37:40.8535237Z        switch.heat_pump_optimizer_dhw_boost = <no state>
+2026-09-30T17:37:40.8535429Z        switch.heat_pump_optimizer_optimizer_active = on
+2026-09-30T17:37:40.8535690Z   ok   entities:none_unavailable_by_coordinator  [0 unavailable without gating themselves: []]
+2026-09-30T17:37:40.8536016Z   ok   a3:roster  [75 registered, 75 in the committed collect() roster; missing=[]; extra=[]]
+2026-09-30T17:37:40.8536349Z   ok   a3:orjson  [0 failed HA json_bytes]
+2026-09-30T17:37:40.8536513Z   ok   a3:finite  [0 non-finite]
+2026-09-30T17:37:40.8536684Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+2026-09-30T17:37:40.8536883Z   ok   a10:no_credential  [no demanded token in payload]
+2026-09-30T17:37:40.8537084Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+2026-09-30T17:37:40.8537312Z   ok   plan:optimization_result  [no solve completed; solve_failures=0]
+2026-09-30T17:37:40.8537616Z   ok   plan:last_optimization_published  [the payload's last_optimization is the repair notice's em-dash]
+2026-09-30T17:37:40.8538465Z   ok   plan:current_action_published  [current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 1.15, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}]
+2026-09-30T17:37:40.8539234Z   ok   plan:setpoints_non_empty  [96 setpoints in the plan]
+2026-09-30T17:37:40.8539525Z   ok   plan:no_solve_repair  [solve-route repairs raised: []; everything raised: ['lower_floor_modelled']]
+2026-09-30T17:37:40.8539792Z   ok   a4:failed  [last_update_success=False]
+2026-09-30T17:37:40.8539960Z   ok   a4:unavailable  [48 unavailable]
+2026-09-30T17:37:40.8540121Z   ok   a4:buttons  [4 button(s) unavailable]
+2026-09-30T17:37:40.8540290Z   ok   a4:no_stale  [40 pre-break value(s) gone]
+2026-09-30T17:37:40.8540492Z   ok   a4:recovered  [recovered 40 after last_update_success=True]
+2026-09-30T17:37:40.8540693Z   ok   a5:pages_ok  [25 step(s) save-or-menu]
+2026-09-30T17:37:40.8540856Z   ok   a5:byte_unchanged  [4636B identical]
+2026-09-30T17:37:40.8541029Z   ok   a5:service_examples  [6 example(s) accepted]
+2026-09-30T17:37:40.8541210Z   ok   a5:service_bounds  [84 bound(s) accepted]
+2026-09-30T17:37:40.8541401Z   ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+2026-09-30T17:37:40.8541586Z   ok   a9:roster_unchanged  [75 id(s) unchanged]
+2026-09-30T17:37:40.8541799Z   ok   a9:no_growth  [ceiling tasks=1 listeners=88 stop=55; max t/l/s=1/88/55]
+2026-09-30T17:37:40.8542007Z   ok   a11:invalid  [service raised]
+2026-09-30T17:37:40.8542158Z   ok   a11:no_entry  [service raised]
+2026-09-30T17:37:40.8542312Z   ok   a11:run_failed  [service raised]
+2026-09-30T17:37:40.8542518Z   ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+2026-09-30T17:37:40.8542809Z   ok   a8:register_once  [12 registered after two entries; catalog 12; extra=[]; missing=[]]
+2026-09-30T17:37:40.8543096Z   ok   a8:deregister  [12 registered after unload; catalog 12; extra=[]; missing=[]]
+2026-09-30T17:37:40.8543324Z <<<nightly-ha-blocking-probe-begin>>>
+2026-09-30T17:37:40.8543581Z <<<nightly-ha-blocking-probe-end>>>
+2026-09-30T17:37:40.8543797Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+2026-09-30T17:37:40.8553039Z <<<nightly-ha-json>>>{"shape:package_at_config_path": [true, "/config/custom_components/heatpump_optimizer is not an integration"], "shape:no_tests_sibling": [true, "a tests/ sibling puts _worker_env on the branch no install takes"], "shape:inherited_pythonpath_cannot_mask": [true, "inherited PYTHONPATH already resolves custom_components: []"], "contract:real_provider": [false, "exit 1; tegory through the public property\n  ok   helpers.entity.Entity: every platform entity base resolves entity_category\n\nprobes written to /tmp/ha-contract-73db8a63/real.json\n\n1 of 59 contracts FAILED\n\n=== #590 NumberSelector / advanced convention ===\n  ok   walker refuses a NumberSelector built outside _number\n  ok   walker accepts _number and _widen_to_fit\n  ok   walker refuses _number that omits mode\n  ok   walker refuses description={advanced: True}\nError fetching contract data: source refused\nError fetching contract data: down\nAuthentication failed while fetching contract data: token refused"], "contract:stub_provider": [true, "exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN\n       holder     homeassistant.util.dt.freeze\n\nprobes written to /tmp/ha-contract-73db8a63/stub.json\n\nALL 89 contracts PASSED\n\n=== #590 NumberSelector / advanced convention ===\n  ok   walker refuses a NumberSelector built outside _number\n  ok   walker accepts _number and _widen_to_fit\n  ok   walker refuses _number that omits mode\n  ok   walker refuses description={advanced: True}\n\nALL 4 convention checks PASSED\nError fetching contract data: source refused\nError fetching contract data: down\nAuthentication failed while fetching contract data: token refused"], "contract:probes_agree": [true, "exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.\n       homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.\n       real provider reported 21 probes\n\nALL 22 probe comparisons PASSED"], "ha:home_assistant_is_real": [true, "bootstrap returned None"], "ha:core_running": [true, "core state is RUNNING"], "entry:loaded": [true, "entry state is ConfigEntryState.LOADED (reason: None)"], "a6:loaded": [true, "entry loaded after corrupt stores"], "a6:list": [true, "corrupt payload dropped"], "a6:string": [true, "corrupt payload dropped"], "a6:number": [true, "corrupt payload dropped"], "a12:migrates": [true, "after=7 expected=7"], "a13:currency": [true, "coordinator='EUR' instance='EUR'"], "entities:registered": [true, "48 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']"], "entities:coordinator_healthy": [true, "last_update_success is False: every entity is unavailable at once"], "entities:none_unavailable_by_coordinator": [true, "0 unavailable without gating themselves: []"], "a3:roster": [true, "75 registered, 75 in the committed collect() roster; missing=[]; extra=[]"], "a3:orjson": [true, "0 failed HA json_bytes"], "a3:finite": [true, "0 non-finite"], "a3:device_class_state_class": [true, "0 forbidden pair(s)"], "a10:no_credential": [true, "no demanded token in payload"], "a10:no_precise_location": [true, "0 coordinate(s) beyond 2 dp"], "plan:optimization_result": [true, "no solve completed; solve_failures=0"], "plan:last_optimization_published": [true, "the payload's last_optimization is the repair notice's em-dash"], "plan:current_action_published": [true, "current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 1.15, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}"], "plan:setpoints_non_empty": [true, "96 setpoints in the plan"], "plan:no_solve_repair": [true, "solve-route repairs raised: []; everything raised: ['lower_floor_modelled']"], "a4:failed": [true, "last_update_success=False"], "a4:unavailable": [true, "48 unavailable"], "a4:buttons": [true, "4 button(s) unavailable"], "a4:no_stale": [true, "40 pre-break value(s) gone"], "a4:recovered": [true, "recovered 40 after last_update_success=True"], "a5:pages_ok": [true, "25 step(s) save-or-menu"], "a5:byte_unchanged": [true, "4636B identical"], "a5:service_examples": [true, "6 example(s) accepted"], "a5:service_bounds": [true, "84 bound(s) accepted"], "a9:reload_loaded": [true, "5 of 5 reload(s) loaded (need 5)"], "a9:roster_unchanged": [true, "75 id(s) unchanged"], "a9:no_growth": [true, "ceiling tasks=1 listeners=88 stop=55; max t/l/s=1/88/55"], "a11:invalid": [true, "service raised"], "a11:no_entry": [true, "service raised"], "a11:run_failed": [true, "service raised"], "a8:already_configured": [true, "duplicate setup aborted as 'already_configured'"], "a8:register_once": [true, "12 registered after two entries; catalog 12; extra=[]; missing=[]"], "a8:deregister": [true, "12 registered after unload; catalog 12; extra=[]; missing=[]"], "a3:no_constructor_defaults": [true, "0 constructor default(s) published as available"]}
+2026-09-30T17:37:40.8561999Z 
+2026-09-30T17:37:40.8562555Z ad) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+2026-09-30T17:37:40.8563218Z 2026-09-30 19:37:20.039 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=50.2%, cost=11.90, status=optimal, dhw_enabled=False, starts=7, peak=4.5 kW
+2026-09-30T17:37:40.8563847Z 2026-09-30 19:37:20.046 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.597 seconds (success: True)
+2026-09-30T17:37:40.8564464Z 2026-09-30 19:37:20.050 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8565266Z 2026-09-30 19:37:20.050 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8565918Z 2026-09-30 19:37:20.051 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8566551Z 2026-09-30 19:37:20.051 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+2026-09-30T17:37:40.8567147Z 2026-09-30 19:37:20.051 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+2026-09-30T17:37:40.8567774Z 2026-09-30 19:37:20.060 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_thermal_learning: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8568457Z 2026-09-30 19:37:20.060 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Could not load learned thermal parameters: dictionary update sequence element #0 has length 1; 2 is required
+2026-09-30T17:37:40.8569129Z 2026-09-30 19:37:20.060 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8569887Z 2026-09-30 19:37:20.062 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-09-30T20:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:20.062019+02:00
+2026-09-30T17:37:40.8570807Z 2026-09-30 19:37:20.062 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-09-30T22:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:20.062019+02:00
+2026-09-30T17:37:40.8571626Z 2026-09-30 19:37:20.062 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T01:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:20.062019+02:00
+2026-09-30T17:37:40.8572444Z 2026-09-30 19:37:20.062 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T07:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:20.062019+02:00
+2026-09-30T17:37:40.8573343Z 2026-09-30 19:37:20.062 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T19:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:20.062019+02:00
+2026-09-30T17:37:40.8574079Z 2026-09-30 19:37:20.064 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8574602Z 2026-09-30 19:37:20.066 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8575260Z 2026-09-30 19:37:20.066 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+2026-09-30T17:37:40.8575795Z 2026-09-30 19:37:20.067 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+2026-09-30T17:37:40.8576455Z 2026-09-30 19:37:20.069 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+2026-09-30T17:37:40.8577131Z 2026-09-30 19:37:22.724 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=50.2%, cost=11.90, status=optimal, dhw_enabled=False, starts=7, peak=4.5 kW
+2026-09-30T17:37:40.8577735Z 2026-09-30 19:37:22.731 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.673 seconds (success: True)
+2026-09-30T17:37:40.8578346Z 2026-09-30 19:37:22.735 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8578995Z 2026-09-30 19:37:22.736 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8579645Z 2026-09-30 19:37:22.736 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8580273Z 2026-09-30 19:37:22.736 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+2026-09-30T17:37:40.8580861Z 2026-09-30 19:37:22.736 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+2026-09-30T17:37:40.8581473Z 2026-09-30 19:37:22.746 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8582216Z 2026-09-30 19:37:22.747 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-09-30T20:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:22.747760+02:00
+2026-09-30T17:37:40.8583123Z 2026-09-30 19:37:22.747 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-09-30T22:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:22.747760+02:00
+2026-09-30T17:37:40.8583938Z 2026-09-30 19:37:22.747 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T01:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:22.747760+02:00
+2026-09-30T17:37:40.8584896Z 2026-09-30 19:37:22.747 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T07:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:22.747760+02:00
+2026-09-30T17:37:40.8585800Z 2026-09-30 19:37:22.747 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-01T19:30:00+02:00 is ahead of the clock; bounded to 2026-09-30 19:37:22.747760+02:00
+2026-09-30T17:37:40.8586546Z 2026-09-30 19:37:22.748 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_thermal_learning: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8587225Z 2026-09-30 19:37:22.748 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Could not load learned thermal parameters: dictionary update sequence element #0 has length 1; 2 is required
+2026-09-30T17:37:40.8587885Z 2026-09-30 19:37:22.748 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8588405Z 2026-09-30 19:37:22.752 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8588903Z 2026-09-30 19:37:22.753 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+2026-09-30T17:37:40.8589436Z 2026-09-30 19:37:22.753 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+2026-09-30T17:37:40.8590072Z 2026-09-30 19:37:22.756 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+2026-09-30T17:37:40.8590746Z 2026-09-30 19:37:25.394 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=50.2%, cost=11.90, status=optimal, dhw_enabled=False, starts=7, peak=4.5 kW
+2026-09-30T17:37:40.8591358Z 2026-09-30 19:37:25.401 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.657 seconds (success: True)
+2026-09-30T17:37:40.8591876Z 2026-09-30 19:37:25.421 INFO (MainThread) [custom_components.heatpump_optimizer] Migrating Heat Pump Optimizer config entry from version 6 to 7
+2026-09-30T17:37:40.8592440Z 2026-09-30 19:37:25.422 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_dhw_profile: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8593088Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_dhw_draws: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8593748Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_dhw_legionella: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8594502Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_thermal_learning: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8595277Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_price_model: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8595926Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_accuracy: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8596570Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_energy: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8597207Z 2026-09-30 19:37:25.423 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_ledger: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8597933Z 2026-09-30 19:37:25.424 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_snapshots: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8598585Z 2026-09-30 19:37:25.424 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_manual_plan: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8599224Z 2026-09-30 19:37:25.424 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_away: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8599861Z 2026-09-30 19:37:25.426 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000002_boost: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8600379Z 2026-09-30 19:37:25.428 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8600873Z 2026-09-30 19:37:25.429 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+2026-09-30T17:37:40.8601467Z 2026-09-30 19:37:25.430 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh completed without a solve; the real solve follows in the background
+2026-09-30T17:37:40.8602039Z 2026-09-30 19:37:25.431 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.007 seconds (success: True)
+2026-09-30T17:37:40.8602515Z 2026-09-30 19:37:25.447 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8603003Z 2026-09-30 19:37:25.447 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+2026-09-30T17:37:40.8603543Z 2026-09-30 19:37:25.448 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+2026-09-30T17:37:40.8604177Z 2026-09-30 19:37:25.450 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+2026-09-30T17:37:40.8604985Z 2026-09-30 19:37:28.051 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=50.2%, cost=11.90, status=optimal, dhw_enabled=False, starts=7, peak=4.5 kW
+2026-09-30T17:37:40.8605592Z 2026-09-30 19:37:28.057 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.614 seconds (success: True)
+2026-09-30T17:37:40.8606045Z 2026-09-30 19:37:28.062 WARNING (MainThread) [homeassistant] <<<nightly-ha-blocking-probe-begin>>>
+2026-09-30T17:37:40.8607321Z 2026-09-30 19:37:28.065 WARNING (MainThread) [homeassistant.util.loop] Detected blocking call to import_module with args ('.coordinator', 'custom_components.heatpump_optimizer') inside the event loop by custom integration 'heatpump_optimizer' at custom_components/heatpump_optimizer/__init__.py, line 85: return importlib.import_module(f".{module}", __package__) (offender: /config/custom_components/heatpump_optimizer/__init__.py, line 85: return importlib.import_module(f".{module}", __package__)), please create a bug report at https://github.com/tvofi/heatpump_optimizer/issues
+2026-09-30T17:37:40.8608500Z For developers, please see https://developers.home-assistant.io/docs/asyncio_blocking_operations/#import_module
+2026-09-30T17:37:40.8608786Z Traceback (most recent call last):
+2026-09-30T17:37:40.8611805Z   File "/opt/hpo/nightly_ha.py", line 2988, in <module>
+2026-09-30T17:37:40.8612057Z     sys.exit(main())
+2026-09-30T17:37:40.8612303Z   File "/opt/hpo/nightly_ha.py", line 2984, in main
+2026-09-30T17:37:40.8612667Z     return _run_inside(args) if args.inside else _run_outside(args)
+2026-09-30T17:37:40.8613020Z   File "/opt/hpo/nightly_ha.py", line 2450, in _run_inside
+2026-09-30T17:37:40.8613220Z     return asyncio.run(_inside(seed, args.plan_budget))
+2026-09-30T17:37:40.8613449Z   File "/usr/local/lib/python3.14/asyncio/runners.py", line 205, in run
+2026-09-30T17:37:40.8613647Z     return runner.run(main)
+2026-09-30T17:37:40.8613835Z   File "/usr/local/lib/python3.14/asyncio/runners.py", line 128, in run
+2026-09-30T17:37:40.8614044Z     return self._loop.run_until_complete(task)
+2026-09-30T17:37:40.8614294Z   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+2026-09-30T17:37:40.8614522Z     self.run_forever()
+2026-09-30T17:37:40.8614877Z   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+2026-09-30T17:37:40.8615089Z     self._run_once()
+2026-09-30T17:37:40.8615281Z   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+2026-09-30T17:37:40.8615492Z     handle._run()
+2026-09-30T17:37:40.8615695Z   File "/usr/local/lib/python3.14/asyncio/events.py", line 94, in _run
+2026-09-30T17:37:40.8615903Z     self._context.run(self._callback, *self._args)
+2026-09-30T17:37:40.8616101Z   File "/opt/hpo/nightly_ha.py", line 2347, in _inside
+2026-09-30T17:37:40.8616269Z     _provoke_lazy_on_loop()
+2026-09-30T17:37:40.8616458Z   File "/opt/hpo/nightly_ha.py", line 2433, in _provoke_lazy_on_loop
+2026-09-30T17:37:40.8616653Z     pkg._lazy("coordinator")
+2026-09-30T17:37:40.8616869Z   File "/config/custom_components/heatpump_optimizer/__init__.py", line 85, in _lazy
+2026-09-30T17:37:40.8617126Z     return importlib.import_module(f".{module}", __package__)
+2026-09-30T17:37:40.8617260Z 
+2026-09-30T17:37:40.8617406Z 2026-09-30 19:37:28.065 WARNING (MainThread) [homeassistant] <<<nightly-ha-blocking-probe-end>>>
+2026-09-30T17:37:40.8617596Z 
+2026-09-30T17:37:40.8618036Z 2026-09-30 19:37:33.909 WARNING (asyncio_0) [homeassistant.loader] We found a custom integration heatpump_optimizer which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2026-09-30T17:37:40.8618783Z 2026-09-30 19:37:34.248 WARNING (ImportExecutor_0) [py.warnings] /usr/local/lib/python3.14/site-packages/rich/segment.py:547: SyntaxWarning: 'return' in a 'finally' block
+2026-09-30T17:37:40.8619139Z   return
+2026-09-30T17:37:40.8619198Z 
+2026-09-30T17:37:40.8619420Z 2026-09-30 19:37:36.966 INFO (MainThread) [custom_components.heatpump_optimizer] Migrating Heat Pump Optimizer config entry from version 6 to 7
+2026-09-30T17:37:40.8619996Z 2026-09-30 19:37:36.974 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8620652Z 2026-09-30 19:37:36.974 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8621409Z 2026-09-30 19:37:36.974 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_legionella: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8622082Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_thermal_learning: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8622743Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_price_model: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8623392Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_accuracy: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8624151Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_energy: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8624942Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8625587Z 2026-09-30 19:37:36.975 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8626234Z 2026-09-30 19:37:36.976 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8626874Z 2026-09-30 19:37:36.976 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_away: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8627512Z 2026-09-30 19:37:36.980 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+2026-09-30T17:37:40.8628035Z 2026-09-30 19:37:36.986 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8628558Z 2026-09-30 19:37:36.986 WARNING (MainThread) [custom_components.heatpump_optimizer.coordinator] Empty forecast returned for weather.ci_weather. Plans continue on the last forecast, marked stale.
+2026-09-30T17:37:40.8629179Z 2026-09-30 19:37:36.988 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh completed without a solve; the real solve follows in the background
+2026-09-30T17:37:40.8629758Z 2026-09-30 19:37:36.988 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.013 seconds (success: True)
+2026-09-30T17:37:40.8630392Z 2026-09-30 19:37:36.991 INFO (MainThread) [custom_components.heatpump_optimizer.frontend] Registered Heat Pump Optimizer card resource: /heatpump_optimizer_static/heatpump-optimizer-card.js?v=6.7.12
+2026-09-30T17:37:40.8630926Z 2026-09-30 19:37:37.034 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+2026-09-30T17:37:40.8631411Z 2026-09-30 19:37:37.035 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Weather forecast still failing (Empty forecast returned for weather.ci_weather)
+2026-09-30T17:37:40.8631940Z 2026-09-30 19:37:37.035 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+2026-09-30T17:37:40.8632629Z 2026-09-30 19:37:37.036 WARNING (MainThread) [custom_components.heatpump_optimizer.coordinator] No weather forecast available — using current conditions. Predictive optimization will be limited.
+2026-09-30T17:37:40.8633456Z 2026-09-30 19:37:37.037 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.0-0.0 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+2026-09-30T17:37:40.8634136Z 2026-09-30 19:37:39.038 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=51.4%, cost=8.23, status=optimal, dhw_enabled=False, starts=6, peak=4.1 kW
+2026-09-30T17:37:40.8634862Z 2026-09-30 19:37:39.048 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.018 seconds (success: True)
+2026-09-30T17:37:40.8828048Z 
+2026-09-30T17:37:40.8828053Z 
+2026-09-30T17:37:40.8828229Z FAILED: 2 of 58 checks: ['contract:real_provider', 'run:exit_status']
+2026-09-30T17:37:40.9565269Z ##[error]Process completed with exit code 1.
+2026-09-30T17:37:40.9654616Z Post job cleanup.
+2026-09-30T17:37:41.0264549Z [command]/usr/bin/git version
+2026-09-30T17:37:41.0296873Z git version 2.55.0
+2026-09-30T17:37:41.0322301Z Temporarily overriding HOME='/home/runner/work/_temp/91d14667-cb5b-4c57-bda4-4b0564cf91c0' before making global git config changes
+2026-09-30T17:37:41.0323266Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-30T17:37:41.0326961Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-09-30T17:37:41.0358289Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-30T17:37:41.0386012Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-30T17:37:41.0594539Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-30T17:37:41.0621556Z http.https://github.com/.extraheader
+2026-09-30T17:37:41.0630849Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-30T17:37:41.0660989Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-30T17:37:41.0868755Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-30T17:37:41.0900309Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-30T17:37:41.1258213Z Cleaning up orphan processes

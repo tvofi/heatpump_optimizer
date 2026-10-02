@@ -1,0 +1,26 @@
+  ok   disjoint closures are eligible (null control)
+  ok   main changed a file the selected script reads
+  ok   ... and the mirror: the pull request's file is in the closure main changed
+  ok   an overlap only the head's table records still refuses
+  ok   a merge-tree conflict refuses
+  ok   a workflow change on main refuses
+  ok   a claim-file change on the pull request refuses
+  ok   a pinned grader changed on main refuses
+  ok   an unmeasured budget file on either side refuses
+  ok   a measured one is the overlap's to judge, not a refusal of its own (null control)
+  ok   a gate file in the pull request is FULL and refuses
+  ok   an unmeasured file in the pull request is FULL and refuses
+  ok   an INERT-only pull request selects nothing and is eligible against code when no script runs always (null control)
+  ok   #1823's probe: the pull request links a file from DISCLAIMER.md and main deletes it, and a run_always script reads both unrecorded
+  ok   ... the same pair with no run_always script is eligible (null control)
+  ok   an unrecorded file on main's side alone refuses too
+  ok   main changed what a run_always script reads, which the pull request never selected: overlap
+  ok   ... and with that script not run_always, the same pair is eligible (null control)
+  ok   the run_always scripts are read from tests/run.sh
+  ok   this tree's run.sh runs harness_headers.py always
+  ok   no determinable pull-request file refuses
+  ok   main unmoved since the CI base: even a gate change is eligible (null control)
+  ok   ... but never past a conflict
+  ok   the grader specs are the restore pathspecs the workflows name
+  ok   this tree's workflows pin the governance programs
+merge_fastpath self-test: 25 checks, 0 failed

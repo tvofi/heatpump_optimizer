@@ -1,0 +1,27 @@
+  3569 unpinned site(s) of 4113 candidate sites, 3573 at the ratchet base 48786f657cd785d1963073b9f710af7565aac517; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+  4 mutant(s) over 5 file(s); drivers in play: tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  ref-driven drivers compare against '48786f657cd785d1963073b9f710af7565aac517' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/coordinator.py:606 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/config_flow_steps.py: rc=0 failed=0 16s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 4s
+  baseline tests/entities.py: rc=0 failed=0 106s
+  baseline tests/env_drift.py: rc=0 failed=0 170s
+  baseline tests/finite_boundary.py: rc=0 failed=0 54s
+  baseline tests/manual_plan.py: rc=0 failed=0 6s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 3s
+  baseline tests/typing_ruler.py: rc=0 failed=0 31s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/features.py: rc=0 failed=0 398s
+  null control custom_components/heatpump_optimizer/coordinator.py:606 NULL_COMMENT survived every driver
+  ok    custom_components/heatpump_optimizer/coordinator.py:1373 GUARD_OFF  -- killed by tests/env_drift.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:4044 CLAMP_DROP  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:4044 RETURN_DEL  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/sysid.py:1213 RETURN_DEL  -- killed by tests/features.py
+
+  0 survivor(s) of 4 evaluated = 0.0%, cap 20.0%
+
+MUTATION TABLE PASSED

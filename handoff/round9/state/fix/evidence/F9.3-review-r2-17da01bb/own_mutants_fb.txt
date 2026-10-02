@@ -1,0 +1,4 @@
+N1_cost_floor_back tests/finite_boundary.py rc=1 KILLED []
+N2_kwh_floor_off tests/finite_boundary.py rc=1 KILLED []
+N3_empty_day_as_streak tests/finite_boundary.py rc=0 SURVIVED []
+N4_streak_dropped tests/finite_boundary.py rc=1 KILLED []

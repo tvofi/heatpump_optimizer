@@ -1,0 +1,60 @@
+-- Constructor defaults on the install the flow actually produces
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+
+-- P2: one fact, one owner (round-9 class barrier)
+
+-- P6: every read has a producer (round-9 class barrier)
+
+-- Hot water entities exist only where there is hot water
+
+-- Waiting for evidence is not the same as broken
+
+-- A failed refresh reaches every entity
+
+-- No published attribute is non-finite, in any configuration
+
+-- Power headroom survives the turn of the month
+
+-- Device classes on the three that were bare
+
+-- The one device is a service device
+
+-- Binary sensors
+
+-- Buttons
+
+-- Options flow
+
+-- Tibber Pulse auto-bind (#703)
+
+-- Nord Pool / price entity (#701)
+Price entity is empty
+
+-- DSO tariff catalog (#698)
+Unknown DSO catalog product not_a_swedish_dso_2026; not writing
+
+-- Weekend and holiday comfort/DHW (#700)
+
+-- Sensor-gap euro advisor (#699)
+
+-- Sensor advisor: unconfigured sensors ranked by model spread (#1269)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+
+-- Option page schemas
+
+-- Stored values and field ranges
+Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
+
+-- Derived values and the questionnaire
+
+-- Translations
+
+-- Services
+
+-- Climate and switch platforms
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/317d9714-dc71-51db-9306-24555adca735/scratchpad/m2/tests/entities.py", line 9367, in <module>
+    clim.entity_id == "climate.heat_pump_optimizer",
+    ^^^^^^^^^^^^^^
+AttributeError: 'HeatPumpOptimizerClimate' object has no attribute 'entity_id'
+rc=1

@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/92a37515-e62e-55bc-a250-c0484ef41dda/scratchpad/harness/l4_setup_labels.py", line 123, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/claude-0/-home-user/92a37515-e62e-55bc-a250-c0484ef41dda/scratchpad/harness/l4_setup_labels.py", line 94, in main
+    en, sv = seams("en"), seams("sv")
+             ~~~~~^^^^^^
+  File "/tmp/claude-0/-home-user/92a37515-e62e-55bc-a250-c0484ef41dda/scratchpad/harness/l4_setup_labels.py", line 81, in seams
+    form = config_flow._setup_overview_form(_Flow(), CONFIG)
+  File "/tmp/claude-0/-home-user/92a37515-e62e-55bc-a250-c0484ef41dda/scratchpad/wt2/custom_components/heatpump_optimizer/config_flow.py", line 2284, in _setup_overview_form
+    setup = topology.describe_setup(dict(data), flow.hass.config.language)
+                                                ^^^^^^^^^
+AttributeError: '_Flow' object has no attribute 'hass'

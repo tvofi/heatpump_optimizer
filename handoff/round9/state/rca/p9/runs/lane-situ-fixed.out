@@ -1,0 +1,69 @@
+  ok    the card renders an svg with real size on a dashboard tile
+  ok    legend chips exist for the rendered traces
+  ok    no two legend chips overlap or nearly touch
+  ok    every legend chip's label fits inside it
+  ok    hovering the chart actually shows tooltips (the lane is not vacuous)
+  ok    the tooltip stays inside the card on both edges, everywhere hovered
+  ok    and its text fits its box (no inherited-nowrap overflow)
+  ok    the zoom controls render under a fine pointer (dashboard tile)
+  ok    every zoom button clears 24 px on both sides (dashboard tile)
+  ok    and the 24 px spacing circle fits between neighbours (dashboard tile)
+  ok    the zoom controls render under a fine pointer (phone tile)
+  ok    every zoom button clears 24 px on both sides (phone tile)
+  ok    and the 24 px spacing circle fits between neighbours (phone tile)
+  ok    the setup page renders its svg
+  ok    every setup hit target is at least 8x8 px at real size
+  ok    and every hit target sits inside the setup svg
+  ok    a phone-width tile renders axis text at or above the 8 px floor
+  ok    and the glyphs have real outlines again (height > 5 px)
+  ok    the lovelace mount order paints the axis at the 8 px floor on a phone tile
+  ok    the attached mount order paints the axis at the 8 px floor on a phone tile
+  ok    narrowing the tile re-renders the chart and holds the floor
+  ok    the expanded dialog holds the 8 px floor on a phone too
+  ok    the compact tile offers no lane or slot target at all
+  ok    the dialog really offers editable slot targets to measure
+  ok    every lane and slot target in the dialog clears 24 px on both sides
+  ok    every HTML control in the dialog clears 24 px under a coarse pointer
+  ok    every HTML control in the dialog clears 44 px under a coarse pointer
+  ok    no dialog text is painted outside a box a gesture can reach
+  ok    and the walk really measured the dialog's text
+  ok    axis unit labels carry no ink on the svg's top row
+  ok    axis unit labels do not ink-collide with their top tick
+  ok    no slot target covers another slot's ink
+  ok    a slot target under the floor is boxed in, not merely clipped on one side
+  ok    the empty state's entity ids stay inside the card box on a phone tile
+  ok    and the empty state gives the document no horizontal scroll
+  ok    D4-05/D4-06 action and setup text clears 4.5:1 (HA light theme)
+  ok    D4-05/D4-06 action and setup text clears 4.5:1 (HA dark theme)
+  ok    D4-05/D4-06 action and setup text clears 4.5:1 (card fallbacks only)
+  ok    C4 now marker clears 3:1 (HA light theme)
+  ok    C4 now label clears 4.5:1 (HA light theme)
+  ok    C4 estimated-price edge clears 3:1 (HA light theme)
+  ok    C4 vertical gridline is perceptible, not 3:1 (HA light theme)
+  ok    C4 horizontal gridline is perceptible, not 3:1 (HA light theme)
+  ok    C4 every .series[data-key] clears 3:1 (HA light theme)
+  ok    C4 now marker clears 3:1 (HA dark theme)
+  ok    C4 now label clears 4.5:1 (HA dark theme)
+  ok    C4 estimated-price edge clears 3:1 (HA dark theme)
+  ok    C4 vertical gridline is perceptible, not 3:1 (HA dark theme)
+  ok    C4 horizontal gridline is perceptible, not 3:1 (HA dark theme)
+  ok    C4 every .series[data-key] clears 3:1 (HA dark theme)
+  ok    R8 D4-01 the reading-order rule fires on a hand-built out-of-order row
+        tab stops: 375 tile=11, 375 tile_score=12, 375 plan=32, 375 plan_busy=43, 375 setup=12, 375 setup_picker=11, 375 savings=5, 375 advisor=4, 768 tile=11, 768 tile_score=12, 768 plan=32, 768 plan_busy=43, 768 setup=12, 768 setup_picker=10, 768 savings=4, 768 advisor=4, 1280 tile=11, 1280 tile_score=12, 1280 plan=32, 1280 plan_busy=43, 1280 setup=12, 1280 setup_picker=10, 1280 savings=4, 1280 advisor=4
+  ok    R8 D4-01 no Tab step jumps back up the screen, on any view at 375, 768 or 1280
+  ok    R8 D4-01 and no control reorders Tab with a positive tabindex
+  ok    R8 D4-01 and the walk reached the controls of every view
+  P9 grid: 217 cells, 11763 text runs, 421 box-intersecting pairs inked, 73 colour rules, 132.7 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
+  ok    P9 grid: every visible text run clears WCAG AA against what is under it
+  ok    P9 grid: no two text runs share ink
+  ok    P9 grid: no pop-up leaves the viewport or its chart
+  ok    P9 grid: every listbox option reads differently from its siblings as shown
+  ok    P9 grid: no text is clipped where its ancestor cannot scroll to it
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+  ok    B12 hero card renders an svg with real size
+  ok    B12 hero screenshot is a PNG of the dashboard tile
+
+1 BROWSER CHECK(S) FAILED

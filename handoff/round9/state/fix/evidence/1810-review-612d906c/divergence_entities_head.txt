@@ -1,0 +1,20 @@
+traced tests/entities.py: rc=0 reads=2538 wall=292.1s
+RESULT seams[tests/entities.py]=2343 count
+RESULT seams=2343 count
+RESULT seams_child_process=2343 count
+RESULT seams_by_reader[in-process]=0 count
+RESULT seams_by_reader_measured_file[in-process]=0 count
+RESULT seams_by_reader[python-child]=0 count
+RESULT seams_by_reader_measured_file[python-child]=0 count
+RESULT seams_by_reader[node-child]=517 count
+RESULT seams_by_reader_measured_file[node-child]=26 count
+RESULT seams_by_reader[git]=1826 count
+RESULT seams_by_reader_measured_file[git]=293 count
+RESULT seams_by_reader[other-child]=0 count
+RESULT seams_by_reader_measured_file[other-child]=0 count
+RESULT seams_on_INERT_files=2024 count
+RESULT seams_on_measured_files=319 count
+RESULT thread_factor=1.000
+RESULT load1=1.66
+RESULT swapins=0
+rc=0

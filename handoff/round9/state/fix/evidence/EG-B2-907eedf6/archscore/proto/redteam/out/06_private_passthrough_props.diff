@@ -1,0 +1,658 @@
+diff --git a/custom_components/heatpump_optimizer/__init__.py b/custom_components/heatpump_optimizer/__init__.py
+index 4bb63de0..52879c93 100644
+--- a/custom_components/heatpump_optimizer/__init__.py
++++ b/custom_components/heatpump_optimizer/__init__.py
+@@ -164,7 +164,7 @@ def _handover_stamps(hass: HomeAssistant) -> dict[str, Any]:
+ 
+ 
+ def _handover_interval_minutes(coordinator: Any) -> float:
+-    config = getattr(coordinator, "_config", None) or {}
++    config = getattr(coordinator, 'raw_config', None) or {}
+     return float(
+         config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL)
+     )
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..bc6f642a 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -386,7 +386,7 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
+ 
+ async def persist_override(coord: _AwayCoord) -> None:
+     try:
+-        await _away_store(coord).async_save(_override_payload(coord._away_state))
++        await _away_store(coord).async_save(_override_payload(coord.raw_away_state))
+     except Exception as err:  # noqa: BLE001
+         _LOGGER.debug("Could not persist away override: %s", err)
+ 
+@@ -405,18 +405,18 @@ async def restore_override(coord: _AwayCoord) -> None:
+         payload["migrated_helpers"] = bool(raw.get("migrated_helpers"))
+     if not payload["migrated_helpers"]:
+         payload = await _migrate_helpers(coord, payload)
+-        apply_override_payload(coord._away_state, payload)
++        apply_override_payload(coord.raw_away_state, payload)
+         await persist_override(coord)
+         return
+-    apply_override_payload(coord._away_state, payload)
++    apply_override_payload(coord.raw_away_state, payload)
+ 
+ 
+ async def _migrate_helpers(
+     coord: _AwayCoord, payload: dict[str, Any]
+ ) -> dict[str, Any]:
+-    presence = coord._config.get(CONF_AWAY_PRESENCE_ENTITY)
+-    presence_raw, presence_attrs = coord._entity_state(presence)
+-    return_raw, _ = coord._entity_state(coord._config.get(CONF_AWAY_RETURN_ENTITY))
++    presence = coord.raw_config.get(CONF_AWAY_PRESENCE_ENTITY)
++    presence_raw, presence_attrs = coord.raw_entity_state(presence)
++    return_raw, _ = coord.raw_entity_state(coord.raw_config.get(CONF_AWAY_RETURN_ENTITY))
+     mig = migrate_helper_override(
+         presence, presence_raw, presence_attrs, return_raw
+     )
+diff --git a/custom_components/heatpump_optimizer/binary_sensor.py b/custom_components/heatpump_optimizer/binary_sensor.py
+index bf9ce8ec..60876dc4 100644
+--- a/custom_components/heatpump_optimizer/binary_sensor.py
++++ b/custom_components/heatpump_optimizer/binary_sensor.py
+@@ -207,7 +207,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
+         outdoor = self._plan_outdoor_now(data)
+         if outdoor is None:
+             return None, None
+-        floors = self.coordinator._mold_floor_series(np.array([float(outdoor)]))
++        floors = self.coordinator.raw_mold_floor_series(np.array([float(outdoor)]))
+         if floors is None:
+             return None, None
+         two_zone = bool(data.get("two_zone_enabled"))
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index 29cd2005..a23e5797 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -174,9 +174,9 @@ def apply(coord: _BoostCoord) -> None:
+     overlay(
+         action,
+         held,
+-        max_power=float(coord._thermal_model.params.max_electrical_power),
++        max_power=float(coord.raw_thermal_model.params.max_electrical_power),
+         max_temp=float(ctx._opt_config.max_temp),
+-        ecl_max=float(coord._ecl110_displace_max),
++        ecl_max=float(coord.raw_ecl110_displace_max),
+     )
+     coord._current_action = action
+ 
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..652b634a 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10989,6 +10989,102 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             self._simulation_cache = payload
+         return payload
+ 
++    @property
++    def raw_away_state(self) -> Any:
++        return self._away_state
++
++    @property
++    def raw_config(self) -> Any:
++        return self._config
++
++    @property
++    def raw_cop_samples(self) -> Any:
++        return self._cop_samples
++
++    @property
++    def raw_cop_scale(self) -> Any:
++        return self._cop_scale
++
++    @property
++    def raw_current_action(self) -> Any:
++        return self._current_action
++
++    @property
++    def raw_current_state(self) -> Any:
++        return self._current_state
++
++    @property
++    def raw_ecl110_displace_max(self) -> Any:
++        return self._ecl110_displace_max
++
++    @property
++    def raw_entity_state(self) -> Any:
++        return self._entity_state
++
++    @property
++    def raw_entry_released(self) -> Any:
++        return self._entry_released
++
++    @property
++    def raw_external_heat(self) -> Any:
++        return self._external_heat
++
++    @property
++    def raw_house_heat_loss_scale(self) -> Any:
++        return self._house_heat_loss_scale
++
++    @property
++    def raw_legionella(self) -> Any:
++        return self._legionella
++
++    @property
++    def raw_measured_power(self) -> Any:
++        return self._measured_power
++
++    @property
++    def raw_mode(self) -> Any:
++        return self._mode
++
++    @property
++    def raw_mold_floor_series(self) -> Any:
++        return self._mold_floor_series
++
++    @property
++    def raw_opt_config(self) -> Any:
++        return self._opt_config
++
++    @property
++    def raw_optimization_result(self) -> Any:
++        return self._optimization_result
++
++    @property
++    def raw_optimization_running(self) -> Any:
++        return self._optimization_running
++
++    @property
++    def raw_plan_is_stale(self) -> Any:
++        return self._plan_is_stale
++
++    @property
++    def raw_solve_failures(self) -> Any:
++        return self._solve_failures
++
++    @property
++    def raw_thermal_model(self) -> Any:
++        return self._thermal_model
++
++    @property
++    def raw_thermal_params(self) -> Any:
++        return self._thermal_params
++
++    @property
++    def raw_tibber_outage_cycles(self) -> Any:
++        return self._tibber_outage_cycles
++
++    @property
++    def raw_tibber_reauth_started(self) -> Any:
++        return self._tibber_reauth_started
++
+ # The typed config entry (runtime-data, Bronze): ``entry.runtime_data`` is the
+ # entry's coordinator from ``async_setup_entry`` until Home Assistant unloads
+ # the entry. Platforms and service handlers annotate with this and read the
+diff --git a/custom_components/heatpump_optimizer/datetime.py b/custom_components/heatpump_optimizer/datetime.py
+index eda9697e..831e4bae 100644
+--- a/custom_components/heatpump_optimizer/datetime.py
++++ b/custom_components/heatpump_optimizer/datetime.py
+@@ -42,7 +42,7 @@ class AwayReturnDateTime(HeatPumpOptimizerEntity, DateTimeEntity):
+     def native_value(self) -> datetime | None:
+         # The live override, not the payload's copy, which changes only after
+         # the refresh the set call asks for has run its solve (v6.6.12).
+-        return _parse_return_time(self.coordinator._away_state.override_return_iso)
++        return _parse_return_time(self.coordinator.raw_away_state.override_return_iso)
+ 
+     async def async_set_value(self, value: datetime) -> None:
+         await self.coordinator.async_set_away(return_time=value, refresh=False)
+diff --git a/custom_components/heatpump_optimizer/diagnostics.py b/custom_components/heatpump_optimizer/diagnostics.py
+index 6fa06e07..4d7feb1e 100644
+--- a/custom_components/heatpump_optimizer/diagnostics.py
++++ b/custom_components/heatpump_optimizer/diagnostics.py
+@@ -88,17 +88,17 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
+     derivable).
+     """
+     snap: dict[str, Any] = {
+-        "mode": getattr(coord, "_mode", None),
+-        "tibber_outage_cycles": getattr(coord, "_tibber_outage_cycles", None),
+-        "tibber_reauth_started": getattr(coord, "_tibber_reauth_started", None),
++        "mode": getattr(coord, 'raw_mode', None),
++        "tibber_outage_cycles": getattr(coord, 'raw_tibber_outage_cycles', None),
++        "tibber_reauth_started": getattr(coord, 'raw_tibber_reauth_started', None),
+         "weather_stale_hours": coord.weather_stale_hours()
+         if hasattr(coord, "weather_stale_hours")
+         else None,
+-        "optimization_running": getattr(coord, "_optimization_running", None),
+-        "solve_failures": getattr(coord, "_solve_failures", None),
+-        "cop_scale": getattr(coord, "_cop_scale", None),
+-        "cop_samples": getattr(coord, "_cop_samples", None),
+-        "house_heat_loss_scale": getattr(coord, "_house_heat_loss_scale", None),
++        "optimization_running": getattr(coord, 'raw_optimization_running', None),
++        "solve_failures": getattr(coord, 'raw_solve_failures', None),
++        "cop_scale": getattr(coord, 'raw_cop_scale', None),
++        "cop_samples": getattr(coord, 'raw_cop_samples', None),
++        "house_heat_loss_scale": getattr(coord, 'raw_house_heat_loss_scale', None),
+         "last_update_success": bool(
+             getattr(coord, "last_update_success", False)
+         ),
+diff --git a/custom_components/heatpump_optimizer/entity.py b/custom_components/heatpump_optimizer/entity.py
+index 30ab70e8..dd76d688 100644
+--- a/custom_components/heatpump_optimizer/entity.py
++++ b/custom_components/heatpump_optimizer/entity.py
+@@ -184,7 +184,7 @@ def has_hot_water(coordinator: Any) -> bool:
+     only that. The boost overlay asks here too (#1527), so a no-DHW install
+     cannot be handed hot-water power by a switch it should never have used.
+     """
+-    params = getattr(coordinator, "_thermal_params", None)
++    params = getattr(coordinator, 'raw_thermal_params', None)
+     if params is not None:
+         return bool(params.dhw_enabled)
+     return bool((getattr(coordinator, "data", None) or {}).get("dhw_enabled"))
+@@ -193,7 +193,7 @@ def has_hot_water(coordinator: Any) -> bool:
+ def input_configured(coordinator: Any, slot: str) -> bool:
+     """Whether the user configured this input slot. Read from the config,
+     because the registry asks before the first refresh builds a payload."""
+-    config = getattr(coordinator, "_config", None) or {}
++    config = getattr(coordinator, 'raw_config', None) or {}
+     return bool(config.get(slot))
+ 
+ 
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 374b0c27..32034f47 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -266,7 +266,7 @@ def own(coord: Any, signals: Any) -> Any:
+     rewritten within a tick. With the optimizer off the reading blocks
+     again, since the pump is the person's then.
+     """
+-    if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:
++    if duty_mode(coord.raw_config) != DUTY_CONTROL or coord.raw_mode == MODE_OFF:
+         return signals
+     if signals.mode.key not in _OWN_MODES:
+         return signals
+@@ -274,7 +274,7 @@ def own(coord: Any, signals: Any) -> Any:
+ 
+ 
+ def _slot_state(coord: Any, slot: str) -> Any:
+-    entity = _entities(coord._config)[slot]
++    entity = _entities(coord.raw_config)[slot]
+     return coord.hass.states.get(entity) if entity else None
+ 
+ 
+@@ -307,7 +307,7 @@ def _planned_room(result: Any, now: datetime) -> float | None:
+ def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> float | None:
+     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+     state = _slot_state(coord, "space_setpoint")
+-    if _flow_unit(coord._config):
++    if _flow_unit(coord.raw_config):
+         return _flow_target(coord, state, duty)
+     room = _planned_room(result, now)
+     low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
+@@ -318,7 +318,7 @@ def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> f
+         _LOGGER.warning(
+             "Pump duty: %s is declared an indoor set-point but its minimum is "
+             "%.1f degC; set its unit to Flow temperature. Not writing it.",
+-            _entities(coord._config)["space_setpoint"], low,
++            _entities(coord.raw_config)["space_setpoint"], low,
+         )
+         return None
+     return _bounded(state, room)
+@@ -341,18 +341,18 @@ def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
+         return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
+     if duty is not None:
+         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
+-    outdoor = float(coord._current_state.outdoor_temperature)
+-    curve = coord._thermal_model.curve_flow_temp(outdoor)
++    outdoor = float(coord.raw_current_state.outdoor_temperature)
++    curve = coord.raw_thermal_model.curve_flow_temp(outdoor)
+     hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+     return _bounded(state, hold, FLOW_GATE_C)
+ 
+ 
+ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
+     """The row of the module table for ``duty``; ``None`` is the baseline."""
+-    result = getattr(coord, "_optimization_result", None)
++    result = getattr(coord, 'raw_optimization_result', None)
+     mode_state = _slot_state(coord, "mode")
+     space_state = _slot_state(coord, "space_setpoint")
+-    dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
++    dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord.raw_thermal_params.dhw_setpoint))
+     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
+         # Cooling is the user's season, not a duty the plan chose: hands off.
+         return PumpCommand(None, None, None)
+@@ -376,14 +376,14 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
+         return PumpCommand(both, dhw, space)
+     if _option_for(mode_state, pump_mode.MODE_DHW):
+         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
+-    if _flow_unit(coord._config):
++    if _flow_unit(coord.raw_config):
+         return PumpCommand(both, dhw, space)
+     return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
+ 
+ 
+ def _disinfecting(coord: Any) -> bool:
+     """Whether the integration holds the disinfection switch on right now."""
+-    switch = getattr(getattr(coord, "_legionella", None), "disinfect", None)
++    switch = getattr(getattr(coord, 'raw_legionella', None), "disinfect", None)
+     return getattr(switch, "memo", None) is True
+ 
+ 
+@@ -392,7 +392,7 @@ def dhw_gated(coord: Any, reading: float | None) -> bool:
+     written = state_for(coord).written.get("dhw_setpoint")
+     if reading is None or written is None or _differs("dhw_setpoint", reading, written[0]):
+         return False
+-    configured = float(coord._thermal_params.dhw_setpoint)
++    configured = float(coord.raw_thermal_params.dhw_setpoint)
+     return bool(written[0] < configured - SETPOINT_TOLERANCE)
+ 
+ 
+@@ -410,14 +410,14 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
+     wants the other duty too. The global boost mode plans no hot water, so
+     it is ``both``: the heating flow, not the baseline's hold.
+     """
+-    if coord._mode == MODE_BOOST:
++    if coord.raw_mode == MODE_BOOST:
+         return "both"
+-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
++    if coord.raw_mode not in (MODE_AUTO, MODE_ECONOMY):
+         return None
+-    if (coord._current_action or {}).get("mode") == "system_identification":
++    if (coord.raw_current_action or {}).get("mode") == "system_identification":
+         return None
+     held = boost.held_for(coord)
+-    result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
++    result = None if coord.raw_plan_is_stale() else getattr(coord, 'raw_optimization_result', None)
+     duty = None if result is None else step_duty(result, now, _on_kw(coord))
+     space = held.active(boost.CHANNEL_SPACE, now)
+     dhw = held.active(boost.CHANNEL_DHW, now)
+@@ -429,7 +429,7 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
+ 
+ 
+ def _on_kw(coord: Any) -> float:
+-    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)
++    return max(0.1, float(coord.raw_thermal_model.params.min_electrical_power) * 0.5)
+ 
+ 
+ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> str | None:
+@@ -441,12 +441,12 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
+         held.dhw_since = None
+         return duty
+     held.dhw_since = held.dhw_since or now
+-    cold = float(coord._current_state.outdoor_temperature) < COLD_RAIL_C
++    cold = float(coord.raw_current_state.outdoor_temperature) < COLD_RAIL_C
+     cap = COLD_LEASE_MINUTES if cold else LEASE_MINUTES
+     if now - held.dhw_since <= timedelta(minutes=cap):
+         return duty
+-    room = getattr(coord._current_state, "room_temperature", None)
+-    planned = _planned_room(getattr(coord, "_optimization_result", None), now)
++    room = getattr(coord.raw_current_state, "room_temperature", None)
++    planned = _planned_room(getattr(coord, 'raw_optimization_result', None), now)
+     warm = room is not None and planned is not None and float(room) >= float(planned)
+     return duty if warm else None
+ 
+@@ -462,7 +462,7 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
+ 
+ def _observed(coord: Any, slot: str) -> Any:
+     """The reading, or ``None`` when there is none: an unavailable select is not a mode."""
+-    entity = _entities(coord._config)[slot]
++    entity = _entities(coord.raw_config)[slot]
+     if slot == "mode":
+         raw = getattr(coord.hass.states.get(entity) if entity else None, "state", None)
+         return raw if pump_mode.resolve(raw) is not None else None
+@@ -488,7 +488,7 @@ def hold(coord: Any, now: datetime) -> None:
+         del held.written[slot]
+         held.misses[slot] = held.misses.get(slot, 0) + 1
+         if held.misses[slot] > 1:
+-            entity = _entities(coord._config)[slot]
++            entity = _entities(coord.raw_config)[slot]
+             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
+ 
+ 
+@@ -520,7 +520,7 @@ def _forget(held: ArbiterState) -> None:
+ 
+ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
+     held = state_for(coord)
+-    state, entity = _slot_state(coord, slot), _entities(coord._config)[slot]
++    state, entity = _slot_state(coord, slot), _entities(coord.raw_config)[slot]
+     recorded = held.written.get(slot)
+     if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
+         return
+@@ -555,14 +555,14 @@ def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
+     """Fold this pass into the current step's ledger row; close the last one."""
+     held.last_duty = duty
+     start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+-    tank = getattr(coord._current_state, "dhw_temperature", None)
++    tank = getattr(coord.raw_current_state, "dhw_temperature", None)
+     row = held.step
+     if row is None or row["start"] != start:
+         if row is not None:
+             held.log.append(_verdict(row, tank))
+         held.step = row = {"start": start, "planned": duty, "tank": tank,
+                            "measured": False, "ran": False, "dhw_mode": False}
+-    power = getattr(coord, "_measured_power", None)
++    power = getattr(coord, 'raw_measured_power', None)
+     if power is not None:
+         row["measured"] = True
+         row["ran"] = row["ran"] or float(power) >= _on_kw(coord)
+@@ -595,20 +595,20 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
+     """One arbitration pass; safe to call from the cycle and from the tick."""
+     now = now or dt_util.now()
+     held = state_for(coord)
+-    mode = duty_mode(coord._config)
++    mode = duty_mode(coord.raw_config)
+     if mode == DUTY_OFF:
+         release_listeners(coord)
+         return
+     async with held.lock:
+         await _load(coord)
+-        if getattr(coord, "_entry_released", False):
++        if getattr(coord, 'raw_entry_released', False):
+             return  # queued before the unload: arm and write nothing (D1-s3-02)
+         _listen(coord)
+         await _arbitrate(coord, held, mode, now)
+ 
+ 
+ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
+-    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
++    if coord.raw_mode == MODE_OFF or mode != DUTY_CONTROL:
+         # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
+         # pump is the person's the moment the optimizer lets go of it.
+         if held.written or held.retry:
+@@ -616,7 +616,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
+             _forget(held)
+             _clear(coord, ISSUE_IGNORED)
+             await _persist(coord)
+-        if coord._mode == MODE_OFF:
++        if coord.raw_mode == MODE_OFF:
+             return
+     duty = _leased(coord, held, _planned_duty(coord, now), now)
+     _observe(coord, held, duty, now)
+@@ -634,10 +634,10 @@ def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
+     A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
+     """
+     held = boost.held_for(coord)
+-    if (duty != "both" or coord._mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
++    if (duty != "both" or coord.raw_mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
+             or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
+         return duty
+-    result = coord._optimization_result
++    result = coord.raw_optimization_result
+     i = bisect.bisect_right(result.timestamps, now) - 1
+     space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
+     dhw_min = 15.0 * dhw / (space + dhw)
+@@ -655,7 +655,7 @@ def _pump_off(coord: Any) -> bool:
+     degC), so nothing is compared or written until it is on again; then a
+     reset that is still there is rewritten like any other difference.
+     """
+-    entity = coord._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
++    entity = coord.raw_config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
+     power = coord.hass.states.get(entity) if entity else None
+     return bool(getattr(power, "state", None) == "off")
+ 
+@@ -664,7 +664,7 @@ async def release(coord: Any) -> None:
+     """Unload: write the baseline over anything still owned, then let go."""
+     release_listeners(coord)
+     held = state_for(coord)
+-    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:
++    if held.written and duty_mode(coord.raw_config) == DUTY_CONTROL and coord.raw_mode != MODE_OFF:
+         await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
+ 
+ 
+@@ -688,7 +688,7 @@ def _listen(coord: Any) -> None:
+         hass.async_create_task(apply(coord))
+ 
+     held.unsubs.append(async_track_time_interval(hass, _tick, _TICK))
+-    entities = [e for e in _entities(coord._config).values() if e]
++    entities = [e for e in _entities(coord.raw_config).values() if e]
+     if entities:
+         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
+ 
+@@ -753,7 +753,7 @@ def diagnostics_view(coord: Any) -> dict[str, Any]:
+     """The diagnostics view."""
+     held = state_for(coord)
+     return {
+-        "duty_mode": duty_mode(coord._config),
++        "duty_mode": duty_mode(coord.raw_config),
+         "last_duty": held.last_duty,
+         "misses": dict(held.misses),
+         "retrying": sorted(held.retry),
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index 0529fef3..760efd67 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -107,7 +107,7 @@ def _sensor_advisor_attribute(coordinator: Any) -> dict[str, Any]:
+     configured: a fully wired install publishes exactly the attributes it
+     did before the feature.
+     """
+-    config = getattr(coordinator, "_config", None) or {}
++    config = getattr(coordinator, 'raw_config', None) or {}
+     data = coordinator.data or {}
+     ranking = topology.rank_sensor_advisor(
+         config, hp_kw=_numeric_samples(data.get("heat_pump_power_series") or ())
+@@ -629,7 +629,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
+             outdoor_temp, _source = _effective_outdoor(self.coordinator)
+             if outdoor_temp is None:
+                 return None
+-            cop = self.coordinator._thermal_model.compute_cop(outdoor_temp)
++            cop = self.coordinator.raw_thermal_model.compute_cop(outdoor_temp)
+             return round(cop, 2) if isinstance(cop, (int, float)) else None
+         return None
+ 
+@@ -1068,9 +1068,9 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
+         if self.coordinator.data:
+             return {
+                 "solar_radiation_wm2": self.coordinator.data.get("solar_radiation", 0),
+-                "window_area_m2": self.coordinator._thermal_params.window_area,
+-                "shgc": self.coordinator._thermal_params.solar_heat_gain_coefficient,
+-                "orientation_factor": self.coordinator._thermal_params.solar_orientation_factor,
++                "window_area_m2": self.coordinator.raw_thermal_params.window_area,
++                "shgc": self.coordinator.raw_thermal_params.solar_heat_gain_coefficient,
++                "orientation_factor": self.coordinator.raw_thermal_params.solar_orientation_factor,
+             }
+         return {}
+ 
+@@ -1693,7 +1693,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+         super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
+ 
+     def _modelled_cop(self, data: dict[str, Any]) -> float | None:
+-        model = getattr(self.coordinator, "_thermal_model", None)
++        model = getattr(self.coordinator, 'raw_thermal_model', None)
+         if model is None:
+             return None
+         cop = model.compute_cop(data.get("outdoor_temperature", 5.0))
+@@ -2141,7 +2141,7 @@ def valve_throttling(coordinator: Any) -> bool:
+     false for no valve and for the passive ``none`` mode alike, so "no
+     readout" is one state both ways.
+     """
+-    params = getattr(coordinator, "_thermal_params", None)
++    params = getattr(coordinator, 'raw_thermal_params', None)
+     if params is not None:
+         return is_throttling(getattr(params, "mixing_valve_mode", None))
+     return is_throttling(
+@@ -2813,7 +2813,7 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+     def _gaps(self) -> list[dict[str, Any]]:
+-        config = getattr(self.coordinator, "_config", None) or {}
++        config = getattr(self.coordinator, 'raw_config', None) or {}
+         data = self.coordinator.data or {}
+         # Sanitise once, HERE, so every reader below sees numbers only --
+         # the house meter's peak term inside rank_sensor_gaps reads the
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index cc746d84..14c3d9a6 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -475,12 +475,12 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
+             setpoint = (
+                 wanted_set
+                 if wanted_set is not None
+-                else coord._thermal_params.dhw_setpoint
++                else coord.raw_thermal_params.dhw_setpoint
+             )
+             minimum = (
+                 wanted_min
+                 if wanted_min is not None
+-                else coord._thermal_params.dhw_min_temp
++                else coord.raw_thermal_params.dhw_min_temp
+             )
+             ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+             if float(minimum) > ceiling:
+diff --git a/custom_components/heatpump_optimizer/setpoint_check.py b/custom_components/heatpump_optimizer/setpoint_check.py
+index f0d3c39b..b66c5894 100644
+--- a/custom_components/heatpump_optimizer/setpoint_check.py
++++ b/custom_components/heatpump_optimizer/setpoint_check.py
+@@ -55,8 +55,8 @@ def evaluate(coord: Any) -> None:
+ 
+ def _evaluate(coord: Any) -> None:
+     hass = coord.hass
+-    config = coord._config
+-    params = coord._thermal_params
++    config = coord.raw_config
++    params = coord.raw_thermal_params
+     _dhw(hass, config, params, lambda pump: dhw_gated(coord, pump))
+     _space(hass, config)
+ 
+diff --git a/custom_components/heatpump_optimizer/switch.py b/custom_components/heatpump_optimizer/switch.py
+index f1d254c0..fa865a15 100644
+--- a/custom_components/heatpump_optimizer/switch.py
++++ b/custom_components/heatpump_optimizer/switch.py
+@@ -127,7 +127,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+ 
+     @property
+     def is_on(self) -> bool:
+-        return bool(self.coordinator._away_state.override_active)
++        return bool(self.coordinator.raw_away_state.override_active)
+ 
+     async def async_turn_on(self, **kwargs: Any) -> None:
+         await self.coordinator.async_set_away(active=True, refresh=False)
+diff --git a/custom_components/heatpump_optimizer/wood_fuel.py b/custom_components/heatpump_optimizer/wood_fuel.py
+index 8800058e..82d5a029 100644
+--- a/custom_components/heatpump_optimizer/wood_fuel.py
++++ b/custom_components/heatpump_optimizer/wood_fuel.py
+@@ -516,27 +516,27 @@ def _attach_night_advice(
+ def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
+     """Publish helper so the coordinator does not grow a method (#463)."""
+     n = len(result.timestamps) if result is not None else 0
+-    det = coord._external_heat
++    det = coord.raw_external_heat
+     suppressing = bool(det.suppressing)
+     if result is not None and suppressing:
+         forecast_kw = det.forecast_free_heat(
+             n,
+-            coord._opt_config.dt_hours,
+-            coord._thermal_params.two_tank_modelled,
++            coord.raw_opt_config.dt_hours,
++            coord.raw_thermal_params.two_tank_modelled,
+         )
+     else:
+         forecast_kw = []
+-    state = getattr(coord, "_current_state", None)
+-    opt = getattr(coord, "_opt_config", None)
++    state = getattr(coord, 'raw_current_state', None)
++    opt = getattr(coord, 'raw_opt_config', None)
+     return build_wood_fuel_view(
+-        coord._config,
++        coord.raw_config,
+         prices=list(result.prices) if result is not None else [],
+         outdoor=list(result.outdoor_temps) if result is not None else [],
+         space_kw=list(result.power_schedule) if result is not None else [],
+         dhw_kw=(
+             list(result.dhw_power_schedule or []) if result is not None else []
+         ),
+-        cop_at=coord._thermal_model.compute_cop,
++        cop_at=coord.raw_thermal_model.compute_cop,
+         timestamps=list(result.timestamps) if result is not None else [],
+         forecast_kw=forecast_kw,
+         suppressing=suppressing,

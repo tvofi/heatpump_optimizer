@@ -1,0 +1,40 @@
+== null: no edit
+   old: nothing moves
+   new: nothing moves
+== #1738a copy a 12+-line function into another module
+   old: {'dead_top_level_symbols': 1}
+   new: {'dead_top_level_symbols': 1, 'duplication_copies': 1}
+== #1738b read a coordinator private from a platform (by role)
+   old: nothing moves
+   new: {'coordinator_private_reach': 1}
+== #1738b write one: store, and in-place mutation
+   old: nothing moves
+   new: {'coordinator_attrs': 1, 'coordinator_private_reach': 6}
+== #1738 attribute stored from outside the class
+   old: nothing moves
+   new: {'coordinator_attrs': 1}
+== #1686 move a method body into _helper(self)
+   (moved _thermal_learning_payload, seam learning, into _probe_helper)
+   old: {'coordinator_loc': -79, 'cross_seam_edges': -1, 'cut_learning': -2, 'internal_call_edges': -1, 'max_class_loc': -79}
+   (moved _thermal_learning_payload, seam learning, into _probe_helper)
+   new: {'max_class_loc': -79}
+== D7-s3-02 an unread @property
+   old: nothing moves
+   new: {'dead_methods': 1}
+== D7-s3-02 an unread method whose name is also a local
+   old: nothing moves
+   new: {'dead_methods': 1}
+== D7-s3-02 a method reached only from itself
+   old: nothing moves
+   new: {'dead_methods': 1}
+== #1738 a module-level import cycle
+   old: nothing moves
+   new: {'import_cycle_modules': 2}
+== #1738 a name reached only through import *
+   old: {'dead_top_level_symbols': 1}
+   new: nothing moves
+== null: rename a coordinator-holding parameter
+   (renamed _fold_flow_lift's coord to probe_owner)
+   old: nothing moves
+   (renamed _fold_flow_lift's coord to probe_owner)
+   new: nothing moves

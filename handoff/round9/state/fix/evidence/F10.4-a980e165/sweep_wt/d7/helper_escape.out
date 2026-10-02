@@ -1,0 +1,33 @@
+  seam  coordinator.py:_cop_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_diagnose_payload  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_fold_flow_lift  self-arg#0  state_refs=8  coord_method_calls=4
+  seam  coordinator.py:_freq_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=1
+  seam  coordinator.py:_note_solve_failure  self-arg#0  state_refs=6  coord_method_calls=0
+  seam  coordinator.py:_power_windows  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_republish_handover_ages  self-arg#0  state_refs=1  coord_method_calls=2
+  seam  coordinator.py:_space_pump_to_drive  self-arg#0  state_refs=1  coord_method_calls=1
+  seam  coordinator.py:_store_diagnosis  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_warm_seeded  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_watch_lift  self-arg#0  state_refs=5  coord_method_calls=0
+  seam  coordinator.py:_with_sensor_advisor  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  wood_fuel.py:wood_fuel_from_coordinator  self-arg#0  state_refs=5  coord_method_calls=0
+RESULT helpers=13 count
+RESULT helper_state_refs=38 count
+RESULT helper_coord_method_calls=8 count
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s1/helper_escape.py", line 202, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s1/helper_escape.py", line 176, in main
+    m1 = measure_at(arm)
+         ^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp/tools/audit/round9/D7/s1/helper_escape.py", line 135, in measure_at
+    return structure.measure()["metrics"]
+           ^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/wt/tests/structure.py", line 1681, in measure
+    seam = seam_metrics(coord_class, helpers=helpers)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/wt/tests/structure.py", line 1019, in seam_metrics
+    raise SeamMapError(
+structure.SeamMapError: seam map disagrees with HeatPumpOptimizerCoordinator: unmapped [], stale ['coordinator._fold_flow_lift'], unknown seam []. Give each new or renamed method, and each coordinator.py helper handed the coordinator, its seam in seam_map.json (#1539, #1686)
+rc=1

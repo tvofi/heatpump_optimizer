@@ -1,0 +1,11 @@
+MA_bars_on_plot_floor: browser rc=0 fails=0
+MB_actioned_band_plotB: browser rc=0 fails=0
+MC_shared_band_full_height: browser rc=0 fails=0
+ME_estimated_first_panel_only: browser rc=0 fails=0
+MG_grid_v_full_height: browser rc=0 fails=0
+MH_hidden_panel_keeps_height: browser rc=1 fails=2
+      FAIL  P9 grid: no two text runs share ink
+    1 BROWSER CHECK(S) FAILED
+restored clean
+
+[exited with code 0]

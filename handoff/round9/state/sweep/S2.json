@@ -1,0 +1,137 @@
+{
+  "classes": [
+    {
+      "class": "I5",
+      "N": 19,
+      "rca": true,
+      "baseline": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "checked_on_main": "db878b2",
+      "enumerator": "tools/audit/round9/D14/sweep/I5/enumerator.py",
+      "null_and_perturbation": "tools/audit/round9/D14/sweep/I5/null_and_perturb.py",
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/strings.json:custom_components/heatpump_optimizer/translations/{en,sv}.json",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D4/s2/unit_typography.py",
+          "note": "D4-s2-09: 8 help texts per language write bare '45 C'/'W/m2' beside selectors that say °C/m²; still present on main."
+        },
+        {
+          "path": "docs/configuration.md:Initial setup section",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s1/setup_section.py",
+          "note": "D5-s1-01: documents the pre-v6.6.5 flow (no finish menu, token required, 74 entities); stale_facts=4; still present on main."
+        },
+        {
+          "path": "docs/setup.md:Quick setup",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s1/quick_setup_promise.py",
+          "note": "D5-s1-02: promises buffer storage / two-tank physics the quick-setup answers cannot produce; unhonoured_promises=2; still present on main."
+        },
+        {
+          "path": "docs/dashboard-card.md:card version note",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s1/card_version_doc.py",
+          "note": "D5-s1-03: says the card version lags the integration; stamp.py keeps them equal every release; still present on main."
+        },
+        {
+          "path": "docs/configuration.md,docs/how-it-works.md:field-label prose",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s1/field_labels.py",
+          "note": "D5-s1-05: 5 option fields named by labels the options forms do not show; unfindable_field_refs=5; still present on main."
+        },
+        {
+          "path": "docs/configuration.md:196",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s1/entity_counts.py",
+          "note": "D6-s2-01/D5-s1-06 shape: 'All 74 entities' vs 75 constructed; disagreeing_claims=1; null control confirms the harness holds at 0 once fixed, and moves 0->1 under a one-line re-introduction (see null_and_perturb.py); still present on main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:12 stale private-member mentions",
+          "disposition": "instance",
+          "probe": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D5/s2/card_comment_names.mjs",
+          "note": "D5-s2-01: 12 private members cited in comments no longer exist (17 mentions); card_stale_private_names=12; still present on main (12/17, line numbers shifted)."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/{defrost.py,const.py,coordinator.py}",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s2/comment_numbers.py",
+          "note": "D5-s2-02: 3 numeric-citation mismatches + D5-s2-03 (DHW_COLD_WATER_TEMP draw-coupling claim) = comment_number_mismatches=4; 5 hold rows show the checker does not false-positive; still present on main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/optimizer.py",
+          "disposition": "instance",
+          "probe": "grep -n 'one step later\\|stashes the series' custom_components/heatpump_optimizer/optimizer.py && PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/leads/dataflow_comments.py",
+          "note": "D5-s2-51: two comments describe a warm-start-alignment / buffer-series-stash data flow the code does not have; dataflow_comments.py's model_sequence_writes=0 confirms no such write path; still present on main."
+        },
+        {
+          "path": "README.md:Heat Pump Action state list / options-page placement / disabled-by-default census",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s1/claims.py --no-net",
+          "note": "D6-s1-01/02/03: claims_false=4 (action states list omits idle/system_identification; two-zone split and orientation factor placed on the wrong page; disabled-by-default census omits 6 hot-water sensors); still present on main."
+        },
+        {
+          "path": "docs/configuration.md:196",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/flow_census.py",
+          "note": "D6-s2-02: same seam as entity_counts (74 vs 75), cross-checked by the flow-census route: doc_entity_counts_wrong=1; still present on main."
+        },
+        {
+          "path": "docs/ecl110.md:31",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/behaviour_claims.py",
+          "note": "D6-s2-03: 'curve bias moves at most 0.5 K per week' -- largest measured 7-day drop is 0.600 K; behaviour_claims_false=1; still present on main."
+        },
+        {
+          "path": "docs/how-it-works.md:108",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/howitworks_claims.py",
+          "note": "D6-s2-04: 'space solve runs from two starting points' -- 4 multi-start candidates measured, 8 minimize calls; howitworks_claims_false=1; still present on main."
+        },
+        {
+          "path": "docs/configuration.md:951",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/services_claims.py",
+          "note": "D6-s2-05 (merged with D5-s1-06): simulate_plan field list omits the five wood fields; services_claims_false=1; still present on main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/translations/sv.json",
+          "disposition": "instance",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D8/s3/m3_translation.py",
+          "note": "D8-s3-02: Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency', dropping the advisor role; concept_mismatch=1; still present on main."
+        },
+        {
+          "path": "CLAUDE.md:16",
+          "disposition": "instance",
+          "probe": "grep -no '`[A-Z][A-Z -]*: [^`]*`' CLAUDE.md .claude/rules/*.md .claude/skills/steward/SKILL.md",
+          "note": "D11-s2-04 (weakened, low): CLAUDE.md rule 1 quotes 'MODE: SCOPED — 0 script(s) run' and says FULL prints a zero it does not; grep still finds the same two spans on main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/architecture (module map, snapshot ring, boost overlay, hacs.json floor)",
+          "disposition": "not_applicable",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/architecture_claims.py",
+          "note": "widening sibling, 12/12 claims hold (architecture_claims_false=0); no I5 instance here at baseline or main."
+        },
+        {
+          "path": "docs/setup.md (menu order, defaults, image existence, page counts)",
+          "disposition": "not_applicable",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D6/s2/setup_claims.py",
+          "note": "widening sibling, 22/22 claims hold (setup_claims_false=0); no I5 instance here at baseline or main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/{defrost.py,quick_setup.py}:adjacent-constant comments",
+          "disposition": "not_applicable",
+          "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D5/s2/scan_const_numbers.py",
+          "note": "widening sibling, 2/2 checked hold (const_adjacent_mismatch=0); no I5 instance here at baseline or main."
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/*.py:qualified-reference comments (19 rows)",
+          "disposition": "not_applicable",
+          "probe": "python3 tools/audit/round9/D5/s2/scan_qualified_refs.py",
+          "note": "widening sibling; harness docstring states the expected shape (19 rows, all false positives -- entity ids, filenames, datetime.weekday); re-verified none of the 19 is a real module.attr/Class.member drift; not an I5 instance."
+        }
+      ],
+      "barrier_proposal": "No single production seam to barrier (8 distinct claim shapes). Proposed: a nightly (not per-PR) lane running all 15 shape-checkers above plus the 4 widening siblings, failing on any nonzero *_false/*_mismatch/*_wrong/*_unfindable/*_stale count -- sizing and CI-vs-nightly placement left to the RCA seat per defect-root-cause.md.",
+      "gate_seconds": 26
+    }
+  ]
+}

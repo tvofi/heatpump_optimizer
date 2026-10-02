@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/optimizer.py	2026-10-01 09:11:34.068236270 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/optimizer.py	2026-10-01 09:12:15.516570502 +0000
+@@ -863,7 +863,7 @@
+         low, band = 0.0, p_max
+     else:
+         return 0.0
+-    return float(min(1.0, max(0.0, (power - low) / band)))
++    return float(min(1.0, max(0.0, (power - p_min) / max(p_max - p_min, 0.1))))
+ 
+ 
+ def count_compressor_starts(

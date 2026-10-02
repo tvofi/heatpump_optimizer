@@ -1,0 +1,35 @@
+  ok    the panel offers hot water window editors
+  ok    the hot water slider writes its own draft field, not the comfort one
+  ok    the hot water readout follows its own slider
+  ok    the hot water windows are pre-filled from the plan
+  ok    the simulator sends the hot water windows
+  ok    the hot water consequence is reported too
+  ok    there is a future hot water slot to edit
+  ok    the heat pump visibly feeds the hot water tank
+  ok    the coil is drawn as its own pipe, wood tank to hot water tank
+  ok    and the hot water box says where its refill water comes from
+  ok    the dialog offers an advisor tab beside the other three
+  ok    the advisor page ranks the priced rows with their spread
+  ok    with no candidates the advisor page says so in as many words
+  ok    the advisor page speaks Swedish
+  ok    the advisor rows sit in the html target floor's selector list
+  ok    the inbox has a Worth doing section
+  ok    rows rank by monthly value: degree 90 > hot water 55 > gap 40 > valve (no money)
+  ok    the hot water at the off-grid default 55 is priced by interpolation
+  ok    price of a degree: the cooler tile is the saving, the warmer one is in the detail
+  ok    Try in what-if seeds the what-if slider with the tile's target and simulates
+  ok    without price tiles the degree row is offered as enable-to-see, not drawn
+  ok    a sensor gap worth nothing is no row
+  ok    the valve target rounds to the nearest half degree
+  ok    the valve target is clamped to 30 °C
+  ok    Apply on the valve target calls assign_entity with a manual setpoint
+  ok    off-by-default advisors are offered as enable-to-see rows
+  ok    the card never reads a disabled-by-default advisor
+  ok    an advisor that is waiting shows its own reason
+  ok    an unavailable advisor says so without reading any attribute
+  ok    an unknown advisor with nothing to wait for reads as unavailable
+  ok    with nothing to do the inbox says the plan is already as cheap as settings allow
+  ok    the card's render signature includes the advisor sensors
+  ok    the inbox speaks Swedish
+  ok    the lanes draw the recorded runs, hot water red and heating blue, left of now
+ALL CARD CHECKS PASSED

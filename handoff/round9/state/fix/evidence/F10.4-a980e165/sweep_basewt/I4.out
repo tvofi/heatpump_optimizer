@@ -1,0 +1,44 @@
+== D7-s3-02: structure.py dead_methods reads 0 while 9-11 members are dead ==
+Coordinator floor_return_temp 3015
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator last_optimization 2885
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator next_optimization 2889
+LISTED custom_components/heatpump_optimizer/defrost.py DefrostDerate measured 328
+LISTED custom_components/heatpump_optimizer/inputs.py InputHealth healthy 148
+LISTED custom_components/heatpump_optimizer/open_meteo.py IrradianceSeries start 109
+LISTED custom_components/heatpump_optimizer/open_meteo.py OpenMeteoSolar last_success 276
+LISTED custom_components/heatpump_optimizer/optimizer.py _Horizon weather 1583
+RESULT dead_methods=11 count
+RESULT dead_top_level_symbols=1 count
+RESULT thread_factor=1.000
+RESULT load1=5.82
+RESULT swapins=0
+
+== D14-s2-03: class roster and finding grammar have disagreeing readers ==
+st(String(f.class_guess ?? '')) && `class_guess ${JSON.stringify(f.class_guess)} is neither a ledger id
+SEAM .claude/workflows/audit-find.js:304:    if (!seatById[owner] || !(typeof f.id === 'string' && f.id.startsWith(`${owner}-`)) || !CLASS_GUESS.test(String(f.class_
+SEAM .claude/workflows/audit-find.js:357:2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${ro
+SEAM .claude/workflows/audit-find.js:359:The accepted findings: ${JSON.stringify(accepted.map((f) => ({ id: f.id, seat: f.seat, scope: f.scope, step: f.step, severit
+SEAM .claude/workflows/carry-1644.json:40:      "brief": "#1747 is a P2 instance: a fact (the DHW mode block) passed to one build of the DHW plan and missing at its 
+RESULT i4_reader_sites=34 count
+
+== D11-s1-71: rules_sync vs policy_lint disagree on 2 of 6 legal frontmatter paths: shapes ==
+eFrontmatter is not defined
+    at parse (eval at <anonymous> (file:///tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp2/tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs:41:15), <anonymous>:4:3)
+    at cell (file:///tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp2/tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs:61:13)
+    at file:///tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp2/tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs:67:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.22.0
+
+== D11-s1-72: entities.py GOV pin reads governance.yml only ==
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/exp2/tools/audit/round9/D11/leads/l3_gov_pin.py", line 29, in <module>
+    b = src.index("_GOV_JOBS = _workflow_job_ids(_DS_GOV)")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: substring not found
+
+== D13-s1-01: CITED (needs live origin/main; see SWEEP.md) ==
+stats_window_merges=201 subject_merges=253 gap=52 gap_marked=0 (tools/audit/round9/D13/s1/REPORT.md)
+rc=0

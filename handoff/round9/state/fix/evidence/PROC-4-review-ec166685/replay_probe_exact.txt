@@ -1,0 +1,11 @@
+BUS posted 1829 e8c48e6d9f0bcb83bb7fd29cdb0b688232aaf7c6 Fix review: merge 3333333333333333333333333333333333333333
+BUS posted 1829 8358d060e1c714dc42d82bd9bc42fcace7e5913f Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted
+--- posts before the replay
+POSTED: Fix review: merge 3333333333333333333333333333333333333333
+POSTED: Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted
+--- watch --post after the replay
+BUS verdict 1829 caead22e8bdafe04a8a5820b6cf0896de4353a31
+BUS refused 1829 caead22e8bdafe04a8a5820b6cf0896de4353a31: this signed verdict was already posted on #1829 (a replay)
+--- posts after
+POSTED: Fix review: merge 3333333333333333333333333333333333333333
+POSTED: Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted

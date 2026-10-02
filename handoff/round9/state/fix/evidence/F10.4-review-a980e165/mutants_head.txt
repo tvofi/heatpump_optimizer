@@ -1,0 +1,37 @@
+unmutated: rc=0 []
+== properties out of the member census: rc=1
+   FAIL  a property nothing reads is a dead member
+   FAIL  a bare name is a local, and keeps no member alive
+== a bare name load keeps a member alive: rc=1
+   FAIL  a property nothing reads is a dead member
+   FAIL  a bare name is a local, and keeps no member alive
+== liveness by name, not reachability: rc=1
+   FAIL  a member reached only from its own body is dead
+== helpers not charged: rc=1
+   FAIL  a coordinator.py function handed the coordinator is a helper
+   FAIL  a helper is priced as the method it was cut from (#1686)
+== role by parameter name only (no propagation): rc=1
+   FAIL  a coordinator.py function handed the coordinator is a helper
+   FAIL  a helper is priced as the method it was cut from (#1686)
+   FAIL  a private read and write outside the class are reach, by role
+   FAIL  an in-place mutation is a write, through a renamed parameter
+== in-place mutation is a read: rc=1
+   FAIL  an in-place mutation is a write, through a renamed parameter
+== writers outside the class dropped: rc=1
+   FAIL  an attribute stored from another module is in the census
+== duplication per module only: rc=1
+   FAIL  a copy in another module is one copy, renamed or not
+   FAIL  a third copy costs one more
+== locals not renamed: rc=1
+   FAIL  a copy in another module is one copy, renamed or not
+   FAIL  a third copy costs one more
+== TYPE_CHECKING imports are edges: rc=1
+   FAIL  a TYPE_CHECKING import is not an edge
+== function-scope imports dropped: rc=1
+   FAIL  a function-scope import closes a cycle
+== star import binds nothing: rc=1
+   FAIL  a star import binds the public names it brings
+
+real	0m1.582s
+user	0m1.251s
+sys	0m0.287s

@@ -1,0 +1,22 @@
+== fn: merge-resolution transport (want 1)
+case 1, base=old base:
+rc=0
+case 2, base=main tip (merge-base after the merge):
+rc=0
+== fn: main carries transport, clean merge (fresh base want 0)
+stale base:
+7e5fe14 tools/audit/handoff/m/BODY.md
+rc=1
+fresh base:
+rc=0
+== fn_c: merge-resolution transport (want 1)
+case 1, base=old base:
+rc=1
+case 2, base=main tip (merge-base after the merge):
+rc=1
+== fn_c: main carries transport, clean merge (fresh base want 0)
+stale base:
+4a3a24c tools/audit/handoff/m/BODY.md
+rc=1
+fresh base:
+rc=0

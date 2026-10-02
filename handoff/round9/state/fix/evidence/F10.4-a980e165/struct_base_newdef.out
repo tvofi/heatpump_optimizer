@@ -1,0 +1,420 @@
+########## counting-rule self-check ##########
+  ok   40 counting rules hold
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  custom_components/heatpump_optimizer/coordinator.py:2280-11285  9006 LOC  224 methods  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/optimizer.py:1832-7298  5467 LOC  70 methods  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/thermal_model.py:1558-3490  1933 LOC  31 methods  ThermalModel
+  custom_components/heatpump_optimizer/sysid.py:1222-2285  1064 LOC  15 methods  SystemIdentification
+  custom_components/heatpump_optimizer/thermal_model.py:187-1132  946 LOC  30 methods  ThermalParameters
+  custom_components/heatpump_optimizer/config_flow.py:3109-3997  889 LOC  32 methods  HeatPumpOptimizerOptionsFlow
+  custom_components/heatpump_optimizer/config_flow.py:2295-3106  812 LOC  24 methods  HeatPumpOptimizerConfigFlow
+  custom_components/heatpump_optimizer/legionella.py:47-703  657 LOC  16 methods  LegionellaGuard
+  custom_components/heatpump_optimizer/dhw_learning.py:68-560  493 LOC  16 methods  DhwProfileLearner
+  custom_components/heatpump_optimizer/defrost.py:195-616  422 LOC  13 methods  DefrostDerate
+  custom_components/heatpump_optimizer/external_heat.py:182-490  309 LOC  13 methods  ExternalHeatDetector
+
+########## monster methods: top 10 of 18 over 150 LOC ##########
+  custom_components/heatpump_optimizer/optimizer.py:6090-6475  386 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/sysid.py:1699-2083  385 LOC  identify
+  custom_components/heatpump_optimizer/optimizer.py:2815-3190  376 LOC  optimize
+  custom_components/heatpump_optimizer/coordinator.py:5239-5612  374 LOC  async_run_optimization
+  custom_components/heatpump_optimizer/optimizer.py:4851-5202  352 LOC  _build_dhw_requirements
+  custom_components/heatpump_optimizer/thermal_model.py:2912-3259  348 LOC  simulate_trajectory_batch
+  custom_components/heatpump_optimizer/thermal_model.py:2247-2552  306 LOC  _simulate_step_two_zone
+  custom_components/heatpump_optimizer/optimizer.py:3919-4215  297 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/coordinator.py:5777-6065  289 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:11072-11285  214 LOC  async_simulate
+  max_method_loc = 386 (the worst one, budgeted; a count over a threshold stops pricing growth)
+
+########## worst 5 cyclomatic (of 34 over 15) ##########
+  custom_components/heatpump_optimizer/optimizer.py:2815  cc=48  optimize
+  custom_components/heatpump_optimizer/sysid.py:1699  cc=47  identify
+  custom_components/heatpump_optimizer/coordinator.py:5777  cc=45  _update_current_state
+  custom_components/heatpump_optimizer/optimizer.py:7151  cc=40  get_current_action
+  custom_components/heatpump_optimizer/thermal_model.py:2912  cc=37  simulate_trajectory_batch
+  max_cc = 48 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
+
+########## .const import fan-out (names imported per module) ##########
+  custom_components/heatpump_optimizer/config_flow.py: 359  > 50
+  custom_components/heatpump_optimizer/coordinator.py: 265  > 50
+  custom_components/heatpump_optimizer/thermal_model.py: 63  > 50
+  custom_components/heatpump_optimizer/topology.py: 36
+  custom_components/heatpump_optimizer/services.py: 35
+  custom_components/heatpump_optimizer/optimizer.py: 31
+  custom_components/heatpump_optimizer/comfort_band.py: 23
+  custom_components/heatpump_optimizer/quick_setup.py: 21
+  custom_components/heatpump_optimizer/modbus_prefill.py: 18
+  custom_components/heatpump_optimizer/sensor.py: 17
+  custom_components/heatpump_optimizer/pump_arbiter.py: 14
+  custom_components/heatpump_optimizer/grid_fee.py: 12
+  custom_components/heatpump_optimizer/wood_fuel.py: 12
+  custom_components/heatpump_optimizer/away.py: 10
+  custom_components/heatpump_optimizer/inputs.py: 10
+  custom_components/heatpump_optimizer/climate.py: 9
+  custom_components/heatpump_optimizer/price_model.py: 9
+  custom_components/heatpump_optimizer/legionella.py: 8
+  custom_components/heatpump_optimizer/pump_signals.py: 8
+  custom_components/heatpump_optimizer/dhw_learning.py: 6
+  custom_components/heatpump_optimizer/open_meteo.py: 6
+  custom_components/heatpump_optimizer/device_prefill.py: 5
+  custom_components/heatpump_optimizer/name_match.py: 5
+  custom_components/heatpump_optimizer/silent_mode.py: 5
+  custom_components/heatpump_optimizer/__init__.py: 4
+  custom_components/heatpump_optimizer/disinfection.py: 4
+  custom_components/heatpump_optimizer/setpoint_check.py: 4
+  custom_components/heatpump_optimizer/external_heat.py: 3
+  custom_components/heatpump_optimizer/binary_sensor.py: 2
+  custom_components/heatpump_optimizer/diagnostics.py: 2
+  custom_components/heatpump_optimizer/flow_lift.py: 2
+  custom_components/heatpump_optimizer/switch.py: 2
+  custom_components/heatpump_optimizer/sysid.py: 2
+  custom_components/heatpump_optimizer/battery.py: 1
+  custom_components/heatpump_optimizer/boost.py: 1
+  custom_components/heatpump_optimizer/button.py: 1
+  custom_components/heatpump_optimizer/frontend.py: 1
+  custom_components/heatpump_optimizer/manual_plan.py: 1
+  custom_components/heatpump_optimizer/pump_schedule.py: 1
+  custom_components/heatpump_optimizer/repairs.py: 1
+  custom_components/heatpump_optimizer/wear.py: 1
+
+########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########
+
+########## dead top-level symbols ##########
+  custom_components/heatpump_optimizer/const.py:1545  ENTITY_FAMILY_OVERRIDES
+
+########## dead members (no live attribute load reaches them) ##########
+  custom_components/heatpump_optimizer/coordinator.py:2893  HeatPumpOptimizerCoordinator.current_action
+  custom_components/heatpump_optimizer/coordinator.py:3015  HeatPumpOptimizerCoordinator.floor_return_temp
+  custom_components/heatpump_optimizer/coordinator.py:2885  HeatPumpOptimizerCoordinator.last_optimization
+  custom_components/heatpump_optimizer/coordinator.py:2889  HeatPumpOptimizerCoordinator.next_optimization
+  custom_components/heatpump_optimizer/defrost.py:328  DefrostDerate.measured
+  custom_components/heatpump_optimizer/inputs.py:148  InputHealth.healthy
+  custom_components/heatpump_optimizer/open_meteo.py:109  IrradianceSeries.start
+  custom_components/heatpump_optimizer/open_meteo.py:276  OpenMeteoSolar.last_success
+  custom_components/heatpump_optimizer/optimizer.py:1583  _Horizon.weather
+  dead_methods = 9 (methods and properties; receiver-resolved, reachability from live code)
+  unmeasured: 92 live member(s) kept only by an untyped x.name load of a name another class also defines
+    custom_components/heatpump_optimizer/accuracy.py  AccuracySample.as_dict
+    custom_components/heatpump_optimizer/accuracy.py  AccuracySample.from_dict
+    custom_components/heatpump_optimizer/accuracy.py  AccuracyTracker.as_dict
+    custom_components/heatpump_optimizer/accuracy.py  AccuracyTracker.from_dict
+    custom_components/heatpump_optimizer/accuracy.py  AccuracyTracker.record
+    custom_components/heatpump_optimizer/accuracy.py  AccuracyTracker.sigma
+    custom_components/heatpump_optimizer/accuracy.py  AccuracyTracker.summary
+    custom_components/heatpump_optimizer/away.py  AwayState.as_dict
+    custom_components/heatpump_optimizer/away.py  _AwayCoord._entity_state
+    custom_components/heatpump_optimizer/battery.py  StorageComponent.as_dict
+    custom_components/heatpump_optimizer/battery.py  VirtualBattery.as_dict
+    custom_components/heatpump_optimizer/binary_sensor.py  WoodCheaperBinarySensor.available
+    custom_components/heatpump_optimizer/boost.py  BoostState.active
+    custom_components/heatpump_optimizer/boost.py  BoostState.as_dict
+    custom_components/heatpump_optimizer/button.py  ForceOptimizationButton.available
+    custom_components/heatpump_optimizer/button.py  SystemIdentificationButton.available
+    custom_components/heatpump_optimizer/climate.py  HeatPumpOptimizerClimate.available
+    custom_components/heatpump_optimizer/climate.py  HeatPumpOptimizerClimate.target_temperature
+    custom_components/heatpump_optimizer/comfort_learning.py  ComfortLearner.as_dict
+    custom_components/heatpump_optimizer/comfort_learning.py  ComfortLearner.from_dict
+    custom_components/heatpump_optimizer/comfort_learning.py  ComfortLearner.reset
+    custom_components/heatpump_optimizer/comfort_learning.py  ComfortLearner.summary
+    custom_components/heatpump_optimizer/config_flow.py  _ShowFormParent.async_show_form
+    custom_components/heatpump_optimizer/coordinator.py  HeatPumpOptimizerCoordinator.mode
+    custom_components/heatpump_optimizer/curve_learning.py  CurveLearner.as_dict
+    custom_components/heatpump_optimizer/curve_learning.py  CurveLearner.from_dict
+    custom_components/heatpump_optimizer/curve_learning.py  CurveLearner.summary
+    custom_components/heatpump_optimizer/defrost.py  DefrostDerate.as_dict
+    custom_components/heatpump_optimizer/defrost.py  DefrostDerate.from_dict
+    custom_components/heatpump_optimizer/defrost.py  DefrostDerate.observe
+    custom_components/heatpump_optimizer/defrost.py  DefrostDerate.summary
+    custom_components/heatpump_optimizer/defrost.py  DefrostWindow.observe
+    custom_components/heatpump_optimizer/device_prefill.py  EntityRecord.domain
+    custom_components/heatpump_optimizer/dhw_draws.py  DrawStats.as_dict
+    custom_components/heatpump_optimizer/dhw_draws.py  DrawStats.from_dict
+    custom_components/heatpump_optimizer/disinfection.py  DisinfectionSwitch.observe
+    custom_components/heatpump_optimizer/drift.py  Cusum.as_dict
+    custom_components/heatpump_optimizer/drift.py  Cusum.reset
+    custom_components/heatpump_optimizer/drift.py  Cusum.update
+    custom_components/heatpump_optimizer/entity.py  ConfiguredInputMixin.available
+    custom_components/heatpump_optimizer/entity.py  DHWEntityMixin.available
+    custom_components/heatpump_optimizer/external_heat.py  ExternalHeatDetector.update
+    custom_components/heatpump_optimizer/external_heat.py  ExternalHeatState.as_dict
+    custom_components/heatpump_optimizer/flow_lift.py  FlowCurveBias.as_dict
+    custom_components/heatpump_optimizer/flow_lift.py  FlowCurveBias.from_dict
+    custom_components/heatpump_optimizer/flow_lift.py  FlowCurveBias.observe
+    custom_components/heatpump_optimizer/freq_control.py  FrequencyMap.as_dict
+    custom_components/heatpump_optimizer/freq_control.py  FrequencyMap.from_dict
+    custom_components/heatpump_optimizer/freq_control.py  FrequencyMap.observe
+    custom_components/heatpump_optimizer/freq_control.py  FrequencyMap.summary
+    custom_components/heatpump_optimizer/freq_control.py  FrequencyWatchdog.reset
+    custom_components/heatpump_optimizer/grid_fee.py  GridFeeSchedule.active
+    custom_components/heatpump_optimizer/grid_fee.py  GridFeeSchedule.from_config
+    custom_components/heatpump_optimizer/inputs.py  InputHealth.record
+    custom_components/heatpump_optimizer/ledger.py  MonthlyLedger.as_dict
+    custom_components/heatpump_optimizer/ledger.py  MonthlyLedger.from_dict
+    custom_components/heatpump_optimizer/legionella.py  LegionellaGuard.async_load
+    custom_components/heatpump_optimizer/manual_plan.py  ManualOverride.from_dict
+    custom_components/heatpump_optimizer/name_match.py  Named.domain
+    custom_components/heatpump_optimizer/name_match.py  Named.entity_id
+    custom_components/heatpump_optimizer/power_guard.py  GuardState.update
+    custom_components/heatpump_optimizer/price_model.py  PriceShapeModel.as_dict
+    custom_components/heatpump_optimizer/price_model.py  PriceShapeModel.from_dict
+    custom_components/heatpump_optimizer/price_model.py  PriceShapeModel.sigma
+    custom_components/heatpump_optimizer/price_model.py  PriceShapeModel.summary
+    custom_components/heatpump_optimizer/pump_signals.py  PumpElectricHeat.as_dict
+    custom_components/heatpump_optimizer/pump_signals.py  PumpSignals.as_dict
+    custom_components/heatpump_optimizer/sensor.py  CompressorStartsSensor.available
+    custom_components/heatpump_optimizer/sensor.py  DHWHeavyDaySensor.available
+    custom_components/heatpump_optimizer/sensor.py  DHWSetpointAdvisorSensor.available
+    custom_components/heatpump_optimizer/sensor.py  MeasuredPowerSensor.available
+    custom_components/heatpump_optimizer/sensor.py  MixedHotWaterSensor.available
+    custom_components/heatpump_optimizer/sensor.py  MonthlyPeakSensor.available
+    custom_components/heatpump_optimizer/sensor.py  OptimizationScoreSensor.available
+    custom_components/heatpump_optimizer/sensor.py  PVSurplusSensor.available
+    custom_components/heatpump_optimizer/sensor.py  PowerHeadroomSensor.available
+    custom_components/heatpump_optimizer/sensor.py  _MeasuredStoreMixin.available
+    custom_components/heatpump_optimizer/sensor.py  _MeasuredTemperatureMixin.available
+    custom_components/heatpump_optimizer/sensor.py  _MixingValveGate.available
+    custom_components/heatpump_optimizer/snapshots.py  SnapshotRing.as_dict
+    custom_components/heatpump_optimizer/snapshots.py  SnapshotRing.from_dict
+    custom_components/heatpump_optimizer/store.py  QuarantiningStore.async_load
+    custom_components/heatpump_optimizer/store.py  QuarantiningStore.async_save
+    custom_components/heatpump_optimizer/sysid.py  SysIdResult.as_dict
+    custom_components/heatpump_optimizer/sysid.py  SystemIdentification.as_dict
+    custom_components/heatpump_optimizer/tariff.py  PeakTracker.as_dict
+    custom_components/heatpump_optimizer/tariff.py  PeakTracker.from_dict
+    custom_components/heatpump_optimizer/tariff.py  PeakTracker.observe
+    custom_components/heatpump_optimizer/thermal_model.py  ThermalParameters.from_config
+    custom_components/heatpump_optimizer/wear.py  StartCounter.as_dict
+    custom_components/heatpump_optimizer/wear.py  StartCounter.from_dict
+    custom_components/heatpump_optimizer/wear.py  StartCounter.observe
+
+########## dynamic-reference allowlist (not counted above) ##########
+  ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'BUFFER_TANK_LOSS'
+         #338: _tabled_values row buffer_tank_heat_loss, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_HOUSE_HEAT_LOSS_SCALE
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'HOUSE_HEAT_LOSS_SCALE'
+         #338: _tabled_values row house_heat_loss_scale, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_LOWER_FLOOR_LOSS_RATIO
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'LOWER_FLOOR_LOSS_RATIO'
+         #338: _tabled_values row lower_floor_loss_ratio, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_SOLAR_UPPER_FRACTION
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'SOLAR_UPPER_FRACTION'
+         #338: _tabled_values row solar_upper_fraction, sentinel-proven alive
+
+########## duplication: clone classes (2-statement AST windows, package-wide) ##########
+  custom_components/heatpump_optimizer/away.py:443 _as_num  ==  custom_components/heatpump_optimizer/wood_fuel.py:32 _optional_float
+  custom_components/heatpump_optimizer/boost.py:211 restore  ==  custom_components/heatpump_optimizer/pump_arbiter.py:737 _load
+  custom_components/heatpump_optimizer/climate.py:127 available  ==  custom_components/heatpump_optimizer/sensor.py:2343 available
+  custom_components/heatpump_optimizer/climate.py:236 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:595 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:841 extra_state_attributes
+  custom_components/heatpump_optimizer/config_flow.py:888 _options_suggested_numeric  ==  custom_components/heatpump_optimizer/config_flow.py:895 _suggested_entity
+  custom_components/heatpump_optimizer/config_flow.py:3824 async_step_away  ==  custom_components/heatpump_optimizer/config_flow.py:3428 async_step_entities_pump  ==  custom_components/heatpump_optimizer/config_flow.py:3533 async_step_hot_water_pumps  ==  custom_components/heatpump_optimizer/config_flow.py:3810 async_step_solar_pv
+  custom_components/heatpump_optimizer/config_flow.py:3676 async_step_heat_curve  ==  custom_components/heatpump_optimizer/config_flow.py:3838 async_step_learning  ==  custom_components/heatpump_optimizer/config_flow.py:3857 async_step_learning_features  ==  custom_components/heatpump_optimizer/config_flow.py:3665 async_step_tuning
+  custom_components/heatpump_optimizer/config_flow.py:3614 async_step_thermal_model  ==  custom_components/heatpump_optimizer/config_flow.py:3647 async_step_thermal_model_zones
+  custom_components/heatpump_optimizer/coordinator.py:9947 _accumulate_energy  ==  custom_components/heatpump_optimizer/coordinator.py:9609 _record_accuracy
+  custom_components/heatpump_optimizer/coordinator.py:4651 _async_learn_house_heat_loss  ==  custom_components/heatpump_optimizer/coordinator.py:4850 _async_learn_lower_floor_loss
+  custom_components/heatpump_optimizer/drift.py:161 _note  ==  custom_components/heatpump_optimizer/power_guard.py:157 _note
+  custom_components/heatpump_optimizer/freq_control.py:61 _finite  ==  custom_components/heatpump_optimizer/inputs.py:310 _finite
+  custom_components/heatpump_optimizer/grid_fee.py:133 parse_day_range  ==  custom_components/heatpump_optimizer/grid_fee.py:114 parse_month_range
+  custom_components/heatpump_optimizer/inputs.py:661 read  ==  custom_components/heatpump_optimizer/inputs.py:702 read_state
+  custom_components/heatpump_optimizer/inputs.py:812 text  ==  custom_components/heatpump_optimizer/inputs.py:805 value
+  custom_components/heatpump_optimizer/ledger.py:108 _prune  ==  custom_components/heatpump_optimizer/wear.py:44 observe
+  custom_components/heatpump_optimizer/optimizer.py:6555 _buffer_charge_ceiling  ==  custom_components/heatpump_optimizer/optimizer.py:1593 hold_demand_kw
+  custom_components/heatpump_optimizer/optimizer.py:3270 _build_comfort_bounds  ==  custom_components/heatpump_optimizer/optimizer.py:3222 _stash_price_horizon  ==  custom_components/heatpump_optimizer/optimizer.py:2815 optimize  ==  custom_components/heatpump_optimizer/thermal_model.py:2161 _simulate_step_single  ==  custom_components/heatpump_optimizer/thermal_model.py:2247 _simulate_step_two_zone  ==  custom_components/heatpump_optimizer/thermal_model.py:2645 _stability_substeps  ==  custom_components/heatpump_optimizer/thermal_model.py:2718 simulate_trajectory  ==  custom_components/heatpump_optimizer/thermal_model.py:2912 simulate_trajectory_batch  ==  custom_components/heatpump_optimizer/thermal_model.py:3261 simulate_trajectory_with_dhw
+  custom_components/heatpump_optimizer/optimizer.py:4482 _dhw_legionella_ceilings  ==  custom_components/heatpump_optimizer/optimizer.py:5918 _plan_dhw_cheapest_first  ==  custom_components/heatpump_optimizer/optimizer.py:5224 _plan_dhw_min_cost
+  custom_components/heatpump_optimizer/optimizer.py:4221 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:788 _peak_excess
+  custom_components/heatpump_optimizer/optimizer.py:3919 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:6090 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3518 _solve_space
+  custom_components/heatpump_optimizer/optimizer.py:3971 objective  ==  custom_components/heatpump_optimizer/optimizer.py:6202 objective
+  custom_components/heatpump_optimizer/price_model.py:189 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:235 observe_day_quarters
+  custom_components/heatpump_optimizer/pump_arbiter.py:312 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:247 step_duty
+  custom_components/heatpump_optimizer/sensor.py:1951 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2301 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2723 extra_state_attributes
+  custom_components/heatpump_optimizer/sensor.py:450 native_value  ==  custom_components/heatpump_optimizer/sensor.py:536 native_value  ==  custom_components/heatpump_optimizer/sensor.py:552 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1273 native_value
+  custom_components/heatpump_optimizer/sensor.py:506 native_value  ==  custom_components/heatpump_optimizer/sensor.py:667 native_value  ==  custom_components/heatpump_optimizer/sensor.py:737 native_value  ==  custom_components/heatpump_optimizer/sensor.py:787 native_value  ==  custom_components/heatpump_optimizer/sensor.py:985 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1026 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1059 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1124 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1163 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1373 native_value  ==  custom_components/heatpump_optimizer/sensor.py:1399 native_value
+  custom_components/heatpump_optimizer/sensor.py:2608 native_value  ==  custom_components/heatpump_optimizer/sensor.py:2662 native_value
+  custom_components/heatpump_optimizer/sysid.py:821 _slab_confidence  ==  custom_components/heatpump_optimizer/sysid.py:1699 identify  ==  custom_components/heatpump_optimizer/sysid.py:2085 identify_slab
+  custom_components/heatpump_optimizer/tariff.py:298 _close_window  ==  custom_components/heatpump_optimizer/tariff.py:382 from_dict
+  custom_components/heatpump_optimizer/tariff.py:1059 _day_peaks_batch  ==  custom_components/heatpump_optimizer/tariff.py:737 _smooth_topk_sum_batch  ==  custom_components/heatpump_optimizer/tariff.py:1097 peak_cost_batch
+  custom_components/heatpump_optimizer/tariff.py:1018 _window_means_batch  ==  custom_components/heatpump_optimizer/tariff.py:497 metering_windows
+
+########## coordinator private reach (outside its methods and helpers) ##########
+  custom_components/heatpump_optimizer/__init__.py:167  _config  read  in _handover_interval_minutes
+  custom_components/heatpump_optimizer/__init__.py:299  _reload_handover  write  in async_setup_entry
+  custom_components/heatpump_optimizer/__init__.py:308  _skip_solve_once  write  in async_setup_entry
+  custom_components/heatpump_optimizer/away.py:390  _away_state  read  in persist_override
+  custom_components/heatpump_optimizer/away.py:409  _away_state  read  in restore_override
+  custom_components/heatpump_optimizer/away.py:412  _away_state  read  in restore_override
+  custom_components/heatpump_optimizer/away.py:418  _config  read  in _migrate_helpers
+  custom_components/heatpump_optimizer/away.py:419  _entity_state  read  in _migrate_helpers
+  custom_components/heatpump_optimizer/away.py:420  _config  read  in _migrate_helpers
+  custom_components/heatpump_optimizer/away.py:420  _entity_state  read  in _migrate_helpers
+  custom_components/heatpump_optimizer/binary_sensor.py:210  _mold_floor_series  read  in _floor
+  custom_components/heatpump_optimizer/boost.py:118  _current_action  write  in adopt_plan
+  custom_components/heatpump_optimizer/boost.py:178  _thermal_model  read  in apply
+  custom_components/heatpump_optimizer/boost.py:179  _opt_config  read  in apply
+  custom_components/heatpump_optimizer/boost.py:180  _ecl110_displace_max  read  in apply
+  custom_components/heatpump_optimizer/boost.py:182  _current_action  write  in apply
+  custom_components/heatpump_optimizer/datetime.py:45  _away_state  read  in native_value
+  custom_components/heatpump_optimizer/diagnostics.py:91  _mode  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:92  _tibber_outage_cycles  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:93  _tibber_reauth_started  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:97  _optimization_running  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:98  _solve_failures  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:99  _cop_scale  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:100  _cop_samples  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/diagnostics.py:101  _house_heat_loss_scale  read  in _coordinator_snapshot
+  custom_components/heatpump_optimizer/entity.py:199  _thermal_params  read  in has_hot_water
+  custom_components/heatpump_optimizer/entity.py:208  _config  read  in input_configured
+  custom_components/heatpump_optimizer/pump_arbiter.py:282  _config  read  in own
+  custom_components/heatpump_optimizer/pump_arbiter.py:282  _mode  read  in own
+  custom_components/heatpump_optimizer/pump_arbiter.py:290  _config  read  in _slot_state
+  custom_components/heatpump_optimizer/pump_arbiter.py:323  _config  read  in _space_target
+  custom_components/heatpump_optimizer/pump_arbiter.py:334  _config  read  in _space_target
+  custom_components/heatpump_optimizer/pump_arbiter.py:357  _current_state  read  in _flow_target
+  custom_components/heatpump_optimizer/pump_arbiter.py:358  _thermal_model  read  in _flow_target
+  custom_components/heatpump_optimizer/pump_arbiter.py:365  _optimization_result  read  in desired
+  custom_components/heatpump_optimizer/pump_arbiter.py:368  _thermal_params  read  in desired
+  custom_components/heatpump_optimizer/pump_arbiter.py:392  _config  read  in desired
+  custom_components/heatpump_optimizer/pump_arbiter.py:399  _legionella  read  in _disinfecting
+  custom_components/heatpump_optimizer/pump_arbiter.py:426  _mode  read  in _planned_duty
+  custom_components/heatpump_optimizer/pump_arbiter.py:428  _mode  read  in _planned_duty
+  custom_components/heatpump_optimizer/pump_arbiter.py:430  _current_action  read  in _planned_duty
+  custom_components/heatpump_optimizer/pump_arbiter.py:433  _optimization_result  read  in _planned_duty
+  custom_components/heatpump_optimizer/pump_arbiter.py:433  _plan_is_stale  read  in _planned_duty
+  custom_components/heatpump_optimizer/pump_arbiter.py:453  _thermal_model  read  in _ran_kw
+  custom_components/heatpump_optimizer/pump_arbiter.py:465  _current_state  read  in _leased
+  custom_components/heatpump_optimizer/pump_arbiter.py:469  _current_state  read  in _leased
+  custom_components/heatpump_optimizer/pump_arbiter.py:470  _optimization_result  read  in _leased
+  custom_components/heatpump_optimizer/pump_arbiter.py:486  _config  read  in _observed
+  custom_components/heatpump_optimizer/pump_arbiter.py:512  _config  read  in hold
+  custom_components/heatpump_optimizer/pump_arbiter.py:544  _config  read  in _write
+  custom_components/heatpump_optimizer/pump_arbiter.py:579  _current_state  read  in _observe
+  custom_components/heatpump_optimizer/pump_arbiter.py:586  _measured_power  read  in _observe
+  custom_components/heatpump_optimizer/pump_arbiter.py:619  _config  read  in apply
+  custom_components/heatpump_optimizer/pump_arbiter.py:625  _entry_released  read  in apply
+  custom_components/heatpump_optimizer/pump_arbiter.py:632  _mode  read  in _arbitrate
+  custom_components/heatpump_optimizer/pump_arbiter.py:640  _mode  read  in _arbitrate
+  custom_components/heatpump_optimizer/pump_arbiter.py:658  _mode  read  in _share
+  custom_components/heatpump_optimizer/pump_arbiter.py:661  _optimization_result  read  in _share
+  custom_components/heatpump_optimizer/pump_arbiter.py:679  _config  read  in _pump_off
+  custom_components/heatpump_optimizer/pump_arbiter.py:688  _config  read  in release
+  custom_components/heatpump_optimizer/pump_arbiter.py:688  _mode  read  in release
+  custom_components/heatpump_optimizer/pump_arbiter.py:712  _config  read  in _listen
+  custom_components/heatpump_optimizer/pump_arbiter.py:777  _config  read  in diagnostics_view
+  custom_components/heatpump_optimizer/sensor.py:641  _thermal_model  read  in native_value
+  custom_components/heatpump_optimizer/sensor.py:681  _config  read  in extra_state_attributes
+  custom_components/heatpump_optimizer/sensor.py:1091  _thermal_params  read  in extra_state_attributes
+  custom_components/heatpump_optimizer/sensor.py:1092  _thermal_params  read  in extra_state_attributes
+  custom_components/heatpump_optimizer/sensor.py:1093  _thermal_params  read  in extra_state_attributes
+  custom_components/heatpump_optimizer/sensor.py:1716  _thermal_model  read  in _modelled_cop
+  custom_components/heatpump_optimizer/sensor.py:2164  _thermal_params  read  in valve_throttling
+  custom_components/heatpump_optimizer/sensor.py:2850  _config  read  in _gaps
+  custom_components/heatpump_optimizer/setpoint_check.py:58  _config  read  in _evaluate
+  custom_components/heatpump_optimizer/setpoint_check.py:59  _thermal_params  read  in _evaluate
+  custom_components/heatpump_optimizer/switch.py:130  _away_state  read  in is_on
+  custom_components/heatpump_optimizer/wood_fuel.py:520  _external_heat  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:525  _opt_config  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:526  _thermal_params  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:530  _current_state  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:531  _opt_config  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:533  _config  read  in wood_fuel_from_coordinator
+  custom_components/heatpump_optimizer/wood_fuel.py:540  _thermal_model  read  in wood_fuel_from_coordinator
+  coordinator_private_reach = 89 (reads + 3 x writes)
+
+########## coordinator attributes written outside its methods ##########
+  _current_action: boost:adopt_plan, boost:apply
+  _last_diagnosis: coordinator:_store_diagnosis
+  _last_optimization: coordinator:_republish_handover_ages
+  _reload_handover: __init__:async_setup_entry
+  _skip_solve_once: __init__:async_setup_entry
+  _solve_failures: coordinator:_note_solve_failure
+  integration_version: __init__:async_setup_entry
+
+########## coordinator seam table (helpers charged: 12) ##########
+  internal call occurrences: 329, crossing a seam: 136 (ratio 0.4134, evidence only)
+  seam        units  attrs  xattr  xmeth    cut
+  dhw            16      3     66      7     73
+  learning       28     40    238     59    297
+  fetch          28     13     85     33    118
+  grid           22     31    147     38    185
+  views          16      3     84     20    104
+  seam_cut_total = 777
+
+########## RESULT lines ##########
+RESULT const_modules_over_50=3 count
+RESULT coordinator_attrs=153 count
+RESULT coordinator_multiassigned_attrs=120 count
+RESULT coordinator_private_reach=89 count
+RESULT dead_methods=9 count
+RESULT dead_top_level_symbols=1 count
+RESULT duplication_copies=60 count
+RESULT functions_cc_over_15=34 count
+RESULT functions_cc_over_25=8 count
+RESULT import_cycle_modules=0 count
+RESULT max_cc=48 count
+RESULT max_class_loc=9006 count
+RESULT max_method_loc=386 count
+RESULT methods_over_150=18 count
+RESULT methods_over_200=11 count
+RESULT seam_cut_total=777 count
+RESULT thread_factor=1.0 ratio
+
+########## ratchet vs structure_budgets.json (recorded_at e1ded3226643) ##########
+FAIL attrbag_classes_over_30: in the budget table but never measured -- re-record
+FAIL classes_over_300: in the budget table but never measured -- re-record
+  ok   const_modules_over_50 3 <= 3
+  gain coordinator_attrs 153 (budget 154, -1; not yet recorded -- see below)
+FAIL coordinator_loc: in the budget table but never measured -- re-record
+FAIL coordinator_methods: in the budget table but never measured -- re-record
+FAIL coordinator_multiassigned_attrs 120 > 117 (+3)
+FAIL coordinator_private_reach: measured but not in the budget table -- re-record
+FAIL cross_seam_edges: in the budget table but never measured -- re-record
+FAIL cut_dhw: in the budget table but never measured -- re-record
+FAIL cut_fetch: in the budget table but never measured -- re-record
+FAIL cut_grid: in the budget table but never measured -- re-record
+FAIL cut_learning: in the budget table but never measured -- re-record
+FAIL cut_views: in the budget table but never measured -- re-record
+FAIL dead_methods 9 > 0 (+9)
+  ok   dead_top_level_symbols 1 <= 1
+FAIL duplication_blocks: in the budget table but never measured -- re-record
+FAIL duplication_copies: measured but not in the budget table -- re-record
+  ok   functions_cc_over_15 34 <= 34
+  ok   functions_cc_over_25 8 <= 8
+FAIL import_cycle_modules: measured but not in the budget table -- re-record
+FAIL internal_call_edges: in the budget table but never measured -- re-record
+FAIL local_imports: in the budget table but never measured -- re-record
+  ok   max_cc 48 <= 48
+  ok   max_class_loc 9006 <= 9006
+  ok   max_method_loc 386 <= 386
+  ok   methods_over_150 18 <= 18
+  ok   methods_over_200 11 <= 11
+FAIL seam_cut_total: measured but not in the budget table -- re-record
+
+########## 1 metric(s) IMPROVED and not yet recorded ##########
+  metric                                 budget     measured      delta
+  coordinator_attrs                         154          153         -1  BETTER (lower is better)
+
+  You made the tree better here, so write it down. The ratchet only
+  guards numbers that are recorded: for everything in the gap between
+  a budget and a better tree the gate is not loose, it is ABSENT, and
+  the improvement can be given back without anything failing (#350).
+  This belongs in the PR that earned it -- that is the only PR that can
+  say what moved and why.
+
+  A budget is also BREACHED above, so --record would refuse this table
+  (#370). Settle the breach first: pay for the lines, or re-record the
+  whole table with --allow-regression="<reason>" and put that reason in
+  the commit message.
+
+19 STRUCTURE BUDGET(S) BREACHED
+Three responses, all of them deliberate: pay for the lines
+elsewhere; re-record because the tree genuinely improved; or, for
+a genuine new production FEATURE, RAISE the budget because the
+capability is worth the structure it costs. Paying is the first
+question; a raise is for when the honest answer is that you
+cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION
+before the branch is pushed -- stop and ask, do not push and
+explain.
+A budget may only be re-recorded deliberately, on a clean tree,
+with the reason in the COMMIT -- never to make a failure go away.
+--record refuses any row that moves the wrong way unless you pass
+--allow-regression="<reason>", and that reason belongs in the commit
+message: main's history keeps it and never a pull-request body.

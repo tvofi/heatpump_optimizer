@@ -1,0 +1,3 @@
+RESULT p3_seam_groups=21 count
+RESULT p3_raw_divisor_groups=5 count
+RESULT p3_capacity_groups=0 count

@@ -1,0 +1,845 @@
+{
+ "_rule": "Round-9 finder scopes. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
+ "_pkg": "custom_components/heatpump_optimizer",
+ "D0": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "M7"
+  ],
+  "axis": {
+   "profile": [
+    "winter_typical",
+    "winter_extreme",
+    "winter_narrow",
+    "winter_moderate",
+    "summer_typical",
+    "summer_negative",
+    "shoulder",
+    "flat"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "axis": [
+      "winter_typical",
+      "winter_extreme",
+      "winter_narrow",
+      "winter_moderate"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "axis": [
+      "summer_typical",
+      "summer_negative",
+      "shoulder",
+      "flat"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6",
+      "M7"
+     ]
+    }
+   ]
+  }
+ },
+ "D1": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{store,ledger,snapshots,dhw_learning,comfort_learning,curve_learning,sysid,accuracy,drift,wear,diagnostics}.py"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{__init__,coordinator,services,repairs,frontend,narrative,diagnosis,comfort_band,const}.py"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{pump_arbiter,pump_mode,pump_schedule,pump_signals,freq_control,mixing_valve,boost,silent_mode,power_guard,setpoint_check,legionella,disinfection,dhw_schedule,dhw_draws,away,presets,manual_plan,climate,switch,button,binary_sensor,sensor,entity}.py"
+     ]
+    }
+   ],
+   "s4": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{optimizer,thermal_model,defrost,flow_lift,process_worker}.py"
+     ]
+    }
+   ],
+   "s5": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D2": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4"
+     ]
+    }
+   ],
+   "s4": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D3": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{optimizer,thermal_model,sysid,defrost,flow_lift,price_model,tariff,grid_fee}.py"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D4": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/www/**",
+   "custom_components/heatpump_optimizer/{config_flow,quick_setup,prefill_offer}.py",
+   "custom_components/heatpump_optimizer/{strings,icons}.json",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "custom_components/heatpump_optimizer/services.yaml"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/www/**"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D5": {
+  "mode": "files",
+  "universe": [
+   "README.md",
+   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/setup/**",
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "files": [
+      "README.md",
+      "docs/**"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M4"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D6": {
+  "mode": "files",
+  "universe": [
+   "README.md",
+   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/setup/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "files": [
+      "README.md"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D7": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M5"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D8": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,entity}.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{sensor,binary_sensor}.py"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "files": "rest"
+    }
+   ],
+   "s3": [
+    {
+     "steps": [
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "files": [
+      "**"
+     ]
+    }
+   ]
+  }
+ },
+ "D9": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "steps": [
+   "M1",
+   "M2"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1"
+     ],
+     "files": [
+      "custom_components/heatpump_optimizer/{optimizer,thermal_model,sysid,process_worker,defrost,flow_lift}.py"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1"
+     ],
+     "files": "rest"
+    },
+    {
+     "steps": [
+      "M2"
+     ],
+     "files": [
+      "**"
+     ]
+    }
+   ]
+  }
+ },
+ "D10": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "axis": {
+   "tier": [
+    "bronze",
+    "silver",
+    "gold",
+    "platinum"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "bronze",
+      "silver"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "gold",
+      "platinum"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ]
+  }
+ },
+ "D11": {
+  "mode": "cells",
+  "universe": [
+   ".github/**",
+   ".claude/**",
+   ".cursor/**",
+   "tools/**",
+   "CLAUDE.md",
+   "AGENTS.md"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "files": [
+      ".github/**",
+      "tools/**",
+      ".claude/hooks/**",
+      ".claude/workflows/**"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "files": "rest"
+    }
+   ]
+  }
+ },
+ "D12": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D13": {
+  "mode": "cells",
+  "universe": [],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D14": {
+  "mode": "cells",
+  "universe": [],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "axis": {
+   "class": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "I1",
+    "I2",
+    "I3",
+    "I4",
+    "I5"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "P1",
+      "P6"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "P2",
+      "P8",
+      "I4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "P3",
+      "P4",
+      "P5"
+     ]
+    }
+   ],
+   "s4": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "P7",
+      "P9",
+      "P10"
+     ]
+    }
+   ],
+   "s5": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "I1",
+      "I2",
+      "I3",
+      "I5"
+     ]
+    }
+   ]
+  }
+ }
+}

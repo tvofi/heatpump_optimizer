@@ -1,0 +1,32 @@
+diff --git a/tools/audit/briefs/fixer.md b/tools/audit/briefs/fixer.md
+index 235ca562..23001c5b 100644
+--- a/tools/audit/briefs/fixer.md
++++ b/tools/audit/briefs/fixer.md
+@@ -61,13 +61,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
+    mode against the same merge base, and a full run is about forty minutes. So
+    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+    doc — not an instruction to reproduce CI. An untracked scratch file is one:
+-   keep the handoff body outside the worktree `app_push.sh` refuses when dirty.
++   keep the body outside the worktree.
+ 
+    **Running locally does not discharge CI.** What `scope.run` names is green
+-   locally and the body passes `tools/audit/prepr.sh`. Seats are LOCAL-ONLY
+-   (decision 0011, `docs/decisions/0011-app-authored-identity.md`): hand the
+-   branch and body off locally; the orchestrator pushes and opens the pull
+-   request as the `hpo-author` App.
++   locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
++   the PR as the `hpo-author` App (decision 0011).
+ 
+    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
+    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
+@@ -83,7 +81,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
+    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
+    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
+    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
+-   with that tip and `date -u`.
++   with that tip and `date -u`. The body rides the orphan ref
++   `handoff-body/<topic>` (`tools/audit/seat/body_push.sh`), off the code
++   head (`prepr.sh` step 1a); the orchestrator writes the delivery row.
+ 
+    **The handoff freezes the branch.** Until then, update it from `origin/main`
+    whenever you need to — `git merge origin/main`, never rebase. After it, the

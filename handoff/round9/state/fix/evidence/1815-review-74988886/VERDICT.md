@@ -1,0 +1,22 @@
+Fix review: blocked 74988886082e337428c6df7c346d0ce550bd3303 mutation: base_closures unpinned; reading HEAD's table instead of the merge base's hides a shrunk entry and no check fails
+
+Round 1. Reviewed code head e4eda221 plus delta 74988886 (docs/delivery/1815.md, +1 line, correct row shape). Transport 50209d3d.
+
+Blocking finding
+- tests/closure.py base_closures() (and its wiring in main(): `select(..., base_closures(a.diff) if a.diff else None)`) has no pin. The only caller is main(); entities.py and the selftest call select() with hand-built base dicts only (grep: no other reference to base_closures or `closure.py select --diff` in tests/).
+- Probe (shrink_probe_setup.sh, mutant_base_closures.py): worktree at e4eda221 plus one commit that drops custom_components/heatpump_optimizer/__init__.py from features.py's entry and changes nothing else.
+  - Real wiring: SCOPED, run = [entities.py, features.py], features flagged "entry changed". Correct.
+  - Mutant base_closures reads `HEAD:tests/closures.json` instead of `<merge-base>:`: SCOPED, run = [entities.py]. The shrunk entry's script is skipped, which is exactly the hiding route the PR says it closes, and nothing in the suite goes red.
+  - Mutant "pass None" fails safe (FULL) and is not the concern.
+- Fix: one entities.py pin on base_closures against a real ancestor whose table differs from HEAD's (for example the parent of the last commit touching tests/closures.json): it must return that commit's closures, not HEAD's, plus None for an unresolvable ref. Then kill the HEAD mutant.
+
+Checked and sound
+(a) closures.json selection: a script with an unchanged entry gets the same skip decision main's table gives it. Grown, shrunk or new entries run (pinned by M1/M2 and _CJ_GREW/_CJ_SHRANK). Removing a changed file from every entry makes it unmapped, so FULL. No merge base gives FULL (probed: base_closures('no-such-ref') is None, select gives full). A second gate file in the diff gives FULL (pinned). Table readers: among the 28 selectable scripts, only entities.py imports closure or mutation_table or reads tests/closures.json directly. deployment_shape imports closure only for is_inert and copies only the package. mutation_table, counts.mjs and card_browser.mjs read the table but are not selectable scripts, and each scopes itself. CI's closures job runs the FULL re-derive on this PR (closure.py is a gate file), which is the measured check that no other recording now lists the table. It was still in progress at posting time.
+(b) dst_checks: I re-derived the fixer's strace subset from their recordings (sha1 cc89057b, 6bd10fbd, 2a9a5b48 match the body). 104 real non-INERT child files, 0 missing from the strace features.py recording, 0 missing from main's committed features.py entry. The hook-only recording misses 4, exactly as the body names. dst_checks.py spawns no subprocess (grep), so the child's own in-process recording covers those 4 on a recorder without strace. The `check --partial` fold is pinned (M4), and CI's scoped loop calls `--single` per rederive entry, which now sets HASTUB_TZ. Non-blocking: the HASTUB_TZ export in derive_closures.sh is unpinned, but the strace driver recording backs it up.
+(c) entities.py listing the table is correct, since its pins read the committed table. The cost is about 250 s per `ci: re-record closures` re-check, which replaces a FULL fast run. That is a net saving and loses no barrier. The note forwarded to F10.9b is the right place for any further cut.
+(d) NOT RUN: every scoped-out `run` writes `#skip <script>`, and run_always never does. A skip line always wins, so "ran anyway" needs positive evidence. Only harness_headers.py and layout.py can qualify. env_drift.py stays "did NOT run" (conservative). Pinned (M5). If not-run errors, run.sh falls back closed.
+(e) docs/delivery/1812.md matches the brief's row verbatim, and 1815.md is the PR row. No closing keyword with an issue number appears in the commit messages or BODY. "F10.9b closes #1812" appears only in the docs row, where it does not auto-close.
+Main push: run.sh's forced-FULL path and the closures job's full arm on push are untouched by the diff.
+No ratchet raise. No VERSION, manifest or notes change.
+
+CI at e4eda221 when posted: closures, fast (3.14), coverage and CodeQL python were still running. Everything finished was green (mutation, typing, policy-docs, briefs, delivery-status, pr-contract, budget-raise-gate, browser, hassfest, validate-hacs). Not cited as green.

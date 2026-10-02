@@ -1,0 +1,51 @@
+        why the pull is deliberately weak.
+        """
+        weight = self.config.comfort_weight
+
+        if self.model.params.two_zone_enabled:
+            upper_t = upper_temps[:, 1:]
+            lower_t = lower_temps[:, 1:]
+
+            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+
+            penalty = 0.5 * weight * (
+                row_sums(undershoot_u ** 2) * 10.0
+                + row_sums(overshoot_u ** 2) * 5.0
+                + row_sums(undershoot_l ** 2) * 10.0
+                + row_sums(overshoot_l ** 2) * 5.0
+            ) + weight * (
+                row_sums(undershoot_u) + row_sums(undershoot_l)
+            ) * (_COMFORT_FLOOR_L1 * self._floor_l1_scale)
+
+            comfort_dev_u = upper_t - comfort_targets
+            comfort_dev_l = lower_t - comfort_targets
+            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
+                row_sums((comfort_dev_u / comfort_band) ** 2)
+                + row_sums((comfort_dev_l / comfort_band) ** 2)
+            )
+            return penalty, comfort_cost
+
+        room_t = room_temps[:, 1:]
+        undershoot = np.maximum(0, temp_min_bounds - room_t)
+        overshoot = np.maximum(0, room_t - temp_max_bounds)
+
+        penalty = weight * (
+            row_sums(undershoot ** 2) * 10.0
+            + row_sums(overshoot ** 2) * 5.0
+            + row_sums(undershoot) * _COMFORT_FLOOR_L1
+        )
+        deviation = room_t - comfort_targets
+        comfort_cost = (
+            _COMFORT_PULL_SINGLE_ZONE
+            * weight
+            * row_sums((deviation / comfort_band) ** 2)
+        )
+        return penalty, comfort_cost
+
+    def _cost_terms_batch(
+        self,
+        traj: dict[str, np.ndarray],
+        grid_power: np.ndarray,

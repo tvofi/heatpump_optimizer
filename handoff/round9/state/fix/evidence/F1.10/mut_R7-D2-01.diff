@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/thermal_model.py	2026-10-01 09:11:34.275981321 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/thermal_model.py	2026-10-01 09:12:45.879740510 +0000
+@@ -2483,7 +2483,7 @@
+             dT_buf = (
+                 thermal_power - q_rad_from_buf - q_floor_from_buf
+                 - q_buf_loss + wood_draw
+-            ) / C_buf
++            ) / max(C_buf, 0.01)
+             dT_wood = (ext - wood_draw - q_wood_loss) / C_w
+             dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(
+                 dt_hours, 1e-6

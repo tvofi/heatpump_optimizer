@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+index 6fd8cf55..062cd0ef 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -148,7 +148,7 @@ class DhwProfileLearner:
+             # whole profile quarantines to the default, exactly like a
+             # length mismatch: one corrupt hour says nothing about the
+             # other 23.
+-            usable = len(profile) == 24 and all(math.isfinite(v) for v in profile)
++            usable = all(math.isfinite(v) for v in profile)
+         except (TypeError, ValueError, OverflowError):
+             usable = False
+         lo, hi = DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY

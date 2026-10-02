@@ -1,0 +1,36 @@
+diff --git a/.claude/workflows/brief_lint.mjs b/.claude/workflows/brief_lint.mjs
+index d6a30147..b09ad39a 100644
+--- a/.claude/workflows/brief_lint.mjs
++++ b/.claude/workflows/brief_lint.mjs
+@@ -1013,7 +1013,11 @@ function printReport(file, findings) {
+ // so the symbol check goes quiet on a merge even though lintBrief is live.
+ // The nine below still go missing if lintBrief is deleted.
+ const REQUIRED_931DFFE = [
+-  { group: 'W1-G8', kind: 'metric', needle: 'coordinator_loc' },
++  // Held only while coordinator_loc is a budget key. The metric rule resolves
++  // a word against tests/structure_budgets.json, so retiring the key (#1738
++  // R3-2 merges it into max_class_loc) silences this one literal and nothing
++  // else; 'methods 255' and 'attrs 176' below keep the rule itself pinned.
++  { group: 'W1-G8', kind: 'metric', needle: 'coordinator_loc', whileBudgetKey: 'coordinator_loc' },
+   { group: 'W1-G8', kind: 'metric', needle: 'methods 255' },
+   { group: 'W1-G8', kind: 'metric', needle: 'attrs 176' },
+   { group: 'W1-G13', kind: 'path', needle: 'card_geometry.mjs' },
+@@ -1052,7 +1056,8 @@ function assertAcceptanceFixture(name, label, opts, required) {
+   const findings = lintFileGuarded(fixture, opts)
+   const errors = findings.filter((f) => f.severity === 'error')
+   printReport(path.relative(ROOT, fixture), findings)
+-  const missing = required.filter(
++  const held = required.filter((r) => !r.whileBudgetKey || r.whileBudgetKey in budgets())
++  const missing = held.filter(
+     (r) => !errors.some((e) => e.group === r.group && e.kind === r.kind && e.message.includes(r.needle))
+   )
+   if (missing.length) {
+@@ -1060,7 +1065,7 @@ function assertAcceptanceFixture(name, label, opts, required) {
+     for (const m of missing) console.log(`  [${m.group}] ${m.kind}: ${m.needle}`)
+     return 1
+   }
+-  console.log(`\nFIXTURE ok: ${errors.length} error(s) pin the ${label} acceptance (${required.length} required)`)
++  console.log(`\nFIXTURE ok: ${errors.length} error(s) pin the ${label} acceptance (${held.length} required)`)
+   return 0
+ }
+ 

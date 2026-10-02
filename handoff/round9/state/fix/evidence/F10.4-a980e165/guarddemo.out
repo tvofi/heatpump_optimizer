@@ -1,0 +1,9 @@
+ docs/configuration.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+doc_claims rc=1
+35:Traceback (most recent call last):
+45:IndexError: list index out of range
+doc_claims_head rc=1
+35:  FAIL configuration.md still has '## Initial setup' (anchor)
+39:  FAIL configuration.md still documents simulate_plan's field list (anchor)
+156:2 of 102 checks FAILED

@@ -1,0 +1,4 @@
+RESULT uncovered_files=0 count
+TOTAL: 0 error(s) across 40 policy file(s)
+budgets rc=0
+STRUCTURE RATCHET PASSED

@@ -1,0 +1,39 @@
+== frozen weights: D_ref 212.79
+  R9-EG-B1 per-solve input record (planned)                          dS  +29.50  AI  116.1
+  R9-EG-B3 typed payload contract (planned)                          dS  +50.86  AI  160.7
+  R9-EG-B6 collaborator interfaces (planned)                         dS   +4.23  AI  166.0
+  R9-EG-B2 surface public accessors (planned)                        dS   +3.81  AI  171.1
+  R9-EG-B7 coordinator seams, 2 seams (planned, conditional)         dS   +5.22  AI  178.6
+  R9-F10.4 dead members + unused publics (planned + carry)           dS   +5.61  AI  187.4
+  NEW R9-EG-A2 one copy per formula/helper (clone consolidation)     dS  +14.05  AI  213.8
+  NEW R9-F7.5 the three recorded family splits (owner-gated rename)  dS  +10.93  AI  240.2
+  NEW R9-EG-A3 parameter objects for the solve/planner signatures    dS   +0.62  AI  241.9
+  final AI 241.9  (2x = 200)
+  without R9-EG-B3: AI 153.3
+  without NEW R9-F7.5: AI 215.2
+== untyped_payload_keys x0.5: D_ref 187.36
+  R9-EG-B1 per-solve input record (planned)                          dS  +29.50  AI  118.7
+  R9-EG-B3 typed payload contract (planned)                          dS  +25.43  AI  141.5
+  R9-EG-B6 collaborator interfaces (planned)                         dS   +4.23  AI  146.1
+  R9-EG-B2 surface public accessors (planned)                        dS   +3.81  AI  150.6
+  R9-EG-B7 coordinator seams, 2 seams (planned, conditional)         dS   +5.22  AI  157.2
+  R9-F10.4 dead members + unused publics (planned + carry)           dS   +5.61  AI  165.0
+  NEW R9-EG-A2 one copy per formula/helper (clone consolidation)     dS  +14.05  AI  188.3
+  NEW R9-F7.5 the three recorded family splits (owner-gated rename)  dS  +10.93  AI  211.5
+  NEW R9-EG-A3 parameter objects for the solve/planner signatures    dS   +0.62  AI  213.0
+  final AI 213.0  (2x = 200)
+  without R9-EG-B3: AI 165.2
+  without NEW R9-F7.5: AI 189.4
+== all weights 1.0: D_ref 61.52
+  R9-EG-B1 per-solve input record (planned)                          dS   +5.69  AI  110.2
+  R9-EG-B3 typed payload contract (planned)                          dS   +7.37  AI  126.9
+  R9-EG-B6 collaborator interfaces (planned)                         dS   +3.01  AI  135.3
+  R9-EG-B2 surface public accessors (planned)                        dS   +3.81  AI  147.7
+  R9-EG-B7 coordinator seams, 2 seams (planned, conditional)         dS   +1.72  AI  154.1
+  R9-F10.4 dead members + unused publics (planned + carry)           dS   +5.61  AI  179.3
+  NEW R9-EG-A2 one copy per formula/helper (clone consolidation)     dS   +1.57  AI  187.9
+  NEW R9-F7.5 the three recorded family splits (owner-gated rename)  dS   +2.00  AI  200.1
+  NEW R9-EG-A3 parameter objects for the solve/planner signatures    dS   +0.62  AI  204.2
+  final AI 204.2  (2x = 200)
+  without R9-EG-B3: AI 164.1
+  without NEW R9-F7.5: AI 191.5

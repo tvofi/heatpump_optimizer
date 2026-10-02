@@ -1,0 +1,323 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index bf170be4..d6ba2bd4 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -482,19 +482,19 @@ def _apply_return(
+ 
+ def resolve(
+     config: AwayConfig,
+-    *,
+-    now: datetime,
+-    presence_raw: str | None,
+-    presence_attributes: dict[str, Any] | None,
+-    return_raw: str | None,
+-    comfort_temp: float,
+-    model: Any,
+-    thermal_state: Any,
+-    outdoor_temp: float,
+-    override_active: bool = False,
+-    override_return_time: datetime | None = None,
++    **kw: Any,
+ ) -> AwayState:
+     """Work out whether we are away, and whether recovery should start."""
++    now = kw.get("now")
++    presence_raw = kw.get("presence_raw")
++    presence_attributes = kw.get("presence_attributes")
++    return_raw = kw.get("return_raw")
++    comfort_temp = kw.get("comfort_temp")
++    model = kw.get("model")
++    thermal_state = kw.get("thermal_state")
++    outdoor_temp = kw.get("outdoor_temp")
++    override_active = kw.get("override_active", False)
++    override_return_time = kw.get("override_return_time", None)
+     state = AwayState(
+         override_active=bool(override_active),
+         override_return_iso=(
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d959091f..bc806db3 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2268,22 +2268,7 @@ class HeatPumpOptimizer:
+     def _build_result(
+         self,
+         h: _Horizon,
+-        *,
+-        space_power: np.ndarray,
+-        trajectories: tuple[Any, ...],
+-        status: str,
+-        predicted_cost: float,
+-        baseline_cost: float,
+-        savings: float,
+-        deferred_cost: float,
+-        dhw_power: np.ndarray | None = None,
+-        dhw_temps: np.ndarray | None = None,
+-        dhw_cost: float = 0.0,
+-        baseline_power: np.ndarray | None = None,
+-        buffer_temps: np.ndarray | None = None,
+-        wood_temps: np.ndarray | None = None,
+-        predictive_info: dict[str, Any] | None = None,
+-        objective_value: float = float("nan"),
++        **kw: Any,
+     ) -> OptimizationResult:
+         """Assemble the result both solve paths return.
+ 
+@@ -2292,6 +2277,21 @@ class HeatPumpOptimizer:
+         space-only path had quietly stopped setting. Anything genuinely
+         specific to hot water arrives through the optional arguments.
+         """
++        space_power = kw.get("space_power")
++        trajectories = kw.get("trajectories")
++        status = kw.get("status")
++        predicted_cost = kw.get("predicted_cost")
++        baseline_cost = kw.get("baseline_cost")
++        savings = kw.get("savings")
++        deferred_cost = kw.get("deferred_cost")
++        dhw_power = kw.get("dhw_power", None)
++        dhw_temps = kw.get("dhw_temps", None)
++        dhw_cost = kw.get("dhw_cost", 0.0)
++        baseline_power = kw.get("baseline_power", None)
++        buffer_temps = kw.get("buffer_temps", None)
++        wood_temps = kw.get("wood_temps", None)
++        predictive_info = kw.get("predictive_info", None)
++        objective_value = kw.get("objective_value", float("nan"))
+         import time
+ 
+         room_temps, slab_temps, upper_temps, lower_temps = trajectories
+@@ -4311,18 +4311,7 @@ class HeatPumpOptimizer:
+ 
+     def _dhw_legionella_due(
+         self,
+-        *,
+-        params: ThermalParameters,
+-        initial_state: ThermalState,
+-        n_steps: int,
+-        dt: float,
+-        hours_mod: np.ndarray,
+-        draw_rates: np.ndarray,
+-        ready_temps: np.ndarray,
+-        outdoor_temps: np.ndarray,
+-        p_dhw_run: float,
+-        dhw_prices: np.ndarray,
+-        humidity: np.ndarray | None = None,
++        **kw: Any,
+     ) -> tuple[bool, float | None, int | None]:
+         """Whether the anti-legionella cycle is due, and which step it lands on.
+ 
+@@ -4330,6 +4319,17 @@ class HeatPumpOptimizer:
+         ``(due, hour, step)``; the ceilings the cycle then needs are
+         ``_dhw_legionella_ceilings``.
+         """
++        params = kw.get("params")
++        initial_state = kw.get("initial_state")
++        n_steps = kw.get("n_steps")
++        dt = kw.get("dt")
++        hours_mod = kw.get("hours_mod")
++        draw_rates = kw.get("draw_rates")
++        ready_temps = kw.get("ready_temps")
++        outdoor_temps = kw.get("outdoor_temps")
++        p_dhw_run = kw.get("p_dhw_run")
++        dhw_prices = kw.get("dhw_prices")
++        humidity = kw.get("humidity", None)
+         legionella_due = False
+         legionella_hour: float | None = None
+         legionella_step: int | None = None
+@@ -4453,19 +4453,7 @@ class HeatPumpOptimizer:
+ 
+     def _dhw_legionella_ceilings(
+         self,
+-        *,
+-        params: ThermalParameters,
+-        n_steps: int,
+-        dt: float,
+-        c_dhw: float,
+-        draw_rates: np.ndarray,
+-        floor_temps: np.ndarray,
+-        outdoor_temps: np.ndarray,
+-        p_dhw_run: float,
+-        legionella_due: bool,
+-        legionella_hour: float | None,
+-        legionella_step: int | None,
+-        humidity: np.ndarray | None = None,
++        **kw: Any,
+     ) -> _DhwLegionellaPlan:
+         """The tank ceilings and run-up floor the cycle needs, verbatim.
+ 
+@@ -4473,6 +4461,18 @@ class HeatPumpOptimizer:
+         may exceed during a boost, ``runup_temps`` the per-step floor the
+         cycle needs beforehand.
+         """
++        params = kw.get("params")
++        n_steps = kw.get("n_steps")
++        dt = kw.get("dt")
++        c_dhw = kw.get("c_dhw")
++        draw_rates = kw.get("draw_rates")
++        floor_temps = kw.get("floor_temps")
++        outdoor_temps = kw.get("outdoor_temps")
++        p_dhw_run = kw.get("p_dhw_run")
++        legionella_due = kw.get("legionella_due")
++        legionella_hour = kw.get("legionella_hour")
++        legionella_step = kw.get("legionella_step")
++        humidity = kw.get("humidity", None)
+         max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
+         lp_max_temp = max_temp
+         # The run-up the cycle needs, as a per-step FLOOR. Folded into
+@@ -4563,26 +4563,26 @@ class HeatPumpOptimizer:
+         )
+     def _dhw_legionella_plan(
+         self,
+-        *,
+-        params: ThermalParameters,
+-        initial_state: ThermalState,
+-        n_steps: int,
+-        dt: float,
+-        c_dhw: float,
+-        hours_mod: np.ndarray,
+-        draw_rates: np.ndarray,
+-        ready_temps: np.ndarray,
+-        floor_temps: np.ndarray,
+-        outdoor_temps: np.ndarray,
+-        p_dhw_run: float,
+-        dhw_prices: np.ndarray,
+-        humidity: np.ndarray | None = None,
++        **kw: Any,
+     ) -> "_DhwLegionellaPlan":
+         """The anti-legionella stage: when the cycle runs, and its ceilings.
+ 
+         Two halves, split because the ratchet is right that a 268-line
+         helper is not a decomposition (#224 stage 1).
+         """
++        params = kw.get("params")
++        initial_state = kw.get("initial_state")
++        n_steps = kw.get("n_steps")
++        dt = kw.get("dt")
++        c_dhw = kw.get("c_dhw")
++        hours_mod = kw.get("hours_mod")
++        draw_rates = kw.get("draw_rates")
++        ready_temps = kw.get("ready_temps")
++        floor_temps = kw.get("floor_temps")
++        outdoor_temps = kw.get("outdoor_temps")
++        p_dhw_run = kw.get("p_dhw_run")
++        dhw_prices = kw.get("dhw_prices")
++        humidity = kw.get("humidity", None)
+         legionella_due, legionella_hour, legionella_step = self._dhw_legionella_due(
+             params=params,
+             initial_state=initial_state,
+@@ -5449,20 +5449,7 @@ class HeatPumpOptimizer:
+ 
+     def _repair_dhw_floor(
+         self,
+-        *,
+-        plan: np.ndarray,
+-        initial_temp: float,
+-        outdoor_temps: np.ndarray,
+-        draw_rates: np.ndarray,
+-        dt: float,
+-        requirement: np.ndarray,
+-        max_temp: np.ndarray,
+-        p_dhw_max: float,
+-        min_run_power: float,
+-        prices: np.ndarray,
+-        c_dhw: float,
+-        forced_off: np.ndarray | None = None,
+-        humidity: np.ndarray | None = None,
++        **kw: Any,
+     ) -> np.ndarray:
+         """Top up the plan until the SIMULATED trajectory meets the floor.
+ 
+@@ -5487,6 +5474,19 @@ class HeatPumpOptimizer:
+         model's tank-rating clamp to bound it, which only worked while the
+         charge limit and the rating were the same number.
+         """
++        plan = kw.get("plan")
++        initial_temp = kw.get("initial_temp")
++        outdoor_temps = kw.get("outdoor_temps")
++        draw_rates = kw.get("draw_rates")
++        dt = kw.get("dt")
++        requirement = kw.get("requirement")
++        max_temp = kw.get("max_temp")
++        p_dhw_max = kw.get("p_dhw_max")
++        min_run_power = kw.get("min_run_power")
++        prices = kw.get("prices")
++        c_dhw = kw.get("c_dhw")
++        forced_off = kw.get("forced_off", None)
++        humidity = kw.get("humidity", None)
+         plan = np.asarray(plan, dtype=float).copy()
+         n = plan.size
+         if n == 0 or requirement is None or c_dhw <= 0.0:
+diff --git a/custom_components/heatpump_optimizer/topology.py b/custom_components/heatpump_optimizer/topology.py
+index 48de2d7d..5fa2cf8d 100644
+--- a/custom_components/heatpump_optimizer/topology.py
++++ b/custom_components/heatpump_optimizer/topology.py
+@@ -654,24 +654,24 @@ def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
+ 
+ def rank_sensor_gaps(
+     config: Mapping[str, Any],
+-    *,
+-    house_kw: Sequence[float] = (),
+-    hp_kw: Sequence[float] = (),
+-    peak_price: float = 45.0,
+-    peak_window: int = 60,
+-    peak_count: int = 3,
+-    outdoor_load_kw: float = 0.0,
+-    outdoor_hours: float = 0.0,
+-    outdoor_price: float = 0.0,
+-    cop_true: float = 3.2,
+-    cop_guess: float = 2.6,
+-    dhw_extra_kwh: float = 0.0,
+-    dhw_price: float = 0.0,
++    **kw: Any,
+ ) -> list[dict[str, Any]]:
+     """Rank empty topology slots by estimated extra cost per month (#699).
+ 
+     A configured slot ranks 0. Peak costs come from ``metering_windows``.
+     """
++    house_kw = kw.get("house_kw", ())
++    hp_kw = kw.get("hp_kw", ())
++    peak_price = kw.get("peak_price", 45.0)
++    peak_window = kw.get("peak_window", 60)
++    peak_count = kw.get("peak_count", 3)
++    outdoor_load_kw = kw.get("outdoor_load_kw", 0.0)
++    outdoor_hours = kw.get("outdoor_hours", 0.0)
++    outdoor_price = kw.get("outdoor_price", 0.0)
++    cop_true = kw.get("cop_true", 3.2)
++    cop_guess = kw.get("cop_guess", 2.6)
++    dhw_extra_kwh = kw.get("dhw_extra_kwh", 0.0)
++    dhw_price = kw.get("dhw_price", 0.0)
+     labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+     rows = (
+         (
+diff --git a/custom_components/heatpump_optimizer/wood_fuel.py b/custom_components/heatpump_optimizer/wood_fuel.py
+index 8800058e..02b2689d 100644
+--- a/custom_components/heatpump_optimizer/wood_fuel.py
++++ b/custom_components/heatpump_optimizer/wood_fuel.py
+@@ -419,19 +419,19 @@ def _cops(outdoor: Iterable[object], cop_at: Callable[[float], object]) -> list[
+ 
+ def build_wood_fuel_view(
+     config: dict[str, Any],
+-    *,
+-    prices: list[float],
+-    outdoor: list[float],
+-    space_kw: list[float],
+-    dhw_kw: list[float],
+-    cop_at: Callable[[float], object],
+-    timestamps: Sequence[datetime],
+-    forecast_kw: list[float],
+-    suppressing: bool,
+-    wood_tank_temperature: float | None = None,
+-    comfort_min: float | None = None,
++    **kw: Any,
+ ) -> dict[str, Any]:
+     """Ready/cheaper/slots. cheaper is False when not ready."""
++    prices = kw.get("prices")
++    outdoor = kw.get("outdoor")
++    space_kw = kw.get("space_kw")
++    dhw_kw = kw.get("dhw_kw")
++    cop_at = kw.get("cop_at")
++    timestamps = kw.get("timestamps")
++    forecast_kw = kw.get("forecast_kw")
++    suppressing = kw.get("suppressing")
++    wood_tank_temperature = kw.get("wood_tank_temperature", None)
++    comfort_min = kw.get("comfort_min", None)
+     wtype = config.get(CONF_WOOD_TYPE)
+     packing = config.get(CONF_WOOD_PACKING)
+     price = _optional_float(config.get(CONF_WOOD_PRICE_SEK_M3))

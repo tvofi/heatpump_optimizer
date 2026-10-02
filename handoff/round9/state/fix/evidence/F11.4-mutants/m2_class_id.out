@@ -1,0 +1,23 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 37 items, 15 divergent
+  pair merge-subject-pr: 4 readers, 453 items, 0 divergent
+  pair dead-member-liveness: 2 readers, 137 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 33 items, 0 divergent
+  pair entity-names: 2 readers, 107 items, 0 divergent
+  DIVERGENT     finding-class-id "N-future-instant": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-restart": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-solve-recompute": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-structure-blind": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-name-sort": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-shared-config": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-approval-rebuy": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-finally-return": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-step-grid": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-reap-lock": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-staleness": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "N-silent-zero": bugclasses.json ids + "new"=true  finding.schema.json enum=true  audit-find.js CLASS_GUESS (intake)=false
+  DIVERGENT     finding-class-id "P99": bugclasses.json ids + "new"=false  finding.schema.json enum=false  audit-find.js CLASS_GUESS (intake)=true
+  DIVERGENT     finding-class-id "I99": bugclasses.json ids + "new"=false  finding.schema.json enum=false  audit-find.js CLASS_GUESS (intake)=true
+  DIVERGENT     finding-class-id "P0": bugclasses.json ids + "new"=false  finding.schema.json enum=false  audit-find.js CLASS_GUESS (intake)=true
+RESULT divergent=15 unregistered=0 dead=0 refused=0 seconds=6.5
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

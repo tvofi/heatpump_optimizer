@@ -1,0 +1,58 @@
+B1_copy_cross_module
+B1c_copy_same_module_control
+B2_private_reach
+B3a_passthrough_chain_optimize
+B3b_passthrough_chain_coordinator
+B3c_passthrough_chain_greedy
+B4a_inplace_write_shared_dict
+B4b_inplace_write_new_attr
+B4c_inplace_write_via_helper
+B5a_dead_method
+B5b_dead_property
+B5c_dead_method_common_name
+B5d_dead_method_selfcalled
+B5e_dead_top_level
+B6_cyclic_import
+B6b_cyclic_import_local
+B7_god_helper_module
+B8_star_import_const
+G1_extract_block
+G2_dedupe
+G3_move_cluster_with_state
+G4a_public_accessor_existing
+G4b_public_accessor_new
+G5_frozen_record_arg
+N1_rename_local
+N1b_reformat_signature
+N1c_reformat_explode_call
+N2_docstring
+N3_seam_relabel
+N4_const_namespace_import
+hub_solve_writes control
+hub_solve_writes fix
+hub_solve_writes null
+shared_inplace_writes control
+shared_inplace_writes fix
+shared_inplace_writes null
+private_reach control
+private_reach control_write
+private_reach fix
+private_reach null
+untyped_payload_keys control
+untyped_payload_keys fix
+untyped_payload_keys null
+xmodule_duplication control
+xmodule_duplication fix
+xmodule_duplication null
+import_cycles control
+import_cycles fix
+import_cycles null
+public_surface control
+public_surface fix
+public_surface null
+dead_by_reachability control
+dead_by_reachability fix
+dead_by_reachability null
+family_splits control
+family_splits fix
+family_splits null

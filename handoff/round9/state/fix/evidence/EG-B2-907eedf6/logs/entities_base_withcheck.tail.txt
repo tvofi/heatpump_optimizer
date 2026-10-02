@@ -1,0 +1,60 @@
+  FAIL a8:deregister  [13 registered after unload; catalog 12; extra=['leftover']; missing=[]]
+  FAIL a8:already_configured  [duplicate setup aborted as None]
+  FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  FAIL a9:roster_unchanged  [before=1 after=2 only_before=[] only_after=['sensor.b']]
+  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]
+
+-- Nightly leftover A6/A11/A12/A13
+  FAIL a6:list  [raised=True applied=False]
+  FAIL a6:list  [raised=False applied=True]
+  FAIL a6:loaded  [entry down after corrupt stores]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+closure: updated 1 closure(s) in /tmp/tmps45nwq7x/closures.json
+  tests/card.mjs                4 files
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+  DRIFT wood_coil: 1 leaves moved vs 2b8559ffdb2bc9388e847cd839fc893a0c43ddcd
+         wood_coil.v: 1 vs 2
+  CLAIMED wood_coil: 1 leaves moved (F6.4: another lane's claim; this lane moves it too)
+         wood_coil.v: 1 vs 2
+
+-- Committed-fixture staleness (#347)
+
+-- Reauthentication (D10-08)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+
+-- Coordinator config_entry (R3-D10-04)
+
+-- Reconfigure (D10-14)
+
+-- Diagnostics (D10-12)
+
+-- Entity base classes (D10-08)
+
+-- #284 singular schedule and plan states
+
+-- #558 D3 enumerated sensor states
+
+-- #558 D4 icon state translations
+
+-- #558 D5 service translations
+
+-- #558 D6 numeric schedule companion
+  .. P8 site ('coordinator.py', '_on_power_event', 'float(raw_state)'): normalize_power_kw
+  .. P8 site ('coordinator.py', '_indoor_humidity_value', 'float(state.state)'): None
+  .. P8 site ('coordinator.py', '_pv_measured_production', 'float(state.state)'): normalize_power_kw
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+
+-- Round 9: the judge's batch re-runner
+  FAIL EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options  [{'entity.py': ["199:getattr('_thermal_params')", "208:getattr('_config')"], 'sensor.py': ["2164:getattr('_thermal_params')", "1716:getattr('_thermal_model')", "681:getattr('_config')", "2850:getattr('_config')", '641:._thermal_model', '1091:._thermal_params', '1092:._thermal_params', '1093:._thermal_params'], 'binary_sensor.py': ['179:{**data, **options}', '210:._mold_floor_series'], 'switch.py': ['130:._away_state'], 'climate.py': ['106:{**data, **options}'], 'datetime.py': ['45:._away_state']}]
+  FAIL EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file  [platforms={'sensor.py': ['291:_attr_unique_id', '301:entity_id'], 'binary_sensor.py': ['78:_attr_unique_id', '82:entity_id'], 'button.py': ['73:_attr_unique_id', '77:entity_id'], 'switch.py': ['67:_attr_unique_id', '70:entity_id', '125:_attr_unique_id', '126:entity_id', '157:_attr_unique_id', '158:entity_id', '185:_attr_unique_id', '186:entity_id'], 'climate.py': ['107:_attr_unique_id', '110:entity_id'], 'datetime.py': ['38:_attr_unique_id', '39:entity_id']} entity.py=[]]
+  FAIL EG-B2: every coordinator view the surfaces read is a read-only property  [{'thermal_params': 'NoneType', 'thermal_model': 'NoneType', 'away_state': 'NoneType', 'mold_floor_series': 'NoneType'}]
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/317d9714-dc71-51db-9306-24555adca735/scratchpad/base/tests/entities.py", line 29219, in <module>
+    and _egb2_real.thermal_params is _egb2_real._thermal_params
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'HeatPumpOptimizerCoordinator' object has no attribute 'thermal_params'
+rc=1

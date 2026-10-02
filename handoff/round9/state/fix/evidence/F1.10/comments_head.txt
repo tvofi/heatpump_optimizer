@@ -1,0 +1,5 @@
+ROW probe derate_floor [defrost.py:109 'less than half'] comment=0.5 measured=0.55 MISMATCH
+ROW probe draw_cold_end [const.py:337 'draw model already assumes ~10'] comment=0 measured=0 holds
+ROW probe valve_write_cadence [const.py:750 'every 15 minutes'] comment=15 measured=30 MISMATCH
+ROW probe stale_floor_interval [coordinator.py:640 'short 5-minute update interval'] comment=5 measured=10 MISMATCH
+RESULT numeric_citation_mismatches=3 rows

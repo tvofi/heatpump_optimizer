@@ -1,0 +1,11 @@
+    moved under you means some of your numbers describe a tree that no longer
+    exists: say which survive and which you re-took, rather than letting the
+    verdict imply all of them were taken at the head it names.
+
+    Step 7 is not this check. It compares the SHA in the body against what you
+    measured, and a branch that moved after the body was written passes it. This
+    one compares the **live head at posting time** against what you measured.
+
+    The handoff makes the head yours from then on, so one that moved under you
+    is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+    instead is yours to offer and is never owed — a violation the reviewer

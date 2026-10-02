@@ -1,0 +1,10 @@
+{
+ "admissible": true,
+ "dS": 35.0928,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "dup_pairs_v1": 35.0928
+ },
+ "verdict": "IMPROVES"
+}

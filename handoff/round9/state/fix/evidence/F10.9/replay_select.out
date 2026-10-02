@@ -1,0 +1,6 @@
+#1803 old: full 28 | new: scoped 5, entries moved 1
+   old ran, new skips: ['tests/backtest.py', 'tests/card.mjs', 'tests/card_drift.mjs', 'tests/config_flow_steps.py', 'tests/deployment_shape.py', 'tests/edge.py', 'tests/env_drift.py', 'tests/finite_boundary.py', 'tests/frontend.py', 'tests/golden.py', 'tests/guard_pins.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/manual_plan.py', 'tests/md_tables.mjs', 'tests/open_meteo.py', 'tests/optimality.py', 'tests/plan_view.py', 'tests/solar_alignment.py', 'tests/structure.py', 'tests/typing_ruler.py', 'tests/validate.py', 'tests/wood_advisor.py']
+#1800 old: full 28 | new: scoped 20, entries moved 1
+   old ran, new skips: ['tests/deployment_shape.py', 'tests/frontend.py', 'tests/harness_headers.py', 'tests/layout.py', 'tests/md_tables.mjs', 'tests/open_meteo.py', 'tests/structure.py', 'tests/typing_ruler.py']
+#1799 old: full 28 | new: scoped 22, entries moved 16
+   old ran, new skips: ['tests/edge.py', 'tests/frontend.py', 'tests/layout.py', 'tests/md_tables.mjs', 'tests/open_meteo.py', 'tests/validate.py']

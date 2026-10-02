@@ -1,0 +1,22 @@
+MUTATION TABLE REFUSED -- 3608 unpinned site(s) against 3583 at the ratchet base a15e3e33507bde9e566858ce32b2ded840edfa02. A new guard, clamp, removable return or doubled constant left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+    custom_components/heatpump_optimizer/__init__.py:85 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+    custom_components/heatpump_optimizer/__init__.py:111 GUARD_OFF: if module is None:
+    custom_components/heatpump_optimizer/__init__.py:117 RETURN_DEL: return value
+    custom_components/heatpump_optimizer/__init__.py:157 RETURN_DEL: return handovers
+    custom_components/heatpump_optimizer/__init__.py:163 RETURN_DEL: return stamps
+    custom_components/heatpump_optimizer/__init__.py:179 GUARD_OFF: if payload is None or stamped_at is None:
+    custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:190 RETURN_DEL: return payload
+    custom_components/heatpump_optimizer/__init__.py:201 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:209 RETURN_DEL: return False
+    custom_components/heatpump_optimizer/__init__.py:211 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:219 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:244 GUARD_OFF: if (reg_entry.domain, reg_entry.unique_id) in retired:
+    custom_components/heatpump_optimizer/__init__.py:265 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:298 GUARD_OFF: if handover is not None:
+    custom_components/heatpump_optimizer/__init__.py:339 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:372 BOOLOP: if coordinator is not None and coordinator.effective_config == new_confi
+    custom_components/heatpump_optimizer/__init__.py:372 GUARD_OFF: if coordinator is not None and coordinator.effective_config == new_confi
+    custom_components/heatpump_optimizer/__init__.py:392 GUARD_OFF: if unload_ok:
+    custom_components/heatpump_optimizer/__init__.py:400 GUARD_OFF: if coordinator.data is not None:
+rc=1

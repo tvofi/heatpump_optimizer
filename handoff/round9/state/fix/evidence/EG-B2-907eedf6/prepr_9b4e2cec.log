@@ -1,0 +1,48 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             c168ec0ad583e040aa6446710d49f666f046a0a2
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  ok       self-test              148 passed, 0 failed
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: c168ec0ad583e040aa6446710d49f666f046a0a2 ok
+  ok       closures               scoped recordings are covered; left to CI: tests/stress.py
+  ok       closes #1742 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             8:each
+             10:all
+             10:each
+             14:every
+             28:every
+             32:none
+             32:each
+             34:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             66 t
+             9006 t
+             224 t
+             118 t
+             1739 f
+             13 r
+             3921 u
+             3919 a
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in ../body/BODY.md
+  ok       figures                FIGURES: 7 resolved, 6 not verified, 0 refused
+  skip     push order             no origin/work/eg-b2 yet; the push creates it, so pass ../body/BODY.md to --body-file after it
+
+PRE-PR: 9b4e2cec93f60fb7d78e213ce82ba2755a3d85f8 00000000000000000000
+prepr=0

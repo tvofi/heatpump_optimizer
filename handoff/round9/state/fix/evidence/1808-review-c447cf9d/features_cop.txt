@@ -1,0 +1,4 @@
+ALL 70 DST / QUARTER-GRID CHECKS PASSED
+  FAIL R9-P3: cop_nominal_floored holds its floor below it and passes through above  [cop_nominal=0.4 -> 0.4 (want 1.0), cop_nominal=3.2 -> 3.2 (want 3.2)]
+1 of 3645 FEATURE CHECKS FAILED
+rc=1

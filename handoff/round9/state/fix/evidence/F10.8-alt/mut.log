@@ -1,0 +1,21 @@
+M1 carried ignored in hygiene: rc=1
+    FAIL CLAIM_HEAD pointing at a byte-identical file is the no-claim state (R9-F10.8)  [got "INHERITED CLAIMS: tests/golden/claimed_drift.txt claims exac
+    FAIL a branch that only merged a claiming main passes claims hygiene  [it never edited either claim file, so main's lines are not its list to empty (#
+    Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+M2 untouched drop guard off: rc=1
+    FAIL the autofix leaves a claim file the branch never edited byte-identical  [emptying it is the deletion the merge applies to main; status='changed' 
+    FAIL an untouched claim file is not an inherited-claims rewrite  [byte-identical to the baseline is the no-claim state]
+    Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+M3 judge_drift excuses every line: rc=1
+    FAIL a carried claim line does not excuse a moved fixture  [drifted=0 claimed=['wood_coil'] excusing={'wood_coil': ["F6.4: another lane's claim"]}]
+    Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+M4 apply baseline at ref tip: rc=0
+    Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+M5 card excuses every line: rc=1
+    FAIL  a carried card claim line excuses no moved state
+    FAIL  a card claim line the branch wrote excuses its moved state
+    FAIL  an edited card file that kept the baseline's list is still inherited
+    3 CARD CHECK(S) FAILED
+M6 card untouched off: rc=1
+    FAIL  a card claim file the branch never edited is not refused
+    1 CARD CHECK(S) FAILED

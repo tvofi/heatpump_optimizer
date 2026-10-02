@@ -1,0 +1,91 @@
+
+=== tests/hastub contracts (provider: real, upstream 2025.2.0) ===
+
+-- contracts against the real provider (Home Assistant 2026.9.3, NEWER than the 2025.2.0 floor)
+  ok   components.diagnostics.async_redact_data: None is skipped, not redacted
+  ok   components.diagnostics.async_redact_data: the empty string is skipped, not redacted
+  ok   components.diagnostics.async_redact_data: a present value is replaced by REDACTED
+  ok   components.diagnostics.async_redact_data: a non-mapping, non-list value passes through unchanged
+  ok   components.diagnostics.async_redact_data: nested mappings and lists are walked
+  ok   components.diagnostics.async_redact_data: the input mapping is not mutated
+  ok   helpers.selector.NumberSelector: mode defaults to slider, so an unbounded selector is refused -- still drifted at 2026.9.3
+  ok   helpers.selector.NumberSelector: a slider missing either bound is refused -- still drifted at 2026.9.3
+  ok   helpers.selector.NumberSelector: box mode may be unbounded
+  ok   helpers.selector.NumberSelector: the value is coerced to float and range-checked
+  ok   helpers.selector.SelectSelector: a non-string value is refused before the options are consulted
+  ok   helpers.selector.SelectSelector: a value outside the options is refused and a listed one is returned
+  ok   exceptions.HomeAssistantError: the three translation kwargs land on the instance
+  ok   exceptions.HomeAssistantError: a translated error with no message carries the key as its message
+  ok   exceptions.ServiceValidationError: subclasses HomeAssistantError
+  ok   data_entry_flow.AbortFlow: reason and placeholders land on the instance, with upstream's message
+  ok   data_entry_flow.FlowError: a flow error is a HomeAssistantError
+  ok   helpers.config_validation.string: None is refused rather than coerced to 'None'
+  ok   helpers.config_validation.boolean: the negative strings are False and an unrecognised one is refused
+  ok   helpers.config_validation.positive_int: a negative is refused
+  ok   helpers.config_validation.positive_float: a negative is refused
+  ok   config_entries.ConfigEntry: runtime_data is absent until the integration assigns it
+  ok   config_entries.ConfigFlow: an advanced marker is dropped unless the flow shows advanced options -- still drifted at 2026.9.3
+  ok   config_entries.ConfigFlow: a suggested value is attached without mutating the flow's own schema
+  ok   helpers.update_coordinator.CoordinatorEntity: available follows the coordinator's last_update_success
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a refresh runs the update method and lands its return value
+  ok   helpers.update_coordinator.UpdateFailed: subclasses HomeAssistantError and keeps the translation kwargs
+Error fetching contract data: source refused
+  ok   helpers.update_coordinator.DataUpdateCoordinator: UpdateFailed flips last_update_success False and never escapes the refresh
+Error fetching contract data: down
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a successful refresh after a failure flips last_update_success back
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a refresh fans out to every added listener
+  ok   helpers.update_coordinator.DataUpdateCoordinator: two request refreshes inside the cooldown run the update once
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a failed first refresh raises ConfigEntryNotReady and latches the failure
+Authentication failed while fetching contract data: token refused
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an auth failure on a steady refresh latches, does not escape, and starts reauth
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an auth failure on the first refresh escapes as ConfigEntryAuthFailed
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a successful first refresh completes without raising
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an identical second refresh still fans out by default
+  ok   helpers.update_coordinator.DataUpdateCoordinator: always_update=False holds the fan-out back until data or success moves
+  ok   helpers.update_coordinator.DataUpdateCoordinator: removing the last listener cancels the pending debounced refresh
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a NotImplementedError from the update method escapes the refresh, recorded as last_exception -- still drifted at 2026.9.3
+  ok   exceptions.ConfigEntryNotReady: a ConfigEntryNotReady is a HomeAssistantError
+  ok   exceptions.ConfigEntryAuthFailed: a ConfigEntryAuthFailed is an IntegrationError carrying the translation
+  ok   exceptions.IntegrationError: the message falls back to the cause when the error carries none
+  ..   helpers.entity_registry.async_get: the same registry object is returned for the same hass -- not runnable against real Home Assistant
+  ..   helpers.device_registry.async_get: the same registry object is returned for the same hass, and a device is retrievable by its id -- not runnable against real Home Assistant
+  ..   helpers.entity_registry.async_entries_for_device: only the named device's entries come back, and a device with none gives an empty list -- not runnable against real Home Assistant
+  ..   components.repairs.ConfirmRepairFlow: init shows a confirm form, and confirming creates the entry -- not runnable against real Home Assistant
+  ..   helpers.entity_registry.async_entries_for_config_entry: only the entries belonging to that config entry are returned -- not runnable against real Home Assistant
+  ..   helpers.event.async_track_state_change_event: the returned callable removes the subscription, and twice is harmless -- not runnable against real Home Assistant
+  ..   helpers.event.async_track_state_change_event: a plain function that is neither @callback nor a coroutine is refused -- not runnable against real Home Assistant
+  ..   helpers.issue_registry.async_create_issue: re-raising the same issue id replaces it rather than adding a second -- not runnable against real Home Assistant
+  ..   helpers.issue_registry.async_create_issue: stores the documentation-link kwarg so a notice can carry one -- not runnable against real Home Assistant
+  ..   helpers.issue_registry.async_delete_issue: deletes by (domain, issue_id) and is a no-op when there is nothing to delete -- not runnable against real Home Assistant
+  ok   helpers.update_coordinator.DataUpdateCoordinator: the update interval it was constructed with is read back
+  ..   helpers.storage.Store: a document the decoder refuses is moved aside and loads as None; the rest decode as orjson reads them -- not runnable against real Home Assistant
+  ..   helpers.storage.Store: a load at a different major version than the save raises NotImplementedError with no migration, and runs the migration with the stored version when the Store defines one; an equal version returns the data -- not runnable against real Home Assistant
+  ok   util.dt.utcnow: returns an aware datetime in UTC
+  ok   util.dt.now: returns a datetime in the configured zone
+  ok   util.dt.now: returns an aware datetime when no zone has been configured
+  ok   util.dt.parse_datetime: an unparseable string is None rather than an exception
+  ok   util.dt.as_utc: aware datetimes convert to UTC instants and naive ones attach UTC
+  ok   util.dt.DEFAULT_TIME_ZONE: a zone is configured without anything being set in the environment
+  ok   util.dt.as_local: a naive datetime is converted rather than returned unchanged
+  ok   core.callback: the decorated function is tagged so the event loop runs it inline
+  ok   data_entry_flow.section: presentation config lands on options, not on config, and collapsed defaults to False
+  ok   data_entry_flow.section: the inner schema is kept as an attribute rather than merged into the parent
+  ok   data_entry_flow.section: an unknown presentation option is refused
+  ..   components.sensor.SensorEntity: a state outside the declared options raises, on every read -- not runnable against real Home Assistant
+  ..   components.sensor.SensorEntity: None short-circuits before the options check, so an unavailable enum sensor is unknown -- not runnable against real Home Assistant
+  ..   components.sensor.SensorEntity: options without the enum device class raise, and a unit on a non-numeric class raises -- not runnable against real Home Assistant
+  ok   components.sensor.SensorEntity: device_class reads _attr_device_class through the public property
+  ok   components.sensor.SensorEntity: state_class reads _attr_state_class through the public property
+  ok   components.binary_sensor.BinarySensorEntity: device_class reads _attr_device_class through the public property
+  ok   helpers.entity.Entity: entity_category reads _attr_entity_category through the public property
+  ok   helpers.entity.Entity: every platform entity base resolves entity_category
+
+ALL 59 contracts PASSED
+
+=== #590 NumberSelector / advanced convention ===
+  ok   walker refuses a NumberSelector built outside _number
+  ok   walker accepts _number and _widen_to_fit
+  ok   walker refuses _number that omits mode
+  ok   walker refuses description={advanced: True}
+
+ALL 4 convention checks PASSED

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 5f08f465..3f6c0968 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -634,7 +634,7 @@ class ThermalParameters:
+     @property
+     def cop_nominal_floored(self) -> float:
+         """``cop_nominal``, never below 1.0 (a heat pump delivers at least its draw)."""
+-        return max(self.cop_nominal, 1.0)
++        return (self.cop_nominal)
+ 
+     @property
+     def emitter_design_delta_t_floored(self) -> float:

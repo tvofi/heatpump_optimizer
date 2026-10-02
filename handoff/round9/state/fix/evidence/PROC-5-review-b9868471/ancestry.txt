@@ -1,0 +1,15 @@
+b9868471 R9-PROC-5: carry the RESUME change into the plan generator sources
+996f63c1 R9-PROC-5: transport body fix
+1e55fec4 R9-PROC-5: transport body
+893022c2 R9-PROC-5: stop appending to RESUME.md, read the roster through jq, route mechanical turns cheaper
+
+b9868471 R9-PROC-5: carry the RESUME change into the plan generator sources
+
+ tools/audit/handoff/r9-proc-5/BODY.md       |  2 +-
+ tools/audit/round9/fixplan/FIX-PLAN-head.md | 11 +++++------
+ tools/audit/round9/fixplan/data.py          |  2 +-
+ tools/audit/round9/fixplan/gen.py           |  6 +++---
+ tools/audit/round9/fixplan/standing.md      |  2 +-
+ 5 files changed, 11 insertions(+), 12 deletions(-)
+
+tools/audit/handoff/r9-proc-5/BODY.md

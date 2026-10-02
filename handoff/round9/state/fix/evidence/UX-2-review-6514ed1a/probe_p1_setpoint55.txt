@@ -1,0 +1,3 @@
+  FAIL  a priced row shows its monthly value as an estimate
+1 CARD CHECK(S) FAILED
+rc=0

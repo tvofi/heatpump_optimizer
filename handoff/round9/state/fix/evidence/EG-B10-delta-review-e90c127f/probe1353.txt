@@ -1,0 +1,3 @@
+RESULT probe entry-points: 35796 cases, 0 differing
+RESULT control direct-call: 57 cases, 18 differing
+RESULT positive-control (_bump GUARD_OFF, a killed site) entry-points: 35796 cases, 6390 differing

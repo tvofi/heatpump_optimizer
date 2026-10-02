@@ -1,0 +1,8 @@
+== MUTANT D14-s3-01
+RESULT fails=1 groups=1 wall_s=2.83 cpu_s=0.91
+== MUTANT D12-s2-03
+RESULT fails=1 groups=1 wall_s=3.54 cpu_s=0.99
+== MUTANT D2-s2-81
+RESULT fails=2 groups=0 wall_s=2.86 cpu_s=0.99
+== MUTANT R7-D2-01
+RESULT fails=1 groups=1 wall_s=3.17 cpu_s=1.02

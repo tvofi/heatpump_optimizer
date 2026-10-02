@@ -1,0 +1,19 @@
+  baseline refs/remotes/origin/main = 36d3c27
+  ok    pr / policy_lint rc=0 and every pin earned
+  ok    pr / nothing skipped in a full clone
+  ok    pr / every corpus and record-mode check measured and pinned
+  ok    push-main / policy_lint rc=0
+  ok    push-main / the same pins are earned as on a pull request
+  ok    push-main / every corpus and record-mode check still measured and pinned
+  ok    no-remote / policy_lint rc=0
+  ok    no-remote / the skipped drive is said out loud
+  ok    no-remote / a skipped drive does not claim its pins
+  ok    no-remote / the lane reports NOT MEASURED rather than failing
+  ok    shallow / policy_lint rc=0
+  ok    shallow / an undrivable arm is said out loud and not claimed
+  ok    no-rosters / a roster scan over zero rosters does not report ok
+  ok    since-ref / --record refuses an underivable window instead of counting zero errors over it
+  ok    since-ref / --stats refuses it too and prints no histogram for the filer to believe
+  ok    since-ref / a ref that DOES resolve over an empty window still measures, unmarked
+
+16 declared outcome(s) held, 0 did not, across 6 environment shape(s)

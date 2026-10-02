@@ -1,0 +1,24 @@
+UNPRINTED custom_components/heatpump_optimizer/comfort_learning.py OverrideEvent evidence -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator dhw_temperature -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator prices -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator solar_radiation -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/defrost.py DefrostDerate samples -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/disinfection.py DisinfectionSwitch release -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/external_heat.py ExternalHeatDetector suppressing -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/inputs.py InputReader flag -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/inputs.py InputReader text -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/inputs.py InputReader value -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/name_match.py Named device_class -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/name_match.py Named original_name -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/name_match.py Named translation_key -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/name_match.py Named unit -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/open_meteo.py OpenMeteoSolar forecast -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/open_meteo.py OpenMeteoSolar observed -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/optimizer.py OptimizationConfig n_steps -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/optimizer.py _Horizon timestamps -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/pump_signals.py PumpSignals dhw -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/pump_signals.py PumpSignals space_heat -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/snapshots.py SnapshotRing due -> name-kept
+UNPRINTED custom_components/heatpump_optimizer/sysid.py SystemIdentification step -> name-kept
+RESULT field_collision_unprinted=22 count
+RESULT name_kept_reported=92 count

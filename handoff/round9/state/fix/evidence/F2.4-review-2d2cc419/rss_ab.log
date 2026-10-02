@@ -1,0 +1,18 @@
+draw 0 base: baseline 95.2 probe 105.3 attributable 10.1 traced 3.46
+draw 0 head: baseline 95.2 probe 105.4 attributable 10.2 traced 3.45
+draw 1 head: baseline 95.1 probe 104.9 attributable 9.8 traced 3.45
+draw 1 base: baseline 95.2 probe 105.2 attributable 10.0 traced 3.46
+draw 2 base: baseline 95.2 probe 105.2 attributable 10.0 traced 3.46
+draw 2 head: baseline 95.1 probe 104.9 attributable 9.8 traced 3.46
+draw 3 head: baseline 95.4 probe 105.3 attributable 9.9 traced 3.45
+draw 3 base: baseline 95.0 probe 105.0 attributable 10.0 traced 3.46
+draw 4 base: baseline 95.1 probe 105.2 attributable 10.1 traced 3.45
+draw 4 head: baseline 95.3 probe 105.2 attributable 9.9 traced 3.45
+draw 5 head: baseline 95.2 probe 105.1 attributable 9.9 traced 3.46
+draw 5 base: baseline 95.2 probe 105.3 attributable 10.1 traced 3.45
+draw 6 base: baseline 95.2 probe 105.2 attributable 10.0 traced 3.46
+draw 6 head: baseline 95.2 probe 105.1 attributable 9.9 traced 3.46
+draw 7 head: baseline 95.0 probe 105.2 attributable 10.2 traced 3.46
+draw 7 base: baseline 95.3 probe 105.3 attributable 10.0 traced 3.45
+RESULT base n=8 attrib min/median/max 10.0/10.0/10.1 probe_rss median 105.2 traced min/max 3.45/3.46 over_14.1=0
+RESULT head n=8 attrib min/median/max 9.8/9.9/10.2 probe_rss median 105.2 traced min/max 3.45/3.46 over_14.1=0

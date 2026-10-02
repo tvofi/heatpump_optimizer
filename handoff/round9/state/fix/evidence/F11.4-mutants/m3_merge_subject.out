@@ -1,0 +1,9 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 37 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 453 items, 1 divergent
+  pair dead-member-liveness: 2 readers, 137 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 33 items, 0 divergent
+  pair entity-names: 2 readers, 107 items, 0 divergent
+  DIVERGENT     merge-subject-pr "fix: a squash (#1234)": stamp.py pr_from_subject="1234"  delivery_status.py subject_number="1234"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)="1234"
+RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=6.5
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

@@ -1,0 +1,9 @@
+58:-- R9 N-future-instant: a persisted instant ahead of the clock (FI-sw1, FI-sw2, FI-sw3, FI-sw4, FI-rca1)
+72:  ok   FI-sw1: a fuse-advisor stamp ahead of the clock, inside its month, does not hold the 7-day cooldown past it; an honest recent stamp still does
+73:  ok   FI-sw2: a heavy-snow stamp ahead of the clock does not keep the damping on 30 days later; an honest day-old stamp still does
+74:  ok   FI-sw4: three immersion events stamped ahead of the clock buy no margin; three honest recent ones still do
+75:  ok   FI-rca1: a legionella cycle stamped ahead of the clock does not postpone the next one for the skew; an honest day-old cycle is not yet due
+76:  ok   FI-sw3: a stored last_tick ahead of the clock reads as an outage (tvofi's rule, card C13); a real cut still does, and a plain restart, or a tick at the restart instant, still does not
+2220:ALL 66 DST / QUARTER-GRID CHECKS PASSED
+4583:  ok   a write instant stored ahead of the clock is bounded, so the echo grace closes on time (FI-sw5); an honest one inside the grace still holds (null control)
+4755:ALL 3631 FEATURE CHECKS PASSED

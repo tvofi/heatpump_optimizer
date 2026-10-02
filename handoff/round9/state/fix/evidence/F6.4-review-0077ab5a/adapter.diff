@@ -1,0 +1,10 @@
+74a75
+>     hass = type("H", (), {"config": type("C", (), {"language": "en"})()})()
+80a82
+>     _Flow.hass.config.language = lang
+84,85c86,87
+<     labels = [s["label"] for s in topology.describe_setup(dict(CONFIG))["slots"]]
+<     adv = topology.rank_sensor_advisor(dict(CONFIG), hp_kw=()) or {}
+---
+>     labels = [s["label"] for s in topology.describe_setup(dict(CONFIG), lang)["slots"]]
+>     adv = topology.rank_sensor_advisor(dict(CONFIG), hp_kw=(), language=lang) or {}

@@ -1,0 +1,24 @@
+M2 kernels: 1 FAIL
+HEAD kernels: 0 FAIL
+M1 kernels: 3 FAIL
+M3 kernels: 1 FAIL
+M6 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D2-s2-01: at the settlement cap the slab-fed zone holds the target under every learned heat-loss scale, one- and two-zone  [drift K/h [0.12, 0.0, -0.24, 0.0, 0.0, 0.0]]
+M5 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D2-s2-01: the hold demand, the detector's space demand and the forecast's solar fraction scale with the learned heat-loss scale  [demand / (scale x unscaled) [(2.0, 1.0), (1.0, 1.0), (0.5, 1.0)
+M4 features rc=1 2 of 3606 FEATURE CHECKS FAILED
+  FAIL D10-s1-03: a steady refresh refused by Tibber (401/403) latches ConfigEntryAuthFailed with its translation and starts reauth; a 500 stays UpdateFailed with no reauth  [{401: (None, False, 'Upda
+  FAIL D10-s1-03: a first refresh refused by Tibber raises ConfigEntryAuthFailed out of setup, not ConfigEntryNotReady  [raised ConfigEntryNotReady()]
+M9 features rc=1 2 of 3606 FEATURE CHECKS FAILED
+  FAIL R9-P5: a night whose plant differs from the declaration in what the fit is told either adopts within the bar of the plant's own heat loss or is refused  [66 nights; heavy_old two_zone=False tru
+  FAIL R9-P5 (#1655): the night's free-heat prior is the learned profile over the night window, the configured value by day-only evidence, and the configured value again on a plant with no profile  [p
+M8 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D2-s2-01: the hold demand, the detector's space demand and the forecast's solar fraction scale with the learned heat-loss scale  [demand / (scale x unscaled) [(1.0, 1.0), (1.0, 1.0), (1.0, 1.0)
+M7 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D2-s2-01: at the settlement cap the slab-fed zone holds the target under every learned heat-loss scale, one- and two-zone  [drift K/h [0.0, 0.0, 0.0, 0.16, 0.0, -0.32]]
+M12 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D10-s1-03: a first refresh refused by Tibber raises ConfigEntryAuthFailed out of setup, not ConfigEntryNotReady  [raised ConfigEntryNotReady()]
+M11 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL R9-P5 (#1655): the night's free-heat prior is the learned profile over the night window, the configured value by day-only evidence, and the configured value again on a plant with no profile  [p
+M10 features rc=1 1 of 3606 FEATURE CHECKS FAILED
+  FAIL D2-s2-01: the hold demand, the detector's space demand and the forecast's solar fraction scale with the learned heat-loss scale  [demand / (scale x unscaled) [(1.0, 2.0), (1.0, 1.0), (1.0, 0.5)

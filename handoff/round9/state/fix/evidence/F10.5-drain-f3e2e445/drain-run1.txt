@@ -1,0 +1,30 @@
+  3915 unpinned site(s) of 4518 candidate sites, 3915 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope full: every production module
+DRAIN -- 40 of 3915 unpinned site(s), whole anchors under --seed 20261002, to drive
+  40 mutant(s) over 67 file(s); drivers in play: tests/backtest.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/harness_headers.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'HEAD^1' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/away.py:54 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/backtest.py: rc=0 failed=0 68s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 15s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 3s
+  baseline tests/edge.py: rc=0 failed=0 24s
+  baseline tests/entities.py: rc=0 failed=0 112s
+  baseline tests/env_drift.py: rc=0 failed=0 276s
+  baseline tests/finite_boundary.py: rc=0 failed=0 51s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/harness_headers.py: rc=0 failed=0 140s
+  baseline tests/manual_plan.py: rc=0 failed=0 5s
+  baseline tests/optimality.py: rc=0 failed=0 134s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/features.py: rc=0 failed=0 389s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0s
+  baseline tests/structure.py: rc=0 failed=0 8s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/validate.py: rc=0 failed=0 24s
+  baseline tests/stress.py: rc=0 failed=0 369s
+
+MUTATION TABLE REFUSED -- the null control custom_components/heatpump_optimizer/away.py:54 NULL_COMMENT was killed by tests/stress.py (no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)  [winter_extreme/1z/space spent 95 ms of kernel CPU against the baseline's 49 ms = 1.93x, over the 1.80x factor on work the counts vouch at 1.00x, on an unchanged plan (objective 80.74055626); this is the per-call-cost half -- a kernel that got slower PER CALL moves no count at all, and round-5 D9-07 measured both count channels at 1.0000x with the solve CPU at 1.49-1.54x passing every budget in this file, so the kernel's own CPU seconds against the baseline captured beside this run is the only channel that moves]). A comment-only edit changes no behaviour, so a driver that notices it is judging the diff rather than the code, and none of this run's kills can be told apart from that.
+rc=1
+Fri Oct  2 06:24:55 UTC 2026

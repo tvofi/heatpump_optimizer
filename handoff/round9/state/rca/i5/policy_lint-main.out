@@ -1,0 +1,10 @@
+  skip     required-contexts     the GitHub API is unreachable (the fixture or the API failed: spawnSync gh ENOENT); the live required-context set is UNCHECKED this run, not confirmed
+
+CLAUDE.md
+  ERROR   [citations] CLAUDE.md: quoted line `MODE: SCOPED — 0 script(s) run`: no tracked tool prints it -- quote the line the tool prints, placeholders as <name>
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+
+TOTAL: 1 error(s) across 40 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 193 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

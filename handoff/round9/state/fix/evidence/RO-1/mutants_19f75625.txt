@@ -1,0 +1,13 @@
+M1 two-category refusal: rc=1 KILLED by: path in two categories
+M2 token head boundary: rc=1 KILLED by: negative: a longer name that contains it
+M3 historical exclusion: rc=1 KILLED by: negative: the citation under the archive | negative: the citation in a delivery row
+M3b retired-into-historical exclusion: rc=1 KILLED by: negative: the citation in a row not yet moved
+M4 dead glob arm: rc=1 KILLED by: dead category glob
+M5 dir citation without slash: rc=1 KILLED by: live citation of a retired directory, no slash
+M6 retired file arm: rc=1 KILLED by: retired file re-added | retired target outside every category | negative: the citation in a row not yet moved
+M7 enumeration: rc=1 KILLED by: base tree | file outside every category | path in two categories | retired file re-added | live citation of a retired path | live citation of a retired directory, no slash | retired target outside every category | dead retired entry | dead category glob | negative: the citation under the archive | negative: the citation in a delivery row | negative: the citation in a row not yet moved | negative: a longer name that contains it | negative: the new path cited
+M8 retired target category: rc=1 KILLED by: retired target outside every category
+M9 outside refusal: rc=1 KILLED by: file outside every category | retired file re-added | retired target outside every category | negative: the citation in a row not yet moved
+M10 reference file entry tail: rc=1 KILLED by: negative: a longer name that contains it
+M11 dead retired entry: rc=1 KILLED by: dead retired entry
+M0 unmutated: rc=0

@@ -1,0 +1,14 @@
+member _step_buffer_refused       writes=   28512 writers=['ThermalModel._simulate_step_two_zone', 'ThermalModel.simulate_step'] self_reads=0 consumer_reads={'ThermalModel.simulate_trajectory': 14400} write_only=False
+member _step_dhw_refused          writes=   24099 writers=['ThermalModel.simulate_dhw_step'] self_reads=0 consumer_reads={} write_only=True
+member _step_dhw_floor_injected   writes=   23463 writers=['ThermalModel.simulate_dhw_step'] self_reads=0 consumer_reads={} write_only=True
+member _step_dhw_draw_kw          writes=   46926 writers=['ThermalModel.simulate_dhw_step'] self_reads=0 consumer_reads={} write_only=True
+member _step_wood_refused         writes=   28512 writers=['ThermalModel._simulate_step_two_zone', 'ThermalModel.simulate_step'] self_reads=0 consumer_reads={} write_only=True
+RESULT write_only_members=4 of 5 count
+RESULT live_control_buffer_consumer_reads=14400 count
+RESULT static_loads_outside_thermal_model=0 count
+RESULT test_file_refs=19 count
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=7.31
+RESULT swapins=0
+rc=0

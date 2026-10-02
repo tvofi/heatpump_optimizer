@@ -1,0 +1,10 @@
+A: integration files measured but outside env_drift's closure: 1 ['custom_components/heatpump_optimizer/quality_scale.yaml']
+A: eligible pair (PR file, main file, env_drift selected for PR): None
+B: DISCLAIMER.md inert: True in hh closure: False
+B: docs/backlog.md inert: True in hh closure: False
+B: docs/audit-2026-09.md inert: True in hh closure: False
+B: pr ['docs/setup.md'] main ['DISCLAIMER.md'] -> ELIGIBLE
+B: pr ['docs/setup.md'] main ['docs/audit-2026-09.md'] -> ELIGIBLE
+B: pr ['DISCLAIMER.md'] main ['docs/audit-2026-09.md'] -> ELIGIBLE
+B: pr ['DISCLAIMER.md'] main ['docs/setup.md'] -> ELIGIBLE
+B: claims.py names: ['DISCLAIMER.md', 'docs/audit-2026-09.md', 'docs/backlog.md']

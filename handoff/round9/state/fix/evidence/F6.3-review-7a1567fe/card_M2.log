@@ -1,0 +1,1026 @@
+ heatpump-optimizer-card  v6.7.12 
+defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
+customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
+  ok    renders an <svg>
+  ok    draws polyline/path data
+  ok    draws heating bars
+  ok    legend has all eight series
+  ok    shows a cost or energy summary
+  ok    default entity ids match a real install
+  ok    toggling a series changes the chart
+  ok    toggle persisted to localStorage
+  ok    discovers renamed entities by plan_kind
+  ok    falls back to name-suffix discovery
+  ok    resolves a pre-#1333 device-prefixed id with no marker
+  ok    the pre-#1333 pair resolves to the ids it was given
+  ok    the post-#1333 pair resolves to the ids it was given
+  ok    reports missing entities clearly
+  ok    explicit config is honoured
+  ok    collapsed card offers an expand affordance
+  ok    no dialog is rendered until asked for
+  ok    clicking the card opens a dialog
+  ok    the dialog uses showModal-capable markup
+  ok    expanding survives the properties Lovelace writes onto the element
+  ok    and the layout editor is still the card's own, not Lovelace's
+  ok    the dialog carries its own chart
+  ok    the dialog carries its own legend and close button
+  ok    the enlarged chart labels more of the time axis
+  ok    a legend click stops propagating to the card
+  ok    a legend click does not expand the card
+  ok    toggling inside the popup keeps it open
+  ok    closing removes the dialog
+  ok    the empty state is not clickable
+  ok    solar series has data
+  ok    solar gets its own W/m2 axis
+  ok    the solar axis does not share the power scale
+  ok    hiding solar returns the reserved axis width
+  ok    discovers a renamed solar sensor by plan_kind
+  ok    a missing solar sensor degrades cleanly
+  ok    the popup scales the legend up
+  ok    the popup scales the legend chips and dots
+  ok    the popup chart uses a larger in-viewBox font
+  ok    reason codes render as readable text
+  ok    a repeated reason is not repeated in the tooltip
+  ok    idle steps produce no explanation
+  ok    an unknown reason code still shows something
+  ok    the estimated stretch of the horizon is shaded
+  ok    the tooltip says a price is estimated
+  ok    a fully published horizon is not shaded
+  ok    the schedule editor is available without extra configuration
+  ok    and it is reachable in the expanded view specifically
+  ok    what_if: false still hides the panel
+  ok    the what-if panel appears when enabled
+  ok    the panel offers heating hour editors
+  ok    the panel offers hot water window editors
+  ok    it distinguishes simulating from saving
+  ok    the temperature sliders have a section of their own
+  ok    each slider has its own readout
+  ok    the hot water slider writes its own draft field, not the comfort one
+  ok    moving either slider uses the one shared debounce
+  ok    the hot water readout follows its own slider
+  ok    a stored minimum above the ceiling is clamped to it
+  ok    and the clamp is visible rather than silent
+  ok    the slider's maximum comes from the published ceiling
+  ok    the deadband is described from the setpoint actually in force
+  ok    a null ceiling falls back instead of collapsing to zero
+  ok    a null comfort target falls back instead of reading as 0 °C
+  ok    the comfort target comes from the plan, not a stray thermostat
+  ok    the heating hours are pre-filled from the plan
+  ok    the hot water windows are pre-filled from the plan
+  ok    dragging does not call the service immediately
+  ok    the label follows the slider straight away
+  ok    the simulator calls the right service
+  ok    the simulator sends the dragged temperature
+  ok    the simulator sends the heating hours
+  ok    the simulator sends the hot water windows
+  ok    a cheaper answer is reported as a monthly saving
+  ok    the comfort consequence is reported alongside the money
+  ok    the hot water consequence is reported too
+  ok    editing an hour does not simulate on its own
+  ok    editing an hour updates the draft
+  ok    a window can be added
+  ok    the added window is rendered
+  ok    a window can be removed
+  ok    the right window was removed
+  ok    applying sends the edited hours
+  ok    applying sends the edited windows
+  ok    all windows can be removed
+  ok    an empty schedule is sent explicitly, not omitted
+  ok    an invalid window is rejected without calling the service
+  ok    reset restores the live schedule
+  ok    the add control stops propagating to the card
+  ok    the reset control stops propagating to the card
+  ok    the apply control stops propagating to the card
+  ok    the edit control stops propagating to the card
+  ok    a rejected simulation reports why
+  ok    a failed simulation is reported, not swallowed
+  ok    the expanded card offers a save button
+  ok    the first press does not call the service
+  ok    the first press asks for confirmation
+  ok    the first press says what saving will do
+  ok    the second press calls apply_schedule
+  ok    it sends the whole schedule, not a fragment
+  ok    the button returns to its resting label
+  ok    the confirmation is armed
+  ok    editing a slot disarms the confirmation
+  ok    so the next press only re-arms, it does not save
+  ok    an unchanged draft still confirms on the second press
+  ok    an empty comfort period is refused before it is saved
+  ok    a failed save is reported, not swallowed
+  ok    and the button is usable again afterwards
+  ok    the inline 12 h chart labels its time axis
+  ok    the inline 12 h chart really does clamp a label to the plot edge
+  ok    the inline 12 h time axis labels do not overlap
+  ok    the inline 12 h time axis keeps a label over the tick at each end
+  ok    the expanded 12 h chart labels its time axis
+  ok    the expanded 12 h chart really does clamp a label to the plot edge
+  ok    the expanded 12 h time axis labels do not overlap
+  ok    the expanded 12 h time axis keeps a label over the tick at each end
+  ok    the inline 24 h chart labels its time axis
+  ok    the inline 24 h chart really does clamp a label to the plot edge
+  ok    the inline 24 h time axis labels do not overlap
+  ok    the inline 24 h time axis keeps a label over the tick at each end
+  ok    the expanded 24 h chart labels its time axis
+  ok    the expanded 24 h chart really does clamp a label to the plot edge
+  ok    the expanded 24 h time axis labels do not overlap
+  ok    the expanded 24 h time axis keeps a label over the tick at each end
+  ok    the inline 48 h chart labels its time axis
+  ok    the inline 48 h chart really does clamp a label to the plot edge
+  ok    the inline 48 h time axis labels do not overlap
+  ok    the inline 48 h time axis keeps a label over the tick at each end
+  ok    the expanded 48 h chart labels its time axis
+  ok    the expanded 48 h chart really does clamp a label to the plot edge
+  ok    the expanded 48 h time axis labels do not overlap
+  ok    the expanded 48 h time axis keeps a label over the tick at each end
+  ok    the inline chart titles its value axes
+  ok    the inline chart really is showing both right-hand axes
+  ok    the inline value axis titles do not overlap
+  ok    the expanded chart titles its value axes
+  ok    the expanded chart really is showing both right-hand axes
+  ok    the expanded value axis titles do not overlap
+  ok    the price title is pushed aside when the solar axis crowds it
+  ok    and left exactly where it was when nothing crowds it
+  ok    the solar title itself never moves
+  ok    label density is derived, not hardcoded
+  ok    chart text is sized in the units its layout was authored in
+  ok    the chart scales by being stretched, not by inflating its font
+  ok    a wide dialog gets larger chrome than a narrow one
+  ok    a phone-width dialog stays legible
+  ok    a very wide dialog does not turn the legend into a headline
+  ok    a phone-width tile boosts the chart font to the floor
+  ok    the rendered size at phone width is at least the 8 px floor
+  ok    a 900 px chart is untouched (the historical 10-unit font)
+  ok    the boosted font carries the left margin with it
+  ok    an unmeasured dialog is left alone rather than sized from zero
+  ok    consecutive running steps collapse into one slot
+  ok    a slot moves without changing length
+  ok    a slot pushed past the horizon stops there, unstretched
+  ok    dragging a slot onto another merges them
+  ok    resizing the end leaves the start alone
+  ok    resizing the start leaves the end alone
+  ok    a slot never collapses below one timestep
+  ok    resizing cannot reach back before the editable range
+  ok    a slot can be added in free space
+  ok    a slot added beside another merges rather than swallowing it
+  ok    adding at the far edge still gives a usable slot
+  ok    a slot can be removed
+  ok    a time resolves to the slot covering it
+  ok    typical power is the mean of the running steps
+  ok    cost is power x time x price
+  ok    the chart grows editable lanes
+  ok    both channels get a lane
+  ok    the plan is drawn as draggable slots
+  ok    slots carry resize handles
+  ok    the card records the geometry a pointer needs
+  ok    a screen position maps back to the time under it
+  ok    there is a future hot water slot to edit
+  ok    dragging a slot moves it
+  ok    and keeps its length
+  ok    editing leaves slots that have already run untouched
+  ok    dragging an edge resizes the slot
+  ok    a slot that has already happened cannot be dragged
+  ok    there is a free stretch to add into
+  ok    right-clicking an empty lane offers to add a slot
+  ok    choosing add creates a slot
+  ok    and the menu closes
+  ok    right-clicking a slot offers to remove it
+  ok    choosing remove deletes it
+  ok    right-clicking near the chart's right edge opens a menu
+  ok    an out-of-chart tap position still opens a menu (D4-s1-02)
+  ok    the menu is clamped to its chart's right/bottom edge, not the raw tap point (D4-s1-02)
+  ok    an untouched arrangement costs the same as the plan
+  ok    removing a slot is reported as cheaper
+  ok    applying calls the manual plan service
+  ok    it sends both channels
+  ok    it never tries to reschedule the past
+  ok    slots are sent as ISO timestamps
+  ok    Home Assistant's configured currency is used
+  ok    an explicit card setting still wins
+  ok    with neither, it falls back rather than showing nothing
+  ok    the hand-scheduled reason has a label
+  ok    an untouched draft follows a newly published plan
+  ok    but edits in progress survive a refresh
+  ok    a channel with no plan data is left automatic
+  ok    while the channel that does have a plan is still pinned
+  ok    with no plan at all, nothing is pinned
+  ok    editing stops at the window the card would actually send
+  ok    the window is read from the plan, not hardcoded in the card
+  ok    the ceiling ignores the expiry already in force
+  ok    a slot cannot be dragged past the expiry
+  ok    there are slots to send in the first place
+  ok    no slot is sent past the expiry
+  ok    with no override there is nothing to go back from
+  ok    and no override banner
+  ok    an active override is announced
+  ok    and says how long it lasts
+  ok    and offers a way back to automatic
+  ok    a pin released for safety is reported, not hidden
+  ok    going back to automatic clears the override
+  ok    (setup) a future slot exists to tap
+  ok    tapping a slot opens the slot menu (no right-click needed)
+  ok    and Remove removes it
+  ok    (setup) an empty stretch exists
+  ok    tapping an empty lane offers to add a slot
+  ok    a real drag does not open the menu on release
+  ok    touch widens the grab handles
+  ok    mouse keeps the slim handles
+  ok    under a mouse, the zoom pair's 24 px floor is emitted outside the coarse media query
+  ok    under a mouse, the chips share that floor
+  ok    under touch, the same controls carry the card's coarse EXTRA (#1320)
+  ok    and the mouse arm is not handed that EXTRA
+  ok    under touch, the score pill joins the coarse floor (#1388)
+  ok    and under a mouse it still carries the every-pointer 24 px floor
+  ok    an unzoomed card shows no view-limit hint
+  ok    and no lane chevron
+  ok    zoomed: the visible edge is the binding edit limit
+  ok    the lanes flag the zoom with a chevron
+  ok    the what-if panel says the zoom is the limit
+  ok    there is a visible slot to drag against the edge
+  ok    holding the drag at the edge pans the view forward
+  ok    releasing the drag stops the auto-pan
+  ok    (setup) the view is narrowed again
+  ok    closing the dialog discards the pan/zoom view
+  ok    the hint carries a reset button
+  ok    pressing it clears the zoom
+  ok    and the hint disappears with it
+  ok    the chart draws series paths at all
+  ok    every series path is pointer-inert
+  ok    source keeps rect class="estimated" pointe… inert
+  ok    source keeps line class="crosshair" pointe… inert
+  ok    a phone-narrow chart still draws its lane labels
+  ok    every lane label clears the 8 px rendered floor
+  ok    every lane label carries a backing plate of the card's background
+  ok    each plate spans the whole of the label it backs
+  ok    the labels' layer is painted after the series paths
+  ok    an untouched card renders the default window
+  ok    zooming in narrows the window
+  ok    the anchored time stays inside the new window
+  ok    zooming never starts before the default window does
+  ok    panning backwards stops at the start of the plan
+  ok    panning forwards stops at the end of the plan
+  ok    and panning never changes the span it is panning
+  ok    zooming out stops at the extent of the plan
+  ok    reset restores the default window exactly
+  ok    the chart offers zoom controls
+  ok    reset is disabled while the view is already the default
+  ok    a pointerdown on a lane does not start a pan
+  ok    a pointerdown on the background does start a pan
+  ok    a drag suppresses the click that ends it
+  ok    so the drag does not open the expanded view
+  ok    and the suppression is spent, not sticky
+  ok    a real click still opens the expanded view
+  ok    a click that never moved is not treated as a pan
+  ok    the inline chart has an editable slot to drag
+  ok    a slot drag suppresses the click that ends it
+  ok    so the drag does not open the expanded view
+  ok    a real click after the drag still opens it
+  ok    the expanded dialog chrome is sized on open
+  ok    a re-render while the dialog is open re-applies its font
+  ok    the dialog offers plan and setup tabs
+  ok    the dialog offers a savings tab
+  ok    savings tab empty copy when the attribute is missing
+  ok    savings tab does not invent zero rows
+  ok    legend stays off the savings page
+  ok    savings tab draws the estimated current-month row
+  ok    the setup page draws the system
+  ok    the setup page offers add/remove tank toggles
+  ok    toggling the DHW tank calls apply_topology
+  ok    live values are read straight from hass states
+  ok    an unavailable sensor says so instead of a stale number
+  ok    empty slots are drawn empty, not omitted
+  ok    with a valve, one shared flow feeds both floors
+  ok    and the wood chain is drawn tank to tank from the published edges
+  ok    the heat pump visibly feeds the hot water tank
+  ok    every place wears its own silhouette
+  ok    no box goes without a contour
+  ok    the carrier rect is invisible, not gone
+  ok    outside air is drawn open, tanks are drawn closed
+  ok    pipe decorations never carry data-edge
+  ok    the house ridge arc is shallow and stays inside the box
+  ok    the pipe into the mixing valve carries no flow chevron
+  ok    a row-less box draws no header divider
+  ok    a stale wood-valve payload re-homes its slot onto the wood tank
+  ok    a coordinator that publishes no edges still gets the old drawing
+  ok    the wood box admits the single-tank abstraction
+  ok    the two-tank drawing runs both stores into one 4-way valve
+  ok    and names the tanks by what fills them
+  ok    and drops the single-tank caption, which is no longer true
+  ok    the valve outlet probe is drawn on the one valve that has it
+  ok    no coil in the drawing when the topology does not have one
+  ok    the coil is drawn as its own pipe, wood tank to hot water tank
+  ok    and the electric pipe survives beside the coil (#40 item 2)
+  ok    and the hot water box says where its refill water comes from
+  ok    the coil is drawn as a helix on the wood tank
+  ok    and the coil pipe departs from the helix, not the box wall
+  ok    without a valve the tank feeds both floors directly
+  ok    the plan chart is genuinely unrendered on the setup page
+  ok    the current page survives a plan refresh
+  ok    switching back restores the chart and the what-if panel
+  ok    every slot is a click target, not just the configured ones
+  ok    clicking a slot opens a picker for it
+  ok    every setup-hit row loses its tab stop while a picker covers the diagram (#1522, P9-f61b)
+  ok    and the picker that took their place is itself keyboard-reachable (P9-f61b)
+  ok    the picker offers entities of the domains the slot accepts
+  ok    and offers clearing the slot
+  ok    a switch slot does not offer temperature sensors
+  ok    assigning calls the validated service, not a config write
+  ok    and sends the slot key and the chosen entity
+  ok    the picker closes once the assignment is away
+  ok    the valve-target picker offers a manual setpoint
+  ok    saving a dumb valve sends the manual setpoint and no entity
+  ok    a rejected assignment is reported, not swallowed
+  ok    and the picker stays open so the choice can be corrected
+  ok    the dialog offers an advisor tab beside the other three
+  ok    the advisor page ranks the priced rows with their spread
+  ok    every quantified row carries the estimate label
+  ok    the page names what drove the replay
+  ok    unpriced rows render after every priced one, with their reason
+  ok    each suggestion is its own 24px-floor button
+  ok    acting on a suggestion opens the assign picker for that slot
+  ok    and the picker is the setup page's own, filters and all
+  ok    with no candidates the advisor page says so in as many words
+  ok    the advisor page speaks Swedish
+  ok    the advisor rows sit in the html target floor's selector list
+  ok    the setup page offers an Edit layout toggle
+  ok    the editor draws a port on every box edge
+  ok    pipe ornament is suppressed while the layout is being edited
+  ok    Save is offered but disabled until something is drawn
+  ok    and the editor says which layout is on screen
+  ok    click-to-assign is off while the layout is being edited
+  ok    clicking a pipe while editing removes it
+  ok    and a drawing that is no layout is rejected, with a reason
+  ok    dragging a port onto another box proposes that connection
+  ok    the finished drawing snaps to the layout it equals
+  ok    a matched layout is highlighted and Save is enabled
+  ok    saving calls apply_topology with the matched key and positions
+  ok    and the editor closes once the write is away
+  ok    a rejected layout write is reported, not swallowed
+  ok    and the editor stays open with the drawing intact
+  ok    an unsupported drawing names the nearest layout and what differs
+  ok    the offending pipe is drawn as rejected, and Save stays disabled
+  ok    and the page says so, not just the console
+  ok    a layout the configuration cannot run explains what it needs
+  ok    and a known-but-unmodelled layout says it is not selectable
+  ok    a catalog without requirement text degrades, never 'undefined'
+  ok    and the unmodelled layout degrades the same way
+  ok    the layout editor survives a plan refresh
+  ok    and so does the match it had made
+  ok    closing the editor discards the drawing
+  ok    a published position moves the box it names
+  ok    and the drawing is written at that position
+  ok    the diagram grows so the moved box is not clipped
+  ok    an impossible position is clamped onto the drawing
+  ok    dragging a box records its position and leaves the pipes alone
+  ok    and a moved box is still the layout it was, now saveable
+  ok    a click after a drag is not silently eaten
+  ok    Enter on a focused pipe removes it, like a click would
+  ok    Delete on a focused pipe removes it too
+  ok    a key that is not Enter/Space/Delete/Backspace leaves a pipe alone
+  ok    arrow keys move a focused box, cosmetic only
+  ok    ArrowLeft/Up move it back the other way
+  ok    Enter on a box arms it as a pending keyboard connection
+  ok    the armed box's aria-label switches to the connecting state
+  ok    Enter on a second box completes the connection
+  ok    pressing Enter on the armed box again cancels the connection
+  ok    Escape cancels a pending keyboard connection
+  ok    the layout editor draws its boxes as focusable while editing
+  ok    and its pipes the same way
+  ok    the box to be moved holds focus before the redraw
+  ok    and the redrawn box (a new element after refresh()'s innerHTML swap) holds it after
+  ok    the coil helix hangs on the wood tank
+  ok    removing the wood>DHW pipe removes the helix with it
+  ok    and drawing the pipe again brings the helix back
+  ok    Undo is offered but disabled on a freshly opened editor
+  ok    and it says what it does, for a screen reader and on hover
+  ok    the Undo label goes through the translation layer, both ways
+  ok    Undo lights up as soon as something is changed
+  ok    Undo restores the pipes and the box positions it opened with
+  ok    and re-derives the verdict for the restored drawing
+  ok    the editor stays open, unlike Cancel
+  ok    and Undo goes dark again, with nothing left to take back
+  ok    no drag survives the restore
+  ok    the baseline is a copy the working set cannot corrupt
+  ok    Undo after a drag alone puts the box back where it was
+  ok    and the pipes it never touched are still the published ones
+  ok    a rearranged drawing is a different layout before Undo
+  ok    Undo after pipe edits alone restores the published pipe set
+  ok    Save still works normally after an Undo
+  ok    a disabled Undo does nothing on Enter
+  ok    Enter on Undo restores the layout, from the keyboard alone
+  ok    and so does Space
+  ok    the bar's buttons ring themselves with :focus-visible, no more
+  ok    Cancel still closes the editor, Undo or no Undo
+  ok    a pipe over a tank outranks two pipes crossing
+  ok    layoutCost scores a tangled column stack above the neat default
+  ok    Tidy up is offered while the layout editor is open
+  ok    two dragged boxes can land on each other
+  ok    a piled layout costs strictly more than the default
+  ok    Tidy up lowers the crossing cost and clears the pile
+  ok    Tidy up leaves the pipe set and the matched layout alone
+  ok    Tidy up marks the drawing dirty and saveable
+  ok    Tidy up on an already neat layout does not raise the cost
+  ok    Tidy up is idempotent once the layout is already tidy
+  ok    Tidy up is deterministic from two different starting piles
+  ok    the Tidy up label goes through the translation layer, both ways
+  ok    only the chart claims raw touch input
+  ok    the editor still claims the diagram while a drag must move a box
+  ok    the dialog header may wrap at phone width, keeping the tabs reachable
+  ok    the setup diagram scrolls sideways at phone width instead of shrinking
+  ok    the dialog body reaches sideways content instead of hiding it
+  ok    and the tab row wraps rather than spilling out of the dialog
+  ok    shared quarter hours are marked with a hatched band
+  ok    the band explains itself: time-sharing, not double-booking
+  ok    no overlap, no band
+  ok    a hidden channel takes its shared bands with it
+  ok    the tooltip explains a genuinely shared step, with the sum
+  ok    nearest points from different timestamps are never called shared
+  ok    one idle channel means no shared line
+  ok    an unconfigured solar slot shows the irradiance the plan uses
+  ok    only the genuinely absent slot reads as not configured
+  ok    no source at all still says not configured
+  ok    the frontend's formatter wins: the probe reads in the user's units
+  ok    an older frontend without the formatter still gets the raw value
+  ok    hass.language sv-SE renders the legend in Swedish
+  ok    the default title localizes too (it is not baked in at setConfig)
+  ok    reason codes explain themselves in Swedish
+  ok    wire contracts stay untranslated under sv
+  ok    the expanded dialog is Swedish: tabs, slot actions, schedule editor
+  ok    the slot menu strings are whole Swedish sentences
+  ok    an unknown language falls back to English
+  ok    a currency published on the plan sensor reaches the price axis
+  ok    a card currency does not relabel the currency the plan publishes (#1657)
+  ok    no published currency still falls back to SEK
+  ok    hass.config.currency fills in when the sensor publishes none
+  ok    an editor element is registered
+  ok    getConfigElement returns the editor element
+  ok    getStubConfig passes setConfig
+  ok    the card advertises itself with a preview
+  ok    the editor builds an ha-form with a schema
+  ok    the schema covers the card's config keys
+  ok    entity pickers are filtered to this integration's sensors
+  ok    the form shows effective values, defaults filled in
+  ok    labels come from the dictionary, not raw key names
+  ok    editing fires config-changed with the new values
+  ok    an emptied field falls back to the default rather than storing ''
+  ok    untouched defaults do not appear in the emitted config
+  ok    only non-default series choices are stored
+  ok    a field edited back to its default is dropped, not stored
+  ok    an existing title: "" survives an unrelated edit
+  ok    the emitted config passes setConfig
+  ok    a fractional hour count is rejected, as the message says it is
+  ok    the bounds the hours message names are exactly the ones the check enforces
+  ok    and the editor's floor is the bound its own check enforces
+  ok    headline shows the projected savings in the sensor's unit
+  ok    a config currency does not relabel the sensor's own unit
+  ok    a savings sensor without a unit falls back to the resolved currency
+  ok    Swedish spaces the percent; English does not
+  ok    headline binds to the plan sensors' device, not a foreign twin
+  ok    (setup) no headline before the backend publishes
+  ok    a late-arriving backend still surfaces the headline
+  ok    headline shows the optimization score
+  ok    headline shows the narrative's first line
+  ok    a savings update re-renders the headline
+  ok    no headline chrome when the sensors are absent
+  ok    unavailable sensors render no row either
+  ok    show_stats: false removes the row
+  ok    a non-boolean show_stats is rejected
+  ok    the score's hover lists the sub-scores it is made of
+  ok    and says the unmeasured part has no evidence, not zero
+  ok    and invites the click that opens the panel
+  ok    the breakdown panel is closed by default
+  ok    clicking the score opens the breakdown panel
+  ok    and the click does not open the expanded dialog
+  ok    each row carries its plain-language explanation
+  ok    an unmeasured part shows no-evidence, never 0/100
+  ok    a measured part gets its bar and value
+  ok    a second click closes the panel
+  ok    Enter opens the panel as well
+  ok    the panel is in Swedish too
+  ok    the zoom controls fade by default
+  ok    prefers-reduced-motion drops the fade
+  ok    cards with different config identities get different keys
+  ok    a toggle on one card does not leak into the other
+  ok    a legacy storage key is still honoured after the upgrade
+  ok    the compact tile draws the schedule but offers no slot targets
+  ok    nor a focusable lane on the tile
+  ok    editable slots are focusable buttons with a spoken label
+  ok    the lanes are focusable add targets
+  ok    an svg with focusable children is not role=img
+  ok    there is a slot to drive
+  ok    Enter on a slot opens the slot menu
+  ok    an open menu parks an Escape listener on the document
+  ok    a keyboard-opened menu takes focus onto its button
+  ok    Escape dismisses the menu
+  ok    and hands focus back to the slot it came from
+  ok    closing the menu releases its document Escape listener
+  ok    Delete removes the focused slot
+  ok    after Delete, focus lands on the lane or the chart, not the body
+  ok    a mouse-opened menu does not steal focus
+  ok    Escape closes a mouse-opened menu via the document listener
+  ok    the document Escape listener is removed with the menu
+  ok    Enter on a lane offers the menu there too
+  ok    a menu action returns focus to the lane in the fresh DOM
+  ok    setup rows are focusable buttons
+  ok    the setup diagram is a group, not a flattened image
+  ok    Enter on a setup row opens the entity picker
+  ok    Escape closes the picker without assigning
+  ok    Escape returns focus to the setup row it came from
+  ok    the heat pump draws four accents, not six
+  ok    the fan shroud, its blades, the hub and the divider all survive
+  ok    nothing is drawn in the cabinet's floor band any more
+  ok    the drawn heat pump has no louvre strokes
+  ok    but it does still have its fan
+  ok    downhill cross-column: the chevron points down the pipe, not across it
+  ok    downhill cross-column: it is anchored on the pipe's own midpoint
+  ok    downhill cross-column: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    downhill cross-column: its two tails sit on opposite sides of the axis
+  ok    uphill cross-column: the chevron points down the pipe, not across it
+  ok    uphill cross-column: it is anchored on the pipe's own midpoint
+  ok    uphill cross-column: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    uphill cross-column: its two tails sit on opposite sides of the axis
+  ok    flat cross-column: the chevron points down the pipe, not across it
+  ok    flat cross-column: it is anchored on the pipe's own midpoint
+  ok    flat cross-column: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    flat cross-column: its two tails sit on opposite sides of the axis
+  ok    near-horizontal cross-column: the chevron points down the pipe, not across it
+  ok    near-horizontal cross-column: it is anchored on the pipe's own midpoint
+  ok    near-horizontal cross-column: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    near-horizontal cross-column: its two tails sit on opposite sides of the axis
+  ok    vertical, water flowing down: the chevron points down the pipe, not across it
+  ok    vertical, water flowing down: it is anchored on the pipe's own midpoint
+  ok    vertical, water flowing down: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    vertical, water flowing down: its two tails sit on opposite sides of the axis
+  ok    vertical, water flowing up: the chevron points down the pipe, not across it
+  ok    vertical, water flowing up: it is anchored on the pipe's own midpoint
+  ok    vertical, water flowing up: the arrowhead keeps its 5-long, 6-wide proportions
+  ok    vertical, water flowing up: its two tails sit on opposite sides of the axis
+  ok    the six cases really are six different slopes
+  ok    a steep pipe's chevron is no longer drawn horizontally
+  ok    no sloped pipe carries an axis-aligned chevron any more
+  ok    a same-column pipe into the mixing valve still keeps its chevron off
+  ok    an invalid pipe still carries dots but no chevron
+  ok    downhill cross-column: the apex is on the downstream side of the midpoint
+  ok    uphill cross-column: the apex is on the downstream side of the midpoint
+  ok    flat cross-column: the apex is on the downstream side of the midpoint
+  ok    near-horizontal cross-column: the apex is on the downstream side of the midpoint
+  ok    vertical, water flowing down: the apex is on the downstream side of the midpoint
+  ok    vertical, water flowing up: the apex is on the downstream side of the midpoint
+  ok    the columns, the box width and the viewBox are untouched
+  ok    the row arithmetic that sets each box height is unchanged
+  ok    the carrier rects are still written at the column abscissae
+  ok    every title and every row label clears the left wall by 14 units
+  ok    every right-anchored value clears the right wall by 14 units
+  ok    that is a widening on both sides, not a shift
+  ok    the header rules start on the title's own left margin
+  ok    every slot row is matched with its own hit rect
+  ok    and every hit rect covers its row's text from label to value
+  ok    the hit rects sit inside the box, clear of the contour
+  ok    and neighbouring rows do not touch, so neither do their rings
+  ok    the outdoor node's tray and cloud are exactly as shipped
+  ok    the outdoor node still has no walls and no header rule
+  ok    no slot row's label and value can overlap, at any real length
+  ok    and the reading itself is never what gets cut
+  ok    the longest real solar value leaves the label whole and legible
+  ok    the dropped provenance tag is kept for the tooltip
+  ok    the rule this replaced really did overlap on these very strings
+  ok    a short label lets the value keep its source tag
+  ok    a shorter label never buys the value less room
+  ok    a label that fits is left exactly alone
+  ok    the drawing really does fall back to Open-Meteo for irradiance
+  ok    on the page, the solar label ends before its value begins
+  ok    the label is the whole label, not a truncation
+  ok    and the row still says where the number came from, out loud
+  ok    a slot's own entity is offered even on an install past the cap
+  ok    and it is the option the picker comes up on
+  ok    so the placeholder is NOT what a configured slot shows
+  ok    Assign on an untouched configured slot never clears it
+  ok    every option shows its (possibly ellipsised) entity id next to the friendly name
+  ok    so the two identically-named wood-tank probes are tellable apart
+  ok    the entity id leads the label, not the (possibly duplicate) friendly name (D4-s1-03)
+  ok    distinct entities stay distinct even after the native listbox's own clip (D4-s1-03)
+  ok    a shared prefix AND suffix around the one differing word still disambiguates (D4-s1-03)
+  ok    a big install's list is capped rather than built in full
+  ok    and the footnote says what it is standing on
+  ok    typing part of a friendly name reaches an entity past the cap
+  ok    and typing part of an entity id does too, case-insensitively
+  ok    an entity 387 places down the alphabet is one search away
+  ok    a filter that matches nothing says so
+  ok    and once the list fits, the footnote stops warning about the cap
+  ok    choosing (not configured) does not clear the slot on one click
+  ok    the button says what the second click will do
+  ok    and the warning names the entity that would be lost
+  ok    a second, deliberate click does clear it
+  ok    an empty slot does not demand confirmation to stay empty
+  ok    picking something else disarms the clear
+  ok    and cancelling out of the picker disarms it too
+  ok    Enter on a row still opens the picker
+  ok    Escape still closes it without assigning
+  ok    and still hands focus back to the row it came from
+  ok    the filter box says out loud what it filters
+  ok    a mouse click on a row opens the picker
+  ok    Cancel does not hand the row back to a mouse user
+  ok    and clicking elsewhere afterwards leaves no row focused
+  ok    and re-rendering does not stack another copy of it
+  ok    Enter on a row opens the picker
+  ok    Cancel does return the row to a keyboard user
+  ok    Escape returns it too
+  ok    a pointer press on the row itself does not drop its focus
+  ok    but a pointer press anywhere else does
+  ok    the ring is still there for keyboard users
+  ok    it is not painted with an outline that geometry can clip
+  ok    and it is :focus-visible, so a mouse click cannot leave one
+  ok    hovering a focused row does not fade its ring
+  ok    no blanket outline suppression was added
+  ok    the ring has room for all four of its sides inside the box
+  ok    and two neighbouring rings never touch each other
+  ok    the tooltip itself still keeps short value rows on one line
+  ok    tt-shared declares a style block at all
+  ok    tt-shared wraps instead of inheriting nowrap
+  ok    tt-shared bounds its own width
+  ok    tt-reason declares a style block at all
+  ok    tt-reason wraps instead of inheriting nowrap
+  ok    tt-reason bounds its own width
+  ok    tt-row is left on one line, which is what nowrap is for
+  ok    tt-time is left on one line, which is what nowrap is for
+  ok    every tooltip block is classified as prose or as a value row
+  ok    the tooltip never starts past the chart's right edge
+  ok    and never starts left of the chart
+  ok    a pointer in the middle still places it beside the crosshair
+  ok    a two-zone house draws all three house-temperature traces
+  ok    a multi-line series gets one legend entry, not one per line
+  ok    and the zone names are not chips of their own
+  ok    the legend still carries one chip per series
+  ok    the one chip still says what else rides on its line
+  ok    the tooltip names all three house-temperature traces
+  ok    and reports each trace's own value, not the room's three times
+  ok    the tooltip carries one row per drawn trace, all distinctly labelled
+  ok    a dashed trace gets a dashed swatch in the tooltip, not a solid dot
+  ok    a single-zone house still gets one house-temperature chip
+  ok    and the duplicate traces are dropped rather than drawn
+  ok    so its chip claims no extra traces
+  ok    and its tooltip carries the one house row
+  ok    an unmeasured lower zone is labelled as modelled in the tooltip
+  ok    a lower zone with its own thermometer is not
+  ok    no topology published means no claim either way
+  ok    the chip's title carries the modelled wording as well
+  ok    the zone traces are named in Swedish too
+  ok    and the Swedish legend says one thing, in Swedish
+  ok    a mode-blocked hot-water channel explains itself on hover
+  ok    and points at the setting on the unit, not at the optimizer
+  ok    a mode-blocked heating channel gets its own half of the explanation
+  ok    and the mode explanation is in Swedish too
+  ok    the plan fixture actually carries a hot-water band to draw
+  ok    the tank curve draws with its two dashed band edges
+  ok    the band's dashes match the room extras' pattern and opacity exactly
+  ok    and the band is drawn in the tank series' own colour
+  ok    the band brackets the curve it belongs to at every plotted step
+  ok    null band values draw nothing -- only the tank curve remains
+  ok    and the tank curve keeps exactly the data it had with the band
+  ok    a zero-width band is dropped by the same rule that drops a copied zone, not drawn on top of the curve
+  ok    and it contributes no tooltip row either
+  ok    a null in the middle breaks each band edge into two paths
+  ok    and no null is plotted -- not as a zero, not as anything
+  ok    every step that DID have a value is still drawn
+  ok    the hole is a real break: the two segments do not share a step
+  ok    a broken band is still named once and reported once, not once per segment
+  ok    the tooltip names the band as the model's expected error, with a ±
+  ok    the solid tank row still reads as an absolute temperature
+  ok    the band is ONE row, not two absolute temperatures nobody asked for
+  ok    with no band there is no expected-error row to mislead anyone
+  ok    the legend says what the tank's dashed pair is
+  ok    and it is the tank's own single chip that says so, not a second one
+  ok    the explanation is a row of its own, not text inside the chip
+  ok    and it names the pair once, not once per edge
+  ok    with the high edge absent the card draws no band at all, not half of one
+  ok    and offers no expected-error chip for a band it is not drawing
+  ok    and the tank curve itself is untouched
+  ok    with the low edge absent the card draws no band at all, not half of one
+  ok    and offers no expected-error chip for a band it is not drawing
+  ok    and the tank curve itself is untouched
+  ok    with the high edge null throughout the card draws no band at all, not half of one
+  ok    and offers no expected-error chip for a band it is not drawing
+  ok    and the tank curve itself is untouched
+  ok    with the low edge null throughout the card draws no band at all, not half of one
+  ok    and offers no expected-error chip for a band it is not drawing
+  ok    and the tank curve itself is untouched
+  ok    turning the tank series off takes its band with it
+  ok    while the room's own traces are untouched -- one chip, one series
+  ok    and the chip count is unchanged: the room keeps its own chips
+  ok    and turning it back on restores the curve and both band edges
+  ok    a hidden tank series contributes no band row to the tooltip either
+  ok    the band is ONE named trace, however many paths draw it
+  ok    and it stays one when a hole splits both edges in two
+  ok    neither edge ever answers to the tank curve's own name
+  ok    while the room's two floors stay two separately named traces
+  ok    and a series with no band is unaffected by any of it
+  ok    the explanation is fetched per trace too, so a one-chip legend can reach it
+  ok    the band is named in Swedish too
+  ok    the Swedish legend explains the dashed pair
+  ok    and no English band string leaks into the Swedish render
+  ok    overlayDhwDisplay is the display-layer overlay
+  ok    with no probe the published centres and edges are unchanged
+  ok    and the input forecast is not mutated
+  ok    a live probe replaces the first displayed centre and omits the band
+  ok    later published centres stay on the live overlay when there is no clip
+  ok    a stale now prepends a display-only probe sample and leaves the first plan step
+  ok    an unavailable probe does not invent a tank sample
+  ok    an in-window heating step floors displayed lo at the window minimum
+  ok    idle-in-window is clipped too, not only reason==dhw_window
+  ok    a step outside the windows keeps its published lo
+  ok    a centre below the window minimum is not inverted by the clip
+  ok    empty windows do not clip
+  ok    the clip does not put a band back on the probe sample
+  ok    a Saturday hour inside the weekend window is clipped
+  ok    a Saturday hour inside the weekday window is not clipped
+  ok    a full-day window clips the whole horizon
+  ok    collapse-after-heat is not applied: later published σ stays
+  ok    without a tank sensor the first plotted sample is the published first point
+  ok    with a live tank sensor the first displayed sample is the probe
+  ok    and that probe sample has no dashed extras
+  ok    the tooltip at the probe sample has no expected-error row
+  ok    the published HA forecast is not rewritten by the overlay
+  ok    an unavailable tank sensor leaves the published first point on the chart
+  ok    an unknown tank sensor leaves the published first point on the chart
+  ok    the card floors every in-window plotted lo at the window minimum
+  ok    and a step outside the windows keeps its published lo on the card
+  ok    the floored-band legend names the window-minimum floor
+  ok    the plan-tab band floors the hours the RESOLVED schedule names
+  ok    and hours only the CONFIGURED schedule names keep their published lo
+  ok    the what-if editor still pre-fills from the configured spec
+  ok    the editor seeds one window from the published schedule
+  ok    a 20:00-24:00 household reaches simulate_plan
+  ok    and the panel does not call the house's own schedule invalid
+  ok    and the window it prices is still the one the house runs
+  ok    a genuinely malformed window still stops the run
+  ok    and the error names the window that is wrong
+  ok    without naming the windows that are fine
+  ok    no card leaves a document keydown listener behind at rest
+  ok    an open slot menu parks exactly one document keydown listener
+  ok    a re-render takes the menu's document listener with the menu
+  ok    and leaves no menu state behind on the card
+  ok    five open-and-refresh cycles leak nothing
+  ok    the menu is open before the card goes away
+  ok    disconnecting the card releases the document listener too
+  ok    and the whole page is back to no parked keydown listeners
+  ok    with no plan the card still says there is no plan
+  ok    but it still offers a way in to the setup page
+  ok    expanding before the first solve opens the dialog
+  ok    and it lands on the setup page rather than an empty plan
+  ok    the diagram is drawn from the published topology
+  ok    so an unassigned sensor can be assigned without a plan first
+  ok    the Plan tab is still offered
+  ok    and switching to it explains the absence rather than drawing nothing
+  ok    an install with nothing published still offers no expansion
+  ok    a slot that wants a temperature ranks one above 250 power meters
+  ok    and hides none of the ones it did not ask for
+  ok    an assignment 200 places past the cap is still offered
+  ok    and it is the one and only option the picker comes up on
+  ok    a filter that excludes the assignment does not drop it
+  ok    an assignment that is not a candidate at all is still shown
+  ok    and it is labelled with its raw id, and said to be unavailable
+  ok    and Assign on an untouched picker writes it back, not a clearance
+  ok    the editor pre-fills from the configured spec, not the plan's flat reading
+  ok    every window row carries a day selector
+  ok    with the window's own days selected
+  ok    and the selector is labelled for a screen reader
+  ok    simulating sends the weekly spec back in the integration's grammar
+  ok    a window switched to every day drops its selector
+  ok    a new window applies every day
+  ok    a day list is read as one selector, its comma and all
+  ok    and offered as the row's own option
+  ok    and sent back exactly as configured after a pass through the editors
+  ok    the day sets are named in Swedish too
+  ok    without a published spec the plan's windows still pre-fill the editor
+  ok    an empty spec defers to the learned windows the plan runs on
+  ok    a flat schedule is sent back flat
+  ok    a single-day window pre-fills its own day token
+  ok    the selector offers Monday through Sunday, the day token selected
+  ok    a window switched to a weekday keeps that day's token
+  ok    a rendered plan records the lane geometry
+  ok    a render with no plan forgets it, as it forgets the hover geometry
+  ok    a drag parks its handlers on window and arms the edge auto-pan
+  ok    removing the card mid-drag takes them off again
+  ok    a pan parks its handlers on window
+  ok    removing the card mid-pan takes them off again
+  ok    a view change waits on a frame
+  ok    removing the card cancels the pending redraw
+  ok    an unavailable channel has no forecast for the editor either
+  ok    while the other channel still does
+  ok    and Apply omits it instead of pinning stale slots
+  ok    a forecast published as a JSON string reaches the editor as the chart already saw it
+  ok    rendering the setup page keeps no memo of a slot
+  ok    the open picker's slot is the one the topology holds now
+  ok    the picker survives the republish
+  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo
+  ok    the two charts of one render get distinct ids
+  ok    and a second render hands out the same ids again
+  ok    a second card on the page starts from the same ids, not after the first's
+  ok    the page-global counter is gone
+  ok    two chart copies, two geometries
+  ok    and the one the event's chart gets is its own
+  ok    a redraw draws the inline lanes at the inline font and the dialog's at the dialog's
+  ok    the compact copy's margins differ from the dialog's
+  ok    a point on the inline chart maps back to its own time
+  ok    every series colour clears WCAG 1.4.11's 3:1 on a light card
+  ok    every series colour clears WCAG 1.4.11's 3:1 on a dark card
+  ok    the chart draws a 'now' marker at all
+  ok    the 'now' marker clears WCAG 1.4.11's 3:1 on a light card (#558 C1)
+  ok    the 'now' marker clears WCAG 1.4.11's 3:1 on a dark card (#558 C1)
+  ok    the 'now' label clears 4.5:1 on a light card (#558 C1)
+  ok    the 'now' label clears 4.5:1 on a dark card (#558 C1)
+  ok    the estimated-price region is drawn
+  ok    the estimated-price wash is perceptible on a light card (#558 C1)
+  ok    the estimated-price wash is perceptible on a dark card (#558 C1)
+  ok    the estimated-price region has a delimiting edge (#558 C1)
+  ok    the estimated-price edge clears 3:1 on a light card (#558 C1)
+  ok    the estimated-price edge clears 3:1 on a dark card (#558 C1)
+  ok    the chart draws horizontal gridlines to compare values against (#558 C1)
+  ok    every vertical gridline is perceptible on a light card (#558 C1)
+  ok    every vertical gridline is perceptible on a dark card (#558 C1)
+  ok    every horizontal gridline is perceptible on a light card (#558 C1)
+  ok    every horizontal gridline is perceptible on a dark card (#558 C1)
+  ok    no two series are the same colour to a deuteranope (#558 C1)
+  ok    series sharing a draw style are separated by more than colour (#558 C1)
+  ok    no English delta sentence reads 'the same than'
+  ok    Swedish delta sentences stay grammatical for all three verdicts
+  ok    wood alert when cheaper
+  ok    no wood alert when not cheaper
+  ok    Wood lane renders one detected slot
+  ok    laneSpecs length stays 2 with a Wood display lane
+  ok    what-if wood editor when show_whatif
+  ok    no what-if wood editor when furnace off
+  ok    expanded plan shows the away toggle
+  ok    collapsed card has no away toggle
+  ok    return datetime is hidden while the switch is off
+  ok    return datetime is shown while the switch is on
+  ok    setup page has no away strip
+  ok    savings page has no away strip
+  ok    collapsed card still has no away toggle
+  ok    person-away while the switch is off shows a status line
+  ok    the plan page has a tick box to bind
+  ok    ticking Away shows the return-time field before hass flips the switch
+  ok    and the tick calls set_away with active true
+  ok    (setup) return field absent before the switch entity turns on
+  ok    a hass update of the away switch reveals the return-time field
+  ok    every legend chip publishes its toggle state as aria-pressed
+  ok    aria-pressed is the state, not a constant
+  ok    clicking a chip flips its aria-pressed
+  ok    and clicking it again flips it back
+  ok    the hot-water band's note is rendered as text, not only as a hover title
+  ok    and the chip it belongs to names it as its description
+  ok    the dialog really does render a second legend beside the inline one
+  ok    every note id in the shadow root is unique
+  ok    and each chip describes the note in its own copy of the legend
+  ok    a card with no expected-error band renders no note
+  ok    and no chip claims a description that is not there
+  ok    the null control really did remove the band
+  ok    the hot-water band is drawn as a filled envelope
+  ok    the envelope is a closed region
+  ok    its two edges still delimit it
+  ok    and the tank's own curve is still drawn
+  ok    the envelope is pointer-inert, like every other filled series body
+  ok    the envelope spans exactly the two edges it fills between
+  ok    the envelope's fill is perceptible on a light card
+  ok    the envelope stays quieter than the curve it surrounds on a light card
+  ok    the envelope's fill is perceptible on a dark card
+  ok    the envelope stays quieter than the curve it surrounds on a dark card
+  ok    on a light card no fill-opacity is both perceptible and leaves the curve at 3:1
+  ok    and the dark card is the control that says the sweep can find one
+  ok    the savings table renders one row per month
+  ok    every numeric cell is marked as a numeric column
+  ok    and the month column is not
+  ok    the numeric headers are marked the same way
+  ok    and the stylesheet right-aligns them, so the columns can be read down
+  ok    the savings table asks for tabular figures
+  ok    the currency is named in the column head, not in every cell
+  ok    so every money figure carries the same number of decimals
+  ok    every month's savings carries an in-cell magnitude bar
+  ok    the bar is proportional to the figure it sits behind
+  ok    a month that cost money is marked by more than its minus sign
+  ok    equal savings draw equal bars
+  ok    a month that saved nothing draws no bar
+  ok    the savings figure still clears 4.5:1 over its own bar on a light card
+  ok    and the bar itself is perceptible on a light card
+  ok    the savings figure still clears 4.5:1 over its own bar on a dark card
+  ok    and the bar itself is perceptible on a dark card
+  ok    a card currency does not relabel the savings table's figures
+  ok    so one screen names one currency, as the headline already did
+  ok    a savings sensor that declares no unit still takes the card's currency
+  ok    the history rig's rows carry the keys a real install's rows carry
+  ok    an untouched card never asks Home Assistant for history
+  ok    panning back before now moves the window into the past
+  ok    the measured indoor temperature renders left of now
+  ok    the recorded past and the forecast never double-book a timestamp
+  ok    the measured outdoor temperature renders left of now
+  ok    the measured spot price renders left of now
+  ok    the measured irradiance renders left of now
+  ok    the pump's own action record renders as past slot bars
+  ok    the actioned series has a legend chip
+  ok    the legend offers exactly one chip per series
+  ok    history loads lazily, one call pair per 12 h chunk entered
+  ok    the numeric history call is lean (minimal_response, no attributes)
+  ok    the action call carries the attributes its power lives in
+  ok    the entity ids are the optimizer's own actual sensors
+  ok    panning back stops at 48 hours before now
+  ok    an unavailable stretch breaks the measured trace rather than zeroing it
+  ok    panning forward still stops at the end of the plan
+  ok    reset snaps the view back to the live window
+  ok    a hass without callApi keeps the forward-only pan
+  ok    history recorder off degrades to a notice, never an error
+  ok    history recorder off snaps the view back to the live edge
+  ok    history api refused degrades to a notice, never an error
+  ok    history api refused snaps the view back to the live edge
+  ok    a renamed install derives its own actual sensors from the plan prefix
+  ok    the realistic fixture produces a path worth asking about
+  ok    the drawn temperature path never runs backward in time
+  ok    mode runs forward-fill between the state changes
+  ok    actioned slots render from state history alone, no power attribute
+  ok    the actioned chip reads as having data without power
+  ok    without a power attribute no past slot bar is drawn
+  ok    power_kw, where the attribute exists, draws the past slot bars
+  ok    and the mode band draws beside it
+  ok    an active run's midpoint sits inside the plot to hover
+  ok    the tooltip names the actioned mode under the crosshair
+  ok    an inclusive chunk boundary does not double-book a timestamp
+  ok    the boundary state was in fact served twice
+  ok    a run split across a chunk boundary merges into one
+  ok    the joined trace still never runs backward
+  ok    a foreign sensor sharing the suffix is not asked for history
+  ok    and no foreign band is drawn as the pump's own record
+  ok    a stale live-edge chunk is fetched again, filling the seam hole
+  ok    a step mean is duration-weighted, not a plain average of samples
+  ok    a hole shrinks the step mean's denominator, not its numerator
+  ok    overlays() emits every covered chunk in time order, not insertion order
+  ok    a live-edge gap under one plan step is not read as stale
+  ok    a live-edge gap of a full plan step is read as stale and refetched
+  ok    an indoor sensor with no recorded rows draws no measured indoor trace
+  ok    the outdoor trace carries its own sensor's rows when another entity is dropped
+  ok    the price trace carries its own sensor's rows when another entity is dropped
+  ok    a flat measured temperature keeps a temperature axis of at least 2 K
+  ok    no drawn house_temp path's x coordinates run backward under the held/forecast seam
+  ok    an unavailable action row ends the space slot bar, no bar spans across it
+  ok    a pre-#1227 install's price sensor is asked for under its legacy id
+  ok    and its recorded price draws the past half of the price series
+  ok    with no price sensor under either id, no past price is drawn
+  ok    every recorded past series spans the window with no gap wider than a plan step
+  ok    the recorded past sits on the plan's own step grid
+  ok    the tank and lower-floor probes are asked for when the install has them
+  ok    each past point is the value its own sensor held at that step
+  ok    without the probes neither is asked for, and no past tank trace is drawn
+  ok    the recorded temperatures are drawn with the forecast's smooth curve
+  ok    each past slot step is the time-weighted mean of the recorded power
+  ok    an outage spanning whole steps breaks the past trace, a one-minute blip does not
+  ok    panned into the past, the axes span the live plan's scales
+  ok    and an unpanned card keeps the scales the plan alone gives it
+  ok    the lanes draw the recorded runs, hot water red and heating blue, left of now
+  ok    and a card with no recorded history draws none
+  ok    the live-edge chunk is fetched again once the clock has moved a plan step
+  ok    the card element defines at most 26 members of its own (26)
+  ok    the card markup gate's claim file is stamped for v6.7.12
+  ok    a docs-only three-dot moves nothing a claim excuses
+  ok    the card source moves something a claim excuses
+  ok    justifiesCardClaim names the card and nothing beside it
+  ok    integration Python moves something a claim excuses (the union)
+  ok    a capture source moves something a claim excuses
+  ok    a non-Python file under the integration does not, on its own
+  ok    a test script that is not a capture source does not
+  ok    threeDotFiles runs the sibling's three commands in order
+  ok    threeDotFiles de-duplicates, drops blanks and sorts
+  ok    an untracked card makes the three-dot claimable
+  ok    a docs-only three-dot is NOT this branch's claim to judge
+  ok    a solver-only three-dot is NOT this branch's CARD list to judge
+  ok    a card diff IS this branch's card list to judge
+  ok    an unanswerable three-dot judges (fail closed)
+  ok    parseClaims carries every line a state has, not just the last
+  ok    a claim file with one line per state parses to one reason per state
+  ok    an exact copy of the baseline's list still parses its equal
+  ok    a claim added beside an inherited line is not an inherited list
+  ok    an exact copy of a multi-line list still is the inherited list
+  ok    a different reason on the same line is not an inherited list either
+  ok    empty lists claim nothing and are never an inheritance
+  ok    a space-blocked plan shows the DHW-only banner
+  ok    a space-blocked plan dims the promised house traces
+  ok    an unblocked plan shows no DHW-only banner and no dimming
+  ok    a live indoor reading shows the corner now temperature
+  ok    without an indoor reading the corner now label is absent
+  ok    the 'now' label, the now-temp reading and the estimated-prices label all render
+  ok    no two of the three top-strip labels share a row (D4-s1-05, P9-rca3)
+  ok    ERROR_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+  ok    SUCCESS_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+  ok    WARNING_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+  ok    ERROR_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+  ok    SUCCESS_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+  ok    WARNING_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+  ok    no prefers-color-scheme media query is left keying these colours to the OS
+  ok    cardStyleBlock(false) paints .dearer with the light-safe literal
+  ok    cardStyleBlock(true) paints .dearer with the dark-safe literal, not var(--error-color)
+  ok    hass.themes.darkMode=true renders the dark-safe .dearer colour end to end
+  ok    toggling hass.themes.darkMode back to false re-renders the light-safe colour
+  ok    slotHitExtents boxed_in: every hit target covers its own ink
+  FAIL  slotHitExtents boxed_in: no two hit targets in the lane overlap
+  ok    slotHitExtents pair_close: every hit target covers its own ink
+  ok    slotHitExtents pair_close: no two hit targets in the lane overlap
+  ok    slotHitExtents shared_steps_like: every hit target covers its own ink
+  FAIL  slotHitExtents shared_steps_like: no two hit targets in the lane overlap
+
+2 CARD CHECK(S) FAILED

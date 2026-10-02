@@ -1,0 +1,31 @@
+/tmp/claude-0/-home-claude/fcd73737-92c8-5472-ae98-8cb6e6752d1d/scratchpad/vci/bin/python: can't open file '/tmp/claude-0/-home-claude/fcd73737-92c8-5472-ae98-8cb6e6752d1d/scratchpad/wtg/tests/codeowners_gap.py': [Errno 2] No such file or directory
+rc=0
+}
+
+Node.js v22.22.2
+}
+
+Node.js v22.22.2
+  ok   methods_over_200 11 <= 11
+
+STRUCTURE RATCHET PASSED
+== codeowners_gap
+RESULT pinned_by_base_restore=26 count
+RESULT of_which_no_pr_job_runs=11 count
+RESULT uncovered_files=0 count
+== policy_lint
+TOTAL: 0 error(s) across 40 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== policy_lint --budgets
+role policy    ~9727 tokens, cap 9414 +band 500 = 9914
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+== structure
+STRUCTURE RATCHET PASSED
+== closure/entities classification (entities is heavy; closure.py check)
+usage: closure.py [-h]
+                  {record,merge,check,autofix,autofix-report,prune,select,affected,show,no-copies,selftest} ...
+
+Derive and apply the scoped gate's dependency closures. The gate is the
+throughput bottleneck: a full run is about forty minutes, and most changes

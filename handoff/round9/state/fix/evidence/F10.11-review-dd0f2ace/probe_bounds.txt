@@ -1,0 +1,7 @@
+
+=== harness header EXPECTED vs RESULT (#817) ===
+parent RLIMIT_CPU before (-1, -1) after (-1, -1) -> child-only: True
+spin rc -24 wall 2.0s
+grandchild spin: parent rc 0 grandchild rc -24
+3-thread spin rc -24 wall 2.0s (GIL-bound python threads: ~1 core)
+idle past wall (124, '', 'wall limit 1s exceeded')

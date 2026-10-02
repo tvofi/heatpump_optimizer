@@ -1,0 +1,8 @@
+['hookonly_features_dc6c97e4.json', 'lane_dst_checks_dc6c97e4.json', 'mutants', 'notrun_head_docsonly.log', 'notrun_main_docsonly.log', 'replay_select.out', 'replay_select.sh', 'strace_features_dc6c97e4.json']
+strace_features_dc6c97e4.json cc89057b
+lane_dst_checks_dc6c97e4.json 6bd10fbd
+hookonly_features_dc6c97e4.json 2a9a5b48
+how audithook+sys.modules+strace audithook+sys.modules+strace audithook+sys.modules
+A 121 B real 104 missing from A []
+missing from hook-only H ['custom_components/heatpump_optimizer/binary_sensor.py', 'tests/hastub/homeassistant/components/binary_sensor.py', 'tests/replay.py', 'tests/replay/synthetic-dhw-only.json']
+missing from main committed features []

@@ -1,0 +1,348 @@
+
+########## environment ##########
+  python   3.13.14 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.10GHz
+  blas     SkylakeX
+  stack    numpy 2.4.6, scipy 1.17.1
+########## scoped gate ##########
+  MODE: SCOPED -- 0 script(s) run, 28 scoped out.
+  changed files (1), measured against the recorded closures in tests/closures.json:
+      DISCLAIMER.md
+
+
+      SKIP  tests/backtest.py  (closure: 28 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 80 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 85 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 110 files, no changed file is in its measured closure)
+      SKIP  tests/deployment_shape.py  (closure: 108 files, no changed file is in its measured closure)
+      SKIP  tests/doc_claims.py  (closure: 128 files, no changed file is in its measured closure)
+      SKIP  tests/edge.py  (closure: 26 files, no changed file is in its measured closure)
+      SKIP  tests/entities.py  (closure: 193 files, no changed file is in its measured closure)
+      SKIP  tests/env_drift.py  (closure: 176 files, no changed file is in its measured closure)
+      SKIP  tests/features.py  (closure: 121 files, no changed file is in its measured closure)
+      SKIP  tests/finite_boundary.py  (closure: 99 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/golden.py  (closure: 178 files, no changed file is in its measured closure)
+      SKIP  tests/guard_pins.py  (closure: 42 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/harness_headers.py  (closure: 352 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 2 files, no changed file is in its measured closure)
+      SKIP  tests/manual_plan.py  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 28 files, no changed file is in its measured closure)
+      SKIP  tests/plan_view.py  (closure: 74 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 75 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 32 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 70 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 70 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 26 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 78 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+
+########## /tmp/claude-0/venv/bin/python tests/env_drift.py --claims-only HEAD ##########
+claims hygiene: HEAD ok
+
+########## /tmp/claude-0/venv/bin/python tests/closure.py selftest ##########
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune is idempotent (#1310 null control)
+
+ALL 23 closure shrink pins PASSED
+
+SKIP: tests/features.py (scoped out: no changed file is in its measured closure of 121 file(s))
+
+SKIP: tests/entities.py (scoped out: no changed file is in its measured closure of 193 file(s))
+
+SKIP: tests/doc_claims.py (scoped out: no changed file is in its measured closure of 128 file(s))
+
+SKIP: tests/md_tables.mjs (scoped out: no changed file is in its measured closure of 10 file(s))
+
+SKIP: tests/wood_advisor.py (scoped out: no changed file is in its measured closure of 78 file(s))
+
+SKIP: tests/config_flow_steps.py (scoped out: no changed file is in its measured closure of 110 file(s))
+
+SKIP: tests/structure.py (scoped out: no changed file is in its measured closure of 70 file(s))
+
+SKIP: tests/typing_ruler.py (scoped out: no changed file is in its measured closure of 70 file(s))
+
+SKIP: tests/ha_contract.py (scoped out: no changed file is in its measured closure of 34 file(s))
+
+SKIP: tests/manual_plan.py (scoped out: no changed file is in its measured closure of 87 file(s))
+
+SKIP: tests/open_meteo.py (scoped out: no changed file is in its measured closure of 3 file(s))
+
+SKIP: tests/solar_alignment.py (scoped out: no changed file is in its measured closure of 75 file(s))
+
+SKIP: tests/guard_pins.py (scoped out: no changed file is in its measured closure of 42 file(s))
+
+SKIP: tests/finite_boundary.py (scoped out: no changed file is in its measured closure of 99 file(s))
+
+########## /tmp/claude-0/venv/bin/python tests/harness_headers.py ##########
+
+=== harness header EXPECTED vs RESULT (#817) ===
+  ok   every harness declaring live-header anywhere in its file is executed
+  ok   tools/audit/round3/D2/dst_window_factors.py exists
+  ok   tools/audit/round3/D2/dst_window_factors.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D2/dst_window_factors.py exits 0
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT default_horizon_hours matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT cells matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT total_mismatched_cells matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT mismatches_autumn_60min_peak_hours matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT null_control_non_dst_day_mismatches matches header
+  ok   tools/audit/round3/D2/dst_window_factors.py RESULT no_mask_returns_none matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py exists
+  ok   tools/audit/round3/D2/window_size_sweep.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D2/window_size_sweep.py exits 0
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_15min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_90min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_control_15min matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT catalog_window_minutes matches header
+  ok   tools/audit/round3/D2/window_size_sweep.py RESULT options_selector_choices matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py exists
+  ok   tools/audit/round3/D5/option_doc_coverage.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round3/D5/option_doc_coverage.py exits 0
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_fields_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_fields_undocumented matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT option_schema_keys_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT wood_economics_fields_rendered matches header
+  ok   tools/audit/round3/D5/option_doc_coverage.py RESULT wood_economics_doc_lines matches header
+  ok   tools/audit/round4/D10/qs_rules.py exists
+  ok   tools/audit/round4/D10/qs_rules.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D10/qs_rules.py exits 0
+  ok   tools/audit/round4/D10/qs_rules.py RESULT rules_total matches header
+  ok   tools/audit/round4/D10/qs_rules.py RESULT declared_mismatch matches header
+  ok   tools/audit/round4/D6/claims.py exists
+  ok   tools/audit/round4/D6/claims.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D6/claims.py exits 0
+  ok   tools/audit/round4/D6/claims.py RESULT claims_extracted matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_checked matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_true matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_false matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_stale matches header
+  ok   tools/audit/round4/D6/claims.py RESULT claims_unverifiable matches header
+  ok   tools/audit/round4/D6/claims.py RESULT config_defaults_compared matches header
+  ok   tools/audit/round4/D6/claims.py RESULT config_ranges_compared matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_modules_on_disk matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_map_listed matches header
+  ok   tools/audit/round4/D6/claims.py RESULT arch_map_missing matches header
+  ok   tools/audit/round4/D6/claims.py RESULT ha_module_level_importers matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py exists
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py exits 0
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT fitted_typical_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT within10_typical_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT fitted_heavy_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT within10_heavy_s001 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_typical_s005 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_heavy_s005 matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_armed matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_gate_named matches header
+  ok   tools/audit/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
+  ok   tools/audit/round4/D9/h2_cycle.py exists
+  ok   tools/audit/round4/D9/h2_cycle.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h2_cycle.py exits 0
+  ok   tools/audit/round4/D9/h2_cycle.py RESULT msm_entries_per_cycle matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py exists
+  ok   tools/audit/round4/D9/h7_memory_gate.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h7_memory_gate.py exits 0
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_recorded matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT memory_top_n matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT memory_budget_factor matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT detection_target matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT min_attrib_rss_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT max_attrib_rss_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_attrib_rss_fails matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT min_traced_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT max_traced_multiple_required_to_fail matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_traced_fails matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_memory_probed matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT scenarios_never_memory_probed matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT attrib_leader_label matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT attrib_fail_threshold_mb matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT traced_fail_threshold_mb matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT clean_attrib_rule_fires matches header
+  ok   tools/audit/round4/D9/h7_memory_gate.py RESULT inject2x_attrib_rule_fires matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py exists
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py header names at least one EXPECTED RESULT
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py exits 0
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT cost_terms_batch_calls_per_gradient matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT batch_rows_per_gradient matches header
+  ok   tools/audit/round4/D9/h9_batch_cost_loop.py RESULT null_control_batched_calls_per_gradient_delta matches header
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 91 HARNESS HEADER CHECKS PASSED
+
+########## /tmp/claude-0/venv/bin/python tests/layout.py ##########
+layout: 3199 tracked path(s) enumerated
+  category  2290 finding(s)
+    outside the allowed categories: .abacus.donotdelete
+    outside the allowed categories: .claude/workflows/brief_lint.mjs
+    outside the allowed categories: .claude/workflows/budget_raise_gate.py
+    outside the allowed categories: .claude/workflows/carry-1067.json
+    outside the allowed categories: .claude/workflows/carry-1295.json
+    outside the allowed categories: .claude/workflows/carry-1300.json
+    outside the allowed categories: .claude/workflows/carry-1308.json
+    outside the allowed categories: .claude/workflows/carry-1320.json
+    outside the allowed categories: .claude/workflows/carry-1330.json
+    outside the allowed categories: .claude/workflows/carry-1336.json
+    ... 2280 more (--verbose)
+  retired   2285 finding(s)
+    planned move not yet made: .abacus.donotdelete -> nothing (deleted)
+    planned move not yet made: .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs
+    planned move not yet made: .claude/workflows/budget_raise_gate.py -> tools/policy/budget_raise_gate.py
+    planned move not yet made: .claude/workflows/carry-1067.json -> dev/archive/carries/carry-1067.json
+    planned move not yet made: .claude/workflows/carry-1295.json -> dev/archive/carries/carry-1295.json
+    planned move not yet made: .claude/workflows/carry-1300.json -> dev/archive/carries/carry-1300.json
+    planned move not yet made: .claude/workflows/carry-1308.json -> dev/archive/carries/carry-1308.json
+    planned move not yet made: .claude/workflows/carry-1320.json -> dev/archive/carries/carry-1320.json
+    planned move not yet made: .claude/workflows/carry-1330.json -> dev/archive/carries/carry-1330.json
+    planned move not yet made: .claude/workflows/carry-1336.json -> dev/archive/carries/carry-1336.json
+    ... 2275 more (--verbose)
+  reference 1533 finding(s)
+    .claude/hooks/always-fails.sh:11 cites retired path .claude/workflows/fixtures/; use tools/policy/fixtures/
+    .claude/hooks/pre-edit.sh:85 cites retired path .claude/workflows/rules_sync.mjs; use tools/policy/rules_sync.mjs
+    .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:95 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:100 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:195 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:197 cites retired path tools/audit/prepr.sh; use tools/pr/prepr.sh
+    .claude/rules/brief-citations.md:6 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    ... 1523 more (--verbose)
+  dead      27 finding(s)
+    category docs: glob matches no tracked file: docs/img/card/*
+    category docs: glob matches no tracked file: docs/img/model/*
+    category docs: glob matches no tracked file: docs/img/setup/*
+    category docs: glob matches no tracked file: docs/design/*/{design,plan}.md
+    category dev/governance: glob matches no tracked file: dev/governance/rules/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/roles/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/dimensions/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/decisions/*.md
+    category dev/governance: glob matches no tracked file: dev/governance/config/*.json
+    category dev/programme: glob matches no tracked file: dev/programme/HANDOVER.md
+    ... 17 more (--verbose)
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 209 of 209 listed
+  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 209 of 209 listed
+  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 210 of 210 listed
+  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 209 of 209 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 209 of 209 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 209 of 209 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 210 of 210 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 209 of 209 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 209 of 209 listed
+layout self-test: ok
+
+SKIP: tests/deployment_shape.py (scoped out: no changed file is in its measured closure of 108 file(s))
+
+SKIP: tests/golden.py (GOLDEN_MODE=drift checks fixtures via env_drift.py instead)
+
+SKIP: tests/env_drift.py (scoped out: no changed file is in its measured closure of 176 file(s))
+
+SKIP: tests/validate.py (scoped out: no changed file is in its measured closure of 26 file(s))
+
+SKIP: tests/edge.py (scoped out: no changed file is in its measured closure of 26 file(s))
+
+SKIP: tests/backtest.py (scoped out: no changed file is in its measured closure of 28 file(s))
+
+SKIP: tests/optimality.py (scoped out: no changed file is in its measured closure of 28 file(s))
+
+SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)
+
+SKIP: tests/plan_view.py (scoped out: no changed file is in its measured closure of 74 file(s))
+
+SKIP: tests/frontend.py (scoped out: no changed file is in its measured closure of 6 file(s))
+
+SKIP: tests/card.mjs (scoped out: no changed file is in its measured closure of 80 file(s))
+
+SKIP: tests/setup_qa_render.mjs (scoped out: not in the scoped run set)
+
+SKIP: tests/card_drift.mjs (HEAD is this commit; use GOLDEN_REF=HEAD^1 to check it)
+
+SKIP: tests/stress.py (scoped out: no changed file is in its measured closure of 32 file(s))
+
+########## wall clock ##########
+       0s  /tmp/claude-0/venv/bin/python tests/env_drift.py --claims-only HEAD
+       1s  /tmp/claude-0/venv/bin/python tests/closure.py selftest
+     151s  /tmp/claude-0/venv/bin/python tests/harness_headers.py
+       4s  /tmp/claude-0/venv/bin/python tests/layout.py
+     157s  TOTAL (1 lane(s))
+
+########## NOT RUN: scoped out of this gate ##########
+  tests/backtest.py        did NOT run -- no changed file is in its measured closure (closure: 28 files)
+  tests/card.mjs           did NOT run -- no changed file is in its measured closure (closure: 80 files)
+  tests/card_drift.mjs     did NOT run -- no changed file is in its measured closure (closure: 85 files)
+  tests/config_flow_steps.py did NOT run -- no changed file is in its measured closure (closure: 110 files)
+  tests/deployment_shape.py did NOT run -- no changed file is in its measured closure (closure: 108 files)
+  tests/doc_claims.py      did NOT run -- no changed file is in its measured closure (closure: 128 files)
+  tests/edge.py            did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/entities.py        did NOT run -- no changed file is in its measured closure (closure: 193 files)
+  tests/env_drift.py       did NOT run -- no changed file is in its measured closure (closure: 176 files)
+  tests/features.py        did NOT run -- no changed file is in its measured closure (closure: 121 files)
+  tests/finite_boundary.py did NOT run -- no changed file is in its measured closure (closure: 99 files)
+  tests/frontend.py        did NOT run -- no changed file is in its measured closure (closure: 6 files)
+  tests/golden.py          did NOT run -- no changed file is in its measured closure (closure: 178 files)
+  tests/guard_pins.py      did NOT run -- no changed file is in its measured closure (closure: 42 files)
+  tests/ha_contract.py     did NOT run -- no changed file is in its measured closure (closure: 34 files)
+  tests/harness_headers.py did NOT run -- no changed file is in its measured closure (closure: 352 files)
+  tests/layout.py          did NOT run -- no changed file is in its measured closure (closure: 2 files)
+  tests/manual_plan.py     did NOT run -- no changed file is in its measured closure (closure: 87 files)
+  tests/md_tables.mjs      did NOT run -- no changed file is in its measured closure (closure: 10 files)
+  tests/open_meteo.py      did NOT run -- no changed file is in its measured closure (closure: 3 files)
+  tests/optimality.py      did NOT run -- no changed file is in its measured closure (closure: 28 files)
+  tests/plan_view.py       did NOT run -- no changed file is in its measured closure (closure: 74 files)
+  tests/solar_alignment.py did NOT run -- no changed file is in its measured closure (closure: 75 files)
+  tests/stress.py          did NOT run -- no changed file is in its measured closure (closure: 32 files)
+  tests/structure.py       did NOT run -- no changed file is in its measured closure (closure: 70 files)
+  tests/typing_ruler.py    did NOT run -- no changed file is in its measured closure (closure: 70 files)
+  tests/validate.py        did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/wood_advisor.py    did NOT run -- no changed file is in its measured closure (closure: 78 files)
+
+  Each line above is a claim that no file changed by this branch is in
+  that script's MEASURED closure (tests/closures.json, recorded by
+  tests/derive_closures.sh from real instrumented runs). The claim is
+  re-checked in full: every push to main runs this suite unscoped, so
+  a closure that is wrong turns main red within one gate.
+  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
+
+4 TEST SCRIPT(S) PASSED; 28 SCOPED OUT AND NOT RUN
+(see the NOT RUN block above -- this is not a full gate)
+rc=0

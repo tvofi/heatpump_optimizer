@@ -1,0 +1,4 @@
+ROW defrost.py:DERATE_MIN cites=[0.5] measured=0.55 wrong=[0.5]
+ROW const.py:MIXING_VALVE_WRITE_EPSILON cites=[15.0] measured=30.0 wrong=[15.0]
+ROW coordinator.py:PLAN_STALE_INTERVALS cites=[5.0] measured=10.0 wrong=[5.0]
+RESULT comment_citations_wrong=3

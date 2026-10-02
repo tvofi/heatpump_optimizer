@@ -1,0 +1,10 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 2 divergent
+  pair finding-class-id: 3 readers, 37 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 453 items, 0 divergent
+  pair dead-member-liveness: 2 readers, 137 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 33 items, 0 divergent
+  pair entity-names: 2 readers, 107 items, 0 divergent
+  DIVERGENT     rule-frontmatter-paths "shape:trailing_comment": policy_lint.mjs rulePaths=["tests/**","custom_components/**"]  rules_sync.mjs parse=["custom_components/**"]
+  DIVERGENT     rule-frontmatter-paths "shape:list_under_other_key": policy_lint.mjs rulePaths=["tests/**"]  rules_sync.mjs parse=["tests/**","docs/**"]
+RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=6.7
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

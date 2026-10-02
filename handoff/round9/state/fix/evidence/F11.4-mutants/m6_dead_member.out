@@ -1,0 +1,9 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 37 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 453 items, 0 divergent
+  pair dead-member-liveness: 2 readers, 138 items, 1 divergent
+  pair governance-workflow-jobs: 2 readers, 33 items, 0 divergent
+  pair entity-names: 2 readers, 107 items, 0 divergent
+  DIVERGENT     dead-member-liveness "custom_components/heatpump_optimizer/const.py::_PlantedOr...": structure.py bound_references (top-level)=false  structure.py dead_members (methods)=true
+RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=6.7
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

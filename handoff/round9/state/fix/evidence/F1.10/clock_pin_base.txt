@@ -1,0 +1,5 @@
+ROW spring dt_hours=0.25 disagreeing_steps=0 of 96
+ROW spring dt_hours=0.125 disagreeing_steps=95 of 96
+ROW autumn dt_hours=0.25 disagreeing_steps=0 of 96
+ROW autumn dt_hours=0.125 disagreeing_steps=95 of 96
+RESULT clock_disagreements=190

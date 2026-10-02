@@ -1,0 +1,50 @@
+diff --git a/docs/delivery/1792.md b/docs/delivery/1792.md
+new file mode 100644
+index 00000000..2f1d17b4
+--- /dev/null
++++ b/docs/delivery/1792.md
+@@ -0,0 +1 @@
++- [#1792](https://github.com/tvofi/heatpump_optimizer/pull/1792) — **open**, policy: fix reviewers cite the head's CI run instead of re-running the gate and mutation table
+diff --git a/tools/audit/briefs/fix-review.md b/tools/audit/briefs/fix-review.md
+index 4fa73db5..874b6a29 100644
+--- a/tools/audit/briefs/fix-review.md
++++ b/tools/audit/briefs/fix-review.md
+@@ -75,15 +75,19 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
+     (`changed_lines`). Where the answer turns on it, read the lane's log
+     rather than its conclusion.
+ 
++    **Cite CI; never re-run it** (tvofi, 2026-09-30): cite the head's CI run
++    for the gate and the mutation table, and run only your own targeted
++    mutants and the blocker checks. The merge seat merges only on CI green at
++    a head containing current main; if main moved, it merges main and waits.
++
+ 12. **Re-read the head before you post.** Name the SHA you measured in the
+     verdict, and check it is still the head when you post it. A branch that
+     moved under you means some of your numbers describe a tree that no longer
+     exists: say which survive and which you re-took, rather than letting the
+     verdict imply all of them were taken at the head it names.
+ 
+-    Step 7 is not this check. It compares the SHA in the body against what you
+-    measured, and a branch that moved after the body was written passes it. This
+-    one compares the **live head at posting time** against what you measured.
++    Step 7 compares the body's SHA, which a later move passes; this compares
++    the **live head at posting time** against what you measured.
+ 
+     The handoff makes the head yours from then on, so one that moved under you
+     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+@@ -124,12 +128,9 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
+     is the orchestrator's to resolve by hand, not a defect in the authored
+     work — say which file refused and why.
+ 
+-    Classifying by line shape instead is what fails. `_comment_lines` and
+-    `_is_may_drift` both test "everything before `#` is blank", so a
+-    `may-drift` line **is** a `#` comment, and `merge_claim_defect` refuses
+-    when one is lost. A rule of the form "a conflict confined to the `#`
+-    comment notes is merge-prep" therefore waves through a real refusal, on a
+-    file with no bare claim lines on any side. Why the driver refuses at all is `claim-files.md`'s.
++    Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
++    a `#` comment, and `merge_claim_defect` refuses when one is lost, so "only
++    comment notes conflict" waves a real refusal through (`claim-files.md`).
+ 
+ Return a verdict with your RESULT lines, in the exact shape your dispatch
+ prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first

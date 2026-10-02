@@ -1,0 +1,60 @@
+  parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+  coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
+  attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+  whole sweep: 118.8 s of solver CPU against 2.5 s of reference CPU = 48.24x; budget is 52.44x
+  detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.48x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+  detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+  detection on THIS machine: per-scenario ceiling 0.99x (244x x 1.1 wobble), sweep budget 1.09x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+
+-- Economics
+
+-- Edge conditions
+
+1 of 98 STRESS CHECKS FAILED
+>>> FAILED: python3 tests/stress.py
+
+########## wall clock ##########
+       0s  python3 tests/env_drift.py --claims-only 777c23180a08b0d6c7abd41d6dd5fe7b1abf19b3
+       1s  python3 tests/closure.py selftest
+     498s  python3 tests/features.py
+     109s  python3 tests/entities.py
+       3s  python3 tests/doc_claims.py
+       0s  python3 tests/wood_advisor.py
+      20s  python3 tests/config_flow_steps.py
+       4s  python3 tests/structure.py
+       0s  python3 tests/typing_ruler.py
+       6s  python3 tests/manual_plan.py
+       1s  python3 tests/solar_alignment.py
+       1s  python3 tests/guard_pins.py
+      59s  python3 tests/finite_boundary.py
+     189s  python3 tests/harness_headers.py
+       4s  python3 tests/layout.py
+       2s  python3 tests/deployment_shape.py
+     368s  python3 tests/env_drift.py --all 777c23180a08b0d6c7abd41d6dd5fe7b1abf19b3
+     107s  python3 tests/backtest.py
+     199s  python3 tests/optimality.py
+       1s  python3 tests/plan_view.py
+      17s  node tests/card.mjs
+       6s  node tests/card_drift.mjs 777c23180a08b0d6c7abd41d6dd5fe7b1abf19b3
+     512s  python3 tests/stress.py
+    1410s  TOTAL (3 lane(s))
+
+########## NOT RUN: scoped out of this gate ##########
+  tests/edge.py            did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/frontend.py        did NOT run -- no changed file is in its measured closure (closure: 6 files)
+  tests/ha_contract.py     did NOT run -- no changed file is in its measured closure (closure: 34 files)
+  tests/md_tables.mjs      did NOT run -- no changed file is in its measured closure (closure: 10 files)
+  tests/open_meteo.py      did NOT run -- no changed file is in its measured closure (closure: 3 files)
+  tests/validate.py        did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/layout.py          ran anyway -- run_always, so no scope skips it
+
+  Each line above is a claim that no file changed by this branch is in
+  that script's MEASURED closure (tests/closures.json, recorded by
+  tests/derive_closures.sh from real instrumented runs). The claim is
+  re-checked in full: every push to main runs this suite unscoped, so
+  a closure that is wrong turns main red within one gate.
+  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
+
+1 TEST SCRIPT(S) FAILED
+rc=1

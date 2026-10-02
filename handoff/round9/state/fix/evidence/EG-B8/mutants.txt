@@ -1,0 +1,30 @@
+== M1 (custom_components/heatpump_optimizer/optimizer.py)
+  FAIL one non-finite entry quarantines the stored hourly profile to the default pattern  [nan -> [0.20526315789473687, 0.2, 0.2]..., inf -> [0.2052631578947368
+ALL 66 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a DHW-blocked plan ships no hot water when mostly negative prices tempt the co-optimisation replan (#1747)  [shipped 9.22 kWh of hot water; floor breach 
+  FAIL and every DHW build that solve made was told the mode is blocked  [blocked per build: [True, False]]
+3 of 3601 FEATURE CHECKS FAILED
+rc=1
+== M2 (custom_components/heatpump_optimizer/dhw_learning.py)
+  FAIL one non-finite entry quarantines the stored hourly profile to the default pattern  [nan -> [0.20526315789473687, 0.2, 0.2]..., inf -> [0.2052631578947368
+ALL 66 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a stored profile is normalised to average one, or refused whole  [10 hours -> the learner's seed (the configured default, projected); text -> the seed; a
+  FAIL a restart loads the DHW profile the learner saved, unchanged  [fresh install moved by up to 0.0961 at the first restart (hour 01: 0.1039 saved, 0.2000 lo
+  FAIL and the projection keeps the daily volume while respecting the clamp  [learned mean 1.0, max 3.5; fresh min 0.1038961038961039]
+4 of 3601 FEATURE CHECKS FAILED
+rc=1
+== M3 (custom_components/heatpump_optimizer/dhw_learning.py)
+  FAIL one non-finite entry quarantines the stored hourly profile to the default pattern  [nan -> [0.2053256336220725, 0.2, 0.2]..., inf -> [0.2053256336220725,
+ALL 66 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a stored profile is normalised to average one, or refused whole  [10 hours -> the learner's seed (the configured default, projected); text -> the seed; a
+  FAIL a restart loads the DHW profile the learner saved, unchanged  [fresh install moved by up to 0.0008 at the first restart (hour 01: 0.2000 saved, 0.2000 lo
+  FAIL and the projection keeps the daily volume while respecting the clamp  [learned mean 0.9375, max 3.5; fresh min 0.2]
+4 of 3601 FEATURE CHECKS FAILED
+rc=1
+== M4 (custom_components/heatpump_optimizer/dhw_learning.py)
+  FAIL one non-finite entry quarantines the stored hourly profile to the default pattern  [nan -> [0.20526315789473687, 0.2, 0.2]..., inf -> [0.2052631578947368
+ALL 66 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a restart loads the DHW profile the learner saved, unchanged  [fresh install moved by up to 0.0000 at the first restart (hour 01: 0.2000 saved, 0.2000 lo
+2 of 3601 FEATURE CHECKS FAILED
+rc=1
+ALLDONE

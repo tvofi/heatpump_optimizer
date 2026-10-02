@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/3464227d-12bc-5805-9927-bb99eae1da65/scratchpad/stub_naive_clock.py", line 18, in <module>
+    import _rig  # noqa: E402
+    ^^^^^^^^^^^
+ModuleNotFoundError: No module named '_rig'

@@ -1,0 +1,83 @@
+{
+  "clusters": [
+    {
+      "cluster_id": "PD-01",
+      "candidate_canonical": "D11-s1-04",
+      "members": ["D11-s1-04", "D11-s2-03"],
+      "shared": {
+        "symbols": [".claude/workflows/budget_raise_gate.py:approval"],
+        "files": [".claude/workflows/budget_raise_gate.py", "CLAUDE.md"],
+        "mechanism": "budget_raise_gate.approval() cannot distinguish a review the owner (tvofi) posted from one an agent seat posted on their behalf; both findings measure this on overlapping commit ranges (D11-s1-04: 90 reviews since 2026-09-17, 27/27 PRs; D11-s2-03: 12 first-parent merges before baseline, 6/6 PRs) and both perturbations reattribute seat-authored review bodies to a distinct identity, driving the same predicate to (near-)zero."
+      },
+      "confidence": "high",
+      "test_for_judge": "Run D11-s2-03's harness (tools/audit/round9/D11/s2/owner_review.py) with its reattribution perturbation (seat approvals credited to hpo-approver[bot] per CLAUDE.md's identity section) and confirm D11-s1-04's harness (tools/audit/round9/D11/s1/approvals_at_head.py --perturb reattribute) also drops on the SAME commit range (owner-approvals-at-head goes 27/27 -> 2/27 and 6/6 -> 0/6 respectively). If both move together on a shared range, merge with D11-s1-04 canonical (wider N); D11-s1-01 (stale-approval-survives-repush) shares only the symbol, not the mechanism, and is not part of this cluster."
+    },
+    {
+      "cluster_id": "PD-02",
+      "candidate_canonical": "D6-s2-05",
+      "members": ["D5-s1-06", "D6-s2-05"],
+      "shared": {
+        "symbols": ["heatpump_optimizer.services:async_register_services (SERVICE_SCHEMA_SIMULATE_PLAN)"],
+        "files": ["docs/configuration.md"],
+        "mechanism": "docs/configuration.md's simulate_plan 'Fields, all optional' list names 11 fields against the registered schema's 16; both findings identify the identical 5 missing names (wood_slots, wood_type, wood_packing, wood_price_sek_m3, wood_furnace_efficiency), same class_guess I5."
+      },
+      "confidence": "high",
+      "test_for_judge": "Add the five wood_* names to configuration.md's simulate_plan field list and re-run either seat's schema-vs-doc diff (SERVICE_SCHEMA_SIMULATE_PLAN keys vs the doc's named fields) — both counts (16-vs-11 in D5-s1-06, the 5-name omission in D6-s2-05) go to zero from the same single doc edit, confirming one finding. Canonical D6-s2-05 for the tighter, single-claim version; D5-s1-06's broader observation (README routing readers to configuration.md for field detail) folds in as context."
+    },
+    {
+      "cluster_id": "PD-03",
+      "candidate_canonical": "D12-s2-01",
+      "members": ["D8-s1-03", "D12-s2-01"],
+      "shared": {
+        "symbols": ["heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action", "optimizer:_power_to_heat_pump_schedule"],
+        "files": ["custom_components/heatpump_optimizer/optimizer.py", "custom_components/heatpump_optimizer/sensor.py", "custom_components/heatpump_optimizer/pump_arbiter.py"],
+        "mechanism": "Both trace to get_current_action's on/off threshold disagreeing with the solver's continuous [0,P_max] plan on a modulation-floor trickle step: D12-s2-01 shows the switch path physically turns the step OFF while the plan books the heat as delivered; D8-s1-03 shows CurrentPowerSensor keeps publishing the continuous commanded power at the same step that HeatPumpActionSensor (via the same get_current_action classification) reports 'off'. One misclassified threshold, two observable symptoms (actuation vs. sensor label)."
+      },
+      "confidence": "medium",
+      "test_for_judge": "Apply D12-s2-01's proposed fix (align the switch-path ON threshold with the solver's modulation floor, or treat sub-floor steps as duty-cycled) on the on/off-pump cells (min==max==6kW) it uses, then re-run D8-s1-03's harness (CurrentPowerSensor vs HeatPumpActionSensor consistency check) on the SAME cells. If the sensor-label mismatch also clears, merge under one root-cause finding; if power is still attributed at a step get_current_action still calls 'off' (i.e. the sensor reads commanded power independently of the classification, not just of the stale threshold), keep separate. D12-s2-02 (mode-slot domain-write bug) and D12-s2-03 (p_norm divide-by-floor mislabelling on min==max) and D8-s2-02 (hvac_action off during boost) were checked against this group per the verifier list and share only the file/dimension, not the mechanism — left as singletons."
+    },
+    {
+      "cluster_id": "PD-04",
+      "candidate_canonical": "D12-s1-02",
+      "members": ["D12-s1-01", "D12-s1-02"],
+      "shared": {
+        "symbols": ["heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._solve_snapshot", "config_flow:HeatPumpOptimizerOptionsFlow._save_or_menu"],
+        "files": ["custom_components/heatpump_optimizer/coordinator.py", "custom_components/heatpump_optimizer/thermal_model.py", "custom_components/heatpump_optimizer/config_flow.py"],
+        "mechanism": "Both are about DHW/hot-water modeling running, and running wrong, for an install with no tank: D12-s1-02 is the config-flow default that leaves DHW planning ON for an untouched, tankless options submit; D12-s1-01 is the consequence at solve time, a never-advanced 55C ThermalState default being fed to the solver on every cycle. Plausibly one root cause (DHW should be off, or the state should be marked unknown, for a no-probe install) surfacing at two seams."
+      },
+      "confidence": "medium",
+      "test_for_judge": "Apply D12-s1-02's fix (an untouched Hot water page submit leaves DHW unconfigured for a no-tank install) and re-run D12-s1-01's harness (55C-stuck ThermalState check) on the same no-tank fixture. If DHW solving is now skipped and the 55C-stuck metric becomes inapplicable/zero, collapse to one 'DHW wrongly modeled for tankless installs' finding under D12-s1-02; if DHW still solves with the never-advanced default (the config flag isn't actually gating the solve path), keep separate. No matching D4-s2 finding was found on a text/keyword sweep of D4-s2's 10 findings (tank/DHW/hot-water); the 'D4-s2' arm of the verifier's group appears to be a mis-tag — noted, not merged."
+    },
+    {
+      "cluster_id": "PD-05",
+      "candidate_canonical": null,
+      "members": ["D1-s5-01", "D1-s5-51"],
+      "shared": {
+        "symbols": ["heatpump_optimizer.inputs:age_of / InputReader._age_gate"],
+        "files": ["custom_components/heatpump_optimizer/inputs.py"],
+        "mechanism": "Both are freshness/staleness findings on the same input-reading module, but at different seams: D1-s5-01 is age_of's own precedence/future-stamp logic disagreeing with InputReader._age_minutes; D1-s5-51 is _age_gate marking a report-on-change sensor unavailable after 60 min of source silence even though HA still holds a valid state. Leads flag these as different mechanisms; this pre-dedup pass agrees on symbols (age_of vs _age_gate are distinct functions) but cannot rule out a shared cause without running the harnesses."
+      },
+      "confidence": "low",
+      "test_for_judge": "Apply D1-s5-01's fix (age_of honors last_reported precedence, refuses future stamps) and re-run D1-s5-51's harness (IndoorTempSensor.available over a report-on-change device silent >60 min) on the same fixture. Leads' call predicts no movement (different functions, different failure trigger — one is a stamp-precedence bug, the other an availability-gate threshold); if D1-s5-51's metric is unchanged, confirm as separate findings; if it moves, they share a cause after all and merge is live."
+    },
+    {
+      "cluster_id": "PD-06",
+      "candidate_canonical": null,
+      "members": ["D8-s2-02", "D8-s2-03"],
+      "shared": {
+        "symbols": ["custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action"],
+        "files": ["custom_components/heatpump_optimizer/climate.py", "custom_components/heatpump_optimizer/switch.py"],
+        "mechanism": "Both show hvac_action/entity-state inconsistency around mode transitions and boosts, but D8-s2-02 is a persistent, steady-state mislabelling (hvac_action derives from the mode label, not the actuated action, whenever mode=off with a live boost) while D8-s2-03 is a transient torn-write during the 30-70s refresh window after a mode change (hvac_mode=off with hvac_action=heating, switch is_on=false/mode=auto). Same symbol, plausibly different mechanisms (a formula bug vs. a cross-entity write-ordering/timing bug)."
+      },
+      "confidence": "low",
+      "test_for_judge": "Apply D8-s2-02's fix (hvac_action reads the actuated action rather than the mode label) and re-run D8-s2-03's harness (state snapshot during the 30-70s post-mode-change refresh window) on the same boost-during-mode-change scenario. If the torn hvac_mode/hvac_action/switch-attribute combination also disappears, merge as one derivation bug; if the transient window persists (consistent with a write-ordering issue across climate.py and switch.py rather than the action-vs-label formula), keep separate."
+    }
+  ],
+  "conflicts": [
+    {
+      "ids": ["D6-s1 (non-finding, claims.py C27-C48)", "D6-s2-03"],
+      "what": "D6-s1's non-finding checked the documented curve-bias default ('0.5 K/week') as a CONFIG-DEFAULT equality claim (claims.py C27-C48: the shipped default value equals what the docs state, '22 equal') and found no divergence. D6-s2-03 checked the same '0.5 K/week' figure as a BEHAVIORAL bound on CurveLearner.record_day and measured 0.6 K actually accruing in a 7-day window, i.e. the documented ceiling is violated in practice. These are not the same claim (default-value-matches-doc vs. runtime-bound-is-respected) and do not merge — the judge should mark them 'not comparable' per judge.md step 3 and decide on its own re-measurement of record_day, not average or drop either verdict."
+    }
+  ],
+  "singletons": 142
+}

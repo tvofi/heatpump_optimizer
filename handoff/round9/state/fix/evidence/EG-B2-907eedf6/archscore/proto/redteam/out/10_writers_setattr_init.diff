@@ -1,0 +1,475 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..1153f6a8 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1987,7 +1987,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
+         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
+-        self.entry = entry
++        setattr(self, "entry", entry)
+         config = {**entry.data, **entry.options}
+         # Resolved once: the sensors stamp it into their units at
+         # construction, and units must not change while an entity lives.
+@@ -2095,50 +2095,50 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # #11: the immersion element announces itself as measured power
+         # beyond what the compressor can draw. 2/2 hysteresis, like every
+         # event detector in this integration.
+-        self._immersion_active: bool = False
+-        self._immersion_over_count: int = 0
+-        self._immersion_clear_count: int = 0
+-        self._immersion_evidence: list[str] = []
+-        self._immersion_events: list[str] = []
++        setattr(self, "_immersion_active", False)
++        setattr(self, "_immersion_over_count", 0)
++        setattr(self, "_immersion_clear_count", 0)
++        setattr(self, "_immersion_evidence", [])
++        setattr(self, "_immersion_events", [])
+         # #42: the weekly ring of learner snapshots.
+         self._snapshot_ring = SnapshotRing()
+         self._snapshot_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
+         )
+-        self._rollback_done_for_alarm: bool = False
++        setattr(self, "_rollback_done_for_alarm", False)
+         # The heartbeat must not act before the persisted ring loads, or
+         # the first cycle snapshots half-loaded learners into an empty
+         # ring and saves that over eight weeks of insurance.
+-        self._snapshots_loaded: bool = False
++        setattr(self, "_snapshots_loaded", False)
+         # T4b #30: the roof-snow memory — a decaying accumulator of
+         # snowfall and the instant it last crossed "heavy". Weather
+         # memory, not learning; persisted so a restart mid-snow does not
+         # brighten the roof.
+-        self._snow_accum_cm: float = 0.0
+-        self._snow_accum_last: datetime | None = None
+-        self._last_heavy_snow: datetime | None = None
++        setattr(self, "_snow_accum_cm", 0.0)
++        setattr(self, "_snow_accum_last", None)
++        setattr(self, "_last_heavy_snow", None)
+         # T4b learners (#17 #36 #53 #2), each fully behind its own flag —
+         # learning AND application, so a config change never suddenly
+         # applies weeks of evidence gathered while nobody was looking.
+         #: #17: per-3 °C-bucket upper envelope of delivered thermal kW.
+-        self._capacity_envelope: dict[int, list[float]] = {}
++        setattr(self, "_capacity_envelope", {})
+         #: #36: EWMA regression moments of (modelled Q_solar, implied
+         #: residual power) and the scale they currently support.
+-        self._solar_aperture: dict[str, float] = {
++        setattr(self, "_solar_aperture", {
+             "n": 0.0, "mx": 0.0, "my": 0.0, "cov": 0.0, "var": 0.0,
+             "scale": 1.0,
+-        }
++        })
+         #: #53: learned per-hour internal gains, kW; None until first fold.
+-        self._internal_gains_profile: list[float] | None = None
++        setattr(self, "_internal_gains_profile", None)
+         #: #2: the standing heat-curve displace bias.
+         self._curve_learner = CurveLearner()
+         #: #2's evidence: worst (zone − floor) margin seen so far today.
+-        self._curve_day: str = ""
+-        self._curve_day_worst: float | None = None
++        setattr(self, "_curve_day", "")
++        setattr(self, "_curve_day_worst", None)
+         # Worst-of-day input health, accumulated across heartbeats and
+         # consumed when a day is counted (#42): a morning of garbage
+         # inputs must not green-light an evening rollback.
+-        self._day_inputs_healthy: bool = True
++        setattr(self, "_day_inputs_healthy", True)
+ 
+     # -- construction, one concern at a time ---------------------------------
+ 
+@@ -2153,31 +2153,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+ 
+     def _init_runtime_state(self) -> None:
+         """What the current update cycle is working with."""
+-        self._mode: str = MODE_AUTO
++        setattr(self, "_mode", MODE_AUTO)
+         # #6: last commanded pump states, so actuation is transitions-only.
+         # Initialised here since W5-G9: it is core state and was misplaced in
+         # the dhw init, which is the S5 finding once more.
+-        self._pump_commanded: dict[str, bool] = {}
++        setattr(self, "_pump_commanded", {})
+         # Populated during setup from the manifest so the device registry
+         # reports the real integration version.
+-        self.integration_version: str | None = None
+-        self._optimization_result: OptimizationResult | None = None
+-        self._last_optimization: datetime | None = None
++        setattr(self, "integration_version", None)
++        setattr(self, "_optimization_result", None)
++        setattr(self, "_last_optimization", None)
+         # Consecutive failed solves. A failed solve keeps the last good plan
+         # published; this counter is what turns "keeps" into "keeps, and
+         # says so" — the staleness flag, the actuation fallback and the
+         # repair issue all key off it and off the last success time.
+-        self._solve_failures: int = 0
+-        self._next_optimization: datetime | None = None
+-        self._prices: list[dict[str, Any]] = []
+-        self._weather_forecast: list[dict[str, Any]] = []
++        setattr(self, "_solve_failures", 0)
++        setattr(self, "_next_optimization", None)
++        setattr(self, "_prices", [])
++        setattr(self, "_weather_forecast", [])
+         # Weather staleness (M2): a failed or empty fetch marks the forecast
+         # stale from that moment; the payload publishes the age so a plan
+         # built on stale weather can say so. None means fresh.
+-        self._weather_stale_since: datetime | None = None
+-        self._weather_outage_cycles: int = 0
+-        self._current_action: dict[str, Any] = {}
+-        self._unsub_timer: Any = None
++        setattr(self, "_weather_stale_since", None)
++        setattr(self, "_weather_outage_cycles", 0)
++        setattr(self, "_current_action", {})
++        setattr(self, "_unsub_timer", None)
+         # Fire-and-forget tasks (store saves, listener registrations), held
+         # so shutdown can let them finish instead of orphaning them against
+         # a torn-down entry; and the Tibber outage latch (D10-09).
+@@ -2185,29 +2185,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # The lifecycle seam (#236, #237): one latch for "this entry is gone",
+         # and the refresh handle shutdown cancels -- HA cancels an entry's
+         # BACKGROUND tasks, and the scheduled refresh may not be one.
+-        self._entry_released = False
+-        self._refresh_task: Any = None
+-        self._tibber_outage_cycles: int = 0
++        setattr(self, "_entry_released", False)
++        setattr(self, "_refresh_task", None)
++        setattr(self, "_tibber_outage_cycles", 0)
+         # One reauth flow per auth outage (D10-08): re-armed on recovery.
+-        self._tibber_reauth_started: bool = False
++        setattr(self, "_tibber_reauth_started", False)
+         # Solar irradiance and the floor return temperature sensor.
+-        self._solar_radiation: float = 0.0
+-        self._floor_return_temp: float | None = None
+-        self._solar_radiation_forecast: list[float] = []
+-        self._open_meteo: OpenMeteoSolar | None = None
++        setattr(self, "_solar_radiation", 0.0)
++        setattr(self, "_floor_return_temp", None)
++        setattr(self, "_solar_radiation_forecast", [])
++        setattr(self, "_open_meteo", None)
+         # A run takes seconds, so a user tapping the button repeatedly must not
+         # be able to stack solves on top of each other.
+-        self._optimization_running: bool = False
++        setattr(self, "_optimization_running", False)
+         # Set by ``async_setup_entry`` — and by nothing else — just before the
+         # first refresh: that refresh runs inside setup, where a full cold
+         # solve stalls the whole instance. Consumed on the next update cycle,
+         # so every subsequent refresh (and every direct test call) solves
+         # exactly as it always has.
+-        self._skip_solve_once: bool = False
++        setattr(self, "_skip_solve_once", False)
+         # The previous plan, handed over by ``async_unload_entry`` across an
+         # in-process reload so the flag-lightened first refresh can republish
+         # it instantly, without even a network fetch. Never persisted.
+-        self._reload_handover: dict[str, Any] | None = None
++        setattr(self, "_reload_handover", None)
+ 
+     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
+         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
+@@ -2215,7 +2215,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         def planned() -> dict[str, Any]:  # the plan's action, one read for both observers
+             return self._current_action or {}
+         # DHW state
+-        self._dhw_temperature: float | None = None
++        setattr(self, "_dhw_temperature", None)
+         # W5-G9: the usage profile, day-type profiles, draw statistics and
+         # cooling rate live in their own subsystem. It learns into the shared
+         # ThermalParameters and observes three coordinator facts through
+@@ -2262,21 +2262,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+                 ctx._thermal_params.buffer_tank_volume
+             )
+         )
+-        self._buffer_cooling_samples: int = 0
+-        self._last_buffer_temp_sample: float | None = None
+-        self._last_buffer_sample_time: datetime | None = None
+-        self._buffer_heating_since_sample: bool = False
++        setattr(self, "_buffer_cooling_samples", 0)
++        setattr(self, "_last_buffer_temp_sample", None)
++        setattr(self, "_last_buffer_sample_time", None)
++        setattr(self, "_buffer_heating_since_sample", False)
+ 
+         # Self-learned correction to the configured house heat loss
+         # coefficients. 1.0 means the configuration is taken at face value.
+         self._house_heat_loss_scale: float = float(
+             ctx._thermal_params.house_heat_loss_scale
+         )
+-        self._house_heat_loss_samples: int = 0
+-        self._last_house_sample: ThermalState | None = None
+-        self._last_house_sample_time: datetime | None = None
+-        self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
+-        self._lower_floor_loss_samples: int = 0
++        setattr(self, "_house_heat_loss_samples", 0)
++        setattr(self, "_last_house_sample", None)
++        setattr(self, "_last_house_sample_time", None)
++        setattr(self, "_lower_floor_loss_ratio", DEFAULT_LOWER_FLOOR_LOSS_RATIO)
++        setattr(self, "_lower_floor_loss_samples", 0)
+ 
+         self._thermal_learning_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+@@ -2297,7 +2297,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # compressor has degraded. In the committed ``shoulder`` fixture 38
+         # of 96 steps are space-only and 30 are DHW-only, so this is the
+         # ordinary plan shape rather than an edge case.
+-        self._cop_baseline: dict[tuple[int, bool | str], list[float]] = {}
++        setattr(self, "_cop_baseline", {})
+         self._cop_health_cusum = Cusum(
+             threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
+         )
+@@ -2305,19 +2305,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Optional measured inputs and the COP correction they feed."""
+         # --- Measured electrical draw (optional) -------------------------
+         # Absent on most installs, so every consumer must degrade cleanly.
+-        self._measured_power: float | None = None
+-        self._measured_house_power: float | None = None
+-        self._measured_energy: float | None = None
++        setattr(self, "_measured_power", None)
++        setattr(self, "_measured_house_power", None)
++        setattr(self, "_measured_energy", None)
+         # Learned correction to the modelled COP, from measured input against
+         # modelled thermal output. Only moves when a power entity exists.
+         self._cop_scale: float = float(
+             getattr(self, "_ctx", self)._config.get(CONF_COP_SCALE, DEFAULT_COP_SCALE)
+         )
+-        self._cop_samples: int = 0
++        setattr(self, "_cop_samples", 0)
+         #: Walking measured/commanded ratio; the COP fold judges outliers
+         #: against it so a persistent efficiency shift can still teach.
+-        self._cop_ratio_ewma: float | None = None
+-        self._last_measured_cop: float | None = None
++        setattr(self, "_cop_ratio_ewma", None)
++        setattr(self, "_last_measured_cop", None)
+         # Which curve ``_last_measured_cop`` was judged against, and the tank
+         # temperature that curve was evaluated at. Recorded rather than the
+         # modelled *value* on purpose: the accuracy residual is taken at the
+@@ -2325,20 +2325,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # was learned from, and swapping in a stored value would silently
+         # change that for every install. Storing the curve *choice* leaves the
+         # default path expression for expression identical.
+-        self._last_cop_curve_dhw: bool = False
+-        self._last_cop_dhw_temp: float | None = None
++        setattr(self, "_last_cop_curve_dhw", False)
++        setattr(self, "_last_cop_dhw_temp", None)
+         self._apply_cop_scale(self._cop_scale)
+ 
+         # --- Input health -------------------------------------------------
+-        self._input_health: InputHealth | None = None
+-        self._learner_freeze_reason: str | None = None
++        setattr(self, "_input_health", None)
++        setattr(self, "_learner_freeze_reason", None)
+ 
+     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
+         """Price modelling, the capacity tariff and PV surplus."""
+         # --- Unknown price horizon (item 7) --------------------------------
+         self._price_model = PriceShapeModel()
+         self._price_days_seen: set[str] = set()
+-        self._price_known_steps: int = 0
++        setattr(self, "_price_known_steps", 0)
+         self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+             PRICE_MODEL_STORE_VERSION,
+@@ -2348,21 +2348,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._price_qdays_seen: set[str] = set()
+ 
+         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
+-        self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
++        setattr(self, "_grid_fee_cache", None)
+         # The fee magnitude the standing "grid_fee_magnitude" repair issue
+         # was raised for; None = no issue. Re-raising every cycle would
+         # refresh the issue's timestamp and bury when the bad value first
+         # appeared — the same reason solve_failures raises exactly-at.
+-        self._grid_fee_issue_value: float | None = None
++        setattr(self, "_grid_fee_issue_value", None)
+         # The sign notice's counterpart (audit D4-05, #169), same contract.
+-        self._grid_fee_sign_issue_value: float | None = None
++        setattr(self, "_grid_fee_sign_issue_value", None)
+         # Whether the standing "lower_floor_modelled" repair issue is up.
+         # Raised once, not per cycle, for the same reason the fee issue is:
+         # re-raising refreshes the timestamp and buries when it started.
+-        self._lower_floor_issue_raised = False
++        setattr(self, "_lower_floor_issue_raised", False)
+         # The contradiction the standing "comfort_band_contradiction" issue
+         # was raised for; None = no issue.
+-        self._band_issue_problem: str | None = None
++        setattr(self, "_band_issue_problem", None)
+         self._ledger = MonthlyLedger()
+         self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+@@ -2378,36 +2378,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # #40: receipts frozen at month rollover. Frozen rather than
+         # recomputed on read, so a receipt never changes after the month it
+         # describes has closed.
+-        self._month_reports: dict[str, dict[str, Any]] = {}
++        setattr(self, "_month_reports", {})
+         # #65: the operation score's day book (today's settled kWh, SEK and
+         # spot samples) plus the smoothed score, persisted with the ledger.
+-        self._score_day: dict[str, Any] = {}
+-        self._operation_score: float | None = None
++        setattr(self, "_score_day", {})
++        setattr(self, "_operation_score", None)
+         # #39: the price tiles, refreshed one per scheduled solve.
+-        self._price_tiles: dict[str, dict[str, Any]] = {}
+-        self._price_tile_cursor = 0
++        setattr(self, "_price_tiles", {})
++        setattr(self, "_price_tile_cursor", 0)
+         # #52: the last settled interval's (planned, realised, actual)
+         # triple, and the latest attribution run over one. In memory only:
+         # a diagnosis is about the interval that just happened.
+-        self._last_interval_record: dict[str, Any] | None = None
+-        self._last_diagnosis: dict[str, Any] | None = None
++        setattr(self, "_last_interval_record", None)
++        setattr(self, "_last_diagnosis", None)
+ 
+         # --- Capacity tariff (item 8) --------------------------------------
+         self._peak_tracker = PeakTracker()
+ 
+         # --- Live peak guard, fuse and outage recovery (v4.0.0 T2) ---------
+         self._peak_guard = GuardState()
+-        self._unsub_peak_guard: Callable[[], None] | None = None
+-        self._guard_last_fold: datetime | None = None
+-        self._fuse_advisor: dict[str, Any] = {}
+-        self._fuse_advisor_at: datetime | None = None
+-        self._outage_recovery_until: datetime | None = None
+-        self._outage_dhw_until: datetime | None = None
++        setattr(self, "_unsub_peak_guard", None)
++        setattr(self, "_guard_last_fold", None)
++        setattr(self, "_fuse_advisor", {})
++        setattr(self, "_fuse_advisor_at", None)
++        setattr(self, "_outage_recovery_until", None)
++        setattr(self, "_outage_dhw_until", None)
+ 
+         # --- PV self-consumption (item 9) ----------------------------------
+-        self._pv_surplus: np.ndarray | None = None
+-        self._pv_summary: dict[str, Any] = {}
+-        self._pv_production: float | None = None
++        setattr(self, "_pv_surplus", None)
++        setattr(self, "_pv_summary", {})
++        setattr(self, "_pv_production", None)
+ 
+     def _init_frequency(self) -> None:
+         """Inverter frequency (#61); #193 S6 split it out of the grid seam."""
+@@ -2419,7 +2419,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # other thing read off the machine rather than off the house.
+         self._flow_bias = FlowCurveBias()
+         self._freq_watchdog = FrequencyWatchdog()
+-        self._freq_fallback = False
++        setattr(self, "_freq_fallback", False)
+         # Stamped at init rather than None: the rate limit is in-memory,
+         # and a crash-looping HA restarting every minute must not get a
+         # fresh write per boot. Costs one 5-minute delay after any start.
+@@ -2429,10 +2429,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         """Away mode, accuracy tracking, learning experiments and totals."""
+         ctx = getattr(self, "_ctx", self)
+         self._external_heat = ExternalHeatDetector(self._external_heat_config())
+-        self._external_heat_active: bool = False
++        setattr(self, "_external_heat_active", False)
+         # Last valve target actually written in smart_write mode, so identical
+         # answers on consecutive cycles do not re-command the device.
+-        self._valve_commanded_target: float | None = None
++        setattr(self, "_valve_commanded_target", None)
+         self._away_state = away_mode.AwayState()
+ 
+         # --- Closed-loop accuracy (item 11) --------------------------------
+@@ -2449,7 +2449,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # and `trust()`/`temperature_mae()` are the room model's judgement,
+         # not the tank's.
+         self._dhw_accuracy = AccuracyTracker()
+-        self._pending_prediction: dict[str, Any] | None = None
++        setattr(self, "_pending_prediction", None)
+         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
+             lead=timedelta(hours=max(LEAD_BUCKETS)),
+@@ -2458,7 +2458,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # store name. An every-cycle save that rewrites unchanged content is
+         # pure disk wear; a digest recorded only after a successful save means
+         # a failed write is retried on the next cycle rather than skipped.
+-        self._store_digests: dict[str, str] = {}
++        setattr(self, "_store_digests", {})
+ 
+         # --- Defrost derate (item 14) --------------------------------------
+         self._defrost = DefrostDerate()
+@@ -2468,7 +2468,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # the per-cycle read AND by a state listener, because the two see
+         # different things — see ``DefrostWindow``.
+         self._defrost_window = DefrostWindow()
+-        self._unsub_defrost: Any = None
++        setattr(self, "_unsub_defrost", None)
+ 
+         # --- Heat pump signals (v5.3.0) ------------------------------------
+         # All four slots are optional and default absent, and absent resolves
+@@ -2478,32 +2478,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # The last operating mode that was actually recognised, kept so a mode
+         # entity that drops out falls back to what the pump last said rather
+         # than to "it can do everything". None until one is seen.
+-        self._pump_mode_last_good: ModeCapability | None = None
++        setattr(self, "_pump_mode_last_good", None)
+         # When that mode was actually read. The fallback is bounded by it:
+         # see MODE_LAST_GOOD_MAX_AGE_MINUTES for why an unbounded one made
+         # the mode entity's freshness horizon do nothing at all.
+-        self._pump_mode_last_good_at: datetime | None = None
++        setattr(self, "_pump_mode_last_good_at", None)
+         #: Whether the "your mode entity has gone quiet" notice is raised.
+-        self._pump_mode_expired_notice: bool = False
++        setattr(self, "_pump_mode_expired_notice", False)
+         #: Whether the "flue probe has gone quiet" warning has been logged
+         #: for the current outage. Cleared when the probe reports again.
+-        self._external_probe_stale_warned: bool = False
++        setattr(self, "_external_probe_stale_warned", False)
+ 
+         # --- Energy dashboard statistics (item 15) -------------------------
+         # Monotonic accumulators, so Home Assistant's Energy dashboard can pick
+         # them up as TOTAL_INCREASING.
+-        self._energy_totals: dict[str, float] = {
++        setattr(self, "_energy_totals", {
+             "space_energy_kwh": 0.0,
+             "dhw_energy_kwh": 0.0,
+             "total_energy_kwh": 0.0,
+             "space_cost": 0.0,
+             "dhw_cost": 0.0,
+             "total_cost": 0.0,
+-        }
+-        self._last_energy_sample: datetime | None = None
++        })
++        setattr(self, "_last_energy_sample", None)
+         #: The date the lifetime accumulators started, restored from the
+         #: energy store; set on first publish when the store has none.
+-        self._energy_totals_since: str | None = None
++        setattr(self, "_energy_totals_since", None)
+         self._energy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+             ENERGY_STORE_VERSION,
+@@ -2515,7 +2515,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         # (never config options: an override changes far too often, and writing
+         # options reloads the whole entry) so a plan survives a restart within
+         # the day it was set for.
+-        self._manual_override: ManualOverride | None = None
++        setattr(self, "_manual_override", None)
+         self._manual_plan_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass, MANUAL_PLAN_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_manual_plan",
+             lead=timedelta(hours=MANUAL_PLAN_WINDOW_HOURS),  # D1-s2-54: build_override clamps every expiry to this window
+@@ -2545,11 +2545,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             configured_weight=configured_weight,
+             learned_weight=configured_weight,
+         )
+-        self._last_manual_setpoint: float | None = None
++        setattr(self, "_last_manual_setpoint", None)
+ 
+         # --- What-if simulator (item 21) -----------------------------------
+-        self._last_simulation: datetime | None = None
+-        self._simulation_cache: dict[str, Any] = {}
++        setattr(self, "_last_simulation", None)
++        setattr(self, "_simulation_cache", {})
+     def _init_ecl110(self) -> None:
+         """MQTT heat-curve control state."""
+         ctx = getattr(self, "_ctx", self)
+@@ -2570,9 +2570,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         self._ecl110_displace_max: float = float(
+             ctx._config.get(CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX)
+         )
+-        self._ecl110_current_displace: float = 0.0
+-        self._ecl110_last_payload: dict[str, Any] = {}
+-        self._unsub_ecl110_state: Any = None
++        setattr(self, "_ecl110_current_displace", 0.0)
++        setattr(self, "_ecl110_last_payload", {})
++        setattr(self, "_unsub_ecl110_state", None)
+     @property
+     def mode(self) -> str:
+         """Return current operation mode."""

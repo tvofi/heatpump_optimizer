@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/coordinator.py 5
+custom_components/heatpump_optimizer/optimizer.py 9
+custom_components/heatpump_optimizer/thermal_model.py 5
+RESULT ref=64a54195 package_seams=19

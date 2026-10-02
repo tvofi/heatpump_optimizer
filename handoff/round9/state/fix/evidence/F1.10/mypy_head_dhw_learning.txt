@@ -1,0 +1,4 @@
+heatpump_optimizer/dhw_learning.py:292: error: Call to untyped function "now" in typed context  [no-untyped-call]
+heatpump_optimizer/dhw_learning.py:346: error: Call to untyped function "now" in typed context  [no-untyped-call]
+heatpump_optimizer/dhw_learning.py:548: error: Call to untyped function "now" in typed context  [no-untyped-call]
+Found 3 errors in 1 file (checked 1 source file)

@@ -1,0 +1,6 @@
+RESULT arm=as-is delta=+0.0 builds=[True, '<omitted>'] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=0.00 breach=20.927
+RESULT arm=as-is delta=-2.0 builds=[True, '<omitted>'] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=9.22 breach=0.629
+RESULT arm=as-is delta=-3.0 builds=[True, '<omitted>'] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=8.63 breach=0.04
+RESULT arm=no-coil delta=+0.0 builds=[True] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=0.00 breach=20.927
+RESULT arm=no-coil delta=-2.0 builds=[True] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=0.00 breach=20.81
+RESULT arm=no-coil delta=-3.0 builds=[True] first_plan_peak_dhw_kw=[0.0] shipped_dhw_kwh=0.00 breach=20.81

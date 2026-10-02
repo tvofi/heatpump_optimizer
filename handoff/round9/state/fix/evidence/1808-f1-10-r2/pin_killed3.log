@@ -1,0 +1,34 @@
+  3544 unpinned site(s) of 4120 candidate sites, 3564 at the ratchet base 404a5fb0fb6041a9d430cbff08be9aae6fab4a21; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 7 new unpinned site(s) against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21 to drive
+  7 mutant(s) over 6 file(s); drivers in play: tests/backtest.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against '404a5fb0fb6041a9d430cbff08be9aae6fab4a21' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/coordinator.py:608 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/backtest.py: rc=0 failed=0 76s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 15s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 4s
+  baseline tests/edge.py: rc=0 failed=0 27s
+  baseline tests/env_drift.py: rc=0 failed=0 148s
+  baseline tests/entities.py: rc=0 failed=0 114s
+  baseline tests/finite_boundary.py: rc=0 failed=0 52s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/manual_plan.py: rc=0 failed=0 6s
+  baseline tests/optimality.py: rc=0 failed=0 131s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 2s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0s
+  baseline tests/validate.py: rc=0 failed=0 24s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/features.py: rc=0 failed=0 357s
+  null control custom_components/heatpump_optimizer/coordinator.py:608 NULL_COMMENT survived every driver
+  pinned   custom_components/heatpump_optimizer/coordinator.py:3164 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:216 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:4824 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:637 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:642 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:652 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:661 CLAMP_DROP -- killed by tests/features.py
+
+PIN KILLED: 7 pinned, 0 left unpinned

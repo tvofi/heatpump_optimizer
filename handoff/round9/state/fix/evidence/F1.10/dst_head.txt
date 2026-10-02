@@ -1,0 +1,105 @@
+
+=== DST / quarter-grid (subprocess, HASTUB_TZ) ===
+
+-- the stub honours HASTUB_TZ
+  ok   dt_util carries the configured zone
+
+-- solve anchor snaps to the quarter grid (coordinator path)
+  FAIL 12:07:33 floors to 12:00:00 with tz and date intact  [got 2026-08-26T10:00:00+00:00]
+  ok   a boundary instant is its own anchor
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   optimize() receives the snapped anchor, not the raw 12:07 instant
+  ok   every published plan timestamp lands on a :00/:15/:30/:45 boundary
+  ok   step 0's price is the quarter in force at 12:07 — the 12:00 hour's
+  ok   the wall-clock action lookup lands on step 0, no pre-horizon clamp
+  ok   filed lead promises mature on quarter boundaries
+  ok   an override expiring 12:05 still pins the [12:00, 12:15) step at 12:07
+  ok   and frees every step starting at or past the expiry
+  ok   the not-yet-expired override is kept, not dropped eagerly
+
+-- window snap: day-anchored, across both DST transitions
+  ok   15/30/60-minute snaps match the old keys exactly, fold included
+  ok   the 25-hour autumn day meters 25 distinct 60-minute windows
+  ok   120-minute windows advance the hour on the fold day (0,0,2,2,4,4,…)
+  ok   and on the gap day, straight through the missing wall hour
+  ok   a 12:10 and a 13:30 sample share one 120-minute window
+  ok   elapsed inside a 120-minute window can exceed an hour
+  ok   the window closes on the 2-hour boundary, not every wall hour
+  ok   window_factors samples 12:00/14:00/16:00, not 13:00/15:00/17:00
+
+-- planning grid on DST days (#243)
+  ok   all six transition days align prices to real instants
+  ok   the plain day stays a zero null
+  ok   _forecast_arrays and _price_series agree on the spring grid
+  ok   _Horizon.timestamps invents no spring phantom
+  ok   one horizon clock: the coordinator's import IS the optimizer's
+  ok   coordinator and optimizer stamp the same spring grid
+  ok   and on a step that is not a whole number of minutes (spring)
+  ok   coordinator and optimizer stamp the same autumn grid
+  ok   and on a step that is not a whole number of minutes (autumn)
+  ok   spring and autumn UTC gaps are 15 minutes, plain day too
+  ok   spring plan books no energy on a phantom step
+  ok   autumn plan max gap is one 15-minute step
+
+-- window_factors across a transition INSIDE the horizon (#777)
+  ok   the transition really is inside the autumn and spring horizons
+  ok   autumn fold: every window bills under the hour the meter keys it at
+  ok   spring gap: every window bills under the hour the meter keys it at
+  ok   NULL CONTROL: the ordinary Saturday a week earlier never disagreed
+  ok   and the comparison is not vacuous — both rates occur in every cell
+
+-- age seams across the DST transitions (#1299)
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   a 2 h fold-night outage reads its true age, not the wall clock's
+  ok   and crosses the 90-minute stale floor a 2 h outage must cross
+  ok   weather staleness across the fold is the true 2 h
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   spring gap: the plan age is the true 2 h, not 3 h of wall clock
+  ok   spring gap: weather staleness is the true 2 h
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   NULL CONTROL: the plain night's ages were always true
+simulated outage. Plans continue on the last forecast, marked stale.
+  ok   a backward clock step publishes 0 h staleness, not a negative age
+  ok   the plan age stays clamped at 0 after the same step
+  ok   a fold-night handover 2 h old is refused against a 60-min window
+  ok   NULL CONTROL: the plain-night 2 h handover is refused identically
+  ok   legionella hours_since reads true elapsed across the fold
+  ok   the pump walks the plan by TRUE elapsed steps across the fold
+  ok   and that agreement is the OFF the true index commands
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (Heating and hot water) has stopped acting and the plan is back to assuming full capability
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (Heating and hot water) has stopped acting and the plan is back to assuming full capability
+  FAIL the fold-night outage stamped its last-good at the pre-fold instant  [stamped 2026-10-24 22:30:00+00:00]
+  ok   a mode unreadable for a TRUE 3 h 20 min is expired, not held good
+  ok   NULL CONTROL: the plain night expires the same-age mode identically
+  ok   a defrost running the fold's true 2 h books 7200 s of duty
+  ok   NULL CONTROL: the plain night books the same 7200 s
+  ok   and a mixed naive/aware pair is still declined, not guessed
+
+-- the forecast grid after the transition (round-9 D14-s4-01)
+  ok   at noon on every transition day the grid starts at now's own quarter
+  ok   NULL CONTROL: the plain day's noon grid was always aligned
+
+-- naive stored stamps under the aware clock (round-9 D3-s1-91)
+A heartbeat ahead of the clock reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  FAIL a naive last tick past the gap floor opens the outage window  [recovery until None]
+  FAIL NULL CONTROL: a naive last tick 10 min ago opens nothing  [recovery until datetime.datetime(2026, 8, 26, 12, 0, tzinfo=datetime.timezone.utc)]
+  ok   three naive immersion events inside 14 days ask for the readiness margin
+  ok   a naive stamp is UTC to utc_elapsed_seconds under a non-UTC process zone
+
+-- the UTC helpers themselves across both transitions (round-9 P7)
+  ok   utc_elapsed_seconds reads 01:30 to 03:30 as 3 h on the autumn day and 1 h on the spring day
+  ok   NULL CONTROL: on a plain day 01:30 to 03:30 is 2 h
+  ok   utc_shift of 01:30 by 2 h lands on 02:30+01:00 (autumn) and by 1 h on 03:30+02:00 (spring)
+Update gap of 150 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   an outage across the autumn fold opens both windows at their true instants
+
+-- the DST tracer over replayed transition days (round-9 P7 barrier)
+
+=== Stress and economics ===
+  ok   the replay lane steps a zoned clock in UTC: every day runs its true cycles
+  ok   the replay lane's forecast walk steps one true hour, across both transitions
+  FAIL the replay lane's price walk labels every true quarter of the day in the zone  [(quarters, steps, labels in zone) {'spring': (104, {900.0}, False), 'autumn': (108, {900.0}, False), 'plain': (108, {900.0}, False)}]
+  ok   no production seam does wall-clock arithmetic across either transition
+  FAIL NULL CONTROL: the plain day reads no seam, and the tracer did run  [plain [], exempt label hits 0]
+
+6 of 70 DST / QUARTER-GRID CHECKS FAILED

@@ -1,0 +1,60 @@
+  FAIL a5:byte_unchanged  [stored bytes moved: before=65B after=7B; added=[] changed=[] dropped=['external_heat_entity']]
+  FAIL a5:byte_unchanged  [stored bytes moved: before=39B after=36B; added=['fresh'] changed=["moved: 'before'->'after'"] dropped=['gone']]
+  FAIL a5:service_examples  [1 example(s) rejected: ["set_mode: MultipleInvalid: value must be one of ['auto', 'boost', 'comfort', 'economy', 'off'] for dictionary value @ data['mode']"]]
+  FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['apply_manual_plan__dup', 'restore_learned_snapshot__dup', 'run_optimization__dup']; missing=[]]
+  FAIL a8:deregister  [0 registered after unload; catalog 12; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
+  FAIL a8:deregister  [13 registered after unload; catalog 12; extra=['leftover']; missing=[]]
+  FAIL a8:already_configured  [duplicate setup aborted as None]
+  FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  FAIL a9:roster_unchanged  [before=1 after=2 only_before=[] only_after=['sensor.b']]
+  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]
+
+-- Nightly leftover A6/A11/A12/A13
+  FAIL a6:list  [raised=True applied=False]
+  FAIL a6:list  [raised=False applied=True]
+  FAIL a6:loaded  [entry down after corrupt stores]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+closure: updated 1 closure(s) in /tmp/tmpxjrdnh4u/closures.json
+  tests/card.mjs                4 files
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+  DRIFT wood_coil: 1 leaves moved vs 2b8559ffdb2bc9388e847cd839fc893a0c43ddcd
+         wood_coil.v: 1 vs 2
+  CLAIMED wood_coil: 1 leaves moved (F6.4: another lane's claim; this lane moves it too)
+         wood_coil.v: 1 vs 2
+
+-- Committed-fixture staleness (#347)
+
+-- Reauthentication (D10-08)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+
+-- Coordinator config_entry (R3-D10-04)
+
+-- Reconfigure (D10-14)
+
+-- Diagnostics (D10-12)
+
+-- Entity base classes (D10-08)
+
+-- #284 singular schedule and plan states
+
+-- #558 D3 enumerated sensor states
+
+-- #558 D4 icon state translations
+
+-- #558 D5 service translations
+
+-- #558 D6 numeric schedule companion
+  .. P8 site ('coordinator.py', '_on_power_event', 'float(raw_state)'): normalize_power_kw
+  .. P8 site ('coordinator.py', '_indoor_humidity_value', 'float(state.state)'): None
+  .. P8 site ('coordinator.py', '_pv_measured_production', 'float(state.state)'): normalize_power_kw
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+
+-- Round 9: the judge's batch re-runner
+
+ALL 2058 ENTITY CHECKS PASSED
+rc=0

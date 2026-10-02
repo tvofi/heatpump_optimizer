@@ -1,0 +1,62 @@
+diff --git a/tools/audit/briefs/fix-review.md b/tools/audit/briefs/fix-review.md
+index bbcd912d..a18baea5 100644
+--- a/tools/audit/briefs/fix-review.md
++++ b/tools/audit/briefs/fix-review.md
+@@ -6,7 +6,7 @@ implementations on this project looked right and were wrong, one worse than
+ its bug. You are checking that the numbers are real.
+ **That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
+ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
+-Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Hand the verdict text to the orchestrator, who posts it as `hpo-approver` via `app_comment.sh` -- never as the author App (#1233's defect), never the owner's approving review (owner-only, GitHub-side) -- citing an evidence directory on this box, non-empty and naming the head SHA, as `app_approve.sh` requires (decision 0013).
++Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233's defect), never the owner's approving review, which code-owned paths still need.
+ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
+ 
+ 1. Re-run the mutation proof: delete the production line(s) the PR names,
+diff --git a/tools/audit/briefs/fixer.md b/tools/audit/briefs/fixer.md
+index 23001c5b..3233def0 100644
+--- a/tools/audit/briefs/fixer.md
++++ b/tools/audit/briefs/fixer.md
+@@ -65,7 +65,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
+ 
+    **Running locally does not discharge CI.** What `scope.run` names is green
+    locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
+-   the PR as the `hpo-author` App (decision 0011).
++   the PR as the `hpo-author` App (`docs/decisions/0011-app-authored-identity.md`).
+ 
+    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
+    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
+@@ -81,9 +81,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
+    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
+    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
+    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
+-   with that tip and `date -u`. The body rides the orphan ref
+-   `handoff-body/<topic>` (`tools/audit/seat/body_push.sh`), off the code
+-   head (`prepr.sh` step 1a); the orchestrator writes the delivery row.
++   with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
++   body to the orphan `handoff-body/<topic>` (`seat/body_push.sh`),
++   off the code head (`prepr.sh` step 1a); that push is the handoff; the
++   orchestrator writes the row.
+ 
+    **The handoff freezes the branch.** Until then, update it from `origin/main`
+    whenever you need to — `git merge origin/main`, never rebase. After it, the
+@@ -234,7 +235,7 @@ holds several, and adding a method, call and attribute to `CoordinatorContext` m
+ 
+ **Derive the split, do not carry it.** The coordinator-scoped rows are the ones
+ `measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge
+-base; a list here would be a carried number, which this file already refuses.
++base.
+ 
+ **Read the expression, not the value.** `attrbag_classes_over_30` has the
+ coordinator as its only member and a `top_is_coordinator` flag beside it, yet is
+diff --git a/tools/audit/briefs/orchestrator.md b/tools/audit/briefs/orchestrator.md
+index 2aa5dc95..8fe4f0c7 100644
+--- a/tools/audit/briefs/orchestrator.md
++++ b/tools/audit/briefs/orchestrator.md
+@@ -136,7 +136,7 @@ exactly that.
+   re-measure rather than trust, and the destination its own carry must reach.
+ - **Name the null control you expect**, where one is knowable. A seat told what
+   must *not* fire returns better evidence than one told only what must.
+-- **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
++- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on your `bus.sh confirm`, signed by `hpo-approver`'s key on your machine; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes can vanish retroactively.
+ - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
+   (a relay, a delivery row) the cheapest model that does it.
+ - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until

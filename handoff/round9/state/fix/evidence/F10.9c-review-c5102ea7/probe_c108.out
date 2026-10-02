@@ -1,0 +1,10 @@
+decide(pr=[DISCLAIMER.md], main=[tools/audit/README.md]) -> ELIGIBLE
+== PR side (link added, file present)
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims
+== merged (link added, file deleted)
+RESULT claims_true=122 claims
+RESULT claims_false=1 claims
+== main side (file deleted, no link)
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims

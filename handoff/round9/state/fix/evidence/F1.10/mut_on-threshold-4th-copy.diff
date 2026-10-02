@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/coordinator.py	2026-10-01 09:11:34.029428372 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/coordinator.py	2026-10-01 09:12:54.825774229 +0000
+@@ -10175,7 +10175,7 @@
+         started = self._start_counter.observe(
+             now,
+             self._measured_power,
+-            on_threshold_kw(getattr(self, "_ctx", self)._thermal_params),
++            max(0.1, 0.5 * getattr(self, "_ctx", self)._thermal_params.min_electrical_power),
+             self._immersion_active,
+         )
+         if started:

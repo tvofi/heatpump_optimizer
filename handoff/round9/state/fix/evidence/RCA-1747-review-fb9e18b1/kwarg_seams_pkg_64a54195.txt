@@ -1,0 +1,64 @@
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM _mold_floor_series omits target_cap at line 4532 (passed at [10351])
+SEAM _plan_slots omits other_powers at line 10424 (passed at [2220, 2228])
+SEAM _plan_slots omits reasons at line 10424 (passed at [2220, 2228])
+SEAM _plan_slots omits other_powers at line 10432 (passed at [2220, 2228])
+SEAM _plan_slots omits reasons at line 10432 (passed at [2220, 2228])
+RESULT seams=5
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM _build_dhw_requirements omits space_demand at line 4090 (passed at [1284])
+SEAM _build_dhw_requirements omits blocked at line 1284 (passed at [4090])
+SEAM _build_result omits dhw_cost at line 2538 (passed at [4395])
+SEAM _build_result omits dhw_power at line 2538 (passed at [4395])
+SEAM _build_result omits dhw_temps at line 2538 (passed at [4395])
+SEAM _build_result omits predictive_info at line 2538 (passed at [4395])
+SEAM _deferred_energy_cost omits include_dhw at line 2522 (passed at [4375])
+SEAM _settlement_caps omits dhw_cap at line 1028 (passed at [4377])
+SEAM _settlement_caps omits dhw_cap at line 2524 (passed at [4377])
+RESULT seams=9
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM compute_cop omits flow_temp at line 1278 (passed at [1706, 1275])
+SEAM compute_cop omits flow_temp at line 1292 (passed at [1706, 1275])
+SEAM compute_cop omits flow_temp at line 1624 (passed at [1706, 1275])
+SEAM compute_cop_dhw omits humidity at line 1594 (passed at [1269, 2299])
+SEAM simulate_dhw_step omits ambient_temp at line 1595 (passed at [2308])
+RESULT seams=5
+RESULT seams=0
+RESULT seams=0

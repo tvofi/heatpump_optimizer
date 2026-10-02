@@ -1,0 +1,75 @@
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+  ok   a fresh sensor reads normally
+  ok   an over-age value is rejected
+  ok   the rejected value is still available for a graceful fallback
+  ok   the age is reported so a user can see why
+  ok   an outdoor reading may be older than an indoor one
+  ok   the watchdog can be switched off entirely
+  ok   the age limit can be relaxed
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a future-stamped state is stale, not age 0
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a 4 h backward host-clock step flags the reading stale
+  ok   unavailable is distinguished from stale
+  ok   a missing entity is reported as such
+  ok   an unconfigured input is not a problem
+  ok   a non-numeric state does not raise
+  ok   a non-finite state string is refused exactly like a word
+  ok   a non-finite value is refused after unit conversion too
+  ok   the °F path itself keeps working (null control for the guard above)
+  ok   an untimestamped state is used rather than discarded
+  ok   stale inputs are listed
+  ok   missing inputs are listed
+  ok   a healthy snapshot says so
+  ok   the summary is human-readable
+  ok   the evidence names the entity
+  ok   the failing entity ids are listed
+  ok   each failure reads as one line naming entity and class
+  ok   watts are converted to kW
+  ok   kilowatts pass through
+  ok   an unrecognised unit is refused rather than guessed
+  ok   a missing unit is refused
+  ok   a power entity is normalised on read
+  ok   a wrongly-united power entity yields nothing
+  ok   an unknown unit reads as words, not a token
+  ok   every word-valued failure class renders in words a user can read
+  ok   an unconfigured slot contributes no source and no line
+  ok   a °F temperature is converted to °C on read
+  ok   the DHW tank's °F reading converts exactly
+  ok   a Wh energy meter is converted to kWh on read
+  ok   a kelvin reading is converted to °C on read
+  ok   a °C state still reads bit-for-bit
+  ok   an unrecognised unit keeps today's raw read instead of a guess
+
+-- R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)
+  ok   D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, not pinned 15 K over the curve
+  ok   D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve
+  ok   D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused as a sample, not absorbed
+  ok   D2-s2-02: a plant at the supply ceiling is learned all the way up
+  ok   D2-s2-02: a stored bias this version learns loads as stored; a wild one is re-clamped to the supply ceiling
+  ok   D2-s2-02: a restored bias at the ceiling prices no supply past FLOW_SUPPLY_MAX_C on the coldest curve
+  ok   D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is refused as a sample
+  ok   D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not negative: a positive bias lands at 0 and the cold clamp still holds
+  ok   D2-s2-02: a non-finite outdoor temperature prices no curve flow at all
+
+-- R9 N-plausibility: live inputs meet their physical window (D1-s2-02, D1-s1-03)
+  ok   a forecast row's out-of-window field is dropped to its consumer's fallback and a non-dict row is not stored at all (D1-s2-02)
+  ok   a forecast that is not a list of rows stores nothing (D1-s2-02)
+  ok   the stored forecast is the validated one: an out-of-window field is None and a non-dict row never reaches storage (D1-s2-02)
+  ok   a fabricated forecast windows its source attributes too: an absurd temperature falls to the 5.0 C fallback and an absurd wind to the consumers' 0.0, while a healthy entity fabricates unchanged (D1-s2-02)
+  ok   an ECL110 displace outside the commanded window never lands; an in-window one still does (D1-s2-02)
+  ok   an out-of-window DHW sample is refused before any learner state moves, and an in-window one is learned as before (D1-s1-03)
+
+-- R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)
+  ok   D1-s5-51: indoor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: lower_floor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: floor_return_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: buffer_tank_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: dhw_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+
+-- R9 P2: the cycle's own outcome -- covering quarter, fenced steps, failed solves, an honest press (D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)
+  ok   D2-s3-01: under quarter-hour entries the current price is the covering quarter's, agreeing with the plan's own step-0 reader on every quarter
+  ok   D2-s3-01: hourly entries (the null control) still read their own hour

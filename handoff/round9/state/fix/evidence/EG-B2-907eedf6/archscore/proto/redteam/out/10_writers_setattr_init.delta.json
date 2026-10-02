@@ -1,0 +1,11 @@
+{
+ "admissible": true,
+ "dS": 1.1761,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "a1_coord_writers_multi": 1.1265,
+  "coord_footprint_v1": 0.0496
+ },
+ "verdict": "IMPROVES"
+}

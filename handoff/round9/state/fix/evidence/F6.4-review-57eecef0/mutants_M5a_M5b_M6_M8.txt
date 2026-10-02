@@ -1,0 +1,7 @@
+rc=0
+M5a entities.py rc 1 | 42 |   FAIL describe_setup's layout catalog label, description and requirement are Swedish on a Swedish hass (D4-s2-81)  [[('no_valve', ['description']), ('single_ta //   FAIL a3:roster  [1 registered, 75 in the committed collect() roste
+M5b entities.py rc 1 | 42 |   FAIL describe_setup's layout catalog label, description and requirement are Swedish on a Swedish hass (D4-s2-81)  [[('no_valve', ['requirement']), ('single_ta //   FAIL a3:roster  [1 registered, 75 in the committed collect() roste
+M6 entities.py rc 1 | 42 |   FAIL _with_sensor_advisor ranks with Swedish labels on a Swedish hass (D4-s2-81)  [['Lower floor temperature', 'Buffer tank temperature', 'Hot water temperatu //   FAIL a3:roster  [1 registered, 75 in the committed collect() roster
+M8 entities.py rc 1 | 42 |   FAIL the gap advisor sensor ranks with Swedish labels on a Swedish hass (D4-s2-81)  [['Outdoor temperature', 'Whole-house power', 'Hot water temperature']] //   FAIL a3:roster  [1 registered, 75 in the committed collect() roster; m
+
+[exited with code 0]

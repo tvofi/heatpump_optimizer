@@ -1,0 +1,16 @@
+C1_execrecord_empty
+  tests/entities.py rc=0 :: Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs) ["FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.", "FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]", "FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]"]
+  tests/closure.py rc=0 :: ALL 28 closure shrink pins PASSED []
+  tools/audit/merge_fastpath.py rc=0 ::   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")), []
+C2_union_drop
+  tests/entities.py rc=1 :: Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs) ["FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.", "FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]", "FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]"]
+  tests/closure.py rc=0 :: ALL 28 closure shrink pins PASSED []
+  tools/audit/merge_fastpath.py rc=0 :: merge_fastpath self-test: 33 checks, 0 failed []
+C3_fold_noop
+  tests/entities.py rc=0 :: Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs) ["FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.", "FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]", "FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]"]
+  tests/closure.py rc=0 :: ALL 28 closure shrink pins PASSED []
+  tools/audit/merge_fastpath.py rc=0 :: merge_fastpath self-test: 33 checks, 0 failed []
+C4_check_off
+  tests/entities.py rc=0 :: Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs) ["FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.", "FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]", "FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]"]
+  tests/closure.py rc=0 :: ALL 28 closure shrink pins PASSED []
+  tools/audit/merge_fastpath.py rc=0 :: merge_fastpath self-test: 33 checks, 0 failed []

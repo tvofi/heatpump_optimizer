@@ -1,0 +1,101 @@
+From 45492d887555dd0c166d9e5dec0f68e047cf7c78 Mon Sep 17 00:00:00 2001
+From: rca <rca@local>
+Date: Sat, 26 Sep 2026 17:57:35 +0000
+Subject: [PATCH] RCA demo: row-vectorised _comfort_terms_batch (D9-s1-01 fix
+ shape)
+
+---
+ .../heatpump_optimizer/optimizer.py           | 74 ++++++++-----------
+ 1 file changed, 30 insertions(+), 44 deletions(-)
+
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 33dcaee6..f84b2d42 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1881,53 +1881,39 @@ class HeatPumpOptimizer:
+         the pull is deliberately weak.
+         """
+         weight = self.config.comfort_weight
+-        n_rows = room_temps.shape[0]
+-        penalty = np.empty(n_rows)
+-        comfort_cost = np.empty(n_rows)
+-
++        # RCA demo only: the row-vectorised twin D9-s1-01 proposes (axis-1 reductions).
+         if self.model.params.two_zone_enabled:
+-            for b in range(n_rows):
+-                upper_t = upper_temps[b][1:]
+-                lower_t = lower_temps[b][1:]
+-
+-                undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+-                overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+-                undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+-                overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+-
+-                penalty[b] = 0.5 * weight * (
+-                    np.sum(undershoot_u ** 2) * 10.0
+-                    + np.sum(overshoot_u ** 2) * 5.0
+-                    + np.sum(undershoot_l ** 2) * 10.0
+-                    + np.sum(overshoot_l ** 2) * 5.0
+-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
+-                    * _COMFORT_FLOOR_L1
+-                )
+-
+-                comfort_dev_u = upper_t - comfort_targets
+-                comfort_dev_l = lower_t - comfort_targets
+-                comfort_cost[b] = _COMFORT_PULL_TWO_ZONE * weight * (
+-                    np.sum((comfort_dev_u / comfort_band) ** 2)
+-                    + np.sum((comfort_dev_l / comfort_band) ** 2)
+-                )
+-            return penalty, comfort_cost
+-
+-        for b in range(n_rows):
+-            room_t = room_temps[b][1:]
+-            undershoot = np.maximum(0, temp_min_bounds - room_t)
+-            overshoot = np.maximum(0, room_t - temp_max_bounds)
+-
+-            penalty[b] = weight * (
+-                np.sum(undershoot ** 2) * 10.0
+-                + np.sum(overshoot ** 2) * 5.0
+-                + np.sum(undershoot) * _COMFORT_FLOOR_L1
++            upper_t = upper_temps[:, 1:]
++            lower_t = lower_temps[:, 1:]
++            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
++            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
++            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
++            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
++            penalty = 0.5 * weight * (
++                np.sum(undershoot_u ** 2, axis=1) * 10.0
++                + np.sum(overshoot_u ** 2, axis=1) * 5.0
++                + np.sum(undershoot_l ** 2, axis=1) * 10.0
++                + np.sum(overshoot_l ** 2, axis=1) * 5.0
++                + (np.sum(undershoot_u, axis=1) + np.sum(undershoot_l, axis=1))
++                * _COMFORT_FLOOR_L1
+             )
+-            deviation = room_t - comfort_targets
+-            comfort_cost[b] = (
+-                _COMFORT_PULL_SINGLE_ZONE
+-                * weight
+-                * np.sum((deviation / comfort_band) ** 2)
++            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
++                np.sum(((upper_t - comfort_targets) / comfort_band) ** 2, axis=1)
++                + np.sum(((lower_t - comfort_targets) / comfort_band) ** 2, axis=1)
+             )
++            return penalty, comfort_cost
++        room_t = room_temps[:, 1:]
++        undershoot = np.maximum(0, temp_min_bounds - room_t)
++        overshoot = np.maximum(0, room_t - temp_max_bounds)
++        penalty = weight * (
++            np.sum(undershoot ** 2, axis=1) * 10.0
++            + np.sum(overshoot ** 2, axis=1) * 5.0
++            + np.sum(undershoot, axis=1) * _COMFORT_FLOOR_L1
++        )
++        comfort_cost = (
++            _COMFORT_PULL_SINGLE_ZONE * weight
++            * np.sum(((room_t - comfort_targets) / comfort_band) ** 2, axis=1)
++        )
+         return penalty, comfort_cost
+ 
+     def _cost_terms_batch(
+-- 
+2.43.0
+

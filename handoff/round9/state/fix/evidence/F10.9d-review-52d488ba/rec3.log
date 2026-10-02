@@ -1,0 +1,7 @@
+ALL 2055 ENTITY CHECKS PASSED
+ALL 94 HARNESS HEADER CHECKS PASSED
+entities.py.json rc 0 audithook+sys.modules+strace ['LICENSE']
+harness_headers.py.json rc 0 audithook+sys.modules+strace ['DISCLAIMER.md', 'LICENSE', 'docs/audit-2026-08.md', 'docs/audit-2026-09.md', 'docs/backlog.md']
+note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+closure: committed closures cover every file this run touched
+check_rc=0

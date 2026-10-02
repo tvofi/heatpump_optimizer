@@ -1,0 +1,3 @@
+RESULT boxed_in max_overlap_px=0.00 targets=79.0-103.0,103.0-126.0,126.0-150.0
+RESULT pair_close max_overlap_px=0.00 targets=81.5-105.5,105.5-129.5
+RESULT shared_steps_like max_overlap_px=0.00 targets=30.0-54.0,54.0-64.0,64.0-74.0,74.0-90.0,90.0-114.0

@@ -1,0 +1,1 @@
+custom_components/heatpump_optimizer/sensor.py:2852: error: Argument 7 to "rank_sensor_gaps" has incompatible type "**dict[str, float]"; expected "str"  [arg-type]

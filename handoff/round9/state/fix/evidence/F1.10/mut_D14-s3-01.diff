@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/optimizer.py	2026-10-01 09:11:34.068236270 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/optimizer.py	2026-10-01 09:12:00.164650869 +0000
+@@ -5714,7 +5714,7 @@
+ 
+         ceiling = np.asarray(max_temp, dtype=float)
+         params = self.model.params
+-        capacity = params.dhw_tank_thermal_mass
++        capacity = max(params.dhw_tank_thermal_mass, 1e-6)
+         ua = params.dhw_tank_heat_loss_coefficient
+         inlet = params.dhw_inlet_reference
+         temp = float(initial_temp)

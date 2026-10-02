@@ -1,0 +1,5 @@
+  File "/tmp/claude-0/rev/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/tmp/claude-0/rev/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'

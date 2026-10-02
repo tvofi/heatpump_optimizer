@@ -1,0 +1,635 @@
+
+########## environment ##########
+  python   3.11.15 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.80GHz
+  blas     unknown
+  stack    unknown
+########## scoped gate ##########
+  MODE: SCOPED -- 24 script(s) run, 3 scoped out.
+  changed files (87), measured against the recorded closures in tests/closures.json:
+      .claude/workflows/carry-1644.json
+      .claude/workflows/corpus_excluded.json
+      custom_components/heatpump_optimizer/entity.py
+      custom_components/heatpump_optimizer/optimizer.py
+      custom_components/heatpump_optimizer/pump_arbiter.py
+      custom_components/heatpump_optimizer/thermal_model.py
+      docs/ecl110.md
+      handoff/round9/fix/resume/F2.4.md
+      tests/entities.py
+      tests/features.py
+      tests/golden/claimed_drift.txt
+      tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.a3803f1c.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._power_to_heat_pump_schedule.RETURN_DEL.a090b53f.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer.get_current_action.BOOLOP.519a7ed9.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_on_kw.CLAMP_DROP.159d5a81.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_ran_kw.RETURN_DEL.68f9459a.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/step_duty.BOOLOP.17ca3f91.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/step_duty.BOOLOP.296c284b.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/step_duty.BOOLOP.399c5f97.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/step_duty.BOOLOP.b6dd3d98.json
+      tests/mutation_ledger/killed_by/thermal_model.py/@module.CONST.614dbdd3.json
+      tests/mutation_ledger/killed_by/thermal_model.py/on_threshold_kw.CLAMP_DROP.80a05f58.json
+      tests/mutation_ledger/killed_by/thermal_model.py/on_threshold_kw.RETURN_DEL.80a05f58.json
+      tests/mutation_ledger/killed_by/thermal_model.py/planned_draw_runs.RETURN_DEL.d42ada6d.json
+      tests/mutation_ledger/killed_by/thermal_model.py/planned_draws_run.RETURN_DEL.c0a38d46.json
+      tools/audit/handoff/r9-f2-solver-4/README.md
+      tools/audit/handoff/r9-f2-solver-4/basin_carry.py
+      tools/audit/handoff/r9-f2-solver-4/drift_leaves.py
+      tools/audit/handoff/r9-f2-solver-4/ev/basin_carry_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/basin_carry_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/drift_leaves.log
+      tools/audit/handoff/r9-f2-solver-4/ev/entities_head_container.log
+      tools/audit/handoff/r9-f2-solver-4/ev/entity_owner_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_probe_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_probe_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_seams_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_seams_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_selftest_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p2_selftest_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p4_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/enum_p4_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/env_drift_all_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/env_head_container.log
+      tools/audit/handoff/r9-f2-solver-4/ev/features_block_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/features_block_head_host.log
+      tools/audit/handoff/r9-f2-solver-4/ev/features_head_container.log
+      tools/audit/handoff/r9-f2-solver-4/ev/features_head_host.log
+      tools/audit/handoff/r9-f2-solver-4/ev/gate_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/gate_round1_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/harness_env_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/instr_env_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/instr_env_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/minpower_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/minpower_head.log
+      tools/audit/handoff/r9-f2-solver-4/ev/minpower_head_perturb.log
+      tools/audit/handoff/r9-f2-solver-4/ev/minpower_perturb_base.log
+      tools/audit/handoff/r9-f2-solver-4/ev/mutant_m6_host.log
+      tools/audit/handoff/r9-f2-solver-4/ev/mutant_m6_m7_host.log
+      tools/audit/handoff/r9-f2-solver-4/ev/mutation_pin.log
+      tools/audit/handoff/r9-f2-solver-4/ev/mutation_pin_r4.log
+      ... and 27 more
+
+      RUN   tests/backtest.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/md_tables.mjs
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py
+      RUN   tests/card.mjs
+      RUN   tests/card_drift.mjs
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 33 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+
+########## /home/claude/venv_ci/bin/python tests/env_drift.py --claims-only origin/main ##########
+claims hygiene: origin/main ok
+
+########## /home/claude/venv_ci/bin/python tests/closure.py selftest ##########
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune is idempotent (#1310 null control)
+
+ALL 23 closure shrink pins PASSED
+
+########## /home/claude/venv_ci/bin/python tests/features.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/features.py", line 17, in <module>
+    from harness import FakeHass, FakeState, Results, UTC, minutes_ago
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/features.py
+
+########## /home/claude/venv_ci/bin/python tests/entities.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/entities.py", line 37, in <module>
+    from harness import (
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/entities.py
+
+########## /home/claude/venv_ci/bin/python tests/doc_claims.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/doc_claims.py", line 52, in <module>
+    from harness import Results  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/doc_claims.py
+
+########## node tests/md_tables.mjs ##########
+RESULT self_test_swallowed=2 count
+RESULT self_test_orphaned=2 count
+RESULT self_test_fires=true
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+
+########## /home/claude/venv_ci/bin/python tests/wood_advisor.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/wood_advisor.py", line 23, in <module>
+    from harness import FakeCoordinator, FakeEntry, FakeHass, Results
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/wood_advisor.py
+
+########## /home/claude/venv_ci/bin/python tests/config_flow_steps.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/config_flow_steps.py", line 113, in <module>
+    import voluptuous as vol  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/config_flow_steps.py
+
+########## /home/claude/venv_ci/bin/python tests/structure.py ##########
+########## counting-rule self-check ##########
+  ok   24 counting rules hold
+########## god classes (> 300 LOC) ##########
+  custom_components/heatpump_optimizer/coordinator.py:2088-11097  9010 LOC  224 methods  153 self-attrs  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/optimizer.py:1818-7280  5463 LOC  70 methods  8 self-attrs  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/thermal_model.py:1520-3452  1933 LOC  31 methods  6 self-attrs  ThermalModel
+  custom_components/heatpump_optimizer/sysid.py:1188-2245  1058 LOC  15 methods  12 self-attrs  SystemIdentification
+  custom_components/heatpump_optimizer/thermal_model.py:185-1094  910 LOC  25 methods  6 self-attrs  ThermalParameters
+  custom_components/heatpump_optimizer/config_flow.py:3061-3940  880 LOC  32 methods  3 self-attrs  HeatPumpOptimizerOptionsFlow
+  custom_components/heatpump_optimizer/config_flow.py:2249-3058  810 LOC  24 methods  4 self-attrs  HeatPumpOptimizerConfigFlow
+  custom_components/heatpump_optimizer/legionella.py:46-702  657 LOC  16 methods  20 self-attrs  LegionellaGuard
+  custom_components/heatpump_optimizer/dhw_learning.py:68-545  478 LOC  16 methods  18 self-attrs  DhwProfileLearner
+  custom_components/heatpump_optimizer/defrost.py:195-616  422 LOC  13 methods  0 self-attrs  DefrostDerate
+  custom_components/heatpump_optimizer/external_heat.py:182-490  309 LOC  13 methods  6 self-attrs  ExternalHeatDetector
+
+########## attr bags (> 30 assigned self-attrs) ##########
+  custom_components/heatpump_optimizer/coordinator.py:2088  153 self-attrs  HeatPumpOptimizerCoordinator  <- top attr bag
+
+########## monster methods: top 10 of 18 over 150 LOC ##########
+  custom_components/heatpump_optimizer/optimizer.py:6072-6457  386 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/sysid.py:1659-2043  385 LOC  identify
+  custom_components/heatpump_optimizer/optimizer.py:2797-3172  376 LOC  optimize
+  custom_components/heatpump_optimizer/coordinator.py:5053-5414  362 LOC  async_run_optimization
+  custom_components/heatpump_optimizer/optimizer.py:4833-5184  352 LOC  _build_dhw_requirements
+  custom_components/heatpump_optimizer/thermal_model.py:2874-3221  348 LOC  simulate_trajectory_batch
+  custom_components/heatpump_optimizer/thermal_model.py:2209-2514  306 LOC  _simulate_step_two_zone
+  custom_components/heatpump_optimizer/optimizer.py:3901-4197  297 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/coordinator.py:5579-5867  289 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:10885-11097  213 LOC  async_simulate
+  max_method_loc = 386 (the worst one, budgeted; a count over a threshold stops pricing growth)
+
+########## worst 5 cyclomatic (of 34 over 15) ##########
+  custom_components/heatpump_optimizer/optimizer.py:2797  cc=48  optimize
+  custom_components/heatpump_optimizer/sysid.py:1659  cc=47  identify
+  custom_components/heatpump_optimizer/coordinator.py:5579  cc=44  _update_current_state
+  custom_components/heatpump_optimizer/optimizer.py:7133  cc=40  get_current_action
+  custom_components/heatpump_optimizer/thermal_model.py:2874  cc=37  simulate_trajectory_batch
+  max_cc = 48 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
+
+########## .const import fan-out (names imported per module) ##########
+  custom_components/heatpump_optimizer/config_flow.py: 359  > 50
+  custom_components/heatpump_optimizer/coordinator.py: 265  > 50
+  custom_components/heatpump_optimizer/thermal_model.py: 63  > 50
+  custom_components/heatpump_optimizer/topology.py: 36
+  custom_components/heatpump_optimizer/services.py: 35
+  custom_components/heatpump_optimizer/optimizer.py: 31
+  custom_components/heatpump_optimizer/comfort_band.py: 23
+  custom_components/heatpump_optimizer/quick_setup.py: 21
+  custom_components/heatpump_optimizer/modbus_prefill.py: 18
+  custom_components/heatpump_optimizer/sensor.py: 16
+  custom_components/heatpump_optimizer/pump_arbiter.py: 14
+  custom_components/heatpump_optimizer/grid_fee.py: 12
+  custom_components/heatpump_optimizer/wood_fuel.py: 12
+  custom_components/heatpump_optimizer/away.py: 10
+  custom_components/heatpump_optimizer/inputs.py: 10
+  custom_components/heatpump_optimizer/climate.py: 9
+  custom_components/heatpump_optimizer/price_model.py: 9
+  custom_components/heatpump_optimizer/legionella.py: 8
+  custom_components/heatpump_optimizer/pump_signals.py: 8
+  custom_components/heatpump_optimizer/dhw_learning.py: 6
+  custom_components/heatpump_optimizer/open_meteo.py: 6
+  custom_components/heatpump_optimizer/device_prefill.py: 5
+  custom_components/heatpump_optimizer/name_match.py: 5
+  custom_components/heatpump_optimizer/silent_mode.py: 5
+  custom_components/heatpump_optimizer/__init__.py: 4
+  custom_components/heatpump_optimizer/disinfection.py: 4
+  custom_components/heatpump_optimizer/setpoint_check.py: 4
+  custom_components/heatpump_optimizer/external_heat.py: 3
+  custom_components/heatpump_optimizer/binary_sensor.py: 2
+  custom_components/heatpump_optimizer/diagnostics.py: 2
+  custom_components/heatpump_optimizer/flow_lift.py: 2
+  custom_components/heatpump_optimizer/switch.py: 2
+  custom_components/heatpump_optimizer/sysid.py: 2
+  custom_components/heatpump_optimizer/battery.py: 1
+  custom_components/heatpump_optimizer/boost.py: 1
+  custom_components/heatpump_optimizer/button.py: 1
+  custom_components/heatpump_optimizer/frontend.py: 1
+  custom_components/heatpump_optimizer/manual_plan.py: 1
+  custom_components/heatpump_optimizer/pump_schedule.py: 1
+  custom_components/heatpump_optimizer/repairs.py: 1
+  custom_components/heatpump_optimizer/wear.py: 1
+
+########## function-scope imports ##########
+  custom_components/heatpump_optimizer/frontend.py:48  ImportFrom
+  custom_components/heatpump_optimizer/grid_fee.py:262  ImportFrom
+  custom_components/heatpump_optimizer/inputs.py:558  ImportFrom
+  custom_components/heatpump_optimizer/optimizer.py:2305  Import
+  custom_components/heatpump_optimizer/optimizer.py:2852  Import
+  custom_components/heatpump_optimizer/optimizer.py:3903  Import
+  custom_components/heatpump_optimizer/optimizer.py:6079  Import
+
+########## dead top-level symbols ##########
+  custom_components/heatpump_optimizer/const.py:1545  ENTITY_FAMILY_OVERRIDES
+
+########## dead methods (name never referenced in the package) ##########
+  dead_methods = 0 (name never referenced in the package; the same screen as dead_top_level_symbols, one level in)
+
+########## dynamic-reference allowlist (not counted above) ##########
+  ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'BUFFER_TANK_LOSS'
+         #338: _tabled_values row buffer_tank_heat_loss, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_HOUSE_HEAT_LOSS_SCALE
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'HOUSE_HEAT_LOSS_SCALE'
+         #338: _tabled_values row house_heat_loss_scale, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_LOWER_FLOOR_LOSS_RATIO
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'LOWER_FLOOR_LOSS_RATIO'
+         #338: _tabled_values row lower_floor_loss_ratio, sentinel-proven alive
+  ok   custom_components/heatpump_optimizer/const.py  CONF_SOLAR_UPPER_FRACTION
+         reached by thermal_model.py: getattr(x, f"CONF_{..}") off the literal 'SOLAR_UPPER_FRACTION'
+         #338: _tabled_values row solar_upper_fraction, sentinel-proven alive
+
+########## duplication (>= 10 normalized lines, across functions) ##########
+  custom_components/heatpump_optimizer/config_flow.py:2692  async_step_building_extras  norm 20-29  10 lines
+  custom_components/heatpump_optimizer/config_flow.py:2728  async_step_thermal  norm 28-37  10 lines
+  custom_components/heatpump_optimizer/coordinator.py:4465  _async_learn_house_heat_loss  norm 48-62  15 lines
+  custom_components/heatpump_optimizer/coordinator.py:4664  _async_learn_lower_floor_loss  norm 43-57  15 lines
+  custom_components/heatpump_optimizer/optimizer.py:3938  _space_traj  norm 0-13  14 lines
+  custom_components/heatpump_optimizer/optimizer.py:6169  _space_traj  norm 0-13  14 lines
+  custom_components/heatpump_optimizer/optimizer.py:4000  objective_batch  norm 13-22  10 lines
+  custom_components/heatpump_optimizer/optimizer.py:6233  objective_batch  norm 13-22  10 lines
+  custom_components/heatpump_optimizer/tariff.py:891  peak_cost  norm 1-12  12 lines
+  custom_components/heatpump_optimizer/tariff.py:959  peak_cost_smooth  norm 1-12  12 lines
+  custom_components/heatpump_optimizer/thermal_model.py:2209  _simulate_step_two_zone  norm 1-13  13 lines
+  custom_components/heatpump_optimizer/thermal_model.py:2520  simulate_step  norm 1-13  13 lines
+  custom_components/heatpump_optimizer/thermal_model.py:2680  simulate_trajectory  norm 69-87  19 lines
+  custom_components/heatpump_optimizer/thermal_model.py:3223  simulate_trajectory_with_dhw  norm 77-95  19 lines
+
+########## coordinator seam table ##########
+  internal self-method call occurrences: 307, crossing a seam: 131 (ratio 0.4267, evidence only)
+  seam      methods  attrs  xattr  xmeth    cut
+  dhw            16      3     66      7     73
+  learning       26     40    228     55    283
+  fetch          28     13     85     33    118
+  grid           22     31    146     37    183
+  views          15      3     89     20    109
+
+########## RESULT lines ##########
+RESULT attrbag_classes_over_30=1 count
+RESULT classes_over_300=11 count
+RESULT const_modules_over_50=3 count
+RESULT coordinator_attrs=153 count
+RESULT coordinator_loc=9010 count
+RESULT coordinator_methods=224 count
+RESULT coordinator_multiassigned_attrs=115 count
+RESULT cross_seam_edges=131 count
+RESULT cut_dhw=73 count
+RESULT cut_fetch=118 count
+RESULT cut_grid=183 count
+RESULT cut_learning=283 count
+RESULT cut_views=109 count
+RESULT dead_methods=0 count
+RESULT dead_top_level_symbols=1 count
+RESULT duplication_blocks=14 count
+RESULT functions_cc_over_15=34 count
+RESULT functions_cc_over_25=8 count
+RESULT internal_call_edges=307 count
+RESULT local_imports=7 count
+RESULT max_cc=48 count
+RESULT max_class_loc=9010 count
+RESULT max_method_loc=386 count
+RESULT methods_over_150=18 count
+RESULT methods_over_200=11 count
+RESULT thread_factor=1.0 ratio
+
+########## ratchet vs structure_budgets.json (recorded_at 5395394da9d8) ##########
+  ok   attrbag_classes_over_30 1 <= 1
+  ok   classes_over_300 11 <= 11
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 153 <= 153
+  ok   coordinator_loc 9010 <= 9010
+  ok   coordinator_methods 224 <= 224
+  ok   coordinator_multiassigned_attrs 115 <= 115
+  ok   cross_seam_edges 131 <= 131
+  ok   cut_dhw 73 <= 73
+  ok   cut_fetch 118 <= 118
+  ok   cut_grid 183 <= 183
+  ok   cut_learning 283 <= 283
+  ok   cut_views 109 <= 109
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_blocks 14 <= 14
+  ok   functions_cc_over_15 34 <= 34
+  ok   functions_cc_over_25 8 <= 8
+  ok   internal_call_edges 307 <= 307
+  ok   local_imports 7 <= 7
+  ok   max_cc 48 <= 48
+  ok   max_class_loc 9010 <= 9010
+  ok   max_method_loc 386 <= 386
+  ok   methods_over_150 18 <= 18
+  ok   methods_over_200 11 <= 11
+
+STRUCTURE RATCHET PASSED
+
+########## /home/claude/venv_ci/bin/python tests/typing_ruler.py ##########
+
+=== typing ruler, source-only (no toolchain needed) ===
+  ok   every recorded typing count is a finite non-negative integer
+  ok   type_ignores did not grow
+  ok   the typing job's hashed lock installs the recorded pins
+  ok   no mypy configuration exists to suppress error codes from
+  ..   census recorded  [0 errors across 0 codes at d8c47a7b02be]
+  ok   guard 5: a failing pinned run reddens a check here
+  ok   guard 5: a passing pinned run does not
+  ok   guard 5: guard 2 refuses an unpinned interpreter rather than measuring
+  ok   the budget barrier refuses every non-finite or malformed count
+  ok   and both lanes refuse a NaN budget before comparing
+  ok   the lock check refuses a lock that disagrees with the budget
+  ok   guard 5: unset prints how to enable it and fails nothing
+
+=== typing ruler (mypy 2.3.1, homeassistant-stubs 2026.9.3, stub-free) ===
+  ok   every recorded typing count is a finite non-negative integer
+  FAIL interpreter is at least Python 3.14.2  [running 3.11.15; homeassistant-stubs==2026.9.3 will not install below 3.14.2 (#504)]
+  FAIL mypy is pinned at 2.3.1  [found nothing]
+  FAIL homeassistant-stubs is pinned at 2026.9.3  [found nothing]
+  ..   third-party resolution (chosen by the stubs, recorded not asserted)  [aiohttp==MISSING, numpy==MISSING, scipy-stubs==MISSING, threadpoolctl==MISSING, voluptuous==MISSING]
+  FAIL every third-party requirement is installed  [aiohttp, numpy, scipy-stubs, threadpoolctl, voluptuous absent; import-not-found would be non-zero]
+
+REFUSING to measure. A count from an unpinned tool is not the
+census (#504). Install exactly what --print-requirements names.
+
+4 of 5 typing-ruler checks FAILED
+  FAIL the pinned census passed under HPO_TYPING_PYTHON  [/home/claude/venv_ty/bin/python exited 1; its own output is above. A non-zero exit is the census growing, or guard 2 refusing an unpinned interpreter]
+
+1 of 12 typing-ruler source checks FAILED
+>>> FAILED: /home/claude/venv_ci/bin/python tests/typing_ruler.py
+
+SKIP: tests/ha_contract.py (scoped out: no changed file is in its measured closure of 33 file(s))
+
+########## /home/claude/venv_ci/bin/python tests/manual_plan.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/manual_plan.py", line 29, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/manual_plan.py
+
+SKIP: tests/open_meteo.py (scoped out: no changed file is in its measured closure of 3 file(s))
+
+########## /home/claude/venv_ci/bin/python tests/solar_alignment.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/solar_alignment.py", line 25, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/solar_alignment.py
+
+########## /home/claude/venv_ci/bin/python tests/guard_pins.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/guard_pins.py", line 18, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/guard_pins.py
+
+########## /home/claude/venv_ci/bin/python tests/finite_boundary.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/finite_boundary.py", line 78, in <module>
+    import numpy as np  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/finite_boundary.py
+
+########## /home/claude/venv_ci/bin/python tests/harness_headers.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/harness_headers.py", line 20, in <module>
+    from harness import Results
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/harness_headers.py
+
+########## /home/claude/venv_ci/bin/python tests/deployment_shape.py ##########
+
+=== deployment shape: an installation's layout and module name (#513) ===
+
+-- the shape
+  ok   the tracked package materialised
+  ok   there is no tests/ sibling, so _worker_env takes production's branch
+  ok   the Home Assistant stub cannot make the package under test resolvable
+  -- driver stderr (the child's traceback lands here) --
+     Traceback (most recent call last):
+       File "/home/claude/hpo_f24/tests/deployment_shape.py", line 460, in <module>
+         sys.exit(_driver(sys.argv[2], sys.argv[3]))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+       File "/home/claude/hpo_f24/tests/deployment_shape.py", line 195, in _driver
+         coordinator = __import__(
+                       ^^^^^^^^^^^
+       File "/tmp/hpo-deployment-sn8_x06s/config/custom_components/heatpump_optimizer/__init__.py", line 22, in <module>
+         from homeassistant.config_entries import ConfigEntry
+       File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+         import voluptuous as vol
+     ModuleNotFoundError: No module named 'voluptuous'
+  FAIL the driver reported its measurements  [rc=1, no marker in stdout: '']
+
+1 DEPLOYMENT SHAPE CHECK(S) FAILED
+>>> FAILED: /home/claude/venv_ci/bin/python tests/deployment_shape.py
+
+########## /home/claude/venv_ci/bin/python tests/golden.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/golden.py", line 45, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/golden.py
+
+########## /home/claude/venv_ci/bin/python tests/env_drift.py origin/main ##########
+DRIFT BASELINE CACHE OFF: could not build a key (ModuleNotFoundError: No module named 'numpy'); capturing from scratch
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/env_drift.py", line 2646, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/claude/hpo_f24/tests/env_drift.py", line 2224, in main
+    capture_tree(sys.argv[2], sys.argv[3], everything)
+  File "/home/claude/hpo_f24/tests/env_drift.py", line 665, in capture_tree
+    import golden
+  File "/home/claude/hpo_f24/tests/golden.py", line 45, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/env_drift.py", line 2646, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/claude/hpo_f24/tests/env_drift.py", line 2437, in main
+    subprocess.run(cmd, check=True, env=env)
+  File "/usr/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/home/claude/venv_ci/bin/python', '/home/claude/hpo_f24/tests/env_drift.py', '--capture', '/home/claude/hpo_f24', '/tmp/env_drift_ozfohewq/branch.json']' returned non-zero exit status 1.
+>>> FAILED: /home/claude/venv_ci/bin/python tests/env_drift.py origin/main
+
+########## /home/claude/venv_ci/bin/python tests/validate.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/validate.py", line 5, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/validate.py
+
+########## /home/claude/venv_ci/bin/python tests/edge.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/edge.py", line 5, in <module>
+    import numpy as np, traceback
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/edge.py
+
+########## /home/claude/venv_ci/bin/python tests/backtest.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/backtest.py", line 32, in <module>
+    from harness import Results
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/backtest.py
+
+########## /home/claude/venv_ci/bin/python tests/optimality.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/optimality.py", line 20, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/optimality.py
+
+SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)
+
+########## /home/claude/venv_ci/bin/python tests/plan_view.py ##########
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/plan_view.py", line 4, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/plan_view.py
+
+SKIP: tests/frontend.py (scoped out: no changed file is in its measured closure of 6 file(s))
+
+########## node tests/card.mjs ##########
+FAIL: plan payload /tmp/plandata-e6d0039fd918.json not found — run tests/plan_view.py first
+>>> FAILED: node tests/card.mjs
+
+SKIP: tests/setup_qa_render.mjs (scoped out: not in the scoped run set)
+
+########## node tests/card_drift.mjs origin/main ##########
+FAIL: plan payload /tmp/plandata-e6d0039fd918.json not found -- run tests/plan_view.py first
+>>> FAILED: node tests/card_drift.mjs origin/main
+
+########## /home/claude/venv_ci/bin/python tests/stress.py ##########
+  LEASE: tests/stress.py runs under the gate lease as run.sh-974
+Traceback (most recent call last):
+  File "/home/claude/hpo_f24/tests/stress.py", line 48, in <module>
+    from harness import Results
+  File "/home/claude/hpo_f24/tests/harness.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+  File "/home/claude/hpo_f24/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+>>> FAILED: /home/claude/venv_ci/bin/python tests/stress.py
+
+########## wall clock ##########
+       1s  /home/claude/venv_ci/bin/python tests/env_drift.py --claims-only origin/main
+       0s  /home/claude/venv_ci/bin/python tests/closure.py selftest
+       1s  /home/claude/venv_ci/bin/python tests/features.py
+       1s  /home/claude/venv_ci/bin/python tests/entities.py
+       0s  /home/claude/venv_ci/bin/python tests/doc_claims.py
+       0s  node tests/md_tables.mjs
+       0s  /home/claude/venv_ci/bin/python tests/wood_advisor.py
+       0s  /home/claude/venv_ci/bin/python tests/config_flow_steps.py
+       3s  /home/claude/venv_ci/bin/python tests/structure.py
+       1s  /home/claude/venv_ci/bin/python tests/typing_ruler.py
+       0s  /home/claude/venv_ci/bin/python tests/manual_plan.py
+       0s  /home/claude/venv_ci/bin/python tests/solar_alignment.py
+       0s  /home/claude/venv_ci/bin/python tests/guard_pins.py
+       0s  /home/claude/venv_ci/bin/python tests/finite_boundary.py
+       1s  /home/claude/venv_ci/bin/python tests/harness_headers.py
+       0s  /home/claude/venv_ci/bin/python tests/deployment_shape.py
+       0s  /home/claude/venv_ci/bin/python tests/golden.py
+       1s  /home/claude/venv_ci/bin/python tests/env_drift.py origin/main
+       1s  /home/claude/venv_ci/bin/python tests/validate.py
+       0s  /home/claude/venv_ci/bin/python tests/edge.py
+       0s  /home/claude/venv_ci/bin/python tests/backtest.py
+       0s  /home/claude/venv_ci/bin/python tests/optimality.py
+       0s  /home/claude/venv_ci/bin/python tests/plan_view.py
+       0s  node tests/card.mjs
+       0s  node tests/card_drift.mjs origin/main
+       1s  /home/claude/venv_ci/bin/python tests/stress.py
+      11s  TOTAL (1 lane(s))
+
+########## NOT RUN: scoped out of this gate ##########
+  tests/frontend.py        did NOT run -- no changed file is in its measured closure (closure: 6 files)
+  tests/ha_contract.py     did NOT run -- no changed file is in its measured closure (closure: 33 files)
+  tests/open_meteo.py      did NOT run -- no changed file is in its measured closure (closure: 3 files)
+
+  Each line above is a claim that no file changed by this branch is in
+  that script's MEASURED closure (tests/closures.json, recorded by
+  tests/derive_closures.sh from real instrumented runs). The claim is
+  re-checked in full: every push to main runs this suite unscoped, so
+  a closure that is wrong turns main red within one gate.
+  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
+
+22 TEST SCRIPT(S) FAILED
+rc=1

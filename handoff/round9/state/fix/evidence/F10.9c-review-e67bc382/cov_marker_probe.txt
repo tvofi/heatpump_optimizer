@@ -1,0 +1,4 @@
+push main (True, True)
+pull_request save (False, False)
+no marker (False, False)
+main marker other commit (False, False)

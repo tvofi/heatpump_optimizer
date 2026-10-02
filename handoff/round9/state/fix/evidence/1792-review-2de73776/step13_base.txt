@@ -1,0 +1,16 @@
+    <path>` or `MERGE-CLAIM: refused <path>`. Key on that marker, not on the
+    wording after it — several distinct checks supply that wording, so a list
+    of messages goes stale. A `resolved` line settles that claim file, and a
+    non-zero exit alongside it is about some **other** path. A `refused` line
+    is the orchestrator's to resolve by hand, not a defect in the authored
+    work — say which file refused and why.
+
+    Classifying by line shape instead is what fails. `_comment_lines` and
+    `_is_may_drift` both test "everything before `#` is blank", so a
+    `may-drift` line **is** a `#` comment, and `merge_claim_defect` refuses
+    when one is lost. A rule of the form "a conflict confined to the `#`
+    comment notes is merge-prep" therefore waves through a real refusal, on a
+    file with no bare claim lines on any side. Why the driver refuses at all is `claim-files.md`'s.
+
+Return a verdict with your RESULT lines, in the exact shape your dispatch
+prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first

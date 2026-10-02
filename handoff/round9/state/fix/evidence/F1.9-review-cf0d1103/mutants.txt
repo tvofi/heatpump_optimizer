@@ -1,0 +1,48 @@
+RESULT M1 store report dropped: rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 
+RESULT M2 ahead ignored: rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 
+RESULT M3 raw arm dropped: rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 
+RESULT M4 hits.append -> pass: rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 
+RESULT M5 bounded never assigned: rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 
+RESULT M6 bound off (identity): rc=1
+      FAIL FI-sw1 [held at day 10 with a stamp 5 days ahead True; held at day 3 with an honest st
+      FAIL FI-sw2 [ahead True, honest True]
+      FAIL FI-sw4 [ahead 2.0, honest 2.0]
+      FAIL FI-rca1 [due in 168.0 h with a stamp 400 days ahead, 144.0 h with an honest one]
+      ok FI-sw3
+RESULT M7 tz coercion dropped: rc=0
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      ok FI-sw3
+RESULT M8 path key wrong (child index): rc=1
+      ok FI-sw1
+      ok FI-sw2
+      ok FI-sw4
+      ok FI-rca1
+      FAIL FI-sw3 [{'outage cut': True, 'outage ahead': 

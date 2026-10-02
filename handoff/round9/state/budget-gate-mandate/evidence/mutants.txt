@@ -1,0 +1,18 @@
+M1 expired: budget_raise_gate self-test: 179 checks, 2 failed
+    FAIL mandate: a review submitted after `until` fails: got 0, want 1
+    FAIL mandate: a review submitted exactly at `until` fails: got 0, want 1
+M2 revoked: budget_raise_gate self-test: 179 checks, 2 failed
+    FAIL mandate: a mandate tvofi revoked fails: got 0, want 1
+    FAIL mandate: ... and the refusal names the revocation: got False, want True
+M3 not-tvofi author: budget_raise_gate self-test: 179 checks, 3 failed
+    FAIL mandate: a mandate comment by another account fails: got 0, want 1
+    FAIL mandate: a mandate comment by an account named tvofi with another id fails: got 0, want 1
+    FAIL mandate: a mandate comment by the approver App fails: got 0, want 1
+M4 scope: budget_raise_gate self-test: 179 checks, 1 failed
+    FAIL mandate: scope code-owned does not cover a raise: got 0, want 1
+M5 non-head: budget_raise_gate self-test: 179 checks, 4 failed
+    FAIL a stale approval on an older SHA fails: got 0, want 1
+    FAIL an agent-declared approval does not revive the owner's stale one: got 0, want 1
+    FAIL mandate: a mandated approval on a non-head commit fails: got 0, want 1
+    FAIL e2e: a raise whose latest approval is stale exits 1: got 0, want 1
+M0 restored: budget_raise_gate self-test: 179 checks, 0 failed

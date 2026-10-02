@@ -1,0 +1,17 @@
+LISTED custom_components/heatpump_optimizer/climate.py HeatPumpOptimizerClimate hvac_mode 166
+LISTED custom_components/heatpump_optimizer/climate.py HeatPumpOptimizerClimate preset_mode 194
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator current_action 2893
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator floor_return_temp 3015
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator last_optimization 2885
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator next_optimization 2889
+LISTED custom_components/heatpump_optimizer/defrost.py DefrostDerate measured 328
+LISTED custom_components/heatpump_optimizer/inputs.py InputHealth healthy 148
+LISTED custom_components/heatpump_optimizer/open_meteo.py IrradianceSeries start 109
+LISTED custom_components/heatpump_optimizer/open_meteo.py OpenMeteoSolar last_success 276
+LISTED custom_components/heatpump_optimizer/optimizer.py _Horizon weather 1583
+RESULT dead_methods=11 count
+RESULT dead_top_level_symbols=1 count
+RESULT thread_factor=1.000
+RESULT load1=0.69
+RESULT swapins=0
+rc=0

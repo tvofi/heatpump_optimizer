@@ -1,0 +1,26 @@
+  ok   push-verdict refuses a first line outside the grammar
+  ok   push-verdict refuses evidence that names no head
+  ok   push-verdict refuses a verdict with no evidence directory
+  ok   push-verdict refuses a non-numeric pull request
+  ok   no refused push left a verdict ref
+  ok   a first pass records a baseline and posts nothing
+  ok   push-verdict publishes a verdict with evidence
+  ok   watch reports a new handoff ref
+  ok   watch reports a new verdict ref
+  ok   watch --post posts the verdict once
+  ok   the posted body keeps the reviewer's first line
+  ok   the posted body cites an absolute evidence directory that names the head
+  ok   the poster is called with the repository and pull request
+  ok   an unchanged pass reports and posts nothing
+  ok   post refuses a commit already posted
+  ok   a second round fast-forwards the verdict ref
+  ok   the second round is posted
+  ok   watch refuses a raw ref outside the grammar and posts nothing
+  ok   a refused verdict is not retried on the next pass
+  ok   watch refuses a raw ref whose only naming file is VERDICT.md
+  ok   a poster refusal is reported and not recorded as posted
+  ok   post retries a refused verdict by hand
+  ok   watch reports a deleted ref
+  ok   watch without --once exits on its first event
+  ok   watch without --once keeps waiting while nothing changes
+bus self-test: 25 checks, 0 failed

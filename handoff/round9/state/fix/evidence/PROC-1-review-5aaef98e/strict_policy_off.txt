@@ -1,0 +1,2 @@
+5aaef98e:docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md:33:  (`strict_required_status_checks_policy: false`); **no `pull_request` rule**;
+5aaef98e:docs/plan-2026-09-open-issues.md:1719:  still lands; `strict_required_status_checks_policy` **false**, because

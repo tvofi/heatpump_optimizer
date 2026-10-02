@@ -1,0 +1,8 @@
+as-is    delta=+0.0 negative_steps=0/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.927 build_calls_blocked_arg=[True, True]
+as-is    delta=-1.0 negative_steps=32/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.876 build_calls_blocked_arg=[True, True]
+as-is    delta=-2.0 negative_steps=68/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.81 build_calls_blocked_arg=[True, True]
+as-is    delta=-3.0 negative_steps=96/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.81 build_calls_blocked_arg=[True, True]
+control  delta=+0.0 negative_steps=0/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.927 build_calls_blocked_arg=[True, True]
+control  delta=-1.0 negative_steps=32/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.876 build_calls_blocked_arg=[True, True]
+control  delta=-2.0 negative_steps=68/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.81 build_calls_blocked_arg=[True, True]
+control  delta=-3.0 negative_steps=96/96 shipped_dhw_kwh=0.00 dhw_steps=0 dhw_floor_breach_c=20.81 build_calls_blocked_arg=[True, True]

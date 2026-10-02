@@ -1,0 +1,46 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             754d2319413935f499bb28a277348dc304d9d575
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  check    claim files            tests/golden/claimed_drift.txt  changed -- intended only if this branch claims drift
+  ok       claims hygiene         claims hygiene: 754d2319413935f499bb28a277348dc304d9d575 ok
+  ok       closures               scoped recordings are covered; left to CI: tests/stress.py
+  ok       closes #1747 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             8:every
+             12:both
+             12:never
+             24:every
+             25:every
+             28:always
+             30:every
+             34:none
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             22 k
+             27 s
+             22 k
+             3577 u
+             4083 c
+             3578 a
+             0.0%
+             20.0%
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-claude/5b428d61-2dfd-526e-9a6b-6e32614148a1/scratchpad/egb8rv/body.md
+  ok       figures                FIGURES: 6 resolved, 3 not verified, 0 refused
+  skip     push order             no origin/pr1786 yet; the push creates it, so pass /tmp/claude-0/-home-claude/5b428d61-2dfd-526e-9a6b-6e32614148a1/scratchpad/egb8rv/body.md to --body-file after it
+
+PRE-PR: 974c805cb8fd9323685d5f16f2931cfd99777d37 00000000000000000
+RC=0

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index aacae518..ed847a0c 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -1416,7 +1416,7 @@ function slotHitExtents(drawn, plotL, plotR, minTarget, grows) {
+   // How far target p may slide left / right and still cover its ink.
+   const roomL = (p) => (free[p] ? Math.max(0, Math.min(t[p].r - ink(p).x2, t[p].l - plotL)) : 0);
+   const roomR = (p) => (free[p] ? Math.max(0, Math.min(ink(p).x1 - t[p].l, plotR - t[p].r)) : 0);
+-  for (let pass = 0; pass < 4 * order.length + 4; pass++) {
++  for (let pass = 0; pass < 0; pass++) {
+     let moved = false;
+     for (let p = 0; p + 1 < order.length; p++) {
+       const o = t[p].r - t[p + 1].l;

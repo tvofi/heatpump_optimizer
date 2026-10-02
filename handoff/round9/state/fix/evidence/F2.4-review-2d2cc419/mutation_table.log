@@ -1,0 +1,31 @@
+  3580 unpinned site(s) of 4078 candidate sites, 3583 at the ratchet base 04fa97bcae548c6cc4b73e50d4a145ebec7d4328; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+  9 mutant(s) over 4 file(s); drivers in play: tests/backtest.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against '04fa97bcae548c6cc4b73e50d4a145ebec7d4328' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/entity.py:118 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/stress.py: baseline and null control deferred until a mutant survives every shared driver
+  baseline tests/backtest.py: rc=0 failed=0 103s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 18s
+  baseline tests/deployment_shape.py: rc=0 failed=0 3s
+  baseline tests/doc_claims.py: rc=0 failed=0 5s
+  baseline tests/edge.py: rc=0 failed=0 36s
+  baseline tests/env_drift.py: rc=0 failed=0 407s
+  baseline tests/entities.py: rc=0 failed=0 109s
+  baseline tests/finite_boundary.py: rc=0 failed=0 45s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/manual_plan.py: rc=0 failed=0 6s
+  baseline tests/optimality.py: rc=0 failed=0 198s
+  baseline tests/features.py: rc=0 failed=0 475s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 4s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0s
+  baseline tests/validate.py: rc=0 failed=0 36s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  null control custom_components/heatpump_optimizer/entity.py:118 NULL_COMMENT survived every driver
+  baseline tests/stress.py: rc=1 failed=1 477s
+
+MUTATION TABLE INCONCLUSIVE
+  - the baseline is already red in tests/stress.py, so no mutant's verdict means anything. Fix the suite first. A script the scoped gate also selected carries this red on `fast`; one it scoped out does not, and is covered by the forced `full` run on `main` rather than by any check on this pull request.
+      tests/stress.py: every scenario's solve costs what it should, in CPU, for this machine  [shoulder/tariff+pv+cycle used 12657 ms of CPU = 286x the 44.3 ms reference measured beside it (budget 268x)]
+rc=0

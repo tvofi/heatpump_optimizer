@@ -1,0 +1,16 @@
+{
+ "admissible": false,
+ "dS": 55.765,
+ "missing": [],
+ "rises": [
+  "dead_by_reachability 6->297"
+ ],
+ "terms": {
+  "a1_coord_writers_multi": 4.7115,
+  "coord_footprint_v1": 2.2481,
+  "dead_by_reachability": -5.4118,
+  "shared_inplace_writes": 3.3565,
+  "untyped_payload_keys": 50.8607
+ },
+ "verdict": "WORSENS"
+}

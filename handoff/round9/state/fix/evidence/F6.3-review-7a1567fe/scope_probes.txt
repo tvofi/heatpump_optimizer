@@ -1,0 +1,8 @@
+Reviewer's scope_probe.mjs at 7a1567fe3eba60b7127c183c56006e0f2deb5397, HPO_BROWSER_SCOPE=auto, one-commit diffs:
+solver-only (optimizer.py): SCOPED -- RUN
+profiles-only (tests/profiles.py): SCOPED -- RUN
+hastub-only (tests/hastub/homeassistant/__init__.py): SCOPED -- RUN
+card (control): SCOPED -- RUN
+docs-only (README.md): SCOPED -- SKIPPED, NOT A PASS (74-file closure)
+empty: SCOPED -- SKIPPED, NOT A PASS
+closures.json without plan_view.py entry + docs diff: FULL (tests/closures.json has no closure for tests/plan_view.py)

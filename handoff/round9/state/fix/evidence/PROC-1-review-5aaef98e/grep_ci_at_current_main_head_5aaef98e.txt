@@ -1,0 +1,1 @@
+5aaef98e:docs/HANDOVER.md:443:   budget table. Only a three-dot comparison against current main catches it.

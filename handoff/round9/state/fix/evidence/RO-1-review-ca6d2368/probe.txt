@@ -1,0 +1,5 @@
+head: P1 reintroduced after its move (since set) -> (1, 1, 0, 206); P2 one level below a single-star glob -> (1, 0, 0, 207); P3 directory cited with a trailing full stop -> (0, 0, 1, 206)
+M * crosses dirs: P1 reintroduced after its move (since set) -> (1, 1, 0, 206); P2 one level below a single-star glob -> (0, 0, 0, 206); P3 directory cited with a trailing full stop -> (0, 0, 1, 206)
+N since!=null skipped: P1 reintroduced after its move (since set) -> (1, 0, 0, 206); P2 one level below a single-star glob -> (1, 0, 0, 207); P3 directory cited with a trailing full stop -> (0, 0, 1, 206)
+C dir-dot form dropped: P1 reintroduced after its move (since set) -> (1, 1, 0, 206); P2 one level below a single-star glob -> (1, 0, 0, 207); P3 directory cited with a trailing full stop -> (0, 0, 0, 206)
+control: moved = .claude/workflows/brief_lint.mjs ; dir = .claude/workflows/fixtures/

@@ -1,0 +1,51 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             3bd6f12207a1a48c94ff6f302e533207f6c5fba0
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  ok       self-test              148 passed, 0 failed
+  ok       wave-script            151 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 3bd6f12207a1a48c94ff6f302e533207f6c5fba0 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       closes #1661 -- intended
+  ok       closes #1686 -- intended
+  ok       closes #1645 -- intended
+  ok       closes #1738 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             7:every
+             7:both
+             7:all
+             9:each
+             9:each
+             11:both
+             13:each
+             62:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             201 b
+             120 u
+             30 n
+             16 c
+             12 e
+             92 m
+             1539 r
+             1453 a
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-user/1a33acbb-851c-56be-bc5d-a141af0e24a9/scratchpad/f10-4/body.md
+  ok       figures                FIGURES: 5 resolved, 0 not verified, 0 refused
+  ok       push order             origin/handoff/r9-f10-gate-infra-4 is at a980e165 -- local mirror, unfetched
+
+PRE-PR: a980e1650524c3782976e0631b2b4271ee797435 0000000000000000000000
+prepr rc=0

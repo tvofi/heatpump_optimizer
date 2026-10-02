@@ -1,0 +1,69 @@
+{
+ "base_v1": [
+  92,
+  {
+   "pump_arbiter.py": 37,
+   "boost.py": 9,
+   "diagnostics.py": 8,
+   "sensor.py": 8,
+   "__init__.py": 7,
+   "away.py": 7,
+   "wood_fuel.py": 7,
+   "entity.py": 2,
+   "services.py": 2,
+   "setpoint_check.py": 2,
+   "binary_sensor.py": 1,
+   "datetime.py": 1,
+   "switch.py": 1
+  }
+ ],
+ "head_v1": [
+  77,
+  {
+   "pump_arbiter.py": 37,
+   "boost.py": 9,
+   "__init__.py": 7,
+   "away.py": 7,
+   "wood_fuel.py": 7,
+   "diagnostics.py": 6,
+   "services.py": 2,
+   "setpoint_check.py": 2
+  }
+ ],
+ "base_v2": [
+  99,
+  {
+   "pump_arbiter.py": 37,
+   "boost.py": 9,
+   "diagnostics.py": 8,
+   "sensor.py": 8,
+   "__init__.py": 7,
+   "away.py": 7,
+   "wood_fuel.py": 7,
+   "switch.py": 4,
+   "climate.py": 3,
+   "entity.py": 2,
+   "services.py": 2,
+   "setpoint_check.py": 2,
+   "binary_sensor.py": 1,
+   "button.py": 1,
+   "datetime.py": 1
+  }
+ ],
+ "head_v2": [
+  86,
+  {
+   "pump_arbiter.py": 37,
+   "boost.py": 9,
+   "diagnostics.py": 8,
+   "__init__.py": 7,
+   "away.py": 7,
+   "wood_fuel.py": 7,
+   "climate.py": 3,
+   "switch.py": 3,
+   "services.py": 2,
+   "setpoint_check.py": 2,
+   "button.py": 1
+  }
+ ]
+}

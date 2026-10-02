@@ -1,0 +1,1075 @@
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+  ok   a fresh sensor reads normally
+  ok   an over-age value is rejected
+  ok   the rejected value is still available for a graceful fallback
+  ok   the age is reported so a user can see why
+  ok   an outdoor reading may be older than an indoor one
+  ok   the watchdog can be switched off entirely
+  ok   the age limit can be relaxed
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a future-stamped state is stale, not age 0
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+  ok   a 4 h backward host-clock step flags the reading stale
+  ok   unavailable is distinguished from stale
+  ok   a missing entity is reported as such
+  ok   an unconfigured input is not a problem
+  ok   a non-numeric state does not raise
+  ok   a non-finite state string is refused exactly like a word
+  ok   a non-finite value is refused after unit conversion too
+  ok   the °F path itself keeps working (null control for the guard above)
+  ok   an untimestamped state is used rather than discarded
+  ok   stale inputs are listed
+  ok   missing inputs are listed
+  ok   a healthy snapshot says so
+  ok   the summary is human-readable
+  ok   the evidence names the entity
+  ok   the failing entity ids are listed
+  ok   each failure reads as one line naming entity and class
+  ok   watts are converted to kW
+  ok   kilowatts pass through
+  ok   an unrecognised unit is refused rather than guessed
+  ok   a missing unit is refused
+  ok   a power entity is normalised on read
+  ok   a wrongly-united power entity yields nothing
+  ok   an unknown unit reads as words, not a token
+  ok   every word-valued failure class renders in words a user can read
+  ok   an unconfigured slot contributes no source and no line
+  ok   a °F temperature is converted to °C on read
+  ok   the DHW tank's °F reading converts exactly
+  ok   a Wh energy meter is converted to kWh on read
+  ok   a kelvin reading is converted to °C on read
+  ok   a °C state still reads bit-for-bit
+  ok   an unrecognised unit keeps today's raw read instead of a guess
+
+-- R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)
+  ok   D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, not pinned 15 K over the curve
+  ok   D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve
+  ok   D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused as a sample, not absorbed
+  ok   D2-s2-02: a plant at the supply ceiling is learned all the way up
+  ok   D2-s2-02: a stored bias this version learns loads as stored; a wild one is re-clamped to the supply ceiling
+  ok   D2-s2-02: a restored bias at the ceiling prices no supply past FLOW_SUPPLY_MAX_C on the coldest curve
+  ok   D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is refused as a sample
+  ok   D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not negative: a positive bias lands at 0 and the cold clamp still holds
+  ok   D2-s2-02: a non-finite outdoor temperature prices no curve flow at all
+
+-- R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)
+  ok   D1-s5-51: indoor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: lower_floor_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: floor_return_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: buffer_tank_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+  ok   D1-s5-51: dhw_temp_entity silent 255 min reads ok; past the quiet-store limit it is stale
+
+-- R9 P2: the cycle's own outcome -- covering quarter, fenced steps, failed solves, an honest press (D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)
+  ok   D2-s3-01: under quarter-hour entries the current price is the covering quarter's, agreeing with the plan's own step-0 reader on every quarter
+  ok   D2-s3-01: hourly entries (the null control) still read their own hour
+Pump arbiter apply skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-51: an arbiter raise fails neither the cycle nor the steps after it
+Accuracy pairing skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+Realised-peak tracking skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-91: a raise in the accuracy pipeline fails neither the cycle nor the saves after it
+Quiet comfort learning skipped: injected learner fault (first occurrence; repeats log at DEBUG)
+  ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
+Optimization failed: injected L-BFGS-B blow-up
+Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/custom_components/heatpump_optimizer/coordinator.py", line 5251, in async_run_optimization
+    raise RuntimeError(
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+  ok   D1-s4-02 (control): the inline transport solves and publishes
+  ok   D1-s4-02: a returned plan whose status starts 'failed' is a failed solve -- refused, counted, and never published
+  ok   D10-s1-02: the press raises the action's own no-prices refusal when the solve did not run
+  ok   D10-s1-02: the press returns normally when the solve ran, still off the refresh it asked for
+  ok   D10-s1-02: the press raises the action's solve-failed refusal when the solve died (the reason-is-not-None arm of the same refusal -- the mutation survivor at button.py's second guard)
+  ok   D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, the v6.6.12 bug 5 mechanism)
+  ok   D1-s2-04: every cycle-path fence surfaces its persistent failure at WARNING exactly once, repeats at DEBUG, and the cycle survives
+
+-- R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)
+  ok   D14-s2-01: the questionnaire derives single-zone physics for two_zone_mode=off however many zone keys survive
+  ok   D14-s2-01: two_zone_mode=on derives two-zone physics with no zone key stored
+  ok   D14-s2-01: an upper mass of 0.0 is presence, like any value (auto mode)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (mode off with zone keys)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (mode on, no keys)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (auto, upper mass 0.0)
+  ok   D14-s2-01: the pre-fill offers a flow write target exactly when the canonical rule says two-zone (auto, nothing (null control))
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (flag on)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (flag off, probes stored)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, valve outlet alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, wood coil alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, top probe alone)
+  ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, nothing (null control))
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: an untouched expert wizard creates a single-zone, no-hot-water plant
+  ok   D12-s3-01: the wizard writes the explicit presence flags (two_zone_mode off, dhw_enabled off)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: a quick-setup 'yes, hot water' still plans hot water (null control)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   D12-s3-01: the wizard's own yes answers turn both plants on
+  ok   D12-s3-01: the hot-water page asks presence and suggests a stored yes back
+  ok   D12-s3-01: the zones page asks the zone question and suggests a stored on back
+  ok   D12-s3-01: an untouched options page stores no DHW presence over a no-hot-water entry
+  ok   D12-s3-01: an edited windows spec is a deliberate answer and stays (null control)
+  ok   D12-s3-01: a hot-water entry keeps an untouched pair post, as before (null control)
+  ok   D12-s3-01: an entry that affirmed hot water keeps an untouched pair post without the pair stored (the guard's affirmed arm)
+  ok   D12-s3-01: and so does an entry whose hot water is presence-inferred (volume stored, windows never)
+
+-- R9 P6: the unprobed plant state advances from the plan (D12-s1-01)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   D12-s1-01: with no tank probe the solver's DHW seed follows the previous plan, not the 55 degC default
+  ok   D12-s1-01: and the slab seed follows the previous plan, not the one-time room+1 K seed
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   D12-s1-01: a mapped tank probe still wins the seed (null control)
+  ok   D12-s1-01: a mapped floor-return probe still drives the slab seed (null control)
+  ok   D12-s1-01: a plan starting within one step of now seeds its first step
+  ok   D12-s1-01: a plan starting more than a step after now seeds nothing
+
+-- R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)
+  ok   D1-s5-01: age_of reads the reader's stamp precedence and refuses a future stamp, in every cell
+  ok   D1-s5-01: state_stamp is the only function in inputs.py reading a stamp
+  ok   D1-s5-52: every CONF_*TEMP*_ENTITY key has a plausibility window
+  ok   D1-s5-52: -127 degC is refused as implausible on every temperature key, with no value left to read
+  ok   D1-s5-52: 85 degC is refused in a room, outdoors and in a floor circuit
+  ok   D1-s5-52: an ordinary 21.3 degC passes on every key (the null control)
+  ok   D1-s5-52: an implausible reading is a missing input with words for it
+  ok   D2-s4-02: the sized step's noiseless peak leaves the noise headroom under the abort bound, and uses the allowance below it
+
+-- R9 N-staleness: the mixing-valve target is a set-point (carry-1655)
+  ok   carry-1655: a valve target unchanged for 90 min and for a day reads as the target; an unavailable valve is still refused
+
+-- Non-numeric inputs (v5.3.0)
+  ok   a fresh string entity reads as text
+  ok   and carries no number, so numeric callers cannot mistake it for one
+  ok   the same entity through the numeric reader is still not_numeric
+  ok   an unconfigured signal is not_configured, not a problem
+  ok   a configured entity that does not exist is missing_entity
+  ok   a unavailable string entity yields nothing usable
+  ok   a unknown string entity yields nothing usable
+  ok   an over-age string is rejected exactly like an over-age number
+  ok   and keeps its text for a caller that wants last-known-good
+  ok   a defrost flag goes stale sooner than a mode does
+  ok   a state outside the vocabulary is reported, not passed on
+  ok   while a recognised one passes the same gate
+  ok   a plain container of accepted states works too, case-insensitively
+  ok   staleness outranks an unrecognised value
+  ok   a flag reading 'on' is True
+  ok   and 'on' keeps the word it came from
+  ok   a flag reading 'off' is False
+  ok   and 'off' keeps the word it came from
+  ok   a flag reading 'true' is True
+  ok   and 'true' keeps the word it came from
+  ok   a flag reading 'false' is False
+  ok   and 'false' keeps the word it came from
+  ok   a flag reading 'detected' is True
+  ok   and 'detected' keeps the word it came from
+  ok   a flag reading 'clear' is False
+  ok   and 'clear' keeps the word it came from
+  ok   a flag reading '0' is False
+  ok   and '0' keeps the word it came from
+  ok   a flag reading '1' is True
+  ok   and '1' keeps the word it came from
+  ok   a flag reading '3' is True
+  ok   and '3' keeps the word it came from
+  ok   an uninterpretable flag is refused rather than guessed
+  ok   a stale flag is unusable but still reachable
+  ok   parse_bool reads a real bool through
+  ok   parse_bool refuses a word it does not know
+  ok   parse_bool reads any non-zero number as yes
+  ok   a configured-but-unusable signal is visible in the health snapshot
+  ok   a never-configured signal is not held against the install
+  ok   the convenience accessors mirror value()
+
+-- Heat pump operating mode (v5.3.0)
+  ok   cool: space=False dhw=False
+  ok   cool: two duties at once = False
+  ok   heat: space=True dhw=False
+  ok   heat: two duties at once = False
+  ok   DHW: space=False dhw=True
+  ok   DHW: two duties at once = False
+  ok   COOLDHW: space=False dhw=True
+  ok   COOLDHW: two duties at once = True
+  ok   HEATDHW: space=True dhw=True
+  ok   HEATDHW: two duties at once = True
+  ok   the select label 'Cooling' resolves to cool
+  ok   the select label 'Heating' resolves to heat
+  ok   the select label 'DHW (Hot Water)' resolves to DHW
+  ok   the select label 'Cooling + DHW' resolves to COOLDHW
+  ok   the select label 'Heating + DHW' resolves to HEATDHW
+  ok   'heatdhw' is tolerated
+  ok   'HEAT_DHW' is tolerated
+  ok   '  Heating + DHW  ' is tolerated
+  ok   'heating and dhw' is tolerated
+  ok   an unrecognised mode 'turbo' falls back to full capability
+  ok   an unrecognised mode 'auto' falls back to full capability
+  ok   an unrecognised mode '' falls back to full capability
+  ok   an unrecognised mode None falls back to full capability
+  ok   an unrecognised mode 7 falls back to full capability
+  ok   and the unknown fallback does not claim two duties at once
+  ok   suppression is symmetric
+  ok   every mode carries what a future writer would need
+  ok   a lit stove still reads as an override
+  ok   and a cold one still reads as no override
+External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+  ok   a flue PROBE that stopped reporting stops suppressing (v5.3.0)
+  ok   a flag helper is not aged out: input_boolean 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: input_boolean 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: input_boolean 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: switch 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: switch 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: switch 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (binary_sensor)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (binary_sensor)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (binary_sensor)
+External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+  ok   the horizon is scoped to numbers, not to the entity domain
+  ok   a flue probe still uses its own threshold, not the shared numeric rule
+  ok   the shared vocabulary widens what a flag entity may say
+  ok   UNBOUNDED is not the same as 'no key in the table'
+  ok   an unavailable or unconfigured override is simply absent
+
+-- External heat source detection (item 5)
+  ok   a single suspicious interval does not trip it
+  ok   two consecutive intervals do
+  ok   the evidence explains why
+  ok   confidence is full while active
+  ok   it releases once the rise stops
+  ok   but keeps suppressing while it fades
+  ok   the decay eventually clears
+  ok   the heat pump heating its own tank is not external heat
+  ok   a rise beyond the pump's capacity is caught even while it runs
+  ok   sensor drift below the threshold is ignored
+  ok   a user-provided entity takes effect immediately
+  ok   and clears immediately
+  ok   disabled means disabled, whatever the tanks do
+
+-- Wood furnace displacement (item 28)
+  ok   the outlet temperature identifies the mixing fraction
+  ok   and scales to an absolute free-heat figure
+  ok   the wood tank's remaining energy is measured, not assumed
+  ok   displacement is a separate field from confidence
+  ok   no active fire means no displacement, whatever the sensors read
+  ok   too small a margin reads as zero, not as a noisy fraction
+  ok   a missing or stale outlet reading zeroes the displacement
+  ok   the forecast never promises past its hard two-hour cap
+  ok   and fades over that horizon rather than carrying full weight
+  ok   the promise never exceeds what the wood tank measurably holds
+  ok   no fire, no forecast
+  ok   a measurably spent wood tank ends the decay early
+  ok   while without the tank pair the timer stands
+
+-- Unknown price horizon (item 7)
+  ok   a complete day is learned
+  ok   a partial day is rejected
+  ok   a day with one NaN hour is refused
+  ok   the learned shape has a trough at night
+  ok   one day's evidence is heavily damped
+  ok   published prices are preserved exactly
+  ok   the mask marks which steps are real
+  ok   the tail is not flat
+  ok   without a model the old flat repeat is used, not an invention
+  ok   a fully published horizon never consults the prior
+  ok   no prices at all falls back rather than crashing
+  ok   complete days are extracted
+  ok   incomplete days are dropped
+  ok   malformed entries do not crash the extractor
+  ok   the guessed tail is scaled by the true daily level
+  ok   and reproduces the known window at its own hours
+  ok   a non-finite persisted shape bin is refused at load, loudly
+  ok   the guessed tail holds no zero-priced step
+  ok   a non-finite persisted quarter factor is refused at load too
+  ok   a finite store round-trips to the identical model, warning-free
+  ok   a non-finite cop_scale=nan never installs on the live model
+  ok   a non-finite house_heat_loss_scale=nan never installs on the live model
+  ok   a non-finite buffer_cooling_rate=nan never installs on the live model
+  ok   a non-finite lower_floor_loss_ratio=nan never installs on the live model
+  ok   a non-finite cop_scale=inf never installs on the live model
+  ok   a non-finite house_heat_loss_scale=-inf never installs on the live model
+  ok   a finite thermal store still installs every learned scalar
+  ok   a finite cop_scale past the cap is clamped, not refused
+  ok   a stale price list is not read as today's prices
+  ok   hourly entries cover their own four quarters
+  ok   quarter-hour entries are not stretched to hours
+  ok   a stale weather forecast still lines up with the clock
+
+-- Capacity tariff (item 8)
+  ok   the marginal price is the tariff divided by the peaks averaged
+  ok   a disabled tariff costs nothing
+  ok   the billed peak averages the highest hours
+  ok   the free-headroom threshold is the lowest billed peak
+  ok   early in the month the threshold is what has actually been seen
+  ok   a new month resets the peaks
+  ok   staying under the threshold costs nothing
+  ok   the peak charge equals the bill it models
+  ok   several high hours cost more than one
+  ok   the peak charge has a gradient the solver can follow
+  ok   a month with no recorded peaks disables the charge
+  ok   a partial month measures against what has actually been seen
+  ok   a 15-minute burst is averaged over the metering window
+  ok   the charge covers exactly the peaks the bill averages
+  ok   smooth top-k on a k-wide tie recovers the billed sum
+  ok   a top-k count past the window count bills the full array unchanged
+  ok   a fractional top-k count bills its floor (#932)
+  ok   a top-k count under one bills the single largest window (#932)
+  ok   an in-range top-k count still moves the billed sum (#932 null control)
+  ok   a flat plan is charged its billed top-k, not a multiple of it
+  ok   smooth top-k keeps the k x tie_level contract at a 12 kW plateau
+  ok   hourly metering keeps the flat-plateau charge at the bill
+  ok   below the tie-band break point the charge stays exact
+  ok   at most k windows at the peak stay on the exact hard sum
+  ok   tied peak windows all carry gradient under smooth top-k
+  ok   tied-window FD is the shared k/n weight, not a hard unique top
+  ok   a mixed plateau is charged the exact billed top-k, not the leaked soft sum (#1210: no under-charge)
+  ok   the pure plateau stays at the exact billed top-k
+  ok   at most k windows at the peak stay on the exact hard sum
+  ok   the solver's surrogate stays on the smooth arm and under the exact charge on the mixed plateau
+  ok   a burst inside one billed window is priced as one window
+
+-- PV self-consumption (item 9)
+  ok   darkness produces nothing
+  ok   half irradiance produces half output
+  ok   production is capped at the nameplate
+  ok   a disabled array produces nothing
+  ok   surplus is net of the rest of the house
+  ok   the import margin is import minus export, signed
+  ok   a hot-water block's price blends by the covered fraction
+  ok   the objective reprices the covered sliver, not the whole step
+  ok   without surplus the cost is the plain import bill
+  ok   hot-water planning ranks a fully covered step at the export price
+  ok   on the replan, space heating takes its surplus share first
+
+-- Away and holiday mode (item 13)
+  ok   a person being not_home means away
+  ok   a person being home does not
+  ok   a named zone still counts as away
+  ok   a holiday toggle being on means away
+  ok   an unknown state means unknown, not away
+  ok   a presence-class binary sensor being on means home
+  ok   a presence-class binary sensor being off means away
+  ok   a class-less binary sensor keeps toggle semantics
+  ok   a template sensor speaking the person vocabulary reads correctly
+  ok   away is detected
+  ok   the deep setback applies while away
+  ok   recovery is not started three days out
+  ok   the recovery estimate is published
+  ok   recovery starts before the stated return
+  ok   the comfort target is restored during recovery
+  ok   without a return time the setback still applies
+  ok   an occupied house is never set back
+  ok   a past return expires the override
+  ok   a future return leaves the override
+  ok   no return time does not expire
+  ok   the service override wins over a person at home
+  ok   override source is service
+  ok   person-away still works when the switch is off
+  ok   person-away source is the person entity
+  ok   boolean-on migrates to active
+  ok   boolean-on drops the presence key
+  ok   return helper is copied
+  ok   a person id is not dropped
+  ok   a person id does not force the switch on
+  ok   a warm house needs no recovery time
+  ok   a pump that cannot reach the target starts as early as allowed
+  ok   a cold house's recovery estimate respects the slab bottleneck
+  ok   a calendar event supplies its own return time
+
+-- Two-hour boost overlays
+  ok   a DHW boost is live for two hours and then expires
+  ok   expiry drops the channel
+  ok   DHW boost maxes hot water without rewriting space power
+  ok   a DHW boost over an off step reads hot_water; over a space step, the space rung
+  ok   space boost maxes space heat without rewriting DHW power
+
+-- Closed-loop accuracy (item 11)
+  ok   the mean absolute error is reported
+  ok   the bias keeps its sign
+  ok   the power ratio is reported
+  ok   the cost error is signed and in percent
+  ok   trust falls as the error grows
+  ok   a perfect model is fully trusted
+  ok   an empty tracker reports nothing rather than zero
+  ok   temperature accuracy works without a power meter
+  ok   the delivered ratio inverts the power ratio
+  ok   an idle interval carries no information
+  ok   history survives a restart
+  ok   corrupt stored history is ignored
+
+-- Defrost derate (item 14)
+  ok   with no evidence the derate changes nothing
+  ok   one observation barely moves it
+  ok   sustained evidence does move it
+  ok   the derate is local to the frosting band
+  ok   dry cold air is a separate bucket
+  ok   an implausible derate is clamped
+  ok   a nonsense ratio is discarded outright
+  ok   the buckets are reportable
+  ok   the derate survives a restart
+  ok   a corrupt stored derate falls back to neutral
+  ok   the derate factor is continuous across a temperature bucket edge
+  ok   the derate factor is continuous across a humidity bucket edge
+  ok   and continuity is reached by interpolation, not by disabling the derate
+  ok   the learned derate lowers the COP the optimizer uses
+  ok   the measured COP correction also applies
+
+-- Weekly hot-water windows: different days, different times
+  ok   a flat spec carries no weekly structure
+  ok   the weekday/weekend split lands on the right days
+  ok   and renders back to the string the user typed
+  ok   single days and day lists name exactly their own days
+  ok   the rendered form re-parses to the same structure
+  ok   a dayless segment inside a weekly spec applies to every day
+  ok   a wrapping weekly window splits at midnight like the flat one
+  ok   a day with no segment has no windows -- no requirement that day
+  ok   a malformed weekly spec raises, not silently empties ('Mo 25:00-26:00')
+  ok   a malformed weekly spec raises, not silently empties ('weekdays')
+  ok   a malformed weekly spec raises, not silently empties ('Mox 06:00-07:00')
+  ok   the validator accepts the weekly grammar
+  ok   the every-day view of a weekly spec is the merged union of its times
+  ok   inside a demand window the next window is now, not the following one
+  ok   outside one it counts the hours to the next opening, wrapping past midnight
+  ok   with no windows configured there is no answer, which is not 'now'
+
+-- The window grammar round-trips: renderer out, every loader in
+  ok   the property covers the whole day-set space, not a sample
+  ok   a schedule identical on all seven days renders as the flat spec it was
+  ok   ';' and a newline separate segments for both parsers, as documented
+  ok   parse_windows accepts every string the renderer emits (762/762)
+  ok   parse_weekly_windows accepts every string the renderer emits (762/762)
+  ok   is_valid_spec accepts every string the renderer emits (762/762)
+  ok   spec_problem finds no problem in one (762/762)
+  ok   the rendered spec re-parses to the days it was rendered from (762/762)
+  ok   and rendering it again changes nothing (762/762)
+  ok   the two parsers accept exactly the same strings (2066/2066 in the corpus)
+  ok   on a single-schedule spec the every-day view IS the schedule
+  ok   a malformed spec is still refused by both parsers and the form (16/16)
+  ok   every window spec the UI text tells the user to type is accepted by the form (2/2)
+  ok   a Monday plan requires hot water in the weekday window
+  ok   a Saturday plan requires it in the weekend window instead
+  ok   the two requirement sets do not overlap at all
+  ok   a flat spec solves identically regardless (deterministic)
+  ok   the shortest window the form accepts is one planning step
+  ok   a window shorter than a step binds no step start at all
+  ok   the form's verdict names the one-minute window
+  ok   a window of exactly one step is fine, and so is the default
+  ok   a wrapping window is measured through midnight
+  ok   the judgement is per segment, before normalisation can merge one away
+  ok   a weekly spec's segments are judged too, and 00:00-00:00 stays a full day
+  ok   an unreadable spec keeps its original error, and empty is no problem
+  ok   the permissive parser still loads the window the form refuses
+
+-- Per-weekday DHW window overrides (#1260)
+  ok   a per-day override beats holiday, weekly and default together
+  ok   a day with no override keeps the holiday-first behaviour it has today
+  ok   an all-empty override set resolves exactly like none at all (null control)
+  ok   an hour-only caller (weekday None) still gets the flat fallback
+  ok   the Fri->Sat boundary switches to the Saturday override
+  ok   the Sun->Mon boundary switches to the Monday override
+  ok   the flag plus specs parses to the seven-day shape
+  ok   a config with no override keys carries none
+  ok   specs without the flag still enable -- the toggle's computed default
+  ok   a stored False flag switches the overrides off, specs still in place
+Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbage' (expected HH:MM-HH:MM)); that day keeps the default schedule
+  ok   an unparseable day spec degrades to that day inheriting
+  ok   the flag on with every field empty is no overrides at all
+  ok   a plain spec and an empty field pass the per-day verdict
+  ok   a day selector is refused in a field that already names the day
+  ok   the ordinary verdicts still apply per field
+  ok   from_config loads the overrides beside the flat spec
+  ok   from_config without override keys keeps dhw_day_windows None
+  ok   no overrides resolve to no display spec at all
+  ok   a flat default with one override renders the folded week
+  ok   an override onto a weekly default replaces only its own day
+  ok   an all-empty fallback plus overrides names only the overridden days
+  ok   a Monday plan over a flat spec keeps the default window
+  ok   a Saturday plan honours the Saturday override, not the flat default
+  ok   a full Saturday solve with the override differs from the flat one
+  ok   that solve publishes the resolved display spec for the card's band
+  ok   the no-override solve publishes no resolved key at all
+  ok   the same pair on a Monday (no override that day) solves identically
+
+-- The batched trajectory is the scalar trajectory, bit for bit
+  ok   D9-03 jac f0 reuses scipy's last objective evaluation (#288)
+  ok   D9-03 memo solve still reaches the quadratic minimizer
+  ok   one production start is followed by one restart from the returned point
+  ok   the restart's x0 is the first run's returned point
+  ok   an ftol-tick restart is not adopted
+  ok   a 5e-2 relative drop is adopted
+  ok   D9-01 the solve yields the GIL inside a single L-BFGS-B run
+  ok   D9-01 the in-run yield fires on the worker thread, not the caller
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone
+  ok   batched simulation is bitwise-identical: single-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone
+  ok   batched simulation is bitwise-identical: two-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone with valve
+  ok   batched simulation is bitwise-identical: two-zone with valve
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone with valve
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone with valve
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-tank
+  ok   batched simulation is bitwise-identical: two-tank
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-tank
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-tank
+  ok   grad-parity cell subdivides as claimed (n_sub >= 2): two-zone stability substeps
+  ok   batched simulation is bitwise-identical: two-zone stability substeps
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone stability substeps
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone stability substeps
+  ok   grad-parity cell subdivides as claimed (n_sub >= 2): single-zone stability substeps
+  ok   batched simulation is bitwise-identical: single-zone stability substeps
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone stability substeps
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone stability substeps
+  ok   grad-parity cell subdivides as claimed (n_sub >= 9): single-zone deep substeps
+  ok   batched simulation is bitwise-identical: single-zone deep substeps
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone deep substeps
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone deep substeps
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone shoulder mild-start
+  ok   batched simulation is bitwise-identical: single-zone shoulder mild-start
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone shoulder mild-start
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone shoulder mild-start
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone summer-cool warm-start
+  ok   batched simulation is bitwise-identical: two-zone summer-cool warm-start
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone summer-cool warm-start
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone summer-cool warm-start
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone winter-mild
+  ok   batched simulation is bitwise-identical: single-zone winter-mild
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone winter-mild
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone winter-mild
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone DHW-pinned bounds
+  ok   batched simulation is bitwise-identical: two-zone DHW-pinned bounds
+/usr/local/lib/python3.11/dist-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
+  df_dx = [delf / delx for delf, delx in zip(df, dx)]
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone DHW-pinned bounds
+  ok   batched jac is finite, and exactly 0.0 at the 4 fixed variables: two-zone DHW-pinned bounds
+  ok   a zero-range bound does not disqualify the batch: two-zone DHW-pinned bounds
+  ok   the pinned solve runs on the batched jac, not scipy's scalar finite differences: two-zone DHW-pinned bounds
+  ok   the pinned solve gets a finite point on its pins, not a dead line search: two-zone DHW-pinned bounds
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone DHW-pinned bounds shoulder
+  ok   batched simulation is bitwise-identical: single-zone DHW-pinned bounds shoulder
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone DHW-pinned bounds shoulder
+  ok   batched jac is finite, and exactly 0.0 at the 4 fixed variables: single-zone DHW-pinned bounds shoulder
+  ok   a zero-range bound does not disqualify the batch: single-zone DHW-pinned bounds shoulder
+  ok   the pinned solve runs on the batched jac, not scipy's scalar finite differences: single-zone DHW-pinned bounds shoulder
+  ok   the pinned solve gets a finite point on its pins, not a dead line search: single-zone DHW-pinned bounds shoulder
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone capped bounds summer-cool
+  ok   batched simulation is bitwise-identical: two-zone capped bounds summer-cool
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone capped bounds summer-cool
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone capped bounds summer-cool
+
+-- Which bounds the batched jac may serve (D9-01)
+  ok   uniform bounds are served
+  ok   per-step caps and DHW-pinned headroom are served
+  ok   a zero-range bound (full DHW block or manual pin) is served, not refused
+  ok   degenerate classes are still refused: empty, inverted, non-finite
+  ok   the batched jac's fixed-variable entry is an exact 0.0, not a NaN
+  ok   the free entries of that jac still match scipy's own 2-point estimate
+
+-- The batched objective prices the cost half per batch (#948)
+  ok   one objective_batch call prices all 6 rows without the per-row comfort helper: two-zone space-only
+  ok   and without the per-row grid-term helpers: two-zone space-only
+  ok   the physics stays ONE batched simulation, scalar-free: two-zone space-only
+  ok   every row equals the scalar objective bit for bit: two-zone space-only
+  ok   every row equals the scalar objective bit for bit on the Neumaier grid: two-zone space-only
+  ok   one objective_batch call prices all 6 rows without the per-row comfort helper: single-zone with-DHW, PV, capacity tariff, off-boundary start
+  ok   and without the per-row grid-term helpers: single-zone with-DHW, PV, capacity tariff, off-boundary start
+  ok   the physics stays ONE batched simulation, scalar-free: single-zone with-DHW, PV, capacity tariff, off-boundary start
+  ok   every row equals the scalar objective bit for bit: single-zone with-DHW, PV, capacity tariff, off-boundary start
+  ok   every row equals the scalar objective bit for bit on the Neumaier grid: single-zone with-DHW, PV, capacity tariff, off-boundary start
+  ok   one objective_batch call prices all 6 rows without the per-row comfort helper: two-zone with-DHW, valve, masked windows
+  ok   and without the per-row grid-term helpers: two-zone with-DHW, valve, masked windows
+  ok   the physics stays ONE batched simulation, scalar-free: two-zone with-DHW, valve, masked windows
+  ok   every row equals the scalar objective bit for bit: two-zone with-DHW, valve, masked windows
+  ok   every row equals the scalar objective bit for bit on the Neumaier grid: two-zone with-DHW, valve, masked windows
+  ok   peak_cost_batch is peak_cost_smooth on every row, every branch, bit for bit
+  ok   the surrogate never charges meaningfully more than the exact top-k (#1210's identity: weights sum to k to the bisection's 1e-6 count tolerance, so soft <= hard x (1 + 1e-6) on every input; measured worst excess 2.6e-7 relative)
+  ok   a disabled tariff prices a whole batch as zeros, like the scalar guard
+  ok   cycling_penalty_batch is cycling_penalty on every row, bit for bit
+
+-- Building presets (item 17)
+  ok   a masonry house has more thermal mass than a timber one
+  ok   an older house loses more heat
+  ok   loss scales with heated area
+  ok   floor heating adds an actively charged store
+  ok   radiators respond faster than floor heating
+  ok   timber-on-slab over a crawl space is the crawl-space house, exactly
+  ok   the subtraction only fires under a crawl-space foundation
+  ok   masonry over a crawl space keeps its walls -- nothing was removed twice
+  ok   a concrete slab over a crawl space loses the slab but keeps the concrete
+  ok   a heated basement adds both mass and loss
+  ok   the heavy mass lives in the heated slab, and only there
+  ok   the radiator power fraction follows the emitters
+  ok   a radiator loop is a small store, not the building's slab
+  ok   radiators can deliver the design heat load at a sane flow temperature
+  ok   with radiators the heavy floor coasts as part of the room store
+  ok   nonsense options are clamped rather than propagated
+  ok   a valid non-radiator emitter is kept, only an unknown one is clamped
+  ok   derived values are accepted by the thermal model
+
+-- Active system identification (item 18)
+  ok   arming works when enabled
+  ok   arming twice is a no-op
+  ok   a disabled experiment cannot be armed
+  ok   mild, cheap, night conditions are accepted
+  ok   a cold night is refused
+  ok   an expensive hour is refused
+  ok   the middle of the afternoon is refused
+  ok   a converged house is not experimented on
+  ok   the experiment injects a step
+  ok   it completes
+  ok   it identifies something
+  ok   the identified heat loss is close to the truth
+  ok   the identified capacity is close to the truth
+  ok   confidence is reported
+  ok   an excursion beyond the comfort limit aborts the experiment
+  ok   the abort is recorded with a reason
+  ok   a fit with no samples fails cleanly
+  ok   a fit outside the plausible (tau, UA) box is refused, not reported done
+  ok   a recent run blocks another
+  ok   the default plant passes the arm-time identifiability gate
+System identification fit raised: Singular matrix
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/custom_components/heatpump_optimizer/sysid.py", line 1617, in _finish
+    self.result = self.identify_slab()
+                  ^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/tests/features.py", line 5959, in _wrapper
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/custom_components/heatpump_optimizer/sysid.py", line 2170, in identify_slab
+    return self._slab_outcome(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/custom_components/heatpump_optimizer/sysid.py", line 2205, in _slab_outcome
+    profile_halfwidth = _slab_ua_profile_halfwidth(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/custom_components/heatpump_optimizer/sysid.py", line 943, in _slab_ua_profile_halfwidth
+    cov = np.linalg.inv(jac.T @ jac) * sigma2
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/numpy/linalg/_linalg.py", line 647, in inv
+    ainv = _umath_linalg.inv(a, signature=signature)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+  ok   the production sequence (declared plant) never enters identify()
+  ok   the no-plant harness path still reaches identify()
+
+-- Revealed-preference comfort tuning (item 19)
+  ok   repeated upward overrides raise the comfort weight
+  ok   one override does not move it
+  ok   a rounding-sized override is ignored entirely
+  ok   a long flat, uncomplained-about profile lowers it
+  ok   a house already using its whole band is not evidence
+  ok   the learned value stays inside sane bounds
+  ok   reset returns to the configured value
+  ok   reset forgets the evidence
+  ok   changing the configured weight discards what was learned against the old one
+  ok   an unchanged configured weight keeps the learning
+  ok   corrupt stored learning falls back to the configured value
+
+-- The house as a virtual battery (item 20)
+  ok   stored energy is positive for a warm house
+  ok   state of charge is a percentage
+  ok   the charge rate is thermal, not electrical
+  ok   autonomy is reported
+  ok   round-trip efficiency is thermal and at most 100%
+  ok   every store is listed
+  ok   a house at its comfort floor is an empty battery
+  ok   a store below its floor never reports negative energy
+  ok   a 35 L buffer without a valve is not published as a store
+  ok   a disabled DHW tank is not published
+  ok   a store-sized throttled buffer IS published
+  ok   an enabled DHW tank IS published
+
+-- Regressions
+  ok   a confirming sample leaves the learned COP scale alone
+  ok   closed-loop learning converges on the real efficiency
+  ok   and then stays there
+  ok   a persistently broken feedback loop is bounded, not unbounded
+  ok   the commanded total includes hot water
+  ok   a plan with no hot water still works
+  ok   an empty action is zero, not an error
+  ok   a planned hot-water charge is not mistaken for a wood fire
+  ok   a dry cold day does not inherit the humid derate
+  ok   the ambient humidity selects the bucket that was learned
+  ok   an explicit humidity still wins over the ambient default
+  ok   the frosting band covers the frosting temperatures
+  ok   dry deep cold is not frost, and mild air is not frost
+  ok   the COP scale does not learn inside the frosting band
+  ok   outside the band the same sample still teaches the COP scale
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   the clamp scenario actually engaged the clamp at least once
+  ok   a pure standby drop teaches no draw
+  ok   a genuine draw still reinforces its hour
+  ok   a stale plan trajectory is not offered as a prediction in boost mode
+  ok   in auto mode the plan is what runs, so it is the prediction
+  ok   the learned COP scale is saved and restored
+
+-- Store loaders discard corrupt payloads (#238)
+  ok   thermal_learning list payload is discarded, not raised
+  ok   thermal_learning str payload is discarded, not raised
+  ok   thermal_learning int payload is discarded, not raised
+  ok   thermal_learning inf sample count is discarded, not raised
+  ok   thermal_learning wrapped freq_map is discarded, not raised
+  ok   thermal_learning JSON-string nan does not raise
+  ok   thermal_learning JSON-string nan leaves aperture n at 0.0
+  ok   thermal_learning JSON-string Infinity does not raise
+  ok   thermal_learning JSON-string Infinity leaves aperture n at 0.0
+  ok   thermal_learning JSON-string finite n does not raise
+  ok   thermal_learning JSON-string finite n leaves aperture n at 12.0
+  ok   a non-finite aperture n does not wedge _learning_view
+  ok   JSON-string nan in the thermal store does not wedge the learning view
+  ok   _dhw_learner.async_load_profile discards a stored list
+  ok   _dhw_learner.async_load_profile discards a stored str
+  ok   _dhw_learner.async_load_profile discards a stored int
+  ok   _async_load_thermal_learning discards a stored list
+  ok   _async_load_thermal_learning discards a stored str
+  ok   _async_load_thermal_learning discards a stored int
+  ok   _async_load_price_model discards a stored list
+  ok   _async_load_price_model discards a stored str
+  ok   _async_load_price_model discards a stored int
+  ok   _async_load_ledger discards a stored list
+  ok   _async_load_ledger discards a stored str
+  ok   _async_load_ledger discards a stored int
+  ok   _async_load_accuracy discards a stored list
+  ok   _async_load_accuracy discards a stored str
+  ok   _async_load_accuracy discards a stored int
+  ok   _async_load_energy_totals discards a stored list
+  ok   _async_load_energy_totals discards a stored str
+  ok   _async_load_energy_totals discards a stored int
+  ok   dhw_profile 24-string hourly_profile is discarded, not raised
+  ok   a healthy accuracy store round-trips its learned fields (control)
+  ok   a healthy accuracy store loads without a warning (control)
+  ok   a non-list 'samples' (float) loads without raising
+  ok   a non-list 'samples' (float) keeps the learned peaks, defrost factors and mode on disk
+  ok   a non-list 'samples' (float) is skipped with a warning
+  ok   a non-list 'samples' (bool) loads without raising
+  ok   a non-list 'samples' (bool) keeps the learned peaks, defrost factors and mode on disk
+  ok   a non-list 'samples' (bool) is skipped with a warning
+  ok   PriceShapeModel.from_dict swallows inf day counts
+Persisted price shape has a non-finite or unreadable bin; restarting it
+  ok   PriceShapeModel.from_dict swallows non-numeric shapes
+  ok   StartCounter.from_dict swallows inf lifetime
+  ok   a steady running signal restarts the streak and confirms no start
+  ok   above->below->above: the agreeing sample resets the streak, no start
+  ok   AccuracyTracker.from_dict swallows inf lead counts
+  ok   DrawStats.from_dict swallows a huge-int reservoir event
+  ok   one non-finite entry quarantines the stored hourly profile to the default pattern
+  ok   a healthy stored profile still normalizes (null control)
+  ok   a non-finite draw occurrence resets to 0 kWh; finite events and labels survive
+  ok   non-finite peaks and window accumulators are dropped at load; finite ones survive
+  ok   a non-finite curve-learner bias resets to the neutral 0 K; evidence survives
+  ok   energy_totals huge-int accumulator is discarded, not raised
+
+-- The learned heat-loss scale is re-anchored, not restored verbatim
+  ok   a converged scale is re-anchored onto the new nameplate, not restored
+  ok   which is no longer ~1.94x the UA the learner measured
+  ok   a sub-threshold nameplate edit keeps the stored scale verbatim
+  ok   an unlearned install keeps its configuration edit
+Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+  ok   an inexpressible measurement resets, not clips onto a bound
+  ok   a re-anchor persists exactly once
+  ok   and the persisted anchor is the configuration now in force
+  ok   a second load over the same configuration re-anchors nothing
+  ok   a two-zone edit re-anchors on the zone total, not the upper zone
+  ok   a snapshot restore re-anchors a pre-edit scale, not restores it
+  ok   a night setback lowers the reference, not the reported savings
+  ok   while the schedule agrees, so do the baselines
+  ok   a heated basement scales the slow store once, not twice
+
+-- Configuration mapping
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+  ok   every configurable parameter is reachable from a config key
+  ok   wood tank volume is reachable once the furnace toggle is on
+  ok   the mixing valve mode is reachable from its config key
+  ok   and an unknown mode falls back rather than silently doing nothing
+  ok   the COP flow penalty follows the mode rather than being separate
+  ok   presence still enables two-zone when the mode key is absent
+  ok   mode 'off' disables two-zone even with zone values stored
+  ok   mode 'on' enables two-zone with no zone key present at all
+  ok   mode 'auto' is exactly the presence rule, both ways
+  ok   an unknown mode falls back to the presence rule rather than disabling
+  ok   configured thermal mass arrives
+  ok   configured heat loss arrives
+  ok   configured max power arrives
+  ok   configured DHW setpoint arrives
+  ok   configured wind sensitivity arrives
+  ok   configured displace limit arrives
+  ok   ECL110 effective displace starts at rest
+  ok   one tick of a step command lags strictly behind it, not tracks instantly
+  ok   a second tick keeps closing the gap towards the command, not overshooting
+  ok   enough ticks let the lag converge on the commanded value
+  ok   an empty config yields the documented defaults
+  ok   two-zone is inferred from the presence of its keys
+  ok   hot water is inferred from the presence of its keys
+  ok   an explicit dhw_enabled False wins over leftover volume
+  ok   an explicit dhw_enabled True enables hot water with no other keys
+  ok   a boolean stored as a string is still a boolean
+Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
+  ok   an unparseable window spec falls back rather than raising
+  ok   holiday DHW windows parse from CONF_HOLIDAY_DHW_WINDOWS
+
+-- Lower floor temperature sensor (item 30)
+  ok   a floor return sensor never stands in for the lower zone's air temperature
+  ok   and the floor return still does its real job: the slab estimate
+  ok   a real lower-floor sensor takes precedence over the return-temp estimate
+  ok   the estimated path no longer pins slab-to-room at 0.5 K
+  ok   and a real sensor moves it further still, from a measurement
+  ok   the sensor is used even when there is no floor return sensor
+  ok   with neither sensor the lower zone falls back to room temperature
+  ok   a configured but stale floor return still leaves a defensible lower zone
+  ok   an unavailable lower-floor sensor falls back to the room temperature
+  ok   the new sensor has a staleness limit like the other room sensors
+  ok   the reported zone temperatures no longer differ by six degrees
+  ok   an unmeasured lower zone raises the repair issue
+  ok   raised once, not once per cycle
+  ok   a configured thermometer raises nothing
+  ok   a single-zone house is never told about a zone it does not have
+  ok   the notice is up before the sensor is assigned
+  ok   and assigning one clears it across the reload that follows
+  ok   the reloaded coordinator really is reading the sensor
+  ok   correcting a grid fee clears its notice across the reload too
+  ok   D2-s1-51: with no outdoor reading the state carries the forecast's current hour, not the 5.0 constructor default
+  ok   D2-s1-51 (null control): a fresh outdoor reading wins over the forecast
+  ok   D2-s1-51: an unreadable outdoor entity (mapped, state unavailable) falls back to the forecast too
+  ok   D2-s1-51: with no forecast either, the constructor default is what the horizon honestly gets (forecast_outdoor_now's None branch)
+
+-- The optimizer can see the buffer tank (item 29)
+  ok   the tank has its own settlement ceiling, not the slab's
+  ok   which is the tank's own maximum
+  ok   and without a valve nothing changes, since the tank cannot be charged
+  ok   a charged tank counts as stored energy
+  ok   the objective prices a tank left cold
+  ok   and omitting the tank entirely is treated as the worst case, not ignored
+  ok   a tank's terminal credit survives intact when the house is drawing hard
+  ok   and collapses to nothing when the house needs no bought heat at all
+  ok   with no cliff between the two: the discount is continuous in demand
+  ok   a better-insulated tank is discounted less than a bare one
+  ok   a tank that loses nothing keeps its whole credit, even with no demand
+  ok   the discount does not depend on the end temperature the solver picks
+  ok   free gains that cover the whole loss leave no hold demand
+  ok   and solar is only counted when the caller asks for it
+  ok   so in summer the tank's terminal credit is switched off entirely
+  ok   while at -5 C the same tank keeps essentially all of it
+  ok   and without a valve the discount is exactly 1.0, changing nothing
+  ok   without a valve the terminal cost ignores the tank
+  ok   a 35 L tank behind a valve is not a store
+  ok   so its settlement cap stays the slab's
+  ok   and the terminal cost ignores it
+  ok   while a real accumulator on the same valve is one
+  ok   simulate_trajectory returns the buffer trajectory
+  ok   terminal cost is stable when the buffer came from the return value (#280)
+
+-- Mixing valve and the buffer tank as a store (items 27/29)
+  ok   without a valve the tank ignores the heat pump entirely
+  ok   with a valve, running the pump hard charges the tank
+  ok   and with the pump off the tank discharges into the house
+  ok   charging hard does not overheat the house
+  ok   which is exactly what an unvalved system fails to do
+  ok   the tank cannot be charged past its ceiling
+  ok   an unconfigured valve target throttles at the comfort ceiling
+  ok   and the tank still charges on the default target
+  ok   a tank read above its cap cools physically, not by teleport
+  ok   charging the tank hot costs COP
+  ok   but stays physically plausible rather than collapsing to a floor
+  ok   and the penalty is inert unless it is switched on
+  ok   Carnot flow correction leaves COP non-decreasing in outdoor temperature
+  ok   and the nameplate curve itself is already non-decreasing
+  ok   space COP never models below the resistive floor (shipped scale)
+  ok   DHW COP never models below the resistive floor (shipped scale)
+  ok   COP is non-decreasing in outdoor through the floored band (shipped scale)
+  ok   space COP never models below the resistive floor (cop_scale on its floor)
+  ok   DHW COP never models below the resistive floor (cop_scale on its floor)
+  ok   COP is non-decreasing in outdoor through the floored band (cop_scale on its floor)
+  ok   the settlement price rides the same floor
+  ok   the batched twin carries the COP floor: two-zone throttled, tank on its cap
+  ok   the batched twin carries the COP floor: two-zone throttled, tank just above the Carnot reference
+  ok   the batched twin carries the COP floor: single-zone, learned scale on its floor
+  ok   a dumb valve is recommended the top of the comfort band
+  ok   and the recommendation says what it costs, not just what to set
+
+-- The discharge law: the valve regulates flow temperature (item 29)
+  ok   the flow setpoint is the target plus the standing loss over the emitter UA
+  ok   and collapses to the target when there is nothing to hold against
+  ok   delivery cannot be negative
+  ok   a zero-UA install yields a finite flow setpoint, not ZeroDivisionError
+  ok   a charged tank survives hours, not steps
+  ok   and while it lasts the tank alone carries the house
+  ok   the trajectory does not depend on the step length
+  ok   below the curve the valve saturates wide open
+  ok   energy is conserved: the tank's loss is the delivery plus standing loss
+  ok   with a price spread the optimizer charges through the cheap night
+  ok   and deliberately lifts the tank to do it
+  ok   and coasts both price peaks on stored heat
+  ok   the null control: flat prices produce no night concentration
+
+-- The valve hold schedule (item 29)
+  ok   a price spread earns a hold schedule
+  ok   and the schedule is fully resolved -- real temperatures, no sentinels
+  ok   it holds the valve down between charging and the peak
+  ok   and it never asks for a house below the comfort floor
+  ok   the null control: flat prices earn no schedule at all
+  ok   a valve the integration cannot command gets no schedule
+  ok   and neither does a tank too small to be a store
+  ok   no candidate is derived where prices are flat
+  ok   nor where the plan never charges
+  ok   a charging plan against a spread does derive one
+  ok   the peak itself is never held down
+  ok   a held valve really does keep heat in the tank
+  ok   and no schedule is byte-for-byte the configured target
+  ok   charging a full tank at full power is refused by the physics
+  ok   the tighten loop cuts the ceiling at the refusing steps
+  ok   even free electricity cannot plan past the tank's ceiling
+  ok   and the trajectory itself respects the cap
+  ok   extra_starts are prepended ahead of the usual candidates
+  ok   cap-tighten re-solve seeds extra_starts with clipped and bang-bang
+  ok   the bang-bang extra_start is equal-energy price-ranked then capped
+  ok   cap-tighten re-solve keeps the better of seeded and unseeded
+  ok   the valve recommendation reaches the coordinator's data
+  ok   with the reasoning attached, not just a number
+  ok   and stays out of the data entirely without a valve to set
+  ok   two published prices give the valve a price ratio
+  ok   one published price is too few to state a ratio
+
+-- smart_write: the optimizer commands the valve (item 29)
+  ok   smart_write is selectable now that it can act
+  ok   a number entity is commanded through set_value
+  ok   and the commanded number is the comfort ceiling, the same value the dumb-valve recommendation gives
+  ok   an unchanged target is not rewritten
+  ok   while a changed comfort band reaches the valve
+  ok   a climate entity is commanded through set_temperature
+  ok   a configured static target wins over the ceiling
+Valve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
+  ok   no entity, another mode, or an uncommandable domain all write nothing
+  ok   a hold schedule is what actually reaches the valve
+  ok   the current action carries the valve target for the step it is about
+
+-- Unit-correct write target for flow set-point entities (#398)
+  ok   the default preserves today's behaviour exactly
+  ok   an explicit 'indoor' kind writes the same value as an absent key
+  ok   'flow' commands the flow curve's temperature, not the raw indoor target
+  ok   an unrecognised kind is validated away to 'indoor' rather than trusted
+  ok   and single-zone is exactly the install that has none -- fixture check
+mixing_valve_write_target_kind=flow needs two-zone
+  ok   single-zone with 'flow' selected skips the write rather than commanding an indoor value to a flow set-point
+
+-- Per-step external heat reaches the model and the plan (item 28)
+  ok   free heat warms the house with the compressor off
+  ok   and it is heat, not electricity: a zero burn is the old model exactly
+  ok   a burn forecast reduces electric heating during the burn
+  ok   an all-zero forecast is byte-identical to no forecast
+  ok   a short burn forecast is padded with zeros: it plans exactly as the full-length forecast
+
+-- Setup topology: one description for every picture (items 32/33)
+  ok   the topology derives from the model's own inference
+  ok   a full topology shows every place
+  ok   empty slots are shown empty, not omitted
+  ok   a minimal setup does not grow places it does not have
+  ok   an explicit wood-off flag hides the wood tank despite leftover probes
+  ok   an explicit DHW-off flag hides the hot-water tank despite leftover volume
+  ok   every assignable slot carries the domains it accepts
+  ok   a temperature slot does not accept a switch
+  ok   a mixing valve without a target entity still publishes its place
+  ok   and the published slot carries the manual setpoint
+  ok   ThermalParameters.from_config uses that number when no entity is set
+  ok   the flow overview is a fenced monospaced block
+  ok   with configured sensors named and empty slots called out
+  ok   and the storage claim matches the model
+  ok   a modelled wood tank is claimed as its own store
+  ok   the wood abstraction is admitted in prose where it still runs
+  ok   a 10 L tank cannot discharge below what it is feeding
+  ok   a 35 L tank cannot discharge below what it is feeding
+  ok   a 750 L tank cannot discharge below what it is feeding
+  ok   more power never leaves the 35 L valved buffer cooler
+  ok   ending colder than the reference is charged for
+  ok   and ending warmer is credited by exactly the same amount
+
+-- Buffer tank standby loss scales with the tank (items 27/29)
+  ok   a bigger tank loses more in absolute terms
+  ok   but far less than in proportion to its volume
+  ok   UA grows with surface area, not with volume
+  ok   the prior is no worse than an uninsulated tank
+  ok   the learner may reach a real accumulator's standby loss
+  ok   which the old flat floor would have forbidden
+  ok   an explicitly configured rate is honoured
+  ok   and from_config leaves it unset rather than injecting a 35 L number
+
+-- Two-zone loss split learning (item 31)
+  ok   the split defaults to the configured one
+  ok   and the learned lower loss is then just the configured value
+  ok   without a lower-floor sensor nothing is learned
+  ok   a lower zone colder than predicted raises its share of the loss
+  ok   and a warmer one lowers it
+  ok   a single interval cannot move the split more than the step limit
+  ok   equal residuals either side of the prediction are both learned from
+  ok   and they move the split in opposite directions
+  ok   and by exactly the same amount, or noise still ratchets the split
+  ok   an implausible residual is rejected, not absorbed
+  ok   the split is clamped to a physical range
+  ok   external heat freezes the split learner too
+  ok   the split is persisted alongside the other learned parameters
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/1b5fa08f-9bd8-59e8-b197-ffb291fc579e/scratchpad/archscore/redteam/wt3/tests/features.py", line 10370, in <module>
+    _src.index("await self._async_learn_lower_floor_loss()")
+ValueError: substring not found
+rc=1

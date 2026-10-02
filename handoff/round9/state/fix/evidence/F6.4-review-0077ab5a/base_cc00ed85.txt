@@ -1,0 +1,25 @@
+SV_PAGE_LINE_IDENTICAL_TO_EN 'House: two zones'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  * Indoor temperature: sensor.livingroom'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Lower floor temperature: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Floor loop return: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN 'Heat pump'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Heat pump switch: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Power meter: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Energy meter: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Whole-house power: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Operating mode: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Defrosting: not configured'
+SV_PAGE_LINE_IDENTICAL_TO_EN '  - Online status: not configured'
+SV_SLOT_LABELS ['Outdoor temperature', 'Solar radiation', 'PV production', 'Indoor temperature', 'Lower floor temperature', 'Floor loop return', 'Heat pump switch', 'Power meter', 'Energy meter', 'Whole-house power', 'Operating mode', 'Defrosting', 'Online status', 'Fault alarm', 'Buffer tank temperature', 'Hot water temperature']
+SV_ADVISOR_LABELS ['Lower floor temperature', 'Hot water temperature', 'Floor loop return']
+NARRATIVE en=['1.2 kWh in the cheapest hours for 0.50 SEK'] sv=['1.2 kWh under de billigaste timmarna för 0.50 SEK']
+RESULT flow_page_lines_sv=23 count
+RESULT flow_page_lines_identical_to_en=22 count
+RESULT slot_labels_identical_to_en=16 of 16
+RESULT advisor_labels_identical_to_en=3 of 3
+RESULT en_identical_total=41 count
+RESULT null_narrative_lines_identical_to_en=0 of 1
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=0.59
+RESULT swapins=0

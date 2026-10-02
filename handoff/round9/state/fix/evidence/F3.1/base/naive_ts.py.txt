@@ -1,0 +1,11 @@
+# arm=naive
+RESULT snapshot_raises=21 count
+RESULT snapshot_taken=0 count
+RESULT curve_raises=19 count
+RESULT curve_bias_after=-1.0 count
+RESULT comfort_override_raises=21 count
+RESULT comfort_quiet_raises=21 count
+RESULT sibling_raises=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.19
+RESULT swapins=0

@@ -1,0 +1,36 @@
+tools/audit/bugclasses.json
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AttributeError: 'str' object has no attribute 'get'
+1747 in bugclasses: 0
+## features check text
+26586:R.section("v5.3.0 — a blocked channel is suppressed, and visibly so")
+26646:    "a heating-only mode plans no hot water at all",
+26734:    "a DHW-blocked plan ships no hot water when mostly negative prices tempt the co-optimisation replan (#1747)",
+26743:    "and every DHW build that solve made was told the mode is blocked",
+## R9-P2 quote
+58:   that accepts `sensor` (`if key in _P6_READ_ONLY or "sensor" in domains: continue`), and the
+59:   mode slot accepts `("select", "sensor", "input_select")` (`topology._MODE`). #1576 states the
+60:   assumption this depends on: "No written slot accepts `sensor` today." The arbiter made that
+82:  guarded by two checks.
+112:precondition ("no written slot accepts `sensor`"), and that precondition changed underneath it
+125:41 PRs per round (the round-9 plan) and an assumed 3 runs per PR (not measured), that is
+211:> compares their outputs, and **the census asserts its own preconditions** (a census that skips
+265:  2. **F3.2 and F1.10.** D12-s2-02 escaped the #1576 P6 census through its stated `sensor`
+## fixer.md step 14
+102:8. **A quoted number states the rule that produced it, not just its value.**
+171:14. **An allow-list is keyed on something, and your entry silences everything
+## carry-1644 carries
+4 2
+## sha1 of instruments
+e29cc879952b45a1626be375fc775972d1f89347  tools/audit/round9/rca/1747/b8_replan_blocked.py
+25ec2ea20a37bed91d74b7b857cdd650120f093f  tools/audit/round9/rca/1747/kwarg_seams.py
+44fd91665562295de35e75e90dc6586048bc23d2
+30f9420315e538f65ee6051a5ac662a0ae64f1a4
+<class 'dict'> ['_source', '_status', '_counting', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7']
+{'kind': 'production', 'mechanism': 'One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling', 'rounds': '<list 9>', 'instances': '<list 66>', 'per_round': '<dict 9>', 'total': 66, 'max_per_round': 27, 'detector': None, 'detector_idea': 'AST: callers of each named gate predicate against the structurally sibling functions that should share it', 'barrier': None, 'status': 'open', 'mechanism_note': "Stretched. Used as the catch-all for sibling-seam guard gaps; R8/R9 add entity default-enabled/availability (N-dup-entity, N-availability, R8 D8-s2-02), a try opened after the call it should fence (N-late-try) and a state-blind flow menu (N-menu), all 'guard present at a sibling, missing here'. R1-7 misfits flagged in reclassifications.md (coordinator size, name sort).", 'aliases': '<list 8>', 'rca': '<list 3>', 'rca_planned': '<list 1>', 'trigger': '<dict 4>'}
+per_round {'R1': 9, 'R2': 8, 'R3': 2, 'R4': 2, 'R5': 5, 'R6': 2, 'R7': 4, 'R8': 7, 'R9': 27}
+trigger {'per_round': True, 'cross_round': True, 'barriered_any': False, 'class_rca_on_record': True}
+_counting: An instance is a judged survivor or an instance counted beyond it (a sweep, RCA or fixer seat found the seam and it is not the judged site); non_round_instances are incidents and screens, listed, not counted. trigger.per_round is the rule in force (defect-root-cause.md:87-91); trigger.cross_round is the proposed clause (>=3 over any 3 consecutive rounds, or >=5 total while open), owner-gated in R9-EG-R1.
+['R9-F1.11']
+['_counting', 'P10', 'P11', 'N-restart', 'N-shared-config']

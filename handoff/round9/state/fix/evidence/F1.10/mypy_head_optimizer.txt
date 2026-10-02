@@ -1,0 +1,5 @@
+heatpump_optimizer/optimizer.py:50: error: Library stubs not installed for "scipy.optimize"  [import-untyped]
+heatpump_optimizer/optimizer.py:50: note: Hint: "python3 -m pip install scipy-stubs"
+heatpump_optimizer/optimizer.py:50: note: (or run "mypy --install-types" to install all missing stub packages)
+heatpump_optimizer/optimizer.py:50: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+Found 1 error in 1 file (checked 1 source file)

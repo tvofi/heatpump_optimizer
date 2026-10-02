@@ -1,0 +1,27 @@
+  3581 unpinned site(s) of 4079 candidate sites, 3583 at the ratchet base a15e3e33507bde9e566858ce32b2ded840edfa02; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 1 production file(s) whose code this diff adds or modifies
+  3 mutant(s) over 1 file(s); drivers in play: tests/config_flow_steps.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'a15e3e33507bde9e566858ce32b2ded840edfa02' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/coordinator.py:580 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/config_flow_steps.py: rc=0 failed=0 26s
+  baseline tests/deployment_shape.py: rc=0 failed=0 4s
+  baseline tests/doc_claims.py: rc=0 failed=0 6s
+  baseline tests/entities.py: rc=0 failed=0 138s
+  baseline tests/env_drift.py: rc=0 failed=0 566s
+  baseline tests/finite_boundary.py: rc=0 failed=0 55s
+  baseline tests/manual_plan.py: rc=0 failed=0 9s
+  baseline tests/plan_view.py: rc=0 failed=0 2s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 6s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/features.py: rc=0 failed=0 668s
+  null control custom_components/heatpump_optimizer/coordinator.py:580 NULL_COMMENT survived every driver
+  ok    custom_components/heatpump_optimizer/coordinator.py:1344 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:1366 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:5464 BOOLOP  -- killed by tests/features.py
+
+  0 survivor(s) of 3 evaluated = 0.0%, cap 20.0%
+
+MUTATION TABLE PASSED
+rc=0 wall=3436s

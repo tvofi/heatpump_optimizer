@@ -1,0 +1,4 @@
+pull request changes 1 file(s) (56070e794a86...cbe40081bc38); main changed 1 since the CI base (56070e794a86..0960b690b0ce)
+REFUSE unrecorded: pull request changes DISCLAIMER.md, which no closure records, and run_always tests/closure.py, tests/env_drift.py, tests/harness_headers.py, tests/layout.py read the tree whatever is selected
+REFUSE unrecorded: main changes tools/audit/README.md, which no closure records, and run_always tests/closure.py, tests/env_drift.py, tests/harness_headers.py, tests/layout.py read the tree whatever is selected
+FASTPATH REFUSED: 2 reason(s)

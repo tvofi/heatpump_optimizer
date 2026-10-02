@@ -1,0 +1,11 @@
+BUS posted 1829 fc7fa216ce9f28ea15dd8b0d2bc5e4dd038bef2c Fix review: merge 3333333333333333333333333333333333333333
+BUS posted 1829 0f1d61067791979cbdad6c8731a2159e3170e32a Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted
+--- posts before the replay
+POSTED: Fix review: merge 3333333333333333333333333333333333333333
+POSTED: Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted
+--- watch --post after the replay
+BUS verdict 1829 62845b60b89c9c100fe94390f79383a3120ebd7c
+BUS unsigned 1829 62845b60b89c9c100fe94390f79383a3120ebd7c: not signed with hpo-approver's key; a reviewer proposes on review/1829 and the orchestrator confirms it
+--- posts after
+POSTED: Fix review: merge 3333333333333333333333333333333333333333
+POSTED: Fix review: blocked 3333333333333333333333333333333333333333 harness: retracted

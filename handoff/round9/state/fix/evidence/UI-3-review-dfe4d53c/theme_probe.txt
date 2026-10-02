@@ -1,0 +1,16 @@
+== dfe4d53c /tmp/claude-0/wt2 dark (darkMode=false)
+.title         fg rgb(225,225,225) on rgb(28,28,28) = 13.03:1
+.status-pill   fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.tile-k        fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.tile-n        fg rgb(33,33,33) on rgb(247,249,251) = 15.26:1
+.tile-u        fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.hl-label      fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.hl-value      fg rgb(33,33,33) on rgb(247,249,251) = 15.26:1
+== dfe4d53c /tmp/claude-0/wt2 default (darkMode=false)
+.title         fg rgb(33,33,33) on rgb(255,255,255) = 16.10:1
+.status-pill   fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.tile-k        fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.tile-n        fg rgb(33,33,33) on rgb(247,249,251) = 15.26:1
+.tile-u        fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.hl-label      fg rgb(114,114,114) on rgb(247,249,251) = 4.56:1
+.hl-value      fg rgb(33,33,33) on rgb(247,249,251) = 15.26:1

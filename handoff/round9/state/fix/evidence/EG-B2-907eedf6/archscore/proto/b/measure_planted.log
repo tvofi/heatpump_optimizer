@@ -1,0 +1,58 @@
+B1_copy_cross_module BAD
+B1c_copy_same_module_control BAD
+B2_private_reach BAD
+B3a_passthrough_chain_optimize BAD
+B3b_passthrough_chain_coordinator BAD
+B3c_passthrough_chain_greedy BAD
+B4a_inplace_write_shared_dict BAD
+B4b_inplace_write_new_attr BAD
+B4c_inplace_write_via_helper BAD
+B5a_dead_method BAD
+B5b_dead_property BAD
+B5c_dead_method_common_name BAD
+B5d_dead_method_selfcalled BAD
+B5e_dead_top_level BAD
+B6_cyclic_import BAD
+B6b_cyclic_import_local BAD
+B7_god_helper_module BAD
+B8_star_import_const BAD
+G1_extract_block GOOD
+G2_dedupe GOOD
+G3_move_cluster_with_state GOOD
+G4a_public_accessor_existing GOOD
+G4b_public_accessor_new GOOD
+G5_frozen_record_arg GOOD
+N1_rename_local NULL
+N1b_reformat_signature NULL
+N1c_reformat_explode_call NULL
+N2_docstring NULL
+N3_seam_relabel NULL
+N4_const_namespace_import NULL
+hub_solve_writes control BAD
+hub_solve_writes fix GOOD
+hub_solve_writes null NULL
+shared_inplace_writes control BAD
+shared_inplace_writes fix GOOD
+shared_inplace_writes null NULL
+private_reach control BAD
+private_reach control_write BAD
+private_reach fix GOOD
+private_reach null NULL
+untyped_payload_keys control BAD
+untyped_payload_keys fix GOOD
+untyped_payload_keys null NULL
+xmodule_duplication control BAD
+xmodule_duplication fix GOOD
+xmodule_duplication null NULL
+import_cycles control BAD
+import_cycles fix GOOD
+import_cycles null NULL
+public_surface control BAD
+public_surface fix GOOD
+public_surface null NULL
+dead_by_reachability control BAD
+dead_by_reachability fix GOOD
+dead_by_reachability null NULL
+family_splits control BAD
+family_splits fix GOOD
+family_splits null NULL

@@ -1,0 +1,28 @@
+Own mutants of the two v5 fixes on a git archive 3b2d6bd7 copy; PYTHONPATH=tests/hastub python tests/finite_boundary.py (venv: CPython 3.13.12, requirements-ci pins)
+== M0
+1
+rc=0
+ALL 68 FINITE BOUNDARY CHECKS PASSED
+== M1 floor every key (parent)
+1
+rc=1
+  UNREACHED energy:dhw_cost in-domain -1.37 came back 0.0
+  UNREACHED energy:space_cost in-domain -1.37 came back 0.0
+  UNREACHED energy:total_cost in-domain -1.37 came back 0.0
+  FAIL every in-domain probe reaches live state (the out-probes are not vacuous)  [unreached=3]
+1 of 68 FINITE BOUNDARY CHECKS FAILED
+== M2 floor no key
+1
+rc=1
+  FAIL no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)  [refused=3]
+1 of 68 FINITE BOUNDARY CHECKS FAILED
+== M3 streak book gets day '' (parent)
+1
+rc=1
+  FAIL a day-less score_day book (the free-day close's streak) survives a reload (#908)  [came back {}]
+1 of 68 FINITE BOUNDARY CHECKS FAILED
+== M4 streak book gets the full key set
+1
+rc=1
+KeyError: 'day'
+== M5 streak test keyed on a truthy day instead of the day key: that is a027a5b6's line; the scoped gate at a027a5b6 failed tests/features.py 'a non-finite number and an unnamed day are both refused, not clipped' [empty day -> {'free_streak': 0.0}]

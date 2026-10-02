@@ -1,0 +1,226 @@
+
+=== tests/hastub contracts (provider: stub, upstream 2025.2.0) ===
+
+-- contracts against the stub provider
+  ok   components.diagnostics.async_redact_data: None is skipped, not redacted
+  ok   components.diagnostics.async_redact_data: the empty string is skipped, not redacted
+  ok   components.diagnostics.async_redact_data: a present value is replaced by REDACTED
+  ok   components.diagnostics.async_redact_data: a non-mapping, non-list value passes through unchanged
+  ok   components.diagnostics.async_redact_data: nested mappings and lists are walked
+  ok   components.diagnostics.async_redact_data: the input mapping is not mutated
+  ok   helpers.selector.NumberSelector: mode defaults to slider, so an unbounded selector is refused
+  ok   helpers.selector.NumberSelector: a slider missing either bound is refused
+  ok   helpers.selector.NumberSelector: box mode may be unbounded
+  ok   helpers.selector.NumberSelector: the value is coerced to float and range-checked
+  ok   helpers.selector.SelectSelector: a non-string value is refused before the options are consulted
+  ok   helpers.selector.SelectSelector: a value outside the options is refused and a listed one is returned
+  ok   exceptions.HomeAssistantError: the three translation kwargs land on the instance
+  ok   exceptions.HomeAssistantError: a translated error with no message carries the key as its message -- still divergent under the stub
+  ok   exceptions.ServiceValidationError: subclasses HomeAssistantError
+  ok   data_entry_flow.AbortFlow: reason and placeholders land on the instance, with upstream's message
+  ok   data_entry_flow.FlowError: a flow error is a HomeAssistantError -- still divergent under the stub
+  ok   helpers.config_validation.string: None is refused rather than coerced to 'None' -- still divergent under the stub
+  ok   helpers.config_validation.boolean: the negative strings are False and an unrecognised one is refused -- still divergent under the stub
+  ok   helpers.config_validation.positive_int: a negative is refused -- still divergent under the stub
+  ok   helpers.config_validation.positive_float: a negative is refused -- still divergent under the stub
+  ok   config_entries.ConfigEntry: runtime_data is absent until the integration assigns it
+  ok   config_entries.ConfigFlow: an advanced marker is dropped unless the flow shows advanced options
+  ok   config_entries.ConfigFlow: a suggested value is attached without mutating the flow's own schema
+  ok   helpers.update_coordinator.CoordinatorEntity: available follows the coordinator's last_update_success
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a refresh runs the update method and lands its return value
+  ok   helpers.update_coordinator.UpdateFailed: subclasses HomeAssistantError and keeps the translation kwargs
+Error fetching contract data: source refused
+  ok   helpers.update_coordinator.DataUpdateCoordinator: UpdateFailed flips last_update_success False and never escapes the refresh
+Error fetching contract data: down
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a successful refresh after a failure flips last_update_success back
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a refresh fans out to every added listener
+  ok   helpers.update_coordinator.DataUpdateCoordinator: two request refreshes inside the cooldown run the update once
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a failed first refresh raises ConfigEntryNotReady and latches the failure
+Authentication failed while fetching contract data: token refused
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an auth failure on a steady refresh latches, does not escape, and starts reauth
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an auth failure on the first refresh escapes as ConfigEntryAuthFailed
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a successful first refresh completes without raising
+  ok   helpers.update_coordinator.DataUpdateCoordinator: an identical second refresh still fans out by default
+  ok   helpers.update_coordinator.DataUpdateCoordinator: always_update=False holds the fan-out back until data or success moves
+  ok   helpers.update_coordinator.DataUpdateCoordinator: removing the last listener cancels the pending debounced refresh
+  ok   helpers.update_coordinator.DataUpdateCoordinator: a NotImplementedError from the update method escapes the refresh, recorded as last_exception
+  ok   exceptions.ConfigEntryNotReady: a ConfigEntryNotReady is a HomeAssistantError
+  ok   exceptions.ConfigEntryAuthFailed: a ConfigEntryAuthFailed is an IntegrationError carrying the translation
+  ok   exceptions.IntegrationError: the message falls back to the cause when the error carries none
+  ok   helpers.entity_registry.async_get: the same registry object is returned for the same hass  (stub-only)
+  ok   helpers.device_registry.async_get: the same registry object is returned for the same hass, and a device is retrievable by its id  (stub-only)
+  ok   helpers.entity_registry.async_entries_for_device: only the named device's entries come back, and a device with none gives an empty list  (stub-only)
+  ok   components.repairs.ConfirmRepairFlow: init shows a confirm form, and confirming creates the entry  (stub-only)
+  ok   helpers.entity_registry.async_entries_for_config_entry: only the entries belonging to that config entry are returned  (stub-only)
+  ok   helpers.event.async_track_state_change_event: the returned callable removes the subscription, and twice is harmless  (stub-only)
+  ok   helpers.event.async_track_state_change_event: a plain function that is neither @callback nor a coroutine is refused  (stub-only)
+  ok   helpers.issue_registry.async_create_issue: re-raising the same issue id replaces it rather than adding a second  (stub-only)
+  ok   helpers.issue_registry.async_create_issue: stores the documentation-link kwarg so a notice can carry one  (stub-only)
+  ok   helpers.issue_registry.async_delete_issue: deletes by (domain, issue_id) and is a no-op when there is nothing to delete  (stub-only)
+  ok   helpers.update_coordinator.DataUpdateCoordinator: the update interval it was constructed with is read back
+  ok   helpers.storage.Store: a document the decoder refuses is moved aside and loads as None; the rest decode as orjson reads them  (stub-only)
+  FAIL helpers.storage.Store: a load at a newer major version than the code's raises UnsupportedStorageVersionError before any migration; at an older one it raises NotImplementedError with no migration, or runs the migration with the stored version and saves the result back (the stored version updates, a second load does not migrate again); an equal version returns the data  (stub-only)  [AssertionError: {'equal': [{'n': 1}, (None, 1)], 'bumped, no migration': [{'n': 1}, (None, 1)], 'bumped, migrated, twice': [{'n': 1}, {'n': 1}, (None, 1)], 'downgrade, no migration': [{'n': 1}, (None, 1)], 'downgrade, migrating Store': [{'n': 1}, (None, 1)]}]
+  ok   util.dt.utcnow: returns an aware datetime in UTC
+  ok   util.dt.now: returns a datetime in the configured zone
+  ok   util.dt.now: returns an aware datetime when no zone has been configured
+  ok   util.dt.parse_datetime: an unparseable string is None rather than an exception
+  ok   util.dt.as_utc: aware datetimes convert to UTC instants and naive ones attach UTC
+  ok   util.dt.DEFAULT_TIME_ZONE: a zone is configured without anything being set in the environment
+  ok   util.dt.as_local: a naive datetime is converted rather than returned unchanged -- still divergent under the stub
+  ok   core.callback: the decorated function is tagged so the event loop runs it inline
+  ok   data_entry_flow.section: presentation config lands on options, not on config, and collapsed defaults to False
+  ok   data_entry_flow.section: the inner schema is kept as an attribute rather than merged into the parent
+  ok   data_entry_flow.section: an unknown presentation option is refused
+  ok   components.sensor.SensorEntity: a state outside the declared options raises, on every read  (stub-only)
+  ok   components.sensor.SensorEntity: None short-circuits before the options check, so an unavailable enum sensor is unknown  (stub-only)
+  ok   components.sensor.SensorEntity: options without the enum device class raise, and a unit on a non-numeric class raises  (stub-only)
+  ok   components.sensor.SensorEntity: device_class reads _attr_device_class through the public property
+  ok   components.sensor.SensorEntity: state_class reads _attr_state_class through the public property
+  ok   components.binary_sensor.BinarySensorEntity: device_class reads _attr_device_class through the public property
+  ok   helpers.entity.Entity: entity_category reads _attr_entity_category through the public property
+  ok   helpers.entity.Entity: every platform entity base resolves entity_category
+
+-- inventory completeness
+  ok   every public stub symbol has a disposition
+  ok   every inventory entry still names a live stub symbol
+  ok   every disposition is a declared one
+  ok   every FAITHFUL symbol carries at least one contract
+  ok   every UNVERIFIED symbol is at least pinned against the stub
+  ok   every DIVERGENT symbol carries a contract stating upstream's behaviour
+  ok   every DIVERGENT symbol names the issue tracking it
+
+-- declared simplifications are still simplifications
+  ok   no member declared absent has appeared
+
+-- parameters the stub accepts and drops
+  ok   every parameter the stub drops is declared
+  ok   every declared drop is still dropped
+  ok   the drop scan read the stub
+
+-- contracts re-run under the stub's own test hooks
+  ok   util.dt.utcnow: returns an aware datetime in UTC  (frozen naive)
+  ok   util.dt.now: returns a datetime in the configured zone  (frozen naive)
+  ok   util.dt.now: returns an aware datetime when no zone has been configured  (frozen naive)
+  ok   util.dt.utcnow: returns an aware datetime in UTC  (frozen at a fixed offset)
+  ok   util.dt.now: returns a datetime in the configured zone  (frozen at a fixed offset)
+  ok   util.dt.now: returns an aware datetime when no zone has been configured  (frozen at a fixed offset)
+  ok   the hook re-runs ran
+
+-- inventory
+  108 symbols: 19 faithful, 7 divergent, 9 unverified, 27 simplified, 46 holder; 2 unmodelled upstream areas
+       faithful   homeassistant.components.diagnostics.async_redact_data
+       faithful   homeassistant.config_entries.ConfigEntry
+       faithful   homeassistant.config_entries.ConfigFlow
+       faithful   homeassistant.core.callback
+       faithful   homeassistant.data_entry_flow.AbortFlow
+       faithful   homeassistant.data_entry_flow.section
+       faithful   homeassistant.exceptions.ConfigEntryAuthFailed
+       faithful   homeassistant.exceptions.ConfigEntryNotReady
+       faithful   homeassistant.exceptions.IntegrationError
+       faithful   homeassistant.exceptions.ServiceValidationError
+       faithful   homeassistant.helpers.selector.NumberSelector
+       faithful   homeassistant.helpers.selector.SelectSelector
+       faithful   homeassistant.helpers.update_coordinator.CoordinatorEntity
+       faithful   homeassistant.helpers.update_coordinator.UpdateFailed
+       faithful   homeassistant.util.dt.DEFAULT_TIME_ZONE
+       faithful   homeassistant.util.dt.as_utc
+       faithful   homeassistant.util.dt.now
+       faithful   homeassistant.util.dt.parse_datetime
+       faithful   homeassistant.util.dt.utcnow
+       divergent  homeassistant.data_entry_flow.FlowError (#577)
+       divergent  homeassistant.exceptions.HomeAssistantError (#577)
+       divergent  homeassistant.helpers.config_validation.boolean (#577)
+       divergent  homeassistant.helpers.config_validation.positive_float (#577)
+       divergent  homeassistant.helpers.config_validation.positive_int (#577)
+       divergent  homeassistant.helpers.config_validation.string (#577)
+       divergent  homeassistant.util.dt.as_local (#577)
+       unverified homeassistant.components.repairs.ConfirmRepairFlow
+       unverified homeassistant.components.sensor.SensorEntity
+       unverified homeassistant.helpers.device_registry.async_get
+       unverified homeassistant.helpers.entity_registry.async_entries_for_config_entry
+       unverified homeassistant.helpers.entity_registry.async_entries_for_device
+       unverified homeassistant.helpers.entity_registry.async_get
+       unverified homeassistant.helpers.event.async_track_state_change_event
+       unverified homeassistant.helpers.issue_registry.async_create_issue
+       unverified homeassistant.helpers.issue_registry.async_delete_issue
+       simplified homeassistant.components.button.ButtonEntity
+       simplified homeassistant.components.mqtt.async_publish
+       simplified homeassistant.components.mqtt.async_subscribe
+       simplified homeassistant.config_entries.HANDLERS
+       simplified homeassistant.core.HomeAssistant
+       simplified homeassistant.core.ServiceCall
+       simplified homeassistant.data_entry_flow.FlowResult
+       simplified homeassistant.helpers.aiohttp_client.async_get_clientsession
+       simplified homeassistant.helpers.config_validation.config_entry_only_config_schema
+       simplified homeassistant.helpers.device_registry.DeviceEntry
+       simplified homeassistant.helpers.device_registry.DeviceRegistry
+       simplified homeassistant.helpers.entity.Entity
+       simplified homeassistant.helpers.entity_registry.EntityRegistry
+       simplified homeassistant.helpers.entity_registry.RegistryEntry
+       simplified homeassistant.helpers.event.async_track_time_interval
+       simplified homeassistant.helpers.selector.BooleanSelector
+       simplified homeassistant.helpers.selector.DeviceSelector
+       simplified homeassistant.helpers.selector.EntitySelector
+       simplified homeassistant.helpers.selector.LocationSelector
+       simplified homeassistant.helpers.selector.TextSelector
+       simplified homeassistant.helpers.selector.TimeSelector
+       simplified homeassistant.helpers.storage.Store
+       simplified homeassistant.helpers.storage.UnsupportedStorageVersionError
+       simplified homeassistant.helpers.translation.async_get_translations
+       simplified homeassistant.helpers.update_coordinator.DataUpdateCoordinator
+       simplified homeassistant.helpers.update_coordinator.Debouncer
+       simplified homeassistant.loader.async_get_integration
+       holder     homeassistant.components.binary_sensor.BinarySensorDeviceClass
+       holder     homeassistant.components.binary_sensor.BinarySensorEntity
+       holder     homeassistant.components.climate.ClimateEntity
+       holder     homeassistant.components.climate.ClimateEntityFeature
+       holder     homeassistant.components.climate.HVACAction
+       holder     homeassistant.components.climate.HVACMode
+       holder     homeassistant.components.datetime.DateTimeEntity
+       holder     homeassistant.components.diagnostics.REDACTED
+       holder     homeassistant.components.repairs.RepairsFlow
+       holder     homeassistant.components.sensor.DEVICE_CLASS_STATE_CLASSES
+       holder     homeassistant.components.sensor.NON_NUMERIC_DEVICE_CLASSES
+       holder     homeassistant.components.sensor.SensorDeviceClass
+       holder     homeassistant.components.sensor.SensorStateClass
+       holder     homeassistant.components.switch.SwitchEntity
+       holder     homeassistant.config_entries.ConfigEntryState
+       holder     homeassistant.config_entries.OptionsFlow
+       holder     homeassistant.config_entries.SOURCE_RECONFIGURE
+       holder     homeassistant.const.ATTR_TEMPERATURE
+       holder     homeassistant.const.CONF_NAME
+       holder     homeassistant.const.EVENT_HOMEASSISTANT_STOP
+       holder     homeassistant.const.PERCENTAGE
+       holder     homeassistant.const.Platform
+       holder     homeassistant.const.UnitOfEnergy
+       holder     homeassistant.const.UnitOfPower
+       holder     homeassistant.const.UnitOfSpeed
+       holder     homeassistant.const.UnitOfTemperature
+       holder     homeassistant.const.UnitOfVolume
+       holder     homeassistant.core.SupportsResponse
+       holder     homeassistant.data_entry_flow.SectionConfig
+       holder     homeassistant.helpers.device_registry.DeviceEntryType
+       holder     homeassistant.helpers.entity.DeviceInfo
+       holder     homeassistant.helpers.entity.EntityCategory
+       holder     homeassistant.helpers.entity_platform.AddEntitiesCallback
+       holder     homeassistant.helpers.issue_registry.IssueSeverity
+       holder     homeassistant.helpers.selector.DeviceSelectorConfig
+       holder     homeassistant.helpers.selector.EntitySelectorConfig
+       holder     homeassistant.helpers.selector.LocationSelectorConfig
+       holder     homeassistant.helpers.selector.NumberSelectorConfig
+       holder     homeassistant.helpers.selector.NumberSelectorMode
+       holder     homeassistant.helpers.selector.SelectSelectorConfig
+       holder     homeassistant.helpers.selector.SelectSelectorMode
+       holder     homeassistant.helpers.selector.TextSelectorConfig
+       holder     homeassistant.helpers.selector.TextSelectorType
+       holder     homeassistant.helpers.storage.SAVE_COUNTS
+       holder     homeassistant.helpers.update_coordinator.REQUEST_REFRESH_DEFAULT_COOLDOWN
+       holder     homeassistant.util.dt.freeze
+
+1 of 92 contracts FAILED
+
+=== #590 NumberSelector / advanced convention ===
+  ok   walker refuses a NumberSelector built outside _number
+  ok   walker accepts _number and _widen_to_fit
+  ok   walker refuses _number that omits mode
+  ok   walker refuses description={advanced: True}

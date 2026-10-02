@@ -1,0 +1,39 @@
+catalog keys: ['key', 'label', 'description', 'requirement', 'selectable', 'valid', 'edges']
+gaps: [{"key": "house_power_entity", "label": "Whole-house power", "sek_per_month": 0.0, "empty": true}, {"key": "outdoor_temp_entity", "label": "Outdoor temperature", "sek_per_month": 0.0, "empty": false}, {"key": "dhw_temp_entity", "label": "Hot water temperature", "sek_per_month": 0.0, "empty": true}]
+advisor: {"basis": "config", "candidates": [{"key": "lower_floor_temp_entity", "label": "Lower floor temperature", "priced": true, "parameters": ["lower_floor_loss_ratio"], "spread_c": 18.4}, {"key": "buffer_tank_temp_entity", "label": "Buffer tank temperature", "priced": true, "parameters": ["buffer_cooling_rate"], "spread_c": 10.11}, {"key": "dhw_temp_entity", "label": "Hot water temperature", "priced": false, "reason": "no_clamped_parameter"}, {"key": "floor_return_temp_entity", "label": "Floor loop return", "priced": false, "reason": "state_estimate"}]}
+----- sv summary
+```
+Hus: två zoner
+  * Inomhustemperatur: sensor.indoor
+  - Temperatur nedre plan: inte konfigurerad
+  - Golvslingans retur: inte konfigurerad
+
+Värmepump
+  - Värmepumpens brytare: inte konfigurerad
+  - Effektmätare: inte konfigurerad
+  - Energimätare: inte konfigurerad
+  - Husets totala effekt: inte konfigurerad
+  - Driftläge: inte konfigurerad
+  - Avfrostning: inte konfigurerad
+  - Anslutningsstatus: inte konfigurerad
+  - Fellarm: inte konfigurerad
+
+Värmepumpstank: 750 L, används som lager upp till 70 °C
+  * Blandningsventil: manual
+  - Ventilens börvärde: 0 °C
+  - Ventilens utgångstemperatur: inte konfigurerad
+  - Buffertankens temperatur: inte konfigurerad
+
+Varmvattentank
+  - Varmvattentemperatur: inte konfigurerad
+
+Vedpannans tank: 500 L, modelleras som ett eget lager
+  - Kamin- eller rökgivare: inte konfigurerad
+  * Vedtankens topp: sensor.wood_top
+  - Vedtankens botten: inte konfigurerad
+
+Ute
+  * Utetemperatur: sensor.outdoor
+  - Solinstrålning: inte konfigurerad
+  - Solcellsproduktion: inte konfigurerad
+```

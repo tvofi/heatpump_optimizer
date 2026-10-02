@@ -1,0 +1,20 @@
+{
+ "admissible": true,
+ "dS": 160.6676,
+ "missing": [],
+ "rises": [],
+ "terms": {
+  "a1_coord_writers_multi": 1.1265,
+  "a1_params_over_10": 0.4657,
+  "coord_footprint_v1": 0.061,
+  "dead_by_reachability": 2.8074,
+  "dup_pairs_v1": 35.0928,
+  "family_splits": 10.9319,
+  "hub_solve_writes": 29.1609,
+  "private_reach": 2.7318,
+  "public_unused": 2.8074,
+  "shared_inplace_writes": 24.6215,
+  "untyped_payload_keys": 50.8607
+ },
+ "verdict": "IMPROVES"
+}

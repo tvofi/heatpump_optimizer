@@ -1,0 +1,46 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             404a5fb0fb6041a9d430cbff08be9aae6fab4a21
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 232 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       pinned graders         
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 404a5fb0fb6041a9d430cbff08be9aae6fab4a21 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       closes #1654 -- intended
+  ok       closes #1741 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             4:both
+             8:every
+             8:each
+             9:each
+             26:every
+             32:all
+             33:each
+             37:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             02 a
+             1556 l
+             1741 c
+             1741 a
+             01 r
+             00250 a
+             00500 p
+             95 of 96
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/f1-10/body.md
+  ok       figures                FIGURES: 10 resolved, 2 not verified, 0 refused
+  ok       push order             origin/handoff/r9-f1-coordinator-10 is at 8c7be89d -- local mirror, unfetched
+
+PRE-PR: 8c7be89d5e633940ee7957688745a74ab0501bef 000000000000000000

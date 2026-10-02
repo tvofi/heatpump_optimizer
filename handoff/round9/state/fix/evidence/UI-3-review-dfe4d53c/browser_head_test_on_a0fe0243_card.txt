@@ -1,0 +1,3 @@
+69:  FAIL  R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with dark theme variables, darkMode false
+71:  FAIL  R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with light theme variables, darkMode true
+74:2 BROWSER CHECK(S) FAILED

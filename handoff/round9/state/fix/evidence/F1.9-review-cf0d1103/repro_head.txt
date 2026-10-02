@@ -1,0 +1,12 @@
+RESULT legionella_due_in_h_at_d30 null=-1032.0 skewed=-552.0
+Traceback (most recent call last):
+TypeError: can't compare offset-naive and offset-aware datetimes
+-- row-safe copy:
+RESULT legionella_due_in_h_at_d30 null=-1032.0 skewed=-552.0
+RESULT boost_active_at_d30 ERROR TypeError: can't compare offset-naive and offset-aware datetimes
+RESULT boost_legit_1h_active_at_T0+30min ERROR TypeError: can't compare offset-naive and offset-aware datetimes
+RESULT echo_grace_open_at_d30 ERROR TypeError: can't subtract offset-naive and offset-aware datetimes
+RESULT snow_damped_at_d30 null=False skewed=False
+RESULT immersion_margin_at_d30 ERROR TypeError: can't compare offset-naive and offset-aware datetimes
+RESULT outage_flagged_after_6h_cut null=True skewed=True
+RESULT fuse_gated_at_d10_same_month null=False skewed=False

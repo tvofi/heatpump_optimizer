@@ -1,0 +1,31 @@
+M1 defrost duty domain: KILLED by 1 check(s)
+    FAIL  stored defrost duty outside [0, 1] restarts only its own bucket unmeasured, with a warning; a healthy store loa
+M2 defrost cell-wise (all-or-nothing grid): KILLED by 2 check(s)
+    FAIL  stored defrost duty outside [0, 1] restarts only its own bucket unmeasured, with a warning; a healthy store loa
+    FAIL ne unreadable cell in a v2 defrost store costs one bucket, and neither it nor a wholly unreadable measured half
+M3 defrost unreadable v2 half labelled migrated: KILLED by 1 check(s)
+    FAIL ne unreadable cell in a v2 defrost store costs one bucket, and neither it nor a wholly unreadable measured half
+M4 price profile cone gate: KILLED by 1 check(s)
+    FAIL  stored price shape, quarter factor or variance outside what the learner writes is brought back into its domain;
+M5 price variance bound: KILLED by 1 check(s)
+    FAIL  stored price shape, quarter factor or variance outside what the learner writes is brought back into its domain;
+M6 price day-count floor (days and quarter_days): KILLED by 1 check(s)
+    FAIL  stored price shape, quarter factor or variance outside what the learner writes is brought back into its domain;
+M15 _stored_rows' return None after the warning: KILLED by 1 check(s)
+    FAIL he price loader called directly restarts shapes holding a 'nan' bin flat and keeps day counts that are not a two
+M16 _stored_counts' shape guard off: KILLED by 1 check(s)
+    FAIL he price loader called directly restarts shapes holding a 'nan' bin flat and keeps day counts that are not a two
+M8 tariff negative peak: KILLED by 1 check(s)
+    FAIL  negative stored peak is dropped and an out-of-domain open window restarts empty; a real tracker loads as writte
+M9 tariff window domain: KILLED by 1 check(s)
+    FAIL  negative stored peak is dropped and an out-of-domain open window restarts empty; a real tracker loads as writte
+M10 _raw_value overflow: KILLED by 1 check(s)
+    FAIL  huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)  [{'entity': 'Overflo
+M11 _entries_by_day overflow: KILLED by 1 check(s)
+    FAIL  huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)  [{'entity': 24, 'tib
+M12 apply_price_adjustments overflow: KILLED by 1 check(s)
+    FAIL  huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)  [{'entity': 24, 'tib
+M13 _parse_block overflow: KILLED by 1 check(s)
+    FAIL  huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)  [{'entity': 24, 'tib
+M14 _parse_block smallest gap: KILLED by 1 check(s)
+    FAIL ne off-grid stamp does not shrink Open-Meteo's inferred resolution, and one missing sample does not double it (D

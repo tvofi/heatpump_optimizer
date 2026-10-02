@@ -1,0 +1,140 @@
+RECOMPUTATION OF #1218 STATISTICS
+
+Task: Verify #1218 selection-cost note in docstrings against actual closures.json
+
+=== DOCSTRING AND CHECK LOCATION ===
+tests/entities.py:13688-13703 - "and the lane's docstring records those measured numbers as the selection-cost note (#1218)"
+Check verifies docstring contains: "D3-08", "#1218", "selection cost", "all N files", "M of the T pairs", "X comparable pairs", and all empty script names
+
+=== COMPUTATION RULE (Jaccard Similarity) ===
+File: tests/entities.py:13642-13655 (_d308_pairs function)
+Rule: Pairs where both scripts have production files (custom_components/heatpump_optimizer/*)
+- For each pair of scripts, compute intersection and union of production files
+- Jaccard = len(a & b) / len(a | b) where a, b are production file sets
+- Include pairs where Jaccard >= floor (default 0.80)
+- Skip pairs where either script has no production files
+- Additionally compute exact 1.00 pairs separately
+
+=== RESULTS AT HEAD (current branch) ===
+Tracked files in custom_components/heatpump_optimizer/: 85
+Production files in closures.json: 85
+Scripts in closures: 28
+Total possible pairs: 378
+Comparable pairs (both have prod files): 276
+Empty scripts (no production files): ['tests/ha_contract.py', 'tests/harness_headers.py', 'tests/layout.py', 'tests/md_tables.mjs']
+
+Pairs >= 0.80 Jaccard: 67
+Pairs exactly 1.00 Jaccard: 12
+
+1.00 Pairs (shared production file count):
+  tests/backtest.py / tests/edge.py: 14
+  tests/backtest.py / tests/optimality.py: 14
+  tests/backtest.py / tests/validate.py: 14
+  tests/card.mjs / tests/card_drift.mjs: 51
+  tests/edge.py / tests/optimality.py: 14
+  tests/edge.py / tests/validate.py: 14
+  tests/env_drift.py / tests/golden.py: 83
+  tests/finite_boundary.py / tests/structure.py: 67
+  tests/finite_boundary.py / tests/typing_ruler.py: 67
+  tests/optimality.py / tests/validate.py: 14
+  tests/plan_view.py / tests/solar_alignment.py: 50
+  tests/structure.py / tests/typing_ruler.py: 67
+
+=== RESULTS AT MERGE BASE (aac8fb77) ===
+Tracked files in custom_components/heatpump_optimizer/: 79
+Production files in closures.json: 79
+Scripts in closures: 28
+Total possible pairs: 378
+Comparable pairs (both have prod files): 276
+Empty scripts (no production files): ['tests/ha_contract.py', 'tests/harness_headers.py', 'tests/layout.py', 'tests/md_tables.mjs']
+
+Pairs >= 0.80 Jaccard: 70
+Pairs exactly 1.00 Jaccard: 12
+
+1.00 Pairs (shared production file count):
+  tests/backtest.py / tests/edge.py: 14
+  tests/backtest.py / tests/optimality.py: 14
+  tests/backtest.py / tests/validate.py: 14
+  tests/card.mjs / tests/card_drift.mjs: 51
+  tests/edge.py / tests/optimality.py: 14
+  tests/edge.py / tests/validate.py: 14
+  tests/env_drift.py / tests/golden.py: 77
+  tests/finite_boundary.py / tests/structure.py: 67
+  tests/finite_boundary.py / tests/typing_ruler.py: 67
+  tests/optimality.py / tests/validate.py: 14
+  tests/plan_view.py / tests/solar_alignment.py: 50
+  tests/structure.py / tests/typing_ruler.py: 67
+
+=== HEAD DOCSTRING VERIFICATION ===
+File: tests/deployment_shape.py:38-60
+Docstring claims:
+  - 85 files under custom_components/heatpump_optimizer/ ✓ MATCHES HEAD's 85
+  - 67 of the 378 script pairs at >= 0.80 ✓ MATCHES HEAD's 67
+  - 276 comparable pairs ✓ MATCHES HEAD's 276
+  - 12 pairs at exactly 1.00 ✓ MATCHES HEAD's 12
+  
+  Specific 1.00 pairs with shared counts:
+  - structure.py/typing_ruler.py (67 shared) ✓ MATCHES
+  - finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (67 each) ✓ MATCHES
+  - plan_view.py/solar_alignment.py (50) ✓ MATCHES
+  - optimality.py/validate.py/edge.py/backtest.py four (14 shared, six pairs) ✓ MATCHES
+  - golden.py/env_drift.py (83) ✓ MATCHES
+  - card.mjs/card_drift.mjs (51) ✓ MATCHES
+
+CONCLUSION: HEAD's docstring is accurate.
+
+=== MERGE BASE DOCSTRING VERIFICATION ===
+File: git show aac8fb77:tests/deployment_shape.py:38-60
+Docstring claims:
+  - 79 files under custom_components/heatpump_optimizer/ ✓ MATCHES aac8fb77's 79
+  - 70 of the 378 script pairs at >= 0.80 ✓ MATCHES aac8fb77's 70
+  - 276 comparable pairs ✓ MATCHES aac8fb77's 276
+  - 15 pairs at exactly 1.00 ✗ MISMATCH (actual: 12 pairs at 1.00)
+  - Mentions doc_claims.py pairs at 1.00 ✗ MISMATCH (doc_claims pairs are at ~0.92, not 1.00)
+  
+  Specific 1.00 pairs with shared counts claimed:
+  - structure.py/typing_ruler.py (65 shared) ✗ WRONG (actual: 67 shared)
+  - plan_view.py/solar_alignment.py (46) ✗ WRONG (actual: 50 shared)
+  - optimality.py/validate.py/edge.py/backtest.py four (11, six pairs) ✗ WRONG (actual: 14, six pairs)
+  - golden.py/env_drift.py (75) ✗ WRONG (actual: 77 shared)
+  - card.mjs/card_drift.mjs (47) ✗ WRONG (actual: 51 shared)
+
+CONCLUSION: MERGE BASE DOCSTRING WAS ALREADY STALE before this PR was created.
+
+=== PR IMPACT ANALYSIS ===
+This PR added 6 tracked files (85 - 79 = 6) to custom_components/heatpump_optimizer/.
+Docstring mentions: "79 until R9 F2.5's batchmath.py, 79 until R9 UI-1's six brand images"
+So the 6 files are brand images.
+
+Changes in closure statistics:
+  Tracked files: 79 → 85 (+6)
+  Production files in closures: 79 → 85 (+6)
+  Pairs >= 0.80: 70 → 67 (-3)
+  Pairs exactly 1.00: 12 → 12 (unchanged)
+
+Specific pair changes:
+  - env_drift / golden at 1.00: 77 → 83 (+6 shared files)
+  - deployment_shape / finite_boundary: 0.8481 → 0.7882 (dropped below 0.80)
+  - deployment_shape / structure: 0.8481 → 0.7882 (dropped below 0.80)
+  - deployment_shape / typing_ruler: 0.8481 → 0.7882 (dropped below 0.80)
+
+Root cause of pair drops and golden/env_drift increase:
+  The 6 new files added to production are included in the deployment_shape.py closure
+  (as expected), which increased its union with other scripts from 79 to 85.
+  This caused Jaccard similarity to decrease for scripts that share only 67 files:
+    Jaccard_old = 67 / 79 = 0.8481 (still >= 0.80)
+    Jaccard_new = 67 / 85 = 0.7882 (dropped below 0.80)
+  
+  For env_drift.py and golden.py (which have 1.00 Jaccard and share ALL their
+  production files), the new 6 files were added to both their closures, so they
+  still share all 85 production files and remain at 1.00 Jaccard, but the shared
+  count increased from 77 to 83 (one file was added to one but not the other
+  at merge base, causing 77; this PR aligned them or added more files to both).
+
+Why doc_claims.py dropped from docstring:
+  doc_claims.py was never at Jaccard 1.00 with any script. It was listed
+  incorrectly in the merge base docstring. At both merge base and HEAD, it has
+  Jaccard ~0.92 with finite_boundary, structure, and typing_ruler (67 shared
+  out of union of 73 files). The PR updated the docstring to remove the
+  incorrect doc_claims.py mention and correctly list only the 12 true 1.00 pairs.
+

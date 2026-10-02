@@ -1,0 +1,13 @@
+SV_SLOT_LABELS ['Utetemperatur', 'Solinstrålning', 'Solcellsproduktion', 'Inomhustemperatur', 'Temperatur nedre plan', 'Golvslingans retur', 'Värmepumpens brytare', 'Effektmätare', 'Energimätare', 'Husets totala effekt', 'Driftläge', 'Avfrostning', 'Anslutningsstatus', 'Fellarm', 'Buffertankens temperatur', 'Varmvattentemperatur']
+SV_ADVISOR_LABELS ['Temperatur nedre plan', 'Varmvattentemperatur', 'Golvslingans retur']
+NARRATIVE en=['1.2 kWh in the cheapest hours for 0.50 SEK'] sv=['1.2 kWh under de billigaste timmarna för 0.50 SEK']
+RESULT flow_page_lines_sv=23 count
+RESULT flow_page_lines_identical_to_en=0 count
+RESULT slot_labels_identical_to_en=0 of 16
+RESULT advisor_labels_identical_to_en=0 of 3
+RESULT en_identical_total=0 count
+RESULT null_narrative_lines_identical_to_en=0 of 1
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=0.59
+RESULT swapins=0

@@ -1,0 +1,16 @@
+custom_components/heatpump_optimizer/open_meteo.py:138:            seconds = overlap.total_seconds()
+custom_components/heatpump_optimizer/open_meteo.py:149:        requested = (end - start).total_seconds()
+custom_components/heatpump_optimizer/open_meteo.py:228:        (times[i + 1] - times[i]).total_seconds()
+custom_components/heatpump_optimizer/open_meteo.py:230:        if (times[i + 1] - times[i]).total_seconds() > 0
+custom_components/heatpump_optimizer/open_meteo.py:501:                self._forecast.resolution.total_seconds() // 60
+custom_components/heatpump_optimizer/inputs.py:578:        return age.total_seconds() / 60.0
+custom_components/heatpump_optimizer/__init__.py:185:        age_min = span.total_seconds() / 60.0
+custom_components/heatpump_optimizer/defrost.py:691:            ).total_seconds()
+custom_components/heatpump_optimizer/drift.py:47:    return (_as_utc(newer) - _as_utc(older)).total_seconds()
+custom_components/heatpump_optimizer/legionella.py:633:        return max(0.0, since.total_seconds() / 3600.0)
+custom_components/heatpump_optimizer/coordinator.py:812:    return (dt_util.as_utc(newer) - dt_util.as_utc(older)).total_seconds()
+custom_components/heatpump_optimizer/coordinator.py:8490:            ).total_seconds() < 7 * 24 * 3600.0
+custom_components/heatpump_optimizer/coordinator.py:9549:                abs((ts - now).total_seconds())
+custom_components/heatpump_optimizer/snapshots.py:80:        return (now - last).total_seconds() >= SNAPSHOT_INTERVAL_DAYS * 86400.0
+custom_components/heatpump_optimizer/tariff.py:294:        elapsed = (when - slot).total_seconds() / 60.0
+custom_components/heatpump_optimizer/curve_learning.py:114:            days = (now - last).total_seconds() / 86400.0

@@ -1,0 +1,14 @@
+
+=== typing ruler (mypy 2.3.1, homeassistant-stubs 2026.9.3, stub-free) ===
+  ok   every recorded typing count is a finite non-negative integer
+  FAIL interpreter is at least Python 3.14.2  [running 3.14.0; homeassistant-stubs==2026.9.3 will not install below 3.14.2 (#504)]
+  FAIL mypy is pinned at 2.3.1  [found nothing]
+  FAIL homeassistant-stubs is pinned at 2026.9.3  [found nothing]
+  ..   third-party resolution (chosen by the stubs, recorded not asserted)  [aiohttp==3.14.3, numpy==2.4.6, scipy-stubs==MISSING, threadpoolctl==3.6.0, voluptuous==0.16.0]
+  FAIL every third-party requirement is installed  [scipy-stubs absent; import-not-found would be non-zero]
+
+REFUSING to measure. A count from an unpinned tool is not the
+census (#504). Install exactly what --print-requirements names.
+
+4 of 5 typing-ruler checks FAILED
+rc=1

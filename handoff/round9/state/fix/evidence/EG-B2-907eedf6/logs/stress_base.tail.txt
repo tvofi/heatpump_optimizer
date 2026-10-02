@@ -1,0 +1,60 @@
+    new here, no baseline solve to compare: summer/1z/space/valve
+    new here, no baseline solve to compare: summer/2z/dhw
+    new here, no baseline solve to compare: summer/2z/dhw/pin-off
+    new here, no baseline solve to compare: summer/2z/space
+    new here, no baseline solve to compare: summer/2z/space/valve-direct-slab
+    new here, no baseline solve to compare: summer/2z/space/wood-two-tank
+    new here, no baseline solve to compare: summer_negative/1z/dhw
+    new here, no baseline solve to compare: summer_negative/1z/space
+    new here, no baseline solve to compare: summer_negative/2z/dhw
+    new here, no baseline solve to compare: summer_negative/2z/space
+    new here, no baseline solve to compare: typical_slab/shoulder
+    new here, no baseline solve to compare: typical_slab/winter
+    new here, no baseline solve to compare: winter/1z/dhw
+    new here, no baseline solve to compare: winter/1z/space
+    new here, no baseline solve to compare: winter/1z/space/pin-off
+    new here, no baseline solve to compare: winter/2z/dhw
+    new here, no baseline solve to compare: winter/2z/space
+    new here, no baseline solve to compare: winter/cycle
+    new here, no baseline solve to compare: winter/pv
+    new here, no baseline solve to compare: winter/pv+cycle
+    new here, no baseline solve to compare: winter/tariff
+    new here, no baseline solve to compare: winter/tariff+cycle
+    new here, no baseline solve to compare: winter/tariff+pv
+    new here, no baseline solve to compare: winter/tariff+pv+cycle
+    new here, no baseline solve to compare: winter_extreme/1z/dhw
+    new here, no baseline solve to compare: winter_extreme/1z/space
+    new here, no baseline solve to compare: winter_extreme/2z/dhw
+    new here, no baseline solve to compare: winter_extreme/2z/space
+    new here, no baseline solve to compare: winter_mild/1z/dhw
+    new here, no baseline solve to compare: winter_mild/1z/space
+    new here, no baseline solve to compare: winter_mild/2z/dhw
+    new here, no baseline solve to compare: winter_mild/2z/space
+  FAIL this tree's solver work has a baseline to be judged against  [no baseline was captured, so the checks below compared nothing: origin/main IS this commit (3bd6f12207a1). A tree compared against itself reports no drift whatever it did, so there is nothing to learn here; run with GOLDEN_REF=HEAD^1.]
+  FAIL the baseline capture carries simulate counts and kernel seconds this meter can read (#1229, round-5 D9-07)  [no baseline was captured (origin/main IS this commit (3bd6f12207a1). A tree compared against itself reports no drift whatever it did, so there is nothing to learn here; run with GOLDEN_REF=HEAD^1.)]
+  FAIL production calls were captured on this tree and the baseline  [no capture, so the production-call check compared nothing: origin/main IS this commit (3bd6f12207a1). A tree compared against itself reports no drift whatever it did, so there is nothing to learn here; run with GOLDEN_REF=HEAD^1.]
+  FAIL the solver-work check still covers most of the sweep  [only 0 of 54 scenarios are judged, against a floor of 40: there was no baseline at all, so nothing could be judged: origin/main IS this commit (3bd6f12207a1). A tree compared against itself reports no drift whatever it did, so there is nothing to learn here; run with GOLDEN_REF=HEAD^1.. The check above says the same thing; this one is here because a comparison that did not happen must not read as a comparison that agreed]
+
+-- Memory (D9-04)
+  empty-probe baseline (same imports, no scenario): 106.6 MiB of RSS, subtracted from every probe below
+  heavy_old/shoulder                 RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  winter/cycle                       RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 84 / 9 / 3.5)
+  winter/pv+cycle                    RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  typical_slab/winter                RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 92 / 14 / 3.4)
+  winter_extreme/1z/dhw              RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 88 / 12 / 3.4)
+  typical_slab/shoulder              RSS peak   106.6 MiB, attributable   0.0 MiB, traced   1.8 MiB (recorded 85 / 9 / 1.8)
+  parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+  coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
+  attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+  whole sweep: 119.2 s of solver CPU against 2.5 s of reference CPU = 48.09x; budget is 52.44x
+  detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.48x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+  detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+  detection on THIS machine: per-scenario ceiling 0.94x (244x x 1.1 wobble), sweep budget 1.09x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+
+-- Economics
+
+-- Edge conditions
+
+6 of 95 STRESS CHECKS FAILED
+rc=1

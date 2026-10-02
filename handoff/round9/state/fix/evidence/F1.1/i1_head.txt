@@ -1,0 +1,22 @@
+RESULT fixture_clean_uncovered=0 count
+RESULT fixture_reintro_uncovered=1 count
+RESULT ratchet_delta_visible_guard=1 count
+RESULT ratchet_delta_invisible_guard=0 count
+RESULT ratchet_refuses_visible=1 count
+RESULT ratchet_refuses_invisible=0 count
+RESULT seams_EXIT=1352 count
+RESULT uncovered_EXIT=52 count
+RESULT seams_CLAMP=661 count
+RESULT uncovered_CLAMP=243 count
+RESULT seams_TERN=301 count
+RESULT uncovered_TERN=231 count
+RESULT uncovered=526 count
+RESULT seams=2314 count
+RESULT uncovered_EXIT_because[elif]=4 count
+RESULT uncovered_EXIT_because[has else]=1 count
+RESULT uncovered_EXIT_because[multi-line test]=45 count
+RESULT uncovered_EXIT_because[trailing comment after the colon]=2 count
+  top files: optimizer.py=151, coordinator.py=123, thermal_model.py=77, sysid.py=27, wood_fuel.py=18, tariff.py=10, config_flow.py=8, price_model.py=8
+RESULT thread_factor=1.000
+RESULT load1=1.70
+RESULT swapins=n/a

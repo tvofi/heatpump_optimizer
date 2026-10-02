@@ -1,0 +1,214 @@
+=== Golden characterization ===
+
+  GOLDEN_MODE=drift (set)   GOLDEN_REF=a15e3e33507bde9e566858ce32b2ded840edfa02 (set)
+
+  /home/claude/venv_ci/bin/python tests/env_drift.py --all a15e3e33507bde9e566858ce32b2ded840edfa02
+
+==========================================================================
+DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
+  key       ab1d341d81399fc1ce95f07efeb87a999c842a2476cd28295b3cd7a49a2237d4
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/ab1d341d81399fc1ce95f07efeb87a999c842a2476cd28295b3cd7a49a2237d4.json
+  ref       a15e3e33507bde9e566858ce32b2ded840edfa02 -> a15e3e33507bde9e566858ce32b2ded840edfa02
+  tree      6165aa81b3a48df7170ab22a5e4f7b1f8abcf9af
+  mode      all
+  captured  41 min ago
+  key covers:
+    baseline_commit  a65830f75e7d
+    baseline_tree    b403af6edf12
+    cache_format     391552c099c1
+    driver_sha256    0844a02f1a60
+    environment      66dfe2b0a15f
+    interpreter      d14ab4b0536b
+    mode             5cf7504d9781
+    numeric_probe    37fadb5234b8
+    numpy_build      1d6b22fc9d3d
+    packages         284bce1e279d
+    platform         fbf05aed65e2
+    sensitive        541346c5f2b4
+  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
+==========================================================================
+  captured 56 scenarios from branch
+  reused   56 scenarios for baseline from cache key ab1d341d81399fc1 (see the banner above)
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 34 fixture(s), 15920 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  CLAIMED away_setback: 1 leaves moved (R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True)
+         away_setback.heat_pump_on_schedule[41]: False vs True
+  ok    building_preset is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    capacity_curve is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  CLAIMED capacity_tariff: 16 leaves moved (R9-F2.4 D12-s2-01: 16 leaves, heat_pump_on_schedule False -> True)
+         capacity_tariff.heat_pump_on_schedule[40]: False vs True
+         capacity_tariff.heat_pump_on_schedule[41]: False vs True
+         capacity_tariff.heat_pump_on_schedule[42]: False vs True
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    config_flow is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    cool_rainy_summer is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    coord_all_features is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    coord_dhw is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    coord_grid_fee is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    coord_minimal is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    coord_two_zone is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    cop_scale_learned is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  MAY-DRIFT cycling_cost: 5 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+         cycling_cost.heat_pump_on_schedule[63]: False vs True
+         cycling_cost.heat_pump_on_schedule[88]: False vs True
+         cycling_cost.heat_pump_on_schedule[89]: False vs True
+         cycling_cost.heat_pump_on_schedule[90]: False vs True
+         cycling_cost.heat_pump_on_schedule[91]: False vs True
+  CLAIMED dhw_cold_tank: 2 leaves moved (R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True)
+         dhw_cold_tank.heat_pump_on_schedule[22]: False vs True
+         dhw_cold_tank.heat_pump_on_schedule[63]: False vs True
+  ok    dhw_large_tank is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    dhw_learned_windows is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    dhw_schedule_off is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  MAY-DRIFT direct_flow_carnot: 2 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened)
+         direct_flow_carnot.heat_pump_on_schedule[89]: False vs True
+         direct_flow_carnot.heat_pump_on_schedule[90]: False vs True
+  may-drift everything_on: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    external_heat_active is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    extreme_prices is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  MAY-DRIFT flat_prices: 1 leaves moved (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+         flat_prices.heat_pump_on_schedule[50]: False vs True
+  MAY-DRIFT fuse_guard: 18 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+         fuse_guard.heat_pump_on_schedule[40]: False vs True
+         fuse_guard.heat_pump_on_schedule[41]: False vs True
+         fuse_guard.heat_pump_on_schedule[42]: False vs True
+         fuse_guard.heat_pump_on_schedule[43]: False vs True
+         fuse_guard.heat_pump_on_schedule[44]: False vs True
+         fuse_guard.heat_pump_on_schedule[45]: False vs True
+         fuse_guard.heat_pump_on_schedule[46]: False vs True
+         fuse_guard.heat_pump_on_schedule[47]: False vs True
+         fuse_guard.heat_pump_on_schedule[48]: False vs True
+         fuse_guard.heat_pump_on_schedule[49]: False vs True
+  CLAIMED horizon_48h: 1 leaves moved (R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True)
+         horizon_48h.heat_pump_on_schedule[26]: False vs True
+  ok    horizon_6h is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    legionella_due is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    legionella_due_low_setpoint is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    legionella_off is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  CLAIMED mild_windy_rain: 1 leaves moved (R9-F2.4 D12-s2-01: 1 leaf, heat_pump_on_schedule False -> True)
+         mild_windy_rain.heat_pump_on_schedule[2]: False vs True
+  MAY-DRIFT narrow_band: 1 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+         narrow_band.heat_pump_on_schedule[31]: False vs True
+  ok    negative_prices is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    peak_masked is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  MAY-DRIFT shoulder: 6 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+         shoulder.heat_pump_on_schedule[32]: False vs True
+         shoulder.heat_pump_on_schedule[33]: False vs True
+         shoulder.heat_pump_on_schedule[67]: False vs True
+         shoulder.heat_pump_on_schedule[68]: False vs True
+         shoulder.heat_pump_on_schedule[69]: False vs True
+         shoulder.heat_pump_on_schedule[93]: False vs True
+  MAY-DRIFT shoulder_two_zone: 2 leaves moved (#1208 polish-every-candidate, third name)
+         shoulder_two_zone.heat_pump_on_schedule[11]: False vs True
+         shoulder_two_zone.heat_pump_on_schedule[89]: False vs True
+  ok    start_above_band is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  CLAIMED start_below_band: 2 leaves moved (R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True)
+         start_below_band.heat_pump_on_schedule[53]: False vs True
+         start_below_band.heat_pump_on_schedule[54]: False vs True
+  ok    summer_dhw_only is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  MAY-DRIFT tariff_plus_two_zone: 4 leaves moved (#1207 keep-gate (2e-2 -> 2e-5),)
+         tariff_plus_two_zone.heat_pump_on_schedule[65]: False vs True
+         tariff_plus_two_zone.heat_pump_on_schedule[66]: False vs True
+         tariff_plus_two_zone.heat_pump_on_schedule[67]: False vs True
+         tariff_plus_two_zone.heat_pump_on_schedule[69]: False vs True
+  MAY-DRIFT valve_storage: 14 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+         valve_storage.heat_pump_on_schedule[20]: False vs True
+         valve_storage.heat_pump_on_schedule[21]: False vs True
+         valve_storage.heat_pump_on_schedule[22]: False vs True
+         valve_storage.heat_pump_on_schedule[23]: False vs True
+         valve_storage.heat_pump_on_schedule[47]: False vs True
+         valve_storage.heat_pump_on_schedule[48]: False vs True
+         valve_storage.heat_pump_on_schedule[49]: False vs True
+         valve_storage.heat_pump_on_schedule[50]: False vs True
+         valve_storage.heat_pump_on_schedule[86]: False vs True
+         valve_storage.heat_pump_on_schedule[87]: False vs True
+  CLAIMED valve_storage_flat_prices: 14 leaves moved (R9-F2.4 D12-s2-01: 14 leaves, heat_pump_on_schedule False -> True)
+         valve_storage_flat_prices.heat_pump_on_schedule[21]: False vs True
+         valve_storage_flat_prices.heat_pump_on_schedule[22]: False vs True
+         valve_storage_flat_prices.heat_pump_on_schedule[23]: False vs True
+  CLAIMED valve_storage_low_target: 7 leaves moved (R9-F2.4 D12-s2-01: 7 leaves, heat_pump_on_schedule False -> True)
+         valve_storage_low_target.heat_pump_on_schedule[20]: False vs True
+         valve_storage_low_target.heat_pump_on_schedule[21]: False vs True
+         valve_storage_low_target.heat_pump_on_schedule[22]: False vs True
+  CLAIMED valve_storage_small_tank: 2 leaves moved (R9-F2.4 D12-s2-01: 2 leaves, heat_pump_on_schedule False -> True)
+         valve_storage_small_tank.heat_pump_on_schedule[78]: False vs True
+         valve_storage_small_tank.heat_pump_on_schedule[88]: False vs True
+  MAY-DRIFT valve_storage_smart_write: 14 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_storage_smart_write.heat_pump_on_schedule[20]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[21]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[22]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[23]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[47]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[48]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[49]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[50]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[86]: False vs True
+         valve_storage_smart_write.heat_pump_on_schedule[87]: False vs True
+  MAY-DRIFT valve_upper_direct_slab: 13 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_upper_direct_slab.heat_pump_on_schedule[21]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[22]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[23]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[25]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[26]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[27]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[40]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[41]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[42]: False vs True
+         valve_upper_direct_slab.heat_pump_on_schedule[56]: False vs True
+  ok    wide_band is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    winter_single_dhw is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  ok    winter_single_no_dhw is byte-identical to a15e3e33507bde9e566858ce32b2ded840edfa02 here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  MAY-DRIFT winter_two_zone_no_dhw: 1 leaves moved (#1208 polish-every-candidate, owner)
+         winter_two_zone_no_dhw.heat_pump_on_schedule[43]: False vs True
+  MAY-DRIFT wood_coil: 4 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_coil.heat_pump_on_schedule[25]: False vs True
+         wood_coil.heat_pump_on_schedule[26]: False vs True
+         wood_coil.heat_pump_on_schedule[55]: False vs True
+         wood_coil.heat_pump_on_schedule[56]: False vs True
+  MAY-DRIFT wood_two_tank: 8 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank.heat_pump_on_schedule[45]: False vs True
+         wood_two_tank.heat_pump_on_schedule[46]: False vs True
+         wood_two_tank.heat_pump_on_schedule[47]: False vs True
+         wood_two_tank.heat_pump_on_schedule[48]: False vs True
+         wood_two_tank.heat_pump_on_schedule[49]: False vs True
+         wood_two_tank.heat_pump_on_schedule[50]: False vs True
+         wood_two_tank.heat_pump_on_schedule[51]: False vs True
+         wood_two_tank.heat_pump_on_schedule[52]: False vs True
+  MAY-DRIFT wood_two_tank_smart_write: 1 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank_smart_write.heat_pump_on_schedule[86]: False vs True
+
+15 MAY-DRIFT SCENARIO(S) MOVED, plan only
+These fixtures are non-reproducible across BLAS builds; only
+diffs outside MAY_DRIFT_JUDGED_KEYS are exempt. Plan drift
+is printed rather than judged:
+  cycling_cost: #1207 keep-gate (2e-2 -> 2e-5), owner directive
+  direct_flow_carnot: #1207 keep-gate (2e-2 -> 2e-5), widened
+  flat_prices: #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+  fuse_guard: #1207 keep-gate (2e-2 -> 2e-5), widened to the
+  narrow_band: #1207 keep-gate (2e-2 -> 2e-5), owner directive
+  shoulder: #1207 keep-gate (2e-2 -> 2e-5), owner directive
+  shoulder_two_zone: #1208 polish-every-candidate, third name
+  tariff_plus_two_zone: #1207 keep-gate (2e-2 -> 2e-5),
+  valve_storage: #1207 keep-gate (2e-2 -> 2e-5), widened to
+  valve_storage_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+  valve_upper_direct_slab: machine-sensitive; the DHW plan can reach it, per local optimum
+  winter_two_zone_no_dhw: #1208 polish-every-candidate, owner
+  wood_coil: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+Read the leaf diffs above. Never re-record them on a
+machine where golden.py already reports them as DIFF.
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against a15e3e33507bde9e566858ce32b2ded840edfa02
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0

@@ -1,0 +1,6 @@
+  skip     checkProvenance-pin    this clone is shallow, so a "no" from --is-ancestor may be the boundary rather than the graph, so neither direction can be driven
+
+FIXTURE ok: 93 error(s) hold 228 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+tools/audit/briefs/fixer.md                      278  280     4585  4585 
+RULES-SYNC ok: every .cursor rule is the generated form of its source
+278

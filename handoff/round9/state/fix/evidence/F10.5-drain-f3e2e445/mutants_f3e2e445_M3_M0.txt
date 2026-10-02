@@ -1,0 +1,3 @@
+== M0_null: ALL 2060 ENTITY CHECKS PASSED
+== M3_seed_ignored: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seed

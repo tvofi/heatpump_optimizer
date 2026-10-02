@@ -1,0 +1,2 @@
+FAIL R9-P3: the power-fraction helper is the named exception -- it branches on a sub-floor band and floor  [branch=True, floors=['p_max - p_min']]
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m2/heatpump_optimizer/__init__.py fails=1 groups=0 wall_s=0.83 cpu_s=0.82

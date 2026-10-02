@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/optimizer.py	2026-10-01 09:11:34.068236270 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/optimizer.py	2026-10-01 09:13:46.039712411 +0000
+@@ -1975,7 +1975,7 @@
+                 + row_sums(overshoot_u ** 2) * 5.0
+                 + row_sums(undershoot_l ** 2) * 10.0
+                 + row_sums(overshoot_l ** 2) * 5.0
+-            ) + weight * (
++            ) + 0.5 * weight * (
+                 row_sums(undershoot_u) + row_sums(undershoot_l)
+             ) * (_COMFORT_FLOOR_L1 * self._floor_l1_scale)
+ 

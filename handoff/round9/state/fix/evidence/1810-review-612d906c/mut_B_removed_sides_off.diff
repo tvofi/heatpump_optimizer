@@ -1,0 +1,13 @@
+diff --git a/tests/mutation_table.py b/tests/mutation_table.py
+index 92b0d9d1..2a2474de 100644
+--- a/tests/mutation_table.py
++++ b/tests/mutation_table.py
+@@ -874,7 +874,7 @@ def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
+     gone: dict[tuple[str, str, str], int] = {}
+     for group in left.values():
+         for s in group:
+-            if s["file"] in removed:
++            if True:
+                 k = (s["kind"], s["old"].strip(), _scope_tail(s))
+                 gone[k] = gone.get(k, 0) + 1
+     kept = []

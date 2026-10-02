@@ -1,0 +1,16 @@
+== M0_null: ALL 2060 ENTITY CHECKS PASSED
+== M1_split_anchor: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seed
+== M2_no_driver_kept: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed  [(whole and capped, anchors reached over seed
+== M3_seed_ignored: ALL 2060 ENTITY CHECKS PASSED
+== M4_closure_ignored: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(writte
+== M5_moved_head_unfiltered: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(writte
+== M6_write_set_any_code: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL the ledger writer may only add killed_by rows, and its job reddens a slice that did not land  [(row, modify+delete, outside) -> [[], 
+== M7_report_always_green: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL the ledger writer may only add killed_by rows, and its job reddens a slice that did not land  [(row, modify+delete, outside) -> [[], 
+== M8_status_before_pins: 1 of 2060 ENTITY CHECKS FAILED
+  FAIL mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer read nothing that changed  [(writte

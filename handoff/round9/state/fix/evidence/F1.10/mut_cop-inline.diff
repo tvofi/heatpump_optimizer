@@ -1,0 +1,11 @@
+--- /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/sysid.py	2026-10-01 09:11:33.757784160 +0000
++++ /tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/m/heatpump_optimizer/sysid.py	2026-10-01 09:13:02.055713064 +0000
+@@ -194,7 +194,7 @@
+         slab = lower + (1.0 - rad) * q_hold / k_slab
+         tank = ThermalState.buffer_tank_temperature
+     else:
+-        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
++        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / p.emitter_design_delta_t_floored
+         a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
+         (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
+             np.array([

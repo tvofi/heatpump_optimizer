@@ -1,0 +1,59 @@
+merge-base=c168ec0ad583e040aa6446710d49f666f046a0a2
+tree(e37cefc6)=0954dd018cc8a3eb3997b94be5e24e19ea0b5e18
+merge-tree(492d8401,46a70815):
+LEDGER-MERGE: refused tests/structure_budgets.json: coordinator_loc: both sides changed it differently
+d55f2907fd3f631273978a41734ffbcd97756fbb
+100644 22f1b3118f5aec935d2a12d3992f2d33e09b11df 1	custom_components/heatpump_optimizer/coordinator.py
+100644 49d1254064a863ef5ed34fa9d8fc0277716cd619 2	custom_components/heatpump_optimizer/coordinator.py
+100644 56eef2756269ed7c3b7f9982bffc0ee0b73e6b97 3	custom_components/heatpump_optimizer/coordinator.py
+100644 194f59e3fdb8805f96ce178dda62d7c3131c7eb8 1	tests/features.py
+100644 03b97f34d29f2e3d85fa70b15e9a17364d702b8f 2	tests/features.py
+100644 8415178d709119fbd90fdd6613d5b16601b10b58 3	tests/features.py
+100644 e795e837051461830239d4a951a26508a32eb641 1	tests/structure_budgets.json
+100644 7718c31dce314020683c044d854d50bb45f91b59 2	tests/structure_budgets.json
+100644 6fd3a537a3f666471eb67ab04d04a0f64fb27d69 3	tests/structure_budgets.json
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/doc_claims.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+CONFLICT (content): Merge conflict in tests/features.py
+Auto-merging tests/seam_map.json
+Auto-merging tests/structure_budgets.json
+CONFLICT (content): Merge conflict in tests/structure_budgets.json
+rc=1
+both sides:
+custom_components/heatpump_optimizer/coordinator.py
+tests/doc_claims.py
+tests/entities.py
+tests/features.py
+tests/seam_map.json
+tests/structure_budgets.json
+(end)
+main side:
+ .claude/workflows/carry-1645.json                  |   4 +-
+ .../heatpump_optimizer/binary_sensor.py            |  19 +--
+ custom_components/heatpump_optimizer/button.py     |   9 +-
+ custom_components/heatpump_optimizer/climate.py    |  20 ++-
+ .../heatpump_optimizer/coordinator.py              |  35 +++--
+ custom_components/heatpump_optimizer/datetime.py   |   7 +-
+ .../heatpump_optimizer/diagnostics.py              |   4 +-
+ custom_components/heatpump_optimizer/entity.py     |  58 +++++++-
+ custom_components/heatpump_optimizer/sensor.py     | 165 ++++++++++-----------
+ custom_components/heatpump_optimizer/switch.py     |  24 ++-
+ docs/delivery/1839.md                              |   1 +
+ tests/doc_claims.py                                |  17 ++-
+ tests/entities.py                                  | 140 +++++++++++++++++
+ tests/features.py                                  |  13 +-
+ tests/harness.py                                   |  15 ++
+ .../coordinator.py/_view.RETURN_DEL.a8f80d5f.json  |   6 +
+ ...pOptimizerEntity._data.RETURN_DEL.35920c59.json |   6 +
+ ...zerEntity._pin_identity.GUARD_OFF.4378c253.json |   6 +
+ ...zerEntity._pin_identity.GUARD_OFF.fb199fc0.json |   6 +
+ ...edHotWaterSensor.available.BOOLOP.0bd743fb.json |   6 +
+ .../PVSurplusSensor.available.BOOLOP.b6a68906.json |   6 +
+ tests/seam_map.json                                |   4 -
+ tests/structure_budgets.json                       |  10 +-
+ tools/audit/round4/D10/qs_rules.py                 |  21 ++-
+ 24 files changed, 411 insertions(+), 191 deletions(-)

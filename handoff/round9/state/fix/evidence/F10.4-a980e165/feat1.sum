@@ -1,0 +1,5 @@
+rc=1
+109:RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+1150:RuntimeError: no HTTP session available in the test stub
+    raise TokenError(msg, (e.lineno, e.offset)) from None
+tokenize.TokenError: ('unterminated string literal (detected at line 1)', (1, 37))

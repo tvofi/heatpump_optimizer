@@ -1,0 +1,47 @@
+applied R1 custom_components/heatpump_optimizer/thermal_model.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R1 script=tests/features.py rc=1 secs=456 :: 3 of 3588 FEATURE CHECKS FAILED
+  FAIL R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating  [on=[False, False, True, True, True, True, True] for space=[0.0, 0.05, 0.12, 1.0, 2.9, 3.0, 6.0] dhw=[0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0]]
+  FAIL R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off  [on=[False, False, True, True, True, True, True] booked=[0.0, 0.11, 0.12, 1.0, 2.9, 3.0, 6.0] starts=1 transitions=1]
+  FAIL R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor  [19 of 27 pairs on; scalar agrees: False]
+applied R3 custom_components/heatpump_optimizer/thermal_model.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R3 script=tests/features.py rc=1 secs=414 :: 6 of 3588 FEATURE CHECKS FAILED
+  FAIL a space draw the plan books is a space duty, below half the pump's minimum modulation or not (R9-F2.4: the duty reads the plan, and the ledger beside it reads a meter)  [[0.15, 0.3] on a pump whose floor is 0.4 kW]
+  FAIL R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating  [on=[False, False, False, True, True, True, True] for space=[0.0, 0.05, 0.12, 1.0, 2.9, 3.0, 6.0] dhw=[0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0]]
+  FAIL R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off  [on=[False, False, False, True, True, True, True] booked=[0.0, 0.11, 0.12, 1.0, 2.9, 3.0, 6.0] starts=1 transitions=1]
+  FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not  [[(False, 'off', 0.0), (False, 'off', 0.15), (True, 'hot_water', 0.0)]]
+  FAIL R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold  [step_duty takes 2 parameters; duties=['dhw', 'space']]
+  FAIL R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's  [_ran_kw=<function _ran_kw at 0x7fbaef115b10> on_threshold_kw=<function on_threshold_kw at 0x7fbaf02fd0c0> plan_floor=0.2]
+applied R4 custom_components/heatpump_optimizer/optimizer.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R4 script=tests/features.py rc=1 secs=417 :: 1 of 3588 FEATURE CHECKS FAILED
+  FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not  [[(False, 'off', 0.0), (True, 'eco', 0.15), (False, 'off', 0.0)]]
+applied R5 custom_components/heatpump_optimizer/optimizer.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R5 script=tests/features.py rc=0 secs=424 :: ALL 3588 FEATURE CHECKS PASSED
+applied R6 custom_components/heatpump_optimizer/thermal_model.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R6 script=tests/features.py rc=1 secs=447 :: 1 of 3588 FEATURE CHECKS FAILED
+  FAIL R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor  [22 of 27 pairs on; scalar agrees: False]
+applied R7 custom_components/heatpump_optimizer/pump_arbiter.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R7 script=tests/features.py rc=1 secs=428 :: 1 of 3588 FEATURE CHECKS FAILED
+  FAIL R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's  [_ran_kw=<function _ran_kw at 0x7ff69af55bc0> on_threshold_kw=<function on_threshold_kw at 0x7ff6a05d50c0> plan_floor=0.1]
+applied R8 custom_components/heatpump_optimizer/optimizer.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R8 script=tests/features.py rc=1 secs=431 :: 2 of 3588 FEATURE CHECKS FAILED
+  FAIL a DHW-only step reads hot_water, not off (#1499)  [{'power': 0.0, 'setpoint': 21.0, 'mode': 'eco', 'price': 1.0, 'power_normalized': 0.0, 'heat_pump_on': True, 'displace_value': 0.0, 'space_reason': None, 'dhw_reason': None, 'dhw_power': 2.0, 'dhw_heating_active': True}]
+  FAIL R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not  [[(False, 'off', 0.0), (True, 'eco', 0.15), (True, 'eco', 0.0)]]
+applied R2 custom_components/heatpump_optimizer/entity.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUTANT R2 script=tests/entities.py rc=1 secs=97 :: 4 of 1990 ENTITY CHECKS FAILED
+  FAIL measured power keeps the commanded value alongside
+  FAIL Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)  [[0.0, 0.0, 0.0, None]]
+  FAIL Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)  [[(0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (None, None, None)]]
+  FAIL R9-F2.4 P2: no entity publishes a draw at a step the same action declares off, and one that declares it on still publishes the whole ask (#1499)  [(0.0, 0.0, 0.0, 0.0)]
+  FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sensor.heat_pump_optimizer_open_window_detected', 'binary_sensor.heat_pump_optimizer_wood_cheaper', 'button.heat_pump_optimizer_diagnose_last_interval', 'button.heat_pump_optimizer_learning_reset_comfort_weight', 'button.heat_pump_optimizer_learning_run_system_identification', 'button.heat_pump_optimizer_optimize_now', 'climate.heat_pump_optimizer', 'datetime.heat_pump_optimizer_away_return', 'sensor.heat_pump_optimizer_buffer_tank_temperature_model', 'sensor.heat_pump_optimizer_compressor_frequency_advisor', 'sensor.heat_pump_optimizer_compressor_starts', 'sensor.heat_pump_optimizer_cost_baseline', 'sensor.heat_pump_optimizer_cost_contract_comparison', 'sensor.heat_pump_optimizer_cost_current_electricity_price', 'sensor.heat_pump_optimizer_cost_monthly_peak_power', 'sensor.heat_pump_optimizer_cost_power_headroom', 'sensor.heat_pump_optimizer_cost_predicted', 'sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'sensor.heat_pump_optimizer_ecl110_displace', 'sensor.heat_pump_optimizer_ecl110_effective_displace', 'sensor.heat_pump_optimizer_floor_heating_return_temperature', 'sensor.heat_pump_optimizer_heat_pump_action', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer', 'sensor.heat_pump_optimizer_last_optimization', 'sensor.heat_pump_optimizer_learning_comfort_weight', 'sensor.heat_pump_optimizer_learning_estimated_cop', 'sensor.heat_pump_optimizer_learning_observed_cop', 'sensor.heat_pump_optimizer_lower_floor_temperature', 'sensor.heat_pump_optimizer_measured_power', 'sensor.heat_pump_optimizer_next_optimization', 'sensor.heat_pump_optimizer_optimal_setpoint', 'sensor.heat_pump_optimizer_optimization_mode', 'sensor.heat_pump_optimizer_optimization_schedule', 'sensor.heat_pump_optimizer_optimization_schedule_steps', 'sensor.heat_pump_optimizer_optimization_status', 'sensor.heat_pump_optimizer_outdoor_temperature_optimizer', 'sensor.heat_pump_optimizer_plan_dhw_heating', 'sensor.heat_pump_optimizer_plan_monthly_savings', 'sensor.heat_pump_optimizer_plan_narrative', 'sensor.heat_pump_optimizer_plan_optimization_score', 'sensor.heat_pump_optimizer_plan_predicted_savings', 'sensor.heat_pump_optimizer_plan_savings_percentage', 'sensor.heat_pump_optimizer_plan_space_heating', 'sensor.heat_pump_optimizer_prediction_accuracy', 'sensor.heat_pump_optimizer_predictive_optimization_insight', 'sensor.heat_pump_optimizer_recommended_power', 'sensor.heat_pump_optimizer_sensor_gap_advisor', 'sensor.heat_pump_optimizer_slab_temperature_estimated', 'sensor.heat_pump_optimizer_solar_heat_gain', 'sensor.heat_pump_optimizer_solar_irradiance', 'sensor.heat_pump_optimizer_solar_surplus_forecast', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_thermal_battery_charge', 'sensor.heat_pump_optimizer_thermal_battery_energy', 'sensor.heat_pump_optimizer_total_energy', 'sensor.heat_pump_optimizer_upper_floor_temperature', 'sensor.heat_pump_optimizer_valve_target_recommendation', 'sensor.heat_pump_optimizer_wood_burn_advisor', 'switch.heat_pump_optimizer_away', 'switch.heat_pump_optimizer_boost_space', 'switch.heat_pump_optimizer_dhw_boost', 'switch.heat_pump_optimizer_optimizer_active']; extra=['sensor.not_ours']]
+  FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+  FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+  FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+done

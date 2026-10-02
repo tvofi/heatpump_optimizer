@@ -1,0 +1,6 @@
+M1_tiles4 rc=1 KILLED ['FAIL  tiles: the tile and headline rows are two across outside any media rule']
+M2_no_stats_on_plan rc=1 KILLED ['FAIL  tiles: the expanded Plan page shows the four tiles above its chart']
+M3_hlstats_media4 rc=0 SURVIVED []
+M4_both_media4 rc=1 KILLED ['FAIL  tiles: the tile and headline rows are two across outside any media rule']
+M5_score_single rc=0 SURVIVED []
+M6_anywhere rc=1 KILLED ['FAIL  tiles: the tile and headline rows are two across outside any media rule']

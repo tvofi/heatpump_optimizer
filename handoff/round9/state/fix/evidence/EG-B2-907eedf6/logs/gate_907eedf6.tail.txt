@@ -1,0 +1,80 @@
+  solver-work baseline: solving 54 scenarios from 3bd6f12207a1a48c94ff6f302e533207f6c5fba0 in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+  solver-work baseline: 54 scenarios from 3bd6f12207a1a48c94ff6f302e533207f6c5fba0 (3bd6f12207a1), captured in 119 s on this machine
+  solve-time guard: reference solve 41.6 ms of CPU on this machine, budget 268x that per scenario (= 11.2 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
+  reference solve over the sweep: 40.7 / 43.1 / 75.6 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 40.7 / 43.2 / 75.6 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 2.8 s of wall clock for 61 samples
+  worst scenario: shoulder/tariff+cycle used 11664 ms of CPU = 272.7x its 42.8 ms reference; budget is 268x
+  FAIL every scenario's solve costs what it should, in CPU, for this machine  [shoulder/tariff+cycle used 11664 ms of CPU = 273x the 42.8 ms reference measured beside it (budget 268x)]
+  no scenario in the kernel doubt band
+  solver work: 54 of 54 scenarios judged against the baseline captured beside this run, at 1.80x; 0 re-planned by this branch, 0 new here, 0 dropped
+  production calls: 20 of 20 family members judged against 3bd6f12207a1a48c94ff6f302e533207f6c5fba0 (3bd6f12207a1) in 38 s; re-planned: []; new on this branch: []
+
+-- Memory (D9-04)
+  empty-probe baseline (same imports, no scenario): 106.6 MiB of RSS, subtracted from every probe below
+  heavy_old/shoulder                 RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  winter/cycle                       RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 84 / 9 / 3.5)
+  winter/pv+cycle                    RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  typical_slab/winter                RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 92 / 14 / 3.4)
+  winter_extreme/1z/dhw              RSS peak   106.6 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 88 / 12 / 3.4)
+  typical_slab/shoulder              RSS peak   106.6 MiB, attributable   0.0 MiB, traced   1.8 MiB (recorded 85 / 9 / 1.8)
+  parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+  coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
+  attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+  whole sweep: 117.8 s of solver CPU against 2.4 s of reference CPU = 48.39x; budget is 52.44x
+  detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.48x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+  detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+  detection on THIS machine: per-scenario ceiling 0.98x (244x x 1.1 wobble), sweep budget 1.08x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+
+-- Economics
+
+-- Edge conditions
+
+1 of 98 STRESS CHECKS FAILED
+>>> FAILED: .venv/bin/python tests/stress.py
+
+########## wall clock ##########
+       0s  .venv/bin/python tests/env_drift.py --claims-only 3bd6f12207a1a48c94ff6f302e533207f6c5fba0
+       1s  .venv/bin/python tests/closure.py selftest
+     492s  .venv/bin/python tests/features.py
+     112s  .venv/bin/python tests/entities.py
+       4s  .venv/bin/python tests/doc_claims.py
+       1s  .venv/bin/python tests/wood_advisor.py
+      21s  .venv/bin/python tests/config_flow_steps.py
+       4s  .venv/bin/python tests/structure.py
+       0s  .venv/bin/python tests/typing_ruler.py
+       6s  .venv/bin/python tests/manual_plan.py
+       1s  .venv/bin/python tests/solar_alignment.py
+       1s  .venv/bin/python tests/guard_pins.py
+      61s  .venv/bin/python tests/finite_boundary.py
+     188s  .venv/bin/python tests/harness_headers.py
+       4s  .venv/bin/python tests/layout.py
+       3s  .venv/bin/python tests/deployment_shape.py
+     185s  .venv/bin/python tests/env_drift.py --all 3bd6f12207a1a48c94ff6f302e533207f6c5fba0
+     106s  .venv/bin/python tests/backtest.py
+     198s  .venv/bin/python tests/optimality.py
+       1s  .venv/bin/python tests/plan_view.py
+      16s  node tests/card.mjs
+       6s  node tests/card_drift.mjs 3bd6f12207a1a48c94ff6f302e533207f6c5fba0
+     498s  .venv/bin/python tests/stress.py
+    1397s  TOTAL (3 lane(s))
+
+########## NOT RUN: scoped out of this gate ##########
+  tests/edge.py            did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/frontend.py        did NOT run -- no changed file is in its measured closure (closure: 6 files)
+  tests/ha_contract.py     did NOT run -- no changed file is in its measured closure (closure: 34 files)
+  tests/md_tables.mjs      did NOT run -- no changed file is in its measured closure (closure: 10 files)
+  tests/open_meteo.py      did NOT run -- no changed file is in its measured closure (closure: 3 files)
+  tests/validate.py        did NOT run -- no changed file is in its measured closure (closure: 26 files)
+  tests/layout.py          ran anyway -- run_always, so no scope skips it
+
+  Each line above is a claim that no file changed by this branch is in
+  that script's MEASURED closure (tests/closures.json, recorded by
+  tests/derive_closures.sh from real instrumented runs). The claim is
+  re-checked in full: every push to main runs this suite unscoped, so
+  a closure that is wrong turns main red within one gate.
+  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
+
+1 TEST SCRIPT(S) FAILED
+rc=1
+907eedf6c83e92d4a0a439c993c70d71ab008f7a

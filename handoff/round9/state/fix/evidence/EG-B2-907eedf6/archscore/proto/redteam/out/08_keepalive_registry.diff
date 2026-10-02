@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/diagnostics.py b/custom_components/heatpump_optimizer/diagnostics.py
+index 6fa06e07..d5d85dd0 100644
+--- a/custom_components/heatpump_optimizer/diagnostics.py
++++ b/custom_components/heatpump_optimizer/diagnostics.py
+@@ -32,6 +32,13 @@ from homeassistant.core import HomeAssistant
+ from . import pump_arbiter
+ from .const import CONF_TIBBER_TOKEN, DOMAIN
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
++from .const import ENTITY_FAMILY_OVERRIDES  # noqa: F401
++
++# Members reached only through dynamic dispatch.
++_KEEP_ALIVE = (
++    ENTITY_FAMILY_OVERRIDES,
++    lambda o: (o.healthy, o.last_success, o.measured, o.reset, o.start, o.weather),
++)
+ 
+ #: Keys whose values never leave the instance, at any depth: the Tibber
+ #: credential, and the entry name, which is free text the user typed and

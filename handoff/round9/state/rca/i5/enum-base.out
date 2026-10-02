@@ -1,0 +1,172 @@
+D4-s2-09                                      flagged=16.0
+D5-s1-01                                      flagged=4.0
+D5-s1-02                                      flagged=2.0
+D5-s1-03                                      flagged=1.0
+D5-s1-05                                      flagged=5.0
+D6-s2-01/D5-s1-06/D5-s1(entity_counts)        flagged=1.0
+D5-s2-01                                      flagged=12.0
+D5-s2-02/D5-s2-03                             flagged=4.0
+D5-s2-51                                      flagged=0
+D6-s1-01/02/03                                flagged=4.0
+D6-s2-02                                      flagged=1.0
+D6-s2-03/04                                   flagged=1.0
+D6-s2-04(howitworks)                          flagged=1.0
+D6-s2-05                                      flagged=1.0
+D8-s3-02                                      flagged=1.0
+(widen) architecture_claims                   flagged=0.0
+(widen) setup_claims                          flagged=0.0
+(widen) scan_const_numbers                    flagged=0.0
+(widen) scan_qualified_refs                   flagged=19.0
+[
+  {
+    "id": "D4-s2-09",
+    "cmd": "python3 tools/audit/round9/D4/s2/unit_typography.py",
+    "flagged": 16.0,
+    "result_keys": {
+      "bare_unit_help_texts_en": "8",
+      "bare_unit_help_texts_sv": "8"
+    }
+  },
+  {
+    "id": "D5-s1-01",
+    "cmd": "python3 tools/audit/round9/D5/s1/setup_section.py",
+    "flagged": 4.0,
+    "result_keys": {
+      "stale_facts": "4"
+    }
+  },
+  {
+    "id": "D5-s1-02",
+    "cmd": "python3 tools/audit/round9/D5/s1/quick_setup_promise.py",
+    "flagged": 2.0,
+    "result_keys": {
+      "unhonoured_promises": "2"
+    }
+  },
+  {
+    "id": "D5-s1-03",
+    "cmd": "python3 tools/audit/round9/D5/s1/card_version_doc.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "doc_claims_card_lags": "1"
+    }
+  },
+  {
+    "id": "D5-s1-05",
+    "cmd": "python3 tools/audit/round9/D5/s1/field_labels.py",
+    "flagged": 5.0,
+    "result_keys": {
+      "unfindable_field_refs": "5"
+    }
+  },
+  {
+    "id": "D6-s2-01/D5-s1-06/D5-s1(entity_counts)",
+    "cmd": "python3 tools/audit/round9/D5/s1/entity_counts.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "disagreeing_claims": "1"
+    }
+  },
+  {
+    "id": "D5-s2-01",
+    "cmd": "node tools/audit/round9/D5/s2/card_comment_names.mjs",
+    "flagged": 12.0,
+    "result_keys": {
+      "card_stale_private_names": "12"
+    }
+  },
+  {
+    "id": "D5-s2-02/D5-s2-03",
+    "cmd": "python3 tools/audit/round9/D5/s2/comment_numbers.py",
+    "flagged": 4.0,
+    "result_keys": {
+      "comment_number_mismatches": "4"
+    }
+  },
+  {
+    "id": "D5-s2-51",
+    "cmd": "python3 tools/audit/round9/D5/leads/dataflow_comments.py",
+    "flagged": 0,
+    "result_keys": {}
+  },
+  {
+    "id": "D6-s1-01/02/03",
+    "cmd": "python3 tools/audit/round9/D6/s1/claims.py --no-net",
+    "flagged": 4.0,
+    "result_keys": {
+      "claims_false": "4"
+    }
+  },
+  {
+    "id": "D6-s2-02",
+    "cmd": "python3 tools/audit/round9/D6/s2/flow_census.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "doc_entity_counts_wrong": "1"
+    }
+  },
+  {
+    "id": "D6-s2-03/04",
+    "cmd": "python3 tools/audit/round9/D6/s2/behaviour_claims.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "behaviour_claims_false": "1"
+    }
+  },
+  {
+    "id": "D6-s2-04(howitworks)",
+    "cmd": "python3 tools/audit/round9/D6/s2/howitworks_claims.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "howitworks_claims_false": "1"
+    }
+  },
+  {
+    "id": "D6-s2-05",
+    "cmd": "python3 tools/audit/round9/D6/s2/services_claims.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "services_claims_false": "1"
+    }
+  },
+  {
+    "id": "D8-s3-02",
+    "cmd": "python3 tools/audit/round9/D8/s3/m3_translation.py",
+    "flagged": 1.0,
+    "result_keys": {
+      "concept_mismatch": "1"
+    }
+  },
+  {
+    "id": "(widen) architecture_claims",
+    "cmd": "python3 tools/audit/round9/D6/s2/architecture_claims.py",
+    "flagged": 0.0,
+    "result_keys": {
+      "architecture_claims_false": "0"
+    }
+  },
+  {
+    "id": "(widen) setup_claims",
+    "cmd": "python3 tools/audit/round9/D6/s2/setup_claims.py",
+    "flagged": 0.0,
+    "result_keys": {
+      "setup_claims_false": "0"
+    }
+  },
+  {
+    "id": "(widen) scan_const_numbers",
+    "cmd": "python3 tools/audit/round9/D5/s2/scan_const_numbers.py",
+    "flagged": 0.0,
+    "result_keys": {
+      "const_adjacent_mismatch": "0"
+    }
+  },
+  {
+    "id": "(widen) scan_qualified_refs",
+    "cmd": "python3 tools/audit/round9/D5/s2/scan_qualified_refs.py",
+    "flagged": 19.0,
+    "result_keys": {
+      "qualified_ref_rows": "19"
+    }
+  }
+]

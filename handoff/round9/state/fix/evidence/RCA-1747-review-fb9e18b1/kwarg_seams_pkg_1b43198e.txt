@@ -1,0 +1,129 @@
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM async_show_form omits description_placeholders at line 2370 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 2370 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2591 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 2591 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2607 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2687 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 2687 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2709 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2739 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2808 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 2808 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 2978 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 2978 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3052 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3296 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3296 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3343 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3365 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3380 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3380 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3401 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3470 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3485 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3485 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3551 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3614 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3614 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3625 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3625 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3652 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3652 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3762 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3762 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3776 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3776 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3795 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3795 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits description_placeholders at line 3806 (passed at [2325, 2388, 2904, 3445, 3581, 3599, 3684, 3713, 3743, 3841])
+SEAM async_show_form omits errors at line 3806 (passed at [2325, 2388, 2607, 2709, 2739, 2904, 3052, 3343, 3365, 3401, 3445, 3470, 3551, 3581, 3599, 3684, 3713, 3743, 3841])
+RESULT seams=39
+RESULT seams=0
+SEAM _mold_floor_series omits target_cap at line 5312 (passed at [11076])
+SEAM _plan_slots omits other_powers at line 11134 (passed at [3620, 3628])
+SEAM _plan_slots omits reasons at line 11134 (passed at [3620, 3628])
+SEAM _plan_slots omits other_powers at line 11142 (passed at [3620, 3628])
+SEAM _plan_slots omits reasons at line 11142 (passed at [3620, 3628])
+SEAM _tibber_fetch_failed omits exc_info at line 6013 (passed at [6023])
+SEAM _tibber_fetch_failed omits exc_info at line 6021 (passed at [6023])
+RESULT seams=7
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM _build_dhw_requirements omits space_demand at line 6114 (passed at [2442])
+SEAM _build_result omits dhw_cost at line 4187 (passed at [6390])
+SEAM _build_result omits dhw_power at line 4187 (passed at [6390])
+SEAM _build_result omits dhw_temps at line 4187 (passed at [6390])
+SEAM _build_result omits predictive_info at line 4187 (passed at [6390])
+SEAM _compute_baseline_power omits coil_dhw_temp at line 4073 (passed at [6347])
+SEAM _compute_baseline_power omits coil_draws at line 4073 (passed at [6347])
+SEAM _deferred_energy_cost omits include_dhw at line 4170 (passed at [6370])
+SEAM _settlement_caps omits dhw_cap at line 2116 (passed at [6372])
+SEAM _settlement_caps omits dhw_cap at line 4172 (passed at [6372])
+RESULT seams=10
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0
+SEAM _simulate_step_single omits _cop at line 2581 (passed at [2599])
+SEAM _simulate_step_single omits _q_solar at line 2581 (passed at [2599])
+SEAM _simulate_step_single omits _u_eff at line 2581 (passed at [2599])
+SEAM compute_cop omits flow_temp at line 1729 (passed at [2246, 1726])
+SEAM compute_cop omits flow_temp at line 2593 (passed at [2246, 1726])
+SEAM compute_cop omits flow_temp at line 2150 (passed at [2246, 1726])
+RESULT seams=6
+RESULT seams=0
+RESULT seams=0
+RESULT seams=0

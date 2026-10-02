@@ -1,0 +1,8 @@
+PASS R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divid
+PASS R9-P3: and the rule keys a range spelt two ways alike, a product in either operand order alike, a fl
+PASS R9-P3: the power-fraction helper is the named exception -- it branches on a sub-floor band and floor
+PASS R9-P3: one kelvin-step under the floor in the upper zone costs what it costs a single-zone room (sca
+PASS R9-P3: one kelvin-step under the floor in the lower zone costs what it costs a single-zone room (sca
+PASS R9-P3: one kelvin-step under the floor in the upper zone costs what it costs a single-zone room (bat
+PASS R9-P3: one kelvin-step under the floor in the lower zone costs what it costs a single-zone room (bat
+RESULT package=/tmp/claude-0/-home-user/64d72744-6268-571c-a6b7-f3b6e1964166/scratchpad/mut/head/heatpump_optimizer/__init__.py fails=0 groups=0 wall_s=0.97 cpu_s=0.95

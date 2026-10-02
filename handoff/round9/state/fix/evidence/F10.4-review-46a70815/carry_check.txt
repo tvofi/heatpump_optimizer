@@ -1,0 +1,24 @@
+tree(46a70815)=c62ba3aed134e619512b1d11ba7e218e872f2805
+merge-tree(c168ec0a,ce12cbd1)=c62ba3aed134e619512b1d11ba7e218e872f2805
+files changed both sides since 777c23180a08b0d6c7abd41d6dd5fe7b1abf19b3:
+(end)
+main side:
+.claude/workflows/carry-1795.json
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+docs/dashboard-card.md
+docs/delivery/1840.md
+docs/img/card/advisor-dark.png
+docs/img/card/advisor-light.png
+docs/img/card/health-dark.png
+docs/img/card/health-light.png
+docs/img/card/plan-dark.png
+docs/img/card/plan-light.png
+docs/img/card/plan-why-dark.png
+docs/img/card/plan-why-light.png
+docs/img/card/savings-dark.png
+docs/img/card/savings-light.png
+docs/img/card/setup-dark.png
+docs/img/card/setup-light.png
+tests/card.mjs
+tests/card_browser.mjs
+tests/golden/card_claimed_drift.txt

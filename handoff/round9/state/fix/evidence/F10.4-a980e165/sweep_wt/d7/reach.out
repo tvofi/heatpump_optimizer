@@ -1,0 +1,15 @@
+DEAD const    const.py:1545 ENTITY_FAMILY_OVERRIDES
+DEAD property coordinator.py:3012 HeatPumpOptimizerCoordinator.floor_return_temp
+DEAD property coordinator.py:2885 HeatPumpOptimizerCoordinator.last_optimization
+DEAD property coordinator.py:2889 HeatPumpOptimizerCoordinator.next_optimization
+RESULT nodes_total=2778 count
+RESULT reached=2773 count
+RESULT dead_reachability_total=4 count
+RESULT dead_func=0 count
+RESULT dead_const=1 count
+RESULT dead_method=0 count
+RESULT dead_property=3 count
+RESULT thread_factor=1.000
+RESULT load1=7.12
+RESULT swapins=0
+rc=0

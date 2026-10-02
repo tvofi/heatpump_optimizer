@@ -1,0 +1,15 @@
+00_null_rename                   adm=y dS=   0.0000 NULL      
+01_typeddict_all_any             adm=y dS=   0.0000 NULL      
+02_hub_object_setattr            adm=n dS=  29.1695 WORSENS   reflective_writes 16->53
+03_shared_dunder_spelling        adm=n dS=  24.6572 WORSENS   reflective_writes 16->32; computed_attr_access 31->32
+04_dup_noop_interleave           adm=y dS=   0.0000 NULL      
+05c_coord_base_class_all         adm=y dS=   0.0000 NULL      
+05d_coord_empty_subclass         adm=y dS=   0.0000 NULL      
+06_private_passthrough_props     adm=y dS=   0.0000 NULL      
+07_family_declare_away           adm=n dS=  10.9319 WORSENS   family_orphan_overrides 0->2
+08_keepalive_registry            adm=n dS=   5.6148 WORSENS   unread_private_globals 0->1
+09_delete_away_setback           adm=y dS=   1.9461 IMPROVES  
+10_writers_setattr_init          adm=n dS=   1.1761 WORSENS   reflective_writes 16->120
+11_params_kwargs_bag             adm=y dS=   0.0000 NULL      
+12_combined_evasions             adm=n dS=  71.5166 WORSENS   reflective_writes 16->173; family_orphan_overrides 0->2; unread_private_globals 0->1
+13_hub_handle_accessor           adm=n dS=  11.0729 WORSENS   coord_footprint_v1 2512->2524; computed_attr_access 31->32

@@ -1,0 +1,193 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c146448f..cab2a38e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1976,6 +1976,179 @@ def _space_pump_to_drive(coord: Any) -> str | None:
+     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
+     return str(entity) if entity else None
+ 
++from typing import TypedDict  # noqa: E402
++
++
++class CoordinatorPayload(TypedDict, total=False):
++    """Every key coordinator.data carries."""
++
++    accuracy: Any
++    away_active: Any
++    away_dhw_min_temperature: Any
++    away_hours_until_return: Any
++    away_override_active: Any
++    away_override_return_time: Any
++    away_recovery_active: Any
++    away_recovery_hours: Any
++    away_return_time: Any
++    away_source: Any
++    away_target_temperature: Any
++    baseline_cost: Any
++    battery: Any
++    billed_peak_kw: Any
++    buffer_cooling_rate: Any
++    buffer_cooling_rate_learned: Any
++    buffer_cooling_samples: Any
++    buffer_tank_temperature: Any
++    capacity_envelope: Any
++    comfort_learning: Any
++    comfort_temp_day: Any
++    comfort_temp_night: Any
++    comfort_weight: Any
++    compressor_starts: Any
++    contract_comparison: Any
++    cop_health: Any
++    cop_samples: Any
++    cop_scale: Any
++    currency: Any
++    current_action: Any
++    current_grid_fee: Any
++    current_price: Any
++    day_end_hour: Any
++    day_start_hour: Any
++    deferred_energy_cost: Any
++    defrost_buckets: Any
++    defrost_derate: Any
++    defrost_flag_configured: Any
++    defrost_measured_samples: Any
++    defrost_samples: Any
++    defrost_store_migrated: Any
++    dhw_advisor: Any
++    dhw_cooling_rate: Any
++    dhw_cooling_rate_learned: Any
++    dhw_cooling_samples: Any
++    dhw_draw_stats: Any
++    dhw_enabled: Any
++    dhw_heating_active: Any
++    dhw_heating_cost: Any
++    dhw_hold_hours: Any
++    dhw_idle_min_temperature: Any
++    dhw_in_demand_window: Any
++    dhw_inlet_temperature: Any
++    dhw_legionella_due_in_hours: Any
++    dhw_legionella_enabled: Any
++    dhw_min_temperature: Any
++    dhw_mixed: Any
++    dhw_next_window_in_hours: Any
++    dhw_plan: Any
++    dhw_schedule: Any
++    dhw_schedule_enabled: Any
++    dhw_setpoint: Any
++    dhw_temperature: Any
++    dhw_usage_profile: Any
++    dhw_windows: Any
++    ecl110_command_topic: Any
++    ecl110_displace: Any
++    ecl110_effective_displace: Any
++    ecl110_last_payload: Any
++    ecl110_state_topic: Any
++    energy_totals_counting_since: Any
++    external_heat: Any
++    external_heat_active: Any
++    external_heat_suppressing: Any
++    floor_return_temperature: Any
++    freq_control: Any
++    fuse_advisor: Any
++    heat_curve: Any
++    heat_pump_power_series: Any
++    heat_pump_signals: Any
++    house_heat_loss_effective: Any
++    house_heat_loss_learned: Any
++    house_heat_loss_samples: Any
++    house_heat_loss_scale: Any
++    house_power_series: Any
++    immersion_active: Any
++    immersion_evidence: Any
++    indoor_temperature: Any
++    input_ages_minutes: Any
++    input_health: Any
++    input_problems: Any
++    insight: Any
++    internal_gains_profile: Any
++    last_optimization: Any
++    learner_freeze_reason: Any
++    learners_frozen: Any
++    lower_floor_loss_learned: Any
++    lower_floor_loss_ratio: Any
++    lower_floor_loss_samples: Any
++    lower_floor_temperature: Any
++    manual_plan: Any
++    max_temperature: Any
++    measured_cop: Any
++    measured_energy: Any
++    measured_house_power: Any
++    measured_power: Any
++    measured_power_available: Any
++    min_temperature: Any
++    mixing_valve_mode: Any
++    mode: Any
++    next_optimization: Any
++    optimization_status: Any
++    outage_recovery_active: Any
++    outdoor_forecast_temperature: Any
++    outdoor_temperature: Any
++    peak_guard_evidence: Any
++    peak_guard_suppressing: Any
++    peak_month: Any
++    peak_tariff: Any
++    peak_tariff_enabled: Any
++    peak_threshold_kw: Any
++    plan_age_minutes: Any
++    plan_price_known: Any
++    plan_stale: Any
++    power_headroom: Any
++    predicted_cost: Any
++    predicted_savings: Any
++    predictive_info: Any
++    price_known_steps: Any
++    price_prior: Any
++    prices_available: Any
++    problem_inputs: Any
++    problem_messages: Any
++    projected_peak_cost: Any
++    projected_peak_kw: Any
++    pv: Any
++    pv_enabled: Any
++    pv_self_consumed_kwh: Any
++    reading_ok: Any
++    savings_months: Any
++    savings_percentage: Any
++    schedule: Any
++    slab_temperature: Any
++    snapshots: Any
++    solar_aperture: Any
++    solar_diagnostics: Any
++    solar_forecast: Any
++    solar_heat_gain: Any
++    solar_radiation: Any
++    solar_source: Any
++    solve_time_ms: Any
++    space_plan: Any
++    stale_inputs: Any
++    system_identification: Any
++    two_tank_modelled: Any
++    two_zone_enabled: Any
++    upper_floor_temperature: Any
++    valve_target_recommendation: Any
++    ventilation_active: Any
++    ventilation_evidence: Any
++    weather_forecast_available: Any
++    weather_forecast_stale_hours: Any
++    wood_fuel: Any
++    wood_tank_temperature: Any
++
++
++
+ 
+ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+     """Coordinator for Heat Pump Cost Optimizer."""
+@@ -4749,7 +4922,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+         )
+         return round(hours, 2) if hours is not None else None
+ 
+-    async def _async_update_data(self) -> dict[str, Any]:
++    async def _async_update_data(self) -> CoordinatorPayload:
+         """Fetch data and run optimization."""
+         ctx = getattr(self, "_ctx", self)
+         if self._skip_solve_once:
