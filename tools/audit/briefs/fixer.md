@@ -224,16 +224,16 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
-17. **Take the fix that yields the better code.** Where one
-    fix satisfies the check and another removes the cause or simplifies the
-    design, take the second; the body names the alternatives and why each lost.
-    An improvement claim names its mechanism, which the reviewer removes as the
-    null control (`fix-review.md` step 14). Never move a metric by a change that
-    does not improve the code: a mechanical split, code moved to an unmeasured
-    path, a triage on a killable mutant, or cases enumerated where a structural
-    fix exists (#1874: a spelling list, three review rounds, class still open).
-    Cost is no reason to take the worse fix; scope and the ratchet still bind,
-    and a raise is asked for (below), never taken quietly.
+17. **Take the fix that yields the better code.** Where one fix satisfies the
+    check and another removes the cause or simplifies the design, take the
+    second; the body names the alternatives and why each lost. An improvement
+    claim names its mechanism, which the reviewer removes as the null control
+    (`fix-review.md` step 14). Never move a metric by a change that does not
+    improve the code: a mechanical split, code moved to an unmeasured path, a
+    triage on a killable mutant, or cases enumerated where a structural fix
+    exists (#1874: a spelling list, three review rounds, class still open). Cost
+    is no reason to take the worse fix; scope and the ratchet still bind, and a
+    raise is asked for (below), never taken quietly.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
