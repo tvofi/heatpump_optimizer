@@ -68,7 +68,7 @@ class Occurrence(NamedTuple):
 Detected = dict[str, Occurrence] | None
 
 
-def _receipt(data: Payload) -> Detected:
+def _monthly_receipt(data: Payload) -> Detected:
     insight = data.get("insight")
     if insight is None:
         return None
@@ -157,7 +157,7 @@ def _manual(data: Payload) -> Detected:
 
 #: Each detector with the id prefix its occurrences carry.
 _DETECTORS: tuple[tuple[str, Callable[[Payload], Detected]], ...] = (
-    ("receipt", _receipt),
+    ("receipt", _monthly_receipt),
     ("comfort", _comfort),
     ("input_stale", _inputs),
     ("plan_stale", _plan),
