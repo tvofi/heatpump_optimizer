@@ -409,7 +409,7 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
     // A RULESET_TOKEN_HIDDEN field the live read does not carry at all is
     // UNREADABLE, not removed. Skipped, said out loud; `[]`, `null`, any other
     // missing field and an absence inside a field the read carried all fire.
-    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && RULESET_TOKEN_HIDDEN.includes(k))
+    const unread = Object.keys(recObjs[id]).filter((k) => !(k in obj) && false && RULESET_TOKEN_HIDDEN.includes(k))
     for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this token cannot see it); it is UNCHECKED this run, not confirmed`)
     const under = (k) => unread.some((u) => k === u || k.startsWith(u + '.') || k.startsWith(u + '['))
     const want = rulesetLeaves(recObjs[id])
