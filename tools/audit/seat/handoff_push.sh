@@ -3,10 +3,15 @@
 # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
 # retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
 # row here because it is the seat that learns N (.claude/rules/delivery-status-tracking.md).
+# Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
+# docs/HANDOVER.md names it.
 set -uo pipefail
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
-R=tvofi/heatpump_optimizer; M=/Users/timmalmstrom/heatpump_optimizer
-BR=${BRNAME:-fix/$TOPIC}; WT=/Users/timmalmstrom/${BRNAME:-fix/$TOPIC}; WT=${WT/fix\//fix-}; B=/private/tmp/audit-7/v6612/$TOPIC-body.md
+# The main checkout is the one this script's checkout shares its object store with; a PR's
+# worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
+R=tvofi/heatpump_optimizer; M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd) || exit 1
+BR=${BRNAME:-fix/$TOPIC}; WT=${HPO_WT_ROOT:-$(dirname "$M")}/${BRNAME:-fix/$TOPIC}; WT=${WT/fix\//fix-}
+B=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bodies/$TOPIC-body.md; mkdir -p "$(dirname "$B")"
 cd $M
 git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"

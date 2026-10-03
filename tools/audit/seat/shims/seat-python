@@ -1,0 +1,4 @@
+#!/bin/sh
+# The seat interpreter: the venv tools/audit/seat/seat_venv.sh builds.
+# Installed into a seat's bin directory by `seat_venv.sh --install-shims <dir>`.
+exec "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin/python3" "$@"

@@ -1,6 +1,6 @@
 #!/bin/bash
 # CI watcher v2: alerts only on NEW states (per-PR signature file), exits 1 with a report.
-R=tvofi/heatpump_optimizer; S=${CI_WATCH_STATE:-/private/tmp/audit-7/ci-watch-state}; mkdir -p $S
+R=tvofi/heatpump_optimizer; S=${CI_WATCH_STATE:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/ci-watch-state}; mkdir -p "$S"
 while true; do
   OUT=""
   for n in $(gh pr list --repo $R --state open --json number --jq '.[].number'); do

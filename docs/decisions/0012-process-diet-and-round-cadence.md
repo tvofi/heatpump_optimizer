@@ -3,8 +3,11 @@
 Status: recorded 2026-09-24 from the round-8 convergence design and the
 owner's inputs in the round-8 audit thread, including the end date confirmed
 2026-09-24. Source: the design handed over 2026-09-23
-(`/private/tmp/audit-7/r8prog/design-rotation-and-D14.md`, sections A, B and
-D) and tvofi's inputs recorded there. This record is item F6 of that design's
+(`handoff/round8/design-rotation-and-D14.md` at commit
+`12743bf742e09cbe50b49ae02f8348798b273885`, on branch
+`claude/project-thread-s8rmov`; sections A, B and D. The session-scratch
+copy this line first cited was deleted on 2026-10-03.) and tvofi's inputs
+recorded there. This record is item F6 of that design's
 section F.
 
 ## Context
@@ -111,7 +114,7 @@ required together; any one failing resets the count.
   replaces in place is incomplete under this record, not merely untidy —
   the same PR deletes the prose.
 - The cadence table is read alongside the design's full seat-count table
-  (`/private/tmp/audit-7/r8prog/design-rotation-and-D14.md`, section A.5) for
+  (at `12743bf74`, `handoff/round8/design-rotation-and-D14.md`, section A.5) for
   the dimensions this record does not restate; this record is the durable
   copy of only the two facts (D11/D13 thirds, D5/D6 alternation) that the
   moratorium and stop rule depend on.
