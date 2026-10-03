@@ -3128,11 +3128,11 @@
         "R9-EG-B3"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-eg-typed-payload-b",
-        "commit": "5c69edd8d5502d39d0c3480f4086ce603c7c06af",
-        "last_step": "PR #1867 head 5c69edd8",
-        "next_step": "a merge verdict at the live head (last review blocked at 403803da, head has moved), green CI, then merge",
+        "commit": "12dbd3a5d01f48f44e6c6344bff22d3d015baf9d",
+        "last_step": "MERGED as #1867 at 12dbd3a5 (2026-10-03T13:45Z)",
+        "next_step": "none",
         "note_file": null,
         "review_branch": null,
         "review_note_file": null,
@@ -3180,11 +3180,11 @@
         "R9-EG-B3"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-eg-store-version",
-        "commit": "ef37a5ba1d9652769ac099227fa2379f3ebe8f71",
-        "last_step": "PR #1869 head ef37a5ba",
-        "next_step": "a merge verdict at the live head (last review blocked at e17006c7, head has moved), green CI, then merge",
+        "commit": "1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f",
+        "last_step": "MERGED as #1869 at 1ccd0b1d (2026-10-03T14:40Z)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/EG-B4.md on handoff/r9-eg-store-version",
         "review_branch": "handoff/r9-eg-store-version-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B4-review.md on handoff/r9-eg-store-version-review",
@@ -4386,11 +4386,11 @@
         "R9-F10.6"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f10-loop-heartbeat",
-        "commit": "ab45a5f7c7c551a4692b792a074ab02b13ae9583",
-        "last_step": "PR #1870 head ab45a5f7",
-        "next_step": "a merge verdict at the live head (last review blocked at 34360097, head has moved), green CI, then merge",
+        "commit": "2622b31c82d61c7d217e05c41dd0b90bf6384c5a",
+        "last_step": "MERGED as #1870 at 2622b31c (2026-10-03T12:04Z)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/F10.7.md on handoff/r9-f10-loop-heartbeat",
         "review_branch": "handoff/r9-f10-loop-heartbeat-review",
         "review_note_file": "handoff/round9/fix/resume/F10.7-review.md on handoff/r9-f10-loop-heartbeat-review",
@@ -4436,11 +4436,11 @@
         "R9-F11.5"
       ],
       "resume": {
-        "stage": "building",
+        "stage": "in-review",
         "branch": "handoff/r9-f11-governance-7",
-        "commit": "18ae7cb0a4e6acb942867980a50b4f862701a473",
-        "last_step": "PR #1863 head 18ae7cb0",
-        "next_step": "fixer.md: answer the round-2 blocked verdict at this head (mutation-survivor R7/R8/R9), push, then a fresh review",
+        "commit": "33b636ecc1ddf186f790a2a3beceb2fcf15e7e82",
+        "last_step": "PR #1863 head 33b636ec; merge verdict at that head 2026-10-03T14:50Z after blocked verdicts at 18ae7cb0, 41ba4b58 and 33b636ec (body-only edit)",
+        "next_step": "tvofi approving review at the live head (code-owned), green CI, then merge",
         "note_file": "handoff/round9/fix/resume/F11.7.md on handoff/r9-f11-governance-7",
         "review_branch": "handoff/r9-f11-governance-7-review",
         "review_note_file": "handoff/round9/fix/resume/F11.7-review.md on handoff/r9-f11-governance-7-review",
@@ -4587,11 +4587,11 @@
         "R9-EG-B5"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-eg-one-copy",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
+        "commit": "c0f81ac988109dc9d1429b1b1fa0d03d7d26ea35",
+        "last_step": "PR #1874 head c0f81ac9; blocked verdicts at 232306c9 and c0f81ac9 (2026-10-03); mergeStateStatus DIRTY",
+        "next_step": "fixer.md: answer the blocked verdict at this head (stress.py production-calls red, junk siblings, 27 unpinned added sites), merge main, push, then a fresh review",
         "note_file": "handoff/round9/fix/resume/EG-A2.md on handoff/r9-eg-one-copy",
         "review_branch": "handoff/r9-eg-one-copy-review",
         "review_note_file": "handoff/round9/fix/resume/EG-A2-review.md on handoff/r9-eg-one-copy-review",
@@ -4599,7 +4599,7 @@
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by roster rev 3 (the architecture-score pre-study, 2026-09-29). The seat's resume note on its branch outranks this entry for in-flight state."
       },
-      "brief": "Round-9 endgame PR EG-A2 (lane EG, one copy per formula and helper; classes P2 and P3). Issue #1775 (Fixes). The pre-study (handoff/round9/state/alt/archscore/PRE-STUDY.md section 8 at 92b3ecc9) samples the clone windows dup_pairs_v1 finds (121 pairs at 7952d8f9; the in-tree census counts copies): the scalar and batch physics steps in thermal_model.py (_simulate_step_two_zone, _stability_substeps, simulate_trajectory_batch share the slab and inter-zone transfer lines, a P3 divergence risk), _finite in freq_control.py and inputs.py, the store-load prelude in boost.restore and pump_arbiter._load, the r-squared confidence in sysid._slab_confidence and sysid.identify, the requirement arrays in optimizer._plan_dhw_cheapest_first and _plan_dhw_min_cost, and the option-flow step functions config_flow.async_step_* that the settings registry (#597) made identical. Consolidate each into one definition its callers use. Target duplication_copies (clone-class members past the first, tests/structure.py; copies, not pairs, so a third copy costs one more, not two): lower than the value measured at the stage's merge base (60 at af7660c74, ratcheted at 60 in tests/structure_budgets.json, so each copy removed lowers the budget in the same PR). The prototype's pair target 121 -> 40 does not map to a copy count by any ratio, because a clone class of k members is k(k-1)/2 pairs and k-1 copies and the window rules differ, so the target is the stated one and the expected delta-S +14.1 is the prototype's figure, to be re-measured. A window that is framework idiom rather than logic is argued in the body and left, not hidden. The physics consolidation may move solver floats: value-bearing goldens are claimed in tests/golden/claimed_drift.txt with direction (CLAUDE.md rule 3), never re-recorded; the fixer proves the scalar and batch paths agree to the golden tolerance before and after. Measure delta-S before and after with the in-tree score (python3 tools/audit/archscore/score.py --diff <the stage's merge base>, which carries the red-team counters; code head 486b397a2, prototype at 92b3ecc9 retired) and put the per-metric deltas in the PR body; a gain that appears only without the counters is not a gain. The score is report-only: a shortfall is not a failure, a rise in any score metric is explained in the body, and none of the red-team moves in handoff/round9/state/alt/archscore/PRE-STUDY.md section 7 (an Any-typed payload key, a passthrough property over a private, a renamed or re-spelled defect) counts as progress. Measure updated by R9-EG-A1 (PR pending), accepted by tvofi 2026-10-02: the score is now in-tree (code head 486b397a2) and shares tests/structure.py's definitions (main af7660c74), so the prototype commands at 92b3ecc9 are retired. Carried from the R9-EG-A1 review (PR #1851, review/1851 round 2, 2026-10-02; tvofi ruled 'B now, then A'): the in-tree score's clone counter C3 recognises effect-free statements by spelling, so interleaving junk (`assert True`, `_ = None`, `(_ := 0)`) inside a copied block splits the clone and reads IMPROVES +14.15; EG-A1 documents this as a known limit with KNOWN-OPEN red-team cases. Owed here: fix the class (e.g. a small gap tolerance inside a clone window, or dropping dead statements by data flow), flip those KNOWN-OPEN cases to NULL/inadmissible, and re-run the calibration, reporting any verdict that moves."
+      "brief": "Round-9 endgame PR EG-A2 (lane EG, one copy per formula and helper; classes P2 and P3). Issue #1775 (Fixes). The pre-study (handoff/round9/state/alt/archscore/PRE-STUDY.md section 8 at 92b3ecc9) samples the clone windows dup_pairs_v1 finds (121 pairs at 7952d8f9; the in-tree census counts copies): the scalar and batch physics steps in thermal_model.py (_simulate_step_two_zone, _stability_substeps, simulate_trajectory_batch share the slab and inter-zone transfer lines, a P3 divergence risk), _finite in freq_control.py and inputs.py, the store-load prelude in boost.restore and pump_arbiter._load, the r-squared confidence in sysid._slab_confidence and sysid.identify, the requirement arrays in optimizer._plan_dhw_cheapest_first and _plan_dhw_min_cost, and the option-flow step functions config_flow.async_step_* that the settings registry (#597) made identical. Consolidate each into one definition its callers use. Target duplication_copies (clone-class members past the first, tests/structure.py; copies, not pairs, so a third copy costs one more, not two): lower than the value measured at the stage's merge base (60 at af7660c74, ratcheted at 60 in tests/structure_budgets.json, so each copy removed lowers the budget in the same PR). The prototype's pair target 121 -> 40 does not map to a copy count by any ratio, because a clone class of k members is k(k-1)/2 pairs and k-1 copies and the window rules differ, so the target is the stated one and the expected delta-S +14.1 is the prototype's figure, to be re-measured. A window that is framework idiom rather than logic is argued in the body and left, not hidden. The physics consolidation may move solver floats: value-bearing goldens are claimed in tests/golden/claimed_drift.txt with direction (CLAUDE.md rule 3), never re-recorded; the fixer proves the scalar and batch paths agree to the golden tolerance before and after. Measure delta-S before and after with the in-tree score (python3 tools/audit/archscore/score.py --diff <the stage's merge base>, which carries the red-team counters; code head 486b397a2, prototype at 92b3ecc9 retired) and put the per-metric deltas in the PR body; a gain that appears only without the counters is not a gain. The score is report-only: a shortfall is not a failure, a rise in any score metric is explained in the body, and none of the red-team moves in handoff/round9/state/alt/archscore/PRE-STUDY.md section 7 (an Any-typed payload key, a passthrough property over a private, a renamed or re-spelled defect) counts as progress. Measure updated by R9-EG-A1 (PR pending), accepted by tvofi 2026-10-02: the score is now in-tree (code head 486b397a2) and shares tests/structure.py's definitions (main af7660c74), so the prototype commands at 92b3ecc9 are retired. Carried from the R9-EG-A1 review (PR #1851, review/1851 round 2, 2026-10-02; tvofi ruled 'B now, then A'): the in-tree score's clone counter C3 recognises effect-free statements by spelling, so interleaving junk (`assert True`, `_ = None`, `(_ := 0)`) inside a copied block splits the clone and reads IMPROVES +14.15; EG-A1 documents this as a known limit with KNOWN-OPEN red-team cases. Owed here: fix the class (e.g. a small gap tolerance inside a clone window, or dropping dead statements by data flow), flip those KNOWN-OPEN cases to NULL/inadmissible, and re-run the calibration, reporting any verdict that moves. Carry from the 2026-10-03 mechanical self-improvement pre-study (#1874 is this group's pull request): the four junk spellings the round-3 review planted and kept in its evidence (04y1 to 04y4) land in this pull request under tools/audit/archscore/planted/redteam, as GAME cases if the chosen closure closes them or as KNOWN-OPEN cases if tvofi takes the known-open route, so they do not stay in a reviewer's scratch."
     },
     {
       "group": "R9-EG-A3",
@@ -4912,7 +4912,7 @@
         "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
         "note": "Added by roster rev 3 (the architecture-score pre-study, 2026-09-29). The seat's resume note on its branch outranks this entry for in-flight state."
       },
-      "brief": "Round-9 endgame PR EG-A4 (lane EG, the architecture score becomes a required check). Issue #1774 (Fixes). tvofi approved it as decision R3-6 on 2026-09-29. After one wave of report-only data (R9-EG-B1, B2, B3, B6, B7, R9-EG-A2, A3 and B11 each reported a delta-S with the counters), compare every reported delta with its PR's review verdict and write the comparison into the body; any case where the score and the verdict disagree becomes a new planted case in R9-EG-A1's self-check before this PR goes further. Then make \"delta-S >= 0 with the counters, or a gate rise explained in the body like a budget raise\" a required check: a CI job beside the existing ones (tests.yml is code-owned) and the required-context list in the main-protect ruleset, a repository-settings change only tvofi can apply, which the orchestrator requests and records on #201. The weights stay at their recorded hash. Carry from roster rev 4.1 (tvofi's UX decisions, 2026-09-30; design of record handoff/round9/state/alt/design/ux/DESIGN-UX.md at 1a90e4cb): R9-UX-5, R9-UX-6 and R9-UX-7 may land after the score becomes a required check: each shows its delta with the counters, and a negative delta is explained in its body, never paid by a move the pre-study's section 7 lists as gaming."
+      "brief": "Round-9 endgame PR EG-A4 (lane EG, the architecture score becomes a required check). Issue #1774 (Fixes). tvofi approved it as decision R3-6 on 2026-09-29. After one wave of report-only data (R9-EG-B1, B2, B3, B6, B7, R9-EG-A2, A3 and B11 each reported a delta-S with the counters), compare every reported delta with its PR's review verdict and write the comparison into the body; any case where the score and the verdict disagree becomes a new planted case in R9-EG-A1's self-check before this PR goes further. Then make \"delta-S >= 0 with the counters, or a gate rise explained in the body like a budget raise\" a required check: a CI job beside the existing ones (tests.yml is code-owned) and the required-context list in the main-protect ruleset, a repository-settings change only tvofi can apply, which the orchestrator requests and records on #201. The weights stay at their recorded hash. Carry from roster rev 4.1 (tvofi's UX decisions, 2026-09-30; design of record handoff/round9/state/alt/design/ux/DESIGN-UX.md at 1a90e4cb): R9-UX-5, R9-UX-6 and R9-UX-7 may land after the score becomes a required check: each shows its delta with the counters, and a negative delta is explained in its body, never paid by a move the pre-study's section 7 lists as gaming. Carry from the 2026-10-03 mechanical self-improvement pre-study: before the score becomes required, every red-team spelling a fix review of an EG pull request planted against the counters is committed under tools/audit/archscore/planted/redteam, as a GAME case or, where the counters cannot close it, as a KNOWN-OPEN case, so the check in tests/arch_score.py that no red-team attempt reads IMPROVES covers what reviewers found and not only what fixers found. Sweep the fix-review evidence of R9-EG-A2 and the later EG reviews for plants not yet in that directory. The two counts that check carries as literals (tests/arch_score.py:113 \"the red-team attempts are all present\" and tests/arch_score.py:118 \"the known-open attempts are present\") are derived from the planted cases instead of being edited per case. No bot labels a case: GAME against KNOWN-OPEN is a judgement."
     },
     {
       "group": "R9-SW-1",
@@ -5906,11 +5906,11 @@
         "R9-EG-B3"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-ux-events",
-        "commit": "a3899aab49004f68a3caf10ec2758939183a3981",
-        "last_step": "PR #1865 head a3899aab",
-        "next_step": "a merge verdict at the live head (last review blocked at a5060e6a, head has moved), green CI, then merge",
+        "commit": "0d8f2bb42fcd3ac94ca3bb36db956ac6676e1046",
+        "last_step": "MERGED as #1865 at 0d8f2bb4 (2026-10-03T10:11Z)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/UX-4.md on handoff/r9-ux-events",
         "review_branch": "handoff/r9-ux-events-review",
         "review_note_file": "handoff/round9/fix/resume/UX-4-review.md on handoff/r9-ux-events-review",
@@ -6160,11 +6160,11 @@
         "R9-WEB-3"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "in-review",
         "branch": "handoff/r9-web-pages",
-        "commit": null,
-        "last_step": null,
-        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/state/alt/design/site/DESIGN-SITE.md, then write the failing test",
+        "commit": "bf16e1a824526b5a10025566f11829bcf0e28e55",
+        "last_step": "PR #1876 head bf16e1a8; merge verdict at that head 2026-10-03T13:27Z (round 3); mergeStateStatus DIRTY",
+        "next_step": "merge main into the branch and re-run fixer.md steps 2-8, a merge verdict at the new head, green CI, then merge",
         "note_file": "handoff/round9/fix/resume/WEB-2.md on handoff/r9-web-pages",
         "review_branch": "handoff/r9-web-pages-review",
         "review_note_file": "handoff/round9/fix/resume/WEB-2-review.md on handoff/r9-web-pages-review",
@@ -6208,11 +6208,11 @@
         "R9-WEB-1"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-web-docs",
-        "commit": "255d5f095fcb322dd7c35145921ee728c88ce46d",
-        "last_step": "PR #1864 head 255d5f09",
-        "next_step": "a merge verdict at the live head (the last `merge` verdict was at 8a0dd1b3, the head has since moved), green CI, then merge",
+        "commit": "b8fa39f8c4df25bf68d1b3ce914e7b910ac45a2b",
+        "last_step": "MERGED as #1864 at b8fa39f8 (2026-10-03T09:05Z)",
+        "next_step": "none",
         "note_file": "handoff/round9/fix/resume/WEB-3.md on handoff/r9-web-docs",
         "review_branch": "handoff/r9-web-docs-review",
         "review_note_file": "handoff/round9/fix/resume/WEB-3-review.md on handoff/r9-web-docs-review",
@@ -6221,6 +6221,96 @@
         "note": "Added by roster rev 4.3 (tvofi's documentation sub-pages, 2026-09-30); issues stay empty until the orchestrator adds the lane WEB feature issue. The seat's resume note on its branch outranks this entry for in-flight state."
       },
       "brief": "Round-9 feature PR WEB-3 (lane WEB, documentation sub-pages). Models: fixer sonnet (a markdown renderer ported from a working prototype over the vendored parser, and one doc_claims arm); reviewer opus in another session; runner haiku; record sonnet. tvofi decided on 2026-09-30: \"The docs should also be adopted to sub pages, if that is not unfeasible\", on top of the product page (W1 test-pinned and linked, W2 GitHub Pages through a workflow). The design adds S7 built at deploy and never committed, S8 GitHub heading slugs, S9 the page set derived from the README Documentation table, S10 mermaid self-hosted from a lockfile, S11 no third-party request. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi, in commits, PR bodies, comments and delivery notes; the PR attribution line is _Requested by **tvofi**_. Design of record: handoff/round9/state/alt/design/site/DESIGN-SITE.md, section \"Documentation sub-pages\" (at 6c539ee3 on handoff/audit-r9-alt), with the generator prototype handoff/round9/state/alt/design/site/docs_build.mjs, its stylesheet handoff/round9/state/alt/design/site/docs.css, its planted-error controls handoff/round9/state/alt/design/site/docs_controls.py and their output handoff/round9/state/alt/design/site/DOCS-CHECKS.txt, and the renders in handoff/round9/state/alt/design/site/docs_shots; where this brief and those files disagree, the newer is right and the other is the bug. This is a new feature, not a finding: there is no class, no barrier and no RCA. It touches no Python module under custom_components, so every value-bearing golden stays byte-identical (CLAUDE.md rule 3); no VERSION or version literal is written (rule 4). Scope: port the generator prototype into a new site folder under tools/, together with a package.json and lockfile that pin mermaid for the deploy only; tests never install it. It renders the README, and every row of the README Documentation table except its EXCLUDE list (today only the archive docs/backlog.md), into one page each beside the product page. It uses the markdown-it 14.1.0 the repository vendors at .claude/workflows/vendor, required by the path .claude/workflows/render_md.mjs uses; add no parser. The build keeps GitHub's heading slugs, turns links to published docs into their pages and links to other tracked files into GitHub links, and renders badges and other third-party images as their words. It writes nothing into the tree: output goes to the directory it is given. The stylesheet goes in the site folder under docs/ that R9-WEB-1 made, beside the fonts. The build is its own check. Add one new arm to tests/doc_claims.py, beside the R9-WEB-1 page arm: it runs the build over the working tree into a temporary directory with the tracked-file list, and fails on every FAIL line the build prints. Those are: a dead anchor (same page or across pages), a missing image, a link to an untracked file, a README row whose file does not exist, and an EXCLUDE entry that is no longer a row. Its anchor: zero pages built is red. Name the arm in the module docstring. Failing test first: run the arm before the generator exists and show the anchor red, then show each docs_controls.py case red at the head in the body's table, with the baseline green and the page, link, anchor and image counts the build prints. Switch the product page's documentation cards, its card and setup links and its footer to the sub-pages. Extend the page arm with the prototype's sub-page rule: a link to a page the build does not produce is refused. The docs index still mirrors the README table, and the archive row keeps its GitHub link. Classify deliberately: one tests/layout.json glob for the new tools folder. The doc_claims.py closure will read UNDER-SCOPED, and CI's closures-autofix records it; do not re-derive it by hand. Add /tools/site/ with owner @tvofi to .github/CODEOWNERS in this PR: R9-WEB-2's workflow will execute the generator, which puts it on the required-check enforcement surface, and owning it here means WEB-2 need not edit CODEOWNERS. Do not edit tests/README.md, the reader docs themselves or the README beyond what the page links need. If the build finds a real defect in a doc (a dead anchor at the merge base), fix the doc in this PR with the finding named in the body; a docs defect is never excluded to pass. Must keep working: every existing doc_claims.py arm, tests/md_tables.mjs, the README rules in tests/entities.py, and the R9-WEB-1 page arm; run all at the merge base and at the head. Out of scope: a second language, search, versioned docs, and committing any generated HTML (S7). Budgets (U4, CLAUDE.md rule 2): no structure metric measures docs/ or tests/ and the policy caps do not cover docs/, so nothing here should bite; if a cap does, design to fit first, and a raise is the last resort, confirmed by tvofi before the push and merged only on tvofi's approving review (budget-raise-gate). Run python3 tests/structure.py and node .claude/workflows/policy_lint.mjs before every hand-off; carry no number. Standing: cloud seat: no PRs, no GitHub comments, no issues, no gh; hand the branch and body off on your handoff branch and the Mac orchestrator pushes as the hpo-author App via tools/audit/app_push.sh; hpo-approver approves a non-code-owned PR, tvofi reviews a code-owned one (decision 0011). Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main); --max 0 is never proof. Resumability (tvofi 19:05Z): commit and push to your handoff branch at every step boundary and at least every 30 minutes, update the resume note in this entry's resume field with every push, and append one dated line per milestone to the round-9 resume log. No VERSION, manifest version or notes-heading edits. Part of #201; issues stay empty until the orchestrator files the lane's feature issue. Carried from the R9-WEB-1 review (PR #1846, review/1846 0c0ed6b1, 2026-10-02; tvofi asked for it): neither the product-page arm in tests/doc_claims.py (check_product_page / site_findings) nor the design's check_site.py refuses a third-party <link rel=\"icon\">, <link rel=\"preload\"> font or <iframe>, although the design's self-hosting rule names fonts and images. docs/index.html has none today. Close it here: extend the arm to refuse any of the three from another origin, on the sub-pages too, with a planted control for each that turns the arm red."
+    },
+    {
+      "group": "R9-F10.12",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "specified bounded fix with an oracle: the driver logs print every baseline second and every verdict",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "code-owned: .github/workflows/tests.yml; merges on tvofi's approving review at the head",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [],
+      "resume": {
+        "stage": "building",
+        "branch": "handoff/r9-f10-12",
+        "commit": null,
+        "last_step": "fixer dispatched 2026-10-03",
+        "next_step": "fixer.md: failing test first, then arms A and B per the brief; open the PR and hand to review",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "the 2026-10-03 mechanical self-improvement pre-study (orchestrator to cite its evidence ref)",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Re-cut 2026-10-03 by the pre-study's reviewer: the wall-time report and the creep report were refused, and the immediate budget fix replaces them; dispatch now."
+      },
+      "brief": "Round-9 fix PR F10.12 (gate infrastructure: the mutation lanes outgrow their timeouts). From the mechanical self-improvement pre-study tvofi asked for on 2026-10-03 and its review; dispatch now, ahead of the rest of the lane. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. Nothing in this group commits for a bot, records a budget, or adds a required context. The defect: mutation-nightly and mutation-ledger both run tests/mutation_table.py --scope full --max 40 --jobs 3 under a 330-minute job timeout, and the cost of one mutant is set by the drivers it needs, chiefly tests/features.py. The review measured, over the twenty scheduled runs to 2026-10-03, the nightly's drive step rising from 36 to 285 minutes (peak 2026-10-02, 86 percent of the timeout) while the features.py baseline grew from 95 s to 701 s (833 s in the 2026-10-03 mutation-ledger run); step time does not track the survivor count (correlation -0.05) but tracks the date (0.72). A fixed --max therefore crosses 330 on the first heavy night, losing the measurement and reddening nightly-status, and mutation-ledger, sized the same, may never reach the green night R9-F10.13 waits on. Re-measure all of this at your merge base; carry none of it. (A) A time budget. Give tests/mutation_table.py a wall-clock budget for the mutant phase (drive_pool): once starting another mutant would overrun it at the costs the baseline lines measured, stop starting mutants, name every one not started as not run for the budget, and compute the survivor cap over the mutants evaluated. A run that evaluated none is a refusal, never a pass, so a budget cannot read as a measurement of nothing. Under --drain an unstarted site stays unpinned and untouched, for a later night. Pass a budget under each caller's timeout: mutation-nightly and mutation-ledger in .github/workflows/tests.yml, and the pull request step \"Measure pins for the sites this diff added unpinned\" under its 60-minute step timeout, which on #1874 began 30 sites and timed out with none pinned (this absorbs the pin-step sizing the pre-study proposed separately). (B) A driver timeout that is not a kill. run_script returns TIMEOUT_RC when a driver overruns --timeout (default 1200 s), and failing_count counts that as one failing check, so killed reads a timeout as a kill, and under --drain that kill becomes a killed_by pin. While tests/features.py grows toward the limit, a mutant that only slows it is pinned as killed. Scale each driver's timeout from its own measured baseline seconds (keep the fixed floor) so growth never turns into kills, while a genuine hang still kills. Demonstration (.claude/rules/defect-root-cause.md, a detector must be shown to detect): (A) a run with a budget too small for its pool evaluates fewer mutants, names the rest, and exits as the cap over the evaluated ones; a budget that admits no mutant refuses; (B) a planted driver that sleeps past the old fixed timeout on a mutant, within the scaled one, is not a kill, and one that never returns still is. Also give the stopgap if this cannot merge within three nights of dispatch: --max lowered on mutation-nightly alone (it records nothing). Code-owned files merge on tvofi's approving review at the head. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main)."
+    },
+    {
+      "group": "R9-F10.13",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "specified report-only instruments with an oracle in the pre-study's measurements",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "code-owned: .github/workflows/tests.yml, and tests/entities.py if arm A is fixed there; merges on tvofi's approving review at the head",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.12"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-13",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base: re-measure, then write the failing check",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "the 2026-10-03 mechanical self-improvement pre-study (orchestrator to cite its evidence ref)",
+        "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+        "note": "Re-cut 2026-10-03 by the pre-study's reviewer: arm B moved out of mutation-ledger into mutation-nightly's existing draw, so it adds no runner minutes and no longer waits on a green ledger; arm C moved into R9-F10.12."
+      },
+      "brief": "Round-9 fix PR F10.13 (gate infrastructure: the mutation lane's instrument findings of 2026-10-03). From the same pre-study and review as R9-F10.12, and after it: both edit tests/mutation_table.py. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. No arm automates a disposition: .claude/rules/ci-autofix.md forbids automating survivor triage, and a refuted pin is a disposition too. No arm adds a job, a driver run, or runner minutes. (A) The triage self-kill, found by #1867's review in its round 3 and not carried anywhere since: the check at tests/entities.py:28631 \"every mark still names a mutant this tree generates\" reads the mutated working tree, so a mutant on any line a survivor_triage mark names makes that mark stale and fails the check. With tests/entities.py among the drivers, the review measured the payload.py mark reported killed by tests/entities.py (1 of 2086 checks failing, the stale-mark check). Make a mutant unable to kill its own mark, either in tests/entities.py (judge staleness against the unmutated tree, or skip the mutated site's own mark) or in tests/mutation_table.py (a site holding a survivor_triage disposition is reported as triaged and not driven); take the smaller diff, and tests/entities.py has three open pull requests on it. Failing test first: the payload.py GUARD_OFF triage mark (#1867) reads killed by tests/entities.py at the merge base and does not after the fix; null control: a planted stale mark on an unmutated tree still fails the check. (B) Pin re-verification, report only, at no added cost. mutation-nightly draws its sample from every generatable mutant (drawable), pinned sites included, so it already re-drives some killed_by pins every night and discards what it learns. For each sampled site that holds a killed_by pin, report it in the job's output when it LIVES or when its recorded killing script did not kill it, as a pin not reproduced, for a human disposition (re-pin, triage, or a new test). Reserving a share of the nightly's existing draw for pinned sites, walked by date, is allowed; raising the draw is not. The bot never deletes or rewrites a pin. Its first case is measured elsewhere: the one tests/harness_headers.py pin on main (legionella.py, LegionellaGuard.async_track GUARD_OFF) is being re-driven by the orchestrator as an immediate check; do not wait on it. Code-owned files merge on tvofi's approving review at the head. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main)."
     }
   ]
 }
