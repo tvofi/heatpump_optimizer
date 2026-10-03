@@ -47,6 +47,12 @@ This pull request does three things.
 
 `governance.yml`: each comment now sits above its own step.
 
+### Round 3: what the round-2 review found, and what changed
+
+- **`merge_train.py`, the anchor.** Dropping the `^` anchor reopened B1 for a blocked verdict that quotes `app_approve.sh`'s own refusal line mid-line (the review's A1e), and the self-test stayed green. A new arm uses exactly that shape: it fails against an anchor-less copy and passes at the head. Another new arm covers a merge base that exits 0 but is not a sha. 41 arms.
+- **`tmp_paths.py`, more shapes.** It now catches `Path("/tmp") / "x"`, `f"/tmp/{name}"`, `os.environ["TMPDIR"] + "/x"` and `Path(tempfile.gettempdir()) / "x"`. The docstring now lists exactly the `os.environ` forms covered. Its "does not catch" list adds a `printf`-built path and a temp root under a variable not named TMPDIR.
+- Two existing `tests/` lines the wider check now finds are allowed, each with its reason: `doc_claims.py`'s fixture path that must not exist, and `ha_floor.py`'s disposable `--cache` default. 41 arms.
+
 ### Inventory
 
 Reusable: a later round or seat reruns it, or a body figure needs it to be reproduced (`fixer.md` step 17). A one-off probe may stay in scratch.
@@ -73,7 +79,7 @@ Reusable: a later round or seat reruns it, or a body figure needs it to be repro
 | HA floor sweep (`seat-rca-hafloor/sweep.py`, `floor_names.py`, `census_fixer.py`) | RCA seat scratch | leave | the RCA seat's own evidence; it lands with that analysis if reused |
 | `race_probe.py`, `mutants_r3.py`, `census.py` | deleted | lost | not recoverable from report text at a size worth retyping |
 
-Left in place (fixtures and documented conventions, each named by `tmp_paths.py`'s rules or allow list): `gh_comment.py`, `app_comment.sh`, `app_approve.sh` and `prepr.sh` self-test fixtures, `/tmp/hpo-gate.lock`, a workflow runner's `/tmp`, the cloud seat image's `/home/user/heatpump_optimizer` and `/home/user/wt/`, `tests/card.mjs`'s legacy plan-data path, `tests/plan_view.py`'s per-checkout hashed payload, and `friction_issues.mjs`'s `RUNNER_TEMP` fallback. A bare `/tmp` named in prose or in a list of temp roots is not a hit.
+Left in place (fixtures and documented conventions, each named by `tmp_paths.py`'s rules or allow list): `gh_comment.py`, `app_comment.sh`, `app_approve.sh` and `prepr.sh` self-test fixtures, `/tmp/hpo-gate.lock`, a workflow runner's `/tmp`, the cloud seat image's `/home/user/heatpump_optimizer` and `/home/user/wt/`, `tests/card.mjs`'s legacy plan-data path, `tests/plan_view.py`'s per-checkout hashed payload, `tests/doc_claims.py`'s must-not-exist fixture path, `tests/ha_floor.py`'s disposable download cache, and `friction_issues.mjs`'s `RUNNER_TEMP` fallback. A bare `/tmp` named in prose or in a list of temp roots is not a hit.
 
 ### The merge train
 
@@ -113,15 +119,15 @@ Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not
 
 ## Head
 
-`fa735d6850bb07a7fd76f196935145960de171db` merges `origin/main` `243990abf3f598656756074f46c01430f323de40` (#1863, fetched 2026-10-03; an automatic merge, no resolution) into `44d5a4fe267da7cd4c7b0acc03c23d19386e11c0`. That commit is the authored round-2 change, one commit on the pull request's head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
+`4e5364076bfed82a48d3d9ab17b37b9d1170f4ee` is the round-3 commit on `fa735d6850bb07a7fd76f196935145960de171db`.
 
-That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3e` under the delivery row `d0fd00562`. `32251f44` sits on `1190f1058d95a001e42a98871c28c0e6f24d9e55`, which carries two automatic `origin/main` merges, with no resolution: #1869 `1ccd0b1d5` and #1875 `20f597c66`. They sit on the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`.
+That head merges `origin/main` `243990abf3f598656756074f46c01430f323de40` (#1863, an automatic merge, no resolution) into the round-2 commit `44d5a4fe267da7cd4c7b0acc03c23d19386e11c0`. `44d5a4fe` sits on the pull request's earlier head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
 
 `origin/main` `243990abf` is inside the head.
 
 ## Mutation proof
 
-**`merge_train.py`:** 21 mutants, each killed by a named self-test arm.
+**`merge_train.py`:** 23 mutants, each killed by a named self-test arm.
 - The set is the round-1 reviewer's 15 (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/../seat-r-tools/attack/mut.py`), re-keyed to this head as `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/mut2.py`, plus 6 for the round-1 findings:
   - an unanchored code-owned match;
   - an anchor without the PR number;
@@ -129,6 +135,7 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
   - the diff's rc ignored;
   - the merge-base's rc ignored;
   - no pagination.
+  - Round 3 adds two more: the `^` anchor dropped, killed by "a blocked verdict QUOTING app_approve's own code-owned line mid-line is not mandate-approved (anchor)"; and the `is_sha` check dropped, killed by "a merge base that exits 0 but is not a sha stops the train".
 - The 3 the review found surviving are now killed, each by its own arm:
   - M8 (min runs) by "fewer check runs than --min-runs is not complete CI";
   - M9 (pre-merge main recheck) by "main moving after approval and before the merge stops it";
@@ -138,7 +145,7 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
 
 **My own 13-mutant set** (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/mut/mut.py`) is all killed. The code-owned-only mutant kills by a crash (no tally line), which the governance step's tally grep also refuses.
 
-**`tmp_paths.py`:** 17 mutants (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/mut_tp2.py`), all killed by named arms. They cover each class, each bare-root clause, per-match `$$`, runner, lease suffix, cloud roots, settings scope, evidence scope, per-file allow and stale entries.
+**`tmp_paths.py`:** 22 mutants (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/mut_tp2.py`, plus a clean environ-subscript mutant), all killed by named arms. They cover each class, the `os.environ[...]`, pathlib and f-string forms, each bare-root clause, per-match `$$`, runner, lease suffix, cloud roots, settings scope, evidence scope, per-file allow and stale entries.
 
 **`app_approve.sh`:** the merge base is the mutant. Under macOS `/bin/bash` 3.2.57, its `--self-test` prints `141 checks, 2 failed` at the base and `141 checks, 0 failed` at the head.
 
@@ -160,8 +167,17 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
 - The legitimate L1-L4 pass: `mktemp -d`, a workflow's `/tmp`, `$RUNNER_TEMP`, `tempfile.TemporaryDirectory`.
 - L5 (a fixed `/tmp` name in a `.sh` under `tools/`) is refused deliberately: it is a fixed name.
 
+**The round-2 reviewer's probe** `tpgame2.py`:
+- H1-H4 are refused: pathlib, f-string, `os.environ[]`, and a `$$` in a later word.
+- H5 (`printf`-built) passes, and is listed under "does not catch".
+- L6-L8 pass.
+
+**The reviewer's A1e case** (`attack_success.py`):
+- At the head: `rc=1 mandate_approved=False merged=False`.
+- Against an anchor-less copy: `rc=0 mandate_approved=True merged=True`.
+
 **`tmp_paths.py --check`:**
-- At `origin/main` `20f597c6` it refuses 14 lines: `ci-watch.sh`, `handoff_push.sh` (3), `merge_pr.sh` (2), `remerge_main.sh`, decision 0012 (2), `worktree_gc.sh` (2), the two hastub doc lines and a harness comment. Its one stale allow entry there is the checker's own, which that tree lacks.
+- At `origin/main` `20f597c6`, and again at `243990abf`, it refuses 14 lines: `ci-watch.sh`, `handoff_push.sh` (3), `merge_pr.sh` (2), `remerge_main.sh`, decision 0012 (2), `worktree_gc.sh` (2), the two hastub doc lines and a harness comment. Its one stale allow entry there is the checker's own, which that tree lacks.
 - At the head it reports `0 refused, 0 stale allow entries`.
 
 **`seat_venv.sh` in the incident state** (shims first on PATH, `HPO_STATE_DIR` with no venv):
@@ -177,9 +193,9 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
 
 ## Figures
 
-- `python3 tools/audit/seat/merge_train.py --self-test`: 39 checks, 0 failed.
-- `python3 tools/audit/seat/tmp_paths.py --self-test`: 37 checks, 0 failed.
-- `python3 tools/audit/seat/tmp_paths.py --check --ref 20f597c6`: 14 refused, 1 stale, rc 1.
+- `python3 tools/audit/seat/merge_train.py --self-test`: 41 checks, 0 failed.
+- `python3 tools/audit/seat/tmp_paths.py --self-test`: 41 checks, 0 failed.
+- `python3 tools/audit/seat/tmp_paths.py --check --ref 243990abf`: 14 refused, 1 stale, rc 1.
 - `python3 tools/audit/seat/tmp_paths.py --check`: 0 refused, rc 0.
 - `bash tools/audit/app_approve.sh --self-test` on `/bin/bash` 3.2.57: 141 checks, 2 failed at the merge base; 141 checks, 0 failed at the head.
 - `bash tools/audit/worktree_gc.sh --self-test`: 66 checks, 0 failed (round 1; this round leaves it unchanged).
@@ -188,7 +204,7 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
 - `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`.
 - `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
 - Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`.
-  - `entities.py`: 2113 passed (at `fa735d68`).
+  - `entities.py`: 2113 passed (at `4e536407`).
   - `harness_headers.py`: 95 passed.
   - `open_meteo.py` and `solar_alignment.py`: passed.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
