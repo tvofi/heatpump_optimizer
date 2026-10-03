@@ -206,9 +206,10 @@ def inert_statements(trees, all_functions) -> set[int]:
     is judged on the branch that runs, and a ``try`` on its every part. Each function is judged with its
     own reads; an enclosing function reads a superset, so the union never drops a live statement.
 
-    Out of the class, and so still open: junk with an effect (a call of anything not PURE), which is
-    logic in the diff. A gap tolerance in the window would close that too, but it redefines the shared
-    window (59 -> 72 copies on main at 16551007), so it is not here."""
+    Out of the class, and so still open: a statement with an effect the grammar cannot rule out (a call
+    of anything else, a write through an attribute or a subscript), which is logic in the diff. A gap
+    tolerance in the window would close that too, but it redefines the window tests/structure.py shares,
+    so it is not here (ABOUT.md, "Interleaved junk")."""
     out: set[int] = set()
     for _path, tree in trees:
         for fn in all_functions(tree):
