@@ -44,6 +44,14 @@ load held a number. The substitution and seeding rules are the round-9 P1
 RCA's, measured over the eleven judged instances its narrower predecessors
 were green on.
 
+**Arm 5 -- the store version seam (#1740).** Over Arm 1's construction set:
+every store names its own version constant (no literal, none shared); every
+store, seeded at its own version (the control), one below it (a bump: the
+migration hook) and one above it (a downgrade), and read through its real
+loader, surfaces each mismatch as a WARNING and a ``store_version`` repair
+issue; and a store read at a version above 1 overrides the default migration
+hook, so a bump without a migration fails here.
+
 **I1 pins (round 9, F9.1).** Five guards outside the boundary above, each
 correct already and each invisible to every closure script if deleted: a
 direct call of the production symbol, not a store sweep, because I1 is
@@ -1634,6 +1642,468 @@ def _i1_pins_arm() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 5 -- the store version seam (#1740, R9-EG-B4)
+# ---------------------------------------------------------------------------
+
+def _version_names() -> list[tuple[str, str | None]]:
+    """(site, version constant) per ``QuarantiningStore(...)`` construction.
+
+    Arm 1's enumeration rule; the version is the second positional argument or
+    ``version=``, and a literal (or anything not a name) reads as ``None``.
+    """
+    out: list[tuple[str, str | None]] = []
+    for path in sorted(PKG.rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(), filename=str(path))):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "QuarantiningStore"):
+                continue
+            arg = node.args[1] if len(node.args) > 1 else next(
+                (k.value for k in node.keywords if k.arg == "version"), None)
+            name = arg.id if isinstance(arg, ast.Name) else (
+                arg.attr if isinstance(arg, ast.Attribute) else None)
+            out.append((f"{path.relative_to(ROOT)}:{node.lineno}", name))
+    return out
+
+
+def _version_arm(by_name) -> None:
+    """Every store's version mismatch is surfaced, and a bump carries a migration.
+
+    A store's loader catches a failed load and resets at DEBUG (legionella
+    re-stamps its last cycle), so a version mismatch the store does not surface
+    is invisible. Each store is seeded with its healthy payload stamped at its
+    own version (the control: nothing surfaced), one below (what a bump leaves
+    on disk: the migration hook) and one above (a downgrade: Home Assistant's
+    UnsupportedStorageVersionError), and read through its real loader.
+    """
+    names = _version_names()
+    literal = [site for site, name in names if name is None]
+    R.check(
+        "every store's version is a named constant, never a literal (#1740)",
+        not literal and len(names) == len(_quarantined),
+        f"literal={literal} constructions={len(names)} boundaries={len(_quarantined)}",
+    )
+    used: dict[str, list[str]] = {}
+    for site, name in names:
+        used.setdefault(name or "", []).append(site)
+    shared = {n: s for n, s in used.items() if n and len(s) > 1}
+    R.check(
+        "no two stores share a version constant, so a bump migrates one store (#1740)",
+        not shared,
+        f"shared={shared}",
+    )
+
+    seen: list[tuple[int, str]] = []
+
+    class _Tap(logging.Handler):
+        def emit(self, record):
+            seen.append((record.levelno, record.getMessage()))
+
+    reads: list = []
+    real_load = QuarantiningStore.async_load
+
+    async def _recording(self):
+        reads.append(self)
+        return await real_load(self)
+
+    def _surfaced(coord, key: str) -> tuple[bool, bool]:
+        warned = any(lvl >= logging.WARNING and key in msg for lvl, msg in seen)
+        issued = any(
+            kw.get("translation_key") == "store_version"
+            and kw.get("translation_placeholders", {}).get("store") == key
+            for _d, _i, kw in getattr(coord.hass, "issues", None) or []
+        )
+        return warned, issued
+
+    tap, log = _Tap(), _store._LOGGER
+    old, floor = log.level, logging.root.manager.disable
+    logging.disable(logging.NOTSET)
+    log.addHandler(tap)
+    log.setLevel(logging.DEBUG)
+    QuarantiningStore.async_load = _recording
+    stores: dict[str, object] = {}
+    noisy: list[str] = []
+    unsurfaced: list[str] = []
+    overwritten: list[str] = []
+    try:
+        for name, loader in LOADERS.items():
+            key, healthy = by_name[name]
+            for lag in (0, 1, -1):
+                _storage._DISK.clear()
+                _storage._VERSIONS.clear()
+                reads.clear()
+                seen.clear()
+                _storage._DISK[key] = json.dumps(healthy)
+                if lag:
+                    _storage._VERSIONS[key] = stores[key]._version - lag
+                coord = _build_coord()
+                coord.entry.runtime_data = coord
+                try:
+                    asyncio.run(loader(coord))
+                except Exception as exc:  # noqa: BLE001 -- an escape is a finding too
+                    unsurfaced.append(f"{name}@{lag}:raised {type(exc).__name__}")
+                    continue
+                if not lag:
+                    stores[key] = next(s for s in reads if s._key == key)
+                if lag == 1:
+                    # The control: a bump's reset is saved at this release's
+                    # version, so read-only is a downgrade's alone.
+                    st = next(s for s in reads if s._key == key)
+                    asyncio.run(st.async_save(healthy))
+                    if _storage._VERSIONS.get(key) != stores[key]._version:
+                        overwritten.append(f"{name}@bump:unsaved")
+                if lag == -1:
+                    # A downgrade: the newer release's document must survive
+                    # the load (legionella saves inside its own) and the next
+                    # save, so reinstalling that release finds it intact.
+                    newer = stores[key]._version + 1
+                    after_load = (_storage._VERSIONS.get(key), _storage._DISK.get(key))
+                    st = next(s for s in reads if s._key == key)
+                    asyncio.run(st.async_save({"overwritten": True}))
+                    after_save = (_storage._VERSIONS.get(key), _storage._DISK.get(key))
+                    for when, got in (("load", after_load), ("save", after_save)):
+                        if got != (newer, json.dumps(healthy)):
+                            overwritten.append(f"{name}@{when}:version={got[0]}")
+                    # The user's way out: once the document no longer reads
+                    # newer (deleted, or replaced), a fresh load saves again.
+                    _storage._VERSIONS[key] = stores[key]._version
+                    asyncio.run(st.async_load())
+                    _storage._DISK.pop(key, None)
+                    asyncio.run(st.async_save(healthy))
+                    if key not in _storage._DISK:
+                        overwritten.append(f"{name}@reload:unsaved")
+                warned, issued = _surfaced(coord, key)
+                if not lag and (warned or issued):
+                    noisy.append(name)
+                elif lag and not (warned and issued):
+                    unsurfaced.append(f"{name}@{lag}:warned={warned},issued={issued}")
+    finally:
+        QuarantiningStore.async_load = real_load
+        log.removeHandler(tap)
+        log.setLevel(old)
+        logging.disable(floor)
+        _storage._DISK.clear()
+        _storage._VERSIONS.clear()
+        _store._NEWER_ON_DISK.clear()
+    R.check(
+        "a store read at its own version surfaces nothing (the control)",
+        not noisy and len(stores) == len(LOADERS),
+        f"noisy={noisy} stores={len(stores)} loaders={len(LOADERS)}",
+    )
+    R.check(
+        "every store's version mismatch, older or newer, logs a WARNING and raises "
+        "a repair issue naming its key (#1740)",
+        not unsurfaced,
+        f"unsurfaced={unsurfaced}",
+    )
+    R.check(
+        "a downgraded store keeps the newer release's document through its load and "
+        "the next save, so reinstalling that release finds it intact; a bumped "
+        "store, and one re-read once the newer document is gone, still saves (#1869)",
+        not overwritten,
+        f"overwritten={overwritten}",
+    )
+    default = getattr(QuarantiningStore, "_async_migrate_func", None)
+    unmigrated = sorted(
+        k for k, s in stores.items()
+        if s._version > 1 and getattr(type(s), "_async_migrate_func", None) is default
+    )
+    R.check(
+        "a store whose version exceeds 1 overrides the default migration hook, so a "
+        "bump without a migration fails here (#1740)",
+        not unmigrated,
+        f"unmigrated={unmigrated}",
+    )
+
+    # The default hook's branches, directly: a major mismatch surfaces, older
+    # or newer, and a minor-only one (same major) does not -- Home Assistant
+    # then reads the document as stored on the NotImplementedError the hook
+    # raises either way. Newer matters at the 2025.2.0 floor, which has no
+    # UnsupportedStorageVersionError and hands a downgrade to this hook; the
+    # stub models only the later releases' refusal, so this drives it here.
+    verdicts = []
+    for major in (1, 2, 3):
+        # A fresh hass per call: the registry keeps one issue per id, so a
+        # shared one would read a second surfacing as the first.
+        probe_hass = FakeHass()
+        probe = QuarantiningStore(probe_hass, 2, f"{const.DOMAIN}_{ENTRY_ID}_version_probe")
+        try:
+            asyncio.run(probe._async_migrate_func(major, 1, {}))
+            verdicts.append("returned")
+        except NotImplementedError:
+            verdicts.append("not-implemented")
+        except Exception as exc:  # noqa: BLE001 -- a base without the hook
+            verdicts.append(type(exc).__name__)
+        verdicts.append(len(getattr(probe_hass, "issues", None) or []))
+    R.check(
+        "the default hook raises NotImplementedError and surfaces a major mismatch "
+        "older or newer, not a minor-only one",
+        verdicts == ["not-implemented", 1, "not-implemented", 0, "not-implemented", 1],
+        f"verdicts={verdicts}",
+    )
+    # The floor's route: no refusal class, the hook is handed the newer
+    # document. Once it has seen one, the store must not save over it either.
+    fkey = f"{const.DOMAIN}_{ENTRY_ID}_version_floor_save"
+    floor = QuarantiningStore(FakeHass(), 2, fkey)
+    try:
+        asyncio.run(floor._async_migrate_func(3, 1, {}))
+    except NotImplementedError:
+        pass
+    _storage.SAVE_COUNTS.pop(fkey, None)
+    asyncio.run(floor.async_save({"overwritten": True}))
+    floor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
+    _store._NEWER_ON_DISK.discard(fkey)
+    # The control: a minor-only mismatch at this store's own major is no
+    # downgrade, so it marks nothing and the save lands.
+    try:
+        asyncio.run(floor._async_migrate_func(2, 2, {}))
+    except NotImplementedError:
+        pass
+    asyncio.run(floor.async_save({"minor": True}))
+    minor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
+    _storage._DISK.pop(fkey, None)
+    _storage._VERSIONS.pop(fkey, None)
+    R.check(
+        "a store whose hook was handed a newer document (the 2025.2.0 floor's "
+        "downgrade) does not save over it (#1869)",
+        floor_saves == 0 and minor_saves == 1,
+        f"saves after the hook saw a newer major={floor_saves}; after a "
+        f"minor-only mismatch={minor_saves} (want 1)",
+    )
+    # A downgrade leaves the store as Home Assistant's own exception, after the
+    # surfacing: the loaders catch any exception alike, so only the type tells
+    # a re-raise from a fall-through that fails on unbound data.
+    dkey = f"{const.DOMAIN}_{ENTRY_ID}_version_downgrade"
+    _storage._DISK[dkey] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[dkey] = 3
+    try:
+        asyncio.run(QuarantiningStore(FakeHass(), 2, dkey).async_load())
+        escaped = "returned"
+    except BaseException as exc:  # noqa: BLE001 -- the type is the measurement
+        escaped = type(exc).__name__
+    _storage._DISK.clear()
+    _storage._VERSIONS.clear()
+    R.check(
+        "a downgrade leaves the store as UnsupportedStorageVersionError (#1740)",
+        escaped == "UnsupportedStorageVersionError",
+        f"escaped={escaped}",
+    )
+
+    # A store that does migrate: Home Assistant saves the migration's result
+    # from inside the load, while async_save waits for the read in flight --
+    # its own. That write-back must not wait on itself.
+    class _Migrating(QuarantiningStore):
+        async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+            if old_major_version == 1:
+                return {**old_data, "migrated": True}
+            return await super()._async_migrate_func(old_major_version, old_minor_version, old_data)
+
+    mkey = f"{const.DOMAIN}_{ENTRY_ID}_version_migrating"
+    _storage._DISK[mkey] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[mkey] = 1
+
+    async def _migrate_load():
+        return await asyncio.wait_for(_Migrating(FakeHass(), 2, mkey).async_load(), 5)
+
+    try:
+        got = asyncio.run(_migrate_load())
+    except BaseException as exc:  # noqa: BLE001 -- a timeout is the measurement
+        got = type(exc).__name__
+    saved_at = _storage._VERSIONS.get(mkey)
+    _storage._DISK.clear()
+    _storage._VERSIONS.clear()
+    R.check(
+        "a store that migrates loads the migrated payload and saves it at its own "
+        "version, without waiting on its own read (#1740)",
+        got == {"v": 1.0, "migrated": True} and saved_at == 2,
+        f"got={got!r} saved_at={saved_at}",
+    )
+    # The other side of that exemption: a save from any OTHER task still waits
+    # for the read in flight (D1-s2-52). The cycle writers wait before building
+    # their payload, so they do not pin async_save's own wait; this does.
+    wkey = f"{const.DOMAIN}_{ENTRY_ID}_version_writer"
+    orig_load = _storage.Store.async_load
+
+    async def _race():
+        gate = asyncio.Event()
+
+        async def _gated(self):
+            await gate.wait()
+            return await orig_load(self)
+
+        _storage.Store.async_load = _gated
+        st = QuarantiningStore(FakeHass(), 1, wkey)
+        load = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        save = asyncio.create_task(st.async_save({"v": 2.0}))
+        for _ in range(3):
+            await asyncio.sleep(0)
+        early = _storage.SAVE_COUNTS.get(wkey, 0)
+        gate.set()
+        await asyncio.wait_for(asyncio.gather(load, save), 5)
+        return early, _storage.SAVE_COUNTS.get(wkey, 0)
+
+    try:
+        early, late = asyncio.run(_race())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        early, late = type(exc).__name__, None
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage.SAVE_COUNTS.pop(wkey, None)
+    R.check(
+        "a save from another task waits for the store's read in flight, and lands after it",
+        early == 0 and late == 1,
+        f"saves before the read landed={early} after={late}",
+    )
+    _version_floor_import()
+    _version_concurrent_reads()
+    print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
+
+
+def _version_floor_import() -> None:
+    """``store.py`` imports at the 2025.2.0 floor, where Home Assistant has no
+    ``UnsupportedStorageVersionError`` (it arrives in 2026.3).
+
+    The stub defines the class, so every other check here imports a tree the
+    floor cannot: the module is executed afresh, beside the live one, with
+    the class taken out of the stub -- the floor's shape. An import that
+    fails fails every module that persists anything, and the integration
+    with them (#1869's nightly-ha 2025.2.0 arm).
+    """
+    import importlib.util
+
+    name = "heatpump_optimizer._store_at_floor"
+    spec = importlib.util.spec_from_file_location(name, PKG / "store.py")
+    held = _storage.__dict__.pop("UnsupportedStorageVersionError")
+    try:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        got = f"ok:{module.QuarantiningStore.__name__}"
+    except Exception as exc:  # noqa: BLE001 -- the failure is the measurement
+        got = f"{type(exc).__name__}: {exc}"
+    finally:
+        _storage.UnsupportedStorageVersionError = held
+        sys.modules.pop(name, None)
+    R.check(
+        "store.py imports at the 2025.2.0 floor, which has no "
+        "UnsupportedStorageVersionError (#1869)",
+        got == "ok:QuarantiningStore",
+        f"got={got}",
+    )
+
+
+def _version_concurrent_reads() -> None:
+    """Two reads in flight, and a reader whose read has landed.
+
+    Home Assistant's ``Store.async_load`` parks a second concurrent load on
+    the first's future (``_load_future``, 2025.2.0 and since); the stub has no
+    such dedupe, so it is wrapped in one here. A migration's write-back from
+    the first read must not wait on the second, which waits on the first. And
+    once a task's read has landed, that task is a writer like any other: its
+    save waits for a read another task has in flight.
+    """
+    key = f"{const.DOMAIN}_{ENTRY_ID}_version_concurrent"
+    orig_load = _storage.Store.async_load
+
+    class _Migrating(QuarantiningStore):
+        async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+            return {**old_data, "migrated": True}
+
+    async def _two_loaders():
+        gate, pending = asyncio.Event(), {}
+
+        async def _deduped(self):
+            if id(self) in pending:
+                return await asyncio.shield(pending[id(self)])
+            pending[id(self)] = future = asyncio.get_running_loop().create_future()
+            try:
+                await gate.wait()
+                result = await orig_load(self)
+            except BaseException as exc:
+                future.set_exception(exc)
+                raise
+            finally:
+                pending.pop(id(self), None)
+            future.set_result(result)
+            return result
+
+        _storage.Store.async_load = _deduped
+        st = _Migrating(FakeHass(), 2, key)
+        first = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        second = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        gate.set()
+        return await asyncio.wait_for(asyncio.gather(first, second), 5)
+
+    _storage._DISK[key] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[key] = 1
+    try:
+        got = asyncio.run(_two_loaders())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        got = type(exc).__name__
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage._VERSIONS.clear()
+        _storage.SAVE_COUNTS.pop(key, None)
+    want = {"v": 1.0, "migrated": True}
+    R.check(
+        "two concurrent loads of a migrating store both land: the write-back "
+        "does not wait on the second read, parked on the first (#1869)",
+        got == [want, want],
+        f"got={got!r}",
+    )
+
+    async def _landed_reader():
+        hold, gate, go = {"on": False}, asyncio.Event(), asyncio.Event()
+
+        async def _gated(self):
+            if hold["on"]:
+                await gate.wait()
+            return await orig_load(self)
+
+        _storage.Store.async_load = _gated
+        st = QuarantiningStore(FakeHass(), 1, wkey)
+
+        async def _writer():
+            await st.async_load()  # this task's own read lands ...
+            await go.wait()
+            await st.async_save({"v": 2.0})  # ... so this save waits for another's
+
+        writer = asyncio.create_task(_writer())
+        for _ in range(3):
+            await asyncio.sleep(0)
+        hold["on"] = True
+        other = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        go.set()
+        for _ in range(3):
+            await asyncio.sleep(0)
+        early = _storage.SAVE_COUNTS.get(wkey, 0)
+        gate.set()
+        await asyncio.wait_for(asyncio.gather(writer, other), 5)
+        return early, _storage.SAVE_COUNTS.get(wkey, 0)
+
+    wkey = f"{key}_writer"
+    _storage.SAVE_COUNTS.pop(wkey, None)
+    try:
+        early, late = asyncio.run(_landed_reader())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        early, late = type(exc).__name__, None
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage.SAVE_COUNTS.pop(wkey, None)
+    R.check(
+        "a task whose read has landed saves after another task's read in flight, "
+        "not before it (#1869)",
+        early == 0 and late == 1,
+        f"saves before the read landed={early} after={late}",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -1808,6 +2278,7 @@ def _main() -> int:
     _publish_arm()
     _no_rewrap_check()
     _i1_pins_arm()
+    _version_arm(by_name)
     return R.close("FINITE BOUNDARY CHECKS")
 
 

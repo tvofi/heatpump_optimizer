@@ -274,6 +274,9 @@ HA_CONVENTION_NAMES = {
 HA_CONVENTION_METHODS = {
     # DataUpdateCoordinator's own template method.
     "_async_update_data",
+    # Store's migration hook: its _async_load_data calls it on a version
+    # mismatch (QuarantiningStore's default, #1740).
+    "_async_migrate_func",
     # Entity platform APIs, called by HA on the entity instance.
     "async_press",
     "async_set_hvac_mode",
