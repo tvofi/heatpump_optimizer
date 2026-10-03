@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/store.py:QuarantiningStore.async_save GUARD_OFF c44711b5",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "        if asyncio.current_task() is not self._reader:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
-}
