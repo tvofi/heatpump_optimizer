@@ -1,5 +1,5 @@
 """Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | assign | walrus | deadstore
-| lambda | try), argv[3] == "uncharged"
+| lambda | try | method), argv[3] == "uncharged"
 leaves the coordinator and every footprint-charged function alone so no other metric stops it.
 Game duplication_copies: every duplicated statement window is kept, but in each clone except the
 first a no-op call statement id(<distinct int per function>) is inserted
@@ -16,7 +16,9 @@ JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "Non
         # fresh name, a called lambda, an empty try. C3 drops each because it is dead, not because of its spelling.
         "assert": "assert True\n", "assign": "_ = None\n", "walrus": "(_ := 0)\n",
         "deadstore": "unused_{fid} = ({fid}, None)\n", "lambda": "(lambda: {fid})()\n",
-        "try": "try:\n{ind}    pass\n{ind}except Exception:\n{ind}    pass\n"}
+        "try": "try:\n{ind}    pass\n{ind}except Exception:\n{ind}    pass\n",
+        # a method of a value built from literals: no effect outside that value, which nothing keeps
+        "method": "[{fid}].clear()\n"}
 kind = sys.argv[2] if len(sys.argv) > 2 else "id"
 uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
 CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()

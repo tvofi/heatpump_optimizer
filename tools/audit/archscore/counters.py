@@ -104,19 +104,38 @@ def computed_attr_access(ts: dict[str, ast.Module]) -> int:
 
 
 # ---------------------------------------------------------------- C3
-# An expression is effect-free when every node in it is one of these, every call calls a PURE builtin or a
-# lambda, and every name it binds is dead. A class by grammar, closed under composition, not a spelling list.
+# An expression is effect-free when every node in it is one of these, every call calls a PURE builtin, a
+# lambda, or a method of a value built from literals, and every name it binds is dead. A class by grammar,
+# closed under composition, not a spelling list.
 _PURE_NODES = (ast.Constant, ast.Name, ast.Load, ast.Store, ast.Attribute, ast.Tuple, ast.List, ast.Set,
                ast.Dict, ast.Starred, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp, ast.Lambda,
                ast.arguments, ast.arg, ast.NamedExpr, ast.Call, ast.keyword, ast.JoinedStr, ast.FormattedValue,
                ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
 
 
+def _literal(e: ast.AST) -> bool:
+    """Built from literals: names only PURE builtins, calls only of those or of a non-dunder method, no
+    dunder attribute. Such a value is a fresh builtin the statement alone holds, so a method of it changes
+    nothing outside it (``[].clear()``, ``"".join(())``); a dunder is refused because it reaches past the
+    value's own type (``().__class__.__base__``)."""
+    return all(
+        isinstance(n, _PURE_NODES) and not isinstance(n, (ast.Lambda, ast.NamedExpr))
+        and not (isinstance(n, ast.Name) and n.id not in PURE)
+        and not (isinstance(n, ast.Attribute) and n.attr.startswith("__"))
+        and not (isinstance(n, ast.Call) and not isinstance(n.func, (ast.Name, ast.Attribute)))
+        for n in ast.walk(e))
+
+
+def _pure_call(n: ast.Call) -> bool:
+    f = n.func
+    return isinstance(f, ast.Lambda) or (isinstance(f, ast.Name) and f.id in PURE) \
+        or (isinstance(f, ast.Attribute) and _literal(n))
+
+
 def _pure(e: ast.AST | None, dead: set[str]) -> bool:
     return e is None or all(
         isinstance(n, _PURE_NODES)
-        and not (isinstance(n, ast.Call) and not (isinstance(n.func, ast.Lambda)
-                                                  or (isinstance(n.func, ast.Name) and n.func.id in PURE)))
+        and not (isinstance(n, ast.Call) and not _pure_call(n))
         and not (isinstance(n, ast.NamedExpr) and n.target.id not in dead)
         for n in ast.walk(e))
 
@@ -124,8 +143,10 @@ def _pure(e: ast.AST | None, dead: set[str]) -> bool:
 def _fold(e: ast.AST, dead: set[str]):
     """``(True, value)`` for an effect-free expression reading no name but a PURE builtin, else
     ``(False, None)``. No ``**``, ``<<`` or ``*``, so the value is no larger than the literals that spell
-    it and evaluating it is bounded (``"x" * 10**10`` and ``[0] * 99999999999`` are refused, not run)."""
-    if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.Mult, ast.MatMult, ast.NamedExpr, ast.Lambda))
+    it and evaluating it is bounded (``"x" * 10**10`` and ``[0] * 99999999999`` are refused, not run), and
+    no attribute, so nothing reachable from a literal's type is evaluated."""
+    if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.Mult, ast.MatMult, ast.NamedExpr, ast.Lambda,
+                                                ast.Attribute))
                                  for n in ast.walk(e)) \
             or any(isinstance(n, ast.Name) and n.id not in PURE for n in ast.walk(e)):
         return False, None
