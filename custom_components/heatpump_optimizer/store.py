@@ -33,7 +33,6 @@ from datetime import date, datetime, timedelta, timezone, tzinfo
 from typing import Any, NamedTuple, TypeVar, cast
 
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -58,12 +57,16 @@ _StorePayload = TypeVar("_StorePayload", bound=Mapping[str, Any] | Sequence[Any]
 
 #: Home Assistant's refusal of a downgrade, raised before the migration hook,
 #: exists from 2026.3 only; the 2025.2.0 floor has no such class and hands a
-#: newer document to ``_async_migrate_func``, which surfaces it there. Read,
-#: never imported: an import fails every store, and the integration, on the
-#: floor (#1869). Empty, ``except`` catches nothing.
-_DOWNGRADE: tuple[type[Exception], ...] = tuple(
-    filter(None, [getattr(ha_storage, "UnsupportedStorageVersionError", None)])
-)
+#: newer document to the hook instead, which surfaces it there. Imported only
+#: where it exists: an unguarded import fails every store, and the
+#: integration, on the floor (#1869). Empty, ``except`` catches nothing.
+_DOWNGRADE: tuple[type[Exception], ...] = ()
+try:
+    from homeassistant.helpers.storage import UnsupportedStorageVersionError
+except ImportError:  # the 2025.2.0 floor
+    pass
+else:
+    _DOWNGRADE = (UnsupportedStorageVersionError,)
 
 
 #: No writer stores a number this large (an epoch in ms is 1.8e12), so one that
