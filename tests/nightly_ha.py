@@ -77,6 +77,7 @@ A11  a failing service raises, it does not no-op           3           done
 A12  an older schema version migrates                      1           done
 A13  the currency follows the instance                     1           done
 A14  setup does not block the event loop                   1           partial
+A15  the loop keeps ticking through the options flow       #1758       done
 ===  ====================================================  ==========  =======
 
 A3's named set is the §4 A3 row of the production-escape analysis, counted at
@@ -97,6 +98,10 @@ the domain catalog stays, because action-setup registers once on ``async_setup``
 A9 stays partial: the ceiling is the first sample, not zero, because a standing
 STOP reap and update listener are load-bearing (#540); leaks only visible as
 long-horizon growth (debouncer, in-flight refresh, MQTT) are outside it.
+A15 is a diagnostic, not a barrier (#1758): the v6.6.0 options-flow freeze has
+no established cause, so its third boot, two-zone + DHW, measures the loop's
+largest gap across an untouched exit, a changed save and a burst of changed
+saves in menu mode, and dumps any stall while it is open.
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
@@ -119,6 +124,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import types
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -242,6 +249,37 @@ A6_STORE_CASES = (
 A9_RELOADS = 5
 A8_SECOND_ENTRY_ID = "01JHPA9NGHTHACNTNR00000002"
 
+# A15 (#1758): the loop-stall heartbeat over the options round-trips. Its own
+# boot (``--heartbeat-only``) with a two-zone + DHW seed, so nothing it saves
+# reaches the A3-A13 run. Demanded by name like every other arm.
+HB_INSIDE = (
+    "hb:positive_control",
+    "hb:untouched_exit",
+    "hb:changed_save",
+    "hb:menu_saves",
+)
+HB_TICK_S = 0.001  # the 1 ms call_later probe #1758 asks for
+HB_POLL_S = 0.02  # how often the watching thread reads the last tick
+HB_DUMP_S = 0.25  # a stall this long is dumped while it is still open
+HB_MAX_DUMPS = 3  # per scenario, so a slow runner cannot flood the log
+# DESIGN CHOICE (fixer.md step 11): a one-second gap is a freeze a user sees,
+# and the sysid fit's measured 43-228 ms on the loop (#1658) stays under it.
+HB_FREEZE_S = 1.0
+HB_HANG_S = 60.0  # no tick at all this long: report by name, then exit
+HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
+HB_SETTLE_S = 120.0  # wait for the last reload's first solve to finish
+# Every scenario stays measured this long after its last action, before any
+# settling: work an abort or a save defers (a listener, a scheduled refresh)
+# lands inside the window. Without it an untouched exit closed in 1-7 ms on
+# real HA, before the first 1 ms tick (#1870 review, dispatch 37079055904).
+HB_DWELL_S = 3.0
+# "Several changed saves in a row": odd, so the burst ends on a changed value.
+HB_MENU_SAVES = 5
+HB_PAGE = "comfort"
+HB_KEY = "target_temperature"
+HB_STEP = 0.5  # the changed value is the seed's plus this, then alternates
+HB_LOWER_FLOOR_ENTITY = "sensor.ci_lower_floor_temperature"
+
 # What the container half must report. The outer half requires this set
 # exactly: a driver that dies after two checks, or one whose checks were
 # quietly renamed away, fails here instead of looking like a pass. A no-op is
@@ -277,6 +315,7 @@ INSIDE_CHECKS = (
     *A11_INSIDE,
     *A12_INSIDE,
     *A13_INSIDE,
+    *HB_INSIDE,
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -1660,6 +1699,262 @@ async def _async_check_a9(checks: Checks, hass, entry):
     return entry
 
 
+# --- A15: the loop-stall heartbeat (#1758) ----------------------------------
+#
+# The v6.6.0 options-flow freeze was never diagnosed (RCA-BULK-3 section 4):
+# HA's blocking-call detector, this lane's only loop instrument until here,
+# sees synchronous I/O and is blind to a CPU stall. A 1 ms ``call_later``
+# probe is not: the largest gap between two of its ticks is how long the loop
+# went without running anything. A thread watches the last tick, so a stall
+# is dumped while it is still open -- the loop thread's Python stack first
+# (instant), then ``py-spy dump`` when the host staged one. LIMIT: the
+# watcher needs the GIL, so a stall inside C code that holds it is measured
+# but dumped only once it lets go.
+
+
+def _hb_spin(seconds: float) -> None:
+    """The positive control: a pure-Python CPU stall.
+
+    It calls none of the functions HA's blocking detector wraps, so by that
+    mechanism the detector would not report it -- reasoned, not measured: the
+    log scan counts only reports that blame this package.
+    """
+    end = time.perf_counter() + seconds
+    while time.perf_counter() < end:
+        pass
+
+
+class LoopHeartbeat:
+    """A ``call_later`` probe on a running loop and a thread watching it."""
+
+    def __init__(self, loop, *, tick=HB_TICK_S, dump_after=HB_DUMP_S,
+                 hang_after=HB_HANG_S, on_hang=None, py_spy=None) -> None:
+        self.loop, self.tick, self.py_spy = loop, tick, py_spy
+        self.dump_after, self.hang_after, self.on_hang = dump_after, hang_after, on_hang
+        self.max_gap, self.ticks, self.dumps = 0.0, 0, []
+        self._last = time.monotonic()
+        self._stall_dumped = False
+        self._handle = None
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._watch, name="hpo-hb", daemon=True)
+        self._loop_tid = 0
+
+    def start(self) -> None:
+        """Call on the loop's own thread."""
+        self._loop_tid = threading.get_ident()
+        self._last = time.monotonic()
+        self._handle = self.loop.call_later(self.tick, self._beat)
+        self._thread.start()
+
+    def _beat(self) -> None:
+        now = time.monotonic()
+        self.max_gap = max(self.max_gap, now - self._last)
+        self._last, self._stall_dumped = now, False
+        self.ticks += 1
+        self._handle = self.loop.call_later(self.tick, self._beat)
+
+    def stop(self) -> dict:
+        self.max_gap = max(self.max_gap, time.monotonic() - self._last)
+        if self._handle is not None:
+            self._handle.cancel()
+        self._stop.set()
+        self._thread.join(timeout=30)
+        return {"max_gap": self.max_gap, "ticks": self.ticks, "dumps": list(self.dumps)}
+
+    def _watch(self) -> None:
+        while not self._stop.wait(HB_POLL_S):
+            stalled = time.monotonic() - self._last
+            if stalled >= self.hang_after and self.on_hang is not None:
+                self.on_hang(self)
+                return
+            if stalled >= self.dump_after and not self._stall_dumped:
+                self._stall_dumped = True
+                if len(self.dumps) < HB_MAX_DUMPS:
+                    self.dumps.append(self.dump(stalled))
+
+    def dump(self, stalled: float) -> str:
+        # Frame attributes only: format_stack reads every source file through
+        # linecache, which held this thread past the end of a 0.6 s stall.
+        frame, lines = sys._current_frames().get(self._loop_tid), []
+        while frame is not None:
+            code = frame.f_code
+            lines.append(f'  File "{code.co_filename}", line {frame.f_lineno}, in {code.co_name}\n')
+            frame = frame.f_back
+        stack = "".join(reversed(lines)) or "<no loop frame>\n"
+        text = f"stall >= {stalled * 1000:.0f} ms; loop thread:\n{stack}"
+        if self.py_spy:
+            try:
+                # --nonblocking: a default dump ptrace-stops the process, loop
+                # included, and that pause would be added to the gap it reports.
+                spy = subprocess.run(
+                    [self.py_spy, "dump", "--nonblocking", "--pid", str(os.getpid())],
+                    capture_output=True, text=True, timeout=30,
+                )
+                text += f"py-spy rc={spy.returncode}:\n{spy.stdout}{spy.stderr[-400:]}"
+            except (OSError, subprocess.SubprocessError) as err:
+                text += f"py-spy did not run: {type(err).__name__}: {err}\n"
+        return text
+
+
+def hb_values(base: float, count: int) -> list[float]:
+    """``count`` values, each a change from the one before, starting off ``base``."""
+    return [base + HB_STEP if i % 2 == 0 else base for i in range(count)]
+
+
+def heartbeat_payload(step: str, current: dict, key: str, value, after: str) -> dict:
+    """One page resubmitted untouched except ``key``, with the after-save choice."""
+    payload = option_resubmit(step, {**current, key: value})
+    payload[_prod_mod("const").CONF_AFTER_SAVE] = after
+    return payload
+
+
+def check_hb_scenario(checks: Checks, name: str, summary: dict, *,
+                      reloaded: bool, want_reload: bool, raised: str | None) -> None:
+    """The loop kept ticking, and the scenario did what it set out to do.
+
+    The reload half is the arm's precondition: a "changed save" that never
+    reloaded measured nothing, and an untouched exit that reloaded is #1107.
+    """
+    gap = summary["max_gap"]
+    checks.check(
+        name,
+        raised is None and reloaded == want_reload and summary["ticks"] > 0
+        and gap < HB_FREEZE_S,
+        f"max gap {gap * 1000:.1f} ms over {summary['ticks']} tick(s), "
+        f"bound {HB_FREEZE_S * 1000:.0f} ms; {len(summary['dumps'])} dump(s); "
+        f"reloaded={reloaded} (want {want_reload})"
+        + (f"; raised {raised}" if raised else ""),
+    )
+
+
+def check_hb_positive_control(checks: Checks, summary: dict) -> None:
+    """The gap is seen, and BOTH dumpers name the spin.
+
+    Requiring py-spy's own section (rc=0, naming ``_hb_spin``) is what pins
+    the wiring: a heartbeat container without SYS_PTRACE, or without the
+    staged binary, still dumps the Python stack and would pass on it alone.
+    """
+    named = any("_hb_spin" in d for d in summary["dumps"])
+    spied = any(
+        "_hb_spin" in d.split("py-spy rc=0:", 1)[1]
+        for d in summary["dumps"] if "py-spy rc=0:" in d
+    )
+    checks.check(
+        "hb:positive_control",
+        summary["max_gap"] >= HB_CONTROL_S and named and spied,
+        f"a {HB_CONTROL_S * 1000:.0f} ms spin read as {summary['max_gap'] * 1000:.1f} ms; "
+        f"dump names the spin: {named}; py-spy rc=0 names it: {spied}",
+    )
+
+
+def _print_dumps(name: str, dumps: list[str]) -> None:
+    # "  ..  " is the prefix the outer half echoes on a green run too.
+    for dump in dumps:
+        for line in dump.splitlines()[:80]:
+            print(f"  ..   {name}| {line}")
+
+
+def _hb_on_hang(checks: Checks, name: str):
+    """A frozen loop never returns to report: say so from the watcher, and exit."""
+
+    def on_hang(hb: LoopHeartbeat) -> None:
+        _print_dumps(name, [hb.dump(time.monotonic() - hb._last)])
+        for other in HB_INSIDE:
+            checks.results.setdefault(other, [False, f"not reached: {name} froze"])
+        checks.check(name, False, f"no heartbeat tick for {HB_HANG_S:.0f} s: the loop froze")
+        _emit(checks)
+        os._exit(1)
+
+    return on_hang
+
+
+def _py_spy_path() -> str | None:
+    path = f"{IN_DRIVER_DIR}/py-spy"
+    return path if os.access(path, os.X_OK) else None
+
+
+async def _async_hb_measure(checks: Checks, name: str, drive) -> tuple[dict, str | None]:
+    hb = LoopHeartbeat(
+        asyncio.get_running_loop(), py_spy=_py_spy_path(), on_hang=_hb_on_hang(checks, name)
+    )
+    hb.start()
+    raised = None
+    try:
+        await drive()
+    except Exception as err:  # noqa: BLE001 - a raise fails the scenario by name
+        raised = f"{type(err).__name__}: {err}"
+    summary = hb.stop()
+    _print_dumps(name, summary["dumps"])
+    return summary, raised
+
+
+async def _async_hb_settle(hass, entry_id: str) -> None:
+    """Dwell, then keep measuring until the coordinator has solved, or the bound."""
+    await asyncio.sleep(HB_DWELL_S)
+    await hass.async_block_till_done()
+    deadline = time.monotonic() + HB_SETTLE_S
+    while time.monotonic() < deadline:
+        entry = hass.config_entries.async_get_entry(entry_id)
+        coordinator = getattr(entry, "runtime_data", None)
+        if getattr(coordinator, "_optimization_result", None) is not None:
+            return
+        await asyncio.sleep(0.5)
+
+
+async def _async_check_hb(checks: Checks, hass, entry) -> None:
+    const = _prod_mod("const")
+    flows = hass.config_entries.options
+    eid = entry.entry_id
+
+    def coordinator():
+        return getattr(hass.config_entries.async_get_entry(eid), "runtime_data", None)
+
+    def current() -> dict:
+        live = hass.config_entries.async_get_entry(eid)
+        return {**dict(live.data), **dict(live.options)}
+
+    async def control():
+        asyncio.get_running_loop().call_soon(_hb_spin, HB_CONTROL_S)
+        await asyncio.sleep(HB_CONTROL_S + 0.2)
+
+    summary, _ = await _async_hb_measure(checks, "hb:positive_control", control)
+    check_hb_positive_control(checks, summary)
+
+    values = hb_values(float(current()[HB_KEY]), 1 + HB_MENU_SAVES)
+
+    async def untouched():
+        result = await _async_open_options_step(hass, entry, HB_PAGE, frozenset())
+        await flows.async_configure(_flow_id(result), option_resubmit(HB_PAGE, current()))
+        result = await _async_open_options_step(hass, entry, HB_PAGE, frozenset())
+        flows.async_abort(_flow_id(result))
+        await _async_hb_settle(hass, eid)
+
+    async def changed():
+        result = await _async_open_options_step(hass, entry, HB_PAGE, frozenset())
+        await flows.async_configure(_flow_id(result), heartbeat_payload(
+            HB_PAGE, current(), HB_KEY, values[0], const.AFTER_SAVE_CLOSE))
+        await _async_hb_settle(hass, eid)
+
+    async def menu_saves():
+        flow = _flow_id(await flows.async_init(eid))
+        for value in values[1:]:
+            await flows.async_configure(flow, {"next_step_id": HB_PAGE})
+            await flows.async_configure(flow, heartbeat_payload(
+                HB_PAGE, current(), HB_KEY, value, const.AFTER_SAVE_MENU))
+        flows.async_abort(flow)
+        await _async_hb_settle(hass, eid)
+
+    for name, drive, want in (
+        ("hb:untouched_exit", untouched, False),
+        ("hb:changed_save", changed, True),
+        ("hb:menu_saves", menu_saves, True),
+    ):
+        before = coordinator()
+        summary, raised = await _async_hb_measure(checks, name, drive)
+        check_hb_scenario(checks, name, summary, reloaded=coordinator() is not before,
+                          want_reload=want, raised=raised)
+
+
 def nest_user_sensors_input(user_input: dict, groups) -> dict:
     """Wrap flat entity answers in the setup sections (#824 / #849).
 
@@ -2378,6 +2673,23 @@ async def _inside_a3e(seed: dict) -> int:
     return _emit(checks)
 
 
+async def _inside_hb(seed: dict, budget: float) -> int:
+    """Third seed: two-zone + DHW, the options round-trips under the heartbeat."""
+    checks = Checks()
+    hass = await _boot(seed)
+    entry = hass.config_entries.async_get_entry(seed["entry_id"]) if hass else None
+    if getattr(entry, "runtime_data", None) is None:
+        for name in HB_INSIDE:
+            checks.check(name, False, f"two-zone + DHW entry did not load: {entry}")
+    else:
+        await _await_plan(entry.runtime_data, time.monotonic() + budget)
+        await hass.async_block_till_done()
+        await _async_check_hb(checks, hass, entry)
+    if hass is not None:
+        await hass.async_stop()
+    return _emit(checks)
+
+
 def _write_probe_marker(mark: str) -> None:
     """Put the probe window bound in the log THROUGH Home Assistant's handler.
 
@@ -2447,6 +2759,8 @@ def _run_inside(args: argparse.Namespace) -> int:
     _serve_prices(Path(tempfile.mkdtemp()))
     if args.a3e_only:
         return asyncio.run(_inside_a3e(seed))
+    if args.heartbeat_only:
+        return asyncio.run(_inside_hb(seed, args.plan_budget))
     return asyncio.run(_inside(seed, args.plan_budget))
 
 
@@ -2504,7 +2818,7 @@ def _live_option_defaults() -> dict:
     return out
 
 
-def _seed_payload(*, thermometers: bool = True) -> dict:
+def _seed_payload(*, thermometers: bool = True, two_zone_dhw: bool = False) -> dict:
     """The config entry, from the flow's own recorded defaults.
 
     Driving the nine setup steps is the expensive part of a real-Home-Assistant
@@ -2517,6 +2831,10 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
 
     ``thermometers=False`` is A3(e): the shipping flow's default install, no
     thermometer entities. Do not collapse that seed into the thermometer-seeded boot.
+    ``two_zone_dhw=True`` is A15's, the install shape #1758 asks the heartbeat
+    to be driven with: hot water on (the default seed has none) and two zones
+    forced on with a lower-floor thermometer (the default is two-zone only by
+    the presence rule ``two_zone_mode="auto"`` reads).
     """
     fixture = json.loads((ROOT / "tests" / "golden" / "config_flow.json").read_text())
     options_pages = {k: v for k, v in fixture.items() if not k.startswith("_")}
@@ -2562,6 +2880,11 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
         for key in THERMOMETER_KEYS:
             data.pop(key, None)
             options.pop(key, None)
+    if two_zone_dhw:
+        options.update(
+            two_zone_mode="on", dhw_enabled=True,
+            lower_floor_temp_entity=HB_LOWER_FLOOR_ENTITY,
+        )
     return {
         # A well-formed ULID: Home Assistant generates entry ids with one and
         # a stray I, L, O or U here is a shape no installation has.
@@ -2633,6 +2956,11 @@ template:
         device_class: temperature
         state_class: measurement
         state: "1.5"
+      - name: "CI lower floor temperature"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "20.4"
       - name: "CI DHW temperature"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -2663,7 +2991,22 @@ template:
 """
 
 
-def _stage(workdir: Path, *, thermometers: bool = True) -> tuple[Path, Path]:
+def stage_py_spy(driver: Path, source: str | None) -> bool:
+    """Copy the host's py-spy beside the driver; the container has none."""
+    if not source:
+        return False
+    shutil.copy2(source, driver / "py-spy")
+    return True
+
+
+def _host_py_spy() -> str | None:
+    # A Linux host only: the container is Linux, and a macOS binary would not run.
+    return shutil.which("py-spy") if sys.platform.startswith("linux") else None
+
+
+def _stage(
+    workdir: Path, *, thermometers: bool = True, two_zone_dhw: bool = False
+) -> tuple[Path, Path]:
     """Build the two mounts: a config directory, and the driver's own dir.
 
     The package is copied from the tracked tree file by file -- never the
@@ -2693,8 +3036,12 @@ def _stage(workdir: Path, *, thermometers: bool = True) -> tuple[Path, Path]:
     (config / "configuration.yaml").write_text(yaml)
     shutil.copy2(Path(__file__).resolve(), driver / "nightly_ha.py")
     (driver / "seed.json").write_text(
-        json.dumps(_seed_payload(thermometers=thermometers), indent=1)
+        json.dumps(
+            _seed_payload(thermometers=thermometers, two_zone_dhw=two_zone_dhw), indent=1
+        )
     )
+    if two_zone_dhw:
+        stage_py_spy(driver, _host_py_spy())
     (driver / ROSTER_NAME).write_text(json.dumps(load_committed_roster()))
     # #536: the contract module and the stub it speaks about, mounted beside
     # the driver rather than under /config -- nothing here may become a
@@ -2705,6 +3052,29 @@ def _stage(workdir: Path, *, thermometers: bool = True) -> tuple[Path, Path]:
     return config, driver
 
 
+def docker_command(
+    image: str,
+    config: Path,
+    driver: Path,
+    budget: float,
+    extra: list[str] | None = None,
+    caps: tuple[str, ...] = (),
+) -> list[str]:
+    return [
+        "docker", "run", "--rm",
+        "--add-host", f"{TIBBER_HOST}:127.0.0.1",
+        "-e", "TZ=Europe/Stockholm",
+        "-v", f"{config}:{IN_CONFIG}",
+        "-v", f"{driver}:{IN_DRIVER_DIR}:ro",
+        *(arg for cap in caps for arg in ("--cap-add", cap)),
+        "--entrypoint", "python3",
+        image,
+        f"{IN_DRIVER_DIR}/nightly_ha.py", "--inside",
+        "--plan-budget", str(budget),
+        *(extra or ()),
+    ]
+
+
 def _docker(
     image: str,
     config: Path,
@@ -2712,19 +3082,9 @@ def _docker(
     budget: float,
     timeout: float,
     extra: list[str] | None = None,
+    caps: tuple[str, ...] = (),
 ):
-    command = [
-        "docker", "run", "--rm",
-        "--add-host", f"{TIBBER_HOST}:127.0.0.1",
-        "-e", "TZ=Europe/Stockholm",
-        "-v", f"{config}:{IN_CONFIG}",
-        "-v", f"{driver}:{IN_DRIVER_DIR}:ro",
-        "--entrypoint", "python3",
-        image,
-        f"{IN_DRIVER_DIR}/nightly_ha.py", "--inside",
-        "--plan-budget", str(budget),
-        *(extra or ()),
-    ]
+    command = docker_command(image, config, driver, budget, extra, caps)
     print("$ " + " ".join(command), flush=True)
     return subprocess.run(command, capture_output=True, text=True, timeout=timeout)
 
@@ -2947,9 +3307,11 @@ def _run_outside(args: argparse.Namespace) -> int:
     # job 101525... of run 34047698688). Cleanup is not a verdict.
     tmp = Path(tempfile.mkdtemp(prefix="nightly-ha-"))
     tmp_default = Path(tempfile.mkdtemp(prefix="nightly-ha-a3e-"))
+    tmp_hb = Path(tempfile.mkdtemp(prefix="nightly-ha-hb-"))
     try:
         config, driver = _stage(tmp, thermometers=True)
         config_e, driver_e = _stage(tmp_default, thermometers=False)
+        config_h, driver_h = _stage(tmp_hb, two_zone_dhw=True)
         try:
             first = _docker(
                 args.image, config, driver, args.plan_budget, args.timeout
@@ -2958,19 +3320,25 @@ def _run_outside(args: argparse.Namespace) -> int:
                 args.image, config_e, driver_e, args.plan_budget, args.timeout,
                 extra=["--a3e-only"],
             )
+            # py-spy reads this process from a child of it: ptrace needs the cap.
+            third = _docker(
+                args.image, config_h, driver_h, args.plan_budget, args.timeout,
+                extra=["--heartbeat-only"], caps=("SYS_PTRACE",),
+            )
         except subprocess.TimeoutExpired:
             checks.check("run:driver_reported", False, f"no result after {args.timeout}s")
             return 1
-        extra_logs = ()
-        log_e = config_e / LOG_NAME
-        if log_e.is_file():
-            extra_logs = (log_e.read_text(errors="replace"),)
-        return _report(
-            checks, _merge_completed(first, second), config, extra_logs=extra_logs
+        extra_logs = tuple(
+            log.read_text(errors="replace")
+            for log in (config_e / LOG_NAME, config_h / LOG_NAME)
+            if log.is_file()
         )
+        merged = _merge_completed(_merge_completed(first, second), third)
+        return _report(checks, merged, config, extra_logs=extra_logs)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(tmp_default, ignore_errors=True)
+        shutil.rmtree(tmp_hb, ignore_errors=True)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -2978,6 +3346,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--image", default="homeassistant/home-assistant:stable")
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--a3e-only", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--heartbeat-only", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--plan-budget", type=float, default=240.0)
     parser.add_argument("--timeout", type=float, default=1500.0)
     args = parser.parse_args(argv)

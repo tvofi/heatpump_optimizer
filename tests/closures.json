@@ -653,6 +653,7 @@
    "tests/requirements-build.txt",
    "tests/requirements-ci.txt",
    "tests/requirements-coverage.txt",
+   "tests/requirements-nightly-ha.txt",
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/seam_map.json",
