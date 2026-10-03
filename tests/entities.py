@@ -3579,12 +3579,16 @@ _P2_FENCED = {
 
 def _p2_fence_args(source):
     """The callee each ``_best_effort_cycle_step`` call fences, as written:
-    a bound method, or the call inside a lambda."""
+    a bound method, the method a ``partial`` binds (#1736 hands the solve's
+    record to two steps that way), or the call inside a lambda."""
     out = set()
     for n in ast.walk(ast.parse(source)):
         if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_best_effort_cycle_step" \
                 and n.args:
             arg = n.args[0]
+            if isinstance(arg, ast.Call) and arg.args and ast.unparse(arg.func) in (
+                    "partial", "functools.partial"):
+                arg = arg.args[0]
             heads = [arg] if isinstance(arg, ast.Attribute) else [
                 c.func for c in ast.walk(arg) if isinstance(c, ast.Call)]
             out |= {ast.unparse(h) for h in heads}
