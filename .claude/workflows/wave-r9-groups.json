@@ -6344,11 +6344,11 @@
         "R9-UX-3"
       ],
       "resume": {
-        "stage": "in-progress",
+        "stage": "in-review",
         "branch": "handoff/r9-ux-insight-text",
-        "commit": null,
-        "last_step": "fixer seat dispatched 2026-10-03 on fix/r9-ux-8 (worktree /Users/timmalmstrom/fix-r9-ux-8)",
-        "next_step": "fixer.md step 1: view tvofi's iOS screenshot (card-ios-2026-10-03.jpg), then write the failing test (per-item rows, number column nowrap at 360 px, verbatim fallback)",
+        "commit": "b86c98f04b590b6397a1756ea0e40c96267fe20c",
+        "last_step": "PR #1882 opened 2026-10-03 as hpo-author; fix-review seat dispatched",
+        "next_step": "verdict at head; claims-for re-take after main merge (main stamped 6.7.15)",
         "note_file": "handoff/round9/fix/resume/UX-8.md on handoff/r9-ux-insight-text",
         "review_branch": "handoff/r9-ux-insight-text-review",
         "review_note_file": "handoff/round9/fix/resume/UX-8-review.md on handoff/r9-ux-insight-text-review",
