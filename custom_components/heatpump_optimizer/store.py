@@ -33,7 +33,8 @@ from datetime import date, datetime, timedelta, timezone, tzinfo
 from typing import Any, NamedTuple, TypeVar, cast
 
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.storage import Store, UnsupportedStorageVersionError
+from homeassistant.helpers import storage as ha_storage
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import const as c
@@ -50,6 +51,16 @@ from .price_model import (
 from .setpoint_check import create_issue
 
 _LOGGER = logging.getLogger(__name__)
+
+#: Home Assistant 2026.3+ refuses a document newer than the store before the
+#: migration hook; the 2025.2.0 floor has no such class and hands that
+#: document to the hook instead. An empty tuple catches nothing (#1740).
+_NEWER_THAN_READABLE: Any = getattr(ha_storage, "UnsupportedStorageVersionError", ())
+
+#: Store keys whose stored version this release could not read, until a load
+#: of that key succeeds. Keyed, not per instance: boost, away and the pump
+#: arbiter build a fresh store for every load and save.
+_UNREADABLE: set[str] = set()
 
 #: Home Assistant's ``Store`` bounds its payload to a JSON-shaped container
 #: (a mapping or a sequence). The boundary never widens that; it scrubs leaves.
@@ -460,6 +471,11 @@ def _store_name(key: str) -> str | None:
     return max(names, key=len) if names else None
 
 
+def _key_of(store: Any) -> str:
+    """A store's storage key: ``key`` upstream, ``_key`` on the test stub."""
+    return str(getattr(store, "key", None) or getattr(store, "_key", "store"))
+
+
 def _log_off_domain(store: Any, data: Any) -> None:
     """Name the stored fields no declaration covers, or that lie outside theirs.
 
@@ -486,9 +502,8 @@ class QuarantiningStore(Store[_StorePayload]):
     the live model — whatever store, field or class the poison arrived in.
     """
 
-    #: The read in flight, kept until the next one, and the task reading it.
+    #: The read in flight, kept until the next one.
     _reading: asyncio.Future[None] | None = None
-    _reader: asyncio.Task[Any] | None = None
 
     def __init__(
         self,
@@ -513,20 +528,28 @@ class QuarantiningStore(Store[_StorePayload]):
         #: Where a version mismatch is surfaced (``_surface_version``).
         self._issue_hass = hass
         self._major = version
+        #: The tasks inside a read: Home Assistant runs a concurrent second
+        #: load on the first one's future, so the read stays open until both
+        #: leave, and a save from either is that read's own write-back.
+        self._readers: set[asyncio.Task[Any] | None] = set()
         self._lead = lead
         self._naive_zone = naive_zone
         #: Paths of the instants the last load rewrote to the bound.
         self.bounded: list[str] = []
 
     async def async_load(self) -> _StorePayload | None:
-        self._reading = reading = asyncio.get_running_loop().create_future()
-        self._reader = asyncio.current_task()
+        task = asyncio.current_task()
+        if not self._readers:
+            self._reading = asyncio.get_running_loop().create_future()
+        reading = self._reading
+        self._readers.add(task)
         try:
             try:
                 data = _sanitize(await super().async_load())
-            except UnsupportedStorageVersionError:  # a downgrade
+            except _NEWER_THAN_READABLE:  # a downgrade, Home Assistant 2026.3+
                 self._surface_version("it was saved by a newer release than this one")
                 raise
+            _UNREADABLE.discard(_key_of(self))
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
@@ -536,8 +559,9 @@ class QuarantiningStore(Store[_StorePayload]):
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:
-            self._reader = None
-            reading.set_result(None)
+            self._readers.discard(task)
+            if not self._readers and reading is not None and not reading.done():
+                reading.set_result(None)
 
     async def _async_migrate_func(
         self, old_major_version: int, old_minor_version: int, old_data: Any
@@ -552,6 +576,8 @@ class QuarantiningStore(Store[_StorePayload]):
         the loader would otherwise reset at DEBUG; then ``NotImplementedError``,
         the base hook's own answer, so the document is not re-saved unmigrated
         and a minor-only mismatch is read as stored, as Home Assistant does.
+        A NEWER major arrives here too on the 2025.2.0 floor, which has no
+        downgrade refusal of its own.
         """
         if old_major_version != self._major:
             self._surface_version(
@@ -561,13 +587,17 @@ class QuarantiningStore(Store[_StorePayload]):
 
     def _surface_version(self, detail: str) -> None:
         """A WARNING and a repair issue naming this store's unreadable version."""
-        where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
-        _LOGGER.warning("%s: %s; no migration reads it, so its loader starts afresh", where, detail)
+        where = _key_of(self)
+        _UNREADABLE.add(where)
+        _LOGGER.warning(
+            "%s: %s; no migration reads it, so its loader starts afresh and nothing "
+            "is saved over it", where, detail,
+        )
         create_issue(
             self._issue_hass, c.DOMAIN, f"store_version_{where}",
             is_fixable=False, severity=ir.IssueSeverity.WARNING,
             translation_key="store_version",
-            translation_placeholders={"store": where, "detail": detail},
+            translation_placeholders={"store": where, "reads": str(self._major)},
         )
 
     async def async_save(self, data: Any) -> None:
@@ -579,11 +609,15 @@ class QuarantiningStore(Store[_StorePayload]):
         coordinator writers lost persisted learned state this way; R6's
         mode setter hit it before them). Waiting here, in the store itself,
         is the property rather than a per-writer discipline: no save this
-        type can express clobbers its own pending read. The read's own task
+        type can express clobbers its own pending read. A task inside the read
         does not wait: Home Assistant saves a migration's result from inside
-        the load, and waiting there would wait on itself (#1740).
+        the load, and waiting there would wait on itself (#1740). Nothing is
+        saved over a document whose version this release could not read, so
+        the release that wrote it can still read it.
         """
-        if asyncio.current_task() is not self._reader:
+        if _key_of(self) in _UNREADABLE:
+            return
+        if asyncio.current_task() not in self._readers:
             await self.async_wait_for_read()
         await super().async_save(data)
 

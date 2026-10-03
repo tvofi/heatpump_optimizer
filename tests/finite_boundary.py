@@ -1722,10 +1722,11 @@ def _version_arm(by_name) -> None:
                 elif lag and not (warned and issued):
                     unsurfaced.append(f"{name}@{lag}:warned={warned},issued={issued}")
                 # A save after the load -- the loader's own reset save, then
-                # one more -- must not replace a document this release could
-                # not read; at the store's own version it lands (the control).
-                run_store = next(s for s in reads if s._key == key)
-                asyncio.run(run_store.async_save({"clobber": 1}))
+                # one from a fresh instance, as boost, away and the pump
+                # arbiter build one per call -- must not replace a document
+                # this release could not read; at its own version it lands.
+                fresh = QuarantiningStore(FakeHass(), stores[key]._version, key)
+                asyncio.run(fresh.async_save({"clobber": 1}))
                 landed = _storage._DISK.get(key) == json.dumps({"clobber": 1})
                 if lag and (_storage._DISK.get(key) != json.dumps(healthy)
                             or _storage._VERSIONS.get(key) != stores[key]._version - lag):
@@ -1739,6 +1740,7 @@ def _version_arm(by_name) -> None:
         logging.disable(floor)
         _storage._DISK.clear()
         _storage._VERSIONS.clear()
+        _store._UNREADABLE.clear()
     R.check(
         "a store read at its own version surfaces nothing (the control)",
         not noisy and len(stores) == len(LOADERS),

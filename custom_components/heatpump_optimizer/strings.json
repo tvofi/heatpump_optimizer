@@ -1729,7 +1729,7 @@
     },
     "store_version": {
       "title": "Stored learning could not be read",
-      "description": "The optimizer's stored data {store} cannot be read: {detail}. This release has no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. Nothing needs to be done for the optimizer to keep running; if you went back to an older version by mistake, reinstall the newer one before the data is overwritten."
+      "description": "The optimizer's stored data {store} was saved in a format this release cannot read (it reads version {reads}), and there is no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. The stored data is kept: nothing is saved over it while this release runs, so reinstalling the release that wrote it reads it again. Nothing needs to be done for the optimizer to keep running."
     }
   },
   "entity": {
