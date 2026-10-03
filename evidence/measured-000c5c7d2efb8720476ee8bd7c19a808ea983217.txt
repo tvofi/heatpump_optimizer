@@ -1,0 +1,5 @@
+head 000c5c7d2efb8720476ee8bd7c19a808ea983217
+full tests/harness_headers.py: ALL 95 HARNESS HEADER CHECKS PASSED
+probe: head pass; drop-line, each single-pin drop, and env-order swap all fail (8s reach child)
+merge-tree rc=0
+CI DONE total=35, only nightly-status red
