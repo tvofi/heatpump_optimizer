@@ -6436,11 +6436,11 @@
         "R9-WEB-2"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-web-4",
-        "commit": "dcfa196ef84fb17f4f2de619363c6838125abbbc",
-        "last_step": "round 2 merge verdict (comment 5973290447); queued",
-        "next_step": "merge",
+        "commit": "2df2f49d984ee0db588bc30278d43d9c3471e662",
+        "last_step": "PR #1883 merged 2026-10-04; publishes on the next v* tag",
+        "next_step": null,
         "note_file": "handoff/round9/fix/resume/WEB-4.md on handoff/r9-web-4",
         "review_branch": "handoff/r9-web-4-review",
         "review_note_file": null,
