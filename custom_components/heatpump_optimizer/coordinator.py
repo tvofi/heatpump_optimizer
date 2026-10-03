@@ -8627,7 +8627,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         params = ctx._thermal_params
         if floor is None:
             floor = params.dhw_min_temp
-        if params.dhw_enabled and ctx._current_state.dhw_temperature < floor:
+        if params.dhw_enabled and ctx._current_state.dhw_temperature <= floor:
             return False
         return True
     def _detect_outage(self, last_tick_iso: str | None, ahead: bool = False) -> None:
