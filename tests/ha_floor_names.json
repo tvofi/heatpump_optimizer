@@ -1,4 +1,5 @@
 {
+ "_comment": "Recorded by `tests/ha_floor.py record` from upstream source; never edit by hand. A branch that adds a Home Assistant name re-records: Python 3.12+ (`python3.13 tests/ha_floor.py record`) with `gh` authenticated. On a merge conflict in this file, take either side, finish the merge, then re-record.",
  "answers": {
   "member:homeassistant.components.binary_sensor:BinarySensorDeviceClass.HEAT": true,
   "member:homeassistant.components.binary_sensor:BinarySensorDeviceClass.PROBLEM": true,
@@ -48,6 +49,13 @@
   "member:homeassistant.core:SupportsResponse.OPTIONAL": true,
   "member:homeassistant.helpers.device_registry:DeviceEntryType.SERVICE": true,
   "member:homeassistant.helpers.entity:EntityCategory.DIAGNOSTIC": true,
+  "member:homeassistant.helpers.issue_registry:IssueSeverity.NO_SUCH_MEMBER_AT_FLOOR": false,
+  "member:homeassistant.helpers.issue_registry:IssueSeverity.WARNING": true,
+  "member:homeassistant.helpers.selector:NumberSelectorMode.BOX": true,
+  "member:homeassistant.helpers.selector:NumberSelectorMode.SLIDER": true,
+  "member:homeassistant.helpers.selector:SelectSelectorMode.DROPDOWN": true,
+  "member:homeassistant.helpers.selector:TextSelectorType.PASSWORD": true,
+  "member:homeassistant.helpers.selector:TextSelectorType.TEXT": true,
   "module:homeassistant": true,
   "module:homeassistant.components": true,
   "module:homeassistant.components.binary_sensor": true,
@@ -89,7 +97,11 @@
   "module:homeassistant.helpers.entity_registry": true,
   "module:homeassistant.helpers.event": true,
   "module:homeassistant.helpers.issue_registry": true,
+  "module:homeassistant.helpers.issue_registry.IssueSeverity": false,
   "module:homeassistant.helpers.selector": true,
+  "module:homeassistant.helpers.selector.NumberSelectorMode": false,
+  "module:homeassistant.helpers.selector.SelectSelectorMode": false,
+  "module:homeassistant.helpers.selector.TextSelectorType": false,
   "module:homeassistant.helpers.storage": true,
   "module:homeassistant.helpers.translation": true,
   "module:homeassistant.helpers.typing": true,
@@ -192,7 +204,8 @@
   "name:homeassistant.util.dt:parse_datetime": true,
   "name:homeassistant.util.dt:utcnow": true,
   "name:homeassistant.util:dt": true,
-  "name:homeassistant:config_entries": true
+  "name:homeassistant:config_entries": true,
+  "name:homeassistant:const": true
  },
  "tag": "2025.2.0",
  "upstream": "home-assistant/core"

@@ -15,28 +15,59 @@ imported ``UnsupportedStorageVersionError`` (2026.3+) that way, each green on
 every PR-gate lane. Neither is a stub defect -- the stub may model a newer
 release -- so the check reads production's reach, never the stub.
 
-THE UNIT, read off production's AST, never off a list:
+THE UNIT, read off production's AST, never off a list. Production is every
+``.py`` under the package, subpackages included:
 
-  M  ``import homeassistant.x.y [as z]``    -> the module exists at the floor
+  M  ``import homeassistant.x.y [as z]``, and a constant ``__import__`` or
+     ``importlib.import_module`` of a Home Assistant module -> the module exists
   I  ``from homeassistant.x import n``      -> n is bound at module scope of x, or
                                                x.n is a module
-  A  ``z.n`` where z names a Home Assistant module -> n is bound in that module
-  C  ``C.n`` where C was imported from Home Assistant and is a class defined in
-     its module whose base chain stays in that module or ends in a builtin or
-     enum base -> n is a member (the v6.3.1 shape)
+  A  ``z.n`` where z names a Home Assistant module -> n is bound in that module.
+     z is an alias (``from homeassistant.helpers import storage as z``), a
+     local rebind of one (``z2 = z``), or the bare dotted spelling
+     (``import homeassistant.a.b`` then ``homeassistant.a.b.n``); a constant
+     ``getattr(z, "n")`` with no default reads the same
+  C  ``C.n`` where C was imported from Home Assistant, directly or through a
+     module alias (``ir.IssueSeverity.WARNING``, ``const.Platform.X``), and is a
+     class defined in its module (re-exports followed) whose base chain stays
+     in Home Assistant or ends in a builtin or enum base -> n is a member (the
+     v6.3.1 shape)
 
 Guarded, and not checked: a node inside the body of a ``try`` whose handlers
-catch ImportError, ModuleNotFoundError or AttributeError, or under
-``if TYPE_CHECKING:``. ``except Exception`` is not a guard here, the fail-safe
-direction. Typing-only, and not checked: an annotation in a module with
-``from __future__ import annotations``, which is never evaluated.
+catch ImportError, ModuleNotFoundError or AttributeError and do not raise again,
+except inside a ``def`` or ``lambda`` there, whose body runs later, outside the
+handler; and a node under ``if TYPE_CHECKING:`` where that name is typing's and
+the module never rebinds it. ``except Exception`` is not a guard here, the
+fail-safe direction. Typing-only, and not checked: an annotation in a module
+with ``from __future__ import annotations``, which is never evaluated.
+
+RESIDUAL, NOT READ (0 production sites each when this was written; a seat that
+adds one reaches past the check):
+  * a re-export between production modules (``from .a import ha_storage`` and
+    ``ha_storage.n`` in another file): relative imports are not followed;
+  * a chain two or more names past the class (``z.C.n.m``), and an attribute of
+    a call's result (``__import__("homeassistant.x").n``);
+  * a non-constant ``getattr`` or import, and a rebind other than ``a = b``;
+  * a guarded import whose name is used after the guard (NameError, not
+    ImportError, at the floor), and a handler written for another reason that
+    happens to catch AttributeError (two ``dt_util`` sites under
+    ``except (AttributeError, TypeError)``; their names are checked elsewhere);
+  * a class member inherited from outside Home Assistant's chain (UNDECIDABLE,
+    printed, not failed), and behaviour that changed under an unchanged name
+    (``tests/ha_contract.py``'s ground, nightly).
 
 FAIL-CLOSED. The snapshot holds one recorded answer per question, and a question
 it does not hold is UNRECORDED, which fails: a new import or a new name cannot
-go green by being unknown. Re-record (needs ``gh`` and the network):
-``python3 tests/ha_floor.py record``. The snapshot is never edited by hand; the
-nightly floor container answers every recorded question again with Home
-Assistant itself (``verify``), so a wrong answer reddens within a night.
+go green by being unknown. The snapshot is never edited by hand; the nightly
+floor container answers every recorded question again with Home Assistant
+itself (``verify``), so a wrong answer reddens within a night.
+
+RE-RECORDING. A branch that adds a Home Assistant name re-records, in the same
+branch: ``python3.13 tests/ha_floor.py record`` (any Python 3.12 or newer: the
+upstream source has 3.12 syntax) with ``gh`` authenticated and the network up;
+about 30 s from a cold cache. A seat without ``gh`` (a web seat) hands the
+re-record to one that has it. Two branches that each re-recorded conflict in the
+JSON: take either side, finish the merge, then re-record on the merged tree.
 
 Node ids are kept PER FILE. The RCA's prototype held them in one set across
 files whose trees it discarded as it went; CPython recycled the ids, a guard of
@@ -70,54 +101,121 @@ TERMINAL_BASES = {
     **{k: v for k, v in vars(builtins).items() if isinstance(v, type)},
 }
 
-#: Planted trees: the snapshot records the questions of the ``True`` ones, so a
-#: planted defect reads MISSING rather than UNRECORDED, and the gate asserts
-#: each verdict (tests/entities.py, the P11 floor null controls). ``False``
-#: ones are never recorded, so their import must read UNRECORDED.
+_U = "UnsupportedStorageVersionError"
+#: Planted trees, ``name -> (recorded, expected verdict, source)``. The snapshot
+#: records the questions of the ``recorded`` ones, so a planted defect reads
+#: MISSING rather than UNRECORDED; tests/entities.py asserts every verdict (the
+#: P11 floor null controls). The expected verdict is ``missing:<line>`` (that
+#: site must be named), ``clean`` (the file must not be named), or
+#: ``unrecorded:<key>`` (fail-closed must read that question).
 FLOOR_CONTROLS = {
     # #1869's shape: the name entered 2026.3.
-    "plant_import.py": (True, "from homeassistant.helpers.storage import "
-                              "UnsupportedStorageVersionError\n"),
+    "plant_import.py": (True, "missing:1", f"from homeassistant.helpers.storage import {_U}\n"),
     # The same name through a module alias (arm A).
-    "plant_alias.py": (True, "from homeassistant.helpers import storage as s\n"
-                             "s.UnsupportedStorageVersionError\n"),
+    "plant_alias.py": (True, "missing:2", "from homeassistant.helpers import storage as s\n"
+                                          f"s.{_U}\n"),
     # v6.3.1's shape (arm C): the stub had the member, the floor never did.
-    "plant_member.py": (True, "from homeassistant.const import Platform\n"
-                              "Platform.DIAGNOSTICS\n"),
-    # Guarded twice over, and typing-only: all three are legitimate.
-    "plant_guarded.py": (True, "try:\n    from homeassistant.helpers.storage import "
-                               "UnsupportedStorageVersionError\n"
-                               "except ImportError:\n    pass\n"),
-    "plant_typing.py": (True, "from __future__ import annotations\n"
-                              "from typing import TYPE_CHECKING\n"
-                              "from homeassistant.helpers import storage as s\n"
-                              "if TYPE_CHECKING:\n    from homeassistant.helpers.storage "
-                              "import UnsupportedStorageVersionError\n"
-                              "def f(x: s.UnsupportedStorageVersionError) -> None:\n"
-                              "    return None\n"),
-    # Never recorded, so fail-closed must read it.
-    "plant_unrecorded.py": (False, "from homeassistant.helpers.frame import "
-                                   "report_usage\n"),
+    "plant_member.py": (True, "missing:2", "from homeassistant.const import Platform\n"
+                                           "Platform.DIAGNOSTICS\n"),
+    # v6.3.1's name through a module alias, and production's own most common
+    # spelling of a member (``ir.IssueSeverity.X``): arm C behind arm A.
+    "plant_chained.py": (True, "missing:2", "from homeassistant import const\n"
+                                            "const.Platform.DIAGNOSTICS\n"),
+    "plant_chained_as.py": (True, "missing:2",
+                            "from homeassistant.helpers import issue_registry as ir\n"
+                            "ir.IssueSeverity.NO_SUCH_MEMBER_AT_FLOOR\n"),
+    # The bare dotted spelling, a local rebind and a constant getattr.
+    "plant_bare_dotted.py": (True, "missing:2", "import homeassistant.helpers.storage\n"
+                                                f"homeassistant.helpers.storage.{_U}\n"),
+    "plant_rebind.py": (True, "missing:3", "from homeassistant.helpers import storage as s\n"
+                                           f"s2 = s\ns2.{_U}\n"),
+    "plant_getattr.py": (True, "missing:2", "from homeassistant.helpers import storage as s\n"
+                                            f"getattr(s, '{_U}')\n"),
+    # A getattr with a default is the safe probe, and legitimate.
+    "plant_getattr_default.py": (True, "clean", "from homeassistant.helpers import storage as s\n"
+                                                f"getattr(s, '{_U}', None)\n"),
+    # Guards that are not guards: Exception, a re-raise, a body run later, a
+    # TYPE_CHECKING the module rebinds.
+    "plant_except_exception.py": (True, "missing:2", f"try:\n    from homeassistant.helpers.storage import {_U}\n"
+                                                     "except Exception:\n    pass\n"),
+    "plant_reraise.py": (True, "missing:2", f"try:\n    from homeassistant.helpers.storage import {_U}\n"
+                                            "except ImportError:\n    raise\n"),
+    "plant_deferred.py": (True, "missing:4", "from homeassistant.helpers import storage as s\n"
+                                             "try:\n    def f():\n"
+                                             f"        return s.{_U}\n"
+                                             "except AttributeError:\n    pass\n"),
+    "plant_fake_typecheck.py": (True, "missing:3", "TYPE_CHECKING = True\nif TYPE_CHECKING:\n"
+                                                   f"    from homeassistant.helpers.storage import {_U}\n"),
+    # An annotation is evaluated where annotations are not postponed.
+    "plant_no_future.py": (True, "missing:2", "from homeassistant.helpers import storage as s\n"
+                                              f"def f(x: s.{_U}) -> None:\n    return None\n"),
+    # Guarded, and typing-only: legitimate.
+    "plant_guarded.py": (True, "clean", f"try:\n    from homeassistant.helpers.storage import {_U}\n"
+                                        "except ImportError:\n    pass\n"),
+    "plant_typing.py": (True, "clean", "from __future__ import annotations\n"
+                                       "from typing import TYPE_CHECKING\n"
+                                       "from homeassistant.helpers import storage as s\n"
+                                       "if TYPE_CHECKING:\n    from homeassistant.helpers.storage "
+                                       f"import {_U}\n"
+                                       f"def f(x: s.{_U}) -> None:\n    return None\n"),
+    # Never recorded, so fail-closed must read them, imported and dynamic.
+    "plant_unrecorded.py": (False, "unrecorded:module:homeassistant.helpers.frame",
+                            "from homeassistant.helpers.frame import report_usage\n"),
+    "plant_dynamic.py": (False, "unrecorded:module:homeassistant.helpers.no_such_floor_module",
+                         "import importlib\n"
+                         "importlib.import_module('homeassistant.helpers.no_such_floor_module')\n"),
 }
 
 
-def _is_type_checking(test: ast.expr) -> bool:
-    return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
-        isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING")
+def _real_type_checking(tree: ast.Module) -> bool:
+    """``TYPE_CHECKING`` here is typing's, never rebound: a module that assigns
+    it (``TYPE_CHECKING = True``) makes ``if TYPE_CHECKING:`` code that runs."""
+    imported = any(isinstance(n, ast.ImportFrom) and n.module in ("typing", "typing_extensions")
+                   and any(a.name == "TYPE_CHECKING" and not a.asname for a in n.names)
+                   for n in ast.walk(tree))
+    rebound = any(isinstance(n, ast.Name) and n.id == "TYPE_CHECKING"
+                  and isinstance(n.ctx, ast.Store) for n in ast.walk(tree))
+    return imported and not rebound
 
 
-def _guard_body(node: ast.AST) -> list[ast.stmt]:
-    """The statements a recognised guard protects, or none."""
+def _is_type_checking(test: ast.expr, real: bool = True) -> bool:
+    if isinstance(test, ast.Name):
+        return real and test.id == "TYPE_CHECKING"
+    return isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING" \
+        and isinstance(test.value, ast.Name) and test.value.id in ("typing", "typing_extensions")
+
+
+def _guard_body(node: ast.AST, real_tc: bool = True) -> list[ast.stmt]:
+    """The statements a recognised guard protects, or none. A handler that
+    raises again (``except ImportError: raise``) is no guard."""
     if isinstance(node, ast.Try):
-        caught: set[str] = set()
+        guards = False
         for handler in node.handlers:
             kinds = handler.type.elts if isinstance(handler.type, ast.Tuple) \
                 else [handler.type]
-            caught |= {k.id for k in kinds if isinstance(k, ast.Name)}
-        return node.body if caught & GUARD_EXC else []
-    if isinstance(node, ast.If) and _is_type_checking(node.test):
+            if {k.id for k in kinds if isinstance(k, ast.Name)} & GUARD_EXC:
+                if any(isinstance(x, ast.Raise) for b in handler.body for x in ast.walk(b)):
+                    return []
+                guards = True
+        return node.body if guards else []
+    if isinstance(node, ast.If) and _is_type_checking(node.test, real_tc):
         return node.body
     return []
+
+
+_DEFERRED = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _now(stmt: ast.AST, deferred_too: bool):
+    """Nodes of ``stmt`` that run when it does: a def or lambda body runs later,
+    outside the handler, so a try blesses none of it (``deferred_too`` False)."""
+    stack = [stmt]
+    while stack:
+        n = stack.pop()
+        if not deferred_too and isinstance(n, _DEFERRED):
+            continue
+        yield n
+        stack.extend(ast.iter_child_nodes(n))
 
 
 def _annotations(node: ast.AST) -> list[ast.expr]:
@@ -132,6 +230,30 @@ def _annotations(node: ast.AST) -> list[ast.expr]:
     return []
 
 
+def _chain(node: ast.expr) -> list[str] | None:
+    """``a.b.c`` as ``["a", "b", "c"]``, or None for anything but names."""
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if not isinstance(node, ast.Name):
+        return None
+    return [node.id, *reversed(parts)]
+
+
+def _dynamic_module(node: ast.Call) -> str | None:
+    """The module a constant ``__import__``/``import_module`` call imports."""
+    f = node.func
+    named = (isinstance(f, ast.Name) and f.id in ("__import__", "import_module")) or (
+        isinstance(f, ast.Attribute) and f.attr == "import_module"
+        and isinstance(f.value, ast.Name) and f.value.id == "importlib")
+    if named and node.args and isinstance(node.args[0], ast.Constant) \
+            and isinstance(node.args[0].value, str) \
+            and node.args[0].value.split(".")[0] == "homeassistant":
+        return node.args[0].value
+    return None
+
+
 def floor_reach(trees: dict[str, ast.Module],
                 walks: dict[str, list[ast.AST]] | None = None,
                 ) -> dict[tuple[str, str, str], list[str]]:
@@ -140,56 +262,112 @@ def floor_reach(trees: dict[str, ast.Module],
     kind ``M`` (module import), ``I`` (from-import), ``X`` (an attribute of an
     imported name: arm A or C, decided by the snapshot's ``module:`` answer).
     For ``X`` the target is ``"<module>|<imported name or ''>"``: an empty
-    imported name means the alias IS the module (``import a.b as z``).
+    imported name means the alias IS the module (``import a.b as z``). A chain
+    one deeper (``z.C.n``, ``ir.IssueSeverity.WARNING``) is ``X`` again, with
+    ``z``'s module path as the module and ``C`` as the imported name, so arm C
+    reads a member reached through a module alias.
     ``walks`` is ``ast.walk`` of each tree, already listed (tests/entities.py
     has it for P6); one pass over it collects everything the arms read.
     """
     out: dict[tuple[str, str, str], list[str]] = {}
+
+    def emit(kind: str, target: str, name: str, fname: str, node: ast.AST) -> None:
+        out.setdefault((kind, target, name), []).append(f"{fname}:{node.lineno}")
+
     for fname, tree in sorted(trees.items()):
         evaluated = not any(isinstance(x, ast.ImportFrom) and x.module == "__future__"
-                       and any(a.name == "annotations" for a in x.names)
-                       for x in tree.body)
+                            and any(a.name == "annotations" for a in x.names)
+                            for x in tree.body)
+        real_tc = _real_type_checking(tree)
         # Per file, always: see the module docstring.
         safe: set[int] = set()
         typing_only: set[int] = set()
         imports: list[ast.Import | ast.ImportFrom] = []
         attributes: list[ast.Attribute] = []
-        for node in (walks[fname] if walks is not None else ast.walk(tree)):
-            for stmt in _guard_body(node):
-                safe.update(id(x) for x in ast.walk(stmt))
+        rebinds: list[ast.Assign] = []
+        calls: list[ast.Call] = []
+        nodes = walks.get(fname) if walks is not None else None
+        for node in (nodes if nodes is not None else ast.walk(tree)):
+            if isinstance(node, ast.If) and _is_type_checking(node.test, real_tc):
+                for stmt in node.body:  # never runs at all, defs included
+                    safe.update(id(x) for x in _now(stmt, True))
+            else:
+                for stmt in _guard_body(node, real_tc):
+                    safe.update(id(x) for x in _now(stmt, False))
             if not evaluated:
                 for ann in _annotations(node):
                     typing_only.update(id(x) for x in ast.walk(ann))
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 imports.append(node)
-            elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) \
-                    and isinstance(node.ctx, ast.Load):
+            elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
                 attributes.append(node)
+            elif isinstance(node, ast.Assign) and len(node.targets) == 1 \
+                    and isinstance(node.targets[0], ast.Name) \
+                    and isinstance(node.value, ast.Name):
+                rebinds.append(node)
+            elif isinstance(node, ast.Call):
+                calls.append(node)
         alias: dict[str, tuple[str, str]] = {}
+        bare: set[str] = set()
         for node in imports:
-            site = f"{fname}:{node.lineno}"
             if isinstance(node, ast.ImportFrom):
                 if node.level or not node.module \
                         or node.module.split(".")[0] != "homeassistant":
                     continue
                 for a in node.names:
                     if id(node) not in safe:
-                        out.setdefault(("I", node.module, a.name), []).append(site)
+                        emit("I", node.module, a.name, fname, node)
                     alias[a.asname or a.name] = (node.module, a.name)
                 continue
             for a in node.names:
                 if a.name.split(".")[0] != "homeassistant":
                     continue
                 if id(node) not in safe:
-                    out.setdefault(("M", a.name, ""), []).append(site)
+                    emit("M", a.name, "", fname, node)
                 if a.asname:
                     alias[a.asname] = (a.name, "")
+                else:
+                    bare.add(a.name)
+        for node in rebinds:  # ``s2 = s``: the alias travels with the name
+            if node.value.id in alias:
+                alias.setdefault(node.targets[0].id, alias[node.value.id])
+        for node in calls:
+            if id(node) in safe:
+                continue
+            module = _dynamic_module(node)
+            if module:
+                emit("M", module, "", fname, node)
+            elif isinstance(node.func, ast.Name) and node.func.id == "getattr" \
+                    and len(node.args) == 2 and not node.keywords \
+                    and isinstance(node.args[0], ast.Name) and node.args[0].id in alias \
+                    and isinstance(node.args[1], ast.Constant) \
+                    and isinstance(node.args[1].value, str):
+                mod, name = alias[node.args[0].id]
+                emit("X", f"{mod}|{name}", node.args[1].value, fname, node)
         for node in attributes:
-            if node.value.id in alias and id(node) not in safe \
-                    and id(node) not in typing_only:
-                mod, name = alias[node.value.id]
-                out.setdefault(("X", f"{mod}|{name}", node.attr), []).append(
-                    f"{fname}:{node.lineno}")
+            if id(node) in safe or id(node) in typing_only:
+                continue
+            parts = _chain(node)
+            if not parts:
+                continue
+            if parts[0] in alias:
+                mod, name = alias[parts[0]]
+                rest = parts[1:]
+            elif parts[0] == "homeassistant" and bare:
+                # ``import homeassistant.a.b`` then ``homeassistant.a.b.n``:
+                # the longest imported prefix is the module.
+                prefixes = [i for i in range(1, len(parts))
+                            if ".".join(parts[:i]) in bare]
+                if not prefixes:
+                    continue
+                mod, name, rest = ".".join(parts[:prefixes[-1]]), "", parts[prefixes[-1]:]
+            else:
+                continue
+            if len(rest) == 1:
+                emit("X", f"{mod}|{name}", rest[0], fname, node)
+            elif len(rest) == 2:
+                emit("Y", f"{mod}.{name}" if name else mod, f"{rest[0]}.{rest[1]}",
+                     fname, node)
     return out
 
 
@@ -205,6 +383,33 @@ def floor_check(reach, answers: dict[str, bool | None]) -> dict[str, list[str] |
             unrecorded.add(key)
             return "?"
         return answers[key]
+
+    def attribute(mod: str, imported: str, name: str, where: str) -> None:
+        """Arm A or C: ``name`` read off ``mod.imported`` (or ``mod`` itself)."""
+        nonlocal checked
+        path = f"{mod}.{imported}" if imported else mod
+        is_module = ask(f"module:{path}")
+        if is_module == "?":
+            return
+        if is_module:
+            bound = ask(f"name:{path}:{name}")
+            if bound == "?":
+                return
+            checked += 1
+            if not bound:
+                missing.append(f"{path}.{name} (attribute) at {where}")
+            return
+        if not imported:
+            return  # the import itself is M's finding
+        member = ask(f"member:{mod}:{imported}.{name}")
+        if member == "?":
+            return
+        if member is None:
+            undecidable.append(f"{mod}.{imported}.{name}")
+            return
+        checked += 1
+        if not member:
+            missing.append(f"{mod}.{imported}.{name} (class member) at {where}")
 
     for (kind, target, name), sites in sorted(reach.items()):
         where = ", ".join(sites)
@@ -229,31 +434,13 @@ def floor_check(reach, answers: dict[str, bool | None]) -> dict[str, list[str] |
             checked += 1
             if not bound:
                 missing.append(f"{target}.{name} at {where}")
-        else:
+        elif kind == "X":
             mod, imported = target.split("|")
-            path = f"{mod}.{imported}" if imported else mod
-            is_module = ask(f"module:{path}")
-            if is_module == "?":
-                continue
-            if is_module:
-                bound = ask(f"name:{path}:{name}")
-                if bound == "?":
-                    continue
-                checked += 1
-                if not bound:
-                    missing.append(f"{path}.{name} (attribute) at {where}")
-                continue
-            if not imported:
-                continue  # the import itself is M's finding
-            member = ask(f"member:{mod}:{imported}.{name}")
-            if member == "?":
-                continue
-            if member is None:
-                undecidable.append(f"{mod}.{imported}.{name}")
-                continue
-            checked += 1
-            if not member:
-                missing.append(f"{mod}.{imported}.{name} (class member) at {where}")
+            attribute(mod, imported, name, where)
+        else:  # Y: ``z.C.n``, read only where z names a module
+            inner, member = name.split(".")
+            if ask(f"module:{target}") is True:
+                attribute(target, inner, member, where)
     return {"checked": checked, "missing": missing,
             "unrecorded": sorted(unrecorded), "undecidable": undecidable}
 
@@ -262,16 +449,53 @@ def floor_load(path: Path = SNAPSHOT) -> dict:
     return json.loads(path.read_text())
 
 
-def floor_trees(root: Path = PACKAGE) -> dict[str, ast.Module]:
-    return {p.name: ast.parse(p.read_text()) for p in sorted(root.glob("*.py"))}
+def floor_trees(root: Path = PACKAGE, reuse: dict[str, ast.Module] | None = None,
+                ) -> dict[str, ast.Module]:
+    """Every production module, subpackages included, keyed by its path under
+    ``root``; ``reuse`` supplies trees already parsed (P6's, keyed alike)."""
+    out = {}
+    for p in sorted(root.rglob("*.py")):
+        rel = p.relative_to(root).as_posix()
+        out[rel] = (reuse or {}).get(rel) or ast.parse(p.read_text())
+    return out
 
 
 def floor_control_trees(recorded_only: bool = False) -> dict[str, ast.Module]:
-    return {name: ast.parse(src) for name, (rec, src) in FLOOR_CONTROLS.items()
+    return {name: ast.parse(src) for name, (rec, _expect, src) in FLOOR_CONTROLS.items()
             if rec or not recorded_only}
 
 
+def floor_control_failures(result: dict) -> list[str]:
+    """Each planted tree whose verdict is not the one ``FLOOR_CONTROLS`` expects."""
+    named = " ".join(result["missing"])
+    bad = []
+    for name, (_rec, expect, _src) in FLOOR_CONTROLS.items():
+        kind, _, arg = expect.partition(":")
+        if kind == "missing" and f"{name}:{arg}" not in named:
+            bad.append(f"{name}: expected its line {arg} named")
+        elif kind == "clean" and name in named:
+            bad.append(f"{name}: legitimate, but named")
+        elif kind == "unrecorded" and arg not in result["unrecorded"]:
+            bad.append(f"{name}: expected {arg} unrecorded")
+    expected_unrecorded = {e.partition(":")[2] for _r, e, _s in FLOOR_CONTROLS.values()
+                           if e.startswith("unrecorded:")}
+    extra = set(result["unrecorded"]) - expected_unrecorded
+    if extra:
+        bad.append(f"unrecorded beyond the planted ones: {sorted(extra)}")
+    return bad
+
+
 # --- recording: from upstream source at the tag, never by hand -------------
+
+#: Written into the snapshot, where a seat with a conflict in it will read it.
+RECORD_NOTE = (
+    "Recorded by `tests/ha_floor.py record` from upstream source; never edit by hand. "
+    "A branch that adds a Home Assistant name re-records: Python 3.12+ "
+    "(`python3.13 tests/ha_floor.py record`) with `gh` authenticated. On a merge "
+    "conflict in this file, take either side, finish the merge, then re-record.")
+REMEDY = ("re-record with Python 3.12+ and an authenticated gh "
+          "(`python3.13 tests/ha_floor.py record`; a seat without gh hands it on), "
+          "or guard the reach")
 
 class RecordError(RuntimeError):
     pass
@@ -460,7 +684,9 @@ class _Recording(dict):
 
 def record(tag: str, cache: Path, trees: dict[str, ast.Module]) -> dict:
     if sys.version_info < (3, 12):
-        raise RecordError("record parses upstream source: Python 3.12+ is needed")
+        raise RecordError("record parses upstream source with 3.12 syntax: run it under "
+                          "Python 3.12+ (`python3.13 tests/ha_floor.py record`), with gh "
+                          "authenticated")
     answers = _Recording(_Upstream(tag, cache))
     floor_check(floor_reach(trees), answers)
     return {"tag": tag, "upstream": UPSTREAM, "answers": dict(sorted(answers.items()))}
@@ -555,7 +781,10 @@ def main(argv: list[str] | None = None) -> int:
         for kind in ("missing", "unrecorded", "undecidable"):
             for line in r[kind]:
                 print(kind.upper(), line)
-        return 1 if (r["missing"] or r["unrecorded"]) else 0
+        if r["missing"] or r["unrecorded"]:
+            print("REMEDY:", REMEDY)
+            return 1
+        return 0
     if args.cmd == "verify":
         return verify(args.image)
     if args.cmd == "verify-inside":
@@ -565,7 +794,7 @@ def main(argv: list[str] | None = None) -> int:
                                  for k, v in floor_control_trees(recorded_only=True).items()}}
     for i, extra in enumerate(args.trees):
         trees.update({f"extra{i}/{k}": v for k, v in floor_trees(extra).items()})
-    data = record(tag, args.cache, trees)
+    data = {"_comment": RECORD_NOTE, **record(tag, args.cache, trees)}
     args.out.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n")
     answers = data["answers"]
     print(f"RECORDED tag={tag} answers={len(answers)} "

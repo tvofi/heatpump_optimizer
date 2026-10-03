@@ -4743,7 +4743,8 @@ R.section("P11: every Home Assistant name production reaches exists at the floor
 import ha_floor as _p11  # noqa: E402
 
 _p11_snap = _p11.floor_load()
-_p11_reach = _p11.floor_reach(_P6_TREES, _P6_WALKS)
+# Every production module, subpackages included; P6's trees and walks reused.
+_p11_reach = _p11.floor_reach(_p11.floor_trees(ROOT, reuse=_P6_TREES), _P6_WALKS)
 _p11_r = _p11.floor_check(_p11_reach, _p11_snap["answers"])
 R.check(
     "the floor snapshot is recorded at the floor hacs.json declares",
@@ -4755,26 +4756,21 @@ R.check(
     "and every one is recorded (P11 floor)",
     _p11_r["checked"] > 0 and not _p11_r["missing"] and not _p11_r["unrecorded"],
     f"checked={_p11_r['checked']} missing={_p11_r['missing'][:4]} "
-    f"unrecorded={_p11_r['unrecorded'][:4]}: re-record with "
-    "`python3 tests/ha_floor.py record` or guard the reach",
+    f"unrecorded={_p11_r['unrecorded'][:4]}: {_p11.REMEDY}",
 )
 
 # NULL CONTROLS, planted trees answered from the same snapshot: each defect
-# shape must be named, each legitimate shape must not, and an unrecorded
-# import must fail closed.
+# shape (#1869's, v6.3.1's, each spelling of an alias, each guard that is not
+# one, an evaluated annotation) must be named at its line, each legitimate shape
+# must not be, and an unrecorded import, static or dynamic, must fail closed.
 _p11_c = _p11.floor_check(_p11.floor_reach(_p11.floor_control_trees()),
                           _p11_snap["answers"])
-_p11_named = " ".join(_p11_c["missing"])
+_p11_c_bad = _p11.floor_control_failures(_p11_c)
 R.check(
     "and the P11 floor arm names each planted defect, passes each guarded or "
     "typing-only one, and fails an unrecorded import closed (null controls)",
-    "UnsupportedStorageVersionError at plant_import.py:1" in _p11_named
-    and "UnsupportedStorageVersionError (attribute) at plant_alias.py:2" in _p11_named
-    and "Platform.DIAGNOSTICS (class member) at plant_member.py:2" in _p11_named
-    and "plant_guarded" not in _p11_named and "plant_typing" not in _p11_named
-    and len(_p11_c["missing"]) == 3
-    and _p11_c["unrecorded"] == ["module:homeassistant.helpers.frame"],
-    f"missing={_p11_c['missing']} unrecorded={_p11_c['unrecorded']}",
+    len(_p11.FLOOR_CONTROLS) > 0 and not _p11_c_bad,
+    f"{_p11_c_bad}",
 )
 
 # --- hot water that is not configured is not a zero -------------------------
