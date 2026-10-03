@@ -2872,7 +2872,7 @@ def main() -> int:
             pin = pinned_script(budgets.get("killed_by", {}), mut)
             if pin in mut["drivers"]:
                 mut["drivers"].remove(pin)
-                mut["drivers"].insert(0, pin)
+                pass
         for s in lazy + deferred:
             # Until it settles, its first red run also pays its baseline and
             # null control: the budget's estimate carries all three.
