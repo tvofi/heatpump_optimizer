@@ -971,7 +971,6 @@ jobs:
           set -o pipefail
           python3 tests/mutation_table.py \
             --scope full --max 40 --jobs 3 --budget-minutes 270 \
-            --seed "$(date -u +%Y%m%d)" \
             | tee "$RUNNER_TEMP/mutation-table-full.txt"
 
       - name: Report the pins the draw did not reproduce
