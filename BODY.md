@@ -10,16 +10,16 @@ Before: nothing serves the product page (`docs/index.html`, R9-WEB-1) or the doc
 - Every `uses:` is pinned by commit.
 - No job produces a required context.
 
-**`pages-build`** (permissions `contents: read`, `pages: read`; checkout without persisted credentials) runs these steps:
+**`pages-build`** (permissions exactly `contents: read`, `pages: read`; checkout with `persist-credentials: false`) runs these steps:
 1. Asks the Pages API whether Pages is on and built by GitHub Actions.
 2. Runs `npm ci --ignore-scripts --prefix tools/site` over the committed lockfile.
-3. Stages `docs/index.html`, `docs/site/**` and every tracked `*.png` and `*.svg` under `docs/` at its own path. This uses shell only and never stages a `.md`.
+3. Stages `docs/index.html`, `docs/site/**` and every tracked `*.png` and `*.svg` under `docs/` at its own path. This uses shell only and never stages a `.md` or `.markdown` file, matched case-insensitively.
 4. Renders the sub-pages with `node tools/site/build_docs.mjs --root . --tree <git ls-files> --out _site`.
 5. Copies mermaid's `dist/mermaid.min.js` to `_site/site/mermaid/`.
 6. Refuses any `.md` or `.markdown` file in `_site`.
 7. Uploads the site.
 
-**`pages-deploy`** runs `actions/deploy-pages` in the `github-pages` environment. It is a separate job so that `pages: write` and `id-token: write` never reach the job that runs `npm ci` and the repository's generator. The design's Hosting section said "One job"; this deviation is deliberate, and the review accepted it.
+**`pages-deploy`** runs exactly one step, `actions/deploy-pages`, in the `github-pages` environment. It is a separate job so that `pages: write` and `id-token: write` never reach the job that runs `npm ci` and the repository's generator. The design's Hosting section said "One job"; this deviation is deliberate, and the review accepted it.
 
 **The repository state, measured 2026-10-03:**
 - Pages is already enabled. `gh api repos/tvofi/heatpump_optimizer/pages` returns `build_type: workflow` and `html_url: https://tvofi.github.io/heatpump_optimizer/`.
@@ -38,58 +38,59 @@ The probe stays as a defence. If Pages is ever switched off (API 404) or set to 
 
 ## Head
 
-51c5a30c6daadf9ce886278fe8a289b771cc32e2
+bf16e1a824526b5a10025566f11829bcf0e28e55
 
 ## Mutation proof
 
-`PYTHONPATH=tests/hastub python tests/mutation_table.py --scope changed --base origin/main --max 0` reports an empty scope, because no file under `custom_components` changes. So I mutated the workflow by hand.
+`PYTHONPATH=tests/hastub python tests/mutation_table.py --scope changed --base origin/main --max 0` reports an empty scope, because no file under `custom_components` changes. So I mutated the workflow by hand, with two harnesses. Each extracts `tests/entities.py`'s own Pages check verbatim and runs `_pg_defects` over mutants of `pages.yml`. Both baselines are clean.
 
-`mutate_pages.py` extracts `tests/entities.py`'s own Pages check verbatim and runs `_pg_defects` over 29 mutants of `pages.yml`. The baseline returns no defect. It kills 28.
+**Round 3 closes the status-function class, not the one spelling.** GitHub adds the implicit `success()` to an `if:` only when the expression calls none of `success()`, `failure()`, `always()` or `cancelled()`. So the check now applies one case-insensitive rule to every job and step `if:`: any call of any of those four functions is refused. A planted-control check drives five spellings on the deploy job: `always()`, `!cancelled()`, `cancelled()`, `failure()` and `success() || failure()`. Each one is refused.
 
-The round-1 review's survivors, now killed:
-- `environment: github-pages` removed, or renamed;
-- the build job's `permissions:` block removed, or set to `pages: write` plus `id-token: write`;
-- `always()` added to the upload's `if:` or the deploy's `if:`;
-- `cancel-in-progress: true`.
+**Same push:**
+- The staging skips `.markdown` as well as `.md`. The fixture tree holds `docs/site/notes.markdown`, and the guard test plants `note.Md` and then `note.markdown`, each on its own. So narrowing the guard to `.md`, or dropping the staging's `.markdown` skip, is refused.
+- `pages-deploy` must run exactly its one `deploy-pages` step.
+- A job `permissions:` given as a string (`write-all`) is refused with a message, not a crash.
+- Every checkout must set `persist-credentials: false`.
+- The fixture tree holds a tracked `docs/img/data.json`, so a pathspec that publishes another kind is refused.
 
-Also killed:
-- staging: the `.md` skip deleted or made lower-case only; the `docs/` prefix kept; the svg or site pathspec dropped;
-- guard: `exit 1` deleted; `-iname` made `-name`; the guard moved before the render step;
-- probe: a 404 made red; any build source counted as enabled; the 404 branch keyed on any error;
-- the probe gate removed from the upload or from the deploy;
-- the workflow grant widened, or `id-token` dropped; the build job given `contents: write`;
-- `deploy-pages` referenced by tag;
-- the trigger turned into `branches: [main]`, or `pull_request` added;
-- concurrency removed;
-- a job named `closures`.
+**My harness**, `mutate_pages.py`: 38 mutants, 37 killed. Killed:
+- every round-1 and round-2 mutant;
+- the five status-function spellings across the upload and the deploy;
+- `.markdown` narrowing in the guard or in the staging;
+- checkout plus `npm ci` added to `pages-deploy`;
+- build permissions as `write-all`;
+- `persist-credentials: true`;
+- a `docs/*.json` pathspec.
 
-The survivor is "probe: an unknown API error is swallowed". It is equivalent: the step's `set -u` fails on the unset `${msg}`, so the run is still red and writes no `enabled`. The round-1 reviewer confirmed this.
+The one survivor is "probe: an unknown API error is swallowed". It is equivalent: `set -u` fails the step on the unset `${msg}`, so the run is still red and writes no `enabled`.
 
-Remaining survivors of the reviewer's harness, triaged rather than pinned:
-- `persist-credentials: true` on a job that holds `contents: read` only;
-- a `docs/*.json` pathspec, which publishes tracked data and no `.md`;
-- the guard narrowed to `.md` only, which staging already enforces case-insensitively;
-- a `docs/*.md` pathspec, which is equivalent because staging still skips it.
+**The reviewer's harness**, `rev_mut.py`, 26 lines: 21 killed, 3 survived, 1 no-op, plus the clean baseline. The three survivors are the ones the round-2 verdict itself judged equivalent or harmless:
+- `environment: github-pages` as a string: the same environment;
+- deploy `if: ...enabled != 'false'`: the implicit `success()` still skips the deploy when the build fails;
+- deploy `permissions: {}`: the deploy fails for lack of an OIDC token.
+
+The no-op is "stage: .md skip removed". Its search string is the old one-extension `case` line, which no longer exists. The same mutation on the new line, deleting the whole skip, is killed in my harness.
 
 ## Null control
 
 **Failing test first.** At `6daddc0d2` (the check, no workflow), `tests/entities.py` printed `FAIL the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file  [.github/workflows/pages.yml does not exist]`. That was 1 of 2084 checks failed.
 
 **Controls that run on every pass:**
+- one planted `if:` per status-function spelling, each refused;
 - a staging step that copies `docs/` wholesale is refused;
-- a guard that refuses nothing is refused;
+- a guard that refuses nothing is refused, for a planted `.Md` and for a planted `.markdown`;
 - the real workflow with its `environment:` block removed is refused for that reason;
 - the real workflow with the build job's `permissions:` block removed is refused for that reason.
 
 ## Figures
 
 Rules:
-- Taken at head `51c5a30c6` over merge base `8c6e9a7ef`. origin/main was at `2622b31c8` at 2026-10-03T12:20Z.
+- Taken at head `bf16e1a82`, which merges origin/main `2622b31c8` (fetched 2026-10-03T12:55Z) into the round-3 commit `006706bd6`. The merge base is now `2622b31c8`.
 - Python 3.14 venv built from `tests/requirements-ci.txt`, with `PYTHONPATH=tests/hastub`.
 
 Figures:
 - `python tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D`: `MODE: SCOPED -- 2 script(s) run, 28 scoped out`. The two are `tests/entities.py` and `tests/harness_headers.py`.
-- `python tests/entities.py`: `ALL 2086 ENTITY CHECKS PASSED`.
+- `python tests/entities.py`: `ALL 2103 ENTITY CHECKS PASSED`.
 - `python tests/harness_headers.py`: `ALL 95 HARNESS HEADER CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. No budget is raised.
 - `node .claude/workflows/policy_lint.mjs` and `node .claude/workflows/brief_lint.mjs`: exit 0.
@@ -98,10 +99,11 @@ Figures:
   - the diff of the two runs adds exactly `COVERED .github/workflows/pages.yml` and `COVERED tools/site/build_docs.mjs`;
   - the generator's one import, `.claude/workflows/vendor/markdown-it.min.js`, was already on the surface as `PINNED`;
   - `--check` at the head prints `RESULT uncovered_files=0`.
-- `python /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-web2/mutate_pages.py .` (sha1 `29d3061d`): `RESULT mutants=29 killed=28 baseline_clean=True`.
+- `python /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-web2/mutate_pages.py .` (sha1 `80ab8df1`): `RESULT mutants=38 killed=37 baseline_clean=True`.
+- `python /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-web2/../seat-r-web2/rev_mut.py .` (the round-2 reviewer's harness, sha1 `72de90d7`): 21 `KILLED`, 3 `SURVIVED`, 1 `NOOP`.
 - I ran the build job's four non-probe shell steps under `bash -eo pipefail` in a clone of the head. Each exited 0.
   - The generator printed `pages 9, … mermaid 8` and `RESULT: PASS`.
-  - `_site` holds 66 files: 10 html, 29 png, 19 svg and 0 md. The rest are the stylesheet, the fonts with their OFL texts, and the mermaid UMD file.
+  - `_site` holds 66 files: 10 html, 29 png, 19 svg and 0 `.md` or `.markdown`. The rest are the stylesheet, the fonts with their OFL texts, and the mermaid UMD file.
 - `python /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-web2/linkcheck.py _site` (sha1 `50ae683a`): `local references 279, unresolved 0`. Its control, run with `img/card-plan-chart.png` removed: `unresolved 2`.
 - `gh api repos/tvofi/heatpump_optimizer/pages --jq .build_type`: `workflow`.
 - `gh api repos/tvofi/heatpump_optimizer/environments/github-pages/deployment-branch-policies`: one policy, `main` (branch).
