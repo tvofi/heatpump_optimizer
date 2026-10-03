@@ -2189,7 +2189,8 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     shuffled pool's prefix and not a sample biased to cheap drivers. The cut
     falls on an anchor boundary: a mutant is admitted with every queued site
     of its anchor or not at all, since a disposition covers the whole anchor
-    and a split one can never be pinned. A started mutant always finishes.
+    and a split one can never be pinned; a granted twin is started even
+    after a site between them closes the pool. A started mutant finishes.
     Its sweep ends at its first timed-out driver, so a hang costs one
     timeout over the estimate, not one per driver.
     """
@@ -2202,6 +2203,7 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     queue = list(range(len(pool)))
     owed = [0.0]
     granted: set[int] = set()
+    released: set[int] = set()
     own: list[int | None] = [None] * workers
 
     def admit() -> int | None:
@@ -2214,10 +2216,12 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                        for j in twins)
             if (i not in granted and deadline is not None
                     and clock() + need + owed[0] > deadline):
+                # Closed: every site not granted with an admitted twin.
                 for j in queue:
-                    verdict[j] = "SKIP-BUDGET"
-                queue.clear()
-                return None
+                    if j not in granted:
+                        verdict[j] = "SKIP-BUDGET"
+                queue[:] = [j for j in queue if j in granted]
+                continue
             granted.update(twins)
             queue.pop(0)
             owed[0] += owes[i]
@@ -2248,6 +2252,11 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             todo[i].clear()
         elif verdict[i] is None and hit:
             verdict[i] = f"killed by {script}"
+        else:
+            return
+        if i not in released:
+            # Killed or timed out, it runs no EXCLUSIVE driver: release.
+            released.add(i)
             owed[0] -= owes[i]
 
     def work(w: int) -> None:
