@@ -35,7 +35,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding**
    (#373's was a `grep` in the issue body, #258's a judge comment). A fixer who builds their own instrument must
-   disclose it as their own, not the finder's -- so do you, if you built one.
+   disclose it as their own, not the finder's -- so do you, if you built one;
+   one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
    Read the judge ruling first: #290's brief prescribes a refused harness.
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 

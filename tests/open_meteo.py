@@ -1,7 +1,7 @@
 """Tests for the Open-Meteo solar irradiance client.
 
 Runs standalone: it stubs the small parts of Home Assistant that
-``open_meteo.py`` imports, so no Home Assistant install or ``/tmp/hastub`` is
+``open_meteo.py`` imports, so no Home Assistant install or ``tests/hastub`` is
 needed.
 
     python tests/open_meteo.py            # offline, fixture-driven

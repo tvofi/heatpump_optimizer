@@ -7,7 +7,7 @@
 # Rosetta (no AVX-512); Apple Accelerate is the native Mac interpreter.
 #
 # Build (standing form on this Mac; <worktree> is the seat's checkout --
-# the macfloat seat's standing mount source was /Users/timmalmstrom/macfloat-fix.
+# the macfloat seat's standing mount source was a checkout in the owner's home on the Mac.
 # If <worktree> is a linked worktree, its .git file points into the host
 # repository, so mount that too (-v /Users:/Users) for git-based lanes like
 # env_drift.py; the wheel provisioning below itself needs no git repo):

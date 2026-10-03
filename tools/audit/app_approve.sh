@@ -116,9 +116,12 @@ carry() {
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
-  x=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
-  mapfile -t x <<<"$x"
-  [ -n "${x[0]}" ] || x=()
+  # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
+  # which has no mapfile and calls an empty array unbound under -u, so on the
+  # Mac this aborted where it should have named its refusal (2026-10-03).
+  t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
+  x=()
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
   while IFS=$'\t' read -r c ps subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
@@ -128,7 +131,7 @@ carry() {
       # with the same context, which the header-free comparison below cannot
       # see: the merge must be git's own automatic result.
       t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
-      git diff --quiet "$t" "$c" -- . "${x[@]}" \
+      git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
         || { echo "$c is not the automatic merge of its parents"; return 1; }
     elif [[ $subj != ci:* ]]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
@@ -136,14 +139,14 @@ carry() {
       # Anyone who can push can write the subject, and the header-free
       # comparison below cannot see a change moved to other code with the
       # same context: a `ci:` commit may touch only the driver files.
-      git diff --quiet "$c^" "$c" -- . "${x[@]}" \
+      git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
         || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
     fi
   done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
   local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
-  norm() { "${d[@]}" "$1" "$2" -- . "${x[@]}" | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
   echo "only automatic merges from $main or ci: commits, and the branch's own diff compares equal"

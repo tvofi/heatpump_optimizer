@@ -246,6 +246,16 @@ function gridStates(plan) {
   ];
 }
 
+/** The structured items behind the fixture's five narrative lines (R9-UX-8),
+ * as narrative.build orders them: by spend, then the idle hours. */
+const NARRATIVE_ITEMS = [
+  { reason: "cheap_price", kwh: 28.6, sek: 17.76, hours: 8 },
+  { reason: "terminal_value", kwh: 6.0, sek: 4.68, hours: 3 },
+  { reason: "dhw_window", kwh: 2.5, sek: 4.32, hours: 1 },
+  { reason: "dhw_preheat", kwh: 4.0, sek: 3.88, hours: 2 },
+  { reason: "idle", kwh: 0, sek: 0, hours: 19.5 },
+];
+
 /** The fixture behind the page screenshots: the plan, the headline and
  * indoor sensors, the setup topology, an advisor ranking and two months of
  * savings, so no page renders its empty state. */
@@ -291,7 +301,7 @@ function pageStates(plan) {
         "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
         "hot water needed now: 2.5 kWh (4.32 SEK)",
         "charging the tank while electricity is cheap: 4.0 kWh (3.88 SEK)",
-        "idle for 19.5 h"], language: "en" } },
+        "idle for 19.5 h"], language: "en", items: NARRATIVE_ITEMS } },
     "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
       { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
       { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: -12, savings_pct: -1.7 }] } },
@@ -341,7 +351,7 @@ async function themeMismatch({ browser, check, plan }) {
         };
         const seen = [];
         const low = [];
-        for (const box of root.querySelectorAll(".tile, .hl-stat, .status-pill")) {
+        for (const box of root.querySelectorAll(".tile, .hl-stat, .hl-narrative, .status-pill")) {
           for (const el of [box, ...box.querySelectorAll("*")]) {
             const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
             if (!own || !el.getClientRects().length) continue;
@@ -385,6 +395,81 @@ async function themeMismatch({ browser, check, plan }) {
       check(`R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with ${c.name}`,
         res.panel && res.chart.seen >= 8 && res.chart.low.length === 0,
         `${res.chart.seen} measured; under the floor: ${res.chart.low.slice(0, 6).join(", ")}`);
+    } finally {
+      await ctx.close();
+    }
+  }
+}
+
+/** R9-UX-8: the narrative panel at a phone width and a desktop width.
+ *
+ * The defect was a free-flowing italic sentence whose money tail wrapped
+ * ("SEK)" alone on a line). Measured here as the property itself: no number
+ * run wraps, the number column is flush right, nothing overflows the panel,
+ * one column on a phone and two on a wide card. The long rows are the ones
+ * that wrapped: a long label, and a verbatim fallback sentence. */
+async function narrativeLayout({ browser, check, plan, out }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  const items = [...NARRATIVE_ITEMS.slice(0, 4),
+    { reason: "pump_mode", kwh: 0, sek: 0, hours: 6 },
+    { reason: "future_reason", kwh: 1.25, sek: 1000.5, hours: 1 }];
+  const lines = ["28.6 kWh in the cheapest hours for 17.76 SEK",
+    "leaving the house warm past the horizon: 6.0 kWh (4.68 SEK)",
+    "hot water needed now: 2.5 kWh (4.32 SEK)",
+    "charging the tank while electricity is cheap: 4.0 kWh (3.88 SEK)",
+    "blocked by the heat pump's operating mode for 6.0 h",
+    "a sentence from a newer integration that the card cannot label, long enough to wrap"];
+  st["sensor.heat_pump_optimizer_plan_narrative"] = { state: "cheap_price",
+    attributes: { lines, items, language: "en" } };
+  for (const [w, cols] of [[360, 1], [375, 1], [640, 1], [1280, 2]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, deviceScaleFactor: 2 });
+    await ctx.clock.setFixedTime(FROZEN);
+    const page = await ctx.newPage();
+    try {
+      await page.goto("about:blank");
+      await page.addScriptTag({ path: CARD_SRC });
+      const m = await page.evaluate(([st2, w2]) => {
+        const style = document.createElement("style");
+        style.textContent = `html{--card-background-color:#1c1c1c;--primary-text-color:#e1e1e1;` +
+          `--secondary-text-color:#9b9b9b;--divider-color:#3a3a3a;--ha-card-background:#1c1c1c}` +
+          `body{margin:0;padding:12px;background:#111;font-family:-apple-system,"Segoe UI",sans-serif}` +
+          `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color);border-radius:12px;padding:8px}` +
+          `heatpump-optimizer-card{display:block;width:${w2 - 24}px}`;
+        document.head.appendChild(style);
+        const card = document.createElement("heatpump-optimizer-card");
+        document.body.appendChild(card);
+        card.setConfig({ type: "custom:heatpump-optimizer-card" });
+        card.hass = { states: st2, language: "en", themes: { darkMode: true } };
+        const ul = card.shadowRoot.querySelector(".hl-narrative");
+        if (!ul) return null;
+        const box = ul.getBoundingClientRect();
+        const rows = [...ul.querySelectorAll(".nl")];
+        const nums = [...ul.querySelectorAll(".nl-num")];
+        const oneLine = (el) => el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).fontSize) * 1.7;
+        const lefts = new Set(rows.map((r) => Math.round(r.getBoundingClientRect().left)));
+        const rights = {};
+        for (const n of nums) {
+          const r = Math.round(n.getBoundingClientRect().right);
+          const key = Math.round(n.closest(".nl").getBoundingClientRect().left);
+          (rights[key] ||= new Set()).add(r);
+        }
+        const wrapped = [...ul.querySelectorAll(".nl-kwh, .nl-cost")].filter((e) => !oneLine(e)).map((e) => e.textContent);
+        const spill = rows.filter((r) => r.getBoundingClientRect().right > box.right + 0.5 ||
+          r.scrollWidth > r.clientWidth + 1).length;
+        return { rows: rows.length, nums: nums.length, cols: lefts.size, wrapped, spill,
+          aligned: Object.values(rights).every((s) => s.size === 1),
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          italic: getComputedStyle(ul).fontStyle === "italic",
+          bg: getComputedStyle(ul).backgroundColor };
+      }, [st, w]);
+      check(`R9-UX-8 narrative at ${w} px: ${items.length} rows in ${cols} column(s), numbers whole and flush right`,
+        !!m && m.rows === 6 && m.nums === 5 && m.cols === cols && m.wrapped.length === 0 &&
+        m.spill === 0 && m.aligned && !m.overflow && !m.italic && m.bg !== "rgba(0, 0, 0, 0)",
+        JSON.stringify(m));
+      if (out) {
+        await page.screenshot({ path: path.join(out, `narrative-${w}.png`), fullPage: true });
+      }
     } finally {
       await ctx.close();
     }
@@ -2524,6 +2609,9 @@ try {
   // must clear 4.5:1 against what it is painted on, in that mismatch and in
   // its mirror image.
   await themeMismatch({ browser, check, plan });
+
+  // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
+  await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
 } finally {
   await browser.close();
 }
