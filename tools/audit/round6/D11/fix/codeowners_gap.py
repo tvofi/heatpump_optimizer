@@ -126,6 +126,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[5]
+sys.path.insert(0, str(ROOT / "tests"))
+from layout import locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
 CODEOWNERS = ".github/CODEOWNERS"
 WF_DIR = ".github/workflows"
 HOOKS_DIR = ".claude/hooks"
@@ -135,7 +137,7 @@ SETTINGS = ".claude/settings.json"
 # is not a comment.
 EXEC = re.compile(
     r"(?<![\w./-])(?:(?:[\w.-]+/)*(?:node|python3|python|bash|sh|npx|pnpm)\s+(?:-[A-Za-z]+\s+)*|\./)"
-    r"((?:tests|tools|\.claude|\.github)/[A-Za-z0-9_./-]+\.(?:py|mjs|js|sh|yml))\b"
+    r"((?:tests|tools|\.claude|\.github|dev)/[A-Za-z0-9_./-]+\.(?:py|mjs|js|sh|yml))\b"
 )
 
 # What an executed script loads (group E). JS: a RELATIVE specifier in a static
@@ -247,7 +249,13 @@ def surface() -> dict[str, list[str]]:
             "evaluated": sorted(evaluated), "hooks": hooks, "settings": settings}
 
 
-RESTORE = re.compile(r"""git checkout\s+"?\$\{?PINNED\}?"?\s+--\s+((?:\\?\s*'[^']+'\s*)+)""")
+# A restore names its pathspecs after `git checkout "$PINNED" --`, or, listed
+# (R9-RO-2), after `git diff --name-only -z <empty tree> "$PINNED" --` into a
+# `$RUNNER_TEMP` file a later `--pathspec-from-file` checkout restores: the
+# listing tolerates a pathspec PINNED lacks, which a checkout refuses, so a
+# step can name a file's old and new path while the reorganisation moves it.
+RESTORE = re.compile(r"""git (?:checkout|diff --name-only -z "\$\(git hash-object -t tree /dev/null\)")\s+"?\$\{?PINNED\}?"?\s+--\s+((?:\\?\s*'[^']+'\s*)+)(?:>\s*"?(\$RUNNER_TEMP/[\w.-]+))?""")
+FROM_LIST = re.compile(r"""^--pathspec-from-file=(\$RUNNER_TEMP/[\w.-]+)$""")
 SELF_TEST_ONLY = re.compile(r"^      HPO_JOB_GRADES:\s*[\"']?nothing[\"']?\s*$", re.M)
 EVENT_IF = re.compile(r"github\.event_name\s*(==|!=)\s*'([a-z_]+)'")
 
@@ -447,7 +455,8 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
                 words = [w] + words[3:]  # an identity, which runs nothing
             if len(words) < 2 or words[1] not in GIT_OK:
                 return False
-            if words[1] == "checkout" and (len(words) < 4 or words[2] != "$PINNED" or words[3] != "--"):
+            if words[1] == "checkout" and (len(words) < 4 or words[2] != "$PINNED" or (
+                    words[3] != "--" and not (FROM_LIST.match(words[3]) and words[4:] == ["--pathspec-file-nul"]))):
                 return False
         elif w in ("echo", "printf"):
             pass  # a substitution in it was admitted above, command by command
@@ -545,6 +554,7 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
     and nothing before it outside the allowlist."""
     out = []
     specs: list[str] = []
+    listed: dict[str, list[str]] = {}
     # A job-level `defaults:` can turn every `run:` into another program, and a
     # job-level `env:` value naming a tracked path can load it into one.
     tainted = bool(re.search(r"^    defaults:", jt, re.M))
@@ -583,8 +593,13 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
                 for f in sorted(seen):
                     out.append((wf, job, f,
                                 not tainted and line_ok and any(spec_hit(sp, f) for sp in specs), iso))
-            if r:
+            if r and r.group(0).startswith("git diff"):
+                listed[r.group(2) or ""] = re.findall(r"'([^']+)'", r.group(1))
+            elif r:
                 specs += re.findall(r"'([^']+)'", r.group(1))
+            m = re.search(r'git checkout "\$PINNED" --pathspec-from-file="?(\$RUNNER_TEMP/[\w.-]+)"? --pathspec-file-nul', line)
+            if m:
+                specs += listed.pop(m.group(1), [])
             if not admitted(line, have, specs):
                 tainted = True
     return out
@@ -614,7 +629,7 @@ def self_test_only_required(have: set[str]) -> list[str]:
     try:
         import json
 
-        ctx = set(json.loads((ROOT / ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"])
+        ctx = set(json.loads((ROOT / locate(".claude/workflows/fixtures/required-contexts.json")).read_text())["contexts"])
     except (OSError, ValueError, KeyError):
         return []
     bad = []
@@ -752,12 +767,27 @@ def _GRADE(cmd: str):
     return lambda jt: jt.replace("          set -euo pipefail\n", "          set -euo pipefail\n          " + cmd + "\n", 1)
 
 
+# The listed restore (R9-RO-2): `git diff` lists what PINNED holds of the
+# pathspecs, tolerating one it lacks, and a checkout restores that list.
+_CHECKOUT = "git checkout \"$PINNED\" -- \\\n            'tests/coverage_ratchet.py'"
+
+
+def _LISTED(checkout: str = "--pathspec-from-file=\"$RUNNER_TEMP/pinned.list\" --pathspec-file-nul"):
+    listed = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
+              "            'tests/coverage_ratchet.py' 'tests/moved/coverage_ratchet.py' > \"$RUNNER_TEMP/pinned.list\"\n"
+              '          test -s "$RUNNER_TEMP/pinned.list"')
+    return lambda jt: jt.replace(_CHECKOUT, listed + (f'\n          git checkout "$PINNED" {checkout}' if checkout else ""), 1)
+
+
 def _run(cmd: str) -> str:
     body = "\n".join("          " + ln for ln in cmd.splitlines())
     return "\n      - name: probe\n        run: |\n" + body + "\n"
 
 
 PROBES = [
+    ("a listed restore never checked out", _LISTED("")),
+    ("a listed restore checked out from another list",
+     _LISTED('--pathspec-from-file="$RUNNER_TEMP/other.list" --pathspec-file-nul')),
     ("pip install", _run("pip install -r tests/requirements-ci.txt")),
     ("npm ci", _run("npm ci")),
     ("bare tracked path", _run(T + " fast || true")),
@@ -818,6 +848,7 @@ PROBES = [
 ]
 NULLS = [
     ("no inserted step", ""),
+    ("the listed restore", _LISTED()),
     ("echo and printf", _run("echo ok\nprintf '%s\\n' done")),
     ("git fetch, rev-parse, hash-object", _run('git fetch -q --no-tags --depth=1 origin main\n'
                                                  'git rev-parse HEAD\ngit hash-object README.md > /dev/null')),
@@ -851,6 +882,14 @@ def self_test() -> int:
             ok = got == want
             bad += not ok
             print(f"  {'ok  ' if ok else 'FAIL'} {kind:5} {name}: grader {'PINNED' if got else 'not pinned'}")
+    # The surface's top-level directories: an instrument the reorganisation
+    # moves under dev/ stays on it (R9-RO-2); docs/ is the null control.
+    for line, want in (("python3 -I dev/audit/rounds/x/fix.py --check", "dev/audit/rounds/x/fix.py"),
+                       ("python3 -I tools/audit/x.py", "tools/audit/x.py"), ("python3 -I docs/x.py", None)):
+        m = EXEC.search(line)
+        ok = (m.group(1) if m else None) == want
+        bad += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} EXEC  {line}: {m.group(1) if m else 'not an execution'}")
     print(f"SELF-TEST: {len(PROBES)} probe(s), {len(NULLS)} null(s), {bad} wrong")
     return 1 if bad else 0
 

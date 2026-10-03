@@ -31,10 +31,11 @@ GitHub without a token prints its skip, identically in both trees).
 from __future__ import annotations
 
 import argparse
-import fnmatch
+import importlib.util
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -60,11 +61,15 @@ COMMANDS = [
     ("policy_lint --pr-body", "node .claude/workflows/policy_lint.mjs --pr-body $T/body.md --head $HEAD"),
     ("figure_lint --pr-body", "node .claude/workflows/figure_lint.mjs --pr-body $T/body.md"),
     ("preflight", "bash tools/audit/preflight.sh < $T/body.md"),
+    ("delivery_status --check", "python3 -I -S tests/delivery_status.py --check"),
 ]
 # One data file per grader that reads one, deleted for the `neither` arm.
 NEITHER = [".claude/workflows/policy_budgets.json", ".claude/workflows/fixtures/required-contexts.json",
            "tools/audit/rotation.json", "tools/audit/bugclasses.json", ".claude/rules/gate-scoping.md"]
-RESTORE_MARK = re.compile(r"\"\$PINNED\" --\s")
+_spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
+CG = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(CG)  # the pin reader policy-docs runs: its restore grammar and its execution grammar
+spec_hit = CG.spec_hit
 
 
 def git(cwd, *args, check=True):
@@ -87,19 +92,19 @@ def moves(manifest: dict) -> list[tuple[str, str]]:
     return [(e["old"], e["new"]) for e in manifest.get("retired", []) + manifest.get("lifted", []) if e.get("new")]
 
 
+def specs_in(text: str) -> list[str]:
+    return [p for m in CG.RESTORE.finditer(text) for p in shlex.split(m.group(1).replace("\\\n", " "))]
+
+
 def restore_specs(tree: Path) -> list[str]:
-    """Every quoted pathspec a restore names in `tree`'s workflows."""
-    specs: set[str] = set()
+    """Every pathspec a restore names in `tree`'s workflows, and every file
+    they execute: what CI holds at the base's path while a move is graded."""
+    out: set[str] = set()
     for wf in sorted((tree / ".github/workflows").glob("*.yml")):
-        for m in re.finditer(r"\"\$PINNED\" --((?:\s*\\?\s*'[^']+')+)", wf.read_text()):
-            specs.update(re.findall(r"'([^']+)'", m.group(1)))
-    return sorted(specs)
-
-
-def spec_hit(spec: str, p: str) -> bool:
-    if any(c in spec for c in "*?["):
-        return fnmatch.fnmatch(p, spec)
-    return p == spec or p.startswith(spec.rstrip("/") + "/")
+        text = wf.read_text()
+        out.update(specs_in(text))
+        out.update(m.group(1) for ln in text.splitlines() for m in CG.EXEC.finditer(ln))
+    return sorted(out)
 
 
 def apply_moves(tree: Path, pairs: list[tuple[str, str]], keep: list[str]) -> int:
@@ -120,10 +125,11 @@ def apply_moves(tree: Path, pairs: list[tuple[str, str]], keep: list[str]) -> in
     return moved
 
 
-def normalise(text: str, tree: Path, head: str, pairs: list[tuple[str, str]]) -> str:
-    text = text.replace(str(tree.resolve()), "<TREE>").replace(str(tree), "<TREE>")
+def normalise(text: str, tree: Path, tmp: Path, head: str, pairs: list[tuple[str, str]]) -> str:
+    text = text.replace(str(tree.resolve()), "<TREE>").replace(str(tree), "<TREE>").replace(str(tmp), "<TMP>")
     text = re.sub(head[:7] + r"[0-9a-f]{0,33}", "<HEAD>", text)
-    text = re.sub(r"\b\d+(?:\.\d+)?\s?(?:ms|s)\b", "<T>", text)
+    text = re.sub(r"\b\d+(?:\.\d+)?\s?(?:ms|s)\b|seconds=[\d.]+", "<T>", text)
+    text = re.sub(r"(?m)^\s+at .*\n", "", text)  # a node stack frame: async frames vary run to run
     for old, new in sorted(pairs, key=lambda p: -len(p[1])):
         text = text.replace(new.rstrip("/"), old.rstrip("/"))
     return text
@@ -138,7 +144,7 @@ def run_all(tree: Path, tmp: Path, pairs) -> dict[str, tuple[int, str]]:
     env.pop("GH_TOKEN", None)
     for name, cmd in COMMANDS:
         r = subprocess.run(cmd, shell=True, cwd=tree, env=env, capture_output=True, text=True)
-        out[name] = (r.returncode, normalise(r.stdout + r.stderr, tree, head, pairs))
+        out[name] = (r.returncode, normalise(r.stdout + r.stderr, tree, tmp, head, pairs))
     return out
 
 
@@ -181,6 +187,7 @@ def arm_neither(base: str, tmp: Path) -> int:
     git(tree, "add", "-A")
     commit(tree, "planted: the data at neither location")
     keep = restore_specs(tree) + ["tests/layout.py", "tests/layout.json"]
+    commit(tree, "planted: a placeholder, so both runs see as many commits")
     (tmp / "nb").mkdir()
     a = run_all(tree, tmp / "nb", [])
     head = git(ROOT, "rev-parse", "HEAD").strip()
@@ -209,7 +216,7 @@ def restore_steps(tree: Path) -> list[tuple[str, str]]:
     for wf in sorted((tree / ".github/workflows").glob("*.yml")):
         for job, j in (yaml.safe_load(wf.read_text()).get("jobs") or {}).items():
             for s in j.get("steps") or []:
-                if str(s.get("name", "")).startswith("Restore") and RESTORE_MARK.search(str(s.get("run", ""))):
+                if str(s.get("name", "")).startswith("Restore") and specs_in(str(s.get("run", ""))):
                     out.append((f"{wf.name}:{job}", str(s["run"])))
     return out
 
@@ -244,7 +251,7 @@ def arm_restore(base: str, tmp: Path) -> int:
             exact = True
             if r.returncode == 0:
                 for f in filter(None, git(repo, "ls-tree", "-r", "--name-only", pinned[arm]).split("\n")):
-                    if any(spec_hit(s, f) for s in re.findall(r"'([^']+)'", script)):
+                    if any(spec_hit(s, f) for s in specs_in(script)):
                         blob = git(repo, "rev-parse", f"{pinned[arm]}:{f}").strip()
                         exact &= git(repo, "hash-object", f).strip() == blob
             bad += not (ok and exact)

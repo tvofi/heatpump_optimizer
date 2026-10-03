@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import functools
 import json
 import re
 import shutil
@@ -121,6 +122,39 @@ def target(path: str, retired: list[dict]) -> str | None:
                 return None
             return r["new"] + path[len(r["old"]):] if r["old"].endswith("/") else r["new"]
     return path
+
+
+# The reorganisation's dual-path lookup (R9-RO-2), the Python twin of
+# counts.mjs's: a grader CI restores from the base reads the pull request's
+# data where a move pull request put it, so a data read resolves new-first,
+# then old (`locate`), and a path a listing returns is spelt old (`canon`).
+# `lifted` is tvofi's D1: the rule sources move and the generated copy stays.
+# R9-RO-9 removes both, once nothing reads an old path.
+@functools.lru_cache(maxsize=None)
+def moves(root: Path = ROOT) -> tuple[tuple[str, str], ...]:
+    try:
+        m = load(root)
+    except (OSError, ValueError):
+        return ()
+    return tuple((e["old"], e["new"]) for e in m.get("retired", []) + m.get("lifted", []) if e.get("new"))
+
+
+def _swap(p: str, a: str, b: str) -> str | None:
+    if not a.endswith("/"):
+        return b if p == a else None
+    if p.startswith(a):
+        return b + p[len(a):]
+    return b[:-1] if p == a[:-1] else None
+
+
+def canon(p: str, root: Path = ROOT) -> str:
+    return next((q for o, n in moves(root) if (q := _swap(p, n, o)) is not None), p)
+
+
+def locate(p: str, exists=None, root: Path = ROOT) -> str:
+    """`p` at its new path when `exists` (the worktree, by default) holds it there, else `p`."""
+    q = next((q for o, n in moves(root) if (q := _swap(p, o, n)) is not None), None)
+    return q if q is not None and (exists or (lambda x: (root / x).exists()))(q) else p
 
 
 def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:

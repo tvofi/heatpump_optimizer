@@ -131,8 +131,10 @@
 /tests/stress.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi
 # The target layout of lane RO (R9-RO-1): a new category, or a retired path
-# dropped, changes what every later pull request may put where.
+# dropped, changes what every later pull request may put where. Its reader
+# is the Python graders' move-map lookup (R9-RO-2): a grader the base pins loads it.
 /tests/layout.json                        @tvofi
+/tests/layout.py                          @tvofi
 # The architecture score's frozen weights, its pinned verdicts and the check
 # that pins them (R9-EG-A1): a weight or a verdict that moves is a policy change.
 /tools/audit/archscore/weights.json       @tvofi

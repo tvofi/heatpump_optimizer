@@ -57,7 +57,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { COUNT_RULES, checkCounts, derivations } from './counts.mjs'
+import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const ROOT = path.resolve(HERE, '..', '..')
@@ -88,11 +88,15 @@ function basenameMap(files) {
   return byBase
 }
 
+const FIXTURES = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures'))
+// The rosters and carries named by `re` among `.claude/workflows/`'s entries, wherever each now lives.
+const workflowFiles = (re) => listDir('.claude/workflows').filter((f) => re.test(f)).map((f) => at(`.claude/workflows/${f}`))
+
 let _trackedFiles = null
 export function trackedFiles() {
   if (_trackedFiles) return _trackedFiles
   const out = git(['ls-files'])
-  const list = out.split('\n').filter(Boolean)
+  const list = canonList(out.split('\n').filter(Boolean))
   _trackedFiles = { set: new Set(list), byBase: basenameMap(list), list }
   return _trackedFiles
 }
@@ -190,7 +194,7 @@ const SYMBOL_GREP_EXCLUDE = [':!.claude']
 const SYMBOL_GREP_EXCLUDE_FLOOR = [':!.claude']
 
 export function symbolInTree(symbol) {
-  const out = git(['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...SYMBOL_GREP_EXCLUDE], { allowFail: true })
+  const out = git(['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...excludeMoved(SYMBOL_GREP_EXCLUDE)], { allowFail: true })
   return !!(out && out.trim())
 }
 
@@ -199,7 +203,7 @@ export function fileLines(relPath) {
   if (_fileLinesCache.has(relPath)) return _fileLinesCache.get(relPath)
   let lines = null
   try {
-    lines = fs.readFileSync(path.join(ROOT, relPath), 'utf8').split('\n')
+    lines = fs.readFileSync(at(relPath), 'utf8').split('\n')
   } catch {
     lines = null
   }
@@ -812,6 +816,7 @@ function checkShape(groups, findings) {
 // the citation; absent that grammar, case 3 collapses into case 4's judgement
 // and belongs where case 4 already is.
 export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
+const ROSTER_FILE_RE = /^wave-.*-groups\.json$/
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 
@@ -827,18 +832,18 @@ const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 // such a carry to carry-<N>.json. A live group anywhere still wins, in either
 // order, so a stage reopened as a group closes the carry file again.
 export function rosterIssues(dir) {
-  const base = dir || path.join(ROOT, '.claude', 'workflows')
   const out = new Map()
-  let names
+  let files
   try {
-    names = fs.readdirSync(base).filter((f) => /^wave-.*-groups\.json$/.test(f))
+    files = dir ? fs.readdirSync(dir).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(dir, f)) : workflowFiles(ROSTER_FILE_RE)
   } catch {
     return out
   }
-  for (const n of names.sort()) {
+  for (const f of files) {
+    const n = path.basename(f)
     let data
     try {
-      data = JSON.parse(fs.readFileSync(path.join(base, n), 'utf8'))
+      data = JSON.parse(fs.readFileSync(f, 'utf8'))
     } catch {
       continue // that roster's own parse error is reported by lintFile
     }
@@ -931,17 +936,17 @@ export function lintCarryFile(file, { roster } = {}) {
 }
 
 export function carryFiles(dir) {
-  const base = dir || path.join(ROOT, '.claude', 'workflows')
+  if (!dir) return workflowFiles(CARRY_FILE_RE)
   let names
   try {
-    names = fs.readdirSync(base)
+    names = fs.readdirSync(dir)
   } catch {
     return []
   }
   return names
     .filter((f) => CARRY_FILE_RE.test(f))
     .sort()
-    .map((f) => path.join(base, f))
+    .map((f) => path.join(dir, f))
 }
 
 // ---------------------------------------------------------------------------
@@ -1050,7 +1055,7 @@ const REQUIRED_SHAPE_DEFECTS = [
 ]
 
 function assertAcceptanceFixture(name, label, opts, required) {
-  const fixture = path.join(HERE, 'fixtures', name)
+  const fixture = path.join(FIXTURES, name)
   const findings = lintFileGuarded(fixture, opts)
   const errors = findings.filter((f) => f.severity === 'error')
   printReport(path.relative(ROOT, fixture), findings)
@@ -1073,7 +1078,7 @@ function assertAcceptanceFixture(name, label, opts, required) {
 // check needs to mean anything, which is the failure the ceiling cannot see:
 // an empty list passes every "names nothing" test there is.
 function assertGrepExcludeBounded() {
-  const tracked = git(['ls-files']).split('\n').filter(Boolean)
+  const tracked = canonList(git(['ls-files']).split('\n').filter(Boolean))
   const dead = SYMBOL_GREP_EXCLUDE.filter((e) => {
     const prefix = e.replace(/^:!/, '')
     return !tracked.some((f) => f === prefix || f.startsWith(prefix.endsWith('/') ? prefix : prefix + '/'))
@@ -1101,7 +1106,7 @@ function assertGrepExcludeBounded() {
 const COUNT_DRIFT_EXPECTED = new Map([['stale-count', 'states 999 for metrics in tests/structure_budgets.json']])
 
 function assertCountDrift() {
-  const fixture = path.join(HERE, 'fixtures', 'count-drift.json')
+  const fixture = path.join(FIXTURES, 'count-drift.json')
   const findings = lintFileGuarded(fixture, {})
   printReport(path.relative(ROOT, fixture), findings)
   const errors = findings.filter((f) => f.severity === 'error')
@@ -1152,7 +1157,7 @@ const REQUIRED_CARRY = [
 ]
 
 function assertCarryFixtures() {
-  const dir = path.join(HERE, 'fixtures')
+  const dir = FIXTURES
   let problems = []
   for (const name of ['carry-990001.json', 'carry-990002.json', 'carry-990003.json', 'carry-990004.json']) {
     const file = path.join(dir, name)
@@ -1192,7 +1197,7 @@ const GUARD_PROBE = 'driver-guard acceptance probe'
 // widening that indexed everything would pass this probe and refuse every
 // carry.
 function assertRosterIssues() {
-  const dir = path.join(HERE, 'fixtures', 'roster-probe')
+  const dir = path.join(FIXTURES, 'roster-probe')
   let idx
   try {
     idx = rosterIssues(dir)
@@ -1261,11 +1266,7 @@ function main() {
   const args = process.argv.slice(2)
   const defaultRun = args.length === 0
   const files = defaultRun
-    ? fs
-        .readdirSync(path.join(ROOT, '.claude', 'workflows'))
-        .filter((f) => /^wave-.*-groups\.json$/.test(f))
-        .map((f) => path.join(ROOT, '.claude', 'workflows', f))
-        .sort()
+    ? workflowFiles(ROSTER_FILE_RE)
     : args
 
   // A carry file is linted with the carry rules whether it arrives from the

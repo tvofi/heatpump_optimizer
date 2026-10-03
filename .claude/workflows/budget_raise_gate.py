@@ -70,6 +70,10 @@ import shutil
 import tempfile
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from layout import canon, locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
 
 # The code owner, pinned three ways: a login alone can be renamed away and
 # re-registered, an id alone says nothing about which account a reader meant.
@@ -417,11 +421,6 @@ def _show(sha: str, path: str) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
-def _budget_paths(sha: str) -> set[str]:
-    return {p for p in _git("ls-tree", "-r", "--name-only", sha).splitlines()
-            if p.endswith(SUFFIX)}
-
-
 def _reviews(repo: str, pr: str) -> list[dict]:
     out = subprocess.run(
         ["gh", "api", "--paginate", "--slurp", f"repos/{repo}/pulls/{pr}/reviews?per_page=100"],
@@ -455,11 +454,15 @@ def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
 
 def gate(base: str, head: str, pr: str, repo: str) -> int:
     mb = _git("merge-base", base, head).strip()
-    head_files = set(_git("ls-tree", "-r", "--name-only", head).splitlines())
-    paths = sorted(_budget_paths(mb) | _budget_paths(head))
+    tree = {sha: set(_git("ls-tree", "-r", "--name-only", sha).splitlines()) for sha in (mb, head)}
+    # A budget file and a capped file are named old, and read where each end
+    # holds them, so a move pull request compares a file with itself.
+    head_files = {canon(f) for f in tree[head]}
+    paths = sorted({canon(p) for t in tree.values() for p in t if p.endswith(SUFFIX)})
     raises: list[str] = []
     for p in paths:
-        raises += file_raises(p, _show(mb, p), _show(head, p), head_files.__contains__)
+        raises += file_raises(p, _show(mb, locate(p, tree[mb].__contains__)),
+                              _show(head, locate(p, tree[head].__contains__)), head_files.__contains__)
     print(f"# merge base {mb[:12]}, head {head[:12]}: {len(paths)} budget file(s): {', '.join(paths)}")
     rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid))
     print("\n".join(lines))
@@ -1082,6 +1085,9 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         added = branch("added", {"tests/new_budgets.json": {"y": 1}})
         deleted = branch("deleted", {"tests/zz_budgets.json": None})
         kept = branch("kept-file", {P: {**p0, "files": {"A.md": 10}}})
+        NP = locate(P, lambda _: True)  # where the reorganisation moves it
+        moved = branch("moved", {P: None, NP: p0})
+        moved_up = branch("moved-up", {P: None, NP: {**p0, "always_loaded_tokens": 3350}})
         own = {"login": OWNER_LOGIN, "id": OWNER_ID, "type": OWNER_TYPE}
 
         def run(head: str, pages=None, rc=0, argv=None, repo_env=None, routes=None):
@@ -1107,6 +1113,12 @@ def _end_to_end() -> list[tuple[str, object, object]]:
                     "budget_raises=0" in text and f"merge base {fork[:12]}" in text, True))
         out.append(("e2e: ... and reports every budget file it read",
                     "3 budget file(s)" in text, True))
+        rc_, text, calls = run(moved)
+        out.append(("e2e: a budget file moved to its new path, unchanged, is no raise (R9-RO-2)",
+                    (rc_, "budget_raises=0" in text, "3 budget file(s)" in text), (0, True, True)))
+        rc_, text, _ = run(moved_up)
+        out.append(("e2e: ... and one raised as it moved is a raise, named at its old path",
+                    (rc_, f"RAISE {P}: always_loaded_tokens: 3349 -> 3350" in text), (1, True)))
         rc_, text, calls = run(raise_)
         out.append(("e2e: an unapproved raise exits 1", rc_, 1))
         out.append(("e2e: ... names the raise", "cut_views: 110 -> 111" in text, True))

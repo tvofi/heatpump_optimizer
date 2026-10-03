@@ -26,10 +26,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseRuleFrontmatter } from './policy_lint.mjs'
+import { at } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
-const SRC = path.join(ROOT, '.claude', 'rules')
+const SRC = at('.claude/rules')
 const OUT = path.join(ROOT, '.cursor', 'rules')
 
 // D11-s1-71: this used to run its own `/^\s*-\s*"([^"]+)"\s*$/gm` over the
@@ -72,7 +73,7 @@ function main() {
   const expected = new Set()
 
   for (const { stem, rel } of sources()) {
-    const want = render(parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))
+    const want = render(parse(fs.readFileSync(at(rel), 'utf8'), rel))
     const outRel = `.cursor/rules/${stem}.mdc`
     expected.add(`${stem}.mdc`)
     const outAbs = path.join(ROOT, outRel)

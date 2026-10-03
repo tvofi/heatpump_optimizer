@@ -22,9 +22,67 @@ import { execFileSync } from 'node:child_process'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
+// The reorganisation's move map (lane RO, R9-RO-2): `tests/layout.json`'s
+// `retired` and `lifted` entries. A grader CI restores from the base reads
+// the pull request's data, which a move pull request has put at its new path,
+// so a data read resolves new-first, then old (`locate`), and a path a listing
+// returns is spelt old (`canon`) before it meets this tree's literals. Code
+// still runs code by the path the base holds: the restore puts it there.
+// R9-RO-9 removes both, once nothing reads an old path.
+let _moves = null
+export function moves() {
+  if (_moves) return _moves
+  let m = {}
+  try { m = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'layout.json'), 'utf8')) } catch {}
+  _moves = [...(m.retired ?? []), ...(m.lifted ?? [])]
+    .filter((e) => typeof e?.old === 'string' && typeof e?.new === 'string').map((e) => [e.old, e.new])
+  return _moves
+}
+function swap(p, from, to) {
+  if (!from.endsWith('/')) return p === from ? to : null
+  if (p.startsWith(from)) return to + p.slice(from.length)
+  return p === from.slice(0, -1) ? to.slice(0, -1) : null
+}
+const firstSwap = (p, dir) => moves().reduce((q, [o, n]) => q ?? (dir ? swap(p, o, n) : swap(p, n, o)), null)
+export const canon = (p) => firstSwap(p, false) ?? p
+export function locate(rel) {
+  const to = firstSwap(rel, true)
+  return to != null && fs.existsSync(path.join(ROOT, to)) ? to : rel
+}
+// A directory's entries at both locations, and those of each file moved out
+// of it on its own (`tools/audit/briefs/` splits in two), by their old names.
+export function listDir(rel) {
+  const names = new Set()
+  for (const d of new Set([locate(rel), rel])) {
+    try { for (const n of fs.readdirSync(path.join(ROOT, d))) names.add(n) } catch {}
+  }
+  for (const [o, n] of moves()) {
+    if (!o.endsWith('/') && path.posix.dirname(o) === rel && fs.existsSync(path.join(ROOT, n))) names.add(path.posix.basename(o))
+  }
+  return [...names].sort()
+}
+export const canonList = (list) => [...new Set(list.map(canon))].sort()
+// An exclusion pathspec (`:!dir`) widened to wherever what it excluded now lives.
+export function excludeMoved(specs) {
+  const out = [...specs]
+  for (const s of specs) {
+    const dir = /^:!(.+?)\/?$/.exec(s)?.[1]
+    for (const [o, n] of dir ? moves() : []) if (o === dir || o.startsWith(`${dir}/`)) out.push(`:!${n.replace(/\/$/, '')}`)
+  }
+  return [...new Set(out)]
+}
+export const at = (rel) => path.join(ROOT, locate(rel))
+let _tracked = null
+// `git ls-files <spec>` (git's glob: `*` crosses `/`), wherever the files now live, spelt old.
+export function lsFiles(spec) {
+  _tracked ??= canonList(git(['ls-files']).split('\n').filter(Boolean))
+  const re = new RegExp(`^${spec.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.')}$`)
+  return _tracked.filter((f) => re.test(f))
+}
+
 function read(rel) {
   try {
-    return fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    return fs.readFileSync(at(rel), 'utf8')
   } catch {
     return null
   }
@@ -58,7 +116,7 @@ export function derivations() {
   if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
   d.scripts = jsonKeys('tests/closures.json', 'closures')
   d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = git(['ls-files', 'tools/audit/briefs/D*.md']).trim().split('\n').filter(Boolean).length
+  d.briefs = lsFiles('tools/audit/briefs/D*.md').length
   d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
   const card = read('tests/card_drift.mjs')
   if (card) {
