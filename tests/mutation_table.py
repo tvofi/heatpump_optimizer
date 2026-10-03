@@ -2232,7 +2232,7 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 # Closed: every site not granted with an admitted twin.
                 for j in queue:
                     if j not in granted:
-                        verdict[j] = "SKIP-BUDGET"
+                        pass
                 queue[:] = [j for j in queue if j in granted]
                 continue
             granted.update(twins)
