@@ -94,18 +94,15 @@ preference:
 1. **Pay for it.** Cut prose that is spent, duplicated, or now carried by a
    mechanical detector; `writing-for-agents.md`'s uniqueness test
    decides most of it.
-2. **If paying would cost something load-bearing, stop and ask.** Name the cap,
-   the measured number `--budgets` prints, and what the raise buys. Ask before
+2. **If only the raise truly improves it (`fixer.md`), stop and ask.** Name the cap, the
+   measured number `--budgets` prints, what the raise buys, and every payment
+   considered with why it was not taken (`fixer.md`'s budget section). Ask before
    the push, not after: a raise discovered in review is a raise made quietly.
 3. **Raise only on that confirmation, and only to the measured value.** A padded
    cap is headroom nobody earned, and it spends the next seat's argument too.
    `_band` is not part of the raise and is never widened to fit a change: the
    cap you write is the number `--budgets` measured, and the band is added to it
    by the tool where a reviewer can see both.
-
-This paragraph used to say a raise "to make a change fit rather than cutting is
-the move `CLAUDE.md` rule 2 refuses", naming no owner path at all. It was
-obeyed: a seat cut prose from a rule merged an hour earlier rather than ask.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
 cap, the floor, the corpus and each role; write that, never a cap's value — one

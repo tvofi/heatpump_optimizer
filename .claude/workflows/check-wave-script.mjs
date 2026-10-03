@@ -591,6 +591,13 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   // being 40 hex itself, so a stand-in SHA is substituted before parsing.
   const SHA_STAND_IN = 'a'.repeat(40)
   for (const [f, ex] of examples) t(`${f} example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex.replace(/<sha>/g, SHA_STAND_IN)), 'rejected by VERDICT_RE')
+  // A class word a brief TEACHES must be one the wave routes as itself. VERDICT_RE
+  // accepts any class word (#1239), so "parses" above passes an untaught word that
+  // parseVerdict then routes to `other` -- `metric-gamed` (fix-review.md step 14)
+  // was written into the contract before this list carried it.
+  const taughtWords = examples.map(([f, ex]) => [f, ex.match(/^blocked <sha> ([a-z][a-z0-9-]*):/)?.[1]]).filter(([, w]) => w)
+  t('the briefs teach at least one block class word (floor, not a count)', taughtWords.length > 0, `found ${taughtWords.length}`)
+  for (const [f, w] of taughtWords) t(`${f} teaches block class "${w}", and VERDICT_CLASSES carries it`, classes.includes(w), `routed to \`other\`; taught: ${classes.join(', ')}`)
   const colonForm = briefs.filter(([, text]) => /`blocked:/.test(text)).map(([f]) => f)
   t('no brief spells a verdict in the form the parser rejects (`blocked:`)', colonForm.length === 0, `found in ${colonForm.join(', ')}`)
   t('the spelling the contract used for a session is refused (negative control)',
