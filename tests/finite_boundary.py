@@ -1749,11 +1749,14 @@ def _version_arm(by_name) -> None:
         f"unmigrated={unmigrated}",
     )
 
-    # The default hook's two branches, directly: a major mismatch surfaces, and
-    # a minor-only one (same major) does not -- Home Assistant then reads the
-    # document as stored on the NotImplementedError the hook raises either way.
+    # The default hook's branches, directly: a major mismatch surfaces, older
+    # or newer, and a minor-only one (same major) does not -- Home Assistant
+    # then reads the document as stored on the NotImplementedError the hook
+    # raises either way. Newer matters at the 2025.2.0 floor, which has no
+    # UnsupportedStorageVersionError and hands a downgrade to this hook; the
+    # stub models only the later releases' refusal, so this drives it here.
     verdicts = []
-    for major in (1, 2):
+    for major in (1, 2, 3):
         # A fresh hass per call: the registry keeps one issue per id, so a
         # shared one would read a second surfacing as the first.
         probe_hass = FakeHass()
@@ -1768,8 +1771,8 @@ def _version_arm(by_name) -> None:
         verdicts.append(len(getattr(probe_hass, "issues", None) or []))
     R.check(
         "the default hook raises NotImplementedError and surfaces a major mismatch "
-        "only, not a minor-only one",
-        verdicts == ["not-implemented", 1, "not-implemented", 0],
+        "older or newer, not a minor-only one",
+        verdicts == ["not-implemented", 1, "not-implemented", 0, "not-implemented", 1],
         f"verdicts={verdicts}",
     )
     # A downgrade leaves the store as Home Assistant's own exception, after the
@@ -1858,7 +1861,149 @@ def _version_arm(by_name) -> None:
         early == 0 and late == 1,
         f"saves before the read landed={early} after={late}",
     )
+    _version_floor_import()
+    _version_concurrent_reads()
     print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
+
+
+def _version_floor_import() -> None:
+    """``store.py`` imports at the 2025.2.0 floor, where Home Assistant has no
+    ``UnsupportedStorageVersionError`` (it arrives in 2026.3).
+
+    The stub defines the class, so every other check here imports a tree the
+    floor cannot: the module is executed afresh, beside the live one, with
+    the class taken out of the stub -- the floor's shape. An import that
+    fails fails every module that persists anything, and the integration
+    with them (#1869's nightly-ha 2025.2.0 arm).
+    """
+    import importlib.util
+
+    name = "heatpump_optimizer._store_at_floor"
+    spec = importlib.util.spec_from_file_location(name, PKG / "store.py")
+    held = _storage.__dict__.pop("UnsupportedStorageVersionError")
+    try:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        got = f"ok:{module.QuarantiningStore.__name__}"
+    except Exception as exc:  # noqa: BLE001 -- the failure is the measurement
+        got = f"{type(exc).__name__}: {exc}"
+    finally:
+        _storage.UnsupportedStorageVersionError = held
+        sys.modules.pop(name, None)
+    R.check(
+        "store.py imports at the 2025.2.0 floor, which has no "
+        "UnsupportedStorageVersionError (#1869)",
+        got == "ok:QuarantiningStore",
+        f"got={got}",
+    )
+
+
+def _version_concurrent_reads() -> None:
+    """Two reads in flight, and a reader whose read has landed.
+
+    Home Assistant's ``Store.async_load`` parks a second concurrent load on
+    the first's future (``_load_future``, 2025.2.0 and since); the stub has no
+    such dedupe, so it is wrapped in one here. A migration's write-back from
+    the first read must not wait on the second, which waits on the first. And
+    once a task's read has landed, that task is a writer like any other: its
+    save waits for a read another task has in flight.
+    """
+    key = f"{const.DOMAIN}_{ENTRY_ID}_version_concurrent"
+    orig_load = _storage.Store.async_load
+
+    class _Migrating(QuarantiningStore):
+        async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+            return {**old_data, "migrated": True}
+
+    async def _two_loaders():
+        gate, pending = asyncio.Event(), {}
+
+        async def _deduped(self):
+            if id(self) in pending:
+                return await asyncio.shield(pending[id(self)])
+            pending[id(self)] = future = asyncio.get_running_loop().create_future()
+            try:
+                await gate.wait()
+                result = await orig_load(self)
+            except BaseException as exc:
+                future.set_exception(exc)
+                raise
+            finally:
+                pending.pop(id(self), None)
+            future.set_result(result)
+            return result
+
+        _storage.Store.async_load = _deduped
+        st = _Migrating(FakeHass(), 2, key)
+        first = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        second = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        gate.set()
+        return await asyncio.wait_for(asyncio.gather(first, second), 5)
+
+    _storage._DISK[key] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[key] = 1
+    try:
+        got = asyncio.run(_two_loaders())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        got = type(exc).__name__
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage._VERSIONS.clear()
+    want = {"v": 1.0, "migrated": True}
+    R.check(
+        "two concurrent loads of a migrating store both land: the write-back "
+        "does not wait on the second read, parked on the first (#1869)",
+        got == [want, want],
+        f"got={got!r}",
+    )
+
+    async def _landed_reader():
+        hold, gate, go = {"on": False}, asyncio.Event(), asyncio.Event()
+
+        async def _gated(self):
+            if hold["on"]:
+                await gate.wait()
+            return await orig_load(self)
+
+        _storage.Store.async_load = _gated
+        st = QuarantiningStore(FakeHass(), 1, key)
+
+        async def _writer():
+            await st.async_load()  # this task's own read lands ...
+            await go.wait()
+            await st.async_save({"v": 2.0})  # ... so this save waits for another's
+
+        writer = asyncio.create_task(_writer())
+        for _ in range(3):
+            await asyncio.sleep(0)
+        hold["on"] = True
+        other = asyncio.create_task(st.async_load())
+        await asyncio.sleep(0)
+        go.set()
+        for _ in range(3):
+            await asyncio.sleep(0)
+        early = _storage.SAVE_COUNTS.get(key, 0)
+        gate.set()
+        await asyncio.wait_for(asyncio.gather(writer, other), 5)
+        return early, _storage.SAVE_COUNTS.get(key, 0)
+
+    try:
+        early, late = asyncio.run(_landed_reader())
+    except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
+        early, late = type(exc).__name__, None
+    finally:
+        _storage.Store.async_load = orig_load
+        _storage._DISK.clear()
+        _storage.SAVE_COUNTS.pop(key, None)
+    R.check(
+        "a task whose read has landed saves after another task's read in flight, "
+        "not before it (#1869)",
+        early == 0 and late == 1,
+        f"saves before the read landed={early} after={late}",
+    )
 
 
 def _main() -> int:
