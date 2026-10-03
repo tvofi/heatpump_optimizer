@@ -1,5 +1,5 @@
 <svg viewBox="0 0 1120 438" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="Two chart details side by side. Left: the house temperature series, whose dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them. Right: the hot-water tank series, whose dashed pair is one symmetric expected-error band that widens with lead time.">
+     aria-label="Two chart details side by side. Left: the house temperature series, whose dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them. Right: the hot-water tank series, whose dashed pair is one expected-error band that widens with lead time, its lower edge floored at the window minimum inside a demand window.">
 <style>text { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }</style>
 <rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
 <text x="22" y="28" font-size="16" font-weight="700" fill="#1c1c1c">The two kinds of dashed line</text>
@@ -8,7 +8,7 @@
   <text x="22" y="70" font-size="14.5" font-weight="700" fill="#1c1c1c">Two real temperatures</text>
   <text x="22" y="88" font-size="12" fill="#5a5a5a">House temperature, two-zone house</text>
 
-  <text x="578" y="70" font-size="14.5" font-weight="700" fill="#1c1c1c">One symmetric band</text>
+  <text x="578" y="70" font-size="14.5" font-weight="700" fill="#1c1c1c">One expected-error band</text>
   <text x="578" y="88" font-size="12" fill="#5a5a5a">Hot-water tank temperature</text>
 <svg x="22" y="104" width="520" height="250"
       viewBox="-16.0 -18.0 920.0 346.0" preserveAspectRatio="xMidYMid meet">
@@ -23,5 +23,5 @@
 <rect x="22" y="104" width="520" height="250" fill="none" stroke="#d4d4d4"/>
 <rect x="578" y="104" width="520" height="250" fill="none" stroke="#d4d4d4"/>
 <text x="22" y="380" font-size="12" fill="#1c1c1c">Upper floor and lower floor: two predicted temperatures, one</text><text x="22" y="397" font-size="12" fill="#1c1c1c">per zone, drawn only when the house is configured as two-zone.</text><text x="22" y="414" font-size="12" fill="#1c1c1c">The solid line between them is the whole house. Two tooltip rows,</text><text x="22" y="431" font-size="12" fill="#1c1c1c">two absolute values. They are not error bars.</text>
-<text x="578" y="380" font-size="12" fill="#1c1c1c">One thing, drawn as two edges: dhw_temp ∓ the error the model</text><text x="578" y="397" font-size="12" fill="#1c1c1c">has actually made for a promise that far ahead, so it widens the</text><text x="578" y="414" font-size="12" fill="#1c1c1c">further into the plan you look. One tooltip row, one ± figure.</text><text x="578" y="431" font-size="12" fill="#1c1c1c">Absent entirely until there is history to draw it from.</text>
+<text x="578" y="380" font-size="12" fill="#1c1c1c">One thing, drawn as two edges: dhw_temp ∓ the error the model</text><text x="578" y="397" font-size="12" fill="#1c1c1c">has actually made for a promise that far ahead, so it widens with</text><text x="578" y="414" font-size="12" fill="#1c1c1c">lead time; inside a demand window the lower edge is floored at the</text><text x="578" y="431" font-size="12" fill="#1c1c1c">window minimum. One tooltip row, one ± figure. Absent until history.</text>
 </svg>

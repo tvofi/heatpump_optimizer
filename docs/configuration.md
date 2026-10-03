@@ -30,10 +30,11 @@ thermal model gets its starting values:
 flowchart TD
     A["1 · Basics<br/>name, price source (Tibber token or price entity),<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, on/off switch, solar,<br/>tank probes, pump signals"]
     B --> M{"3 · Finish setup now? A menu:<br/>Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
-    B -. "only if another entry turned<br/>the pre-fill offer on" .-> P
+    B -. "only if another entry turned the pre-fill<br/>offer on and a device qualifies" .-> P0["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
+    P0 --> M
     M -- "Quick setup (recommended)" --> Q["Quick setup<br/>five house toggles and<br/>the building questionnaire"]
     Q --> P["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
-    P --> M
+    P -- "back to the menu,<br/>without Quick setup" --> M
     M -- "Finish setup now" --> R["Review and confirm<br/>(read-only summary)"]
     M -- "Continue setup" --> T["4 · Temperatures<br/>target, band, day and night comfort,<br/>day hours"]
     T --> C{"5 · How do you want to<br/>describe your building?"}
