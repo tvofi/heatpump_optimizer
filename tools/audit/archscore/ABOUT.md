@@ -108,8 +108,15 @@ partial dedupe as a whole one. No corpus verdict moved (81 corpus vectors re-mea
 sensitivity. The matcher costs 228 s against 208 s for the corpus re-measure (`--measure-corpus --jobs 4`,
 one run each, this machine).
 
-What it does not see: a copy whose statements are reordered or split across blocks. That is a change
-to the copy's logic or structure, not junk, and a reviewer reads it in the diff.
+What it does not see: a copy whose statements are reordered or split across blocks. `rt_04zz1` pins the
+second: it wraps each statement of a copy in its own always-true `if <n>:`, and reads IMPROVES (+12.63,
+admissible), labelled KNOWN-OPEN so a fix that closes it flips the case and asks for the re-record. A
+window that crosses block boundaries would close it, at the cost of joining unrelated code that happens
+to share two statements anywhere in a function. Until then a reviewer reads such a diff as what it is,
+restructuring with no change in logic.
+
+The converse of a known limit below: a count credits a partial repair, but under the gap census a
+partial dedupe that leaves a pair sharing any two statements in order reads NULL (`a1_G2_dedupe`).
 
 Known limits, so a reader does not credit the score with more than it does:
 

@@ -26,8 +26,9 @@ sys.path.insert(0, str(HERE))
 PINNED = "7952d8f9e4fbe9945bc8742e8dc02be8fbe4582c"
 BASE = "_base"
 # Attempts the counters do not close, expected IMPROVES; a fix flips one and the check asks for the re-record.
-# Empty since R9-EG-A2: C3 drops a statement dead by data flow, so 04h, 04i and 04j are GAMEs.
-KNOWN_OPEN: set[str] = set()
+# 04h, 04i and 04j left this set in R9-EG-A2 (C3 joins a clone across any gap). 04zz1 splits a copy across
+# blocks, which no window inside one block can join (ABOUT.md, "Interleaved junk").
+KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged"}
 
 
 def extract_pin(into: Path) -> Path:
