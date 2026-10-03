@@ -2969,7 +2969,7 @@ def main() -> int:
 
     if not (args.drain or args.pin_killed):
         for line in pin_reverification(results, outcomes,
-                                       budgets.get("killed_by", {})):
+                                       {}):
             print(line)
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
