@@ -14,7 +14,7 @@ Round 2 (head merges origin/main; changes since the first review: items 2, 3 and
 
 ## Head
 
-75af6b9592a66f26767bbfc4da747be599dc89cf
+dcfa196ef84fb17f4f2de619363c6838125abbbc
 
 ## Mutation proof
 
@@ -26,9 +26,9 @@ Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale`): `p
 
 ## Figures
 
-- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: MODE: SCOPED, 5 scripts run, 7 passed, rc 0 at the head above (after merging origin/main).
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: MODE: SCOPED, 5 scripts run, 7 passed, rc 0, run at the head above (after merging origin/main).
 - `python3 tests/doc_claims.py`: rc 0. `python3 tests/layout.py`: rc 0.
-- `HPO_PLANDATA=... node tests/card_browser.mjs` on origin/main ac255c200 (a detached checkout) and on this head: both report exactly one failure, "P9 grid: no two text runs share ink". It fails identically on main on this machine, so it is not caused by this change; it is raster-dependent on a Mac and CI's Linux run is the authority.
+- `HPO_PLANDATA=... node tests/card_browser.mjs` on origin/main ac255c200 (a detached checkout) and, re-run at the head above, both report exactly one failure, "P9 grid: no two text runs share ink". It fails identically on main on this machine, so it is not caused by this change; it is raster-dependent on a Mac and CI's Linux run is the authority.
 - Before/after contact sheet of the two replaced pictures: seat scratch `seat-web-4/contact-sheet-before-after.png`.
 
 ## Red checks
