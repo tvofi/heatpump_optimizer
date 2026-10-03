@@ -345,6 +345,20 @@ jobs:
       # main moved, a policy path, code-owned without a mandate, a budget file,
       # a recarry conflict, a preflight REFUSE -- over a stubbed command runner.
       # The tally line must say 0 failed, as above.
+      # A tracked script, workflow or decision record that depends on a temp
+      # or machine path (2026-10-03: a temp cleanup took three seat scripts'
+      # state, a decision's source and the seat interpreter). Here and not in
+      # a grading job: audit instruments carry no owner (tvofi, 2026-10-03;
+      # decision 0013), so an unpinned copy may only run where it grades
+      # nothing, and a pin needs a base that already carries the file. A red
+      # here is still a red at the head, which `pr-contract` makes the body
+      # answer.
+      - name: Refuse a temp or machine path in a tracked script or decision
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/tmp_paths.py --self-test
+          python3 -I tools/audit/seat/tmp_paths.py --check
+
       - name: Show the merge train refusing its own fixtures
         run: |
           set -o pipefail
@@ -532,16 +546,6 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/fold_ledger.py --self-test
           python3 -I tools/audit/fold_ledger.py check
-
-      # A tracked script, workflow or decision record that depends on a temp
-      # or machine path (2026-10-03: a temp cleanup took three seat scripts'
-      # state, a decision's source and the seat interpreter). The pull
-      # request's own copy, owned under tools/audit/seat/, as fold_ledger's is.
-      - name: Refuse a temp or machine path in a tracked script or decision
-        run: |
-          set -euo pipefail
-          python3 -I tools/audit/seat/tmp_paths.py --self-test
-          python3 -I tools/audit/seat/tmp_paths.py --check
 
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
