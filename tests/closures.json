@@ -118,7 +118,7 @@
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 176.4,
+   "seconds": 192.5,
    "rc": 0
   },
   "tests/arch_score_head.py": {
@@ -2666,6 +2666,11 @@
    "tools/audit/archscore/planted/redteam/04u_dup_comp_uncharged.py",
    "tools/audit/archscore/planted/redteam/04v_dup_classdef_uncharged.py",
    "tools/audit/archscore/planted/redteam/04w_dup_isinstance_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04x_dup_forrange_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04y_dup_ifexp_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04z_dup_annself_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04za_dup_tupleidx_uncharged.py",
+   "tools/audit/archscore/planted/redteam/04zb_dup_print_uncharged.py",
    "tools/audit/archscore/planted/redteam/05_coord_mixin_relocation.py",
    "tools/audit/archscore/planted/redteam/05b_coord_mixin_private_only.py",
    "tools/audit/archscore/planted/redteam/05c_coord_base_class_all.py",
