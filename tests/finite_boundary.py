@@ -1734,6 +1734,14 @@ def _version_arm(by_name) -> None:
                     for when, got in (("load", after_load), ("save", after_save)):
                         if got != (newer, json.dumps(healthy)):
                             overwritten.append(f"{name}@{when}:version={got[0]}")
+                    # The user's way out: once the document no longer reads
+                    # newer (deleted, or replaced), a fresh load saves again.
+                    _storage._VERSIONS[key] = stores[key]._version
+                    asyncio.run(st.async_load())
+                    _storage._DISK.pop(key, None)
+                    asyncio.run(st.async_save(healthy))
+                    if key not in _storage._DISK:
+                        overwritten.append(f"{name}@reload:unsaved")
                 warned, issued = _surfaced(coord, key)
                 if not lag and (warned or issued):
                     noisy.append(name)
@@ -1746,6 +1754,7 @@ def _version_arm(by_name) -> None:
         logging.disable(floor)
         _storage._DISK.clear()
         _storage._VERSIONS.clear()
+        _store._NEWER_ON_DISK.clear()
     R.check(
         "a store read at its own version surfaces nothing (the control)",
         not noisy and len(stores) == len(LOADERS),
@@ -1760,7 +1769,7 @@ def _version_arm(by_name) -> None:
     R.check(
         "a downgraded store keeps the newer release's document through its load and "
         "the next save, so reinstalling that release finds it intact; a bumped "
-        "store still saves (#1869)",
+        "store, and one re-read once the newer document is gone, still saves (#1869)",
         not overwritten,
         f"overwritten={overwritten}",
     )
@@ -1813,6 +1822,7 @@ def _version_arm(by_name) -> None:
     _storage.SAVE_COUNTS.pop(fkey, None)
     asyncio.run(floor.async_save({"overwritten": True}))
     floor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
+    _store._NEWER_ON_DISK.discard(fkey)
     _storage._DISK.pop(fkey, None)
     _storage._VERSIONS.pop(fkey, None)
     R.check(
