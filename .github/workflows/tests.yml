@@ -1325,11 +1325,14 @@ jobs:
       # they run imports neither the package nor the stub. The host only stages
       # files, so nothing about these versions reaches the container, which
       # uses Home Assistant's own.
+      # Plus py-spy (#1758), which the driver stages into the A15 heartbeat
+      # container: the Home Assistant image ships none.
       - name: Install pinned test dependencies
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
+          -r tests/requirements-nightly-ha.txt
 
       # Its own step so a registry failure is an unmistakable red here,
       # rather than a timeout somewhere inside the lane.
