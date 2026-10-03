@@ -35,7 +35,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 |---|---|---|
 | C1 an `Any` or `object` key is untyped | an all-`Any` TypedDict | 01 |
 | C2 `reflective_writes`, C2b `computed_attr_access` (tripwires) | `object.__setattr__`, `type(x).__setitem__`, a hub handle behind a computed name | 02, 03, 10, 13 |
-| C3 an effect-free statement does not split a clone | `id(N)` in every clone window | 04 |
+| C3 a statement dead by data flow does not split a clone | junk interleaved in every clone window | 04 to 04m |
 | C4 the coordinator is measured as its whole package class hierarchy | a rename plus an empty subclass, a mixin | 05, 05b, 05c, 05d |
 | C5 a passthrough property reads as its private | public `raw_<x>` accessors | 06 |
 | C6 `family_orphan_overrides` | families declared into one-member families | 07 |
@@ -76,23 +76,30 @@ is the correction the pre-study already recorded (section 7).
 
 Nothing else moved: the corpus holdout, every other planted case, and weight sensitivity (no weight
 perturbation moves a verdict) read as the pre-study recorded them. Every red-team attempt labelled GAME reads
-NULL or inadmissible; the three labelled KNOWN-OPEN (below) read IMPROVES.
+NULL or inadmissible.
 
 ## Changing it
 
 A verdict that moves is a diff to `expected.json`: `calibrate.py --record` prints each one. Say why in
 the commit. A new evasion found is a new case in `planted/redteam/` with its counter.
 
-### Known limit: interleaved effect-free statements
+### Interleaved junk: closed by data flow (R9-EG-A2)
 
-Effect-free statements interleaved in every clone split its windows, and the score reads that as a
-dedupe (IMPROVES, admissible; +14.15 for the three below, the figure an uncharged `pass` gave). C3 drops a statement only if it is on
-its enumerated list (`counters.is_noop`), so the class stays open: `assert True`, `_ = None` and
-`(_ := 0)` are not on it and each reads IMPROVES (`rt_04h`, `rt_04i`, `rt_04j`, marked KNOWN-OPEN and
-expected IMPROVES, so a class fix flips them and the check asks for the re-record). Extending the list
-was refused by tvofi (2026-10-02): a sixth spelling beats a fifth widening. A reviewer reads a
-duplication-driven IMPROVES against the diff, as a report and not as evidence. The class fix, a clone
-comparison that tolerates interleaved statements or drops dead ones by data flow, is owed to R9-EG-A2.
+Effect-free statements interleaved in every clone split its windows, and the score read that as a
+dedupe (+14.15 for `assert True`, `_ = None` and `(_ := 0)`, once KNOWN-OPEN). C3 used to drop a
+statement only if its spelling was on a list, and tvofi refused widening the list (2026-10-02): a
+sixth spelling beats a fifth widening. C3 now drops a statement that is **dead by data flow**
+(`counters.inert_statements`): every node of its expressions is in an effect-free grammar
+(`_PURE_NODES`, calls only of a pure builtin or a lambda), every name it binds is read nowhere in its
+function, and an `assert`, `if`, `while` or `for` whose test folds to a constant is judged on the branch
+that runs. The three KNOWN-OPEN attempts are GAMEs again, and 04k (a dead store to a fresh name), 04l
+(a called lambda) and 04m (an empty `try`), which no spelling list carried, join them; all read NULL,
+and `ARCHSCORE_ABLATE=C3` re-opens them.
+
+Still open, and out of the class: junk **with an effect** (a call of anything not a pure builtin),
+which is logic in the diff a reviewer reads. A gap tolerance in the clone window would close it too,
+but it redefines the window `tests/structure.py` shares with the score (59 copies read 72 on main at
+`16551007`), so it is not here.
 
 Known limits, so a reader does not credit the score with more than it does:
 
