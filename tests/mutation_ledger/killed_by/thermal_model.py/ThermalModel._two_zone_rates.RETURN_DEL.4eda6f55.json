@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._two_zone_rates RETURN_DEL 4eda6f55",
+  "killed_by": "tests/features.py",
+  "old": "        return dT_upper, dT_lower, dT_slab",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. RETURN_DEL (`pass`) took tests/features.py from rc=1 failed=2 to rc=1 failed=0, newly failing ['TypeError: cannot unpack non-iterable NoneType object']."
+}
