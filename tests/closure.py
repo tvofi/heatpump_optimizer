@@ -532,6 +532,7 @@ INERT_EXCEPT = (
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
     "blueprints/automation/notify_on_manual_plan.yaml",
+    "blueprints/automation/notifications.yaml",
     ".gitignore",
     # #995, the .gitignore story one lane later: the live-header harness check
     # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
@@ -1677,6 +1678,9 @@ def no_copies() -> int:
     return 0
 
 
+# check()'s last line on rc 0; closures-autofix reads it back from check.txt.
+_CHECK_OK_LINE = "closure: committed closures cover every file this run touched"
+
 def check(in_dir: Path, partial: bool = False) -> int:
     """Fail if the committed closures MISS anything a fresh run touched.
 
@@ -1846,7 +1850,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("and commit tests/closures.json. A full derive_closures.sh off")
         print("Linux replaces node-lane recordings; --single cannot shrink them.")
         return 1
-    print("closure: committed closures cover every file this run touched")
+    print(_CHECK_OK_LINE)
     return 0
 
 
@@ -1915,6 +1919,11 @@ _AUTOFIX_STATUS_REMEDY = {
         "this job was going to repair is real and still unrepaired.\n"
         "Fix the failing script first; the closures job re-records on the next\n"
         "push and this repair then happens on its own.\n",
+    "skip-manual-repair-owed":
+        "The closures job's check failed, and not on UNDER-SCOPED, the only\n"
+        "failure this job repairs. Repair it by hand from the closures log:\n"
+        "INERT READS: --single the script it names, commit tests/closures.json;\n"
+        "PHANTOM: python3 tests/closure.py prune.\n",
     "skip-classifier-disagrees":
         "The closures job (this PR's tests/closure.py) printed UNDER-SCOPED;\n"
         "the base's copy this job is pinned to stops before that comparison\n"
@@ -1980,9 +1989,9 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
-    skip-classifier-disagrees, skip-failed-recording, skip-merge-failed,
-    skip-still-fails, skip-unchanged. Restores the previous closures.json
-    text unless the status is changed.
+    skip-classifier-disagrees, skip-failed-recording, skip-manual-repair-owed,
+    skip-merge-failed, skip-still-fails, skip-unchanged. Restores the
+    previous closures.json text unless the status is changed.
     """
     in_dir = Path(in_dir)
     check_txt = in_dir / "check.txt"  # before `in_dir` may move to `kept`
@@ -2030,13 +2039,17 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-clean"
     if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
         # This job runs the BASE's closure.py (D11-s1-03); the closures job
-        # ran the PR's and tee'd it to check.txt. Where that one printed
-        # UNDER-SCOPED and this copy stopped earlier, the quiet answer is
-        # false (#1846). Read as data: it can only redden this job.
-        disagree = check_txt.is_file() and any(
-            l.startswith("UNDER-SCOPED: ")
-            for l in check_txt.read_text(errors="replace").splitlines())
-        return "skip-classifier-disagrees" if disagree else "skip-not-under-scoped"
+        # ran the PR's and tee'd it to check.txt. Quiet is true only where
+        # that check PASSED (its success line). UNDER-SCOPED there is #1846;
+        # any other failure (INERT READS, PHANTOM...) is not the bot's to
+        # repair, which makes it a human's, not nothing (#1864). Read as
+        # data: it can only redden this job.
+        lines = check_txt.read_text(errors="replace").splitlines() \
+            if check_txt.is_file() else None
+        if lines is None or _CHECK_OK_LINE in lines:
+            return "skip-not-under-scoped"
+        under = any(l.startswith("UNDER-SCOPED: ") for l in lines)
+        return "skip-classifier-disagrees" if under else "skip-manual-repair-owed"
     # Only now, because `closures-autofix` runs on ANY `closures` failure and
     # a failed recording is common to several of them. Reddening it before the
     # test above would fire on every no-copies, NOT-A-FILE or INERT failure
