@@ -172,26 +172,35 @@ def printed_from(stdout: str) -> dict[str, str]:
     return found
 
 
-# The hang bound is CPU seconds, not wall seconds (F10.11). The harness that
-# runs longest, tools/audit/round4/D7/sysid_estimator_frontier.py, costs about
-# 100 CPU-s on one core; a wall-clock bound of 240 s sat at 2.4x that, and the
-# mutation lane's parallel pool (four trees, four drivers) stretched it past
-# 240 s of wall without it doing any more work: the TimeoutExpired crashed this
-# script and "killed" the comment-only null control, refusing the table on #1808
-# twice. A CPU limit does not move with machine load, and keeps hang detection
-# for a spinning harness at the same 240 s. A harness blocked on I/O spends no
-# CPU, so the wall cap below is what bounds that one, sized for the slowest
-# runner under the pool, below mutation_table.py's 1200 s per-driver timeout.
-CPU_LIMIT_S = 240
+# The hang bound is CPU seconds, not wall seconds (F10.11): the mutation lane's
+# parallel pool stretched the frontier harness past a 240 s WALL bound without it
+# doing any more work, and the TimeoutExpired "killed" the comment-only null
+# control on #1808 twice. A harness blocked on I/O spends no CPU, so the wall cap
+# bounds that one, below mutation_table.py's 1200 s per-driver timeout.
+#
+# The CPU bound is a hang detector, so it sits far above the slowest harness's
+# ordinary cost ON THE CI RUNNER UNDER THE POOL, not on a dev box. F10.11 sized it
+# at 240 s against a dev-box ~100-143 CPU-s; tools/audit/round4/D7/
+# sysid_estimator_frontier.py had grown to that from ~92 dev-box CPU-s at
+# fab17619 (#1718's merge) -- its cost is production sysid's, the frontier only
+# drives it -- and a CPU second is not load-independent on CI: the runner's
+# vCPUs are SMT siblings, so a child sharing a core with the pool bills more CPU
+# for the same work. With
+# the BLAS pins below already in place the frontier was SIGXCPU'd on the null
+# control (mutation-ledger, run 37108891698) after its baseline passed. The
+# bound is now 800 s -- under the wall cap, so a spinning child still dies first
+# -- and CPU_HEADROOM reds, with the figure, a harness whose ordinary work costs
+# more than half of it, before the kernel kills one that prints nothing.
+CPU_LIMIT_S = 800
 WALL_LIMIT_S = 900
 CPU_HEADROOM = 0.5
 
 
 # RLIMIT_CPU sums the CPU of every thread, so a BLAS pool of N threads spends the
-# limit N times as fast as the work it does: the frontier harness passed in 260 s
-# of wall on one runner and was SIGXCPU'd at 293 s on another (mutation-nightly,
-# run 37050037132). Every child runs single-threaded, here, whatever its caller's
-# env or the workflow step says, so one place owns the pin.
+# limit N times as fast as the work it does (#1872, after mutation-nightly run
+# 37050037132 SIGXCPU'd the frontier). Every child runs single-threaded, here,
+# whatever its caller's env or the workflow step says, so one place owns the pin.
+# The pin alone did not hold the 240 s bound: see CPU_LIMIT_S above.
 BLAS_THREAD_PINS = {
     "OMP_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
