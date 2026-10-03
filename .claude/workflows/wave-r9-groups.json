@@ -6493,6 +6493,98 @@
         "note": "tvofi asked 2026-10-03 whether arch_score's ~30 min in coverage is expected. Measured: tests/arch_score.py is 23.8 min median inside the coverage job (2.5x its 9.4 min untraced in fast), 48% of coverage's script time on main pushes; it executes no package code, so tracing records nothing. Options B-H in the report; D (structure.py ast walk) is high-risk because it defines the ratchet."
       },
       "brief": "Round-9 CI-efficiency PR F10.14. Take tests/arch_score.py and tests/arch_score_head.py out of coverage tracing in tools/audit/w5-partition/coverage_tree.sh (they still run untraced in the fast job via tests/run.sh), proving coverage.json byte-identical before and after on the same head and the coverage ratchet (tests/coverage_ratchet.py) green; first check whether coverage_tree.sh is in a measured closure or INERT. Also evaluate, measure and either implement or reject with reasons option H from the report (coverage cache hit rate keyed on the PR base). Fixer options rule applies: list options A-H and why each was taken or rejected."
+    },
+    {
+      "group": "R9-F10.15",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "specified CI lane changes, each with a byte-identity oracle",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "tests/run.sh, tests/derive_closures.sh, tests.yml and tests/mutation_table.py are @tvofi code-owned gate files (force FULL); merges on tvofi approval at head under mandate 5951564627",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.14"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-15",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base after every after-edge merged",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "this roster; origin/wip-sync/orchestrator-scratch:orch/seat-ci-placement/REPORT.md",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "Measured by the CI-placement sweep seat 2026-10-03: push critical path coverage 49.5 > fast 42.9 > closures 29.7 min; estimated savings (a) ~9.8 min after F10.14, (b) ~10.4 min, (c) ~13 min per full run. Zero-package-code scripts cost ~36 s and are not worth moving."
+      },
+      "brief": "Round-9 CI-efficiency PR F10.15 (CI parallelism), from tvofi's question of 2026-10-03 whether scripts sit needlessly in coverage, closures, mutation or fast. Three changes in critical-path order, each with its own proof: (a) coverage in two lanes (features alone, the rest) in tools/audit/w5-partition/coverage_tree.sh, proof coverage.json byte-identical to a serial run of the same commit and tests/coverage_ratchet.py unchanged, twice; (b) the fast gate's lanes never run in CI (every sampled log ends with one lane): first add a CI probe printing nproc with and without OMP_NUM_THREADS to confirm the inferred cause in tests/run.sh JOBS against the OMP_NUM_THREADS pin in .github/workflows/tests.yml, then fix at the cause (an explicit GATE_JOBS or nproc ignoring the pin), proof identical per-script results serial vs lanes on two runs; (c) closures recording in three balanced lanes in tests/derive_closures.sh, proof tests/closures.json identical to the committed table on two consecutive runs and tests/closure.py reporting no UNDER-SCOPED. Closures stay measured, never hand-edited; the forced FULL on main stays. Fixer options rule applies."
+    },
+    {
+      "group": "R9-F10.16",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "mutation driver selection with a ledger-replay oracle",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "tests/run.sh, tests/derive_closures.sh, tests.yml and tests/mutation_table.py are @tvofi code-owned gate files (force FULL); merges on tvofi approval at head under mandate 5951564627",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-F10.13"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-16",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base after every after-edge merged",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "this roster; origin/wip-sync/orchestrator-scratch:orch/seat-ci-placement/REPORT.md",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "Measured by the CI-placement sweep seat 2026-10-03; savings 25-45 min wall per nightly/ledger job for (a), 3-6 min per drawn PR table for (b), 30-45 runner-min a night for (c), ~40 for (d)."
+      },
+      "brief": "Round-9 CI-efficiency PR F10.16 (mutation driver hygiene), same origin as F10.15. Evaluate and implement or reject with measured reasons: (a) remove stress and harness_headers from the nightly/ledger driver set in tests/mutation_table.py (1 ledger kill each of 595 rows; stress runs exclusive for ~16 min per run; harness_headers flaked a ledger job with SIGXCPU) — proof: replay their killed_by rows with the remaining drivers and show another driver kills each, otherwise it is an unpinned-count raise needing tvofi; (b) make env_drift a lazy driver in the PR mutation table (190-364 s eager per table for 4 kills) — proof identical table output on a diff killed via env_drift and one not; (c) the nightly slow job re-runs the whole suite but only rolling.py and replay.py are unique to it; (d) nightly and ledger pay the same ~35 min baseline at one cron in .github/workflows/tests.yml — share it or stagger. Option (e), skipping a driver on a mutant line it never executes, is recorded as deferred: high risk, needs a 595-row replay. Coordinate with PR #1878 (harness_headers EXCLUSIVE and per-child CPU bounds), which lands first."
     }
   ]
 }
