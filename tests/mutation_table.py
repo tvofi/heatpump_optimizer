@@ -129,6 +129,9 @@ _ISSUE_BULLETS = re.compile(r"^[A-Z][A-Z ]*ISSUES:\n((?:[ \t]+- .*(?:\n|$))+)",
 # multi-line assert message all end differently, so the header is the key.
 _TRACEBACK = "Traceback (most recent call last):"
 TIMEOUT_RC = 124
+# A driver's per-run timeout is this multiple of its own measured seconds,
+# never under --timeout (`driver_timeout`, R9-F10.12).
+TIMEOUT_SCALE = 3
 
 # Candidate drivers for `--scripts` are the GATE's recorded set, not a
 # hand-kept shortlist (#1211, D3-01). `default_scripts()` derives the list
@@ -1733,6 +1736,7 @@ class ScriptRun(NamedTuple):
     seconds: float
     stdout: str = ""
     stderr: str = ""
+    timed_out: bool = False
 
 
 def failed_checks(run: ScriptRun) -> list[str]:
@@ -1798,9 +1802,10 @@ def run_script(script: str, cwd: Path, timeout: int,
             env={**os.environ, "PYTHONPATH": "tests/hastub", **(extra_env or {})},
         )
     except subprocess.TimeoutExpired:
-        # A mutant that hangs its driver is noticed, not silently survived.
-        return ScriptRun(TIMEOUT_RC, 1, time.monotonic() - started, "",
-                         f"{script}: timed out after {timeout}s")
+        # Inconclusive, never a kill: a hang and a merely slower driver look
+        # the same from here (R9-F10.12). LazyBaselines.killed says which.
+        return ScriptRun(TIMEOUT_RC, 0, time.monotonic() - started, "",
+                         f"{script}: timed out after {timeout}s", True)
     run = ScriptRun(proc.returncode, 0, time.monotonic() - started,
                     proc.stdout, proc.stderr)
     return run._replace(failed=failing_count(run))
@@ -1816,8 +1821,9 @@ def failing_count(run: ScriptRun) -> int:
     one, as a nested control may print its own earlier), the sum of the
     summary counts (`_SUMMARY_FAILS`; env_drift.py prints up to three), the
     `ISSUES:` bullets, and only then the `FAIL <name>` lines -- plus one for an
-    uncaught exception, an assertion the driver never finished, and one for a
-    timeout. A red run that names none of these is a refusal, not a verdict.
+    uncaught exception, an assertion the driver never finished. A timeout
+    names none: it is no kill (R9-F10.12). A red run that names none of these
+    is a refusal, not a verdict.
     """
     if run.rc == 0:
         return 0
@@ -1833,9 +1839,20 @@ def failing_count(run: ScriptRun) -> int:
         n = sum(bullets)
     else:
         n = len(_CHECK_FAIL.findall(out))
-    crashed = _TRACEBACK in run.stderr
-    timed_out = run.rc == TIMEOUT_RC and not out
-    return n + int(crashed) + int(timed_out)
+    return n + int(_TRACEBACK in run.stderr)
+
+
+def driver_timeout(floor: int, seconds: float) -> int:
+    """One driver run's timeout: TIMEOUT_SCALE times that driver's own
+    measured seconds, never under the fixed `floor` (--timeout).
+
+    A fixed limit turned a driver's growth into kills: tests/features.py's
+    nightly baseline went from 95 s to 833 s against a 1200 s limit, and a
+    mutant that only slowed it past the limit read as killed and was pinned
+    under --drain (R9-F10.12). Scaled, growth moves the limit with it, and a
+    hang still ends.
+    """
+    return max(floor, math.ceil(TIMEOUT_SCALE * seconds))
 
 
 def killed(script: str, run: ScriptRun, baseline: ScriptRun) -> bool:
@@ -1939,6 +1956,9 @@ def null_control_verdict(runs: dict[str, ScriptRun],
     missing = sorted(set(baseline) - set(runs))
     if missing:
         return "not run under " + ", ".join(missing)
+    slow = [s for s in sorted(baseline) if runs[s].timed_out]
+    if slow:
+        return "timed out under " + ", ".join(slow)
     killers = [
         f"{s} ({'; '.join(failed_checks(runs[s])) or 'no FAIL line'})"
         for s in sorted(baseline) if killed(s, runs[s], baseline[s])
@@ -2140,11 +2160,14 @@ def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
 
 
 def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
-               drive, settle=None) -> list[tuple[dict, str]]:
+               drive, settle=None, deadline: float | None = None,
+               clock=time.monotonic) -> list[tuple[dict, str]]:
     """Each mutant's verdict, its drivers shared over `workers` trees.
 
     `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
-    and says whether it killed it. A worker sweeps the next unstarted mutant,
+    and says whether it killed it -- or None when the run timed out, which is
+    neither: a mutant no driver killed that timed one out is SKIP-TIMED-OUT,
+    never LIVES. A worker sweeps the next unstarted mutant,
     its shared drivers in the order given (`driver_order`), stopping at the
     first kill. Once no mutant is left unstarted it helps instead: it takes the
     costliest not-yet-started shared driver of a mutant still undecided, since
@@ -2157,19 +2180,46 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     `settle(script)`, when given, runs once before an EXCLUSIVE driver's first
     mutant, and only if one reaches it: main() defers that driver's baseline
     and null control to it.
+
+    `deadline`, a `clock()` reading, is the budget (R9-F10.12). A mutant is
+    started only if its every driver at `cost` -- the sweep it costs if it
+    survives -- plus the EXCLUSIVE runs still owed by started mutants no driver
+    has killed, ends by then. The first that does not fit closes the pool:
+    it and every later one are SKIP-BUDGET, never started, so what ran is the
+    shuffled pool's prefix and not a sample biased to cheap drivers. A started
+    mutant always finishes, each run bounded by its driver's timeout.
     """
     lock = threading.Lock()
     todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
-    running = [0] * len(pool)
+    owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
+            for m in pool]
     verdict: list[str | None] = [None] * len(pool)
-    unstarted = [i for i in range(len(pool)) if todo[i]]
+    timed: list[list[str]] = [[] for _ in pool]
+    queue = list(range(len(pool)))
+    owed = [0.0]
     own: list[int | None] = [None] * workers
+
+    def admit() -> int | None:
+        """The next mutant to start, under `lock`; None once none is left."""
+        while queue:
+            i = queue[0]
+            need = sum(cost.get(s, 0.0) for s in todo[i]) + owes[i]
+            if deadline is not None and clock() + need + owed[0] > deadline:
+                for j in queue:
+                    verdict[j] = "SKIP-BUDGET"
+                queue.clear()
+                return None
+            queue.pop(0)
+            owed[0] += owes[i]
+            if todo[i]:
+                return i
+        return None
 
     def take(w: int) -> tuple[int, str] | None:
         with lock:
             i = own[w]
             if i is None or verdict[i] is not None or not todo[i]:
-                i = own[w] = unstarted.pop(0) if unstarted else None
+                i = own[w] = admit()
             if i is not None:
                 script = todo[i].pop(0)
             else:
@@ -2180,17 +2230,21 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 i, script = max(((j, s) for j in open_ for s in todo[j]),
                                 key=lambda js: cost.get(js[1], 0.0))
                 todo[i].remove(script)
-            running[i] += 1
             return i, script
+
+    def judge(i: int, script: str, hit: bool | None) -> None:
+        if hit is None:
+            timed[i].append(script)
+        elif verdict[i] is None and hit:
+            verdict[i] = f"killed by {script}"
+            owed[0] -= owes[i]
 
     def work(w: int) -> None:
         while (task := take(w)) is not None:
             i, script = task
             hit = drive(w, pool[i], script)
             with lock:
-                running[i] -= 1
-                if verdict[i] is None and hit:
-                    verdict[i] = f"killed by {script}"
+                judge(i, script, hit)
 
     _share(workers, work)
     settled: set[str] = set()
@@ -2199,9 +2253,28 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             if verdict[i] is None and settle and script not in settled:
                 settled.add(script)
                 settle(script)
-            if verdict[i] is None and drive(0, mut, script):
-                verdict[i] = f"killed by {script}"
-    return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
+            if verdict[i] is None:
+                judge(i, script, drive(0, mut, script))
+    return [(m, v or (f"SKIP-TIMED-OUT in {', '.join(t)}" if t else "LIVES"))
+            for m, v, t in zip(pool, verdict, timed)]
+
+
+def budget_refusal(results: list[tuple[dict, str]]) -> int | None:
+    """Name every mutant the budget left unstarted; 1 when none was evaluated.
+
+    A run whose budget admitted no mutant measured nothing, and PASSED would
+    read as a measurement of nothing (R9-F10.12): it is refused instead. One
+    that evaluated some reports its cap over those, named as partial.
+    """
+    left = [m for m, v in results if v == "SKIP-BUDGET"]
+    for m in left:
+        print(f"  NOT RUN {triage_key(m)} -- not started: it would have "
+              f"overrun --budget-minutes")
+    if left and all(v.startswith("SKIP") for _, v in results):
+        print(f"\nMUTATION TABLE REFUSED -- --budget-minutes admitted none of "
+              f"{len(results)} mutant(s); nothing was measured")
+        return 1
+    return None
 
 
 def deferred_drivers(needed: list[str], scope: str) -> list[str]:
@@ -2262,7 +2335,12 @@ class LazyBaselines:
         self._locks: dict[str, threading.Lock] = {}
         self.stop: int | None = None
 
-    def killed(self, worker: int, script: str, run: "ScriptRun") -> bool:
+    def killed(self, worker: int, script: str,
+               run: "ScriptRun") -> bool | None:
+        """Whether `run` killed its mutant; None when it timed out, which
+        `drive_pool` reads as inconclusive rather than either verdict."""
+        if run.timed_out:
+            return None
         if run.rc == 0 or self.stop is not None:
             return False
         with self._guard:
@@ -2342,7 +2420,15 @@ def main() -> int:
     ap.add_argument("--max", type=int, default=8)
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--seed", type=int, default=20260911)
-    ap.add_argument("--timeout", type=int, default=1200)
+    ap.add_argument("--timeout", type=int, default=1200,
+                    help="the floor of every driver run's timeout, which "
+                         "scales from that driver's own seconds "
+                         "(driver_timeout)")
+    ap.add_argument("--budget-minutes", type=float, metavar="M",
+                    help="the run's wall clock from start: no mutant is "
+                         "started that would end past it (drive_pool); the "
+                         "rest are named NOT RUN and the cap is over the "
+                         "evaluated ones")
     ap.add_argument("--record", action="store_true")
     ap.add_argument("--reason", default="",
                     help="with --record: echoed for the commit message; the "
@@ -2377,6 +2463,11 @@ def main() -> int:
         print("--drain drives the whole package's stock: use it with --scope "
               "full and without --pin-killed")
         return 2
+    if args.record and args.budget_minutes is not None:
+        print("--record sets a cap from a whole pool: not with --budget-minutes")
+        return 2
+    deadline = (None if args.budget_minutes is None
+                else time.monotonic() + 60 * args.budget_minutes)
     if args.carry_rows:
         carried, clash = carry_rows(*args.carry_rows)
         if clash:
@@ -2585,9 +2676,16 @@ def main() -> int:
         trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
         made.extend(trees)
 
+        # A driver's timeout scales from its own seconds (R9-F10.12): the
+        # recorded ones until its baseline here measures it.
+        own_s = recorded_seconds()
+
         def run_baseline(w: int, s: str) -> ScriptRun:
             extra_args, extra_env = drive_spec(s, ref)
-            run = run_script(s, trees[w], args.timeout, extra_args, extra_env)
+            limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+            run = run_script(s, trees[w], limit, extra_args, extra_env)
+            if not run.timed_out:
+                own_s[s] = run.seconds
             # One write per line: the workers print concurrently.
             print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
                   f"{run.seconds:.0f}s\n", end="")
@@ -2596,8 +2694,8 @@ def main() -> int:
         def run_null(w: int, s: str) -> ScriptRun:
             with null_edit(trees[w], null):
                 extra_args, extra_env = drive_spec(s, ref)
-                return run_script(s, trees[w], args.timeout, extra_args,
-                                  extra_env)
+                limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+                return run_script(s, trees[w], limit, extra_args, extra_env)
 
         deferred = deferred_drivers(needed, args.scope)
         for s in deferred:
@@ -2634,6 +2732,7 @@ def main() -> int:
                 print(why or f"  null control {triage_key(null)} survived {s}")
             if stop is None:
                 baseline[s] = base
+                seconds[s] = base.seconds
             return stop
 
         def settle(s: str) -> None:
@@ -2643,11 +2742,16 @@ def main() -> int:
                 raise Deferred(stop)
 
         verdicts = LazyBaselines(baseline, settle_on)
-        seconds = {**{s: t for s, t in recorded_seconds().items() if s in lazy},
-                   **{s: r.seconds for s, r in baseline.items()}}
+        # The baselines' seconds, and the recorded ones for a lazy or deferred
+        # driver, which has none yet.
+        seconds = dict(own_s)
         for mut in pool:
             mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
                                           budgets.get("killed_by", {}))
+        for s in lazy + deferred:
+            # Until it settles, its first red run also pays its baseline and
+            # null control: the budget's estimate carries all three.
+            seconds[s] = 3 * seconds.get(s, 0.0)
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
@@ -2677,10 +2781,13 @@ def main() -> int:
             path.write_text(mutated[id(mut)])
             try:
                 extra_args, extra_env = drive_spec(s, ref)
-                run = run_script(s, trees[w], args.timeout, extra_args,
-                                 extra_env)
+                limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+                run = run_script(s, trees[w], limit, extra_args, extra_env)
             finally:
                 path.write_text(original)
+            if not run.timed_out:
+                # The budget's cost estimate: the dearest run seen.
+                seconds[s] = max(seconds.get(s, 0.0), run.seconds)
             # After the restore: a lazy driver's baseline runs on this tree.
             hit = verdicts.killed(w, s, run)
             if hit:
@@ -2691,7 +2798,7 @@ def main() -> int:
             results += drive_pool(
                 [m for m in pool if id(m) in mutated], jobs, seconds, drive,
                 settle=lambda s: (s in deferred and verdicts.stop is None
-                                  and settle(s)))
+                                  and settle(s)), deadline=deadline)
         except Deferred as stop:
             return stop.rc
         if verdicts.stop is not None:
@@ -2711,13 +2818,17 @@ def main() -> int:
                        capture_output=True)
         shutil.rmtree(work, ignore_errors=True)
 
+    verdict = budget_refusal(results)
+    if verdict is not None:
+        return verdict
     if args.drain:
         head = _rev(ROOT, "HEAD") or ""
         entries, report, _ = pin_results(results, kill_runs, baseline, sites,
                                          head, how="--drain")
         print("\n".join(report))
-        survivors = [triage_key(m) for m, _ in results
-                     if m["anchor"] not in entries]
+        # A site the budget never started stays untouched for a later night.
+        survivors = [triage_key(m) for m, v in results
+                     if m["anchor"] not in entries and v != "SKIP-BUDGET"]
         status = write_drain(Path(args.drain), entries, head, survivors)
         print(f"DRAIN: {status}, {len(entries)} anchor(s) to record, "
               f"{len(survivors)} site(s) left for a human verdict")
@@ -2793,7 +2904,10 @@ def main() -> int:
               "equivalent under survivor_triage in tests/mutation_budgets.json "
               "with the reason that says so.")
         return 1
-    print("\nMUTATION TABLE PASSED")
+    unrun = sum(1 for _, v in results if v == "SKIP-BUDGET")
+    print("\nMUTATION TABLE PASSED" + (
+        f" (partial: {evaluated} evaluated, {unrun} not started for the "
+        f"budget)" if unrun else ""))
     return 0
 
 

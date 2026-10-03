@@ -29305,6 +29305,19 @@ R.check(
     and 'v != "SKIP-BUDGET"' in _MUT_MAIN_DEFER,
     f"out={_MUT_BR_OUT!r}",
 )
+# Wired, against the YAML: each caller passes a budget under its timeout, the
+# pull request's pin step only to a base program that has the flag.
+_MUT_BW_MISSING = [(j, w) for j, w in (
+    ("mutation-nightly", "--budget-minutes 270"),
+    ("mutation-ledger", "--budget-minutes 270"),
+    ("mutation", "&& budget=(--budget-minutes 35)"),
+    ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+) if w not in _workflow_job(_TESTS_YML, j)]
+R.check(
+    "mutation-nightly, mutation-ledger and the pin step each pass a budget",
+    not _MUT_BW_MISSING,
+    f"missing={_MUT_BW_MISSING!r}",
+)
 
 
 # `--scope changed` draws only from lines the diff adds or modifies (tvofi's
