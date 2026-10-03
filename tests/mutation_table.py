@@ -2069,7 +2069,7 @@ def _share(workers: int, work) -> None:
 # was SIGXCPU'd at 240 on the null control inside this pool (mutation-ledger,
 # run 37108891698) -- the same work billed at least 2.48x. Alone, it is billed
 # what a pull request's serial run.sh bills it.
-EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")
+EXCLUSIVE = ("tests/stress.py",)
 
 # The gate lease (`tests/gate_lock.py`, gate-scoping.md) is stress.py's alone:
 # it serialises the one driver that times solves across seats. Off CI an
