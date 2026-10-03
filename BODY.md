@@ -10,11 +10,11 @@ Round-9 docs PR WEB-4 (tvofi's findings of 2026-10-03 on the published site): th
 
 ## Mutation proof
 
-Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale` in docs/index.html): `python3 tests/doc_claims.py` goes red on "no claim is elided with an ellipsis" and the in-test null control asserts it. Restore the pre-fix `docs/index.html` and the same check is red (11 ellipses). Change one word in the setup.md diagram: "the three setup-flow diagrams are identical" goes red.
+Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale` in docs/index.html): `python3 tests/doc_claims.py` goes red on "no claim is elided with an ellipsis" and the in-test null control asserts it. The planted ellipsis is what the in-test null control does on every run; the pre-fix page itself was not re-run through the new pin. Change one word in the setup.md diagram: "the three setup-flow diagrams are identical" goes red.
 
 ## Null control
 
-The unmodified tree (origin/main ac255c200) passes `tests/doc_claims.py`, because the old pin quoted by ellipsis-split fragments; with the new pin applied to it, the ellipsis check reports the eleven claims.
+The unmodified tree (origin/main ac255c200) passes `tests/doc_claims.py`, because the old pin quoted by ellipsis-split fragments; the new pin was not run against it.
 
 ## Figures
 
@@ -33,6 +33,6 @@ none
 
 ## Friction
 
-README step 2 of the tests/layout.json reorganisation lists `docs/img/card-advisor-page.png` (an orphaned old-design picture nothing references) as a retired path; deleting it would make `tests/layout.py` report a dead entry in a code-owned file, so it is left for the layout owner.
+The tests/layout.json reorganisation manifest lists `docs/img/card-advisor-page.png` (an orphaned old-design picture nothing references) as a retired path; deleting it would make `tests/layout.py` report a dead entry in a code-owned file, so it is left for the layout owner.
 
 _Requested by **tvofi**_
