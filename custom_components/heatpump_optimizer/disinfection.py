@@ -61,6 +61,7 @@ from .const import (
 )
 from .freq_control import FREQ_MODE_CONTROL
 from .inputs import UNBOUNDED, parse_bool
+from .payload import DisinfectionView
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -261,7 +262,7 @@ class DisinfectionSwitch:
             )
         self.observed = self._readings.get(self.entity_id or "", (None, None))[0]
 
-    def view(self) -> dict[str, Any]:
+    def view(self) -> DisinfectionView:
         """The published attributes: nothing at all when no switch is involved."""
         target = self.entity_id or next(iter(self.owned), None)
         if target is None:

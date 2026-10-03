@@ -29,6 +29,7 @@ from .accuracy import utc_elapsed_seconds, utc_shift
 from .const import DOMAIN
 from .drift import stored_instant
 from .entity import has_hot_water
+from .payload import CurrentAction
 
 _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
@@ -46,7 +47,7 @@ class _BoostOpt(Protocol):
 class _BoostCoord(Protocol):
     hass: Any
     entry: Any
-    _current_action: dict[str, Any]
+    _current_action: CurrentAction
     _thermal_model: Any
     _ecl110_displace_max: float
     _opt_config: _BoostOpt
@@ -102,10 +103,10 @@ _STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
 # (``no_prices``, ``solve_failed``, busy) also kept the boost: after a
 # cancel the pump ran at nameplate power and maximum displace until the
 # plan-stale gate. The same weak-map discipline as ``_STATES``.
-_PLAN_BASES: WeakKeyDictionary[Any, dict[str, Any]] = WeakKeyDictionary()
+_PLAN_BASES: WeakKeyDictionary[Any, CurrentAction] = WeakKeyDictionary()
 
 
-def adopt_plan(coord: _BoostCoord, action: dict[str, Any]) -> None:
+def adopt_plan(coord: _BoostCoord, action: CurrentAction) -> None:
     """Adopt ``action`` as the plan base the cycle overlays onto (#1752).
 
     Every whole-dict writer of ``_current_action`` -- the solve, the fixed
@@ -128,7 +129,7 @@ def held_for(coord: Any) -> BoostState:
 
 
 def overlay(
-    action: dict[str, Any],
+    action: CurrentAction,
     held: BoostState,
     *,
     max_power: float,
@@ -170,7 +171,8 @@ def apply(coord: _BoostCoord) -> None:
         # No tank to heat: a DHW boost set or restored anyway is dropped here,
         # the one place it could reach the action (#1527).
         held.until.pop(CHANNEL_DHW, None)
-    action = dict(_PLAN_BASES.get(coord) or {})
+    base = _PLAN_BASES.get(coord)
+    action: CurrentAction = {**base} if base else {}
     ctx: Any = getattr(coord, "_ctx", coord)
     overlay(
         action,

@@ -149,7 +149,7 @@ def _manual(data: Payload) -> Detected:
                 EVENT_MANUAL_PLAN_RELEASED, str(expires), {
                     "channel": channel,
                     "steps": steps,
-                    "reason": (rows or [{}])[0].get("reason"),
+                    "reason": rows[0].get("reason") if rows else None,
                     "expires_at": expires,
                 })
     return found

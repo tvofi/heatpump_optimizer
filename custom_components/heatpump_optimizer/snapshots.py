@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -83,7 +84,7 @@ class SnapshotRing:
         self,
         now: datetime,
         learners: dict[str, dict[str, Any]],
-        accuracy: dict[str, Any],
+        accuracy: Mapping[str, object],
         healthy: bool,
     ) -> None:
         # Deep-copied via the same JSON round trip the real Store applies
