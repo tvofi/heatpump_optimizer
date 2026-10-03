@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_padded_nonneg CMP_BOUND 185d0eef",
-  "old": "    if series.size < n_steps:",
-  "reason": "Equivalent for 1-D input, which every caller passes (the external-heat, price-sigma and margin series, each a per-step vector) (CMP_BOUND, `<` -> `<=`): the arms differ only when the series already has n_steps entries, where the mutant concatenates np.zeros(0) -- the same float values, shape and dtype -- before the same [:n_steps] slice. For 2-D input with size == n_steps the mutant raises in np.concatenate and is not equivalent; no caller passes one. Measured by tools/audit/round9/EG/a2/padded_equiv.py (`PYTHONPATH=tests/hastub python3 tools/audit/round9/EG/a2/padded_equiv.py`), which builds the mutant from the function's own source: 15120 1-D inputs (sizes 0..n+3 for n 1..96, three draws each), 288 of them ties, 0 differing; its tie-only control differs on 288 of 288 ties; the 2-D tie raises in the mutant. Driven through tests/features.py on an export of the branch, 2026-10-03, the mutant also survived.",
-  "verdict": "equivalent"
-}

@@ -117,10 +117,8 @@ _LOGGER = logging.getLogger(__name__)
 def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
     """A per-step series clipped at zero and fitted to the horizon: cut to
     ``n_steps``, or padded with zeros when the forecast is shorter."""
-    series = np.clip(np.asarray(values, dtype=float), 0.0, None)
-    if series.size < n_steps:
-        series = np.concatenate([series, np.zeros(n_steps - series.size)])
-    return series[:n_steps]
+    head = np.clip(np.asarray(values, dtype=float), 0.0, None)[:n_steps]
+    return np.pad(head, (0, n_steps - head.size))
 
 
 def _holiday_flags_for(
