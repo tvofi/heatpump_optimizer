@@ -4766,6 +4766,13 @@ R.check(
 _p11_c = _p11.floor_check(_p11.floor_reach(_p11.floor_control_trees()),
                           _p11_snap["answers"])
 _p11_c_bad = _p11.floor_control_failures(_p11_c)
+# A module in a subpackage is production too: the reader must reach it.
+with tempfile.TemporaryDirectory() as _p11_tmp:
+    (Path(_p11_tmp) / "sub").mkdir()
+    (Path(_p11_tmp) / "sub" / "m.py").write_text("from homeassistant.helpers.storage "
+                                                 "import UnsupportedStorageVersionError\n")
+    if "sub/m.py" not in _p11.floor_trees(Path(_p11_tmp)):
+        _p11_c_bad.append("floor_trees does not read a subpackage")
 R.check(
     "and the P11 floor arm names each planted defect, passes each guarded or "
     "typing-only one, and fails an unrecorded import closed (null controls)",
