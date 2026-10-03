@@ -810,6 +810,12 @@
   "set": "redteam",
   "verdict": "NULL"
  },
+ "rt_04zz1_dup_wrapsplit_uncharged": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
+ },
  "rt_05_coord_mixin_relocation": {
   "admissible": true,
   "label": "GAME",
