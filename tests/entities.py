@@ -29460,6 +29460,7 @@ for _res in (_MUT_TO_RES,
 _mut_pnote = getattr(_mut, "partial_note", None)
 _MUT_TO_NOTE = (_mut_pnote([({}, "LIVES"), ({}, "SKIP-TIMED-OUT in a"),
                             ({}, "SKIP-BUDGET"), ({}, "SKIP-MOVED")]),
+                _mut_pnote([({}, "LIVES"), ({}, "SKIP-TIMED-OUT in a")]),
                 _mut_pnote([({}, "LIVES"), ({}, "SKIP-MOVED")])) \
     if _mut_pnote else None
 R.check(
@@ -29471,6 +29472,8 @@ R.check(
         (1, ["MUTATION TABLE REFUSED -- nothing was measured: 3 mutant(s) "
              "timed out, 1 not started for --budget-minutes"])]
     and _MUT_TO_NOTE == (" (partial: 1 evaluated, 1 timed out, 1 not started "
+                         "for the budget)",
+                         " (partial: 1 evaluated, 1 timed out, 0 not started "
                          "for the budget)", "")
     and 'PASSED" + partial_note(results)' in _MUT_MAIN_DEFER,
     f"refusals={_MUT_TO_OUT!r} notes={_MUT_TO_NOTE!r}",
