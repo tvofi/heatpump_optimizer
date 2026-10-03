@@ -268,6 +268,11 @@ HB_FREEZE_S = 1.0
 HB_HANG_S = 60.0  # no tick at all this long: report by name, then exit
 HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
 HB_SETTLE_S = 120.0  # wait for the last reload's first solve to finish
+# Every scenario stays measured this long after its last action, before any
+# settling: work an abort or a save defers (a listener, a scheduled refresh)
+# lands inside the window. Without it an untouched exit closed in 1-7 ms on
+# real HA, before the first 1 ms tick (#1870 review, dispatch 37079055904).
+HB_DWELL_S = 3.0
 # "Several changed saves in a row": odd, so the burst ends on a changed value.
 HB_MENU_SAVES = 5
 HB_PAGE = "comfort"
@@ -1708,7 +1713,12 @@ async def _async_check_a9(checks: Checks, hass, entry):
 
 
 def _hb_spin(seconds: float) -> None:
-    """The positive control: a CPU stall HA's blocking detector cannot see."""
+    """The positive control: a pure-Python CPU stall.
+
+    It calls none of the functions HA's blocking detector wraps, so by that
+    mechanism the detector would not report it -- reasoned, not measured: the
+    log scan counts only reports that blame this package.
+    """
     end = time.perf_counter() + seconds
     while time.perf_counter() < end:
         pass
@@ -1774,8 +1784,10 @@ class LoopHeartbeat:
         text = f"stall >= {stalled * 1000:.0f} ms; loop thread:\n{stack}"
         if self.py_spy:
             try:
+                # --nonblocking: a default dump ptrace-stops the process, loop
+                # included, and that pause would be added to the gap it reports.
                 spy = subprocess.run(
-                    [self.py_spy, "dump", "--pid", str(os.getpid())],
+                    [self.py_spy, "dump", "--nonblocking", "--pid", str(os.getpid())],
                     capture_output=True, text=True, timeout=30,
                 )
                 text += f"py-spy rc={spy.returncode}:\n{spy.stdout}{spy.stderr[-400:]}"
@@ -1816,12 +1828,22 @@ def check_hb_scenario(checks: Checks, name: str, summary: dict, *,
 
 
 def check_hb_positive_control(checks: Checks, summary: dict) -> None:
+    """The gap is seen, and BOTH dumpers name the spin.
+
+    Requiring py-spy's own section (rc=0, naming ``_hb_spin``) is what pins
+    the wiring: a heartbeat container without SYS_PTRACE, or without the
+    staged binary, still dumps the Python stack and would pass on it alone.
+    """
     named = any("_hb_spin" in d for d in summary["dumps"])
+    spied = any(
+        "_hb_spin" in d.split("py-spy rc=0:", 1)[1]
+        for d in summary["dumps"] if "py-spy rc=0:" in d
+    )
     checks.check(
         "hb:positive_control",
-        summary["max_gap"] >= HB_CONTROL_S and named,
+        summary["max_gap"] >= HB_CONTROL_S and named and spied,
         f"a {HB_CONTROL_S * 1000:.0f} ms spin read as {summary['max_gap'] * 1000:.1f} ms; "
-        f"dump names the spin: {named}",
+        f"dump names the spin: {named}; py-spy rc=0 names it: {spied}",
     )
 
 
@@ -1867,7 +1889,8 @@ async def _async_hb_measure(checks: Checks, name: str, drive) -> tuple[dict, str
 
 
 async def _async_hb_settle(hass, entry_id: str) -> None:
-    """Keep measuring until the reloaded coordinator has solved, or the bound."""
+    """Dwell, then keep measuring until the coordinator has solved, or the bound."""
+    await asyncio.sleep(HB_DWELL_S)
     await hass.async_block_till_done()
     deadline = time.monotonic() + HB_SETTLE_S
     while time.monotonic() < deadline:

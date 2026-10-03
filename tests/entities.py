@@ -16471,7 +16471,8 @@ R.check(
 
 # A15 (#1758): the loop-stall heartbeat. The scenarios need real Home Assistant
 # and run nightly only; what runs here is the instrument itself, on a real
-# asyncio loop, against a deliberate CPU spin HA's blocking detector cannot see.
+# asyncio loop, against a deliberate pure-Python CPU spin (one that calls nothing
+# HA's blocking detector wraps -- reasoned from the mechanism, not measured).
 R.section("Nightly A15 loop-stall heartbeat (#1758)")
 R.check(
     "the nightly demands the heartbeat checks by name",
@@ -16484,6 +16485,9 @@ R.check(
 _hb_hangs: list = []
 
 
+_hb_after_stop: list = []
+
+
 async def _hb_drive(spin: float):
     loop = asyncio.get_running_loop()
     hb = _nightly.LoopHeartbeat(
@@ -16494,12 +16498,23 @@ async def _hb_drive(spin: float):
     if spin:
         loop.call_soon(_nightly._hb_spin, spin)
     await asyncio.sleep(0.1 + spin)
-    return hb.stop()
+    summary = hb.stop()
+    # The tick chain must end with stop(): one surviving 1 ms call_later per
+    # scenario would keep running on HA's loop for the rest of the run.
+    ticks = hb.ticks
+    await asyncio.sleep(0.05)
+    _hb_after_stop.append(hb.ticks - ticks)
+    return summary
 
 
 _hb_idle = asyncio.run(_hb_drive(0.0))
 _hb_idle_hangs = len(_hb_hangs)
 _hb_spun = asyncio.run(_hb_drive(_nightly.HB_CONTROL_S))
+R.check(
+    "stop() ends the tick chain: no tick lands after it",
+    _hb_after_stop == [0, 0],
+    f"ticks after stop per run: {_hb_after_stop}",
+)
 R.check(
     "the heartbeat measures a CPU stall it did not cause and dumps the frame",
     _hb_spun["max_gap"] >= _nightly.HB_CONTROL_S
@@ -16592,7 +16607,10 @@ R.check(
 )
 
 
-def _hb_ctl(gap: float, dump: str = "File x, in _hb_spin") -> bool:
+_HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
+
+
+def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
     c = _nightly.Checks()
     _nightly.check_hb_positive_control(
         c, {"max_gap": gap, "ticks": 9, "dumps": [dump]}
@@ -16602,9 +16620,11 @@ def _hb_ctl(gap: float, dump: str = "File x, in _hb_spin") -> bool:
 
 _HB_C = _nightly.HB_CONTROL_S
 R.check(
-    "hb:positive_control passes at the spin, and fails just under it or "
-    "without the spin's frame",
-    _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle"),
+    "hb:positive_control passes at the spin, and fails just under it, "
+    "without the spin's frame, or without py-spy's own rc=0 section naming it",
+    _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle")
+    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
+    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
     "check_hb_positive_control arms",
 )
 _hb_cmd = _nightly.docker_command(
@@ -16628,6 +16648,25 @@ with tempfile.TemporaryDirectory() as _hb_dir:
     _hb_staged = _nightly.stage_py_spy(Path(_hb_dir) / "drv", str(_hb_src))
     _hb_unstaged = _nightly.stage_py_spy(Path(_hb_dir) / "drv2", None)
     _hb_exec = os.access(Path(_hb_dir) / "drv" / "py-spy", os.X_OK)
+# The wiring, read where it is wired: the unit checks above pass caps and a
+# source by hand, so dropping either from the real calls would pass them.
+_hb_outside_src = _inspect.getsource(_nightly._run_outside)
+_hb_stage_src = _inspect.getsource(_nightly._stage)
+R.check(
+    "the real heartbeat run is staged with py-spy and launched with SYS_PTRACE",
+    'extra=["--heartbeat-only"], caps=("SYS_PTRACE",)' in _hb_outside_src
+    and "_stage(tmp_hb, two_zone_dhw=True)" in _hb_outside_src
+    and "stage_py_spy(driver, _host_py_spy())" in _hb_stage_src
+    and _hb_outside_src.count("caps=") == 1,
+    "the third _docker call or _stage lost its py-spy wiring",
+)
+R.check(
+    "every heartbeat scenario dwells before it settles, and py-spy never pauses the loop",
+    _nightly.HB_DWELL_S >= 1.0
+    and "asyncio.sleep(HB_DWELL_S)" in _inspect.getsource(_nightly._async_hb_settle)
+    and '"--nonblocking"' in _inspect.getsource(_nightly.LoopHeartbeat.dump),
+    f"HB_DWELL_S={_nightly.HB_DWELL_S}",
+)
 R.check(
     "the host's py-spy is staged executable beside the driver, and none is staged without one",
     _hb_staged and _hb_exec and not _hb_unstaged,
