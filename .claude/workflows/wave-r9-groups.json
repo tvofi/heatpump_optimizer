@@ -3238,10 +3238,10 @@
         "R9-EG-B10"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-eg-solve-inputs",
         "commit": null,
-        "last_step": null,
+        "last_step": "fixer seat dispatched 2026-10-03 on fix/r9-eg-b1",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
         "note_file": "handoff/round9/fix/resume/EG-B1.md on handoff/r9-eg-solve-inputs",
         "review_branch": "handoff/r9-eg-solve-inputs-review",
@@ -5192,10 +5192,10 @@
         "R9-WEB-3"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-ro-2",
         "commit": null,
-        "last_step": null,
+        "last_step": "fixer seat dispatched 2026-10-03 on fix/r9-ro-2",
         "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/RO.md, re-derive the move map for this group's units, then write the failing check",
         "note_file": "handoff/round9/fix/resume/RO-2.md on handoff/r9-ro-2",
         "review_branch": "handoff/r9-ro-2-review",
@@ -6298,10 +6298,10 @@
         "R9-F10.12"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-f10-13",
         "commit": null,
-        "last_step": null,
+        "last_step": "fixer seat dispatched 2026-10-03 on fix/r9-f10-13",
         "next_step": "fixer.md step 1 at a fresh merge base: re-measure, then write the failing check",
         "note_file": null,
         "review_branch": null,
