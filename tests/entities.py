@@ -29993,6 +29993,7 @@ _PG_TREE = {
     "docs/site/fonts/a.woff2": "w",
     "docs/site/fonts/OFL-A.txt": "ofl",
     "docs/site/notes.md": "# a markdown file inside the site folder",
+    "docs/site/fonts/README.MD": "# upper-case extension inside the site folder",
     "docs/img/a.png": "p",
     "docs/img/card/b-dark.png": "p",
     "docs/setup/c.svg": "<svg/>",
@@ -30021,15 +30022,19 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
     out: "list[str]" = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp) / "repo"
-        for rel, body in _PG_TREE.items():
-            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
-            (repo / rel).write_text(body or "untracked")
+        # No path is ever an argument: a recorded run would attribute a
+        # relative argv path to this repository (tests/closure.py `_rel`).
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
-        subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
-        subprocess.run(git + ["add", "--"] + [r for r, b in _PG_TREE.items()
-                                              if b is not None],
-                       cwd=repo, check=True)
-        subprocess.run(git + ["commit", "-qm", "t"], cwd=repo, check=True)
+        for tracked in (True, False):
+            for rel, body in _PG_TREE.items():
+                if (body is not None) == tracked:
+                    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (repo / rel).write_text(body or "untracked")
+            if tracked:
+                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
+                               check=True)
         rc = _pg_run(stage, repo)
         site = repo / "_site"
         got = {p.relative_to(site).as_posix() for p in site.rglob("*")
@@ -30045,6 +30050,37 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
         (site / "img" / "note.Md").write_text("planted")
         if _pg_run(guard, repo) == 0:
             out.append("the guard passes a staged set holding a .md")
+    return out
+
+
+def _pg_probe_defects(script: str) -> "list[str]":
+    """Run the probe step against a stub `gh` for each answer the API gives.
+
+    Pages built by this workflow -> enabled=true; Pages off (404) or built
+    from a branch -> enabled=false and exit 0, so the run stays green and the
+    upload and deploy are skipped; any other API error -> a red run.
+    """
+    cases = {"workflow": ("echo workflow", 0, "true"),
+             "404": ("echo 'gh: Not Found (HTTP 404)' >&2; exit 1", 0, "false"),
+             "legacy": ("echo legacy", 0, "false"),
+             "500": ("echo 'gh: Server Error (HTTP 500)' >&2; exit 1", 1, None)}
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        stub, gho = Path(tmp) / "bin", Path(tmp) / "out"
+        stub.mkdir()
+        for case, (body, want_rc, want) in cases.items():
+            (stub / "gh").write_text(f"#!/bin/sh\n{body}\n")
+            (stub / "gh").chmod(0o755)
+            gho.write_text("")
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=str(gho),
+                       GITHUB_STEP_SUMMARY=os.devnull, GITHUB_REPOSITORY="o/r",
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo",
+                                 "pipefail", "-c", script], cwd=tmp, env=env,
+                                capture_output=True, text=True).returncode
+            got = re.findall(r"^enabled=(\w+)$", gho.read_text(), re.M)
+            if (rc != 0) != bool(want_rc) or got != ([want] if want else []):
+                out.append(f"probe on {case}: rc={rc} enabled={got}")
     return out
 
 
@@ -30095,6 +30131,11 @@ def _pg_defects(text: str) -> "list[str]":
               if str(s.get("uses", "")).startswith("actions/deploy-pages@")]
     if len(deploy) != 1 or "enabled" not in str(jobs[deploy[0]].get("if", "")):
         out.append(f"the deploy job {deploy} is not gated on the Pages probe")
+    probe = [s for _, s in steps if s.get("id") == "probe"]
+    if len(probe) != 1:
+        out.append("no step with id `probe`")
+    else:
+        out += _pg_probe_defects(str(probe[0].get("run", "")))
     return out + _pg_staging_defects(str(named[_PG_STAGE][1].get("run", "")),
                                      str(named[_PG_GUARD][1].get("run", "")))
 
@@ -30121,6 +30162,21 @@ R.check(
     any("extra=" in d and ".md" in d for d in _PG_NULL_STAGE)
     and any("holding a .md" in d for d in _PG_NULL_GUARD),
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
+)
+
+# Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
+# script reads it, so an edit to it selects this script; it sets no gate
+# variable and runs no gate script, so it never forces FULL.
+R.check(
+    "pages.yml is not a gate file, and is classified",
+    (not _closure.is_gate_file(str(_PG_WF)))
+    and (not _closure.is_inert(str(_PG_WF)))
+    and _closure.affected([str(_PG_WF)])["case"] == "scoped"
+    and str(_PG_WF) in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(str(_PG_WF))} "
+    f"inert={_closure.is_inert(str(_PG_WF))} "
+    f"case={_closure.affected([str(_PG_WF)])['case']}",
 )
 
 
