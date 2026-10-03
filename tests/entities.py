@@ -29441,6 +29441,66 @@ R.check(
     and _MUT_HG_RAN == ["tests/a.py"],
     f"verdicts={[v for _, v in _MUT_HG_OUT]!r} ran={_MUT_HG_RAN!r}",
 )
+# Round 2 (the review's P9): twins NOT adjacent in the queue -- a --pin-killed
+# pool has no adjacency -- with a dearer site between them. A granted twin
+# is started even after that site closes the pool, so the anchor is whole.
+_MUT_NA_POOL = [_MUT_AB_SITE(0, "x.py:T"),
+                dict(_MUT_AB_SITE(1, "x.py:U"), drivers=["tests/z.py"]),
+                _MUT_AB_SITE(2, "x.py:T")]
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_na_drive(w, m, s):
+    _MUT_BG_T[0] += {"tests/a.py": 10, "tests/z.py": 100}[s]
+    return True
+
+
+_MUT_NA_OUT = _mut_pool(_MUT_NA_POOL, 1, {"tests/a.py": 10, "tests/z.py": 100},
+                        _mut_na_drive, deadline=40, clock=lambda: _MUT_BG_T[0])
+_MUT_NA_PINS = _mut.pin_results(
+    _MUT_NA_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
+                  for m, v in _MUT_NA_OUT if v.startswith("killed")},
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL, "r",
+    how="--drain")[0]
+R.check(
+    "a twin granted with its anchor is started even after a dearer site "
+    "between them closes the pool",
+    [v for _, v in _MUT_NA_OUT]
+    == ["killed by tests/a.py", "SKIP-BUDGET", "killed by tests/a.py"]
+    and sorted(_MUT_NA_PINS) == ["x.py:T"],
+    f"verdicts={[v for _, v in _MUT_NA_OUT]!r} pins={sorted(_MUT_NA_PINS)!r}",
+)
+# And the drain's own guard, driven on the split round 1 produced there: a
+# killed site whose twin went unstarted is no human's to judge.
+_MUT_NA_SPLIT = [(_MUT_NA_POOL[0], "killed by tests/a.py"),
+                 (_MUT_NA_POOL[1], "SKIP-BUDGET"),
+                 (_MUT_NA_POOL[2], "SKIP-BUDGET")]
+_MUT_NA_SURV = (_mut_drain_surv(_MUT_NA_SPLIT, {}) if _mut_drain_surv else None)
+R.check(
+    "the drain lists no site of an anchor the budget split",
+    _MUT_NA_SURV == [],
+    f"survivors={_MUT_NA_SURV!r}",
+)
+# Round 2 (the review's P10): a mutant that timed out runs nothing further,
+# so its EXCLUSIVE reservation is released as a kill's is. Mutant 0 times out
+# on tests/a.py at 30; mutant 1 needs 40 and fits 80 only without the stale 30.
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_tr_drive(w, m, s):
+    _MUT_BG_T[0] += 30 if m["line"] == 0 else {"tests/a.py": 10,
+                                                "tests/stress.py": 30}[s]
+    return None if m["line"] == 0 else False
+
+
+_MUT_TR_OUT = _mut_pool(_MUT_BG_X[:2], 1, {"tests/a.py": 10, "tests/stress.py": 30},
+                        _mut_tr_drive, deadline=80, clock=lambda: _MUT_BG_T[0])
+R.check(
+    "a timed-out mutant releases the EXCLUSIVE run it reserved",
+    [v for _, v in _MUT_TR_OUT] == ["SKIP-TIMED-OUT in tests/a.py", "LIVES"]
+    and _MUT_BG_T[0] == 70,
+    f"verdicts={[v for _, v in _MUT_TR_OUT]!r} clock={_MUT_BG_T[0]}",
+)
 # Timeouts are loud in the headline: a run that evaluated nothing because its
 # mutants timed out is refused, the reason names each cause, and a partial
 # run's PASSED suffix counts the timed-out ones too (the review's P4, P5).
