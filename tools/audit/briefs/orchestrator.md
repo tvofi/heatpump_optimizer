@@ -270,7 +270,7 @@ never by hand or in a branch; rule 4 binds you.
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
-Your other reusable scripts land too, by `fixer.md` step 17.
+Your other reusable scripts land too, by `fixer.md` step 18.
 
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved

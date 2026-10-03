@@ -187,6 +187,10 @@ const VERDICT_CLASSES = [
   // `policy_lint.mjs:blockClasses` extracts it from this same literal, so
   // teaching the word here is what makes the three agree.
   'product-tradeoff-regression',
+  // fix-review.md step 14 (tvofi, 2026-10-03): a measured number the diff moves
+  // that the change did not earn -- the null control leaves it standing, or the
+  // reviewer's own planted gaming attempt reproduces it.
+  'metric-gamed',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
